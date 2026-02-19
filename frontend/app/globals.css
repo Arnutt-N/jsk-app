@@ -107,6 +107,9 @@
   --color-sidebar-primary: hsl(217 91% 60%);
   --color-sidebar-primary-fg: hsl(0 0% 100%);
   --sidebar-primary-fg: hsl(0 0% 100%);
+  /* Sidebar gradient active state (HR-IMS reference) */
+  --gradient-active-from: 217 91% 60%;   /* blue-600 */
+  --gradient-active-to: 225 93% 65%;     /* indigo-600 */
 
   /* Alias tokens to ease shadcn-style class adaptation */
   --color-popover: hsl(0 0% 100%);
@@ -460,7 +463,25 @@
     background: hsl(217 33% 17% / 0.8);
     border-bottom: 1px solid hsl(215 28% 17% / 0.8);
   }
-  
+
+  /* HR-IMS gradient active nav item */
+  .gradient-active {
+    background: linear-gradient(
+      to right,
+      hsl(var(--gradient-active-from)),
+      hsl(var(--gradient-active-to))
+    );
+  }
+
+  /* HR-IMS logo icon gradient */
+  .gradient-logo {
+    background: linear-gradient(
+      to bottom right,
+      hsl(225 93% 65%),
+      hsl(217 91% 60%)
+    );
+  }
+
   /* Gradient Text */
   .text-gradient {
     background: linear-gradient(135deg, hsl(262 83% 66%), hsl(261 77% 76%));

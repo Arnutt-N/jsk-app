@@ -6,19 +6,19 @@ import { cva, type VariantProps } from 'class-variance-authority';
 
 const inputVariants = cva(
   [
-    'w-full rounded-xl border bg-white dark:bg-gray-800',
-    'text-sm text-gray-900 dark:text-gray-100',
-    'placeholder:text-gray-400 dark:placeholder:text-gray-500',
+    'w-full rounded-xl border bg-surface',
+    'text-sm text-text-primary',
+    'placeholder:text-text-tertiary',
     'transition-all duration-200 ease-out',
     'focus:outline-none focus:ring-2',
-    'hover:border-gray-300 dark:hover:border-gray-500',
-    'disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-gray-50 dark:disabled:bg-gray-900',
+    'hover:border-border-hover',
+    'disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-bg',
   ],
   {
     variants: {
       variant: {
         outline: [
-          'border-gray-200 dark:border-gray-600',
+          'border-border-default',
           'focus:border-brand-500 focus:ring-brand-500/20',
         ],
         filled: [
@@ -106,7 +106,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           <p
             className={cn(
               'mt-1.5 text-xs',
-              errorMessage ? 'text-red-500 dark:text-red-400' : 'text-gray-500 dark:text-gray-400'
+              errorMessage ? 'text-danger-text dark:text-danger-light' : 'text-text-secondary'
             )}
           >
             {errorMessage || helperText}

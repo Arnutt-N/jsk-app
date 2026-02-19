@@ -20,18 +20,17 @@ export default function PageHeader({
         <div
             className={cn(
                 'flex items-center justify-between',
-                'bg-white rounded-2xl p-5',
-                'border border-gray-100 shadow-sm',
-                'dark:bg-gray-800 dark:border-gray-700',
+                'bg-surface rounded-2xl p-5',
+                'border border-border-default shadow-sm',
                 className
             )}
         >
             <div>
-                <h1 className="text-2xl font-bold text-gray-800 tracking-tight thai-no-break dark:text-gray-100">
+                <h1 className="text-2xl font-bold text-text-primary tracking-tight thai-no-break">
                     {title}
                 </h1>
                 {subtitle && (
-                    <p className="text-sm text-gray-400 mt-0.5 thai-no-break dark:text-gray-500">
+                    <p className="text-sm text-text-tertiary mt-0.5 thai-no-break">
                         {subtitle}
                     </p>
                 )}

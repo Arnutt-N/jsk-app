@@ -1,5 +1,6 @@
 import React from 'react';
 import { AlertCircle, CheckCircle, Info, XCircle, X } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
     variant?: 'primary' | 'success' | 'danger' | 'warning' | 'info';
@@ -35,7 +36,7 @@ export const Alert: React.FC<AlertProps> = ({
 
     return (
         <div
-            className={`relative p-4 rounded-xl flex items-start gap-3 ${variants[variant]} ${className}`}
+            className={cn('relative p-4 rounded-xl flex items-start gap-3', variants[variant], className)}
             role="alert"
             {...props}
         >

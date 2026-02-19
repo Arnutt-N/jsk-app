@@ -8,7 +8,7 @@ import { SessionTimeoutWarning } from '@/components/admin/SessionTimeoutWarning'
 import { useTheme } from '@/components/providers';
 import { cn } from '@/lib/utils';
 import {
-  Sun, Moon, Bell, Menu, Search, LogOut, ChevronLeft,
+  Sun, Moon, Bell, Menu, Search, LogOut, ChevronLeft, ChevronRight,
   LayoutDashboard, FileText, Bot, MessageCircle,
   Reply, MessageSquareReply, PanelTop, History,
   Users, Megaphone, FolderOpen, UserCog, BarChart3,
@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 import { Tooltip } from '@/components/ui/Tooltip';
+import SidebarItem from '@/components/admin/SidebarItem';
 
 interface MenuItem {
   name: string;
@@ -37,7 +38,7 @@ function AdminAuthGate({ children }: { children: React.ReactNode }) {
   if (isLoading || !isAuthenticated) {
     return (
       <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full" />
+        <div className="animate-spin w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full" />
       </div>
     );
   }
@@ -56,9 +57,9 @@ function ThemeToggle() {
         onClick={toggleTheme}
         className={cn(
           'p-2 rounded-xl transition-all duration-200',
-          'text-slate-400 hover:text-indigo-600 hover:bg-slate-50',
-          'dark:text-gray-400 dark:hover:text-indigo-400 dark:hover:bg-gray-800',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50'
+          'text-text-tertiary hover:text-brand-600 hover:bg-gray-50',
+          'dark:hover:text-brand-400 dark:hover:bg-gray-800',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/50'
         )}
         aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
       >
@@ -163,34 +164,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 mix-blend-overlay pointer-events-none" />
 
             {/* Sidebar Logo */}
-            <div className="relative z-10 h-16 flex items-center justify-center px-4 border-b border-white/10">
+            <div className="relative z-10 h-20 flex items-center justify-center px-4 border-b border-white/10">
               {isSidebarCollapsed ? (
-                <button
-                  onClick={toggleSidebar}
-                  className="w-10 h-10 rounded-2xl bg-blue-600 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-blue-500/20 ring-4 ring-blue-500/10 hover:shadow-blue-500/30 transition-shadow cursor-pointer"
-                  aria-label="Expand sidebar"
-                >
+                <div className="w-10 h-10 rounded-2xl gradient-logo flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-blue-500/20 ring-4 ring-blue-500/10">
                   JS
-                </button>
-              ) : (
-                <div className="flex items-center justify-between w-full">
-                  <Link href="/admin" className="flex-1 flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-blue-600 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-blue-500/20 ring-4 ring-blue-500/10 flex-shrink-0">
-                      JS
-                    </div>
-                    <div className="flex-1 text-center">
-                      <span className="text-white font-bold text-lg tracking-wide">JSK</span>
-                      <span className="text-blue-300 text-sm ml-1 font-semibold">Admin</span>
-                    </div>
-                  </Link>
-                  <button
-                    onClick={toggleSidebar}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
-                    aria-label="Collapse sidebar"
-                  >
-                    <ChevronLeft className="w-5 h-5" />
-                  </button>
                 </div>
+              ) : (
+                <Link href="/admin" className="flex items-center gap-3 w-full">
+                  <div className="w-10 h-10 rounded-2xl gradient-logo flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-blue-500/20 ring-4 ring-blue-500/10 flex-shrink-0">
+                    JS
+                  </div>
+                  <div className="flex-1">
+                    <h1 className="text-white font-bold text-xl bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent tracking-wide leading-tight">
+                      JSK
+                    </h1>
+                    <p className="text-[10px] text-slate-500 tracking-widest uppercase">Admin</p>
+                  </div>
+                </Link>
               )}
             </div>
 
@@ -206,42 +196,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   <ul className="space-y-1">
                     {group.items.map((item) => {
                       const isActive = activeItem ? item.href === activeItem.href : pathname === item.href;
-                      const navLink = (
-                        <Link
-                          href={item.href}
-                          target={item.external || item.openInNewTab ? '_blank' : undefined}
-                          className={cn(
-                            'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors duration-200 group min-h-[40px]',
-                            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50',
-                            isActive
-                              ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-900/30 font-semibold'
-                              : 'text-slate-400 hover:bg-white/5 hover:text-white'
-                          )}
-                          aria-current={isActive ? 'page' : undefined}
-                        >
-                          <item.icon
-                            className={cn(
-                              'flex-shrink-0 transition-colors',
-                              isSidebarCollapsed ? 'w-5 h-5 mx-auto' : 'w-5 h-5',
-                              isActive ? 'text-white' : 'text-slate-400 group-hover:text-blue-300'
-                            )}
-                            aria-hidden="true"
-                          />
-                          {!isSidebarCollapsed && <span className="font-medium text-sm">{item.name}</span>}
-                        </Link>
-                      );
-
                       return (
                         <li key={item.name}>
-                          <div className="w-full">
-                            {isSidebarCollapsed ? (
-                              <Tooltip content={item.name} side="right">
-                                {navLink}
-                              </Tooltip>
-                            ) : (
-                              navLink
-                            )}
-                          </div>
+                          <SidebarItem
+                            icon={item.icon}
+                            label={item.name}
+                            href={item.href}
+                            isActive={isActive}
+                            isCollapsed={isSidebarCollapsed}
+                            target={item.openInNewTab ? '_blank' : undefined}
+                          />
                         </li>
                       );
                     })}
@@ -251,7 +215,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </nav>
 
             {/* User Section */}
-            <div className="relative z-10 p-3 border-t border-white/10 bg-black/10 backdrop-blur-sm">
+            <div className="relative z-10 p-3 border-t border-white/10 bg-slate-800/50">
               <div className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-colors cursor-pointer group">
                 <Avatar size="sm" fallback="AD" />
                 {!isSidebarCollapsed && (
@@ -265,6 +229,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 )}
               </div>
             </div>
+
+            {/* Bottom collapse toggle — HR-IMS style */}
+            <button
+              onClick={toggleSidebar}
+              className="relative z-10 flex h-10 w-full items-center justify-center border-t border-white/10 text-slate-400 transition-colors hover:bg-white/5 hover:text-white"
+              aria-label={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              {isSidebarCollapsed
+                ? <ChevronRight className="h-4 w-4" />
+                : <ChevronLeft className="h-4 w-4" />}
+            </button>
           </aside>
 
           {/* Main Content */}
@@ -274,27 +249,26 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           )}>
             {/* Header */}
             <header className={cn(
-              'sticky top-0 z-40 h-16',
+              'sticky top-0 z-40 h-20',
               'flex items-center justify-between',
-              'bg-white/80 dark:bg-gray-800/80 backdrop-blur-md',
-              'border-b border-slate-200/60 dark:border-gray-700/60',
+              'glass-navbar',
               'px-6 md:px-8'
             )}>
               <div className="flex items-center gap-4">
                 <button
                   onClick={() => setIsMobileMenuOpen(true)}
-                  className="lg:hidden p-2 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 text-slate-600 dark:text-gray-400 hover:text-indigo-600 transition-colors cursor-pointer"
+                  className="lg:hidden p-2 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 text-text-secondary dark:text-gray-400 hover:text-brand-600 transition-colors cursor-pointer"
                   aria-label="Open menu"
                 >
                   <Menu className="w-5 h-5" />
                 </button>
 
-                <div className="hidden md:flex items-center bg-slate-100/50 dark:bg-gray-700/50 rounded-xl px-4 py-2.5 border border-slate-200 dark:border-gray-600 focus-within:ring-2 focus-within:ring-blue-100 dark:focus-within:ring-blue-900 transition-all w-64">
+                <div className="hidden md:flex items-center bg-slate-100/50 dark:bg-gray-700/50 rounded-xl px-4 py-2.5 border border-slate-200 dark:border-gray-600 focus-within:ring-2 focus-within:ring-brand-100 dark:focus-within:ring-brand-900 transition-all w-64">
                   <Search className="w-4 h-4 text-slate-400 mr-2 flex-shrink-0" />
                   <input
                     type="text"
                     placeholder="Search..."
-                    className="bg-transparent text-sm text-slate-800 dark:text-gray-200 placeholder:text-slate-400 focus:outline-none w-full"
+                    className="bg-transparent text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none w-full"
                   />
                 </div>
               </div>
@@ -304,7 +278,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
                 <Tooltip content="Notifications">
                   <button
-                    className="p-2.5 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-slate-50 dark:hover:bg-gray-700 transition-all relative"
+                    className="p-2.5 rounded-xl text-text-tertiary hover:text-brand-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all relative"
                     aria-label="Notifications"
                   >
                     <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white dark:ring-gray-800 animate-pulse" />
@@ -318,7 +292,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   size="sm"
                   fallback="AD"
                   status="online"
-                  className="ring-2 ring-blue-500/40 ring-offset-1 ring-offset-white dark:ring-offset-gray-800"
+                  className="ring-2 ring-indigo-500/20 ring-offset-1 ring-offset-white dark:ring-offset-gray-800"
                 />
               </div>
             </header>

@@ -1,9 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { cn } from "@/lib/utils";
+import PageHeader from "@/app/admin/components/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/Table";
 import {
   Users,
   Clock,
@@ -81,6 +84,11 @@ interface DashboardData {
   };
 }
 
+// Semantic chart colors matching design tokens
+const CHART_BRAND = 'hsl(262 83% 58%)';   // --color-brand-600
+const CHART_SUCCESS = 'hsl(142 71% 45%)'; // --color-success
+const CHART_BRAND_RGB = '124, 58, 237';   // brand-600 for rgba heatmap
+
 function formatDuration(seconds: number): string {
   if (seconds < 60) return `${Math.round(seconds)}s`;
   const minutes = Math.floor(seconds / 60);
@@ -89,10 +97,10 @@ function formatDuration(seconds: number): string {
 }
 
 function TrendBadge({ metric }: { metric?: TrendMetric }) {
-  if (!metric) return <span className="text-xs text-slate-400">vs yesterday</span>;
+  if (!metric) return <span className="text-xs text-text-tertiary">vs yesterday</span>;
   const positive = metric.delta >= 0;
   const Icon = positive ? ArrowUpRight : ArrowDownRight;
-  const cls = positive ? "text-emerald-600" : "text-rose-600";
+  const cls = positive ? "text-success-text" : "text-danger-text";
   return (
     <span className={`text-xs inline-flex items-center gap-1 ${cls}`}>
       <Icon className="w-3 h-3" />
@@ -189,11 +197,10 @@ export default function AnalyticsPage() {
 
   return (
     <div className="container mx-auto py-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Live Analytics Dashboard</h1>
+      <PageHeader title="Live Analytics Dashboard">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <span className="text-sm text-slate-400">Last</span>
+            <span className="text-sm text-text-tertiary">Last</span>
             <Input
               type="number"
               value={days}
@@ -202,7 +209,7 @@ export default function AnalyticsPage() {
               min={1}
               max={30}
             />
-            <span className="text-sm text-slate-400">days</span>
+            <span className="text-sm text-text-tertiary">days</span>
           </div>
           {selectedOperator && (
             <Button variant="outline" size="sm" onClick={() => setSelectedOperator(null)}>
@@ -214,12 +221,12 @@ export default function AnalyticsPage() {
             Refresh
           </Button>
         </div>
-      </div>
+      </PageHeader>
 
       {loading && !kpis ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {Array.from({ length: 8 }).map((_, idx) => (
-            <div key={idx} className="h-32 rounded-xl border bg-slate-100 animate-pulse" />
+            <div key={idx} className="h-32 rounded-xl border border-border-default bg-gray-100 dark:bg-gray-700 animate-pulse" />
           ))}
         </div>
       ) : null}
@@ -227,31 +234,31 @@ export default function AnalyticsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         <Card className={kpis?.waiting ? "border-danger" : ""}>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-slate-400 flex items-center gap-2">
+            <CardTitle className="text-sm font-medium text-text-tertiary flex items-center gap-2">
               <Users className="w-4 h-4" /> Waiting
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-danger">{kpis?.waiting ?? "-"}</div>
-            <p className="text-xs text-slate-400 mt-1">users in queue</p>
+            <p className="text-xs text-text-tertiary mt-1">users in queue</p>
           </CardContent>
         </Card>
 
         <Card className={kpis?.active ? "border-success" : ""}>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-slate-400 flex items-center gap-2">
+            <CardTitle className="text-sm font-medium text-text-tertiary flex items-center gap-2">
               <MessageSquare className="w-4 h-4" /> Active Sessions
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-success">{kpis?.active ?? "-"}</div>
-            <p className="text-xs text-slate-400 mt-1">ongoing conversations</p>
+            <p className="text-xs text-text-tertiary mt-1">ongoing conversations</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-slate-400 flex items-center justify-between">
+            <CardTitle className="text-sm font-medium text-text-tertiary flex items-center justify-between">
               <span className="flex items-center gap-2"><BarChart3 className="w-4 h-4" /> Sessions Today</span>
               <TrendBadge metric={dashboard?.trends.sessions_today} />
             </CardTitle>
@@ -261,7 +268,7 @@ export default function AnalyticsPage() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-slate-400 flex items-center gap-2">
+            <CardTitle className="text-sm font-medium text-text-tertiary flex items-center gap-2">
               <Users className="w-4 h-4" /> Human Mode
             </CardTitle>
           </CardHeader>
@@ -270,7 +277,7 @@ export default function AnalyticsPage() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-slate-400 flex items-center gap-2">
+            <CardTitle className="text-sm font-medium text-text-tertiary flex items-center gap-2">
               <CheckCircle className="w-4 h-4" /> SLA Breaches (24h)
             </CardTitle>
           </CardHeader>
@@ -279,7 +286,7 @@ export default function AnalyticsPage() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-slate-400 flex items-center justify-between">
+            <CardTitle className="text-sm font-medium text-text-tertiary flex items-center justify-between">
               <span className="flex items-center gap-2"><Clock className="w-4 h-4" /> Avg First Response</span>
               <TrendBadge metric={dashboard?.trends.avg_first_response_seconds} />
             </CardTitle>
@@ -289,7 +296,7 @@ export default function AnalyticsPage() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-slate-400 flex items-center justify-between">
+            <CardTitle className="text-sm font-medium text-text-tertiary flex items-center justify-between">
               <span className="flex items-center gap-2"><Clock className="w-4 h-4" /> Avg Resolution</span>
               <TrendBadge metric={dashboard?.trends.avg_resolution_seconds} />
             </CardTitle>
@@ -299,7 +306,7 @@ export default function AnalyticsPage() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-slate-400 flex items-center justify-between">
+            <CardTitle className="text-sm font-medium text-text-tertiary flex items-center justify-between">
               <span className="flex items-center gap-2"><Star className="w-4 h-4" /> CSAT</span>
               <TrendBadge metric={dashboard?.trends.csat_percentage} />
             </CardTitle>
@@ -309,7 +316,7 @@ export default function AnalyticsPage() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-slate-400 flex items-center justify-between">
+            <CardTitle className="text-sm font-medium text-text-tertiary flex items-center justify-between">
               <span className="flex items-center gap-2"><CheckCircle className="w-4 h-4" /> FCR</span>
               <TrendBadge metric={dashboard?.trends.fcr_rate} />
             </CardTitle>
@@ -328,7 +335,7 @@ export default function AnalyticsPage() {
                 <XAxis dataKey="day" tick={{ fontSize: 12 }} />
                 <YAxis />
                 <Tooltip />
-                <Line type="monotone" dataKey="sessions" stroke="#2563eb" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="sessions" stroke={CHART_BRAND} strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
@@ -343,7 +350,7 @@ export default function AnalyticsPage() {
                 <XAxis dataKey="stage" />
                 <YAxis />
                 <Tooltip />
-                <Bar dataKey="value" fill="#16a34a" />
+                <Bar dataKey="value" fill={CHART_SUCCESS} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -363,13 +370,13 @@ export default function AnalyticsPage() {
                       key={`${day}-${hour}`}
                       className="h-4 rounded-sm"
                       title={`D${day} ${hour}:00 = ${value}`}
-                      style={{ backgroundColor: `rgba(37, 99, 235, ${intensity})` }}
+                      style={{ backgroundColor: `rgba(${CHART_BRAND_RGB}, ${intensity})` }}
                     />
                   );
                 })
               )}
             </div>
-            <p className="text-xs text-slate-400 mt-3">Rows are day-of-week (0=Sun), columns are hour (0-23).</p>
+            <p className="text-xs text-text-tertiary mt-3">Rows are day-of-week (0=Sun), columns are hour (0-23).</p>
           </CardContent>
         </Card>
 
@@ -378,13 +385,13 @@ export default function AnalyticsPage() {
           <CardContent className="space-y-3">
             <div className="rounded-lg border p-3">
               <p className="text-sm font-medium mb-1">First Response Time</p>
-              <p className="text-sm text-slate-400">
+              <p className="text-sm text-text-secondary">
                 P50: {formatDuration(dashboard?.percentiles.frt.p50 ?? 0)} | P90: {formatDuration(dashboard?.percentiles.frt.p90 ?? 0)} | P99: {formatDuration(dashboard?.percentiles.frt.p99 ?? 0)}
               </p>
             </div>
             <div className="rounded-lg border p-3">
               <p className="text-sm font-medium mb-1">Resolution Time</p>
-              <p className="text-sm text-slate-400">
+              <p className="text-sm text-text-secondary">
                 P50: {formatDuration(dashboard?.percentiles.resolution.p50 ?? 0)} | P90: {formatDuration(dashboard?.percentiles.resolution.p90 ?? 0)} | P99: {formatDuration(dashboard?.percentiles.resolution.p99 ?? 0)}
               </p>
             </div>
@@ -400,44 +407,47 @@ export default function AnalyticsPage() {
         </CardHeader>
         <CardContent>
           {operators.length === 0 ? (
-            <div className="text-center py-8 text-slate-400">No operator data available.</div>
+            <div className="text-center py-8 text-text-tertiary">No operator data available.</div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-3 px-4 font-medium">Operator</th>
-                    <th className="text-center py-3 px-4 font-medium">Sessions</th>
-                    <th className="text-center py-3 px-4 font-medium">Avg First Response</th>
-                    <th className="text-center py-3 px-4 font-medium">Avg Resolution</th>
-                    <th className="text-center py-3 px-4 font-medium">Avg Queue Wait</th>
-                    <th className="text-center py-3 px-4 font-medium">Availability</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {operators.map((op) => (
-                    <tr
-                      key={op.operator_id}
-                      className={`border-b cursor-pointer hover:bg-slate-50 ${selectedOperator === op.operator_id ? "bg-slate-100" : ""}`}
-                      onClick={() => setSelectedOperator(op.operator_id)}
-                    >
-                      <td className="py-3 px-4">{op.operator_name}</td>
-                      <td className="text-center py-3 px-4">{op.total_sessions}</td>
-                      <td className="text-center py-3 px-4">{formatDuration(op.avg_first_response_seconds)}</td>
-                      <td className="text-center py-3 px-4">{formatDuration(op.avg_resolution_seconds)}</td>
-                      <td className="text-center py-3 px-4">{formatDuration(op.avg_queue_wait_seconds)}</td>
-                      <td className="text-center py-3 px-4">{op.availability_percent.toFixed(1)}%</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Operator</TableHead>
+                  <TableHead className="text-center">Sessions</TableHead>
+                  <TableHead className="text-center">Avg First Response</TableHead>
+                  <TableHead className="text-center">Avg Resolution</TableHead>
+                  <TableHead className="text-center">Avg Queue Wait</TableHead>
+                  <TableHead className="text-center">Availability</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {operators.map((op) => (
+                  <TableRow
+                    key={op.operator_id}
+                    className={cn(
+                      'cursor-pointer',
+                      selectedOperator === op.operator_id
+                        ? 'bg-brand-50 dark:bg-brand-900/20'
+                        : ''
+                    )}
+                    onClick={() => setSelectedOperator(op.operator_id)}
+                  >
+                    <TableCell>{op.operator_name}</TableCell>
+                    <TableCell className="text-center">{op.total_sessions}</TableCell>
+                    <TableCell className="text-center">{formatDuration(op.avg_first_response_seconds)}</TableCell>
+                    <TableCell className="text-center">{formatDuration(op.avg_resolution_seconds)}</TableCell>
+                    <TableCell className="text-center">{formatDuration(op.avg_queue_wait_seconds)}</TableCell>
+                    <TableCell className="text-center">{op.availability_percent.toFixed(1)}%</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
         </CardContent>
       </Card>
 
       {kpis?.timestamp ? (
-        <p className="text-xs text-slate-400 text-right">Last updated: {new Date(kpis.timestamp).toLocaleString()}</p>
+        <p className="text-xs text-text-tertiary text-right">Last updated: {new Date(kpis.timestamp).toLocaleString()}</p>
       ) : null}
     </div>
   );

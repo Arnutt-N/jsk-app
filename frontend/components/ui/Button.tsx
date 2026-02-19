@@ -147,7 +147,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         
         {/* Loading overlay */}
         {isLoading && (
-          <span className="absolute inset-0 flex items-center justify-center bg-inherit rounded-inherit">
+          <span className="absolute inset-0 flex items-center justify-center bg-inherit rounded-xl">
             <Loader2 className="w-4 h-4 animate-spin" />
             {loadingText && <span className="ml-2">{loadingText}</span>}
           </span>

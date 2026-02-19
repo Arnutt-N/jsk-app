@@ -19,9 +19,9 @@ interface StatsCardProps {
 
 const colorMap = {
   primary: {
-    iconBg: 'bg-gradient-to-br from-blue-100 to-blue-50',
-    text: 'text-blue-600',
-    glow: 'group-hover:shadow-blue-500/20',
+    iconBg: 'bg-gradient-to-br from-brand-100 to-brand-50',
+    text: 'text-brand-600',
+    glow: 'group-hover:shadow-brand-500/20',
   },
   success: {
     iconBg: 'bg-gradient-to-br from-green-100 to-green-50',
@@ -77,16 +77,16 @@ export default function StatsCard({
       </div>
 
       <div className="min-w-0 flex flex-col justify-start">
-        <p className="text-gray-500 text-[11px] font-semibold uppercase tracking-wider dark:text-gray-400">
+        <p className="text-text-tertiary text-[11px] font-semibold uppercase tracking-wider">
           {title}
         </p>
-        <p className="text-2xl font-bold text-gray-900 mt-0.5 tracking-tight dark:text-gray-100">
+        <p className="text-2xl font-bold text-text-primary mt-0.5 tracking-tight">
           {value}
         </p>
 
         <div className="mt-1 min-h-[18px]">
           {description && (
-            <p className="text-gray-400 text-xs dark:text-gray-500">{description}</p>
+            <p className="text-text-tertiary text-xs">{description}</p>
           )}
 
           {trend && (
@@ -104,7 +104,7 @@ export default function StatsCard({
               >
                 {trend.value}%
               </span>
-              <span className="text-gray-400 text-xs dark:text-gray-500">vs last month</span>
+              <span className="text-text-tertiary text-xs">vs last month</span>
             </div>
           )}
         </div>
@@ -113,16 +113,14 @@ export default function StatsCard({
   );
 
   const containerClasses = cn(
-    'bg-white rounded-2xl p-5',
-    'border border-gray-100',
-    'shadow-sm shadow-gray-200/50',
+    'bg-surface rounded-2xl p-5',
+    'border border-border-default',
+    'shadow-sm shadow-gray-200/50 dark:shadow-none',
     'transition-all duration-300 ease-out',
     'group cursor-pointer',
     'hover:-translate-y-1 hover:shadow-lg',
-    'hover:border-gray-200',
-    'block h-full',
-    'dark:bg-gray-800 dark:border-gray-700 dark:shadow-none',
-    'dark:hover:border-gray-600'
+    'hover:border-border-hover',
+    'block h-full'
   );
 
   if (link) {

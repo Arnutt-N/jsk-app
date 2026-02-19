@@ -7,19 +7,19 @@ import { ChevronDown } from 'lucide-react';
 
 const selectVariants = cva(
   [
-    'w-full appearance-none rounded-xl border bg-white dark:bg-gray-800',
-    'text-sm text-gray-900 dark:text-gray-100',
+    'w-full appearance-none rounded-xl border bg-surface',
+    'text-sm text-text-primary',
     'transition-all duration-200 ease-out',
     'focus:outline-none focus:ring-2',
-    'hover:border-gray-300 dark:hover:border-gray-500',
-    'disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-gray-50 dark:disabled:bg-gray-900',
+    'hover:border-border-hover',
+    'disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-bg',
     'pr-10',
   ],
   {
     variants: {
       variant: {
         outline: [
-          'border-gray-200 dark:border-gray-600',
+          'border-border-default',
           'focus:border-brand-500 focus:ring-brand-500/20',
         ],
         filled: [
@@ -115,13 +115,13 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
               </option>
             ))}
           </select>
-          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-tertiary pointer-events-none" />
         </div>
         {(errorMessage || helperText) && (
           <p
             className={cn(
               'mt-1.5 text-xs',
-              errorMessage ? 'text-red-500 dark:text-red-400' : 'text-gray-500 dark:text-gray-400'
+              errorMessage ? 'text-danger-text dark:text-danger-light' : 'text-text-secondary'
             )}
           >
             {errorMessage || helperText}

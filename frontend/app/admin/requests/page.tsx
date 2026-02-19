@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
 import {
     Search,
     Eye,
@@ -171,38 +173,37 @@ export default function AdminRequestList() {
             <Card glass className="border-none shadow-sm">
                 <CardContent className="p-4">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div className="relative col-span-1 md:col-span-2">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                            <input
+                        <div className="col-span-1 md:col-span-2">
+                            <Input
                                 type="text"
                                 placeholder="ค้นหาชื่อ, เบอร์โทรศัพท์ หรือรายละเอียด..."
-                                className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 dark:placeholder:text-gray-500"
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
+                                leftIcon={<Search className="w-4 h-4" />}
                             />
                         </div>
 
-                        <select
-                            className="bg-gray-50 border border-gray-200 rounded-lg py-2 px-3 text-sm outline-none cursor-pointer dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
+                        <Select
                             value={filter.status}
                             onChange={(e) => setFilter(prev => ({ ...prev, status: e.target.value }))}
-                        >
-                            <option value="">ทุกสถานะ</option>
-                            <option value="pending">รอรับเรื่อง</option>
-                            <option value="in_progress">กำลังดำเนินการ</option>
-                            <option value="completed">ดำเนินการแล้ว</option>
-                            <option value="rejected">ปฏิเสธ</option>
-                        </select>
-                        <select
-                            className="bg-gray-50 border border-gray-200 rounded-lg py-2 px-3 text-sm outline-none cursor-pointer dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
+                            options={[
+                                { value: '', label: 'ทุกสถานะ' },
+                                { value: 'pending', label: 'รอรับเรื่อง' },
+                                { value: 'in_progress', label: 'กำลังดำเนินการ' },
+                                { value: 'completed', label: 'ดำเนินการแล้ว' },
+                                { value: 'rejected', label: 'ปฏิเสธ' },
+                            ]}
+                        />
+                        <Select
                             value={filter.category}
                             onChange={(e) => setFilter(prev => ({ ...prev, category: e.target.value }))}
-                        >
-                            <option value="">ทุกหมวดหมู่</option>
-                            <option value="กองทุนยุติธรรม">กองทุนยุติธรรม</option>
-                            <option value="รับเรื่องราวร้องทุกข์">รับเรื่องราวร้องทุกข์</option>
-                            <option value="เงินเยียวยาเหยื่ออาชญากรรม">เงินเยียวยาเหยื่ออาชญากรรม</option>
-                        </select>
+                            options={[
+                                { value: '', label: 'ทุกหมวดหมู่' },
+                                { value: 'กองทุนยุติธรรม', label: 'กองทุนยุติธรรม' },
+                                { value: 'รับเรื่องราวร้องทุกข์', label: 'รับเรื่องราวร้องทุกข์' },
+                                { value: 'เงินเยียวยาเหยื่ออาชญากรรม', label: 'เงินเยียวยาเหยื่ออาชญากรรม' },
+                            ]}
+                        />
                     </div>
                 </CardContent>
             </Card>
