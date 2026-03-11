@@ -1,9 +1,21 @@
 ---
 name: agent_pickup
-description: Universal agent pickup - automates workflow for resuming work from any previous AI agent or platform
+description: >
+  Universal agent pickup - automates workflow for resuming work from any previous AI agent or platform
+  Reference standard for SKN App. Use when needing general guidance, 
+  "อ้างอิง", "ดูคู่มือ", "standard".
+compatibility: SKN App Project
+metadata:
+  category: reference
+  tags: [reference, agent-pickup]
 ---
 
 # Agent Pickup Skill
+
+
+## Context7 Docs
+
+Context7 MCP is active. Always attempt to use `mcp__context7__resolve-library-id` for any libraries discussed in this standard to retrieve the most up-to-date documentation.
 
 ## Overview
 

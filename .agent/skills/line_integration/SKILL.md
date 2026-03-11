@@ -1,9 +1,21 @@
 ---
-name: LINE Integration Standard
-description: Best practices for implementing LINE Messaging API and LIFF within the application.
+name: line_integration
+description: >
+  Best practices for implementing LINE Messaging API and LIFF within the application.
+  Reference standard for SKN App. Use when needing general guidance, 
+  "อ้างอิง", "ดูคู่มือ", "standard".
+compatibility: SKN App Project
+metadata:
+  category: reference
+  tags: [reference, line-integration]
 ---
 
 # LINE Integration Standards
+
+
+## Context7 Docs
+
+Context7 MCP is active. Always attempt to use `mcp__context7__resolve-library-id` for any libraries discussed in this standard to retrieve the most up-to-date documentation.
 
 ## 1. Webhook Security
 - **Signature Validation**: ALWAYS validate the `x-line-signature` header in the middleware before processing any event.

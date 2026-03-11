@@ -1,0 +1,437 @@
+{
+  "$schema": "https://tokens.studio/schemas/tokens.json",
+  "metadata": {
+    "name": "SKN Design Tokens",
+    "version": "1.0.0",
+    "description": "Unified design tokens combining Admin-Chat-System and HR-IMS styles"
+  },
+  "colors": {
+    "primary": {
+      "value": "217 91% 60%",
+      "type": "color",
+      "description": "Primary brand blue (from Admin-Chat-System)"
+    },
+    "primaryForeground": {
+      "value": "0 0% 100%",
+      "type": "color",
+      "description": "Text on primary background"
+    },
+    "accent": {
+      "value": "162 72% 45%",
+      "type": "color",
+      "description": "Teal accent color (from Admin-Chat-System)"
+    },
+    "accent_foreground": {
+      "value": "0 0% 100%",
+      "type": "color",
+      "description": "Text on accent background"
+    },
+    "destructive": {
+      "value": "0 84% 60%",
+      "type": "color",
+      "description": "Red for errors and destructive actions"
+    },
+    "destructive_foreground": {
+      "value": "0 0% 100%",
+      "type": "color",
+      "description": "Text on destructive background"
+    },
+    "background": {
+      "value": "220 20% 97%",
+      "type": "color",
+      "description": "Main page background (light gray)"
+    },
+    "foreground": {
+      "value": "220 20% 10%",
+      "type": "color",
+      "description": "Primary text color"
+    },
+    "card": {
+      "value": "0 0% 100%",
+      "type": "color",
+      "description": "Card and panel surfaces (white)"
+    },
+    "card_foreground": {
+      "value": "220 20% 10%",
+      "type": "color",
+      "description": "Text on card background"
+    },
+    "muted": {
+      "value": "220 14% 94%",
+      "type": "color",
+      "description": "Muted backgrounds"
+    },
+    "muted_foreground": {
+      "value": "220 10% 46%",
+      "type": "color",
+      "description": "Secondary/subtle text"
+    },
+    "border": {
+      "value": "220 13% 90%",
+      "type": "color",
+      "description": "Default border color"
+    },
+    "input": {
+      "value": "220 13% 90%",
+      "type": "color",
+      "description": "Input border color"
+    },
+    "ring": {
+      "value": "217 91% 60%",
+      "type": "color",
+      "description": "Focus ring color"
+    },
+    "sidebar": {
+      "background": {
+        "value": "222 47% 11%",
+        "type": "color",
+        "description": "Dark navy sidebar background (Admin-Chat-System)"
+      },
+      "foreground": {
+        "value": "213 31% 91%",
+        "type": "color",
+        "description": "Sidebar text color"
+      },
+      "primary": {
+        "value": "217 91% 60%",
+        "type": "color",
+        "description": "Active nav item (solid style)"
+      },
+      "primary_foreground": {
+        "value": "0 0% 100%",
+        "type": "color",
+        "description": "Text on active nav item"
+      },
+      "accent": {
+        "value": "215 28% 17%",
+        "type": "color",
+        "description": "Hover/subtle background in sidebar"
+      },
+      "muted": {
+        "value": "215 20% 65%",
+        "type": "color",
+        "description": "Inactive sidebar text"
+      },
+      "border": {
+        "value": "215 28% 17%",
+        "type": "color",
+        "description": "Sidebar borders (white/10 equivalent)"
+      }
+    },
+    "slate": {
+      "900": {
+        "value": "222 47% 11%",
+        "type": "color",
+        "description": "HR-IMS sidebar solid background"
+      },
+      "800": {
+        "value": "217 19% 17%",
+        "type": "color",
+        "description": "HR-IMS sidebar footer background"
+      },
+      "500": {
+        "value": "215 20% 65%",
+        "type": "color",
+        "description": "HR-IMS section labels"
+      },
+      "400": {
+        "value": "215 16% 47%",
+        "type": "color",
+        "description": "HR-IMS inactive icons"
+      },
+      "200": {
+        "value": "214 31% 91%",
+        "type": "color",
+        "description": "HR-IMS borders"
+      }
+    },
+    "gradient": {
+      "active_from": {
+        "value": "217 91% 60%",
+        "type": "color",
+        "description": "Gradient start for active menu (HR-IMS blue-600)"
+      },
+      "active_to": {
+        "value": "225 93% 65%",
+        "type": "color",
+        "description": "Gradient end for active menu (HR-IMS indigo-600)"
+      },
+      "logo_from": {
+        "value": "225 93% 65%",
+        "type": "color",
+        "description": "Logo gradient start (HR-IMS indigo-500)"
+      },
+      "logo_to": {
+        "value": "217 91% 60%",
+        "type": "color",
+        "description": "Logo gradient end (HR-IMS blue-600)"
+      }
+    },
+    "status": {
+      "online": {
+        "value": "142 71% 45%",
+        "type": "color",
+        "description": "Online status (green)"
+      },
+      "away": {
+        "value": "38 92% 50%",
+        "type": "color",
+        "description": "Away status (amber)"
+      },
+      "busy": {
+        "value": "0 84% 60%",
+        "type": "color",
+        "description": "Busy status (red)"
+      },
+      "offline": {
+        "value": "220 10% 46%",
+        "type": "color",
+        "description": "Offline status (gray)"
+      }
+    },
+    "chart": {
+      "1": {
+        "value": "217 91% 60%",
+        "type": "color",
+        "description": "Primary chart color (blue)"
+      },
+      "2": {
+        "value": "162 72% 45%",
+        "type": "color",
+        "description": "Secondary chart color (teal)"
+      },
+      "3": {
+        "value": "38 92% 50%",
+        "type": "color",
+        "description": "Tertiary chart color (orange)"
+      },
+      "4": {
+        "value": "215 28% 17%",
+        "type": "color",
+        "description": "Quaternary chart color"
+      },
+      "5": {
+        "value": "213 31% 91%",
+        "type": "color",
+        "description": "Quinary chart color"
+      }
+    }
+  },
+  "spacing": {
+    "sidebar": {
+      "collapsed_width": {
+        "value": "68px",
+        "type": "dimension",
+        "description": "Sidebar collapsed width (Admin-Chat-System)"
+      },
+      "expanded_width": {
+        "value": "220px",
+        "type": "dimension",
+        "description": "Sidebar expanded width (Admin-Chat-System)"
+      },
+      "collapsed_width_hr": {
+        "value": "80px",
+        "type": "dimension",
+        "description": "Sidebar collapsed width (HR-IMS)"
+      },
+      "expanded_width_hr": {
+        "value": "288px",
+        "type": "dimension",
+        "description": "Sidebar expanded width (HR-IMS)"
+      }
+    },
+    "navbar": {
+      "height_compact": {
+        "value": "64px",
+        "type": "dimension",
+        "description": "Compact navbar height (Admin-Chat-System h-16)"
+      },
+      "height_tall": {
+        "value": "80px",
+        "type": "dimension",
+        "description": "Tall navbar height (HR-IMS h-20)"
+      }
+    },
+    "border_radius": {
+      "default": {
+        "value": "0.75rem",
+        "type": "dimension",
+        "description": "Default border radius (rounded-lg)"
+      },
+      "xl": {
+        "value": "0.75rem",
+        "type": "dimension",
+        "description": "Extra large border radius (rounded-xl)"
+      },
+      "2xl": {
+        "value": "1rem",
+        "type": "dimension",
+        "description": "2xl border radius for bubbles (rounded-2xl)"
+      }
+    }
+  },
+  "typography": {
+    "fontFamily": {
+      "sans": {
+        "value": "Noto Sans Thai, system-ui, sans-serif",
+        "type": "fontFamily",
+        "description": "Primary font (Google Noto Sans Thai)"
+      },
+      "mono": {
+        "value": "ui-monospace, monospace",
+        "type": "fontFamily",
+        "description": "Monospace for code/IDs"
+      }
+    },
+    "fontWeight": {
+      "light": {
+        "value": "300",
+        "type": "fontWeight"
+      },
+      "regular": {
+        "value": "400",
+        "type": "fontWeight"
+      },
+      "medium": {
+        "value": "500",
+        "type": "fontWeight"
+      },
+      "semibold": {
+        "value": "600",
+        "type": "fontWeight"
+      },
+      "bold": {
+        "value": "700",
+        "type": "fontWeight"
+      }
+    },
+    "fontSize": {
+      "micro": {
+        "value": "9px",
+        "type": "fontSize",
+        "description": "Tiny labels, mode indicators"
+      },
+      "caption": {
+        "value": "10px",
+        "type": "fontSize",
+        "description": "Badge text, timestamps, section labels"
+      },
+      "small": {
+        "value": "12px",
+        "type": "fontSize",
+        "description": "Secondary info, small text"
+      },
+      "body": {
+        "value": "14px",
+        "type": "fontSize",
+        "description": "Default body text (text-sm)"
+      },
+      "base": {
+        "value": "16px",
+        "type": "fontSize",
+        "description": "Base text (text-base)"
+      },
+      "lg": {
+        "value": "18px",
+        "type": "fontSize",
+        "description": "Large text (text-lg)"
+      },
+      "xl": {
+        "value": "20px",
+        "type": "fontSize",
+        "description": "Extra large text (text-xl)"
+      },
+      "2xl": {
+        "value": "24px",
+        "type": "fontSize",
+        "description": "2xl text (text-2xl)"
+      },
+      "3xl": {
+        "value": "30px",
+        "type": "fontSize",
+        "description": "3xl text (text-3xl)"
+      },
+      "4xl": {
+        "value": "36px",
+        "type": "fontSize",
+        "description": "4xl text (text-4xl)"
+      }
+    },
+    "lineHeight": {
+      "tight": {
+        "value": "1.25",
+        "type": "lineHeight"
+      },
+      "normal": {
+        "value": "1.5",
+        "type": "lineHeight"
+      },
+      "relaxed": {
+        "value": "1.625",
+        "type": "lineHeight",
+        "description": "Default body line height"
+      }
+    }
+  },
+  "animation": {
+    "duration": {
+      "micro": {
+        "value": "200ms",
+        "type": "duration",
+        "description": "Micro-interactions (scale-in, button feedback)"
+      },
+      "fast": {
+        "value": "300ms",
+        "type": "duration",
+        "description": "Content transitions (fade-in, msg-in/out)"
+      },
+      "normal": {
+        "value": "400ms",
+        "type": "duration",
+        "description": "Notification entry (toast-slide)"
+      },
+      "slow": {
+        "value": "1500ms",
+        "type": "duration",
+        "description": "Looping animations (typing-dot, shimmer, pulse-ring)"
+      }
+    },
+    "easing": {
+      "default": {
+        "value": "ease-out",
+        "type": "cubicBezier"
+      },
+      "smooth": {
+        "value": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "type": "cubicBezier"
+      }
+    }
+  },
+  "shadow": {
+    "sidebar_active": {
+      "value": "0 10px 15px -3px hsla(217, 91%, 60%, 0.2)",
+      "type": "boxShadow",
+      "description": "Active nav item shadow (Admin-Chat-System)"
+    },
+    "gradient_active": {
+      "value": "0 10px 15px -3px hsla(217, 91%, 60%, 0.4)",
+      "type": "boxShadow",
+      "description": "Gradient active item shadow (HR-IMS)"
+    },
+    "card": {
+      "value": "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)",
+      "type": "boxShadow",
+      "description": "Default card shadow"
+    },
+    "lg": {
+      "value": "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
+      "type": "boxShadow",
+      "description": "Large shadow for dropdowns"
+    },
+    "xl": {
+      "value": "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)",
+      "type": "boxShadow",
+      "description": "Extra large shadow for modals"
+    }
+  }
+}

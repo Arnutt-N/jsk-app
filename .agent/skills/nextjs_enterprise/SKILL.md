@@ -1,9 +1,21 @@
 ---
-name: Next.js Enterprise Standard
-description: Best practices for building scalable Next.js applications using the App Router.
+name: nextjs_enterprise
+description: >
+  Best practices for building scalable Next.js applications using the App Router.
+  Reference standard for SKN App. Use when needing general guidance, 
+  "อ้างอิง", "ดูคู่มือ", "standard".
+compatibility: SKN App Project
+metadata:
+  category: reference
+  tags: [reference, nextjs-enterprise]
 ---
 
 # Next.js 16 + React 19 Enterprise Development Standards
+
+
+## Context7 Docs
+
+Context7 MCP is active. Always attempt to use `mcp__context7__resolve-library-id` for any libraries discussed in this standard to retrieve the most up-to-date documentation.
 
 > **Updated for Next.js 16.1.x and React 19.2.x (January 2026)**
 

@@ -1,143 +1,169 @@
 ---
-name: Deployment & DevOps
-description: Docker, CI/CD, and deployment strategies for production-ready FastAPI and Next.js applications.
+name: deployment-devops
+description: >
+  Docker, CI/CD, and deployment strategies for production-ready FastAPI and Next.js applications.
+  Use when asked to "setup docker", "create github actions", "deploy app",
+  "add healthcheck", "release to production", "deploy ขึ้น server".
+compatibility: SKN App, Docker Compose, GitHub Actions, PostgreSQL, Redis
+metadata:
+  category: devops
+  tags: [docker, ci-cd, deployment, github-actions, fastapi, nextjs]
 ---
 
-# Deployment & DevOps Standards
+# Deployment & DevOps Skill
 
-## 1. Local Development (Docker Compose)
+Actionable instructions for containerizing the SKN App using Docker, orchestrating local development with Docker Compose, and deploying configurations via CI/CD pipelines.
 
-### 1.1 docker-compose.yml
-```yaml
-version: '3.8'
-services:
-  db:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: skn_app_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+---
 
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
+## CRITICAL: DevOps & Deployment Rules
 
-  backend:
-    build: ./backend
-    command: uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-    volumes:
-      - ./backend:/app
-    ports:
-      - "8000:8000"
-    depends_on:
-      - db
-      - redis
-    env_file:
-      - ./backend/.env
+1. **Multi-stage Dockerfiles** — Production Dockerfiles must always use multi-stage builds to minimize image size and strip out build dependencies.
+2. **Never commit `.env` files** — Rely strictly on CI runner secrets and deployment environment variables for production.
+3. **Database health checks** — Ensure backend container waits for the database container to become healthy before startup.
 
-  frontend:
-    build: ./frontend
-    command: npm run dev
-    volumes:
-      - ./frontend:/app
-    ports:
-      - "3000:3000"
-    depends_on:
-      - backend
+---
 
-volumes:
-  postgres_data:
-```
+## Context7 Docs
 
-## 2. Production Dockerfile (Multi-stage)
+Context7 MCP is active. Use before writing GitHub Action YAMLs or Docker configurations to ensure syntax matches the latest specifications.
 
-### 2.1 Backend (FastAPI)
+| Library | Resolve Name | Key Topics |
+|---|---|---|
+| Docker | `"docker"` | Compose v2, multi-stage builds, healthchecks |
+| GitHub Actions | `"github-actions"` | workflows, jobs, secrets |
+| FastAPI | `"fastapi"` | uvicorn deployment, standard lifespan |
+
+Usage: `mcp__context7__resolve-library-id libraryName="docker"` →
+`mcp__context7__get-library-docs context7CompatibleLibraryID="..." topic="Compose v2" tokens=5000`
+
+---
+
+## Step 1: Create Production FastAPI Dockerfile
+
+File: `backend/Dockerfile`
+
 ```dockerfile
+# Build stage
 FROM python:3.11-slim as builder
 WORKDIR /app
+# Install build dependencies if needed (e.g., build-essential, libpq-dev)
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Production stage
 FROM python:3.11-slim
 WORKDIR /app
+# Copy installed packages from builder
 COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+# Copy application code
 COPY . .
+
+# Expose port and run server
+EXPOSE 8000
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
-### 2.2 Frontend (Next.js)
-```dockerfile
-FROM node:20-alpine as builder
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci
-COPY . .
-RUN npm run build
+## Step 2: Implement Application Healthcheck
 
-FROM node:20-alpine
-WORKDIR /app
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/package*.json ./
-RUN npm ci --only=production
-CMD ["npm", "start"]
+File: `backend/app/api/v1/endpoints/health.py`
+
+```python
+from fastapi import APIRouter
+from datetime import datetime
+
+router = APIRouter()
+
+@router.get("")
+async def health_check():
+    return {
+        "status": "ok", 
+        "service": "skn-backend",
+        "timestamp": datetime.utcnow().isoformat()
+    }
 ```
+*Ensure this router is mounted in `api.py` without auth dependencies.*
 
-## 3. Environment Configuration
-Use separate `.env` files per environment:
-- `.env.local` (Development)
-- `.env.staging`
-- `.env.production`
+## Step 3: Configure CI/CD Pipeline
 
-**Never commit** real secrets. Use placeholders in `.env.example`.
+File: `.github/workflows/deploy.yml`
 
-## 4. CI/CD Pipeline (GitHub Actions)
 ```yaml
-name: CI/CD
+name: CI/CD Pipeline
+
 on:
   push:
     branches: [main, develop]
 
 jobs:
-  test:
+  test-backend:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Run Backend Tests
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
         run: |
           cd backend
           pip install -r requirements.txt
+          pip install pytest pytest-asyncio
+      - name: Run Pytest
+        env:
+          DATABASE_URL: sqlite+aiosqlite:///:memory:
+        run: |
+          cd backend
           pytest
-      - name: Run Frontend Tests
+
+  test-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+      - name: Build Next.js
         run: |
           cd frontend
           npm ci
-          npm test
-
-  deploy:
-    needs: test
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deploy to Production
-        run: echo "Deploy to cloud provider"
+          npm run build
 ```
 
-## 5. Health Checks
-Implement health check endpoints for load balancers:
-```python
-@app.get("/health")
-async def health():
-    return {"status": "ok", "timestamp": datetime.utcnow()}
-```
+---
 
-## 6. Database Migrations in Production
-```bash
-# Before deploying new code, run migrations
-alembic upgrade head
-```
+## Examples
+
+### Example 1: Add a Health Check
+
+**User says:** "เพิ่ม healthcheck ป้องกัน load balancer error" (Add healthcheck to prevent load balancer error)
+
+**Actions:**
+1. Generate the `/health` endpoint as shown in Step 2.
+2. Ensure it returns an HTTP 200 standard JSON response.
+3. Hook into `backend/app/api/v1/api.py`.
+
+**Result:** A routable endpoint that deployment tools (AWS Target Groups, Docker Compose Healthchecks) can safely ping.
+
+---
+
+## Common Issues
+
+### Frontend Container exits immediately
+**Cause:** Attempting to `npm start` without running `npm run build` in the production multi-stage Dockerfile.
+**Fix:** Validate that the Next.js builder stage successfully executes `npm run build` before the second stage copies the `.next` folder.
+
+### PostgreSQL Connection Refused on docker-compose up
+**Cause:** The backend starts faster than PostgreSQL can allocate resources.
+**Fix:** Add a `healthcheck` block to the `db` service in `docker-compose.yml`, and mark the backend `depends_on: db: condition: service_healthy`.
+
+---
+
+## Quality Checklist
+
+Before finishing, verify:
+- [ ] No `.env` files are accidentally copied in Dockerfiles (check `.dockerignore`).
+- [ ] `uvicorn` binds to `0.0.0.0` inside Docker, not `127.0.0.1`.
+- [ ] Multi-stage builds correctly map the `site-packages` location depending on the base image.

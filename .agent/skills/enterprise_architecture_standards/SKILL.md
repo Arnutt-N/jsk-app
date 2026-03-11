@@ -1,9 +1,21 @@
 ---
-name: Enterprise Architecture Standards
-description: High-level architectural patterns and best practices for large-scale FastAPI and Next.js applications, synthesized from industry leaders.
+name: enterprise_architecture_standards
+description: >
+  High-level architectural patterns and best practices for large-scale FastAPI and Next.js applications, synthesized from industry leaders.
+  Reference standard for SKN App. Use when needing general guidance, 
+  "อ้างอิง", "ดูคู่มือ", "standard".
+compatibility: SKN App Project
+metadata:
+  category: reference
+  tags: [reference, enterprise-architecture-standards]
 ---
 
 # Enterprise Architecture Standards
+
+
+## Context7 Docs
+
+Context7 MCP is active. Always attempt to use `mcp__context7__resolve-library-id` for any libraries discussed in this standard to retrieve the most up-to-date documentation.
 
 ## 1. Backend (FastAPI) Engineering Standards
 

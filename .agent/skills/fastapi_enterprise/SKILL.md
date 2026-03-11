@@ -1,9 +1,21 @@
 ---
-name: FastAPI Enterprise Standard
-description: Best practices and standards for building enterprise-grade FastAPI applications.
+name: fastapi_enterprise
+description: >
+  Best practices and standards for building enterprise-grade FastAPI applications.
+  Reference standard for SKN App. Use when needing general guidance, 
+  "อ้างอิง", "ดูคู่มือ", "standard".
+compatibility: SKN App Project
+metadata:
+  category: reference
+  tags: [reference, fastapi-enterprise]
 ---
 
 # FastAPI Enterprise Development Standards
+
+
+## Context7 Docs
+
+Context7 MCP is active. Always attempt to use `mcp__context7__resolve-library-id` for any libraries discussed in this standard to retrieve the most up-to-date documentation.
 
 ## 1. Project Structure
 Follow a modular, domain-driven structure to ensure scalability.

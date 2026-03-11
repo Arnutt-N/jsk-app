@@ -1,0 +1,54 @@
+{
+  "name": "@skn/design-tokens",
+  "version": "1.0.0",
+  "description": "Unified design token system for SKN applications",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "style": "css/globals.css",
+  "files": [
+    "dist",
+    "css",
+    "tokens",
+    "components",
+    "hooks"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "lint": "eslint src --ext .ts,.tsx",
+    "test": "vitest"
+  },
+  "keywords": [
+    "design-system",
+    "design-tokens",
+    "react",
+    "tailwindcss",
+    "skn"
+  ],
+  "author": "SKN Team",
+  "license": "MIT",
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0",
+    "tailwindcss": "^3.0.0 || ^4.0.0"
+  },
+  "dependencies": {
+    "lucide-react": "^0.468.0",
+    "clsx": "^2.1.0",
+    "tailwind-merge": "^2.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "typescript": "^5.3.0",
+    "tsup": "^8.0.0",
+    "eslint": "^8.56.0",
+    "vitest": "^1.2.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/skn-org/design-tokens"
+  }
+}

@@ -1,9 +1,21 @@
 ---
-name: Frontend Architecture (Next.js)
-description: Enterprise standards for building scalable frontends with Next.js App Router, Tailwind, and React.
+name: frontend_architecture
+description: >
+  Enterprise standards for building scalable frontends with Next.js App Router, Tailwind, and React.
+  Reference standard for SKN App. Use when needing general guidance, 
+  "อ้างอิง", "ดูคู่มือ", "standard".
+compatibility: SKN App Project
+metadata:
+  category: reference
+  tags: [reference, frontend-architecture]
 ---
 
 # Frontend Architecture (Next.js 16 + React 19)
+
+
+## Context7 Docs
+
+Context7 MCP is active. Always attempt to use `mcp__context7__resolve-library-id` for any libraries discussed in this standard to retrieve the most up-to-date documentation.
 
 > **Updated for Next.js 16.1.x, React 19.2.x, and Tailwind CSS v4 (January 2026)**
 

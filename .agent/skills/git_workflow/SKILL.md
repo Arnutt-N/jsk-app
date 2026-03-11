@@ -1,248 +1,135 @@
 ---
 name: git-workflow
-description: Git workflow standards for SknApp including commit format, branching strategy, and PR practices.
+description: >
+  Git workflow standards for SknApp including commit format, branching strategy, and PR practices.
+  Use when asked to "create PR", "commit changes", "branch standard", "git rebase",
+  "สร้าง branch", "commit code", "เปิด PR".
+compatibility: SKN App, Git, GitHub
+metadata:
+  category: devops
+  tags: [git, github, version-control, workflow, branching]
 ---
 
-# Git Workflow
+# Git Workflow & Standards Skill
 
-Standards for consistent, traceable version control across the SknApp project.
+Actionable standards for consistent, traceable version control and repository management across the SKN App project.
 
-## 1. Commit Message Format
+---
 
-```
-<type>(<scope>): <description>
+## CRITICAL: Git Rules
 
-[optional body]
+1. **Commit Message Format** — Commits MUST use conventional commits format: `<type>(<scope>): <description>`.
+2. **Branch Naming Requirement** — Branches MUST follow `<type>/<short-description>` (e.g., `feature/live-chat`, `fix/login-crash`).
+3. **No Direct Commits to Main** — All code must pass through a Pull Request branch review.
 
-[optional footer(s)]
-```
+---
 
-### Examples
+## Context7 Docs
 
-```bash
-# Good
-feat(auth): add LINE OAuth login
-fix(api): resolve 500 error on missing phone field
-docs(readme): update setup instructions
+Context7 MCP is active. Use before running destructive git commands or defining advanced github workflows.
 
-# Bad
-fixed bug                          # Missing type
-update                             # Too vague
-feat: fix the issue                # Wrong type
-```
+| Library | Resolve Name | Key Topics |
+|---|---|---|
+| Git | `"git"` | rebase, merge, push --force-with-lease |
 
-## 2. Commit Types
+Usage: `mcp__context7__resolve-library-id libraryName="git"` →
+`mcp__context7__get-library-docs context7CompatibleLibraryID="..." topic="rebase" tokens=5000`
 
-| Type | Description | Example |
-|------|-------------|---------|
-| `feat` | New feature | `feat(booking): add calendar view` |
-| `fix` | Bug fix | `fix(db): handle null phone_number` |
-| `docs` | Documentation changes | `docs(api): update swagger specs` |
-| `style` | Formatting (no code change) | `style: run black formatter` |
-| `refactor` | Code restructuring | `refactor(services): split user service` |
-| `perf` | Performance improvement | `perf(query): add index on requests` |
-| `test` | Adding/updating tests | `test(auth): add login unit tests` |
-| `chore` | Maintenance tasks | `chore(deps): bump pydantic to 2.0` |
+---
 
-## 3. Branch Naming
+## Step 1: Initialize the Work Branch
 
-```
-<type>/<short-description>
-```
-
-| Prefix | Use Case | Example |
-|--------|----------|---------|
-| `feature/` | New functionality | `feature/line-webhook` |
-| `fix/` | Bug fixes | `fix/login-redirect-loop` |
-| `hotfix/` | Critical production fixes | `hotfix/payment-timeout` |
-| `release/` | Version releases | `release/v1.2.0` |
+Always pull the latest main before branching.
 
 ```bash
-# Create branch
-git checkout -b feature/user-profile
-
-# Avoid
-git checkout -b my-branch          # Missing prefix
-git checkout -b fix                # No description
-```
-
-## 4. Workflow Steps
-
-```bash
-# 1. Pull latest main
 git checkout main
 git pull origin main
-
-# 2. Create feature branch
-git checkout -b feature/service-requests
-
-# 3. Make changes and commit
-git add .
-git commit -m "feat(api): add service request endpoints"
-
-# 4. Push and create PR
-git push -u origin feature/service-requests
-# Create PR via GitHub UI
-
-# 5. After approval, merge via squash
-# Delete branch after merge
-git branch -d feature/service-requests
+git checkout -b feature/[short-description]
 ```
 
-## 5. PR Requirements
+## Step 2: Formulate Conventional Commits
 
-Every PR must include:
+Package logic into tight, logical commits rather than massive block updates.
 
-- **Description**: What changed and why
-- **Tests**: Unit/integration tests for new code
-- **Screenshots**: For UI changes
-- **Review**: At least 1 approval
+**Types**: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `chore`.
 
-### PR Template
+```bash
+git add [specific files]
+git commit -m "feat(api): add line webhook endpoint"
+```
+
+## Step 3: Rebase and Push
+
+Sync with the target branch before opening the PR to resolve conflicts locally.
+
+```bash
+git fetch origin
+git rebase origin/main
+
+# If conflicts exist, resolve in editor, then:
+git add .
+git rebase --continue
+
+git push -u origin feature/[short-description]
+# (Use --force-with-lease only if rebasing a branch already pushed)
+```
+
+## Step 4: Construct the Pull Request
+
+Every PR should contain a clear summary of changes.
 
 ```markdown
 ## Summary
-Brief description of changes
+Implemented the LINE webhook event router.
 
 ## Changes
-- Added X endpoint
-- Updated Y component
+- Added `/webhook` endpoint with signature validation.
+- Created `BackgroundTasks` handler.
 
 ## Testing
-- [ ] Unit tests pass
-- [ ] Integration tests pass
-- [ ] Manual testing completed
-
-## Screenshots
-[If applicable]
+- [x] Unit tests pass
+- [x] Manual testing via ngrok
 ```
 
-## 6. Handling Merge Conflicts
+---
 
-### Rebase (preferred for clean history)
+## Examples
 
+### Example 1: Creating a Bug Fix PR
+
+**User says:** "สร้าง PR แก้บั๊กเรื่อง websocket หยุดทำงาน" (Create PR to fix websocket crash bug)
+
+**Actions:**
+1. Execute `git checkout -b fix/websocket-crash`.
+2. Apply the code fix to the error handler.
+3. Commit with `fix(ws): handle WebSocketDisconnect gracefully`.
+4. Ensure testing is completed.
+5. Push branch and open GitHub PR.
+
+**Result:** A cleanly formatted PR that clearly identifies the affected component (`ws`) and resolves the bug.
+
+---
+
+## Common Issues
+
+### Accidental Push to Main
+**Cause:** Forgetting to switch branches before working.
+**Fix:** 
 ```bash
-git checkout feature/my-branch
-git fetch origin
-git rebase origin/main
-
-# Resolve conflicts in editor
-git add <resolved-file>
-git rebase --continue
-
-# Force push after rebase
-git push --force-with-lease
+git branch feature/new-work  # Create branch pointing to current work
+git reset --hard HEAD~1      # Roll back main branch locally (if unpushed)
+git checkout feature/new-work # Switch to correct branch
 ```
 
-### Merge (for complex conflicts)
+### Stuck in Rebase Conflict
+**Cause:** Conflicting edits on identical lines from the remote branch.
+**Fix:** Use the IDE conflict resolver to accept/blend variations, add the resolved files, and run `git rebase --continue`. Avoid using `git commit` within a rebase state.
 
-```bash
-git checkout feature/my-branch
-git fetch origin
-git merge origin/main
+---
 
-# Resolve conflicts
-git add .
-git commit -m "merge: resolve conflicts with main"
-git push
-```
+## Quality Checklist
 
-### Conflict Resolution Example
-
-```bash
-# While rebasing, you see:
-<<<<<<< HEAD
-from app.models import User
-=======
-from app.models import User, ServiceRequest
->>>>>>> feature/service-requests
-
-# Choose the correct resolution (usually combine):
-from app.models import User, ServiceRequest
-
-git add app/models/__init__.py
-git rebase --continue
-```
-
-## 7. Undoing Changes
-
-| Command | When to Use | Result |
-|---------|-------------|--------|
-| `git revert <commit>` | Undo a pushed commit | Creates new revert commit, safe for shared history |
-| `git reset --soft HEAD~1` | Undo last commit, keep changes | Staged changes remain, use before push |
-| `git reset --hard HEAD~1` | Discard last commit entirely | **Destructive** - loses work permanently |
-| `git commit --amend` | Fix last commit message | Modifies most recent commit |
-
-```bash
-# Fix typo in last commit message
-git commit --amend -m "feat(api): add user endpoints"
-
-# Undo last commit but keep changes
-git reset --soft HEAD~1
-
-# Revert a pushed commit safely
-git revert a1b2c3d
-```
-
-## 8. Useful Aliases
-
-Add to `~/.gitconfig`:
-
-```ini
-[alias]
-    st = status
-    co = checkout
-    br = branch
-    ci = commit
-    lg = log --oneline --graph --decorate
-    last = log -1 HEAD
-    amend = commit --amend --no-edit
-    undo = reset --soft HEAD~1
-```
-
-Usage:
-
-```bash
-git st              # git status
-git lg              # pretty log graph
-git undo            # undo last commit, keep changes
-```
-
-## 9. Complete Workflow Example
-
-```bash
-# Start new feature
-git checkout main
-git pull origin main
-git checkout -b feature/notification-system
-
-# Work and commit
-git add app/services/notification.py
-git commit -m "feat(notifications): add email service"
-
-git add tests/test_notifications.py
-git commit -m "test(notifications): add email service tests"
-
-# Sync with main before PR
-git fetch origin
-git rebase origin/main
-
-# Push and create PR
-git push -u origin feature/notification-system
-
-# After PR approval, squash merge via GitHub
-# Then cleanup
-git checkout main
-git pull origin main
-git branch -d feature/notification-system
-```
-
-## 10. Common Mistakes to Avoid
-
-| Mistake | Why It's Bad | Solution |
-|---------|--------------|----------|
-| `git push -f` | Overwrites remote history | Use `--force-with-lease` |
-| Committing to `main` directly | Bypasses review | Enable branch protection |
-| Large commits with mixed changes | Hard to review/revert | One logical change per commit |
-| `git add .` without checking | Commits unwanted files | Use `git add -p` or review with `git diff --cached` |
-| No commit messages | No context for changes | Follow commit format strictly |
+Before finishing, verify:
+- [ ] Large commits are broken down by component.
+- [ ] No secrets or `.env` details are accidentally staged.
+- [ ] The `commit --amend` command is utilized for fixing recent local typos instead of accumulating junk commits.

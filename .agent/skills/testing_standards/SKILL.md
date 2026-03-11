@@ -1,9 +1,21 @@
 ---
-name: Testing Standards
-description: Comprehensive testing patterns for Backend (Pytest) and Frontend (Jest/Playwright) to ensure quality and reliability.
+name: testing_standards
+description: >
+  Comprehensive testing patterns for Backend (Pytest) and Frontend (Jest/Playwright) to ensure quality and reliability.
+  Reference standard for SKN App. Use when needing general guidance, 
+  "อ้างอิง", "ดูคู่มือ", "standard".
+compatibility: SKN App Project
+metadata:
+  category: reference
+  tags: [reference, testing-standards]
 ---
 
 # Testing Standards
+
+
+## Context7 Docs
+
+Context7 MCP is active. Always attempt to use `mcp__context7__resolve-library-id` for any libraries discussed in this standard to retrieve the most up-to-date documentation.
 
 ## 1. Testing Philosophy
 - **Write Tests First** (TDD) for critical business logic.

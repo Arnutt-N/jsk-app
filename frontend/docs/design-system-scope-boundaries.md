@@ -1,6 +1,6 @@
 # Design System Scope Boundaries
 
-Updated: 2026-02-15
+Updated: 2026-02-16
 
 ## 1. Purpose
 
@@ -28,7 +28,7 @@ This document defines what is intentionally in-scope and out-of-scope for the ad
 - `frontend/components/ui/Toast.tsx`
 - `frontend/components/ui/Modal.tsx`
 - `frontend/components/ui/ModalAlert.tsx`
-- `frontend/app/admin/layout.tsx` (sidebar architecture contract)
+- `frontend/app/admin/layout.tsx` (sidebar architecture contract; visual theming updates allowed when explicitly planned)
 
 Reason: these components are high-usage and already richer than baseline example equivalents.
 
@@ -59,3 +59,10 @@ Rollback trigger:
 
 - `frontend/components/ui/*` is design-system owned surface.
 - `frontend/app/admin/live-chat/_components/*` can consume design-system primitives and shared utility classes, but business behavior remains feature-team owned.
+
+## 9. Intentional Visual Alignment
+
+- Sidebar theming for `admin` and `live-chat` now intentionally aligns with HR-IMS visual language:
+  - Background gradient: `from-slate-900 via-[#1e1b4b] to-[#172554]`
+  - Active menu gradient: `from-blue-600 to-indigo-600`
+- This is a visual decision only and does not change navigation architecture or feature behavior.
