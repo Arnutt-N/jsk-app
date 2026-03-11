@@ -1,9 +1,21 @@
 ---
-name: API Documentation Standards
-description: Best practices for creating clear, interactive, and maintainable API documentation using OpenAPI/Swagger.
+name: api_documentation
+description: >
+  Best practices for creating clear, interactive, and maintainable API documentation using OpenAPI/Swagger.
+  Reference standard for SKN App. Use when needing general guidance, 
+  "อ้างอิง", "ดูคู่มือ", "standard".
+compatibility: SKN App Project
+metadata:
+  category: reference
+  tags: [reference, api-documentation]
 ---
 
 # API Documentation Standards
+
+
+## Context7 Docs
+
+Context7 MCP is active. Always attempt to use `mcp__context7__resolve-library-id` for any libraries discussed in this standard to retrieve the most up-to-date documentation.
 
 ## 1. Auto-Generated Documentation
 FastAPI automatically generates OpenAPI specs from your code. Enhance this with proper annotations.

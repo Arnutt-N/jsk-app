@@ -1,9 +1,21 @@
 ---
-name: Cross-Platform Collaboration Standard
-description: Universal standard for handoff between Claude Code, Antigravity, and Open Code agents
+name: cross_platform_collaboration
+description: >
+  Universal standard for handoff between Claude Code, Antigravity, and Open Code agents
+  Reference standard for SKN App. Use when needing general guidance, 
+  "อ้างอิง", "ดูคู่มือ", "standard".
+compatibility: SKN App Project
+metadata:
+  category: reference
+  tags: [reference, cross-platform-collaboration]
 ---
 
 # Cross-Platform Collaboration Standard
+
+
+## Context7 Docs
+
+Context7 MCP is active. Always attempt to use `mcp__context7__resolve-library-id` for any libraries discussed in this standard to retrieve the most up-to-date documentation.
 
 ## Mandatory Sync Gate (Critical)
 

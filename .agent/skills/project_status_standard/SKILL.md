@@ -1,9 +1,21 @@
 ---
-name: Project Status Standard
-description: Standard for maintaining the central PROJECT_STATUS.md file to track project continuity across all agents.
+name: project_status_standard
+description: >
+  Standard for maintaining the central PROJECT_STATUS.md file to track project continuity across all agents.
+  Reference standard for SKN App. Use when needing general guidance, 
+  "อ้างอิง", "ดูคู่มือ", "standard".
+compatibility: SKN App Project
+metadata:
+  category: reference
+  tags: [reference, project-status-standard]
 ---
 
 # Project Status Standard
+
+
+## Context7 Docs
+
+Context7 MCP is active. Always attempt to use `mcp__context7__resolve-library-id` for any libraries discussed in this standard to retrieve the most up-to-date documentation.
 
 ## Mandatory State Consistency Rule
 

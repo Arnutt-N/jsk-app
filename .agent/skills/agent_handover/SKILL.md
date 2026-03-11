@@ -1,9 +1,21 @@
 ---
-name: agent_handoff
-description: Universal agent handoff - automates workflow orchestration for handing off work from any AI platform to any other platform
+name: agent_handover
+description: >
+  Universal agent handoff - automates workflow orchestration for handing off work from any AI platform to any other platform
+  Reference standard for SKN App. Use when needing general guidance, 
+  "อ้างอิง", "ดูคู่มือ", "standard".
+compatibility: SKN App Project
+metadata:
+  category: reference
+  tags: [reference, agent-handover]
 ---
 
 # Agent Handoff Skill
+
+
+## Context7 Docs
+
+Context7 MCP is active. Always attempt to use `mcp__context7__resolve-library-id` for any libraries discussed in this standard to retrieve the most up-to-date documentation.
 
 ## Overview
 

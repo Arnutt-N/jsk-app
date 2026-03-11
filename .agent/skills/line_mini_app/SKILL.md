@@ -1,9 +1,21 @@
 ---
-name: line-mini-app
-description: Complete guide for LINE MINI App development including Service Messages, verification process, LIFF SDK API reference, and publishing guidelines.
+name: line_mini_app
+description: >
+  Complete guide for LINE MINI App development including Service Messages, verification process, LIFF SDK API reference, and publishing guidelines.
+  Reference standard for SKN App. Use when needing general guidance, 
+  "อ้างอิง", "ดูคู่มือ", "standard".
+compatibility: SKN App Project
+metadata:
+  category: reference
+  tags: [reference, line-mini-app]
 ---
 
 # LINE MINI App Development Guide
+
+
+## Context7 Docs
+
+Context7 MCP is active. Always attempt to use `mcp__context7__resolve-library-id` for any libraries discussed in this standard to retrieve the most up-to-date documentation.
 
 > **Complete Reference**: LINE MINI App (formerly LIFF) development including SDK APIs, Service Messages, verification requirements, and publishing guidelines.
 

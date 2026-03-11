@@ -1,322 +1,177 @@
 ---
-name: flex-message-builder
-description: Building and managing LINE Flex Message templates with placeholder system and dynamic content injection.
+name: skn-line-flex-builder
+description: >
+  Manages LINE integration, specifically building and managing Flex Message templates for SKN App.
+  Use when asked to "create flex message", "build LINE template",
+  "modify webhook handler", "debug LINE event",
+  "สร้าง flex message", "ตั้งค่า rich menu", "debug LINE event".
+  Do NOT use for creating FastAPI models or Next.js components.
+compatibility: SKN App, LINE Messaging API v3, Python 3.11+
+metadata:
+  category: line-integration
+  tags: [line, webhook, liff, flex-message]
 ---
 
-# LINE Flex Message Builder
+# LINE Flex Message Builder Skill
 
-## Overview
+Provides instructions and best practices for constructing, validating, and sending LINE Flex Messages within the SKN App backend.
 
-**Store templates as data, not code.** Hardcoding JSON in business logic creates maintenance nightmares.
+---
 
-- **Separation of Concerns**: Designers update templates; developers focus on data
-- **Runtime Updates**: Change messaging without redeployment
-- **Reusability**: One template, multiple contexts
-- **Testing**: Test templates independently from application logic
+## CRITICAL: LINE Integration Rules
 
-## Resources
+1. **Webhook must process in BackgroundTasks** — always return fast (HTTP 200 OK within 1 second), process the actual LINE event async to avoid timeouts from the LINE platform.
+2. **Always verify LIFF tokens on backend** — never trust client-side decoded data.
+3. **Use lazy initialization for LINE SDK** — `get_line_bot_api()` instead of a module-level global instance to avoid startup crashes if tokens are missing.
 
-- **Template Gallery**: See [assets/templates/](assets/templates/) - Ready-to-use templates for tickets, notifications, and carousels
-- **Component Reference**: See [references/component_reference.md](references/component_reference.md) - Complete Flex Message component catalog
+---
 
-## Template Storage
+## Context7 Docs
 
-### Database Storage (Recommended)
-```sql
-CREATE TABLE flex_templates (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(100) UNIQUE NOT NULL,
-    category VARCHAR(50),
-    template JSONB NOT NULL,
-    version INTEGER DEFAULT 1,
-    created_at TIMESTAMP DEFAULT NOW()
-);
-```
+Context7 MCP is active. Use before writing linebot v3 SDK or Flex Message code to ensure you are using the V3 API which has breaking changes from V2.
 
-**Pros**: Versioning, runtime updates, multi-tenant support  
-**Cons**: Slightly more complex, requires caching
+| Library | Resolve Name | Key Topics |
+|---|---|---|
+| LINE Bot SDK (Python) | `"line-bot-sdk-python"` | FlexMessage, FlexContainer, QuickReply |
+| LINE Messaging API | `"line-messaging-api"` | Flex component schemas, rate limits |
 
-### File Storage
-```
-templates/
-  flex/
-    ticket_card.json
-    notification.json
-    menu_carousel.json
-```
+Usage: `mcp__context7__resolve-library-id libraryName="line-bot-sdk-python"` →
+`mcp__context7__get-library-docs context7CompatibleLibraryID="..." topic="FlexMessage v3" tokens=5000`
 
-**Pros**: Simple, version-controlled, fast loading  
-**Cons**: Requires redeployment for updates
+---
 
-## Placeholder System
+## Step 1: Design the Flex JSON
 
-Use `{{ variable }}` pattern for dynamic injection:
+Use the [LINE Flex Message Simulator](https://developers.line.biz/flex-simulator/) to design the JSON payload. Ensure sizes and text wrapping are configured correctly.
 
-```json
-{
-  "type": "bubble",
-  "body": {
-    "type": "box",
-    "layout": "vertical",
-    "contents": [
-      {
-        "type": "text",
-        "text": "{{ title }}",
-        "weight": "bold",
-        "size": "xl"
-      },
-      {
-        "type": "text",
-        "text": "{{ description }}",
-        "size": "sm",
-        "color": "{{ description_color|default('#666666') }}"
-      }
-    ]
-  }
-}
-```
+## Step 2: Create the Template Builder
 
-**Features**:
-- Simple replacement: `{{ name }}`
-- Default values: `{{ status|default('Pending') }}`
-- Conditional blocks: `{{#if condition}}...{{/if}}`
-
-## Flex Message Types
-
-### Bubble
-Single card with header, body, footer (optional).
-
-```json
-{
-  "type": "bubble",
-  "size": "kilo",
-  "header": { "type": "box", "layout": "vertical", "contents": [] },
-  "body": { "type": "box", "layout": "vertical", "contents": [] },
-  "footer": { "type": "box", "layout": "vertical", "contents": [] }
-}
-```
-
-**Sizes**: `nano` (120px), `micro` (140px), `kilo` (210px), `mega` (300px), `giga` (500px)
-
-### Carousel
-Horizontal scroll of multiple bubbles.
-
-```json
-{
-  "type": "carousel",
-  "contents": [
-    { "type": "bubble", ... },
-    { "type": "bubble", ... }
-  ]
-}
-```
-
-## Renderer Service Implementation
+File: `backend/app/services/flex_messages.py`
 
 ```python
-import json
-import re
-from typing import Dict, Any, Optional
-
-class FlexRenderer:
-    """Renders Flex Message templates with placeholder replacement."""
-    
-    PLACEHOLDER_PATTERN = re.compile(r'\{\{\s*(\w+)(?:\|\|([^}]+))?\s*\}\}')
-    
-    def __init__(self, template_store):
-        self.store = template_store  # DB or file loader
-    
-    def render(self, template_name: str, data: Dict[str, Any]) -> Dict[str, Any]:
-        """Render template with data injection."""
-        template = self.store.get(template_name)
-        template_str = json.dumps(template)
-        
-        def replace_placeholder(match):
-            key = match.group(1)
-            default = match.group(2)
-            value = data.get(key, default)
-            if value is None:
-                raise ValueError(f"Missing required placeholder: {key}")
-            return str(value)
-        
-        rendered = self.PLACEHOLDER_PATTERN.sub(replace_placeholder, template_str)
-        return json.loads(rendered)
-    
-    def render_safe(self, template_name: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """Safe render with error handling."""
-        try:
-            return self.render(template_name, data)
-        except Exception as e:
-            # Log error, return fallback
-            return None
-
-# Database-backed store
-class DatabaseTemplateStore:
-    def __init__(self, session):
-        self.session = session
-    
-    def get(self, name: str) -> Dict[str, Any]:
-        result = self.session.execute(
-            "SELECT template FROM flex_templates WHERE name = :name",
-            {"name": name}
-        )
-        row = result.fetchone()
-        if not row:
-            raise ValueError(f"Template not found: {name}")
-        return row.template
-```
-
-## Validation
-
-Always validate before sending to avoid API errors:
-
-```python
-from jsonschema import validate, ValidationError
-
-FLEX_MESSAGE_SCHEMA = {
-    "type": "object",
-    "required": ["type"],
-    "properties": {
-        "type": {"enum": ["bubble", "carousel"]},
-        "size": {"enum": ["nano", "micro", "kilo", "mega", "giga"]},
-        "contents": {"type": "array"}
-    }
-}
-
-def validate_flex_message(message: dict) -> bool:
-    try:
-        validate(instance=message, schema=FLEX_MESSAGE_SCHEMA)
-        return True
-    except ValidationError as e:
-        print(f"Validation error: {e.message}")
-        return False
-```
-
-## Sending via LINE API
-
-```python
-import requests
-from typing import Dict, Any
-
-class LineMessageClient:
-    def __init__(self, channel_access_token: str):
-        self.headers = {
-            "Authorization": f"Bearer {channel_access_token}",
-            "Content-Type": "application/json"
-        }
-        self.base_url = "https://api.line.me/v2/bot/message"
-    
-    def send_flex_message(
-        self, 
-        user_id: str, 
-        alt_text: str, 
-        flex_content: Dict[str, Any]
-    ) -> bool:
-        """Send Flex Message to a user."""
-        payload = {
-            "to": user_id,
-            "messages": [
-                {
-                    "type": "flex",
-                    "altText": alt_text,
-                    "contents": flex_content
-                }
-            ]
-        }
-        
-        response = requests.post(
-            f"{self.base_url}/push",
-            headers=self.headers,
-            json=payload
-        )
-        return response.status_code == 200
-    
-    def send_flex_to_multiple(
-        self, 
-        user_ids: list, 
-        alt_text: str, 
-        flex_content: Dict[str, Any]
-    ) -> bool:
-        """Multicast Flex Message (max 500 users)."""
-        if len(user_ids) > 500:
-            raise ValueError("Max 500 users per multicast")
-        
-        payload = {
-            "to": user_ids,
-            "messages": [
-                {
-                    "type": "flex",
-                    "altText": alt_text,
-                    "contents": flex_content
-                }
-            ]
-        }
-        
-        response = requests.post(
-            f"{self.base_url}/multicast",
-            headers=self.headers,
-            json=payload
-        )
-        return response.status_code == 200
-
-# Usage Example
-client = LineMessageClient(channel_access_token="YOUR_TOKEN")
-renderer = FlexRenderer(template_store=db_store)
-
-# Render and send
-ticket_data = {
-    "ticket_id": "TKT-001",
-    "title": "Server Down",
-    "status": "In Progress",
-    "status_color": "#FFA500",
-    "priority": "High",
-    "header_color": "#FF6B6B",
-    "ticket_url": "https://helpdesk.example.com/tickets/001"
-}
-
-flex_content = renderer.render("ticket_card", ticket_data)
-success = client.send_flex_message(
-    user_id="U1234567890abcdef",
-    alt_text="New ticket: Server Down",
-    flex_content=flex_content
+from linebot.v3.messaging import (
+    FlexMessage,
+    FlexContainer
 )
+import json
+
+def build_[feature]_flex(title: str, description: str, action_url: str) -> FlexMessage:
+    bubble_string = f"""
+    {{
+      "type": "bubble",
+      "header": {{
+        "type": "box",
+        "layout": "vertical",
+        "contents": [
+          {{
+            "type": "text",
+            "text": "{title}",
+            "weight": "bold",
+            "size": "xl",
+            "color": "#172554"
+          }}
+        ]
+      }},
+      "body": {{
+        "type": "box",
+        "layout": "vertical",
+        "contents": [
+          {{
+            "type": "text",
+            "text": "{description}",
+            "wrap": true
+          }}
+        ]
+      }},
+      "footer": {{
+        "type": "box",
+        "layout": "vertical",
+        "contents": [
+          {{
+            "type": "button",
+            "action": {{
+              "type": "uri",
+              "label": "View Details",
+              "uri": "{action_url}"
+            }},
+            "style": "primary",
+            "color": "#2563eb"
+          }}
+        ]
+      }}
+    }}
+    """
+    
+    # Parse the string to dict, then strictly load into FlexContainer
+    dict_payload = json.loads(bubble_string)
+    container = FlexContainer.from_dict(dict_payload)
+    
+    return FlexMessage(
+        alt_text="You have a new notification",
+        contents=container
+    )
 ```
 
-## Testing
+## Step 3: Implement Webhook Fast-Return Pattern
 
-### LINE Simulator
-Use the [LINE Flex Message Simulator](https://developers.line.me/flex-simulator/) to:
-- Preview JSON output in real-time
-- Test different device sizes
-- Copy validated JSON
+File: `backend/app/api/v1/endpoints/webhook.py`
 
-### Unit Testing
 ```python
-def test_ticket_card_rendering():
-    renderer = FlexRenderer(template_store=mock_store)
+from fastapi import APIRouter, Request, BackgroundTasks
+from linebot.v3.webhook import WebhookParser
+from app.core.config import settings
+from app.services.line_service import process_events
+
+router = APIRouter()
+parser = WebhookParser(settings.LINE_CHANNEL_SECRET)
+
+@router.post("/webhook")
+async def webhook(request: Request, background_tasks: BackgroundTasks):
+    body = await request.body()
+    body_decode = body.decode('utf-8')
+    signature = request.headers.get("x-line-signature", "")
     
-    data = {
-        "ticket_id": "TKT-TEST",
-        "title": "Test Ticket",
-        "status": "Open",
-        "status_color": "#00B900",
-        "priority": "Medium",
-        "ticket_url": "https://test.com"
-    }
+    # validate signature first (synchronously)
+    events = parser.parse(body_decode, signature)
     
-    result = renderer.render("ticket_card", data)
+    # Process asynchronously to ensure < 1s response to LINE
+    background_tasks.add_task(process_events, events)
     
-    assert result["type"] == "bubble"
-    assert result["header"]["contents"][0]["text"] == "TKT-TEST"
-    assert "{{" not in json.dumps(result)  # No unrendered placeholders
+    return {"status": "ok"}
 ```
 
-## Quick Reference
+---
 
-| Task | Code |
-|------|------|
-| Render template | `renderer.render("template_name", data)` |
-| Send to user | `client.send_flex_message(user_id, alt_text, content)` |
-| Multicast | `client.send_flex_to_multiple(user_ids, alt_text, content)` |
-| Validate | `validate_flex_message(content)` |
-| Default value | `{{ name\|default('Guest') }}` |
+## Examples
+
+### Example 1: Create a Status Update Notification
+
+**User says:** "สร้าง flex message สำหรับแจ้งเตือนสถานะ" (Create status update flex message)
+
+**Actions:**
+1. Generate the JSON layout for a Status Update card.
+2. Create a builder function `build_status_update_flex(status, tracking_id)` in `flex_messages.py`.
+3. Read the Context7 docs for `line-bot-sdk-python` to ensure standard `FlexMessage` construction is used.
+
+**Result:** A python function returning a valid `FlexMessage` object ready for the push/reply API.
+
+---
+
+## Common Issues
+
+### Webhook Timeout (Red Error on LINE OA Manager)
+**Cause:** Attempting to query the database or call external APIs synchronously inside the `/webhook` route.
+**Fix:** Move all heavy processing into `BackgroundTasks` as shown in Step 3.
+
+### Invalid Flex JSON Structure
+**Cause:** Missing required properties or syntax errors when using Python f-strings to inject JSON.
+**Fix:** Remember to escape raw curly braces `{{` and `}}` when using f-strings for JSON building.
+
+---
+
+## Quality Checklist
+
+Before finishing, verify:
+- [ ] Logic relies on `BackgroundTasks` for webhook responses
+- [ ] No module-level instantiation of LINE Bot API clients
+- [ ] `alt_text` properly describes the message for push notifications and accessibility

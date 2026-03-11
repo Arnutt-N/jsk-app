@@ -1,0 +1,493 @@
+/* ========================================
+   @skn/design-tokens - Global Styles
+   Unified Design System for SKN Applications
+   ======================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ========================================
+   CSS Custom Properties (Design Tokens)
+   ======================================== */
+@layer base {
+  :root {
+    /* Core Palette - Admin-Chat-System */
+    --background: 220 20% 97%;
+    --foreground: 220 20% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 20% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 20% 10%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 14% 92%;
+    --secondary-foreground: 220 20% 10%;
+    --muted: 220 14% 94%;
+    --muted-foreground: 220 10% 46%;
+    --accent: 162 72% 45%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 13% 90%;
+    --input: 220 13% 90%;
+    --ring: 217 91% 60%;
+    --radius: 0.75rem;
+
+    /* Sidebar Tokens - Semi-Dark Theme (Admin-Chat-System) */
+    --sidebar-background: 222 47% 11%;
+    --sidebar-foreground: 213 31% 91%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 215 28% 17%;
+    --sidebar-accent-foreground: 213 31% 91%;
+    --sidebar-muted: 215 20% 65%;
+    --sidebar-border: 215 28% 17%;
+
+    /* HR-IMS Solid Sidebar Tokens */
+    --slate-900: 222 47% 11%;
+    --slate-800: 217 19% 17%;
+    --slate-500: 215 20% 65%;
+    --slate-400: 215 16% 47%;
+    --slate-200: 214 31% 91%;
+
+    /* Gradient Tokens - HR-IMS */
+    --gradient-active-from: 217 91% 60%;    /* blue-600 */
+    --gradient-active-to: 225 93% 65%;      /* indigo-600 */
+    --gradient-logo-from: 225 93% 65%;      /* indigo-500 */
+    --gradient-logo-to: 217 91% 60%;        /* blue-600 */
+
+    /* Status Tokens */
+    --online: 142 71% 45%;
+    --away: 38 92% 50%;
+    --busy: 0 84% 60%;
+    --offline: 220 10% 46%;
+
+    /* Chart Tokens */
+    --chart-1: 217 91% 60%;
+    --chart-2: 162 72% 45%;
+    --chart-3: 38 92% 50%;
+    --chart-4: 215 28% 17%;
+    --chart-5: 213 31% 91%;
+
+    /* Spacing Tokens */
+    --sidebar-width-collapsed: 68px;
+    --sidebar-width-expanded: 220px;
+    --sidebar-width-collapsed-hr: 80px;
+    --sidebar-width-expanded-hr: 288px;
+    --navbar-height-compact: 64px;
+    --navbar-height-tall: 80px;
+
+    /* Shadow Tokens */
+    --shadow-sidebar-active: 0 10px 15px -3px hsla(217, 91%, 60%, 0.2);
+    --shadow-gradient-active: 0 10px 15px -3px hsla(217, 91%, 60%, 0.4);
+  }
+
+  .dark {
+    --background: 222 47% 11%;
+    --foreground: 213 31% 91%;
+    --card: 222 47% 11%;
+    --card-foreground: 213 31% 91%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+    --muted: 217 32% 17%;
+    --muted-foreground: 215 20% 65%;
+    --border: 217 32% 17%;
+    --input: 217 32% 17%;
+  }
+}
+
+/* ========================================
+   Typography
+   ======================================== */
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-noto-sans-thai), system-ui, sans-serif;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  h1 {
+    @apply text-4xl font-bold tracking-tight;
+  }
+
+  h2 {
+    @apply text-3xl font-bold;
+  }
+
+  h3 {
+    @apply text-2xl font-semibold;
+  }
+
+  h4 {
+    @apply text-xl font-semibold;
+  }
+
+  h5 {
+    @apply text-lg font-semibold;
+  }
+
+  h6 {
+    @apply text-base font-bold;
+  }
+
+  p {
+    @apply text-sm leading-relaxed;
+  }
+
+  small {
+    @apply text-xs text-muted-foreground;
+  }
+
+  code {
+    @apply font-mono text-xs;
+  }
+}
+
+/* ========================================
+   Custom Scrollbar Styles
+   ======================================== */
+@layer components {
+  /* Sidebar Scrollbar (Dark) */
+  .sidebar-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+  }
+
+  .sidebar-scrollbar::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+
+  .sidebar-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .sidebar-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 20px;
+  }
+
+  .sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
+
+  /* Main Content Scrollbar (Light) */
+  .main-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+  }
+
+  .main-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .main-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .main-scrollbar::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+  }
+
+  .main-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+
+  /* Custom Thin Scrollbar */
+  .custom-scrollbar {
+    scrollbar-width: thin;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 4px;
+  }
+}
+
+/* ========================================
+   Animation Keyframes
+   ======================================== */
+@layer utilities {
+  /* Message Slide-In Animations */
+  @keyframes msg-in {
+    from {
+      opacity: 0;
+      transform: translateX(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes msg-out {
+    from {
+      opacity: 0;
+      transform: translateX(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  /* Fade In with Upward Motion */
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Scale In for Popups */
+  @keyframes scale-in {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  /* Toast Slide from Right */
+  @keyframes toast-slide {
+    from {
+      opacity: 0;
+      transform: translateX(100%);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  /* Badge Blinking */
+  @keyframes blink-badge {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.6;
+    }
+  }
+
+  /* Typing Indicator Dots */
+  @keyframes typing-dot {
+    0%, 60%, 100% {
+      transform: translateY(0);
+      opacity: 0.6;
+    }
+    30% {
+      transform: translateY(-4px);
+      opacity: 1;
+    }
+  }
+
+  /* Pulse Ring for Video Call */
+  @keyframes pulse-ring {
+    0% {
+      transform: scale(0.8);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(1.5);
+      opacity: 0;
+    }
+  }
+
+  /* Shimmer Loading */
+  @keyframes shimmer {
+    0% {
+      background-position: -1000px 0;
+    }
+    100% {
+      background-position: 1000px 0;
+    }
+  }
+
+  /* Scan Animation (for Scanner Mode) */
+  @keyframes scan {
+    0%, 100% {
+      transform: translateY(0);
+      opacity: 0.5;
+    }
+    50% {
+      transform: translateY(100px);
+      opacity: 1;
+    }
+  }
+
+  /* Animation Utility Classes */
+  .msg-in {
+    animation: msg-in 0.3s ease-out;
+  }
+
+  .msg-out {
+    animation: msg-out 0.3s ease-out;
+  }
+
+  .fade-in {
+    animation: fade-in 0.3s ease-out;
+  }
+
+  .scale-in {
+    animation: scale-in 0.2s ease-out;
+  }
+
+  .toast-slide {
+    animation: toast-slide 0.4s ease-out;
+  }
+
+  .blink-badge {
+    animation: blink-badge 1s infinite;
+  }
+
+  .typing-dot {
+    animation: typing-dot 1.4s infinite;
+  }
+
+  .typing-dot:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+
+  .typing-dot:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+
+  .pulse-ring {
+    animation: pulse-ring 1.5s infinite;
+  }
+
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      hsl(var(--muted)) 0%,
+      hsl(var(--muted-foreground) / 0.1) 50%,
+      hsl(var(--muted)) 100%
+    );
+    background-size: 1000px 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  .animate-scan {
+    animation: scan 2s infinite;
+  }
+}
+
+/* ========================================
+   Glass Morphism
+   ======================================== */
+@layer utilities {
+  .glass {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .glass-card {
+    @apply bg-card/50 backdrop-blur-md border border-border;
+  }
+
+  .glass-navbar {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid hsl(var(--border));
+  }
+}
+
+/* ========================================
+   Gradient Utilities
+   ======================================== */
+@layer utilities {
+  /* Active Menu Gradient (HR-IMS) */
+  .gradient-active {
+    background: linear-gradient(
+      to right,
+      hsl(var(--gradient-active-from)),
+      hsl(var(--gradient-active-to))
+    );
+  }
+
+  /* Logo Gradient (HR-IMS) */
+  .gradient-logo {
+    background: linear-gradient(
+      to bottom right,
+      hsl(var(--gradient-logo-from)),
+      hsl(var(--gradient-logo-to))
+    );
+  }
+
+  /* Text Gradient */
+  .gradient-text {
+    background: linear-gradient(
+      to right,
+      hsl(var(--foreground)),
+      hsl(var(--muted-foreground))
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+}
+
+/* ========================================
+   Shadow Utilities
+   ======================================== */
+@layer utilities {
+  /* Active Nav Shadow (Admin-Chat-System) */
+  .shadow-sidebar-active {
+    box-shadow: var(--shadow-sidebar-active);
+  }
+
+  /* Active Nav Shadow (HR-IMS Gradient) */
+  .shadow-gradient-active {
+    box-shadow: var(--shadow-gradient-active);
+  }
+}
+
+/* ========================================
+   Print Optimization
+   ======================================== */
+@media print {
+  aside,
+  header,
+  nav {
+    display: none !important;
+  }
+
+  main {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}

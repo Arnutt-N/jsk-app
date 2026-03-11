@@ -1,8 +1,8 @@
 # JSK Frontend Design System Reference
 
 ## Latest Update
-- Updated: 2026-02-14
-- Added sidebar interaction stability and scrollbar standards for consistent UX in admin surfaces.
+- Updated: 2026-02-16
+- Added HR-IMS inspired sidebar visual alignment for admin and live-chat surfaces (background gradient and active menu gradient treatment).
 
 ## Source
 - Primary visual references: `examples/templates` (105 screenshots)
@@ -10,7 +10,7 @@
 
 ## Visual Direction
 - Dense enterprise layout with soft cards and clear hierarchy
-- Brand-first accent for actions and selected navigation
+- Blue-indigo gradient accent for selected sidebar navigation (HR-IMS alignment)
 - Light-first design with compatible dark token overrides
 - Rounded geometry (`xl` and `2xl`) for surfaces and controls
 
@@ -21,7 +21,8 @@
 - Shadow model: `--shadow-sm` to `--shadow-xl`, reserve glow shadows for key CTAs
 
 ## Layout Patterns
-- Sidebar: dark vertical navigation, active item highlighted by brand tone
+- Sidebar: deep slate-to-indigo gradient background (`from-slate-900 via-[#1e1b4b] to-[#172554]`)
+- Sidebar active item: horizontal blue-indigo gradient (`from-blue-600 to-indigo-600`) with elevated shadow
 - Sidebar state behavior:
   - Active/hover backgrounds must be full-row, never content-width
   - Expanded mode: render direct full-width nav links

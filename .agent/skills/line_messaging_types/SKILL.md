@@ -1,9 +1,21 @@
 ---
-name: line-messaging-types
-description: Complete reference for LINE Messaging API message types, webhook events, and message structures. Use when implementing message handling, parsing webhooks, or constructing replies.
+name: line_messaging_types
+description: >
+  Complete reference for LINE Messaging API message types, webhook events, and message structures. Use when implementing message handling, parsing webhooks, or constructing replies.
+  Reference standard for SKN App. Use when needing general guidance, 
+  "อ้างอิง", "ดูคู่มือ", "standard".
+compatibility: SKN App Project
+metadata:
+  category: reference
+  tags: [reference, line-messaging-types]
 ---
 
 # LINE Messaging API - Message Types Reference
+
+
+## Context7 Docs
+
+Context7 MCP is active. Always attempt to use `mcp__context7__resolve-library-id` for any libraries discussed in this standard to retrieve the most up-to-date documentation.
 
 > **Quick Reference**: This skill provides comprehensive specifications for all LINE Messaging API message types, webhook events, and common features. Use this when implementing message parsers, constructing replies, or handling webhook events.
 

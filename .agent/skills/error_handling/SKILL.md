@@ -1,9 +1,21 @@
 ---
-name: error-handling
-description: Centralized error handling patterns for FastAPI backend and Next.js frontend.
+name: error_handling
+description: >
+  Centralized error handling patterns for FastAPI backend and Next.js frontend.
+  Reference standard for SKN App. Use when needing general guidance, 
+  "อ้างอิง", "ดูคู่มือ", "standard".
+compatibility: SKN App Project
+metadata:
+  category: reference
+  tags: [reference, error-handling]
 ---
 
 # Error Handling Patterns
+
+
+## Context7 Docs
+
+Context7 MCP is active. Always attempt to use `mcp__context7__resolve-library-id` for any libraries discussed in this standard to retrieve the most up-to-date documentation.
 
 ## Philosophy
 

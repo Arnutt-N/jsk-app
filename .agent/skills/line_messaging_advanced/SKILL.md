@@ -1,9 +1,21 @@
 ---
-name: LINE Messaging Advanced
-description: Advanced implementation patterns for High-Volume LINE OA, Flex Messages, and Rich Menus.
+name: line_messaging_advanced
+description: >
+  Advanced implementation patterns for High-Volume LINE OA, Flex Messages, and Rich Menus.
+  Reference standard for SKN App. Use when needing general guidance, 
+  "อ้างอิง", "ดูคู่มือ", "standard".
+compatibility: SKN App Project
+metadata:
+  category: reference
+  tags: [reference, line-messaging-advanced]
 ---
 
 # LINE Messaging Advanced
+
+
+## Context7 Docs
+
+Context7 MCP is active. Always attempt to use `mcp__context7__resolve-library-id` for any libraries discussed in this standard to retrieve the most up-to-date documentation.
 
 ## 1. Webhook Architecture
 

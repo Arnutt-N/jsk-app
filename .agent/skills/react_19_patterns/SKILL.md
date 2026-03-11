@@ -1,9 +1,21 @@
 ---
-name: react-19-patterns
-description: Modern React 19 patterns including new hooks, Server Actions, React Compiler, and best practices for Next.js 16.
+name: react_19_patterns
+description: >
+  Modern React 19 patterns including new hooks, Server Actions, React Compiler, and best practices for Next.js 16.
+  Reference standard for SKN App. Use when needing general guidance, 
+  "อ้างอิง", "ดูคู่มือ", "standard".
+compatibility: SKN App Project
+metadata:
+  category: reference
+  tags: [reference, react-19-patterns]
 ---
 
 # React 19 Patterns
+
+
+## Context7 Docs
+
+Context7 MCP is active. Always attempt to use `mcp__context7__resolve-library-id` for any libraries discussed in this standard to retrieve the most up-to-date documentation.
 
 > **React 19.2.x + Next.js 16.1.x (January 2026)**
 

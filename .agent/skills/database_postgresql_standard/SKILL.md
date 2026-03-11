@@ -1,63 +1,140 @@
 ---
-name: Database Standard (PostgreSQL)
-description: Best practices for database schema design, naming conventions, and PostgreSQL specific features.
+name: database-postgresql-standard
+description: >
+  Actionable design steps for database schemas, indexing strategies, and PostgreSQL specifics.
+  Use when asked to "design table", "add database index", "optimize slow query",
+  "ออกแบบ database", "เพิ่ม index", "แก้ query ช้า".
+compatibility: SKN App, PostgreSQL 16+, SQLAlchemy 2.0 async, Alembic
+metadata:
+  category: devops
+  tags: [postgresql, database, schema, indexing, sqlalchemy]
 ---
 
-# Database Standard (PostgreSQL)
+# PostgreSQL Database Standard Skill
 
-## 1. Naming Conventions (Snake Case)
-- **Tables**: Plural, snake_case (e.g., `service_requests`, `users`).
-- **Columns**: snake_case (e.g., `first_name`, `created_at`).
-- **Primary Key**: `id` (BigInteger or UUID).
-- **Foreign Key**: `target_table_singular_id` (e.g., `user_id`, `organization_id`).
+Actionable instructions for designing robust PostgreSQL schemas, implementing indexes, and handling polymorphic JSON data within the SKN App using SQLAlchemy 2.0.
 
-## 2. Schema Design Best Practices
+---
 
-### 2.1 JSONB Usage
-Use `JSONB` for data that is polymorphic, rapidly changing, or strictly document-oriented (like external form payloads).
-- **Index specific keys** if you need to query them often.
-- **Validation**: Enforce structure at the Application Layer (Pydantic).
+## CRITICAL: Database Rules
 
-```sql
--- Good use case: Service Request dynamic form details
-CREATE TABLE service_requests (
-    id BIGSERIAL PRIMARY KEY,
-    details JSONB NOT NULL DEFAULT '{}'::jsonb
-);
+1. **Naming Conventions** — Tables must be plural `snake_case`. Columns must be `snake_case`. Foreign keys must be `target_table_singular_id`.
+2. **Timestamps are Mandatory** — Every table must have `created_at` and `updated_at` (managed via SQLAlchemy `onupdate`).
+3. **Index Foreign Keys** — PostgreSQL does NOT automatically index foreign keys. You must explicitly add `index=True` in the SQLAlchemy definition.
 
--- Indexing a JSON path
-CREATE INDEX idx_req_category ON service_requests ((details->>'category'));
+---
+
+## Context7 Docs
+
+Context7 MCP is active. Use before defining advanced SQLAlchemy models or configuring complex PostgreSQL indexes.
+
+| Library | Resolve Name | Key Topics |
+|---|---|---|
+| PostgreSQL | `"postgresql"` | JSONB operators, Index types, arrays |
+| SQLAlchemy | `"sqlalchemy"` | Index, CheckConstraint, Enum, JSONB |
+| Alembic | `"alembic"` | schema migrations |
+
+Usage: `mcp__context7__resolve-library-id libraryName="sqlalchemy"` →
+`mcp__context7__get-library-docs context7CompatibleLibraryID="..." topic="Index" tokens=5000`
+
+---
+
+## Step 1: Define Standard Model Structure
+
+File: `backend/app/models/[resource].py`
+
+```python
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Index
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.sql import func
+from app.db.base import Base
+
+class ServiceRequest(Base):
+    __tablename__ = "service_requests"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True) # Always index FKs
+    status = Column(String, default="PENDING", nullable=False)
+    
+    # JSONB for rapidly changing document-oriented properties
+    details = Column(JSONB, nullable=False, server_default='{}')
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+# Implement a Partial Index for frequent queries on specific statuses
+Index('idx_pending_service_requests', ServiceRequest.status, postgresql_where=(ServiceRequest.status == 'PENDING'))
 ```
 
-### 2.2 Timestamps
-Every table MUST have:
-- `created_at`: `TIMESTAMP WITH TIME ZONE DEFAULT NOW()`
-- `updated_at`: `TIMESTAMP WITH TIME ZONE DEFAULT NOW()` (Handled via Trigger or App logic)
+## Step 2: Implement JSONB Query Optimization
 
-### 2.3 Indexes
-- Index all Foreign Keys (Postgres does not do this automatically).
-- Index columns used frequently in `WHERE`, `ORDER BY`, or `JOIN` clauses.
-- Use `Partial Indexes` for status flags (e.g., `WHERE status = 'PENDING'`).
+When utilizing JSONB, enforce structure via Pydantic on the application layer, and index critical searched paths on the database layer.
 
-## 3. Migration Workflow (Alembic)
-- **Never** modify the database schema manually in production.
-- **Commit** the generated migration scripts to Git.
-- **Review** generated scripts before applying (Autogenerate is not perfect).
+File: `backend/alembic/versions/[timestamp]_add_jsonb_index.py`
 
-```bash
-# Generate
-alembic revision --autogenerate -m "add_service_request_table"
+*(Often added manually after autogenerate if SQLAlchemy abstraction fails for GIN indexes)*
 
-# Apply
-alembic upgrade head
+```python
+from alembic import op
+
+def upgrade():
+    # Indexing a specific JSON path for fast lookups
+    op.execute("CREATE INDEX idx_req_category ON service_requests ((details->>'category'));")
+
+def downgrade():
+    op.execute("DROP INDEX idx_req_category;")
 ```
 
-## 4. Data Integrity
-- Use **ENUM** types for fixed sets of values (Status, Roles) to enforce data validity at the DB level.
-- Use **Check Constraints** for simple validations (e.g., `price >= 0`).
-- Cascade Deletes: Be careful. Prefer `SET NULL` or soft deletes (`is_deleted`) for important history.
+## Step 3: Enforce Data Integrity
 
-## 5. Performance
-- **Connection Pooling**: Use `pgbouncer` or internal pool (SQLAlchemy QueuePool).
-- **N+1 Problem**: Always be mindful of eager loading (`selectinload`) vs lazy loading in SQLAlchemy.
-- **Analyze**: Run `EXPLAIN ANALYZE` on slow queries.
+File: `backend/app/models/[resource].py`
+
+```python
+from sqlalchemy import CheckConstraint
+
+class Payment(Base):
+    __tablename__ = "payments"
+    id = Column(Integer, primary_key=True)
+    amount = Column(Integer, nullable=False)
+    
+    # Enforce logic at the DB layer
+    __table_args__ = (
+        CheckConstraint('amount >= 0', name='check_payment_amount_positive'),
+    )
+```
+
+---
+
+## Examples
+
+### Example 1: Resolving a Slow Query (N+1 Problem)
+
+**User says:** "หน้า Admin โหลดช้ามากตอน query list" (Admin page loading very slowly on list query)
+
+**Actions:**
+1. Identify the relationship causing N+1 queries using logging or `EXPLAIN ANALYZE`.
+2. Update the SQLAlchemy `select()` statement to use eager loading via `selectinload()`.
+3. Read the Context7 docs for `sqlalchemy` caching and relationship loading if the pattern is complex.
+
+**Result:** A single optimized query replacing 100+ individual queries generated by lazy-loading.
+
+---
+
+## Common Issues
+
+### Slow Queries on Join Tables
+**Cause:** Missing indexes on Foreign Key columns.
+**Fix:** Validate all SQLAlchemy `ForeignKey` declarations have `index=True` appended.
+
+### JSONB Queries Failing or Slow
+**Cause:** Querying deeply nested JSON keys via sequential scan instead of using an optimized GIN index.
+**Fix:** Create structural JSONB indexes for keys frequently utilized in `WHERE` clauses.
+
+---
+
+## Quality Checklist
+
+Before finishing, verify:
+- [ ] Primary keys use standard sequences or UUIDs appropriately.
+- [ ] No manual schema modifications bypass Alembic tracking.
+- [ ] Soft deletes (`is_deleted`) are utilized in favor of hard cascades where auditing history is legally mandated.

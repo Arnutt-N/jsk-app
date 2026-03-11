@@ -1,9 +1,21 @@
 ---
-name: API Development Standard (FastAPI)
-description: Enterprise-grade standards for building scalable, maintainable, and secure APIs using FastAPI.
+name: api_development_standard
+description: >
+  Enterprise-grade standards for building scalable, maintainable, and secure APIs using FastAPI.
+  Reference standard for SKN App. Use when needing general guidance, 
+  "อ้างอิง", "ดูคู่มือ", "standard".
+compatibility: SKN App Project
+metadata:
+  category: reference
+  tags: [reference, api-development-standard]
 ---
 
 # API Development Standard (FastAPI)
+
+
+## Context7 Docs
+
+Context7 MCP is active. Always attempt to use `mcp__context7__resolve-library-id` for any libraries discussed in this standard to retrieve the most up-to-date documentation.
 
 ## 1. Philosophy & Architecture
 We follow a **Domain-Driven Design (DDD)** inspired layered architecture. The goal is to decouple business logic from the HTTP transport layer and the database layer.
