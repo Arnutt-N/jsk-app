@@ -49,13 +49,15 @@ class PubSubManager:
 
     async def disconnect(self):
         """Disconnect from Redis Pub/Sub."""
-        if self._listener_task:
-            self._listener_task.cancel()
+        listener_task = self._listener_task
+        self._listener_task = None
+        current_task = asyncio.current_task()
+        if listener_task and listener_task is not current_task:
+            listener_task.cancel()
             try:
-                await self._listener_task
+                await listener_task
             except asyncio.CancelledError:
                 pass
-            self._listener_task = None
 
         if self._pubsub:
             await self._pubsub.close()
