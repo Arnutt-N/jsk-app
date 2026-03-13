@@ -13,30 +13,39 @@ logger = logging.getLogger(__name__)
 
 class CredentialService:
     def __init__(self):
+        self.cipher: Optional[Fernet] = None
+
+    def _get_cipher(self) -> Fernet:
+        """Lazily build the cipher to avoid import-time startup failures."""
+        if self.cipher is not None:
+            return self.cipher
+
         key = getattr(settings, 'ENCRYPTION_KEY', '')
         if key:
             try:
                 self.cipher = Fernet(key.encode())
+                return self.cipher
             except Exception as e:
                 logger.critical("Invalid ENCRYPTION_KEY: %s", e)
                 raise
-        else:
-            if getattr(settings, 'ENVIRONMENT', 'production') == 'development':
-                logger.warning("ENCRYPTION_KEY not set — using insecure dev key. DO NOT use in production.")
-                import base64
-                fake_key = base64.urlsafe_b64encode(b"dev_encryption_key_32_bytes_long")
-                self.cipher = Fernet(fake_key)
-            else:
-                raise RuntimeError("ENCRYPTION_KEY must be set in production. Add it to your .env file.")
+
+        if getattr(settings, 'ENVIRONMENT', 'production') == 'development':
+            logger.warning("ENCRYPTION_KEY not set — using insecure dev key. DO NOT use in production.")
+            import base64
+            fake_key = base64.urlsafe_b64encode(b"dev_encryption_key_32_bytes_long")
+            self.cipher = Fernet(fake_key)
+            return self.cipher
+
+        raise RuntimeError("ENCRYPTION_KEY must be set in production. Add it to your .env file.")
 
     def encrypt_credentials(self, data: dict) -> str:
         """Encrypt credentials dict to string"""
         json_str = json.dumps(data)
-        return self.cipher.encrypt(json_str.encode()).decode()
+        return self._get_cipher().encrypt(json_str.encode()).decode()
 
     def decrypt_credentials(self, encrypted: str) -> dict:
         """Decrypt credentials string to dict"""
-        decrypted = self.cipher.decrypt(encrypted.encode())
+        decrypted = self._get_cipher().decrypt(encrypted.encode())
         return json.loads(decrypted.decode())
 
     async def get_default_credential(
