@@ -35,6 +35,8 @@ Thumbs.db
 # Logs
 *.log
 logs/
+test-results.txt
+test_write.txt
 
 # Database
 *.db

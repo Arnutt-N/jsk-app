@@ -1,16 +1,24 @@
 """Fix alembic version in database"""
 import asyncio
-import asyncpg
 import os
+from pathlib import Path
+
+import asyncpg
 from dotenv import load_dotenv
 
-load_dotenv()
+backend_dir = Path(__file__).resolve().parents[1]
+load_dotenv(backend_dir / ".env")
+load_dotenv(backend_dir / "app" / ".env")
+
+
+def get_database_url() -> str:
+    db_url = os.getenv("DATABASE_URL")
+    if not db_url:
+        raise RuntimeError("DATABASE_URL is required")
+    return db_url.replace("postgresql+asyncpg://", "postgresql://")
 
 async def fix_alembic():
-    # Get database URL
-    db_url = os.getenv("DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost/skn_db")
-    # Convert to asyncpg format
-    db_url = db_url.replace("postgresql+asyncpg://", "postgresql://")
+    db_url = get_database_url()
     
     conn = await asyncpg.connect(db_url)
     try:

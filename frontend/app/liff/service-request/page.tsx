@@ -115,25 +115,19 @@ export default function LiffServiceRequestV2() {
                     throw new Error('LIFF ID is not specified in environment variables.')
                 }
 
-                console.log('Initializing LIFF with ID:', liffId)
-
                 // Initialize LIFF
                 await liff.init({ liffId })
-                console.log('LIFF initialized successfully')
 
                 // Check if running inside LINE App
                 const inClient = liff.isInClient()
                 setIsInLineApp(inClient)
-                console.log('LIFF isInClient:', inClient)
 
                 // Get profile if logged in
                 if (liff.isLoggedIn()) {
                     const userProfile = await liff.getProfile()
                     setProfile(userProfile)
-                    console.log('LINE Profile:', userProfile)
                 } else {
                     // Not logged in - trigger login
-                    console.log('Not logged in, triggering login...')
                     liff.login()
                     return
                 }
@@ -355,7 +349,6 @@ export default function LiffServiceRequestV2() {
                 ...formData,
                 line_user_id: profile?.userId || null
             }
-            console.log('Submitting with LINE User ID:', profile?.userId)
 
             // Post to backend
             const res = await fetch('/api/v1/liff/service-requests', {
@@ -398,8 +391,7 @@ export default function LiffServiceRequestV2() {
             } else {
                 // External Browser - just try window.close()
                 // DO NOT redirect to LIFF URL as it reopens the form!
-                const closed = window.close()
-                console.log('window.close() result:', closed)
+                window.close()
                 // If window.close() doesn't work (e.g., not opened by script),
                 // the user will see the "please close manually" message.
             }

@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from enum import Enum
 from typing import List, Optional
@@ -24,9 +24,7 @@ class FriendEventResponse(FriendEventBase):
     id: int
     created_at: datetime
 
-    class Config:
-        from_attributes = True
-        use_enum_values = True
+    model_config = ConfigDict(from_attributes=True, use_enum_values=True)
 
 class FriendEventListResponse(BaseModel):
     events: List[FriendEventResponse]

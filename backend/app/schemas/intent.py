@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from uuid import UUID
@@ -21,9 +21,7 @@ class IntentKeywordResponse(IntentKeywordBase):
     category_id: int
     created_at: datetime
 
-    class Config:
-        from_attributes = True
-        use_enum_values = True
+    model_config = ConfigDict(from_attributes=True, use_enum_values=True)
 
 # --- Responses ---
 class IntentResponseBase(BaseModel):
@@ -50,9 +48,7 @@ class IntentResponseResponse(IntentResponseBase):
     category_id: int
     created_at: datetime
 
-    class Config:
-        from_attributes = True
-        use_enum_values = True
+    model_config = ConfigDict(from_attributes=True, use_enum_values=True)
 
 # --- Categories ---
 class IntentCategoryBase(BaseModel):
@@ -77,9 +73,7 @@ class IntentCategoryResponse(IntentCategoryBase):
     response_count: int = 0
     keywords_preview: List[str] = []  # First 5 keywords for preview
 
-    class Config:
-        from_attributes = True
-        use_enum_values = True
+    model_config = ConfigDict(from_attributes=True, use_enum_values=True)
 
 class IntentCategoryDetailResponse(IntentCategoryResponse):
     keywords: List[IntentKeywordResponse] = []

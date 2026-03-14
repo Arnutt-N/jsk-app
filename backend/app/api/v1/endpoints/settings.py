@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 from app.db.session import get_db
 from app.api.deps import get_current_admin
-from app.models.user import User, UserRole
+from app.models.user import User
 from app.schemas.rich_menu import SystemSettingBase, SystemSettingResponse
 from app.services.settings_service import SettingsService
 from app.models.system_setting import SystemSetting
@@ -11,12 +11,6 @@ from sqlalchemy import select
 from pydantic import BaseModel
 
 router = APIRouter()
-print("DEBUG: Loading settings router...")
-
-# TODO: Add real Auth dependency. For now, we assume user_id is passed or handled via middleware.
-async def get_super_admin():
-    # Placeholder for real RBAC
-    pass
 
 class ValidateLineTokenRequest(BaseModel):
     channel_access_token: str

@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 import json
+import logging
 import os
 import shutil
 from app.db.session import get_db
@@ -13,6 +14,7 @@ from app.services.rich_menu_service import RichMenuService
 from sqlalchemy import select
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 UPLOAD_DIR = "uploads/rich_menus"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -191,7 +193,7 @@ async def delete_rich_menu(id: int, db: AsyncSession = Depends(get_db), current_
         try:
             await RichMenuService.delete_from_line(db, rich_menu.line_rich_menu_id)
         except Exception as e:
-            print(f"Warning: Failed to delete from LINE: {e}")
+            logger.warning("Failed to delete rich menu %s from LINE during local delete", rich_menu.line_rich_menu_id, exc_info=e)
             
     # Delete local file if exists
     if rich_menu.image_path and os.path.exists(rich_menu.image_path):

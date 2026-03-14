@@ -1,3 +1,4 @@
-INSERT INTO system_settings (key, value, description) 
-VALUES ('LINE_CHANNEL_ACCESS_TOKEN', 'q9ToSFRdRx3t+Mmv6nQQF2dBAnqX/R8W22OESODGGYOCBBpn5CkoGG3auqMQZ5t8WirkzzVFBbjBJJ3QJ05gV13EJ3qZANCjMLX5aoUm+jg7YRs71nuDEYDWDPfiUQUd1jNk8Pu8+1WWhby/1+3IMwdB04t89/1O/w1cDnyilFU=', 'LINE Access Token') 
+-- Replace the placeholder value before running this script.
+INSERT INTO system_settings (key, value, description)
+VALUES ('LINE_CHANNEL_ACCESS_TOKEN', '__REPLACE_WITH_LINE_CHANNEL_ACCESS_TOKEN__', 'LINE Access Token')
 ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;

@@ -1,7 +1,7 @@
 """
 Pydantic schemas for Auto Reply API
 """
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional, Dict, Any
 from datetime import datetime
 from app.models.auto_reply import MatchType, ReplyType
@@ -34,6 +34,4 @@ class AutoReplyResponse(AutoReplyBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
-        use_enum_values = True
+    model_config = ConfigDict(from_attributes=True, use_enum_values=True)

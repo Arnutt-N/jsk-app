@@ -1,5 +1,5 @@
 from enum import Enum
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from typing import Optional, Any, List
 from datetime import datetime
 import bleach
@@ -61,15 +61,9 @@ class WSMessage(BaseModel):
     """Base WebSocket message structure"""
     type: WSEventType
     payload: Optional[Any] = None
-    timestamp: Optional[datetime] = None
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
 
-    class Config:
-        use_enum_values = True
-
-    def __init__(self, **data):
-        if 'timestamp' not in data or data['timestamp'] is None:
-            data['timestamp'] = datetime.utcnow()
-        super().__init__(**data)
+    model_config = ConfigDict(use_enum_values=True)
 
 
 class AuthPayload(BaseModel):

@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from typing import Optional, Any
 from enum import Enum
@@ -23,6 +23,4 @@ class MessageResponse(BaseModel):
     sender_role: Optional[SenderRole] = None
     operator_name: Optional[str] = None
 
-    class Config:
-        from_attributes = True
-        use_enum_values = True
+    model_config = ConfigDict(from_attributes=True, use_enum_values=True)

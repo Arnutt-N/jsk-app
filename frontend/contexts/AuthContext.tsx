@@ -89,7 +89,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(async (username: string, password: string) => {
     setIsLoading(true);
     try {
-      // TODO: Replace with actual API call
       const response = await fetch('/api/v1/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -105,7 +104,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setToken(data.access_token);
       setUser(data.user);
       
-      // TODO(security): move token handling to secure httpOnly cookies to reduce XSS risk.
+      // Current auth flow stores tokens in localStorage; moving to httpOnly cookies requires coordinated backend changes.
       localStorage.setItem('auth_token', data.access_token);
       if (data.refresh_token) {
         localStorage.setItem('auth_refresh_token', data.refresh_token);

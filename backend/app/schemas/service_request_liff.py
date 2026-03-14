@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
 from datetime import datetime
 
@@ -31,8 +31,8 @@ class ServiceRequestCreate(BaseModel):
     name: Optional[str] = None # Will be constructed from first+last if needed
     service_type: Optional[str] = None # Will be mapped to topic_category
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "prefix": "นาย",
                 "firstname": "สมชาย",
@@ -50,6 +50,7 @@ class ServiceRequestCreate(BaseModel):
                 "line_user_id": "U1234567890abcdef1234567890abcdef"
             }
         }
+    )
 
 class ServiceRequestResponse(BaseModel):
     id: int
@@ -80,8 +81,7 @@ class ServiceRequestResponse(BaseModel):
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class RequestCommentBase(BaseModel):
     content: str
@@ -97,6 +97,5 @@ class RequestCommentResponse(RequestCommentBase):
     updated_at: Optional[datetime] = None
     display_name: Optional[str] = None # For frontend display
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 

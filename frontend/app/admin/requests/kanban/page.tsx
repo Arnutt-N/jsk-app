@@ -47,7 +47,6 @@ export default function KanbanPage() {
         setLoading(true);
         try {
             const url = `${API_BASE}/admin/requests?limit=200`;
-            console.log('Fetching:', url);
             const res = await fetch(url);
             if (!res.ok) {
                 const errorData = await res.json().catch(() => ({}));

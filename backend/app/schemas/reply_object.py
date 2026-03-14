@@ -1,7 +1,7 @@
 """
 Pydantic schemas for Reply Object API
 """
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional, Dict, Any
 from datetime import datetime
 from enum import Enum
@@ -47,5 +47,4 @@ class ReplyObjectResponse(ReplyObjectBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

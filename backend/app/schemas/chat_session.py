@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from enum import Enum
 from typing import Optional
@@ -31,6 +31,4 @@ class ChatSessionResponse(ChatSessionBase):
     message_count: int = 0
     closed_by: Optional[ClosedBy] = None
 
-    class Config:
-        from_attributes = True
-        use_enum_values = True
+    model_config = ConfigDict(from_attributes=True, use_enum_values=True)

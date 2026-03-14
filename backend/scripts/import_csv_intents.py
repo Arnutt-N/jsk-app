@@ -17,17 +17,23 @@ from dotenv import load_dotenv
 backend_dir = Path(__file__).parent.parent
 sys.path.insert(0, str(backend_dir))
 
-load_dotenv()
+load_dotenv(backend_dir / ".env")
+load_dotenv(backend_dir / "app" / ".env")
 
 from app.models.intent import IntentCategory, IntentKeyword, IntentResponse, MatchType, ReplyType
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost/skn_db")
+
+def get_database_url() -> str:
+    db_url = os.getenv("DATABASE_URL")
+    if not db_url:
+        raise RuntimeError("DATABASE_URL is required")
+    return db_url
 
 async def import_from_csv(csv_path: str):
     """Import intents from CSV file"""
     
     # Create async engine
-    engine = create_async_engine(DATABASE_URL, echo=False)
+    engine = create_async_engine(get_database_url(), echo=False)
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     
     async with async_session() as session:
@@ -121,7 +127,7 @@ async def import_from_csv(csv_path: str):
                         category_id=category.id,
                         reply_type=reply_type,
                         text_content=response_text if msg_type == 'text' else None,
-                        payload=None,  # TODO: Parse flex messages if needed
+                        payload=None,  # Flex payloads are not parsed by this import script.
                         order=idx,
                         is_active=True
                     )
@@ -144,7 +150,10 @@ async def import_from_csv(csv_path: str):
             await engine.dispose()
 
 if __name__ == "__main__":
-    csv_file = "D:/genAI/skn-app/examples/moj-skn-bot-examples.csv"
+    csv_file = os.getenv(
+        "INTENT_CSV_PATH",
+        str(backend_dir.parent / "examples" / "moj-skn-bot-examples.csv"),
+    )
     
     if not os.path.exists(csv_file):
         print(f"❌ CSV file not found: {csv_file}")

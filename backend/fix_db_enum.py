@@ -1,14 +1,25 @@
-import sqlalchemy
-from sqlalchemy import create_engine, text
+import os
 import time
 
-# Database URL
-DATABASE_URL = "postgresql://postgres:password@localhost:5432/skn_app_db"
+from dotenv import load_dotenv
+from sqlalchemy import create_engine, text
+
+load_dotenv()
+load_dotenv(os.path.join(os.path.dirname(__file__), "app", ".env"))
+
+
+def get_database_url() -> str:
+    database_url = os.getenv("DATABASE_URL")
+    if not database_url:
+        raise RuntimeError("DATABASE_URL is required. Set it in the environment or backend/app/.env.")
+
+    return database_url.replace("postgresql+asyncpg://", "postgresql://")
 
 def fix():
-    print(f"Connecting to {DATABASE_URL}...")
+    database_url = get_database_url()
+    print("Connecting to database...")
     try:
-        engine = create_engine(DATABASE_URL)
+        engine = create_engine(database_url)
         # Check current values
         with engine.connect() as conn:
             print("Checking RequestStatus enum values...")

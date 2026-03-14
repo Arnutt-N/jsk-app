@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from datetime import datetime
 from enum import Enum
 from typing import List, Optional, Dict, Any
@@ -33,9 +33,7 @@ class CredentialResponse(CredentialBase):
     updated_at: datetime
     credentials_masked: str # Masked version of credentials (e.g. "****F0A3")
 
-    class Config:
-        from_attributes = True
-        use_enum_values = True
+    model_config = ConfigDict(from_attributes=True, use_enum_values=True)
 
 class CredentialListResponse(BaseModel):
     credentials: List[CredentialResponse]
