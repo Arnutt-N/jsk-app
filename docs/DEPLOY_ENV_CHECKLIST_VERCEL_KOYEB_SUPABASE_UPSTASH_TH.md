@@ -141,7 +141,7 @@ https://my-app.vercel.app/liff/service-request
 - [ ] ตั้ง build command และ run command ใน Koyeb แล้ว
 - [ ] กรอก backend env ครบ
 - [ ] กรอก frontend env ครบ
-- [ ] ตรวจว่า `NEXT_PUBLIC_API_URL` เป็น backend URL จริง
+- [ ] ตรวจว่า `NEXT_PUBLIC_API_URL` เป็น backend URL จริงและลงท้ายด้วย `/api/v1`
 - [ ] ตรวจว่า `BACKEND_CORS_ORIGINS` เป็น frontend URL จริง
 - [ ] ตรวจว่า `SERVER_BASE_URL` เป็น backend URL จริง
 - [ ] ตรวจว่า `ENCRYPTION_KEY` ไม่ว่าง

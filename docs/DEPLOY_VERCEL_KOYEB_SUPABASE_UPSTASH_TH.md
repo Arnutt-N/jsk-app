@@ -207,7 +207,7 @@ frontend
 ### 5.2 ใส่ Environment Variables ของ Frontend
 
 ```env
-NEXT_PUBLIC_API_URL=https://YOUR-BACKEND.koyeb.app
+NEXT_PUBLIC_API_URL=https://YOUR-BACKEND.koyeb.app/api/v1
 NEXT_PUBLIC_DEV_MODE=false
 ```
 

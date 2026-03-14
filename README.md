@@ -179,7 +179,7 @@ Suggested local env values:
 
 - Backend `SERVER_BASE_URL=https://api.example.com`
 - Backend `BACKEND_CORS_ORIGINS=["https://app.example.com"]`
-- Frontend `NEXT_PUBLIC_API_URL=https://api.example.com`
+- Frontend `NEXT_PUBLIC_API_URL=https://api.example.com/api/v1`
 
 ## License
 
