@@ -70,7 +70,7 @@ pip install -r requirements.txt
 3. Copy and configure environment:
 ```bash
 cp app/.env.example .env
-# Or use backend/.env.development and backend/.env.production with ENV_FILE
+# Or copy backend/.env.development.example / backend/.env.production.example
 ```
 
 4. Run migrations:
@@ -160,8 +160,8 @@ See `.agent/skills/` for comprehensive development guidelines:
 Backend example env:
 
 - [backend/app/.env.example](/backend/app/.env.example)
-- [backend/.env.development](/backend/.env.development)
-- [backend/.env.production](/backend/.env.production)
+- [backend/.env.development.example](/backend/.env.development.example)
+- [backend/.env.production.example](/backend/.env.production.example)
 
 Frontend example env:
 
@@ -172,14 +172,14 @@ Frontend example env:
 
 Recommended Cloudflare Tunnel mapping for local testing:
 
-- `jsk.topzlab.com` -> `http://localhost:3000`
-- `api.topzlab.com` -> `http://localhost:8000`
+- `app.example.com` -> `http://localhost:3000`
+- `api.example.com` -> `http://localhost:8000`
 
 Suggested local env values:
 
-- Backend `SERVER_BASE_URL=https://api.topzlab.com`
-- Backend `BACKEND_CORS_ORIGINS=["https://jsk.topzlab.com"]`
-- Frontend `NEXT_PUBLIC_API_URL=https://api.topzlab.com`
+- Backend `SERVER_BASE_URL=https://api.example.com`
+- Backend `BACKEND_CORS_ORIGINS=["https://app.example.com"]`
+- Frontend `NEXT_PUBLIC_API_URL=https://api.example.com`
 
 ## License
 
