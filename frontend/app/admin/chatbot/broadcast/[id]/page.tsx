@@ -70,6 +70,7 @@ export default function BroadcastDetailPage() {
 
     const [broadcast, setBroadcast] = useState<BroadcastDetail | null>(null);
     const [loading, setLoading] = useState(true);
+    const [fetchError, setFetchError] = useState<string | null>(null);
     const [actionLoading, setActionLoading] = useState(false);
     const [sendModal, setSendModal] = useState(false);
     const [cancelModal, setCancelModal] = useState(false);
@@ -77,6 +78,7 @@ export default function BroadcastDetailPage() {
 
     const fetchBroadcast = useCallback(async () => {
         setLoading(true);
+        setFetchError(null);
         try {
             const res = await fetch(`${API_BASE}/admin/broadcasts/${broadcastId}`, { headers: authHeaders });
             if (!res.ok) throw new Error('Not found');
@@ -84,6 +86,7 @@ export default function BroadcastDetailPage() {
             setBroadcast(data);
         } catch (err) {
             console.error(err);
+            setFetchError('ไม่สามารถโหลดข้อมูล Broadcast ได้');
         } finally {
             setLoading(false);
         }
@@ -154,10 +157,11 @@ export default function BroadcastDetailPage() {
         return (
             <div className="space-y-6 animate-in fade-in duration-500 thai-text">
                 <PageHeader title="ไม่พบข้อมูล" />
+                {fetchError && <div className="p-4 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 rounded-xl text-sm mb-4">{fetchError}</div>}
                 <Card glass className="border-none shadow-sm">
                     <CardContent className="p-8 text-center">
                         <AlertCircle className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                        <p className="text-sm text-gray-500">ไม่พบข้อมูล Broadcast นี้</p>
+                        <p className="text-sm text-gray-500">{fetchError || 'ไม่พบข้อมูล Broadcast นี้'}</p>
                         <Button variant="outline" className="mt-4" onClick={() => router.push('/admin/chatbot/broadcast')}>
                             กลับไปรายการ
                         </Button>

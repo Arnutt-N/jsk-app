@@ -57,18 +57,23 @@ export default function SettingsOverviewPage() {
 
     const [statuses, setStatuses] = useState<ProviderStatus[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
 
     const fetchOverview = useCallback(async () => {
         setLoading(true);
+        setError(null);
         try {
             const res = await fetch(`${API_BASE}/admin/settings/overview`, { headers: authHeaders });
             if (res.ok) {
                 setStatuses(await res.json());
+            } else {
+                setError('ไม่สามารถโหลดข้อมูลได้');
             }
         } catch (err) {
             console.error('Failed to fetch overview', err);
+            setError('ไม่สามารถโหลดข้อมูลได้');
         } finally {
             setLoading(false);
         }
@@ -84,6 +89,8 @@ export default function SettingsOverviewPage() {
 
     return (
         <div className="thai-text space-y-5">
+            {error && <div className="p-4 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 rounded-xl text-sm mb-4">{error}</div>}
+
             <PageHeader
                 title="Settings Overview"
                 subtitle="ภาพรวมของ Integrations ทั้งหมดในระบบ"

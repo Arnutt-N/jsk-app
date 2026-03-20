@@ -135,7 +135,8 @@ async def get_telegram_config(
 
     try:
         decrypted = credential_service.decrypt_credentials(cred.credentials)
-    except Exception:
+    except Exception as exc:
+        logger.error("Failed to decrypt Telegram credentials (id=%s): %s", cred.id, exc, exc_info=True)
         return TelegramConfigOut(credential_id=cred.id)
 
     return TelegramConfigOut(
@@ -210,6 +211,7 @@ async def test_telegram(
                 data={"bot": bot_info},
             )
     except Exception as exc:
+        logger.error("Integration test failed for Telegram: %s", exc, exc_info=True)
         return TestResult(success=False, message=str(exc))
 
 
@@ -226,7 +228,8 @@ async def get_n8n_config(
 
     try:
         decrypted = credential_service.decrypt_credentials(cred.credentials)
-    except Exception:
+    except Exception as exc:
+        logger.error("Failed to decrypt n8n credentials (id=%s): %s", cred.id, exc, exc_info=True)
         return N8nConfigOut(credential_id=cred.id)
 
     return N8nConfigOut(
@@ -297,6 +300,7 @@ async def test_n8n(
                 message=f"Webhook returned {resp.status_code}: {resp.text[:200]}",
             )
     except Exception as exc:
+        logger.error("Integration test failed for n8n: %s", exc, exc_info=True)
         return TestResult(success=False, message=str(exc))
 
 
@@ -315,7 +319,8 @@ async def list_integrations(
     for c in creds:
         try:
             decrypted = credential_service.decrypt_credentials(c.credentials)
-        except Exception:
+        except Exception as exc:
+            logger.error("Failed to decrypt custom integration (id=%s): %s", c.id, exc, exc_info=True)
             decrypted = {}
         items.append(
             IntegrationOut(
@@ -462,6 +467,7 @@ async def test_integration(
                 message=f"HTTP {resp.status_code}: {resp.text[:200]}",
             )
     except Exception as exc:
+        logger.error("Integration test failed for custom integration %d: %s", integration_id, exc, exc_info=True)
         return TestResult(success=False, message=str(exc))
 
 

@@ -48,19 +48,24 @@ export default function N8nSettingsPage() {
     const [testResult, setTestResult] = useState<TestResult | null>(null);
     const [showTestModal, setShowTestModal] = useState(false);
     const [showSaveModal, setShowSaveModal] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
 
     const fetchConfig = useCallback(async () => {
+        setError(null);
         try {
             const res = await fetch(`${API_BASE}/admin/settings/n8n`, { headers: authHeaders });
             if (res.ok) {
                 const data: N8nConfig = await res.json();
                 setConfig(data);
                 if (!data.is_connected) setIsEditing(true);
+            } else {
+                setError('ไม่สามารถโหลดข้อมูลได้');
             }
         } catch (err) {
             console.error('Failed to fetch n8n config', err);
+            setError('ไม่สามารถโหลดข้อมูลได้');
         } finally {
             setLoading(false);
         }
@@ -117,6 +122,8 @@ export default function N8nSettingsPage() {
 
     return (
         <div className="thai-text space-y-5 animate-in fade-in duration-500">
+            {error && <div className="p-4 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 rounded-xl text-sm mb-4">{error}</div>}
+
             <PageHeader title="n8n Settings" subtitle="ตั้งค่า Webhook สำหรับ n8n workflow automation">
                 <Button
                     variant="ghost"

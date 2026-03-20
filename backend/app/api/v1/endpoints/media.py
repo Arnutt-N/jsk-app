@@ -14,6 +14,8 @@ from app.models.user import User
 
 router = APIRouter()
 
+MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
+
 
 # ---------------------------------------------------------------------------
 # Helper: serialise a MediaFile row to JSON-safe dict
@@ -169,6 +171,8 @@ async def upload_media(
 ):
     """Upload a file (admin only). Auto-detects category from MIME type."""
     content = await file.read()
+    if len(content) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="File too large (max 10MB)")
     mime = file.content_type or "application/octet-stream"
 
     media = MediaFile(
@@ -356,8 +360,6 @@ async def bulk_create_public_links(
 
 
 # Legacy upload — requires auth, 10MB limit
-MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
-
 @router.post("/media")
 async def upload_media_legacy(
     file: UploadFile = File(...),

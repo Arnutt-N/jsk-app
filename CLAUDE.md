@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-JskApp is a LINE Official Account system with LIFF integration for Community Justice Services. It features a FastAPI backend with PostgreSQL/Redis and a Next.js 16 frontend with React 19 and TypeScript. Key features include service request management, chatbot with intent matching, live-chat operator handoff, and rich menu configuration.
+JskApp is a LINE Official Account system with LIFF integration for Community Justice Services. It features a FastAPI backend with PostgreSQL/Redis and a Next.js 16 frontend with React 19 and TypeScript. Key features include service request management, chatbot with intent matching, live-chat operator handoff, rich menu configuration, broadcast messaging, file management, user management, analytics reports, and multi-platform integrations (Telegram, n8n).
 
 ## Development Commands
 
@@ -68,7 +68,13 @@ api/
     ├── admin_live_chat.py  # Live chat operator endpoints
     ├── admin_intents.py    # Chatbot intent management
     ├── admin_settings.py   # System configuration
-    └── admin_credentials.py # LINE credential management
+    ├── admin_credentials.py # LINE credential management
+    ├── admin_users.py      # User CRUD, roles, password reset
+    ├── admin_friends.py    # Friend event history (follow/block/refollow)
+    ├── admin_broadcast.py  # LINE broadcast create/schedule/send
+    ├── admin_reports.py    # Analytics reports (5 tabs + CSV export)
+    ├── admin_integrations.py # Telegram, n8n, custom integration settings
+    └── media.py            # File upload/download, categories, public links
 
 core/
 ├── config.py               # Settings from environment
@@ -80,7 +86,10 @@ models/                     # SQLAlchemy async models
 ├── message.py              # Messages with direction (INCOMING/OUTGOING)
 ├── chat_session.py         # Live chat sessions (WAITING/ACTIVE/CLOSED)
 ├── service_request.py      # Service requests with JSONB details
-└── credential.py           # LINE channel credentials
+├── credential.py           # LINE channel credentials
+├── friend_event.py         # Follow/unfollow/block/refollow events
+├── broadcast.py            # Broadcast messages with status lifecycle
+└── media_file.py           # Files with categories and public tokens
 
 services/
 ├── line_service.py         # LINE Messaging API wrapper
@@ -99,7 +108,11 @@ app/
 │   ├── live-chat/          # Full-screen live chat interface
 │   ├── requests/           # Service request management
 │   ├── chatbot/            # Intent and auto-reply config
-│   └── settings/           # System settings
+│   ├── friends/            # LINE friends + history
+│   ├── users/              # User management CRUD
+│   ├── files/              # File management (categories, public links)
+│   ├── reports/            # 5-tab analytics dashboard
+│   └── settings/           # Settings hub (LINE/Telegram/n8n/Custom)
 └── liff/                   # LINE LIFF mini-apps
 
 components/
@@ -120,6 +133,12 @@ hooks/
 | `/admin/live-chat` | Conversations, messages, session management |
 | `/admin/intents` | Chatbot intent CRUD |
 | `/admin/settings` | LINE credentials, system config |
+| `/admin/users` | User CRUD, workload, password reset |
+| `/admin/friends` | Friend history, stats, refollow tracking |
+| `/admin/broadcasts` | Broadcast create/schedule/send |
+| `/admin/reports` | Analytics: overview, requests, messages, operators, followers |
+| `/admin/settings` (integrations) | Telegram, n8n, custom integration config |
+| `/media`, `/admin/media` | File upload, categories, public link generation |
 
 ## Key Patterns
 

@@ -180,7 +180,10 @@ export default function BroadcastCreatePage() {
                 headers: { ...authHeaders, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ scheduled_at: new Date(scheduleDate).toISOString() }),
             });
-            if (!schedRes.ok) throw new Error('Failed to schedule');
+            if (!schedRes.ok) {
+                const errBody = await schedRes.json().catch(() => ({}));
+                throw new Error(errBody.detail || 'ตั้งเวลาไม่สำเร็จ');
+            }
             router.push('/admin/chatbot/broadcast');
         } catch (err) {
             console.error(err);

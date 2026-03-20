@@ -48,19 +48,24 @@ export default function TelegramSettingsPage() {
     const [testResult, setTestResult] = useState<TestResult | null>(null);
     const [showTestModal, setShowTestModal] = useState(false);
     const [showSaveModal, setShowSaveModal] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
 
     const fetchConfig = useCallback(async () => {
+        setError(null);
         try {
             const res = await fetch(`${API_BASE}/admin/settings/telegram`, { headers: authHeaders });
             if (res.ok) {
                 const data: TelegramConfig = await res.json();
                 setConfig(data);
                 if (!data.is_connected) setIsEditing(true);
+            } else {
+                setError('ไม่สามารถโหลดข้อมูลได้');
             }
         } catch (err) {
             console.error('Failed to fetch Telegram config', err);
+            setError('ไม่สามารถโหลดข้อมูลได้');
         } finally {
             setLoading(false);
         }
@@ -117,6 +122,8 @@ export default function TelegramSettingsPage() {
 
     return (
         <div className="thai-text space-y-5 animate-in fade-in duration-500">
+            {error && <div className="p-4 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 rounded-xl text-sm mb-4">{error}</div>}
+
             <PageHeader title="Telegram Settings" subtitle="ตั้งค่าการเชื่อมต่อ Telegram Bot">
                 <Button
                     variant="ghost"

@@ -424,22 +424,41 @@ async def report_operators(
     )
     rows = (await db.execute(sessions_q)).all()
 
-    # messages sent per operator
-    msg_q = (
-        select(
-            Message.operator_name,
-            func.count(Message.id).label("msg_count"),
+    # Count operator messages by matching outgoing ADMIN messages on sessions
+    # owned by each operator (via line_user_id).  The Message model lacks an
+    # operator_id column, so a direct FK join is not possible.  Previously this
+    # used Message.operator_name (display name) which is unreliable because
+    # display names can change or collide.  Instead we correlate through
+    # ChatSession.line_user_id to count outgoing admin messages within sessions
+    # each operator handled.
+    operator_ids = [row.operator_id for row in rows]
+    msg_by_operator: dict[int, int] = {}
+    if operator_ids:
+        op_msg_q = (
+            select(
+                ChatSession.operator_id,
+                func.count(Message.id).label("msg_count"),
+            )
+            .join(
+                Message,
+                (Message.line_user_id == ChatSession.line_user_id)
+                & (Message.created_at >= ChatSession.started_at)
+                & (
+                    (Message.created_at <= ChatSession.closed_at)
+                    | (ChatSession.closed_at.is_(None))
+                ),
+            )
+            .where(
+                ChatSession.operator_id.in_(operator_ids),
+                ChatSession.started_at >= start,
+                ChatSession.started_at <= end,
+                Message.direction == MessageDirection.OUTGOING,
+                Message.sender_role == "ADMIN",
+            )
+            .group_by(ChatSession.operator_id)
         )
-        .where(
-            Message.direction == MessageDirection.OUTGOING,
-            Message.sender_role == "ADMIN",
-            Message.created_at >= start,
-            Message.created_at <= end,
-        )
-        .group_by(Message.operator_name)
-    )
-    msg_rows = (await db.execute(msg_q)).all()
-    msg_by_name = {name: c for name, c in msg_rows if name}
+        op_msg_rows = (await db.execute(op_msg_q)).all()
+        msg_by_operator = {oid: cnt for oid, cnt in op_msg_rows}
 
     operators = []
     for row in rows:
@@ -448,7 +467,7 @@ async def report_operators(
             operator_name=row.display_name or f"Operator #{row.operator_id}",
             sessions_handled=row.sessions_handled,
             avg_response_seconds=round(float(row.avg_response_seconds or 0), 1),
-            messages_sent=msg_by_name.get(row.display_name, 0),
+            messages_sent=msg_by_operator.get(row.operator_id, 0),
         ))
 
     return OperatorsReportResponse(operators=operators)

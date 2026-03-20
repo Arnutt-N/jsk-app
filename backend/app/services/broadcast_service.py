@@ -181,7 +181,11 @@ class BroadcastService:
                 broadcast.sent_at = datetime.now(timezone.utc)
             else:
                 user_ids = broadcast.target_filter.get("user_ids", [])
-                if user_ids:
+                if not user_ids:
+                    broadcast.status = BroadcastStatus.FAILED
+                    broadcast.failure_count = 1
+                    logger.error("Broadcast %s has no target user IDs", broadcast.id)
+                else:
                     sent = 0
                     failed = 0
                     for i in range(0, len(user_ids), 500):
@@ -231,7 +235,7 @@ class BroadcastService:
         return broadcast
 
     async def cancel_broadcast(self, db: AsyncSession, broadcast: Broadcast) -> Broadcast:
-        if broadcast.status not in (BroadcastStatus.SCHEDULED, BroadcastStatus.DRAFT):
+        if broadcast.status not in (BroadcastStatus.SCHEDULED, BroadcastStatus.DRAFT, BroadcastStatus.SENDING):
             raise ValueError(f"Cannot cancel broadcast in status {broadcast.status}")
 
         broadcast.status = BroadcastStatus.CANCELLED

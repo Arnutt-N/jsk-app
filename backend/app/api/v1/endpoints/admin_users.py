@@ -393,6 +393,11 @@ async def update_user(
             )
         user.is_active = body.is_active
     if body.password is not None:
+        if current_admin.role != UserRole.SUPER_ADMIN:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only SUPER_ADMIN can change passwords via this endpoint",
+            )
         user.hashed_password = get_password_hash(body.password)
 
     await db.commit()

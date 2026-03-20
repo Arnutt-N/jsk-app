@@ -178,6 +178,11 @@ async def send_broadcast(
         broadcast = await broadcast_service.send_broadcast(db, broadcast)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    if broadcast.status == BroadcastStatus.FAILED:
+        raise HTTPException(
+            status_code=502,
+            detail="Broadcast failed to send. Check server logs for details.",
+        )
     return BroadcastResponse.model_validate(broadcast)
 
 

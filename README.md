@@ -180,6 +180,12 @@ Notes:
 - ✅ Service request forms
 - ✅ Real-time admin chat panel
 - ✅ Role-based access control (RBAC)
+- ✅ Broadcast messaging
+- ✅ File management with public links
+- ✅ User management with role hierarchy
+- ✅ Friend histories (follow/block/refollow tracking)
+- ✅ Reports & analytics dashboard
+- ✅ Settings hub (LINE, Telegram, n8n, custom integrations)
 
 ## Development Standards
 

@@ -168,7 +168,10 @@ export default function FilesPage() {
     try {
       const res = await fetch(`${API_BASE}/admin/media/stats`, { headers });
       if (res.ok) setStats(await res.json());
-    } catch { /* ignore */ }
+      else console.warn('Media stats returned status', res.status);
+    } catch (err) {
+      console.error('Failed to fetch media stats:', err);
+    }
   }, [headers]);
 
   useEffect(() => { fetchFiles(); }, [fetchFiles]);
@@ -183,6 +186,7 @@ export default function FilesPage() {
   const uploadFiles = useCallback(async (fileList: FileList | File[]) => {
     setUploading(true);
     let successCount = 0;
+    let failCount = 0;
     const arr = Array.from(fileList);
     for (const f of arr) {
       const form = new FormData();
@@ -193,14 +197,24 @@ export default function FilesPage() {
           headers,
           body: form,
         });
-        if (res.ok) successCount++;
-      } catch { /* skip */ }
+        if (res.ok) {
+          successCount++;
+        } else {
+          failCount++;
+          console.error('Upload failed for', f.name, res.status);
+        }
+      } catch (err) {
+        failCount++;
+        console.error('Upload error for', f.name, err);
+      }
     }
     setUploading(false);
     if (successCount > 0) {
-      toast({ title: `อัปโหลดสำเร็จ ${successCount} ไฟล์`, variant: 'success' });
+      toast({ title: `อัปโหลดสำเร็จ ${successCount} ไฟล์${failCount > 0 ? ` (ล้มเหลว ${failCount} ไฟล์)` : ''}`, variant: 'success' });
       fetchFiles();
       fetchStats();
+    } else if (failCount > 0) {
+      toast({ title: `อัปโหลดล้มเหลว ${failCount} ไฟล์ กรุณาตรวจสอบขนาดหรือประเภทไฟล์`, variant: 'error' });
     }
   }, [headers, fetchFiles, fetchStats, toast]);
 

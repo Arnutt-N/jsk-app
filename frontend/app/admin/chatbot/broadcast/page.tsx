@@ -76,6 +76,7 @@ export default function BroadcastListPage() {
     const [page, setPage] = useState(0);
     const pageSize = 20;
 
+    const [fetchError, setFetchError] = useState<string | null>(null);
     const [deleteTarget, setDeleteTarget] = useState<Broadcast | null>(null);
     const [sendTarget, setSendTarget] = useState<Broadcast | null>(null);
     const [actionLoading, setActionLoading] = useState(false);
@@ -84,6 +85,7 @@ export default function BroadcastListPage() {
 
     const fetchBroadcasts = useCallback(async () => {
         setLoading(true);
+        setFetchError(null);
         try {
             const params = new URLSearchParams();
             if (statusFilter) params.append('status', statusFilter);
@@ -97,6 +99,7 @@ export default function BroadcastListPage() {
             setTotal(data.total);
         } catch (err) {
             console.error(err);
+            setFetchError('ไม่สามารถโหลดรายการ Broadcast ได้');
         } finally {
             setLoading(false);
         }
@@ -176,6 +179,8 @@ export default function BroadcastListPage() {
                     </div>
                 </CardContent>
             </Card>
+
+            {fetchError && <div className="p-4 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 rounded-xl text-sm mb-4">{fetchError}</div>}
 
             {/* Table */}
             <Card glass className="border-none shadow-sm overflow-hidden">
