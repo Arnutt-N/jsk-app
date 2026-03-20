@@ -47,7 +47,7 @@ interface UseLiveChatSocketReturn {
   stopTyping: (lineUserId: string) => void;
   claimSession: () => void;
   closeSession: () => void;
-  transferSession: (toOperatorId: number, reason?: string) => void;
+  transferSession: (toOperatorId: number, reason?: string) => boolean;
   reconnect: () => void;
 }
 
@@ -238,7 +238,11 @@ export function useLiveChatSocket(options: UseLiveChatSocketOptions): UseLiveCha
   }, [send]);
 
   const transferSession = useCallback((toOperatorId: number, reason?: string) => {
-    send(MessageType.TRANSFER_SESSION, { to_operator_id: toOperatorId, reason });
+    if (!currentRoom.current) {
+      console.warn('Cannot transfer session: not in a room');
+      return false;
+    }
+    return send(MessageType.TRANSFER_SESSION, { to_operator_id: toOperatorId, reason });
   }, [send]);
 
   // Cleanup on unmount

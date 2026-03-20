@@ -15,3 +15,4 @@ from .csat_response import CsatResponse
 from .canned_response import CannedResponse
 from .tag import Tag, UserTag
 from .request_comment import RequestComment
+from .broadcast import Broadcast

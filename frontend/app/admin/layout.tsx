@@ -11,7 +11,7 @@ import {
   Sun, Moon, Bell, Menu, Search, LogOut, ChevronLeft, ChevronRight,
   LayoutDashboard, FileText, Bot, MessageCircle,
   Reply, MessageSquareReply, PanelTop, Users,
-  UserCog, BarChart3,
+  UserCog, BarChart3, Megaphone, FolderOpen,
   Settings, Palette,
 } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
@@ -155,6 +155,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
       items: [
         { name: 'Chatbot Overview', href: '/admin/chatbot', icon: Bot, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
         { name: 'Live Chat', href: '/admin/live-chat', icon: MessageCircle, openInNewTab: true, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'AGENT'] },
+        { name: 'Broadcast', href: '/admin/chatbot/broadcast', icon: Megaphone, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
         { name: 'Auto-Replies', href: '/admin/auto-replies', icon: Reply, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
         { name: 'Reply Objects', href: '/admin/reply-objects', icon: MessageSquareReply, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
         { name: 'Rich Menus', href: '/admin/rich-menus', icon: PanelTop, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
@@ -165,8 +166,9 @@ function AdminShell({ children }: { children: React.ReactNode }) {
       title: 'System Management',
       items: [
         { name: 'User Management', href: '/admin/users', icon: UserCog, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
+        { name: 'File Management', href: '/admin/files', icon: FolderOpen, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
         { name: 'Reports', href: '/admin/reports', icon: BarChart3, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
-        { name: 'LINE Settings', href: '/admin/settings/line', icon: Settings, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
+        { name: 'Settings', href: '/admin/settings', icon: Settings, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
         { name: 'Design System', href: '/admin/design-system', icon: Palette, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
       ]
     }

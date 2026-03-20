@@ -1,5 +1,6 @@
 """Security utilities for JWT and authentication."""
 from datetime import datetime, timedelta
+import logging
 from typing import Optional, Union
 
 import bcrypt
@@ -7,15 +8,21 @@ from jose import jwt, JWTError
 
 from app.core.config import settings
 
+logger = logging.getLogger(__name__)
+
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a plain password against a hashed password."""
     if not hashed_password:
         return False
-    return bcrypt.checkpw(
-        plain_password.encode("utf-8"),
-        hashed_password.encode("utf-8"),
-    )
+    try:
+        return bcrypt.checkpw(
+            plain_password.encode("utf-8"),
+            hashed_password.encode("utf-8"),
+        )
+    except (TypeError, ValueError):
+        logger.warning("Stored password hash has invalid bcrypt format.")
+        return False
 
 
 def get_password_hash(password: str) -> str:

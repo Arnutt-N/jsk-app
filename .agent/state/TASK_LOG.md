@@ -38,6 +38,40 @@
 
 ## Task History (Newest First)
 
+### Task #26 - 2026-03-18 21:42 - CodeX
+
+**Task ID**: `task-live-chat-hardening-20260318`
+**Agent**: CodeX (Codex GPT-5)
+**Status**: completed
+**Duration**: ~4 hours
+
+#### Cross-Platform Context
+- Live-chat hardening session completed on `feat/ui-workflow-audit`.
+- Final verification from the session: backend live-chat suite `70 passed, 7 skipped`; frontend `npm run build` passed.
+- Session summary path: `project-log-md/codeX/session-summary-20260318-2142.md`
+
+#### Work Completed
+- Hardened live-chat WS auth, owner enforcement, room tracking, Redis cross-instance exclusion, REST transfer fallback, and REST/WS response consistency across the backend and frontend.
+- Captured the completed session in the state artifacts so the next agent can pickup from a clean, completed baseline.
+- Preserved append-only history and kept the summary/handoff docs untouched per instruction.
+
+#### Files Modified
+- `.agent/state/current-session.json`
+- `.agent/state/task.md`
+- `.agent/state/TASK_LOG.md`
+- `.agent/state/SESSION_INDEX.md`
+
+#### Blockers
+- None.
+
+#### Next Steps
+- Run manual QA for live-chat flows: claim -> send -> transfer -> close.
+- Verify multi-instance behavior with Redis-backed WebSocket broadcast if staging is available.
+- Decide commit scope for live-chat hardening vs any unrelated dirty-worktree changes.
+- Open or update the PR on `feat/ui-workflow-audit` once the intended scope is staged.
+
+---
+
 ### Task #25 - 2026-03-15 17:18 - CodeX
 
 **Task ID**: `task-media-admin-handoff-20260315`
@@ -1126,12 +1160,12 @@
 
 | Metric | Value |
 |--------|-------|
-| Total Tasks | 24 |
-| Completed | 24 |
+| Total Tasks | 25 |
+| Completed | 25 |
 | In Progress | 0 |
 | Blocked | 0 |
 | First Entry | 2026-02-10 |
-| Last Entry | 2026-03-15 |
+| Last Entry | 2026-03-18 |
 
 ### Agents Contributed
 1. **Claude Code**: 7 tasks (#1, #4, #5, #10, #14, #18, #20)

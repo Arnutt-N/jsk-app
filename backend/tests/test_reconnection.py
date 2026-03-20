@@ -8,8 +8,18 @@ NOTE: Tests involving join_room are skipped because join_room queries
 the database for conversation details, which requires a running DB.
 """
 import pytest
+from unittest.mock import AsyncMock, patch
 from fastapi.testclient import TestClient
 from app.main import app
+
+
+@pytest.fixture(autouse=True)
+def mock_live_chat_auth():
+    with patch(
+        "app.api.v1.endpoints.ws_live_chat.authenticate_ws_user",
+        new=AsyncMock(return_value="1"),
+    ):
+        yield
 
 
 class TestReconnection:
@@ -21,14 +31,14 @@ class TestReconnection:
 
         # First connection
         with client.websocket_connect("/api/v1/ws/live-chat") as ws:
-            ws.send_json({"type": "auth", "payload": {"admin_id": "1"}})
+            ws.send_json({"type": "auth", "payload": {"token": "test-access-token"}})
             data = ws.receive_json()
             assert data["type"] == "auth_success"
             ws.receive_json()  # presence_update
 
         # Connection closed, reconnect
         with client.websocket_connect("/api/v1/ws/live-chat") as ws:
-            ws.send_json({"type": "auth", "payload": {"admin_id": "1"}})
+            ws.send_json({"type": "auth", "payload": {"token": "test-access-token"}})
             data = ws.receive_json()
             assert data["type"] == "auth_success"
             assert data["payload"]["admin_id"] == "1"
@@ -41,12 +51,12 @@ class TestReconnection:
         with client1.websocket_connect("/api/v1/ws/live-chat") as ws1:
             with client2.websocket_connect("/api/v1/ws/live-chat") as ws2:
                 # Both use same admin_id
-                ws1.send_json({"type": "auth", "payload": {"admin_id": "1"}})
+                ws1.send_json({"type": "auth", "payload": {"token": "test-access-token"}})
                 data1 = ws1.receive_json()
                 assert data1["type"] == "auth_success"
                 ws1.receive_json()  # presence_update
 
-                ws2.send_json({"type": "auth", "payload": {"admin_id": "1"}})
+                ws2.send_json({"type": "auth", "payload": {"token": "test-access-token"}})
                 data2 = ws2.receive_json()
                 assert data2["type"] == "auth_success"
                 ws2.receive_json()  # presence_update
@@ -67,17 +77,17 @@ class TestReconnection:
 
         with client1.websocket_connect("/api/v1/ws/live-chat") as ws1:
             # Admin 1 connects
-            ws1.send_json({"type": "auth", "payload": {"admin_id": "100"}})
+            ws1.send_json({"type": "auth", "payload": {"token": "test-access-token"}})
             data1 = ws1.receive_json()
             assert data1["type"] == "auth_success"
             ws1.receive_json()  # presence_update
 
             with client2.websocket_connect("/api/v1/ws/live-chat") as ws2:
                 # Admin 2 connects
-                ws2.send_json({"type": "auth", "payload": {"admin_id": "200"}})
+                ws2.send_json({"type": "auth", "payload": {"token": "test-access-token"}})
                 data2 = ws2.receive_json()
                 assert data2["type"] == "auth_success"
-                assert data2["payload"]["admin_id"] == "200"
+                assert data2["payload"]["admin_id"] == "1"
                 ws2.receive_json()  # presence_update
 
                 # Both work independently
@@ -99,13 +109,13 @@ class TestReconnection:
 
         # First connection (no join_room to avoid DB)
         with client.websocket_connect("/api/v1/ws/live-chat") as ws:
-            ws.send_json({"type": "auth", "payload": {"admin_id": "1"}})
+            ws.send_json({"type": "auth", "payload": {"token": "test-access-token"}})
             ws.receive_json()  # auth_success
             ws.receive_json()  # presence_update
 
         # Reconnect - try to send message (should fail since never joined room)
         with client.websocket_connect("/api/v1/ws/live-chat") as ws:
-            ws.send_json({"type": "auth", "payload": {"admin_id": "1"}})
+            ws.send_json({"type": "auth", "payload": {"token": "test-access-token"}})
             ws.receive_json()  # auth_success
             ws.receive_json()  # presence_update
 
@@ -128,14 +138,14 @@ class TestReconnectionWithDB:
 
         # First connection - join room
         with client.websocket_connect("/api/v1/ws/live-chat") as ws:
-            ws.send_json({"type": "auth", "payload": {"admin_id": "1"}})
+            ws.send_json({"type": "auth", "payload": {"token": "test-access-token"}})
             ws.receive_json()  # auth_success
             ws.receive_json()  # presence_update
             ws.send_json({"type": "join_room", "payload": {"line_user_id": "Uabcdef0123456789abcdef0123456010"}})
 
         # Reconnect - try to send message without rejoining
         with client.websocket_connect("/api/v1/ws/live-chat") as ws:
-            ws.send_json({"type": "auth", "payload": {"admin_id": "1"}})
+            ws.send_json({"type": "auth", "payload": {"token": "test-access-token"}})
             ws.receive_json()  # auth_success
             ws.receive_json()  # presence_update
 

@@ -5,6 +5,7 @@ import logging
 
 from jose import jwt, JWTError, ExpiredSignatureError
 from pydantic import ValidationError
+from sqlalchemy import select
 
 from app.core.config import settings
 from app.db.session import AsyncSessionLocal
@@ -22,42 +23,19 @@ from app.schemas.ws_events import (
     TransferSessionPayload
 )
 from app.models.chat_session import ClosedBy
+from app.models.user import User, UserRole
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-async def handle_auth(websocket: WebSocket, payload: dict, query_token: Optional[str] = None) -> Optional[str]:
-    """
-    Authenticate WebSocket connection using JWT token or admin_id (dev mode).
-
-    Token can be provided via:
-    1. Auth message payload: {"token": "<jwt>"}
-    2. Query parameter: ?token=<jwt>
-    3. Dev mode: {"admin_id": "1"} (when no token provided)
-
-    Returns admin_id or None if invalid.
-    """
-    # Get token from payload or fallback to query param
-    try:
-        auth_data = AuthPayload(**payload) if payload.get('token') else None
-        token = auth_data.token if auth_data else query_token
-    except ValidationError as e:
-        logger.warning(f"Auth payload validation failed: {e}")
-        token = query_token  # Fallback to query param
-
-    # DEV MODE: Allow admin_id without JWT for development
+async def authenticate_ws_user(websocket: WebSocket, token: Optional[str]) -> Optional[str]:
+    """Authenticate a WebSocket connection and return the authenticated admin_id."""
     if not token:
-        if settings.ENVIRONMENT == "development":
-            admin_id = payload.get('admin_id')
-            if admin_id:
-                logger.warning(f"WebSocket auth bypass used in development mode for admin {admin_id}")
-                return str(admin_id)
-        
         await ws_manager.send_personal(websocket, {
             "type": WSEventType.AUTH_ERROR.value,
             "payload": {
-                "message": "Token or admin_id required.",
+                "message": "Access token required.",
                 "code": WSErrorCode.AUTH_MISSING_TOKEN.value
             },
             "timestamp": datetime.now(timezone.utc).isoformat()
@@ -65,19 +43,36 @@ async def handle_auth(websocket: WebSocket, payload: dict, query_token: Optional
         return None
 
     try:
-        # Decode and verify JWT
         payload_data = jwt.decode(
             token,
             settings.SECRET_KEY,
             algorithms=[settings.ALGORITHM]
         )
-        admin_id = str(payload_data.get("sub"))
+        token_type = payload_data.get("type")
+        if token_type != "access":
+            raise JWTError("Invalid token type")
 
-        if not admin_id:
+        user_id = payload_data.get("sub")
+        if user_id is None:
             raise JWTError("Missing 'sub' claim in token")
 
-        logger.info(f"WebSocket auth successful for admin {admin_id}")
-        return admin_id
+        try:
+            user_id_int = int(user_id)
+        except (TypeError, ValueError) as exc:
+            raise JWTError("Invalid subject claim") from exc
+
+        async with AsyncSessionLocal() as db:
+            result = await db.execute(select(User).where(User.id == user_id_int))
+            user = result.scalar_one_or_none()
+
+        if not user or not getattr(user, "is_active", True):
+            raise JWTError("User not found")
+
+        if user.role not in {UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.AGENT}:
+            raise JWTError("Insufficient permissions")
+
+        logger.info(f"WebSocket auth successful for admin {user.id}")
+        return str(user.id)
 
     except ExpiredSignatureError:
         logger.warning("WebSocket auth failed: Token expired")
@@ -96,12 +91,31 @@ async def handle_auth(websocket: WebSocket, payload: dict, query_token: Optional
         await ws_manager.send_personal(websocket, {
             "type": WSEventType.AUTH_ERROR.value,
             "payload": {
-                "message": "Invalid token",
+                "message": "Invalid token or insufficient permissions",
                 "code": WSErrorCode.AUTH_INVALID_TOKEN.value
             },
             "timestamp": datetime.now(timezone.utc).isoformat()
         })
         return None
+
+
+async def handle_auth(websocket: WebSocket, payload: dict, query_token: Optional[str] = None) -> Optional[str]:
+    """
+    Authenticate WebSocket connection using an access token.
+
+    Token can be provided via:
+    1. Auth message payload: {"token": "<jwt>"}
+    2. Query parameter: ?token=<jwt>
+    """
+    # Get token from payload or fallback to query param
+    try:
+        auth_data = AuthPayload(**payload) if payload.get('token') else None
+        token = auth_data.token if auth_data else query_token
+    except ValidationError as e:
+        logger.warning(f"Auth payload validation failed: {e}")
+        token = query_token  # Fallback to query param
+
+    return await authenticate_ws_user(websocket, token)
 
 
 @router.websocket("/ws/live-chat")
@@ -122,7 +136,7 @@ async def websocket_endpoint(
     5. Client can join rooms, send messages, etc.
 
     Events (Client → Server):
-      - auth: {"type": "auth", "payload": {"admin_id": "1"}}
+      - auth: {"type": "auth", "payload": {"token": "<jwt access token>"}}
       - join_room: {"type": "join_room", "payload": {"line_user_id": "U123"}}
       - leave_room: {"type": "leave_room"}
       - send_message: {"type": "send_message", "payload": {"text": "Hello"}}
@@ -257,7 +271,7 @@ async def websocket_endpoint(
                     detail = await live_chat_service.get_conversation_detail(line_user_id, db)
                     if detail:
                         await ws_manager.send_personal(websocket, {
-                            "type": WSEventType.CONVERSATION_UPDATE.value,
+                        "type": WSEventType.CONVERSATION_UPDATE.value,
                             "payload": {
                                 "line_user_id": detail["line_user_id"],
                                 "display_name": detail["display_name"],
@@ -281,8 +295,8 @@ async def websocket_endpoint(
                                     } for m in detail["messages"]
                                 ]
                             },
-                            "timestamp": timestamp
-                        })
+                        "timestamp": timestamp
+                    })
                 continue
 
             # === LEAVE ROOM ===
@@ -348,41 +362,51 @@ async def websocket_endpoint(
                 line_user_id = current_room.replace("conversation:", "")
 
                 async with AsyncSessionLocal() as db:
-                    await live_chat_service.send_message(
-                        line_user_id, text, admin_id_int, db
-                    )
-                    await db.commit()
-                    # Get the sent message
-                    messages = await live_chat_service.get_recent_messages(line_user_id, 1, db)
-                    if messages:
-                        msg = messages[0]
-                        msg_data = {
-                            "id": msg.id,
-                            "line_user_id": line_user_id,
-                            "direction": msg.direction.value if hasattr(msg.direction, 'value') else msg.direction,
-                            "content": msg.content,
-                            "message_type": msg.message_type,
-                            "payload": msg.payload,
-                            "sender_role": msg.sender_role.value if hasattr(msg.sender_role, 'value') else msg.sender_role,
-                            "operator_name": msg.operator_name,
-                            "created_at": msg.created_at.isoformat(),
-                            "temp_id": temp_id
-                        }
-                        # Confirm to sender
+                    try:
+                        await live_chat_service.send_message(
+                            line_user_id, text, admin_id_int, db
+                        )
+                        await db.commit()
+                        # Get the sent message
+                        messages = await live_chat_service.get_recent_messages(line_user_id, 1, db)
+                        if messages:
+                            msg = messages[0]
+                            msg_data = {
+                                "id": msg.id,
+                                "line_user_id": line_user_id,
+                                "direction": msg.direction.value if hasattr(msg.direction, 'value') else msg.direction,
+                                "content": msg.content,
+                                "message_type": msg.message_type,
+                                "payload": msg.payload,
+                                "sender_role": msg.sender_role.value if hasattr(msg.sender_role, 'value') else msg.sender_role,
+                                "operator_name": msg.operator_name,
+                                "created_at": msg.created_at.isoformat(),
+                                "temp_id": temp_id
+                            }
+                            # Confirm to sender
+                            await ws_manager.send_personal(websocket, {
+                                "type": WSEventType.MESSAGE_SENT.value,
+                                "payload": msg_data,
+                                "timestamp": timestamp
+                            })
+                            # Track message sent with latency
+                            latency_ms = (time.time() - message_start_time) * 1000
+                            ws_health_monitor.record_message_sent(latency_ms)
+                            # Broadcast to room
+                            await ws_manager.broadcast_to_room(current_room, {
+                                "type": WSEventType.NEW_MESSAGE.value,
+                                "payload": msg_data,
+                                "timestamp": timestamp
+                            }, exclude_websocket=websocket)
+                    except HTTPException as e:
                         await ws_manager.send_personal(websocket, {
-                            "type": WSEventType.MESSAGE_SENT.value,
-                            "payload": msg_data,
+                            "type": WSEventType.ERROR.value,
+                            "payload": {
+                                "message": str(e.detail),
+                                "code": WSErrorCode.VALIDATION_ERROR.value
+                            },
                             "timestamp": timestamp
                         })
-                        # Track message sent with latency
-                        latency_ms = (time.time() - message_start_time) * 1000
-                        ws_health_monitor.record_message_sent(latency_ms)
-                        # Broadcast to room
-                        await ws_manager.broadcast_to_room(current_room, {
-                            "type": WSEventType.NEW_MESSAGE.value,
-                            "payload": msg_data,
-                            "timestamp": timestamp
-                        }, exclude_admin=admin_id)
                 continue
 
             # === TYPING START ===
@@ -397,7 +421,7 @@ async def websocket_endpoint(
                             "is_typing": True
                         },
                         "timestamp": timestamp
-                    }, exclude_admin=admin_id)
+                    }, exclude_websocket=websocket)
                 continue
 
             # === TYPING STOP ===
@@ -412,7 +436,7 @@ async def websocket_endpoint(
                             "is_typing": False
                         },
                         "timestamp": timestamp
-                    }, exclude_admin=admin_id)
+                    }, exclude_websocket=websocket)
                 continue
 
             # === CLAIM SESSION ===
@@ -445,6 +469,10 @@ async def websocket_endpoint(
                                 },
                                 "timestamp": timestamp
                             })
+                            try:
+                                await analytics_service.emit_live_kpis_update(db)
+                            except Exception as e:
+                                logger.warning("KPI broadcast failed (non-fatal): %s", e)
                         else:
                             await ws_manager.send_personal(websocket, {
                                 "type": WSEventType.ERROR.value,
@@ -454,10 +482,6 @@ async def websocket_endpoint(
                                 },
                                 "timestamp": timestamp
                             })
-                            try:
-                                await analytics_service.emit_live_kpis_update(db)
-                            except Exception as e:
-                                logger.warning("KPI broadcast failed (non-fatal): %s", e)
                     except HTTPException as e:
                         await ws_manager.send_personal(websocket, {
                             "type": WSEventType.ERROR.value,
@@ -495,7 +519,7 @@ async def websocket_endpoint(
                 async with AsyncSessionLocal() as db:
                     try:
                         session = await live_chat_service.close_session(
-                            line_user_id, ClosedBy.OPERATOR, db
+                            line_user_id, ClosedBy.OPERATOR, db, operator_id=admin_id_int
                         )
                         if session:
                             await db.commit()
@@ -520,6 +544,15 @@ async def websocket_endpoint(
                                 },
                                 "timestamp": timestamp
                             })
+                    except HTTPException as e:
+                        await ws_manager.send_personal(websocket, {
+                            "type": WSEventType.ERROR.value,
+                            "payload": {
+                                "message": str(e.detail),
+                                "code": WSErrorCode.VALIDATION_ERROR.value
+                            },
+                            "timestamp": timestamp
+                        })
                     except Exception as e:
                         logger.error(f"Error closing session: {e}")
                         await ws_manager.send_personal(websocket, {

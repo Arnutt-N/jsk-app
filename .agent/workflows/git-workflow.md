@@ -8,6 +8,12 @@ description: Enterprise Git Workflow - Complete commands with security checks an
 คำสั่ง Git ครบถ้วนพร้อมระบบตรวจสอบความปลอดภัยระดับ Enterprise ก่อน Push
 รวมถึงบันทึก Git Log เป็น `.md` อัตโนมัติหลัง Push เสร็จ
 
+## Setup
+Run the commands from the repository root, or set:
+```cmd
+set "REPO_ROOT=%CD%"
+```
+
 ---
 
 ## 📋 Quick Reference - Git Commands
@@ -105,38 +111,38 @@ git tag -a v2.0.0 -m "BREAKING: Refactor API structure"
 ### Step 1: Check Git Status
 // turbo
 ```bash
-cd /d "D:\genAI\skn-app" && git status
+cd /d "%REPO_ROOT%" && git status
 ```
 
 ### Step 2: Security Scan - Sensitive Files (Enhanced)
 // turbo
 ```bash
-cd /d "D:\genAI\skn-app" && git diff --staged --name-only | findstr /I ".env .env. .pem .key .p12 .pfx id_rsa password secret token credential credentials database.yml config.ini"
+cd /d "%REPO_ROOT%" && git diff --staged --name-only | findstr /I ".env .env. .pem .key .p12 .pfx id_rsa password secret token credential credentials database.yml config.ini"
 ```
 
 ### Step 3: Hardcoded Secrets Check (New)
 // turbo
 ```bash
-cd /d "D:\genAI\skn-app" && git diff --staged | findstr /I "password= api_key= secret= token= access_token= private_key= aws_secret"
+cd /d "%REPO_ROOT%" && git diff --staged | findstr /I "password= api_key= secret= token= access_token= private_key= aws_secret"
 ```
 > ⚠️ ถ้าพบ output = มี hardcoded secrets! ต้องแก้ไขก่อน push
 
 ### Step 4: Large Files Check (>5MB - Improved)
 // turbo
 ```bash
-cd /d "D:\genAI\skn-app" && git diff --staged --stat | findstr /R "[5-9][0-9][0-9][0-9][0-9][0-9][0-9]"
+cd /d "%REPO_ROOT%" && git diff --staged --stat | findstr /R "[5-9][0-9][0-9][0-9][0-9][0-9][0-9]"
 ```
 
 ### Step 5: Verify .gitignore Working
 // turbo
 ```bash
-cd /d "D:\genAI\skn-app" && git check-ignore -v secrets/* examples/* .env .env.local 2>nul
+cd /d "%REPO_ROOT%" && git check-ignore -v secrets/* examples/* .env .env.local 2>nul
 ```
 
 ### Step 6: Review Staged Files
 // turbo
 ```bash
-cd /d "D:\genAI\skn-app" && git diff --staged --name-status
+cd /d "%REPO_ROOT%" && git diff --staged --name-status
 ```
 
 ---
@@ -146,40 +152,40 @@ cd /d "D:\genAI\skn-app" && git diff --staged --name-status
 ### Step 1: Check Current Branch
 // turbo
 ```bash
-cd /d "D:\genAI\skn-app" && git branch --show-current
+cd /d "%REPO_ROOT%" && git branch --show-current
 ```
 
 ### Step 2: Pull Latest Changes
 // turbo
 ```bash
-cd /d "D:\genAI\skn-app" && git pull origin main
+cd /d "%REPO_ROOT%" && git pull origin main
 ```
 > ⚠️ ตรวจสอบ conflicts ถ้ามี
 
 ### Step 3: Stage Changes
 ```bash
-cd /d "D:\genAI\skn-app" && git add .
+cd /d "%REPO_ROOT%" && git add .
 ```
 > 💡 หรือใช้ `git add <file>` สำหรับไฟล์เฉพาะ
 
 ### Step 4: Commit with Message
 ```bash
-cd /d "D:\genAI\skn-app" && git commit -m "type(scope): description"
+cd /d "%REPO_ROOT%" && git commit -m "type(scope): description"
 ```
 
 ### Step 5: Create Tag (Optional)
 ```bash
-cd /d "D:\genAI\skn-app" && git tag -a v1.x.x -m "Version description"
+cd /d "%REPO_ROOT%" && git tag -a v1.x.x -m "Version description"
 ```
 
 ### Step 6: Push Changes
 ```bash
-cd /d "D:\genAI\skn-app" && git push origin main
+cd /d "%REPO_ROOT%" && git push origin main
 ```
 
 ### Step 7: Push Tags (if created)
 ```bash
-cd /d "D:\genAI\skn-app" && git push origin --tags
+cd /d "%REPO_ROOT%" && git push origin --tags
 ```
 
 ---
@@ -189,19 +195,19 @@ cd /d "D:\genAI\skn-app" && git push origin --tags
 ### Step 8: Generate & Display Log
 // turbo
 ```bash
-cd /d "D:\genAI\skn-app" && git log -1 --pretty=format:"Hash: %%h%%nAuthor: %%an <%%ae>%%nDate: %%ci%%nMessage: %%s" && echo. && git diff HEAD~1 --name-status
+cd /d "%REPO_ROOT%" && git log -1 --pretty=format:"Hash: %%h%%nAuthor: %%an <%%ae>%%nDate: %%ci%%nMessage: %%s" && echo. && git diff HEAD~1 --name-status
 ```
 
 ### Step 9: Create Log File with Timestamp
 
 **Option A: Quick Command (Use in CMD - แนะนำ)**
 ```bash
-cd /d "D:\genAI\skn-app" && git log -1 --stat > "project-log-md\git-log-%date:~-4,4%%date:~-10,2%%date:~-7,2%-%time:~0,2%%time:~3,2%.md"
+cd /d "%REPO_ROOT%" && git log -1 --stat > "project-log-md\git-log-%date:~-4,4%%date:~-10,2%%date:~-7,2%-%time:~0,2%%time:~3,2%.md"
 ```
 
 **Option B: Manual Run (ถ้า Option A ไม่ทำงาน)**
 ```bash
-cd /d "D:\genAI\skn-app"
+cd /d "%REPO_ROOT%"
 scripts\create-git-log.bat
 ```
 > 💡 Batch file จะสร้างไฟล์ log อัตโนมัติที่ `project-log-md\`
@@ -209,7 +215,7 @@ scripts\create-git-log.bat
 ### Step 10: Verify Log File Created
 // turbo
 ```bash
-dir "D:\genAI\skn-app\project-log-md\git-log*.md" /B /O:-D
+dir "%REPO_ROOT%\project-log-md\git-log*.md" /B /O:-D
 ```
 
 ---
@@ -218,7 +224,7 @@ dir "D:\genAI\skn-app\project-log-md\git-log*.md" /B /O:-D
 
 ### Quick Check & Push
 ```bash
-cd /d "D:\genAI\skn-app"
+cd /d "%REPO_ROOT%"
 git status
 git add .
 git commit -m "your message"
@@ -227,7 +233,7 @@ git push origin main
 
 ### Security Manual Check (Credentials & Secrets)
 ```bash
-cd /d "D:\genAI\skn-app"
+cd /d "%REPO_ROOT%"
 # 1. Check for sensitive filenames in staged changes
 git diff --staged --name-only | findstr /I ".env .env. .pem .key .p12 .pfx id_rsa password secret token credential credentials database.yml config.ini"
 # 2. Check for hardcoded secrets/keys in code modifications
@@ -240,7 +246,7 @@ git check-ignore -v .env .env.local secrets/* 2>nul
 
 ### View & Create Log
 ```bash
-cd /d "D:\genAI\skn-app"
+cd /d "%REPO_ROOT%"
 git log -3 --oneline
 git log -1 --stat
 ```
@@ -279,7 +285,7 @@ git filter-branch --force --index-filter "git rm --cached --ignore-unmatch PATH/
 
 ## 📋 Notes
 
-- 📁 Git Log: `D:/genAI/skn-app/project-log-md/git-log-YYYYMMDD-HHMM.md`
+- 📁 Git Log: `project-log-md/git-log-YYYYMMDD-HHMM.md`
 - 🔐 Security checks รันอัตโนมัติด้วย `// turbo` annotation
 - ⚠️ หาก auto-run ล้มเหลว ใช้ Manual Commands section
 - ✅ **ต้อง verify** ไฟล์ log ถูกสร้างจริงหลัง Push ทุกครั้ง

@@ -86,6 +86,56 @@ const API_BASE = '/api/v1';
 // Helper to get current store state without subscribing
 const getStore = () => useLiveChatStore.getState();
 
+const mergeSession = (existing: Session | undefined, incoming?: Session): Session | undefined => {
+  if (!incoming) return existing;
+  return {
+    id: incoming.id ?? existing?.id ?? 0,
+    status: incoming.status ?? existing?.status ?? 'WAITING',
+    started_at: incoming.started_at ?? existing?.started_at,
+    operator_id: incoming.operator_id ?? existing?.operator_id,
+  };
+};
+
+const mergeConversationUpdate = (
+  existing: CurrentChat | null,
+  data: ConversationUpdatePayload,
+  unreadCount: number,
+): CurrentChat => ({
+  line_user_id: data.line_user_id,
+  display_name: data.display_name ?? existing?.display_name ?? '',
+  picture_url: data.picture_url ?? existing?.picture_url ?? '',
+  friend_status: existing?.friend_status ?? 'ACTIVE',
+  chat_mode: data.chat_mode ?? existing?.chat_mode ?? 'BOT',
+  session: mergeSession(existing?.session, data.session),
+  last_message: data.last_message ?? existing?.last_message,
+  unread_count: unreadCount,
+  tags: data.tags ?? existing?.tags,
+  messages: data.messages ?? existing?.messages,
+});
+
+const readErrorMessage = async (response: Response, fallbackMessage: string): Promise<string> => {
+  const contentType = response.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    try {
+      const payload = await response.clone().json();
+      if (typeof payload?.detail === 'string' && payload.detail.trim()) return payload.detail;
+      if (typeof payload?.message === 'string' && payload.message.trim()) return payload.message;
+      if (typeof payload?.error === 'string' && payload.error.trim()) return payload.error;
+    } catch {
+      // Fall through to text parsing and the default fallback.
+    }
+  }
+
+  try {
+    const text = (await response.text()).trim();
+    if (text) return text;
+  } catch {
+    // Ignore body parsing errors and use the fallback message.
+  }
+
+  return fallbackMessage;
+};
+
 export function LiveChatProvider({ children }: { children: React.ReactNode }) {
   // ── Zustand store ──
   const store = useLiveChatStore;
@@ -216,6 +266,11 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const refreshConversationState = useCallback(async (lineUserId: string, includeMessages = false) => {
+    await fetchChatDetail(lineUserId, includeMessages);
+    await fetchConversations();
+  }, [fetchChatDetail, fetchConversations]);
+
   const fetchMessagesPage = useCallback(async (id: string, beforeId?: number) => {
     const query = new URLSearchParams();
     query.set('limit', '50');
@@ -266,24 +321,23 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
     const isSelected = currentSelectedId === data.line_user_id;
     const list = [...getStore().conversations];
     const idx = list.findIndex((c) => c.line_user_id === data.line_user_id);
-    const existingTags = idx >= 0 ? (list[idx]?.tags || []) : [];
     let unread = 0;
     if (typeof data.unread_count === 'number') {
       unread = data.unread_count;
     } else if (!isSelected) {
       unread = idx === -1 ? 1 : (list[idx]?.unread_count || 0) + 1;
     }
-    const updated: Conversation = {
-      line_user_id: data.line_user_id,
-      display_name: data.display_name,
-      picture_url: data.picture_url || '',
-      friend_status: 'ACTIVE',
-      chat_mode: data.chat_mode,
-      session: (data.session ?? undefined) as Session | undefined,
-      last_message: data.last_message,
-      unread_count: unread,
-      tags: data.tags || existingTags,
-    };
+    const existingConversation = idx >= 0 ? list[idx] : null;
+    const baseChat = currentSelectedId === data.line_user_id
+      ? getStore().currentChat
+      : existingConversation
+        ? ({ ...existingConversation, messages: undefined } as CurrentChat)
+        : null;
+    const updated = mergeConversationUpdate(
+      baseChat,
+      data,
+      unread,
+    );
     if (idx === -1) {
       getStore().setConversations([updated, ...list]);
     } else {
@@ -291,7 +345,8 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
       getStore().setConversations([updated, ...list]);
     }
     if (isSelected) {
-      getStore().setCurrentChat(data as CurrentChat);
+      const currentChat = mergeConversationUpdate(getStore().currentChat, data, unread);
+      getStore().setCurrentChat(currentChat);
       if (data.messages) {
         getStore().setMessages(data.messages);
       }
@@ -319,6 +374,7 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
     claimSession: wsClaimSession,
     closeSession: wsCloseSession,
     transferSession: wsTransferSession,
+    isConnected: wsConnected,
     reconnect,
     retryMessage,
   } = useLiveChatSocket({
@@ -539,12 +595,21 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
         wsClaimSession();
       } else {
         const res = await fetch(`${API_BASE}/admin/live-chat/conversations/${s.selectedId}/claim`, { method: 'POST' });
-        if (res.ok) await fetchChatDetail(s.selectedId, false);
+        if (!res.ok) {
+          throw new Error(await readErrorMessage(res, 'Failed to claim session'));
+        }
+        await refreshConversationState(s.selectedId, false);
       }
+    } catch (error) {
+      getStore().addNotification({
+        title: 'Claim unavailable',
+        message: error instanceof Error && error.message ? error.message : 'Failed to claim session.',
+        type: 'system',
+      });
     } finally {
       getStore().setClaiming(false);
     }
-  }, [fetchChatDetail, wsClaimSession]);
+  }, [refreshConversationState, wsClaimSession]);
 
   const closeSession = useCallback(async () => {
     const s = getStore();
@@ -553,18 +618,66 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
       wsCloseSession();
       return;
     }
-    const res = await fetch(`${API_BASE}/admin/live-chat/conversations/${s.selectedId}/close`, { method: 'POST' });
-    if (res.ok) await fetchChatDetail(s.selectedId, false);
-  }, [fetchChatDetail, wsCloseSession]);
+    try {
+      const res = await fetch(`${API_BASE}/admin/live-chat/conversations/${s.selectedId}/close`, { method: 'POST' });
+      if (!res.ok) {
+        throw new Error(await readErrorMessage(res, 'Failed to close session'));
+      }
+      await refreshConversationState(s.selectedId, false);
+    } catch (error) {
+      getStore().addNotification({
+        title: 'Close unavailable',
+        message: error instanceof Error && error.message ? error.message : 'Failed to close session.',
+        type: 'system',
+      });
+    }
+  }, [refreshConversationState, wsCloseSession]);
 
   const transferSession = useCallback(async (toOperatorId: number, reason?: string) => {
     const s = getStore();
     if (!s.selectedId) return;
-    if (wsStatusRef.current === 'connected') {
-      wsTransferSession(toOperatorId, reason);
-      return;
+    const lineUserId = s.selectedId;
+    const canUseSocket = wsConnected && wsStatusRef.current === 'connected';
+
+    if (canUseSocket) {
+      const dispatched = wsTransferSession(toOperatorId, reason);
+      if (dispatched) {
+        return;
+      }
     }
-  }, [wsTransferSession]);
+
+    try {
+      const res = await fetch(`${API_BASE}/admin/live-chat/conversations/${encodeURIComponent(lineUserId)}/transfer`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to_operator_id: toOperatorId,
+          reason,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error(await readErrorMessage(res, 'Failed to transfer session'));
+      }
+
+      await refreshConversationState(lineUserId, false);
+      getStore().addNotification({
+        title: 'Session Transferred',
+        message: `Session transferred to operator #${toOperatorId}.`,
+        type: 'system',
+      });
+    } catch (error) {
+      getStore().addNotification({
+        title: 'Transfer unavailable',
+        message: error instanceof Error && error.message
+          ? error.message
+          : canUseSocket
+            ? 'Transfer could not be completed. Please try again.'
+            : 'Transfer requires an active WebSocket connection or a reachable backend endpoint.',
+        type: 'system',
+      });
+    }
+  }, [refreshConversationState, wsConnected, wsTransferSession]);
 
   const toggleMode = useCallback(async (mode: 'BOT' | 'HUMAN') => {
     const s = getStore();

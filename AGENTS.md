@@ -174,13 +174,15 @@ pip install -r requirements.txt
 
 # Configure environment
 cp app/.env.example app/.env
-# Edit app/.env with your credentials
+# Optional: copy .env.development.example or .env.production.example to .env
+# Edit the env file(s) with your credentials
 
 # Run migrations
-alembic upgrade head
+python scripts/db_target.py show --target local
+python scripts/db_target.py alembic --target local upgrade head
 
 # Start server
-uvicorn app.main:app --reload
+python run.py --target local
 ```
 Backend runs at: `http://localhost:8000`
 API Docs at: `http://localhost:8000/api/v1/docs`
@@ -215,13 +217,15 @@ python -m pytest
 python -m pytest tests/test_websocket.py
 
 # Database migrations
-alembic current                    # Check current version
-alembic revision --autogenerate -m "description"   # Generate migration
-alembic upgrade head               # Apply all migrations
-alembic downgrade -1               # Rollback one step
+python scripts/db_target.py show --target local
+python scripts/db_target.py alembic --target local current
+python scripts/db_target.py alembic --target local revision --autogenerate -m "description"
+python scripts/db_target.py alembic --target local upgrade head
+python scripts/db_target.py alembic --target local downgrade -1
+python scripts/db_target.py alembic --target remote upgrade head   # Apply to Supabase/remote
 
 # Start server (production)
-uvicorn app.main:app --host 0.0.0.0 --port 8000
+python run.py --target remote --no-reload --host 0.0.0.0 --port 8000
 ```
 
 ### Frontend
@@ -400,12 +404,13 @@ npm run lint                        # ESLint checks
 2. **LIFF Token Verification**: Always verify LIFF ID tokens on backend
 3. **CORS**: Configured in `backend/app/core/config.py`
 4. **Environment Variables**: Never commit secrets to git
-   - Backend: `backend/app/.env`
+   - Backend default target: `backend/.env`
+   - Backend local override: `backend/app/.env`
    - Frontend: `frontend/.env.local`
 
 ### Required Environment Variables
 
-**Backend (`backend/app/.env`):**
+**Backend (`backend/.env` or `backend/app/.env` for local override):**
 ```env
 DATABASE_URL=postgresql+asyncpg://user:pass@localhost:5432/skn_app_db
 SECRET_KEY=<jwt-secret>

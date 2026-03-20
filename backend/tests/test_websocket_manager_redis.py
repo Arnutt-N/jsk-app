@@ -1,8 +1,140 @@
 import pytest
 from datetime import datetime, timedelta, timezone
+from unittest.mock import AsyncMock
 
 from app.core.redis_client import redis_client
 from app.core.websocket_manager import ConnectionManager
+
+
+class FakeWebSocket:
+    def __init__(self):
+        self.send_json = AsyncMock()
+
+
+@pytest.mark.asyncio
+async def test_room_membership_tracks_each_websocket_independently():
+    manager = ConnectionManager()
+    ws1 = FakeWebSocket()
+    ws2 = FakeWebSocket()
+    room_id = "conversation:U123"
+
+    await manager.register(ws1, "1")
+    await manager.register(ws2, "1")
+    await manager.join_room(ws1, room_id)
+    await manager.join_room(ws2, room_id)
+
+    assert room_id in manager.admin_metadata["1"]["rooms"]
+    assert ws1 in manager.rooms[room_id]
+    assert ws2 in manager.rooms[room_id]
+
+    await manager.leave_room(ws1, room_id)
+
+    assert room_id in manager.admin_metadata["1"]["rooms"]
+    assert room_id not in manager.ws_rooms[ws1]
+    assert room_id in manager.ws_rooms[ws2]
+    assert ws1 not in manager.rooms[room_id]
+    assert ws2 in manager.rooms[room_id]
+
+    ws1.send_json.reset_mock()
+    ws2.send_json.reset_mock()
+    await manager.broadcast_to_room(room_id, {"type": "test"})
+
+    ws1.send_json.assert_not_awaited()
+    ws2.send_json.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_broadcast_to_room_includes_sender_admin_for_remote_exclusion():
+    manager = ConnectionManager()
+    manager._pubsub_initialized = True
+    ws = FakeWebSocket()
+
+    await manager.register(ws, "7")
+    await manager.join_room(ws, "conversation:U123")
+
+    publish_mock = AsyncMock()
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr("app.core.websocket_manager.pubsub_manager.publish", publish_mock)
+        await manager.broadcast_to_room("conversation:U123", {"type": "test"}, exclude_websocket=ws)
+
+    publish_mock.assert_awaited_once()
+    published = publish_mock.await_args.args[1]
+    assert published["_room_id"] == "conversation:U123"
+    assert published["_exclude_admin"] == "7"
+
+
+@pytest.mark.asyncio
+async def test_remote_room_message_excludes_sender_admin_across_instances():
+    manager = ConnectionManager()
+    sender_ws_a = FakeWebSocket()
+    sender_ws_b = FakeWebSocket()
+    other_ws = FakeWebSocket()
+    room_id = "conversation:U321"
+
+    await manager.register(sender_ws_a, "1")
+    await manager.register(sender_ws_b, "1")
+    await manager.register(other_ws, "2")
+    manager.rooms[room_id] = {sender_ws_a, sender_ws_b, other_ws}
+    manager.ws_rooms[sender_ws_a].add(room_id)
+    manager.ws_rooms[sender_ws_b].add(room_id)
+    manager.ws_rooms[other_ws].add(room_id)
+
+    await manager._handle_remote_room_message({
+        "_room_id": room_id,
+        "_exclude_admin": "1",
+        "type": "test",
+    })
+
+    sender_ws_a.send_json.assert_not_awaited()
+    sender_ws_b.send_json.assert_not_awaited()
+    other_ws.send_json.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_disconnect_one_tab_keeps_remaining_room_membership():
+    manager = ConnectionManager()
+    ws1 = FakeWebSocket()
+    ws2 = FakeWebSocket()
+    room_id = "conversation:U456"
+
+    await manager.register(ws1, "1")
+    await manager.register(ws2, "1")
+    await manager.join_room(ws1, room_id)
+    await manager.join_room(ws2, room_id)
+
+    await manager.disconnect(ws1)
+
+    assert room_id in manager.admin_metadata["1"]["rooms"]
+    assert ws2 in manager.rooms[room_id]
+    assert room_id in manager.ws_rooms[ws2]
+
+
+@pytest.mark.asyncio
+async def test_is_admin_in_room_global_falls_back_to_local_room_state():
+    manager = ConnectionManager()
+    ws = FakeWebSocket()
+    room_id = "conversation:U789"
+
+    await manager.register(ws, "1")
+    await manager.join_room(ws, room_id)
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(redis_client, "_redis", None)
+        assert await manager.is_admin_in_room_global("1", room_id) is True
+
+
+@pytest.mark.asyncio
+async def test_is_admin_in_room_uses_websocket_membership_when_metadata_is_stale():
+    manager = ConnectionManager()
+    ws = FakeWebSocket()
+    room_id = "conversation:U999"
+
+    await manager.register(ws, "1")
+    manager.rooms.setdefault(room_id, set()).add(ws)
+    manager.ws_rooms.setdefault(ws, set()).add(room_id)
+    manager.admin_metadata["1"]["rooms"] = set()
+
+    assert manager.is_admin_in_room("1", room_id) is True
 
 
 class FakeRedis:

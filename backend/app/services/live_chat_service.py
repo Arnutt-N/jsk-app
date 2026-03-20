@@ -226,14 +226,23 @@ class LiveChatService:
         self,
         line_user_id: str,
         closed_by: ClosedBy,
-        db: AsyncSession
+        db: AsyncSession,
+        operator_id: Optional[int] = None,
     ):
         """Close a chat session and return to bot mode"""
         session = await self.get_active_session(line_user_id, db)
-        if session:
-            session.status = SessionStatus.CLOSED
-            session.closed_at = datetime.now(timezone.utc)
-            session.closed_by = closed_by
+        if not session or session.status != SessionStatus.ACTIVE:
+            return None
+
+        if operator_id is not None and session.operator_id != operator_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only the claiming operator can close this session",
+            )
+
+        session.status = SessionStatus.CLOSED
+        session.closed_at = datetime.now(timezone.utc)
+        session.closed_by = closed_by
 
         # Return user to bot mode
         result = await db.execute(select(User).where(User.line_user_id == line_user_id))
@@ -253,13 +262,33 @@ class LiveChatService:
 
         return session
 
+    async def _require_active_session_owner(
+        self,
+        line_user_id: str,
+        operator_id: int,
+        db: AsyncSession,
+    ) -> ChatSession:
+        """Load an active session and ensure the operator owns it."""
+        session = await self.get_active_session(line_user_id, db)
+        if not session or session.status != SessionStatus.ACTIVE:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Active session not found",
+            )
+        if session.operator_id != operator_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only the claiming operator can respond to this session",
+            )
+        return session
+
     @audit_action("transfer_session", "chat_session")
     async def transfer_session(
         self,
         line_user_id: str,
         from_operator_id: int,
         to_operator_id: int,
-        reason: str,
+        reason: Optional[str],
         db: AsyncSession
     ):
         """Transfer session to another operator."""
@@ -603,6 +632,8 @@ class LiveChatService:
         """Send message from operator to user via LINE"""
         from linebot.v3.messaging import TextMessage
 
+        session = await self._require_active_session_owner(line_user_id, operator_id, db)
+
         # Get operator name
         operator_result = await db.execute(select(User).where(User.id == operator_id))
         operator = operator_result.scalar_one_or_none()
@@ -620,13 +651,11 @@ class LiveChatService:
             operator_name=operator_name
         )
 
-        session = await self.get_active_session(line_user_id, db)
-        if session:
-            session.message_count += 1
-            session.last_activity_at = datetime.now(timezone.utc)
-            if not session.first_response_at:
-                session.first_response_at = datetime.now(timezone.utc)
-                await sla_service.check_frt_on_first_response(session, db)
+        session.message_count += 1
+        session.last_activity_at = datetime.now(timezone.utc)
+        if not session.first_response_at:
+            session.first_response_at = datetime.now(timezone.utc)
+            await sla_service.check_frt_on_first_response(session, db)
 
         return {"success": True}
 
@@ -648,6 +677,8 @@ class LiveChatService:
             )
 
         media_type = "image" if (content_type or "").startswith("image/") else "file"
+
+        session = await self._require_active_session_owner(line_user_id, operator_id, db)
 
         operator_result = await db.execute(select(User).where(User.id == operator_id))
         operator = operator_result.scalar_one_or_none()
@@ -702,14 +733,12 @@ class LiveChatService:
             operator_name=operator_name,
         )
 
-        session = await self.get_active_session(line_user_id, db)
-        if session:
-            session.message_count += 1
-            session.last_activity_at = datetime.now(timezone.utc)
-            if not session.first_response_at:
-                session.first_response_at = datetime.now(timezone.utc)
-                await sla_service.check_frt_on_first_response(session, db)
-            await db.commit()
+        session.message_count += 1
+        session.last_activity_at = datetime.now(timezone.utc)
+        if not session.first_response_at:
+            session.first_response_at = datetime.now(timezone.utc)
+            await sla_service.check_frt_on_first_response(session, db)
+        await db.commit()
 
         return {
             "success": True,

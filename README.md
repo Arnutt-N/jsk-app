@@ -69,24 +69,65 @@ pip install -r requirements.txt
 
 3. Copy and configure environment:
 ```bash
-cp app/.env.example .env
-# Or copy backend/.env.development.example / backend/.env.production.example
+cp app/.env.example app/.env
+# Optional: copy .env.development.example or .env.production.example to .env
+```
+
+Backend env targeting:
+
+- Default from `backend/`: uses `backend/.env`
+- Local Docker/Postgres override: use `ENV_FILE=app/.env`
+- Verify the active DB target before migrations:
+```bash
+python scripts/show_active_db_target.py
+ENV_FILE=app/.env python scripts/show_active_db_target.py
+python scripts/db_target.py show --target remote
+python scripts/db_target.py show --target local
+```
+- Wrapper commands for Alembic:
+```bash
+python scripts/db_target.py alembic --target remote current
+python scripts/db_target.py alembic --target local current
+python scripts/db_target.py alembic --target local upgrade head
 ```
 
 4. Run migrations:
 ```bash
-alembic upgrade head
+python scripts/db_target.py show --target local
+python scripts/db_target.py alembic --target local upgrade head
 ```
 
 5. Start server:
 ```bash
-uvicorn app.main:app --reload
+python run.py --target local
+```
+
+Safe backend entrypoints:
+```bash
+python run.py --target local
+python run.py --target remote --no-reload
+python scripts/verify_db.py
+python scripts/verify_schema_extended.py
+python scripts/verify_api.py
+python scripts/test_endpoint.py
+python scripts/manage_rich_menu.py
+python scripts/manage_rich_menu.py --delete-all        # dry-run by default
+python scripts/manage_rich_menu.py --delete-all --apply
+python scripts/fix_user_data.py                        # dry-run by default
+python scripts/fix_user_data.py --apply
+python scripts/import_data.py                          # dry-run by default
+python scripts/import_data.py --apply
+python scripts/read_csv.py
+python scripts/read_excel.py
 ```
 
 To run with a specific backend env file:
 ```bash
-ENV_FILE=.env.development uvicorn app.main:app --reload
-ENV_FILE=.env.development alembic upgrade head
+python scripts/show_active_db_target.py --env-file .env.development
+ENV_FILE=.env.development python -m alembic upgrade head
+ENV_FILE=.env.development python -m uvicorn app.main:app --reload
+ENV_FILE=app/.env python scripts/show_active_db_target.py
+python scripts/db_target.py alembic --target local upgrade head
 ```
 
 Backend will run at `http://localhost:8000`
@@ -162,6 +203,14 @@ Backend example env:
 - [backend/app/.env.example](/backend/app/.env.example)
 - [backend/.env.development.example](/backend/.env.development.example)
 - [backend/.env.production.example](/backend/.env.production.example)
+
+Notes:
+
+- `backend/.env` is the default runtime target for commands run inside `backend/`
+- `backend/app/.env` is best treated as a local-only override and used explicitly with `ENV_FILE=app/.env`
+- Before running `alembic`, verify the target with `python scripts/show_active_db_target.py`
+- Prefer `python scripts/db_target.py ...` when you want explicit `local` vs `remote` targeting
+- Most DB-mutating utility scripts now default to `dry-run` and require `--apply` before they write anything
 
 Frontend example env:
 

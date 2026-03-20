@@ -5,7 +5,8 @@
 ### Step 1: Create Swarm State Directory
 
 ```powershell
-mkdir -p D:\genAI\skn-app\.agent\swarm-state
+$repoRoot = $PWD.Path
+New-Item -ItemType Directory -Force -Path (Join-Path $repoRoot ".agent/swarm-state")
 ```
 
 ### Step 2: Create Manifest (Coordinator does this)
@@ -65,7 +66,7 @@ Task({
 - Task: Update globals.css with HR-IMS dark theme
 
 ## Project
-- Root: D:\genAI\skn-app\frontend
+- Root: [repo-root]\frontend
 - Branch: main
 
 ## Mission
@@ -111,7 +112,7 @@ Task({
 - Task: Update Button, Card, Input, Badge for HR-IMS theme
 
 ## Project
-- Root: D:\genAI\skn-app\frontend
+- Root: [repo-root]\frontend
 
 ## Your Task
 Update these components to use HR-IMS dark theme:
@@ -155,7 +156,7 @@ Task({
 - Task: Update admin layout with HR-IMS sidebar
 
 ## Project
-- Root: D:\genAI\skn-app\frontend
+- Root: [repo-root]\frontend
 
 ## Your Task
 Update admin layout:
@@ -198,7 +199,7 @@ Task({
 - Task: Update login and dashboard pages
 
 ## Project
-- Root: D:\genAI\skn-app\frontend
+- Root: [repo-root]\frontend
 
 ## Your Task
 Update pages:

@@ -1,7 +1,6 @@
 import asyncio
 import os
 from logging.config import fileConfig
-from pathlib import Path
 
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
@@ -9,14 +8,13 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
 from dotenv import load_dotenv
+from app.core.env import resolve_env_file
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
 
-backend_dir = Path(__file__).resolve().parents[1]
-load_dotenv(backend_dir / ".env")
-load_dotenv(backend_dir / "app" / ".env")
+load_dotenv(resolve_env_file())
 
 database_url = os.getenv("DATABASE_URL")
 if database_url:

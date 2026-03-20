@@ -10,7 +10,7 @@ description: สรุปงานเป็น .md พร้อม timestamp เ
 ## Steps
 
 ### 1. สร้างไฟล์สรุป
-สร้างไฟล์ใหม่ที่ `D:/genAI/skn-app/project-log-md/[AGENT_PLATFORM]/session-summary-YYYYMMDD-HHMM.md`
+สร้างไฟล์ใหม่ที่ `project-log-md/[AGENT_PLATFORM]/session-summary-YYYYMMDD-HHMM.md`
 
 **Agent Platforms:** `antigravity`, `gemini_cli`, `claude_code`, `codeX`, `kilo_code`, `open_code`, `other`
 
@@ -55,7 +55,7 @@ Agent: [ชื่อ Agent]
 ### 2. ตรวจสอบไฟล์
 // turbo
 ```bash
-dir "D:\genAI\skn-app\project-log-md" /B
+dir "project-log-md" /B
 ```
 
 ## Connection to Handover

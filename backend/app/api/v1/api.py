@@ -25,6 +25,9 @@ from app.api.v1.endpoints import (
     admin_tags,
     admin_credentials,
     admin_friends,
+    admin_integrations,
+    admin_broadcast,
+    admin_reports,
 )
 
 api_router.include_router(webhook.router, prefix="/line", tags=["line"])
@@ -49,6 +52,9 @@ api_router.include_router(admin_export.router, prefix="/admin/export", tags=["ad
 api_router.include_router(admin_tags.router, prefix="/admin/tags", tags=["admin"])
 api_router.include_router(admin_credentials.router, prefix="/admin/credentials", tags=["admin-credentials"])
 api_router.include_router(admin_friends.router, prefix="/admin/friends", tags=["admin-friends"])
+api_router.include_router(admin_integrations.router, prefix="/admin/settings", tags=["admin-settings"])
+api_router.include_router(admin_broadcast.router, prefix="/admin/broadcasts", tags=["admin-broadcast"])
+api_router.include_router(admin_reports.router, prefix="/admin/reports", tags=["admin-reports"])
 api_router.include_router(ws_live_chat.router, tags=["websocket"])
 api_router.include_router(health.router, tags=["health"])
 

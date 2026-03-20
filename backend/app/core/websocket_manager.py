@@ -38,8 +38,10 @@ class ConnectionManager:
     def __init__(self):
         # admin_id -> set of WebSocket connections (supports multiple tabs)
         self.connections: Dict[str, Set[WebSocket]] = {}
-        # room_id -> set of admin_ids
-        self.rooms: Dict[str, Set[str]] = {}
+        # room_id -> set of WebSocket connections
+        self.rooms: Dict[str, Set[WebSocket]] = {}
+        # websocket -> set of room_ids
+        self.ws_rooms: Dict[WebSocket, Set[str]] = {}
         # websocket -> admin_id mapping for cleanup
         self.ws_to_admin: Dict[WebSocket, str] = {}
         # admin metadata: {connected_at, last_ping, rooms}
@@ -80,7 +82,7 @@ class ConnectionManager:
         if room_id:
             # Remove internal fields before broadcasting
             message = {k: v for k, v in data.items() if not k.startswith("_")}
-            await self._broadcast_room_local(room_id, message, exclude_admin)
+            await self._broadcast_room_local(room_id, message, exclude_admin=exclude_admin)
 
     async def connect(self, websocket: WebSocket) -> str:
         """Accept connection, return connection_id"""
@@ -93,6 +95,7 @@ class ConnectionManager:
             self.connections[admin_id] = set()
         self.connections[admin_id].add(websocket)
         self.ws_to_admin[websocket] = admin_id
+        self.ws_rooms[websocket] = set()
 
         if admin_id not in self.admin_metadata:
             self.admin_metadata[admin_id] = {
@@ -116,10 +119,11 @@ class ConnectionManager:
         await self.unsubscribe_analytics(websocket)
 
         # Leave all rooms
-        for room_id in list(self.admin_metadata.get(admin_id, {}).get("rooms", [])):
+        for room_id in list(self.ws_rooms.get(websocket, set())):
             await self.leave_room(websocket, room_id)
 
         # Remove connection
+        self.ws_rooms.pop(websocket, None)
         if admin_id in self.connections:
             self.connections[admin_id].discard(websocket)
             if not self.connections[admin_id]:
@@ -171,24 +175,24 @@ class ConnectionManager:
         if not admin_id:
             return
 
+        previous_rooms = set(self.admin_metadata.get(admin_id, {}).get("rooms", set()))
         if room_id not in self.rooms:
             self.rooms[room_id] = set()
             # Subscribe to room channel for cross-server messages
             if self._pubsub_initialized:
                 channel = f"{self.ROOM_CHANNEL_PREFIX}{room_id}"
                 await pubsub_manager.subscribe(channel, self._handle_remote_room_message)
-        self.rooms[room_id].add(admin_id)
+        self.rooms[room_id].add(websocket)
+        self.ws_rooms.setdefault(websocket, set()).add(room_id)
+        await self._refresh_admin_room_state(admin_id)
 
-        if admin_id in self.admin_metadata:
-            self.admin_metadata[admin_id]["rooms"].add(room_id)
-        await self._redis_add_room_membership(admin_id, room_id)
-
-        # Notify others in room
-        await self.broadcast_to_room(room_id, {
-            "type": "operator_joined",
-            "payload": {"admin_id": admin_id, "room_id": room_id},
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        }, exclude_admin=admin_id)
+        if room_id not in previous_rooms:
+            # Notify others in room only when the admin joins the room for the first time.
+            await self.broadcast_to_room(room_id, {
+                "type": "operator_joined",
+                "payload": {"admin_id": admin_id, "room_id": room_id},
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            }, exclude_websocket=websocket)
 
         logger.info(f"Admin {admin_id} joined room {room_id}")
 
@@ -198,8 +202,9 @@ class ConnectionManager:
         if not admin_id:
             return
 
+        previous_rooms = set(self.admin_metadata.get(admin_id, {}).get("rooms", set()))
         if room_id in self.rooms:
-            self.rooms[room_id].discard(admin_id)
+            self.rooms[room_id].discard(websocket)
             if not self.rooms[room_id]:
                 del self.rooms[room_id]
                 # Unsubscribe from room channel
@@ -207,16 +212,17 @@ class ConnectionManager:
                     channel = f"{self.ROOM_CHANNEL_PREFIX}{room_id}"
                     await pubsub_manager.unsubscribe(channel)
 
-        if admin_id in self.admin_metadata:
-            self.admin_metadata[admin_id]["rooms"].discard(room_id)
-        await self._redis_remove_room_membership(admin_id, room_id)
+        if websocket in self.ws_rooms:
+            self.ws_rooms[websocket].discard(room_id)
+        await self._refresh_admin_room_state(admin_id)
 
-        # Notify others
-        await self.broadcast_to_room(room_id, {
-            "type": "operator_left",
-            "payload": {"admin_id": admin_id, "room_id": room_id},
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        })
+        if room_id in previous_rooms and room_id not in self.admin_metadata.get(admin_id, {}).get("rooms", set()):
+            # Notify others only when the admin fully leaves the room.
+            await self.broadcast_to_room(room_id, {
+                "type": "operator_left",
+                "payload": {"admin_id": admin_id, "room_id": room_id},
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            }, exclude_websocket=websocket)
 
         logger.info(f"Admin {admin_id} left room {room_id}")
 
@@ -250,34 +256,53 @@ class ConnectionManager:
 
         return success
 
-    async def broadcast_to_room(self, room_id: str, data: dict, exclude_admin: Optional[str] = None) -> int:
+    async def broadcast_to_room(
+        self,
+        room_id: str,
+        data: dict,
+        exclude_websocket: Optional[WebSocket] = None,
+        exclude_admin: Optional[str] = None,
+    ) -> int:
         """
         Broadcast to all admins in a room across all servers.
         Returns count of successful sends.
         """
         # Publish to Redis for other servers
         if self._pubsub_initialized:
+            derived_exclude_admin = exclude_admin
+            if derived_exclude_admin is None and exclude_websocket is not None:
+                derived_exclude_admin = self.ws_to_admin.get(exclude_websocket)
             message = {
                 **data,
                 "_room_id": room_id,
-                "_exclude_admin": exclude_admin
+                "_exclude_admin": derived_exclude_admin,
             }
             channel = f"{self.ROOM_CHANNEL_PREFIX}{room_id}"
             await pubsub_manager.publish(channel, message)
 
         # Broadcast locally
-        return await self._broadcast_room_local(room_id, data, exclude_admin)
+        return await self._broadcast_room_local(room_id, data, exclude_websocket, exclude_admin)
 
-    async def _broadcast_room_local(self, room_id: str, data: dict, exclude_admin: Optional[str] = None) -> int:
+    async def _broadcast_room_local(
+        self,
+        room_id: str,
+        data: dict,
+        exclude_websocket: Optional[WebSocket] = None,
+        exclude_admin: Optional[str] = None,
+    ) -> int:
         """Broadcast to local connections only."""
         if room_id not in self.rooms:
             return 0
 
         success_count = 0
-        for admin_id in list(self.rooms.get(room_id, [])):
-            if admin_id != exclude_admin:
-                if await self.send_to_admin(admin_id, data):
-                    success_count += 1
+        for websocket in list(self.rooms.get(room_id, [])):
+            admin_id = self.ws_to_admin.get(websocket)
+            if exclude_websocket is not None and websocket == exclude_websocket:
+                continue
+            if exclude_admin is not None and admin_id == exclude_admin:
+                continue
+            if await self.send_personal(websocket, data):
+                success_count += 1
         return success_count
 
     async def broadcast_to_all(self, data: dict, exclude_admin: Optional[str] = None):
@@ -338,13 +363,16 @@ class ConnectionManager:
 
     def is_admin_in_room(self, admin_id: str, room_id: str) -> bool:
         """Check if an admin currently joined a room on this instance."""
-        if admin_id in self.rooms.get(room_id, set()):
+        if room_id in self.admin_metadata.get(admin_id, {}).get("rooms", set()):
             return True
+        for websocket in self.rooms.get(room_id, set()):
+            if self.ws_to_admin.get(websocket) == admin_id:
+                return True
         return False
 
     async def is_admin_in_room_global(self, admin_id: str, room_id: str) -> bool:
         """Check room membership across all instances (Redis-backed)."""
-        if admin_id in self.rooms.get(room_id, set()):
+        if self.is_admin_in_room(admin_id, room_id):
             return True
         if redis_client.is_connected and redis_client._redis:
             try:
@@ -509,7 +537,7 @@ class ConnectionManager:
     async def _redis_is_admin_in_room(self, admin_id: str, room_id: str) -> bool:
         """Check room membership from per-admin server room sets."""
         if not redis_client.is_connected or not redis_client._redis:
-            return admin_id in self.rooms.get(room_id, set())
+            return self.is_admin_in_room(admin_id, room_id)
 
         try:
             servers_key = f"{self.REDIS_ADMIN_SERVERS_PREFIX}:{admin_id}"
@@ -522,7 +550,27 @@ class ConnectionManager:
             return False
         except Exception as e:
             logger.warning("Redis check for admin %s in room %s failed: %s", admin_id, room_id, e)
-            return admin_id in self.rooms.get(room_id, set())
+            return self.is_admin_in_room(admin_id, room_id)
+
+    async def _refresh_admin_room_state(self, admin_id: str):
+        """Synchronize admin room metadata and Redis room membership with websocket state."""
+        if admin_id not in self.admin_metadata:
+            return
+
+        previous_rooms = set(self.admin_metadata[admin_id].get("rooms", set()))
+        current_rooms: Set[str] = set()
+        for websocket in self.connections.get(admin_id, set()):
+            current_rooms.update(self.ws_rooms.get(websocket, set()))
+
+        self.admin_metadata[admin_id]["rooms"] = current_rooms
+
+        added_rooms = current_rooms - previous_rooms
+        removed_rooms = previous_rooms - current_rooms
+
+        for room_id in added_rooms:
+            await self._redis_add_room_membership(admin_id, room_id)
+        for room_id in removed_rooms:
+            await self._redis_remove_room_membership(admin_id, room_id)
 
     @classmethod
     def _operator_online_key(cls, admin_id: str) -> str:

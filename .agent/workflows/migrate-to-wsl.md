@@ -15,12 +15,14 @@ description: How to migrate and set up the development environment on WSL2 (Ubun
 ```bash
 # สร้างโฟลเดอร์สำหรับโปรเจกต์
 mkdir -p ~/projects
+WIN_REPO="${WIN_REPO:-/mnt/d/path/to/skn-app}"
+WSL_REPO="${WSL_REPO:-$HOME/projects/skn-app}"
 
 # Copy ไฟล์จากเครื่องปัจจุบัน (Drive D) ไปยัง Linux
-cp -r /mnt/d/genAI/skn-app ~/projects/skn-app
+cp -r "$WIN_REPO" "$WSL_REPO"
 
 # เข้าไปยังโฟลเดอร์ใหม่
-cd ~/projects/skn-app
+cd "$WSL_REPO"
 ```
 
 ### 2. ลง Dependencies ใหม่ (ใน Linux)
@@ -48,7 +50,8 @@ uv pip install -r requirements.txt
 ### 3. เปิด VS Code จาก Linux
 คุณยังสามารถใช้ VS Code บน Windows แก้โค้ดได้เหมือนเดิม แต่ต้องต่อผ่าน WSL:
 ```bash
-cd ~/projects/skn-app
+WSL_REPO="${WSL_REPO:-$HOME/projects/skn-app}"
+cd "$WSL_REPO"
 code .
 ```
 

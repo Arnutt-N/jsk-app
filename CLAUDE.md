@@ -11,18 +11,17 @@ JskApp is a LINE Official Account system with LIFF integration for Community Jus
 ### Quick Start
 ```bash
 docker-compose up -d db redis              # Start PostgreSQL and Redis
-cd backend && uvicorn app.main:app --reload  # Backend: http://localhost:8000/api/v1/docs
+cd backend && python run.py --target local   # Backend: http://localhost:8000/api/v1/docs
 cd frontend && npm run dev                   # Frontend: http://localhost:3000
 ```
 
 ### Backend (FastAPI)
 ```bash
 cd backend
-python -m venv venv
-venv\Scripts\activate           # Windows
-source venv/bin/activate        # Linux/Mac
+python3.13 -m venv venv_linux
+source venv_linux/bin/activate
 pip install -r requirements.txt
-uvicorn app.main:app --reload
+python run.py --target local
 ```
 
 ### Frontend (Next.js)
@@ -37,17 +36,22 @@ npm run build
 ### Database Migrations (Alembic)
 ```bash
 cd backend
-alembic current                              # Check current version
-alembic revision --autogenerate -m "desc"    # Generate migration
-alembic upgrade head                         # Apply migrations
-alembic downgrade -1                         # Rollback one step
+python scripts/db_target.py show --target local
+python scripts/db_target.py alembic --target local current
+python scripts/db_target.py alembic --target local revision --autogenerate -m "desc"
+python scripts/db_target.py alembic --target local upgrade head
+python scripts/db_target.py alembic --target local downgrade -1
+python scripts/db_target.py alembic --target remote upgrade head  # deploy/migrate Supabase
 ```
 
 ### Testing
 ```bash
 cd backend
 python -m pytest                             # Run all tests
-python test_endpoint.py                      # Basic endpoint test
+python scripts/test_endpoint.py              # Basic endpoint test with default sample payload
+python scripts/verify_db.py                  # Quick DB verification
+python scripts/verify_schema_extended.py     # Check request-related schema additions
+python scripts/verify_api.py                 # Quick HTTP probe against a running backend
 ```
 
 ## Architecture

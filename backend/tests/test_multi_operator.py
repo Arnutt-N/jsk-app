@@ -9,8 +9,18 @@ NOTE: Tests involving join_room are skipped because join_room queries
 the database for conversation details, which requires a running DB.
 """
 import pytest
+from unittest.mock import AsyncMock, patch
 from fastapi.testclient import TestClient
 from app.main import app
+
+
+@pytest.fixture(autouse=True)
+def mock_live_chat_auth():
+    with patch(
+        "app.api.v1.endpoints.ws_live_chat.authenticate_ws_user",
+        new=AsyncMock(return_value="1"),
+    ):
+        yield
 
 
 def drain_auth(ws):
@@ -27,7 +37,7 @@ class TestMultipleOperators:
         client1 = TestClient(app)
 
         with client1.websocket_connect("/api/v1/ws/live-chat") as ws1:
-            ws1.send_json({"type": "auth", "payload": {"admin_id": "1"}})
+            ws1.send_json({"type": "auth", "payload": {"token": "test-access-token"}})
             data = ws1.receive_json()  # auth_success
             presence = ws1.receive_json()  # presence_update
 
@@ -45,12 +55,12 @@ class TestMultipleOperators:
         with client1.websocket_connect("/api/v1/ws/live-chat") as ws1:
             with client2.websocket_connect("/api/v1/ws/live-chat") as ws2:
                 # Auth both with different IDs
-                ws1.send_json({"type": "auth", "payload": {"admin_id": "1"}})
+                ws1.send_json({"type": "auth", "payload": {"token": "test-access-token"}})
                 data1 = ws1.receive_json()
                 assert data1["type"] == "auth_success"
                 ws1.receive_json()  # presence
 
-                ws2.send_json({"type": "auth", "payload": {"admin_id": "2"}})
+                ws2.send_json({"type": "auth", "payload": {"token": "test-access-token"}})
                 data2 = ws2.receive_json()
                 assert data2["type"] == "auth_success"
                 ws2.receive_json()  # presence
@@ -77,9 +87,9 @@ class TestMultipleOperatorsWithDB:
 
         with client1.websocket_connect("/api/v1/ws/live-chat") as ws1:
             with client2.websocket_connect("/api/v1/ws/live-chat") as ws2:
-                ws1.send_json({"type": "auth", "payload": {"admin_id": "1"}})
+                ws1.send_json({"type": "auth", "payload": {"token": "test-access-token"}})
                 drain_auth(ws1)
-                ws2.send_json({"type": "auth", "payload": {"admin_id": "2"}})
+                ws2.send_json({"type": "auth", "payload": {"token": "test-access-token"}})
                 drain_auth(ws2)
 
                 room_payload = {"line_user_id": "Uabcdef0123456789abcdef0123456001"}

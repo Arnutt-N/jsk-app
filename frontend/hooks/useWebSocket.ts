@@ -66,7 +66,7 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
   }, [adminId, effectiveToken, url]);
 
   const send = useCallback((type: MessageType, payload: unknown) => {
-    clientRef.current?.send(type, payload);
+    return clientRef.current?.send(type, payload) ?? false;
   }, []);
 
   const reconnect = useCallback(() => {

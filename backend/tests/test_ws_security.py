@@ -7,6 +7,8 @@ Tests for WebSocket security features:
 import pytest
 import time
 from datetime import datetime, timedelta, timezone
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from jose import jwt
 from pydantic import ValidationError
@@ -14,6 +16,8 @@ from pydantic import ValidationError
 from app.core.config import settings
 from app.core.rate_limiter import WebSocketRateLimiter
 from app.schemas.ws_events import AuthPayload, SendMessagePayload, JoinRoomPayload
+from app.api.v1.endpoints.ws_live_chat import authenticate_ws_user
+from app.models.user import UserRole
 
 
 class TestRateLimiter:
@@ -242,4 +246,63 @@ class TestJWTTokenGeneration:
 
         with pytest.raises(JWTError):
             jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+
+
+class TestWebSocketAuthHelper:
+    """Test live chat websocket auth helper behavior."""
+
+    @pytest.mark.asyncio
+    async def test_access_token_allows_staff_user(self):
+        websocket = SimpleNamespace()
+        user = SimpleNamespace(id=7, role=UserRole.ADMIN, is_active=True)
+        mock_db = AsyncMock()
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = user
+        mock_db.execute.return_value = mock_result
+
+        async_session = AsyncMock()
+        async_session.__aenter__.return_value = mock_db
+        async_session.__aexit__.return_value = None
+
+        with patch("app.api.v1.endpoints.ws_live_chat.jwt.decode", return_value={"sub": "7", "type": "access"}), \
+             patch("app.api.v1.endpoints.ws_live_chat.AsyncSessionLocal", return_value=async_session), \
+             patch("app.api.v1.endpoints.ws_live_chat.ws_manager.send_personal", new=AsyncMock()) as mock_send:
+            admin_id = await authenticate_ws_user(websocket, "valid-access-token")
+
+        assert admin_id == "7"
+        mock_send.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_refresh_token_is_rejected(self):
+        websocket = SimpleNamespace()
+
+        with patch("app.api.v1.endpoints.ws_live_chat.jwt.decode", return_value={"sub": "7", "type": "refresh"}), \
+             patch("app.api.v1.endpoints.ws_live_chat.ws_manager.send_personal", new=AsyncMock()) as mock_send:
+            admin_id = await authenticate_ws_user(websocket, "refresh-token")
+
+        assert admin_id is None
+        mock_send.assert_awaited_once()
+        payload = mock_send.await_args.args[1]
+        assert payload["type"] == "auth_error"
+
+    @pytest.mark.asyncio
+    async def test_non_staff_user_is_rejected(self):
+        websocket = SimpleNamespace()
+        user = SimpleNamespace(id=11, role=UserRole.USER, is_active=True)
+        mock_db = AsyncMock()
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = user
+        mock_db.execute.return_value = mock_result
+
+        async_session = AsyncMock()
+        async_session.__aenter__.return_value = mock_db
+        async_session.__aexit__.return_value = None
+
+        with patch("app.api.v1.endpoints.ws_live_chat.jwt.decode", return_value={"sub": "11", "type": "access"}), \
+             patch("app.api.v1.endpoints.ws_live_chat.AsyncSessionLocal", return_value=async_session), \
+             patch("app.api.v1.endpoints.ws_live_chat.ws_manager.send_personal", new=AsyncMock()) as mock_send:
+            admin_id = await authenticate_ws_user(websocket, "valid-access-token")
+
+        assert admin_id is None
+        mock_send.assert_awaited_once()
 

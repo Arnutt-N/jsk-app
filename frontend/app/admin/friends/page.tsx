@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { MoreVertical, User } from 'lucide-react';
+import { History, MoreVertical, RefreshCw, User } from 'lucide-react';
+import Link from 'next/link';
 import type { SelectOption } from '@/components/ui/Select';
 import { AdminSearchFilterBar } from '@/components/admin/AdminSearchFilterBar';
 import { AdminTableHead, type AdminTableHeadColumn } from '@/components/admin/AdminTableHead';
@@ -15,6 +16,7 @@ interface Friend {
     friend_since?: string;
     last_message_at?: string;
     chat_mode: string;
+    refollow_count?: number;
 }
 
 export default function FriendsPage() {
@@ -78,6 +80,13 @@ export default function FriendsPage() {
                     <h1 className="text-2xl font-bold text-slate-800 tracking-tight thai-no-break">LINE Friends</h1>
                     <p className="text-slate-400 text-sm thai-no-break">Manage users who follow the Official Account</p>
                 </div>
+                <Link
+                    href="/admin/friends/history"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50 transition-colors text-sm font-medium"
+                >
+                    <History className="w-4 h-4" />
+                    <span className="thai-no-break">ประวัติ</span>
+                </Link>
             </div>
 
             <div className="mb-6">
@@ -121,7 +130,15 @@ export default function FriendsPage() {
                                                     )}
                                                 </div>
                                                 <div>
-                                                    <div className="font-medium text-slate-900">{friend.display_name || 'Unknown'}</div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="font-medium text-slate-900">{friend.display_name || 'Unknown'}</span>
+                                                        {(friend.refollow_count ?? 0) > 0 && (
+                                                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
+                                                                <RefreshCw className="w-3 h-3" />
+                                                                กลับมา {friend.refollow_count} ครั้ง
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                     <div className="text-xs text-slate-400 font-mono">{friend.line_user_id.substring(0, 8)}...</div>
                                                 </div>
                                             </div>

@@ -2,6 +2,7 @@ import os
 from typing import List, Union
 from pydantic import AnyHttpUrl, PostgresDsn, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from app.core.env import resolve_env_file
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "JskApp"
@@ -53,4 +54,4 @@ class Settings(BaseSettings):
         extra="ignore"
     )
 
-settings = Settings(_env_file=os.getenv("ENV_FILE", ".env"))
+settings = Settings(_env_file=resolve_env_file())
