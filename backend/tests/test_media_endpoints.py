@@ -9,6 +9,7 @@ from fastapi import HTTPException
 from starlette.datastructures import Headers, UploadFile
 
 from app.api.v1.endpoints import media
+from app.models.media_file import FileCategory
 from app.models.user import UserRole
 
 
@@ -25,7 +26,7 @@ async def test_upload_media_returns_created_payload():
         obj.id = uuid4()
         obj.is_public = False
         obj.public_token = None
-        obj.category = "DOCUMENT"
+        obj.category = FileCategory.DOCUMENT
         obj.thumbnail_url = None
         obj.created_at = datetime.now(timezone.utc)
 

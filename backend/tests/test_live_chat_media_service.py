@@ -5,12 +5,21 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastapi import HTTPException
 
+from app.models.chat_session import SessionStatus
 from app.services.live_chat_service import LiveChatService
 
 
 @pytest.fixture
 def service():
     return LiveChatService()
+
+
+def _make_active_session(operator_id: int):
+    """Return a mock ChatSession that passes _require_active_session_owner."""
+    session = MagicMock()
+    session.status = SessionStatus.ACTIVE
+    session.operator_id = operator_id
+    return session
 
 
 @pytest.mark.asyncio
@@ -50,7 +59,9 @@ async def test_send_media_image_success(service):
         "app.services.live_chat_service.line_service.save_message",
         new=AsyncMock(return_value=saved_message),
     ) as mock_save, patch.object(
-        service, "get_active_session", new_callable=AsyncMock, return_value=None
+        service, "get_active_session",
+        new_callable=AsyncMock,
+        return_value=_make_active_session(operator_id=1),
     ):
         result = await service.send_media_message(
             line_user_id="U123",
@@ -105,7 +116,9 @@ async def test_send_media_file_sends_text_with_url(service):
         "app.services.live_chat_service.line_service.save_message",
         new=AsyncMock(return_value=saved_message),
     ), patch.object(
-        service, "get_active_session", new_callable=AsyncMock, return_value=None
+        service, "get_active_session",
+        new_callable=AsyncMock,
+        return_value=_make_active_session(operator_id=2),
     ):
         result = await service.send_media_message(
             line_user_id="U123",
@@ -137,6 +150,10 @@ async def test_send_media_image_requires_public_url(service):
             "size": 123,
             "file_name": "local.jpg",
         }),
+    ), patch.object(
+        service, "get_active_session",
+        new_callable=AsyncMock,
+        return_value=_make_active_session(operator_id=3),
     ):
         with pytest.raises(HTTPException) as exc:
             await service.send_media_message(
@@ -148,4 +165,3 @@ async def test_send_media_image_requires_public_url(service):
                 db=mock_db,
             )
     assert exc.value.status_code == 400
-
