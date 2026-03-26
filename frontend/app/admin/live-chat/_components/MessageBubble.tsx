@@ -68,7 +68,7 @@ function renderMessageContent(message: Message): React.ReactNode {
           <div className="truncate text-sm font-medium">{fileName}</div>
           {size !== null && <div className="text-[11px] opacity-70">{Math.round(size / 1024)} KB</div>}
           {url && (
-            <a href={url} target="_blank" rel="noreferrer" className="text-[11px] text-blue-600 hover:underline">
+            <a href={url} target="_blank" rel="noreferrer" className="text-[11px] text-brand-600 hover:underline">
               Download
             </a>
           )}
@@ -149,7 +149,7 @@ export const MessageBubble = memo(function MessageBubble({
                 </button>
               )}
               {!isPending && !isFailed && (
-                <span className={message.id ? "text-blue-600" : "text-text-tertiary"}>
+                <span className={message.id ? "text-brand-600" : "text-text-tertiary"}>
                   {message.id ? <CheckCheck className="w-3 h-3" /> : <Check className="w-3 h-3" />}
                 </span>
               )}

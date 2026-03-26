@@ -48,9 +48,9 @@ export const BotStatusIndicator: React.FC = () => {
 
     const statusColors: Record<BotStatus, string> = {
         checking: 'bg-orange-500 animate-pulse',
-        online: 'bg-emerald-500',
-        offline: 'bg-slate-400',
-        error: 'bg-red-500'
+        online: 'bg-success',
+        offline: 'bg-text-tertiary',
+        error: 'bg-danger'
     };
 
     const statusLabels: Record<BotStatus, string> = {
@@ -64,27 +64,27 @@ export const BotStatusIndicator: React.FC = () => {
         <div className="relative group">
             <button
                 onClick={checkStatus}
-                className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-slate-100 transition-all cursor-pointer"
+                className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-muted transition-all cursor-pointer"
                 title={`LINE Bot: ${statusLabels[status]}`}
             >
-                <Bot className="w-4 h-4 text-slate-500" />
+                <Bot className="w-4 h-4 text-text-tertiary" />
                 <div className={`w-2 h-2 rounded-full ${statusColors[status]}`} />
             </button>
 
             {/* Tooltip */}
-            <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-100 p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+            <div className="absolute right-0 top-full mt-2 w-48 bg-surface rounded-lg shadow-lg border border-border-default p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
                 <div className="flex items-center gap-2 mb-2">
                     <div className={`w-3 h-3 rounded-full ${statusColors[status]}`} />
-                    <span className="font-bold text-sm text-slate-800">{statusLabels[status]}</span>
+                    <span className="font-bold text-sm text-text-primary">{statusLabels[status]}</span>
                 </div>
                 {botInfo?.displayName && (
-                    <p className="text-xs text-slate-500">{botInfo.displayName}</p>
+                    <p className="text-xs text-text-secondary">{botInfo.displayName}</p>
                 )}
                 {botInfo?.basicId && (
-                    <p className="text-[10px] text-slate-400">@{botInfo.basicId}</p>
+                    <p className="text-[10px] text-text-tertiary">@{botInfo.basicId}</p>
                 )}
                 {lastChecked && (
-                    <p className="text-[10px] text-slate-400 mt-1">
+                    <p className="text-[10px] text-text-tertiary mt-1">
                         Checked {lastChecked.toLocaleTimeString()}
                     </p>
                 )}

@@ -165,7 +165,7 @@ export function ChatArea() {
               <ConnIcon className="w-4 h-4" />
               {connectionStatus.label}
             </div>
-            <Link href="/admin" className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-text-secondary rounded-xl text-xs font-medium flex items-center gap-1.5 transition-all">
+            <Link href="/admin" className="px-3 py-1.5 bg-muted hover:bg-border-default text-text-secondary rounded-xl text-xs font-medium flex items-center gap-1.5 transition-all">
               <Home className="w-4 h-4" />Admin
             </Link>
           </div>

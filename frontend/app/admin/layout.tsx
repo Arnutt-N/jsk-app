@@ -80,7 +80,7 @@ function SidebarUserInfo({ isCollapsed }: { isCollapsed: boolean }) {
   const initials = displayName.substring(0, 2).toUpperCase();
 
   return (
-    <div className="relative z-10 p-3 border-t border-white/10 bg-slate-800/50">
+    <div className="relative z-10 p-3 border-t border-white/10 bg-sidebar-accent/50">
       <div
         className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-colors cursor-pointer group"
         onClick={() => logout?.()}
@@ -90,9 +90,9 @@ function SidebarUserInfo({ isCollapsed }: { isCollapsed: boolean }) {
           <>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-white truncate">{displayName}</p>
-              {email && <p className="text-xs text-slate-400 truncate">{email}</p>}
+              {email && <p className="text-xs text-sidebar-text-muted truncate">{email}</p>}
             </div>
-            <LogOut className="w-4 h-4 text-slate-400 group-hover:text-white transition-colors" />
+            <LogOut className="w-4 h-4 text-sidebar-text-muted group-hover:text-white transition-colors" />
           </>
         )}
       </div>
@@ -219,7 +219,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
           <aside
             className={cn(
               'fixed left-0 top-0 z-50 h-full',
-              'bg-[#0f172a] text-white',
+              'bg-sidebar-bg text-sidebar-fg',
               'flex flex-col overflow-hidden',
               'transition-all duration-300 ease-in-out',
               'border-r border-white/5',
@@ -227,7 +227,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
               isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
             )}
           >
-            <div className="absolute inset-0 bg-gradient-to-b from-slate-900 via-[#1e1b4b] to-[#172554] opacity-100 pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-b from-sidebar-bg via-sidebar-accent to-sidebar-border opacity-100 pointer-events-none" />
             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 mix-blend-overlay pointer-events-none" />
 
             {/* Sidebar Logo */}
@@ -242,10 +242,10 @@ function AdminShell({ children }: { children: React.ReactNode }) {
                     JS
                   </div>
                   <div className="flex-1">
-                    <h1 className="text-white font-bold text-xl bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent tracking-wide leading-tight">
+                    <h1 className="text-white font-bold text-xl bg-gradient-to-r from-white to-sidebar-text-muted bg-clip-text text-transparent tracking-wide leading-tight">
                       JSK
                     </h1>
-                    <p className="text-[10px] text-slate-500 tracking-widest uppercase">Admin</p>
+                    <p className="text-[10px] text-sidebar-text-muted tracking-widest uppercase">Admin</p>
                   </div>
                 </Link>
               )}
@@ -256,7 +256,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
               {visibleMenuGroups.map((group) => (
                 <div key={group.title}>
                   {!isSidebarCollapsed && (
-                    <h3 className="px-3 mb-2 text-[10px] font-semibold text-slate-400 uppercase tracking-widest">
+                    <h3 className="px-3 mb-2 text-[10px] font-semibold text-sidebar-text-muted uppercase tracking-widest">
                       {group.title}
                     </h3>
                   )}
@@ -287,7 +287,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
             {/* Bottom collapse toggle — HR-IMS style */}
             <button
               onClick={toggleSidebar}
-              className="relative z-10 flex h-10 w-full items-center justify-center border-t border-white/10 text-slate-400 transition-colors hover:bg-white/5 hover:text-white"
+              className="relative z-10 flex h-10 w-full items-center justify-center border-t border-white/10 text-sidebar-text-muted transition-colors hover:bg-white/5 hover:text-white"
               aria-label={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             >
               {isSidebarCollapsed
@@ -311,14 +311,14 @@ function AdminShell({ children }: { children: React.ReactNode }) {
               <div className="flex items-center gap-4">
                 <button
                   onClick={() => setIsMobileMenuOpen(true)}
-                  className="lg:hidden p-2 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 text-text-secondary dark:text-gray-400 hover:text-brand-600 transition-colors cursor-pointer"
+                  className="lg:hidden p-2 bg-surface dark:bg-surface-dark rounded-xl shadow-sm border border-border-default text-text-secondary hover:text-brand-600 transition-colors cursor-pointer"
                   aria-label="Open menu"
                 >
                   <Menu className="w-5 h-5" />
                 </button>
 
-                <div className="hidden md:flex items-center bg-slate-100/50 dark:bg-gray-700/50 rounded-xl px-4 py-2.5 border border-slate-200 dark:border-gray-600 focus-within:ring-2 focus-within:ring-brand-100 dark:focus-within:ring-brand-900 transition-all w-64">
-                  <Search className="w-4 h-4 text-slate-400 mr-2 flex-shrink-0" />
+                <div className="hidden md:flex items-center bg-muted/50 rounded-xl px-4 py-2.5 border border-border-default focus-within:ring-2 focus-within:ring-brand-100 dark:focus-within:ring-brand-900 transition-all w-64">
+                  <Search className="w-4 h-4 text-sidebar-text-muted mr-2 flex-shrink-0" />
                   <input
                     type="text"
                     placeholder="Search..."

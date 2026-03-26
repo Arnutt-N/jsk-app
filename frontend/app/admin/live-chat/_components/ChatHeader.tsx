@@ -54,7 +54,7 @@ export function ChatHeader({
           {isMobileView && (
             <button
               onClick={onBackToList}
-              className="rounded-xl border border-border-default p-2 text-text-tertiary transition-colors hover:bg-gray-50"
+              className="rounded-xl border border-border-default p-2 text-text-tertiary transition-colors hover:bg-muted"
               aria-label="Back to conversations"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -71,7 +71,7 @@ export function ChatHeader({
               src={currentChat?.picture_url}
               alt={displayName}
               fallback={fallback}
-              className="border-2 border-white ring-2 ring-indigo-500/20"
+              className="border-2 border-white ring-2 ring-brand-500/20"
             />
             <span
               className={`absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-white ${statusColor}`}
@@ -80,10 +80,10 @@ export function ChatHeader({
 
           <div>
             <div className="flex items-center gap-1.5">
-              <p className="thai-no-break text-base font-bold text-slate-800">{displayName}</p>
+              <p className="thai-no-break text-base font-bold text-text-primary">{displayName}</p>
               {isVip && <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />}
             </div>
-            <p className="thai-no-break text-xs text-slate-500">
+            <p className="thai-no-break text-xs text-text-tertiary">
               {isBot ? 'Bot Mode' : 'Manual Mode'}
             </p>
           </div>
@@ -92,13 +92,13 @@ export function ChatHeader({
         {/* Right: mode toggle + session actions + panel toggle */}
         <div className="flex items-center gap-2">
           {/* Two-button segmented mode control */}
-          <div className="hidden md:flex items-center gap-1 p-1 bg-gray-100 rounded-full">
+          <div className="hidden md:flex items-center gap-1 p-1 bg-muted rounded-full">
             <button
               onClick={() => onToggleMode('BOT')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all duration-200 ${
                 isBot
-                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-900/20'
-                  : 'text-slate-500 hover:text-slate-700'
+                  ? 'gradient-active text-white shadow-md shadow-brand-900/20'
+                  : 'text-text-tertiary hover:text-text-primary'
               }`}
               aria-label="Switch to Auto (Bot) mode"
               aria-pressed={isBot}
@@ -110,8 +110,8 @@ export function ChatHeader({
               onClick={() => onToggleMode('HUMAN')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all duration-200 ${
                 !isBot
-                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-900/20'
-                  : 'text-slate-500 hover:text-slate-700'
+                  ? 'gradient-active text-white shadow-md shadow-brand-900/20'
+                  : 'text-text-tertiary hover:text-text-primary'
               }`}
               aria-label="Switch to Manual mode"
               aria-pressed={!isBot}
@@ -135,8 +135,8 @@ export function ChatHeader({
             onClick={onToggleCustomerPanel}
             className={`rounded-xl border p-2 transition-colors ${
               showCustomerPanel
-                ? 'border-indigo-200 bg-indigo-50 text-indigo-600'
-                : 'border-border-default bg-surface text-text-tertiary hover:bg-gray-50'
+                ? 'border-brand-200 bg-brand-50 text-brand-600'
+                : 'border-border-default bg-surface text-text-tertiary hover:bg-muted'
             }`}
             aria-label={showCustomerPanel ? 'Hide customer panel' : 'Show customer panel'}
           >

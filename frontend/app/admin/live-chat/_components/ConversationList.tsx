@@ -68,8 +68,8 @@ export function ConversationList() {
   ] as const;
 
   return (
-    <aside className="w-full md:w-80 bg-[#0f172a] text-white relative overflow-hidden flex flex-col flex-shrink-0 border-r border-white/10 thai-text">
-      <div className="absolute inset-0 bg-gradient-to-b from-slate-900 via-[#1e1b4b] to-[#172554] opacity-100 pointer-events-none" />
+    <aside className="w-full md:w-80 bg-sidebar-bg text-sidebar-fg relative overflow-hidden flex flex-col flex-shrink-0 border-r border-white/10 thai-text">
+      <div className="absolute inset-0 bg-gradient-to-b from-sidebar-bg via-sidebar-accent to-sidebar-border opacity-100 pointer-events-none" />
       <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 mix-blend-overlay pointer-events-none" />
 
       <div className="relative z-10 flex h-full flex-col">
@@ -77,7 +77,7 @@ export function ConversationList() {
       <div className="h-20 px-4 border-b border-white/10 flex items-center gap-3">
         <Link
           href="/admin"
-          className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/20 ring-4 ring-blue-500/10 hover:shadow-blue-500/30 transition-shadow flex-shrink-0"
+          className="w-10 h-10 rounded-2xl gradient-active flex items-center justify-center text-white shadow-lg shadow-brand-500/20 ring-4 ring-brand-500/10 hover:shadow-brand-500/30 transition-shadow flex-shrink-0"
           aria-label="Back to admin dashboard"
         >
           <Home className="w-4 h-4" />
@@ -96,13 +96,13 @@ export function ConversationList() {
       {/* Search + Filter */}
       <div className="px-3 py-3 space-y-2.5">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-sidebar-text-muted" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search conversations..."
-            className="w-full pl-10 pr-3 py-2 bg-white/5 border border-white/10 text-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 placeholder:text-slate-400 transition-all thai-no-break"
+            className="w-full pl-10 pr-3 py-2 bg-white/5 border border-white/10 text-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500/40 placeholder:text-sidebar-text-muted transition-all thai-no-break"
             aria-label="Search conversations"
           />
         </div>
@@ -112,8 +112,8 @@ export function ConversationList() {
               key={btn.key ?? 'all'}
               className={`flex-1 py-1.5 px-2 text-[11px] font-semibold rounded-lg transition-all ${
                 filterStatus === btn.key
-                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-900/30'
-                  : 'bg-white/5 text-slate-400 hover:text-white'
+                  ? 'gradient-active text-white shadow-lg shadow-brand-900/30'
+                  : 'bg-white/5 text-sidebar-text-muted hover:text-white'
               }`}
               onClick={() => setFilterStatus(btn.key)}
             >
@@ -156,12 +156,12 @@ export function ConversationList() {
         {/* Search results */}
         {searchQuery.trim() && (
           <div className="px-1 pt-2 pb-1">
-            <div className="px-2 py-1 text-[10px] tracking-wide text-slate-400 font-semibold uppercase">
+            <div className="px-2 py-1 text-[10px] tracking-wide text-sidebar-text-muted font-semibold uppercase">
               Message Search
             </div>
-            {searching && <div className="px-2 py-2 text-xs text-slate-400">Searching...</div>}
+            {searching && <div className="px-2 py-2 text-xs text-sidebar-text-muted">Searching...</div>}
             {!searching && searchResults.length === 0 && (
-              <div className="px-2 py-2 text-xs text-slate-400">No matching messages</div>
+              <div className="px-2 py-2 text-xs text-sidebar-text-muted">No matching messages</div>
             )}
             {!searching && searchResults.length > 0 && (
               <div className="space-y-1 mb-2">
@@ -174,7 +174,7 @@ export function ConversationList() {
                     <div className="text-[11px] text-white font-medium truncate">
                       {result.display_name || result.line_user_id}
                     </div>
-                    <div className="text-[11px] text-slate-400 truncate">{result.content}</div>
+                    <div className="text-[11px] text-sidebar-text-muted truncate">{result.content}</div>
                   </button>
                 ))}
               </div>
@@ -197,8 +197,8 @@ export function ConversationList() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center p-6 opacity-60">
-            <Inbox className="w-10 h-10 text-slate-400 mb-3" />
-            <span className="text-slate-400 text-sm">No conversations</span>
+            <Inbox className="w-10 h-10 text-sidebar-text-muted mb-3" />
+            <span className="text-sidebar-text-muted text-sm">No conversations</span>
           </div>
         ) : (
           <div className="space-y-1 py-2">
@@ -221,7 +221,7 @@ export function ConversationList() {
       </div>
 
       {/* Summary bar */}
-      <div className="px-4 py-2.5 border-t border-white/10 bg-black/20 text-[11px] text-slate-300 flex items-center justify-center gap-4">
+      <div className="px-4 py-2.5 border-t border-white/10 bg-black/20 text-[11px] text-sidebar-fg/80 flex items-center justify-center gap-4">
         <span className="flex items-center gap-1.5">
           <span className="h-3 w-3 rounded-full bg-online" />
           {activeCount} active
@@ -232,7 +232,7 @@ export function ConversationList() {
         </span>
         <span className="flex items-center gap-1.5">
           <span className="h-3 w-3 rounded-full bg-offline" />
-          <span className="text-slate-400">{closedCount} offline</span>
+          <span className="text-sidebar-text-muted">{closedCount} offline</span>
         </span>
       </div>
       </div>

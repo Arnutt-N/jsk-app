@@ -31,11 +31,11 @@ const ACTION_COLORS: Record<string, string> = {
   "claim_session": "bg-info/12 text-info",
   "close_session": "bg-danger/12 text-danger",
   "send_message": "bg-success/12 text-success",
-  "create": "bg-indigo-500/12 text-indigo-600",
+  "create": "bg-brand-500/12 text-brand-600",
   "update": "bg-warning/12 text-warning",
   "delete": "bg-danger/12 text-danger",
-  "login": "bg-slate-100 text-slate-600",
-  "logout": "bg-slate-100 text-slate-600",
+  "login": "bg-muted text-text-secondary",
+  "logout": "bg-muted text-text-secondary",
 };
 
 export default function AuditLogPage() {
@@ -100,7 +100,7 @@ export default function AuditLogPage() {
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <span className="text-sm text-slate-400">Last</span>
+            <span className="text-sm text-text-tertiary">Last</span>
             <Input
               type="number"
               value={days}
@@ -112,7 +112,7 @@ export default function AuditLogPage() {
               min={1}
               max={90}
             />
-            <span className="text-sm text-slate-400">days</span>
+            <span className="text-sm text-text-tertiary">days</span>
           </div>
           <Button variant="outline" size="sm" onClick={fetchLogs} disabled={loading}>
             <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} />
@@ -126,7 +126,7 @@ export default function AuditLogPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-slate-400">
+              <CardTitle className="text-sm font-medium text-text-tertiary">
                 Total Actions
               </CardTitle>
             </CardHeader>
@@ -137,7 +137,7 @@ export default function AuditLogPage() {
 
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-slate-400">
+              <CardTitle className="text-sm font-medium text-text-tertiary">
                 Top Actions
               </CardTitle>
             </CardHeader>
@@ -157,7 +157,7 @@ export default function AuditLogPage() {
 
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-slate-400">
+              <CardTitle className="text-sm font-medium text-text-tertiary">
                 By Resource Type
               </CardTitle>
             </CardHeader>
@@ -205,7 +205,7 @@ export default function AuditLogPage() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b bg-slate-50/50">
+                <tr className="border-b bg-muted/50">
                   <th className="text-left py-3 px-4 font-medium">Time</th>
                   <th className="text-left py-3 px-4 font-medium">Admin</th>
                   <th className="text-left py-3 px-4 font-medium">Action</th>
@@ -217,13 +217,13 @@ export default function AuditLogPage() {
               <tbody>
                 {logs.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="text-center py-8 text-slate-400">
+                    <td colSpan={6} className="text-center py-8 text-text-tertiary">
                       No audit logs found.
                     </td>
                   </tr>
                 ) : (
                   logs.map((log) => (
-                    <tr key={log.id} className="border-b hover:bg-slate-50/50">
+                    <tr key={log.id} className="border-b hover:bg-muted/50">
                       <td className="py-3 px-4 text-sm">
                         {new Date(log.created_at).toLocaleString()}
                       </td>
@@ -238,7 +238,7 @@ export default function AuditLogPage() {
                         </Badge>
                       </td>
                       <td className="py-3 px-4 text-sm">
-                        <span className="text-slate-400">{log.resource_type}</span>
+                        <span className="text-text-tertiary">{log.resource_type}</span>
                         {log.resource_id && (
                           <span className="text-xs ml-1">({log.resource_id})</span>
                         )}
@@ -246,7 +246,7 @@ export default function AuditLogPage() {
                       <td className="py-3 px-4 text-sm max-w-xs truncate">
                         {log.details ? JSON.stringify(log.details).slice(0, 50) + "..." : "-"}
                       </td>
-                      <td className="py-3 px-4 text-sm text-slate-400">
+                      <td className="py-3 px-4 text-sm text-text-tertiary">
                         {log.ip_address}
                       </td>
                     </tr>
@@ -258,7 +258,7 @@ export default function AuditLogPage() {
 
           {/* Pagination */}
           <div className="flex items-center justify-between py-4 px-4 border-t">
-            <div className="text-sm text-slate-400">
+            <div className="text-sm text-text-tertiary">
               Showing {logs.length} of {total} results
             </div>
             <div className="flex items-center gap-2">

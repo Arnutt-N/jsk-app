@@ -104,6 +104,9 @@
   --color-sidebar-muted: hsl(215 14% 34%);
   --color-sidebar-accent: hsl(217 33% 17%);
   --color-sidebar-border: hsl(215 28% 17%);
+  --color-sidebar-hover: hsl(222 47% 16%);
+  --color-sidebar-active: hsl(222 47% 20%);
+  --color-sidebar-text-muted: hsl(215 20% 65%);
   --color-sidebar-primary: hsl(217 91% 60%);
   --color-sidebar-primary-fg: hsl(0 0% 100%);
   --sidebar-primary-fg: hsl(0 0% 100%);

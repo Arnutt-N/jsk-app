@@ -271,7 +271,7 @@ export default function BroadcastListPage() {
                                                 {b.sent_at ? (
                                                     new Date(b.sent_at).toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit' })
                                                 ) : b.scheduled_at ? (
-                                                    <span className="text-blue-600 dark:text-blue-400">
+                                                    <span className="text-brand-600 dark:text-brand-400">
                                                         {new Date(b.scheduled_at).toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
                                                     </span>
                                                 ) : (

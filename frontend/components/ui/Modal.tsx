@@ -65,15 +65,15 @@ export const Modal: React.FC<ModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-gray-900/50 backdrop-blur-sm transition-opacity"
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
         onClick={closeOnBackdropClick ? onClose : undefined}
       />
 
       {/* Modal Content */}
       <div
         className={cn(
-          'relative bg-white dark:bg-gray-800 rounded-2xl w-full',
-          'shadow-2xl shadow-gray-900/20 dark:shadow-gray-900/60',
+          'relative bg-surface dark:bg-surface-dark rounded-2xl w-full',
+          'shadow-2xl shadow-black/20 dark:shadow-black/60',
           'flex flex-col max-h-[90vh]',
           'animate-scale-in',
           maxWidthClasses[maxWidth]
@@ -81,14 +81,14 @@ export const Modal: React.FC<ModalProps> = ({
       >
         {/* Header */}
         {(title || showCloseButton) && (
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-border-default">
             {title ? (
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 tracking-tight">
+                <h3 className="text-lg font-semibold text-text-primary tracking-tight">
                   {title}
                 </h3>
                 {description && (
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{description}</p>
+                  <p className="text-sm text-text-tertiary mt-0.5">{description}</p>
                 )}
               </div>
             ) : (
@@ -97,7 +97,7 @@ export const Modal: React.FC<ModalProps> = ({
             {showCloseButton && (
               <button
                 onClick={onClose}
-                className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                className="p-1.5 rounded-lg hover:bg-muted text-text-tertiary hover:text-text-primary transition-colors"
                 aria-label="Close modal"
               >
                 <X className="w-5 h-5" />

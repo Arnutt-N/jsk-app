@@ -351,11 +351,11 @@ export default function CategoryDetailPage() {
                                 </div>
                             ) : (
                                 category.responses.map((resp, index) => (
-                                    <div key={resp.id} className="group relative bg-surface border border-border-default rounded-xl p-4 hover:shadow-md transition-all hover:border-indigo-200">
+                                    <div key={resp.id} className="group relative bg-surface border border-border-default rounded-xl p-4 hover:shadow-md transition-all hover:border-brand-200">
                                         <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <button
                                                 onClick={() => handleEditResponse(resp)}
-                                                className="p-1.5 text-text-tertiary hover:text-primary hover:bg-indigo-50 rounded-lg"
+                                                className="p-1.5 text-text-tertiary hover:text-primary hover:bg-brand-50 rounded-lg"
                                             >
                                                 <Edit2 className="w-4 h-4" />
                                             </button>
@@ -371,8 +371,8 @@ export default function CategoryDetailPage() {
                                             <span className="w-6 h-6 flex items-center justify-center bg-bg rounded-full text-xs font-bold text-text-tertiary">
                                                 {index + 1}
                                             </span>
-                                            <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wide ${resp.reply_type === 'text' ? 'bg-blue-50 text-blue-600' :
-                                                    resp.reply_type === 'flex' ? 'bg-indigo-50 text-indigo-600' :
+                                            <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wide ${resp.reply_type === 'text' ? 'bg-info/10 text-info-text' :
+                                                    resp.reply_type === 'flex' ? 'bg-brand-50 text-brand-600' :
                                                         resp.reply_type === 'image' ? 'bg-pink-50 text-pink-600' :
                                                             'bg-bg text-text-secondary'
                                                 }`}>

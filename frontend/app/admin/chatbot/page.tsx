@@ -158,10 +158,10 @@ export default function ChatbotDashboard() {
                 <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm dark:bg-gray-800 dark:border-gray-700">
                     <div className="px-5 py-4 border-b border-gray-100 flex justify-between items-center dark:border-gray-700">
                         <h2 className="text-base font-semibold text-gray-700 flex items-center gap-2 dark:text-gray-200">
-                            <span className="w-1 h-5 bg-indigo-500 rounded-full" />
+                            <span className="w-1 h-5 bg-brand-500 rounded-full" />
                             Active Intents
                         </h2>
-                        <Link href="/admin/auto-replies" className="text-xs font-medium text-indigo-500 hover:text-indigo-600/80 uppercase tracking-wide px-2 py-1 rounded hover:bg-indigo-50 transition-colors cursor-pointer dark:text-indigo-400 dark:hover:bg-indigo-500/10">Manage</Link>
+                        <Link href="/admin/auto-replies" className="text-xs font-medium text-brand-500 hover:text-brand-600/80 uppercase tracking-wide px-2 py-1 rounded hover:bg-brand-50 transition-colors cursor-pointer dark:text-brand-400 dark:hover:bg-brand-500/10">Manage</Link>
                     </div>
                     <div className="divide-y divide-gray-50 dark:divide-gray-700">
                         {intentCategories.slice(0, 5).map((category) => (
@@ -172,11 +172,11 @@ export default function ChatbotDashboard() {
                             >
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 bg-indigo-50 text-indigo-500 rounded-lg flex items-center justify-center text-sm font-semibold dark:bg-indigo-500/10 dark:text-indigo-400">
+                                        <div className="w-8 h-8 bg-brand-50 text-brand-500 rounded-lg flex items-center justify-center text-sm font-semibold dark:bg-brand-500/10 dark:text-brand-400">
                                             #
                                         </div>
                                         <div>
-                                            <p className="text-gray-600 font-medium text-sm group-hover:text-indigo-600 transition-colors dark:text-gray-300 dark:group-hover:text-indigo-400">{category.name}</p>
+                                            <p className="text-text-secondary font-medium text-sm group-hover:text-brand-600 transition-colors dark:group-hover:text-brand-400">{category.name}</p>
                                             <p className="text-gray-400 text-xs dark:text-gray-500">
                                                 {category.keyword_count} keywords · {category.response_count} responses
                                             </p>

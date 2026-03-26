@@ -7,7 +7,7 @@ const DashboardCharts = dynamic(
     () => import('./DashboardCharts'),
     {
         ssr: false,
-        loading: () => <div className="h-[300px] w-full bg-slate-50 animate-pulse rounded-xl" />
+        loading: () => <div className="h-[300px] w-full bg-muted animate-pulse rounded-xl" />
     }
 );
 

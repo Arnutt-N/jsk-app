@@ -24,8 +24,8 @@ export function AdminTableHead({ columns, rowClassName }: AdminTableHeadProps) {
   };
 
   return (
-    <thead className="bg-slate-50 border-b border-slate-100">
-      <tr className={cn('text-xs font-semibold text-slate-600 tracking-wider', rowClassName)}>
+    <thead className="bg-muted/50 border-b border-border-default">
+      <tr className={cn('text-xs font-semibold text-text-secondary tracking-wider', rowClassName)}>
         {columns.map((column) => (
           <th
             key={column.key}

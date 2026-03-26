@@ -16,10 +16,10 @@ const badgeVariants = cva(
       variant: {
         primary:   'bg-brand-100 text-brand-700 dark:bg-brand-900/50 dark:text-brand-300',
         secondary: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
-        success:   'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300',
-        warning:   'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300',
-        danger:    'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300',
-        info:      'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300',
+        success:   'bg-success/10 text-success-text dark:bg-success/20 dark:text-success-light',
+        warning:   'bg-warning/10 text-warning-text dark:bg-warning/20 dark:text-warning-light',
+        danger:    'bg-danger/10 text-danger-text dark:bg-danger/20 dark:text-danger-light',
+        info:      'bg-info/10 text-info-text dark:bg-info/20 dark:text-info-light',
         gray:      'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400',
       },
       appearance: {
@@ -43,22 +43,22 @@ const badgeVariants = cva(
       {
         variant: 'success',
         appearance: 'outline',
-        class: 'border-green-300 text-green-600 bg-green-50',
+        class: 'border-success/30 text-success-text bg-success/5',
       },
       {
         variant: 'warning',
         appearance: 'outline',
-        class: 'border-amber-300 text-amber-600 bg-amber-50',
+        class: 'border-warning/30 text-warning-text bg-warning/5',
       },
       {
         variant: 'danger',
         appearance: 'outline',
-        class: 'border-red-300 text-red-600 bg-red-50',
+        class: 'border-danger/30 text-danger-text bg-danger/5',
       },
       {
         variant: 'info',
         appearance: 'outline',
-        class: 'border-blue-300 text-blue-600 bg-blue-50',
+        class: 'border-info/30 text-info-text bg-info/5',
       },
       {
         variant: 'gray',

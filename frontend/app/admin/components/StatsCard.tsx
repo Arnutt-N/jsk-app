@@ -24,29 +24,29 @@ const colorMap = {
     glow: 'group-hover:shadow-brand-500/20',
   },
   success: {
-    iconBg: 'bg-gradient-to-br from-green-100 to-green-50',
-    text: 'text-green-600',
-    glow: 'group-hover:shadow-green-500/20',
+    iconBg: 'bg-gradient-to-br from-success/15 to-success/5',
+    text: 'text-success-text',
+    glow: 'group-hover:shadow-success/20',
   },
   warning: {
-    iconBg: 'bg-gradient-to-br from-amber-100 to-amber-50',
-    text: 'text-amber-600',
-    glow: 'group-hover:shadow-amber-500/20',
+    iconBg: 'bg-gradient-to-br from-warning/15 to-warning/5',
+    text: 'text-warning-text',
+    glow: 'group-hover:shadow-warning/20',
   },
   danger: {
-    iconBg: 'bg-gradient-to-br from-red-100 to-red-50',
-    text: 'text-red-600',
-    glow: 'group-hover:shadow-red-500/20',
+    iconBg: 'bg-gradient-to-br from-danger/15 to-danger/5',
+    text: 'text-danger-text',
+    glow: 'group-hover:shadow-danger/20',
   },
   info: {
-    iconBg: 'bg-gradient-to-br from-blue-100 to-blue-50',
-    text: 'text-blue-600',
-    glow: 'group-hover:shadow-blue-500/20',
+    iconBg: 'bg-gradient-to-br from-info/15 to-info/5',
+    text: 'text-info-text',
+    glow: 'group-hover:shadow-info/20',
   },
   purple: {
-    iconBg: 'bg-gradient-to-br from-indigo-100 to-indigo-50',
-    text: 'text-indigo-600',
-    glow: 'group-hover:shadow-indigo-500/20',
+    iconBg: 'bg-gradient-to-br from-brand-100 to-brand-50',
+    text: 'text-brand-600',
+    glow: 'group-hover:shadow-brand-500/20',
   },
 };
 
@@ -92,14 +92,14 @@ export default function StatsCard({
           {trend && (
             <div className="flex items-center gap-1">
               {trend.isPositive ? (
-                <ArrowUpRight className="w-3.5 h-3.5 text-green-500" />
+                <ArrowUpRight className="w-3.5 h-3.5 text-success" />
               ) : (
-                <ArrowDownRight className="w-3.5 h-3.5 text-red-500" />
+                <ArrowDownRight className="w-3.5 h-3.5 text-danger" />
               )}
               <span
                 className={cn(
                   'text-xs font-medium',
-                  trend.isPositive ? 'text-green-500' : 'text-red-500'
+                  trend.isPositive ? 'text-success' : 'text-danger'
                 )}
               >
                 {trend.value}%

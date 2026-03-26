@@ -56,15 +56,19 @@ function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-      <Card className="w-full max-w-md shadow-xl border-slate-200">
+    <div className="min-h-screen flex items-center justify-center bg-bg p-4 relative overflow-hidden">
+      {/* Background decoration */}
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-brand-500/5 rounded-full blur-3xl -translate-y-1/3 translate-x-1/4 pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-info/5 rounded-full blur-3xl translate-y-1/3 -translate-x-1/4 pointer-events-none" />
+
+      <Card className="w-full max-w-md shadow-2xl shadow-brand-500/5 border-border-default relative z-10 animate-fade-in-up">
         <CardHeader className="space-y-1 flex flex-col items-center">
-          <div className="w-12 h-12 bg-brand-100 text-brand-600 rounded-full flex items-center justify-center mb-4">
-            <Shield size={28} />
+          <div className="w-14 h-14 rounded-2xl gradient-logo flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-brand-500/20 mb-4">
+            JS
           </div>
-          <CardTitle className="text-2xl font-bold text-center">JskApp Admin</CardTitle>
+          <CardTitle className="text-2xl font-bold text-center tracking-tight">JSK Admin</CardTitle>
           <CardDescription className="text-center">
-            Enter your credentials to access the admin panel
+            เข้าสู่ระบบเพื่อจัดการ LINE Official Account
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -82,7 +86,7 @@ function LoginForm() {
                   required
                   autoComplete="username"
                 />
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary" size={18} />
               </div>
             </div>
             <div className="space-y-2">
@@ -99,7 +103,7 @@ function LoginForm() {
                   required
                   autoComplete="current-password"
                 />
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary" size={18} />
               </div>
             </div>
             <Button
@@ -113,11 +117,11 @@ function LoginForm() {
             </Button>
           </form>
         </CardContent>
-        <CardFooter className="flex flex-col space-y-4 border-t border-slate-100 pt-6">
-          <p className="text-xs text-center text-slate-500">
-            Protected by enterprise-grade security. <br />
-            Unauthorized access is strictly prohibited.
-          </p>
+        <CardFooter className="flex flex-col space-y-4 border-t border-border-subtle pt-6">
+          <div className="flex items-center justify-center gap-2 text-xs text-text-tertiary">
+            <Shield className="w-3.5 h-3.5" />
+            <span>Enterprise-grade security &middot; JWT + RBAC</span>
+          </div>
         </CardFooter>
       </Card>
     </div>
