@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-03-15 17:18 by CodeX (admin media contract fix + universal handoff artifacts)
+> **Last Updated:** 2026-03-21 11:00 by Claude Code (CI pipeline fix — Alembic migration + 14 test failures resolved, CI green)
 
 ## Thai Summary
 เนเธเธ 27 เธเธฑเนเธเธ•เธญเธ **เน€เธชเธฃเนเธเธชเธกเธเธนเธฃเธ“เน 100%** โ€” เธ—เธธเธเธเธตเน€เธเธญเธฃเนเธ–เธนเธ implement เนเธฅเนเธง

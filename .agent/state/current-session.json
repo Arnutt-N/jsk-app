@@ -1,36 +1,40 @@
 {
   "version": "1.0",
-  "last_updated": "2026-03-18T21:43:36+07:00",
-  "platform": "codeX",
-  "agent_id": "codex-gpt-5",
-  "session_id": "sess-20260318-2142-codex",
+  "last_updated": "2026-03-21T11:00:00+07:00",
+  "platform": "claude_code",
+  "agent_id": "claude-opus-4.6-1m",
+  "session_id": "sess-20260321-1100-claude",
   "project": {
     "name": "SknApp",
-    "root": "D:/genAI/skn-app",
-    "branch": "feat/ui-workflow-audit"
+    "root": "D:/genAI/jsk-app",
+    "branch": "main"
   },
   "current_task": {
-    "id": "task-live-chat-hardening-20260318",
-    "title": "Live-chat hardening + optional follow-up",
+    "id": "task-ci-pipeline-fix-20260321",
+    "title": "CI pipeline fix — Alembic migration + 14 test failures",
     "status": "completed",
     "priority": "high"
   },
   "context": {
     "recent_files": [
-      "backend/app/api/v1/endpoints/admin_live_chat.py",
-      "backend/app/api/v1/endpoints/ws_live_chat.py",
-      "backend/app/core/websocket_manager.py",
-      "frontend/app/admin/live-chat/_context/LiveChatContext.tsx",
-      "project-log-md/codeX/session-summary-20260318-2142.md"
+      "backend/alembic/versions/k1l2m3n4o5p7_add_friend_event_columns.py",
+      ".github/workflows/ci.yml",
+      "backend/tests/test_admin_analytics_export_endpoints.py",
+      "backend/tests/test_admin_friends_endpoints.py",
+      "backend/tests/test_live_chat_media_service.py",
+      "backend/tests/test_media_endpoints.py"
     ],
-    "active_branch": "feat/ui-workflow-audit",
-    "commit": "uncommitted changes pending",
-    "commit_message": "pending: record live-chat hardening session state",
+    "active_branch": "main",
+    "commit": "f410630",
+    "commit_message": "fix(tests): use FileCategory enum in all media test fixtures",
     "modified_files": [
-      ".agent/state/current-session.json",
-      ".agent/state/TASK_LOG.md",
-      ".agent/state/task.md",
-      ".agent/state/SESSION_INDEX.md"
+      "backend/alembic/versions/k1l2m3n4o5p7_add_friend_event_columns.py",
+      "backend/alembic/versions/l2m3n4o5p6q7_add_media_file_category_public.py",
+      ".github/workflows/ci.yml",
+      "backend/tests/test_admin_analytics_export_endpoints.py",
+      "backend/tests/test_admin_friends_endpoints.py",
+      "backend/tests/test_live_chat_media_service.py",
+      "backend/tests/test_media_endpoints.py"
     ]
   },
   "handoff_history": [
@@ -159,7 +163,13 @@
     {
       "from": "claude_code",
       "timestamp": "2026-03-15T19:00:00+07:00",
-      "task": "Skills audit (39 skills) + update 4 skills: skn-auth-security, skn-design-system, skn-service-request, skn-settings-config",
+      "task": "Skills audit (39 skills) + update 4 skills",
+      "status": "completed"
+    },
+    {
+      "from": "codeX",
+      "timestamp": "2026-03-15T17:18:30+07:00",
+      "task": "Admin media contract fix + universal handoff",
       "status": "completed"
     },
     {
@@ -169,18 +179,18 @@
       "status": "completed"
     },
     {
-      "from": "codeX",
-      "timestamp": "2026-03-15T17:18:30.9947907+07:00",
-      "task": "Admin media contract fix + universal handoff workflow execution",
+      "from": "claude_code",
+      "to": "any",
+      "timestamp": "2026-03-21T11:00:00+07:00",
+      "task": "CI pipeline fix — Alembic migration + 14 test failures resolved",
       "status": "completed"
     }
   ],
   "blockers": [],
   "next_steps": [
     "Run manual QA for live-chat flows: claim -> send -> transfer -> close",
-    "Verify multi-instance behavior with Redis-backed WebSocket broadcast if staging is available",
-    "Decide commit scope for live-chat hardening vs any unrelated dirty-worktree changes",
-    "Open or update the PR on feat/ui-workflow-audit once the intended scope is staged"
+    "Clean up ~30 deleted debug scripts in working tree",
+    "Address deprecation warnings (datetime.utcnow, Pydantic class config, FastAPI regex→pattern)"
   ],
   "plan_status": {
     "plan_file": ".agent/workflows/handoff-to-any.md",
@@ -190,12 +200,10 @@
   "cross_platform_context": {
     "summaries_read": [
       "codeX/session-summary-20260318-2142.md",
-      "codeX/session-summary-20260315-1718.md",
       "claude_code/session-summary-20260315-1900.md",
-      "open_code/session-summary-20260214-2300.md",
-      "kimi_code/session-summary-20260214-1325.md"
+      "claude_code/session-summary-20260315-1730.md"
     ],
-    "key_insights": "The live-chat hardening session completed successfully on branch feat/ui-workflow-audit: WS auth, ownership checks, room tracking, Redis cross-instance exclusion, REST transfer fallback, and REST/WS response consistency were all hardened. Final verification passed with 70 backend live-chat tests and a successful frontend production build. The state artifacts now point future agents at project-log-md/codeX/session-summary-20260318-2142.md for the full handoff."
+    "key_insights": "CI pipeline was broken by duplicate Alembic revision IDs and test mocking issues. All fixed — 198 passed, 0 failed. Live-chat hardening done by CodeX on feat/ui-workflow-audit branch."
   },
   "reference_docs": [
     ".agent/workflows/handoff-to-any.md",

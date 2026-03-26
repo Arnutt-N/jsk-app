@@ -2,7 +2,7 @@
 
 > **Master index of ALL session summaries from ALL agents across ALL platforms**
 >
-> **Last Updated**: 2026-03-18 21:43
+> **Last Updated**: 2026-03-21 11:00
 
 ---
 
@@ -11,8 +11,8 @@
 | Metric | Value |
 |--------|-------|
 | Total Platforms | 11 |
-| Total Session Summaries | 94 |
-| Most Recent | 2026-03-18 21:42 (CodeX - Live-chat hardening + optional follow-up) |
+| Total Session Summaries | 95 |
+| Most Recent | 2026-03-21 11:00 (Claude Code - CI pipeline fix) |
 | Oldest | 2026-02-10 07:00 (Claude Code) |
 
 ---
@@ -49,7 +49,7 @@ cat project-log-md/kimi_code/session-summary-20260214-0430.md
 | Platform | Directory | Summaries | Latest | Agent Count |
 |----------|-----------|-----------|--------|-------------|
 | **Kimi Code** | `project-log-md/kimi_code/` | [Scan] | 2026-02-14 | 1+ |
-| **Claude Code** | `project-log-md/claude_code/` | [Scan] | 2026-03-15 | 1+ |
+| **Claude Code** | `project-log-md/claude_code/` | [Scan] | 2026-03-21 | 1+ |
 | **Antigravity** | `project-log-md/antigravity/` | [Scan] | 2026-02-15 | 1+ |
 | **cline** | `project-log-md/cline/` | [Scan] | 2026-02-15 | 1+ |
 | **CodeX** | `project-log-md/codeX/` | [Scan] | 2026-03-18 | 1+ |
@@ -163,6 +163,7 @@ cat project-log-md/kimi_code/session-summary-20260214-0430.md
 
 | Task # | Task ID | Agent | Session Summary |
 |--------|---------|-------|-----------------|
+| 27 | task-ci-pipeline-fix-20260321 | Claude Code | `claude_code/session-summary-20260321-1100.md` |
 | 26 | task-live-chat-hardening-20260318 | CodeX | `codeX/session-summary-20260318-2142.md` |
 | 25 | task-media-admin-handoff-20260315 | CodeX | `codeX/session-summary-20260315-1718.md` |
 | 24 | task-skills-audit-20260315 | Claude Code | `claude_code/session-summary-20260315-1900.md` |

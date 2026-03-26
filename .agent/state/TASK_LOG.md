@@ -38,6 +38,51 @@
 
 ## Task History (Newest First)
 
+### Task #27 - 2026-03-21 11:00 - Claude Code
+
+**Task ID**: `task-ci-pipeline-fix-20260321`
+**Agent**: Claude Code (Claude Opus 4.6)
+**Status**: completed
+**Duration**: ~1 hour
+
+#### Cross-Platform Context
+- Read summaries from: CodeX (20260318-2142), Claude Code (20260315-1900, 20260315-1730)
+- Key insights: Live-chat hardening complete, skills audit done, UI overhaul finished
+
+#### Work Completed
+- Fixed Alembic duplicate revision ID (`k1l2m3n4o5p6` shared by 2 migrations) and multiple heads (3 migrations branching from same parent)
+- Added `push: branches: [main]` trigger to CI workflow (previously only ran on PRs)
+- Fixed 14 pytest failures across 4 test files:
+  - Wrong dependency override (get_current_admin vs get_current_staff)
+  - Missing mock for get_user_refollow_counts
+  - AsyncMock making sync .all()/.scalar() return coroutines
+  - get_active_session mocked as None instead of active session
+  - category="DOCUMENT" string instead of FileCategory.DOCUMENT enum
+- CI now green: 198 passed, 0 failed, 7 skipped
+
+#### Files Modified
+- `backend/alembic/versions/k1l2m3n4o5p7_add_friend_event_columns.py` (renamed + fixed)
+- `backend/alembic/versions/l2m3n4o5p6q7_add_media_file_category_public.py`
+- `.github/workflows/ci.yml`
+- `backend/tests/test_admin_analytics_export_endpoints.py`
+- `backend/tests/test_admin_friends_endpoints.py`
+- `backend/tests/test_live_chat_media_service.py`
+- `backend/tests/test_media_endpoints.py`
+
+#### Session Summary
+- Location: `project-log-md/claude_code/session-summary-20260321-1100.md`
+- Checkpoint: `.agent/state/checkpoints/handover-claude_code-20260321-1100.json`
+
+#### Blockers
+- None
+
+#### Next Steps
+- Run manual QA for live-chat flows (carry over from Task #26)
+- Clean up ~30 deleted debug scripts in working tree
+- Address deprecation warnings (datetime.utcnow, Pydantic class config, FastAPI regex→pattern)
+
+---
+
 ### Task #26 - 2026-03-18 21:42 - CodeX
 
 **Task ID**: `task-live-chat-hardening-20260318`

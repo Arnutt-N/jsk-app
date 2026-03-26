@@ -36,6 +36,7 @@ build/
 # OS
 .DS_Store
 Thumbs.db
+*.stackdump
 
 # Logs
 *.log
@@ -62,5 +63,4 @@ frontend/tsconfig.tsbuildinfo
 .claude/settings*
 nul
 research/git_repo/
-nul
 cookies.txt
