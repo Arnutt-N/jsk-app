@@ -182,7 +182,7 @@ export default function ChatbotDashboard() {
                                             </p>
                                         </div>
                                     </div>
-                                    <span className={`w-2 h-2 rounded-full ${category.is_active ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`} />
+                                    <span className={`w-2 h-2 rounded-full ${category.is_active ? 'bg-success' : 'bg-border-hover'}`} />
                                 </div>
                             </Link>
                         ))}

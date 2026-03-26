@@ -373,7 +373,7 @@ export default function CategoryDetailPage() {
                                             </span>
                                             <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wide ${resp.reply_type === 'text' ? 'bg-info/10 text-info-text' :
                                                     resp.reply_type === 'flex' ? 'bg-brand-50 text-brand-600' :
-                                                        resp.reply_type === 'image' ? 'bg-pink-50 text-pink-600' :
+                                                        resp.reply_type === 'image' ? 'bg-danger/10 text-danger-text' :
                                                             'bg-bg text-text-secondary'
                                                 }`}>
                                                 {resp.reply_type}

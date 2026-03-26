@@ -49,7 +49,7 @@ export const BotStatusIndicator: React.FC = () => {
     const statusColors: Record<BotStatus, string> = {
         checking: 'bg-orange-500 animate-pulse',
         online: 'bg-success',
-        offline: 'bg-text-tertiary',
+        offline: 'bg-offline',
         error: 'bg-danger'
     };
 
