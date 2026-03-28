@@ -112,7 +112,9 @@ export const Modal: React.FC<ModalProps> = ({
         ref={modalRef}
         role="dialog"
         aria-modal="true"
-        aria-label={title}
+        {...(title
+          ? { 'aria-labelledby': 'modal-title' }
+          : { 'aria-label': 'Dialog' })}
         className={cn(
           'relative bg-surface dark:bg-surface-dark rounded-2xl w-full',
           'shadow-2xl shadow-black/20 dark:shadow-black/60',
@@ -126,7 +128,7 @@ export const Modal: React.FC<ModalProps> = ({
           <div className="flex items-center justify-between px-6 py-4 border-b border-border-default">
             {title ? (
               <div>
-                <h3 className="text-lg font-semibold text-text-primary tracking-tight">
+                <h3 id="modal-title" className="text-lg font-semibold text-text-primary tracking-tight">
                   {title}
                 </h3>
                 {description && (

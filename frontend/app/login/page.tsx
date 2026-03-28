@@ -123,7 +123,7 @@ function LoginForm() {
             </Button>
           </form>
 
-          {isLocalhost && (
+          {process.env.NODE_ENV === 'development' && isLocalhost && (
             <div className="mt-4 pt-4 border-t border-border-subtle">
               <Button
                 type="button"
@@ -131,6 +131,7 @@ function LoginForm() {
                 className="w-full text-sm border-warning/30 text-warning hover:bg-warning/10"
                 onClick={() => {
                   localStorage.setItem('dev_bypass', 'true');
+                  // ใช้ hard navigation เพื่อให้ AuthProvider re-mount และตรวจจับ dev_bypass flag
                   toast({
                     title: 'Dev Mode',
                     description: 'ข้ามเข้าสู่ระบบสำเร็จ (localhost only)',

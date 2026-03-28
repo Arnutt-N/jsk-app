@@ -352,7 +352,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
               </div>
             </header>
 
-            {/* Page content */}
+            {/* เนื้อหาหลัก — ErrorBoundary จับเฉพาะ render-time error ไม่จับ async fetch error */}
             <main id="main-content" className="flex-1 overflow-y-auto px-4 sm:px-6 pt-6 pb-6 scrollbar-thin">
               <ErrorBoundary>
                 <div className="animate-fade-in-up">

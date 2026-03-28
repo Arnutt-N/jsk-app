@@ -46,6 +46,7 @@ interface ServiceRequest {
 export default function AdminRequestList() {
     const [requests, setRequests] = useState<ServiceRequest[]>([]);
     const [loading, setLoading] = useState(true);
+    const [fetchError, setFetchError] = useState<string | null>(null);
     const [filter, setFilter] = useState({ status: '', category: '' });
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -55,6 +56,7 @@ export default function AdminRequestList() {
 
     const fetchRequests = useCallback(async () => {
         setLoading(true);
+        setFetchError(null);
         try {
             const query = new URLSearchParams();
             if (filter.status) query.append('status', filter.status);
@@ -65,8 +67,9 @@ export default function AdminRequestList() {
             if (!res.ok) throw new Error('Failed to fetch requests');
             const data = await res.json();
             setRequests(data);
-        } catch {
-            // Error handled by ErrorBoundary
+        } catch (err: unknown) {
+            console.error('[requests] โหลดข้อมูลคำร้องล้มเหลว:', err);
+            setFetchError('ไม่สามารถโหลดข้อมูลคำร้องได้ กรุณาลองใหม่');
         } finally {
             setLoading(false);
         }
@@ -208,7 +211,18 @@ export default function AdminRequestList() {
                 </CardContent>
             </Card>
 
-            {/* Request Table */}
+            {/* แสดง error เมื่อโหลดข้อมูลล้มเหลว */}
+            {fetchError && (
+                <div className="flex items-center gap-3 p-4 mb-4 bg-danger/10 text-danger-text rounded-xl text-sm">
+                    <AlertCircle size={18} className="shrink-0" />
+                    <span className="flex-1">{fetchError}</span>
+                    <Button variant="outline" size="xs" onClick={() => fetchRequests()}>
+                        ลองใหม่
+                    </Button>
+                </div>
+            )}
+
+            {/* ตารางคำร้อง */}
             <Card glass className="border-none shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">

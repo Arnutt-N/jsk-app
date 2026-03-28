@@ -30,7 +30,13 @@ const MOCK_ADMIN: User = {
   display_name: 'Administrator'
 };
 
+/**
+ * ตรวจสอบ dev bypass — ใช้ได้เฉพาะ development build + localhost เท่านั้น
+ * process.env.NODE_ENV จะถูก dead-code eliminate ใน production build
+ * ทำให้ฟังก์ชันนี้ return false เสมอใน production bundle
+ */
 function isLocalhostDevBypass(): boolean {
+  if (process.env.NODE_ENV !== 'development') return false;
   if (typeof window === 'undefined') return false;
   const host = window.location.hostname;
   const isLocal = host === 'localhost' || host === '127.0.0.1';
@@ -62,12 +68,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     syncAdminAuthToken(token);
   }, [token]);
 
-  // Initialize auth state from localStorage on mount
+  // เริ่มต้น auth state จาก localStorage เมื่อ component mount
   useEffect(() => {
     const initAuth = () => {
       try {
         if (DEV_MODE || isLocalhostDevBypass()) {
-          // In dev mode or localhost bypass, auto-login as mock admin
+          // ความปลอดภัย: dev bypass — ให้สิทธิ์ mock admin โดยไม่ต้อง login จริง (เฉพาะ development build + localhost)
           setUser(MOCK_ADMIN);
           setToken(null);
           localStorage.removeItem('auth_token');
@@ -137,8 +143,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem('auth_user');
     localStorage.removeItem('dev_bypass');
 
-    // Disconnect WebSocket if connected
-    // This is handled by the component using the hook
+    // WebSocket จะถูก cleanup โดย useLiveChatSocket hook ตอน unmount
     
     // Redirect to login page
     window.location.href = '/login';
