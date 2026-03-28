@@ -36,8 +36,8 @@ const buttonVariants = cva(
           'focus-visible:ring-gray-400/50',
         ],
         outline: [
-          'bg-transparent border-2 border-gray-200 text-gray-600',
-          'hover:border-brand-500 hover:text-brand-500 hover:bg-brand-50',
+          'bg-transparent border-2 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300',
+          'hover:border-brand-500 hover:text-brand-500 hover:bg-brand-50 dark:hover:bg-brand-500/10',
           'focus-visible:ring-brand-500/30',
         ],
         ghost: [

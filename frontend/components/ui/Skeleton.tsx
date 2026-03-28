@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { cva, type VariantProps } from 'class-variance-authority';
 
 const skeletonVariants = cva(
-  'animate-pulse bg-gray-200 dark:bg-gray-700 rounded',
+  'animate-pulse bg-muted rounded',
   {
     variants: {
       variant: {
@@ -49,7 +49,7 @@ Skeleton.displayName = 'Skeleton';
 // Pre-built skeleton patterns
 function SkeletonCard({ lines = 3 }: { lines?: number }) {
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700">
+    <div className="bg-surface rounded-2xl p-6 border border-border-default">
       <div className="flex items-center gap-4 mb-4">
         <Skeleton variant="circular" width={48} height={48} />
         <div className="flex-1">
@@ -73,7 +73,7 @@ function SkeletonStats() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
       {Array.from({ length: 4 }).map((_, i) => (
-        <div key={i} className="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-100 dark:border-gray-700">
+        <div key={i} className="bg-surface rounded-2xl p-5 border border-border-default">
           <div className="flex items-center gap-4">
             <Skeleton variant="rounded" width={48} height={48} />
             <div className="flex-1">
@@ -89,12 +89,12 @@ function SkeletonStats() {
 
 function SkeletonTable({ rows = 5 }: { rows?: number }) {
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 overflow-hidden">
-      <div className="p-4 border-b border-gray-100 dark:border-gray-700">
+    <div className="bg-surface rounded-2xl border border-border-default overflow-hidden">
+      <div className="p-4 border-b border-border-default">
         <Skeleton width="30%" height={20} />
       </div>
       {Array.from({ length: rows }).map((_, i) => (
-        <div key={i} className="p-4 border-b border-gray-100 dark:border-gray-700 last:border-0">
+        <div key={i} className="p-4 border-b border-border-default last:border-0">
           <div className="flex items-center gap-4">
             <Skeleton width="25%" height={16} />
             <Skeleton width="25%" height={16} />

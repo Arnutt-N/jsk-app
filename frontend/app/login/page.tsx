@@ -14,9 +14,15 @@ function LoginForm() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLocalhost, setIsLocalhost] = useState(false);
   const router = useRouter();
   const { login, isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
+
+  useEffect(() => {
+    const host = window.location.hostname;
+    setIsLocalhost(host === 'localhost' || host === '127.0.0.1');
+  }, []);
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
@@ -116,6 +122,31 @@ function LoginForm() {
               Sign In
             </Button>
           </form>
+
+          {process.env.NODE_ENV === 'development' && isLocalhost && (
+            <div className="mt-4 pt-4 border-t border-border-subtle">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full text-sm border-warning/30 text-warning hover:bg-warning/10"
+                onClick={() => {
+                  localStorage.setItem('dev_bypass', 'true');
+                  // ใช้ hard navigation เพื่อให้ AuthProvider re-mount และตรวจจับ dev_bypass flag
+                  toast({
+                    title: 'Dev Mode',
+                    description: 'ข้ามเข้าสู่ระบบสำเร็จ (localhost only)',
+                    variant: 'success'
+                  });
+                  window.location.href = '/admin';
+                }}
+              >
+                ⚡ Dev Quick Login (ข้ามเข้าสู่ระบบ)
+              </Button>
+              <p className="text-xs text-text-tertiary text-center mt-2">
+                แสดงเฉพาะบน localhost เท่านั้น
+              </p>
+            </div>
+          )}
         </CardContent>
         <CardFooter className="flex flex-col space-y-4 border-t border-border-subtle pt-6">
           <div className="flex items-center justify-center gap-2 text-xs text-text-tertiary">

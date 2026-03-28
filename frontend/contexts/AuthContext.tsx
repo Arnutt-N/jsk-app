@@ -30,6 +30,19 @@ const MOCK_ADMIN: User = {
   display_name: 'Administrator'
 };
 
+/**
+ * ตรวจสอบ dev bypass — ใช้ได้เฉพาะ development build + localhost เท่านั้น
+ * process.env.NODE_ENV จะถูก dead-code eliminate ใน production build
+ * ทำให้ฟังก์ชันนี้ return false เสมอใน production bundle
+ */
+function isLocalhostDevBypass(): boolean {
+  if (process.env.NODE_ENV !== 'development') return false;
+  if (typeof window === 'undefined') return false;
+  const host = window.location.hostname;
+  const isLocal = host === 'localhost' || host === '127.0.0.1';
+  return isLocal && localStorage.getItem('dev_bypass') === 'true';
+}
+
 function isTokenExpired(token: string): boolean {
   try {
     const parts = token.split('.');
@@ -55,12 +68,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     syncAdminAuthToken(token);
   }, [token]);
 
-  // Initialize auth state from localStorage on mount
+  // เริ่มต้น auth state จาก localStorage เมื่อ component mount
   useEffect(() => {
     const initAuth = () => {
       try {
-        if (DEV_MODE) {
-          // In dev mode, auto-login as mock admin
+        if (DEV_MODE || isLocalhostDevBypass()) {
+          // ความปลอดภัย: dev bypass — ให้สิทธิ์ mock admin โดยไม่ต้อง login จริง (เฉพาะ development build + localhost)
           setUser(MOCK_ADMIN);
           setToken(null);
           localStorage.removeItem('auth_token');
@@ -128,16 +141,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('auth_refresh_token');
     localStorage.removeItem('auth_user');
-    
-    // Disconnect WebSocket if connected
-    // This is handled by the component using the hook
+    localStorage.removeItem('dev_bypass');
+
+    // WebSocket จะถูก cleanup โดย useLiveChatSocket hook ตอน unmount
     
     // Redirect to login page
     window.location.href = '/login';
   }, []);
 
   const refreshToken = useCallback(async () => {
-    if (DEV_MODE) {
+    if (DEV_MODE || isLocalhostDevBypass()) {
       return;
     }
 
@@ -175,7 +188,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value: AuthContextType = {
     user,
     token,
-    isAuthenticated: !!user && (DEV_MODE || !!token),
+    isAuthenticated: !!user && (DEV_MODE || isLocalhostDevBypass() || !!token),
     isLoading,
     login,
     logout,

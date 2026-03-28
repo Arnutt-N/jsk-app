@@ -5,6 +5,8 @@ export { Input } from './Input';
 export { Label } from './Label';
 export { Badge, badgeVariants } from './Badge';
 export { Modal } from './Modal';
+export { EmptyState } from './EmptyState';
+export { ErrorBoundary } from './ErrorBoundary';
 export { Skeleton, SkeletonCard, SkeletonStats, SkeletonTable } from './Skeleton';
 export { Avatar, AvatarGroup } from './Avatar';
 export { Tooltip } from './Tooltip';
