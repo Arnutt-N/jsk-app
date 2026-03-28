@@ -30,6 +30,13 @@ const MOCK_ADMIN: User = {
   display_name: 'Administrator'
 };
 
+function isLocalhostDevBypass(): boolean {
+  if (typeof window === 'undefined') return false;
+  const host = window.location.hostname;
+  const isLocal = host === 'localhost' || host === '127.0.0.1';
+  return isLocal && localStorage.getItem('dev_bypass') === 'true';
+}
+
 function isTokenExpired(token: string): boolean {
   try {
     const parts = token.split('.');
@@ -59,8 +66,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const initAuth = () => {
       try {
-        if (DEV_MODE) {
-          // In dev mode, auto-login as mock admin
+        if (DEV_MODE || isLocalhostDevBypass()) {
+          // In dev mode or localhost bypass, auto-login as mock admin
           setUser(MOCK_ADMIN);
           setToken(null);
           localStorage.removeItem('auth_token');
@@ -128,7 +135,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('auth_refresh_token');
     localStorage.removeItem('auth_user');
-    
+    localStorage.removeItem('dev_bypass');
+
     // Disconnect WebSocket if connected
     // This is handled by the component using the hook
     
@@ -137,7 +145,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const refreshToken = useCallback(async () => {
-    if (DEV_MODE) {
+    if (DEV_MODE || isLocalhostDevBypass()) {
       return;
     }
 
@@ -175,7 +183,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value: AuthContextType = {
     user,
     token,
-    isAuthenticated: !!user && (DEV_MODE || !!token),
+    isAuthenticated: !!user && (DEV_MODE || isLocalhostDevBypass() || !!token),
     isLoading,
     login,
     logout,

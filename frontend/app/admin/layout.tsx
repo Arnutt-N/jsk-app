@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 import { Tooltip } from '@/components/ui/Tooltip';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import SidebarItem from '@/components/admin/SidebarItem';
 
 interface MenuItem {
@@ -353,9 +354,11 @@ function AdminShell({ children }: { children: React.ReactNode }) {
 
             {/* Page content */}
             <main id="main-content" className="flex-1 overflow-y-auto px-4 sm:px-6 pt-6 pb-6 scrollbar-thin">
-              <div className="animate-fade-in-up">
-                {children}
-              </div>
+              <ErrorBoundary>
+                <div className="animate-fade-in-up">
+                  {children}
+                </div>
+              </ErrorBoundary>
             </main>
           </div>
 

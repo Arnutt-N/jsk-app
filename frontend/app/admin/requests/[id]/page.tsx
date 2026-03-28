@@ -22,6 +22,7 @@ import {
     Activity
 } from 'lucide-react';
 import { AssignModal } from '@/components/admin/AssignModal';
+import { Button } from '@/components/ui/Button';
 
 // Interfaces for API Data
 interface Comment {
@@ -307,20 +308,22 @@ export default function RequestDetailPage() {
 
                         {/* Action Buttons in Header */}
                         <div className="flex items-center gap-3">
-                            <button
+                            <Button
+                                variant="warning"
                                 onClick={() => handleUpdateField({ status: 'IN_PROGRESS' })}
                                 disabled={request.status === 'COMPLETED' || request.status === 'REJECTED' || request.status === 'IN_PROGRESS'}
-                                className="px-5 py-2.5 bg-amber-500 text-white rounded-xl text-sm font-bold hover:bg-amber-600 transition-all shadow-md shadow-amber-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer"
+                                leftIcon={<Clock size={18} />}
                             >
-                                <Clock size={18} /> รับเรื่อง
-                            </button>
-                            <button
+                                รับเรื่อง
+                            </Button>
+                            <Button
+                                variant="success"
                                 onClick={() => handleUpdateField({ status: 'COMPLETED' })}
                                 disabled={request.status === 'COMPLETED'}
-                                className="px-5 py-2.5 bg-[#10B981] text-white rounded-xl text-sm font-bold hover:bg-emerald-600 transition-all shadow-md shadow-emerald-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer"
+                                leftIcon={<CheckCircle2 size={18} />}
                             >
-                                <CheckCircle2 size={18} /> ปิดงาน
-                            </button>
+                                ปิดงาน
+                            </Button>
                         </div>
                     </div>
                 </div>

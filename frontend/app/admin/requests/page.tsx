@@ -65,8 +65,8 @@ export default function AdminRequestList() {
             if (!res.ok) throw new Error('Failed to fetch requests');
             const data = await res.json();
             setRequests(data);
-        } catch (err: unknown) {
-            console.error(err);
+        } catch {
+            // Error handled by ErrorBoundary
         } finally {
             setLoading(false);
         }

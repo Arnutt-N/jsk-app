@@ -122,7 +122,7 @@ export function Tooltip({
             ref={tooltipRef}
             className={cn(
               'fixed z-50 px-3 py-1.5',
-              'bg-gray-900 text-white text-xs font-medium',
+              'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs font-medium',
               'rounded-lg shadow-lg',
               'animate-fade-in-up',
               'pointer-events-none'
@@ -133,7 +133,7 @@ export function Tooltip({
             {content}
             <div
               className={cn(
-                'absolute w-2 h-2 bg-gray-900 rotate-45',
+                'absolute w-2 h-2 bg-gray-900 dark:bg-gray-100 rotate-45',
                 side === 'top' && 'bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2',
                 side === 'bottom' && 'top-0 left-1/2 -translate-x-1/2 -translate-y-1/2',
                 side === 'left' && 'right-0 top-1/2 translate-x-1/2 -translate-y-1/2',

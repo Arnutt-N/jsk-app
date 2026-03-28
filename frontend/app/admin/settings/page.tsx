@@ -71,8 +71,7 @@ export default function SettingsOverviewPage() {
             } else {
                 setError('ไม่สามารถโหลดข้อมูลได้');
             }
-        } catch (err) {
-            console.error('Failed to fetch overview', err);
+        } catch {
             setError('ไม่สามารถโหลดข้อมูลได้');
         } finally {
             setLoading(false);
