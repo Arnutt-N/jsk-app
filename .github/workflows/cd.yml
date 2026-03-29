@@ -191,17 +191,34 @@ jobs:
     timeout-minutes: 20
     if: needs.resolve-scope.outputs.deploy_backend == 'true'
     environment: ${{ needs.resolve-scope.outputs.deploy_environment }}
+    outputs:
+      migration_configured: ${{ steps.config.outputs.migration_configured }}
     defaults:
       run:
         shell: bash
         working-directory: backend
     steps:
+      - name: Check backend migration config
+        id: config
+        shell: bash
+        working-directory: .
+        env:
+          BACKEND_REMOTE_ENV_FILE: ${{ secrets.BACKEND_REMOTE_ENV_FILE }}
+        run: |
+          if [ -z "$BACKEND_REMOTE_ENV_FILE" ]; then
+            echo "migration_configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "migration_configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Checkout
+        if: steps.config.outputs.migration_configured == 'true'
         uses: actions/checkout@v4
         with:
           ref: ${{ needs.resolve-scope.outputs.source_sha }}
 
       - name: Setup Python
+        if: steps.config.outputs.migration_configured == 'true'
         uses: actions/setup-python@v5
         with:
           python-version: "3.13"
@@ -209,25 +226,31 @@ jobs:
           cache-dependency-path: backend/requirements.txt
 
       - name: Install backend dependencies
+        if: steps.config.outputs.migration_configured == 'true'
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
       - name: Write remote backend env file
+        if: steps.config.outputs.migration_configured == 'true'
         env:
           BACKEND_REMOTE_ENV_FILE: ${{ secrets.BACKEND_REMOTE_ENV_FILE }}
         run: |
-          if [ -z "$BACKEND_REMOTE_ENV_FILE" ]; then
-            echo "::error::BACKEND_REMOTE_ENV_FILE is not configured."
-            exit 1
-          fi
           printf '%s' "$BACKEND_REMOTE_ENV_FILE" > .env
 
       - name: Show remote DB target
+        if: steps.config.outputs.migration_configured == 'true'
         run: python scripts/db_target.py show --target remote
 
       - name: Run Alembic upgrade on production DB
+        if: steps.config.outputs.migration_configured == 'true'
         run: python scripts/db_target.py alembic --target remote upgrade head
+
+      - name: Warn when backend migration is skipped
+        if: steps.config.outputs.migration_configured != 'true'
+        shell: bash
+        working-directory: .
+        run: echo "::warning::BACKEND_REMOTE_ENV_FILE is not configured. Skipping backend migration."
 
       - name: Append migration summary
         if: always()
@@ -237,6 +260,7 @@ jobs:
           {
             echo "## Production DB migration"
             echo
+            echo "- Configured: ${{ steps.config.outputs.migration_configured }}"
             echo "- Environment: ${{ needs.resolve-scope.outputs.deploy_environment }}"
             echo "- Trigger: ${GITHUB_EVENT_NAME}"
             echo "- Source SHA: ${{ needs.resolve-scope.outputs.source_sha }}"
@@ -264,11 +288,12 @@ jobs:
         id: config
         shell: bash
         env:
+          BACKEND_REMOTE_ENV_FILE: ${{ secrets.BACKEND_REMOTE_ENV_FILE }}
           KOYEB_TOKEN: ${{ secrets.KOYEB_TOKEN }}
           KOYEB_APP_NAME: ${{ vars.KOYEB_APP_NAME }}
           KOYEB_SERVICE_NAME: ${{ vars.KOYEB_SERVICE_NAME }}
         run: |
-          if [ -z "$KOYEB_TOKEN" ] || [ -z "$KOYEB_APP_NAME" ] || [ -z "$KOYEB_SERVICE_NAME" ]; then
+          if [ -z "$BACKEND_REMOTE_ENV_FILE" ] || [ -z "$KOYEB_TOKEN" ] || [ -z "$KOYEB_APP_NAME" ] || [ -z "$KOYEB_SERVICE_NAME" ]; then
             echo "deploy_configured=false" >> "$GITHUB_OUTPUT"
           else
             echo "deploy_configured=true" >> "$GITHUB_OUTPUT"
@@ -307,7 +332,7 @@ jobs:
       - name: Warn when backend deploy is skipped
         if: steps.config.outputs.deploy_configured != 'true'
         shell: bash
-        run: echo "::warning::KOYEB_TOKEN, KOYEB_APP_NAME, or KOYEB_SERVICE_NAME is not configured. Skipping backend deployment."
+        run: echo "::warning::BACKEND_REMOTE_ENV_FILE, KOYEB_TOKEN, KOYEB_APP_NAME, or KOYEB_SERVICE_NAME is not configured. Skipping backend deployment."
 
       - name: Append job summary
         if: always()
@@ -318,6 +343,7 @@ jobs:
           {
             echo "## Backend deployment"
             echo
+            echo "- Configured: ${{ steps.config.outputs.deploy_configured }}"
             echo "- Target: Koyeb production service"
             echo "- Environment: ${{ needs.resolve-scope.outputs.deploy_environment }}"
             echo "- Trigger: ${GITHUB_EVENT_NAME}"
