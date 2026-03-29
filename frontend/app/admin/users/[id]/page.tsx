@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Image from 'next/image';
 import {
     ArrowLeft, User, Shield, UserCog, Mail, Calendar,
     Key, ToggleLeft, ToggleRight, Save, Loader2,
@@ -247,8 +248,7 @@ export default function UserDetailPage() {
                 <div className="flex items-start gap-5">
                     <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-gray-700 overflow-hidden flex-shrink-0">
                         {userData.picture_url ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={userData.picture_url} alt="" className="w-full h-full object-cover" />
+                            <Image src={userData.picture_url} alt={userData.display_name || 'User avatar'} width={64} height={64} className="w-full h-full object-cover" />
                         ) : (
                             <div className="w-full h-full flex items-center justify-center text-text-tertiary">
                                 <User className="w-8 h-8" />

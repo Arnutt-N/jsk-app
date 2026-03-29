@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import { Bell, Calendar, Clock, Copy, ExternalLink, MessageSquare, RefreshCw, Star, Trash2, User, X } from 'lucide-react';
 
 import type { CurrentChat } from '../_types';
@@ -88,8 +89,7 @@ export function CustomerPanel({
       {/* Profile section */}
       <div className="p-5 border-b border-border-default text-center">
         <div className="relative inline-block">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={currentChat.picture_url} className="w-20 h-20 rounded-full object-cover mx-auto ring-4 ring-surface shadow-md" alt={currentChat.display_name} />
+          <Image src={currentChat.picture_url} width={80} height={80} className="w-20 h-20 rounded-full object-cover mx-auto ring-4 ring-surface shadow-md" alt={currentChat.display_name} />
           <div className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-surface ${isActive ? 'bg-online' : isWaiting ? 'bg-away' : 'bg-offline'}`} />
         </div>
         <p className="font-semibold text-text-primary text-sm mt-3 thai-no-break">{currentChat.display_name}</p>

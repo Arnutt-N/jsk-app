@@ -14,6 +14,7 @@ import {
     Users,
 } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import type { SelectOption } from '@/components/ui/Select';
 import { Select } from '@/components/ui/Select';
 import { Input } from '@/components/ui/Input';
@@ -294,10 +295,11 @@ export default function FriendHistoryPage() {
                                     <div className="flex items-center gap-3 flex-1 min-w-0">
                                         <div className="w-9 h-9 rounded-full bg-surface-secondary overflow-hidden flex-shrink-0">
                                             {event.picture_url ? (
-                                                // eslint-disable-next-line @next/next/no-img-element
-                                                <img
+                                                <Image
                                                     src={event.picture_url}
-                                                    alt=""
+                                                    alt={event.display_name || 'User avatar'}
+                                                    width={36}
+                                                    height={36}
                                                     className="w-full h-full object-cover"
                                                 />
                                             ) : (

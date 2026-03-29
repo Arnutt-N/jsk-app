@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { History, MoreVertical, RefreshCw, User } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import type { SelectOption } from '@/components/ui/Select';
 import { AdminSearchFilterBar } from '@/components/admin/AdminSearchFilterBar';
@@ -135,8 +136,7 @@ export default function FriendsPage() {
                                             <div className="flex items-center gap-3">
                                                 <div className="w-10 h-10 rounded-full bg-surface-secondary overflow-hidden">
                                                     {friend.picture_url ? (
-                                                        // eslint-disable-next-line @next/next/no-img-element
-                                                        <img src={friend.picture_url} alt="" className="w-full h-full object-cover" />
+                                                        <Image src={friend.picture_url} alt={friend.display_name || 'Friend avatar'} width={40} height={40} className="w-full h-full object-cover" />
                                                     ) : (
                                                         <div className="w-full h-full flex items-center justify-center text-text-secondary">
                                                             <User className="w-5 h-5" />

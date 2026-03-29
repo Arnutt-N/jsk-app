@@ -73,6 +73,7 @@ function FooterColumn({ locale, titleKey, links }: FooterColumnProps) {
 
 export function LandingFooter({ locale }: LandingFooterProps) {
   return (
+    /* Footer uses raw gray-* intentionally — always dark bg regardless of theme */
     <footer className="bg-gray-900 dark:bg-gray-950 text-gray-300">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Footer Columns */}

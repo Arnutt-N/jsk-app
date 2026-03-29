@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef } from 'react'
+import Image from 'next/image'
 import { X, MessageSquare, Bell } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useLiveChatStore } from '../_store/liveChatStore'
@@ -63,8 +64,7 @@ export function NotificationToast() {
           className="toast-slide relative flex w-80 items-start gap-3 rounded-xl border border-border-default bg-surface p-4 shadow-xl"
         >
           {toast.avatar ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={toast.avatar} alt="" className="h-10 w-10 shrink-0 rounded-full bg-gray-100" />
+            <Image src={toast.avatar} alt="User avatar" width={40} height={40} className="h-10 w-10 shrink-0 rounded-full bg-gray-100" />
           ) : (
             <div className={cn(
               "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",

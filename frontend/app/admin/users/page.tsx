@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import Image from 'next/image';
 import {
     Users, Shield, UserCog, User, UserPlus,
     Search, Edit2, Trash2, Key,
@@ -464,8 +465,7 @@ export default function UsersPage() {
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-gray-700 overflow-hidden flex-shrink-0">
                                                         {u.picture_url ? (
-                                                            // eslint-disable-next-line @next/next/no-img-element
-                                                            <img src={u.picture_url} alt="" className="w-full h-full object-cover" />
+                                                            <Image src={u.picture_url} alt={u.display_name || 'User avatar'} width={40} height={40} className="w-full h-full object-cover" />
                                                         ) : (
                                                             <div className="w-full h-full flex items-center justify-center text-text-tertiary">
                                                                 <User className="w-5 h-5" />
