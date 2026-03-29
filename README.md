@@ -201,6 +201,7 @@ See `.agent/skills/` for comprehensive development guidelines:
 
 - [Deploy on Vercel + Koyeb + Supabase + Upstash (Thai)](/docs/DEPLOY_VERCEL_KOYEB_SUPABASE_UPSTASH_TH.md)
 - [Deployment Env Checklist: Vercel + Koyeb + Supabase + Upstash (Thai)](/docs/DEPLOY_ENV_CHECKLIST_VERCEL_KOYEB_SUPABASE_UPSTASH_TH.md)
+- [GitHub Actions CD Setup: Vercel + Koyeb (Thai)](/docs/GITHUB_ACTIONS_CD_VERCEL_KOYEB_TH.md)
 
 ## Environment Files
 

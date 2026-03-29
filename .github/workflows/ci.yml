@@ -19,6 +19,45 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  deployment-scope:
+    name: Detect Deployment Scope
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed areas
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            frontend:
+              - 'frontend/**'
+            backend:
+              - 'backend/**'
+
+      - name: Write deployment scope artifact
+        shell: bash
+        run: |
+          mkdir -p .cd
+          cat > .cd/scope.env <<EOF
+          DEPLOY_FRONTEND=${{ steps.changes.outputs.frontend }}
+          DEPLOY_BACKEND=${{ steps.changes.outputs.backend }}
+          SOURCE_SHA=${GITHUB_SHA}
+          EOF
+          cat .cd/scope.env
+
+      - name: Upload deployment scope artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cd-scope
+          path: .cd/scope.env
+          retention-days: 1
+
   backend:
     name: Backend Pytest
     runs-on: ubuntu-latest
