@@ -49,7 +49,7 @@ export function LandingHero({ locale }: LandingHeroProps) {
         </Button>
         <Button
           size="lg"
-          className="w-full sm:w-auto bg-[hsl(141_73%_42%)] hover:bg-[hsl(141_73%_35%)] text-white border-0"
+          className="w-full sm:w-auto bg-[var(--color-line-green)] hover:bg-[var(--color-line-green-dark)] text-white border-0"
           leftIcon={<Send className="w-4 h-4" />}
           variant="secondary"
           asChild

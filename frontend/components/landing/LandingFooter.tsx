@@ -121,7 +121,7 @@ export function LandingFooter({ locale }: LandingFooterProps) {
         {/* Bottom Bar */}
         <div className="border-t border-gray-800 mt-10 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[hsl(141_73%_42%)] to-[hsl(141_73%_35%)] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--color-line-green)] to-[var(--color-line-green-dark)] flex items-center justify-center">
               <span className="text-white text-xs font-bold">JSK</span>
             </div>
             <span className="text-gray-400 text-sm font-medium">

@@ -17,7 +17,7 @@ const features = [
 
 export function LandingLineSection({ locale }: LandingLineSectionProps) {
   return (
-    <section className="w-full bg-gradient-to-br from-[hsl(141_73%_42%)] to-[hsl(141_73%_35%)] py-20 px-4 sm:px-6 lg:px-8">
+    <section className="w-full bg-gradient-to-br from-[var(--color-line-green)] to-[var(--color-line-green-dark)] py-20 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto text-center">
         {/* Header */}
         <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4">
@@ -52,7 +52,7 @@ export function LandingLineSection({ locale }: LandingLineSectionProps) {
           <Button
             asChild
             size="lg"
-            className="bg-white text-[hsl(141_73%_35%)] font-semibold hover:bg-white/90 hover:shadow-lg shadow-md border-0"
+            className="bg-white text-[var(--color-line-green-dark)] font-semibold hover:bg-white/90 hover:shadow-lg shadow-md border-0"
           >
             <Link href="#">
               {t(locale, 'line_add_friend')}
@@ -61,7 +61,7 @@ export function LandingLineSection({ locale }: LandingLineSectionProps) {
           <Button
             asChild
             size="lg"
-            className="bg-white text-[hsl(141_73%_35%)] font-semibold hover:bg-white/90 hover:shadow-lg shadow-md border-0"
+            className="bg-white text-[var(--color-line-green-dark)] font-semibold hover:bg-white/90 hover:shadow-lg shadow-md border-0"
           >
             <Link href="/liff/service-request">
               {t(locale, 'line_liff_form')}
