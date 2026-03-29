@@ -278,12 +278,6 @@ jobs:
     outputs:
       deploy_configured: ${{ steps.config.outputs.deploy_configured }}
     steps:
-      - name: Install Koyeb CLI
-        shell: bash
-        run: |
-          curl -fsSL https://raw.githubusercontent.com/koyeb/koyeb-cli/master/install.sh | sh
-          echo "$HOME/.koyeb/bin" >> "$GITHUB_PATH"
-
       - name: Check backend deploy config
         id: config
         shell: bash
@@ -298,6 +292,13 @@ jobs:
           else
             echo "deploy_configured=true" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Install Koyeb CLI
+        if: steps.config.outputs.deploy_configured == 'true'
+        shell: bash
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/koyeb/koyeb-cli/master/install.sh | sh
+          echo "$HOME/.koyeb/bin" >> "$GITHUB_PATH"
 
       - name: Redeploy Koyeb service
         if: steps.config.outputs.deploy_configured == 'true'
