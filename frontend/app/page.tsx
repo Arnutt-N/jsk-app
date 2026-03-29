@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -10,6 +10,7 @@ import {
   Shield, Globe, FileText, Headphones,
 } from 'lucide-react';
 import { LandingNavbar } from '@/components/landing/LandingNavbar';
+import { HeroCarousel } from '@/components/landing/HeroCarousel';
 import { LandingHero } from '@/components/landing/LandingHero';
 import { LandingLineSection } from '@/components/landing/LandingLineSection';
 import { LandingFooter } from '@/components/landing/LandingFooter';
@@ -33,7 +34,18 @@ const STATS = [
 ];
 
 export default function Home() {
-  const [locale, setLocale] = useState<Locale>('th');
+  const [locale, setLocale] = useState<Locale>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('jsk-landing-locale');
+      if (saved === 'en' || saved === 'th') return saved;
+    }
+    return 'th';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('jsk-landing-locale', locale);
+  }, [locale]);
+
   const toggleLocale = () => setLocale((prev) => (prev === 'th' ? 'en' : 'th'));
 
   return (
@@ -46,6 +58,8 @@ export default function Home() {
       </div>
 
       <LandingNavbar locale={locale} onToggleLocale={toggleLocale} />
+
+      <HeroCarousel locale={locale} />
 
       <LandingHero locale={locale} />
 

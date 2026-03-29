@@ -7,6 +7,16 @@ export const translations: Record<Locale, Record<string, string>> = {
     nav_login: 'เข้าสู่ระบบ',
     nav_dashboard: 'แดชบอร์ด',
 
+    carousel_aria_label: 'แบนเนอร์แนะนำระบบ',
+    carousel_dots_label: 'เลือกสไลด์',
+    carousel_go_to_slide: 'ไปยังสไลด์',
+    carousel_slide1_title: 'ระบบ LINE Official Account สำหรับบริการประชาชน',
+    carousel_slide1_subtitle: 'แพลตฟอร์มครบวงจรเชื่อมต่อประชาชนผ่าน LINE OA อย่างมีประสิทธิภาพ',
+    carousel_slide2_title: 'Live Chat & Service Request — บริการรวดเร็ว ทันใจ',
+    carousel_slide2_subtitle: 'เจ้าหน้าที่รับเรื่องผ่าน Live Chat พร้อมระบบติดตามคำร้องแบบ Real-time',
+    carousel_slide3_title: 'Analytics & Reports — ข้อมูลครบ ตัดสินใจได้',
+    carousel_slide3_subtitle: 'Dashboard วิเคราะห์ข้อมูล KPI รายงานประสิทธิภาพ และ Audit Log ครบครัน',
+
     hero_badge: 'ระบบบริการประชาชน',
     hero_title_1: 'ระบบจัดการ',
     hero_title_2: 'LINE Official Account',
@@ -74,6 +84,16 @@ export const translations: Record<Locale, Record<string, string>> = {
     nav_stats: 'Stats',
     nav_login: 'Login',
     nav_dashboard: 'Dashboard',
+
+    carousel_aria_label: 'System introduction banner',
+    carousel_dots_label: 'Select slide',
+    carousel_go_to_slide: 'Go to slide',
+    carousel_slide1_title: 'LINE OA Management for Public Services',
+    carousel_slide1_subtitle: 'All-in-one platform connecting citizens through LINE Official Account',
+    carousel_slide2_title: 'Live Chat & Service Request — Fast & Responsive',
+    carousel_slide2_subtitle: 'Operators handle requests via Live Chat with real-time request tracking',
+    carousel_slide3_title: 'Analytics & Reports — Complete Data for Decision Making',
+    carousel_slide3_subtitle: 'KPI dashboards, performance reports, and comprehensive Audit Log',
 
     hero_badge: 'Public Service System',
     hero_title_1: 'LINE Official Account',

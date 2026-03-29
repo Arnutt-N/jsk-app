@@ -1,4 +1,6 @@
 'use client';
+// Client Component required: useAuth() reads JWT from localStorage for API calls.
+// To convert to RSC, auth must migrate to httpOnly cookies.
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Loader2, UserCheck, UserX, RefreshCw, ShieldBan } from 'lucide-react';

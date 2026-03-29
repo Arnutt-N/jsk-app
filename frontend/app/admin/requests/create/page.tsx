@@ -1,8 +1,13 @@
 'use client';
+// Client Component required: useAuth() reads JWT from localStorage for API calls.
+// To convert to RSC, auth must migrate to httpOnly cookies.
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -20,39 +25,28 @@ import {
     MapPin,
 } from 'lucide-react';
 
-interface FormData {
-    source: string;
-    prefix: string;
-    firstname: string;
-    lastname: string;
-    phone_number: string;
-    email: string;
-    topic_category: string;
-    topic_subcategory: string;
-    description: string;
-    priority: string;
-    province: string;
-    district: string;
-    sub_district: string;
-    agency: string;
-}
+// ---------- Zod Schema ----------
 
-const INITIAL_FORM_DATA: FormData = {
-    source: 'PHONE',
-    prefix: 'นาย',
-    firstname: '',
-    lastname: '',
-    phone_number: '',
-    email: '',
-    topic_category: 'ร้องเรียน',
-    topic_subcategory: '',
-    description: '',
-    priority: 'MEDIUM',
-    province: '',
-    district: '',
-    sub_district: '',
-    agency: '',
-};
+const requestSchema = z.object({
+    source: z.string().default('PHONE'),
+    prefix: z.string().default('นาย'),
+    firstname: z.string().min(1, 'กรุณากรอกชื่อ'),
+    lastname: z.string().min(1, 'กรุณากรอกนามสกุล'),
+    phone_number: z.string().optional(),
+    email: z.string().email('อีเมลไม่ถูกต้อง').optional().or(z.literal('')),
+    topic_category: z.string().min(1, 'กรุณาเลือกหมวดหมู่'),
+    topic_subcategory: z.string().optional(),
+    description: z.string().min(10, 'กรุณากรอกรายละเอียดอย่างน้อย 10 ตัวอักษร'),
+    priority: z.string().default('MEDIUM'),
+    province: z.string().optional(),
+    district: z.string().optional(),
+    sub_district: z.string().optional(),
+    agency: z.string().optional(),
+});
+
+type RequestFormValues = z.infer<typeof requestSchema>;
+
+// ---------- Constants ----------
 
 const SOURCE_OPTIONS = [
     { value: 'PHONE', label: 'โทรศัพท์' },
@@ -89,25 +83,51 @@ const STEPS = [
     { label: 'ที่อยู่ / หน่วยงาน', icon: MapPin },
 ];
 
+// Fields validated per step before allowing navigation forward
+const STEP_FIELDS: Record<number, (keyof RequestFormValues)[]> = {
+    0: ['firstname', 'lastname', 'email'],
+    1: ['topic_category', 'description'],
+};
+
 export default function CreateRequestPage() {
     const router = useRouter();
     const { token } = useAuth();
 
     const [step, setStep] = useState(0);
-    const [formData, setFormData] = useState<FormData>(INITIAL_FORM_DATA);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    const form = useForm<RequestFormValues>({
+        resolver: zodResolver(requestSchema),
+        defaultValues: {
+            source: 'PHONE',
+            prefix: 'นาย',
+            firstname: '',
+            lastname: '',
+            phone_number: '',
+            email: '',
+            topic_category: 'ร้องเรียน',
+            topic_subcategory: '',
+            description: '',
+            priority: 'MEDIUM',
+            province: '',
+            district: '',
+            sub_district: '',
+            agency: '',
+        },
+        mode: 'onTouched',
+    });
+
+    const { register, handleSubmit, trigger, formState: { errors } } = form;
+
     const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
 
-    const updateField = (field: keyof FormData, value: string) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
-    };
-
-    const canProceedStep0 = formData.firstname.trim() !== '' && formData.lastname.trim() !== '';
-    const canProceedStep1 = formData.description.trim() !== '';
-
-    const handleNext = () => {
+    const handleNext = async () => {
+        const fieldsToValidate = STEP_FIELDS[step];
+        if (fieldsToValidate) {
+            const valid = await trigger(fieldsToValidate);
+            if (!valid) return;
+        }
         if (step < 2) {
             setStep(prev => prev + 1);
         }
@@ -119,7 +139,7 @@ export default function CreateRequestPage() {
         }
     };
 
-    const handleSubmit = async () => {
+    const onSubmit = async (data: RequestFormValues) => {
         setSubmitting(true);
         setError(null);
 
@@ -134,7 +154,7 @@ export default function CreateRequestPage() {
             const res = await fetch(`${API_BASE}/admin/requests`, {
                 method: 'POST',
                 headers,
-                body: JSON.stringify(formData),
+                body: JSON.stringify(data),
             });
 
             if (!res.ok) {
@@ -209,210 +229,206 @@ export default function CreateRequestPage() {
             {/* Form Card */}
             <Card glass className="border-none shadow-sm max-w-2xl mx-auto">
                 <CardContent className="p-6">
-                    {/* Step 0: ข้อมูลผู้ร้อง */}
-                    {step === 0 && (
-                        <div className="space-y-5">
-                            <h2 className="text-lg font-bold text-text-primary">ข้อมูลผู้ร้อง & ช่องทาง</h2>
+                    <form onSubmit={handleSubmit(onSubmit)}>
+                        {/* Step 0: ข้อมูลผู้ร้อง */}
+                        {step === 0 && (
+                            <div className="space-y-5">
+                                <h2 className="text-lg font-bold text-text-primary">ข้อมูลผู้ร้อง & ช่องทาง</h2>
 
-                            <div>
-                                <label className="block text-xs font-medium text-text-secondary mb-1.5">ช่องทางรับเรื่อง</label>
-                                <Select
-                                    value={formData.source}
-                                    onChange={(e) => updateField('source', e.target.value)}
-                                    options={SOURCE_OPTIONS}
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-xs font-medium text-text-secondary mb-1.5">คำนำหน้า</label>
+                                    <label className="block text-xs font-medium text-text-secondary mb-1.5">ช่องทางรับเรื่อง</label>
                                     <Select
-                                        value={formData.prefix}
-                                        onChange={(e) => updateField('prefix', e.target.value)}
-                                        options={PREFIX_OPTIONS}
+                                        {...register('source')}
+                                        options={SOURCE_OPTIONS}
                                     />
                                 </div>
-                                <div>{/* spacer */}</div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-medium text-text-secondary mb-1.5">คำนำหน้า</label>
+                                        <Select
+                                            {...register('prefix')}
+                                            options={PREFIX_OPTIONS}
+                                        />
+                                    </div>
+                                    <div>{/* spacer */}</div>
+
+                                    <div>
+                                        <label className="block text-xs font-medium text-text-secondary mb-1.5">
+                                            ชื่อ <span className="text-danger">*</span>
+                                        </label>
+                                        <Input
+                                            {...register('firstname')}
+                                            placeholder="ชื่อจริง"
+                                            state={errors.firstname ? 'error' : 'default'}
+                                            errorMessage={errors.firstname?.message}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-text-secondary mb-1.5">
+                                            นามสกุล <span className="text-danger">*</span>
+                                        </label>
+                                        <Input
+                                            {...register('lastname')}
+                                            placeholder="นามสกุล"
+                                            state={errors.lastname ? 'error' : 'default'}
+                                            errorMessage={errors.lastname?.message}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-medium text-text-secondary mb-1.5">เบอร์โทรศัพท์</label>
+                                        <Input
+                                            type="tel"
+                                            {...register('phone_number')}
+                                            placeholder="0xx-xxx-xxxx"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-text-secondary mb-1.5">อีเมล</label>
+                                        <Input
+                                            type="email"
+                                            {...register('email')}
+                                            placeholder="email@example.com"
+                                            state={errors.email ? 'error' : 'default'}
+                                            errorMessage={errors.email?.message}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Step 1: รายละเอียดคำร้อง */}
+                        {step === 1 && (
+                            <div className="space-y-5">
+                                <h2 className="text-lg font-bold text-text-primary">รายละเอียดคำร้อง</h2>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-medium text-text-secondary mb-1.5">หมวดหมู่</label>
+                                        <Select
+                                            {...register('topic_category')}
+                                            options={CATEGORY_OPTIONS}
+                                            state={errors.topic_category ? 'error' : 'default'}
+                                            errorMessage={errors.topic_category?.message}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-text-secondary mb-1.5">หมวดหมู่ย่อย</label>
+                                        <Input
+                                            {...register('topic_subcategory')}
+                                            placeholder="ระบุหมวดหมู่ย่อย (ถ้ามี)"
+                                        />
+                                    </div>
+                                </div>
 
                                 <div>
                                     <label className="block text-xs font-medium text-text-secondary mb-1.5">
-                                        ชื่อ <span className="text-danger">*</span>
+                                        รายละเอียด <span className="text-danger">*</span>
                                     </label>
-                                    <Input
-                                        value={formData.firstname}
-                                        onChange={(e) => updateField('firstname', e.target.value)}
-                                        placeholder="ชื่อจริง"
+                                    <Textarea
+                                        {...register('description')}
+                                        placeholder="อธิบายรายละเอียดของคำร้อง..."
+                                        size="lg"
+                                        state={errors.description ? 'error' : 'default'}
+                                        errorMessage={errors.description?.message}
                                     />
                                 </div>
-                                <div>
-                                    <label className="block text-xs font-medium text-text-secondary mb-1.5">
-                                        นามสกุล <span className="text-danger">*</span>
-                                    </label>
-                                    <Input
-                                        value={formData.lastname}
-                                        onChange={(e) => updateField('lastname', e.target.value)}
-                                        placeholder="นามสกุล"
-                                    />
-                                </div>
-                            </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-xs font-medium text-text-secondary mb-1.5">เบอร์โทรศัพท์</label>
-                                    <Input
-                                        type="tel"
-                                        value={formData.phone_number}
-                                        onChange={(e) => updateField('phone_number', e.target.value)}
-                                        placeholder="0xx-xxx-xxxx"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-medium text-text-secondary mb-1.5">อีเมล</label>
-                                    <Input
-                                        type="email"
-                                        value={formData.email}
-                                        onChange={(e) => updateField('email', e.target.value)}
-                                        placeholder="email@example.com"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Step 1: รายละเอียดคำร้อง */}
-                    {step === 1 && (
-                        <div className="space-y-5">
-                            <h2 className="text-lg font-bold text-text-primary">รายละเอียดคำร้อง</h2>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-xs font-medium text-text-secondary mb-1.5">หมวดหมู่</label>
+                                    <label className="block text-xs font-medium text-text-secondary mb-1.5">ความเร่งด่วน</label>
                                     <Select
-                                        value={formData.topic_category}
-                                        onChange={(e) => updateField('topic_category', e.target.value)}
-                                        options={CATEGORY_OPTIONS}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-medium text-text-secondary mb-1.5">หมวดหมู่ย่อย</label>
-                                    <Input
-                                        value={formData.topic_subcategory}
-                                        onChange={(e) => updateField('topic_subcategory', e.target.value)}
-                                        placeholder="ระบุหมวดหมู่ย่อย (ถ้ามี)"
+                                        {...register('priority')}
+                                        options={PRIORITY_OPTIONS}
                                     />
                                 </div>
                             </div>
-
-                            <div>
-                                <label className="block text-xs font-medium text-text-secondary mb-1.5">
-                                    รายละเอียด <span className="text-danger">*</span>
-                                </label>
-                                <Textarea
-                                    value={formData.description}
-                                    onChange={(e) => updateField('description', e.target.value)}
-                                    placeholder="อธิบายรายละเอียดของคำร้อง..."
-                                    size="lg"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-medium text-text-secondary mb-1.5">ความเร่งด่วน</label>
-                                <Select
-                                    value={formData.priority}
-                                    onChange={(e) => updateField('priority', e.target.value)}
-                                    options={PRIORITY_OPTIONS}
-                                />
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Step 2: ที่อยู่ / หน่วยงาน */}
-                    {step === 2 && (
-                        <div className="space-y-5">
-                            <h2 className="text-lg font-bold text-text-primary">ที่อยู่ / หน่วยงาน</h2>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-xs font-medium text-text-secondary mb-1.5">จังหวัด</label>
-                                    <Input
-                                        value={formData.province}
-                                        onChange={(e) => updateField('province', e.target.value)}
-                                        placeholder="จังหวัด"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-medium text-text-secondary mb-1.5">อำเภอ / เขต</label>
-                                    <Input
-                                        value={formData.district}
-                                        onChange={(e) => updateField('district', e.target.value)}
-                                        placeholder="อำเภอ / เขต"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-medium text-text-secondary mb-1.5">ตำบล / แขวง</label>
-                                    <Input
-                                        value={formData.sub_district}
-                                        onChange={(e) => updateField('sub_district', e.target.value)}
-                                        placeholder="ตำบล / แขวง"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-medium text-text-secondary mb-1.5">หน่วยงานที่รับผิดชอบ</label>
-                                    <Input
-                                        value={formData.agency}
-                                        onChange={(e) => updateField('agency', e.target.value)}
-                                        placeholder="หน่วยงาน"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Error Display */}
-                    {error && (
-                        <div className="mt-4 p-3 bg-danger/10 text-danger-text rounded-xl text-sm">
-                            {error}
-                        </div>
-                    )}
-
-                    {/* Navigation Buttons */}
-                    <div className="flex items-center justify-between mt-8 pt-5 border-t border-border-default">
-                        {step > 0 ? (
-                            <Button
-                                variant="outline"
-                                onClick={handleBack}
-                                leftIcon={<ArrowLeft className="w-4 h-4" />}
-                            >
-                                ย้อนกลับ
-                            </Button>
-                        ) : (
-                            <div />
                         )}
 
-                        {step < 2 ? (
-                            <Button
-                                variant="primary"
-                                onClick={handleNext}
-                                disabled={
-                                    (step === 0 && !canProceedStep0) ||
-                                    (step === 1 && !canProceedStep1)
-                                }
-                                rightIcon={<ArrowRight className="w-4 h-4" />}
-                            >
-                                ถัดไป
-                            </Button>
-                        ) : (
-                            <Button
-                                variant="success"
-                                onClick={handleSubmit}
-                                isLoading={submitting}
-                                loadingText="กำลังบันทึก..."
-                                leftIcon={<Check className="w-4 h-4" />}
-                            >
-                                บันทึกคำร้อง
-                            </Button>
+                        {/* Step 2: ที่อยู่ / หน่วยงาน */}
+                        {step === 2 && (
+                            <div className="space-y-5">
+                                <h2 className="text-lg font-bold text-text-primary">ที่อยู่ / หน่วยงาน</h2>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-medium text-text-secondary mb-1.5">จังหวัด</label>
+                                        <Input
+                                            {...register('province')}
+                                            placeholder="จังหวัด"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-text-secondary mb-1.5">อำเภอ / เขต</label>
+                                        <Input
+                                            {...register('district')}
+                                            placeholder="อำเภอ / เขต"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-text-secondary mb-1.5">ตำบล / แขวง</label>
+                                        <Input
+                                            {...register('sub_district')}
+                                            placeholder="ตำบล / แขวง"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-text-secondary mb-1.5">หน่วยงานที่รับผิดชอบ</label>
+                                        <Input
+                                            {...register('agency')}
+                                            placeholder="หน่วยงาน"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
                         )}
-                    </div>
+
+                        {/* Error Display */}
+                        {error && (
+                            <div className="mt-4 p-3 bg-danger/10 text-danger-text rounded-xl text-sm">
+                                {error}
+                            </div>
+                        )}
+
+                        {/* Navigation Buttons */}
+                        <div className="flex items-center justify-between mt-8 pt-5 border-t border-border-default">
+                            {step > 0 ? (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={handleBack}
+                                    leftIcon={<ArrowLeft className="w-4 h-4" />}
+                                >
+                                    ย้อนกลับ
+                                </Button>
+                            ) : (
+                                <div />
+                            )}
+
+                            {step < 2 ? (
+                                <Button
+                                    type="button"
+                                    variant="primary"
+                                    onClick={handleNext}
+                                    rightIcon={<ArrowRight className="w-4 h-4" />}
+                                >
+                                    ถัดไป
+                                </Button>
+                            ) : (
+                                <Button
+                                    type="submit"
+                                    variant="success"
+                                    isLoading={submitting}
+                                    loadingText="กำลังบันทึก..."
+                                    leftIcon={<Check className="w-4 h-4" />}
+                                >
+                                    บันทึกคำร้อง
+                                </Button>
+                            )}
+                        </div>
+                    </form>
                 </CardContent>
             </Card>
         </div>
