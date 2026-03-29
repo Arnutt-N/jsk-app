@@ -124,9 +124,24 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     },
     ref
   ) => {
-    const Comp = asChild ? Slot : 'button';
+    if (asChild) {
+      return (
+        <Slot
+          ref={ref}
+          className={cn(
+            buttonVariants({ variant, size }),
+            glow && 'hover:shadow-glow',
+            className
+          )}
+          {...props}
+        >
+          {children}
+        </Slot>
+      );
+    }
+
     return (
-      <Comp
+      <button
         ref={ref}
         className={cn(
           buttonVariants({ variant, size }),
@@ -139,7 +154,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         {/* Shine effect overlay */}
         {shine && variant === 'primary' && !isLoading && (
           <span className="absolute inset-0 overflow-hidden pointer-events-none">
-            <span 
+            <span
               className="absolute inset-0 -translate-x-full group-hover:animate-shine"
               style={{
                 background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent)',
@@ -148,7 +163,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             />
           </span>
         )}
-        
+
         {/* Loading overlay */}
         {isLoading && (
           <span className="absolute inset-0 flex items-center justify-center bg-inherit rounded-xl">
@@ -156,9 +171,9 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             {loadingText && <span className="ml-2">{loadingText}</span>}
           </span>
         )}
-        
+
         {/* Content */}
-        <span 
+        <span
           className={cn(
             'relative flex items-center gap-2',
             isLoading && 'opacity-0'
@@ -168,7 +183,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           <span>{children}</span>
           {rightIcon && <span className="flex-shrink-0">{rightIcon}</span>}
         </span>
-      </Comp>
+      </button>
     );
   }
 );
