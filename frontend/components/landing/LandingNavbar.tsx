@@ -85,7 +85,7 @@ export function LandingNavbar({ locale, onToggleLocale }: LandingNavbarProps) {
 
               <SheetContent
                 side="right"
-                className="w-full max-w-sm border-white/10 bg-[linear-gradient(180deg,hsl(221_47%_12%),hsl(223_48%_8%))] px-6 py-6 text-white"
+                className="w-full max-w-sm border-slate-800 bg-slate-900 px-6 py-6 text-white"
               >
                 <SheetHeader className="pr-8">
                   <LandingBrandMark tone="dark" />
@@ -129,7 +129,7 @@ export function LandingNavbar({ locale, onToggleLocale }: LandingNavbarProps) {
                       asChild
                       size="lg"
                       variant="secondary"
-                      className="justify-between rounded-full border-0 bg-[var(--color-line-green)] text-white hover:bg-[var(--color-line-green-dark)] hover:text-white"
+                      className="justify-between rounded-full border-0 bg-slate-700 text-white hover:bg-slate-600 hover:text-white"
                     >
                       <Link href="/liff/service-request">
                         {t(locale, 'nav_request')}
@@ -156,7 +156,7 @@ export function LandingNavbar({ locale, onToggleLocale }: LandingNavbarProps) {
               size="sm"
               variant="secondary"
               asChild
-              className="thai-no-break hidden rounded-full border-0 bg-[var(--color-line-green)] px-4 text-white shadow-[0_14px_30px_hsl(141_73%_42%_/_0.28)] hover:bg-[var(--color-line-green-dark)] hover:text-white min-[480px]:inline-flex"
+              className="thai-no-break hidden rounded-full border-0 bg-slate-900 px-4 text-white shadow-sm hover:bg-slate-800 hover:text-white min-[480px]:inline-flex dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100"
             >
               <Link href="/liff/service-request">
                 {t(locale, 'nav_request')}

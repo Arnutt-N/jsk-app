@@ -84,7 +84,7 @@ function FooterColumn({ locale, titleKey, links }: FooterColumnProps) {
 
 export function LandingFooter({ locale }: LandingFooterProps) {
   return (
-    <footer id="contact" className="scroll-mt-28 bg-[linear-gradient(180deg,hsl(221_47%_12%),hsl(223_48%_8%))] text-white">
+    <footer id="contact" className="scroll-mt-28 bg-slate-900 text-white dark:bg-slate-950">
       <div className="mx-auto max-w-7xl px-6 py-14 sm:py-16">
         <div className="grid gap-12 lg:grid-cols-[minmax(0,1.2fr)_repeat(3,minmax(0,0.6fr))]">
           <div className="max-w-md">
@@ -94,12 +94,12 @@ export function LandingFooter({ locale }: LandingFooterProps) {
               {t(locale, 'footer_description')}
             </p>
 
-            <div className="mt-6 space-y-3 text-sm text-white/72">
+            <div className="mt-6 space-y-3 text-sm text-white/65">
               <a
                 href="mailto:contact@rlpd.go.th"
                 className="flex items-start gap-3 transition-colors hover:text-white"
               >
-                <Mail className="mt-0.5 h-4 w-4 shrink-0 text-[hsl(141_80%_72%)]" />
+                <Mail className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
                 <span className="thai-no-break">contact@rlpd.go.th</span>
               </a>
 
@@ -107,11 +107,11 @@ export function LandingFooter({ locale }: LandingFooterProps) {
                 href="tel:021412500"
                 className="flex items-start gap-3 transition-colors hover:text-white"
               >
-                <Phone className="mt-0.5 h-4 w-4 shrink-0 text-[hsl(141_80%_72%)]" />
+                <Phone className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
                 <span className="thai-no-break">0-2141-2500</span>
               </a>
 
-              <p className="text-sm leading-7 text-white/58">
+              <p className="text-sm leading-7 text-white/50">
                 {t(locale, 'footer_address')}
               </p>
             </div>
@@ -122,15 +122,15 @@ export function LandingFooter({ locale }: LandingFooterProps) {
           <FooterColumn locale={locale} titleKey="footer_links" links={externalLinks} />
         </div>
 
-        <div className="mt-12 flex flex-col gap-4 border-t border-white/10 pt-6 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3 text-sm text-white/52">
-            <span className="line-chip rounded-full px-3 py-1 text-[0.72rem] font-semibold">
+        <div className="mt-12 flex flex-col gap-4 border-t border-white/8 pt-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3 text-sm text-white/50">
+            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[0.72rem] font-semibold text-white/60">
               LINE Official Account
             </span>
             <span className="hidden sm:inline">{t(locale, 'footer_tagline')}</span>
           </div>
 
-          <p className="text-center text-sm text-white/45 sm:text-right">
+          <p className="text-center text-sm text-white/40 sm:text-right">
             &copy; {t(locale, 'footer_copyright')}
           </p>
         </div>

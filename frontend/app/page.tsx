@@ -46,21 +46,18 @@ export default function Home() {
     <main className="landing-page thai-text min-h-screen overflow-hidden">
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
         <div className="landing-grid-overlay absolute inset-x-0 top-0 h-[42rem]" />
-        <div className="absolute left-[-10%] top-24 h-[24rem] w-[24rem] rounded-full bg-[hsl(214_93%_88%_/_0.45)] blur-3xl dark:bg-[hsl(217_91%_60%_/_0.16)]" />
-        <div className="absolute right-[-8%] top-8 h-[20rem] w-[20rem] rounded-full bg-[hsl(141_73%_42%_/_0.14)] blur-3xl" />
-        <div className="absolute bottom-0 left-1/2 h-[18rem] w-[42rem] -translate-x-1/2 rounded-full bg-[hsl(216_70%_96%_/_0.7)] blur-3xl dark:bg-[hsl(217_33%_18%_/_0.65)]" />
       </div>
 
       <LandingNavbar locale={locale} onToggleLocale={toggleLocale} />
       <LandingHero locale={locale} />
 
       <section id="overview" className="scroll-mt-28 px-6 pb-8 pt-2 sm:pb-12">
-        <div className="mx-auto max-w-7xl landing-surface rounded-[2rem] px-6 py-8 sm:px-8 sm:py-10">
+        <div className="mx-auto max-w-7xl landing-surface rounded-2xl px-6 py-8 sm:px-8 sm:py-10">
           <div className="grid gap-8 lg:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)] lg:items-end">
             <div className="max-w-xl">
               <Badge
                 variant="outline"
-                className="rounded-full border-slate-200/80 bg-white/75 px-4 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-white/65"
+                className="navy-chip rounded-full px-4 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.24em]"
               >
                 {t(locale, 'stats_badge')}
               </Badge>
@@ -79,7 +76,7 @@ export default function Home() {
                 <div
                   key={stat.key}
                   className={`${
-                    index === 0 ? '' : 'md:border-l md:border-slate-200/70 md:pl-6 dark:border-white/10'
+                    index === 0 ? '' : 'md:border-l md:border-slate-200 md:pl-6 dark:border-white/10'
                   }`}
                 >
                   <div className="text-3xl font-semibold tracking-tight text-slate-950 dark:text-white sm:text-4xl">
@@ -100,7 +97,7 @@ export default function Home() {
           <div className="max-w-xl">
             <Badge
               variant="outline"
-              className="rounded-full border-slate-200/80 bg-white/75 px-4 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-white/65"
+              className="navy-chip rounded-full px-4 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.24em]"
             >
               {t(locale, 'capabilities_badge')}
             </Badge>
@@ -114,8 +111,8 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="landing-surface rounded-[2rem] px-6 py-4 sm:px-8">
-            <div className="divide-y divide-slate-200/70 dark:divide-white/10">
+          <div className="landing-surface rounded-2xl px-6 py-4 sm:px-8">
+            <div className="divide-y divide-slate-200 dark:divide-white/10">
               {CAPABILITIES.map((capability, index) => {
                 const Icon = capability.icon;
 
@@ -123,10 +120,10 @@ export default function Home() {
                   <div key={capability.key} className="py-6 first:pt-2 last:pb-2">
                     <div className="flex items-start gap-5">
                       <div
-                        className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border ${
+                        className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border ${
                           capability.line
-                            ? 'border-[hsl(141_73%_42%_/_0.18)] bg-[hsl(141_73%_42%_/_0.1)] text-[var(--color-line-green-dark)]'
-                            : 'border-slate-200/80 bg-slate-950 text-white dark:border-white/10 dark:bg-white dark:text-slate-950'
+                            ? 'border-[hsl(141_73%_42%_/_0.16)] bg-[hsl(141_73%_42%_/_0.08)] text-[var(--color-line-green-dark)]'
+                            : 'border-slate-200 bg-slate-900 text-white dark:border-white/10 dark:bg-white dark:text-slate-950'
                         }`}
                       >
                         <Icon className="h-5 w-5" />
@@ -155,14 +152,14 @@ export default function Home() {
       <LandingLineSection locale={locale} />
 
       <section className="px-6 pb-24 pt-6 sm:pb-28">
-        <div className="mx-auto max-w-6xl overflow-hidden rounded-[2rem] bg-[linear-gradient(145deg,hsl(221_47%_13%),hsl(217_44%_18%),hsl(212_48%_22%))] px-6 py-10 shadow-[0_34px_90px_hsl(224_71%_4%_/_0.28)] sm:px-8 sm:py-12">
+        <div className="mx-auto max-w-6xl overflow-hidden rounded-2xl bg-slate-900 px-6 py-10 shadow-[0_24px_64px_hsl(224_71%_4%_/_0.2)] sm:px-8 sm:py-12 dark:bg-slate-900/80 dark:border dark:border-white/10">
           <div className="relative grid gap-8 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:items-center">
             <LandingBrandMark tone="dark" compact className="shrink-0" />
 
             <div className="max-w-2xl">
               <Badge
                 variant="outline"
-                className="line-chip rounded-full px-4 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.24em]"
+                className="rounded-full border-white/12 bg-white/8 px-4 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-white/60"
               >
                 {t(locale, 'cta_badge')}
               </Badge>
@@ -171,7 +168,7 @@ export default function Home() {
                 {t(locale, 'cta_title')}
               </h2>
 
-              <p className="mt-4 text-base leading-7 text-white/72">
+              <p className="mt-4 text-base leading-7 text-white/70">
                 {t(locale, 'cta_subtitle')}
               </p>
             </div>
@@ -181,7 +178,7 @@ export default function Home() {
                 asChild
                 size="lg"
                 variant="secondary"
-                className="thai-no-break rounded-full border-white/15 bg-white text-slate-950 hover:bg-slate-100"
+                className="thai-no-break rounded-full border-white/10 bg-white text-slate-950 hover:bg-slate-100"
               >
                 <Link href="/login">
                   {t(locale, 'cta_login')}

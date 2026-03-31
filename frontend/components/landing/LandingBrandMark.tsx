@@ -19,14 +19,14 @@ export function LandingBrandMark({
     <div className={cn('flex min-w-0 items-center gap-3', className)}>
       <div
         className={cn(
-          'relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-2xl border text-[0.62rem] font-semibold tracking-[0.24em]',
+          'relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border text-[0.62rem] font-semibold tracking-[0.24em]',
           dark
-            ? 'border-white/12 bg-[linear-gradient(145deg,hsl(217_42%_26%),hsl(222_47%_11%))] text-white shadow-[0_18px_40px_hsl(224_71%_4%_/_0.42)]'
-            : 'border-slate-200/80 bg-[linear-gradient(145deg,hsl(219_42%_20%),hsl(211_57%_31%))] text-white shadow-[0_18px_42px_hsl(218_40%_12%_/_0.16)]'
+            ? 'border-white/10 bg-slate-800 text-white'
+            : 'border-slate-200 bg-slate-900 text-white shadow-sm'
         )}
       >
         <span>JSK</span>
-        <span className="absolute inset-x-2 bottom-1 h-px rounded-full bg-[linear-gradient(90deg,transparent,hsl(141_73%_58%_/_0.95),transparent)]" />
+        <span className="absolute inset-x-2 bottom-1 h-px rounded-full bg-[linear-gradient(90deg,transparent,hsl(220_60%_60%_/_0.6),transparent)]" />
       </div>
 
       <div className="min-w-0">

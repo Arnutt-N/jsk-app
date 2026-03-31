@@ -23,19 +23,19 @@ export function LandingLineSection({ locale }: LandingLineSectionProps) {
 
   return (
     <section id="line" className="scroll-mt-28 px-6 py-20 sm:py-24">
-      <div className="mx-auto max-w-7xl landing-surface rounded-[2rem] px-6 py-8 sm:px-8 sm:py-10">
+      <div className="mx-auto max-w-7xl landing-surface rounded-2xl px-6 py-8 sm:px-8 sm:py-10">
         <div className="grid gap-12 lg:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)]">
           <div className="max-w-xl">
             <Badge
               variant="outline"
-              className="line-chip rounded-full px-4 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.24em]"
+              className="navy-chip rounded-full px-4 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.24em]"
             >
               {t(locale, 'line_badge')}
             </Badge>
 
             <h2 className="mt-6 text-balance text-3xl font-semibold tracking-tight text-slate-950 dark:text-white sm:text-4xl">
               {t(locale, 'line_title_prefix')}{' '}
-              <span className="line-accent md:whitespace-nowrap">
+              <span className="line-accent md:whitespace-nowrap font-semibold">
                 {t(locale, 'line_title')}
               </span>
             </h2>
@@ -49,7 +49,7 @@ export function LandingLineSection({ locale }: LandingLineSectionProps) {
                 asChild
                 size="lg"
                 variant="secondary"
-                className="thai-no-break rounded-full border-0 bg-[var(--color-line-green)] px-6 text-white shadow-[0_16px_30px_hsl(141_73%_42%_/_0.22)] hover:bg-[var(--color-line-green-dark)] hover:text-white"
+                className="thai-no-break rounded-full border-0 bg-[var(--color-line-green)] px-6 text-white shadow-sm hover:bg-[var(--color-line-green-dark)] hover:text-white"
               >
                 {lineOfficialAccountUrl ? (
                   <a href={lineOfficialAccountUrl} target="_blank" rel="noopener noreferrer">
@@ -66,7 +66,7 @@ export function LandingLineSection({ locale }: LandingLineSectionProps) {
                 asChild
                 size="lg"
                 variant="secondary"
-                className="thai-no-break rounded-full border border-[hsl(141_73%_42%_/_0.24)] bg-[hsl(141_73%_42%_/_0.08)] px-6 text-[var(--color-line-green-dark)] hover:bg-[hsl(141_73%_42%_/_0.14)]"
+                className="thai-no-break rounded-full border-slate-200 bg-white px-6 text-slate-900 shadow-sm hover:bg-slate-50 dark:border-white/15 dark:bg-white/10 dark:text-white dark:hover:bg-white/15"
               >
                 <Link href="/liff/service-request">
                   {t(locale, 'line_request_cta')}
@@ -75,13 +75,13 @@ export function LandingLineSection({ locale }: LandingLineSectionProps) {
             </div>
           </div>
 
-          <div className="divide-y divide-slate-200/70 dark:divide-white/10">
+          <div className="divide-y divide-slate-200 dark:divide-white/10">
             {features.map(({ icon: Icon, titleKey, descKey }, index) => (
               <div
                 key={titleKey}
                 className="flex gap-4 py-6 first:pt-0 last:pb-0"
               >
-                <div className="line-chip flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-sm font-semibold">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-sm font-semibold text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-white/50">
                   {String(index + 1).padStart(2, '0')}
                 </div>
 
@@ -96,7 +96,7 @@ export function LandingLineSection({ locale }: LandingLineSectionProps) {
                       </p>
                     </div>
 
-                    <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-slate-200/80 bg-white text-slate-700 shadow-sm dark:border-white/10 dark:bg-white/5 dark:text-white/80">
+                    <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-white/60">
                       <Icon className="h-5 w-5" />
                     </div>
                   </div>
