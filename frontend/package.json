@@ -48,7 +48,7 @@
         "@types/react-dom": "19.2.3"
     },
     "optionalDependencies": {
-        "@tailwindcss/oxide-win32-x64-msvc": "^4.1.18",
+        "@tailwindcss/oxide-win32-x64-msvc": "^4.2.2",
         "lightningcss-win32-x64-msvc": "^1.30.2"
     }
 }
