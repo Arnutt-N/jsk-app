@@ -13,7 +13,7 @@ export function LandingLanguageToggle({ locale, onToggle }: LandingLanguageToggl
     <button
       type="button"
       onClick={onToggle}
-      className="relative flex h-10 items-center rounded-full border border-slate-200/70 bg-white/75 p-1 text-[11px] font-semibold tracking-[0.18em] text-slate-500 shadow-sm transition-colors hover:border-slate-300 hover:bg-white dark:border-white/10 dark:bg-white/5 dark:text-white/60 dark:hover:border-white/20 dark:hover:bg-white/10"
+      className="relative flex h-10 items-center rounded-full border border-slate-200/70 bg-white/75 p-1 text-[11px] font-semibold tracking-[0.18em] text-slate-500 shadow-sm transition-colors hover:border-slate-300 hover:bg-white dark:border-white/10 dark:bg-white/5 dark:text-white/60 dark:hover:border-white/20 dark:hover:bg-white/10 cursor-pointer"
       aria-label={locale === 'th' ? 'Switch to English' : 'เปลี่ยนเป็นภาษาไทย'}
     >
       <span
@@ -21,7 +21,7 @@ export function LandingLanguageToggle({ locale, onToggle }: LandingLanguageToggl
           'relative z-10 flex h-8 w-10 items-center justify-center rounded-full transition-colors duration-200',
           locale === 'th'
             ? 'bg-slate-950 text-white shadow-sm dark:bg-white dark:text-slate-950'
-            : 'text-slate-500 hover:text-slate-950 dark:text-white/60 dark:hover:text-white'
+            : 'text-slate-500 hover:text-slate-950 dark:text-white/60 dark:hover:text-white cursor-pointer'
         )}
       >
         TH
@@ -31,7 +31,7 @@ export function LandingLanguageToggle({ locale, onToggle }: LandingLanguageToggl
           'relative z-10 flex h-8 w-10 items-center justify-center rounded-full transition-colors duration-200',
           locale === 'en'
             ? 'bg-slate-950 text-white shadow-sm dark:bg-white dark:text-slate-950'
-            : 'text-slate-500 hover:text-slate-950 dark:text-white/60 dark:hover:text-white'
+            : 'text-slate-500 hover:text-slate-950 dark:text-white/60 dark:hover:text-white cursor-pointer'
         )}
       >
         EN

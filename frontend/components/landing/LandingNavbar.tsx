@@ -63,7 +63,7 @@ export function LandingNavbar({ locale, onToggleLocale }: LandingNavbarProps) {
 
           {/* Desktop Navigation - Center */}
           <div className="hidden md:flex items-center">
-            <div className="bg-white/50 dark:bg-white/5 backdrop-blur-md px-8 py-2.5 rounded-full">
+            <div className="bg-white/50 dark:bg-white/5 backdrop-blur-md px-8 py-2.5 rounded-full border border-slate-200/50 dark:border-white/10">
               <div className="flex items-center gap-8">
                 {NAV_LINKS.map((link) => (
                   <a
@@ -89,7 +89,7 @@ export function LandingNavbar({ locale, onToggleLocale }: LandingNavbarProps) {
                   ? 'Switch to light mode'
                   : 'Switch to dark mode'
               }
-              className="w-10 h-10 flex items-center justify-center rounded-full border border-slate-200/70 dark:border-white/10 bg-white/75 dark:bg-white/5 text-slate-600 dark:text-white/70 hover:bg-white hover:text-slate-950 dark:hover:bg-white/10 dark:hover:text-white transition-colors"
+              className="w-10 h-10 flex items-center justify-center rounded-full border border-slate-200/70 dark:border-white/10 bg-white/75 dark:bg-white/5 text-slate-600 dark:text-white/70 hover:bg-white hover:text-slate-950 dark:hover:bg-white/10 dark:hover:text-white transition-colors cursor-pointer"
             >
               {resolvedTheme === 'dark' ? (
                 <Sun className="w-4 h-4" />
@@ -117,7 +117,7 @@ export function LandingNavbar({ locale, onToggleLocale }: LandingNavbarProps) {
               <span className="absolute inset-0 bg-gradient-to-r from-blue-500 to-blue-800 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-full" />
               <span className="relative z-10 flex items-center gap-1.5">
                 {t(locale, 'nav_dashboard')}
-                <ArrowRight className="w-3.5 h-3.5" />
+                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
               </span>
             </Link>
           </div>
@@ -127,7 +127,7 @@ export function LandingNavbar({ locale, onToggleLocale }: LandingNavbarProps) {
             type="button"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             aria-label={isMenuOpen ? 'Close menu' : 'Open menu'}
-            className="md:hidden w-10 h-10 flex items-center justify-center rounded-full border border-slate-200/70 dark:border-white/10 bg-white/75 dark:bg-white/5 text-slate-600 dark:text-white/70 hover:bg-white hover:text-slate-950 dark:hover:bg-white/10 dark:hover:text-white transition-colors"
+            className="md:hidden w-10 h-10 flex items-center justify-center rounded-full border border-slate-200/70 dark:border-white/10 bg-white/75 dark:bg-white/5 text-slate-600 dark:text-white/70 hover:bg-white hover:text-slate-950 dark:hover:bg-white/10 dark:hover:text-white transition-colors cursor-pointer"
           >
             {isMenuOpen ? (
               <X className="w-4 h-4" />
@@ -172,7 +172,7 @@ export function LandingNavbar({ locale, onToggleLocale }: LandingNavbarProps) {
                     ? 'Switch to light mode'
                     : 'Switch to dark mode'
                 }
-                className="w-10 h-10 flex items-center justify-center rounded-full border border-slate-200/70 dark:border-white/10 bg-white/75 dark:bg-white/5 text-slate-600 dark:text-white/70 hover:bg-white hover:text-slate-950 dark:hover:bg-white/10 dark:hover:text-white transition-colors"
+                className="w-10 h-10 flex items-center justify-center rounded-full border border-slate-200/70 dark:border-white/10 bg-white/75 dark:bg-white/5 text-slate-600 dark:text-white/70 hover:bg-white hover:text-slate-950 dark:hover:bg-white/10 dark:hover:text-white transition-colors cursor-pointer"
               >
                 {resolvedTheme === 'dark' ? (
                   <Sun className="w-4 h-4" />
@@ -192,7 +192,7 @@ export function LandingNavbar({ locale, onToggleLocale }: LandingNavbarProps) {
               <Link
                 href="/login"
                 onClick={() => setIsMenuOpen(false)}
-                className="text-center text-sm font-semibold text-slate-600 dark:text-white/70 hover:text-blue-900 dark:hover:text-blue-400 transition-colors py-3 px-4 rounded-full border border-slate-200/50 dark:border-white/10"
+                className="text-center text-sm font-semibold text-slate-600 dark:text-white/70 hover:text-blue-900 dark:hover:text-blue-400 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors py-3 px-4 rounded-full border border-slate-200/50 dark:border-white/10"
               >
                 {t(locale, 'nav_login')}
               </Link>

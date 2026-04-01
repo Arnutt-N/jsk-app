@@ -1,5 +1,8 @@
 ﻿@import "tailwindcss";
 
+/* Enable class-based dark mode so ThemeProvider toggle works */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   /* Brand Colors (HSL) */
   --color-brand-50: hsl(263 100% 97%);

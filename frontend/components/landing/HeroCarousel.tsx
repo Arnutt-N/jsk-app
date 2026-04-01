@@ -164,7 +164,7 @@ export function HeroCarousel({ locale }: HeroCarouselProps) {
             role="tab"
             aria-selected={index === activeIndex}
             aria-label={`${t(locale, 'carousel_go_to_slide')} ${index + 1}`}
-            className={`w-2.5 h-2.5 rounded-full transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${
+            className={`w-2.5 h-2.5 rounded-full transition-all duration-300 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${
               index === activeIndex
                 ? 'bg-white scale-125 shadow-md'
                 : 'bg-white/50 hover:bg-white/75'

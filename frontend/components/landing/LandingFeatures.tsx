@@ -142,7 +142,7 @@ export function LandingFeatures({ locale }: LandingFeaturesProps) {
                 {kanbanItems.map((item, idx) => (
                   <div
                     key={idx}
-                    className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-white/10 flex items-center justify-between shadow-sm"
+                    className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-white/10 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow cursor-pointer"
                   >
                     <div className="flex items-center gap-3">
                       <div className={`w-2.5 h-2.5 rounded-full ${item.status}`} />
