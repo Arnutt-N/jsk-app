@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Inter, Noto_Sans_Thai } from 'next/font/google'
+import { Inter, Noto_Sans_Thai, Outfit } from 'next/font/google'
 import './globals.css'
 import { Providers } from '@/components/providers'
 
@@ -14,6 +14,12 @@ const inter = Inter({
     variable: '--font-inter',
 })
 
+const outfit = Outfit({
+    subsets: ['latin'],
+    weight: ['400', '500', '600', '700', '800', '900'],
+    variable: '--font-outfit',
+})
+
 export const metadata: Metadata = {
     title: 'JSK Platform | Community Justice Services',
     description: 'Public service operations platform for LINE Official Account and citizen service workflows.',
@@ -25,7 +31,7 @@ export default function RootLayout({
     children: React.ReactNode
 }) {
     return (
-        <html lang="th" suppressHydrationWarning className={`${notoThai.variable} ${inter.variable}`}>
+        <html lang="th" suppressHydrationWarning className={`${notoThai.variable} ${inter.variable} ${outfit.variable}`}>
             <body suppressHydrationWarning className="font-sans antialiased">
                 <Providers>
                     {children}

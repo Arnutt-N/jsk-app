@@ -161,6 +161,7 @@
   
   /* Typography */
   --font-sans: var(--font-noto-thai), "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-heading: var(--font-outfit), "Noto Sans Thai", ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   
   /* Spacing */
@@ -520,51 +521,7 @@
     background-clip: text;
   }
 
-  .landing-page {
-    background:
-      radial-gradient(circle at 50% 0%, hsl(220 30% 96% / 0.8), transparent 60%),
-      linear-gradient(180deg, hsl(220 20% 98%), hsl(220 16% 96%));
-  }
-
-  .dark .landing-page {
-    background:
-      radial-gradient(circle at 50% 0%, hsl(220 40% 14% / 0.6), transparent 50%),
-      linear-gradient(180deg, hsl(223 45% 9%), hsl(222 45% 8%));
-  }
-
-  .landing-surface {
-    background: hsl(0 0% 100%);
-    border: 1px solid hsl(220 17% 91%);
-    box-shadow: 0 1px 3px hsl(220 40% 14% / 0.06), 0 8px 32px hsl(220 40% 14% / 0.04);
-  }
-
-  .dark .landing-surface {
-    background: hsl(222 46% 11%);
-    border: 1px solid hsl(217 19% 22%);
-    box-shadow: 0 1px 3px hsl(224 71% 4% / 0.3), 0 8px 32px hsl(224 71% 4% / 0.2);
-  }
-
-  .landing-nav-shell {
-    background: hsl(0 0% 100% / 0.85);
-    border: 1px solid hsl(220 17% 91%);
-    box-shadow: 0 1px 3px hsl(220 40% 14% / 0.06);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-  }
-
-  .dark .landing-nav-shell {
-    background: hsl(222 47% 11% / 0.85);
-    border: 1px solid hsl(217 19% 22%);
-    box-shadow: 0 1px 3px hsl(224 71% 4% / 0.3);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-  }
-
-  .landing-hero-panel {
-    background: linear-gradient(160deg, hsl(220 47% 15%), hsl(222 48% 10%));
-    border: 1px solid hsl(220 25% 22%);
-    box-shadow: 0 24px 64px hsl(224 71% 4% / 0.28);
-  }
+  /* Landing page styles removed — replaced by inline Tailwind in redesign */
 
   .line-accent {
     color: hsl(141 73% 32%);
@@ -623,19 +580,7 @@
     @apply scale-105;
   }
 
-  .landing-grid-overlay {
-    background-image:
-      linear-gradient(hsl(220 20% 60% / 0.04) 1px, transparent 1px),
-      linear-gradient(90deg, hsl(220 20% 60% / 0.04) 1px, transparent 1px);
-    background-size: 56px 56px;
-    mask-image: linear-gradient(to bottom, hsl(0 0% 0% / 0.3), transparent 70%);
-  }
-
-  .dark .landing-grid-overlay {
-    background-image:
-      linear-gradient(hsl(210 20% 98% / 0.03) 1px, transparent 1px),
-      linear-gradient(90deg, hsl(210 20% 98% / 0.03) 1px, transparent 1px);
-  }
+  /* Landing grid overlay removed — replaced by blur orbs in redesign */
 
   .text-balance {
     text-wrap: balance;

@@ -1,20 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { Sun, Moon, ArrowRight, Menu } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
-import {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from '@/components/ui/Sheet';
+import { motion } from 'motion/react';
+import { useState, useEffect } from 'react';
+import { ArrowRight, Menu, X, Sun, Moon } from 'lucide-react';
 import { useTheme } from '@/components/providers';
 import { LandingLanguageToggle } from './LandingLanguageToggle';
-import { LandingBrandMark } from './LandingBrandMark';
 import { t, type Locale } from '@/lib/i18n/landing';
 
 interface LandingNavbarProps {
@@ -23,149 +14,204 @@ interface LandingNavbarProps {
 }
 
 const NAV_LINKS = [
-  { href: '#overview', key: 'nav_overview' },
-  { href: '#capabilities', key: 'nav_capabilities' },
-  { href: '#line', key: 'nav_line' },
-  { href: '#contact', key: 'nav_contact' },
+  { href: '#features', key: 'nav_features' },
+  { href: '#stats', key: 'nav_stats' },
+  { href: '#line', key: 'nav_integration' },
 ] as const;
 
 export function LandingNavbar({ locale, onToggleLocale }: LandingNavbarProps) {
   const { resolvedTheme, toggleTheme } = useTheme();
-  const openMenuLabel = locale === 'th' ? 'เปิดเมนูนำทาง' : 'Open navigation menu';
-  const navigationTitle = locale === 'th' ? 'เมนูนำทาง' : 'Navigation';
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   return (
-    <nav className="sticky top-0 z-50 px-4 pt-4 sm:px-6">
-      <div className="mx-auto max-w-7xl">
-        <div className="landing-nav-shell flex h-[72px] items-center gap-3 rounded-full px-4 sm:px-6">
-          <Link href="/" className="min-w-0 shrink-0">
-            <LandingBrandMark compact className="max-[430px]:[&>div:last-child]:hidden" />
+    <motion.nav
+      initial={{ y: -100 }}
+      animate={{ y: 0 }}
+      transition={{ duration: 0.6, ease: 'easeOut' }}
+      className="fixed top-0 left-0 right-0 z-50 py-4"
+    >
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
+        <div
+          className={`flex items-center justify-between rounded-full border transition-all duration-300 px-4 sm:px-6 py-3 ${
+            isScrolled
+              ? 'bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl shadow-sm border-slate-200/50 dark:border-white/10'
+              : 'bg-transparent border-white/0'
+          }`}
+        >
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-3 shrink-0">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-900 to-blue-500 rounded-full flex items-center justify-center">
+              <span className="text-white text-sm font-bold tracking-tight">
+                JSK
+              </span>
+            </div>
+            <span className="font-heading font-semibold text-slate-900 dark:text-white text-lg hidden sm:inline">
+              JSK Platform
+            </span>
           </Link>
 
-          <div className="hidden lg:flex items-center gap-7 pl-8 text-sm text-slate-600 dark:text-slate-300">
-            {NAV_LINKS.map((link) => (
-              <a
-                key={link.key}
-                href={link.href}
-                className="thai-no-break transition-colors hover:text-slate-950 dark:hover:text-white"
-              >
-                {t(locale, link.key)}
-              </a>
-            ))}
+          {/* Desktop Navigation - Center */}
+          <div className="hidden md:flex items-center">
+            <div className="bg-white/50 dark:bg-white/5 backdrop-blur-md px-8 py-2.5 rounded-full">
+              <div className="flex items-center gap-8">
+                {NAV_LINKS.map((link) => (
+                  <a
+                    key={link.key}
+                    href={link.href}
+                    className="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-blue-900 dark:hover:text-blue-400 transition-colors"
+                  >
+                    {t(locale, link.key)}
+                  </a>
+                ))}
+              </div>
+            </div>
           </div>
 
-          <div className="ml-auto flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon-sm"
+          {/* Desktop Actions - Right */}
+          <div className="hidden md:flex items-center gap-2">
+            {/* Theme Toggle */}
+            <button
+              type="button"
               onClick={toggleTheme}
-              aria-label={resolvedTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-              className="hidden rounded-full border border-slate-200/70 bg-white/75 text-slate-600 shadow-sm hover:bg-white hover:text-slate-950 sm:inline-flex dark:border-white/10 dark:bg-white/5 dark:text-white/70 dark:hover:bg-white/10 dark:hover:text-white"
+              aria-label={
+                resolvedTheme === 'dark'
+                  ? 'Switch to light mode'
+                  : 'Switch to dark mode'
+              }
+              className="w-10 h-10 flex items-center justify-center rounded-full border border-slate-200/70 dark:border-white/10 bg-white/75 dark:bg-white/5 text-slate-600 dark:text-white/70 hover:bg-white hover:text-slate-950 dark:hover:bg-white/10 dark:hover:text-white transition-colors"
             >
               {resolvedTheme === 'dark' ? (
                 <Sun className="w-4 h-4" />
               ) : (
                 <Moon className="w-4 h-4" />
               )}
-            </Button>
+            </button>
 
+            {/* Language Toggle */}
             <LandingLanguageToggle locale={locale} onToggle={onToggleLocale} />
 
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label={openMenuLabel}
-                  className="rounded-full border border-slate-200/70 bg-white/75 text-slate-600 shadow-sm hover:bg-white hover:text-slate-950 lg:hidden dark:border-white/10 dark:bg-white/5 dark:text-white/70 dark:hover:bg-white/10 dark:hover:text-white"
-                >
-                  <Menu className="w-4 h-4" />
-                </Button>
-              </SheetTrigger>
-
-              <SheetContent
-                side="right"
-                className="w-full max-w-sm border-slate-800 bg-slate-900 px-6 py-6 text-white"
-              >
-                <SheetHeader className="pr-8">
-                  <LandingBrandMark tone="dark" />
-                  <SheetTitle className="sr-only">{navigationTitle}</SheetTitle>
-                  <SheetDescription className="mt-4 text-sm leading-6 text-white/60">
-                    {t(locale, 'footer_tagline')}
-                  </SheetDescription>
-                </SheetHeader>
-
-                <div className="mt-8 flex flex-col gap-2">
-                  {NAV_LINKS.map((link) => (
-                    <SheetClose asChild key={link.key}>
-                      <a
-                        href={link.href}
-                        className="flex items-center justify-between rounded-[1.25rem] border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-white/82 transition-colors hover:bg-white/10 hover:text-white"
-                      >
-                        <span>{t(locale, link.key)}</span>
-                        <ArrowRight className="h-4 w-4" />
-                      </a>
-                    </SheetClose>
-                  ))}
-                </div>
-
-                <div className="mt-6 flex flex-col gap-3">
-                  <SheetClose asChild>
-                    <Button
-                      asChild
-                      size="lg"
-                      variant="secondary"
-                      className="justify-between rounded-full border-white/10 bg-white text-slate-950 hover:bg-slate-100"
-                    >
-                      <Link href="/login">
-                        {t(locale, 'nav_login')}
-                        <ArrowRight className="w-4 h-4" />
-                      </Link>
-                    </Button>
-                  </SheetClose>
-
-                  <SheetClose asChild>
-                    <Button
-                      asChild
-                      size="lg"
-                      variant="secondary"
-                      className="justify-between rounded-full border-0 bg-slate-700 text-white hover:bg-slate-600 hover:text-white"
-                    >
-                      <Link href="/liff/service-request">
-                        {t(locale, 'nav_request')}
-                        <ArrowRight className="w-4 h-4" />
-                      </Link>
-                    </Button>
-                  </SheetClose>
-                </div>
-              </SheetContent>
-            </Sheet>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              asChild
-              className="hidden rounded-full px-4 text-slate-600 hover:bg-white/80 hover:text-slate-950 sm:inline-flex dark:text-white/70 dark:hover:bg-white/10 dark:hover:text-white"
+            {/* Login Link */}
+            <Link
+              href="/login"
+              className="text-sm font-semibold text-slate-600 dark:text-white/70 hover:text-blue-900 dark:hover:text-blue-400 transition-colors px-3 py-2"
             >
-              <Link href="/login">
+              {t(locale, 'nav_login')}
+            </Link>
+
+            {/* Dashboard Button */}
+            <Link
+              href="/admin"
+              className="group relative bg-blue-900 text-white px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-200 hover:scale-105 hover:shadow-[0_0_20px_rgba(30,58,138,0.4)] overflow-hidden flex items-center gap-1.5"
+            >
+              <span className="absolute inset-0 bg-gradient-to-r from-blue-500 to-blue-800 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-full" />
+              <span className="relative z-10 flex items-center gap-1.5">
+                {t(locale, 'nav_dashboard')}
+                <ArrowRight className="w-3.5 h-3.5" />
+              </span>
+            </Link>
+          </div>
+
+          {/* Mobile Hamburger */}
+          <button
+            type="button"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            aria-label={isMenuOpen ? 'Close menu' : 'Open menu'}
+            className="md:hidden w-10 h-10 flex items-center justify-center rounded-full border border-slate-200/70 dark:border-white/10 bg-white/75 dark:bg-white/5 text-slate-600 dark:text-white/70 hover:bg-white hover:text-slate-950 dark:hover:bg-white/10 dark:hover:text-white transition-colors"
+          >
+            {isMenuOpen ? (
+              <X className="w-4 h-4" />
+            ) : (
+              <Menu className="w-4 h-4" />
+            )}
+          </button>
+        </div>
+
+        {/* Mobile Menu Dropdown */}
+        {isMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+            className="mt-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl rounded-3xl border border-slate-200/50 dark:border-white/10 shadow-lg p-6"
+          >
+            {/* Mobile Nav Links */}
+            <div className="flex flex-col gap-1">
+              {NAV_LINKS.map((link) => (
+                <a
+                  key={link.key}
+                  href={link.href}
+                  onClick={() => setIsMenuOpen(false)}
+                  className="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-blue-900 dark:hover:text-blue-400 transition-colors py-3 px-3 rounded-xl hover:bg-slate-100/50 dark:hover:bg-white/5"
+                >
+                  {t(locale, link.key)}
+                </a>
+              ))}
+            </div>
+
+            {/* Mobile Divider */}
+            <div className="my-4 border-t border-slate-200/50 dark:border-white/10" />
+
+            {/* Mobile Actions */}
+            <div className="flex items-center gap-2 mb-4">
+              <button
+                type="button"
+                onClick={toggleTheme}
+                aria-label={
+                  resolvedTheme === 'dark'
+                    ? 'Switch to light mode'
+                    : 'Switch to dark mode'
+                }
+                className="w-10 h-10 flex items-center justify-center rounded-full border border-slate-200/70 dark:border-white/10 bg-white/75 dark:bg-white/5 text-slate-600 dark:text-white/70 hover:bg-white hover:text-slate-950 dark:hover:bg-white/10 dark:hover:text-white transition-colors"
+              >
+                {resolvedTheme === 'dark' ? (
+                  <Sun className="w-4 h-4" />
+                ) : (
+                  <Moon className="w-4 h-4" />
+                )}
+              </button>
+
+              <LandingLanguageToggle
+                locale={locale}
+                onToggle={onToggleLocale}
+              />
+            </div>
+
+            {/* Mobile CTA Buttons */}
+            <div className="flex flex-col gap-3">
+              <Link
+                href="/login"
+                onClick={() => setIsMenuOpen(false)}
+                className="text-center text-sm font-semibold text-slate-600 dark:text-white/70 hover:text-blue-900 dark:hover:text-blue-400 transition-colors py-3 px-4 rounded-full border border-slate-200/50 dark:border-white/10"
+              >
                 {t(locale, 'nav_login')}
               </Link>
-            </Button>
 
-            <Button
-              size="sm"
-              variant="secondary"
-              asChild
-              className="thai-no-break hidden rounded-full border-0 bg-slate-900 px-4 text-white shadow-sm hover:bg-slate-800 hover:text-white min-[480px]:inline-flex dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100"
-            >
-              <Link href="/liff/service-request">
-                {t(locale, 'nav_request')}
-                <ArrowRight className="w-3.5 h-3.5 ml-1" />
+              <Link
+                href="/admin"
+                onClick={() => setIsMenuOpen(false)}
+                className="group relative bg-blue-900 text-white px-5 py-3 rounded-full text-sm font-semibold text-center transition-all duration-200 overflow-hidden flex items-center justify-center gap-1.5"
+              >
+                <span className="absolute inset-0 bg-gradient-to-r from-blue-500 to-blue-800 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-full" />
+                <span className="relative z-10 flex items-center gap-1.5">
+                  {t(locale, 'nav_dashboard')}
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </span>
               </Link>
-            </Button>
-          </div>
-        </div>
+            </div>
+          </motion.div>
+        )}
       </div>
-    </nav>
+    </motion.nav>
   );
 }
