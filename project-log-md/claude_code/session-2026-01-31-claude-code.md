@@ -5,7 +5,7 @@
 **Session ID:** sess-20260131-191500
 **Git Branch:** fix/live-chat-redesign-issues
 **Git Commit:** 5a73ec1b91c8dfc99cb1b5261d0274fe86bdbc07
-**Working Directory:** D:\genAI\skn-app
+**Working Directory:** D:\genAI\jsk-app
 
 ---
 
@@ -29,8 +29,8 @@ This session focused on completing the database migration setup for the SknApp p
 - WSL2 with Docker Desktop required for development
 
 **Files Reviewed:**
-- `.agent/PROJECT_STATUS.md` - Project status tracking
-- `.agent/state/current-session.json` - Session metadata
+- `.agents/PROJECT_STATUS.md` - Project status tracking
+- `.agents/state/current-session.json` - Session metadata
 - `.claude/prp-ralph.state.md` - Previous Ralph loop state
 
 ---

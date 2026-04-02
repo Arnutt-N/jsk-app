@@ -1,0 +1,418 @@
+# 🤖 Cross-Platform Agent Collaboration Protocol
+
+> **For**: CodeX, Claude Code, Kimi Code, Antigravity, Gemini CLI, Open Code, Kilo Code, Cline, Qwen, and others
+
+---
+
+## 🎯 Purpose
+
+Enable seamless collaboration between different AI coding agents/platforms on the same project.
+
+---
+
+## 📋 AGENT REGISTRY
+
+### Known Agents & Identifiers
+
+| Agent | ID | Platform File | Best For |
+|-------|-----|---------------|----------|
+| **Kimi Code** | `kimi_code` | `handover-kimi_code-*.md` | Frontend, React, analysis |
+| **Claude Code** | `claude_code` | `handover-claude_code-*.md` | Architecture, complex logic |
+| **CodeX** | `codex` | `handover-codex-*.md` | Backend, Python, APIs |
+| **Antigravity** | `antigravity` | `handover-antigravity-*.md` | Full-stack, refactoring |
+| **Gemini CLI** | `gemini_cli` | `handover-gemini_cli-*.md` | Documentation, research |
+| **Open Code** | `open_code` | `handover-open_code-*.md` | Testing, DevOps |
+| **Kilo Code** | `kilo_code` | `handover-kilo_code-*.md` | Quick fixes, exploration |
+| **Cline** | `cline` | `handover-cline-*.md` | Multi-file editing |
+| **Qwen** | `qwen` | `handover-qwen-*.md` | Code review, analysis |
+
+---
+
+## 🔄 HANDOFF WORKFLOW
+
+### When You Want to Hand Off to Another Agent:
+
+#### Step 1: Create Handover File
+
+**Location**: `project-log-md/{target_agent}/handover-{from_agent}-{timestamp}.md`
+
+**Template**:
+```markdown
+# 🤝 CROSS-AGENT HANDOVER
+
+**From**: {your_agent_id}
+**To**: {target_agent_id}
+**Timestamp**: {ISO-8601}
+**Priority**: {high|medium|low}
+
+---
+
+## 📍 Current State
+
+- **Branch**: {git_branch}
+- **Commit**: {commit_hash}
+- **Status**: {in_progress|blocked|completed_partial}
+
+## 🎯 Mission
+
+{Clear description of overall goal}
+
+## ✅ Completed
+
+- [x] Task 1 completed
+- [x] Task 2 completed
+
+## 🔄 In Progress
+
+- [/] Task 3 (50% complete)
+
+## 📋 Next Tasks (For You)
+
+1. **Priority 1**: {specific task}
+2. **Priority 2**: {specific task}
+
+## 📁 Files Modified
+
+| File | Status | Notes |
+|------|--------|-------|
+| `path/to/file.tsx` | Modified | Added X feature |
+| `path/to/api.ts` | Created | New endpoint |
+
+## ⚠️ Important Notes
+
+- Breaking change: X affects Y
+- Environment variable Z required
+- Test command: `npm test`
+
+## 🔗 References
+
+- Design doc: `PRPs/feature/design.md`
+- API spec: `docs/api.md`
+```
+
+#### Step 2: Update Project Status
+
+**File**: `.agents/PROJECT_STATUS.md`
+
+Add entry:
+```markdown
+## Active Handoffs
+- [2026-02-13 20:00] → {target_agent}: {brief_description}
+```
+
+#### Step 3: Notify (If Possible)
+
+If the target agent has a notification mechanism, ping them.
+
+---
+
+## 📥 PICKUP WORKFLOW
+
+### When You Pick Up From Another Agent:
+
+#### Step 1: Find Latest Handover
+
+Check these locations in order:
+1. `project-log-md/{your_agent_id}/handover-*-{recent}.md`
+2. `.agents/PROJECT_STATUS.md` (Active Handoffs section)
+3. `project-log-md/*/handover-*-*.md` (search all)
+
+#### Step 2: Read Handover File
+
+**CRITICAL**: Read the handover file completely before doing anything!
+
+#### Step 3: Verify State
+
+```bash
+# Check git status matches handover
+git status
+git log --oneline -5
+```
+
+#### Step 4: Update PROJECT_STATUS.md
+
+Mark handoff as picked up:
+```markdown
+## Active Handoffs
+- [2026-02-13 20:30] ← {from_agent}: Picked up by {your_agent_id}
+```
+
+#### Step 5: Begin Work
+
+Follow the "Next Tasks" from handover.
+
+---
+
+## 🗂️ SHARED STATE STRUCTURE
+
+### Directory Layout
+
+```
+.agents/
+├── PROJECT_STATUS.md           # Live project state (ALL agents update this)
+├── state/
+│   ├── current-session.json    # Current agent session
+│   ├── task.md                 # Current task breakdown
+│   └── checkpoints/            # Handover checkpoints
+│       ├── handover-kimi_code-20260213-2000.json
+│       ├── handover-claude_code-20260213-2100.json
+│       └── ...
+├── skills/                     # Shared skills (read-only)
+│   └── {skill-name}/
+│       └── SKILL.md
+└── workflows/                  # Shared workflows (read-only)
+    └── {workflow-name}.md
+
+project-log-md/
+├── kimi_code/
+│   ├── handover-kimi_code-20260213-2000.md    # Outgoing
+│   └── pickup-claude_code-20260213-1900.md    # Incoming response
+├── claude_code/
+│   ├── handover-claude_code-20260213-2100.md
+│   └── ...
+├── codex/
+├── antigravity/
+├── gemini_cli/
+├── open_code/
+├── kilo_code/
+├── cline/
+└── qwen/
+```
+
+---
+
+## 📝 UNIVERSAL HANDOVER TEMPLATE
+
+Use this exact format so ALL agents can parse it:
+
+```markdown
+---
+from_agent: {agent_id}
+to_agent: {agent_id | "any"}
+timestamp: {ISO-8601}
+project: skn-app
+branch: {git_branch}
+commit: {commit_hash}
+status: {active|completed|blocked}
+priority: {critical|high|medium|low}
+---
+
+# Handover: {brief_title}
+
+## 🎯 Context
+{2-3 sentences of background}
+
+## ✅ What's Done
+- [x] Item 1
+- [x] Item 2
+
+## 🔄 What's In Progress
+- [/] Item 3 ({percent}%)
+
+## 📋 What's Next (Your Tasks)
+1. {specific actionable task}
+2. {specific actionable task}
+
+## ⚠️ Blockers / Warnings
+- {warning or blocker}
+
+## 🔧 Technical Details
+```bash
+# Run this to verify
+npm run test
+
+# Environment
+NODE_ENV=development
+```
+
+## 📁 Files
+- Modified: `path/file.ts` - {what changed}
+- Created: `path/file.ts` - {purpose}
+
+## 🔗 Related
+- Plan: `PRPs/...`
+- Docs: `docs/...`
+```
+
+---
+
+## 🤝 COLLABORATION PATTERNS
+
+### Pattern 1: Sequential Handoff
+```
+Kimi Code → Claude Code → CodeX
+(Frontend) → (Architecture) → (Backend)
+```
+
+Each completes their part, hands off to next.
+
+### Pattern 2: Parallel Work
+```
+          ┌→ Kimi Code (Components)
+          │
+Claude →  ├→ Antigravity (API)
+(Plan)    │
+          └→ CodeX (Database)
+          
+          ↓
+      Kimi Code (Integration)
+```
+
+Claude plans, others work in parallel, Kimi integrates.
+
+### Pattern 3: Expert Consultation
+```
+Kimi Code (working) → Gemini CLI (research) → Kimi Code (continues)
+        ↑                    ↓
+     Stuck          Provides findings
+```
+
+Hand off for specialized task, then pick back up.
+
+### Pattern 4: Review Cycle
+```
+Antigravity (implements) → Qwen (reviews) → Antigravity (fixes)
+```
+
+Implementation → Review → Fixes.
+
+---
+
+## 🚦 STATE MACHINE
+
+```
+┌──────────┐    Handoff     ┌──────────┐    Pickup     ┌──────────┐
+│ WORKING  │ ─────────────→ │ HANDOFF  │ ────────────→ │ PICKUP   │
+└──────────┘                └──────────┘               └──────────┘
+     ↑                                                      │
+     └──────────────────────────────────────────────────────┘
+                    Continue / Complete
+```
+
+### Status Values (Standard)
+
+| Status | Meaning |
+|--------|---------|
+| `active` | Currently being worked on |
+| `handoff` | Waiting for another agent |
+| `completed` | Task fully complete |
+| `blocked` | Blocked, needs help |
+| `review` | Ready for review |
+
+---
+
+## 📊 PROJECT_STATUS.md Format
+
+All agents MUST maintain this file:
+
+```markdown
+# Project Status: skn-app
+
+> **Last Updated**: {timestamp} by {agent_id}
+
+## 🔄 Active Handoffs
+| From | To | Task | Status | Since |
+|------|-----|------|--------|-------|
+| kimi_code | claude_code | Design system | 🔄 Handoff | 2026-02-13 20:00 |
+| claude_code | codex | API implementation | ⏳ Waiting | 2026-02-13 21:00 |
+
+## ✅ Recent Completions
+- [2026-02-13 19:00] kimi_code: Frontend components done
+- [2026-02-13 18:30] codex: Database migration complete
+
+## 🚧 In Progress
+- claude_code: Architecture review (50%)
+
+## 🚫 Blocked
+- antigravity: Waiting for API spec from claude_code
+
+## 📋 Backlog
+- [ ] Deployment automation (open_code)
+- [ ] Documentation (gemini_cli)
+```
+
+---
+
+## 🛠️ AGENT-SPECIFIC NOTES
+
+### Kimi Code
+- **Strengths**: Frontend, React, TypeScript, UI/UX
+- **Handoff Format**: Markdown preferred
+- **Best At**: Component development, design implementation
+
+### Claude Code  
+- **Strengths**: Architecture, complex logic, planning
+- **Handoff Format**: Markdown, can read JSON
+- **Best At**: System design, refactoring plans
+
+### CodeX
+- **Strengths**: Backend, Python, APIs, databases
+- **Handoff Format**: Markdown, code comments
+- **Best At**: API development, data models
+
+### Antigravity
+- **Strengths**: Full-stack, rapid iteration
+- **Handoff Format**: Markdown
+- **Best At**: Feature implementation, debugging
+
+### Gemini CLI
+- **Strengths**: Research, documentation, analysis
+- **Handoff Format**: Markdown, structured data
+- **Best At**: Documentation, research tasks
+
+### Open Code
+- **Strengths**: DevOps, testing, automation
+- **Handoff Format**: Markdown, scripts
+- **Best At**: CI/CD, testing infrastructure
+
+### Kilo Code
+- **Strengths**: Quick fixes, exploration
+- **Handoff Format**: Simple markdown
+- **Best At**: Bug fixes, small tasks
+
+### Cline
+- **Strengths**: Multi-file editing, refactoring
+- **Handoff Format**: Markdown
+- **Best At**: Large-scale refactoring
+
+### Qwen
+- **Strengths**: Code review, analysis
+- **Handoff Format**: Markdown
+- **Best At**: Review, optimization
+
+---
+
+## ✅ CHECKLIST: Before Handoff
+
+- [ ] Updated PROJECT_STATUS.md
+- [ ] Created handover file in correct location
+- [ ] Listed all modified files
+- [ ] Documented breaking changes
+- [ ] Included test commands
+- [ ] Specified next tasks clearly
+- [ ] Marked dependencies/blockers
+
+## ✅ CHECKLIST: On Pickup
+
+- [ ] Read handover file completely
+- [ ] Read PROJECT_STATUS.md
+- [ ] Verified git state matches handover
+- [ ] Updated PROJECT_STATUS.md with pickup
+- [ ] Understood next tasks
+- [ ] Checked for blockers
+
+---
+
+## 🆘 EMERGENCY CONTACTS
+
+If handoff protocol breaks:
+
+1. Check `.agents/PROJECT_STATUS.md` for current state
+2. Look in `project-log-md/*/handover-*.md` for latest handoffs
+3. Check git log for recent commits
+4. Read `.agents/state/task.md` for task context
+
+---
+
+*Cross-Platform Agent Collaboration Protocol v1.0*
+*For skn-app Project*

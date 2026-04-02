@@ -12,7 +12,7 @@
 ## Work Completed
 
 ### 1. Duplicate Workflow Cleanup
-Archived obsolete workflows to `.agent/workflows/archived/`:
+Archived obsolete workflows to `.agents/workflows/archived/`:
 
 | Old Workflow | Replaced By | Reason |
 |--------------|-------------|--------|
@@ -23,7 +23,7 @@ Archived obsolete workflows to `.agent/workflows/archived/`:
 | `CLEANUP_SUMMARY.md` | `CLEANUP_LOG.md` | Merged into single log |
 
 ### 2. Duplicate Skill Cleanup
-Archived obsolete skills to `.agent/skills/archived/`:
+Archived obsolete skills to `.agents/skills/archived/`:
 
 | Old Skill | Replaced By | Reason |
 |-----------|-------------|--------|
@@ -35,7 +35,7 @@ Archived obsolete templates:
 
 | Old Template | Replaced By | Reason |
 |--------------|-------------|--------|
-| `.agent/AGENT_PROMPT_TEMPLATE.md` | `AGENT_PROMPT_TEMPLATE.md` (root) | Single source at project root |
+| `.agents/AGENT_PROMPT_TEMPLATE.md` | `AGENT_PROMPT_TEMPLATE.md` (root) | Single source at project root |
 
 ### 4. Onboarding System Created
 
@@ -45,37 +45,37 @@ Archived obsolete templates:
   - References master index
 
 #### Workflows
-- **`.agent/workflows/start-here.md`** - Step-by-step onboarding
+- **`.agents/workflows/start-here.md`** - Step-by-step onboarding
   - 5-step process: Read AGENT_PROMPT_TEMPLATE.md → Start-Here workflow → Index → Status → Skills/Workflows
   
-- **`.agent/workflows/session-summary.md`** - Session summary creation
+- **`.agents/workflows/session-summary.md`** - Session summary creation
   - Based on Antigravity's original task-summary.md
   - Unified for all platforms
 
 #### Reference Guides
-- **`.agent/QUICK_START_CARD.md`** - One-page quick reference
-- **`.agent/AGENT_ONBOARDING_GUIDE.md`** - Comprehensive onboarding guide
-- **`.agent/SKILLS_INVENTORY.md`** - All available skills with status
-- **`.agent/WORKFLOWS_GUIDE.md`** - All workflows with status
+- **`.agents/QUICK_START_CARD.md`** - One-page quick reference
+- **`.agents/AGENT_ONBOARDING_GUIDE.md`** - Comprehensive onboarding guide
+- **`.agents/SKILLS_INVENTORY.md`** - All available skills with status
+- **`.agents/WORKFLOWS_GUIDE.md`** - All workflows with status
 
 ### 5. Documentation Consolidation
 
 #### Single Sources of Truth
 | Purpose | Location |
 |---------|----------|
-| Handoff | `.agent/workflows/handoff-to-any.md` |
-| Pickup | `.agent/workflows/pickup-from-any.md` |
-| Collaboration | `.agent/skills/cross_platform_collaboration/SKILL.md` |
-| Master Index | `.agent/INDEX.md` |
-| Project Status | `.agent/PROJECT_STATUS.md` |
-| Cleanup Log | `.agent/CLEANUP_LOG.md` |
+| Handoff | `.agents/workflows/handoff-to-any.md` |
+| Pickup | `.agents/workflows/pickup-from-any.md` |
+| Collaboration | `.agents/skills/cross_platform_collaboration/SKILL.md` |
+| Master Index | `.agents/INDEX.md` |
+| Project Status | `.agents/PROJECT_STATUS.md` |
+| Cleanup Log | `.agents/CLEANUP_LOG.md` |
 | Prompt Template | `AGENT_PROMPT_TEMPLATE.md` |
 
 ### 6. HR-IMS UI Rollback
 After user clarification, rolled back HR-IMS UI components:
 - Removed HR-IMS-specific UI components from live-chat page
 - Restored original live-chat focused design
-- Kept `.agent/INDEX.md` updates
+- Kept `.agents/INDEX.md` updates
 
 ---
 
@@ -84,30 +84,30 @@ After user clarification, rolled back HR-IMS UI components:
 ### New Files (to be committed)
 ```
 START_HERE.md
-.agent/AGENT_ONBOARDING_GUIDE.md
-.agent/CLEANUP_LOG.md
-.agent/QUICK_START_CARD.md
-.agent/SKILLS_INVENTORY.md
-.agent/WORKFLOWS_GUIDE.md
-.agent/state/checkpoints/handover-kimi-20260214-0430.json
-.agent/workflows/session-summary.md
-.agent/workflows/start-here.md
+.agents/AGENT_ONBOARDING_GUIDE.md
+.agents/CLEANUP_LOG.md
+.agents/QUICK_START_CARD.md
+.agents/SKILLS_INVENTORY.md
+.agents/WORKFLOWS_GUIDE.md
+.agents/state/checkpoints/handover-kimi-20260214-0430.json
+.agents/workflows/session-summary.md
+.agents/workflows/start-here.md
 .project-log-md/kimi_code/session-summary-20260214-0430.md
 ```
 
 ### Modified Files (to be committed)
 ```
-.agent/INDEX.md
-.agent/PROJECT_STATUS.md
+.agents/INDEX.md
+.agents/PROJECT_STATUS.md
 ```
 
 ### Archived Files (moved, not deleted)
 ```
-.agent/workflows/archived/agent-handover.md
-.agent/workflows/archived/pick-up.md
-.agent/workflows/archived/task-summary.md
-.agent/skills/archived/agent_collaboration_standard/
-.agent/skills/archived/agent_collaboration/
+.agents/workflows/archived/agent-handover.md
+.agents/workflows/archived/pick-up.md
+.agents/workflows/archived/task-summary.md
+.agents/skills/archived/agent_collaboration_standard/
+.agents/skills/archived/agent_collaboration/
 ```
 
 ---
@@ -168,11 +168,11 @@ Create PR via GitHub web UI and merge `fix/live-chat-redesign-issues` into `main
 
 ## Critical Reminders for Next Agent
 
-1. **Use `.agent/INDEX.md`** as the single source of truth for all resources
-2. **For handoffs**: Use `.agent/workflows/handoff-to-any.md`
-3. **For pickups**: Use `.agent/workflows/pickup-from-any.md`
-4. **For onboarding**: Start with `START_HERE.md` or `.agent/workflows/start-here.md`
-5. **Cleanup audit**: See `.agent/CLEANUP_LOG.md` for full details
+1. **Use `.agents/INDEX.md`** as the single source of truth for all resources
+2. **For handoffs**: Use `.agents/workflows/handoff-to-any.md`
+3. **For pickups**: Use `.agents/workflows/pickup-from-any.md`
+4. **For onboarding**: Start with `START_HERE.md` or `.agents/workflows/start-here.md`
+5. **Cleanup audit**: See `.agents/CLEANUP_LOG.md` for full details
 6. **Branch**: Currently on `fix/live-chat-redesign-issues`
 
 ---

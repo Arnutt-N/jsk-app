@@ -7,7 +7,7 @@ This guide shows how to integrate @skn/design-tokens into the admin-chat-system 
 ## Step 1: Install the Package
 
 ```bash
-cd D:\genAI\skn-app\examples\admin-chat-system
+cd examples\admin-chat-system
 npm install ../../design-tokens
 ```
 

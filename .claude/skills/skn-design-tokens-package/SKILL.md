@@ -46,7 +46,7 @@ design tokens, and CSS animation classes for use across SKN applications.
 ## CRITICAL: Project-Specific Rules
 
 1. **Package is at `design-tokens/` NOT in `frontend/`** —
-   The package source lives in `D:\genAI\skn-app\design-tokens\` (project root).
+   The package source lives in `D:\genAI\jsk-app\design-tokens\` (project root).
    The main frontend at `frontend/` does NOT import from this package yet.
    Build output goes to `design-tokens/dist/`.
 

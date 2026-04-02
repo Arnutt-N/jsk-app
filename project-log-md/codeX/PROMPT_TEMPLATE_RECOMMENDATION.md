@@ -11,14 +11,14 @@
 ```
 Summarize this session and prepare handoff:
 
-1. Update .agent/PROJECT_STATUS.md:
+1. Update .agents/PROJECT_STATUS.md:
    - Update "Last Updated" timestamp
    - Update Thai Summary section
    - Add to Recent Completions
    - Update relevant Phase status
 
 2. Create handoff checkpoint:
-   - Path: .agent/state/checkpoints/handover-[platform]-[YYYYMMDD-HHMM].json
+   - Path: .agents/state/checkpoints/handover-[platform]-[YYYYMMDD-HHMM].json
    - Include: work_summary, key_findings, deliverables, priority_actions
 
 3. Create session summary:
@@ -39,7 +39,7 @@ Deliverables created:
 End session and prepare for next agent using cross-platform collaboration standard:
 
 ## 1. PROJECT STATUS UPDATE
-Update .agent/PROJECT_STATUS.md:
+Update .agents/PROJECT_STATUS.md:
 - [ ] Update header: "Last Updated: [TIMESTAMP] by [AGENT_NAME]"
 - [ ] Update Thai Summary with current status
 - [ ] Add entry to "Recent Completions" (prepend, don't delete others)
@@ -47,7 +47,7 @@ Update .agent/PROJECT_STATUS.md:
 - [ ] Add any new blockers or dependencies
 
 ## 2. HANDOFF CHECKPOINT
-Create: .agent/state/checkpoints/handover-[platform]-[YYYYMMDD-HHMM].json
+Create: .agents/state/checkpoints/handover-[platform]-[YYYYMMDD-HHMM].json
 
 Required fields:
 {
@@ -159,9 +159,9 @@ Template:
 ❌ DO NOT delete other agents' entries in PROJECT_STATUS.md
 
 ## 5. SINGLE SOURCE OF TRUTH
-✅ All agents read: .agent/PROJECT_STATUS.md
-✅ All agents read: .agent/state/current-session.json (if exists)
-✅ All agents read: Latest checkpoint in .agent/state/checkpoints/
+✅ All agents read: .agents/PROJECT_STATUS.md
+✅ All agents read: .agents/state/current-session.json (if exists)
+✅ All agents read: Latest checkpoint in .agents/state/checkpoints/
 ```
 
 ---
@@ -185,14 +185,14 @@ Template:
 
 ### ✅ NEW WAY (Correct)
 ```
-"Update .agent/PROJECT_STATUS.md and create handoff checkpoint"
+"Update .agents/PROJECT_STATUS.md and create handoff checkpoint"
 → Creates/Updates:
-   - .agent/PROJECT_STATUS.md (single source of truth)
-   - .agent/state/checkpoints/handover-[TIMESTAMP].json (machine-readable)
+   - .agents/PROJECT_STATUS.md (single source of truth)
+   - .agents/state/checkpoints/handover-[TIMESTAMP].json (machine-readable)
    - project-log-md/[platform]/session-summary-[TIMESTAMP].md (human-readable)
    
 → Benefits:
-   - One file to check (.agent/PROJECT_STATUS.md)
+   - One file to check (.agents/PROJECT_STATUS.md)
    - Machine-readable checkpoint for automation
    - No duplication
    - Follows cross-platform collaboration standard
@@ -223,12 +223,12 @@ All agents should know these files exist:
 
 | Document | Path | Purpose |
 |----------|------|---------|
-| Cross-Platform Skill | `.agent/skills/cross_platform_collaboration/SKILL.md` | **Main standard** |
-| Universal Handoff | `.agent/workflows/handoff-to-any.md` | Handoff workflow |
-| Universal Pickup | `.agent/workflows/pickup-from-any.md` | Pickup workflow |
-| Session Summary | `.agent/workflows/session-summary.md` | Basic summary workflow |
-| Project Status | `.agent/PROJECT_STATUS.md` | **Single source of truth** |
-| Skills Index | `.agent/INDEX.md` | Quick navigation |
+| Cross-Platform Skill | `.agents/skills/cross_platform_collaboration/SKILL.md` | **Main standard** |
+| Universal Handoff | `.agents/workflows/handoff-to-any.md` | Handoff workflow |
+| Universal Pickup | `.agents/workflows/pickup-from-any.md` | Pickup workflow |
+| Session Summary | `.agents/workflows/session-summary.md` | Basic summary workflow |
+| Project Status | `.agents/PROJECT_STATUS.md` | **Single source of truth** |
+| Skills Index | `.agents/INDEX.md` | Quick navigation |
 
 ---
 
@@ -238,10 +238,10 @@ After running the prompt, verify:
 
 ```bash
 # Check PROJECT_STATUS.md updated
-cat .agent/PROJECT_STATUS.md | head -5
+cat .agents/PROJECT_STATUS.md | head -5
 
 # Check handoff checkpoint created
-ls -la .agent/state/checkpoints/handover-* | tail -3
+ls -la .agents/state/checkpoints/handover-* | tail -3
 
 # Check session summary created
 ls -la project-log-md/[platform]/session-summary-* | tail -3
@@ -257,7 +257,7 @@ ls -la project-log-md/[platform]/session-summary-* | tail -3
 For quick sessions:
 
 ```
-Summarize and handoff: Update .agent/PROJECT_STATUS.md, create checkpoint in .agent/state/checkpoints/, and log to project-log-md/[platform]/session-summary-[DATE].md
+Summarize and handoff: Update .agents/PROJECT_STATUS.md, create checkpoint in .agents/state/checkpoints/, and log to project-log-md/[platform]/session-summary-[DATE].md
 ```
 
 ---

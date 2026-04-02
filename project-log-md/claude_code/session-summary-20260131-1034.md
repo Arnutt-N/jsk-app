@@ -32,9 +32,9 @@
 ## Files Created/Modified
 
 **New Files:**
-- `.agent/skills/agent_handover/SKILL.md`
-- `.agent/skills/agent_pickup/SKILL.md`
-- `.agent/PROJECT_STATUS.md`
+- `.agents/skills/agent_handover/SKILL.md`
+- `.agents/skills/agent_pickup/SKILL.md`
+- `.agents/PROJECT_STATUS.md`
 - `CLAUDE.md`
 - `.mcp.json`
 - `backend/alembic/versions/add_sync_status_to_rich_menus.py`

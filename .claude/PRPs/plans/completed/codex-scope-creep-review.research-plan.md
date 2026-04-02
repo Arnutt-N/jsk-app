@@ -282,8 +282,8 @@ SQ-5 (bookkeeping)   ──────┘
 >
 > **SQ-5: Bookkeeping/Index Fixes**
 > Check and fix these known issues:
-> 1. `project-log-md/codeX/session-summary-20260215-1842.md` exists but is NOT in `.agent/state/SESSION_INDEX.md`
-> 2. `.agent/state/TASK_LOG.md` stats section at the bottom shows "Total Tasks: 10" but there are 16 tasks
+> 1. `project-log-md/codeX/session-summary-20260215-1842.md` exists but is NOT in `.agents/state/SESSION_INDEX.md`
+> 2. `.agents/state/TASK_LOG.md` stats section at the bottom shows "Total Tasks: 10" but there are 16 tasks
 > 3. The "Agents Contributed" section is also stale
 > Document the exact edits needed to fix these.
 >
@@ -297,8 +297,8 @@ SQ-5 (bookkeeping)   ──────┘
 >
 > **Files to read for your own research**:
 > - The 5 doc files listed above
-> - `.agent/state/SESSION_INDEX.md`
-> - `.agent/state/TASK_LOG.md`
+> - `.agents/state/SESSION_INDEX.md`
+> - `.agents/state/TASK_LOG.md`
 > - `project-log-md/codeX/session-summary-20260215-1842.md`
 >
 > **Output format**:

@@ -21,7 +21,7 @@
 - [x] Added non-text webhook handling branch (`image/sticker/file/video/audio`).
 - [x] Implemented media persistence baseline+ in `line_service` using LINE Blob API and local uploads.
 - [x] Updated frontend message types and media rendering in chat bubble.
-- [x] Fixed and refreshed `.agent/PROJECT_STATUS.md` recent completion section.
+- [x] Fixed and refreshed `.agents/PROJECT_STATUS.md` recent completion section.
 - [x] Created handoff checkpoint and this session summary.
 
 ## Key Findings
@@ -34,8 +34,8 @@
 ## Deliverables
 | File | Path | Size |
 |------|------|------|
-| Project Status | `.agent/PROJECT_STATUS.md` | updated |
-| Checkpoint | `.agent/state/checkpoints/handover-codeX-20260208-0300.json` | generated |
+| Project Status | `.agents/PROJECT_STATUS.md` | updated |
+| Checkpoint | `.agents/state/checkpoints/handover-codeX-20260208-0300.json` | generated |
 | Session Summary | `project-log-md/codeX/session-summary-20260208-0300.md` | generated |
 
 ## Next Steps

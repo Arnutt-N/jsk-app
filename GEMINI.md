@@ -23,7 +23,7 @@ The project is structured as a full-stack application with a clear separation be
     *   `app/`: Next.js App Router pages and layouts.
     *   `components/`: Reusable React components.
     *   `lib/`: Utility functions and API clients.
-*   **`.agent/`**: Contains project-specific standards and guidelines (Skills).
+*   **`.agents/`**: Contains project-specific standards and guidelines (Skills).
 
 ## Building and Running
 
@@ -66,7 +66,7 @@ The project is structured as a full-stack application with a clear separation be
 
 ## Development Conventions
 
-This project adheres to strict development standards defined in the `.agent/skills/` directory. Key conventions include:
+This project adheres to strict development standards defined in the `.agents/skills/` directory. Key conventions include:
 
 *   **Async by Default:** Use `async/await` for all I/O-bound operations in the backend.
 *   **Strict Typing:** Use Pydantic V2 models for data validation and schema definitions.
@@ -74,4 +74,4 @@ This project adheres to strict development standards defined in the `.agent/skil
 *   **Database Interactions:** Use SQLAlchemy 2.0 style (Core expression language) for database queries.
 *   **Frontend Architecture:** Follow the Next.js App Router patterns and use Tailwind CSS for styling.
 
-Refer to the specific skill files in `.agent/skills/` for detailed guidelines on API development, security, testing, and more.
+Refer to the specific skill files in `.agents/skills/` for detailed guidelines on API development, security, testing, and more.

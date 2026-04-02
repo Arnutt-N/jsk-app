@@ -26,14 +26,14 @@ Generated: 2026-01-19 06:50
         - เพิ่ม Logic เปลี่ยนสถานะเป็น `IN_PROGRESS` อัตโนมัติเมื่อมอบหมายงาน
 
 ## 📁 Files Created/Modified
-- `d:\genAI\skn-app\frontend\app\admin\requests\page.tsx` (UI & Logic update)
-- `d:\genAI\skn-app\frontend\app\admin\requests\[id]\page.tsx` (UI & Logic update)
-- `d:\genAI\skn-app\frontend\components\admin\AssignModal.tsx` **[NEW]**
-- `d:\genAI\skn-app\frontend\components\ui\Modal.tsx` (Enhanced)
-- `d:\genAI\skn-app\backend\app\api\v1\endpoints\admin_requests.py` (Schema update)
-- `d:\genAI\skn-app\backend\app\api\v1\endpoints\admin_users.py` **[NEW]**
-- `d:\genAI\skn-app\backend\app\schemas\service_request_liff.py`
-- `d:\genAI\skn-app\backend\app\api\v1\api.py`
+- `D:\genAI\jsk-app\frontend\app\admin\requests\page.tsx` (UI & Logic update)
+- `D:\genAI\jsk-app\frontend\app\admin\requests\[id]\page.tsx` (UI & Logic update)
+- `D:\genAI\jsk-app\frontend\components\admin\AssignModal.tsx` **[NEW]**
+- `D:\genAI\jsk-app\frontend\components\ui\Modal.tsx` (Enhanced)
+- `D:\genAI\jsk-app\backend\app\api\v1\endpoints\admin_requests.py` (Schema update)
+- `D:\genAI\jsk-app\backend\app\api\v1\endpoints\admin_users.py` **[NEW]**
+- `D:\genAI\jsk-app\backend\app\schemas\service_request_liff.py`
+- `D:\genAI\jsk-app\backend\app\api\v1\api.py`
 
 ## 🔧 Technical Decisions
 - **Hybrid Action Buttons**: ใช้ Modal สำหรับ View/Delete/Assign แต่ใช้ Link สำหรับ Edit เพื่อ UX ที่ดีกว่าในการแก้ไขฟอร์มยาวๆ

@@ -111,23 +111,23 @@ Applied progressive disclosure pattern to reduce SKILL.md size:
 - `CLAUDE.md`
 
 ### Created (New Skills - 7):
-- `.agent/skills/websocket_live_chat/SKILL.md`
-- `.agent/skills/liff_development/SKILL.md`
-- `.agent/skills/database_migration/SKILL.md`
-- `.agent/skills/react_19_patterns/SKILL.md`
-- `.agent/skills/git_workflow/SKILL.md`
-- `.agent/skills/error_handling/SKILL.md`
-- `.agent/skills/flex_message_builder/SKILL.md`
+- `.agents/skills/websocket_live_chat/SKILL.md`
+- `.agents/skills/liff_development/SKILL.md`
+- `.agents/skills/database_migration/SKILL.md`
+- `.agents/skills/react_19_patterns/SKILL.md`
+- `.agents/skills/git_workflow/SKILL.md`
+- `.agents/skills/error_handling/SKILL.md`
+- `.agents/skills/flex_message_builder/SKILL.md`
 
 ### Created (Bundled Resources):
-- `.agent/skills/websocket_live_chat/references/protocol.md`
-- `.agent/skills/websocket_live_chat/references/error_codes.md`
-- `.agent/skills/flex_message_builder/references/component_reference.md`
-- `.agent/skills/flex_message_builder/assets/templates/*.json` (3 files)
-- `.agent/skills/react_19_patterns/references/hooks_api.md`
-- `.agent/skills/react_19_patterns/references/server_actions.md`
-- `.agent/skills/error_handling/references/error_catalog.md`
-- `.agent/skills/error_handling/scripts/generate_error_types.py`
+- `.agents/skills/websocket_live_chat/references/protocol.md`
+- `.agents/skills/websocket_live_chat/references/error_codes.md`
+- `.agents/skills/flex_message_builder/references/component_reference.md`
+- `.agents/skills/flex_message_builder/assets/templates/*.json` (3 files)
+- `.agents/skills/react_19_patterns/references/hooks_api.md`
+- `.agents/skills/react_19_patterns/references/server_actions.md`
+- `.agents/skills/error_handling/references/error_catalog.md`
+- `.agents/skills/error_handling/scripts/generate_error_types.py`
 
 ---
 

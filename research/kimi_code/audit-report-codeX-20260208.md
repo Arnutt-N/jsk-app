@@ -187,9 +187,9 @@ This report documents a comprehensive audit of all tasks completed by **CodeX** 
 | Redis WS Tests | `backend/tests/test_websocket_manager_redis.py` | ~3.1 KB | 3 |
 | Pytest Config | `backend/pytest.ini` | 27 B | 3 |
 | ESLint Config | `frontend/eslint.config.mjs` | ~1.5 KB | 3 |
-| Handoff 0247 | `.agent/state/checkpoints/handover-codeX-20260208-0247.json` | ~9.6 KB | 1 |
-| Handoff 0300 | `.agent/state/checkpoints/handover-codeX-20260208-0300.json` | ~9.9 KB | 2 |
-| Handoff 0027 | `.agent/state/checkpoints/handover-codeX-20260209-0027.json` | ~4.9 KB | 3 |
+| Handoff 0247 | `.agents/state/checkpoints/handover-codeX-20260208-0247.json` | ~9.6 KB | 1 |
+| Handoff 0300 | `.agents/state/checkpoints/handover-codeX-20260208-0300.json` | ~9.9 KB | 2 |
+| Handoff 0027 | `.agents/state/checkpoints/handover-codeX-20260209-0027.json` | ~4.9 KB | 3 |
 | Session Summary 0247 | `project-log-md/codeX/session-summary-20260208-0247.md` | ~2.1 KB | 1 |
 | Session Summary 0300 | `project-log-md/codeX/session-summary-20260208-0300.md` | ~2.1 KB | 2 |
 | Session Summary 0027 | `project-log-md/codeX/session-summary-20260209-0027.md` | ~2.0 KB | 3 |
@@ -230,7 +230,7 @@ This report documents a comprehensive audit of all tasks completed by **CodeX** 
 | `.mcp.json` | 1, 2 | Context7 fix |
 | `AGENTS.md` | 1 | WSL docs |
 | `README.md` | 1 | WSL docs |
-| `.agent/PROJECT_STATUS.md` | All | Status updates |
+| `.agents/PROJECT_STATUS.md` | All | Status updates |
 
 ---
 
@@ -408,7 +408,7 @@ All handoffs include:
 | Document | Path | Description |
 |----------|------|-------------|
 | Implementation Plan | `PRPs/claude_code/live-chat-improvement.plan.md` | 27 steps, 4 phases |
-| Project Status | `.agent/PROJECT_STATUS.md` | Single source of truth |
+| Project Status | `.agents/PROJECT_STATUS.md` | Single source of truth |
 | Merged Analysis | `research/claude_code/live-chat-comprehensive-analysis.md` | 1,108 lines |
 | Prompt Template | `project-log-md/codeX/PROMPT_TEMPLATE_RECOMMENDATION.md` | Cross-platform standard |
 

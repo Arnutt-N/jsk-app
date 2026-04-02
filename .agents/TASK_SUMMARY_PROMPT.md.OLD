@@ -1,0 +1,57 @@
+# 📝 One-Line Task Summary Prompt
+
+> **Copy and paste this when any agent needs to summarize their work**
+
+---
+
+## One-Line Version
+
+```
+Document your completed work by updating .agents/state/task.md with completed/in-progress items, create .agents/state/checkpoints/handover-[PLATFORM]-[TIME].json with summary/completed/next_actions/blockers, create project-log-md/[PLATFORM]/session-summary-[TIME].md with English+Thai sections for completed/in-progress/next_steps/blockers/technical_notes, and update .agents/PROJECT_STATUS.md recent completions.
+```
+
+---
+
+## Ultra-Compact Version
+
+```
+Update task.md → Create checkpoint JSON → Create session MD → Update PROJECT_STATUS.md
+```
+
+---
+
+## Prompt Template (Copy & Use)
+
+```markdown
+Create a comprehensive task summary with:
+
+1. What was completed (bullet points with file changes)
+2. What's in progress (with % complete)
+3. What remains to be done (priority order)
+4. Technical decisions made and why
+5. Breaking changes (if any)
+6. Specific next actions for next agent
+7. Any blockers with suggested solutions
+8. Test results
+
+Use the detailed template from .agents/workflows/task-summary.md
+
+Save to:
+- .agents/state/task.md
+- .agents/state/checkpoints/handover-[YOUR_PLATFORM]-[TIME].json
+- project-log-md/[YOUR_PLATFORM]/session-summary-[TIME].md
+- Update .agents/PROJECT_STATUS.md
+```
+
+---
+
+## Quick Command
+
+```bash
+# Read the full template
+cat .agents/workflows/task-summary.md
+```
+
+---
+
+*Last updated: 2026-02-13*

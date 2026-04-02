@@ -23,7 +23,7 @@ Read and analyze project codebase; identify design system documents; summarize t
   - `frontend/docs/design-system-reference.md`
   - `research/kimi_code/ui_design_system.md` (comprehensive spec)
   - Live preview: `/admin/design-system`
-- [x] Verified handoff workflow requirements in `.agent/workflows/handoff-to-any.md`
+- [x] Verified handoff workflow requirements in `.agents/workflows/handoff-to-any.md`
 - [x] Confirmed project state: 27/27 steps complete (100%)
 
 ---
@@ -65,10 +65,10 @@ None.
 
 | Artifact | Status |
 |----------|--------|
-| `.agent/PROJECT_STATUS.md` | Updated (CodeX 2026-02-14 12:51) |
-| `.agent/state/current-session.json` | Updated |
-| `.agent/state/task.md` | Updated |
-| `.agent/state/checkpoints/handover-codeX-20260214-1251.json` | Latest |
+| `.agents/PROJECT_STATUS.md` | Updated (CodeX 2026-02-14 12:51) |
+| `.agents/state/current-session.json` | Updated |
+| `.agents/state/task.md` | Updated |
+| `.agents/state/checkpoints/handover-codeX-20260214-1251.json` | Latest |
 | `project-log-md/opencode/session-summary-20260214-*.md` | This file |
 
 ---
@@ -76,6 +76,6 @@ None.
 ## References
 
 - Design System: `frontend/docs/design-system-unified.md`
-- Handoff Workflow: `.agent/workflows/handoff-to-any.md`
-- Project Status: `.agent/PROJECT_STATUS.md`
+- Handoff Workflow: `.agents/workflows/handoff-to-any.md`
+- Project Status: `.agents/PROJECT_STATUS.md`
 - Implementation Plan: `PRPs/claude_code/live-chat-improvement.plan.md`

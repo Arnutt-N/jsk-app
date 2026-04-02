@@ -319,10 +319,10 @@ Each phase: component list, exact steps, rollback procedure, success criteria.
 ## Handoff Back
 
 When complete, create:
-- `.agent/state/checkpoints/handover-codeX-[YYYYMMDD-HHMM].json`
+- `.agents/state/checkpoints/handover-codeX-[YYYYMMDD-HHMM].json`
 - `project-log-md/codeX/session-summary-[YYYYMMDD-HHMM].md`
-- Update `.agent/state/TASK_LOG.md` (APPEND ONLY, Task #15)
-- Update `.agent/state/SESSION_INDEX.md`
+- Update `.agents/state/TASK_LOG.md` (APPEND ONLY, Task #15)
+- Update `.agents/state/SESSION_INDEX.md`
 
 ---
 

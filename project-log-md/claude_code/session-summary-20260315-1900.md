@@ -104,8 +104,8 @@ None. Skills are updated and consistent with codebase.
 
 ## Session Artifacts
 
-- **Checkpoint**: `.agent/state/checkpoints/handover-claude_code-20260315-1900.json`
-- **Task Log**: Task #24 in `.agent/state/TASK_LOG.md`
+- **Checkpoint**: `.agents/state/checkpoints/handover-claude_code-20260315-1900.json`
+- **Task Log**: Task #24 in `.agents/state/TASK_LOG.md`
 - **This summary**: `project-log-md/claude_code/session-summary-20260315-1900.md`
 
 ---

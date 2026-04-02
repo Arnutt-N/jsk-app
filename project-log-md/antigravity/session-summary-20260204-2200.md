@@ -16,7 +16,7 @@ Agent: Antigravity
 - **Environment**: Windows Native (Python 3.12)
 - **Modified**: 
   - `c:\Users\TOPP\.gemini\antigravity\mcp_config.json`
-  - `d:\genAI\skn-app\scripts\notebooklm-mcp\`
+  - `D:\genAI\jsk-app\scripts\notebooklm-mcp\`
 - **Decision**: ใช้การรนผ่าน `python -c` เพื่อให้แน่ใจว่าเรียกใช้โมดูลจาก site-packages ของ Python 3.12 ได้ถูกต้องเสมอ แทนการเรียกผ่าน command direct ที่อาจมีปัญหาเรื่อง PATH
 
 ## ⏳ Next Steps / Handover

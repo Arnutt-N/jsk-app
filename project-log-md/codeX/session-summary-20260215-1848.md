@@ -5,7 +5,7 @@ Agent: CodeX (Codex GPT-5)
 Branch: fix/live-chat-redesign-issues
 
 ## Objective
-Execute the full `.agent/workflows/handoff-to-any.md` workflow and synchronize all mandatory handoff artifacts after release publish.
+Execute the full `.agents/workflows/handoff-to-any.md` workflow and synchronize all mandatory handoff artifacts after release publish.
 
 ## Cross-Platform Context
 
@@ -29,12 +29,12 @@ Execute the full `.agent/workflows/handoff-to-any.md` workflow and synchronize a
 
 ## Completed
 - Updated required shared artifacts:
-  - `.agent/PROJECT_STATUS.md`
-  - `.agent/state/current-session.json`
-  - `.agent/state/TASK_LOG.md` (prepended Task #16)
-  - `.agent/state/checkpoints/handover-codeX-20260215-1848.json`
+  - `.agents/PROJECT_STATUS.md`
+  - `.agents/state/current-session.json`
+  - `.agents/state/TASK_LOG.md` (prepended Task #16)
+  - `.agents/state/checkpoints/handover-codeX-20260215-1848.json`
   - `project-log-md/codeX/session-summary-20260215-1848.md`
-  - `.agent/state/SESSION_INDEX.md`
+  - `.agents/state/SESSION_INDEX.md`
 - Confirmed branch/tag publish state:
   - branch: `fix/live-chat-redesign-issues`
   - tag: `v1.5.0`
@@ -52,6 +52,6 @@ Execute the full `.agent/workflows/handoff-to-any.md` workflow and synchronize a
 3. Publish formal release notes for `v1.5.0`.
 
 ## Session Artifacts
-- Task log entry: `.agent/state/TASK_LOG.md` (Task #16)
-- Checkpoint: `.agent/state/checkpoints/handover-codeX-20260215-1848.json`
-- Session index reference: `.agent/state/SESSION_INDEX.md`
+- Task log entry: `.agents/state/TASK_LOG.md` (Task #16)
+- Checkpoint: `.agents/state/checkpoints/handover-codeX-20260215-1848.json`
+- Session index reference: `.agents/state/SESSION_INDEX.md`

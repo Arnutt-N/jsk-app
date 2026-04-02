@@ -1,7 +1,7 @@
 ﻿# Session Summary: codex
 
 ## What was done
-- Completed pickup workflow and reconciled state drift in `.agent/state/current-session.json` (14/27 -> 18/27).
+- Completed pickup workflow and reconciled state drift in `.agents/state/current-session.json` (14/27 -> 18/27).
 - Built and merged frontend design-system baseline from screenshot references and research spec.
 - Added `/admin/design-system` page and menu entry.
 - Added unified docs and compliance checklist.
@@ -12,7 +12,7 @@
 - Fixed lint/build blockers in shared provider/UI files.
 
 ## Validation
-- `python .agent/scripts/validate_handoff_state.py`: PASS
+- `python .agents/scripts/validate_handoff_state.py`: PASS
 - `npm run lint`: PASS
 - `npm run build`: PASS
 

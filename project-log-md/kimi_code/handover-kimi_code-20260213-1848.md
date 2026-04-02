@@ -24,7 +24,7 @@ From: Kimi Code CLI
 - **Backend**: FastAPI with PostgreSQL + Redis
 - **Frontend**: Next.js 16 + React 19 + Tailwind CSS v4
 - **Servers**: Not currently running (clean handover state)
-- **Git Status**: 3 modified files in `.agent/` directory (status files), 2 untracked handover files from previous session
+- **Git Status**: 3 modified files in `.agents/` directory (status files), 2 untracked handover files from previous session
 
 ## ⏭️ Instructions for Successor
 1. **Create PR**: Visit https://github.com/Arnutt-N/skn-app/compare/main...fix/live-chat-redesign-issues or install `gh` CLI to create PR
@@ -34,13 +34,13 @@ From: Kimi Code CLI
 5. **Post-Plan Tasks** (from backlog): Automated testing pipeline, production deployment setup, user documentation
 
 ## 📁 State Files Updated
-- [x] `.agent/PROJECT_STATUS.md` - Last updated: 2026-02-13 03:00
-- [x] `.agent/state/current-session.json` - Status: COMPLETE
-- [x] `.agent/state/task.md` - 27/27 steps marked complete
+- [x] `.agents/PROJECT_STATUS.md` - Last updated: 2026-02-13 03:00
+- [x] `.agents/state/current-session.json` - Status: COMPLETE
+- [x] `.agents/state/task.md` - 27/27 steps marked complete
 - [x] `project-log-md/kimi_code/handover-kimi_code-20260213-1848.md` (this file)
 
 ## 🔗 Related Documents
 - Plan: `PRPs/claude_code/live-chat-improvement.plan.md`
-- Project Status: `.agent/PROJECT_STATUS.md`
-- Current Session: `.agent/state/current-session.json`
-- Task Details: `.agent/state/task.md`
+- Project Status: `.agents/PROJECT_STATUS.md`
+- Current Session: `.agents/state/current-session.json`
+- Task Details: `.agents/state/task.md`

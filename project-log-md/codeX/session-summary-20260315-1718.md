@@ -65,6 +65,6 @@ Repair the `/admin/files` media API contract so the new admin files browser can 
 4. Commit intended changes on `feat/ui-workflow-audit` and open/update the PR to `main`.
 
 ## Session Artifacts
-- Task log entry: `.agent/state/TASK_LOG.md` (Task #25)
-- Checkpoint: `.agent/state/checkpoints/handover-codeX-20260315-1718.json`
-- Session index reference: `.agent/state/SESSION_INDEX.md`
+- Task log entry: `.agents/state/TASK_LOG.md` (Task #25)
+- Checkpoint: `.agents/state/checkpoints/handover-codeX-20260315-1718.json`
+- Session index reference: `.agents/state/SESSION_INDEX.md`

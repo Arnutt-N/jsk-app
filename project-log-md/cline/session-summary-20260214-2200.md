@@ -39,9 +39,9 @@ Planning and documenting the live chat UI migration from `slate-*` color scheme 
 - Execute the live chat UI migration plan
 - Coordinate with CodeX's recent UI work to ensure consistency
 - Consider dark mode support during migration
-- Reference `.agent/PROJECT_STATUS.md` for current milestones
+- Reference `.agents/PROJECT_STATUS.md` for current milestones
 
 ## Session Artifacts
-- **Checkpoint**: `.agent/state/checkpoints/handover-cline-[TIMESTAMP].json` (to be created)
-- **Task Log**: `.agent/state/TASK_LOG.md` (append new entry)
-- **Session Index**: `.agent/state/SESSION_INDEX.md` (update with new entry)
+- **Checkpoint**: `.agents/state/checkpoints/handover-cline-[TIMESTAMP].json` (to be created)
+- **Task Log**: `.agents/state/TASK_LOG.md` (append new entry)
+- **Session Index**: `.agents/state/SESSION_INDEX.md` (update with new entry)

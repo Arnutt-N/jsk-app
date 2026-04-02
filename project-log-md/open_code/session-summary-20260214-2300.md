@@ -153,9 +153,9 @@ The migration plan includes:
 | Artifact | Location |
 |----------|----------|
 | Migration Plan | `PRPs/open_code/live-chat-ui-migration-plan.md` |
-| Task Log Entry | Task #9 in `.agent/state/TASK_LOG.md` |
-| Checkpoint | `.agent/state/checkpoints/handover-open_code-20260214-2300.json` |
-| Session Index | Updated in `.agent/state/SESSION_INDEX.md` |
+| Task Log Entry | Task #9 in `.agents/state/TASK_LOG.md` |
+| Checkpoint | `.agents/state/checkpoints/handover-open_code-20260214-2300.json` |
+| Session Index | Updated in `.agents/state/SESSION_INDEX.md` |
 
 ---
 
@@ -184,7 +184,7 @@ The migration plan includes:
 - Example: `examples/admin-chat-system/`
 - Current: `frontend/app/admin/live-chat/`
 - Plan: `PRPs/open_code/live-chat-ui-migration-plan.md`
-- Workflow: `.agent/workflows/handoff-to-any.md`
+- Workflow: `.agents/workflows/handoff-to-any.md`
 
 ---
 

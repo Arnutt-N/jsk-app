@@ -33,7 +33,7 @@ Create cross-platform session index system so every agent can find and read ever
 ## Work Completed
 
 ### 1. Created SESSION_INDEX.md
-**File**: `.agent/state/SESSION_INDEX.md`
+**File**: `.agents/state/SESSION_INDEX.md`
 
 - Master index of ALL session summaries from ALL platforms
 - 10 platform directories indexed
@@ -43,7 +43,7 @@ Create cross-platform session index system so every agent can find and read ever
 - Commands to find recent summaries
 
 ### 2. Updated handoff-to-any.md
-**File**: `.agent/workflows/handoff-to-any.md`
+**File**: `.agents/workflows/handoff-to-any.md`
 
 - Added SESSION_INDEX.md as mandatory artifact #6
 - Added cross-platform artifact requirements
@@ -52,7 +52,7 @@ Create cross-platform session index system so every agent can find and read ever
 - Added cross-platform handoff message format
 
 ### 3. Updated pickup-from-any.md
-**File**: `.agent/workflows/pickup-from-any.md`
+**File**: `.agents/workflows/pickup-from-any.md`
 
 - Added Step 2: Read Cross-Platform Context (REQUIRED)
 - Added instructions to read 3 latest summaries from ANY platforms
@@ -61,7 +61,7 @@ Create cross-platform session index system so every agent can find and read ever
 - Added cross-platform confirmation message format
 
 ### 4. Updated start-here.md
-**File**: `.agent/workflows/start-here.md`
+**File**: `.agents/workflows/start-here.md`
 
 - Added Step 6: Read Cross-Platform Session Index
 - Added Step 7: Read Recent Summaries from ALL Platforms
@@ -69,7 +69,7 @@ Create cross-platform session index system so every agent can find and read ever
 - Added SESSION_INDEX.md to checklists
 
 ### 5. Updated INDEX.md
-**File**: `.agent/INDEX.md`
+**File**: `.agents/INDEX.md`
 
 - Added SESSION_INDEX.md to collaboration quick reference
 - Added SESSION_INDEX.md to workflows directory table
@@ -77,7 +77,7 @@ Create cross-platform session index system so every agent can find and read ever
 - Added SESSION_INDEX.md to additional resources
 
 ### 6. Updated PROJECT_STATUS.md
-**File**: `.agent/PROJECT_STATUS.md`
+**File**: `.agents/PROJECT_STATUS.md`
 
 - Added SESSION_INDEX.md to agent collaboration quick reference
 - Added Cross-Platform Reading Rule
@@ -85,14 +85,14 @@ Create cross-platform session index system so every agent can find and read ever
 - Added recent completion entry
 
 ### 7. Updated AGENT_ONBOARDING_GUIDE.md
-**File**: `.agent/AGENT_ONBOARDING_GUIDE.md`
+**File**: `.agents/AGENT_ONBOARDING_GUIDE.md`
 
 - Added SESSION_INDEX.md section with critical notes
 - Updated file structure diagram
 - Added to resources list
 
 ### 8. Updated QUICK_START_CARD.md
-**File**: `.agent/QUICK_START_CARD.md`
+**File**: `.agents/QUICK_START_CARD.md`
 
 - Added SESSION_INDEX.md to key locations table
 - Added commands to read cross-platform summaries
@@ -100,9 +100,9 @@ Create cross-platform session index system so every agent can find and read ever
 
 ### 9. Updated Supporting Files
 **Files**:
-- `.agent/state/current-session.json` - Added cross_platform_context
-- `.agent/state/task.md` - Updated references
-- `.agent/state/TASK_LOG.md` - Added SESSION_INDEX.md reference
+- `.agents/state/current-session.json` - Added cross_platform_context
+- `.agents/state/task.md` - Updated references
+- `.agents/state/TASK_LOG.md` - Added SESSION_INDEX.md reference
 
 ---
 
@@ -110,8 +110,8 @@ Create cross-platform session index system so every agent can find and read ever
 
 | File | Purpose |
 |------|---------|
-| `.agent/state/SESSION_INDEX.md` | Cross-platform session summary index |
-| `.agent/state/checkpoints/handover-kimi-20260214-1325.json` | Handoff checkpoint |
+| `.agents/state/SESSION_INDEX.md` | Cross-platform session summary index |
+| `.agents/state/checkpoints/handover-kimi-20260214-1325.json` | Handoff checkpoint |
 | `project-log-md/kimi_code/session-summary-20260214-1325.md` | This file |
 
 ---
@@ -120,15 +120,15 @@ Create cross-platform session index system so every agent can find and read ever
 
 | File | Changes |
 |------|---------|
-| `.agent/PROJECT_STATUS.md` | Added SESSION_INDEX.md, cross-platform rules |
-| `.agent/INDEX.md` | Added SESSION_INDEX.md references |
-| `.agent/workflows/handoff-to-any.md` | Cross-platform requirements |
-| `.agent/workflows/pickup-from-any.md` | Cross-platform reading instructions |
-| `.agent/workflows/start-here.md` | Cross-platform steps |
-| `.agent/AGENT_ONBOARDING_GUIDE.md` | SESSION_INDEX.md section |
-| `.agent/QUICK_START_CARD.md` | SESSION_INDEX.md references |
-| `.agent/state/current-session.json` | Cross-platform context |
-| `.agent/state/task.md` | References updated |
+| `.agents/PROJECT_STATUS.md` | Added SESSION_INDEX.md, cross-platform rules |
+| `.agents/INDEX.md` | Added SESSION_INDEX.md references |
+| `.agents/workflows/handoff-to-any.md` | Cross-platform requirements |
+| `.agents/workflows/pickup-from-any.md` | Cross-platform reading instructions |
+| `.agents/workflows/start-here.md` | Cross-platform steps |
+| `.agents/AGENT_ONBOARDING_GUIDE.md` | SESSION_INDEX.md section |
+| `.agents/QUICK_START_CARD.md` | SESSION_INDEX.md references |
+| `.agents/state/current-session.json` | Cross-platform context |
+| `.agents/state/task.md` | References updated |
 
 ---
 
@@ -167,9 +167,9 @@ None.
 
 ## Critical Reminders for Next Agent
 
-1. **Use `.agent/state/SESSION_INDEX.md`** to find summaries from ALL platforms
+1. **Use `.agents/state/SESSION_INDEX.md`** to find summaries from ALL platforms
 2. **Read 3 latest summaries** from ANY platforms (not just yours)
-3. **Use `.agent/workflows/pickup-from-any.md`** for cross-platform pickup
+3. **Use `.agents/workflows/pickup-from-any.md`** for cross-platform pickup
 4. **Update SESSION_INDEX.md** when creating your session summary
 5. **All workflows now require cross-platform awareness**
 

@@ -67,6 +67,6 @@ Audit admin workflow coverage, repair broken auth/menu/role behavior, and hand o
 4. Run full frontend validation once environment stability allows completion.
 
 ## Session Artifacts
-- Task log entry: `.agent/state/TASK_LOG.md` (Task #22)
-- Checkpoint: `.agent/state/checkpoints/handover-codeX-20260315-1542.json`
-- Session index reference: `.agent/state/SESSION_INDEX.md`
+- Task log entry: `.agents/state/TASK_LOG.md` (Task #22)
+- Checkpoint: `.agents/state/checkpoints/handover-codeX-20260315-1542.json`
+- Session index reference: `.agents/state/SESSION_INDEX.md`

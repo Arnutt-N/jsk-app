@@ -323,7 +323,7 @@ Running the app directly from `/mnt/d/...` (Windows drive) causes:
 ### Directory Structure
 
 ```
-Windows (Source - D:\genAI\skn-app)
+Windows (Source - D:\genAI\jsk-app)
 ├── backend/
 │   ├── venv/              # Windows venv (DO NOT sync to WSL)
 │   └── ...

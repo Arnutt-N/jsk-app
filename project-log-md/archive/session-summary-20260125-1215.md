@@ -2,7 +2,7 @@
 Generated: 2026-01-25 12:15
 
 ## 🎯 Main Objectives
-- Implement "Live Chat Human Handoff System" based on `D:\genAI\skn-app\PRPs\2026-01-25-live-chat-human-handoff.md`.
+- Implement "Live Chat Human Handoff System" based on `D:\genAI\jsk-app\PRPs\2026-01-25-live-chat-human-handoff.md`.
 - Redesign `LiveChatPage` to match "SKN Admin" visual identity.
 - Integrate shared components (`BotStatusIndicator`, `useTheme`).
 

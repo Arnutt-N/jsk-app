@@ -1,6 +1,6 @@
 # LINE Flex Message — Component & Property Reference
 
-Adapted from `.agent/skills/line_flex_message_builder` with SKN App-specific additions.
+Adapted from `.agents/skills/line_flex_message_builder` with SKN App-specific additions.
 
 ---
 

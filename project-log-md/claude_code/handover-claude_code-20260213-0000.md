@@ -24,7 +24,7 @@ From: Claude Code
 - Many uncommitted changes exist (see `git status`).
 
 ## Instructions for Successor
-1. Read this handover file and `.agent/state/task.md` for full context.
+1. Read this handover file and `.agents/state/task.md` for full context.
 2. Pick up **Step 1.8** (session claim race condition) as highest priority.
 3. Then **Step 1.10** (FCR O(n) optimization).
 4. Run `npm run lint && npm run build` in frontend to verify build gate.

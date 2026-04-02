@@ -15,7 +15,7 @@ Performed universal pickup workflow and provided comprehensive analysis of Vuexy
 
 ## Completed Tasks
 
-- [x] Read `.agent/workflows/pickup-from-any.md` workflow
+- [x] Read `.agents/workflows/pickup-from-any.md` workflow
 - [x] Validated project state consistency across all state files
 - [x] Analyzed latest handover (2026-02-10 22:07)
 - [x] Read 105 Vuexy Vue.js Admin Template screenshots from `examples/templates/`
@@ -88,9 +88,9 @@ npm run dev
 
 | File | Purpose |
 |------|---------|
-| `.agent/workflows/pickup-from-any.md` | Pickup workflow |
-| `.agent/state/checkpoints/handover-kimi_code-20260210-2207.json` | Previous handover |
-| `.agent/PROJECT_STATUS.md` | Project status |
+| `.agents/workflows/pickup-from-any.md` | Pickup workflow |
+| `.agents/state/checkpoints/handover-kimi_code-20260210-2207.json` | Previous handover |
+| `.agents/PROJECT_STATUS.md` | Project status |
 | `examples/templates/` | Vuexy UI template reference |
 
 ---
@@ -99,7 +99,7 @@ npm run dev
 
 | File | Change |
 |------|--------|
-| `.agent/state/current-session.json` | Updated session ownership and timestamp |
+| `.agents/state/current-session.json` | Updated session ownership and timestamp |
 
 ---
 

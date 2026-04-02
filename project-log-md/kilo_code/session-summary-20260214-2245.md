@@ -145,12 +145,12 @@ From the migration plan, the following are ready for implementation:
 
 ## Handoff Instructions
 
-See `.agent/workflows/handoff-to-any.md` for complete handoff procedure.
+See `.agents/workflows/handoff-to-any.md` for complete handoff procedure.
 
 Key files to review:
 1. [`PRPs/kilo_code/live-chat-ui-migration-plan.md`](PRPs/kilo_code/live-chat-ui-migration-plan.md) - Migration plan
 2. [`AGENTS.md`](AGENTS.md) - Project conventions
-3. [`.agent/PROJECT_STATUS.md`](.agent/PROJECT_STATUS.md) - Current project status
+3. [`.agents/PROJECT_STATUS.md`](.agents/PROJECT_STATUS.md) - Current project status
 
 ---
 

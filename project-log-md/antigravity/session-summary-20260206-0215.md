@@ -15,7 +15,7 @@ Agent: Antigravity
 
 ## ⚡ Technical State & Decisions
 - **Mode**: Pro (Antigravity)
-- **Modified**: `backend/app/api/v1/endpoints/ws_live_chat.py`, `.agent/PROJECT_STATUS.md`
+- **Modified**: `backend/app/api/v1/endpoints/ws_live_chat.py`, `.agents/PROJECT_STATUS.md`
 - **Decision**: Recommended rebuilding the virtual environment in WSL (LF) instead of switching to Windows (CRLF) to maintain development standards.
 
 ## ⏳ Next Steps / Handover

@@ -23,9 +23,9 @@ Agent: Antigravity (Gemini)
 ## 📁 Key Files Referenced
 | File | Purpose |
 |------|---------|
-| `.agent/workflows/run-app.md` | คำสั่งรันแอปใน WSL |
-| `.agent/workflows/pickup-from-any.md` | รับงานจาก Agent อื่น |
-| `.agent/workflows/handoff-to-any.md` | ส่งมอบงานให้ Agent อื่น |
+| `.agents/workflows/run-app.md` | คำสั่งรันแอปใน WSL |
+| `.agents/workflows/pickup-from-any.md` | รับงานจาก Agent อื่น |
+| `.agents/workflows/handoff-to-any.md` | ส่งมอบงานให้ Agent อื่น |
 | `secrets/switch-claude.ps1` | สคริปต์สลับโหมด Claude |
 
 ## ⏳ Next Steps / Handover

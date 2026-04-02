@@ -13,7 +13,7 @@
 | **21:30-22:30** | Analysis execution | - |
 | **22:30** | Analysis reports completed | `comprehensive_analysis_report.md` (21 KB) |
 | **22:30-23:00** | Comparison report + templates | `comparison_analysis.md` (16 KB) |
-| **23:00-23:45** | Distributed templates to antigravity, codeX | `.agent/AGENT_PROMPT_TEMPLATE.md` |
+| **23:00-23:45** | Distributed templates to antigravity, codeX | `.agents/AGENT_PROMPT_TEMPLATE.md` |
 | **23:50** | **Handoff completed** | `HANDOFF-20260207-2230.md` (updated to 23:50) |
 
 ---
@@ -36,7 +36,7 @@
 
 ## ✅ Correct Approach
 
-Per `.agent/AGENT_PROMPT_TEMPLATE.md`:
+Per `.agents/AGENT_PROMPT_TEMPLATE.md`:
 
 1. **Analysis Phase** → Create session summary with analysis timestamp (21:30) ✅
 2. **Handoff Phase** → Create handoff document with actual handoff time (23:57) ✅

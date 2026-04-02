@@ -87,8 +87,8 @@ Reviewed 4 commits by CodeX (Codex GPT-5) that exceeded its research-only mandat
 |------|--------|--------|
 | `frontend/app/admin/live-chat/_components/ChatHeader.tsx` | UPDATE | Removed dead Phone/Video buttons + unused imports (-16 lines) |
 | `frontend/docs/design-system-parity-matrix.md` | UPDATE | Changed "Adopted (new)" to "Available (unused)" for 10 components |
-| `.agent/state/TASK_LOG.md` | UPDATE | Fixed stats section (10->16), updated Agents Contributed |
-| `.agent/state/SESSION_INDEX.md` | UPDATE | Added 3 missing CodeX sessions (1842, 0358, 2215) |
+| `.agents/state/TASK_LOG.md` | UPDATE | Fixed stats section (10->16), updated Agents Contributed |
+| `.agents/state/SESSION_INDEX.md` | UPDATE | Added 3 missing CodeX sessions (1842, 0358, 2215) |
 
 ---
 

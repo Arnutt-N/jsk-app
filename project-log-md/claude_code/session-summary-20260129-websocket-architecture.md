@@ -80,7 +80,7 @@ Searched and synthesized best practices from:
 
 ### 5. Created Merged Plan
 
-**File**: `D:\genAI\skn-app\PRPs\claude_code\websocket-live-chat-architecture.plan.md`
+**File**: `D:\genAI\jsk-app\PRPs\claude_code\websocket-live-chat-architecture.plan.md`
 
 Combined the best of both plans:
 

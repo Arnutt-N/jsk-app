@@ -4,7 +4,9 @@ REM Git Log Creator - Enterprise Edition
 REM Creates timestamped git log in markdown format
 REM ====================================
 
-cd /d "D:\genAI\skn-app"
+set "SCRIPT_DIR=%~dp0"
+for %%I in ("%SCRIPT_DIR%..") do set "REPO_ROOT=%%~fI"
+cd /d "%REPO_ROOT%"
 
 REM Get date and time
 for /f "tokens=2-4 delims=/ " %%a in ('date /t') do set mydate=%%c%%b%%a

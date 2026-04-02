@@ -110,7 +110,7 @@ None.
 
 ## Session Artifacts
 
-- **Checkpoint:** `.agent/state/checkpoints/handover-claude_code-20260220-2220.json`
-- **Task Log Entry:** Task #21 in `.agent/state/TASK_LOG.md`
+- **Checkpoint:** `.agents/state/checkpoints/handover-claude_code-20260220-2220.json`
+- **Task Log Entry:** Task #21 in `.agents/state/TASK_LOG.md`
 - **PR:** https://github.com/Arnutt-N/skn-app/pull/2 (merged)
 - **Tag:** `v1.8.0`

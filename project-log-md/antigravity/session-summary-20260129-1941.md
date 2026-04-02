@@ -16,11 +16,11 @@ Agent: Antigravity
 ## ⚡ Technical State & Decisions
 - **Mode**: Pro Plan
 - **Modified Files**:
-  - `.agent/skills/cross_platform_collaboration/SKILL.md`
-  - `.agent/workflows/handoff-to-any.md`
-  - `.agent/workflows/pickup-from-any.md`
-  - `.agent/workflows/session-summary.md`
-  - `.agent/workflows/agent-handover.md`
+  - `.agents/skills/cross_platform_collaboration/SKILL.md`
+  - `.agents/workflows/handoff-to-any.md`
+  - `.agents/workflows/pickup-from-any.md`
+  - `.agents/workflows/session-summary.md`
+  - `.agents/workflows/agent-handover.md`
 - **Decisions**:
   - ใช้โครงสร้าง subdirectory เดียวกันทั้ง 3 output directories
   - ย้ายไฟล์เก่าไปเก็บใน `archive/`

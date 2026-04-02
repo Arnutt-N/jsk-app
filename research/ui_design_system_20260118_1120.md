@@ -55,7 +55,7 @@ Modern Enterprise "Glassmorphism" emphasizing high-density utility and visual el
 ---
 
 ## 9. Reference Artifacts (Verification Guide)
-ใช้เพื่ออ้างอิงและตรวจสอบดีไซน์จริงจากไฟล์ใน `D:\genAI\skn-app\examples\templates`:
+ใช้เพื่ออ้างอิงและตรวจสอบดีไซน์จริงจากไฟล์ใน `D:\genAI\jsk-app\examples\templates`:
 
 | Section | Feature / Component | Reference Screenshot File |
 | :--- | :--- | :--- |

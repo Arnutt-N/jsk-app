@@ -8,11 +8,11 @@ Agent: Antigravity
 - Establish the `project_status_standard` skill.
 
 ## ✅ Completed Tasks
-- **Analyzed** existing `.agent` structure and identified the need for a high-level status tracker.
-- **Created** `d:\genAI\skn-app\.agent\skills\project_status_standard\SKILL.md`: Defined standards for project status updates.
-- **Created** `d:\genAI\skn-app\.agent\PROJECT_STATUS.md`: The central source of truth with Thai summary, Mermaid roadmap, and active milestones.
-- **Updated** `d:\genAI\skn-app\.agent\workflows\agent-handover.md`: Added mandatory step to update project status before handover.
-- **Updated** `d:\genAI\skn-app\.agent\INDEX.md`: Registered the new skill and file.
+- **Analyzed** existing `.agents` structure and identified the need for a high-level status tracker.
+- **Created** `D:\genAI\jsk-app\.agents\skills\project_status_standard\SKILL.md`: Defined standards for project status updates.
+- **Created** `D:\genAI\jsk-app\.agents\PROJECT_STATUS.md`: The central source of truth with Thai summary, Mermaid roadmap, and active milestones.
+- **Updated** `D:\genAI\jsk-app\.agents\workflows\agent-handover.md`: Added mandatory step to update project status before handover.
+- **Updated** `D:\genAI\jsk-app\.agents\INDEX.md`: Registered the new skill and file.
 - **Verified** the system implementation.
 
 ## ⚡ Technical State & Decisions

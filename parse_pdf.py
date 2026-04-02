@@ -1,5 +1,10 @@
 import sys
 import subprocess
+from pathlib import Path
+
+
+REPO_ROOT = Path(__file__).resolve().parent
+PDF_PATH = REPO_ROOT / ".claude" / "docs" / "The-Complete-Guide-to-Building-Skill-for-Claude.pdf"
 
 def install_and_read():
     try:
@@ -10,7 +15,7 @@ def install_and_read():
         import pypdf
     
     try:
-        reader = pypdf.PdfReader(r'D:\genAI\skn-app\.claude\docs\The-Complete-Guide-to-Building-Skill-for-Claude.pdf')
+        reader = pypdf.PdfReader(str(PDF_PATH))
         text = []
         for i, page in enumerate(reader.pages):
             text.append(f"--- Page {i+1} ---")

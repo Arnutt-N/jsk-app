@@ -42,11 +42,11 @@ Per `.claude/PRPs/plans/live-chat-100-compliance-merged.plan.md`:
 **Use Windows Python instead:**
 ```powershell
 # Backend
-cd D:\genAI\skn-app\backend
+cd D:\genAI\jsk-app\backend
 python -m uvicorn app.main:app --reload
 
 # Frontend
-cd D:\genAI\skn-app\frontend
+cd D:\genAI\jsk-app\frontend
 npm run dev
 ```
 
@@ -80,11 +80,11 @@ npm run dev
 ### 1. Start Servers (Windows PowerShell)
 ```powershell
 # Terminal 1: Backend
-cd D:\genAI\skn-app\backend
+cd D:\genAI\jsk-app\backend
 python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 # Terminal 2: Frontend
-cd D:\genAI\skn-app\frontend
+cd D:\genAI\jsk-app\frontend
 npm run dev
 ```
 
@@ -151,7 +151,7 @@ pm-cli.js` error
 
 - **Merged Plan**: `.claude/PRPs/plans/live-chat-100-compliance-merged.plan.md`
 - **Session Summary**: `project-log-md/kimi_code/2026-02-06_session-summary-phase4.md`
-- **Agent Skills**: `.agent/skills/` (cross_platform_collaboration, etc.)
+- **Agent Skills**: `.agents/skills/` (cross_platform_collaboration, etc.)
 
 ---
 

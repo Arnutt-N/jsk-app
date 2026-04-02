@@ -1,0 +1,66 @@
+---
+description: Enterprise Handover Protocol - Prepare for the next agent
+---
+
+# Workflow: Agent Handover
+
+## Purpose
+Ensure total context transfer when switching between Antigravity, Claude Code, or ending a session.
+
+## Steps
+
+### 1. Update Project Status (New)
+Open `.agents/PROJECT_STATUS.md` and update:
+- **Active Milestones**: Mark tasks as done (`[x]`) or in-progress (`[/]`).
+- **Recent Completions**: Add your completed tasks with date.
+- **Thai Summary**: Update the top section for the user.
+
+### 2. Generate Handover Summary
+Create a new file in `D:/genAI/skn-app/project-log-md/[AGENT_PLATFORM]/handover-[AGENT]-[TIMESTAMP].md`
+
+**Agent Platforms:** `antigravity`, `gemini_cli`, `claude_code`, `codeX`, `kilo_code`, `open_code`, `other`
+
+**Output Directories (เลือกตามประเภทเนื้อหา):**
+| Directory | ใช้สำหรับ |
+|-----------|----------|
+| `project-log-md/` | Session logs, handover summaries |
+| `research/` | Research documents, technical notes |
+| `PRPs/` | Project Request Proposals |
+
+Use the following template:
+
+```markdown
+# 🤝 AGENT HANDOVER
+Generated: [ISO TIMESTAMP]
+From: [Antigravity | Gemini CLI | Claude Code | CodeX | Kilo Code | Open Code | Other]
+
+## 📍 Last Known State
+- **Branch**: [Current git branch]
+- **Active Mode**: [Pro Plan | Z-AI]
+- **Focus Area**: [e.g., Backend Auth / Frontend UI]
+
+## 📋 Task Progress
+- Refer to `task.md` for the granular checklist.
+- [High level summary of what was achieved]
+
+## ⚡ Technical Context
+- [Critical technical details, e.g., "Stopped before migration", "Env var X is required"]
+- [Any active servers or processes]
+
+## ⏭️ Instructions for Successor
+1. [Step 1]
+2. [Step 2]
+```
+
+### 2. Commit State (Optional)
+If working in a git-enabled repo, recommend a "Checkpoint" commit.
+`git commit -m "chore(handover): checkpoint [timestamp]"`
+
+### 3. Verify Files
+// turbo
+```bash
+dir "D:\genAI\jsk-app\project-log-md" /B
+```
+
+## Note for Successor
+When you see a file starting with `handover-`, read it FIRST before taking any action.

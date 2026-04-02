@@ -19,7 +19,7 @@ From: Antigravity
 
 ## ⏭️ Instructions for Successor (Phase 7 Refactoring)
 1. **Live Chat Refactoring**:
-   - Focus on `d:\genAI\skn-app\frontend\app\admin\live-chat`.
+   - Focus on `D:\genAI\jsk-app\frontend\app\admin\live-chat`.
    - Replace `slate-*` with `gray-*` (e.g. `bg-slate-100` -> `bg-gray-50/50` or `bg-gray-100` depending on context).
    - Implement dark mode using `dark:` variants (currently missing).
    - Check `text-primary` usage and replace with `text-brand-600` / `text-brand-500` if it's just color (keep gradient usage as is).
