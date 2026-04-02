@@ -2,6 +2,7 @@
 import logging
 from typing import Optional
 import redis.asyncio as redis
+from app.core.connection_targets import describe_redis_url
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -24,7 +25,7 @@ class RedisClient:
             await self._redis.ping()
             logger.info("Redis connected successfully")
         except Exception as e:
-            logger.error(f"Failed to connect to Redis: {e}")
+            logger.warning("Redis unavailable at %s: %s", describe_redis_url(self._url), e)
             self._redis = None
     
     async def disconnect(self):

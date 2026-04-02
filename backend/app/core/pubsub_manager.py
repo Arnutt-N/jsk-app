@@ -4,6 +4,7 @@ import asyncio
 import logging
 from typing import Callable, Optional, Dict, List
 import redis.asyncio as redis
+from app.core.connection_targets import describe_redis_url
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -42,7 +43,7 @@ class PubSubManager:
             logger.info("Redis Pub/Sub connected successfully")
             return True
         except Exception as e:
-            logger.error(f"Failed to connect to Redis Pub/Sub: {e}")
+            logger.warning("Redis Pub/Sub unavailable at %s: %s", describe_redis_url(self._url), e)
             self._redis = None
             self._pubsub = None
             return False
