@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from app.api.v1.api import api_router
+from app.core.connection_targets import describe_postgres_url, is_localhost_url
 from app.core.config import settings
 from app.core.pubsub_manager import pubsub_manager
 from app.core.redis_client import redis_client
@@ -25,6 +26,51 @@ tags_metadata = [
 ]
 
 
+def _build_database_startup_error(exc: Exception, *, context: str) -> str:
+    database_target = describe_postgres_url(str(settings.DATABASE_URL))
+    detail = str(exc).strip() or exc.__class__.__name__
+    message = f"{context} for {database_target}: {detail}."
+    if is_localhost_url(str(settings.DATABASE_URL)):
+        message += " Start Docker Desktop and run `docker compose up -d db redis` from the repo root."
+    return message
+
+
+async def _initialize_database() -> None:
+    from sqlalchemy import text
+
+    from app.db.session import engine
+
+    try:
+        async with engine.begin() as conn:
+            await conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS system_settings (
+                    id SERIAL PRIMARY KEY,
+                    key VARCHAR NOT NULL UNIQUE,
+                    value TEXT,
+                    description VARCHAR,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                    updated_at TIMESTAMP WITH TIME ZONE
+                )
+            """))
+            await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_system_settings_key ON system_settings (key)"))
+            logger.info("Database initialized: system_settings table ensured.")
+    except Exception as exc:
+        raise RuntimeError(_build_database_startup_error(exc, context="Database unavailable")) from None
+
+
+async def _initialize_business_hours() -> None:
+    from app.db.session import AsyncSessionLocal
+
+    try:
+        async with AsyncSessionLocal() as db:
+            await business_hours_service.initialize_defaults(db)
+            logger.info("Business hours initialized.")
+    except Exception as exc:
+        raise RuntimeError(
+            _build_database_startup_error(exc, context="Database bootstrap failed")
+        ) from None
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     credential_service.validate_configuration()
@@ -36,28 +82,10 @@ async def lifespan(_: FastAPI):
     await ws_manager.initialize()
 
     # Initialize database
-    from sqlalchemy import text
-
-    from app.db.session import AsyncSessionLocal, engine
-
-    async with engine.begin() as conn:
-        await conn.execute(text("""
-            CREATE TABLE IF NOT EXISTS system_settings (
-                id SERIAL PRIMARY KEY,
-                key VARCHAR NOT NULL UNIQUE,
-                value TEXT,
-                description VARCHAR,
-                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-                updated_at TIMESTAMP WITH TIME ZONE
-            )
-        """))
-        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_system_settings_key ON system_settings (key)"))
-        logger.info("Database initialized: system_settings table ensured.")
+    await _initialize_database()
 
     # Initialize default business hours
-    async with AsyncSessionLocal() as db:
-        await business_hours_service.initialize_defaults(db)
-        logger.info("Business hours initialized.")
+    await _initialize_business_hours()
 
     # Start background tasks
     await start_cleanup_task()
