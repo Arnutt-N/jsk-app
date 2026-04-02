@@ -54,14 +54,14 @@ Create a merged comparison report from all agent platforms, build a research pla
 - `.claude/PRPs/research-plans/admin-ui-design-system-migration.research-plan.md` (540 lines)
 - `.claude/prp-research-team.state`
 - `PRPs/codeX/admin-ui-design-system-migration-tasks.md` (task handoff)
-- `.agent/state/checkpoints/handover-claude_code-20260215-2100.json`
+- `.agents/state/checkpoints/handover-claude_code-20260215-2100.json`
 - `project-log-md/claude_code/session-summary-20260215-2100.md`
 
 ## Files Modified
-- `.agent/state/TASK_LOG.md` (Task #14 appended)
-- `.agent/state/current-session.json`
-- `.agent/PROJECT_STATUS.md`
-- `.agent/state/SESSION_INDEX.md`
+- `.agents/state/TASK_LOG.md` (Task #14 appended)
+- `.agents/state/current-session.json`
+- `.agents/PROJECT_STATUS.md`
+- `.agents/state/SESSION_INDEX.md`
 
 ## In Progress
 - None (handed off to CodeX)
@@ -76,8 +76,8 @@ Create a merged comparison report from all agent platforms, build a research pla
 4. Hand back with 4 output files
 
 ## Session Artifacts
-- Checkpoint: `.agent/state/checkpoints/handover-claude_code-20260215-2100.json`
-- Task Log: Task #14 in `.agent/state/TASK_LOG.md`
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260215-2100.json`
+- Task Log: Task #14 in `.agents/state/TASK_LOG.md`
 
 ## Status Label
 - Claude Code: research plan complete; handoff to CodeX for parallel execution

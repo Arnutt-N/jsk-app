@@ -149,7 +149,7 @@ Execute the merged Live Chat UI Migration plan (`PRPs/claude_code/live-chat-ui-m
 ---
 
 ## Session Artifacts
-- Checkpoint: `.agent/state/checkpoints/handover-claude_code-20260215-1800.json`
-- Task Log: Task #10 in `.agent/state/TASK_LOG.md`
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260215-1800.json`
+- Task Log: Task #10 in `.agents/state/TASK_LOG.md`
 - Report: `.claude/PRPs/reports/live-chat-ui-migration-report.md`
 - Plan (archived): `.claude/PRPs/plans/completed/live-chat-ui-migration-merged.plan.md`

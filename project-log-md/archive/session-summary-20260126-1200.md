@@ -3,7 +3,7 @@ Generated: 2026-01-26 12:00
 Agent: Antigravity (M18)
 
 ## 🎯 Main Objectives
-- Implement "Live Chat Human Handoff System" based on `D:\genAI\skn-app\PRPs\2026-01-25-live-chat-human-handoff.md`.
+- Implement "Live Chat Human Handoff System" based on `D:\genAI\jsk-app\PRPs\2026-01-25-live-chat-human-handoff.md`.
 - Redesign `LiveChatPage` to match "SKN Admin" visual identity and theme.
 - Resolve "Failed to fetch" backend connection errors.
 - Ensure full integration into existing `AdminLayout`.
@@ -24,6 +24,6 @@ Agent: Antigravity (M18)
 
 ## ⏳ Next Steps / Handover
 - **Backend Verification**: RUN `uvicorn app.main:app --reload --host 0.0.0.0` inside `backend` directory (WSL).
-- **UI Redesign (Urgent)**: Review `uploaded_media_1769317507658.jpg` (clean white header, blurred search) and `D:\genAI\skn-app\PRPs\2026-01-25-live-chat-human-handoff.md` Section 5. The user wants the Live Chat to feel like a high-end inbox, not just a list.
+- **UI Redesign (Urgent)**: Review `uploaded_media_1769317507658.jpg` (clean white header, blurred search) and `D:\genAI\jsk-app\PRPs\2026-01-25-live-chat-human-handoff.md` Section 5. The user wants the Live Chat to feel like a high-end inbox, not just a list.
 - **CORS/Port Check**: If backend is running but fetch still fails, check `NEXT_PUBLIC_API_URL` and CORS settings in FastAPI.
 - **Handoff Logic**: Verify that toggling to "Human" mode correctly stops the bot responses in the LINE webhook.

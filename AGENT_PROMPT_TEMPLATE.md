@@ -10,18 +10,18 @@
 You are working on the SknApp project (LINE Official Account system with LIFF integration).
 
 FIRST - READ THESE FILES IN ORDER:
-1. .agent/PROJECT_STATUS.md - Current project status and active tasks
-2. .agent/workflows/pickup-from-any.md - How to pick up work from previous agent
-3. .agent/skills/cross_platform_collaboration/SKILL.md - Collaboration standards
-4. .agent/INDEX.md - Available skills and workflows
+1. .agents/PROJECT_STATUS.md - Current project status and active tasks
+2. .agents/workflows/pickup-from-any.md - How to pick up work from previous agent
+3. .agents/skills/cross_platform_collaboration/SKILL.md - Collaboration standards
+4. .agents/INDEX.md - Available skills and workflows
 
 THEN - CHECK FOR PENDING HANDOFFS:
 - Look in project-log-md/*/ for handover-* files
 - Read the most recent session-summary-* file
-- Check .agent/state/current-session.json
+- Check .agents/state/current-session.json
 
 FINALLY - UPDATE PROJECT_STATE:
-- Update .agent/state/current-session.json with your platform
+- Update .agents/state/current-session.json with your platform
 - Confirm you understand the next task
 - Begin work following the established patterns
 
@@ -38,13 +38,13 @@ TECH STACK: FastAPI (backend) + Next.js 16 (frontend) + PostgreSQL + Redis
 ```
 I'm starting fresh on the SknApp project. Please:
 
-1. Read the project overview from .agent/PROJECT_STATUS.md
+1. Read the project overview from .agents/PROJECT_STATUS.md
 2. Understand the tech stack: FastAPI + Next.js 16 + PostgreSQL + Redis
-3. Read the collaboration standards: .agent/skills/cross_platform_collaboration/SKILL.md
+3. Read the collaboration standards: .agents/skills/cross_platform_collaboration/SKILL.md
 4. Check if there's any pending work:
    - List files in project-log-md/*/
-   - Check .agent/state/task.md
-   - Check .agent/state/current-session.json
+   - Check .agents/state/task.md
+   - Check .agents/state/current-session.json
 
 5. If this is a NEW task (not continuing previous work):
    - Create a new task.md with the objective
@@ -52,7 +52,7 @@ I'm starting fresh on the SknApp project. Please:
    - Start working
 
 6. If this is CONTINUING previous work:
-   - Follow .agent/workflows/pickup-from-any.md
+   - Follow .agents/workflows/pickup-from-any.md
    - Read the latest handover/session-summary
    - Update session ownership
    - Continue work
@@ -70,18 +70,18 @@ I'm picking up work from a previous agent on the SknApp project.
 
 STEPS TO FOLLOW:
 
-1. Read .agent/workflows/pickup-from-any.md completely
+1. Read .agents/workflows/pickup-from-any.md completely
 
 2. Locate latest handoff:
    ```bash
-   ls -la .agent/state/checkpoints/handover-*.json | head -5
+   ls -la .agents/state/checkpoints/handover-*.json | head -5
    ls -la project-log-md/*/session-summary-*.md | head -5
    ```
 
 3. Read all state files:
-   - .agent/state/current-session.json
-   - .agent/state/task.md
-   - .agent/PROJECT_STATUS.md
+   - .agents/state/current-session.json
+   - .agents/state/task.md
+   - .agents/PROJECT_STATUS.md
    - Latest handover JSON
    - Latest session summary MD
 
@@ -115,7 +115,7 @@ I'm finishing work and need to hand off to the next agent on SknApp project.
 
 STEPS TO FOLLOW:
 
-1. Read .agent/workflows/handoff-to-any.md completely
+1. Read .agents/workflows/handoff-to-any.md completely
 
 2. Complete the Mandatory 5-Artifact Handoff:
 
@@ -138,7 +138,7 @@ STEPS TO FOLLOW:
    - Specify next steps
 
    Artifact 4: Create handover checkpoint
-   - File: .agent/state/checkpoints/handover-[YOUR_PLATFORM]-[TIMESTAMP].json
+   - File: .agents/state/checkpoints/handover-[YOUR_PLATFORM]-[TIMESTAMP].json
    - Include: summary, completed, in_progress, next_actions, blockers
 
    Artifact 5: Create session summary
@@ -147,10 +147,10 @@ STEPS TO FOLLOW:
 
 3. Verify all artifacts:
    ```bash
-   cat .agent/PROJECT_STATUS.md | head -20
-   cat .agent/state/current-session.json
-   cat .agent/state/task.md
-   ls -la .agent/state/checkpoints/
+   cat .agents/PROJECT_STATUS.md | head -20
+   cat .agents/state/current-session.json
+   cat .agents/state/task.md
+   ls -la .agents/state/checkpoints/
    ```
 
 4. Final handoff message:
@@ -173,7 +173,7 @@ CONTEXT:
 - Feature: [DESCRIBE_FEATURE]
 
 RESEARCH PHASE:
-1. Check .agent/INDEX.md for relevant skills:
+1. Check .agents/INDEX.md for relevant skills:
    - Backend? → fastapi_enterprise, api_development_standard
    - Frontend? → nextjs_enterprise, frontend_architecture
    - LINE? → line_integration, line_messaging_advanced
@@ -210,17 +210,17 @@ Report progress every 30 minutes or at milestones.
 ### Must Read (Every Session)
 | File | Purpose | When to Read |
 |------|---------|--------------|
-| `.agent/PROJECT_STATUS.md` | Project dashboard, active tasks | At start of EVERY session |
-| `.agent/workflows/pickup-from-any.md` | How to pickup work | When continuing previous work |
-| `.agent/workflows/handoff-to-any.md` | How to handoff work | When ending session |
-| `.agent/skills/cross_platform_collaboration/SKILL.md` | Collaboration standards | First time on project |
+| `.agents/PROJECT_STATUS.md` | Project dashboard, active tasks | At start of EVERY session |
+| `.agents/workflows/pickup-from-any.md` | How to pickup work | When continuing previous work |
+| `.agents/workflows/handoff-to-any.md` | How to handoff work | When ending session |
+| `.agents/skills/cross_platform_collaboration/SKILL.md` | Collaboration standards | First time on project |
 
 ### State Files (Read & Write)
 | File | Purpose | Update Frequency |
 |------|---------|------------------|
-| `.agent/state/current-session.json` | Session state | At start and end of session |
-| `.agent/state/task.md` | Task tracking | Throughout session |
-| `.agent/PROJECT_STATUS.md` | Project status | At end of session |
+| `.agents/state/current-session.json` | Session state | At start and end of session |
+| `.agents/state/task.md` | Task tracking | Throughout session |
+| `.agents/PROJECT_STATUS.md` | Project status | At end of session |
 
 ### Output Locations
 | Directory | Use For |
@@ -295,12 +295,12 @@ If something goes wrong:
 1. **Check git history**
    ```bash
    git log --oneline -10
-   git log -- .agent/state/ --oneline
+   git log -- .agents/state/ --oneline
    ```
 
 2. **Check for checkpoints**
    ```bash
-   ls -lt .agent/state/checkpoints/
+   ls -lt .agents/state/checkpoints/
    ```
 
 3. **Reconstruct from latest checkpoint**
@@ -359,9 +359,9 @@ When writing session summaries, include both languages:
 
 ### New to this project?
 1. Read this file completely
-2. Read .agent/PROJECT_STATUS.md
-3. Read .agent/skills/cross_platform_collaboration/SKILL.md
-4. Read .agent/INDEX.md
+2. Read .agents/PROJECT_STATUS.md
+3. Read .agents/skills/cross_platform_collaboration/SKILL.md
+4. Read .agents/INDEX.md
 5. Check project-log-md/ for recent activity
 
 ### New to tech stack?

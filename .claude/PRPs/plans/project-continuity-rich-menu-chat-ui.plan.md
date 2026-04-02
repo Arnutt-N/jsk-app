@@ -186,7 +186,7 @@ So that **development continuity is maintained, LINE rich menu configurations ar
 ### Interaction Changes
 | Location | Before | After | User Impact |
 |----------|--------|-------|-------------|
-| `.agent/workflows/` | Manual multi-step handoff | One-skill `/handoff` command | Faster handoff, less error-prone |
+| `.agents/workflows/` | Manual multi-step handoff | One-skill `/handoff` command | Faster handoff, less error-prone |
 | `rich_menu_service.py` | LINE API responses lost | Responses persisted in DB | Reliable sync, no duplicate creation |
 | `live-chat/page.tsx` | No message status indicators | Read receipts + retry status | Clear delivery feedback |
 | WebSocket types | Basic message types | Enhanced with ACK/retry | Better real-time reliability |
@@ -199,10 +199,10 @@ So that **development continuity is maintained, LINE rich menu configurations ar
 
 | Priority | File | Lines | Why Read This |
 |----------|------|-------|---------------|
-| P0 | `.agent/workflows/handoff-to-any.md` | 1-420 | Pattern to MIRROR for unified skill |
-| P0 | `.agent/workflows/pickup-from-any.md` | 1-423 | Pattern to MIRROR for unified skill |
-| P0 | `.agent/workflows/agent-handover.md` | 1-67 | Existing handover steps to integrate |
-| P0 | `.agent/PROJECT_STATUS.md` | 1-56 | Central status file to update |
+| P0 | `.agents/workflows/handoff-to-any.md` | 1-420 | Pattern to MIRROR for unified skill |
+| P0 | `.agents/workflows/pickup-from-any.md` | 1-423 | Pattern to MIRROR for unified skill |
+| P0 | `.agents/workflows/agent-handover.md` | 1-67 | Existing handover steps to integrate |
+| P0 | `.agents/PROJECT_STATUS.md` | 1-56 | Central status file to update |
 | P1 | `backend/app/services/credential_service.py` | 1-187 | DB persistence pattern to mirror |
 | P1 | `backend/app/services/rich_menu_service.py` | 1-80 | Current LINE API wrapper - extend this |
 | P1 | `backend/app/api/v1/endpoints/rich_menus.py` | 1-189 | Current endpoint - understand flow |
@@ -363,10 +363,10 @@ export enum MessageType {
 
 | File | Action | Justification |
 | ------ | ------ | ------------- |
-| `.agent/skills/agent_handover/SKILL.md` | CREATE | Unified handoff skill combining all workflows |
-| `.agent/skills/agent_pickup/SKILL.md` | CREATE | Unified pickup skill combining all workflows |
-| `.agent/workflows/handoff-to-any.md` | UPDATE | Add reference to unified skill |
-| `.agent/workflows/pickup-from-any.md` | UPDATE | Add reference to unified skill |
+| `.agents/skills/agent_handover/SKILL.md` | CREATE | Unified handoff skill combining all workflows |
+| `.agents/skills/agent_pickup/SKILL.md` | CREATE | Unified pickup skill combining all workflows |
+| `.agents/workflows/handoff-to-any.md` | UPDATE | Add reference to unified skill |
+| `.agents/workflows/pickup-from-any.md` | UPDATE | Add reference to unified skill |
 | `backend/app/models/rich_menu.py` | UPDATE | Add sync_status and last_synced_at fields |
 | `backend/app/services/rich_menu_service.py` | UPDATE | Add persistence, idempotent sync, status tracking |
 | `backend/app/schemas/rich_menu.py` | CREATE | Pydantic schemas for rich menu CRUD |
@@ -398,11 +398,11 @@ Execute in order. Each task is atomic and independently verifiable.
 
 ## PHASE 1: Project Continuity System
 
-### Task 1: CREATE `.agent/skills/agent_handover/SKILL.md` ✅ COMPLETE
+### Task 1: CREATE `.agents/skills/agent_handover/SKILL.md` ✅ COMPLETE
 
 - **ACTION**: CREATE unified handoff skill
 - **IMPLEMENT**: Combine handoff-to-any.md, agent-handover.md, session-summary.md into single skill
-- **MIRROR**: `.agent/skills/cross_platform_collaboration/SKILL.md:1-100`
+- **MIRROR**: `.agents/skills/cross_platform_collaboration/SKILL.md:1-100`
 - **STRUCTURE**:
   - Name: `agent_handoff`
   - Description: "Universal agent handoff - any platform to any platform"
@@ -411,11 +411,11 @@ Execute in order. Each task is atomic and independently verifiable.
 - **GOTCHA**: Must preserve backward compatibility with existing workflows
 - **VALIDATE**: Read the skill file - should be valid YAML frontmatter + markdown
 
-### Task 2: CREATE `.agent/skills/agent_pickup/SKILL.md` ✅ COMPLETE
+### Task 2: CREATE `.agents/skills/agent_pickup/SKILL.md` ✅ COMPLETE
 
 - **ACTION**: CREATE unified pickup skill
 - **IMPLEMENT**: Combine pickup-from-any.md, pick-up.md into single skill
-- **MIRROR**: `.agent/skills/cross_platform_collaboration/SKILL.md:1-100`
+- **MIRROR**: `.agents/skills/cross_platform_collaboration/SKILL.md:1-100`
 - **STRUCTURE**:
   - Name: `agent_pickup`
   - Description: "Universal agent pickup - resume work from any platform"
@@ -424,29 +424,29 @@ Execute in order. Each task is atomic and independently verifiable.
 - **GOTCHA**: Must handle case where no checkpoint exists (first session)
 - **VALIDATE**: Read the skill file - should be valid YAML frontmatter + markdown
 
-### Task 3: UPDATE `.agent/workflows/handoff-to-any.md` ✅ COMPLETE
+### Task 3: UPDATE `.agents/workflows/handoff-to-any.md` ✅ COMPLETE
 
 - **ACTION**: ADD reference to unified skill
 - **IMPLEMENT**: Add note at top: "For automated handoff, use `/agent_handoff` skill"
 - **MIRROR**: Existing format in the file
 - **GOTCHA**: Keep workflow intact - skill is wrapper, not replacement
-- **VALIDATE**: `cat .agent/workflows/handoff-to-any.md | head -20`
+- **VALIDATE**: `cat .agents/workflows/handoff-to-any.md | head -20`
 
-### Task 4: UPDATE `.agent/workflows/pickup-from-any.md` ✅ COMPLETE
+### Task 4: UPDATE `.agents/workflows/pickup-from-any.md` ✅ COMPLETE
 
 - **ACTION**: ADD reference to unified skill
 - **IMPLEMENT**: Add note at top: "For automated pickup, use `/agent_pickup` skill"
 - **MIRROR**: Existing format in the file
 - **GOTCHA**: Keep workflow intact - skill is wrapper, not replacement
-- **VALIDATE**: `cat .agent/workflows/pickup-from-any.md | head -20`
+- **VALIDATE**: `cat .agents/workflows/pickup-from-any.md | head -20`
 
-### Task 5: UPDATE `.agent/PROJECT_STATUS.md` ✅ COMPLETE
+### Task 5: UPDATE `.agents/PROJECT_STATUS.md` ✅ COMPLETE
 
 - **ACTION**: REFLECT completion of Project Continuity milestones
 - **IMPLEMENT**: Mark "Project Continuity System" as completed in Active Milestones
-- **MIRROR**: `.agent/PROJECT_STATUS.md:34-42`
+- **MIRROR**: `.agents/PROJECT_STATUS.md:34-42`
 - **GOTCHA**: Use Mermaid syntax correctly for roadmap update
-- **VALIDATE**: `cat .agent/PROJECT_STATUS.md | grep -A 5 "Agent Collaboration"`
+- **VALIDATE**: `cat .agents/PROJECT_STATUS.md | grep -A 5 "Agent Collaboration"`
 
 ---
 
@@ -721,13 +721,13 @@ Manual testing checklist:
 
 ```bash
 # Test agent handoff skill
-cat .agent/skills/agent_handover/SKILL.md
+cat .agents/skills/agent_handover/SKILL.md
 
 # Test agent pickup skill
-cat .agent/skills/agent_pickup/SKILL.md
+cat .agents/skills/agent_pickup/SKILL.md
 
 # Verify PROJECT_STATUS.md updated
-grep -A 5 "Agent Collaboration" .agent/PROJECT_STATUS.md
+grep -A 5 "Agent Collaboration" .agents/PROJECT_STATUS.md
 ```
 
 **EXPECT**: Skills exist, PROJECT_STATUS.md shows completion
@@ -846,15 +846,15 @@ The existing REST polling fallback in the live chat page is preserved. All enhan
 ### Files Modified
 
 **Created:**
-- `.agent/skills/agent_handover/SKILL.md`
-- `.agent/skills/agent_pickup/SKILL.md`
+- `.agents/skills/agent_handover/SKILL.md`
+- `.agents/skills/agent_pickup/SKILL.md`
 - `backend/alembic/versions/add_sync_status_to_rich_menus.py`
 - `.claude/PRPs/plans/project-continuity-rich-menu-chat-ui.plan.md`
 
 **Updated:**
-- `.agent/workflows/handoff-to-any.md`
-- `.agent/workflows/pickup-from-any.md`
-- `.agent/PROJECT_STATUS.md`
+- `.agents/workflows/handoff-to-any.md`
+- `.agents/workflows/pickup-from-any.md`
+- `.agents/PROJECT_STATUS.md`
 - `backend/app/models/rich_menu.py`
 - `backend/app/schemas/rich_menu.py`
 - `backend/app/services/rich_menu_service.py`

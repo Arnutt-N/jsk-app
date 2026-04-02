@@ -131,7 +131,7 @@ sk-app/
 │   └── package.json
 │
 ├── docker-compose.yml          # PostgreSQL + Redis
-└── .agent/                     # Agent collaboration system
+└── .agents/                     # Agent collaboration system
     ├── INDEX.md                # Skills & workflows index
     ├── PROJECT_STATUS.md       # Current project status
     ├── skills/                 # Development standards (16 skills)
@@ -448,9 +448,9 @@ docker-compose up -d db redis
 
 ## Agent Collaboration System
 
-This project includes a comprehensive agent collaboration system in `.agent/`:
+This project includes a comprehensive agent collaboration system in `.agents/`:
 
-### Skills (`.agent/skills/`)
+### Skills (`.agents/skills/`)
 - `fastapi_enterprise/` - FastAPI development standards
 - `nextjs_enterprise/` - Next.js 16 + React 19 standards
 - `line_integration/` - LINE webhook and LIFF guidelines
@@ -460,15 +460,15 @@ This project includes a comprehensive agent collaboration system in `.agent/`:
 - `testing_standards/` - Testing patterns
 - And more...
 
-### Workflows (`.agent/workflows/`)
+### Workflows (`.agents/workflows/`)
 - `run-app.md` - Start development servers
 - `db-migration.md` - Database migration procedures
-- `agent-handover.md` - Session handoff to another agent
-- `pick-up.md` - Resume work from previous session
+- `handoff-to-any.md` - Session handoff to another agent
+- `pickup-from-any.md` - Resume work from previous session
 - `deploy-application.md` - Production deployment
 
 ### Project Status
-Check `.agent/PROJECT_STATUS.md` for current project status and recent completions.
+Check `.agents/PROJECT_STATUS.md` for current project status and recent completions.
 
 ---
 

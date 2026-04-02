@@ -26,7 +26,7 @@ Generated: 2026-01-24 12:34
 - `frontend/app/admin/settings/line/page.tsx`: New split-action UI and Modals.
 - `frontend/app/admin/rich-menus/page.tsx`: Duplicate icon fix and button standardizing.
 - `frontend/app/admin/auto-replies/page.tsx` & `reply-objects/page.tsx`: Standardized "+" buttons.
-- `d:/genAI/skn-app/.agent/workflows/git-workflow.md`: Standardized Git procedures.
+- `d:/genAI/skn-app/.agents/workflows/git-workflow.md`: Standardized Git procedures.
 
 ## 🔧 Technical Decisions
 - **Validation Before Persistence**: Enforced a "Connect" test for LINE credentials before enabling the "Save" button to ensure only working tokens are stored.

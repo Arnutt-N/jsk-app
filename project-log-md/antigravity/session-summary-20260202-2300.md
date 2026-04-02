@@ -13,7 +13,7 @@ Agent: Antigravity
 
 ## ⚡ Technical State & Decisions
 - **Mode**: Agentic
-- **Modified**: `.agent/PROJECT_STATUS.md`
+- **Modified**: `.agents/PROJECT_STATUS.md`
 - **Context**: The project is now stable and ready for testing after the critical fixes.
 
 ## ⏳ Next Steps / Handover

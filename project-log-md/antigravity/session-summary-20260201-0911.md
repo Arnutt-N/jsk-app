@@ -16,7 +16,7 @@ Agent: Antigravity
 ## ⚡ Technical State & Decisions
 - **Mode**: Antigravity (Agentic).
 - **Modified**: 
-  - `d:\genAI\skn-app\.agent\workflows\run-app.md`
+  - `D:\genAI\jsk-app\.agents\workflows\run-app.md`
 - **Decisions**:
   - `skill-seekers` v2.7.2 does not support `--local-repo-path` for `github` command; must clone directly from GitHub or use `enhance` on local folders.
   - Due to size of `line-bot-sdk-python`, authenticated GitHub access (Token) is required to avoid rate limits.
@@ -28,7 +28,7 @@ Agent: Antigravity
    ```bash
    skill-seekers github --repo line/line-bot-sdk-python --name line-bot-sdk-python
    ```
-4. **Finalization**: Move output folder to `.agent/skills/`:
+4. **Finalization**: Move output folder to `.agents/skills/`:
    ```bash
-   mv output/line-bot-sdk-python /mnt/d/genAI/skn-app/.agent/skills/
+   mv output/line-bot-sdk-python /mnt/d/genAI/skn-app/.agents/skills/
    ```

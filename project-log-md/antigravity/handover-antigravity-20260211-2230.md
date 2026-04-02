@@ -20,10 +20,10 @@ From: Antigravity
 - **Env Issue**: Playwright is failing in the current environment (`$HOME` not set), so automated browser verification is **offline**.
 - **Server**: Dev server (`npm run dev`) was attempted but terminal output was stalling.
 - **Modified Files**: 
-  - `d:\genAI\skn-app\frontend\app\admin\layout.tsx`
-  - `d:\genAI\skn-app\frontend\app\admin\reports\page.tsx`
-  - `d:\genAI\skn-app\frontend\app\admin\requests\kanban\page.tsx`
-  - `d:\genAI\skn-app\frontend\app\admin\settings\line\page.tsx`
+  - `D:\genAI\jsk-app\frontend\app\admin\layout.tsx`
+  - `D:\genAI\jsk-app\frontend\app\admin\reports\page.tsx`
+  - `D:\genAI\jsk-app\frontend\app\admin\requests\kanban\page.tsx`
+  - `D:\genAI\jsk-app\frontend\app\admin\settings\line\page.tsx`
 
 ## ⏭️ Instructions for Successor
 1. **Verify UI**: Manually check `/admin` for sidebar width consistency.

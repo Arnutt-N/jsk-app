@@ -1,0 +1,32 @@
+---
+description: How to start a session and pick up work from a previous agent
+---
+
+# Workflow: Agent Pick-Up
+
+## Purpose
+Quickly ingest project state and pick up exactly where the last agent left off.
+
+## Steps
+
+### 1. Locate Latest Handover
+// turbo
+```bash
+dir "D:\genAI\jsk-app\project-log-md" /O:-D /B
+```
+*Note: The latest file (usually `handover-*` or `session-summary-*`) is your primary source of truth.*
+
+### 2. Ingest Context
+Read the latest log file found in step 1. Pay special attention to:
+- **Blockers & Issues**
+- **Next Steps for Incoming Agent**
+
+### 3. Sync Task State
+Locate and read the latest `task.md`. If you are Antigravity, this is in your artifacts directory. If you are another agent, look in the project root or `.agents/tasks/`.
+
+### 4. Verify Environment
+Check current mode (Pro vs Z-AI) using:
+`.\secrets\switch-claude.bat status`
+
+### 5. Resume Work
+Begin following the "Next Steps" defined in the handover.

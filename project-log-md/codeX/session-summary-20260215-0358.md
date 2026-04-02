@@ -21,7 +21,7 @@ Review and compare the example design system with the current admin UI design sy
   - `research/codeX/admin-chat-system-vs-current-admin-ui-design-system-comparison.md`
 - Re-audited latest Claude task artifacts and found previous index-link inconsistencies.
 - Fixed stale/broken links and date consistency in:
-  - `.agent/state/SESSION_INDEX.md`
+  - `.agents/state/SESSION_INDEX.md`
 
 ## In progress
 - None.

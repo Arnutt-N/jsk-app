@@ -686,14 +686,14 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ### WSL Path Reference
 
 ```bash
-# Windows path: D:\genAI\skn-app
+# Windows path: D:\genAI\jsk-app
 # WSL path: /mnt/d/genAI/skn-app
 
 # Navigate in WSL
 cd /mnt/d/genAI/skn-app
 
 # Or use wslpath
-wslpath 'D:\genAI\skn-app'
+wslpath 'D:\genAI\jsk-app'
 ```
 
 ### Virtual Environment

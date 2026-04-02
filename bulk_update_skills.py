@@ -1,7 +1,8 @@
 import os
 import re
+from pathlib import Path
 
-base_dir = r"D:\genAI\skn-app\.agent\skills"
+base_dir = Path(__file__).resolve().parent / ".agents" / "skills"
 
 done_skills = [
     "fastapi", "frontend-design", "line_flex_message_builder", 
@@ -16,13 +17,13 @@ for item in os.listdir(base_dir):
     if item in done_skills:
         continue
         
-    skill_dir = os.path.join(base_dir, item)
-    skill_file = os.path.join(skill_dir, "SKILL.md")
+    skill_dir = base_dir / item
+    skill_file = skill_dir / "SKILL.md"
     
-    if not os.path.isfile(skill_file):
+    if not skill_file.is_file():
         continue
         
-    with open(skill_file, "r", encoding="utf-8") as f:
+    with skill_file.open("r", encoding="utf-8") as f:
         content = f.read()
 
     match = re.match(r"^---\n(.*?)\n---\n(.*)", content, flags=re.DOTALL)
@@ -68,7 +69,7 @@ Context7 MCP is active. Always attempt to use `mcp__context7__resolve-library-id
     if new_body == body:
        new_body = f"# {item}\n{context7_insertion}\n{body}"
 
-    with open(skill_file, "w", encoding="utf-8") as f:
+    with skill_file.open("w", encoding="utf-8") as f:
         f.write(new_yaml + new_body)
     
     updated_count += 1

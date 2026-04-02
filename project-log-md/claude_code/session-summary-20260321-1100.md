@@ -59,5 +59,5 @@ Fix GitHub Actions CI failures: Alembic migration errors and pytest test failure
 - Address deprecation warnings in tests (datetime.utcnow, Pydantic class-based config, FastAPI regex→pattern)
 
 ## Session Artifacts
-- Checkpoint: `.agent/state/checkpoints/handover-claude_code-20260321-1100.json`
-- Task Log: Task #27 in `.agent/state/TASK_LOG.md`
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260321-1100.json`
+- Task Log: Task #27 in `.agents/state/TASK_LOG.md`

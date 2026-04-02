@@ -1,15 +1,18 @@
 @echo off
+set "REPO_ROOT=%~dp0"
+if "%REPO_ROOT:~-1%"=="\" set "REPO_ROOT=%REPO_ROOT:~0,-1%"
+
 echo Starting JskApp Servers...
 echo.
 
 :: Start Backend in new window
-start "Backend Server" cmd /k "cd /d D:\genAI\skn-app\backend && python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000"
+start "Backend Server" cmd /k "cd /d %REPO_ROOT%\backend && python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000"
 
 :: Wait a bit for backend to start
 timeout /t 3 /nobreak >nul
 
 :: Start Frontend in new window  
-start "Frontend Server" cmd /k "cd /d D:\genAI\skn-app\frontend && npm run dev"
+start "Frontend Server" cmd /k "cd /d %REPO_ROOT%\frontend && npm run dev"
 
 echo.
 echo Servers starting...

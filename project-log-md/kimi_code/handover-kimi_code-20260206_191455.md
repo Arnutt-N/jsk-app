@@ -169,7 +169,7 @@ When complete, the frontend should have:
 - `frontend/components/ui/*.tsx` - UI component library
 - `frontend/app/admin/layout.tsx` - Admin sidebar/nav
 - `frontend/app/admin/live-chat/page.tsx` - Complex chat UI
-- `.agent/PROJECT_STATUS.md` - Always check this first
+- `.agents/PROJECT_STATUS.md` - Always check this first
 
 ---
 

@@ -11,9 +11,9 @@
 Fix stale cross-file state and enforce a strict cross-platform handoff contract.
 
 ## Completed
-- Reconciled `.agent/state/current-session.json` to latest known completion context.
-- Reconciled `.agent/state/task.md` with consistent phase/step counts.
-- Rebuilt `.agent/PROJECT_STATUS.md` into a coherent, contradiction-free status board.
+- Reconciled `.agents/state/current-session.json` to latest known completion context.
+- Reconciled `.agents/state/task.md` with consistent phase/step counts.
+- Rebuilt `.agents/PROJECT_STATUS.md` into a coherent, contradiction-free status board.
 - Replaced pickup/handoff workflows with strict sync-gate versions.
 - Replaced prompt template with mandatory 5-artifact output contract.
 - Updated collaboration skills with explicit state consistency rules.

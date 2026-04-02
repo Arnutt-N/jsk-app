@@ -112,8 +112,8 @@ None. All verification passed.
 
 ## Session Artifacts
 
-- **Checkpoint**: `.agent/state/checkpoints/handover-claude_code-20260315-1730.json`
-- **Task Log**: Task #23 in `.agent/state/TASK_LOG.md`
+- **Checkpoint**: `.agents/state/checkpoints/handover-claude_code-20260315-1730.json`
+- **Task Log**: Task #23 in `.agents/state/TASK_LOG.md`
 - **This summary**: `project-log-md/claude_code/session-summary-20260315-1730.md`
 
 ---

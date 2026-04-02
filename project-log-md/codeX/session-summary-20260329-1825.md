@@ -51,6 +51,6 @@ Merge the recommended branches into `main`, inspect post-merge CI/CD behavior, h
 4. Restore or triage the remaining stash entries when handoff-artifact cleanup is back in scope.
 
 ## Session Artifacts
-- Checkpoint: [.agent/state/checkpoints/handover-codeX-20260329-1825.json](/D:/genAI/jsk-app/.agent/state/checkpoints/handover-codeX-20260329-1825.json)
-- Task Log: `Task #28` in [.agent/state/TASK_LOG.md](/D:/genAI/jsk-app/.agent/state/TASK_LOG.md)
-- Session Index: [.agent/state/SESSION_INDEX.md](/D:/genAI/jsk-app/.agent/state/SESSION_INDEX.md)
+- Checkpoint: [.agents/state/checkpoints/handover-codeX-20260329-1825.json](/D:/genAI/jsk-app/.agents/state/checkpoints/handover-codeX-20260329-1825.json)
+- Task Log: `Task #28` in [.agents/state/TASK_LOG.md](/D:/genAI/jsk-app/.agents/state/TASK_LOG.md)
+- Session Index: [.agents/state/SESSION_INDEX.md](/D:/genAI/jsk-app/.agents/state/SESSION_INDEX.md)

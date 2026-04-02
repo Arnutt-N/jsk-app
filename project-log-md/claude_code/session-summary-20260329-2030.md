@@ -87,6 +87,6 @@ Execute three major deliverables from multi-model collaborative planning: admin 
 5. Address deferred review items (RSC, RHF, next/image)
 
 ## Session Artifacts
-- Checkpoint: `.agent/state/checkpoints/handover-claude_code-20260329-2030.json`
-- Task Log: Task #29 in `.agent/state/TASK_LOG.md`
-- Session Index: `.agent/state/SESSION_INDEX.md`
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260329-2030.json`
+- Task Log: Task #29 in `.agents/state/TASK_LOG.md`
+- Session Index: `.agents/state/SESSION_INDEX.md`

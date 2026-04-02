@@ -12,7 +12,7 @@ Agent: Antigravity
 - [x] Fixed 'Message' object attribute error by adding `sender_role` and `operator_name` columns to `models/message.py`.
 - [x] Created `SenderRole` Enum in SQLAlchemy model.
 - [x] Guided manual fix for PostgreSQL Enum type creation (`CREATE TYPE senderrole ...`).
-- [x] Verified Kimi Code access to `.agent/skills`.
+- [x] Verified Kimi Code access to `.agents/skills`.
 
 ## ⚡ Technical State & Decisions
 - **Mode**: Execution

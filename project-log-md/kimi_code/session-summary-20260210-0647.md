@@ -128,8 +128,8 @@ Transform SknApp frontend from 7.5/10 to perfect 10/10 design quality by impleme
 
 ## ✅ Checklist
 
-- [x] `.agent/PROJECT_STATUS.md` updated
-- [x] Handoff checkpoint created (`.agent/state/checkpoints/handover-kimi_code-20260210-0647.json`)
+- [x] `.agents/PROJECT_STATUS.md` updated
+- [x] Handoff checkpoint created (`.agents/state/checkpoints/handover-kimi_code-20260210-0647.json`)
 - [x] Session summary created (this file)
 - [x] No duplicate files in other agent directories
 

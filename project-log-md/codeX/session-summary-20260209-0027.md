@@ -23,7 +23,7 @@
 - [x] Implemented Redis websocket room-membership hardening in `backend/app/core/websocket_manager.py`.
 - [x] Added regression tests in `backend/tests/test_websocket_manager_redis.py`.
 - [x] Validated backend full suite: `83 passed, 7 skipped`.
-- [x] Updated `.agent/PROJECT_STATUS.md` with latest completions.
+- [x] Updated `.agents/PROJECT_STATUS.md` with latest completions.
 
 ## Key Findings
 | Area | Score | Status |
@@ -38,8 +38,8 @@
 | Redis WS hardening | `backend/app/core/websocket_manager.py` | 25,716 B |
 | Redis WS tests | `backend/tests/test_websocket_manager_redis.py` | 3,110 B |
 | Pytest discovery config | `backend/pytest.ini` | 27 B |
-| Project status update | `.agent/PROJECT_STATUS.md` | 10,815 B |
-| Handoff checkpoint | `.agent/state/checkpoints/handover-codeX-20260209-0027.json` | 4,944 B |
+| Project status update | `.agents/PROJECT_STATUS.md` | 10,815 B |
+| Handoff checkpoint | `.agents/state/checkpoints/handover-codeX-20260209-0027.json` | 4,944 B |
 
 ## Next Steps
 ### Immediate

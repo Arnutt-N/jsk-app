@@ -13,7 +13,7 @@
 ## Objective
 
 1. Resume previous Claude Code session
-2. Execute universal handoff workflow per `.agent/workflows/handoff-to-any.md`
+2. Execute universal handoff workflow per `.agents/workflows/handoff-to-any.md`
 3. Create all required cross-platform handoff artifacts
 4. Prepare project state for next agent pickup
 
@@ -53,7 +53,7 @@
 
 ### 3. Handoff Artifacts Creation
 - Created session summary: `project-log-md/claude_code/session-summary-20260218-0204.md`
-- Created checkpoint JSON: `.agent/state/checkpoints/handover-claude_code-20260218-0204.json`
+- Created checkpoint JSON: `.agents/state/checkpoints/handover-claude_code-20260218-0204.json`
 - Updated TASK_LOG.md with Task #20 (appended to top of history)
 - Updated current-session.json with latest handoff entry
 - Updated PROJECT_STATUS.md with latest timestamp
@@ -68,15 +68,15 @@
 
 ## Files Created
 - `project-log-md/claude_code/session-summary-20260218-0204.md`
-- `.agent/state/checkpoints/handover-claude_code-20260218-0204.json`
+- `.agents/state/checkpoints/handover-claude_code-20260218-0204.json`
 
 ---
 
 ## Files Modified
-- `.agent/state/TASK_LOG.md` (Task #20 prepended)
-- `.agent/state/current-session.json` (handoff entry appended)
-- `.agent/PROJECT_STATUS.md` (timestamp updated)
-- `.agent/state/SESSION_INDEX.md` (session entry added)
+- `.agents/state/TASK_LOG.md` (Task #20 prepended)
+- `.agents/state/current-session.json` (handoff entry appended)
+- `.agents/PROJECT_STATUS.md` (timestamp updated)
+- `.agents/state/SESSION_INDEX.md` (session entry added)
 
 ---
 
@@ -111,8 +111,8 @@
 
 ## Session Artifacts
 - **Summary**: `project-log-md/claude_code/session-summary-20260218-0204.md`
-- **Checkpoint**: `.agent/state/checkpoints/handover-claude_code-20260218-0204.json`
-- **Task Log**: Task #20 in `.agent/state/TASK_LOG.md`
+- **Checkpoint**: `.agents/state/checkpoints/handover-claude_code-20260218-0204.json`
+- **Task Log**: Task #20 in `.agents/state/TASK_LOG.md`
 
 ---
 

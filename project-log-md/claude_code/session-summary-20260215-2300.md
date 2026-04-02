@@ -105,10 +105,10 @@
 - `frontend/docs/design-system-reference.md` — Updates
 
 ### Agent State
-- `.agent/state/TASK_LOG.md` — Fixed stats, added entries
-- `.agent/state/SESSION_INDEX.md` — Added missing CodeX sessions
-- `.agent/PROJECT_STATUS.md` — Updated
-- `.agent/state/current-session.json` — Updated
+- `.agents/state/TASK_LOG.md` — Fixed stats, added entries
+- `.agents/state/SESSION_INDEX.md` — Added missing CodeX sessions
+- `.agents/PROJECT_STATUS.md` — Updated
+- `.agents/state/current-session.json` — Updated
 - `.claude/PRPs/reports/codex-scope-creep-review-report.md` — Created
 - `.claude/PRPs/plans/completed/codex-scope-creep-review.research-plan.md` — Archived
 
@@ -136,6 +136,6 @@
 
 ## Session Artifacts
 - **Summary**: `project-log-md/claude_code/session-summary-20260215-2300.md`
-- **Checkpoint**: `.agent/state/checkpoints/handover-claude_code-20260215-2300.json`
-- **Task Log**: Task #18 in `.agent/state/TASK_LOG.md`
+- **Checkpoint**: `.agents/state/checkpoints/handover-claude_code-20260215-2300.json`
+- **Task Log**: Task #18 in `.agents/state/TASK_LOG.md`
 - **Report**: `.claude/PRPs/reports/codex-scope-creep-review-report.md`

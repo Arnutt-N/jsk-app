@@ -130,7 +130,7 @@ skn-app/
 │   ├── types/                    # TypeScript types
 │   └── package.json
 │
-├── .agent/                       # Agent Collaboration Hub
+├── .agents/                       # Agent Collaboration Hub
 │   ├── INDEX.md                  # Skills & workflows index
 │   ├── PROJECT_STATUS.md         # Current project status
 │   ├── QUICK_START_CARD.md       # Quick reference
@@ -455,7 +455,7 @@ NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
 
 ## 🤖 Agent Collaboration System
 
-This project includes a comprehensive **cross-platform agent collaboration system** in `.agent/`:
+This project includes a comprehensive **cross-platform agent collaboration system** in `.agents/`:
 
 ### Core Principles
 
@@ -468,10 +468,10 @@ This project includes a comprehensive **cross-platform agent collaboration syste
 
 A handoff is **invalid** unless all 5 artifacts are updated:
 
-1. **`.agent/PROJECT_STATUS.md`** - Project dashboard
-2. **`.agent/state/current-session.json`** - Session state
-3. **`.agent/state/task.md`** - Current task
-4. **`.agent/state/checkpoints/handover-[platform]-[timestamp].json`** - Checkpoint
+1. **`.agents/PROJECT_STATUS.md`** - Project dashboard
+2. **`.agents/state/current-session.json`** - Session state
+3. **`.agents/state/task.md`** - Current task
+4. **`.agents/state/checkpoints/handover-[platform]-[timestamp].json`** - Checkpoint
 5. **`project-log-md/[platform]/session-summary-[timestamp].md`** - Summary
 
 ### Supported Platforms
@@ -492,23 +492,23 @@ A handoff is **invalid** unless all 5 artifacts are updated:
 **Starting Work:**
 ```bash
 # Read these in order:
-cat .agent/PROJECT_STATUS.md
-cat .agent/workflows/pickup-from-any.md
-cat .agent/state/current-session.json
-cat .agent/state/task.md
+cat .agents/PROJECT_STATUS.md
+cat .agents/workflows/pickup-from-any.md
+cat .agents/state/current-session.json
+cat .agents/state/task.md
 ```
 
 **Ending Work:**
 ```bash
 # Follow handoff workflow:
-cat .agent/workflows/handoff-to-any.md
+cat .agents/workflows/handoff-to-any.md
 # Create all 5 artifacts before leaving
 ```
 
 **Finding Session Summaries:**
 ```bash
 # Read SESSION_INDEX.md to find summaries from ALL platforms
-cat .agent/state/SESSION_INDEX.md
+cat .agents/state/SESSION_INDEX.md
 ```
 
 ---
@@ -519,10 +519,10 @@ cat .agent/state/SESSION_INDEX.md
 - **`START_HERE.md`** - Friendly welcome guide for new agents
 - **`AGENT_PROMPT_TEMPLATE.md`** - Universal agent entry prompt
 - **`AGENTS.md`** - Comprehensive technical guide
-- **`.agent/INDEX.md`** - Skills and workflows index
-- **`.agent/QUICK_START_CARD.md`** - Quick reference card
+- **`.agents/INDEX.md`** - Skills and workflows index
+- **`.agents/QUICK_START_CARD.md`** - Quick reference card
 
-### Skills (`.agent/skills/`)
+### Skills (`.agents/skills/`)
 - `fastapi_enterprise/SKILL.md` - FastAPI development standards
 - `nextjs_enterprise/SKILL.md` - Next.js 16 + React 19 standards
 - `line_integration/SKILL.md` - LINE webhook and LIFF guidelines
@@ -532,7 +532,7 @@ cat .agent/state/SESSION_INDEX.md
 - `testing_standards/SKILL.md` - Testing patterns
 - `cross_platform_collaboration/SKILL.md` - Agent handoff protocols
 
-### Workflows (`.agent/workflows/`)
+### Workflows (`.agents/workflows/`)
 - `start-here.md` - Universal entry workflow
 - `pickup-from-any.md` - Resume work from any agent
 - `handoff-to-any.md` - Hand off to any agent
@@ -597,9 +597,9 @@ npm run dev
 **Agent state inconsistencies:**
 ```bash
 # Check latest checkpoint
-ls -lt .agent/state/checkpoints/
+ls -lt .agents/state/checkpoints/
 # Read session index
-cat .agent/state/SESSION_INDEX.md
+cat .agents/state/SESSION_INDEX.md
 ```
 
 ---

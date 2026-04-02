@@ -56,9 +56,9 @@
 | File | Path | Description |
 |------|------|-------------|
 | Audit Report | `research/claude_code/codex-audit-report-20260209-claude-code.md` | 22 issues, priority fix order |
-| Session State | `.agent/state/current-session.json` | Claude Code active, full plan tracking |
-| Task File | `.agent/state/task.md` | 9/27 steps, all phases tracked |
-| Handoff | `.agent/state/checkpoints/handover-claude_code-any-20260208-2200.json` | Full handoff checkpoint |
+| Session State | `.agents/state/current-session.json` | Claude Code active, full plan tracking |
+| Task File | `.agents/state/task.md` | 9/27 steps, all phases tracked |
+| Handoff | `.agents/state/checkpoints/handover-claude_code-any-20260208-2200.json` | Full handoff checkpoint |
 
 ## Plan Progress (27-Step Plan)
 

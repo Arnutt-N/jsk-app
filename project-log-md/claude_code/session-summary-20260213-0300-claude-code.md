@@ -30,10 +30,10 @@ Fix sidebar menu width & logo alignment, then commit and push all accumulated wo
 - Provided manual URL: `https://github.com/Arnutt-N/skn-app/compare/main...fix/live-chat-redesign-issues`
 
 ## Artifacts Updated (Handoff Checklist)
-- [x] `.agent/PROJECT_STATUS.md` — updated timestamp, Phase 6 details, recent completions
-- [x] `.agent/state/current-session.json` — updated all fields, added handoff entry
-- [x] `.agent/state/task.md` — added progress note, updated next steps
-- [x] `.agent/state/checkpoints/handover-claude_code-20260213-0300.json` — created
+- [x] `.agents/PROJECT_STATUS.md` — updated timestamp, Phase 6 details, recent completions
+- [x] `.agents/state/current-session.json` — updated all fields, added handoff entry
+- [x] `.agents/state/task.md` — added progress note, updated next steps
+- [x] `.agents/state/checkpoints/handover-claude_code-20260213-0300.json` — created
 - [x] `project-log-md/claude_code/session-summary-20260213-0300-claude-code.md` — this file
 
 ## Blockers

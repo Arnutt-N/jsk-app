@@ -15,7 +15,7 @@ Performed project status pickup and provided WSL/npm compatibility support. No c
 
 ## Completed Tasks
 
-- [x] Read `.agent/workflows/pickup-from-any.md` workflow
+- [x] Read `.agents/workflows/pickup-from-any.md` workflow
 - [x] Analyzed latest Claude Code handover (2026-02-10 15:00)
 - [x] Read all state files (current-session.json, task.md, PROJECT_STATUS.md)
 - [x] Provided comprehensive project status summary
@@ -74,9 +74,9 @@ npm run dev
 
 | File | Purpose |
 |------|---------|
-| `.agent/workflows/pickup-from-any.md` | Pickup workflow |
-| `.agent/state/checkpoints/handover-claude_code-20260210-1500.json` | Latest handover |
-| `.agent/PROJECT_STATUS.md` | Project status |
+| `.agents/workflows/pickup-from-any.md` | Pickup workflow |
+| `.agents/state/checkpoints/handover-claude_code-20260210-1500.json` | Latest handover |
+| `.agents/PROJECT_STATUS.md` | Project status |
 | `PRPs/claude_code/live-chat-improvement.plan.md` | Implementation plan |
 
 ---

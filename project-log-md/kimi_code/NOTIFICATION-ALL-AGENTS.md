@@ -21,8 +21,8 @@ Live Chat system has been fixed and is now **ready for testing**:
 | File | Purpose |
 |------|---------|
 | `session-summary-20260203-2200.md` | **Detailed session log** |
-| `../../.agent/handoffs/kimi-code-20260203-2200.md` | **Handoff for next agent** |
-| `../../.agent/PROJECT_STATUS.md` | **Updated project status** |
+| `../../.agents/handoffs/kimi-code-20260203-2200.md` | **Handoff for next agent** |
+| `../../.agents/PROJECT_STATUS.md` | **Updated project status** |
 
 ---
 

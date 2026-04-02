@@ -5,7 +5,7 @@
 **Session ID:** sess-20260201-084500
 **Git Branch:** fix/live-chat-redesign-issues
 **Git Commit:** 9909a80 (latest)
-**Working Directory:** D:\genAI\skn-app
+**Working Directory:** D:\genAI\jsk-app
 
 ---
 

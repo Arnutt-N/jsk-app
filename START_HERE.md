@@ -7,7 +7,7 @@
 ## 🚀 START HERE
 
 ### Step 1: Follow the Entry Workflow (RECOMMENDED)
-👉 **`.agent/workflows/start-here.md`** ← **FOLLOW THIS STEP-BY-STEP**
+👉 **`.agents/workflows/start-here.md`** ← **FOLLOW THIS STEP-BY-STEP**
 
 This workflow guides you through everything you need to start working.
 
@@ -17,7 +17,7 @@ This workflow guides you through everything you need to start working.
 👉 **`AGENT_PROMPT_TEMPLATE.md`** ← **READ THIS FIRST**
 
 **Step 2: Keep the Quick Card Handy**
-👉 `.agent/QUICK_START_CARD.md` ← **REFERENCE WHILE WORKING**
+👉 `.agents/QUICK_START_CARD.md` ← **REFERENCE WHILE WORKING**
 
 ---
 
@@ -25,19 +25,19 @@ This workflow guides you through everything you need to start working.
 
 **If you're STARTING work:**
 ```
-1. Read: .agent/PROJECT_STATUS.md
-2. Read: .agent/workflows/pickup-from-any.md
-3. Update: .agent/state/current-session.json with your platform
+1. Read: .agents/PROJECT_STATUS.md
+2. Read: .agents/workflows/pickup-from-any.md
+3. Update: .agents/state/current-session.json with your platform
 4. Begin work
 ```
 
 **If you're ENDING work:**
 ```
-1. Read: .agent/workflows/handoff-to-any.md
-2. Update: .agent/PROJECT_STATUS.md
-3. Update: .agent/state/current-session.json
-4. Update: .agent/state/task.md
-5. Create: .agent/state/checkpoints/handover-[PLATFORM]-[TIME].json
+1. Read: .agents/workflows/handoff-to-any.md
+2. Update: .agents/PROJECT_STATUS.md
+3. Update: .agents/state/current-session.json
+4. Update: .agents/state/task.md
+5. Create: .agents/state/checkpoints/handover-[PLATFORM]-[TIME].json
 6. Create: project-log-md/[PLATFORM]/session-summary-[TIME].md
 7. Report: "Handoff complete"
 ```
@@ -54,7 +54,7 @@ sk-app/
 │   └── app/
 ├── frontend/                   ← Next.js 16 frontend
 │   └── app/
-├── .agent/                     ← Agent collaboration hub
+├── .agents/                     ← Agent collaboration hub
 │   ├── QUICK_START_CARD.md     ← Quick reference
 │   ├── PROJECT_STATUS.md       ← Project dashboard
 │   ├── workflows/              ← Step-by-step procedures
@@ -101,19 +101,19 @@ This project supports collaboration between ANY AI coding platforms:
 | Problem | Solution |
 |---------|----------|
 | First time here? | Read `AGENT_PROMPT_TEMPLATE.md` |
-| Quick reference? | Read `.agent/QUICK_START_CARD.md` |
-| Picking up work? | Read `.agent/workflows/pickup-from-any.md` |
-| Handing off? | Read `.agent/workflows/handoff-to-any.md` |
-| Collaboration? | Read `.agent/skills/cross_platform_collaboration/SKILL.md` |
-| Available skills? | Read `.agent/INDEX.md` |
+| Quick reference? | Read `.agents/QUICK_START_CARD.md` |
+| Picking up work? | Read `.agents/workflows/pickup-from-any.md` |
+| Handing off? | Read `.agents/workflows/handoff-to-any.md` |
+| Collaboration? | Read `.agents/skills/cross_platform_collaboration/SKILL.md` |
+| Available skills? | Read `.agents/INDEX.md` |
 
 ---
 
 ## ✅ Before You Start
 
 - [ ] I've read `AGENT_PROMPT_TEMPLATE.md`
-- [ ] I've checked `.agent/PROJECT_STATUS.md`
-- [ ] I've updated `.agent/state/current-session.json` with my platform
+- [ ] I've checked `.agents/PROJECT_STATUS.md`
+- [ ] I've updated `.agents/state/current-session.json` with my platform
 - [ ] I understand the task I'm working on
 - [ ] I know how to handoff when done
 

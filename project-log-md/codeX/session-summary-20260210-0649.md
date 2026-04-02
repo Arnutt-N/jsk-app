@@ -22,7 +22,7 @@
   - Added `frontend/lib/utils.ts`
   - Installed `class-variance-authority`
   - Installed native bindings for Tailwind/LightningCSS
-- [x] Updated `.agent/PROJECT_STATUS.md`.
+- [x] Updated `.agents/PROJECT_STATUS.md`.
 
 ## Key Findings
 | Area | Score | Status |
@@ -42,7 +42,7 @@
 | Card compatibility | `frontend/components/ui/Card.tsx` | 5,048 B |
 | Utility helper | `frontend/lib/utils.ts` | 129 B |
 | Layout import fix | `frontend/app/admin/layout.tsx` | 14,895 B |
-| Checkpoint | `.agent/state/checkpoints/handover-codeX-20260210-0649.json` | created |
+| Checkpoint | `.agents/state/checkpoints/handover-codeX-20260210-0649.json` | created |
 
 ## Next Steps
 ### Immediate

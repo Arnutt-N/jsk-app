@@ -49,7 +49,7 @@ Complete Phase 2 of the Live Chat UI Migration plan, focusing on refactoring key
 ### Created
 - `frontend/app/admin/live-chat/_components/EmojiPicker.tsx`
 - `frontend/app/admin/live-chat/_components/StickerPicker.tsx`
-- `.agent/state/checkpoints/handover-antigravity-20260215-0320.json`
+- `.agents/state/checkpoints/handover-antigravity-20260215-0320.json`
 
 ### Modified
 - `frontend/app/admin/live-chat/_components/MessageBubble.tsx`
@@ -65,5 +65,5 @@ Complete Phase 2 of the Live Chat UI Migration plan, focusing on refactoring key
 3. **Sticker API**: Connect `StickerPicker` to a real backend endpoint instead of mock data.
 
 ## 📦 Session Artifacts
-- **Checkpoint**: `.agent/state/checkpoints/handover-antigravity-20260215-0320.json`
-- **Task Log**: `Task #11` in `.agent/state/TASK_LOG.md`
+- **Checkpoint**: `.agents/state/checkpoints/handover-antigravity-20260215-0320.json`
+- **Task Log**: `Task #11` in `.agents/state/TASK_LOG.md`

@@ -17,7 +17,7 @@ Agent: Antigravity
 
 ## ⚡ Technical State & Decisions
 - **Mode**: ปัจจุบันระบบรองรับการสลับโหมดผ่านไฟล์ `.claude/settings.local.json`
-- **Modified**: `secrets/`, `.agent/skills/`, `.agent/workflows/`
+- **Modified**: `secrets/`, `.agents/skills/`, `.agents/workflows/`
 - **Decision**: ใช้ไฟล์ `.claude/settings.local.json` เป็นกลไกหลักในการ Override ค่าของ Claude Code ทั้งใน CLI และ Extension โดยเพิ่มขั้นตอน Reload Window สำหรับ Extension
 
 ## ⏳ Next Steps / Handover

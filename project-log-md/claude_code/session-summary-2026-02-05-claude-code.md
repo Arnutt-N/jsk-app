@@ -17,9 +17,9 @@ Review project status and merge two codebase analysis reports into a comprehensi
 ## Tasks Completed
 
 ### 1. Project Status Review
-- Read `.agent/PROJECT_STATUS.md` - confirmed all systems operational
-- Read `.agent/state/task.md` - previous task (Deep Codebase Analysis) completed
-- Read `.agent/state/current-session.json` - identified next steps
+- Read `.agents/PROJECT_STATUS.md` - confirmed all systems operational
+- Read `.agents/state/task.md` - previous task (Deep Codebase Analysis) completed
+- Read `.agents/state/current-session.json` - identified next steps
 
 ### 2. Analysis Report Comparison
 Compared two analysis reports:
@@ -98,7 +98,7 @@ Created unified report combining best of both:
 | Document | Location |
 |----------|----------|
 | Comprehensive Analysis | `research/claude_code/sknapp-comprehensive-analysis-2026-02-05.md` |
-| Project Status | `.agent/PROJECT_STATUS.md` |
+| Project Status | `.agents/PROJECT_STATUS.md` |
 | CLAUDE.md | `CLAUDE.md` (project instructions) |
 
 ---
@@ -121,7 +121,7 @@ Created unified report combining best of both:
 Next agent should:
 1. Pick up from merged comprehensive analysis
 2. Select priority task based on project needs
-3. Update `.agent/state/task.md` with new task
+3. Update `.agents/state/task.md` with new task
 
 ---
 

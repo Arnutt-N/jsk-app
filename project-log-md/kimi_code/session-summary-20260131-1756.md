@@ -95,7 +95,7 @@ Enhanced the Claude mode switcher script with full Kimi support:
 
 ## Required Setup Files
 
-Create these files in `D:\genAI\skn-app\secrets\`:
+Create these files in `D:\genAI\jsk-app\secrets\`:
 
 | File | Content |
 |------|---------|

@@ -16,10 +16,10 @@ with open(log_file, "w") as f:
     sys.stderr = f
 
     # 1. Force remove from git index
-    run("git rm -r --cached .agent/skills/notebooklm")
+    run("git rm -r --cached .agents/skills/notebooklm")
 
     # 2. Physcially remove .git folder if it exists
-    git_dir = os.path.join(".agent", "skills", "notebooklm", ".git")
+    git_dir = os.path.join(".agents", "skills", "notebooklm", ".git")
     if os.path.exists(git_dir):
         print(f"Found .git at {git_dir}, removing...")
         shutil.rmtree(git_dir)
@@ -27,7 +27,7 @@ with open(log_file, "w") as f:
         print(f"No .git folder found at {git_dir}")
 
     # 3. Add the folder back
-    run("git add .agent/skills/notebooklm")
+    run("git add .agents/skills/notebooklm")
 
     # 4. Check status
-    run("git status .agent/skills/notebooklm")
+    run("git status .agents/skills/notebooklm")

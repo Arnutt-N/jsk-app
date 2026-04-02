@@ -28,6 +28,6 @@ Harden live chat so REST and WebSocket flows behave consistently, including auth
 - None.
 
 ## Session Artifacts
-- Task log entry: `.agent/state/TASK_LOG.md`
-- Session index: `.agent/state/SESSION_INDEX.md`
-- Handoff note: `.agent/handoffs/live-chat-hardening-2026-03-18.md`
+- Task log entry: `.agents/state/TASK_LOG.md`
+- Session index: `.agents/state/SESSION_INDEX.md`
+- Handoff note: `.agents/handoffs/live-chat-hardening-2026-03-18.md`

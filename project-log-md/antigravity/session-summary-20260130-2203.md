@@ -7,7 +7,7 @@ Agent: Antigravity
 - Ensure all agents use WSL and `uv` for backend development.
 
 ## ✅ Completed Tasks
-- **Updated** `d:\genAI\skn-app\.agent\PROJECT_STATUS.md`: Added "Technical Environment (Critical)" section.
+- **Updated** `D:\genAI\jsk-app\.agents\PROJECT_STATUS.md`: Added "Technical Environment (Critical)" section.
     - Specified **WSL2** requirement for all dev.
     - Specified **uv** for backend dependency management.
     - Specified **PostgreSQL** in WSL.

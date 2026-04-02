@@ -123,9 +123,9 @@ Perform a comprehensive deep analysis of the entire SknApp codebase using Contex
 ## 🔗 Reference Links
 
 - **Main Report:** `research/kimi_code/sknapp-codebase-deep-analysis-2026-02-04.md`
-- **Project Status:** `.agent/PROJECT_STATUS.md`
+- **Project Status:** `.agents/PROJECT_STATUS.md`
 - **Agent Guide:** `AGENTS.md`
-- **Handoff Workflow:** `.agent/workflows/handoff-to-any.md`
+- **Handoff Workflow:** `.agents/workflows/handoff-to-any.md`
 
 ---
 

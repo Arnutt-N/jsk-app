@@ -41,7 +41,7 @@ jsk-app/
 │   ├── app/              # Next.js App Router
 │   ├── components/       # Reusable components
 │   └── lib/              # Utilities
-└── .agent/
+└── .agents/
     └── skills/           # Development standards
 ```
 
@@ -189,7 +189,7 @@ Notes:
 
 ## Development Standards
 
-See `.agent/skills/` for comprehensive development guidelines:
+See `.agents/skills/` for comprehensive development guidelines:
 - API Development
 - Frontend Architecture
 - Authentication & Security
