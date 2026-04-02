@@ -101,7 +101,7 @@ When complete, update status so other agents can start.
 
 // Agent 2: Update Components (waits for agent-globals)
 Task({
-  subagent_name: "coder", 
+  subagent_name: "coder",
   description: "HR-IMS: UI Components",
   prompt: `
 # AGENT SWARM ASSIGNMENT
@@ -288,7 +288,7 @@ When an agent wakes up, it does this:
 1. READ manifest.json
    └─> Understand the overall mission
 
-2. READ current.json  
+2. READ current.json
    └─> See what other agents are doing
    └─> Check which files are locked
    └─> Verify dependencies are ready
