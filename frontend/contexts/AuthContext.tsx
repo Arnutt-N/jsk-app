@@ -34,6 +34,9 @@ const MOCK_ADMIN: User = {
  * ตรวจสอบ dev bypass — ใช้ได้เฉพาะ development build + localhost เท่านั้น
  * process.env.NODE_ENV จะถูก dead-code eliminate ใน production build
  * ทำให้ฟังก์ชันนี้ return false เสมอใน production bundle
+ *
+ * ต้องมี dev_bypass ใน localStorage เสมอ (แม้ DEV_MODE=true)
+ * เพื่อให้ logout ทำงานจริง — logout ลบ dev_bypass ออก
  */
 function isLocalhostDevBypass(): boolean {
   if (process.env.NODE_ENV !== 'development') return false;
@@ -72,8 +75,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const initAuth = () => {
       try {
-        if (DEV_MODE || isLocalhostDevBypass()) {
-          // ความปลอดภัย: dev bypass — ให้สิทธิ์ mock admin โดยไม่ต้อง login จริง (เฉพาะ development build + localhost)
+        // Dev bypass ต้องมี dev_bypass flag ใน localStorage เสมอ
+        // DEV_MODE=true เพียงแค่อนุญาตให้ใช้ bypass ได้ — ไม่ได้หมายว่า auto-login
+        const devBypassActive = (DEV_MODE || process.env.NODE_ENV === 'development') && isLocalhostDevBypass();
+        if (devBypassActive) {
           setUser(MOCK_ADMIN);
           setToken(null);
           localStorage.removeItem('auth_token');
@@ -150,7 +155,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const refreshToken = useCallback(async () => {
-    if (DEV_MODE || isLocalhostDevBypass()) {
+    if (isLocalhostDevBypass()) {
       return;
     }
 
@@ -188,7 +193,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value: AuthContextType = {
     user,
     token,
-    isAuthenticated: !!user && (DEV_MODE || isLocalhostDevBypass() || !!token),
+    isAuthenticated: !!user && (isLocalhostDevBypass() || !!token),
     isLoading,
     login,
     logout,
