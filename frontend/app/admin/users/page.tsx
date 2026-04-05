@@ -509,7 +509,7 @@ export default function UsersPage() {
                                                 <div className="flex items-center justify-end gap-1">
                                                     <button
                                                         onClick={() => openEdit(u)}
-                                                        className="p-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-text-tertiary hover:text-blue-600 transition-colors"
+                                                        className="p-2 rounded-lg hover:bg-brand-50 dark:hover:bg-brand-900/20 text-text-tertiary hover:text-brand-600 transition-colors"
                                                         title="แก้ไข"
                                                     >
                                                         <Edit2 className="w-4 h-4" />

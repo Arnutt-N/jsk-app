@@ -59,9 +59,9 @@ export function TransferDialog({ open, onClose, onTransfer }: TransferDialogProp
           }
         }}>
           <label className="block text-xs text-slate-500 mb-1 thai-no-break" htmlFor="transfer-operator">Operator ID</label>
-          <input ref={firstFieldRef} id="transfer-operator" name="operatorId" type="number" min="1" required className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm mb-3 focus-ring focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 transition-all thai-no-break" placeholder="Enter operator ID" />
+          <input ref={firstFieldRef} id="transfer-operator" name="operatorId" type="number" min="1" required className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm mb-3 focus-ring focus:border-brand-500 focus:ring-2 focus:ring-brand-500/40 transition-all thai-no-break" placeholder="Enter operator ID" />
           <label className="block text-xs text-slate-500 mb-1 thai-no-break" htmlFor="transfer-reason">Reason (optional)</label>
-          <input id="transfer-reason" name="reason" type="text" className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm mb-4 focus-ring focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 transition-all thai-no-break" placeholder="Why transfer?" />
+          <input id="transfer-reason" name="reason" type="text" className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm mb-4 focus-ring focus:border-brand-500 focus:ring-2 focus:ring-brand-500/40 transition-all thai-no-break" placeholder="Why transfer?" />
           <div className="flex gap-2 justify-end">
             <button type="button" onClick={onClose} className="px-4 py-2 text-xs text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all focus-ring thai-no-break">Cancel</button>
             <button type="submit" className="px-4 py-2 text-xs text-white bg-gradient-to-br from-amber-500 to-amber-600 hover:shadow-lg rounded-xl font-semibold transition-all active:scale-[0.97] focus-ring thai-no-break">Transfer</button>

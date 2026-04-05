@@ -207,7 +207,7 @@ export function CustomerPanel({
           <p className="text-[10px] text-text-tertiary font-semibold uppercase tracking-wider">Internal Notes</p>
           <textarea
             placeholder="Add notes about this customer..."
-            className="w-full text-xs bg-white border border-border-default rounded-lg px-3 py-2 text-text-primary placeholder:text-text-tertiary outline-none focus:ring-2 focus:ring-blue-500/40 resize-none"
+            className="w-full text-xs bg-white border border-border-default rounded-lg px-3 py-2 text-text-primary placeholder:text-text-tertiary outline-none focus:ring-2 focus:ring-brand-500/40 resize-none"
             rows={3}
           />
         </div>

@@ -113,8 +113,8 @@ export default function AnalyticsPage() {
                 <StatCard
                     title="Messages Sent"
                     value={summary?.total_messages || 0}
-                    icon={<Users className="w-5 h-5 text-blue-600" />}
-                    color="bg-blue-50"
+                    icon={<Users className="w-5 h-5 text-brand-600" />}
+                    color="bg-brand-50"
                 />
             </div>
 

@@ -309,10 +309,10 @@ export default function AdminRequestList() {
                                                 onClick={() => handleAssign(req)}
                                                 title="คลิกเพื่อเปลี่ยนผู้รับผิดชอบ"
                                             >
-                                                <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-[10px] font-bold text-blue-600 group-hover/agent:bg-blue-200 transition-colors dark:bg-blue-500/20 dark:text-blue-400">
+                                                <div className="w-6 h-6 bg-brand-100 rounded-full flex items-center justify-center text-[10px] font-bold text-brand-600 group-hover/agent:bg-brand-200 transition-colors dark:bg-brand-500/20 dark:text-brand-400">
                                                     {req.assignee_name[0]}
                                                 </div>
-                                                <span className="text-xs font-medium text-gray-600 group-hover/agent:text-blue-700 dark:text-gray-300">{req.assignee_name}</span>
+                                                <span className="text-xs font-medium text-gray-600 group-hover/agent:text-brand-700 dark:text-gray-300">{req.assignee_name}</span>
                                             </div>
                                         ) : (
                                             <button
