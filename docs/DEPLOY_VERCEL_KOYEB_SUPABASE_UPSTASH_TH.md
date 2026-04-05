@@ -153,6 +153,7 @@ LINE_LOGIN_CHANNEL_ID=ค่าจาก LINE
 
 SERVER_BASE_URL=https://YOUR-BACKEND.koyeb.app
 BACKEND_CORS_ORIGINS=["https://YOUR-FRONTEND.vercel.app"]
+ADMIN_URL=https://YOUR-FRONTEND.vercel.app
 
 ADMIN_DEFAULT_PASSWORD=รหัสชั่วคราวที่ปลอดภัย
 SLA_MAX_FRT_SECONDS=120
@@ -181,7 +182,40 @@ python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().d
 2. รอให้ Koyeb build และ start สำเร็จ
 3. จด backend URL ที่ได้
 
-### 4.6 เช็กว่า backend พร้อมใช้งาน
+### 4.6 Seed Admin User (ทำครั้งแรกหลัง deploy)
+
+หลัง backend start สำเร็จแล้ว ต้องสร้าง admin user ก่อนจึงจะล็อกอินได้
+
+วิธีรัน:
+
+1. เปิด terminal ที่มี Python + dependencies ของ backend ติดตั้งอยู่
+2. ตั้ง environment variables ให้ชี้ไปที่ production database:
+
+```bash
+export DATABASE_URL=ค่าจาก Supabase
+export SECRET_KEY=ค่าเดียวกับที่ใส่ใน Koyeb
+export ADMIN_DEFAULT_PASSWORD=รหัสที่ต้องการ
+```
+
+3. รัน:
+
+```bash
+cd backend
+python scripts/seed_admin.py --apply
+```
+
+ผลลัพธ์:
+
+- ถ้ายังไม่มี admin → สร้าง user ชื่อ `admin` ให้อัตโนมัติ
+- ถ้ามี admin อยู่แล้ว → อัปเดตรหัสผ่านตามค่าที่ตั้ง
+
+หมายเหตุ:
+
+- ขั้นตอนนี้ทำครั้งเดียวตอน deploy ครั้งแรก
+- หลังจากนั้นสามารถเปลี่ยนรหัสผ่านผ่านหน้า admin ได้
+- ถ้าใช้ GitHub Actions CD สามารถรัน seed script ผ่าน local machine ที่ต่อ production DB ได้
+
+### 4.7 เช็กว่า backend พร้อมใช้งาน
 
 เปิด:
 
@@ -247,11 +281,17 @@ https://YOUR-BACKEND.koyeb.app/api/v1/line/webhook
 
 ### 7.2 LIFF URL
 
-ถ้าใช้ LIFF:
+ถ้าใช้ LIFF ให้ตั้ง Endpoint URL ตาม LIFF app ที่ต้องการ:
 
 ```text
 https://YOUR-FRONTEND.vercel.app/liff/service-request
+https://YOUR-FRONTEND.vercel.app/liff/request-v2
 ```
+
+หมายเหตุ:
+
+- `/liff/service-request` — ฟอร์มแจ้งบริการแบบดั้งเดิม
+- `/liff/request-v2` — ฟอร์มแจ้งบริการเวอร์ชันใหม่
 
 ### 7.3 SERVER_BASE_URL
 
@@ -328,12 +368,28 @@ SERVER_BASE_URL=https://YOUR-BACKEND.koyeb.app
 4. Vercel = Frontend
 5. LINE = ชี้ webhook มาที่ Koyeb
 
+## หมายเหตุเพิ่มเติม
+
+### `.vercelignore`
+
+โปรเจ็กต์นี้มีไฟล์ `.vercelignore` ที่ exclude `backend/`, `.agents/`, `docs/` ออกจาก Vercel deploy แล้ว ไม่ต้องตั้งค่าเพิ่ม
+
+### `ADMIN_URL`
+
+ค่า `ADMIN_URL` ใช้สร้างลิงก์ในข้อความ Telegram notification เมื่อมีผู้ใช้ขอคุยกับ operator ถ้าไม่ตั้ง ลิงก์จะชี้ผิด
+
 ## ไฟล์อ้างอิงในโปรเจ็กต์
 
 Backend env:
 
-- [backend/app/.env.example](/backend/app/.env.example)
+- [backend/.env.production.example](/backend/.env.production.example) — สำหรับ production
+- [backend/.env.development.example](/backend/.env.development.example) — สำหรับ local dev
+- [backend/app/.env.example](/backend/app/.env.example) — template ตั้งต้น
 
 Frontend env:
 
 - [frontend/.env.local.example](/frontend/.env.local.example)
+
+Seed admin:
+
+- [backend/scripts/seed_admin.py](/backend/scripts/seed_admin.py)
