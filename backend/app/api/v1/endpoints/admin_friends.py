@@ -33,7 +33,7 @@ async def list_friends(
     from app.models.user import User as UserModel
     count_query = select(sa_func.count(UserModel.id)).where(UserModel.line_user_id.isnot(None))
     if status:
-        count_query = count_query.where(UserModel.status == status)
+        count_query = count_query.where(UserModel.friend_status == status)
     total_result = await db.execute(count_query)
     total = total_result.scalar() or 0
 

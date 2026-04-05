@@ -356,6 +356,10 @@ async def create_comment(
     current_admin: User = Depends(get_current_admin)
 ):
     """Add a new internal comment to a request."""
+    result = await db.execute(select(ServiceRequest).where(ServiceRequest.id == request_id))
+    if not result.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Service request not found")
+
     admin_id = int(current_admin.id)
     comment = RequestComment(
         request_id=request_id,

@@ -81,16 +81,21 @@ async def get_public_file(public_token: str):
 # ===================================================================
 # NOTE: No auth — used by <img src>, <video src>, <audio src> in frontend.
 # UUIDs are unguessable; admin endpoints handle metadata/deletion separately.
+# Non-public files require a valid token query parameter.
 @router.get("/media/{media_id}")
 async def get_media(
     media_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
+    token: Optional[str] = Query(None),
 ):
     result = await db.execute(select(MediaFile).filter(MediaFile.id == media_id))
     media = result.scalar_one_or_none()
 
     if not media:
         raise HTTPException(status_code=404, detail="Media not found")
+
+    if not media.is_public and media.public_token != token:
+        raise HTTPException(status_code=403, detail="Access denied")
 
     return Response(content=media.data, media_type=media.mime_type)
 

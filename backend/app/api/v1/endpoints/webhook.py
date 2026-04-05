@@ -58,7 +58,7 @@ async def line_webhook(request: Request, background_tasks: BackgroundTasks, x_li
     try:
         events = parser.parse(body_str, x_line_signature)
     except InvalidSignatureError:
-        logger.error(f"Invalid signature. Body: {body_str}")
+        logger.error("Invalid LINE webhook signature (body length=%d)", len(body_str))
         raise HTTPException(status_code=400, detail="Invalid signature")
 
     # Use BackgroundTasks to process events asynchronously
