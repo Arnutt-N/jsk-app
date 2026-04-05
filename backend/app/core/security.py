@@ -3,6 +3,9 @@ from datetime import datetime, timedelta, timezone
 import logging
 from typing import Optional, Union
 
+import asyncio
+from functools import partial
+
 import bcrypt
 from jose import jwt, JWTError
 
@@ -13,6 +16,9 @@ logger = logging.getLogger(__name__)
 
 def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
+
+
+BCRYPT_ROUNDS = 10
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -29,11 +35,19 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
         return False
 
 
+async def verify_password_async(plain_password: str, hashed_password: str) -> bool:
+    """Verify password in a thread pool to avoid blocking the event loop."""
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(
+        None, partial(verify_password, plain_password, hashed_password)
+    )
+
+
 def get_password_hash(password: str) -> str:
     """Hash a password."""
     return bcrypt.hashpw(
         password.encode("utf-8"),
-        bcrypt.gensalt(),
+        bcrypt.gensalt(rounds=BCRYPT_ROUNDS),
     ).decode("utf-8")
 
 

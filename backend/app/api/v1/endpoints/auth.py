@@ -10,7 +10,7 @@ from app.core.config import settings
 from app.core.security import (
     create_access_token,
     create_refresh_token,
-    verify_password,
+    verify_password_async,
     verify_token,
 )
 from app.models.user import User, UserRole
@@ -46,7 +46,7 @@ async def login(
             detail="Invalid username or password",
         )
 
-    if not verify_password(payload.password, user.hashed_password):
+    if not await verify_password_async(payload.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid username or password",
