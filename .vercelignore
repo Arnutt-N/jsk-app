@@ -1,0 +1,8 @@
+backend/
+.agents/
+project-log-md/
+docs/
+scripts/
+venv*/
+node_modules/
+.git/
