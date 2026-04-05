@@ -29,7 +29,7 @@ export const Alert: React.FC<AlertProps> = ({
     const icons = {
         primary: <Info className="w-5 h-5" />,
         success: <CheckCircle className="w-5 h-5" />,
-        danger: <XCircle className="w-5 h-5" />,
+        danger: <AlertCircle className="w-5 h-5" />,
         warning: <AlertCircle className="w-5 h-5" />,
         info: <Info className="w-5 h-5" />,
     };

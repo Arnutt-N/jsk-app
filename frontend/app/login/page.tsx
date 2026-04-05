@@ -203,10 +203,7 @@ function LoginForm() {
                     className="overflow-hidden mb-4"
                   >
                     <Alert variant="danger" className="rounded-xl">
-                      <div className="flex items-center gap-2">
-                        <AlertCircle className="w-4 h-4" />
-                        <span className="text-sm font-semibold">{loginError}</span>
-                      </div>
+                      <span className="text-sm font-semibold">{loginError}</span>
                     </Alert>
                   </motion.div>
                 )}
