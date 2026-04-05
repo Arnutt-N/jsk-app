@@ -60,7 +60,7 @@ const ITEMS_PER_PAGE = 20;
 /** สีพื้นหลัง avatar ตามอักษรตัวแรก */
 const AVATAR_COLORS = [
     'bg-brand-500', 'bg-info', 'bg-success', 'bg-warning',
-    'bg-danger', 'bg-purple-500', 'bg-pink-500', 'bg-teal-500',
+    'bg-danger', 'bg-brand-700', 'bg-pink-500', 'bg-teal-500',
 ];
 
 function avatarColor(name: string): string {

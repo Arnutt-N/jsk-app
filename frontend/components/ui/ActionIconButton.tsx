@@ -41,7 +41,7 @@ export function ActionIconButton({
                     'cursor-pointer select-none',
                     'transition-all duration-200 ease-out',
                     'hover:scale-110',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-blue-500/50',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-brand-500/50',
                     'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:bg-transparent',
                     'active:scale-95',
                     variantStyles[variant],

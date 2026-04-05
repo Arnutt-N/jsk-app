@@ -52,7 +52,7 @@ const CATEGORY_META: Record<Category, { label: string; icon: React.ReactNode; co
   ALL:      { label: 'ทั้งหมด',  icon: <FileIcon className="w-4 h-4" />,  color: 'gray' },
   DOCUMENT: { label: 'เอกสาร',   icon: <FileText className="w-4 h-4" />,  color: 'blue' },
   IMAGE:    { label: 'รูปภาพ',    icon: <ImageIcon className="w-4 h-4" />, color: 'green' },
-  VIDEO:    { label: 'วิดีโอ',    icon: <Video className="w-4 h-4" />,     color: 'purple' },
+  VIDEO:    { label: 'วิดีโอ',    icon: <Video className="w-4 h-4" />,     color: 'navy' },
   AUDIO:    { label: 'เสียง',     icon: <Music className="w-4 h-4" />,     color: 'amber' },
   OTHER:    { label: 'อื่นๆ',     icon: <FileIcon className="w-4 h-4" />,  color: 'gray' },
 };

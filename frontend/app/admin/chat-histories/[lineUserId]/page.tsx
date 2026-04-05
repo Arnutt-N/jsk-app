@@ -299,7 +299,7 @@ export default function ChatHistoryDetailPage() {
                     ) : (
                         messages.map((msg) => {
                             const isIncoming = msg.direction === 'INCOMING';
-                            /* สีพื้นหลัง bubble: incoming = gray, outgoing BOT = purple, outgoing ADMIN = blue */
+                            /* สีพื้นหลัง bubble: incoming = gray, outgoing BOT = navy brand, outgoing ADMIN = blue */
                             const bubbleBg = isIncoming
                                 ? 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
                                 : msg.sender_role === 'BOT'

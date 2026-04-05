@@ -8,7 +8,7 @@ interface StatsCardProps {
   title: string;
   value: number | string;
   icon: React.ReactNode;
-  color: 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'purple';
+  color: 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'navy';
   link?: string;
   description?: string;
   trend?: {
@@ -43,7 +43,7 @@ const colorMap = {
     text: 'text-info-text',
     glow: 'group-hover:shadow-info/20',
   },
-  purple: {
+  navy: {
     iconBg: 'bg-gradient-to-br from-brand-100 to-brand-50',
     text: 'text-brand-600',
     glow: 'group-hover:shadow-brand-500/20',

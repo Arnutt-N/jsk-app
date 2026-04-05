@@ -135,7 +135,7 @@
   --sidebar-primary-fg: hsl(0 0% 100%);
   /* Sidebar gradient active state (HR-IMS reference) */
   --gradient-active-from: 217 91% 60%;   /* blue-600 */
-  --gradient-active-to: 225 93% 65%;     /* indigo-600 */
+  --gradient-active-to: 225 93% 65%;     /* blue-600 */
 
   /* Alias tokens to ease shadcn-style class adaptation */
   --color-popover: hsl(0 0% 100%);

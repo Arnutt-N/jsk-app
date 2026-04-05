@@ -111,7 +111,7 @@ export default function ChatbotDashboard() {
                         title="Intent Categories"
                         value={intentCategories.length}
                         icon={<Tags className="w-6 h-6" />}
-                        color="purple"
+                        color="navy"
                         link="/admin/auto-replies"
                         description={`${intentCategories.filter((c) => c.is_active).length} Active Categories`}
                     />
