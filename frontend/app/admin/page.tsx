@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { FileText, Clock, Zap, CheckCircle2 } from 'lucide-react';
 import PageAccessGuard from '@/components/admin/PageAccessGuard';
+import { StaggerContainer, StaggerItem } from '@/components/ui/PageTransition';
 import StatsCard from './components/StatsCard';
 import ChartsWrapper from './components/ChartsWrapper';
 
@@ -144,8 +145,8 @@ export default function ServiceDashboard() {
             </div>
 
             {/* Stats Cards Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-                <div className="animate-fade-in-up" style={{ animationDelay: '0ms' }}>
+            <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+                <StaggerItem>
                     <StatsCard
                         title="Total Requests"
                         value={requestStats?.total || 0}
@@ -153,9 +154,8 @@ export default function ServiceDashboard() {
                         color="primary"
                         link="/admin/requests"
                     />
-                </div>
-                <div className="animate-fade-in-up" style={{ animationDelay: '100ms' }}>
-
+                </StaggerItem>
+                <StaggerItem>
                     <StatsCard
                         title="Pending Approval"
                         value={requestStats?.pending || 0}
@@ -164,9 +164,8 @@ export default function ServiceDashboard() {
                         link="/admin/requests?status=PENDING"
                         description="Requires Attention"
                     />
-                </div>
-                <div className="animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-
+                </StaggerItem>
+                <StaggerItem>
                     <StatsCard
                         title="In Progress"
                         value={requestStats?.in_progress || 0}
@@ -175,9 +174,8 @@ export default function ServiceDashboard() {
                         link="/admin/requests?status=IN_PROGRESS"
                         description="Currently Active"
                     />
-                </div>
-                <div className="animate-fade-in-up" style={{ animationDelay: '300ms' }}>
-
+                </StaggerItem>
+                <StaggerItem>
                     <StatsCard
                         title="Completed"
                         value={requestStats?.completed || 0}
@@ -186,8 +184,8 @@ export default function ServiceDashboard() {
                         link="/admin/requests?status=COMPLETED"
                         description="Successfully Resolved"
                     />
-                </div>
-            </div>
+                </StaggerItem>
+            </StaggerContainer>
 
             {/* Analytics Charts */}
             <ChartsWrapper statusData={statusData} monthlyData={monthlyData} />

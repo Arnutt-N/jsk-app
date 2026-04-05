@@ -29,6 +29,7 @@ import {
   BarChart,
   Bar,
 } from "recharts";
+import { StaggerContainer, StaggerItem } from "@/components/ui/PageTransition";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { MessageType, WebSocketMessage } from "@/lib/websocket/types";
@@ -85,9 +86,9 @@ interface DashboardData {
 }
 
 // Semantic chart colors matching design tokens
-const CHART_BRAND = 'hsl(262 83% 58%)';   // --color-brand-600
+const CHART_BRAND = 'hsl(221 83% 53%)';   // --color-brand-600 (navy blue)
 const CHART_SUCCESS = 'hsl(142 71% 45%)'; // --color-success
-const CHART_BRAND_RGB = '124, 58, 237';   // brand-600 for rgba heatmap
+const CHART_BRAND_RGB = '59, 130, 246';   // brand-600 for rgba heatmap
 
 function formatDuration(seconds: number): string {
   if (seconds < 60) return `${Math.round(seconds)}s`;
@@ -233,99 +234,117 @@ export default function AnalyticsPage() {
         </div>
       ) : null}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        <Card className={kpis?.waiting ? "border-danger" : ""}>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-text-tertiary flex items-center gap-2">
-              <Users className="w-4 h-4" /> Waiting
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-danger">{kpis?.waiting ?? "-"}</div>
-            <p className="text-xs text-text-tertiary mt-1">users in queue</p>
-          </CardContent>
-        </Card>
+      <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <StaggerItem>
+          <Card className={kpis?.waiting ? "border-danger" : ""}>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-text-tertiary flex items-center gap-2">
+                <Users className="w-4 h-4" /> Waiting
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-danger">{kpis?.waiting ?? "-"}</div>
+              <p className="text-xs text-text-tertiary mt-1">users in queue</p>
+            </CardContent>
+          </Card>
+        </StaggerItem>
 
-        <Card className={kpis?.active ? "border-success" : ""}>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-text-tertiary flex items-center gap-2">
-              <MessageSquare className="w-4 h-4" /> Active Sessions
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-success">{kpis?.active ?? "-"}</div>
-            <p className="text-xs text-text-tertiary mt-1">ongoing conversations</p>
-          </CardContent>
-        </Card>
+        <StaggerItem>
+          <Card className={kpis?.active ? "border-success" : ""}>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-text-tertiary flex items-center gap-2">
+                <MessageSquare className="w-4 h-4" /> Active Sessions
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-success">{kpis?.active ?? "-"}</div>
+              <p className="text-xs text-text-tertiary mt-1">ongoing conversations</p>
+            </CardContent>
+          </Card>
+        </StaggerItem>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-text-tertiary flex items-center justify-between">
-              <span className="flex items-center gap-2"><BarChart3 className="w-4 h-4" /> Sessions Today</span>
-              <TrendBadge metric={dashboard?.trends.sessions_today} />
-            </CardTitle>
-          </CardHeader>
-          <CardContent><div className="text-3xl font-bold">{kpis?.sessions_today ?? "-"}</div></CardContent>
-        </Card>
+        <StaggerItem>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-text-tertiary flex items-center justify-between">
+                <span className="flex items-center gap-2"><BarChart3 className="w-4 h-4" /> Sessions Today</span>
+                <TrendBadge metric={dashboard?.trends.sessions_today} />
+              </CardTitle>
+            </CardHeader>
+            <CardContent><div className="text-3xl font-bold">{kpis?.sessions_today ?? "-"}</div></CardContent>
+          </Card>
+        </StaggerItem>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-text-tertiary flex items-center gap-2">
-              <Users className="w-4 h-4" /> Human Mode
-            </CardTitle>
-          </CardHeader>
-          <CardContent><div className="text-3xl font-bold">{kpis?.human_mode_users ?? "-"}</div></CardContent>
-        </Card>
+        <StaggerItem>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-text-tertiary flex items-center gap-2">
+                <Users className="w-4 h-4" /> Human Mode
+              </CardTitle>
+            </CardHeader>
+            <CardContent><div className="text-3xl font-bold">{kpis?.human_mode_users ?? "-"}</div></CardContent>
+          </Card>
+        </StaggerItem>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-text-tertiary flex items-center gap-2">
-              <CheckCircle className="w-4 h-4" /> SLA Breaches (24h)
-            </CardTitle>
-          </CardHeader>
-          <CardContent><div className="text-3xl font-bold">{kpis?.sla_breach_events_24h ?? "-"}</div></CardContent>
-        </Card>
+        <StaggerItem>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-text-tertiary flex items-center gap-2">
+                <CheckCircle className="w-4 h-4" /> SLA Breaches (24h)
+              </CardTitle>
+            </CardHeader>
+            <CardContent><div className="text-3xl font-bold">{kpis?.sla_breach_events_24h ?? "-"}</div></CardContent>
+          </Card>
+        </StaggerItem>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-text-tertiary flex items-center justify-between">
-              <span className="flex items-center gap-2"><Clock className="w-4 h-4" /> Avg First Response</span>
-              <TrendBadge metric={dashboard?.trends.avg_first_response_seconds} />
-            </CardTitle>
-          </CardHeader>
-          <CardContent><div className="text-3xl font-bold">{kpis ? formatDuration(kpis.avg_first_response_seconds) : "-"}</div></CardContent>
-        </Card>
+        <StaggerItem>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-text-tertiary flex items-center justify-between">
+                <span className="flex items-center gap-2"><Clock className="w-4 h-4" /> Avg First Response</span>
+                <TrendBadge metric={dashboard?.trends.avg_first_response_seconds} />
+              </CardTitle>
+            </CardHeader>
+            <CardContent><div className="text-3xl font-bold">{kpis ? formatDuration(kpis.avg_first_response_seconds) : "-"}</div></CardContent>
+          </Card>
+        </StaggerItem>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-text-tertiary flex items-center justify-between">
-              <span className="flex items-center gap-2"><Clock className="w-4 h-4" /> Avg Resolution</span>
-              <TrendBadge metric={dashboard?.trends.avg_resolution_seconds} />
-            </CardTitle>
-          </CardHeader>
-          <CardContent><div className="text-3xl font-bold">{kpis ? formatDuration(kpis.avg_resolution_seconds) : "-"}</div></CardContent>
-        </Card>
+        <StaggerItem>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-text-tertiary flex items-center justify-between">
+                <span className="flex items-center gap-2"><Clock className="w-4 h-4" /> Avg Resolution</span>
+                <TrendBadge metric={dashboard?.trends.avg_resolution_seconds} />
+              </CardTitle>
+            </CardHeader>
+            <CardContent><div className="text-3xl font-bold">{kpis ? formatDuration(kpis.avg_resolution_seconds) : "-"}</div></CardContent>
+          </Card>
+        </StaggerItem>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-text-tertiary flex items-center justify-between">
-              <span className="flex items-center gap-2"><Star className="w-4 h-4" /> CSAT</span>
-              <TrendBadge metric={dashboard?.trends.csat_percentage} />
-            </CardTitle>
-          </CardHeader>
-          <CardContent><div className="text-3xl font-bold">{kpis ? `${kpis.csat_percentage}%` : "-"}</div></CardContent>
-        </Card>
+        <StaggerItem>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-text-tertiary flex items-center justify-between">
+                <span className="flex items-center gap-2"><Star className="w-4 h-4" /> CSAT</span>
+                <TrendBadge metric={dashboard?.trends.csat_percentage} />
+              </CardTitle>
+            </CardHeader>
+            <CardContent><div className="text-3xl font-bold">{kpis ? `${kpis.csat_percentage}%` : "-"}</div></CardContent>
+          </Card>
+        </StaggerItem>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-text-tertiary flex items-center justify-between">
-              <span className="flex items-center gap-2"><CheckCircle className="w-4 h-4" /> FCR</span>
-              <TrendBadge metric={dashboard?.trends.fcr_rate} />
-            </CardTitle>
-          </CardHeader>
-          <CardContent><div className="text-3xl font-bold">{kpis ? `${kpis.fcr_rate}%` : "-"}</div></CardContent>
-        </Card>
-      </div>
+        <StaggerItem>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-text-tertiary flex items-center justify-between">
+                <span className="flex items-center gap-2"><CheckCircle className="w-4 h-4" /> FCR</span>
+                <TrendBadge metric={dashboard?.trends.fcr_rate} />
+              </CardTitle>
+            </CardHeader>
+            <CardContent><div className="text-3xl font-bold">{kpis ? `${kpis.fcr_rate}%` : "-"}</div></CardContent>
+          </Card>
+        </StaggerItem>
+      </StaggerContainer>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <Card>

@@ -97,13 +97,13 @@ export function CustomerPanel({
           <button
             onClick={refreshProfile}
             disabled={refreshing}
-            className="text-xs text-text-tertiary hover:text-indigo-600 flex items-center gap-1 disabled:opacity-60 transition-colors"
+            className="text-xs text-text-tertiary hover:text-brand-600 flex items-center gap-1 disabled:opacity-60 transition-colors"
           >
             <RefreshCw className={`w-3 h-3 ${refreshing ? 'animate-spin' : ''}`} />
             {refreshing ? 'Refreshing...' : 'Refresh'}
           </button>
           <span className="text-text-tertiary">·</span>
-          <button className="text-xs text-indigo-600 hover:underline flex items-center gap-1">
+          <button className="text-xs text-brand-600 hover:underline flex items-center gap-1">
             View Profile <ExternalLink className="w-3 h-3" />
           </button>
         </div>
@@ -112,13 +112,13 @@ export function CustomerPanel({
         <div className="flex items-center justify-center gap-3 mt-4">
           <button
             onClick={copyLineId}
-            className="w-9 h-9 rounded-full flex items-center justify-center bg-gray-50 hover:bg-indigo-50 text-text-tertiary hover:text-indigo-600 border border-border-default transition-all"
+            className="w-9 h-9 rounded-full flex items-center justify-center bg-gray-50 hover:bg-brand-50 text-text-tertiary hover:text-brand-600 border border-border-default transition-all"
             aria-label="Copy LINE ID"
           >
             <Copy className="w-4 h-4" />
           </button>
           <button
-            className="w-9 h-9 rounded-full flex items-center justify-center bg-gray-50 hover:bg-indigo-50 text-text-tertiary hover:text-indigo-600 border border-border-default transition-all"
+            className="w-9 h-9 rounded-full flex items-center justify-center bg-gray-50 hover:bg-brand-50 text-text-tertiary hover:text-brand-600 border border-border-default transition-all"
             aria-label="Notifications"
           >
             <Bell className="w-4 h-4" />
@@ -173,7 +173,7 @@ export function CustomerPanel({
           <p className="text-[10px] text-text-tertiary font-semibold mb-1.5 uppercase tracking-wider">LINE ID</p>
           <div className="flex items-center gap-2">
             <p className="text-xs text-text-secondary font-mono truncate flex-1">{currentChat.line_user_id}</p>
-            <button onClick={copyLineId} className="p-1 text-text-tertiary hover:text-indigo-600 rounded transition-colors" aria-label="Copy LINE ID">
+            <button onClick={copyLineId} className="p-1 text-text-tertiary hover:text-brand-600 rounded transition-colors" aria-label="Copy LINE ID">
               <Copy className="w-3 h-3" />
             </button>
           </div>

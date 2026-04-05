@@ -7,6 +7,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Badge } from '@/components/ui/Badge';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import PageHeader from '@/app/admin/components/PageHeader';
+import { StaggerContainer, StaggerItem } from '@/components/ui/PageTransition';
 import {
     MessageSquare,
     Send,
@@ -105,38 +106,40 @@ export default function SettingsOverviewPage() {
                 </Button>
             </PageHeader>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {statuses.map((s) => {
                     const meta = providerMeta[s.provider] ?? providerMeta.CUSTOM;
                     const Icon = meta.icon;
 
                     return (
-                        <Link key={s.provider} href={meta.href}>
-                            <Card hover="border" className="h-full">
-                                <CardHeader>
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-900/30 flex items-center justify-center">
-                                                <Icon className="w-5 h-5 text-brand-500" />
+                        <StaggerItem key={s.provider}>
+                            <Link href={meta.href}>
+                                <Card hover="border" className="h-full">
+                                    <CardHeader>
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-900/30 flex items-center justify-center">
+                                                    <Icon className="w-5 h-5 text-brand-500" />
+                                                </div>
+                                                <div>
+                                                    <CardTitle>{s.name}</CardTitle>
+                                                    <CardDescription>{meta.description}</CardDescription>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <CardTitle>{s.name}</CardTitle>
-                                                <CardDescription>{meta.description}</CardDescription>
-                                            </div>
+                                            <ChevronRight className="w-5 h-5 text-text-tertiary" />
                                         </div>
-                                        <ChevronRight className="w-5 h-5 text-text-tertiary" />
-                                    </div>
-                                </CardHeader>
-                                <CardContent>
-                                    <Badge variant={s.is_connected ? 'success' : 'gray'} size="sm">
-                                        {s.is_connected ? 'Connected' : 'Not configured'}
-                                    </Badge>
-                                </CardContent>
-                            </Card>
-                        </Link>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <Badge variant={s.is_connected ? 'success' : 'gray'} size="sm">
+                                            {s.is_connected ? 'Connected' : 'Not configured'}
+                                        </Badge>
+                                    </CardContent>
+                                </Card>
+                            </Link>
+                        </StaggerItem>
                     );
                 })}
-            </div>
+            </StaggerContainer>
         </div>
     );
 }

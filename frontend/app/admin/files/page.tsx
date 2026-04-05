@@ -17,6 +17,7 @@ import { ModalAlert } from '@/components/ui/ModalAlert';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { useToast } from '@/components/ui/Toast';
 import { cn } from '@/lib/utils';
+import { StaggerContainer, StaggerItem } from '@/components/ui/PageTransition';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -367,16 +368,19 @@ export default function FilesPage() {
 
       {/* Stats bar */}
       {stats && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <StaggerContainer className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <StaggerItem>
           <Card padding="xs" className="text-center">
             <p className="text-xs text-text-secondary">ทั้งหมด</p>
             <p className="text-lg font-bold text-text-primary">{stats.total_count}</p>
             <p className="text-xs text-text-tertiary">{formatBytes(stats.total_size)}</p>
           </Card>
+          </StaggerItem>
           {(['DOCUMENT', 'IMAGE', 'VIDEO', 'AUDIO', 'OTHER'] as const).map(cat => {
             const d = stats.by_category[cat];
             return (
-              <Card padding="xs" key={cat} className="text-center">
+              <StaggerItem key={cat}>
+              <Card padding="xs" className="text-center">
                 <div className="flex items-center justify-center gap-1 mb-0.5">
                   {CATEGORY_META[cat].icon}
                   <span className="text-xs text-text-secondary">{CATEGORY_META[cat].label}</span>
@@ -384,9 +388,10 @@ export default function FilesPage() {
                 <p className="text-lg font-bold text-text-primary">{d?.count ?? 0}</p>
                 <p className="text-xs text-text-tertiary">{formatBytes(d?.total_size ?? 0)}</p>
               </Card>
+              </StaggerItem>
             );
           })}
-        </div>
+        </StaggerContainer>
       )}
 
       {/* Upload zone */}
@@ -513,13 +518,13 @@ export default function FilesPage() {
                   <span className="text-sm text-text-secondary">เลือกทั้งหมด</span>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                <StaggerContainer className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
                   {files.map(file => {
                     const preview = getPreviewUrl(file);
                     const isSelected = selected.has(file.id);
                     return (
+                      <StaggerItem key={file.id}>
                       <Card
-                        key={file.id}
                         padding="none"
                         hover="border"
                         className={cn(
@@ -609,9 +614,10 @@ export default function FilesPage() {
                           </div>
                         </div>
                       </Card>
+                      </StaggerItem>
                     );
                   })}
-                </div>
+                </StaggerContainer>
               </div>
             ) : (
               /* ---------- LIST VIEW ---------- */

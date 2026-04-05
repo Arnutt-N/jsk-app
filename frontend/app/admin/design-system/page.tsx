@@ -16,6 +16,7 @@ import {
   TabsTrigger,
 } from '@/components/ui';
 import PageAccessGuard from '@/components/admin/PageAccessGuard';
+import { StaggerContainer, StaggerItem } from '@/components/ui/PageTransition';
 
 const screenshotFamilies = [
   { family: 'Dashboards', count: 5, path: 'examples/templates/*dashboards*' },
@@ -44,28 +45,36 @@ export default function DesignSystemPage() {
         </p>
       </section>
 
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <StaggerContainer className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StaggerItem>
         <div className="ds-kpi">
           <p className="text-xs font-medium text-gray-500">Color Model</p>
           <p className="mt-1 text-xl font-semibold text-gray-900">HSL Tokens</p>
           <Badge variant="info" size="sm" className="mt-2">AA-ready text roles</Badge>
         </div>
+        </StaggerItem>
+        <StaggerItem>
         <div className="ds-kpi">
           <p className="text-xs font-medium text-gray-500">Component Set</p>
           <p className="mt-1 text-xl font-semibold text-gray-900">20+ primitives</p>
           <Badge variant="success" size="sm" className="mt-2">CVA variants</Badge>
         </div>
+        </StaggerItem>
+        <StaggerItem>
         <div className="ds-kpi">
           <p className="text-xs font-medium text-gray-500">Reference Inputs</p>
           <p className="mt-1 text-xl font-semibold text-gray-900">105 screenshots</p>
           <Badge variant="warning" size="sm" className="mt-2">Vuexy style families</Badge>
         </div>
+        </StaggerItem>
+        <StaggerItem>
         <div className="ds-kpi">
           <p className="text-xs font-medium text-gray-500">Theme Support</p>
           <p className="mt-1 text-xl font-semibold text-gray-900">Light + Dark</p>
           <Badge variant="primary" size="sm" className="mt-2">Shared tokens</Badge>
         </div>
-      </section>
+        </StaggerItem>
+      </StaggerContainer>
 
       <Tabs defaultValue="components" className="ds-panel p-5">
         <TabsList>
@@ -159,15 +168,17 @@ export default function DesignSystemPage() {
         </TabsContent>
 
         <TabsContent value="references" className="mt-5">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <StaggerContainer className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {screenshotFamilies.map((item) => (
-              <div key={item.family} className="rounded-xl border border-gray-100 bg-gray-50 p-4">
+              <StaggerItem key={item.family}>
+              <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
                 <p className="text-xs font-medium uppercase tracking-wider text-gray-500">{item.family}</p>
                 <p className="mt-1 text-lg font-semibold text-gray-900">{item.count} references</p>
                 <code className="mt-2 block text-xs text-gray-600">{item.path}</code>
               </div>
+              </StaggerItem>
             ))}
-          </div>
+          </StaggerContainer>
         </TabsContent>
         </Tabs>
       </div>

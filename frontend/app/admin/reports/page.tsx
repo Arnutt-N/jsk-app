@@ -23,6 +23,7 @@ import {
   Tooltip,
   Legend,
 } from 'recharts';
+import { StaggerContainer, StaggerItem } from '@/components/ui/PageTransition';
 import {
   FileText,
   MessageSquare,
@@ -104,15 +105,15 @@ interface FollowersReport {
 // ---------------------------------------------------------------------------
 
 const CHART_COLORS = [
-  'hsl(262 83% 58%)',  // brand
+  'hsl(221 83% 53%)',  // brand (navy blue)
   'hsl(142 71% 45%)',  // success
   'hsl(38 92% 50%)',   // warning
   'hsl(0 84% 60%)',    // danger
   'hsl(199 89% 48%)',  // info
-  'hsl(280 65% 60%)',  // purple
+  'hsl(224 76% 48%)',  // brand-700
 ];
 
-const PIE_COLORS = ['#7c3aed', '#22c55e', '#f59e0b', '#ef4444', '#3b82f6', '#a855f7', '#14b8a6', '#f97316'];
+const PIE_COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#2563eb', '#1d4ed8', '#14b8a6', '#f97316'];
 
 const STATUS_LABELS: Record<string, string> = {
   PENDING: 'รอดำเนินการ',
@@ -429,36 +430,44 @@ export default function ReportsPage() {
     return (
       <div className="space-y-6">
         {/* Stat cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard
-            label="คำร้องทั้งหมด"
-            value={overview.total_requests}
-            icon={FileText}
-            trend={overview.requests_trend}
-            color="brand"
-          />
-          <StatCard
-            label="ข้อความวันนี้"
-            value={overview.total_messages_today}
-            icon={MessageSquare}
-            trend={overview.messages_trend}
-            color="success"
-          />
-          <StatCard
-            label="ผู้ติดตาม"
-            value={overview.total_followers}
-            icon={Users}
-            trend={overview.followers_trend}
-            color="warning"
-          />
-          <StatCard
-            label="เซสชันแชทที่ใช้งาน"
-            value={overview.active_sessions}
-            icon={Headphones}
-            trend={overview.sessions_trend}
-            color="danger"
-          />
-        </div>
+        <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <StaggerItem>
+            <StatCard
+              label="คำร้องทั้งหมด"
+              value={overview.total_requests}
+              icon={FileText}
+              trend={overview.requests_trend}
+              color="brand"
+            />
+          </StaggerItem>
+          <StaggerItem>
+            <StatCard
+              label="ข้อความวันนี้"
+              value={overview.total_messages_today}
+              icon={MessageSquare}
+              trend={overview.messages_trend}
+              color="success"
+            />
+          </StaggerItem>
+          <StaggerItem>
+            <StatCard
+              label="ผู้ติดตาม"
+              value={overview.total_followers}
+              icon={Users}
+              trend={overview.followers_trend}
+              color="warning"
+            />
+          </StaggerItem>
+          <StaggerItem>
+            <StatCard
+              label="เซสชันแชทที่ใช้งาน"
+              value={overview.active_sessions}
+              icon={Headphones}
+              trend={overview.sessions_trend}
+              color="danger"
+            />
+          </StaggerItem>
+        </StaggerContainer>
 
         {/* Quick charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -535,26 +544,32 @@ export default function ReportsPage() {
         </div>
 
         {/* Avg resolution */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <StatCard
-            label="เวลาแก้ปัญหาเฉลี่ย"
-            value={`${srReport.avg_resolution_days} วัน`}
-            icon={Clock}
-            color="brand"
-          />
-          <StatCard
-            label="คำร้องทั้งหมดในช่วง"
-            value={srReport.over_time.reduce((a, c) => a + c.count, 0)}
-            icon={FileText}
-            color="success"
-          />
-          <StatCard
-            label="หมวดหมู่ยอดนิยม"
-            value={srReport.top_categories[0]?.category || '-'}
-            icon={TrendingUp}
-            color="warning"
-          />
-        </div>
+        <StaggerContainer className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <StaggerItem>
+            <StatCard
+              label="เวลาแก้ปัญหาเฉลี่ย"
+              value={`${srReport.avg_resolution_days} วัน`}
+              icon={Clock}
+              color="brand"
+            />
+          </StaggerItem>
+          <StaggerItem>
+            <StatCard
+              label="คำร้องทั้งหมดในช่วง"
+              value={srReport.over_time.reduce((a, c) => a + c.count, 0)}
+              icon={FileText}
+              color="success"
+            />
+          </StaggerItem>
+          <StaggerItem>
+            <StatCard
+              label="หมวดหมู่ยอดนิยม"
+              value={srReport.top_categories[0]?.category || '-'}
+              icon={TrendingUp}
+              color="warning"
+            />
+          </StaggerItem>
+        </StaggerContainer>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Bar chart by status */}
@@ -658,11 +673,17 @@ export default function ReportsPage() {
           <ExportButton type="messages" startDate={startDate} endDate={endDate} token={token} />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <StatCard label="ข้อความทั้งหมด" value={totalMessages} icon={MessageSquare} color="brand" />
-          <StatCard label="ข้อความขาเข้า" value={msgReport.incoming_total} icon={ArrowDownRight} color="success" />
-          <StatCard label="ข้อความขาออก" value={msgReport.outgoing_total} icon={ArrowUpRight} color="warning" />
-        </div>
+        <StaggerContainer className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <StaggerItem>
+            <StatCard label="ข้อความทั้งหมด" value={totalMessages} icon={MessageSquare} color="brand" />
+          </StaggerItem>
+          <StaggerItem>
+            <StatCard label="ข้อความขาเข้า" value={msgReport.incoming_total} icon={ArrowDownRight} color="success" />
+          </StaggerItem>
+          <StaggerItem>
+            <StatCard label="ข้อความขาออก" value={msgReport.outgoing_total} icon={ArrowUpRight} color="warning" />
+          </StaggerItem>
+        </StaggerContainer>
 
         {/* Line chart incoming vs outgoing */}
         <Card>
@@ -720,26 +741,32 @@ export default function ReportsPage() {
         </div>
 
         {/* Summary cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <StatCard
-            label="จำนวนเจ้าหน้าที่"
-            value={opsReport.operators.length}
-            icon={Headphones}
-            color="brand"
-          />
-          <StatCard
-            label="เซสชันทั้งหมด"
-            value={opsReport.operators.reduce((a, o) => a + o.sessions_handled, 0)}
-            icon={MessageSquare}
-            color="success"
-          />
-          <StatCard
-            label="ข้อความส่งทั้งหมด"
-            value={opsReport.operators.reduce((a, o) => a + o.messages_sent, 0)}
-            icon={ArrowUpRight}
-            color="warning"
-          />
-        </div>
+        <StaggerContainer className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <StaggerItem>
+            <StatCard
+              label="จำนวนเจ้าหน้าที่"
+              value={opsReport.operators.length}
+              icon={Headphones}
+              color="brand"
+            />
+          </StaggerItem>
+          <StaggerItem>
+            <StatCard
+              label="เซสชันทั้งหมด"
+              value={opsReport.operators.reduce((a, o) => a + o.sessions_handled, 0)}
+              icon={MessageSquare}
+              color="success"
+            />
+          </StaggerItem>
+          <StaggerItem>
+            <StatCard
+              label="ข้อความส่งทั้งหมด"
+              value={opsReport.operators.reduce((a, o) => a + o.messages_sent, 0)}
+              icon={ArrowUpRight}
+              color="warning"
+            />
+          </StaggerItem>
+        </StaggerContainer>
 
         {/* Bar chart */}
         <Card>
@@ -803,17 +830,25 @@ export default function ReportsPage() {
           <ExportButton type="followers" startDate={startDate} endDate={endDate} token={token} />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard label="ผู้ติดตามทั้งหมด" value={folReport.total_followers} icon={Users} color="brand" />
-          <StatCard label="ผู้ติดตามใหม่" value={folReport.new_this_period} icon={UserPlus} color="success" />
-          <StatCard label="ยกเลิกติดตาม" value={folReport.lost_this_period} icon={ArrowDownRight} color="danger" />
-          <StatCard
-            label="อัตราติดตามกลับ"
-            value={`${folReport.refollow_rate}%`}
-            icon={TrendingUp}
-            color="warning"
-          />
-        </div>
+        <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <StaggerItem>
+            <StatCard label="ผู้ติดตามทั้งหมด" value={folReport.total_followers} icon={Users} color="brand" />
+          </StaggerItem>
+          <StaggerItem>
+            <StatCard label="ผู้ติดตามใหม่" value={folReport.new_this_period} icon={UserPlus} color="success" />
+          </StaggerItem>
+          <StaggerItem>
+            <StatCard label="ยกเลิกติดตาม" value={folReport.lost_this_period} icon={ArrowDownRight} color="danger" />
+          </StaggerItem>
+          <StaggerItem>
+            <StatCard
+              label="อัตราติดตามกลับ"
+              value={`${folReport.refollow_rate}%`}
+              icon={TrendingUp}
+              color="warning"
+            />
+          </StaggerItem>
+        </StaggerContainer>
 
         {/* Net growth */}
         <Card>

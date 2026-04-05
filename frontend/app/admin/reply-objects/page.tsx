@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ActionIconButton } from '@/components/ui/ActionIconButton';
+import { StaggerContainer, StaggerItem } from '@/components/ui/PageTransition';
 
 interface ReplyObject {
     id: number;
@@ -135,10 +136,10 @@ export default function ReplyObjectsPage() {
                     <p className="text-gray-500 text-lg max-w-sm leading-relaxed dark:text-gray-400">No reusable templates found. Create your first template to simplify your automated responses.</p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                     {objects.map((obj) => (
+                        <StaggerItem key={obj.id}>
                         <div
-                            key={obj.id}
                             className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:border-brand-200 transition-all duration-300 group relative shadow-sm hover:shadow-lg dark:bg-gray-800 dark:border-gray-700 dark:hover:border-brand-500/30"
                         >
                             <div className="p-6">
@@ -184,8 +185,9 @@ export default function ReplyObjectsPage() {
                                 </div>
                             </div>
                         </div>
+                        </StaggerItem>
                     ))}
-                </div>
+                </StaggerContainer>
             )}
 
             {/* Form Modal */}

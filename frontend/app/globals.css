@@ -4,17 +4,17 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  /* Brand Colors (HSL) */
-  --color-brand-50: hsl(263 100% 97%);
-  --color-brand-100: hsl(263 90% 96%);
-  --color-brand-200: hsl(261 84% 92%);
-  --color-brand-300: hsl(261 82% 85%);
-  --color-brand-400: hsl(261 77% 76%);
-  --color-brand-500: hsl(262 83% 66%);
-  --color-brand-600: hsl(262 83% 58%);
-  --color-brand-700: hsl(263 70% 50%);
-  --color-brand-800: hsl(263 69% 42%);
-  --color-brand-900: hsl(264 67% 35%);
+  /* Brand Colors — Navy Blue (HSL) */
+  --color-brand-50: hsl(214 100% 97%);
+  --color-brand-100: hsl(214 95% 93%);
+  --color-brand-200: hsl(213 97% 87%);
+  --color-brand-300: hsl(212 96% 78%);
+  --color-brand-400: hsl(213 94% 68%);
+  --color-brand-500: hsl(217 91% 60%);
+  --color-brand-600: hsl(221 83% 53%);
+  --color-brand-700: hsl(224 76% 48%);
+  --color-brand-800: hsl(226 71% 40%);
+  --color-brand-900: hsl(224 64% 33%);
 
   /* Semantic Colors (HSL) */
   --color-success: hsl(142 71% 45%);
@@ -38,20 +38,20 @@
   --accent: hsl(162 72% 45%);
 
   /* Chart Colors */
-  --color-chart-1: hsl(262 83% 66%);
-  --color-chart-2: hsl(263 70% 50%);
+  --color-chart-1: hsl(217 91% 60%);
+  --color-chart-2: hsl(224 76% 48%);
   --color-chart-3: hsl(162 72% 45%);
   --color-chart-4: hsl(38 92% 50%);
   --color-chart-5: hsl(217 91% 60%);
-  --chart-1: hsl(262 83% 66%);
-  --chart-2: hsl(263 70% 50%);
+  --chart-1: hsl(217 91% 60%);
+  --chart-2: hsl(224 76% 48%);
   --chart-3: hsl(162 72% 45%);
   --chart-4: hsl(38 92% 50%);
   --chart-5: hsl(217 91% 60%);
 
   /* WCAG AA Accessible Text Colors (โฅ4.5:1 on white) */
   /* Use these for text on light backgrounds instead of brand-500 / danger / success */
-  --color-brand-text: hsl(263 70% 50%);     /* brand-700, ~9:1 ratio */
+  --color-brand-text: hsl(224 76% 48%);     /* brand-700, ~5.8:1 ratio */
   --color-danger-text: hsl(0 72% 51%);      /* danger-dark, ~5.6:1 ratio */
   --color-success-text: hsl(142 64% 37%);   /* success-dark, ~4.6:1 ratio */
   --color-warning-text: hsl(32 95% 44%);    /* warning-dark, ~4.5:1 ratio */
@@ -87,10 +87,10 @@
   --color-border-subtle: hsl(220 14% 96%);
   --color-border-default: hsl(220 13% 91%);
   --color-border-hover: hsl(216 12% 84%);
-  --color-border-focus: hsl(262 83% 66%);
+  --color-border-focus: hsl(217 91% 60%);
 
   /* Chat Semantic Colors */
-  --color-chat-user: hsl(262 83% 58%);
+  --color-chat-user: hsl(221 83% 53%);
   --color-chat-admin: hsl(142 64% 37%);
   --color-chat-bot: hsl(220 13% 91%);
   --color-chat-system: hsl(38 92% 50%);
@@ -143,7 +143,7 @@
   --color-muted: hsl(220 14% 96%);
   --color-muted-foreground: hsl(215 14% 34%);
   --color-input: hsl(220 13% 91%);
-  --color-ring: hsl(262 83% 66%);
+  --color-ring: hsl(217 91% 60%);
 
   /* Status Colors */
   --color-status-waiting: hsl(38 92% 50%);
@@ -158,9 +158,9 @@
   --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.1), 0 4px 6px -4px hsl(0 0% 0% / 0.1);
   --shadow-xl: 0 20px 25px -5px hsl(0 0% 0% / 0.1), 0 8px 10px -6px hsl(0 0% 0% / 0.1);
   --shadow-2xl: 0 25px 50px -12px hsl(0 0% 0% / 0.25);
-  --shadow-glow: 0 0 20px hsl(262 83% 66% / 0.3);
-  --shadow-glow-sm: 0 0 10px hsl(262 83% 66% / 0.2);
-  --shadow-glow-lg: 0 0 30px hsl(262 83% 66% / 0.4);
+  --shadow-glow: 0 0 20px hsl(217 91% 60% / 0.3);
+  --shadow-glow-sm: 0 0 10px hsl(217 91% 60% / 0.2);
+  --shadow-glow-lg: 0 0 30px hsl(217 91% 60% / 0.4);
   
   /* Typography */
   --font-sans: var(--font-noto-thai), "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -285,7 +285,7 @@
   
   /* Selection styling */
   ::selection {
-    background-color: hsl(262 83% 66% / 0.2);
+    background-color: hsl(217 91% 60% / 0.2);
     color: hsl(221 39% 11%);
   }
 }
@@ -308,7 +308,7 @@
   }
 
   .ds-hero {
-    background: linear-gradient(135deg, hsl(262 83% 58%), hsl(261 77% 76%));
+    background: linear-gradient(135deg, hsl(221 83% 53%), hsl(213 94% 68%));
     @apply relative overflow-hidden rounded-2xl p-6 text-white shadow-lg;
   }
 
@@ -511,14 +511,14 @@
 
   /* Gradient Text */
   .text-gradient {
-    background: linear-gradient(135deg, hsl(262 83% 66%), hsl(261 77% 76%));
+    background: linear-gradient(135deg, hsl(217 91% 60%), hsl(213 94% 68%));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
   .text-gradient-premium {
-    background: linear-gradient(135deg, hsl(262 83% 58%), hsl(261 82% 85%));
+    background: linear-gradient(135deg, hsl(221 83% 53%), hsl(213 97% 87%));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -661,10 +661,10 @@
   
   @keyframes pulse-glow {
     0%, 100% {
-      box-shadow: 0 0 0 0 hsl(262 83% 66% / 0.4);
+      box-shadow: 0 0 0 0 hsl(217 91% 60% / 0.4);
     }
     50% {
-      box-shadow: 0 0 0 10px hsl(262 83% 66% / 0);
+      box-shadow: 0 0 0 10px hsl(217 91% 60% / 0);
     }
   }
   

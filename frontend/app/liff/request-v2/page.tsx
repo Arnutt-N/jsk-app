@@ -322,7 +322,7 @@ export default function LiffServiceRequestV2() {
             </Head>
             <Script src="https://static.line-scdn.net/liff/edge/2/sdk.js" strategy="beforeInteractive" />
 
-            <div className="bg-indigo-600 border-b sticky top-0 z-50 px-4 py-3 text-white shadow-lg">
+            <div className="bg-brand-600 border-b sticky top-0 z-50 px-4 py-3 text-white shadow-lg">
                 <h1 className="text-lg font-bold">ยื่นคำร้อง (V2-Nationwide)</h1>
                 <p className="text-xs opacity-80">ยุติธรรมจังหวัดสกลนคร | API: {provinces.length > 0 ? 'Connected' : 'Connecting...'}</p>
             </div>
