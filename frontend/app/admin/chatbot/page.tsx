@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Package, Tags, MessageSquare } from 'lucide-react';
 import PageAccessGuard from '@/components/admin/PageAccessGuard';
 import StatsCard from '../components/StatsCard';
+import { StaggerContainer, StaggerItem } from '@/components/ui/PageTransition';
 
 interface ReplyObjectSummary {
     id: number;
@@ -93,33 +94,39 @@ export default function ChatbotDashboard() {
             </div>
 
             {/* Stats Cards Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                <StatsCard
-                    title="Reply Objects"
-                    value={replyObjects.length}
-                    icon={<Package className="w-6 h-6" />}
-                    color="info"
-                    link="/admin/reply-objects"
-                    description="Flex Messages & Images"
-                />
+            <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                <StaggerItem>
+                    <StatsCard
+                        title="Reply Objects"
+                        value={replyObjects.length}
+                        icon={<Package className="w-6 h-6" />}
+                        color="info"
+                        link="/admin/reply-objects"
+                        description="Flex Messages & Images"
+                    />
+                </StaggerItem>
 
-                <StatsCard
-                    title="Intent Categories"
-                    value={intentCategories.length}
-                    icon={<Tags className="w-6 h-6" />}
-                    color="purple"
-                    link="/admin/auto-replies"
-                    description={`${intentCategories.filter((c) => c.is_active).length} Active Categories`}
-                />
+                <StaggerItem>
+                    <StatsCard
+                        title="Intent Categories"
+                        value={intentCategories.length}
+                        icon={<Tags className="w-6 h-6" />}
+                        color="purple"
+                        link="/admin/auto-replies"
+                        description={`${intentCategories.filter((c) => c.is_active).length} Active Categories`}
+                    />
+                </StaggerItem>
 
-                <StatsCard
-                    title="Active Responses"
-                    value={intentCategories.reduce((acc: number, curr) => acc + curr.response_count, 0)}
-                    icon={<MessageSquare className="w-6 h-6" />}
-                    color="success"
-                    description="Total Keywords Configured"
-                />
-            </div>
+                <StaggerItem>
+                    <StatsCard
+                        title="Active Responses"
+                        value={intentCategories.reduce((acc: number, curr) => acc + curr.response_count, 0)}
+                        icon={<MessageSquare className="w-6 h-6" />}
+                        color="success"
+                        description="Total Keywords Configured"
+                    />
+                </StaggerItem>
+            </StaggerContainer>
 
             {/* Recent Activity/Quick Actions Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">

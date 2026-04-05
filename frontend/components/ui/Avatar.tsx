@@ -53,7 +53,7 @@ const Avatar = React.forwardRef<HTMLDivElement, AvatarProps>(
               onError={() => setImageError(true)}
             />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-blue-400 to-indigo-600 flex items-center justify-center text-white font-medium">
+            <div className="w-full h-full bg-gradient-to-br from-brand-400 to-brand-700 flex items-center justify-center text-white font-medium">
               {fallback?.slice(0, 2).toUpperCase() || '?'}
             </div>
           )}

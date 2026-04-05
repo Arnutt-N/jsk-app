@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { motion } from 'motion/react';
 import { ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tooltip } from '@/components/ui/Tooltip';
@@ -31,6 +32,7 @@ export function SidebarItem({
   target,
 }: SidebarItemProps) {
   const link = (
+    <motion.div whileHover={{ x: isActive ? 0 : 4 }} whileTap={{ scale: 0.97 }} transition={{ duration: 0.15 }}>
     <Link
       href={href}
       target={target}
@@ -91,6 +93,7 @@ export function SidebarItem({
         </span>
       )}
     </Link>
+    </motion.div>
   );
 
   // When collapsed, wrap in tooltip so label is still discoverable

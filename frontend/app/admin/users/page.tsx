@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { ModalAlert } from '@/components/ui/ModalAlert';
 import StatsCard from '../components/StatsCard';
+import { StaggerContainer, StaggerItem } from '@/components/ui/PageTransition';
 
 /* ── Types ─────────────────────────────────────────────────────────── */
 
@@ -358,8 +359,8 @@ export default function UsersPage() {
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-                <div className="animate-fade-in-up" style={{ animationDelay: '0ms' }}>
+            <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+                <StaggerItem>
                     <StatsCard
                         title="ผู้ใช้ทั้งหมด"
                         value={stats?.total ?? 0}
@@ -367,8 +368,8 @@ export default function UsersPage() {
                         color="primary"
                         description={`ใช้งาน ${stats?.active ?? 0} / ปิด ${stats?.inactive ?? 0}`}
                     />
-                </div>
-                <div className="animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+                </StaggerItem>
+                <StaggerItem>
                     <StatsCard
                         title="แอดมิน"
                         value={(stats?.super_admins ?? 0) + (stats?.admins ?? 0)}
@@ -376,8 +377,8 @@ export default function UsersPage() {
                         color="purple"
                         description={`Super ${stats?.super_admins ?? 0} / Admin ${stats?.admins ?? 0}`}
                     />
-                </div>
-                <div className="animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+                </StaggerItem>
+                <StaggerItem>
                     <StatsCard
                         title="เจ้าหน้าที่"
                         value={stats?.agents ?? 0}
@@ -385,8 +386,8 @@ export default function UsersPage() {
                         color="success"
                         description="Agent operators"
                     />
-                </div>
-                <div className="animate-fade-in-up" style={{ animationDelay: '300ms' }}>
+                </StaggerItem>
+                <StaggerItem>
                     <StatsCard
                         title="ผู้ใช้ทั่วไป"
                         value={stats?.users ?? 0}
@@ -394,8 +395,8 @@ export default function UsersPage() {
                         color="info"
                         description="LINE users"
                     />
-                </div>
-            </div>
+                </StaggerItem>
+            </StaggerContainer>
 
             {/* Filters */}
             <div className="bg-surface rounded-2xl border border-border-default p-4 shadow-sm">

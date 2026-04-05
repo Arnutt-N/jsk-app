@@ -28,7 +28,7 @@ const SLIDES: readonly Slide[] = [
   {
     titleKey: 'carousel_slide3_title',
     subtitleKey: 'carousel_slide3_subtitle',
-    gradient: 'from-info via-blue-500 to-indigo-500',
+    gradient: 'from-info via-blue-500 to-brand-600',
     pattern:
       'radial-gradient(circle at 50% 20%, rgba(255,255,255,0.08) 0%, transparent 50%), radial-gradient(circle at 20% 70%, rgba(255,255,255,0.06) 0%, transparent 40%)',
   },

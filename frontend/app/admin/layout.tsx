@@ -5,10 +5,9 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { SessionTimeoutWarning } from '@/components/admin/SessionTimeoutWarning';
-import { useTheme } from '@/components/providers';
 import { cn } from '@/lib/utils';
 import {
-  Sun, Moon, Bell, Menu, Search, LogOut, ChevronLeft, ChevronRight,
+  Bell, Menu, Search, LogOut, ChevronLeft, ChevronRight,
   LayoutDashboard, FileText, Bot, MessageCircle,
   Reply, MessageSquareReply, PanelTop, Users,
   UserCog, BarChart3, Megaphone, FolderOpen,
@@ -17,6 +16,9 @@ import {
 import { Avatar } from '@/components/ui/Avatar';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
+import { PageTransition } from '@/components/ui/PageTransition';
+import { ThemeToggleSwitch } from '@/components/admin/ThemeToggleSwitch';
+import { AdminLanguageToggle, type AdminLocale } from '@/components/admin/AdminLanguageToggle';
 import SidebarItem from '@/components/admin/SidebarItem';
 
 interface MenuItem {
@@ -101,34 +103,24 @@ function SidebarUserInfo({ isCollapsed }: { isCollapsed: boolean }) {
   );
 }
 
-// Theme Toggle Button Component
-function ThemeToggle() {
-  const { resolvedTheme, toggleTheme } = useTheme();
-  const isDark = resolvedTheme === 'dark';
-
-  return (
-    <Tooltip content={isDark ? 'Switch to light mode' : 'Switch to dark mode'}>
-      <button
-        onClick={toggleTheme}
-        className={cn(
-          'p-2 rounded-xl transition-all duration-200',
-          'text-text-tertiary hover:text-brand-600 hover:bg-gray-50',
-          'dark:hover:text-brand-400 dark:hover:bg-gray-800',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/50'
-        )}
-        aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-      >
-        {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-      </button>
-    </Tooltip>
-  );
-}
-
 function AdminShell({ children }: { children: React.ReactNode }) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [adminLocale, setAdminLocale] = useState<AdminLocale>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('jsk-admin-locale');
+      if (saved === 'en' || saved === 'th') return saved;
+    }
+    return 'th';
+  });
   const pathname = usePathname();
   const { user } = useAuth();
+
+  useEffect(() => {
+    localStorage.setItem('jsk-admin-locale', adminLocale);
+  }, [adminLocale]);
+
+  const toggleAdminLocale = () => setAdminLocale((prev) => (prev === 'th' ? 'en' : 'th'));
 
   useEffect(() => {
     const handleResize = () => {
@@ -330,8 +322,12 @@ function AdminShell({ children }: { children: React.ReactNode }) {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <ThemeToggle />
+              <div className="flex items-center gap-2.5">
+                {/* Language Toggle TH/EN */}
+                <AdminLanguageToggle locale={adminLocale} onToggle={toggleAdminLocale} />
+
+                {/* Theme Toggle Switch */}
+                <ThemeToggleSwitch />
 
                 <Tooltip content="Notifications">
                   <button
@@ -349,7 +345,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
                   size="sm"
                   fallback="AD"
                   status="online"
-                  className="ring-2 ring-indigo-500/20 ring-offset-1 ring-offset-white dark:ring-offset-gray-800"
+                  className="ring-2 ring-brand-500/20 ring-offset-1 ring-offset-white dark:ring-offset-gray-800"
                 />
               </div>
             </header>
@@ -357,9 +353,9 @@ function AdminShell({ children }: { children: React.ReactNode }) {
             {/* เนื้อหาหลัก — ErrorBoundary จับเฉพาะ render-time error ไม่จับ async fetch error */}
             <main id="main-content" className="flex-1 overflow-y-auto px-4 sm:px-6 pt-6 pb-6 scrollbar-thin">
               <ErrorBoundary>
-                <div className="animate-fade-in-up">
+                <PageTransition>
                   {children}
-                </div>
+                </PageTransition>
               </ErrorBoundary>
             </main>
           </div>

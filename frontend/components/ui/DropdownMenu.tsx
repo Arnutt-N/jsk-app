@@ -247,8 +247,8 @@ const DropdownMenuItem = React.forwardRef<HTMLButtonElement, DropdownMenuItemPro
         className={cn(
           'flex w-full cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-700',
           'transition-colors duration-150',
-          'hover:bg-indigo-50 hover:text-indigo-700',
-          'focus:bg-indigo-50 focus:text-indigo-700 focus:outline-none',
+          'hover:bg-brand-50 hover:text-brand-700',
+          'focus:bg-brand-50 focus:text-brand-700 focus:outline-none',
           'disabled:pointer-events-none disabled:opacity-50',
           inset && 'pl-8',
           className

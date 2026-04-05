@@ -49,22 +49,34 @@ export function installAdminAuthFetchInterceptor(): void {
 
   window.fetch = (async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     const token = window.__JSK_ADMIN_AUTH_TOKEN__ ?? null;
-    if (!token || !isAdminApiRequest(input) || hasAuthorizationHeader(input, init)) {
-      return nativeFetch(input, init);
-    }
 
-    if (input instanceof Request) {
-      const request = new Request(input, {
+    try {
+      if (!token || !isAdminApiRequest(input) || hasAuthorizationHeader(input, init)) {
+        return await nativeFetch(input, init);
+      }
+
+      if (input instanceof Request) {
+        const request = new Request(input, {
+          ...init,
+          headers: buildAuthHeaders(init?.headers ?? input.headers, token),
+        });
+        return await nativeFetch(request);
+      }
+
+      return await nativeFetch(input, {
         ...init,
-        headers: buildAuthHeaders(init?.headers ?? input.headers, token),
+        headers: buildAuthHeaders(init?.headers, token),
       });
-      return nativeFetch(request);
+    } catch (error: unknown) {
+      const url = getRequestUrl(input);
+      if (error instanceof TypeError && (error.message === 'Failed to fetch' || error.message === 'Load failed')) {
+        throw new TypeError(
+          `ไม่สามารถเชื่อมต่อ Backend ได้ (${url}) — กรุณาตรวจสอบว่า Backend เปิดอยู่`,
+          { cause: error }
+        );
+      }
+      throw error;
     }
-
-    return nativeFetch(input, {
-      ...init,
-      headers: buildAuthHeaders(init?.headers, token),
-    });
   }) as typeof window.fetch;
 
   window.__JSK_ADMIN_AUTH_FETCH_INSTALLED__ = true;

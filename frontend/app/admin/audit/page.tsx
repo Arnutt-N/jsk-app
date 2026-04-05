@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { RefreshCw, ChevronLeft, ChevronRight, Shield } from "lucide-react";
+import { StaggerContainer, StaggerItem } from "@/components/ui/PageTransition";
 
 interface AuditLog {
   id: number;
@@ -123,7 +124,8 @@ export default function AuditLogPage() {
 
       {/* Stats Cards */}
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <StaggerContainer className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <StaggerItem>
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-text-tertiary">
@@ -134,7 +136,9 @@ export default function AuditLogPage() {
               <div className="text-2xl font-bold">{stats.total_actions}</div>
             </CardContent>
           </Card>
+          </StaggerItem>
 
+          <StaggerItem>
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-text-tertiary">
@@ -154,7 +158,9 @@ export default function AuditLogPage() {
               </div>
             </CardContent>
           </Card>
+          </StaggerItem>
 
+          <StaggerItem>
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-text-tertiary">
@@ -174,7 +180,8 @@ export default function AuditLogPage() {
               </div>
             </CardContent>
           </Card>
-        </div>
+          </StaggerItem>
+        </StaggerContainer>
       )}
 
       {/* Filters */}

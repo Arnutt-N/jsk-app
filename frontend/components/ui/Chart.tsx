@@ -188,7 +188,7 @@ const ChartTooltipContent = React.forwardRef<
             const indicatorColor =
               typeof indicatorColorCandidate === 'string'
                 ? indicatorColorCandidate
-                : 'hsl(262 83% 66%)';
+                : 'hsl(217 91% 60%)';
             const itemKey = `${item.dataKey ?? item.name ?? 'value'}-${index}`;
 
             return (

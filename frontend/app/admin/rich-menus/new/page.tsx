@@ -468,7 +468,7 @@ export default function NewRichMenuPage() {
                                                 <div className="space-y-1">
                                                     <label className="text-[10px] font-bold text-slate-400">SYSTEM OBJECTS</label>
                                                     <select
-                                                        className="w-full text-sm bg-white border border-slate-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-500/20 outline-none cursor-pointer"
+                                                        className="w-full text-sm bg-white border border-slate-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-brand-500/20 outline-none cursor-pointer"
                                                         onChange={(e) => {
                                                             const val = e.target.value;
                                                             if (val.startsWith('intent:')) handleActionChange(i, 'intent_name', val.split(':')[1]);

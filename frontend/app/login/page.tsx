@@ -2,32 +2,32 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Checkbox } from '@/components/ui/Checkbox';
+import { Alert } from '@/components/ui/Alert';
 import {
   Card,
   CardHeader,
   CardTitle,
   CardDescription,
   CardContent,
-  CardFooter,
 } from '@/components/ui/Card';
 import { useToast } from '@/components/ui/Toast';
 import {
-  Shield,
   Lock,
   User,
   ArrowRight,
   Eye,
   EyeOff,
   KeyRound,
-  UserPlus,
+  AlertCircle
 } from 'lucide-react';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
 
 function LoginForm() {
   const [username, setUsername] = useState('');
@@ -36,6 +36,11 @@ function LoginForm() {
   const [rememberMe, setRememberMe] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLocalhost, setIsLocalhost] = useState(false);
+  
+  // Validation States
+  const [errors, setErrors] = useState<{username?: string; password?: string}>({});
+  const [loginError, setLoginError] = useState<string | null>(null);
+
   const router = useRouter();
   const { login, isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
@@ -58,12 +63,32 @@ function LoginForm() {
     }
   }, [isAuthenticated, isLoading, router]);
 
+  const validateForm = () => {
+    const newErrors: {username?: string; password?: string} = {};
+    let isValid = true;
+
+    if (!username.trim()) {
+      newErrors.username = 'กรุณากรอกชื่อผู้ใช้';
+      isValid = false;
+    }
+    
+    if (!password) {
+      newErrors.password = 'กรุณากรอกรหัสผ่าน';
+      isValid = false;
+    }
+
+    setErrors(newErrors);
+    return isValid;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username || !password) {
+    setLoginError(null);
+    
+    if (!validateForm()) {
       toast({
-        title: 'Error',
-        description: 'กรุณากรอกชื่อผู้ใช้และรหัสผ่าน',
+        title: 'ตรวจสอบข้อมูล',
+        description: 'กรุณากรอกข้อมูลให้ครบถ้วนและถูกต้อง',
         variant: 'error',
       });
       return;
@@ -87,9 +112,10 @@ function LoginForm() {
       });
       router.replace('/admin');
     } catch {
+      setLoginError('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง');
       toast({
         title: 'เข้าสู่ระบบไม่สำเร็จ',
-        description: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง',
+        description: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง',
         variant: 'error',
       });
     } finally {
@@ -98,7 +124,7 @@ function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-[#FAFAFA] dark:bg-slate-950 transition-colors duration-500">
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-[#FAFAFA] dark:bg-slate-950 transition-colors duration-500 font-sans">
       {/* Shared Background with Landing Page */}
       <div className="fixed inset-0 z-0 pointer-events-none flex justify-center overflow-hidden">
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] mix-blend-overlay" />
@@ -132,12 +158,6 @@ function LoginForm() {
         />
       </div>
 
-      {/* Decorative blurs near the card */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg h-full max-h-[700px] pointer-events-none opacity-50 dark:opacity-30">
-        <div className="absolute -top-10 -left-10 w-40 h-40 bg-blue-400/30 rounded-full blur-3xl" />
-        <div className="absolute -bottom-10 -right-10 w-48 h-48 bg-blue-900/30 rounded-full blur-3xl" />
-      </div>
-
       <motion.div
         initial={{ opacity: 0, y: 40, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -146,217 +166,235 @@ function LoginForm() {
       >
         {/* Outer glassmorphic border matching Landing Mockup */}
         <div className="rounded-[2.5rem] border border-white/60 dark:border-white/10 bg-white/30 dark:bg-white/5 backdrop-blur-3xl shadow-[0_40px_100px_-20px_rgba(0,0,0,0.1)] p-3 relative group">
-          <Card className="rounded-[2rem] border-slate-100/80 dark:border-white/10 bg-white/90 dark:bg-slate-900/90 overflow-hidden shadow-2xl relative z-10 p-2 sm:p-4">
-            <CardHeader className="space-y-4 flex flex-col items-center pb-6 pt-6">
-              {/* JSK Platform Logo */}
+          <Card className="rounded-[2rem] border-slate-100/80 dark:border-white/10 bg-white/95 dark:bg-slate-900/95 overflow-hidden shadow-2xl relative z-10 p-2 sm:p-4">
+            <CardHeader className="space-y-6 flex flex-col items-center pb-6 pt-8">
+              {/* Brand Logo - Navy Blue Gradient Icon Only */}
               <Link
                 href="/"
-                className="group/logo flex items-center justify-center transition-transform hover:scale-110 duration-300 cursor-pointer"
+                className="transition-transform hover:scale-105 duration-300 cursor-pointer"
               >
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-900 to-blue-500 rounded-full flex items-center justify-center shadow-lg shadow-blue-900/20 group-hover/logo:shadow-blue-500/40 transition-shadow">
-                  <span className="text-white text-lg font-bold tracking-tight">
-                    JSK
-                  </span>
+                <div className="relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl border border-blue-800/30 bg-gradient-to-br from-blue-900 to-blue-700 text-sm font-bold tracking-[0.24em] text-white shadow-lg shadow-blue-900/20">
+                  <span className="ml-[0.24em]">JSK</span>
+                  <span className="absolute inset-x-3 bottom-2 h-[2px] rounded-full bg-gradient-to-r from-transparent via-blue-400 to-transparent opacity-70" />
                 </div>
               </Link>
 
-              <div className="space-y-1.5 text-center">
+              <div className="space-y-2 text-center">
                 <CardTitle className="font-heading text-3xl font-black tracking-tight text-slate-900 dark:text-white">
-                  เข้าสู่ระบบ
+                  JSK 4.0 Platform
                 </CardTitle>
                 <CardDescription className="text-slate-500 dark:text-slate-400 font-medium">
-                  จัดการระบบ JSK Platform สำหรับเจ้าหน้าที่
+                  เข้าสู่ระบบจัดการงานสำหรับเจ้าหน้าที่
                 </CardDescription>
               </div>
             </CardHeader>
 
-            <CardContent className="space-y-5">
-              <form onSubmit={handleSubmit} className="space-y-5">
+            <CardContent className="space-y-5 pb-8">
+              
+              {/* Login Error Alert */}
+              <AnimatePresence mode="wait">
+                {loginError && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="overflow-hidden mb-4"
+                  >
+                    <Alert variant="danger" className="rounded-xl">
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4" />
+                        <span className="text-sm font-semibold">{loginError}</span>
+                      </div>
+                    </Alert>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <form onSubmit={handleSubmit} className="space-y-5" noValidate>
                 {/* Username Field */}
                 <div className="space-y-2">
                   <Label
                     htmlFor="username"
-                    className="text-sm font-bold text-slate-700 dark:text-slate-300 ml-1"
+                    className={cn(
+                      "text-sm font-bold ml-1 transition-colors",
+                      errors.username ? "text-danger" : "text-slate-700 dark:text-slate-300"
+                    )}
                   >
-                    ชื่อผู้ใช้
+                    ชื่อผู้ใช้ <span className="text-danger">*</span>
                   </Label>
                   <div className="relative group">
                     <Input
                       id="username"
                       type="text"
-                      placeholder="username"
+                      placeholder="กรอกชื่อผู้ใช้ของคุณ"
                       value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      className="pl-11 h-12 bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-white/10 rounded-2xl focus:ring-blue-500 focus:border-blue-500 transition-all"
+                      onChange={(e) => {
+                        setUsername(e.target.value);
+                        if (errors.username) setErrors({ ...errors, username: undefined });
+                      }}
+                      className={cn(
+                        "pl-11 h-12 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border-slate-200 dark:border-white/10 transition-all",
+                        errors.username 
+                          ? "border-danger focus:ring-danger focus:border-danger bg-danger/5" 
+                          : "focus:ring-blue-500 focus:border-blue-500 hover:border-blue-300"
+                      )}
                       required
                       autoComplete="username"
                     />
-                    <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors w-[18px] h-[18px]" />
+                    <User className={cn(
+                      "absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] transition-colors",
+                      errors.username ? "text-danger" : "text-slate-400 group-focus-within:text-blue-600"
+                    )} />
                   </div>
                 </div>
 
                 {/* Password Field */}
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between ml-1 mr-1">
-                    <Label
-                      htmlFor="password"
-                      className="text-sm font-bold text-slate-700 dark:text-slate-300"
-                    >
-                      รหัสผ่าน
-                    </Label>
-                    <Link
-                      href="#"
-                      className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors cursor-pointer"
-                    >
-                      ลืมรหัสผ่าน?
-                    </Link>
-                  </div>
+                  <Label
+                    htmlFor="password"
+                    className={cn(
+                      "text-sm font-bold ml-1 transition-colors",
+                      errors.password ? "text-danger" : "text-slate-700 dark:text-slate-300"
+                    )}
+                  >
+                    รหัสผ่าน <span className="text-danger">*</span>
+                  </Label>
                   <div className="relative group">
                     <Input
                       id="password"
                       type={showPassword ? 'text' : 'password'}
                       placeholder="••••••••"
                       value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="pl-11 pr-12 h-12 bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-white/10 rounded-2xl focus:ring-blue-500 focus:border-blue-500 transition-all"
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        if (errors.password) setErrors({ ...errors, password: undefined });
+                      }}
+                      className={cn(
+                        "pl-11 pr-12 h-12 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border-slate-200 dark:border-white/10 transition-all",
+                        errors.password 
+                          ? "border-danger focus:ring-danger focus:border-danger bg-danger/5" 
+                          : "focus:ring-blue-500 focus:border-blue-500 hover:border-blue-300"
+                      )}
                       required
                       autoComplete="current-password"
                     />
-                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors w-[18px] h-[18px]" />
+                    <Lock className={cn(
+                      "absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] transition-colors",
+                      errors.password ? "text-danger" : "text-slate-400 group-focus-within:text-blue-600"
+                    )} />
 
-                    {/* Show/Hide Password Toggle */}
                     <button
                       type="button"
                       onClick={() => setShowPassword((prev) => !prev)}
-                      aria-label={
-                        showPassword ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'
-                      }
-                      className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 transition-all cursor-pointer"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-xl text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all cursor-pointer"
                     >
                       {showPassword ? (
-                        <EyeOff className="w-4 h-4" />
+                        <EyeOff className="w-4.5 h-4.5" />
                       ) : (
-                        <Eye className="w-4 h-4" />
+                        <Eye className="w-4.5 h-4.5" />
                       )}
                     </button>
                   </div>
                 </div>
 
-                {/* Remember Me */}
-                <div className="flex items-center gap-3 ml-1">
-                  <Checkbox
-                    id="remember-me"
-                    checked={rememberMe}
-                    onCheckedChange={(checked) =>
-                      setRememberMe(checked === true)
-                    }
-                    className="!border-slate-300 dark:!border-white/20 data-[state=checked]:!bg-blue-600 data-[state=checked]:!border-blue-600"
-                  />
-                  <label
-                    htmlFor="remember-me"
-                    className="text-sm font-medium text-slate-600 dark:text-slate-400 cursor-pointer select-none"
+                {/* Remember Me & Forgot Password - Unified Row */}
+                <div className="flex items-center justify-between px-1">
+                  <div className="flex items-center gap-2.5">
+                    <Checkbox
+                      id="remember-me"
+                      checked={rememberMe}
+                      onCheckedChange={(checked) =>
+                        setRememberMe(checked === true)
+                      }
+                      className="w-4.5 h-4.5 rounded-md border-slate-300 dark:border-white/20 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600 cursor-pointer"
+                    />
+                    <label
+                      htmlFor="remember-me"
+                      className="text-xs font-bold text-slate-500 dark:text-slate-400 cursor-pointer select-none"
+                    >
+                      จดจำฉัน
+                    </label>
+                  </div>
+                  
+                  <Link
+                    href="#"
+                    className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
                   >
-                    จำฉันไว้ในระบบ
-                  </label>
+                    ลืมรหัสผ่าน?
+                  </Link>
                 </div>
 
-                {/* Submit Button */}
+                {/* Submit Button - Matches Landing Hero CTA */}
                 <Button
                   type="submit"
-                  className="w-full h-14 rounded-full bg-blue-900 hover:bg-blue-800 text-white font-bold text-base shadow-lg shadow-blue-900/20 hover:shadow-blue-900/40 hover:scale-[1.02] transition-all group overflow-hidden cursor-pointer"
+                  disabled={isSubmitting}
+                  className="w-full h-14 mt-4 rounded-full bg-blue-900 hover:bg-blue-800 text-white font-black text-base shadow-lg shadow-blue-900/20 hover:shadow-blue-900/40 hover:scale-[1.02] active:scale-[0.98] transition-all group overflow-hidden cursor-pointer"
                   isLoading={isSubmitting}
                 >
                   <span className="relative z-10 flex items-center justify-center gap-2">
-                    เข้าสู่ระบบ
-                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                    {isSubmitting ? 'กำลังตรวจสอบ...' : 'เข้าสู่ระบบ'}
                   </span>
                   <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-blue-800 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 </Button>
               </form>
 
-              {/* Divider */}
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-slate-200 dark:border-white/10" />
+              {/* Or Register Section */}
+              <div className="mt-6">
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-slate-200 dark:border-white/10" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-white dark:bg-slate-900 px-2 text-slate-400 font-medium">หรือ</span>
+                  </div>
                 </div>
-                <div className="relative flex justify-center text-xs">
-                  <span className="px-3 bg-white/90 dark:bg-slate-900/90 text-slate-400 dark:text-slate-500 font-semibold uppercase tracking-wider">
-                    หรือ
-                  </span>
-                </div>
-              </div>
-
-              {/* Register CTA */}
-              <div className="text-center">
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  ยังไม่มีบัญชี?{' '}
-                  <Link
-                    href="#"
-                    className="font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors cursor-pointer"
-                  >
+                <div className="mt-4 text-center text-sm font-medium text-slate-600 dark:text-slate-400">
+                  ยังไม่มีบัญชี?{" "}
+                  <Link href="/register" className="text-blue-600 dark:text-blue-400 hover:underline font-bold">
                     ลงทะเบียนเจ้าหน้าที่
                   </Link>
-                </p>
+                </div>
               </div>
 
               {/* Dev Quick Login */}
               {process.env.NODE_ENV === 'development' && isLocalhost && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.5 }}
-                  className="pt-4 border-t border-slate-100 dark:border-white/5"
-                >
+                <div className="pt-6">
                   <Button
                     type="button"
                     variant="outline"
-                    className="w-full h-12 text-sm font-bold border-amber-200/50 dark:border-amber-500/20 text-amber-600 dark:text-amber-400 bg-amber-50/30 dark:bg-amber-500/5 hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded-2xl transition-all cursor-pointer"
+                    className="w-full h-11 text-xs font-bold border-amber-200/50 dark:border-amber-500/20 text-amber-600 dark:text-amber-400 bg-amber-50/30 dark:bg-amber-500/5 hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded-2xl transition-all cursor-pointer whitespace-nowrap overflow-hidden flex items-center justify-center"
                     onClick={() => {
                       localStorage.setItem('dev_bypass', 'true');
-                      toast({
-                        title: 'Dev Mode',
-                        description:
-                          'ข้ามเข้าสู่ระบบสำเร็จ (localhost only)',
-                        variant: 'success',
-                      });
                       window.location.href = '/admin';
                     }}
                   >
-                    <KeyRound className="w-4 h-4 mr-2" />
-                    Dev Quick Login
+                    <KeyRound className="w-4 h-4 mr-2 shrink-0" />
+                    <span className="truncate">Local Dev Quick Bypass</span>
                   </Button>
-                  <p className="text-[10px] text-slate-400 text-center mt-2 uppercase tracking-widest font-bold">
-                    Localhost Only
-                  </p>
-                </motion.div>
+                </div>
               )}
             </CardContent>
-
-            <CardFooter className="flex flex-col items-center gap-3 border-t border-slate-100 dark:border-white/5 pt-5 pb-5 bg-slate-50/50 dark:bg-slate-800/30">
-              <div className="flex items-center gap-2 text-xs font-bold text-slate-400 dark:text-slate-500">
-                <Shield className="w-3.5 h-3.5 text-blue-500" />
-                <span className="uppercase tracking-tight">
-                  Enterprise-grade security &middot; JWT + RBAC
-                </span>
-              </div>
-            </CardFooter>
           </Card>
         </div>
 
-        {/* Home link */}
+        {/* Home link & Copyright */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 1 }}
-          className="mt-8 flex justify-center"
+          transition={{ delay: 0.8 }}
+          className="mt-8 flex flex-col items-center gap-4"
         >
           <Link
             href="/"
-            className="text-sm font-bold text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 transition-colors flex items-center gap-2 cursor-pointer"
+            className="text-sm font-bold text-slate-500 hover:text-blue-900 dark:text-slate-400 dark:hover:text-blue-400 transition-colors flex items-center gap-2 cursor-pointer group"
           >
-            <ArrowRight className="w-4 h-4 rotate-180" />
-            กลับหน้าหลัก
+            <ArrowRight className="w-4 h-4 rotate-180 group-hover:-translate-x-1 transition-transform" />
+            กลับสู่หน้าหลัก
           </Link>
+
+          <div className="text-[10px] text-slate-400 dark:text-slate-500 font-medium text-center">
+            Copyright 2026 สำนักงานยุติธรรมจังหวัดสกลนคร สำนักงานปลัดกระทรวงยุติธรรม
+          </div>
         </motion.div>
       </motion.div>
     </div>
