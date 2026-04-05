@@ -33,38 +33,49 @@ import { StaggerContainer, StaggerItem } from '@/components/ui/PageTransition';
 
 /* ── Color token data ── */
 const brandColors = [
-  { name: '50',  var: 'brand-50',  hsl: '214 100% 97%' },
-  { name: '100', var: 'brand-100', hsl: '214 95% 93%' },
-  { name: '200', var: 'brand-200', hsl: '213 97% 87%' },
-  { name: '300', var: 'brand-300', hsl: '212 96% 78%' },
-  { name: '400', var: 'brand-400', hsl: '213 94% 68%' },
-  { name: '500', var: 'brand-500', hsl: '217 91% 60%' },
-  { name: '600', var: 'brand-600', hsl: '221 83% 53%' },
-  { name: '700', var: 'brand-700', hsl: '224 76% 48%' },
-  { name: '800', var: 'brand-800', hsl: '226 71% 40%' },
-  { name: '900', var: 'brand-900', hsl: '224 64% 33%' },
+  { name: '50',  bg: 'bg-brand-50' },
+  { name: '100', bg: 'bg-brand-100' },
+  { name: '200', bg: 'bg-brand-200' },
+  { name: '300', bg: 'bg-brand-300' },
+  { name: '400', bg: 'bg-brand-400' },
+  { name: '500', bg: 'bg-brand-500' },
+  { name: '600', bg: 'bg-brand-600' },
+  { name: '700', bg: 'bg-brand-700' },
+  { name: '800', bg: 'bg-brand-800' },
+  { name: '900', bg: 'bg-brand-900' },
 ];
 
 const semanticColors = [
-  { name: 'Success', var: 'success',  text: 'success-text'  },
-  { name: 'Warning', var: 'warning',  text: 'warning-text'  },
-  { name: 'Danger',  var: 'danger',   text: 'danger-text'   },
-  { name: 'Info',    var: 'info',     text: 'info-text'     },
-  { name: 'Accent',  var: 'accent',   text: 'accent-text'   },
+  { name: 'Success', bg: 'bg-success' },
+  { name: 'Warning', bg: 'bg-warning' },
+  { name: 'Danger',  bg: 'bg-danger'  },
+  { name: 'Info',    bg: 'bg-info'    },
+  { name: 'Accent',  bg: 'bg-accent'  },
 ];
 
 const statusColors = [
-  { name: 'Online',  var: 'online'  },
-  { name: 'Away',    var: 'away'    },
-  { name: 'Busy',    var: 'busy'    },
-  { name: 'Offline', var: 'offline' },
+  { name: 'Online',  bg: 'bg-online'  },
+  { name: 'Away',    bg: 'bg-away'    },
+  { name: 'Busy',    bg: 'bg-busy'    },
+  { name: 'Offline', bg: 'bg-offline' },
 ];
 
 const chatColors = [
-  { name: 'User',   var: 'chat-user'   },
-  { name: 'Admin',  var: 'chat-admin'  },
-  { name: 'Bot',    var: 'chat-bot'    },
-  { name: 'System', var: 'chat-system' },
+  { name: 'User',   bg: 'bg-chat-user'   },
+  { name: 'Admin',  bg: 'bg-chat-admin'  },
+  { name: 'Bot',    bg: 'bg-chat-bot'    },
+  { name: 'System', bg: 'bg-chat-system' },
+];
+
+const chartColors = [
+  { name: 'chart-1', bg: 'bg-chart-1' },
+  { name: 'chart-2', bg: 'bg-chart-2' },
+  { name: 'chart-3', bg: 'bg-chart-3' },
+  { name: 'chart-4', bg: 'bg-chart-4' },
+  { name: 'chart-5', bg: 'bg-chart-5' },
+  { name: 'chart-6', bg: 'bg-chart-6' },
+  { name: 'chart-7', bg: 'bg-chart-7' },
+  { name: 'chart-8', bg: 'bg-chart-8' },
 ];
 
 /* ── Component inventory ── */
@@ -171,7 +182,7 @@ export default function DesignSystemPage() {
               <CardContent>
                 <div className="grid grid-cols-5 gap-2 sm:grid-cols-10">
                   {brandColors.map((c) => (
-                    <ColorSwatch key={c.name} name={c.name} className={`bg-${c.var}`} />
+                    <ColorSwatch key={c.name} name={c.name} className={c.bg} />
                   ))}
                 </div>
               </CardContent>
@@ -187,7 +198,7 @@ export default function DesignSystemPage() {
                 <div className="grid grid-cols-5 gap-4">
                   {semanticColors.map((c) => (
                     <div key={c.name} className="space-y-2">
-                      <div className={`h-12 w-full rounded-lg bg-${c.var}`} />
+                      <div className={`h-12 w-full rounded-lg ${c.bg}`} />
                       <p className="text-center text-xs font-medium text-gray-600 dark:text-gray-400">{c.name}</p>
                     </div>
                   ))}
@@ -206,7 +217,7 @@ export default function DesignSystemPage() {
                   <div className="flex flex-wrap gap-4">
                     {statusColors.map((c) => (
                       <div key={c.name} className="flex items-center gap-2">
-                        <div className={`h-3 w-3 rounded-full bg-${c.var}`} />
+                        <div className={`h-3 w-3 rounded-full ${c.bg}`} />
                         <span className="text-sm text-gray-600 dark:text-gray-400">{c.name}</span>
                       </div>
                     ))}
@@ -223,7 +234,7 @@ export default function DesignSystemPage() {
                   <div className="flex flex-wrap gap-4">
                     {chatColors.map((c) => (
                       <div key={c.name} className="flex items-center gap-2">
-                        <div className={`h-6 w-12 rounded-full bg-${c.var}`} />
+                        <div className={`h-6 w-12 rounded-full ${c.bg}`} />
                         <span className="text-sm text-gray-600 dark:text-gray-400">{c.name}</span>
                       </div>
                     ))}
@@ -240,8 +251,8 @@ export default function DesignSystemPage() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-8 gap-2">
-                  {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
-                    <ColorSwatch key={n} name={`chart-${n}`} className={`bg-chart-${n}`} />
+                  {chartColors.map((c) => (
+                    <ColorSwatch key={c.name} name={c.name} className={c.bg} />
                   ))}
                 </div>
               </CardContent>
@@ -308,7 +319,7 @@ export default function DesignSystemPage() {
                     Switch {switchChecked ? 'On' : 'Off'}
                   </label>
                   <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                    <Checkbox checked={checkboxChecked} onCheckedChange={() => setCheckboxChecked(!checkboxChecked)} />
+                    <Checkbox checked={checkboxChecked} onCheckedChange={(val) => setCheckboxChecked(val === true)} />
                     Checkbox
                   </label>
                 </div>
