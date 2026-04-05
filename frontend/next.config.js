@@ -14,18 +14,20 @@ const nextConfig = {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
   },
   async rewrites() {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1';
+    const backendBase = apiUrl.replace(/\/api\/v1\/?$/, '');
     return [
       {
         source: '/api/v1/:path*',
-        destination: 'http://127.0.0.1:8000/api/v1/:path*', // Proxy to Backend
+        destination: `${backendBase}/api/v1/:path*`, // Proxy to Backend
       },
        {
         source: '/docs',
-        destination: 'http://127.0.0.1:8000/docs', // Proxy Swagger
+        destination: `${backendBase}/docs`, // Proxy Swagger
       },
       {
         source: '/openapi.json',
-        destination: 'http://127.0.0.1:8000/openapi.json',
+        destination: `${backendBase}/openapi.json`,
       },
     ]
   },
