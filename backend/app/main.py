@@ -102,8 +102,8 @@ app = FastAPI(
     title=settings.PROJECT_NAME,
     description="Backend API for JskApp - Community Justice Services. Supports LINE OA integration and LIFF applications.",
     version="1.0.0",
-    openapi_url=f"{settings.API_V1_STR}/openapi.json",
-    docs_url=f"{settings.API_V1_STR}/docs",
+    openapi_url=f"{settings.API_V1_STR}/openapi.json" if settings.ENVIRONMENT != "production" else None,
+    docs_url=f"{settings.API_V1_STR}/docs" if settings.ENVIRONMENT != "production" else None,
     openapi_tags=tags_metadata,
     contact={
         "name": "JskApp Support Team",
@@ -134,8 +134,9 @@ UPLOADS_DIR = os.path.join(ROOT_DIR, "uploads")
 if not os.path.exists(UPLOADS_DIR):
     UPLOADS_DIR = os.path.join(os.getcwd(), "uploads")
 
-logger.info("Static files serving from: %s", UPLOADS_DIR)
+logger.info("Uploads directory: %s", UPLOADS_DIR)
 os.makedirs(UPLOADS_DIR, exist_ok=True)
-app.mount("/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")
+# Static file mount removed — media served through /api/v1/media/{id} with access control
+# app.mount("/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")
 
 app.include_router(api_router, prefix=settings.API_V1_STR)

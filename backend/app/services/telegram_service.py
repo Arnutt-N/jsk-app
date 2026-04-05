@@ -1,3 +1,4 @@
+import html
 import httpx
 import logging
 from typing import List, Optional
@@ -54,13 +55,13 @@ class TelegramService:
         messages_text = ""
         if recent_messages:
             # recent_messages are Message objects
-            msgs = [f"• \"{m.content}\"" for m in recent_messages if m.content]
+            msgs = [f"• \"{html.escape(m.content)}\"" for m in recent_messages if m.content]
             messages_text = "\n" + "\n".join(msgs[:3])
         else:
             messages_text = "\n(No recent messages)"
 
         text = f"🔔 <b>ผู้ใช้ขอคุยกับเจ้าหน้าที่</b>\n\n" \
-               f"👤 <b>ชื่อ:</b> {user_display_name}\n" \
+               f"👤 <b>ชื่อ:</b> {html.escape(user_display_name)}\n" \
                f"💬 <b>ข้อความล่าสุด:</b>{messages_text}\n\n" \
                f"🔗 <a href='{admin_panel_url}'>เปิดห้องแชทในระบบ Admin</a>"
 

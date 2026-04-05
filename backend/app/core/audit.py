@@ -29,13 +29,27 @@ def audit_action(action: str, resource_type: str):
             # Extract db and operator_id from kwargs or args
             db: Optional[AsyncSession] = kwargs.get('db')
             operator_id: Optional[int] = kwargs.get('operator_id') or kwargs.get('admin_id') or kwargs.get('closed_by')
-            
+
             # Try to extract from positional args if not in kwargs
             if not db and len(args) >= 3:
                 # Assuming db is the last positional argument (common pattern)
                 potential_db = args[-1]
                 if isinstance(potential_db, AsyncSession):
                     db = potential_db
+
+            # If operator_id not found in kwargs, check positional args via signature
+            if not operator_id and args:
+                try:
+                    sig = inspect.signature(func)
+                    params = list(sig.parameters.keys())
+                    for name in ('operator_id', 'admin_id', 'closed_by'):
+                        if name in params:
+                            idx = params.index(name)
+                            if idx < len(args):
+                                operator_id = args[idx]
+                                break
+                except (ValueError, TypeError):
+                    pass
             
             # Execute the function
             result = await func(*args, **kwargs)
