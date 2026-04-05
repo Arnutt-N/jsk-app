@@ -200,7 +200,7 @@ const TemplateIcon = ({ areas, width, height, isActive }: { areas: TemplateArea[
 
 export default function NewRichMenuPage() {
     const router = useRouter();
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+    const API_BASE = '/api/v1';
 
     const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
     const [selectedTemplate, setSelectedTemplate] = useState<TemplateSelection | null>({

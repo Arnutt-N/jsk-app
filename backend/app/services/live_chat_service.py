@@ -2,7 +2,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import and_, select, update, desc, func
+from sqlalchemy import DateTime, String, and_, column, desc, func, select, update, values
 from sqlalchemy.orm import aliased
 from app.models.user import User, ChatMode, UserRole
 from app.models.chat_session import ChatSession, SessionStatus, ClosedBy
@@ -43,6 +43,84 @@ class LiveChatService:
         if read_at:
             unread_stmt = unread_stmt.where(Message.created_at > read_at)
         return (await db.scalar(unread_stmt)) or 0
+
+    async def get_unread_counts(
+        self,
+        line_user_ids: list[str],
+        admin_id: Union[int, str],
+        db: AsyncSession,
+    ) -> dict[str, int]:
+        """Compute unread incoming messages for multiple conversations in batches."""
+        unique_line_user_ids = [line_user_id for line_user_id in dict.fromkeys(line_user_ids) if line_user_id]
+        if not unique_line_user_ids:
+            return {}
+
+        admin_id_str = str(admin_id)
+        read_keys = [
+            ConnectionManager.build_read_key(admin_id_str, line_user_id)
+            for line_user_id in unique_line_user_ids
+        ]
+        raw_markers = await redis_client.mget(read_keys)
+
+        counts = {line_user_id: 0 for line_user_id in unique_line_user_ids}
+        ids_without_markers: list[str] = []
+        ids_with_markers: list[tuple[str, datetime]] = []
+
+        for line_user_id, raw_marker in zip(unique_line_user_ids, raw_markers):
+            if not raw_marker:
+                ids_without_markers.append(line_user_id)
+                continue
+
+            try:
+                ids_with_markers.append((line_user_id, datetime.fromisoformat(raw_marker)))
+            except ValueError:
+                ids_without_markers.append(line_user_id)
+
+        if ids_without_markers:
+            result = await db.execute(
+                select(
+                    Message.line_user_id,
+                    func.count(Message.id).label("unread_count"),
+                )
+                .where(
+                    Message.line_user_id.in_(ids_without_markers),
+                    Message.direction == MessageDirection.INCOMING,
+                )
+                .group_by(Message.line_user_id)
+            )
+            for line_user_id, unread_count in result.all():
+                counts[line_user_id] = int(unread_count)
+
+        if ids_with_markers:
+            marker_values = (
+                values(
+                    column("line_user_id", String()),
+                    column("read_at", DateTime(timezone=True)),
+                    name="read_markers",
+                )
+                .data(ids_with_markers)
+                .alias("read_markers")
+            )
+            result = await db.execute(
+                select(
+                    Message.line_user_id,
+                    func.count(Message.id).label("unread_count"),
+                )
+                .select_from(Message)
+                .join(
+                    marker_values,
+                    Message.line_user_id == marker_values.c.line_user_id,
+                )
+                .where(
+                    Message.direction == MessageDirection.INCOMING,
+                    Message.created_at > marker_values.c.read_at,
+                )
+                .group_by(Message.line_user_id)
+            )
+            for line_user_id, unread_count in result.all():
+                counts[line_user_id] = int(unread_count)
+
+        return counts
 
     async def initiate_handoff(
         self,
@@ -525,19 +603,18 @@ class LiveChatService:
                     {"id": tag_id, "name": tag_name, "color": tag_color}
                 )
 
+        unread_counts: dict[str, int] = {}
+        if admin_id_str:
+            unread_counts = await self.get_unread_counts(
+                [user.line_user_id for user, _session, _last_msg in rows if user.line_user_id],
+                admin_id=admin_id_str,
+                db=db,
+            )
+
         # 5. Conversations list construction
         conversations = []
-        admin_id_str = str(admin_id) if admin_id is not None else None
         for user, session, last_msg in rows:
-            unread_count = 0
-            if admin_id_str and user.line_user_id:
-                # get_unread_count uses redis + 1 DB query per conversation for count
-                # This is an improvement over N+1 message queries + N+1 session queries
-                unread_count = await self.get_unread_count(
-                    line_user_id=user.line_user_id,
-                    admin_id=admin_id_str,
-                    db=db,
-                )
+            unread_count = unread_counts.get(user.line_user_id, 0) if user.line_user_id else 0
 
             conversations.append({
                 "line_user_id": user.line_user_id,
@@ -860,4 +937,3 @@ class LiveChatService:
         return stats
 
 live_chat_service = LiveChatService()
-

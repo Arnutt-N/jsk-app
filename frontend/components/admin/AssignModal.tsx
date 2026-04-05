@@ -32,12 +32,12 @@ export const AssignModal: React.FC<AssignModalProps> = ({
     const [search, setSearch] = useState('');
     const [assigningId, setAssigningId] = useState<number | null>(null);
 
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
+    const API_BASE = '/api/v1';
 
     const fetchAgents = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await fetch(`${API_BASE}/admin/users?role=AGENT`);
+            const res = await fetch(`${API_BASE}/admin/users/workload?role=AGENT`);
             if (!res.ok) throw new Error('Failed to fetch agents');
             const data = await res.json();
             setAgents(data);

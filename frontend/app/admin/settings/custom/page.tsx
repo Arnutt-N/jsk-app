@@ -64,7 +64,7 @@ export default function CustomIntegrationsPage() {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deleteId, setDeleteId] = useState<number | null>(null);
 
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+    const API_BASE = '/api/v1';
 
     const fetchIntegrations = useCallback(async () => {
         try {

@@ -46,7 +46,7 @@ interface Stats {
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
+const API_BASE = '/api/v1';
 
 const CATEGORY_META: Record<Category, { label: string; icon: React.ReactNode; color: string }> = {
   ALL:      { label: 'ทั้งหมด',  icon: <FileIcon className="w-4 h-4" />,  color: 'gray' },

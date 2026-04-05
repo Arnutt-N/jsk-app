@@ -59,7 +59,7 @@ export default function CategoryDetailPage() {
     });
     const [categoryFormData, setCategoryFormData] = useState({ name: '', description: '', is_active: true });
 
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+    const API_BASE = '/api/v1';
 
     useEffect(() => {
         if (category) {
@@ -123,7 +123,7 @@ export default function CategoryDetailPage() {
     };
 
     const handleDeleteKeyword = async (id: number) => {
-        if (!confirm('ลบ Keyword นี้?')) return;
+        if (!confirm('เน€เธเธ…เน€เธย Keyword เน€เธยเน€เธเธ•เน€เธย?')) return;
         const res = await fetch(`${API_BASE}/admin/intents/keywords/${id}`, { method: 'DELETE' });
         if (res.ok) fetchCategoryDetail();
     };
@@ -183,13 +183,13 @@ export default function CategoryDetailPage() {
     };
 
     const handleDeleteResponse = async (id: number) => {
-        if (!confirm('ลบ Response นี้?')) return;
+        if (!confirm('เน€เธเธ…เน€เธย Response เน€เธยเน€เธเธ•เน€เธย?')) return;
         const res = await fetch(`${API_BASE}/admin/intents/responses/${id}`, { method: 'DELETE' });
         if (res.ok) fetchCategoryDetail();
     };
 
-    if (loading) return <div className="p-8 text-center text-text-tertiary">กำลังโหลด...</div>;
-    if (!category) return <div className="p-8 text-center text-text-tertiary">ไม่พบข้อมูล</div>;
+    if (loading) return <div className="p-8 text-center text-text-tertiary">เน€เธยเน€เธเธ“เน€เธเธ…เน€เธเธ‘เน€เธยเน€เธยเน€เธเธเน€เธเธ…เน€เธโ€...</div>;
+    if (!category) return <div className="p-8 text-center text-text-tertiary">เน€เธยเน€เธเธเน€เธยเน€เธยเน€เธยเน€เธยเน€เธยเน€เธเธเน€เธเธเน€เธเธเน€เธเธ…</div>;
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500 max-w-7xl mx-auto">

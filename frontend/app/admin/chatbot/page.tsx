@@ -23,7 +23,7 @@ interface IntentCategorySummary {
 }
 
 async function getChatbotData() {
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+    const API_BASE = '/api/v1';
 
     try {
         const [objRes, intentRes] = await Promise.all([

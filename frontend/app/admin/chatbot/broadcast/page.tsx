@@ -81,7 +81,7 @@ export default function BroadcastListPage() {
     const [sendTarget, setSendTarget] = useState<Broadcast | null>(null);
     const [actionLoading, setActionLoading] = useState(false);
 
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
+    const API_BASE = '/api/v1';
 
     const fetchBroadcasts = useCallback(async () => {
         setLoading(true);

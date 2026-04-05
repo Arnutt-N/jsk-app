@@ -41,19 +41,19 @@ interface BroadcastDetail {
 }
 
 const STATUS_CONFIG: Record<string, { variant: 'gray' | 'info' | 'warning' | 'success' | 'danger'; label: string; icon: React.ReactNode }> = {
-    draft:     { variant: 'gray',    label: 'แบบร่าง',       icon: <FileText className="w-4 h-4" /> },
-    scheduled: { variant: 'info',    label: 'ตั้งเวลาแล้ว', icon: <Clock className="w-4 h-4" /> },
-    sending:   { variant: 'warning', label: 'กำลังส่ง',      icon: <Loader2 className="w-4 h-4 animate-spin" /> },
-    completed: { variant: 'success', label: 'ส่งสำเร็จ',     icon: <CheckCircle2 className="w-4 h-4" /> },
-    failed:    { variant: 'danger',  label: 'ล้มเหลว',       icon: <AlertCircle className="w-4 h-4" /> },
-    cancelled: { variant: 'gray',    label: 'ยกเลิกแล้ว',    icon: <XCircle className="w-4 h-4" /> },
+    draft:     { variant: 'gray',    label: 'เน€เธยเน€เธยเน€เธยเน€เธเธเน€เธยเน€เธเธ’เน€เธย',       icon: <FileText className="w-4 h-4" /> },
+    scheduled: { variant: 'info',    label: 'เน€เธโ€ขเน€เธเธ‘เน€เธยเน€เธยเน€เธโฌเน€เธเธเน€เธเธ…เน€เธเธ’เน€เธยเน€เธเธ…เน€เธยเน€เธเธ', icon: <Clock className="w-4 h-4" /> },
+    sending:   { variant: 'warning', label: 'เน€เธยเน€เธเธ“เน€เธเธ…เน€เธเธ‘เน€เธยเน€เธเธเน€เธยเน€เธย',      icon: <Loader2 className="w-4 h-4 animate-spin" /> },
+    completed: { variant: 'success', label: 'เน€เธเธเน€เธยเน€เธยเน€เธเธเน€เธเธ“เน€เธโฌเน€เธเธเน€เธยเน€เธย',     icon: <CheckCircle2 className="w-4 h-4" /> },
+    failed:    { variant: 'danger',  label: 'เน€เธเธ…เน€เธยเน€เธเธเน€เธโฌเน€เธเธเน€เธเธ…เน€เธเธ',       icon: <AlertCircle className="w-4 h-4" /> },
+    cancelled: { variant: 'gray',    label: 'เน€เธเธเน€เธยเน€เธโฌเน€เธเธ…เน€เธเธ”เน€เธยเน€เธยเน€เธเธ…เน€เธยเน€เธเธ',    icon: <XCircle className="w-4 h-4" /> },
 };
 
 const TYPE_LABELS: Record<string, string> = {
-    text: 'ข้อความ',
-    image: 'รูปภาพ',
+    text: 'เน€เธยเน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ’เน€เธเธ',
+    image: 'เน€เธเธเน€เธเธเน€เธยเน€เธย เน€เธเธ’เน€เธย',
     flex: 'Flex Message',
-    multi: 'หลายประเภท',
+    multi: 'เน€เธเธเน€เธเธ…เน€เธเธ’เน€เธเธเน€เธยเน€เธเธเน€เธเธเน€เธโฌเน€เธย เน€เธโ€”',
 };
 
 export default function BroadcastDetailPage() {
@@ -66,7 +66,7 @@ export default function BroadcastDetailPage() {
         return h;
     }, [token]);
     const broadcastId = params.id as string;
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
+    const API_BASE = '/api/v1';
 
     const [broadcast, setBroadcast] = useState<BroadcastDetail | null>(null);
     const [loading, setLoading] = useState(true);
@@ -86,7 +86,7 @@ export default function BroadcastDetailPage() {
             setBroadcast(data);
         } catch (err) {
             console.error(err);
-            setFetchError('ไม่สามารถโหลดข้อมูล Broadcast ได้');
+            setFetchError('เน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ’เน€เธเธเน€เธเธ’เน€เธเธเน€เธโ€“เน€เธยเน€เธเธเน€เธเธ…เน€เธโ€เน€เธยเน€เธยเน€เธเธเน€เธเธเน€เธเธเน€เธเธ… Broadcast เน€เธยเน€เธโ€เน€เธย');
         } finally {
             setLoading(false);
         }
@@ -104,7 +104,7 @@ export default function BroadcastDetailPage() {
             setSendModal(false);
             fetchBroadcast();
         } catch (err: unknown) {
-            alert(err instanceof Error ? err.message : 'ส่งไม่สำเร็จ');
+            alert(err instanceof Error ? err.message : 'เน€เธเธเน€เธยเน€เธยเน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ“เน€เธโฌเน€เธเธเน€เธยเน€เธย');
         } finally {
             setActionLoading(false);
         }
@@ -118,7 +118,7 @@ export default function BroadcastDetailPage() {
             setCancelModal(false);
             fetchBroadcast();
         } catch {
-            alert('ยกเลิกไม่สำเร็จ');
+            alert('เน€เธเธเน€เธยเน€เธโฌเน€เธเธ…เน€เธเธ”เน€เธยเน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ“เน€เธโฌเน€เธเธเน€เธยเน€เธย');
         } finally {
             setActionLoading(false);
         }
@@ -131,7 +131,7 @@ export default function BroadcastDetailPage() {
             if (!res.ok) throw new Error('Failed');
             router.push('/admin/chatbot/broadcast');
         } catch {
-            alert('ลบไม่สำเร็จ');
+            alert('เน€เธเธ…เน€เธยเน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ“เน€เธโฌเน€เธเธเน€เธยเน€เธย');
         } finally {
             setActionLoading(false);
         }
@@ -140,12 +140,12 @@ export default function BroadcastDetailPage() {
     if (loading) {
         return (
             <div className="space-y-6 animate-in fade-in duration-500 thai-text">
-                <PageHeader title="รายละเอียด Broadcast" />
+                <PageHeader title="เน€เธเธเน€เธเธ’เน€เธเธเน€เธเธ…เน€เธเธเน€เธโฌเน€เธเธเน€เธเธ•เน€เธเธเน€เธโ€ Broadcast" />
                 <Card glass className="border-none shadow-sm">
                     <CardContent className="p-8">
                         <div className="flex items-center justify-center gap-3 text-gray-400">
                             <Loader2 className="w-5 h-5 animate-spin" />
-                            <span className="text-sm">กำลังโหลด...</span>
+                            <span className="text-sm">เน€เธยเน€เธเธ“เน€เธเธ…เน€เธเธ‘เน€เธยเน€เธยเน€เธเธเน€เธเธ…เน€เธโ€...</span>
                         </div>
                     </CardContent>
                 </Card>
@@ -156,14 +156,14 @@ export default function BroadcastDetailPage() {
     if (!broadcast) {
         return (
             <div className="space-y-6 animate-in fade-in duration-500 thai-text">
-                <PageHeader title="ไม่พบข้อมูล" />
+                <PageHeader title="เน€เธยเน€เธเธเน€เธยเน€เธยเน€เธยเน€เธยเน€เธยเน€เธเธเน€เธเธเน€เธเธเน€เธเธ…" />
                 {fetchError && <div className="p-4 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 rounded-xl text-sm mb-4">{fetchError}</div>}
                 <Card glass className="border-none shadow-sm">
                     <CardContent className="p-8 text-center">
                         <AlertCircle className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                        <p className="text-sm text-gray-500">{fetchError || 'ไม่พบข้อมูล Broadcast นี้'}</p>
+                        <p className="text-sm text-gray-500">{fetchError || 'เน€เธยเน€เธเธเน€เธยเน€เธยเน€เธยเน€เธยเน€เธยเน€เธเธเน€เธเธเน€เธเธเน€เธเธ… Broadcast เน€เธยเน€เธเธ•เน€เธย'}</p>
                         <Button variant="outline" className="mt-4" onClick={() => router.push('/admin/chatbot/broadcast')}>
-                            กลับไปรายการ
+                            เน€เธยเน€เธเธ…เน€เธเธ‘เน€เธยเน€เธยเน€เธยเน€เธเธเน€เธเธ’เน€เธเธเน€เธยเน€เธเธ’เน€เธเธ
                         </Button>
                     </CardContent>
                 </Card>
@@ -176,10 +176,10 @@ export default function BroadcastDetailPage() {
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500 thai-text">
-            <PageHeader title={broadcast.title} subtitle="รายละเอียดข้อความ Broadcast">
+            <PageHeader title={broadcast.title} subtitle="เน€เธเธเน€เธเธ’เน€เธเธเน€เธเธ…เน€เธเธเน€เธโฌเน€เธเธเน€เธเธ•เน€เธเธเน€เธโ€เน€เธยเน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ’เน€เธเธ Broadcast">
                 <Button variant="outline" size="sm" onClick={() => router.push('/admin/chatbot/broadcast')} className="gap-2">
                     <ArrowLeft className="w-4 h-4" />
-                    กลับ
+                    เน€เธยเน€เธเธ…เน€เธเธ‘เน€เธย
                 </Button>
             </PageHeader>
 
@@ -199,18 +199,18 @@ export default function BroadcastDetailPage() {
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="text-xs text-text-tertiary">ประเภทข้อความ</label>
+                                    <label className="text-xs text-text-tertiary">เน€เธยเน€เธเธเน€เธเธเน€เธโฌเน€เธย เน€เธโ€”เน€เธยเน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ’เน€เธเธ</label>
                                     <p className="text-sm font-medium text-text-primary mt-0.5">{TYPE_LABELS[broadcast.message_type] || broadcast.message_type}</p>
                                 </div>
                                 <div>
-                                    <label className="text-xs text-text-tertiary">กลุ่มเป้าหมาย</label>
+                                    <label className="text-xs text-text-tertiary">เน€เธยเน€เธเธ…เน€เธเธเน€เธยเน€เธเธเน€เธโฌเน€เธยเน€เธยเน€เธเธ’เน€เธเธเน€เธเธเน€เธเธ’เน€เธเธ</label>
                                     <p className="text-sm font-medium text-text-primary mt-0.5 flex items-center gap-1.5">
                                         <Users className="w-3.5 h-3.5 text-gray-400" />
-                                        {broadcast.target_audience === 'all' ? 'ผู้ติดตามทั้งหมด' : 'เฉพาะกลุ่ม'}
+                                        {broadcast.target_audience === 'all' ? 'เน€เธยเน€เธเธเน€เธยเน€เธโ€ขเน€เธเธ”เน€เธโ€เน€เธโ€ขเน€เธเธ’เน€เธเธเน€เธโ€”เน€เธเธ‘เน€เธยเน€เธยเน€เธเธเน€เธเธเน€เธโ€' : 'เน€เธโฌเน€เธยเน€เธยเน€เธเธ’เน€เธเธเน€เธยเน€เธเธ…เน€เธเธเน€เธยเน€เธเธ'}
                                     </p>
                                 </div>
                                 <div>
-                                    <label className="text-xs text-text-tertiary">วันที่สร้าง</label>
+                                    <label className="text-xs text-text-tertiary">เน€เธเธเน€เธเธ‘เน€เธยเน€เธโ€”เน€เธเธ•เน€เธยเน€เธเธเน€เธเธเน€เธยเน€เธเธ’เน€เธย</label>
                                     <p className="text-sm font-medium text-text-primary mt-0.5 flex items-center gap-1.5">
                                         <Calendar className="w-3.5 h-3.5 text-gray-400" />
                                         {broadcast.created_at ? new Date(broadcast.created_at).toLocaleDateString('th-TH', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}
@@ -218,7 +218,7 @@ export default function BroadcastDetailPage() {
                                 </div>
                                 {broadcast.sent_at && (
                                     <div>
-                                        <label className="text-xs text-text-tertiary">วันที่ส่ง</label>
+                                        <label className="text-xs text-text-tertiary">เน€เธเธเน€เธเธ‘เน€เธยเน€เธโ€”เน€เธเธ•เน€เธยเน€เธเธเน€เธยเน€เธย</label>
                                         <p className="text-sm font-medium text-green-600 dark:text-green-400 mt-0.5 flex items-center gap-1.5">
                                             <Send className="w-3.5 h-3.5" />
                                             {new Date(broadcast.sent_at).toLocaleDateString('th-TH', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
@@ -227,7 +227,7 @@ export default function BroadcastDetailPage() {
                                 )}
                                 {broadcast.scheduled_at && broadcast.status === 'scheduled' && (
                                     <div>
-                                        <label className="text-xs text-text-tertiary">กำหนดส่ง</label>
+                                        <label className="text-xs text-text-tertiary">เน€เธยเน€เธเธ“เน€เธเธเน€เธยเน€เธโ€เน€เธเธเน€เธยเน€เธย</label>
                                         <p className="text-sm font-medium text-brand-600 dark:text-brand-400 mt-0.5 flex items-center gap-1.5">
                                             <Clock className="w-3.5 h-3.5" />
                                             {new Date(broadcast.scheduled_at).toLocaleDateString('th-TH', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
@@ -241,7 +241,7 @@ export default function BroadcastDetailPage() {
                     {/* Content Preview Card */}
                     <Card glass className="border-none shadow-sm">
                         <CardContent className="p-6">
-                            <h3 className="text-sm font-bold text-text-primary mb-4">เนื้อหาข้อความ</h3>
+                            <h3 className="text-sm font-bold text-text-primary mb-4">เน€เธโฌเน€เธยเน€เธเธ—เน€เธยเน€เธเธเน€เธเธเน€เธเธ’เน€เธยเน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ’เน€เธเธ</h3>
 
                             {broadcast.message_type === 'text' && (
                                 <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
@@ -266,7 +266,7 @@ export default function BroadcastDetailPage() {
                                 <div className="space-y-3">
                                     {(content.messages as Array<Record<string, unknown>>).map((msg, i) => (
                                         <div key={i} className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
-                                            <span className="text-xs text-text-tertiary">ข้อความ {i + 1} ({String(msg.type)})</span>
+                                            <span className="text-xs text-text-tertiary">เน€เธยเน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ’เน€เธเธ {i + 1} ({String(msg.type)})</span>
                                             {msg.type === 'text' && <p className="text-sm text-text-primary mt-1">{String(msg.text || '')}</p>}
                                             {msg.type === 'image' && Boolean(msg.original_url) && (
                                                 // eslint-disable-next-line @next/next/no-img-element
@@ -286,28 +286,28 @@ export default function BroadcastDetailPage() {
                     {/* Delivery Stats */}
                     <Card glass className="border-none shadow-sm">
                         <CardContent className="p-6">
-                            <h3 className="text-sm font-bold text-text-primary mb-4">สถิติการส่ง</h3>
+                            <h3 className="text-sm font-bold text-text-primary mb-4">เน€เธเธเน€เธโ€“เน€เธเธ”เน€เธโ€ขเน€เธเธ”เน€เธยเน€เธเธ’เน€เธเธเน€เธเธเน€เธยเน€เธย</h3>
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between">
-                                    <span className="text-xs text-text-tertiary">จำนวนผู้รับทั้งหมด</span>
+                                    <span className="text-xs text-text-tertiary">เน€เธยเน€เธเธ“เน€เธยเน€เธเธเน€เธยเน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ‘เน€เธยเน€เธโ€”เน€เธเธ‘เน€เธยเน€เธยเน€เธเธเน€เธเธเน€เธโ€</span>
                                     <span className="text-sm font-bold text-text-primary">{broadcast.total_recipients.toLocaleString()}</span>
                                 </div>
                                 <div className="flex items-center justify-between">
                                     <span className="text-xs text-text-tertiary flex items-center gap-1.5">
-                                        <CheckCircle2 className="w-3 h-3 text-green-500" /> ส่งสำเร็จ
+                                        <CheckCircle2 className="w-3 h-3 text-green-500" /> เน€เธเธเน€เธยเน€เธยเน€เธเธเน€เธเธ“เน€เธโฌเน€เธเธเน€เธยเน€เธย
                                     </span>
                                     <span className="text-sm font-bold text-green-600 dark:text-green-400">{broadcast.success_count.toLocaleString()}</span>
                                 </div>
                                 <div className="flex items-center justify-between">
                                     <span className="text-xs text-text-tertiary flex items-center gap-1.5">
-                                        <AlertCircle className="w-3 h-3 text-red-500" /> ล้มเหลว
+                                        <AlertCircle className="w-3 h-3 text-red-500" /> เน€เธเธ…เน€เธยเน€เธเธเน€เธโฌเน€เธเธเน€เธเธ…เน€เธเธ
                                     </span>
                                     <span className="text-sm font-bold text-red-600 dark:text-red-400">{broadcast.failure_count.toLocaleString()}</span>
                                 </div>
                                 {broadcast.total_recipients > 0 && (
                                     <div className="pt-3 border-t border-gray-100 dark:border-gray-700">
                                         <div className="flex items-center justify-between mb-1.5">
-                                            <span className="text-xs text-text-tertiary">อัตราสำเร็จ</span>
+                                            <span className="text-xs text-text-tertiary">เน€เธเธเน€เธเธ‘เน€เธโ€ขเน€เธเธเน€เธเธ’เน€เธเธเน€เธเธ“เน€เธโฌเน€เธเธเน€เธยเน€เธย</span>
                                             <span className="text-xs font-bold text-text-primary">
                                                 {((broadcast.success_count / broadcast.total_recipients) * 100).toFixed(1)}%
                                             </span>
@@ -327,24 +327,24 @@ export default function BroadcastDetailPage() {
                     {/* Status Timeline */}
                     <Card glass className="border-none shadow-sm">
                         <CardContent className="p-6">
-                            <h3 className="text-sm font-bold text-text-primary mb-4">ไทม์ไลน์</h3>
+                            <h3 className="text-sm font-bold text-text-primary mb-4">เน€เธยเน€เธโ€”เน€เธเธเน€เธยเน€เธยเน€เธเธ…เน€เธยเน€เธย</h3>
                             <div className="space-y-4">
                                 <TimelineItem
                                     done
-                                    label="สร้างแบบร่าง"
+                                    label="เน€เธเธเน€เธเธเน€เธยเน€เธเธ’เน€เธยเน€เธยเน€เธยเน€เธยเน€เธเธเน€เธยเน€เธเธ’เน€เธย"
                                     date={broadcast.created_at}
                                 />
                                 {broadcast.scheduled_at && (
                                     <TimelineItem
                                         done={broadcast.status !== 'draft'}
-                                        label="ตั้งเวลาส่ง"
+                                        label="เน€เธโ€ขเน€เธเธ‘เน€เธยเน€เธยเน€เธโฌเน€เธเธเน€เธเธ…เน€เธเธ’เน€เธเธเน€เธยเน€เธย"
                                         date={broadcast.scheduled_at}
                                     />
                                 )}
                                 {broadcast.sent_at && (
                                     <TimelineItem
                                         done
-                                        label={broadcast.status === 'completed' ? 'ส่งสำเร็จ' : 'ส่งแล้ว'}
+                                        label={broadcast.status === 'completed' ? 'เน€เธเธเน€เธยเน€เธยเน€เธเธเน€เธเธ“เน€เธโฌเน€เธเธเน€เธยเน€เธย' : 'เน€เธเธเน€เธยเน€เธยเน€เธยเน€เธเธ…เน€เธยเน€เธเธ'}
                                         date={broadcast.sent_at}
                                         success={broadcast.status === 'completed'}
                                     />
@@ -352,7 +352,7 @@ export default function BroadcastDetailPage() {
                                 {broadcast.status === 'failed' && (
                                     <TimelineItem
                                         done
-                                        label="ส่งล้มเหลว"
+                                        label="เน€เธเธเน€เธยเน€เธยเน€เธเธ…เน€เธยเน€เธเธเน€เธโฌเน€เธเธเน€เธเธ…เน€เธเธ"
                                         date={broadcast.updated_at}
                                         error
                                     />
@@ -360,7 +360,7 @@ export default function BroadcastDetailPage() {
                                 {broadcast.status === 'cancelled' && (
                                     <TimelineItem
                                         done
-                                        label="ยกเลิกแล้ว"
+                                        label="เน€เธเธเน€เธยเน€เธโฌเน€เธเธ…เน€เธเธ”เน€เธยเน€เธยเน€เธเธ…เน€เธยเน€เธเธ"
                                         date={broadcast.updated_at}
                                     />
                                 )}
@@ -371,23 +371,23 @@ export default function BroadcastDetailPage() {
                     {/* Actions */}
                     <Card glass className="border-none shadow-sm">
                         <CardContent className="p-6 space-y-3">
-                            <h3 className="text-sm font-bold text-text-primary mb-2">การดำเนินการ</h3>
+                            <h3 className="text-sm font-bold text-text-primary mb-2">เน€เธยเน€เธเธ’เน€เธเธเน€เธโ€เน€เธเธ“เน€เธโฌเน€เธยเน€เธเธ”เน€เธยเน€เธยเน€เธเธ’เน€เธเธ</h3>
                             {(broadcast.status === 'draft' || broadcast.status === 'scheduled') && (
                                 <Button className="w-full gap-2" onClick={() => setSendModal(true)}>
                                     <Send className="w-4 h-4" />
-                                    ส่งเลย
+                                    เน€เธเธเน€เธยเน€เธยเน€เธโฌเน€เธเธ…เน€เธเธ
                                 </Button>
                             )}
                             {broadcast.status === 'scheduled' && (
                                 <Button variant="outline" className="w-full gap-2" onClick={() => setCancelModal(true)}>
                                     <XCircle className="w-4 h-4" />
-                                    ยกเลิกการตั้งเวลา
+                                    เน€เธเธเน€เธยเน€เธโฌเน€เธเธ…เน€เธเธ”เน€เธยเน€เธยเน€เธเธ’เน€เธเธเน€เธโ€ขเน€เธเธ‘เน€เธยเน€เธยเน€เธโฌเน€เธเธเน€เธเธ…เน€เธเธ’
                                 </Button>
                             )}
                             {(broadcast.status === 'draft' || broadcast.status === 'cancelled') && (
                                 <Button variant="danger" className="w-full gap-2" onClick={() => setDeleteModal(true)}>
                                     <Trash2 className="w-4 h-4" />
-                                    ลบ
+                                    เน€เธเธ…เน€เธย
                                 </Button>
                             )}
                         </CardContent>
@@ -396,45 +396,45 @@ export default function BroadcastDetailPage() {
             </div>
 
             {/* Send Modal */}
-            <Modal isOpen={sendModal} onClose={() => setSendModal(false)} title="ยืนยันการส่ง" maxWidth="sm">
+            <Modal isOpen={sendModal} onClose={() => setSendModal(false)} title="เน€เธเธเน€เธเธ—เน€เธยเน€เธเธเน€เธเธ‘เน€เธยเน€เธยเน€เธเธ’เน€เธเธเน€เธเธเน€เธยเน€เธย" maxWidth="sm">
                 <div className="space-y-4">
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                        คุณต้องการส่งข้อความ <b>{broadcast.title}</b> ถึงผู้ติดตามทั้งหมดเลยใช่หรือไม่?
+                        เน€เธยเน€เธเธเน€เธโ€เน€เธโ€ขเน€เธยเน€เธเธเน€เธยเน€เธยเน€เธเธ’เน€เธเธเน€เธเธเน€เธยเน€เธยเน€เธยเน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ’เน€เธเธ <b>{broadcast.title}</b> เน€เธโ€“เน€เธเธ–เน€เธยเน€เธยเน€เธเธเน€เธยเน€เธโ€ขเน€เธเธ”เน€เธโ€เน€เธโ€ขเน€เธเธ’เน€เธเธเน€เธโ€”เน€เธเธ‘เน€เธยเน€เธยเน€เธเธเน€เธเธเน€เธโ€เน€เธโฌเน€เธเธ…เน€เธเธเน€เธยเน€เธยเน€เธยเน€เธเธเน€เธเธเน€เธเธ—เน€เธเธเน€เธยเน€เธเธเน€เธย?
                     </p>
                     <div className="flex justify-end gap-2 pt-2">
-                        <Button variant="ghost" onClick={() => setSendModal(false)}>ยกเลิก</Button>
+                        <Button variant="ghost" onClick={() => setSendModal(false)}>เน€เธเธเน€เธยเน€เธโฌเน€เธเธ…เน€เธเธ”เน€เธย</Button>
                         <Button onClick={handleSend} disabled={actionLoading} className="gap-2">
                             <Send className="w-4 h-4" />
-                            {actionLoading ? 'กำลังส่ง...' : 'ส่งเลย'}
+                            {actionLoading ? 'เน€เธยเน€เธเธ“เน€เธเธ…เน€เธเธ‘เน€เธยเน€เธเธเน€เธยเน€เธย...' : 'เน€เธเธเน€เธยเน€เธยเน€เธโฌเน€เธเธ…เน€เธเธ'}
                         </Button>
                     </div>
                 </div>
             </Modal>
 
             {/* Cancel Modal */}
-            <Modal isOpen={cancelModal} onClose={() => setCancelModal(false)} title="ยกเลิกการตั้งเวลา" maxWidth="sm">
+            <Modal isOpen={cancelModal} onClose={() => setCancelModal(false)} title="เน€เธเธเน€เธยเน€เธโฌเน€เธเธ…เน€เธเธ”เน€เธยเน€เธยเน€เธเธ’เน€เธเธเน€เธโ€ขเน€เธเธ‘เน€เธยเน€เธยเน€เธโฌเน€เธเธเน€เธเธ…เน€เธเธ’" maxWidth="sm">
                 <div className="space-y-4">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">ต้องการยกเลิกการตั้งเวลาส่งข้อความนี้ใช่หรือไม่?</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">เน€เธโ€ขเน€เธยเน€เธเธเน€เธยเน€เธยเน€เธเธ’เน€เธเธเน€เธเธเน€เธยเน€เธโฌเน€เธเธ…เน€เธเธ”เน€เธยเน€เธยเน€เธเธ’เน€เธเธเน€เธโ€ขเน€เธเธ‘เน€เธยเน€เธยเน€เธโฌเน€เธเธเน€เธเธ…เน€เธเธ’เน€เธเธเน€เธยเน€เธยเน€เธยเน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ’เน€เธเธเน€เธยเน€เธเธ•เน€เธยเน€เธยเน€เธยเน€เธยเน€เธเธเน€เธเธเน€เธเธ—เน€เธเธเน€เธยเน€เธเธเน€เธย?</p>
                     <div className="flex justify-end gap-2 pt-2">
-                        <Button variant="ghost" onClick={() => setCancelModal(false)}>ไม่ยกเลิก</Button>
+                        <Button variant="ghost" onClick={() => setCancelModal(false)}>เน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธยเน€เธโฌเน€เธเธ…เน€เธเธ”เน€เธย</Button>
                         <Button variant="danger" onClick={handleCancel} disabled={actionLoading}>
-                            {actionLoading ? 'กำลังยกเลิก...' : 'ยืนยันยกเลิก'}
+                            {actionLoading ? 'เน€เธยเน€เธเธ“เน€เธเธ…เน€เธเธ‘เน€เธยเน€เธเธเน€เธยเน€เธโฌเน€เธเธ…เน€เธเธ”เน€เธย...' : 'เน€เธเธเน€เธเธ—เน€เธยเน€เธเธเน€เธเธ‘เน€เธยเน€เธเธเน€เธยเน€เธโฌเน€เธเธ…เน€เธเธ”เน€เธย'}
                         </Button>
                     </div>
                 </div>
             </Modal>
 
             {/* Delete Modal */}
-            <Modal isOpen={deleteModal} onClose={() => setDeleteModal(false)} title="ยืนยันการลบ" maxWidth="sm">
+            <Modal isOpen={deleteModal} onClose={() => setDeleteModal(false)} title="เน€เธเธเน€เธเธ—เน€เธยเน€เธเธเน€เธเธ‘เน€เธยเน€เธยเน€เธเธ’เน€เธเธเน€เธเธ…เน€เธย" maxWidth="sm">
                 <div className="space-y-4">
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                        คุณต้องการลบข้อความ <b>{broadcast.title}</b> ใช่หรือไม่?
-                        <br /><span className="text-xs text-red-500 mt-2 block">* การกระทำนี้ไม่สามารถย้อนกลับได้</span>
+                        เน€เธยเน€เธเธเน€เธโ€เน€เธโ€ขเน€เธยเน€เธเธเน€เธยเน€เธยเน€เธเธ’เน€เธเธเน€เธเธ…เน€เธยเน€เธยเน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ’เน€เธเธ <b>{broadcast.title}</b> เน€เธยเน€เธยเน€เธยเน€เธเธเน€เธเธเน€เธเธ—เน€เธเธเน€เธยเน€เธเธเน€เธย?
+                        <br /><span className="text-xs text-red-500 mt-2 block">* เน€เธยเน€เธเธ’เน€เธเธเน€เธยเน€เธเธเน€เธเธเน€เธโ€”เน€เธเธ“เน€เธยเน€เธเธ•เน€เธยเน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ’เน€เธเธเน€เธเธ’เน€เธเธเน€เธโ€“เน€เธเธเน€เธยเน€เธเธเน€เธยเน€เธยเน€เธเธ…เน€เธเธ‘เน€เธยเน€เธยเน€เธโ€เน€เธย</span>
                     </p>
                     <div className="flex justify-end gap-2 pt-2">
-                        <Button variant="ghost" onClick={() => setDeleteModal(false)}>ยกเลิก</Button>
+                        <Button variant="ghost" onClick={() => setDeleteModal(false)}>เน€เธเธเน€เธยเน€เธโฌเน€เธเธ…เน€เธเธ”เน€เธย</Button>
                         <Button variant="danger" onClick={handleDelete} disabled={actionLoading}>
-                            {actionLoading ? 'กำลังลบ...' : 'ยืนยันลบ'}
+                            {actionLoading ? 'เน€เธยเน€เธเธ“เน€เธเธ…เน€เธเธ‘เน€เธยเน€เธเธ…เน€เธย...' : 'เน€เธเธเน€เธเธ—เน€เธยเน€เธเธเน€เธเธ‘เน€เธยเน€เธเธ…เน€เธย'}
                         </Button>
                     </div>
                 </div>

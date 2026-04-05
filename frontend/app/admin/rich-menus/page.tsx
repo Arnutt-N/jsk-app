@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -28,7 +28,7 @@ export default function RichMenuListPage() {
         { key: 'status', label: 'สถานะ', align: 'center' },
         { key: 'actions', label: 'จัดการ', align: 'center' },
     ];
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+    const API_BASE = '/api/v1';
 
     const fetchMenus = useCallback(async () => {
         try {

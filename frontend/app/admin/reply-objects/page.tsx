@@ -37,7 +37,7 @@ export default function ReplyObjectsPage() {
         alt_text: ''
     });
 
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+    const API_BASE = '/api/v1';
 
     const fetchObjects = useCallback(async () => {
         try {

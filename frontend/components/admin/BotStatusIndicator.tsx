@@ -16,7 +16,7 @@ export const BotStatusIndicator: React.FC = () => {
     const [botInfo, setBotInfo] = useState<BotInfo | null>(null);
     const [lastChecked, setLastChecked] = useState<Date | null>(null);
 
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+    const API_BASE = '/api/v1';
 
     const checkStatus = useCallback(async () => {
         setStatus('checking');

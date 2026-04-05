@@ -1,5 +1,4 @@
 """Analytics service for calculating KPIs and metrics."""
-import asyncio
 import logging
 from datetime import datetime, timedelta, timezone
 from sqlalchemy import and_, exists, func, literal_column, select
@@ -462,33 +461,14 @@ class AnalyticsService:
     async def get_dashboard(self, db: AsyncSession, days: int = 7) -> dict:
         """Aggregated analytics payload for dashboard UI.
 
-        Each sub-query runs in its own DB session via ``asyncio.gather``
-        for true parallel execution across separate connections.
+        Use the caller's DB session to avoid opening multiple concurrent
+        connections for a single dashboard request.
         """
-
-        async def _trends():
-            async with AsyncSessionLocal() as s:
-                return await self.get_kpi_trends(s)
-
-        async def _volume():
-            async with AsyncSessionLocal() as s:
-                return await self.get_session_volume(s, days=days)
-
-        async def _peak():
-            async with AsyncSessionLocal() as s:
-                return await self.get_peak_hours_heatmap(s, days=days)
-
-        async def _funnel():
-            async with AsyncSessionLocal() as s:
-                return await self.get_conversation_funnel(s, days=days)
-
-        async def _percentiles():
-            async with AsyncSessionLocal() as s:
-                return await self.get_percentiles(s, days=days)
-
-        trends, session_volume, peak_hours, funnel, percentiles = await asyncio.gather(
-            _trends(), _volume(), _peak(), _funnel(), _percentiles(),
-        )
+        trends = await self.get_kpi_trends(db)
+        session_volume = await self.get_session_volume(db, days=days)
+        peak_hours = await self.get_peak_hours_heatmap(db, days=days)
+        funnel = await self.get_conversation_funnel(db, days=days)
+        percentiles = await self.get_percentiles(db, days=days)
 
         return {
             "trends": trends,
@@ -561,6 +541,7 @@ class AnalyticsService:
         # Base query
         query = select(
             ChatSession.operator_id,
+            User.display_name.label("operator_name"),
             func.count().label("total_sessions"),
             func.avg(
                 func.extract('epoch', ChatSession.first_response_at - ChatSession.claimed_at)
@@ -574,7 +555,13 @@ class AnalyticsService:
         ).where(
             ChatSession.operator_id.isnot(None),
             ChatSession.claimed_at > cutoff
-        ).group_by(ChatSession.operator_id)
+        ).join(
+            User,
+            User.id == ChatSession.operator_id,
+        ).group_by(
+            ChatSession.operator_id,
+            User.display_name,
+        )
 
         if operator_id:
             query = query.where(ChatSession.operator_id == operator_id)
@@ -588,11 +575,6 @@ class AnalyticsService:
 
         performance = []
         for row in rows:
-            # Get operator details
-            user_result = await db.execute(
-                select(User).where(User.id == row.operator_id)
-            )
-            user = user_result.scalar_one_or_none()
             availability = availability_map.get(
                 str(row.operator_id),
                 {"availability_seconds": 0.0, "availability_percent": 0.0},
@@ -600,7 +582,7 @@ class AnalyticsService:
 
             performance.append({
                 "operator_id": row.operator_id,
-                "operator_name": user.display_name if user else f"Operator {row.operator_id}",
+                "operator_name": row.operator_name or f"Operator {row.operator_id}",
                 "total_sessions": row.total_sessions,
                 "avg_first_response_seconds": round(row.avg_frt or 0, 1),
                 "avg_resolution_seconds": round(row.avg_resolution or 0, 1),
@@ -731,5 +713,4 @@ class AnalyticsService:
 
 # Global analytics service instance
 analytics_service = AnalyticsService()
-
 

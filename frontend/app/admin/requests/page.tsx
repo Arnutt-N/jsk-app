@@ -54,7 +54,7 @@ export default function AdminRequestList() {
     const [debouncedSearch, setDebouncedSearch] = useState('');
 
 
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
+    const API_BASE = '/api/v1';
 
     const fetchRequests = useCallback(async () => {
         setLoading(true);

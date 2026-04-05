@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -32,7 +32,7 @@ export default function IntentsPage() {
         { key: 'actions', label: 'จัดการ', align: 'center' },
     ];
 
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+    const API_BASE = '/api/v1';
 
     const fetchCategories = useCallback(async () => {
         setLoading(true);

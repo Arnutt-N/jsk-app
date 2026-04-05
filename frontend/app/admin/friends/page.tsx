@@ -45,7 +45,7 @@ export default function FriendsPage() {
         { key: 'actions', label: 'Actions', align: 'right', className: 'px-6 py-4' },
     ];
 
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+    const API_BASE = '/api/v1';
     const authHeaders = useMemo(() => {
         if (!token) {
             return {} as Record<string, string>;

@@ -8,7 +8,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from sqlalchemy import case, cast, func, select, text, Date, Integer
+from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_admin, get_db
@@ -16,7 +16,7 @@ from app.models.chat_session import ChatSession, SessionStatus
 from app.models.friend_event import FriendEvent, FriendEventType
 from app.models.message import Message, MessageDirection
 from app.models.service_request import RequestStatus, ServiceRequest
-from app.models.user import User, UserRole
+from app.models.user import User
 
 router = APIRouter()
 
@@ -95,15 +95,52 @@ def _parse_dates(
     default_days: int = 30,
 ) -> tuple[datetime, datetime]:
     now = datetime.now(timezone.utc)
+
+    def _parse_value(value: str, is_end: bool) -> datetime:
+        try:
+            parsed = datetime.fromisoformat(value)
+        except ValueError:
+            label = "end_date" if is_end else "start_date"
+            raise HTTPException(status_code=422, detail=f"Invalid {label} format: {value}")
+
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        else:
+            parsed = parsed.astimezone(timezone.utc)
+
+        if "T" not in value:
+            parsed = parsed.replace(hour=0, minute=0, second=0, microsecond=0)
+            if is_end:
+                parsed = parsed + timedelta(days=1)
+        return parsed
+
     try:
-        end = datetime.fromisoformat(end_date) if end_date else now
-    except ValueError:
-        raise HTTPException(status_code=422, detail=f"Invalid end_date format: {end_date}")
-    try:
-        start = datetime.fromisoformat(start_date) if start_date else end - timedelta(days=default_days)
-    except ValueError:
-        raise HTTPException(status_code=422, detail=f"Invalid start_date format: {start_date}")
+        end = _parse_value(end_date, is_end=True) if end_date else now
+        start = _parse_value(start_date, is_end=False) if start_date else end - timedelta(days=default_days)
+    except HTTPException:
+        raise
     return start, end
+
+
+def _time_range_for_day(day: date) -> tuple[datetime, datetime]:
+    start = datetime(day.year, day.month, day.day, tzinfo=timezone.utc)
+    return start, start + timedelta(days=1)
+
+
+def _bucket_expression(column, period: str):
+    bucket = {"daily": "day", "weekly": "week", "monthly": "month"}[period]
+    return func.date_trunc(bucket, column)
+
+
+def _format_bucket(bucket_value: datetime, period: str) -> str:
+    normalized = bucket_value if bucket_value.tzinfo else bucket_value.replace(tzinfo=timezone.utc)
+    normalized = normalized.astimezone(timezone.utc)
+    if period == "monthly":
+        return normalized.strftime("%Y-%m")
+    if period == "weekly":
+        iso = normalized.date().isocalendar()
+        return f"{iso.year}-{iso.week:02d}"
+    return normalized.strftime("%Y-%m-%d")
 
 
 # ---------------------------------------------------------------------------
@@ -115,10 +152,13 @@ async def report_overview(
     db: AsyncSession = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
-    today = date.today()
-    yesterday = today - timedelta(days=1)
-    week_ago = today - timedelta(days=7)
-    two_weeks_ago = today - timedelta(days=14)
+    now = datetime.now(timezone.utc)
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    tomorrow_start = today_start + timedelta(days=1)
+    yesterday_start = today_start - timedelta(days=1)
+    week_ago = today_start - timedelta(days=7)
+    two_weeks_ago = today_start - timedelta(days=14)
+    activity_start = today_start - timedelta(days=6)
 
     # --- requests by status ---
     status_q = select(
@@ -135,13 +175,13 @@ async def report_overview(
     # --- requests trend (this week vs last week) ---
     cur_req = (await db.execute(
         select(func.count(ServiceRequest.id)).where(
-            cast(ServiceRequest.created_at, Date) >= week_ago
+            ServiceRequest.created_at >= week_ago
         )
     )).scalar() or 0
     prev_req = (await db.execute(
         select(func.count(ServiceRequest.id)).where(
-            cast(ServiceRequest.created_at, Date) >= two_weeks_ago,
-            cast(ServiceRequest.created_at, Date) < week_ago,
+            ServiceRequest.created_at >= two_weeks_ago,
+            ServiceRequest.created_at < week_ago,
         )
     )).scalar() or 0
 
@@ -150,12 +190,18 @@ async def report_overview(
         func.count(Message.id),
         func.count(Message.id).filter(Message.direction == MessageDirection.INCOMING),
         func.count(Message.id).filter(Message.direction == MessageDirection.OUTGOING),
-    ).where(cast(Message.created_at, Date) == today)
+    ).where(
+        Message.created_at >= today_start,
+        Message.created_at < tomorrow_start,
+    )
     msg_row = (await db.execute(msg_today_q)).one()
     total_msg_today, inc_today, out_today = msg_row
 
     msg_yesterday = (await db.execute(
-        select(func.count(Message.id)).where(cast(Message.created_at, Date) == yesterday)
+        select(func.count(Message.id)).where(
+            Message.created_at >= yesterday_start,
+            Message.created_at < today_start,
+        )
     )).scalar() or 0
 
     # --- followers ---
@@ -169,14 +215,14 @@ async def report_overview(
     new_followers_week = (await db.execute(
         select(func.count(FriendEvent.id)).where(
             FriendEvent.event_type == FriendEventType.FOLLOW.value,
-            cast(FriendEvent.created_at, Date) >= week_ago,
+            FriendEvent.created_at >= week_ago,
         )
     )).scalar() or 0
     new_followers_prev = (await db.execute(
         select(func.count(FriendEvent.id)).where(
             FriendEvent.event_type == FriendEventType.FOLLOW.value,
-            cast(FriendEvent.created_at, Date) >= two_weeks_ago,
-            cast(FriendEvent.created_at, Date) < week_ago,
+            FriendEvent.created_at >= two_weeks_ago,
+            FriendEvent.created_at < week_ago,
         )
     )).scalar() or 0
 
@@ -188,41 +234,56 @@ async def report_overview(
     active_sessions_yesterday = (await db.execute(
         select(func.count(ChatSession.id)).where(
             ChatSession.status == SessionStatus.ACTIVE.value,
-            cast(ChatSession.started_at, Date) == yesterday,
+            ChatSession.started_at >= yesterday_start,
+            ChatSession.started_at < today_start,
         )
     )).scalar() or 0
 
     # --- daily activity last 7 days ---
+    request_day_bucket = func.date_trunc("day", ServiceRequest.created_at)
     daily_q = (
         select(
-            cast(ServiceRequest.created_at, Date).label("day"),
+            request_day_bucket.label("day"),
             func.count(ServiceRequest.id).label("requests"),
         )
-        .where(cast(ServiceRequest.created_at, Date) >= week_ago)
-        .group_by(text("day"))
-        .order_by(text("day"))
+        .where(ServiceRequest.created_at >= activity_start)
+        .group_by(request_day_bucket)
+        .order_by(request_day_bucket)
     )
     daily_rows = (await db.execute(daily_q)).all()
     # messages per day
+    message_day_bucket = func.date_trunc("day", Message.created_at)
     msg_daily_q = (
         select(
-            cast(Message.created_at, Date).label("day"),
+            message_day_bucket.label("day"),
             func.count(Message.id).label("messages"),
         )
-        .where(cast(Message.created_at, Date) >= week_ago)
-        .group_by(text("day"))
-        .order_by(text("day"))
+        .where(Message.created_at >= activity_start)
+        .group_by(message_day_bucket)
+        .order_by(message_day_bucket)
     )
     msg_daily_rows = (await db.execute(msg_daily_q)).all()
 
-    msg_by_day = {str(r.day): r.messages for r in msg_daily_rows}
+    request_by_day = {
+        row.day.astimezone(timezone.utc).date().isoformat(): int(row.requests)
+        for row in daily_rows
+        if row.day
+    }
+    msg_by_day = {
+        row.day.astimezone(timezone.utc).date().isoformat(): int(row.messages)
+        for row in msg_daily_rows
+        if row.day
+    }
     daily_activity = []
-    for r in daily_rows:
+    current_day = activity_start.date()
+    while current_day <= today_start.date():
+        key = current_day.isoformat()
         daily_activity.append({
-            "day": str(r.day),
-            "requests": r.requests,
-            "messages": msg_by_day.get(str(r.day), 0),
+            "day": key,
+            "requests": request_by_day.get(key, 0),
+            "messages": msg_by_day.get(key, 0),
         })
+        current_day += timedelta(days=1)
 
     def _trend(cur: int, prev: int) -> TrendValue:
         pct = ((cur - prev) / prev * 100) if prev else (100.0 if cur else 0.0)
@@ -258,15 +319,10 @@ async def report_service_requests(
 ):
     start, end = _parse_dates(start_date, end_date)
 
-    base = select(ServiceRequest).where(
-        ServiceRequest.created_at >= start,
-        ServiceRequest.created_at <= end,
-    )
-
     # by status
     status_q = (
         select(ServiceRequest.status, func.count(ServiceRequest.id))
-        .where(ServiceRequest.created_at >= start, ServiceRequest.created_at <= end)
+        .where(ServiceRequest.created_at >= start, ServiceRequest.created_at < end)
         .group_by(ServiceRequest.status)
     )
     by_status = {
@@ -277,7 +333,7 @@ async def report_service_requests(
     # by category
     cat_q = (
         select(ServiceRequest.topic_category, func.count(ServiceRequest.id).label("count"))
-        .where(ServiceRequest.created_at >= start, ServiceRequest.created_at <= end)
+        .where(ServiceRequest.created_at >= start, ServiceRequest.created_at < end)
         .group_by(ServiceRequest.topic_category)
         .order_by(text("count DESC"))
     )
@@ -287,22 +343,17 @@ async def report_service_requests(
     ]
 
     # over time
-    if period == "monthly":
-        date_expr = func.to_char(ServiceRequest.created_at, "YYYY-MM")
-    elif period == "weekly":
-        date_expr = func.to_char(ServiceRequest.created_at, "IYYY-IW")
-    else:
-        date_expr = func.to_char(ServiceRequest.created_at, "YYYY-MM-DD")
+    date_bucket = _bucket_expression(ServiceRequest.created_at, period)
 
     time_q = (
-        select(date_expr.label("period"), func.count(ServiceRequest.id).label("count"))
-        .where(ServiceRequest.created_at >= start, ServiceRequest.created_at <= end)
-        .group_by(text("period"))
-        .order_by(text("period"))
+        select(date_bucket.label("period_start"), func.count(ServiceRequest.id).label("count"))
+        .where(ServiceRequest.created_at >= start, ServiceRequest.created_at < end)
+        .group_by(date_bucket)
+        .order_by(date_bucket)
     )
     over_time = [
-        {"period": p, "count": c}
-        for p, c in (await db.execute(time_q)).all()
+        {"period": _format_bucket(period_start, period), "count": c}
+        for period_start, c in (await db.execute(time_q)).all()
     ]
 
     # avg resolution
@@ -313,7 +364,7 @@ async def report_service_requests(
     ).where(
         ServiceRequest.status == RequestStatus.COMPLETED,
         ServiceRequest.created_at >= start,
-        ServiceRequest.created_at <= end,
+        ServiceRequest.created_at < end,
     )
     avg_res = (await db.execute(res_q)).scalar() or 0.0
 
@@ -340,30 +391,28 @@ async def report_messages(
 ):
     start, end = _parse_dates(start_date, end_date)
 
-    if period == "monthly":
-        date_expr = func.to_char(Message.created_at, "YYYY-MM")
-    elif period == "weekly":
-        date_expr = func.to_char(Message.created_at, "IYYY-IW")
-    else:
-        date_expr = func.to_char(Message.created_at, "YYYY-MM-DD")
+    date_bucket = _bucket_expression(Message.created_at, period)
 
     time_q = (
         select(
-            date_expr.label("period"),
+            date_bucket.label("period_start"),
             func.count(Message.id).filter(Message.direction == MessageDirection.INCOMING).label("incoming"),
             func.count(Message.id).filter(Message.direction == MessageDirection.OUTGOING).label("outgoing"),
         )
-        .where(Message.created_at >= start, Message.created_at <= end)
-        .group_by(text("period"))
-        .order_by(text("period"))
+        .where(Message.created_at >= start, Message.created_at < end)
+        .group_by(date_bucket)
+        .order_by(date_bucket)
     )
     rows = (await db.execute(time_q)).all()
-    over_time = [{"period": p, "incoming": i, "outgoing": o} for p, i, o in rows]
+    over_time = [
+        {"period": _format_bucket(period_start, period), "incoming": i, "outgoing": o}
+        for period_start, i, o in rows
+    ]
 
     totals_q = select(
         func.count(Message.id).filter(Message.direction == MessageDirection.INCOMING),
         func.count(Message.id).filter(Message.direction == MessageDirection.OUTGOING),
-    ).where(Message.created_at >= start, Message.created_at <= end)
+    ).where(Message.created_at >= start, Message.created_at < end)
     inc_total, out_total = (await db.execute(totals_q)).one()
 
     # peak hours
@@ -372,7 +421,7 @@ async def report_messages(
             func.extract("hour", Message.created_at).label("hour"),
             func.count(Message.id).label("count"),
         )
-        .where(Message.created_at >= start, Message.created_at <= end)
+        .where(Message.created_at >= start, Message.created_at < end)
         .group_by(text("hour"))
         .order_by(text("hour"))
     )
@@ -417,7 +466,7 @@ async def report_operators(
         .where(
             ChatSession.operator_id.isnot(None),
             ChatSession.started_at >= start,
-            ChatSession.started_at <= end,
+            ChatSession.started_at < end,
         )
         .group_by(ChatSession.operator_id, User.display_name)
         .order_by(text("sessions_handled DESC"))
@@ -451,7 +500,7 @@ async def report_operators(
             .where(
                 ChatSession.operator_id.in_(operator_ids),
                 ChatSession.started_at >= start,
-                ChatSession.started_at <= end,
+                ChatSession.started_at < end,
                 Message.direction == MessageDirection.OUTGOING,
                 Message.sender_role == "ADMIN",
             )
@@ -497,7 +546,7 @@ async def report_followers(
     # Events in period
     base_filter = [
         FriendEvent.created_at >= start,
-        FriendEvent.created_at <= end,
+        FriendEvent.created_at < end,
     ]
 
     new_count = (await db.execute(
@@ -526,16 +575,11 @@ async def report_followers(
     refollow_rate = (refollow_count / total_follows * 100) if total_follows else 0.0
 
     # Over time
-    if period == "monthly":
-        date_expr = func.to_char(FriendEvent.created_at, "YYYY-MM")
-    elif period == "weekly":
-        date_expr = func.to_char(FriendEvent.created_at, "IYYY-IW")
-    else:
-        date_expr = func.to_char(FriendEvent.created_at, "YYYY-MM-DD")
+    date_bucket = _bucket_expression(FriendEvent.created_at, period)
 
     time_q = (
         select(
-            date_expr.label("period"),
+            date_bucket.label("period_start"),
             func.count(FriendEvent.id).filter(
                 FriendEvent.event_type.in_([FriendEventType.FOLLOW.value, FriendEventType.REFOLLOW.value])
             ).label("gained"),
@@ -544,11 +588,14 @@ async def report_followers(
             ).label("lost"),
         )
         .where(*base_filter)
-        .group_by(text("period"))
-        .order_by(text("period"))
+        .group_by(date_bucket)
+        .order_by(date_bucket)
     )
     rows = (await db.execute(time_q)).all()
-    over_time = [{"period": p, "gained": g, "lost": l} for p, g, l in rows]
+    over_time = [
+        {"period": _format_bucket(period_start, period), "gained": g, "lost": l}
+        for period_start, g, l in rows
+    ]
 
     return FollowersReportResponse(
         total_followers=total_followers,
@@ -581,7 +628,7 @@ async def export_report(
         writer.writerow(["ID", "Status", "Category", "Subcategory", "Requester", "Created", "Completed"])
         q = select(ServiceRequest).where(
             ServiceRequest.created_at >= start,
-            ServiceRequest.created_at <= end,
+            ServiceRequest.created_at < end,
         ).order_by(ServiceRequest.created_at.desc())
         rows = (await db.execute(q)).scalars().all()
         for r in rows:
@@ -599,7 +646,7 @@ async def export_report(
         writer.writerow(["ID", "LineUserID", "Direction", "Type", "SenderRole", "Created"])
         q = select(Message).where(
             Message.created_at >= start,
-            Message.created_at <= end,
+            Message.created_at < end,
         ).order_by(Message.created_at.desc()).limit(10000)
         rows = (await db.execute(q)).scalars().all()
         for r in rows:
@@ -628,14 +675,15 @@ async def export_report(
         writer.writerow(["ID", "LineUserID", "EventType", "Created"])
         q = select(FriendEvent).where(
             FriendEvent.created_at >= start,
-            FriendEvent.created_at <= end,
+            FriendEvent.created_at < end,
         ).order_by(FriendEvent.created_at.desc())
         rows = (await db.execute(q)).scalars().all()
         for r in rows:
             writer.writerow([r.id, r.line_user_id, r.event_type, str(r.created_at)])
 
     buf.seek(0)
-    filename = f"report-{type}-{start.strftime('%Y%m%d')}-{end.strftime('%Y%m%d')}.csv"
+    inclusive_end = end - timedelta(microseconds=1)
+    filename = f"report-{type}-{start.strftime('%Y%m%d')}-{inclusive_end.strftime('%Y%m%d')}.csv"
     return StreamingResponse(
         buf,
         media_type="text/csv",

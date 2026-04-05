@@ -74,6 +74,19 @@ class RedisClient:
         except Exception as e:
             logger.error(f"Redis get error: {e}")
             return None
+
+    async def mget(self, keys: list[str]) -> list[Optional[str]]:
+        """Get multiple values by key."""
+        if not keys:
+            return []
+        if not self._redis:
+            return [None] * len(keys)
+        try:
+            result = await self._redis.mget(keys)
+            return list(result)
+        except Exception as e:
+            logger.error(f"Redis mget error: {e}")
+            return [None] * len(keys)
     
     async def delete(self, key: str):
         """Delete key."""

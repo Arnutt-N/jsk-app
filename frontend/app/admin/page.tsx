@@ -41,7 +41,7 @@ function getErrorMessage(error: unknown): string {
 }
 
 async function getRequestData() {
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
+    const API_BASE = '/api/v1';
 
     // Use Promise.allSettled to handle partial failures gracefully
     const [statsResult, monthlyResult] = await Promise.allSettled([

@@ -103,7 +103,7 @@ export default function FriendHistoryPage() {
     const [eventTypeFilter, setEventTypeFilter] = useState('');
     const [searchFilter, setSearchFilter] = useState('');
 
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+    const API_BASE = '/api/v1';
     const authHeaders = useMemo(() => {
         if (!token) return {} as Record<string, string>;
         return { Authorization: `Bearer ${token}` };

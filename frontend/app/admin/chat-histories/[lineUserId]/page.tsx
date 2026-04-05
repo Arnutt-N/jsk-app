@@ -92,7 +92,7 @@ export default function ChatHistoryDetailPage() {
     const [loadingMore, setLoadingMore] = useState(false);
     const [fetchError, setFetchError] = useState<string | null>(null);
 
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
+    const API_BASE = '/api/v1';
 
     const authHeaders = useMemo(() => {
         if (!token) return {} as Record<string, string>;
@@ -104,7 +104,7 @@ export default function ChatHistoryDetailPage() {
         setLoading(true);
         setFetchError(null);
         try {
-            // โหลด conversation detail เพื่อดึง display_name, chat_mode
+            // เน€เธยเน€เธเธเน€เธเธ…เน€เธโ€ conversation detail เน€เธโฌเน€เธยเน€เธเธ—เน€เธยเน€เธเธเน€เธโ€เน€เธเธ–เน€เธย display_name, chat_mode
             const detailRes = await fetch(
                 `${API_BASE}/admin/live-chat/conversations/${lineUserId}`,
                 { headers: authHeaders },
@@ -114,7 +114,7 @@ export default function ChatHistoryDetailPage() {
             setDisplayName(detail.display_name || lineUserId.substring(0, 12));
             setChatMode(detail.chat_mode);
 
-            // โหลดข้อความแบบ paginated
+            // เน€เธยเน€เธเธเน€เธเธ…เน€เธโ€เน€เธยเน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ’เน€เธเธเน€เธยเน€เธยเน€เธย paginated
             const msgRes = await fetch(
                 `${API_BASE}/admin/live-chat/conversations/${lineUserId}/messages?limit=50`,
                 { headers: authHeaders },
@@ -125,8 +125,8 @@ export default function ChatHistoryDetailPage() {
             setHasMore(msgData.has_more);
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : 'Unknown error';
-            console.error('[chat-detail] โหลดข้อมูลล้มเหลว:', message);
-            setFetchError('ไม่สามารถโหลดประวัติสนทนาได้ กรุณาลองใหม่');
+            console.error('[chat-detail] เน€เธยเน€เธเธเน€เธเธ…เน€เธโ€เน€เธยเน€เธยเน€เธเธเน€เธเธเน€เธเธเน€เธเธ…เน€เธเธ…เน€เธยเน€เธเธเน€เธโฌเน€เธเธเน€เธเธ…เน€เธเธ:', message);
+            setFetchError('เน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ’เน€เธเธเน€เธเธ’เน€เธเธเน€เธโ€“เน€เธยเน€เธเธเน€เธเธ…เน€เธโ€เน€เธยเน€เธเธเน€เธเธเน€เธเธเน€เธเธ‘เน€เธโ€ขเน€เธเธ”เน€เธเธเน€เธยเน€เธโ€”เน€เธยเน€เธเธ’เน€เธยเน€เธโ€เน€เธย เน€เธยเน€เธเธเน€เธเธเน€เธโ€เน€เธเธ’เน€เธเธ…เน€เธเธเน€เธยเน€เธยเน€เธเธเน€เธเธเน€เธย');
         } finally {
             setLoading(false);
         }
@@ -159,7 +159,7 @@ export default function ChatHistoryDetailPage() {
             setHasMore(data.has_more);
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : 'Unknown error';
-            console.error('[chat-detail] โหลดข้อความเก่าล้มเหลว:', message);
+            console.error('[chat-detail] เน€เธยเน€เธเธเน€เธเธ…เน€เธโ€เน€เธยเน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ’เน€เธเธเน€เธโฌเน€เธยเน€เธยเน€เธเธ’เน€เธเธ…เน€เธยเน€เธเธเน€เธโฌเน€เธเธเน€เธเธ…เน€เธเธ:', message);
         } finally {
             setLoadingMore(false);
         }
@@ -190,14 +190,14 @@ export default function ChatHistoryDetailPage() {
                 return (
                     <div className="flex items-center gap-2 text-sm italic opacity-70">
                         <ImageIcon className="w-4 h-4" />
-                        <span>[รูปภาพ]</span>
+                        <span>[เน€เธเธเน€เธเธเน€เธยเน€เธย เน€เธเธ’เน€เธย]</span>
                     </div>
                 );
             case 'sticker':
                 return (
                     <div className="flex items-center gap-2 text-sm italic opacity-70">
                         <Smile className="w-4 h-4" />
-                        <span>[สติกเกอร์]</span>
+                        <span>[เน€เธเธเน€เธโ€ขเน€เธเธ”เน€เธยเน€เธโฌเน€เธยเน€เธเธเน€เธเธเน€เธย]</span>
                     </div>
                 );
             default:
@@ -213,7 +213,7 @@ export default function ChatHistoryDetailPage() {
         <div className="space-y-6 animate-in fade-in duration-500 thai-text">
             {/* Header */}
             <PageHeader
-                title={displayName || 'ประวัติสนทนา'}
+                title={displayName || 'เน€เธยเน€เธเธเน€เธเธเน€เธเธเน€เธเธ‘เน€เธโ€ขเน€เธเธ”เน€เธเธเน€เธยเน€เธโ€”เน€เธยเน€เธเธ’'}
                 subtitle={lineUserId}
             >
                 <Button
@@ -222,7 +222,7 @@ export default function ChatHistoryDetailPage() {
                     onClick={() => router.push('/admin/chat-histories')}
                     leftIcon={<ArrowLeft className="w-4 h-4" />}
                 >
-                    กลับ
+                    เน€เธยเน€เธเธ…เน€เธเธ‘เน€เธย
                 </Button>
                 <Button
                     variant="outline"
@@ -238,7 +238,7 @@ export default function ChatHistoryDetailPage() {
             {/* Chat mode badge */}
             {!loading && (
                 <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-500 dark:text-gray-400">โหมดแชท:</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">เน€เธยเน€เธเธเน€เธเธเน€เธโ€เน€เธยเน€เธยเน€เธโ€”:</span>
                     <Badge variant={chatMode === 'HUMAN' ? 'success' : 'gray'} size="sm">
                         {chatMode}
                     </Badge>
@@ -251,7 +251,7 @@ export default function ChatHistoryDetailPage() {
                     <AlertCircle size={18} className="shrink-0" />
                     <span className="flex-1">{fetchError}</span>
                     <Button variant="outline" size="xs" onClick={() => fetchInitial()}>
-                        ลองใหม่
+                        เน€เธเธ…เน€เธเธเน€เธยเน€เธยเน€เธเธเน€เธเธเน€เธย
                     </Button>
                 </div>
             )}
@@ -272,7 +272,7 @@ export default function ChatHistoryDetailPage() {
                                 isLoading={loadingMore}
                                 leftIcon={<ChevronUp className="w-4 h-4" />}
                             >
-                                โหลดข้อความเก่า
+                                เน€เธยเน€เธเธเน€เธเธ…เน€เธโ€เน€เธยเน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ’เน€เธเธเน€เธโฌเน€เธยเน€เธยเน€เธเธ’
                             </Button>
                         </div>
                     )}
@@ -294,12 +294,12 @@ export default function ChatHistoryDetailPage() {
                     ) : messages.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-16 text-gray-400 dark:text-gray-500">
                             <AlertCircle className="w-12 h-12 opacity-20 mb-3" />
-                            <p className="text-sm">ยังไม่มีข้อความในสนทนานี้</p>
+                            <p className="text-sm">เน€เธเธเน€เธเธ‘เน€เธยเน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ•เน€เธยเน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ’เน€เธเธเน€เธยเน€เธยเน€เธเธเน€เธยเน€เธโ€”เน€เธยเน€เธเธ’เน€เธยเน€เธเธ•เน€เธย</p>
                         </div>
                     ) : (
                         messages.map((msg) => {
                             const isIncoming = msg.direction === 'INCOMING';
-                            /* สีพื้นหลัง bubble: incoming = gray, outgoing BOT = navy brand, outgoing ADMIN = blue */
+                            /* เน€เธเธเน€เธเธ•เน€เธยเน€เธเธ—เน€เธยเน€เธยเน€เธเธเน€เธเธ…เน€เธเธ‘เน€เธย bubble: incoming = gray, outgoing BOT = navy brand, outgoing ADMIN = blue */
                             const bubbleBg = isIncoming
                                 ? 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
                                 : msg.sender_role === 'BOT'

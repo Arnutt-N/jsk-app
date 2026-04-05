@@ -51,7 +51,7 @@ export default function BroadcastCreatePage() {
         if (token) h.Authorization = `Bearer ${token}`;
         return h;
     }, [token]);
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
+    const API_BASE = '/api/v1';
 
     const [step, setStep] = useState(0);
     const [saving, setSaving] = useState(false);

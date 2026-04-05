@@ -322,3 +322,31 @@ class TestUnreadCount:
             count = await live_chat_service.get_unread_count("Utest", 1, mock_db)
             assert count == 5
 
+    @pytest.mark.asyncio
+    async def test_get_unread_counts_batches_queries(self, live_chat_service):
+        mock_db = AsyncMock()
+
+        no_marker_result = MagicMock()
+        no_marker_result.all.return_value = [("Uno-marker", 4), ("Ubad-marker", 1)]
+        with_marker_result = MagicMock()
+        with_marker_result.all.return_value = [("Uwith-marker", 2)]
+        mock_db.execute.side_effect = [no_marker_result, with_marker_result]
+
+        with patch('app.services.live_chat_service.redis_client.mget', new_callable=AsyncMock) as mock_mget:
+            mock_mget.return_value = [
+                None,
+                datetime.now(timezone.utc).isoformat(),
+                "invalid-timestamp",
+            ]
+            counts = await live_chat_service.get_unread_counts(
+                ["Uno-marker", "Uwith-marker", "Ubad-marker"],
+                1,
+                mock_db,
+            )
+
+        assert counts == {
+            "Uno-marker": 4,
+            "Uwith-marker": 2,
+            "Ubad-marker": 1,
+        }
+        assert mock_db.execute.call_count == 2

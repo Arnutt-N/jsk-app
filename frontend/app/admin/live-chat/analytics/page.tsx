@@ -33,7 +33,7 @@ export default function AnalyticsPage() {
     const [operatorStats, setOperatorStats] = useState<OperatorStat[]>([]);
     const [dateRange, setDateRange] = useState({ from: '', to: '' });
 
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+    const API_BASE = '/api/v1';
 
     const fetchData = useCallback(async () => {
         try {

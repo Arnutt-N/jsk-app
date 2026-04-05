@@ -79,7 +79,7 @@ export default function RequestDetailPage() {
     const [submittingComment, setSubmittingComment] = useState(false);
     const [assignModalOpen, setAssignModalOpen] = useState(false);
 
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
+    const API_BASE = '/api/v1';
 
     // --- API Fetching ---
     const fetchDetail = useCallback(async () => {
@@ -178,7 +178,7 @@ export default function RequestDetailPage() {
             }
 
             // 4. Success feedback
-            alert("บันทึกข้อมูลเรียบร้อยแล้ว");
+            alert("เน€เธยเน€เธเธ‘เน€เธยเน€เธโ€”เน€เธเธ–เน€เธยเน€เธยเน€เธยเน€เธเธเน€เธเธเน€เธเธเน€เธเธ…เน€เธโฌเน€เธเธเน€เธเธ•เน€เธเธเน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธเน€เธยเน€เธเธ…เน€เธยเน€เธเธ");
 
             // Note: fetchDetail() is called inside handleUpdateField, effectively syncing state
             // But if only comment was added, we might need to manually sync or rely on the fact that request didn't change.
@@ -241,10 +241,10 @@ export default function RequestDetailPage() {
 
     // --- UI Helpers ---
     const tabs = [
-        { id: 'details', label: 'รายละเอียดคำร้อง', icon: FileText },
-        { id: 'contact', label: 'ข้อมูลผู้ติดต่อ', icon: User },
-        { id: 'comments', label: 'การดำเนินงาน/ความเห็น', icon: MessageSquare },
-        { id: 'manage', label: 'จัดการคำร้อง', icon: Settings2 },
+        { id: 'details', label: 'เน€เธเธเน€เธเธ’เน€เธเธเน€เธเธ…เน€เธเธเน€เธโฌเน€เธเธเน€เธเธ•เน€เธเธเน€เธโ€เน€เธยเน€เธเธ“เน€เธเธเน€เธยเน€เธเธเน€เธย', icon: FileText },
+        { id: 'contact', label: 'เน€เธยเน€เธยเน€เธเธเน€เธเธเน€เธเธเน€เธเธ…เน€เธยเน€เธเธเน€เธยเน€เธโ€ขเน€เธเธ”เน€เธโ€เน€เธโ€ขเน€เธยเน€เธเธ', icon: User },
+        { id: 'comments', label: 'เน€เธยเน€เธเธ’เน€เธเธเน€เธโ€เน€เธเธ“เน€เธโฌเน€เธยเน€เธเธ”เน€เธยเน€เธยเน€เธเธ’เน€เธย/เน€เธยเน€เธเธเน€เธเธ’เน€เธเธเน€เธโฌเน€เธเธเน€เธยเน€เธย', icon: MessageSquare },
+        { id: 'manage', label: 'เน€เธยเน€เธเธ‘เน€เธโ€เน€เธยเน€เธเธ’เน€เธเธเน€เธยเน€เธเธ“เน€เธเธเน€เธยเน€เธเธเน€เธย', icon: Settings2 },
     ];
 
     if (loading) return (
@@ -253,7 +253,7 @@ export default function RequestDetailPage() {
         </div>
     );
 
-    if (!request) return <div className="p-8 text-center">ไม่พบข้อมูลคำร้อง</div>;
+    if (!request) return <div className="p-8 text-center">เน€เธยเน€เธเธเน€เธยเน€เธยเน€เธยเน€เธยเน€เธยเน€เธเธเน€เธเธเน€เธเธเน€เธเธ…เน€เธยเน€เธเธ“เน€เธเธเน€เธยเน€เธเธเน€เธย</div>;
 
     return (
         <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans text-slate-900 animate-in fade-in duration-500">
@@ -279,10 +279,10 @@ export default function RequestDetailPage() {
                                             request.priority === 'MEDIUM' ? 'bg-yellow-50 border-yellow-200 text-yellow-600' :
                                                 'bg-emerald-50 border-emerald-200 text-emerald-600'
                                         }`}>
-                                        {request.priority === 'URGENT' ? 'ด่วนที่สุด' :
-                                            request.priority === 'HIGH' ? 'ด่วนมาก' :
-                                                request.priority === 'MEDIUM' ? 'ด่วน' :
-                                                    request.priority === 'LOW' ? 'ปกติ' : 'ไม่ระบุ'}
+                                        {request.priority === 'URGENT' ? 'เน€เธโ€เน€เธยเน€เธเธเน€เธยเน€เธโ€”เน€เธเธ•เน€เธยเน€เธเธเน€เธเธเน€เธโ€' :
+                                            request.priority === 'HIGH' ? 'เน€เธโ€เน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ’เน€เธย' :
+                                                request.priority === 'MEDIUM' ? 'เน€เธโ€เน€เธยเน€เธเธเน€เธย' :
+                                                    request.priority === 'LOW' ? 'เน€เธยเน€เธยเน€เธโ€ขเน€เธเธ”' : 'เน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธเน€เธยเน€เธเธ'}
                                     </span>
 
                                     <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ring-1 ring-inset inline-flex items-center gap-1 ${request.status === 'PENDING' ? 'bg-amber-50 text-amber-700 ring-amber-200' :
@@ -297,10 +297,10 @@ export default function RequestDetailPage() {
                                                     request.status === 'REJECTED' ? 'bg-rose-500' :
                                                         'bg-slate-400'
                                             }`}></div>
-                                        {request.status === 'PENDING' ? 'รอดำเนินการ' :
-                                            request.status === 'IN_PROGRESS' ? 'กำลังดำเนินการ' :
-                                                request.status === 'COMPLETED' ? 'เสร็จสิ้น' :
-                                                    request.status === 'REJECTED' ? 'ยกเลิก' : 'มาใหม่'}
+                                        {request.status === 'PENDING' ? 'เน€เธเธเน€เธเธเน€เธโ€เน€เธเธ“เน€เธโฌเน€เธยเน€เธเธ”เน€เธยเน€เธยเน€เธเธ’เน€เธเธ' :
+                                            request.status === 'IN_PROGRESS' ? 'เน€เธยเน€เธเธ“เน€เธเธ…เน€เธเธ‘เน€เธยเน€เธโ€เน€เธเธ“เน€เธโฌเน€เธยเน€เธเธ”เน€เธยเน€เธยเน€เธเธ’เน€เธเธ' :
+                                                request.status === 'COMPLETED' ? 'เน€เธโฌเน€เธเธเน€เธเธเน€เธยเน€เธยเน€เธเธเน€เธเธ”เน€เธยเน€เธย' :
+                                                    request.status === 'REJECTED' ? 'เน€เธเธเน€เธยเน€เธโฌเน€เธเธ…เน€เธเธ”เน€เธย' : 'เน€เธเธเน€เธเธ’เน€เธยเน€เธเธเน€เธเธเน€เธย'}
                                     </span>
                                 </div>
                             </div>
@@ -314,7 +314,7 @@ export default function RequestDetailPage() {
                                 disabled={request.status === 'COMPLETED' || request.status === 'REJECTED' || request.status === 'IN_PROGRESS'}
                                 leftIcon={<Clock size={18} />}
                             >
-                                รับเรื่อง
+                                เน€เธเธเน€เธเธ‘เน€เธยเน€เธโฌเน€เธเธเน€เธเธ—เน€เธยเน€เธเธเน€เธย
                             </Button>
                             <Button
                                 variant="success"
@@ -322,7 +322,7 @@ export default function RequestDetailPage() {
                                 disabled={request.status === 'COMPLETED'}
                                 leftIcon={<CheckCircle2 size={18} />}
                             >
-                                ปิดงาน
+                                เน€เธยเน€เธเธ”เน€เธโ€เน€เธยเน€เธเธ’เน€เธย
                             </Button>
                         </div>
                     </div>
@@ -348,7 +348,7 @@ export default function RequestDetailPage() {
                 {/* Tab Content Area */}
                 <div className="bg-white rounded-b-2xl shadow-sm border-x border-b border-slate-200 p-8 min-h-[400px]">
 
-                    {/* 1. รายละเอียดคำร้อง */}
+                    {/* 1. เน€เธเธเน€เธเธ’เน€เธเธเน€เธเธ…เน€เธเธเน€เธโฌเน€เธเธเน€เธเธ•เน€เธเธเน€เธโ€เน€เธยเน€เธเธ“เน€เธเธเน€เธยเน€เธเธเน€เธย */}
                     {activeTab === 'details' && (
                         <div className="space-y-6 animate-in fade-in duration-300">
                             {/* Card Header: Category info V2 */}
@@ -358,12 +358,12 @@ export default function RequestDetailPage() {
                                 </div>
                                 <div className="flex items-center gap-6 h-12">
                                     <div className="flex flex-col justify-center h-full">
-                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">หมวดหมู่</span>
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">เน€เธเธเน€เธเธเน€เธเธเน€เธโ€เน€เธเธเน€เธเธเน€เธเธเน€เธย</span>
                                         <span className="text-base font-bold text-slate-800">{request.topic_category}</span>
                                     </div>
                                     <div className="w-px h-8 bg-slate-200"></div>
                                     <div className="flex flex-col justify-center h-full">
-                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">ประเภท</span>
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">เน€เธยเน€เธเธเน€เธเธเน€เธโฌเน€เธย เน€เธโ€”</span>
                                         <span className="text-base font-bold text-slate-800">{request.topic_subcategory || "-"}</span>
                                     </div>
                                 </div>
@@ -372,36 +372,36 @@ export default function RequestDetailPage() {
                             {/* 4-Item Info Grid - Equal Widths */}
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 py-2">
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">วันที่ยื่นคำร้อง</label>
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">เน€เธเธเน€เธเธ‘เน€เธยเน€เธโ€”เน€เธเธ•เน€เธยเน€เธเธเน€เธเธ—เน€เธยเน€เธยเน€เธยเน€เธเธ“เน€เธเธเน€เธยเน€เธเธเน€เธย</label>
                                     <div className="text-sm font-semibold text-slate-800">
                                         {new Date(request.created_at).toLocaleString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' })}
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">ระดับความสำคัญ</label>
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">เน€เธเธเน€เธเธเน€เธโ€เน€เธเธ‘เน€เธยเน€เธยเน€เธเธเน€เธเธ’เน€เธเธเน€เธเธเน€เธเธ“เน€เธยเน€เธเธ‘เน€เธย</label>
                                     <div>
                                         <span className={`px-3 py-1 rounded-lg text-xs font-bold border inline-block text-center min-w-[80px] ${request.priority === 'URGENT' ? 'bg-rose-50 border-rose-200 text-rose-600' :
                                             request.priority === 'HIGH' ? 'bg-orange-50 border-orange-200 text-orange-600' :
                                                 request.priority === 'MEDIUM' ? 'bg-yellow-50 border-yellow-200 text-yellow-600' :
                                                     'bg-emerald-50 border-emerald-200 text-emerald-600'
                                             }`}>
-                                            {request.priority === 'URGENT' ? 'ด่วนที่สุด' :
-                                                request.priority === 'HIGH' ? 'ด่วนมาก' :
-                                                    request.priority === 'MEDIUM' ? 'ด่วน' :
-                                                        'ปกติ'}
+                                            {request.priority === 'URGENT' ? 'เน€เธโ€เน€เธยเน€เธเธเน€เธยเน€เธโ€”เน€เธเธ•เน€เธยเน€เธเธเน€เธเธเน€เธโ€' :
+                                                request.priority === 'HIGH' ? 'เน€เธโ€เน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ’เน€เธย' :
+                                                    request.priority === 'MEDIUM' ? 'เน€เธโ€เน€เธยเน€เธเธเน€เธย' :
+                                                        'เน€เธยเน€เธยเน€เธโ€ขเน€เธเธ”'}
                                         </span>
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">กำหนดแล้วเสร็จ</label>
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">เน€เธยเน€เธเธ“เน€เธเธเน€เธยเน€เธโ€เน€เธยเน€เธเธ…เน€เธยเน€เธเธเน€เธโฌเน€เธเธเน€เธเธเน€เธยเน€เธย</label>
                                     <div className={`text-sm font-semibold ${request.due_date ? 'text-slate-800' : 'text-slate-400 italic'}`}>
-                                        {request.due_date ? new Date(request.due_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' }) : 'ไม่ได้กำหนด'}
+                                        {request.due_date ? new Date(request.due_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' }) : 'เน€เธยเน€เธเธเน€เธยเน€เธยเน€เธโ€เน€เธยเน€เธยเน€เธเธ“เน€เธเธเน€เธยเน€เธโ€'}
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">ผู้รับผิดชอบ</label>
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">เน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ‘เน€เธยเน€เธยเน€เธเธ”เน€เธโ€เน€เธยเน€เธเธเน€เธย</label>
                                     <div className={`text-sm font-semibold ${request.assignee_name ? 'text-slate-800' : 'text-slate-400 italic'}`}>
-                                        {request.assignee_name || "ยังไม่ได้มอบหมาย"}
+                                        {request.assignee_name || "เน€เธเธเน€เธเธ‘เน€เธยเน€เธยเน€เธเธเน€เธยเน€เธยเน€เธโ€เน€เธยเน€เธเธเน€เธเธเน€เธยเน€เธเธเน€เธเธเน€เธเธ’เน€เธเธ"}
                                     </div>
                                 </div>
                             </div>
@@ -410,14 +410,14 @@ export default function RequestDetailPage() {
 
 
                             <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">รายละเอียดเพิ่มเติม</label>
+                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">เน€เธเธเน€เธเธ’เน€เธเธเน€เธเธ…เน€เธเธเน€เธโฌเน€เธเธเน€เธเธ•เน€เธเธเน€เธโ€เน€เธโฌเน€เธยเน€เธเธ”เน€เธยเน€เธเธเน€เธโฌเน€เธโ€ขเน€เธเธ”เน€เธเธ</label>
                                 <div className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm leading-relaxed whitespace-pre-wrap min-h-[100px]">
-                                    {request.description || "ไม่มีรายละเอียดเพิ่มเติม"}
+                                    {request.description || "เน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ•เน€เธเธเน€เธเธ’เน€เธเธเน€เธเธ…เน€เธเธเน€เธโฌเน€เธเธเน€เธเธ•เน€เธเธเน€เธโ€เน€เธโฌเน€เธยเน€เธเธ”เน€เธยเน€เธเธเน€เธโฌเน€เธโ€ขเน€เธเธ”เน€เธเธ"}
                                 </div>
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">ไฟล์แนบ ({request.attachments?.length || 0})</label>
+                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">เน€เธยเน€เธยเน€เธเธ…เน€เธยเน€เธยเน€เธยเน€เธย ({request.attachments?.length || 0})</label>
                                 <div className="flex flex-wrap gap-2">
                                     {request.attachments?.map((file, idx) => (
                                         <a key={idx} href={file.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 hover:border-primary/40 hover:text-primary hover:bg-primary/8 transition-all cursor-pointer">
@@ -425,14 +425,14 @@ export default function RequestDetailPage() {
                                         </a>
                                     ))}
                                     {(!request.attachments || request.attachments.length === 0) && (
-                                        <span className="text-xs text-slate-400 italic">ไม่มีไฟล์แนบ</span>
+                                        <span className="text-xs text-slate-400 italic">เน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ•เน€เธยเน€เธยเน€เธเธ…เน€เธยเน€เธยเน€เธยเน€เธย</span>
                                     )}
                                 </div>
                             </div>
                         </div>
                     )}
 
-                    {/* 2. ข้อมูลผู้ติดต่อ */}
+                    {/* 2. เน€เธยเน€เธยเน€เธเธเน€เธเธเน€เธเธเน€เธเธ…เน€เธยเน€เธเธเน€เธยเน€เธโ€ขเน€เธเธ”เน€เธโ€เน€เธโ€ขเน€เธยเน€เธเธ */}
                     {activeTab === 'contact' && (
                         <div className="space-y-8 animate-in fade-in duration-300">
                             <div className="flex flex-col items-center p-6 bg-slate-50 rounded-2xl border border-slate-100">
@@ -446,21 +446,21 @@ export default function RequestDetailPage() {
                                 <div className="p-4 border border-slate-100 rounded-xl flex items-center gap-4">
                                     <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center shrink-0"><Building2 size={20} /></div>
                                     <div className="overflow-hidden">
-                                        <p className="text-xs font-bold text-slate-500 uppercase">หน่วยงาน / ที่อยู่</p>
+                                        <p className="text-xs font-bold text-slate-500 uppercase">เน€เธเธเน€เธยเน€เธยเน€เธเธเน€เธเธเน€เธยเน€เธเธ’เน€เธย / เน€เธโ€”เน€เธเธ•เน€เธยเน€เธเธเน€เธเธเน€เธเธเน€เธย</p>
                                         <p className="text-sm font-bold truncate">{request.sub_district}, {request.district}, {request.province}</p>
                                     </div>
                                 </div>
                                 <div className="p-4 border border-slate-100 rounded-xl flex items-center gap-4">
                                     <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center shrink-0"><Phone size={20} /></div>
                                     <div>
-                                        <p className="text-xs font-bold text-slate-500 uppercase">หมายเลขโทรศัพท์</p>
+                                        <p className="text-xs font-bold text-slate-500 uppercase">เน€เธเธเน€เธเธเน€เธเธ’เน€เธเธเน€เธโฌเน€เธเธ…เน€เธยเน€เธยเน€เธโ€”เน€เธเธเน€เธเธเน€เธเธ‘เน€เธยเน€เธโ€”เน€เธย</p>
                                         <p className="text-sm font-bold">{request.phone_number}</p>
                                     </div>
                                 </div>
                                 <div className="p-4 border border-slate-100 rounded-xl flex items-center gap-4 md:col-span-2">
                                     <div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center shrink-0"><Mail size={20} /></div>
                                     <div>
-                                        <p className="text-xs font-bold text-slate-500 uppercase">อีเมล</p>
+                                        <p className="text-xs font-bold text-slate-500 uppercase">เน€เธเธเน€เธเธ•เน€เธโฌเน€เธเธเน€เธเธ…</p>
                                         <p className="text-sm font-bold">{request.email || "-"}</p>
                                     </div>
                                 </div>
@@ -468,14 +468,14 @@ export default function RequestDetailPage() {
                         </div>
                     )}
 
-                    {/* 3. การดำเนินงาน/ความเห็น */}
-                    {/* 3. การดำเนินงาน/ความเห็น */}
+                    {/* 3. เน€เธยเน€เธเธ’เน€เธเธเน€เธโ€เน€เธเธ“เน€เธโฌเน€เธยเน€เธเธ”เน€เธยเน€เธยเน€เธเธ’เน€เธย/เน€เธยเน€เธเธเน€เธเธ’เน€เธเธเน€เธโฌเน€เธเธเน€เธยเน€เธย */}
+                    {/* 3. เน€เธยเน€เธเธ’เน€เธเธเน€เธโ€เน€เธเธ“เน€เธโฌเน€เธยเน€เธเธ”เน€เธยเน€เธยเน€เธเธ’เน€เธย/เน€เธยเน€เธเธเน€เธเธ’เน€เธเธเน€เธโฌเน€เธเธเน€เธยเน€เธย */}
                     {activeTab === 'comments' && (
                         <div className="space-y-8 animate-in fade-in duration-300 px-2">
                             {/* Timeline History */}
                             <div className="relative pl-8 border-l-2 border-slate-100 space-y-8 ml-3">
                                 {comments.length === 0 ? (
-                                    <div className="text-center py-10 text-slate-400 text-xs italic pl-4">ยังไม่มีประวัติการดำเนินงาน</div>
+                                    <div className="text-center py-10 text-slate-400 text-xs italic pl-4">เน€เธเธเน€เธเธ‘เน€เธยเน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ•เน€เธยเน€เธเธเน€เธเธเน€เธเธเน€เธเธ‘เน€เธโ€ขเน€เธเธ”เน€เธยเน€เธเธ’เน€เธเธเน€เธโ€เน€เธเธ“เน€เธโฌเน€เธยเน€เธเธ”เน€เธยเน€เธยเน€เธเธ’เน€เธย</div>
                                 ) : comments.map((comment, i) => {
                                     // Determine styling based on user role/name
                                     const isSystem = comment.display_name?.toUpperCase() === 'SYSTEM';
@@ -514,12 +514,12 @@ export default function RequestDetailPage() {
 
                             {/* Comment Input */}
                             <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
-                                <h4 className="text-sm font-bold text-slate-700 mb-4">เพิ่มความเห็น</h4>
+                                <h4 className="text-sm font-bold text-slate-700 mb-4">เน€เธโฌเน€เธยเน€เธเธ”เน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ’เน€เธเธเน€เธโฌเน€เธเธเน€เธยเน€เธย</h4>
                                 <div className="space-y-4">
                                     <textarea
                                         value={newComment}
                                         onChange={(e) => setNewComment(e.target.value)}
-                                        placeholder="พิมพ์ความเห็นหรือบันทึกการดำเนินงาน..."
+                                        placeholder="เน€เธยเน€เธเธ”เน€เธเธเน€เธยเน€เธยเน€เธยเน€เธเธเน€เธเธ’เน€เธเธเน€เธโฌเน€เธเธเน€เธยเน€เธยเน€เธเธเน€เธเธเน€เธเธ—เน€เธเธเน€เธยเน€เธเธ‘เน€เธยเน€เธโ€”เน€เธเธ–เน€เธยเน€เธยเน€เธเธ’เน€เธเธเน€เธโ€เน€เธเธ“เน€เธโฌเน€เธยเน€เธเธ”เน€เธยเน€เธยเน€เธเธ’เน€เธย..."
                                         className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all resize-none min-h-[120px]"
                                     ></textarea>
                                     <div className="flex justify-end">
@@ -529,7 +529,7 @@ export default function RequestDetailPage() {
                                             className={`flex items-center gap-2 px-6 py-2.5 bg-gradient-to-br from-primary to-primary-dark text-white rounded-xl text-sm font-bold hover:bg-primary-dark transition-all shadow-lg shadow-primary/20 ${!newComment.trim() || submittingComment ? 'opacity-50 shadow-none cursor-default' : 'cursor-pointer'}`}
                                             title="Save Comment"
                                         >
-                                            <Send size={16} /> บันทึกข้อมูล
+                                            <Send size={16} /> เน€เธยเน€เธเธ‘เน€เธยเน€เธโ€”เน€เธเธ–เน€เธยเน€เธยเน€เธยเน€เธเธเน€เธเธเน€เธเธเน€เธเธ…
                                         </button>
                                     </div>
                                 </div>
@@ -537,7 +537,7 @@ export default function RequestDetailPage() {
                         </div>
                     )}
 
-                    {/* 4. จัดการคำร้อง */}
+                    {/* 4. เน€เธยเน€เธเธ‘เน€เธโ€เน€เธยเน€เธเธ’เน€เธเธเน€เธยเน€เธเธ“เน€เธเธเน€เธยเน€เธเธเน€เธย */}
                     {activeTab === 'manage' && (
                         <div className="space-y-8 animate-in fade-in duration-300">
                             {/* Row 1: Status + Priority */}
@@ -545,10 +545,10 @@ export default function RequestDetailPage() {
                                 {/* Labels Row */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-                                        <Activity size={14} className="text-cyan-500" /> สถานะคำร้อง
+                                        <Activity size={14} className="text-cyan-500" /> เน€เธเธเน€เธโ€“เน€เธเธ’เน€เธยเน€เธเธเน€เธยเน€เธเธ“เน€เธเธเน€เธยเน€เธเธเน€เธย
                                     </label>
                                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-                                        <Flag size={14} className="text-amber-500" /> ระดับความสำคัญ
+                                        <Flag size={14} className="text-amber-500" /> เน€เธเธเน€เธเธเน€เธโ€เน€เธเธ‘เน€เธยเน€เธยเน€เธเธเน€เธเธ’เน€เธเธเน€เธเธเน€เธเธ“เน€เธยเน€เธเธ‘เน€เธย
                                     </label>
                                 </div>
                                 {/* Buttons Row */}
@@ -556,10 +556,10 @@ export default function RequestDetailPage() {
                                     {/* Status Buttons */}
                                     <div className="flex gap-2">
                                         {[
-                                            { value: 'PENDING', label: 'รอดำเนินการ', activeClass: 'bg-amber-50 text-amber-700 border-amber-400', dotClass: 'bg-amber-500' },
-                                            { value: 'IN_PROGRESS', label: 'กำลังดำเนินการ', activeClass: 'bg-blue-50 text-blue-700 border-blue-400', dotClass: 'bg-blue-500' },
-                                            { value: 'AWAITING_APPROVAL', label: 'รออนุมัติ', activeClass: 'bg-primary/8 text-primary border-primary/40', dotClass: 'bg-primary' },
-                                            { value: 'COMPLETED', label: 'เสร็จสิ้น', activeClass: 'bg-emerald-50 text-emerald-700 border-emerald-400', dotClass: 'bg-emerald-500' }
+                                            { value: 'PENDING', label: 'เน€เธเธเน€เธเธเน€เธโ€เน€เธเธ“เน€เธโฌเน€เธยเน€เธเธ”เน€เธยเน€เธยเน€เธเธ’เน€เธเธ', activeClass: 'bg-amber-50 text-amber-700 border-amber-400', dotClass: 'bg-amber-500' },
+                                            { value: 'IN_PROGRESS', label: 'เน€เธยเน€เธเธ“เน€เธเธ…เน€เธเธ‘เน€เธยเน€เธโ€เน€เธเธ“เน€เธโฌเน€เธยเน€เธเธ”เน€เธยเน€เธยเน€เธเธ’เน€เธเธ', activeClass: 'bg-blue-50 text-blue-700 border-blue-400', dotClass: 'bg-blue-500' },
+                                            { value: 'AWAITING_APPROVAL', label: 'เน€เธเธเน€เธเธเน€เธเธเน€เธยเน€เธเธเน€เธเธเน€เธเธ‘เน€เธโ€ขเน€เธเธ”', activeClass: 'bg-primary/8 text-primary border-primary/40', dotClass: 'bg-primary' },
+                                            { value: 'COMPLETED', label: 'เน€เธโฌเน€เธเธเน€เธเธเน€เธยเน€เธยเน€เธเธเน€เธเธ”เน€เธยเน€เธย', activeClass: 'bg-emerald-50 text-emerald-700 border-emerald-400', dotClass: 'bg-emerald-500' }
                                         ].map((s) => (
                                             <button
                                                 key={s.value}
@@ -578,10 +578,10 @@ export default function RequestDetailPage() {
                                     {/* Priority Buttons */}
                                     <div className="flex gap-2">
                                         {[
-                                            { value: 'LOW', label: 'ปกติ' },
-                                            { value: 'MEDIUM', label: 'ด่วน' },
-                                            { value: 'HIGH', label: 'ด่วนมาก' },
-                                            { value: 'URGENT', label: 'ด่วนที่สุด' }
+                                            { value: 'LOW', label: 'เน€เธยเน€เธยเน€เธโ€ขเน€เธเธ”' },
+                                            { value: 'MEDIUM', label: 'เน€เธโ€เน€เธยเน€เธเธเน€เธย' },
+                                            { value: 'HIGH', label: 'เน€เธโ€เน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ’เน€เธย' },
+                                            { value: 'URGENT', label: 'เน€เธโ€เน€เธยเน€เธเธเน€เธยเน€เธโ€”เน€เธเธ•เน€เธยเน€เธเธเน€เธเธเน€เธโ€' }
                                         ].map((p) => (
                                             <button
                                                 key={p.value}
@@ -606,20 +606,20 @@ export default function RequestDetailPage() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                                 <div className="space-y-3">
                                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-                                        <UserPlus size={14} className="text-primary" /> มอบหมายงานให้
+                                        <UserPlus size={14} className="text-primary" /> เน€เธเธเน€เธเธเน€เธยเน€เธเธเน€เธเธเน€เธเธ’เน€เธเธเน€เธยเน€เธเธ’เน€เธยเน€เธยเน€เธเธเน€เธย
                                     </label>
                                     <div
                                         onClick={() => setAssignModalOpen(true)}
                                         className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold cursor-pointer hover:bg-slate-100 transition-colors flex justify-between items-center"
                                     >
-                                        <span>{request.assignee_name || "เลือกผู้รับผิดชอบ..."}</span>
+                                        <span>{request.assignee_name || "เน€เธโฌเน€เธเธ…เน€เธเธ—เน€เธเธเน€เธยเน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ‘เน€เธยเน€เธยเน€เธเธ”เน€เธโ€เน€เธยเน€เธเธเน€เธย..."}</span>
                                         <Settings2 size={16} className="text-slate-400" />
                                     </div>
                                 </div>
 
                                 <div className="space-y-3">
                                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-                                        <Calendar size={14} className="text-amber-500" /> กำหนดเสร็จ (Due Date)
+                                        <Calendar size={14} className="text-amber-500" /> เน€เธยเน€เธเธ“เน€เธเธเน€เธยเน€เธโ€เน€เธโฌเน€เธเธเน€เธเธเน€เธยเน€เธย (Due Date)
                                     </label>
                                     <input
                                         type="date"
@@ -634,12 +634,12 @@ export default function RequestDetailPage() {
                             {/* Row 3: Comment / Note Field */}
                             <div className="space-y-3">
                                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-                                    <MessageSquare size={14} className="text-slate-500" /> บันทึกช่วยจำ / เหตุผลการดำเนินการ
+                                    <MessageSquare size={14} className="text-slate-500" /> เน€เธยเน€เธเธ‘เน€เธยเน€เธโ€”เน€เธเธ–เน€เธยเน€เธยเน€เธยเน€เธเธเน€เธเธเน€เธยเน€เธเธ“ / เน€เธโฌเน€เธเธเน€เธโ€ขเน€เธเธเน€เธยเน€เธเธ…เน€เธยเน€เธเธ’เน€เธเธเน€เธโ€เน€เธเธ“เน€เธโฌเน€เธยเน€เธเธ”เน€เธยเน€เธยเน€เธเธ’เน€เธเธ
                                 </label>
                                 <textarea
                                     value={manageFormData.comment}
                                     onChange={(e) => setManageFormData(prev => ({ ...prev, comment: e.target.value }))}
-                                    placeholder="ระบุรายละเอียดการดำเนินการ, เหตุผลการยกเลิก, หรือข้อความถึงผู้เกี่ยวข้อง..."
+                                    placeholder="เน€เธเธเน€เธเธเน€เธยเน€เธเธเน€เธเธเน€เธเธ’เน€เธเธเน€เธเธ…เน€เธเธเน€เธโฌเน€เธเธเน€เธเธ•เน€เธเธเน€เธโ€เน€เธยเน€เธเธ’เน€เธเธเน€เธโ€เน€เธเธ“เน€เธโฌเน€เธยเน€เธเธ”เน€เธยเน€เธยเน€เธเธ’เน€เธเธ, เน€เธโฌเน€เธเธเน€เธโ€ขเน€เธเธเน€เธยเน€เธเธ…เน€เธยเน€เธเธ’เน€เธเธเน€เธเธเน€เธยเน€เธโฌเน€เธเธ…เน€เธเธ”เน€เธย, เน€เธเธเน€เธเธเน€เธเธ—เน€เธเธเน€เธยเน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ’เน€เธเธเน€เธโ€“เน€เธเธ–เน€เธยเน€เธยเน€เธเธเน€เธยเน€เธโฌเน€เธยเน€เธเธ•เน€เธยเน€เธเธเน€เธเธเน€เธยเน€เธยเน€เธเธเน€เธย..."
                                     className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all resize-none min-h-[100px]"
                                 ></textarea>
                             </div>
@@ -650,13 +650,13 @@ export default function RequestDetailPage() {
                                     onClick={handleCancelManage}
                                     className="px-5 py-2.5 bg-slate-100 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-200 transition-all cursor-pointer"
                                 >
-                                    ยกเลิก
+                                    เน€เธเธเน€เธยเน€เธโฌเน€เธเธ…เน€เธเธ”เน€เธย
                                 </button>
                                 <button
                                     onClick={handleSaveManage}
                                     className="px-6 py-2.5 bg-gradient-to-br from-primary to-primary-dark text-white rounded-xl text-sm font-bold hover:bg-primary-dark transition-all shadow-lg shadow-primary/20 cursor-pointer flex items-center gap-2"
                                 >
-                                    <CheckCircle2 size={18} /> บันทึก
+                                    <CheckCircle2 size={18} /> เน€เธยเน€เธเธ‘เน€เธยเน€เธโ€”เน€เธเธ–เน€เธย
                                 </button>
                             </div>
                         </div>
@@ -666,7 +666,7 @@ export default function RequestDetailPage() {
 
                 {/* Footer info */}
                 <div className="mt-6 px-4 flex justify-between items-center text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-                    <p>© 2026 Admin Portal</p>
+                    <p>เธขเธ 2026 Admin Portal</p>
                     <div className="flex gap-4">
                         <span className="cursor-pointer hover:text-primary">Manual</span>
                         <span className="cursor-pointer hover:text-primary">Support</span>
