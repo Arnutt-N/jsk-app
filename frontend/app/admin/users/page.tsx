@@ -374,7 +374,7 @@ export default function UsersPage() {
                         title="แอดมิน"
                         value={(stats?.super_admins ?? 0) + (stats?.admins ?? 0)}
                         icon={<Shield className="w-6 h-6" />}
-                        color="purple"
+                        color="navy"
                         description={`Super ${stats?.super_admins ?? 0} / Admin ${stats?.admins ?? 0}`}
                     />
                 </StaggerItem>

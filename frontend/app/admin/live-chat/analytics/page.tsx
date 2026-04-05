@@ -134,9 +134,9 @@ export default function AnalyticsPage() {
                                 <Line
                                     type="monotone"
                                     dataKey="total_sessions"
-                                    stroke="#6366f1"
+                                    stroke="#3b82f6"
                                     strokeWidth={3}
-                                    dot={{ r: 4, fill: '#6366f1' }}
+                                    dot={{ r: 4, fill: '#3b82f6' }}
                                 />
                             </LineChart>
                         </ResponsiveContainer>
@@ -155,7 +155,7 @@ export default function AnalyticsPage() {
                                     cursor={{ fill: '#f8fafc' }}
                                     contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                                 />
-                                <Bar dataKey="total_sessions" fill="#818cf8" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="total_sessions" fill="#60a5fa" radius={[4, 4, 0, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
