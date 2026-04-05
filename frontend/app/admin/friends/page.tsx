@@ -87,7 +87,7 @@ export default function FriendsPage() {
                 </div>
                 <Link
                     href="/admin/friends/history"
-                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50 transition-colors text-sm font-medium"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand-50 text-brand-700 hover:bg-brand-100 dark:bg-brand-900/30 dark:text-brand-300 dark:hover:bg-brand-900/50 transition-colors text-sm font-medium"
                 >
                     <History className="w-4 h-4" />
                     <span className="thai-no-break">ประวัติ</span>
@@ -149,7 +149,7 @@ export default function FriendsPage() {
                                                     <div className="flex items-center gap-2">
                                                         <span className="font-medium text-text-primary">{friend.display_name || 'Unknown'}</span>
                                                         {(friend.refollow_count ?? 0) > 0 && (
-                                                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
+                                                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-brand-100 text-brand-700 dark:bg-brand-900/50 dark:text-brand-300">
                                                                 <RefreshCw className="w-3 h-3" />
                                                                 กลับมา {friend.refollow_count} ครั้ง
                                                             </span>

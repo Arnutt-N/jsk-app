@@ -68,7 +68,7 @@ export function NotificationToast() {
           ) : (
             <div className={cn(
               "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
-              toast.type === 'system' ? "bg-warning/15 text-warning" : "bg-blue-500/15 text-blue-500"
+              toast.type === 'system' ? "bg-warning/15 text-warning" : "bg-brand-500/15 text-brand-500"
             )}>
               {toast.type === 'system' ? <Bell className="h-5 w-5" /> : <MessageSquare className="h-5 w-5" />}
             </div>

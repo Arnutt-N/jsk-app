@@ -37,7 +37,7 @@ export const ModalAlert: React.FC<ModalAlertProps> = ({
             case 'error': return <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-red-600 mb-4"><AlertCircle size={24} /></div>;
             case 'warning':
             case 'confirm': return <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 mb-4"><AlertTriangle size={24} /></div>;
-            default: return <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mb-4"><Info size={24} /></div>;
+            default: return <div className="w-12 h-12 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 mb-4"><Info size={24} /></div>;
         }
     };
 

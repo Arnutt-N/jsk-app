@@ -228,7 +228,7 @@ export default function BroadcastDetailPage() {
                                 {broadcast.scheduled_at && broadcast.status === 'scheduled' && (
                                     <div>
                                         <label className="text-xs text-text-tertiary">กำหนดส่ง</label>
-                                        <p className="text-sm font-medium text-blue-600 dark:text-blue-400 mt-0.5 flex items-center gap-1.5">
+                                        <p className="text-sm font-medium text-brand-600 dark:text-brand-400 mt-0.5 flex items-center gap-1.5">
                                             <Clock className="w-3.5 h-3.5" />
                                             {new Date(broadcast.scheduled_at).toLocaleDateString('th-TH', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                         </p>

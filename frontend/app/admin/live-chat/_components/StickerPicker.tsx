@@ -24,7 +24,7 @@ export function StickerPicker({ onSelect }: StickerPickerProps) {
       {/* Header / Tabs */}
       <div className="flex items-center px-2 py-2 bg-gray-50 border-b border-border-default gap-2 overflow-x-auto no-scrollbar">
         <button className="p-1.5 rounded bg-white shadow-sm border border-border-default">
-          <Smile className="w-4 h-4 text-blue-600" />
+          <Smile className="w-4 h-4 text-brand-600" />
         </button>
         <span className="text-xs text-text-tertiary">More packs coming soon...</span>
       </div>
