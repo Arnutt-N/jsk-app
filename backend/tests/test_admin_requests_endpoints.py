@@ -10,10 +10,21 @@ from app.main import app
 from app.models.user import UserRole
 
 
+class _FakeScalarResult:
+    """Mimics SQLAlchemy result.scalar_one_or_none()."""
+    def __init__(self, value=None):
+        self._value = value
+    def scalar_one_or_none(self):
+        return self._value
+
 class _FakeDB:
     def __init__(self) -> None:
         self.added = []
         self.committed = False
+
+    async def execute(self, stmt):
+        # Return a fake result that passes the validation check
+        return _FakeScalarResult(value=True)
 
     def add(self, obj) -> None:
         self.added.append(obj)
