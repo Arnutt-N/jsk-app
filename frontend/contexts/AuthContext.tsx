@@ -31,6 +31,56 @@ const MOCK_ADMIN: User = {
   display_name: 'Administrator'
 };
 
+type AuthErrorCode =
+  | 'INVALID_CREDENTIALS'
+  | 'NETWORK_ERROR'
+  | 'AUTH_SERVICE_UNAVAILABLE'
+  | 'UNKNOWN';
+
+type AuthRequestError = Error & {
+  status?: number;
+  code?: AuthErrorCode;
+};
+
+function createAuthRequestError(
+  message: string,
+  status?: number,
+  code: AuthErrorCode = 'UNKNOWN'
+): AuthRequestError {
+  const error = new Error(message) as AuthRequestError;
+  error.status = status;
+  error.code = code;
+  return error;
+}
+
+function isAuthRequestError(error: unknown): error is AuthRequestError {
+  return error instanceof Error && ('status' in error || 'code' in error);
+}
+
+function isTransientLoginStatus(status: number): boolean {
+  return [500, 502, 503, 504].includes(status);
+}
+
+async function readErrorMessage(response: Response): Promise<string> {
+  try {
+    const contentType = response.headers.get('content-type') ?? '';
+
+    if (contentType.includes('application/json')) {
+      const payload = await response.json() as { detail?: string; message?: string };
+      return payload.detail ?? payload.message ?? `Request failed with status ${response.status}`;
+    }
+
+    const text = (await response.text()).trim();
+    return text || `Request failed with status ${response.status}`;
+  } catch {
+    return `Request failed with status ${response.status}`;
+  }
+}
+
+async function waitBeforeRetry(attempt: number): Promise<void> {
+  await new Promise((resolve) => window.setTimeout(resolve, attempt * 350));
+}
+
 /**
  * ตรวจสอบ dev bypass — ใช้ได้เฉพาะ development build + localhost เท่านั้น
  * process.env.NODE_ENV จะถูก dead-code eliminate ใน production build
@@ -116,27 +166,80 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(async (username: string, password: string) => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/v1/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-      });
+      const maxAttempts = 3;
 
-      if (!response.ok) {
-        throw new Error('Login failed');
-      }
+      for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+        try {
+          const response = await fetch('/api/v1/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+          });
 
-      const data = await response.json();
-      
-      setToken(data.access_token);
-      setUser(data.user);
-      
-      // Current auth flow stores tokens in localStorage; moving to httpOnly cookies requires coordinated backend changes.
-      localStorage.setItem('auth_token', data.access_token);
-      if (data.refresh_token) {
-        localStorage.setItem('auth_refresh_token', data.refresh_token);
+          if (!response.ok) {
+            const message = await readErrorMessage(response);
+
+            if (response.status === 401) {
+              throw createAuthRequestError(
+                message || 'Invalid username or password',
+                response.status,
+                'INVALID_CREDENTIALS'
+              );
+            }
+
+            if (isTransientLoginStatus(response.status) && attempt < maxAttempts) {
+              await waitBeforeRetry(attempt);
+              continue;
+            }
+
+            throw createAuthRequestError(
+              message,
+              response.status,
+              response.status >= 500 ? 'AUTH_SERVICE_UNAVAILABLE' : 'UNKNOWN'
+            );
+          }
+
+          const data = await response.json();
+
+          setToken(data.access_token);
+          setUser(data.user);
+
+          // Current auth flow stores tokens in localStorage; moving to httpOnly cookies requires coordinated backend changes.
+          localStorage.setItem('auth_token', data.access_token);
+          if (data.refresh_token) {
+            localStorage.setItem('auth_refresh_token', data.refresh_token);
+          }
+          localStorage.setItem('auth_user', JSON.stringify(data.user));
+          return;
+        } catch (error) {
+          if (isAuthRequestError(error)) {
+            if (
+              (error.code === 'NETWORK_ERROR' || error.code === 'AUTH_SERVICE_UNAVAILABLE') &&
+              attempt < maxAttempts
+            ) {
+              await waitBeforeRetry(attempt);
+              continue;
+            }
+
+            throw error;
+          }
+
+          const networkMessage =
+            error instanceof Error ? error.message : 'Unable to reach login service';
+          const networkError = createAuthRequestError(
+            networkMessage,
+            0,
+            'NETWORK_ERROR'
+          );
+
+          if (attempt < maxAttempts) {
+            await waitBeforeRetry(attempt);
+            continue;
+          }
+
+          throw networkError;
+        }
       }
-      localStorage.setItem('auth_user', JSON.stringify(data.user));
     } finally {
       setIsLoading(false);
     }

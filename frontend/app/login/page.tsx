@@ -23,36 +23,81 @@ import {
   ArrowRight,
   Eye,
   EyeOff,
-  KeyRound
+  KeyRound,
 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
+type LoginRequestError = Error & {
+  status?: number;
+  code?: string;
+};
+
+type LoginErrorInfo = {
+  alertMessage: string;
+  toastTitle: string;
+  toastDescription: string;
+};
+
+function getLoginErrorInfo(error: unknown): LoginErrorInfo {
+  const loginError = error as LoginRequestError | undefined;
+
+  if (loginError?.status === 401 || loginError?.code === 'INVALID_CREDENTIALS') {
+    return {
+      alertMessage: 'ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบแล้วลองใหม่อีกครั้ง',
+      toastTitle: 'เข้าสู่ระบบไม่สำเร็จ',
+      toastDescription: 'ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง',
+    };
+  }
+
+  if (loginError?.code === 'NETWORK_ERROR' || loginError?.status === 0) {
+    return {
+      alertMessage: 'ไม่สามารถเชื่อมต่อระบบเข้าสู่ระบบได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง',
+      toastTitle: 'เชื่อมต่อระบบไม่ได้',
+      toastDescription: 'ระบบอาจกำลังเริ่มทำงานหรือเครือข่ายมีปัญหาชั่วคราว',
+    };
+  }
+
+  if (typeof loginError?.status === 'number' && loginError.status >= 500) {
+    return {
+      alertMessage: 'ระบบเข้าสู่ระบบขัดข้องชั่วคราว กรุณาลองใหม่อีกครั้ง',
+      toastTitle: 'ระบบขัดข้องชั่วคราว',
+      toastDescription: 'เซิร์ฟเวอร์ไม่พร้อมให้บริการชั่วคราว กรุณาลองใหม่อีกครั้ง',
+    };
+  }
+
+  return {
+    alertMessage: 'ไม่สามารถเข้าสู่ระบบได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง',
+    toastTitle: 'เข้าสู่ระบบไม่สำเร็จ',
+    toastDescription: 'เกิดข้อผิดพลาดที่ไม่คาดคิดระหว่างเข้าสู่ระบบ',
+  };
+}
+
 function LoginForm() {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLocalhost, setIsLocalhost] = useState(false);
-  
-  // Validation States
-  const [errors, setErrors] = useState<{username?: string; password?: string}>({});
+  const [errors, setErrors] = useState<{ username?: string; password?: string }>({});
   const [loginError, setLoginError] = useState<string | null>(null);
+
   const formRef = useRef<HTMLFormElement | null>(null);
+  const usernameInputRef = useRef<HTMLInputElement | null>(null);
+  const passwordInputRef = useRef<HTMLInputElement | null>(null);
 
   const router = useRouter();
   const { login, isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
 
-  // Load remembered username on mount
   useEffect(() => {
     const host = window.location.hostname;
     setIsLocalhost(host === 'localhost' || host === '127.0.0.1');
 
     const remembered = localStorage.getItem('jsk-remember-user');
     if (remembered) {
-      setUsername(remembered);
+      if (usernameInputRef.current) {
+        usernameInputRef.current.value = remembered;
+      }
       setRememberMe(true);
     }
   }, []);
@@ -65,11 +110,20 @@ function LoginForm() {
 
   const readFormCredentials = () => {
     const formData = formRef.current ? new FormData(formRef.current) : null;
-    const submittedUsername = (formData?.get('username')?.toString() ?? username).trim();
-    const submittedPassword = formData?.get('password')?.toString() ?? password;
+    const submittedUsername = (
+      formData?.get('username')?.toString() ??
+      usernameInputRef.current?.value ??
+      ''
+    ).trim();
+    const submittedPassword = (
+      formData?.get('password')?.toString() ??
+      passwordInputRef.current?.value ??
+      ''
+    );
 
-    setUsername(submittedUsername);
-    setPassword(submittedPassword);
+    if (usernameInputRef.current) {
+      usernameInputRef.current.value = submittedUsername;
+    }
 
     return {
       username: submittedUsername,
@@ -77,29 +131,44 @@ function LoginForm() {
     };
   };
 
-  const validateForm = (nextUsername: string, nextPassword: string) => {
-    const newErrors: {username?: string; password?: string} = {};
-    let isValid = true;
-
-    if (!nextUsername) {
-      newErrors.username = 'กรุณากรอกชื่อผู้ใช้';
-      isValid = false;
-    }
-    
-    if (!nextPassword) {
-      newErrors.password = 'กรุณากรอกรหัสผ่าน';
-      isValid = false;
+  const clearFieldError = (field: 'username' | 'password') => {
+    if (loginError) {
+      setLoginError(null);
     }
 
-    setErrors(newErrors);
-    return isValid;
+    setErrors((current) => {
+      if (!current[field]) {
+        return current;
+      }
+
+      return {
+        ...current,
+        [field]: undefined,
+      };
+    });
+  };
+
+  const validateForm = (username: string, password: string) => {
+    const nextErrors: { username?: string; password?: string } = {};
+
+    if (!username) {
+      nextErrors.username = 'กรุณากรอกชื่อผู้ใช้';
+    }
+
+    if (!password) {
+      nextErrors.password = 'กรุณากรอกรหัสผ่าน';
+    }
+
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError(null);
+
     const credentials = readFormCredentials();
-    
+
     if (!validateForm(credentials.username, credentials.password)) {
       toast({
         title: 'ตรวจสอบข้อมูล',
@@ -110,10 +179,10 @@ function LoginForm() {
     }
 
     setIsSubmitting(true);
+
     try {
       await login(credentials.username, credentials.password);
 
-      // Handle remember me
       if (rememberMe) {
         localStorage.setItem('jsk-remember-user', credentials.username);
       } else {
@@ -126,11 +195,12 @@ function LoginForm() {
         variant: 'success',
       });
       router.replace('/admin');
-    } catch {
-      setLoginError('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง');
+    } catch (error) {
+      const errorInfo = getLoginErrorInfo(error);
+      setLoginError(errorInfo.alertMessage);
       toast({
-        title: 'เข้าสู่ระบบไม่สำเร็จ',
-        description: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง',
+        title: errorInfo.toastTitle,
+        description: errorInfo.toastDescription,
         variant: 'error',
       });
     } finally {
@@ -138,13 +208,13 @@ function LoginForm() {
     }
   };
 
+  const isBusy = isSubmitting || isLoading;
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-[#FAFAFA] dark:bg-slate-950 transition-colors duration-500 font-sans">
-      {/* Shared Background with Landing Page */}
       <div className="fixed inset-0 z-0 pointer-events-none flex justify-center overflow-hidden">
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] mix-blend-overlay" />
 
-        {/* Animated Orbs */}
         <motion.div
           animate={{
             y: [0, 50, 0],
@@ -179,11 +249,9 @@ function LoginForm() {
         transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
         className="relative z-10 w-full max-w-md"
       >
-        {/* Outer glassmorphic border matching Landing Mockup */}
         <div className="rounded-[2.5rem] border border-white/60 dark:border-white/10 bg-white/30 dark:bg-white/5 backdrop-blur-3xl shadow-[0_40px_100px_-20px_rgba(0,0,0,0.1)] p-3 relative group">
           <Card className="rounded-[2rem] border-slate-100/80 dark:border-white/10 bg-white/95 dark:bg-slate-900/95 overflow-hidden shadow-2xl relative z-10 p-2 sm:p-4">
             <CardHeader className="space-y-6 flex flex-col items-center pb-6 pt-8">
-              {/* Brand Logo - Navy Blue Gradient Icon Only */}
               <Link
                 href="/"
                 className="transition-transform hover:scale-105 duration-300 cursor-pointer"
@@ -207,8 +275,6 @@ function LoginForm() {
             </CardHeader>
 
             <CardContent className="space-y-5 pb-8">
-              
-              {/* Login Error Alert */}
               <AnimatePresence mode="wait">
                 {loginError && (
                   <motion.div
@@ -225,33 +291,29 @@ function LoginForm() {
               </AnimatePresence>
 
               <form ref={formRef} onSubmit={handleSubmit} className="space-y-5" noValidate>
-                {/* Username Field */}
                 <div className="space-y-2">
                   <Label
                     htmlFor="username"
                     className={cn(
-                      "text-sm font-bold ml-1 transition-colors",
-                      errors.username ? "text-danger" : "text-slate-700 dark:text-slate-300"
+                      'text-sm font-bold ml-1 transition-colors',
+                      errors.username ? 'text-danger' : 'text-slate-700 dark:text-slate-300'
                     )}
                   >
                     ชื่อผู้ใช้ <span className="text-danger">*</span>
                   </Label>
                   <div className="relative group">
                     <Input
+                      ref={usernameInputRef}
                       id="username"
                       name="username"
                       type="text"
                       placeholder="กรอกชื่อผู้ใช้ของคุณ"
-                      value={username}
-                      onChange={(e) => {
-                        setUsername(e.target.value);
-                        if (errors.username) setErrors({ ...errors, username: undefined });
-                      }}
+                      onInput={() => clearFieldError('username')}
                       className={cn(
-                        "pl-11 h-12 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border-slate-200 dark:border-white/10 transition-all",
-                        errors.username 
-                          ? "border-danger focus:ring-danger focus:border-danger bg-danger/5" 
-                          : "focus:ring-blue-500 focus:border-blue-500 hover:border-blue-300"
+                        'pl-11 h-12 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border-slate-200 dark:border-white/10 transition-all',
+                        errors.username
+                          ? 'border-danger focus:ring-danger focus:border-danger bg-danger/5'
+                          : 'focus:ring-blue-500 focus:border-blue-500 hover:border-blue-300'
                       )}
                       required
                       autoComplete="username"
@@ -259,48 +321,55 @@ function LoginForm() {
                       autoCorrect="off"
                       spellCheck={false}
                     />
-                    <User className={cn(
-                      "absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] transition-colors",
-                      errors.username ? "text-danger" : "text-slate-400 group-focus-within:text-blue-600"
-                    )} />
+                    <User
+                      className={cn(
+                        'absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] transition-colors',
+                        errors.username
+                          ? 'text-danger'
+                          : 'text-slate-400 group-focus-within:text-blue-600'
+                      )}
+                    />
                   </div>
                 </div>
 
-                {/* Password Field */}
                 <div className="space-y-2">
                   <Label
                     htmlFor="password"
                     className={cn(
-                      "text-sm font-bold ml-1 transition-colors",
-                      errors.password ? "text-danger" : "text-slate-700 dark:text-slate-300"
+                      'text-sm font-bold ml-1 transition-colors',
+                      errors.password ? 'text-danger' : 'text-slate-700 dark:text-slate-300'
                     )}
                   >
                     รหัสผ่าน <span className="text-danger">*</span>
                   </Label>
                   <div className="relative group">
                     <Input
+                      ref={passwordInputRef}
                       id="password"
                       name="password"
                       type={showPassword ? 'text' : 'password'}
                       placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => {
-                        setPassword(e.target.value);
-                        if (errors.password) setErrors({ ...errors, password: undefined });
-                      }}
+                      onInput={() => clearFieldError('password')}
                       className={cn(
-                        "pl-11 pr-12 h-12 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border-slate-200 dark:border-white/10 transition-all",
-                        errors.password 
-                          ? "border-danger focus:ring-danger focus:border-danger bg-danger/5" 
-                          : "focus:ring-blue-500 focus:border-blue-500 hover:border-blue-300"
+                        'pl-11 pr-12 h-12 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border-slate-200 dark:border-white/10 transition-all',
+                        errors.password
+                          ? 'border-danger focus:ring-danger focus:border-danger bg-danger/5'
+                          : 'focus:ring-blue-500 focus:border-blue-500 hover:border-blue-300'
                       )}
                       required
                       autoComplete="current-password"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck={false}
                     />
-                    <Lock className={cn(
-                      "absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] transition-colors",
-                      errors.password ? "text-danger" : "text-slate-400 group-focus-within:text-blue-600"
-                    )} />
+                    <Lock
+                      className={cn(
+                        'absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] transition-colors',
+                        errors.password
+                          ? 'text-danger'
+                          : 'text-slate-400 group-focus-within:text-blue-600'
+                      )}
+                    />
 
                     <button
                       type="button"
@@ -316,15 +385,12 @@ function LoginForm() {
                   </div>
                 </div>
 
-                {/* Remember Me & Forgot Password - Unified Row */}
                 <div className="flex items-center justify-between px-1">
                   <div className="flex items-center gap-2.5">
                     <Checkbox
                       id="remember-me"
                       checked={rememberMe}
-                      onCheckedChange={(checked) =>
-                        setRememberMe(checked === true)
-                      }
+                      onCheckedChange={(checked) => setRememberMe(checked === true)}
                       className="w-4.5 h-4.5 rounded-md border-slate-300 dark:border-white/20 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600 cursor-pointer"
                     />
                     <label
@@ -334,7 +400,7 @@ function LoginForm() {
                       จดจำฉัน
                     </label>
                   </div>
-                  
+
                   <Link
                     href="#"
                     className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
@@ -343,39 +409,38 @@ function LoginForm() {
                   </Link>
                 </div>
 
-                {/* Submit Button - Matches Landing Hero CTA */}
                 <Button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={isBusy}
                   className="w-full h-14 mt-4 rounded-full bg-blue-900 hover:bg-blue-800 text-white font-black text-base shadow-lg shadow-blue-900/20 hover:shadow-blue-900/40 hover:scale-[1.02] active:scale-[0.98] transition-all group overflow-hidden cursor-pointer"
-                  isLoading={isSubmitting}
+                  isLoading={isBusy}
                 >
                   <span className="relative z-10 flex items-center justify-center gap-2">
-                    {isSubmitting ? 'กำลังตรวจสอบ...' : 'เข้าสู่ระบบ'}
+                    {isBusy ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'}
                   </span>
                   <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-blue-800 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 </Button>
               </form>
 
-              {/* Or Register Section */}
               <div className="mt-6">
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">
                     <span className="w-full border-t border-slate-200 dark:border-white/10" />
                   </div>
                   <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-white dark:bg-slate-900 px-2 text-slate-400 font-medium">หรือ</span>
+                    <span className="bg-white dark:bg-slate-900 px-2 text-slate-400 font-medium">
+                      หรือ
+                    </span>
                   </div>
                 </div>
                 <div className="mt-4 text-center text-sm font-medium text-slate-600 dark:text-slate-400">
-                  ยังไม่มีบัญชี?{" "}
+                  ยังไม่มีบัญชี?{' '}
                   <Link href="/register" className="text-blue-600 dark:text-blue-400 hover:underline font-bold">
                     ลงทะเบียนเจ้าหน้าที่
                   </Link>
                 </div>
               </div>
 
-              {/* Dev Quick Login */}
               {process.env.NODE_ENV === 'development' && isLocalhost && (
                 <div className="pt-6">
                   <Button
@@ -396,7 +461,6 @@ function LoginForm() {
           </Card>
         </div>
 
-        {/* Home link & Copyright */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
