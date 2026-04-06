@@ -10,6 +10,14 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 
+async def _close_redis_resource(resource) -> None:
+    """Close a Redis async resource across redis-py versions/test doubles."""
+    close = getattr(resource, "aclose", None) or getattr(resource, "close", None)
+    if close is None:
+        return
+    await close()
+
+
 class PubSubManager:
     """
     Redis Pub/Sub manager for cross-server communication.
@@ -60,13 +68,25 @@ class PubSubManager:
             except asyncio.CancelledError:
                 pass
 
-        if self._pubsub:
-            await self._pubsub.close()
-            self._pubsub = None
+        pubsub = self._pubsub
+        self._pubsub = None
+        if pubsub:
+            try:
+                await _close_redis_resource(pubsub)
+            except RuntimeError as e:
+                if "Event loop is closed" not in str(e):
+                    raise
+                logger.warning("Pub/Sub close skipped after loop shutdown")
 
-        if self._redis:
-            await self._redis.close()
-            self._redis = None
+        redis_client = self._redis
+        self._redis = None
+        if redis_client:
+            try:
+                await _close_redis_resource(redis_client)
+            except RuntimeError as e:
+                if "Event loop is closed" not in str(e):
+                    raise
+                logger.warning("Pub/Sub Redis close skipped after loop shutdown")
 
         logger.info("Redis Pub/Sub disconnected")
 

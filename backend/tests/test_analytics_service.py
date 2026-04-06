@@ -67,10 +67,7 @@ async def test_get_operator_performance_includes_availability_and_queue_wait(ser
             )
         ]
     )
-    user_result = SimpleNamespace(
-        scalar_one_or_none=lambda: SimpleNamespace(display_name="Agent 7")
-    )
-    mock_db.execute.side_effect = [query_result, user_result]
+    mock_db.execute.return_value = query_result
 
     with pytest.MonkeyPatch.context() as mp:
         mp.setattr(
@@ -88,6 +85,7 @@ async def test_get_operator_performance_includes_availability_and_queue_wait(ser
         data = await service.get_operator_performance(mock_db, days=2)
 
     assert len(data) == 1
+    assert data[0]["operator_name"] == "Operator 7"
     assert data[0]["avg_queue_wait_seconds"] == 30.0
     assert data[0]["availability_seconds"] == 7200.0
     assert data[0]["availability_percent"] == 4.2

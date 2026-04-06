@@ -4,9 +4,6 @@ Tests for multiple operators handling:
 - operator_joined broadcast when second operator joins
 - operator_left broadcast when operator leaves
 - Message broadcast reaches all operators in room
-
-NOTE: Tests involving join_room are skipped because join_room queries
-the database for conversation details, which requires a running DB.
 """
 import pytest
 from unittest.mock import AsyncMock, patch
@@ -32,11 +29,9 @@ def drain_auth(ws):
 class TestMultipleOperators:
     """Test multiple operators scenarios that don't require DB"""
 
-    def test_presence_shows_online_operators(self):
+    def test_presence_shows_online_operators(self, test_client):
         """Presence update should show all online operators"""
-        client1 = TestClient(app)
-
-        with client1.websocket_connect("/api/v1/ws/live-chat") as ws1:
+        with test_client.websocket_connect("/api/v1/ws/live-chat") as ws1:
             ws1.send_json({"type": "auth", "payload": {"token": "test-access-token"}})
             data = ws1.receive_json()  # auth_success
             presence = ws1.receive_json()  # presence_update
@@ -47,13 +42,10 @@ class TestMultipleOperators:
             # Verify operators list is a list
             assert isinstance(presence["payload"]["operators"], list)
 
-    def test_two_operators_connect_independently(self):
+    def test_two_operators_connect_independently(self, test_client):
         """Two operators can connect and authenticate independently"""
-        client1 = TestClient(app)
-        client2 = TestClient(app)
-
-        with client1.websocket_connect("/api/v1/ws/live-chat") as ws1:
-            with client2.websocket_connect("/api/v1/ws/live-chat") as ws2:
+        with test_client.websocket_connect("/api/v1/ws/live-chat") as ws1:
+            with test_client.websocket_connect("/api/v1/ws/live-chat") as ws2:
                 # Auth both with different IDs
                 ws1.send_json({"type": "auth", "payload": {"token": "test-access-token"}})
                 data1 = ws1.receive_json()
@@ -76,17 +68,13 @@ class TestMultipleOperators:
                 assert pong2["type"] == "pong"
 
 
-@pytest.mark.skipif(True, reason="Requires database - join_room queries DB")
 class TestMultipleOperatorsWithDB:
     """Tests that require database connection"""
 
-    def test_two_operators_join_same_room(self):
+    def test_two_operators_join_same_room(self, test_client):
         """Two operators can join the same room"""
-        client1 = TestClient(app)
-        client2 = TestClient(app)
-
-        with client1.websocket_connect("/api/v1/ws/live-chat") as ws1:
-            with client2.websocket_connect("/api/v1/ws/live-chat") as ws2:
+        with test_client.websocket_connect("/api/v1/ws/live-chat") as ws1:
+            with test_client.websocket_connect("/api/v1/ws/live-chat") as ws2:
                 ws1.send_json({"type": "auth", "payload": {"token": "test-access-token"}})
                 drain_auth(ws1)
                 ws2.send_json({"type": "auth", "payload": {"token": "test-access-token"}})

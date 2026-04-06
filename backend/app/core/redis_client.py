@@ -7,6 +7,14 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
+
+async def _close_redis_resource(resource) -> None:
+    """Close a Redis async resource across redis-py versions/test doubles."""
+    close = getattr(resource, "aclose", None) or getattr(resource, "close", None)
+    if close is None:
+        return
+    await close()
+
 class RedisClient:
     """Async Redis client wrapper."""
     
@@ -30,9 +38,19 @@ class RedisClient:
     
     async def disconnect(self):
         """Disconnect from Redis."""
-        if self._redis:
-            await self._redis.close()
+        if not self._redis:
+            return
+
+        client = self._redis
+        self._redis = None
+        try:
+            await _close_redis_resource(client)
             logger.info("Redis disconnected")
+        except RuntimeError as e:
+            if "Event loop is closed" in str(e):
+                logger.warning("Redis disconnect skipped after loop shutdown")
+                return
+            raise
     
     async def exists(self, key: str) -> bool:
         """Check if key exists."""
