@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'motion/react';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
@@ -23,8 +23,7 @@ import {
   ArrowRight,
   Eye,
   EyeOff,
-  KeyRound,
-  AlertCircle
+  KeyRound
 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
@@ -40,6 +39,7 @@ function LoginForm() {
   // Validation States
   const [errors, setErrors] = useState<{username?: string; password?: string}>({});
   const [loginError, setLoginError] = useState<string | null>(null);
+  const formRef = useRef<HTMLFormElement | null>(null);
 
   const router = useRouter();
   const { login, isAuthenticated, isLoading } = useAuth();
@@ -63,16 +63,30 @@ function LoginForm() {
     }
   }, [isAuthenticated, isLoading, router]);
 
-  const validateForm = () => {
+  const readFormCredentials = () => {
+    const formData = formRef.current ? new FormData(formRef.current) : null;
+    const submittedUsername = (formData?.get('username')?.toString() ?? username).trim();
+    const submittedPassword = formData?.get('password')?.toString() ?? password;
+
+    setUsername(submittedUsername);
+    setPassword(submittedPassword);
+
+    return {
+      username: submittedUsername,
+      password: submittedPassword,
+    };
+  };
+
+  const validateForm = (nextUsername: string, nextPassword: string) => {
     const newErrors: {username?: string; password?: string} = {};
     let isValid = true;
 
-    if (!username.trim()) {
+    if (!nextUsername) {
       newErrors.username = 'กรุณากรอกชื่อผู้ใช้';
       isValid = false;
     }
     
-    if (!password) {
+    if (!nextPassword) {
       newErrors.password = 'กรุณากรอกรหัสผ่าน';
       isValid = false;
     }
@@ -84,8 +98,9 @@ function LoginForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError(null);
+    const credentials = readFormCredentials();
     
-    if (!validateForm()) {
+    if (!validateForm(credentials.username, credentials.password)) {
       toast({
         title: 'ตรวจสอบข้อมูล',
         description: 'กรุณากรอกข้อมูลให้ครบถ้วนและถูกต้อง',
@@ -96,11 +111,11 @@ function LoginForm() {
 
     setIsSubmitting(true);
     try {
-      await login(username, password);
+      await login(credentials.username, credentials.password);
 
       // Handle remember me
       if (rememberMe) {
-        localStorage.setItem('jsk-remember-user', username);
+        localStorage.setItem('jsk-remember-user', credentials.username);
       } else {
         localStorage.removeItem('jsk-remember-user');
       }
@@ -209,7 +224,7 @@ function LoginForm() {
                 )}
               </AnimatePresence>
 
-              <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+              <form ref={formRef} onSubmit={handleSubmit} className="space-y-5" noValidate>
                 {/* Username Field */}
                 <div className="space-y-2">
                   <Label
@@ -224,6 +239,7 @@ function LoginForm() {
                   <div className="relative group">
                     <Input
                       id="username"
+                      name="username"
                       type="text"
                       placeholder="กรอกชื่อผู้ใช้ของคุณ"
                       value={username}
@@ -239,6 +255,9 @@ function LoginForm() {
                       )}
                       required
                       autoComplete="username"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck={false}
                     />
                     <User className={cn(
                       "absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] transition-colors",
@@ -261,6 +280,7 @@ function LoginForm() {
                   <div className="relative group">
                     <Input
                       id="password"
+                      name="password"
                       type={showPassword ? 'text' : 'password'}
                       placeholder="••••••••"
                       value={password}

@@ -22,6 +22,12 @@ def test_verify_password_returns_false_for_invalid_hash() -> None:
     assert verify_password("admin1234", "hashed") is False
 
 
+def test_login_request_trims_username() -> None:
+    payload = LoginRequest(username="  admin  ", password="admin1234")
+
+    assert payload.username == "admin"
+
+
 @pytest.mark.asyncio
 async def test_login_returns_401_for_invalid_stored_hash() -> None:
     db = AsyncMock()
