@@ -579,10 +579,11 @@ class AnalyticsService:
                 str(row.operator_id),
                 {"availability_seconds": 0.0, "availability_percent": 0.0},
             )
+            operator_name = getattr(row, "operator_name", None)
 
             performance.append({
                 "operator_id": row.operator_id,
-                "operator_name": row.operator_name or f"Operator {row.operator_id}",
+                "operator_name": operator_name or f"Operator {row.operator_id}",
                 "total_sessions": row.total_sessions,
                 "avg_first_response_seconds": round(row.avg_frt or 0, 1),
                 "avg_resolution_seconds": round(row.avg_resolution or 0, 1),

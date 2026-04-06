@@ -1,6 +1,5 @@
 import pytest
 from unittest.mock import AsyncMock, patch
-from fastapi.testclient import TestClient
 
 from app.main import app
 
@@ -15,10 +14,9 @@ def mock_live_chat_auth():
         yield
 
 
-def test_websocket_connect_and_auth():
+def test_websocket_connect_and_auth(test_client):
     """Test WebSocket connection and authentication flow"""
-    client = TestClient(app)
-    with client.websocket_connect("/api/v1/ws/live-chat") as websocket:
+    with test_client.websocket_connect("/api/v1/ws/live-chat") as websocket:
         websocket.send_json({
             "type": "auth",
             "payload": {"token": "test-access-token"},
@@ -32,10 +30,9 @@ def test_websocket_connect_and_auth():
         assert data["type"] == "presence_update"
 
 
-def test_websocket_ping_pong():
+def test_websocket_ping_pong(test_client):
     """Test ping/pong heartbeat"""
-    client = TestClient(app)
-    with client.websocket_connect("/api/v1/ws/live-chat") as websocket:
+    with test_client.websocket_connect("/api/v1/ws/live-chat") as websocket:
         websocket.send_json({"type": "auth", "payload": {"token": "test-access-token"}})
         websocket.receive_json()  # auth_success
         websocket.receive_json()  # presence_update
@@ -45,10 +42,9 @@ def test_websocket_ping_pong():
         assert data["type"] == "pong"
 
 
-def test_websocket_requires_auth():
+def test_websocket_requires_auth(test_client):
     """Test that operations require authentication"""
-    client = TestClient(app)
-    with client.websocket_connect("/api/v1/ws/live-chat") as websocket:
+    with test_client.websocket_connect("/api/v1/ws/live-chat") as websocket:
         websocket.send_json({
             "type": "join_room",
             "payload": {"line_user_id": "U123"}
@@ -59,10 +55,9 @@ def test_websocket_requires_auth():
         assert "authenticated" in data["payload"]["message"].lower()
 
 
-def test_websocket_unknown_message_type():
+def test_websocket_unknown_message_type(test_client):
     """Test handling of unknown message types"""
-    client = TestClient(app)
-    with client.websocket_connect("/api/v1/ws/live-chat") as websocket:
+    with test_client.websocket_connect("/api/v1/ws/live-chat") as websocket:
         websocket.send_json({"type": "auth", "payload": {"token": "test-access-token"}})
         websocket.receive_json()  # auth_success
         websocket.receive_json()  # presence_update
@@ -74,10 +69,9 @@ def test_websocket_unknown_message_type():
         assert "unknown" in data["payload"]["message"].lower()
 
 
-def test_websocket_join_room_requires_line_user_id():
+def test_websocket_join_room_requires_line_user_id(test_client):
     """Test that join_room requires line_user_id"""
-    client = TestClient(app)
-    with client.websocket_connect("/api/v1/ws/live-chat") as websocket:
+    with test_client.websocket_connect("/api/v1/ws/live-chat") as websocket:
         websocket.send_json({"type": "auth", "payload": {"token": "test-access-token"}})
         websocket.receive_json()  # auth_success
         websocket.receive_json()  # presence_update
@@ -89,10 +83,9 @@ def test_websocket_join_room_requires_line_user_id():
         assert "line_user_id" in data["payload"]["message"].lower()
 
 
-def test_websocket_send_message_requires_room():
+def test_websocket_send_message_requires_room(test_client):
     """Test that send_message requires being in a room"""
-    client = TestClient(app)
-    with client.websocket_connect("/api/v1/ws/live-chat") as websocket:
+    with test_client.websocket_connect("/api/v1/ws/live-chat") as websocket:
         websocket.send_json({"type": "auth", "payload": {"token": "test-access-token"}})
         websocket.receive_json()  # auth_success
         websocket.receive_json()  # presence_update
@@ -107,11 +100,9 @@ def test_websocket_send_message_requires_room():
         assert "room" in data["payload"]["message"].lower()
 
 
-@pytest.mark.skip(reason="Requires database connection - join_room queries DB")
-def test_websocket_send_message_requires_text():
+def test_websocket_send_message_requires_text(test_client):
     """Test that send_message requires non-empty text"""
-    client = TestClient(app)
-    with client.websocket_connect("/api/v1/ws/live-chat") as websocket:
+    with test_client.websocket_connect("/api/v1/ws/live-chat") as websocket:
         websocket.send_json({"type": "auth", "payload": {"token": "test-access-token"}})
         websocket.receive_json()  # auth_success
         websocket.receive_json()  # presence_update
@@ -130,11 +121,9 @@ def test_websocket_send_message_requires_text():
         assert data["type"] == "error"
 
 
-@pytest.mark.skip(reason="Requires database connection - join_room queries DB")
-def test_websocket_leave_room():
+def test_websocket_leave_room(test_client):
     """Test leaving a room prevents sending messages"""
-    client = TestClient(app)
-    with client.websocket_connect("/api/v1/ws/live-chat") as websocket:
+    with test_client.websocket_connect("/api/v1/ws/live-chat") as websocket:
         websocket.send_json({"type": "auth", "payload": {"token": "test-access-token"}})
         websocket.receive_json()  # auth_success
         websocket.receive_json()  # presence_update
@@ -148,11 +137,9 @@ def test_websocket_leave_room():
         assert "room" in data["payload"]["message"].lower() or "join" in data["payload"]["message"].lower()
 
 
-@pytest.mark.skip(reason="Requires database connection - join_room queries DB")
-def test_websocket_typing_indicators():
+def test_websocket_typing_indicators(test_client):
     """Test typing start/stop events don't crash the connection"""
-    client = TestClient(app)
-    with client.websocket_connect("/api/v1/ws/live-chat") as websocket:
+    with test_client.websocket_connect("/api/v1/ws/live-chat") as websocket:
         websocket.send_json({"type": "auth", "payload": {"token": "test-access-token"}})
         websocket.receive_json()  # auth_success
         websocket.receive_json()  # presence_update
@@ -166,11 +153,9 @@ def test_websocket_typing_indicators():
         assert data["type"] == "pong"
 
 
-@pytest.mark.skip(reason="Requires database connection - join_room queries DB")
-def test_websocket_join_room_valid_format():
+def test_websocket_join_room_valid_format(test_client):
     """Test joining room with valid LINE user ID format doesn't cause validation error"""
-    client = TestClient(app)
-    with client.websocket_connect("/api/v1/ws/live-chat") as websocket:
+    with test_client.websocket_connect("/api/v1/ws/live-chat") as websocket:
         websocket.send_json({"type": "auth", "payload": {"token": "test-access-token"}})
         websocket.receive_json()  # auth_success
         websocket.receive_json()  # presence_update
