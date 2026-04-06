@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { installAdminAuthFetchInterceptor, syncAdminAuthToken } from '@/lib/authFetch';
 
 interface User {
@@ -62,6 +63,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     installAdminAuthFetchInterceptor();
@@ -94,7 +96,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               localStorage.removeItem('auth_token');
               localStorage.removeItem('auth_refresh_token');
               localStorage.removeItem('auth_user');
-              window.location.href = '/login';
+              router.replace('/login');
               return;
             }
             setToken(storedToken);
@@ -109,7 +111,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     initAuth();
-  }, []);
+  }, [router]);
 
   const login = useCallback(async (username: string, password: string) => {
     setIsLoading(true);
@@ -151,8 +153,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // WebSocket จะถูก cleanup โดย useLiveChatSocket hook ตอน unmount
     
     // Redirect to login page
-    window.location.href = '/login';
-  }, []);
+    router.replace('/login');
+  }, [router]);
 
   const refreshToken = useCallback(async () => {
     if (isLocalhostDevBypass()) {

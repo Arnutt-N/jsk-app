@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { SessionTimeoutWarning } from '@/components/admin/SessionTimeoutWarning';
 import { cn } from '@/lib/utils';
@@ -35,12 +35,13 @@ type StaffRole = 'SUPER_ADMIN' | 'ADMIN' | 'AGENT';
 function AdminAuthGate({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, user } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      window.location.href = '/login';
+      router.replace('/login');
     }
-  }, [isAuthenticated, isLoading]);
+  }, [isAuthenticated, isLoading, router]);
 
   useEffect(() => {
     if (isLoading || !isAuthenticated || !user) {
@@ -52,9 +53,9 @@ function AdminAuthGate({ children }: { children: React.ReactNode }) {
     }
 
     if (pathname !== '/admin/live-chat') {
-      window.location.href = '/admin/live-chat';
+      router.replace('/admin/live-chat');
     }
-  }, [isAuthenticated, isLoading, pathname, user]);
+  }, [isAuthenticated, isLoading, pathname, router, user]);
 
   if (isLoading || !isAuthenticated) {
     return (
