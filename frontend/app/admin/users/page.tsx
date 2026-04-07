@@ -17,6 +17,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ModalAlert } from '@/components/ui/ModalAlert';
 import StatsCard from '../components/StatsCard';
 import { StaggerContainer, StaggerItem } from '@/components/ui/PageTransition';
+import PageHeader from '../components/PageHeader';
 
 /* ── Types ─────────────────────────────────────────────────────────── */
 
@@ -339,11 +340,7 @@ export default function UsersPage() {
     return (
         <div className="p-6 max-w-7xl mx-auto thai-text space-y-6 animate-fade-in-up">
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-text-primary tracking-tight thai-no-break">จัดการผู้ใช้งาน</h1>
-                    <p className="text-text-secondary text-sm mt-0.5">User Management &mdash; จัดการผู้ใช้ระบบทั้งหมด</p>
-                </div>
+            <PageHeader title="จัดการผู้ใช้งาน" subtitle="User Management — จัดการผู้ใช้ระบบทั้งหมด">
                 {allowedCreateRoles.length > 0 && (
                     <Button
                         variant="primary"
@@ -357,7 +354,7 @@ export default function UsersPage() {
                         เพิ่มผู้ใช้ใหม่
                     </Button>
                 )}
-            </div>
+            </PageHeader>
 
             {/* Stats Cards */}
             <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">

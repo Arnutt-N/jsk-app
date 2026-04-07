@@ -16,6 +16,7 @@ import {
     AlertTriangle,
     Flag
 } from 'lucide-react';
+import PageHeader from '../../components/PageHeader';
 
 interface ServiceRequest {
     id: string;
@@ -96,29 +97,23 @@ export default function KanbanPage() {
 
     return (
         <div className="thai-text space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="thai-no-break text-2xl font-bold text-slate-800 tracking-tight">กระดานคัดกรองงาน (Kanban Board)</h1>
-                    <p className="thai-no-break text-sm text-slate-500">บริหารจัดการสถานะงานแบบ Visual Overview</p>
+            <PageHeader title="กระดานคัดกรองงาน (Kanban Board)" subtitle="บริหารจัดการสถานะงานแบบ Visual Overview">
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
+                    <input
+                        type="text"
+                        placeholder="ค้นหางาน..."
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="pl-9 pr-4 py-1.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 w-[240px]"
+                    />
                 </div>
-                <div className="flex items-center gap-3">
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                        <input
-                            type="text"
-                            placeholder="ค้นหางาน..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            className="pl-9 pr-4 py-1.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 w-[240px]"
-                        />
-                    </div>
-                    <Link href="/admin/requests">
-                        <Button variant="outline" size="sm" className="gap-2">
-                            <ChevronLeft className="w-4 h-4" /> ดูแบบรายการ
-                        </Button>
-                    </Link>
-                </div>
-            </div>
+                <Link href="/admin/requests">
+                    <Button variant="outline" size="sm" className="gap-2">
+                        <ChevronLeft className="w-4 h-4" /> ดูแบบรายการ
+                    </Button>
+                </Link>
+            </PageHeader>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 min-h-[70vh]">
                 {COLUMNS.map(col => (

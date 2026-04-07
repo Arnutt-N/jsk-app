@@ -2,7 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
+import Link from 'next/link';
+import PageHeader from '../../components/PageHeader';
 
 interface TemplateBounds {
     x: number;
@@ -345,17 +347,14 @@ export default function NewRichMenuPage() {
 
     return (
         <div className="p-6 max-w-6xl mx-auto space-y-6">
-            <div className="flex items-center gap-4 mb-8">
-                <button
-                    onClick={() => router.back()}
-                    className="p-2 hover:bg-white hover:shadow-md rounded-full transition-all duration-300 text-slate-500 hover:text-primary"
+            <PageHeader title="New Rich Menu" className="mb-8">
+                <Link
+                    href="/admin/rich-menus"
+                    className="p-2 rounded-xl hover:bg-surface-hover transition-colors"
                 >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                    </svg>
-                </button>
-                <h1 className="text-2xl font-bold text-slate-800 tracking-tight">New Rich Menu</h1>
-            </div>
+                    <ArrowLeft className="w-5 h-5 text-text-secondary" />
+                </Link>
+            </PageHeader>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Left: Configuration Form */}

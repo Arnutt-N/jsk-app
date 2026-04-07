@@ -30,6 +30,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Timeline } from '@/components/ui/Timeline';
 import PageAccessGuard from '@/components/admin/PageAccessGuard';
 import { StaggerContainer, StaggerItem } from '@/components/ui/PageTransition';
+import PageHeader from '../components/PageHeader';
 
 /* ── Color token data ── */
 const brandColors = [
@@ -121,14 +122,7 @@ export default function DesignSystemPage() {
     <PageAccessGuard allowedRoles={['SUPER_ADMIN', 'ADMIN']}>
       <div className="ds-page">
         {/* ── Hero ── */}
-        <section className="ds-hero">
-          <p className="text-sm/6 text-white/80">Frontend Design System</p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight">JSK Admin UI Language</h1>
-          <p className="mt-2 max-w-3xl text-sm text-white/90">
-            HSL token system, CVA component variants, responsive layouts,
-            and dark mode support for the JskApp admin dashboard.
-          </p>
-        </section>
+        <PageHeader title="JSK Admin UI Language" subtitle="Design system component showcase" />
 
         {/* ── KPI Cards ── */}
         <StaggerContainer className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

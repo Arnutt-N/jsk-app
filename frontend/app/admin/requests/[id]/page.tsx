@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { AssignModal } from '@/components/admin/AssignModal';
 import { Button } from '@/components/ui/Button';
+import PageHeader from '../../components/PageHeader';
 
 // Interfaces for API Data
 interface Comment {
@@ -253,24 +254,39 @@ export default function RequestDetailPage() {
     if (!request) return <div className="p-8 text-center">เน€เธยเน€เธเธเน€เธยเน€เธยเน€เธยเน€เธยเน€เธยเน€เธเธเน€เธเธเน€เธเธเน€เธเธ…เน€เธยเน€เธเธ“เน€เธเธเน€เธยเน€เธเธเน€เธย</div>;
 
     return (
-        <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans text-slate-900 animate-in fade-in duration-500">
+        <div className="p-4 md:p-8 font-sans text-slate-900 animate-in fade-in duration-500">
             <div className="max-w-5xl mx-auto">
 
-                {/* Header Section - Always Visible */}
-                <div className="bg-white rounded-t-2xl shadow-sm border-x border-t border-slate-200 p-4 md:p-6">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div className="flex items-center gap-4">
-                            <Link href="/admin/requests">
-                                <button className="p-2 hover:bg-slate-100 rounded-xl border border-slate-200 text-slate-500 hover:text-slate-700 transition-colors bg-white shadow-sm cursor-pointer">
-                                    <ChevronLeft size={20} />
-                                </button>
-                            </Link>
+                {/* PageHeader */}
+                <PageHeader title={`#${request.id} ${request.topic_category}`}>
+                    <Link href="/admin/requests">
+                        <button className="p-2 hover:bg-surface-hover rounded-xl border border-border-default text-text-secondary hover:text-text-primary transition-colors cursor-pointer">
+                            <ChevronLeft size={20} />
+                        </button>
+                    </Link>
+                    <Button
+                        variant="warning"
+                        size="sm"
+                        onClick={() => handleUpdateField({ status: 'IN_PROGRESS' })}
+                        disabled={request.status === 'COMPLETED' || request.status === 'REJECTED' || request.status === 'IN_PROGRESS'}
+                        leftIcon={<Clock size={18} />}
+                    >
+                        รับเรื่อง
+                    </Button>
+                    <Button
+                        variant="success"
+                        size="sm"
+                        onClick={() => handleUpdateField({ status: 'COMPLETED' })}
+                        disabled={request.status === 'COMPLETED'}
+                        leftIcon={<CheckCircle2 size={18} />}
+                    >
+                        เสร็จสิ้น
+                    </Button>
+                </PageHeader>
 
-                            <div>
-                                <div className="flex items-center gap-3">
-                                    <h1 className="text-xl font-extrabold text-slate-800 tracking-tight">#{request.id}</h1>
-                                    <h2 className="text-lg font-bold text-slate-700">{request.topic_category}</h2>
-
+                {/* Status & Priority Badges + Tab Card */}
+                <div className="bg-white rounded-t-2xl shadow-sm border-x border-t border-slate-200 p-4 md:p-6 mt-6">
+                    <div className="flex flex-wrap items-center gap-3">
                                     <span className={`px-3 py-1 rounded-lg text-[10px] font-bold border transition-all ${request.priority === 'URGENT' ? 'bg-rose-50 border-rose-200 text-rose-600' :
                                         request.priority === 'HIGH' ? 'bg-orange-50 border-orange-200 text-orange-600' :
                                             request.priority === 'MEDIUM' ? 'bg-yellow-50 border-yellow-200 text-yellow-600' :
@@ -300,29 +316,6 @@ export default function RequestDetailPage() {
                                                     request.status === 'REJECTED' ? 'เน€เธเธเน€เธยเน€เธโฌเน€เธเธ…เน€เธเธ”เน€เธย' : 'เน€เธเธเน€เธเธ’เน€เธยเน€เธเธเน€เธเธเน€เธย'}
                                     </span>
                                 </div>
-                            </div>
-                        </div>
-
-                        {/* Action Buttons in Header */}
-                        <div className="flex items-center gap-3">
-                            <Button
-                                variant="warning"
-                                onClick={() => handleUpdateField({ status: 'IN_PROGRESS' })}
-                                disabled={request.status === 'COMPLETED' || request.status === 'REJECTED' || request.status === 'IN_PROGRESS'}
-                                leftIcon={<Clock size={18} />}
-                            >
-                                เน€เธเธเน€เธเธ‘เน€เธยเน€เธโฌเน€เธเธเน€เธเธ—เน€เธยเน€เธเธเน€เธย
-                            </Button>
-                            <Button
-                                variant="success"
-                                onClick={() => handleUpdateField({ status: 'COMPLETED' })}
-                                disabled={request.status === 'COMPLETED'}
-                                leftIcon={<CheckCircle2 size={18} />}
-                            >
-                                เน€เธยเน€เธเธ”เน€เธโ€เน€เธยเน€เธเธ’เน€เธย
-                            </Button>
-                        </div>
-                    </div>
                 </div>
 
                 {/* Tab Navigation */}

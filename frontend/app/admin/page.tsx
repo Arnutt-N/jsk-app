@@ -7,6 +7,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { StaggerContainer, StaggerItem } from '@/components/ui/PageTransition';
 import StatsCard from './components/StatsCard';
 import ChartsWrapper from './components/ChartsWrapper';
+import PageHeader from './components/PageHeader';
 
 async function fetchWithTimeout(url: string, timeout = 15000) {
     const controller = new AbortController();
@@ -133,15 +134,11 @@ export default function ServiceDashboard() {
             </div>
     ) : (
         <div className="space-y-6 animate-fade-in-up thai-text">
-            <div className="ds-panel ds-panel-body flex justify-between items-center hover:shadow-md transition-shadow duration-300">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900 tracking-tight thai-no-break dark:text-gray-100">Service Requests</h1>
-                    <p className="text-gray-500 text-sm mt-0.5 dark:text-gray-400">Citizen service management and analytics</p>
-                </div>
-                <div className="text-sm text-gray-500 font-medium dark:text-gray-400">
+            <PageHeader title="Service Requests" subtitle="Citizen service management and analytics">
+                <span className="text-sm text-text-tertiary font-medium">
                     {new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
-                </div>
-            </div>
+                </span>
+            </PageHeader>
 
             {/* Stats Cards Row */}
             <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
