@@ -12,6 +12,7 @@ import type { SelectOption } from '@/components/ui/Select';
 import { AdminSearchFilterBar } from '@/components/admin/AdminSearchFilterBar';
 import { AdminTableHead, type AdminTableHeadColumn } from '@/components/admin/AdminTableHead';
 import { useAuth } from '@/contexts/AuthContext';
+import PageHeader from '../components/PageHeader';
 
 interface Friend {
     line_user_id: string;
@@ -81,11 +82,7 @@ export default function FriendsPage() {
 
     return (
         <div className="p-6 max-w-7xl mx-auto thai-text">
-            <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-text-primary tracking-tight thai-no-break">ประวัติเพื่อน</h1>
-                    <p className="text-text-secondary text-sm thai-no-break">ประวัติการเพิ่มเพื่อนและการเปลี่ยนแปลง</p>
-                </div>
+            <PageHeader title="ประวัติเพื่อน" subtitle="ประวัติการเพิ่มเพื่อนและการเปลี่ยนแปลง" className="mb-6">
                 <Link
                     href="/admin/friends/history"
                     className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand-50 text-brand-700 hover:bg-brand-100 dark:bg-brand-900/30 dark:text-brand-300 dark:hover:bg-brand-900/50 transition-colors text-sm font-medium"
@@ -93,7 +90,7 @@ export default function FriendsPage() {
                     <History className="w-4 h-4" />
                     <span className="thai-no-break">ประวัติ</span>
                 </Link>
-            </div>
+            </PageHeader>
 
             <div className="mb-6">
                 <AdminSearchFilterBar

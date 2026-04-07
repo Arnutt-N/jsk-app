@@ -18,6 +18,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { useToast } from '@/components/ui/Toast';
 import { cn } from '@/lib/utils';
 import { StaggerContainer, StaggerItem } from '@/components/ui/PageTransition';
+import PageHeader from '../components/PageHeader';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -361,10 +362,7 @@ export default function FilesPage() {
   return (
     <div className="space-y-6">
       {/* Page header */}
-      <div>
-        <h1 className="text-2xl font-bold text-text-primary">จัดการไฟล์</h1>
-        <p className="text-text-secondary text-sm mt-1">อัปโหลด จัดการ และแชร์ไฟล์ของคุณ</p>
-      </div>
+      <PageHeader title="จัดการไฟล์" subtitle="อัปโหลดและจัดการไฟล์ในระบบ" />
 
       {/* Stats bar */}
       {stats && (

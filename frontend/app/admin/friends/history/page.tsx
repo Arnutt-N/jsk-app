@@ -19,6 +19,7 @@ import type { SelectOption } from '@/components/ui/Select';
 import { Select } from '@/components/ui/Select';
 import { Input } from '@/components/ui/Input';
 import { useAuth } from '@/contexts/AuthContext';
+import PageHeader from '../../components/PageHeader';
 
 interface FriendEvent {
     id: number;
@@ -170,24 +171,14 @@ export default function FriendHistoryPage() {
     return (
         <div className="p-6 max-w-7xl mx-auto thai-text">
             {/* Header */}
-            <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                    <Link
-                        href="/admin/friends"
-                        className="p-2 rounded-xl hover:bg-surface-hover transition-colors"
-                    >
-                        <ArrowLeft className="w-5 h-5 text-text-secondary" />
-                    </Link>
-                    <div>
-                        <h1 className="text-2xl font-bold text-text-primary tracking-tight thai-no-break">
-                            ประวัติเพื่อน
-                        </h1>
-                        <p className="text-text-secondary text-sm thai-no-break">
-                            Friend History - Track follow, unfollow, and re-follow events
-                        </p>
-                    </div>
-                </div>
-            </div>
+            <PageHeader title="ประวัติเพื่อน" subtitle="Friend History - Track follow, unfollow, and re-follow events" className="mb-6">
+                <Link
+                    href="/admin/friends"
+                    className="p-2 rounded-xl hover:bg-surface-hover transition-colors"
+                >
+                    <ArrowLeft className="w-5 h-5 text-text-secondary" />
+                </Link>
+            </PageHeader>
 
             {/* Stats Cards */}
             {stats && (

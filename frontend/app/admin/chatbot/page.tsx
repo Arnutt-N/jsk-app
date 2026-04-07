@@ -7,6 +7,7 @@ import PageAccessGuard from '@/components/admin/PageAccessGuard';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import StatsCard from '../components/StatsCard';
 import { StaggerContainer, StaggerItem } from '@/components/ui/PageTransition';
+import PageHeader from '../components/PageHeader';
 
 interface ReplyObjectSummary {
     id: number;
@@ -82,15 +83,9 @@ export default function ChatbotDashboard() {
             </div>
     ) : (
         <div className="space-y-6 animate-in fade-in duration-500">
-            <div className="flex justify-between items-center bg-white p-5 rounded-2xl shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-800 tracking-tight dark:text-gray-100">Chatbot Overview</h1>
-                    <p className="text-gray-400 text-sm mt-0.5 dark:text-gray-500">Manage LINE OA auto-replies and rich messages</p>
-                </div>
-                <div className="text-sm text-gray-400 dark:text-gray-500">
-                    JSK Chatbot System
-                </div>
-            </div>
+            <PageHeader title="Chatbot Overview" subtitle="Manage LINE OA auto-replies and rich messages">
+                <span className="text-sm text-text-tertiary">JSK Chatbot System</span>
+            </PageHeader>
 
             {/* Stats Cards Row */}
             <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">

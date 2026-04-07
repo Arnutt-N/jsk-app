@@ -5,8 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
-import { RefreshCw, ChevronLeft, ChevronRight, Shield } from "lucide-react";
+import { RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
 import { StaggerContainer, StaggerItem } from "@/components/ui/PageTransition";
+import PageHeader from "../components/PageHeader";
 
 interface AuditLog {
   id: number;
@@ -94,33 +95,27 @@ export default function AuditLogPage() {
 
   return (
     <div className="container mx-auto py-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Shield className="w-8 h-8 text-primary" />
-          <h1 className="text-2xl font-bold">Audit Logs</h1>
+      <PageHeader title="Audit Logs">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-text-tertiary">Last</span>
+          <Input
+            type="number"
+            value={days}
+            onChange={(e) => {
+              setDays(Number(e.target.value));
+              setOffset(0);
+            }}
+            className="w-20"
+            min={1}
+            max={90}
+          />
+          <span className="text-sm text-text-tertiary">days</span>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-text-tertiary">Last</span>
-            <Input
-              type="number"
-              value={days}
-              onChange={(e) => {
-                setDays(Number(e.target.value));
-                setOffset(0);
-              }}
-              className="w-20"
-              min={1}
-              max={90}
-            />
-            <span className="text-sm text-text-tertiary">days</span>
-          </div>
-          <Button variant="outline" size="sm" onClick={fetchLogs} disabled={loading}>
-            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-            Refresh
-          </Button>
-        </div>
-      </div>
+        <Button variant="outline" size="sm" onClick={fetchLogs} disabled={loading}>
+          <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+          Refresh
+        </Button>
+      </PageHeader>
 
       {/* Stats Cards */}
       {stats && (

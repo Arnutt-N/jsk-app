@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { cn } from '@/lib/utils';
+import PageHeader from '../../components/PageHeader';
 
 interface IntentKeyword {
     id: number;
@@ -194,47 +195,33 @@ export default function CategoryDetailPage() {
     return (
         <div className="space-y-6 animate-in fade-in duration-500 max-w-7xl mx-auto">
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                    <Link href="/admin/auto-replies">
-                        <Button variant="outline" size="icon" className="rounded-xl">
-                            <ChevronLeft className="w-5 h-5" />
-                        </Button>
-                    </Link>
-                    <div>
-                        <div className="flex items-center gap-3">
-                            <h1 className="text-2xl font-bold text-text-primary">{category.name}</h1>
-                            <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${category.is_active ? 'bg-green-100 text-green-700' : 'bg-bg text-text-tertiary'}`}>
-                                {category.is_active ? 'Active' : 'Inactive'}
-                            </span>
-                        </div>
-                        <div className="flex items-center gap-4 mt-1 text-sm text-text-tertiary">
-                            <span>{category.keywords.length} keywords</span>
-                            <span className="w-1 h-1 bg-border-default rounded-full"></span>
-                            <span>{category.responses.length} responses</span>
-                        </div>
-                    </div>
-                </div>
-                <div className="flex items-center gap-2">
-                    <Button
-                        variant={isEditing ? 'secondary' : 'ghost'}
-                        size="sm"
-                        onClick={() => setIsEditing(!isEditing)}
-                        leftIcon={<Edit2 className="w-4 h-4" />}
-                    >
-                        {isEditing ? 'Cancel Edit' : 'Edit Details'}
+            <PageHeader
+                title={category.name}
+                subtitle={`${category.keywords.length} keywords \u00B7 ${category.responses.length} responses \u00B7 ${category.is_active ? 'Active' : 'Inactive'}`}
+            >
+                <Link href="/admin/auto-replies">
+                    <Button variant="outline" size="icon" className="rounded-xl">
+                        <ChevronLeft className="w-5 h-5" />
                     </Button>
-                    {isEditing && (
-                        <Button
-                            variant="primary"
-                            size="sm"
-                            onClick={handleCategoryUpdate}
-                        >
-                            Save Changes
-                        </Button>
-                    )}
-                </div>
-            </div>
+                </Link>
+                <Button
+                    variant={isEditing ? 'secondary' : 'ghost'}
+                    size="sm"
+                    onClick={() => setIsEditing(!isEditing)}
+                    leftIcon={<Edit2 className="w-4 h-4" />}
+                >
+                    {isEditing ? 'Cancel Edit' : 'Edit Details'}
+                </Button>
+                {isEditing && (
+                    <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={handleCategoryUpdate}
+                    >
+                        Save Changes
+                    </Button>
+                )}
+            </PageHeader>
 
             {/* Main Content Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
