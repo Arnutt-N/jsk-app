@@ -13,9 +13,11 @@ engine = create_async_engine(
     max_overflow=2,
     connect_args={
         "command_timeout": 15,
-        "keepalives_idle": 60,
-        "keepalives_interval": 10,
-        "keepalives_count": 5,
+        "server_settings": {
+            "tcp_keepalives_idle": "60",
+            "tcp_keepalives_interval": "10",
+            "tcp_keepalives_count": "5",
+        },
     }
 )
 
