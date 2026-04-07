@@ -339,7 +339,7 @@ export default function UsersPage() {
     /* ── Render ─────────────────────────────────────────────────────── */
 
     return (
-        <div className="p-6 max-w-7xl mx-auto thai-text space-y-6 animate-fade-in-up">
+        <div className="max-w-7xl mx-auto thai-text space-y-6 animate-fade-in-up">
             {/* Header */}
             <PageHeader title="จัดการผู้ใช้งาน" subtitle="User Management — จัดการผู้ใช้ระบบทั้งหมด">
                 {allowedCreateRoles.length > 0 && (

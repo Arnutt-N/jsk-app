@@ -80,7 +80,7 @@ export function CustomerPanel({
     <aside className="w-72 bg-surface border-l border-border-default flex flex-col flex-shrink-0 z-20 thai-text">
       {/* Header */}
       <div className="h-20 px-4 border-b border-border-default flex items-center justify-between">
-        <span className="font-bold text-slate-800 text-xs tracking-widest uppercase">Customer Info</span>
+        <span className="font-bold text-text-primary text-xs tracking-widest uppercase">Customer Info</span>
         <button onClick={onClose} className="p-1.5 text-text-tertiary hover:text-text-primary rounded-lg hover:bg-gray-100 transition-colors" aria-label="Close customer panel">
           <X className="w-4 h-4" />
         </button>
@@ -103,7 +103,7 @@ export function CustomerPanel({
             {refreshing ? 'Refreshing...' : 'Refresh'}
           </button>
           <span className="text-text-tertiary">·</span>
-          <button className="text-xs text-brand-600 hover:underline flex items-center gap-1">
+          <button disabled className="text-xs text-brand-600 flex items-center gap-1 opacity-50 cursor-not-allowed">
             View Profile <ExternalLink className="w-3 h-3" />
           </button>
         </div>
@@ -118,13 +118,15 @@ export function CustomerPanel({
             <Copy className="w-4 h-4" />
           </button>
           <button
-            className="w-9 h-9 rounded-full flex items-center justify-center bg-gray-50 hover:bg-brand-50 text-text-tertiary hover:text-brand-600 border border-border-default transition-all"
+            disabled
+            className="w-9 h-9 rounded-full flex items-center justify-center bg-gray-50 text-text-tertiary border border-border-default opacity-50 cursor-not-allowed"
             aria-label="Notifications"
           >
             <Bell className="w-4 h-4" />
           </button>
           <button
-            className="w-9 h-9 rounded-full flex items-center justify-center bg-gray-50 hover:bg-amber-50 text-text-tertiary hover:text-amber-500 border border-border-default transition-all"
+            disabled
+            className="w-9 h-9 rounded-full flex items-center justify-center bg-gray-50 text-text-tertiary border border-border-default opacity-50 cursor-not-allowed"
             aria-label="Mark as VIP"
           >
             <Star className="w-4 h-4" />
@@ -234,7 +236,7 @@ export function CustomerPanel({
 
       {/* Footer */}
       <div className="p-4 border-t border-border-default">
-        <button className="w-full py-2.5 text-xs font-medium text-text-tertiary hover:text-danger hover:bg-danger/8 rounded-xl border border-border-default hover:border-danger/20 flex items-center justify-center gap-1.5 transition-all">
+        <button disabled className="w-full py-2.5 text-xs font-medium text-text-tertiary rounded-xl border border-border-default flex items-center justify-center gap-1.5 opacity-50 cursor-not-allowed">
           <Trash2 className="w-4 h-4" />Delete Conversation
         </button>
       </div>

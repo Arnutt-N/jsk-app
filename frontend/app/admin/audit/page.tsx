@@ -94,7 +94,7 @@ export default function AuditLogPage() {
   const currentPage = Math.floor(offset / limit) + 1;
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="space-y-6">
       <PageHeader title="Audit Logs">
         <div className="flex items-center gap-2">
           <span className="text-sm text-text-tertiary">Last</span>
@@ -180,25 +180,27 @@ export default function AuditLogPage() {
       )}
 
       {/* Filters */}
-      <div className="flex gap-4">
-        <Input
-          placeholder="Filter by action..."
-          value={filter.action}
-          onChange={(e) => {
-            setFilter({ ...filter, action: e.target.value });
-            setOffset(0);
-          }}
-          className="w-48"
-        />
-        <Input
-          placeholder="Filter by resource type..."
-          value={filter.resource_type}
-          onChange={(e) => {
-            setFilter({ ...filter, resource_type: e.target.value });
-            setOffset(0);
-          }}
-          className="w-48"
-        />
+      <div className="bg-surface rounded-2xl border border-border-default p-4 shadow-sm">
+        <div className="flex gap-4">
+          <Input
+            placeholder="Filter by action..."
+            value={filter.action}
+            onChange={(e) => {
+              setFilter({ ...filter, action: e.target.value });
+              setOffset(0);
+            }}
+            className="w-48"
+          />
+          <Input
+            placeholder="Filter by resource type..."
+            value={filter.resource_type}
+            onChange={(e) => {
+              setFilter({ ...filter, resource_type: e.target.value });
+              setOffset(0);
+            }}
+            className="w-48"
+          />
+        </div>
       </div>
 
       {/* Logs Table */}
@@ -207,48 +209,48 @@ export default function AuditLogPage() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b bg-muted/50">
-                  <th className="text-left py-3 px-4 font-medium">Time</th>
-                  <th className="text-left py-3 px-4 font-medium">Admin</th>
-                  <th className="text-left py-3 px-4 font-medium">Action</th>
-                  <th className="text-left py-3 px-4 font-medium">Resource</th>
-                  <th className="text-left py-3 px-4 font-medium">Details</th>
-                  <th className="text-left py-3 px-4 font-medium">IP Address</th>
+                <tr className="bg-bg/50 border-b border-border-default">
+                  <th className="text-left px-6 py-3 text-xs font-semibold text-text-tertiary uppercase tracking-wider">Time</th>
+                  <th className="text-left px-6 py-3 text-xs font-semibold text-text-tertiary uppercase tracking-wider">Admin</th>
+                  <th className="text-left px-6 py-3 text-xs font-semibold text-text-tertiary uppercase tracking-wider">Action</th>
+                  <th className="text-left px-6 py-3 text-xs font-semibold text-text-tertiary uppercase tracking-wider">Resource</th>
+                  <th className="text-left px-6 py-3 text-xs font-semibold text-text-tertiary uppercase tracking-wider">Details</th>
+                  <th className="text-left px-6 py-3 text-xs font-semibold text-text-tertiary uppercase tracking-wider">IP Address</th>
                 </tr>
               </thead>
               <tbody>
                 {logs.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="text-center py-8 text-text-tertiary">
+                    <td colSpan={6} className="text-center px-6 py-8 text-text-tertiary">
                       No audit logs found.
                     </td>
                   </tr>
                 ) : (
                   logs.map((log) => (
-                    <tr key={log.id} className="border-b hover:bg-muted/50">
-                      <td className="py-3 px-4 text-sm">
+                    <tr key={log.id} className="border-b border-border-default hover:bg-bg/50 transition-colors">
+                      <td className="px-6 py-4 text-sm">
                         {new Date(log.created_at).toLocaleString()}
                       </td>
-                      <td className="py-3 px-4 text-sm">
+                      <td className="px-6 py-4 text-sm">
                         {log.admin_name || `Admin ${log.admin_id}`}
                       </td>
-                      <td className="py-3 px-4">
-                        <Badge 
+                      <td className="px-6 py-4">
+                        <Badge
                           className={ACTION_COLORS[log.action] || "bg-gray-100 text-gray-800"}
                         >
                           {log.action}
                         </Badge>
                       </td>
-                      <td className="py-3 px-4 text-sm">
+                      <td className="px-6 py-4 text-sm">
                         <span className="text-text-tertiary">{log.resource_type}</span>
                         {log.resource_id && (
                           <span className="text-xs ml-1">({log.resource_id})</span>
                         )}
                       </td>
-                      <td className="py-3 px-4 text-sm max-w-xs truncate">
+                      <td className="px-6 py-4 text-sm max-w-xs truncate">
                         {log.details ? JSON.stringify(log.details).slice(0, 50) + "..." : "-"}
                       </td>
-                      <td className="py-3 px-4 text-sm text-text-tertiary">
+                      <td className="px-6 py-4 text-sm text-text-tertiary">
                         {log.ip_address}
                       </td>
                     </tr>

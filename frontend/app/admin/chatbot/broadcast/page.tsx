@@ -187,7 +187,7 @@ export default function BroadcastListPage() {
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
                         <thead>
-                            <tr className="bg-gray-50/50 border-b border-gray-100 text-xs font-bold text-gray-500 uppercase tracking-wider dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-400">
+                            <tr className="bg-bg/50 border-b border-border-default text-xs font-bold text-text-tertiary uppercase tracking-wider">
                                 <th className="px-6 py-4">ชื่อแคมเปญ</th>
                                 <th className="px-6 py-4">ประเภท</th>
                                 <th className="px-6 py-4">สถานะ</th>
@@ -196,7 +196,7 @@ export default function BroadcastListPage() {
                                 <th className="px-6 py-4 text-right">จัดการ</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100 bg-white/40 dark:divide-gray-700 dark:bg-transparent">
+                        <tbody className="divide-y divide-border-default bg-surface/40">
                             {loading ? (
                                 Array(5).fill(0).map((_, i) => (
                                     <tr key={i} className="animate-pulse">
@@ -209,7 +209,7 @@ export default function BroadcastListPage() {
                             ) : broadcasts.length === 0 ? (
                                 <tr>
                                     <td colSpan={6} className="px-6 py-12 text-center">
-                                        <div className="flex flex-col items-center gap-3 text-gray-400 dark:text-gray-500">
+                                        <div className="flex flex-col items-center gap-3 text-text-tertiary">
                                             <Radio className="w-12 h-12 opacity-20" />
                                             <p className="text-sm">ยังไม่มีข้อความ Broadcast</p>
                                             <Link href="/admin/chatbot/broadcast/new">
@@ -224,22 +224,22 @@ export default function BroadcastListPage() {
                             ) : broadcasts.map((b) => {
                                 const s = getStatus(b.status);
                                 return (
-                                    <tr key={b.id} className="hover:bg-gray-50/50 transition-colors dark:hover:bg-gray-700/30">
+                                    <tr key={b.id} className="hover:bg-bg/50 transition-colors">
                                         <td className="px-6 py-4">
                                             <div className="flex items-start gap-3">
                                                 <div className="w-10 h-10 bg-brand-500/10 text-brand-600 rounded-lg flex items-center justify-center shrink-0 dark:bg-brand-500/20 dark:text-brand-400">
                                                     <Send className="w-5 h-5" />
                                                 </div>
                                                 <div>
-                                                    <div className="text-sm font-bold text-gray-700 dark:text-gray-200">{b.title}</div>
-                                                    <div className="text-xs text-gray-400 mt-0.5 dark:text-gray-500">
+                                                    <div className="text-sm font-bold text-text-secondary">{b.title}</div>
+                                                    <div className="text-xs text-text-tertiary mt-0.5">
                                                         {b.target_audience === 'all' ? 'ผู้ติดตามทั้งหมด' : 'เฉพาะกลุ่ม'}
                                                     </div>
                                                 </div>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
+                                            <span className="text-xs font-medium text-text-secondary">
                                                 {TYPE_LABELS[b.message_type] || b.message_type}
                                             </span>
                                         </td>
@@ -250,7 +250,7 @@ export default function BroadcastListPage() {
                                             </Badge>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <div className="text-xs text-gray-600 dark:text-gray-300">
+                                            <div className="text-xs text-text-secondary">
                                                 {b.status === 'completed' ? (
                                                     <span className="text-green-600 dark:text-green-400 font-medium">
                                                         {b.success_count.toLocaleString()} สำเร็จ
@@ -261,13 +261,13 @@ export default function BroadcastListPage() {
                                                 ) : b.total_recipients > 0 ? (
                                                     `${b.total_recipients.toLocaleString()} คน`
                                                 ) : (
-                                                    <span className="text-gray-400">-</span>
+                                                    <span className="text-text-tertiary">-</span>
                                                 )}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <div className="flex items-center gap-2 text-xs text-gray-600 font-medium dark:text-gray-300">
-                                                <Calendar className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
+                                            <div className="flex items-center gap-2 text-xs text-text-secondary font-medium">
+                                                <Calendar className="w-3.5 h-3.5 text-text-tertiary" />
                                                 {b.sent_at ? (
                                                     new Date(b.sent_at).toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit' })
                                                 ) : b.scheduled_at ? (
@@ -275,7 +275,7 @@ export default function BroadcastListPage() {
                                                         {new Date(b.scheduled_at).toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
                                                     </span>
                                                 ) : (
-                                                    <span className="text-gray-400">-</span>
+                                                    <span className="text-text-tertiary">-</span>
                                                 )}
                                             </div>
                                         </td>
@@ -310,15 +310,15 @@ export default function BroadcastListPage() {
                 </div>
 
                 {/* Pagination */}
-                <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/30 flex items-center justify-between dark:border-gray-700 dark:bg-gray-800/30">
-                    <p className="text-xs text-gray-500 font-medium dark:text-gray-400">
+                <div className="px-6 py-4 border-t border-border-default bg-bg/30 flex items-center justify-between">
+                    <p className="text-xs text-text-tertiary font-medium">
                         ทั้งหมด {total} รายการ
                     </p>
                     <div className="flex items-center gap-2">
                         <Button variant="outline" size="sm" className="h-8 w-8 p-0" disabled={page <= 0} onClick={() => setPage(p => p - 1)}>
                             <ChevronLeft className="w-4 h-4" />
                         </Button>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                        <span className="text-xs text-text-tertiary">
                             {page + 1} / {totalPages || 1}
                         </span>
                         <Button variant="outline" size="sm" className="h-8 w-8 p-0" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>
@@ -331,7 +331,7 @@ export default function BroadcastListPage() {
             {/* Delete confirmation modal */}
             <Modal isOpen={!!deleteTarget} onClose={() => setDeleteTarget(null)} title="ยืนยันการลบ" maxWidth="sm">
                 <div className="space-y-4">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                    <p className="text-sm text-text-secondary">
                         คุณต้องการลบข้อความ <b>{deleteTarget?.title}</b> ใช่หรือไม่?
                         <br /><span className="text-xs text-red-500 mt-2 block">* การกระทำนี้ไม่สามารถย้อนกลับได้</span>
                     </p>
@@ -347,7 +347,7 @@ export default function BroadcastListPage() {
             {/* Send confirmation modal */}
             <Modal isOpen={!!sendTarget} onClose={() => setSendTarget(null)} title="ยืนยันการส่ง" maxWidth="sm">
                 <div className="space-y-4">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                    <p className="text-sm text-text-secondary">
                         คุณต้องการส่งข้อความ <b>{sendTarget?.title}</b> ถึงผู้ติดตามทั้งหมดเลยใช่หรือไม่?
                         <br /><span className="text-xs text-amber-600 mt-2 block">* เมื่อส่งแล้วไม่สามารถยกเลิกได้</span>
                     </p>

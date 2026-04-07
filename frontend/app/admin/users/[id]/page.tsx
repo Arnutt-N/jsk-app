@@ -235,13 +235,14 @@ export default function UserDetailPage() {
     return (
         <div className="p-6 max-w-4xl mx-auto thai-text space-y-6 animate-fade-in-up">
             {/* Back */}
-            <button
+            <Button
+                variant="ghost"
+                size="sm"
+                leftIcon={<ArrowLeft className="w-4 h-4" />}
                 onClick={() => router.push('/admin/users')}
-                className="flex items-center gap-2 text-text-secondary hover:text-text-primary transition-colors text-sm"
             >
-                <ArrowLeft className="w-4 h-4" />
-                เน€เธยเน€เธเธ…เน€เธเธ‘เน€เธยเน€เธยเน€เธยเน€เธเธเน€เธยเน€เธยเน€เธเธ’เน€เธเธเน€เธเธ’เน€เธเธเน€เธยเน€เธเธ’เน€เธเธ
-            </button>
+                กลับรายชื่อผู้ใช้
+            </Button>
 
             {/* Profile Header */}
             <div className="bg-surface rounded-2xl border border-border-default p-6 shadow-sm">
@@ -269,12 +270,12 @@ export default function UserDetailPage() {
                             )}
                             {userData.email && (
                                 <span className="flex items-center gap-1">
-                                    <Mail className="w-3.5 h-3.5" /> {userData.email}
+                                    <Mail className="w-4 h-4" /> {userData.email}
                                 </span>
                             )}
                             {userData.created_at && (
                                 <span className="flex items-center gap-1">
-                                    <Calendar className="w-3.5 h-3.5" />
+                                    <Calendar className="w-4 h-4" />
                                     เน€เธเธเน€เธเธเน€เธยเน€เธเธ’เน€เธยเน€เธโฌเน€เธเธเน€เธเธ—เน€เธยเน€เธเธ {new Date(userData.created_at).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}
                                 </span>
                             )}

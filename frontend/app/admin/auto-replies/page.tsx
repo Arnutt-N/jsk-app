@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { ActionIconButton } from '@/components/ui/ActionIconButton';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 interface IntentCategory {
     id: number;
@@ -32,6 +33,7 @@ export default function IntentsPage() {
         { key: 'actions', label: 'จัดการ', align: 'center' },
     ];
 
+    const [confirmDelete, setConfirmDelete] = useState<{open: boolean; id: number | null}>({open: false, id: null});
     const API_BASE = '/api/v1';
 
     const fetchCategories = useCallback(async () => {
@@ -68,8 +70,6 @@ export default function IntentsPage() {
     };
 
     const handleDelete = async (id: number) => {
-        if (!confirm('ต้องการลบ Category นี้?')) return;
-
         const res = await fetch(`${API_BASE}/admin/intents/categories/${id}`, {
             method: 'DELETE'
         });
@@ -91,7 +91,7 @@ export default function IntentsPage() {
         }
     };
     return (
-        <div className="space-y-5 animate-in fade-in duration-500 thai-text">
+        <div className="space-y-6 animate-in fade-in duration-500 thai-text">
             {/* Header */}
             <PageHeader title="Intent Categories" subtitle="จัดการหมวดหมู่การตอบกลับอัตโนมัติ">
                 <Button size="sm" onClick={() => setShowAddForm(true)}>
@@ -233,7 +233,7 @@ export default function IntentsPage() {
                                                 icon={<Trash2 className="w-4 h-4" />}
                                                 label="ลบ"
                                                 variant="danger"
-                                                onClick={() => handleDelete(category.id)}
+                                                onClick={() => setConfirmDelete({open: true, id: category.id})}
                                             />
                                         </div>
                                     </td>
@@ -243,6 +243,16 @@ export default function IntentsPage() {
                     </tbody>
                 </table>
             </div>
+
+            <ConfirmDialog
+                isOpen={confirmDelete.open}
+                onClose={() => setConfirmDelete({open: false, id: null})}
+                onConfirm={() => { handleDelete(confirmDelete.id!); setConfirmDelete({open: false, id: null}); }}
+                title="ยืนยันการลบ"
+                description="ต้องการลบ Category นี้หรือไม่?"
+                confirmText="ลบ"
+                variant="danger"
+            />
         </div>
     );
 }

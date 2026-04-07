@@ -188,7 +188,7 @@ export default function CustomIntegrationsPage() {
     if (loading) return <LoadingSpinner label="Loading integrations..." />;
 
     return (
-        <div className="thai-text space-y-5 animate-in fade-in duration-500">
+        <div className="thai-text space-y-6 animate-in fade-in duration-500">
             <PageHeader
                 title="Custom Integrations"
                 subtitle="จัดการ API / Webhook integrations ที่กำหนดเอง"

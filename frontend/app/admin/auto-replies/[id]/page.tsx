@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/Input';
 import { cn } from '@/lib/utils';
 import { ActionIconButton } from '@/components/ui/ActionIconButton';
 import PageHeader from '../../components/PageHeader';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 interface IntentKeyword {
     id: number;
@@ -61,6 +62,8 @@ export default function CategoryDetailPage() {
     });
     const [categoryFormData, setCategoryFormData] = useState({ name: '', description: '', is_active: true });
 
+    const [confirmDeleteKeyword, setConfirmDeleteKeyword] = useState<{open: boolean; id: number | null}>({open: false, id: null});
+    const [confirmDeleteResponse, setConfirmDeleteResponse] = useState<{open: boolean; id: number | null}>({open: false, id: null});
     const API_BASE = '/api/v1';
 
     useEffect(() => {
@@ -125,7 +128,6 @@ export default function CategoryDetailPage() {
     };
 
     const handleDeleteKeyword = async (id: number) => {
-        if (!confirm('เน€เธเธ…เน€เธย Keyword เน€เธยเน€เธเธ•เน€เธย?')) return;
         const res = await fetch(`${API_BASE}/admin/intents/keywords/${id}`, { method: 'DELETE' });
         if (res.ok) fetchCategoryDetail();
     };
@@ -185,7 +187,6 @@ export default function CategoryDetailPage() {
     };
 
     const handleDeleteResponse = async (id: number) => {
-        if (!confirm('เน€เธเธ…เน€เธย Response เน€เธยเน€เธเธ•เน€เธย?')) return;
         const res = await fetch(`${API_BASE}/admin/intents/responses/${id}`, { method: 'DELETE' });
         if (res.ok) fetchCategoryDetail();
     };
@@ -276,13 +277,12 @@ export default function CategoryDetailPage() {
                     <Card variant="default" padding="none" className="overflow-hidden">
                         <CardHeader divider className="px-6 py-4 flex-row justify-between items-center bg-bg">
                             <h3 className="text-sm font-semibold text-text-primary uppercase tracking-wider">Keywords</h3>
-                            <button
+                            <ActionIconButton
+                                icon={<Plus className="w-4 h-4" />}
+                                label="เพิ่ม"
+                                variant="default"
                                 onClick={() => setShowKeywordForm(true)}
-                                className="p-2 text-primary hover:bg-primary/8 rounded-lg transition-colors"
-                                title="Add Keyword"
-                            >
-                                <Plus className="w-5 h-5" />
-                            </button>
+                            />
                         </CardHeader>
                         <CardContent className="p-6">
                             {category.keywords.length === 0 ? (
@@ -302,7 +302,7 @@ export default function CategoryDetailPage() {
                                                 {kw.match_type === 'exact' ? '=' : kw.match_type === 'contains' ? 'abc' : '*'}
                                             </span>
                                             <button
-                                                onClick={() => handleDeleteKeyword(kw.id)}
+                                                onClick={() => setConfirmDeleteKeyword({open: true, id: kw.id})}
                                                 className="w-5 h-5 flex items-center justify-center rounded-full text-text-tertiary hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
                                             >
                                                 <X className="w-3 h-3" />
@@ -321,13 +321,12 @@ export default function CategoryDetailPage() {
                     <Card variant="default" padding="none" className="overflow-hidden h-full">
                         <CardHeader divider className="px-6 py-4 flex-row justify-between items-center bg-bg">
                             <h3 className="text-sm font-semibold text-text-primary uppercase tracking-wider">Responses</h3>
-                            <button
+                            <ActionIconButton
+                                icon={<Plus className="w-4 h-4" />}
+                                label="เพิ่ม"
+                                variant="default"
                                 onClick={() => { resetResponseForm(); setShowResponseForm(true); }}
-                                className="p-2 text-primary hover:bg-primary/8 rounded-lg transition-colors"
-                                title="Add Response"
-                            >
-                                <Plus className="w-5 h-5" />
-                            </button>
+                            />
                         </CardHeader>
                         <CardContent className="p-4 space-y-3">
                             {category.responses.length === 0 ? (
@@ -351,7 +350,7 @@ export default function CategoryDetailPage() {
                                                 icon={<Trash2 className="w-4 h-4" />}
                                                 label="ลบ"
                                                 variant="danger"
-                                                onClick={() => handleDeleteResponse(resp.id)}
+                                                onClick={() => setConfirmDeleteResponse({open: true, id: resp.id})}
                                             />
                                         </div>
 
@@ -572,6 +571,24 @@ export default function CategoryDetailPage() {
                     </div>
                 </div>
             )}
+            <ConfirmDialog
+                isOpen={confirmDeleteKeyword.open}
+                onClose={() => setConfirmDeleteKeyword({open: false, id: null})}
+                onConfirm={() => { handleDeleteKeyword(confirmDeleteKeyword.id!); setConfirmDeleteKeyword({open: false, id: null}); }}
+                title="ยืนยันการลบ"
+                description="ต้องการลบ Keyword นี้หรือไม่?"
+                confirmText="ลบ"
+                variant="danger"
+            />
+            <ConfirmDialog
+                isOpen={confirmDeleteResponse.open}
+                onClose={() => setConfirmDeleteResponse({open: false, id: null})}
+                onConfirm={() => { handleDeleteResponse(confirmDeleteResponse.id!); setConfirmDeleteResponse({open: false, id: null}); }}
+                title="ยืนยันการลบ"
+                description="ต้องการลบ Response นี้หรือไม่?"
+                confirmText="ลบ"
+                variant="danger"
+            />
         </div>
     );
 }

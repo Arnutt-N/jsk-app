@@ -85,8 +85,8 @@ export default function KanbanPage() {
             case 'URGENT': return 'text-rose-600 bg-rose-50 border-rose-100';
             case 'HIGH': return 'text-amber-600 bg-amber-50 border-amber-100';
             case 'MEDIUM': return 'text-blue-600 bg-blue-50 border-blue-100';
-            case 'LOW': return 'text-slate-500 bg-slate-50 border-slate-100';
-            default: return 'text-slate-500 bg-slate-50 border-slate-100';
+            case 'LOW': return 'text-text-tertiary bg-bg border-border-default';
+            default: return 'text-text-tertiary bg-bg border-border-default';
         }
     };
 
@@ -105,7 +105,7 @@ export default function KanbanPage() {
                         placeholder="ค้นหางาน..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="pl-9 pr-4 py-1.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 w-[240px]"
+                        className="pl-9 pr-4 py-1.5 bg-surface border border-border-default rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 w-[240px]"
                     />
                 </div>
                 <Link href="/admin/requests">
@@ -121,12 +121,12 @@ export default function KanbanPage() {
                         <div className="flex items-center justify-between px-2">
                             <div className="flex items-center gap-2">
                                 <span className={`w-2 h-2 rounded-full ${col.color}`} />
-                                <h3 className="font-bold text-slate-700 text-sm">{col.label}</h3>
+                                <h3 className="font-bold text-text-secondary text-sm">{col.label}</h3>
                                 <Badge variant="gray" className="py-0 px-1.5 text-[10px]">{filteredRequests.filter(r => r.status === col.id).length}</Badge>
                             </div>
                         </div>
 
-                        <div className="bg-slate-100/50 rounded-2xl p-3 flex-1 space-y-3 border border-slate-200/50 border-dashed">
+                        <div className="bg-muted/50 rounded-2xl p-3 flex-1 space-y-3 border border-border-default/50 border-dashed">
                             {loading ? (
                                 <div className="space-y-3 animate-pulse">
                                     {[1, 2].map(i => <div key={i} className="h-32 bg-white/50 rounded-xl" />)}
@@ -139,33 +139,33 @@ export default function KanbanPage() {
                                                 <Badge className={`text-[9px] px-1.5 py-0.5 border ${getPriorityStyle(req.priority)}`}>
                                                     <Flag className="w-2.5 h-2.5 mr-1" /> {req.priority}
                                                 </Badge>
-                                                <span className="text-[10px] text-slate-400 font-mono">#{req.id}</span>
+                                                <span className="text-[10px] text-text-tertiary font-mono">#{req.id}</span>
                                             </div>
 
                                             <div>
-                                                <h4 className="text-sm font-bold text-slate-800 line-clamp-1 group-hover:text-primary transition-colors">
+                                                <h4 className="text-sm font-bold text-text-primary line-clamp-1 group-hover:text-primary transition-colors">
                                                     {req.firstname || 'ไม่ระบุชื่อ'} {req.lastname || ''}
                                                 </h4>
-                                                <p className="text-[11px] text-slate-500 mt-1 line-clamp-2 leading-relaxed">
+                                                <p className="text-[11px] text-text-tertiary mt-1 line-clamp-2 leading-relaxed">
                                                     {req.topic_category}
                                                 </p>
                                             </div>
 
-                                            <div className="pt-2 flex flex-col gap-1.5 border-t border-slate-50">
+                                            <div className="pt-2 flex flex-col gap-1.5 border-t border-border-default">
                                                 <div className="flex items-center justify-between">
-                                                    <div className="flex items-center gap-1.5 text-[10px] text-slate-400">
+                                                    <div className="flex items-center gap-1.5 text-[10px] text-text-tertiary">
                                                         <Clock className="w-3 h-3" />
                                                         {new Date(req.created_at).toLocaleDateString('th-TH')}
                                                     </div>
                                                     {req.due_date && (
-                                                        <div className={`flex items-center gap-1 text-[10px] font-bold ${isOverdue(req.due_date) ? 'text-rose-500' : 'text-slate-400'}`}>
+                                                        <div className={`flex items-center gap-1 text-[10px] font-bold ${isOverdue(req.due_date) ? 'text-rose-500' : 'text-text-tertiary'}`}>
                                                             <Calendar className="w-3 h-3" />
                                                             {new Date(req.due_date).toLocaleDateString('th-TH')}
                                                             {isOverdue(req.due_date) && <AlertTriangle className="w-3 h-3" />}
                                                         </div>
                                                     )}
                                                 </div>
-                                                <div className="text-[9px] font-bold text-slate-300 uppercase tracking-tight truncate">
+                                                <div className="text-[9px] font-bold text-text-tertiary uppercase tracking-tight truncate">
                                                     {req.agency}
                                                 </div>
                                             </div>

@@ -8,6 +8,8 @@ import { Modal } from '@/components/ui/Modal';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ActionIconButton } from '@/components/ui/ActionIconButton';
 import { StaggerContainer, StaggerItem } from '@/components/ui/PageTransition';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { useToast } from '@/components/ui/Toast';
 
 interface ReplyObject {
     id: number;
@@ -37,6 +39,8 @@ export default function ReplyObjectsPage() {
         alt_text: ''
     });
 
+    const [confirmDelete, setConfirmDelete] = useState<{open: boolean; objectId: string | null}>({open: false, objectId: null});
+    const { toast } = useToast();
     const API_BASE = '/api/v1';
 
     const fetchObjects = useCallback(async () => {
@@ -80,10 +84,10 @@ export default function ReplyObjectsPage() {
                 resetForm();
             } else {
                 const error = await res.json();
-                alert(error.detail || 'Error saving');
+                toast({ title: 'ผิดพลาด', description: error.detail || 'Error saving', variant: 'error' });
             }
         } catch {
-            alert('Invalid JSON payload');
+            toast({ title: 'ผิดพลาด', description: 'Invalid JSON payload', variant: 'error' });
         }
     };
 
@@ -101,7 +105,6 @@ export default function ReplyObjectsPage() {
     };
 
     const handleDelete = async (objectId: string) => {
-        if (!confirm(`Delete $${objectId}?`)) return;
 
         const res = await fetch(`${API_BASE}/admin/reply-objects/${objectId}`, {
             method: 'DELETE'
@@ -128,19 +131,19 @@ export default function ReplyObjectsPage() {
             {loading ? (
                 <LoadingSpinner label="Loading Assets..." />
             ) : objects.length === 0 ? (
-                <div className="flex flex-col items-center justify-center min-h-[400px] bg-white rounded-2xl border border-dashed border-gray-200 p-20 text-center dark:bg-gray-800 dark:border-gray-600">
+                <div className="flex flex-col items-center justify-center min-h-[400px] bg-surface rounded-2xl border border-dashed border-border-default p-20 text-center">
                     <div className="w-32 h-32 bg-brand-50 rounded-full flex items-center justify-center mb-10 border border-brand-100 shadow-inner dark:bg-brand-500/10 dark:border-brand-500/20">
                         <Package className="w-12 h-12 text-brand-300 dark:text-brand-400" />
                     </div>
-                    <h3 className="text-3xl font-black text-gray-800 mb-4 tracking-tight dark:text-gray-100">Empty Repository</h3>
-                    <p className="text-gray-500 text-lg max-w-sm leading-relaxed dark:text-gray-400">No reusable templates found. Create your first template to simplify your automated responses.</p>
+                    <h3 className="text-3xl font-black text-text-primary mb-4 tracking-tight">Empty Repository</h3>
+                    <p className="text-text-tertiary text-lg max-w-sm leading-relaxed">No reusable templates found. Create your first template to simplify your automated responses.</p>
                 </div>
             ) : (
                 <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                     {objects.map((obj) => (
                         <StaggerItem key={obj.id}>
                         <div
-                            className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:border-brand-200 transition-all duration-300 group relative shadow-sm hover:shadow-lg dark:bg-gray-800 dark:border-gray-700 dark:hover:border-brand-500/30"
+                            className="bg-surface rounded-2xl border border-border-default overflow-hidden hover:border-brand-200 transition-all duration-300 group relative shadow-sm hover:shadow-lg"
                         >
                             <div className="p-6">
                                 <div className="flex items-start justify-between mb-4">
@@ -148,20 +151,20 @@ export default function ReplyObjectsPage() {
                                         <div className="flex items-center gap-2 mb-1.5">
                                             <span className="text-brand-600 font-black font-mono text-sm tracking-tighter dark:text-brand-400">${obj.object_id}</span>
                                         </div>
-                                        <h3 className="text-lg font-bold text-gray-800 group-hover:text-brand-600 transition-colors tracking-tight dark:text-gray-100 dark:group-hover:text-brand-400">{obj.name}</h3>
+                                        <h3 className="text-lg font-bold text-text-primary group-hover:text-brand-600 transition-colors tracking-tight">{obj.name}</h3>
                                     </div>
                                     <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border shadow-sm ${obj.object_type === 'flex' ? 'bg-brand-50 text-brand-600 border-brand-100 dark:bg-brand-500/10 dark:text-brand-400 dark:border-brand-500/20' :
                                         obj.object_type === 'image' ? 'bg-brand-50 text-brand-600 border-brand-100 dark:bg-brand-500/10 dark:text-brand-400 dark:border-brand-500/20' :
                                             obj.object_type === 'sticker' ? 'bg-yellow-50 text-yellow-600 border-yellow-100 dark:bg-yellow-500/10 dark:text-yellow-400 dark:border-yellow-500/20' :
-                                                'bg-gray-50 text-gray-500 border-gray-100 dark:bg-gray-700 dark:text-gray-400 dark:border-gray-600'
+                                                'bg-bg text-text-tertiary border-border-default'
                                         }`}>
                                         {obj.object_type}
                                     </span>
                                 </div>
 
                                 {obj.category && (
-                                    <div className="flex items-center gap-2 mb-4 text-gray-400 uppercase tracking-widest text-[9px] font-bold dark:text-gray-500">
-                                        <span className="w-1 h-1 bg-gray-400 rounded-full dark:bg-gray-500" />
+                                    <div className="flex items-center gap-2 mb-4 text-text-tertiary uppercase tracking-widest text-[9px] font-bold">
+                                        <span className="w-1 h-1 bg-text-tertiary rounded-full" />
                                         {obj.category}
                                     </div>
                                 )}
@@ -177,7 +180,7 @@ export default function ReplyObjectsPage() {
                                         icon={<Trash2 className="w-4 h-4" />}
                                         label="ลบ"
                                         variant="danger"
-                                        onClick={() => handleDelete(obj.object_id)}
+                                        onClick={() => setConfirmDelete({open: true, objectId: obj.object_id})}
                                     />
                                 </div>
                             </div>
@@ -186,6 +189,16 @@ export default function ReplyObjectsPage() {
                     ))}
                 </StaggerContainer>
             )}
+
+            <ConfirmDialog
+                isOpen={confirmDelete.open}
+                onClose={() => setConfirmDelete({open: false, objectId: null})}
+                onConfirm={() => { handleDelete(confirmDelete.objectId!); setConfirmDelete({open: false, objectId: null}); }}
+                title="ยืนยันการลบ"
+                description={`ต้องการลบ ${confirmDelete.objectId} หรือไม่?`}
+                confirmText="ลบ"
+                variant="danger"
+            />
 
             {/* Form Modal */}
             <Modal
@@ -197,24 +210,24 @@ export default function ReplyObjectsPage() {
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1 dark:text-gray-400">Universal ID *</label>
+                            <label className="text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-1">Universal ID *</label>
                             <input
                                 type="text"
                                 value={formData.object_id}
                                 onChange={(e) => setFormData({ ...formData, object_id: e.target.value })}
                                 disabled={!!editingId}
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-800 font-bold focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:bg-white disabled:opacity-50 transition-all font-mono dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
+                                className="w-full px-4 py-3 bg-bg border border-border-default rounded-xl text-text-primary font-bold focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:bg-surface disabled:opacity-50 transition-all font-mono"
                                 placeholder="flex_welcome"
                                 required
                             />
                         </div>
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1 dark:text-gray-400">Internal Name *</label>
+                            <label className="text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-1">Internal Name *</label>
                             <input
                                 type="text"
                                 value={formData.name}
                                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-800 font-bold focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:bg-white transition-all dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
+                                className="w-full px-4 py-3 bg-bg border border-border-default rounded-xl text-text-primary font-bold focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:bg-surface transition-all"
                                 placeholder="Welcome Message 2.0"
                                 required
                             />
@@ -223,47 +236,47 @@ export default function ReplyObjectsPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1 dark:text-gray-400">Message Protocol *</label>
+                            <label className="text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-1">Message Protocol *</label>
                             <div className="relative">
                                 <select
                                     value={formData.object_type}
                                     onChange={(e) => setFormData({ ...formData, object_type: e.target.value })}
-                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-800 font-bold appearance-none focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:bg-white transition-all cursor-pointer dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
+                                    className="w-full px-4 py-3 bg-bg border border-border-default rounded-xl text-text-primary font-bold appearance-none focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:bg-surface transition-all cursor-pointer"
                                 >
                                     {OBJECT_TYPES.map(t => (
-                                        <option key={t} value={t} className="bg-white text-gray-800 dark:bg-gray-800 dark:text-gray-100">{t.toUpperCase()}</option>
+                                        <option key={t} value={t} className="bg-surface text-text-primary">{t.toUpperCase()}</option>
                                     ))}
                                 </select>
-                                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
+                                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-text-tertiary">
                                     <ChevronDown className="w-4 h-4" />
                                 </div>
                             </div>
                         </div>
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1 dark:text-gray-400">Grouping Category</label>
+                            <label className="text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-1">Grouping Category</label>
                             <input
                                 type="text"
                                 value={formData.category}
                                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-800 font-bold focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:bg-white transition-all dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
+                                className="w-full px-4 py-3 bg-bg border border-border-default rounded-xl text-text-primary font-bold focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:bg-surface transition-all"
                                 placeholder="Marketing / Support"
                             />
                         </div>
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1 dark:text-gray-400">Alt Text (Mobile/Tablet accessibility)</label>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-1">Alt Text (Mobile/Tablet accessibility)</label>
                         <input
                             type="text"
                             value={formData.alt_text}
                             onChange={(e) => setFormData({ ...formData, alt_text: e.target.value })}
-                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-800 font-bold focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:bg-white transition-all dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
+                            className="w-full px-4 py-3 bg-bg border border-border-default rounded-xl text-text-primary font-bold focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:bg-surface transition-all"
                             placeholder="Brief description of the message"
                         />
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1 dark:text-gray-400">JSON Payload *</label>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-1">JSON Payload *</label>
                         <textarea
                             value={formData.payload}
                             onChange={(e) => setFormData({ ...formData, payload: e.target.value })}

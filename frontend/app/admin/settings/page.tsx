@@ -89,7 +89,7 @@ export default function SettingsOverviewPage() {
     }
 
     return (
-        <div className="thai-text space-y-5">
+        <div className="thai-text space-y-6">
             {error && <div className="p-4 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 rounded-xl text-sm mb-4">{error}</div>}
 
             <PageHeader

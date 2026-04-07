@@ -8,6 +8,8 @@ import PageHeader from '@/app/admin/components/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { ActionIconButton } from '@/components/ui/ActionIconButton';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { useToast } from '@/components/ui/Toast';
 
 interface RichMenu {
     id: number;
@@ -22,6 +24,8 @@ interface RichMenu {
 export default function RichMenuListPage() {
     const [menus, setMenus] = useState<RichMenu[]>([]);
     const [loading, setLoading] = useState(true);
+    const [confirmDelete, setConfirmDelete] = useState<{open: boolean; id: number | null}>({open: false, id: null});
+    const { toast } = useToast();
     const tableColumns: AdminTableHeadColumn[] = [
         { key: 'preview', label: 'Preview', align: 'center', className: 'w-40' },
         { key: 'details', label: 'รายละเอียดเมนู' },
@@ -49,15 +53,14 @@ export default function RichMenuListPage() {
     }, [fetchMenus]);
 
     const handleDelete = async (id: number) => {
-        if (!confirm("ต้องการลบ Rich Menu นี้?")) return;
-
         try {
             const res = await fetch(`${API_BASE}/admin/rich-menus/${id}`, { method: 'DELETE' });
             if (res.ok) {
                 setMenus(menus.filter(m => m.id !== id));
+                toast({ title: 'สำเร็จ', description: 'ลบ Rich Menu เรียบร้อย', variant: 'success' });
             }
         } catch {
-            alert("Failed to delete rich menu");
+            toast({ title: 'ผิดพลาด', description: 'ไม่สามารถลบ Rich Menu ได้', variant: 'error' });
         }
     };
 
@@ -65,14 +68,14 @@ export default function RichMenuListPage() {
         try {
             const res = await fetch(`${API_BASE}/admin/rich-menus/${id}/sync`, { method: 'POST' });
             if (res.ok) {
-                alert("Sync ไปยัง LINE สำเร็จ!");
+                toast({ title: 'สำเร็จ', description: 'Sync ไปยัง LINE สำเร็จ', variant: 'success' });
                 fetchMenus();
             } else {
                 const err = await res.json();
-                alert(`Sync failed: ${err.detail}`);
+                toast({ title: 'ผิดพลาด', description: err.detail || 'Sync failed', variant: 'error' });
             }
         } catch {
-            alert("Error syncing to LINE");
+            toast({ title: 'ผิดพลาด', description: 'Error syncing to LINE', variant: 'error' });
         }
     };
 
@@ -80,14 +83,14 @@ export default function RichMenuListPage() {
         try {
             const res = await fetch(`${API_BASE}/admin/rich-menus/${id}/publish`, { method: 'POST' });
             if (res.ok) {
-                alert("ตั้งเป็นเมนูหลักสำเร็จ!");
+                toast({ title: 'สำเร็จ', description: 'ตั้งเป็นเมนูหลักสำเร็จ', variant: 'success' });
                 fetchMenus();
             } else {
                 const err = await res.json();
-                alert(`Publish failed: ${err.detail}`);
+                toast({ title: 'ผิดพลาด', description: err.detail || 'Publish failed', variant: 'error' });
             }
         } catch {
-            alert("Error publishing rich menu");
+            toast({ title: 'ผิดพลาด', description: 'Error publishing rich menu', variant: 'error' });
         }
     };
 
@@ -98,7 +101,7 @@ export default function RichMenuListPage() {
     };
 
     return (
-        <div className="space-y-5 animate-in fade-in duration-500 thai-text">
+        <div className="space-y-6 animate-in fade-in duration-500 thai-text">
             {/* Header Section */}
             <PageHeader title="Rich Menus" subtitle="จัดการเมนู LINE Official Account">
                 <Link href="/admin/rich-menus/new">
@@ -111,19 +114,19 @@ export default function RichMenuListPage() {
             {loading ? (
                 <LoadingSpinner label="กำลังโหลดข้อมูล..." />
             ) : menus.length === 0 ? (
-                <div className="bg-white rounded-xl border border-dashed border-gray-200 p-12 text-center dark:bg-gray-800 dark:border-gray-600">
-                    <p className="text-gray-400 text-sm dark:text-gray-500">ไม่พบข้อมูลเมนูในระบบ</p>
+                <div className="bg-surface rounded-xl border border-dashed border-border-default p-12 text-center">
+                    <p className="text-text-tertiary text-sm">ไม่พบข้อมูลเมนูในระบบ</p>
                     <Link href="/admin/rich-menus/new" className="text-brand-600 text-sm mt-2 block hover:underline cursor-pointer dark:text-brand-400">สร้างเมนูแรกของคุณ &rarr;</Link>
                 </div>
             ) : (
-                <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm dark:bg-gray-800 dark:border-gray-700">
+                <div className="bg-surface rounded-2xl border border-border-default overflow-hidden shadow-sm">
                     <table className="w-full text-left">
                         <AdminTableHead columns={tableColumns} />
-                        <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
+                        <tbody className="divide-y divide-border-default">
                             {menus.map((menu) => (
-                                <tr key={menu.id} className="hover:bg-gray-50/50 transition-colors dark:hover:bg-gray-700/30">
+                                <tr key={menu.id} className="hover:bg-bg/50 transition-colors">
                                     <td className="px-5 py-4">
-                                        <div className="w-32 aspect-[250/168.6] bg-gray-100 rounded-lg overflow-hidden border border-gray-200 dark:bg-gray-700 dark:border-gray-600">
+                                        <div className="w-32 aspect-[250/168.6] bg-muted rounded-lg overflow-hidden border border-border-default">
                                             {menu.image_path ? (
                                                 // eslint-disable-next-line @next/next/no-img-element
                                                 <img
@@ -138,19 +141,19 @@ export default function RichMenuListPage() {
                                                     }}
                                                 />
                                             ) : (
-                                                <div className="flex items-center justify-center h-full text-[10px] text-gray-400 text-center bg-gray-50 px-2 thai-no-break dark:bg-gray-700/50 dark:text-gray-500">
+                                                <div className="flex items-center justify-center h-full text-[10px] text-text-tertiary text-center bg-bg px-2 thai-no-break">
                                                     No Image
                                                 </div>
                                             )}
                                         </div>
                                     </td>
                                     <td className="px-5 py-4">
-                                        <div className="font-semibold text-gray-700 dark:text-gray-200">{menu.name}</div>
-                                        <div className="text-xs text-gray-500 mt-1 flex items-center gap-2 dark:text-gray-400">
+                                        <div className="font-semibold text-text-secondary">{menu.name}</div>
+                                        <div className="text-xs text-text-tertiary mt-1 flex items-center gap-2">
                                             <span className="font-medium">Bar Text:</span>
                                             <span className="italic">&quot;{menu.chat_bar_text}&quot;</span>
                                         </div>
-                                        <div className="text-[10px] text-gray-400 mt-1 font-mono dark:text-gray-500">{menu.line_rich_menu_id || 'LOCAL_ONLY'}</div>
+                                        <div className="text-[10px] text-text-tertiary mt-1 font-mono">{menu.line_rich_menu_id || 'LOCAL_ONLY'}</div>
                                     </td>
                                     <td className="px-5 py-4 text-center">
                                         <span className={`px-2.5 py-1 text-[10px] font-bold rounded-full border ${menu.status === 'PUBLISHED'
@@ -185,7 +188,7 @@ export default function RichMenuListPage() {
                                             )}
 
                                             {/* Icons Actions: Edit then Delete */}
-                                            <div className="flex items-center gap-1 border-l border-gray-200 pl-4 dark:border-gray-600">
+                                            <div className="flex items-center gap-1 border-l border-border-default pl-4">
                                                 <Link href={`/admin/rich-menus/${menu.id}/edit`}>
                                                     <ActionIconButton
                                                         icon={<SquarePen className="w-4 h-4" />}
@@ -198,7 +201,7 @@ export default function RichMenuListPage() {
                                                     icon={<Trash2 className="w-4 h-4" />}
                                                     label="ลบ"
                                                     variant="danger"
-                                                    onClick={() => handleDelete(menu.id)}
+                                                    onClick={() => setConfirmDelete({open: true, id: menu.id})}
                                                 />
                                             </div>
                                         </div>
@@ -209,6 +212,16 @@ export default function RichMenuListPage() {
                     </table>
                 </div>
             )}
+
+            <ConfirmDialog
+                isOpen={confirmDelete.open}
+                onClose={() => setConfirmDelete({open: false, id: null})}
+                onConfirm={() => { handleDelete(confirmDelete.id!); setConfirmDelete({open: false, id: null}); }}
+                title="ยืนยันการลบ"
+                description="ต้องการลบ Rich Menu นี้หรือไม่?"
+                confirmText="ลบ"
+                variant="danger"
+            />
         </div>
     );
 }
