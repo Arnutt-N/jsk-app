@@ -119,8 +119,9 @@ export default function RichMenuListPage() {
                     <Link href="/admin/rich-menus/new" className="text-brand-600 text-sm mt-2 block hover:underline cursor-pointer dark:text-brand-400">สร้างเมนูแรกของคุณ &rarr;</Link>
                 </div>
             ) : (
-                <div className="bg-surface rounded-2xl border border-border-default overflow-hidden shadow-sm">
-                    <table className="w-full text-left">
+                <div className="bg-surface rounded-2xl border border-border-default shadow-sm overflow-hidden">
+                    <div className="overflow-x-auto">
+                    <table className="w-full text-left min-w-[600px]">
                         <AdminTableHead columns={tableColumns} />
                         <tbody className="divide-y divide-border-default">
                             {menus.map((menu) => (
@@ -210,6 +211,7 @@ export default function RichMenuListPage() {
                             ))}
                         </tbody>
                     </table>
+                    </div>
                 </div>
             )}
 

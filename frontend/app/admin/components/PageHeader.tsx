@@ -19,23 +19,23 @@ export default function PageHeader({
     return (
         <div
             className={cn(
-                'flex items-center justify-between',
+                'flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4',
                 'pb-4 border-b border-border-default',
                 className
             )}
         >
-            <div>
-                <h1 className="text-2xl font-bold text-text-primary tracking-tight thai-no-break">
+            <div className="min-w-0">
+                <h1 className="text-xl sm:text-2xl font-bold text-text-primary tracking-tight thai-no-break truncate">
                     {title}
                 </h1>
                 {subtitle && (
-                    <p className="text-sm text-text-tertiary mt-0.5 thai-no-break">
+                    <p className="text-sm text-text-tertiary mt-0.5 thai-no-break truncate">
                         {subtitle}
                     </p>
                 )}
             </div>
             {children && (
-                <div className="flex items-center gap-3">{children}</div>
+                <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 flex-wrap">{children}</div>
             )}
         </div>
     );

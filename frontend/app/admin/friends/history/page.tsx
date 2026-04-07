@@ -169,7 +169,7 @@ export default function FriendHistoryPage() {
     }, [eventTypeFilter, searchFilter]);
 
     return (
-        <div className="p-6 max-w-7xl mx-auto thai-text">
+        <div className="max-w-7xl mx-auto thai-text">
             {/* Header */}
             <PageHeader title="ประวัติเพื่อน" subtitle="Friend History - Track follow, unfollow, and re-follow events" className="mb-6">
                 <Link
@@ -182,7 +182,7 @@ export default function FriendHistoryPage() {
 
             {/* Stats Cards */}
             {stats && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                     <div className="bg-surface rounded-2xl shadow-sm border border-border p-4">
                         <div className="flex items-center gap-3 mb-2">
                             <div className="p-2 rounded-xl bg-green-100 dark:bg-green-900/50">

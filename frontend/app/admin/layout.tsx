@@ -16,6 +16,7 @@ import {
 import { Avatar } from '@/components/ui/Avatar';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { PageTransition } from '@/components/ui/PageTransition';
 import { ThemeToggleSwitch } from '@/components/admin/ThemeToggleSwitch';
 import { AdminLanguageToggle, type AdminLocale } from '@/components/admin/AdminLanguageToggle';
@@ -60,7 +61,7 @@ function AdminAuthGate({ children }: { children: React.ReactNode }) {
   if (isLoading || !isAuthenticated) {
     return (
       <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="animate-spin w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full" />
+        <LoadingSpinner label="กำลังโหลด..." />
       </div>
     );
   }
@@ -68,7 +69,7 @@ function AdminAuthGate({ children }: { children: React.ReactNode }) {
   if (user?.role === 'AGENT' && pathname !== '/admin/live-chat') {
     return (
       <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="animate-spin w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full" />
+        <LoadingSpinner label="กำลังโหลด..." />
       </div>
     );
   }
@@ -122,6 +123,10 @@ function AdminShell({ children }: { children: React.ReactNode }) {
   }, [adminLocale]);
 
   const toggleAdminLocale = () => setAdminLocale((prev) => (prev === 'th' ? 'en' : 'th'));
+
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -311,6 +316,14 @@ function AdminShell({ children }: { children: React.ReactNode }) {
                   aria-label="Open menu"
                 >
                   <Menu className="w-5 h-5" />
+                </button>
+
+                <button
+                  className="md:hidden p-2 bg-surface rounded-xl shadow-sm border border-border-default text-text-secondary hover:text-brand-600 transition-colors cursor-pointer"
+                  aria-label="Search"
+                  onClick={() => {/* TODO: implement mobile search */}}
+                >
+                  <Search className="w-5 h-5" />
                 </button>
 
                 <div className="hidden md:flex items-center bg-muted/50 rounded-xl px-4 py-2.5 border border-border-default focus-within:ring-2 focus-within:ring-brand-100 dark:focus-within:ring-brand-900 transition-all w-64">

@@ -150,8 +150,9 @@ export default function IntentsPage() {
             </Modal>
 
             {/* Table */}
-            <div className="bg-surface rounded-2xl border border-border-default overflow-hidden shadow-sm">
-                <table className="w-full">
+            <div className="bg-surface rounded-2xl border border-border-default shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                <table className="w-full min-w-[600px]">
                     <AdminTableHead columns={tableColumns} />
                     <tbody className="divide-y divide-border-subtle">
                         {loading ? (
@@ -242,6 +243,7 @@ export default function IntentsPage() {
                         )}
                     </tbody>
                 </table>
+                </div>
             </div>
 
             <ConfirmDialog

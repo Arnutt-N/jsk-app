@@ -296,7 +296,7 @@ export default function CustomIntegrationsPage() {
                             />
                         </div>
                     </CardContent>
-                    <CardFooter divider align="end">
+                    <CardFooter divider align="end" className="flex-col sm:flex-row">
                         <Button variant="ghost" onClick={resetForm}>
                             ยกเลิก
                         </Button>

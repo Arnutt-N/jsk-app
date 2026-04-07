@@ -231,7 +231,7 @@ export default function LineSettingsPage() {
 
                 {/* Footer Actions */}
                 {isEditing && (
-                    <div className="p-6 border-t border-border-default bg-bg flex justify-end gap-3">
+                    <div className="p-6 border-t border-border-default bg-bg flex flex-col sm:flex-row sm:justify-end gap-3">
                         <Button
                             variant="outline"
                             onClick={handleConnect}

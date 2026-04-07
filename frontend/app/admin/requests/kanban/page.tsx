@@ -98,21 +98,23 @@ export default function KanbanPage() {
     return (
         <div className="thai-text space-y-6">
             <PageHeader title="กระดานคัดกรองงาน (Kanban Board)" subtitle="บริหารจัดการสถานะงานแบบ Visual Overview">
-                <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
-                    <input
-                        type="text"
-                        placeholder="ค้นหางาน..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className="pl-9 pr-4 py-1.5 bg-surface border border-border-default rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 w-[240px]"
-                    />
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
+                        <input
+                            type="text"
+                            placeholder="ค้นหางาน..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="pl-9 pr-4 py-1.5 bg-surface border border-border-default rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 w-full sm:w-[240px]"
+                        />
+                    </div>
+                    <Link href="/admin/requests">
+                        <Button variant="outline" size="sm" className="gap-2 w-full sm:w-auto">
+                            <ChevronLeft className="w-4 h-4" /> ดูแบบรายการ
+                        </Button>
+                    </Link>
                 </div>
-                <Link href="/admin/requests">
-                    <Button variant="outline" size="sm" className="gap-2">
-                        <ChevronLeft className="w-4 h-4" /> ดูแบบรายการ
-                    </Button>
-                </Link>
             </PageHeader>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 min-h-[70vh]">
