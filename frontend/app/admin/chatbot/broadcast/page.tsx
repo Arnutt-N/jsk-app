@@ -282,11 +282,11 @@ export default function BroadcastListPage() {
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex items-center justify-end gap-1">
                                                 <Link href={`/admin/chatbot/broadcast/${b.id}`}>
-                                                    <ActionIconButton icon={<Eye size={16} />} label="ดูรายละเอียด" variant="default" />
+                                                    <ActionIconButton icon={<Eye className="w-4 h-4" />} label="ดูรายละเอียด" variant="default" />
                                                 </Link>
                                                 {b.status === 'draft' && (
                                                     <ActionIconButton
-                                                        icon={<Send size={16} />}
+                                                        icon={<Send className="w-4 h-4" />}
                                                         label="ส่งเลย"
                                                         variant="warning"
                                                         onClick={() => setSendTarget(b)}
@@ -294,7 +294,7 @@ export default function BroadcastListPage() {
                                                 )}
                                                 {(b.status === 'draft' || b.status === 'cancelled') && (
                                                     <ActionIconButton
-                                                        icon={<Trash2 size={16} />}
+                                                        icon={<Trash2 className="w-4 h-4" />}
                                                         label="ลบ"
                                                         variant="danger"
                                                         onClick={() => setDeleteTarget(b)}

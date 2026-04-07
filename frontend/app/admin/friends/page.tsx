@@ -3,7 +3,7 @@
 // To convert to RSC, auth must migrate to httpOnly cookies.
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { History, MoreVertical, RefreshCw, User } from 'lucide-react';
+import { History, RefreshCw, User } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -180,9 +180,6 @@ export default function FriendsPage() {
                                             {friend.last_message_at ? new Date(friend.last_message_at).toLocaleString() : '-'}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right">
-                                            <button className="text-text-secondary hover:text-primary transition-colors">
-                                                <MoreVertical className="w-5 h-5" />
-                                            </button>
                                         </td>
                                     </tr>
                                 ))

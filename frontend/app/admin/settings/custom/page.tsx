@@ -18,6 +18,7 @@ import {
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
+import { ActionIconButton } from '@/components/ui/ActionIconButton';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/Card';
 import PageHeader from '@/app/admin/components/PageHeader';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
@@ -353,35 +354,28 @@ export default function CustomIntegrationsPage() {
                                         >
                                             {item.integration_type}
                                         </Badge>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon-sm"
+                                        <ActionIconButton
+                                            icon={processing === `TEST_${item.id}` ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+                                            label="ทดสอบ"
+                                            variant="warning"
                                             onClick={() => handleTest(item.id)}
                                             disabled={processing === `TEST_${item.id}`}
-                                        >
-                                            {processing === `TEST_${item.id}` ? (
-                                                <Loader2 className="w-4 h-4 animate-spin" />
-                                            ) : (
-                                                <Zap className="w-4 h-4" />
-                                            )}
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon-sm"
+                                        />
+                                        <ActionIconButton
+                                            icon={<SquarePen className="w-4 h-4" />}
+                                            label="แก้ไข"
+                                            variant="default"
                                             onClick={() => startEdit(item)}
-                                        >
-                                            <SquarePen className="w-4 h-4" />
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon-sm"
+                                        />
+                                        <ActionIconButton
+                                            icon={<Trash2 className="w-4 h-4" />}
+                                            label="ลบ"
+                                            variant="danger"
                                             onClick={() => {
                                                 setDeleteId(item.id);
                                                 setShowDeleteModal(true);
                                             }}
-                                        >
-                                            <Trash2 className="w-4 h-4 text-red-500" />
-                                        </Button>
+                                        />
                                     </div>
                                 </div>
                             </CardContent>

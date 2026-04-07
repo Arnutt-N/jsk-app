@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { cn } from '@/lib/utils';
+import { ActionIconButton } from '@/components/ui/ActionIconButton';
 import PageHeader from '../../components/PageHeader';
 
 interface IntentKeyword {
@@ -340,18 +341,18 @@ export default function CategoryDetailPage() {
                                 category.responses.map((resp, index) => (
                                     <div key={resp.id} className="group relative bg-surface border border-border-default rounded-xl p-4 hover:shadow-md transition-all hover:border-brand-200">
                                         <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button
+                                            <ActionIconButton
+                                                icon={<Edit2 className="w-4 h-4" />}
+                                                label="แก้ไข"
+                                                variant="default"
                                                 onClick={() => handleEditResponse(resp)}
-                                                className="p-1.5 text-text-tertiary hover:text-primary hover:bg-brand-50 rounded-lg"
-                                            >
-                                                <Edit2 className="w-4 h-4" />
-                                            </button>
-                                            <button
+                                            />
+                                            <ActionIconButton
+                                                icon={<Trash2 className="w-4 h-4" />}
+                                                label="ลบ"
+                                                variant="danger"
                                                 onClick={() => handleDeleteResponse(resp.id)}
-                                                className="p-1.5 text-text-tertiary hover:text-red-600 hover:bg-red-50 rounded-lg"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
+                                            />
                                         </div>
 
                                         <div className="flex items-center gap-2 mb-3">

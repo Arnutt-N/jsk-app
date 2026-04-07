@@ -166,16 +166,13 @@ export default function ReplyObjectsPage() {
                                     </div>
                                 )}
 
-                                <div className="flex gap-2 h-10">
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="flex-1"
-                                        leftIcon={<SquarePen className="w-3.5 h-3.5" />}
+                                <div className="flex gap-2 h-10 items-center justify-end">
+                                    <ActionIconButton
+                                        icon={<SquarePen className="w-4 h-4" />}
+                                        label="แก้ไข"
+                                        variant="default"
                                         onClick={() => handleEdit(obj)}
-                                    >
-                                        Modify
-                                    </Button>
+                                    />
                                     <ActionIconButton
                                         icon={<Trash2 className="w-4 h-4" />}
                                         label="ลบ"
