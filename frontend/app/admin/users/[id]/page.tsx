@@ -221,7 +221,7 @@ export default function UserDetailPage() {
 
     if (!userData) {
         return (
-            <div className="p-6 max-w-4xl mx-auto text-center">
+            <div className="max-w-4xl mx-auto text-center">
                 <p className="text-text-secondary">{error || 'เน€เธยเน€เธเธเน€เธยเน€เธยเน€เธยเน€เธยเน€เธเธเน€เธยเน€เธยเน€เธยเน€เธย'}</p>
                 <Button variant="outline" className="mt-4" onClick={() => router.push('/admin/users')}>
                     เน€เธยเน€เธเธ…เน€เธเธ‘เน€เธยเน€เธยเน€เธยเน€เธเธเน€เธยเน€เธยเน€เธเธ’เน€เธเธเน€เธเธ’เน€เธเธเน€เธยเน€เธเธ’เน€เธเธ
@@ -233,7 +233,7 @@ export default function UserDetailPage() {
     const badge = ROLE_BADGE[userData.role] || ROLE_BADGE.USER;
 
     return (
-        <div className="p-6 max-w-4xl mx-auto thai-text space-y-6 animate-fade-in-up">
+        <div className="max-w-4xl mx-auto thai-text space-y-6 animate-fade-in-up">
             {/* Back */}
             <Button
                 variant="ghost"

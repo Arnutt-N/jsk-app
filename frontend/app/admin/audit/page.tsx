@@ -119,7 +119,7 @@ export default function AuditLogPage() {
 
       {/* Stats Cards */}
       {stats && (
-        <StaggerContainer className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <StaggerContainer className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <StaggerItem>
           <Card>
             <CardHeader className="pb-2">
@@ -181,7 +181,7 @@ export default function AuditLogPage() {
 
       {/* Filters */}
       <div className="bg-surface rounded-2xl border border-border-default p-4 shadow-sm">
-        <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row gap-4">
           <Input
             placeholder="Filter by action..."
             value={filter.action}
@@ -189,7 +189,7 @@ export default function AuditLogPage() {
               setFilter({ ...filter, action: e.target.value });
               setOffset(0);
             }}
-            className="w-48"
+            className="w-full sm:w-48"
           />
           <Input
             placeholder="Filter by resource type..."
@@ -198,7 +198,7 @@ export default function AuditLogPage() {
               setFilter({ ...filter, resource_type: e.target.value });
               setOffset(0);
             }}
-            className="w-48"
+            className="w-full sm:w-48"
           />
         </div>
       </div>

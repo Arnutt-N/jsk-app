@@ -197,7 +197,7 @@ export default function BroadcastDetailPage() {
                                 <span className="text-xs text-text-tertiary">ID: {broadcast.id}</span>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <label className="text-xs text-text-tertiary">เน€เธยเน€เธเธเน€เธเธเน€เธโฌเน€เธย เน€เธโ€”เน€เธยเน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ’เน€เธเธ</label>
                                     <p className="text-sm font-medium text-text-primary mt-0.5">{TYPE_LABELS[broadcast.message_type] || broadcast.message_type}</p>

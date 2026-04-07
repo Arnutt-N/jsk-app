@@ -346,7 +346,7 @@ export default function NewRichMenuPage() {
     };
 
     return (
-        <div className="p-6 max-w-6xl mx-auto space-y-6">
+        <div className="max-w-6xl mx-auto space-y-6">
             <PageHeader title="New Rich Menu" className="mb-8">
                 <Link
                     href="/admin/rich-menus"

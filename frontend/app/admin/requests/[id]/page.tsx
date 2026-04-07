@@ -338,7 +338,7 @@ export default function RequestDetailPage() {
                 </div>
 
                 {/* Tab Content Area */}
-                <div className="bg-surface rounded-b-2xl shadow-sm border-x border-b border-border-default p-8 min-h-[400px]">
+                <div className="bg-surface rounded-b-2xl shadow-sm border-x border-b border-border-default p-4 sm:p-6 md:p-8 min-h-[400px]">
 
                     {/* 1. เน€เธเธเน€เธเธ’เน€เธเธเน€เธเธ…เน€เธเธเน€เธโฌเน€เธเธเน€เธเธ•เน€เธเธเน€เธโ€เน€เธยเน€เธเธ“เน€เธเธเน€เธยเน€เธเธเน€เธย */}
                     {activeTab === 'details' && (

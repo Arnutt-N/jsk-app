@@ -223,7 +223,7 @@ export default function TelegramSettingsPage() {
 
                 {/* Footer */}
                 {isEditing && (
-                    <div className="p-6 border-t border-border-default bg-bg flex justify-end gap-3">
+                    <div className="p-6 border-t border-border-default bg-bg flex flex-col sm:flex-row sm:justify-end gap-3">
                         {config?.is_connected && (
                             <Button
                                 variant="ghost"

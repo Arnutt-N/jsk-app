@@ -201,14 +201,14 @@ export default function AnalyticsPage() {
   return (
     <div className="container mx-auto py-6 space-y-6">
       <PageHeader title="Live Analytics Dashboard">
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2">
             <span className="text-sm text-text-tertiary">Last</span>
             <Input
               type="number"
               value={days}
               onChange={(e) => setDays(Number(e.target.value))}
-              className="w-20"
+              className="w-full sm:w-20"
               min={1}
               max={30}
             />
