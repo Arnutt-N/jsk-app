@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import {
     User,
     Clock,
@@ -247,11 +248,7 @@ export default function RequestDetailPage() {
         { id: 'manage', label: 'เน€เธยเน€เธเธ‘เน€เธโ€เน€เธยเน€เธเธ’เน€เธเธเน€เธยเน€เธเธ“เน€เธเธเน€เธยเน€เธเธเน€เธย', icon: Settings2 },
     ];
 
-    if (loading) return (
-        <div className="flex items-center justify-center min-h-screen bg-slate-50">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
-        </div>
-    );
+    if (loading) return <LoadingSpinner label="กำลังโหลด..." />;
 
     if (!request) return <div className="p-8 text-center">เน€เธยเน€เธเธเน€เธยเน€เธยเน€เธยเน€เธยเน€เธยเน€เธเธเน€เธเธเน€เธเธเน€เธเธ…เน€เธยเน€เธเธ“เน€เธเธเน€เธยเน€เธเธเน€เธย</div>;
 

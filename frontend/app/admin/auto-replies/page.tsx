@@ -159,20 +159,20 @@ export default function IntentsPage() {
                             [...Array(5)].map((_, i) => (
                                 <tr key={i} className="animate-pulse">
                                     <td className="px-5 py-4">
-                                        <div className="h-4 bg-border-default rounded w-32 mb-2 animate-pulse"></div>
-                                        <div className="h-3 bg-border-subtle rounded w-48"></div>
+                                        <div className="h-4 bg-muted rounded w-32 mb-2 animate-pulse"></div>
+                                        <div className="h-3 bg-muted/50 rounded w-48"></div>
                                     </td>
                                     <td className="px-5 py-4">
-                                        <div className="h-3 bg-border-subtle rounded w-40"></div>
+                                        <div className="h-3 bg-muted/50 rounded w-40"></div>
                                     </td>
                                     <td className="px-5 py-4 text-center">
-                                        <div className="mx-auto h-4 w-7 bg-border-default rounded-full"></div>
+                                        <div className="mx-auto h-4 w-7 bg-muted rounded-full"></div>
                                     </td>
                                     <td className="px-5 py-4">
                                         <div className="flex items-center justify-center gap-1">
-                                            <div className="h-8 w-8 bg-bg rounded-lg"></div>
-                                            <div className="h-8 w-8 bg-bg rounded-lg"></div>
-                                            <div className="h-8 w-8 bg-bg rounded-lg"></div>
+                                            <div className="h-8 w-8 bg-muted/50 rounded-lg"></div>
+                                            <div className="h-8 w-8 bg-muted/50 rounded-lg"></div>
+                                            <div className="h-8 w-8 bg-muted/50 rounded-lg"></div>
                                         </div>
                                     </td>
                                 </tr>
