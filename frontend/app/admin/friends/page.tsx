@@ -7,6 +7,7 @@ import { History, MoreVertical, RefreshCw, User } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import type { SelectOption } from '@/components/ui/Select';
 import { AdminSearchFilterBar } from '@/components/admin/AdminSearchFilterBar';
 import { AdminTableHead, type AdminTableHeadColumn } from '@/components/admin/AdminTableHead';
@@ -113,7 +114,9 @@ export default function FriendsPage() {
                         <tbody className="divide-y divide-border">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-12 text-center text-text-secondary">Loading friends...</td>
+                                    <td colSpan={6} className="px-6 py-12 text-center">
+                                        <LoadingSpinner size="sm" label="กำลังโหลด..." fullPage={false} />
+                                    </td>
                                 </tr>
                             ) : filteredFriends.length === 0 ? (
                                 <tr>

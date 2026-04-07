@@ -230,11 +230,11 @@ export function ConversationList() {
         {loading && conversations.length === 0 ? (
           <div className="space-y-2 p-2">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="flex gap-3 p-3 bg-white/5 rounded-xl animate-pulse">
-                <div className="w-10 h-10 bg-white/10 rounded-full" />
+              <div key={i} className="flex gap-3 p-3 bg-muted rounded-xl animate-pulse">
+                <div className="w-10 h-10 bg-muted rounded-full" />
                 <div className="flex-1 space-y-2 py-1">
-                  <div className="h-3 bg-white/10 rounded w-2/3" />
-                  <div className="h-2.5 bg-white/5 rounded w-full" />
+                  <div className="h-3 bg-muted rounded w-2/3" />
+                  <div className="h-2.5 bg-muted/50 rounded w-full" />
                 </div>
               </div>
             ))}

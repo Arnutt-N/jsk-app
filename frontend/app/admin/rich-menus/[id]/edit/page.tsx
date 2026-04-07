@@ -3,6 +3,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
+import { Loader2 } from 'lucide-react';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 interface RichMenuArea {
     bounds: { x: number; y: number; w: number; h: number };
@@ -126,11 +128,7 @@ export default function EditRichMenuPage() {
     };
 
     if (loading) {
-        return (
-            <div className="flex items-center justify-center p-24">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-            </div>
-        );
+        return <LoadingSpinner label="กำลังโหลด..." />;
     }
 
     return (
@@ -232,7 +230,7 @@ export default function EditRichMenuPage() {
                     >
                         {saving ? (
                             <>
-                                <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></span>
+                                <Loader2 className="h-4 w-4 animate-spin" />
                                 เน€เธยเน€เธเธ“เน€เธเธ…เน€เธเธ‘เน€เธยเน€เธยเน€เธเธ‘เน€เธยเน€เธโ€”เน€เธเธ–เน€เธย...
                             </>
                         ) : (

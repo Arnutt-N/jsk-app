@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Head from 'next/head'
 import Script from 'next/script'
 import { Province, District, SubDistrict } from '../../../types/location'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 
 // --- CONSTANTS ---
 const TOPIC_OPTIONS: Record<string, string[]> = {
@@ -284,10 +285,7 @@ export default function LiffServiceRequestV2() {
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-                    <p className="mt-4 text-gray-500">กำลังโหลด...</p>
-                </div>
+                <LoadingSpinner label="กำลังโหลด..." />
             </div>
         )
     }

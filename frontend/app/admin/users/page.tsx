@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/Input';
 import { Select, type SelectOption } from '@/components/ui/Select';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ModalAlert } from '@/components/ui/ModalAlert';
 import StatsCard from '../components/StatsCard';
 import { StaggerContainer, StaggerItem } from '@/components/ui/PageTransition';
@@ -442,11 +443,8 @@ export default function UsersPage() {
                         <tbody className="divide-y divide-border-default">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-16 text-center text-text-secondary">
-                                        <div className="flex flex-col items-center gap-2">
-                                            <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
-                                            <span>กำลังโหลด...</span>
-                                        </div>
+                                    <td colSpan={6} className="px-6 py-16 text-center">
+                                        <LoadingSpinner size="sm" label="กำลังโหลด..." fullPage={false} />
                                     </td>
                                 </tr>
                             ) : users.length === 0 ? (

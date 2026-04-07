@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Package, Tags, MessageSquare } from 'lucide-react';
 import PageAccessGuard from '@/components/admin/PageAccessGuard';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import StatsCard from '../components/StatsCard';
 import { StaggerContainer, StaggerItem } from '@/components/ui/PageTransition';
 
@@ -69,9 +70,7 @@ export default function ChatbotDashboard() {
     if (loading) {
         return (
             <PageAccessGuard allowedRoles={['SUPER_ADMIN', 'ADMIN']}>
-                <div className="flex min-h-[320px] items-center justify-center">
-                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-500 border-t-transparent" />
-                </div>
+                <LoadingSpinner />
             </PageAccessGuard>
         );
     }

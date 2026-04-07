@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { Alert } from '@/components/ui/Alert'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import {
     User,
     MessageSquare,
@@ -16,7 +17,8 @@ import {
     Upload,
     X,
     Shield,
-    Building2
+    Building2,
+    Loader2
 } from 'lucide-react'
 
 // --- CONSTANTS ---
@@ -337,10 +339,7 @@ export default function LiffServiceRequestSingle() {
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-bg">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-                    <p className="mt-4 text-gray-500 font-medium">กำลังโหลดระบบ...</p>
-                </div>
+                <LoadingSpinner label="กำลังโหลด..." />
             </div>
         )
     }
@@ -525,7 +524,7 @@ export default function LiffServiceRequestSingle() {
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
                                     <label htmlFor="district" className="label-text flex items-center gap-1">
-                                        อำเภอ/เขต <span className="text-red-500">*</span> {loadingDistricts && <div className="w-3 h-3 border-2 border-primary border-t-transparent animate-spin rounded-full"></div>}
+                                        อำเภอ/เขต <span className="text-red-500">*</span> {loadingDistricts && <Loader2 className="h-4 w-4 animate-spin text-brand-500" />}
                                     </label>
                                     <select
                                         id="district"
@@ -542,7 +541,7 @@ export default function LiffServiceRequestSingle() {
                                 </div>
                                 <div>
                                     <label htmlFor="sub_district" className="label-text flex items-center gap-1">
-                                        ตำบล/แขวง <span className="text-red-500">*</span> {loadingSubDistricts && <div className="w-3 h-3 border-2 border-primary border-t-transparent animate-spin rounded-full"></div>}
+                                        ตำบล/แขวง <span className="text-red-500">*</span> {loadingSubDistricts && <Loader2 className="h-4 w-4 animate-spin text-brand-500" />}
                                     </label>
                                     <select
                                         id="sub_district"

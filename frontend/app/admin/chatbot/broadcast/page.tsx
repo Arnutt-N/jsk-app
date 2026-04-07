@@ -201,8 +201,8 @@ export default function BroadcastListPage() {
                                 Array(5).fill(0).map((_, i) => (
                                     <tr key={i} className="animate-pulse">
                                         <td colSpan={6} className="px-6 py-8">
-                                            <div className="h-4 bg-gray-100 rounded-full w-3/4 mb-3 dark:bg-gray-700" />
-                                            <div className="h-3 bg-gray-50 rounded-full w-1/2 dark:bg-gray-700/50" />
+                                            <div className="h-4 bg-muted rounded-full w-3/4 mb-3" />
+                                            <div className="h-3 bg-muted/50 rounded-full w-1/2" />
                                         </td>
                                     </tr>
                                 ))

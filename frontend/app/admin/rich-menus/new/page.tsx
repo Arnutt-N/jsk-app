@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { Loader2 } from 'lucide-react';
 
 interface TemplateBounds {
     x: number;
@@ -569,7 +570,7 @@ export default function NewRichMenuPage() {
                             >
                                 {isSaving ? (
                                     <>
-                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                        <Loader2 className="h-4 w-4 animate-spin" />
                                         Processing...
                                     </>
                                 ) : (

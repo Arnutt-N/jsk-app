@@ -18,7 +18,8 @@ import {
     ChevronLeft,
     Upload,
     X,
-    Shield
+    Shield,
+    Loader2
 } from 'lucide-react'
 
 // --- CONSTANTS ---
@@ -665,7 +666,7 @@ export default function LiffServiceRequestV2() {
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
                                             <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide flex items-center gap-1">
-                                                อำเภอ/เขต <span className="text-red-500">*</span> {loadingDistricts && <div className="w-3 h-3 border-2 border-primary border-t-transparent animate-spin rounded-full"></div>}
+                                                อำเภอ/เขต <span className="text-red-500">*</span> {loadingDistricts && <Loader2 className="h-4 w-4 animate-spin text-brand-500" />}
                                             </label>
                                             <select
                                                 value={selectedDistrictId || ''}
@@ -689,7 +690,7 @@ export default function LiffServiceRequestV2() {
                                         </div>
                                         <div>
                                             <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide flex items-center gap-1">
-                                                ตำบล/แขวง <span className="text-red-500">*</span> {loadingSubDistricts && <div className="w-3 h-3 border-2 border-primary border-t-transparent animate-spin rounded-full"></div>}
+                                                ตำบล/แขวง <span className="text-red-500">*</span> {loadingSubDistricts && <Loader2 className="h-4 w-4 animate-spin text-brand-500" />}
                                             </label>
                                             <select
                                                 name="sub_district"

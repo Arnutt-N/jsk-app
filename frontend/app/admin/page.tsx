@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { FileText, Clock, Zap, CheckCircle2 } from 'lucide-react';
 import PageAccessGuard from '@/components/admin/PageAccessGuard';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { StaggerContainer, StaggerItem } from '@/components/ui/PageTransition';
 import StatsCard from './components/StatsCard';
 import ChartsWrapper from './components/ChartsWrapper';
@@ -113,9 +114,7 @@ export default function ServiceDashboard() {
     if (loading) {
         return (
             <PageAccessGuard allowedRoles={['SUPER_ADMIN', 'ADMIN']}>
-                <div className="flex min-h-[320px] items-center justify-center">
-                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-500 border-t-transparent" />
-                </div>
+                <LoadingSpinner />
             </PageAccessGuard>
         );
     }
