@@ -317,11 +317,11 @@ export default function AdminRequestList() {
                                         ) : (
                                             <button
                                                 onClick={() => handleAssign(req)}
-                                                className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50 p-1 rounded-full pr-2.5 border border-transparent hover:border-gray-200 transition-all group/assign dark:hover:bg-gray-700 dark:hover:border-gray-600"
+                                                className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50 p-1 rounded-full pr-2.5 border border-transparent hover:border-gray-200 transition-all whitespace-nowrap group/assign dark:hover:bg-gray-700 dark:hover:border-gray-600"
                                                 title="มอบหมายเจ้าหน้าที่"
                                             >
                                                 <div className="w-5 h-5 bg-gray-100 rounded-full flex items-center justify-center text-gray-400 group-hover/assign:bg-brand-500 group-hover/assign:text-white transition-colors shadow-sm dark:bg-gray-700">
-                                                    <UserPlus className="w-3 h-3" />
+                                                    <UserPlus className="w-4 h-4" />
                                                 </div>
                                                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider group-hover/assign:text-brand-600 transition-colors dark:text-gray-500 dark:group-hover/assign:text-brand-400">Assign</span>
                                             </button>
@@ -330,20 +330,20 @@ export default function AdminRequestList() {
                                     <td className="px-6 py-4 text-right">
                                         <div className="flex items-center justify-end gap-1">
                                             <ActionIconButton
-                                                icon={<Eye size={16} />}
+                                                icon={<Eye className="w-4 h-4" />}
                                                 label="เรียกดู"
                                                 variant="default"
                                                 onClick={() => handleView(req)}
                                             />
                                             <Link href={`/admin/requests/${req.id}`}>
                                                 <ActionIconButton
-                                                    icon={<SquarePen size={16} />}
+                                                    icon={<SquarePen className="w-4 h-4" />}
                                                     label="แก้ไข"
                                                     variant="warning"
                                                 />
                                             </Link>
                                             <ActionIconButton
-                                                icon={<Trash2 size={16} />}
+                                                icon={<Trash2 className="w-4 h-4" />}
                                                 label="ลบ"
                                                 variant="danger"
                                                 onClick={() => handleDelete(req)}

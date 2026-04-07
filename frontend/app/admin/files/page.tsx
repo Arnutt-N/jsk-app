@@ -16,6 +16,7 @@ import {
 import { ModalAlert } from '@/components/ui/ModalAlert';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { useToast } from '@/components/ui/Toast';
+import { ActionIconButton } from '@/components/ui/ActionIconButton';
 import { cn } from '@/lib/utils';
 import { StaggerContainer, StaggerItem } from '@/components/ui/PageTransition';
 import PageHeader from '../components/PageHeader';
@@ -443,14 +444,14 @@ export default function FilesPage() {
             <div className="flex items-center gap-2 flex-shrink-0">
               <span className="text-sm text-text-secondary">{selected.size} รายการ</span>
               <Button size="xs" variant="outline" onClick={bulkCreatePublic}>
-                <Link2 className="w-3.5 h-3.5 mr-1" />สร้างลิงก์
+                <Link2 className="w-4 h-4 mr-1 flex-shrink-0" />สร้างลิงก์
               </Button>
               <Button
                 size="xs"
                 variant="danger"
                 onClick={() => setDeleteConfirm({ ids: Array.from(selected), show: true })}
               >
-                <Trash2 className="w-3.5 h-3.5 mr-1" />ลบ
+                <Trash2 className="w-4 h-4 mr-1 flex-shrink-0" />ลบ
               </Button>
             </div>
           )}
@@ -581,34 +582,30 @@ export default function FilesPage() {
 
                           {/* Actions on hover */}
                           <div className="flex gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button
+                            <ActionIconButton
+                              icon={<Download className="w-4 h-4" />}
+                              label="ดาวน์โหลด"
+                              variant="default"
                               onClick={() => downloadFile(file)}
-                              className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-text-tertiary hover:text-text-primary"
-                              title="ดาวน์โหลด"
-                            >
-                              <Download className="w-3.5 h-3.5" />
-                            </button>
-                            <button
+                            />
+                            <ActionIconButton
+                              icon={<Link2 className="w-4 h-4" />}
+                              label="สร้างลิงก์"
+                              variant="default"
                               onClick={() => file.is_public ? setPublicLinkFile(file) : createPublicLink(file)}
-                              className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-text-tertiary hover:text-text-primary"
-                              title="สร้างลิงก์สาธารณะ"
-                            >
-                              <Link2 className="w-3.5 h-3.5" />
-                            </button>
-                            <button
+                            />
+                            <ActionIconButton
+                              icon={<Eye className="w-4 h-4" />}
+                              label="ดู"
+                              variant="default"
                               onClick={() => setPreviewFile(file)}
-                              className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-text-tertiary hover:text-text-primary"
-                              title="ดูตัวอย่าง"
-                            >
-                              <Eye className="w-3.5 h-3.5" />
-                            </button>
-                            <button
+                            />
+                            <ActionIconButton
+                              icon={<Trash2 className="w-4 h-4" />}
+                              label="ลบ"
+                              variant="danger"
                               onClick={() => setDeleteConfirm({ ids: [file.id], show: true })}
-                              className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-text-tertiary hover:text-red-500"
-                              title="ลบ"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                            />
                           </div>
                         </div>
                       </Card>
@@ -682,27 +679,24 @@ export default function FilesPage() {
                           )}
                         </div>
                         <div className="w-28 flex items-center justify-center gap-1">
-                          <button
+                          <ActionIconButton
+                            icon={<Download className="w-4 h-4" />}
+                            label="ดาวน์โหลด"
+                            variant="default"
                             onClick={() => downloadFile(file)}
-                            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-text-tertiary hover:text-text-primary"
-                            title="ดาวน์โหลด"
-                          >
-                            <Download className="w-4 h-4" />
-                          </button>
-                          <button
+                          />
+                          <ActionIconButton
+                            icon={<Link2 className="w-4 h-4" />}
+                            label="สร้างลิงก์"
+                            variant="default"
                             onClick={() => file.is_public ? setPublicLinkFile(file) : createPublicLink(file)}
-                            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-text-tertiary hover:text-text-primary"
-                            title="สร้างลิงก์สาธารณะ"
-                          >
-                            <Link2 className="w-4 h-4" />
-                          </button>
-                          <button
+                          />
+                          <ActionIconButton
+                            icon={<Trash2 className="w-4 h-4" />}
+                            label="ลบ"
+                            variant="danger"
                             onClick={() => setDeleteConfirm({ ids: [file.id], show: true })}
-                            className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-text-tertiary hover:text-red-500"
-                            title="ลบ"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          />
                         </div>
                       </div>
                     );

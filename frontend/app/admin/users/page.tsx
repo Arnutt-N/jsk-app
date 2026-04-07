@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ModalAlert } from '@/components/ui/ModalAlert';
+import { ActionIconButton } from '@/components/ui/ActionIconButton';
 import StatsCard from '../components/StatsCard';
 import { StaggerContainer, StaggerItem } from '@/components/ui/PageTransition';
 import PageHeader from '../components/PageHeader';
@@ -502,30 +503,27 @@ export default function UsersPage() {
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-right">
                                                 <div className="flex items-center justify-end gap-1">
-                                                    <button
+                                                    <ActionIconButton
+                                                        icon={<Edit2 className="w-4 h-4" />}
+                                                        label="แก้ไข"
+                                                        variant="default"
                                                         onClick={() => openEdit(u)}
-                                                        className="p-2 rounded-lg hover:bg-brand-50 dark:hover:bg-brand-900/20 text-text-tertiary hover:text-brand-600 transition-colors"
-                                                        title="แก้ไข"
-                                                    >
-                                                        <Edit2 className="w-4 h-4" />
-                                                    </button>
+                                                    />
                                                     {currentUser?.role === 'SUPER_ADMIN' && !isSelf && u.username && (
-                                                        <button
+                                                        <ActionIconButton
+                                                            icon={<Key className="w-4 h-4" />}
+                                                            label="รีเซ็ตรหัสผ่าน"
+                                                            variant="warning"
                                                             onClick={() => { setResetUser(u); setResetPassword(''); setResetError(''); }}
-                                                            className="p-2 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20 text-text-tertiary hover:text-amber-600 transition-colors"
-                                                            title="รีเซ็ตรหัสผ่าน"
-                                                        >
-                                                            <Key className="w-4 h-4" />
-                                                        </button>
+                                                        />
                                                     )}
                                                     {!isSelf && (
-                                                        <button
+                                                        <ActionIconButton
+                                                            icon={<Trash2 className="w-4 h-4" />}
+                                                            label="ลบ"
+                                                            variant="danger"
                                                             onClick={() => setDeleteUser(u)}
-                                                            className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-text-tertiary hover:text-red-600 transition-colors"
-                                                            title="ลบ"
-                                                        >
-                                                            <Trash2 className="w-4 h-4" />
-                                                        </button>
+                                                        />
                                                     )}
                                                 </div>
                                             </td>
