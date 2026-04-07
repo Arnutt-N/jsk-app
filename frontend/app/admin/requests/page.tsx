@@ -238,7 +238,7 @@ export default function AdminRequestList() {
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
                         <thead>
-                            <tr className="bg-gray-50/50 border-b border-gray-100 text-xs font-bold text-gray-500 uppercase tracking-wider dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-400">
+                            <tr className="bg-bg/50 border-b border-border-default text-xs font-bold text-text-tertiary uppercase tracking-wider">
                                 <th className="px-6 py-4">ข้อมูลผู้ยื่น / หัวข้อ</th>
                                 <th className="px-6 py-4">หน่วยงาน / พื้นที่</th>
                                 <th className="px-6 py-4">วันที่ยื่น</th>
@@ -247,7 +247,7 @@ export default function AdminRequestList() {
                                 <th className="px-6 py-4 text-right">จัดการ</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100 bg-white/40 dark:divide-gray-700 dark:bg-transparent">
+                        <tbody className="divide-y divide-border-default bg-surface/40">
                             {loading ? (
                                 Array(5).fill(0).map((_, i) => (
                                     <tr key={i} className="animate-pulse">
@@ -260,33 +260,33 @@ export default function AdminRequestList() {
                             ) : requests.length === 0 ? (
                                 <tr>
                                     <td colSpan={6} className="px-6 py-12 text-center">
-                                        <div className="flex flex-col items-center gap-3 text-gray-400 dark:text-gray-500">
+                                        <div className="flex flex-col items-center gap-3 text-text-tertiary">
                                             <AlertCircle className="w-12 h-12 opacity-20" />
                                             <p className="text-sm">ไม่พบข้อมูลคำร้อง</p>
                                         </div>
                                     </td>
                                 </tr>
                             ) : requests.map((req) => (
-                                <tr key={req.id} className="hover:bg-gray-50/50 transition-colors group dark:hover:bg-gray-700/30">
+                                <tr key={req.id} className="hover:bg-bg/50 transition-colors group">
                                     <td className="px-6 py-4">
                                         <div className="flex items-start gap-3">
                                             <div className="w-10 h-10 bg-brand-500/10 text-brand-600 rounded-lg flex items-center justify-center font-bold text-lg shrink-0 dark:bg-brand-500/20 dark:text-brand-400">
                                                 {req.firstname?.[0] || '?'}
                                             </div>
                                             <div>
-                                                <div className="text-sm font-bold text-gray-700 dark:text-gray-200">{req.firstname || 'ไม่ระบุชื่อ'} {req.lastname || ''}</div>
-                                                <div className="text-xs text-gray-500 mt-0.5 font-medium dark:text-gray-400">{req.topic_category}</div>
-                                                <div className="text-[10px] text-gray-400 uppercase tracking-tight dark:text-gray-500">{req.topic_subcategory}</div>
+                                                <div className="text-sm font-bold text-text-secondary">{req.firstname || 'ไม่ระบุชื่อ'} {req.lastname || ''}</div>
+                                                <div className="text-xs text-text-tertiary mt-0.5 font-medium">{req.topic_category}</div>
+                                                <div className="text-[10px] text-text-tertiary uppercase tracking-tight">{req.topic_subcategory}</div>
                                             </div>
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <div className="text-[11px] font-bold text-gray-600 dark:text-gray-300">{req.agency}</div>
-                                        <div className="text-[10px] text-gray-500 mt-0.5 dark:text-gray-400">{req.province} › {req.district}</div>
+                                        <div className="text-[11px] font-bold text-text-secondary">{req.agency}</div>
+                                        <div className="text-[10px] text-text-tertiary mt-0.5">{req.province} › {req.district}</div>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <div className="flex items-center gap-2 text-xs text-gray-600 font-medium dark:text-gray-300">
-                                            <Calendar className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
+                                        <div className="flex items-center gap-2 text-xs text-text-secondary font-medium">
+                                            <Calendar className="w-3.5 h-3.5 text-text-tertiary" />
                                             {new Date(req.created_at).toLocaleDateString('th-TH', {
                                                 day: '2-digit',
                                                 month: 'short',
@@ -305,25 +305,25 @@ export default function AdminRequestList() {
                                     <td className="px-6 py-4">
                                         {req.assignee_name ? (
                                             <div
-                                                className="flex items-center gap-2 cursor-pointer hover:bg-gray-100 p-1.5 rounded-lg -ml-1.5 transition-colors group/agent dark:hover:bg-gray-700"
+                                                className="flex items-center gap-2 cursor-pointer hover:bg-muted p-1.5 rounded-lg -ml-1.5 transition-colors group/agent"
                                                 onClick={() => handleAssign(req)}
                                                 title="คลิกเพื่อเปลี่ยนผู้รับผิดชอบ"
                                             >
                                                 <div className="w-6 h-6 bg-brand-100 rounded-full flex items-center justify-center text-[10px] font-bold text-brand-600 group-hover/agent:bg-brand-200 transition-colors dark:bg-brand-500/20 dark:text-brand-400">
                                                     {req.assignee_name[0]}
                                                 </div>
-                                                <span className="text-xs font-medium text-gray-600 group-hover/agent:text-brand-700 dark:text-gray-300">{req.assignee_name}</span>
+                                                <span className="text-xs font-medium text-text-secondary group-hover/agent:text-brand-700">{req.assignee_name}</span>
                                             </div>
                                         ) : (
                                             <button
                                                 onClick={() => handleAssign(req)}
-                                                className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50 p-1 rounded-full pr-2.5 border border-transparent hover:border-gray-200 transition-all whitespace-nowrap group/assign dark:hover:bg-gray-700 dark:hover:border-gray-600"
+                                                className="flex items-center gap-1.5 cursor-pointer hover:bg-bg p-1 rounded-full pr-2.5 border border-transparent hover:border-border-default transition-all whitespace-nowrap group/assign"
                                                 title="มอบหมายเจ้าหน้าที่"
                                             >
-                                                <div className="w-5 h-5 bg-gray-100 rounded-full flex items-center justify-center text-gray-400 group-hover/assign:bg-brand-500 group-hover/assign:text-white transition-colors shadow-sm dark:bg-gray-700">
+                                                <div className="w-5 h-5 bg-muted rounded-full flex items-center justify-center text-text-tertiary group-hover/assign:bg-brand-500 group-hover/assign:text-white transition-colors shadow-sm">
                                                     <UserPlus className="w-4 h-4" />
                                                 </div>
-                                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider group-hover/assign:text-brand-600 transition-colors dark:text-gray-500 dark:group-hover/assign:text-brand-400">Assign</span>
+                                                <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider group-hover/assign:text-brand-600 transition-colors">Assign</span>
                                             </button>
                                         )}
                                     </td>
@@ -357,8 +357,8 @@ export default function AdminRequestList() {
                 </div>
 
                 {/* Pagination Placeholder */}
-                <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/30 flex items-center justify-between dark:border-gray-700 dark:bg-gray-800/30">
-                    <p className="text-xs text-gray-500 font-medium dark:text-gray-400">Showing {requests.length} requests</p>
+                <div className="px-6 py-4 border-t border-border-default bg-bg/30 flex items-center justify-between">
+                    <p className="text-xs text-text-tertiary font-medium">Showing {requests.length} requests</p>
                     <div className="flex items-center gap-2">
                         <Button variant="outline" size="sm" className="h-8 w-8 p-0" disabled>
                             <ChevronLeft className="w-4 h-4" />
@@ -376,15 +376,15 @@ export default function AdminRequestList() {
                     <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="text-xs text-gray-500 dark:text-gray-400">ชื่อ-นามสกุล</label>
-                                <p className="text-sm font-bold text-gray-800 dark:text-gray-200">{selectedRequest.firstname} {selectedRequest.lastname}</p>
+                                <label className="text-xs text-text-tertiary">ชื่อ-นามสกุล</label>
+                                <p className="text-sm font-bold text-text-primary">{selectedRequest.firstname} {selectedRequest.lastname}</p>
                             </div>
                             <div>
-                                <label className="text-xs text-gray-500 dark:text-gray-400">หมวดหมู่</label>
-                                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{selectedRequest.topic_category}</p>
+                                <label className="text-xs text-text-tertiary">หมวดหมู่</label>
+                                <p className="text-sm font-medium text-text-secondary">{selectedRequest.topic_category}</p>
                             </div>
                             <div>
-                                <label className="text-xs text-gray-500 dark:text-gray-400">สถานะ</label>
+                                <label className="text-xs text-text-tertiary">สถานะ</label>
                                 <div className="mt-1">
                                     <Badge variant={getStatusStyles(selectedRequest.status).variant}>
                                         {getStatusStyles(selectedRequest.status).label}
@@ -392,18 +392,18 @@ export default function AdminRequestList() {
                                 </div>
                             </div>
                             <div>
-                                <label className="text-xs text-gray-500 dark:text-gray-400">วันที่ยื่น</label>
-                                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                <label className="text-xs text-text-tertiary">วันที่ยื่น</label>
+                                <p className="text-sm font-medium text-text-secondary">
                                     {new Date(selectedRequest.created_at).toLocaleDateString('th-TH')}
                                 </p>
                             </div>
                             <div className="col-span-2">
-                                <label className="text-xs text-gray-500 dark:text-gray-400">หน่วยงาน</label>
-                                <p className="text-sm text-gray-700 dark:text-gray-300">{selectedRequest.agency}</p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">{selectedRequest.province} › {selectedRequest.district}</p>
+                                <label className="text-xs text-text-tertiary">หน่วยงาน</label>
+                                <p className="text-sm text-text-secondary">{selectedRequest.agency}</p>
+                                <p className="text-xs text-text-tertiary">{selectedRequest.province} › {selectedRequest.district}</p>
                             </div>
                         </div>
-                        <div className="pt-4 border-t border-gray-100 flex justify-end dark:border-gray-700">
+                        <div className="pt-4 border-t border-border-default flex justify-end">
                             <Link href={`/admin/requests/${selectedRequest.id}`}>
                                 <Button className="gap-2">
                                     ดูรายละเอียดเต็ม <ChevronRight className="w-4 h-4" />
@@ -417,7 +417,7 @@ export default function AdminRequestList() {
             {/* Delete Modal */}
             <Modal isOpen={deleteModalOpen} onClose={() => setDeleteModalOpen(false)} title="ยืนยันการลบ" maxWidth="sm">
                 <div className="space-y-4">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                    <p className="text-sm text-text-secondary">
                         คุณต้องการลบคำร้องของ <b>{selectedRequest?.firstname} {selectedRequest?.lastname}</b> ใช่หรือไม่?
                         <br /><span className="text-xs text-red-500 mt-2 block">* การกระทำนี้ไม่สามารถย้อนกลับได้</span>
                     </p>

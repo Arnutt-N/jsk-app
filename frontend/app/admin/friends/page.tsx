@@ -81,7 +81,7 @@ export default function FriendsPage() {
     );
 
     return (
-        <div className="p-6 max-w-7xl mx-auto thai-text">
+        <div className="max-w-7xl mx-auto thai-text">
             <PageHeader title="ประวัติเพื่อน" subtitle="ประวัติการเพิ่มเพื่อนและการเปลี่ยนแปลง" className="mb-6">
                 <Link
                     href="/admin/friends/history"

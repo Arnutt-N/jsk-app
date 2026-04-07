@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { AssignModal } from '@/components/admin/AssignModal';
 import { Button } from '@/components/ui/Button';
+import { useToast } from '@/components/ui/Toast';
 import PageHeader from '../../components/PageHeader';
 
 // Interfaces for API Data
@@ -66,6 +67,7 @@ function getErrorMessage(error: unknown): string {
 
 export default function RequestDetailPage() {
     const params = useParams();
+    const { toast } = useToast();
     const [activeTab, setActiveTab] = useState('details');
     const [request, setRequest] = useState<ServiceRequestDetail | null>(null);
     // Local state for Manage Tab (Bulk Save)
@@ -140,7 +142,7 @@ export default function RequestDetailPage() {
             }
             await fetchDetail();
         } catch (err: unknown) {
-            alert(`Update Error: ${getErrorMessage(err)}`);
+            toast({ title: 'ผิดพลาด', description: getErrorMessage(err), variant: 'error' });
             throw err; // Re-throw to handle in caller
         }
     };
@@ -180,7 +182,7 @@ export default function RequestDetailPage() {
             }
 
             // 4. Success feedback
-            alert("เน€เธยเน€เธเธ‘เน€เธยเน€เธโ€”เน€เธเธ–เน€เธยเน€เธยเน€เธยเน€เธเธเน€เธเธเน€เธเธเน€เธเธ…เน€เธโฌเน€เธเธเน€เธเธ•เน€เธเธเน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธเน€เธยเน€เธเธ…เน€เธยเน€เธเธ");
+            toast({ title: 'สำเร็จ', description: 'บันทึกเรียบร้อย', variant: 'success' });
 
             // Note: fetchDetail() is called inside handleUpdateField, effectively syncing state
             // But if only comment was added, we might need to manually sync or rely on the fact that request didn't change.
@@ -192,7 +194,7 @@ export default function RequestDetailPage() {
             }
 
         } catch (err: unknown) {
-            alert(`Save Failed: ${getErrorMessage(err)}`);
+            toast({ title: 'ผิดพลาด', description: getErrorMessage(err), variant: 'error' });
         } finally {
             setLoading(false);
         }
@@ -223,7 +225,7 @@ export default function RequestDetailPage() {
             setNewComment('');
             fetchComments();
         } catch (err: unknown) {
-            alert(getErrorMessage(err));
+            toast({ title: 'ผิดพลาด', description: getErrorMessage(err), variant: 'error' });
         } finally {
             setSubmittingComment(false);
         }
@@ -254,15 +256,15 @@ export default function RequestDetailPage() {
     if (!request) return <div className="p-8 text-center">เน€เธยเน€เธเธเน€เธยเน€เธยเน€เธยเน€เธยเน€เธยเน€เธเธเน€เธเธเน€เธเธเน€เธเธ…เน€เธยเน€เธเธ“เน€เธเธเน€เธยเน€เธเธเน€เธย</div>;
 
     return (
-        <div className="p-4 md:p-8 font-sans text-slate-900 animate-in fade-in duration-500">
+        <div className="p-4 md:p-8 text-text-primary animate-in fade-in duration-500">
             <div className="max-w-5xl mx-auto">
 
                 {/* PageHeader */}
                 <PageHeader title={`#${request.id} ${request.topic_category}`}>
                     <Link href="/admin/requests">
-                        <button className="p-2 hover:bg-surface-hover rounded-xl border border-border-default text-text-secondary hover:text-text-primary transition-colors cursor-pointer">
-                            <ChevronLeft size={20} />
-                        </button>
+                        <Button variant="ghost" size="icon-sm">
+                            <ChevronLeft className="w-5 h-5" />
+                        </Button>
                     </Link>
                     <Button
                         variant="warning"
@@ -285,7 +287,7 @@ export default function RequestDetailPage() {
                 </PageHeader>
 
                 {/* Status & Priority Badges + Tab Card */}
-                <div className="bg-white rounded-t-2xl shadow-sm border-x border-t border-slate-200 p-4 md:p-6 mt-6">
+                <div className="bg-surface rounded-t-2xl shadow-sm border-x border-t border-border-default p-4 md:p-6 mt-6">
                     <div className="flex flex-wrap items-center gap-3">
                                     <span className={`px-3 py-1 rounded-lg text-[10px] font-bold border transition-all ${request.priority === 'URGENT' ? 'bg-rose-50 border-rose-200 text-rose-600' :
                                         request.priority === 'HIGH' ? 'bg-orange-50 border-orange-200 text-orange-600' :
@@ -302,13 +304,13 @@ export default function RequestDetailPage() {
                                         request.status === 'IN_PROGRESS' ? 'bg-blue-50 text-blue-700 ring-blue-200' :
                                             request.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' :
                                                 request.status === 'REJECTED' ? 'bg-rose-50 text-rose-700 ring-rose-200' :
-                                                    'bg-slate-50 text-slate-600 ring-slate-200' // Default / Null
+                                                    'bg-bg text-text-secondary ring-border-default' // Default / Null
                                         }`}>
                                         <div className={`w-1.5 h-1.5 rounded-full ${request.status === 'PENDING' ? 'bg-amber-500' :
                                             request.status === 'IN_PROGRESS' ? 'bg-blue-500' :
                                                 request.status === 'COMPLETED' ? 'bg-emerald-500' :
                                                     request.status === 'REJECTED' ? 'bg-rose-500' :
-                                                        'bg-slate-400'
+                                                        'bg-text-tertiary'
                                             }`}></div>
                                         {request.status === 'PENDING' ? 'เน€เธเธเน€เธเธเน€เธโ€เน€เธเธ“เน€เธโฌเน€เธยเน€เธเธ”เน€เธยเน€เธยเน€เธเธ’เน€เธเธ' :
                                             request.status === 'IN_PROGRESS' ? 'เน€เธยเน€เธเธ“เน€เธเธ…เน€เธเธ‘เน€เธยเน€เธโ€เน€เธเธ“เน€เธโฌเน€เธยเน€เธเธ”เน€เธยเน€เธยเน€เธเธ’เน€เธเธ' :
@@ -319,14 +321,14 @@ export default function RequestDetailPage() {
                 </div>
 
                 {/* Tab Navigation */}
-                <div className="bg-white border-x border-b border-slate-200 px-2 flex justify-center overflow-x-auto no-scrollbar">
+                <div className="bg-surface border-x border-b border-border-default px-2 flex justify-center overflow-x-auto no-scrollbar">
                     {tabs.map((tab) => (
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
                             className={`flex items-center gap-2 px-4 py-3 text-xs font-bold transition-all border-b-2 whitespace-nowrap outline-none cursor-pointer ${activeTab === tab.id
                                 ? 'border-primary text-primary'
-                                : 'border-transparent text-slate-400 hover:text-slate-600'
+                                : 'border-transparent text-text-tertiary hover:text-text-secondary'
                                 }`}
                         >
                             <tab.icon size={16} />
@@ -336,25 +338,25 @@ export default function RequestDetailPage() {
                 </div>
 
                 {/* Tab Content Area */}
-                <div className="bg-white rounded-b-2xl shadow-sm border-x border-b border-slate-200 p-8 min-h-[400px]">
+                <div className="bg-surface rounded-b-2xl shadow-sm border-x border-b border-border-default p-8 min-h-[400px]">
 
                     {/* 1. เน€เธเธเน€เธเธ’เน€เธเธเน€เธเธ…เน€เธเธเน€เธโฌเน€เธเธเน€เธเธ•เน€เธเธเน€เธโ€เน€เธยเน€เธเธ“เน€เธเธเน€เธยเน€เธเธเน€เธย */}
                     {activeTab === 'details' && (
                         <div className="space-y-6 animate-in fade-in duration-300">
                             {/* Card Header: Category info V2 */}
-                            <div className="pb-6 border-b border-slate-100 flex items-start gap-4">
+                            <div className="pb-6 border-b border-border-default flex items-start gap-4">
                                 <div className="w-12 h-12 bg-gradient-to-br from-primary to-primary-dark rounded-2xl flex items-center justify-center text-white shadow-primary/20 shadow-lg shrink-0">
                                     <CheckCircle2 size={24} />
                                 </div>
                                 <div className="flex items-center gap-6 h-12">
                                     <div className="flex flex-col justify-center h-full">
-                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">เน€เธเธเน€เธเธเน€เธเธเน€เธโ€เน€เธเธเน€เธเธเน€เธเธเน€เธย</span>
-                                        <span className="text-base font-bold text-slate-800">{request.topic_category}</span>
+                                        <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wide">เน€เธเธเน€เธเธเน€เธเธเน€เธโ€เน€เธเธเน€เธเธเน€เธเธเน€เธย</span>
+                                        <span className="text-base font-bold text-text-primary">{request.topic_category}</span>
                                     </div>
-                                    <div className="w-px h-8 bg-slate-200"></div>
+                                    <div className="w-px h-8 bg-border-default"></div>
                                     <div className="flex flex-col justify-center h-full">
-                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">เน€เธยเน€เธเธเน€เธเธเน€เธโฌเน€เธย เน€เธโ€”</span>
-                                        <span className="text-base font-bold text-slate-800">{request.topic_subcategory || "-"}</span>
+                                        <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wide">เน€เธยเน€เธเธเน€เธเธเน€เธโฌเน€เธย เน€เธโ€”</span>
+                                        <span className="text-base font-bold text-text-primary">{request.topic_subcategory || "-"}</span>
                                     </div>
                                 </div>
                             </div>
@@ -362,13 +364,13 @@ export default function RequestDetailPage() {
                             {/* 4-Item Info Grid - Equal Widths */}
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 py-2">
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">เน€เธเธเน€เธเธ‘เน€เธยเน€เธโ€”เน€เธเธ•เน€เธยเน€เธเธเน€เธเธ—เน€เธยเน€เธยเน€เธยเน€เธเธ“เน€เธเธเน€เธยเน€เธเธเน€เธย</label>
-                                    <div className="text-sm font-semibold text-slate-800">
+                                    <label className="text-xs font-bold text-text-tertiary uppercase tracking-wider">เน€เธเธเน€เธเธ‘เน€เธยเน€เธโ€”เน€เธเธ•เน€เธยเน€เธเธเน€เธเธ—เน€เธยเน€เธยเน€เธยเน€เธเธ“เน€เธเธเน€เธยเน€เธเธเน€เธย</label>
+                                    <div className="text-sm font-semibold text-text-primary">
                                         {new Date(request.created_at).toLocaleString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' })}
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">เน€เธเธเน€เธเธเน€เธโ€เน€เธเธ‘เน€เธยเน€เธยเน€เธเธเน€เธเธ’เน€เธเธเน€เธเธเน€เธเธ“เน€เธยเน€เธเธ‘เน€เธย</label>
+                                    <label className="text-xs font-bold text-text-tertiary uppercase tracking-wider">เน€เธเธเน€เธเธเน€เธโ€เน€เธเธ‘เน€เธยเน€เธยเน€เธเธเน€เธเธ’เน€เธเธเน€เธเธเน€เธเธ“เน€เธยเน€เธเธ‘เน€เธย</label>
                                     <div>
                                         <span className={`px-3 py-1 rounded-lg text-xs font-bold border inline-block text-center min-w-[80px] ${request.priority === 'URGENT' ? 'bg-rose-50 border-rose-200 text-rose-600' :
                                             request.priority === 'HIGH' ? 'bg-orange-50 border-orange-200 text-orange-600' :
@@ -383,39 +385,39 @@ export default function RequestDetailPage() {
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">เน€เธยเน€เธเธ“เน€เธเธเน€เธยเน€เธโ€เน€เธยเน€เธเธ…เน€เธยเน€เธเธเน€เธโฌเน€เธเธเน€เธเธเน€เธยเน€เธย</label>
-                                    <div className={`text-sm font-semibold ${request.due_date ? 'text-slate-800' : 'text-slate-400 italic'}`}>
+                                    <label className="text-xs font-bold text-text-tertiary uppercase tracking-wider">เน€เธยเน€เธเธ“เน€เธเธเน€เธยเน€เธโ€เน€เธยเน€เธเธ…เน€เธยเน€เธเธเน€เธโฌเน€เธเธเน€เธเธเน€เธยเน€เธย</label>
+                                    <div className={`text-sm font-semibold ${request.due_date ? 'text-text-primary' : 'text-text-tertiary italic'}`}>
                                         {request.due_date ? new Date(request.due_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' }) : 'เน€เธยเน€เธเธเน€เธยเน€เธยเน€เธโ€เน€เธยเน€เธยเน€เธเธ“เน€เธเธเน€เธยเน€เธโ€'}
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">เน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ‘เน€เธยเน€เธยเน€เธเธ”เน€เธโ€เน€เธยเน€เธเธเน€เธย</label>
-                                    <div className={`text-sm font-semibold ${request.assignee_name ? 'text-slate-800' : 'text-slate-400 italic'}`}>
+                                    <label className="text-xs font-bold text-text-tertiary uppercase tracking-wider">เน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ‘เน€เธยเน€เธยเน€เธเธ”เน€เธโ€เน€เธยเน€เธเธเน€เธย</label>
+                                    <div className={`text-sm font-semibold ${request.assignee_name ? 'text-text-primary' : 'text-text-tertiary italic'}`}>
                                         {request.assignee_name || "เน€เธเธเน€เธเธ‘เน€เธยเน€เธยเน€เธเธเน€เธยเน€เธยเน€เธโ€เน€เธยเน€เธเธเน€เธเธเน€เธยเน€เธเธเน€เธเธเน€เธเธ’เน€เธเธ"}
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="border-t border-slate-100"></div>
+                            <div className="border-t border-border-default"></div>
 
 
                             <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">เน€เธเธเน€เธเธ’เน€เธเธเน€เธเธ…เน€เธเธเน€เธโฌเน€เธเธเน€เธเธ•เน€เธเธเน€เธโ€เน€เธโฌเน€เธยเน€เธเธ”เน€เธยเน€เธเธเน€เธโฌเน€เธโ€ขเน€เธเธ”เน€เธเธ</label>
-                                <div className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm leading-relaxed whitespace-pre-wrap min-h-[100px]">
+                                <label className="text-xs font-bold text-text-tertiary uppercase tracking-wider">เน€เธเธเน€เธเธ’เน€เธเธเน€เธเธ…เน€เธเธเน€เธโฌเน€เธเธเน€เธเธ•เน€เธเธเน€เธโ€เน€เธโฌเน€เธยเน€เธเธ”เน€เธยเน€เธเธเน€เธโฌเน€เธโ€ขเน€เธเธ”เน€เธเธ</label>
+                                <div className="w-full px-4 py-3 bg-bg border border-border-default rounded-xl text-sm leading-relaxed whitespace-pre-wrap min-h-[100px]">
                                     {request.description || "เน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ•เน€เธเธเน€เธเธ’เน€เธเธเน€เธเธ…เน€เธเธเน€เธโฌเน€เธเธเน€เธเธ•เน€เธเธเน€เธโ€เน€เธโฌเน€เธยเน€เธเธ”เน€เธยเน€เธเธเน€เธโฌเน€เธโ€ขเน€เธเธ”เน€เธเธ"}
                                 </div>
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">เน€เธยเน€เธยเน€เธเธ…เน€เธยเน€เธยเน€เธยเน€เธย ({request.attachments?.length || 0})</label>
+                                <label className="text-xs font-bold text-text-tertiary uppercase tracking-wider">เน€เธยเน€เธยเน€เธเธ…เน€เธยเน€เธยเน€เธยเน€เธย ({request.attachments?.length || 0})</label>
                                 <div className="flex flex-wrap gap-2">
                                     {request.attachments?.map((file, idx) => (
-                                        <a key={idx} href={file.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 hover:border-primary/40 hover:text-primary hover:bg-primary/8 transition-all cursor-pointer">
+                                        <a key={idx} href={file.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3 py-2 bg-surface border border-border-default rounded-lg text-xs font-semibold text-text-secondary hover:border-primary/40 hover:text-primary hover:bg-primary/8 transition-all cursor-pointer">
                                             <Paperclip size={14} className="text-primary" /> {file.name}
                                         </a>
                                     ))}
                                     {(!request.attachments || request.attachments.length === 0) && (
-                                        <span className="text-xs text-slate-400 italic">เน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ•เน€เธยเน€เธยเน€เธเธ…เน€เธยเน€เธยเน€เธยเน€เธย</span>
+                                        <span className="text-xs text-text-tertiary italic">เน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ•เน€เธยเน€เธยเน€เธเธ…เน€เธยเน€เธยเน€เธยเน€เธย</span>
                                     )}
                                 </div>
                             </div>
@@ -425,32 +427,32 @@ export default function RequestDetailPage() {
                     {/* 2. เน€เธยเน€เธยเน€เธเธเน€เธเธเน€เธเธเน€เธเธ…เน€เธยเน€เธเธเน€เธยเน€เธโ€ขเน€เธเธ”เน€เธโ€เน€เธโ€ขเน€เธยเน€เธเธ */}
                     {activeTab === 'contact' && (
                         <div className="space-y-8 animate-in fade-in duration-300">
-                            <div className="flex flex-col items-center p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                            <div className="flex flex-col items-center p-6 bg-bg rounded-2xl border border-border-default">
                                 <div className="w-24 h-24 rounded-full border-4 border-white shadow-md mb-4 bg-primary/12 flex items-center justify-center text-primary text-3xl font-bold">
                                     {request.firstname[0]}
                                 </div>
-                                <h3 className="text-lg font-bold text-slate-800">{request.prefix}{request.firstname} {request.lastname}</h3>
+                                <h3 className="text-lg font-bold text-text-primary">{request.prefix}{request.firstname} {request.lastname}</h3>
                                 <p className="text-sm text-primary font-bold">{request.agency}</p>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="p-4 border border-slate-100 rounded-xl flex items-center gap-4">
+                                <div className="p-4 border border-border-default rounded-xl flex items-center gap-4">
                                     <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center shrink-0"><Building2 size={20} /></div>
                                     <div className="overflow-hidden">
-                                        <p className="text-xs font-bold text-slate-500 uppercase">เน€เธเธเน€เธยเน€เธยเน€เธเธเน€เธเธเน€เธยเน€เธเธ’เน€เธย / เน€เธโ€”เน€เธเธ•เน€เธยเน€เธเธเน€เธเธเน€เธเธเน€เธย</p>
+                                        <p className="text-xs font-bold text-text-tertiary uppercase">เน€เธเธเน€เธยเน€เธยเน€เธเธเน€เธเธเน€เธยเน€เธเธ’เน€เธย / เน€เธโ€”เน€เธเธ•เน€เธยเน€เธเธเน€เธเธเน€เธเธเน€เธย</p>
                                         <p className="text-sm font-bold truncate">{request.sub_district}, {request.district}, {request.province}</p>
                                     </div>
                                 </div>
-                                <div className="p-4 border border-slate-100 rounded-xl flex items-center gap-4">
+                                <div className="p-4 border border-border-default rounded-xl flex items-center gap-4">
                                     <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center shrink-0"><Phone size={20} /></div>
                                     <div>
-                                        <p className="text-xs font-bold text-slate-500 uppercase">เน€เธเธเน€เธเธเน€เธเธ’เน€เธเธเน€เธโฌเน€เธเธ…เน€เธยเน€เธยเน€เธโ€”เน€เธเธเน€เธเธเน€เธเธ‘เน€เธยเน€เธโ€”เน€เธย</p>
+                                        <p className="text-xs font-bold text-text-tertiary uppercase">เน€เธเธเน€เธเธเน€เธเธ’เน€เธเธเน€เธโฌเน€เธเธ…เน€เธยเน€เธยเน€เธโ€”เน€เธเธเน€เธเธเน€เธเธ‘เน€เธยเน€เธโ€”เน€เธย</p>
                                         <p className="text-sm font-bold">{request.phone_number}</p>
                                     </div>
                                 </div>
-                                <div className="p-4 border border-slate-100 rounded-xl flex items-center gap-4 md:col-span-2">
+                                <div className="p-4 border border-border-default rounded-xl flex items-center gap-4 md:col-span-2">
                                     <div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center shrink-0"><Mail size={20} /></div>
                                     <div>
-                                        <p className="text-xs font-bold text-slate-500 uppercase">เน€เธเธเน€เธเธ•เน€เธโฌเน€เธเธเน€เธเธ…</p>
+                                        <p className="text-xs font-bold text-text-tertiary uppercase">เน€เธเธเน€เธเธ•เน€เธโฌเน€เธเธเน€เธเธ…</p>
                                         <p className="text-sm font-bold">{request.email || "-"}</p>
                                     </div>
                                 </div>
@@ -463,9 +465,9 @@ export default function RequestDetailPage() {
                     {activeTab === 'comments' && (
                         <div className="space-y-8 animate-in fade-in duration-300 px-2">
                             {/* Timeline History */}
-                            <div className="relative pl-8 border-l-2 border-slate-100 space-y-8 ml-3">
+                            <div className="relative pl-8 border-l-2 border-border-default space-y-8 ml-3">
                                 {comments.length === 0 ? (
-                                    <div className="text-center py-10 text-slate-400 text-xs italic pl-4">เน€เธเธเน€เธเธ‘เน€เธยเน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ•เน€เธยเน€เธเธเน€เธเธเน€เธเธเน€เธเธ‘เน€เธโ€ขเน€เธเธ”เน€เธยเน€เธเธ’เน€เธเธเน€เธโ€เน€เธเธ“เน€เธโฌเน€เธยเน€เธเธ”เน€เธยเน€เธยเน€เธเธ’เน€เธย</div>
+                                    <div className="text-center py-10 text-text-tertiary text-xs italic pl-4">เน€เธเธเน€เธเธ‘เน€เธยเน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ•เน€เธยเน€เธเธเน€เธเธเน€เธเธเน€เธเธ‘เน€เธโ€ขเน€เธเธ”เน€เธยเน€เธเธ’เน€เธเธเน€เธโ€เน€เธเธ“เน€เธโฌเน€เธยเน€เธเธ”เน€เธยเน€เธยเน€เธเธ’เน€เธย</div>
                                 ) : comments.map((comment, i) => {
                                     // Determine styling based on user role/name
                                     const isSystem = comment.display_name?.toUpperCase() === 'SYSTEM';
@@ -473,7 +475,7 @@ export default function RequestDetailPage() {
 
                                     const dotColor = isSystem ? 'bg-amber-400 shadow-amber-100' :
                                         isAdmin ? 'bg-primary shadow-primary/10' :
-                                            'bg-slate-400 shadow-slate-100';
+                                            'bg-text-tertiary shadow-border-default';
 
                                     return (
                                         <div key={i} className="relative group">
@@ -482,16 +484,16 @@ export default function RequestDetailPage() {
 
                                             {/* Header */}
                                             <div className="flex items-center justify-between mb-2">
-                                                <span className={`text-xs font-bold uppercase tracking-wider ${isSystem ? 'text-amber-500' : isAdmin ? 'text-primary' : 'text-slate-600'}`}>
+                                                <span className={`text-xs font-bold uppercase tracking-wider ${isSystem ? 'text-amber-500' : isAdmin ? 'text-primary' : 'text-text-secondary'}`}>
                                                     {comment.display_name}
                                                 </span>
-                                                <span className="text-[10px] font-bold text-slate-300">
+                                                <span className="text-[10px] font-bold text-text-tertiary">
                                                     {new Date(comment.created_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}, {new Date(comment.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
                                                 </span>
                                             </div>
 
                                             {/* Content Bubble */}
-                                            <div className="bg-slate-50 border border-slate-100 rounded-2xl rounded-tl-sm p-4 text-sm text-slate-600 leading-relaxed shadow-sm group-hover:bg-white group-hover:border-slate-200 group-hover:shadow-md transition-all">
+                                            <div className="bg-bg border border-border-default rounded-2xl rounded-tl-sm p-4 text-sm text-text-secondary leading-relaxed shadow-sm group-hover:bg-surface group-hover:border-border-default group-hover:shadow-md transition-all">
                                                 {comment.content}
                                             </div>
                                         </div>
@@ -500,17 +502,17 @@ export default function RequestDetailPage() {
                             </div>
 
                             {/* Divider */}
-                            <div className="border-t border-slate-100 my-8"></div>
+                            <div className="border-t border-border-default my-8"></div>
 
                             {/* Comment Input */}
-                            <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
-                                <h4 className="text-sm font-bold text-slate-700 mb-4">เน€เธโฌเน€เธยเน€เธเธ”เน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ’เน€เธเธเน€เธโฌเน€เธเธเน€เธยเน€เธย</h4>
+                            <div className="bg-surface rounded-2xl border border-border-default p-6 shadow-sm">
+                                <h4 className="text-sm font-bold text-text-secondary mb-4">เน€เธโฌเน€เธยเน€เธเธ”เน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ’เน€เธเธเน€เธโฌเน€เธเธเน€เธยเน€เธย</h4>
                                 <div className="space-y-4">
                                     <textarea
                                         value={newComment}
                                         onChange={(e) => setNewComment(e.target.value)}
                                         placeholder="เน€เธยเน€เธเธ”เน€เธเธเน€เธยเน€เธยเน€เธยเน€เธเธเน€เธเธ’เน€เธเธเน€เธโฌเน€เธเธเน€เธยเน€เธยเน€เธเธเน€เธเธเน€เธเธ—เน€เธเธเน€เธยเน€เธเธ‘เน€เธยเน€เธโ€”เน€เธเธ–เน€เธยเน€เธยเน€เธเธ’เน€เธเธเน€เธโ€เน€เธเธ“เน€เธโฌเน€เธยเน€เธเธ”เน€เธยเน€เธยเน€เธเธ’เน€เธย..."
-                                        className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all resize-none min-h-[120px]"
+                                        className="w-full p-4 bg-bg border border-border-default rounded-xl text-sm outline-none focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all resize-none min-h-[120px]"
                                     ></textarea>
                                     <div className="flex justify-end">
                                         <button
@@ -534,10 +536,10 @@ export default function RequestDetailPage() {
                             <div className="space-y-3">
                                 {/* Labels Row */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                                    <label className="text-xs font-bold text-text-tertiary uppercase tracking-wider flex items-center gap-2">
                                         <Activity size={14} className="text-cyan-500" /> เน€เธเธเน€เธโ€“เน€เธเธ’เน€เธยเน€เธเธเน€เธยเน€เธเธ“เน€เธเธเน€เธยเน€เธเธเน€เธย
                                     </label>
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                                    <label className="text-xs font-bold text-text-tertiary uppercase tracking-wider flex items-center gap-2">
                                         <Flag size={14} className="text-amber-500" /> เน€เธเธเน€เธเธเน€เธโ€เน€เธเธ‘เน€เธยเน€เธยเน€เธเธเน€เธเธ’เน€เธเธเน€เธเธเน€เธเธ“เน€เธยเน€เธเธ‘เน€เธย
                                     </label>
                                 </div>
@@ -557,10 +559,10 @@ export default function RequestDetailPage() {
                                                 onClick={() => setManageFormData(prev => ({ ...prev, status: s.value }))}
                                                 className={`flex-1 px-2 py-2.5 text-[11px] font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1 border whitespace-nowrap ${manageFormData.status === s.value
                                                     ? s.activeClass
-                                                    : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                                                    : 'bg-surface text-text-tertiary border-border-default hover:border-text-tertiary hover:bg-bg'
                                                     }`}
                                             >
-                                                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${manageFormData.status === s.value ? s.dotClass : 'bg-slate-300'}`}></span>
+                                                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${manageFormData.status === s.value ? s.dotClass : 'bg-text-tertiary'}`}></span>
                                                 {s.label}
                                             </button>
                                         ))}
@@ -582,7 +584,7 @@ export default function RequestDetailPage() {
                                                         p.value === 'HIGH' ? 'bg-orange-50 text-orange-700 border-orange-400' :
                                                             p.value === 'MEDIUM' ? 'bg-yellow-50 text-yellow-700 border-yellow-400' :
                                                                 'bg-emerald-50 text-emerald-700 border-emerald-400')
-                                                    : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                                                    : 'bg-surface text-text-tertiary border-border-default hover:border-text-tertiary hover:bg-bg'
                                                     }`}
                                             >
                                                 {p.label}
@@ -595,25 +597,25 @@ export default function RequestDetailPage() {
                             {/* Row 2: Assignment + Due Date */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                                 <div className="space-y-3">
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                                    <label className="text-xs font-bold text-text-tertiary uppercase tracking-wider flex items-center gap-2">
                                         <UserPlus size={14} className="text-primary" /> เน€เธเธเน€เธเธเน€เธยเน€เธเธเน€เธเธเน€เธเธ’เน€เธเธเน€เธยเน€เธเธ’เน€เธยเน€เธยเน€เธเธเน€เธย
                                     </label>
                                     <div
                                         onClick={() => setAssignModalOpen(true)}
-                                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold cursor-pointer hover:bg-slate-100 transition-colors flex justify-between items-center"
+                                        className="w-full px-4 py-2.5 bg-bg border border-border-default rounded-lg text-sm font-bold cursor-pointer hover:bg-bg transition-colors flex justify-between items-center"
                                     >
                                         <span>{request.assignee_name || "เน€เธโฌเน€เธเธ…เน€เธเธ—เน€เธเธเน€เธยเน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ‘เน€เธยเน€เธยเน€เธเธ”เน€เธโ€เน€เธยเน€เธเธเน€เธย..."}</span>
-                                        <Settings2 size={16} className="text-slate-400" />
+                                        <Settings2 size={16} className="text-text-tertiary" />
                                     </div>
                                 </div>
 
                                 <div className="space-y-3">
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                                    <label className="text-xs font-bold text-text-tertiary uppercase tracking-wider flex items-center gap-2">
                                         <Calendar size={14} className="text-amber-500" /> เน€เธยเน€เธเธ“เน€เธเธเน€เธยเน€เธโ€เน€เธโฌเน€เธเธเน€เธเธเน€เธยเน€เธย (Due Date)
                                     </label>
                                     <input
                                         type="date"
-                                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold outline-none cursor-pointer"
+                                        className="w-full px-4 py-2.5 bg-bg border border-border-default rounded-lg text-sm font-bold outline-none cursor-pointer"
                                         // Use Local State
                                         value={manageFormData.due_date}
                                         onChange={(e) => setManageFormData(prev => ({ ...prev, due_date: e.target.value }))}
@@ -623,22 +625,22 @@ export default function RequestDetailPage() {
 
                             {/* Row 3: Comment / Note Field */}
                             <div className="space-y-3">
-                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-                                    <MessageSquare size={14} className="text-slate-500" /> เน€เธยเน€เธเธ‘เน€เธยเน€เธโ€”เน€เธเธ–เน€เธยเน€เธยเน€เธยเน€เธเธเน€เธเธเน€เธยเน€เธเธ“ / เน€เธโฌเน€เธเธเน€เธโ€ขเน€เธเธเน€เธยเน€เธเธ…เน€เธยเน€เธเธ’เน€เธเธเน€เธโ€เน€เธเธ“เน€เธโฌเน€เธยเน€เธเธ”เน€เธยเน€เธยเน€เธเธ’เน€เธเธ
+                                <label className="text-xs font-bold text-text-tertiary uppercase tracking-wider flex items-center gap-2">
+                                    <MessageSquare size={14} className="text-text-tertiary" /> เน€เธยเน€เธเธ‘เน€เธยเน€เธโ€”เน€เธเธ–เน€เธยเน€เธยเน€เธยเน€เธเธเน€เธเธเน€เธยเน€เธเธ“ / เน€เธโฌเน€เธเธเน€เธโ€ขเน€เธเธเน€เธยเน€เธเธ…เน€เธยเน€เธเธ’เน€เธเธเน€เธโ€เน€เธเธ“เน€เธโฌเน€เธยเน€เธเธ”เน€เธยเน€เธยเน€เธเธ’เน€เธเธ
                                 </label>
                                 <textarea
                                     value={manageFormData.comment}
                                     onChange={(e) => setManageFormData(prev => ({ ...prev, comment: e.target.value }))}
                                     placeholder="เน€เธเธเน€เธเธเน€เธยเน€เธเธเน€เธเธเน€เธเธ’เน€เธเธเน€เธเธ…เน€เธเธเน€เธโฌเน€เธเธเน€เธเธ•เน€เธเธเน€เธโ€เน€เธยเน€เธเธ’เน€เธเธเน€เธโ€เน€เธเธ“เน€เธโฌเน€เธยเน€เธเธ”เน€เธยเน€เธยเน€เธเธ’เน€เธเธ, เน€เธโฌเน€เธเธเน€เธโ€ขเน€เธเธเน€เธยเน€เธเธ…เน€เธยเน€เธเธ’เน€เธเธเน€เธเธเน€เธยเน€เธโฌเน€เธเธ…เน€เธเธ”เน€เธย, เน€เธเธเน€เธเธเน€เธเธ—เน€เธเธเน€เธยเน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ’เน€เธเธเน€เธโ€“เน€เธเธ–เน€เธยเน€เธยเน€เธเธเน€เธยเน€เธโฌเน€เธยเน€เธเธ•เน€เธยเน€เธเธเน€เธเธเน€เธยเน€เธยเน€เธเธเน€เธย..."
-                                    className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all resize-none min-h-[100px]"
+                                    className="w-full p-4 bg-bg border border-border-default rounded-xl text-sm outline-none focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all resize-none min-h-[100px]"
                                 ></textarea>
                             </div>
 
                             {/* Action Buttons */}
-                            <div className="pt-6 border-t border-slate-100 flex justify-end gap-3">
+                            <div className="pt-6 border-t border-border-default flex justify-end gap-3">
                                 <button
                                     onClick={handleCancelManage}
-                                    className="px-5 py-2.5 bg-slate-100 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-200 transition-all cursor-pointer"
+                                    className="px-5 py-2.5 bg-muted text-text-secondary rounded-xl text-sm font-bold hover:bg-muted transition-all cursor-pointer"
                                 >
                                     เน€เธเธเน€เธยเน€เธโฌเน€เธเธ…เน€เธเธ”เน€เธย
                                 </button>
@@ -655,7 +657,7 @@ export default function RequestDetailPage() {
                 </div>
 
                 {/* Footer info */}
-                <div className="mt-6 px-4 flex justify-between items-center text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                <div className="mt-6 px-4 flex justify-between items-center text-[10px] text-text-tertiary font-bold uppercase tracking-widest">
                     <p>เธขเธ 2026 Admin Portal</p>
                     <div className="flex gap-4">
                         <span className="cursor-pointer hover:text-primary">Manual</span>

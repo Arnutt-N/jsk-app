@@ -7,6 +7,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import PageHeader from '@/app/admin/components/PageHeader';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { useToast } from '@/components/ui/Toast';
 
 interface SettingItem {
     key: string;
@@ -24,6 +25,7 @@ interface ValidationResult {
 
 export default function LineSettingsPage() {
     const router = useRouter();
+    const { toast } = useToast();
     const [settings, setSettings] = useState({
         LINE_CHANNEL_ACCESS_TOKEN: '',
         LINE_CHANNEL_SECRET: '',
@@ -146,7 +148,7 @@ export default function LineSettingsPage() {
             setCanSave(false);
             setShowSaveSuccessModal(true);
         } catch {
-            alert('เกิดข้อผิดพลาดในการบันทึก');
+            toast({ title: 'ผิดพลาด', description: 'เกิดข้อผิดพลาดในการบันทึก', variant: 'error' });
         } finally {
             setProcessing(null);
         }
@@ -157,14 +159,14 @@ export default function LineSettingsPage() {
     }
 
     return (
-        <div className="thai-text space-y-5 animate-in fade-in duration-500">
+        <div className="thai-text space-y-6 animate-in fade-in duration-500">
             {/* Header */}
             <PageHeader title="LINE Messaging Settings" subtitle="ตั้งค่า Credentials สำหรับ LINE Official Account">
                 <Button
                     variant="ghost"
                     size="sm"
                     leftIcon={<ArrowLeft className="w-4 h-4" />}
-                    onClick={() => handleNavigationAttempt('/admin')}
+                    onClick={() => handleNavigationAttempt('/admin/settings')}
                 >
                     กลับ
                 </Button>
@@ -180,9 +182,9 @@ export default function LineSettingsPage() {
             </div>
 
             {/* Settings Card */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden dark:bg-gray-800 dark:border-gray-700">
-                <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-gray-50/50 dark:bg-gray-800/50 dark:border-gray-700">
-                    <h2 className="font-bold text-gray-800 dark:text-gray-100">Connection Settings</h2>
+            <div className="bg-surface rounded-2xl border border-border-default shadow-sm overflow-hidden">
+                <div className="flex justify-between items-center p-6 border-b border-border-default bg-bg/50">
+                    <h2 className="font-bold text-text-primary">Connection Settings</h2>
                     {!isEditing && (
                         <Button
                             variant="ghost"
@@ -198,13 +200,13 @@ export default function LineSettingsPage() {
                 <div className={`p-6 space-y-6 ${!isEditing ? 'opacity-75 pointer-events-none' : ''}`}>
                     {/* Channel Access Token */}
                     <div className="space-y-2">
-                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                        <label className="block text-sm font-semibold text-text-secondary">
                             Channel Access Token (Long-lived)
                         </label>
                         <input
                             type="password"
                             disabled={!isEditing}
-                            className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-500/30 focus:border-transparent outline-none transition-all disabled:opacity-75 disabled:cursor-not-allowed dark:bg-gray-900 dark:border-gray-600 dark:text-gray-100"
+                            className="w-full bg-bg border border-border-default rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-500/30 focus:border-transparent outline-none transition-all disabled:opacity-75 disabled:cursor-not-allowed"
                             value={settings.LINE_CHANNEL_ACCESS_TOKEN}
                             onChange={(e) => { setSettings({ ...settings, LINE_CHANNEL_ACCESS_TOKEN: e.target.value }); setCanSave(false); }}
                             placeholder="Enter your Channel Access Token"
@@ -213,13 +215,13 @@ export default function LineSettingsPage() {
 
                     {/* Channel Secret */}
                     <div className="space-y-2">
-                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                        <label className="block text-sm font-semibold text-text-secondary">
                             Channel Secret
                         </label>
                         <input
                             type="password"
                             disabled={!isEditing}
-                            className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-500/30 focus:border-transparent outline-none transition-all disabled:opacity-75 disabled:cursor-not-allowed dark:bg-gray-900 dark:border-gray-600 dark:text-gray-100"
+                            className="w-full bg-bg border border-border-default rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-500/30 focus:border-transparent outline-none transition-all disabled:opacity-75 disabled:cursor-not-allowed"
                             value={settings.LINE_CHANNEL_SECRET}
                             onChange={(e) => { setSettings({ ...settings, LINE_CHANNEL_SECRET: e.target.value }); setCanSave(false); }}
                             placeholder="Enter your Channel Secret"
@@ -229,7 +231,7 @@ export default function LineSettingsPage() {
 
                 {/* Footer Actions */}
                 {isEditing && (
-                    <div className="p-6 border-t border-gray-100 bg-gray-50 flex justify-end gap-3 dark:bg-gray-800/50 dark:border-gray-700">
+                    <div className="p-6 border-t border-border-default bg-bg flex justify-end gap-3">
                         <Button
                             variant="outline"
                             onClick={handleConnect}
@@ -269,10 +271,10 @@ export default function LineSettingsPage() {
                             <div className="w-14 h-14 bg-emerald-100 text-emerald-500 rounded-full flex items-center justify-center mb-4 dark:bg-emerald-500/10">
                                 <CheckCircle2 className="w-8 h-8" />
                             </div>
-                            <div className="w-full bg-gray-50 border border-gray-100 rounded-lg p-4 text-left mb-6 dark:bg-gray-800 dark:border-gray-700">
-                                <p className="text-xs text-gray-400 uppercase font-bold tracking-wider mb-1 dark:text-gray-500">Authenticated As</p>
-                                <p className="font-bold text-gray-700 text-lg dark:text-gray-200">{validationResult.botInfo?.displayName}</p>
-                                <p className="text-xs text-gray-400 font-mono truncate dark:text-gray-500">{validationResult.botInfo?.userId}</p>
+                            <div className="w-full bg-bg border border-border-default rounded-lg p-4 text-left mb-6">
+                                <p className="text-xs text-text-tertiary uppercase font-bold tracking-wider mb-1">Authenticated As</p>
+                                <p className="font-bold text-text-secondary text-lg">{validationResult.botInfo?.displayName}</p>
+                                <p className="text-xs text-text-tertiary font-mono truncate">{validationResult.botInfo?.userId}</p>
                             </div>
                             <Button className="w-full" onClick={() => setShowStatusModal(false)}>
                                 Close
@@ -283,8 +285,8 @@ export default function LineSettingsPage() {
                             <div className="w-12 h-12 bg-red-100 text-red-500 rounded-full flex items-center justify-center mb-3 dark:bg-red-500/10">
                                 <X className="w-6 h-6" />
                             </div>
-                            <h4 className="text-lg font-bold text-gray-800 mb-1 dark:text-gray-200">Connection Failed</h4>
-                            <p className="text-sm text-gray-500 mb-4 px-2 break-all dark:text-gray-400">
+                            <h4 className="text-lg font-bold text-text-primary mb-1">Connection Failed</h4>
+                            <p className="text-sm text-text-tertiary mb-4 px-2 break-all">
                                 {validationResult?.error}
                             </p>
                             <Button variant="ghost" onClick={() => setShowStatusModal(false)}>
@@ -303,7 +305,7 @@ export default function LineSettingsPage() {
                 maxWidth="sm"
             >
                 <div className="text-center p-2">
-                    <p className="text-gray-600 mb-6 text-sm dark:text-gray-400">
+                    <p className="text-text-secondary mb-6 text-sm">
                         You have unsaved changes. Are you sure you want to leave?
                     </p>
                     <div className="flex gap-3 justify-center">
@@ -328,7 +330,7 @@ export default function LineSettingsPage() {
                     <div className="w-14 h-14 bg-brand-50 text-brand-600 rounded-full flex items-center justify-center mb-4 dark:bg-brand-500/10 dark:text-brand-400">
                         <CheckCircle2 className="w-8 h-8" />
                     </div>
-                    <p className="text-gray-600 mb-6 dark:text-gray-400">
+                    <p className="text-text-secondary mb-6">
                         บันทึกข้อมูลการเชื่อมต่อเรียบร้อยแล้ว
                     </p>
                     <Button className="w-full" onClick={() => setShowSaveSuccessModal(false)}>
