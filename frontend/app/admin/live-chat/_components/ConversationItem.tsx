@@ -1,7 +1,7 @@
 'use client';
 
 import React, { memo } from 'react';
-import { Archive, Bot, Eye, MoreVertical, Star, User, Volume2, VolumeX } from 'lucide-react';
+import { Archive, Bot, CheckCheck, Eye, MoreVertical, Pin, ShieldAlert, Star, Trash2, User, VolumeX } from 'lucide-react';
 
 import type { Conversation } from '../_types';
 
@@ -149,6 +149,20 @@ export const ConversationItem = memo(function ConversationItem({
               onClick={(e) => { e.stopPropagation(); setMenuOpen(false); }}
               className="flex items-center gap-2.5 px-3 py-2 text-xs text-text-secondary hover:bg-muted w-full text-left cursor-pointer"
             >
+              <Pin className="w-3.5 h-3.5 text-text-tertiary" />
+              ปักหมุด
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); setMenuOpen(false); }}
+              className="flex items-center gap-2.5 px-3 py-2 text-xs text-text-secondary hover:bg-muted w-full text-left cursor-pointer"
+            >
+              <CheckCheck className="w-3.5 h-3.5 text-text-tertiary" />
+              ทำเครื่องหมายว่าอ่านแล้ว
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); setMenuOpen(false); }}
+              className="flex items-center gap-2.5 px-3 py-2 text-xs text-text-secondary hover:bg-muted w-full text-left cursor-pointer"
+            >
               <VolumeX className="w-3.5 h-3.5 text-text-tertiary" />
               ปิดเสียงแจ้งเตือน
             </button>
@@ -158,6 +172,21 @@ export const ConversationItem = memo(function ConversationItem({
             >
               <Archive className="w-3.5 h-3.5 text-text-tertiary" />
               ซ่อนสนทนา
+            </button>
+            <div className="border-t border-border-default my-1" />
+            <button
+              onClick={(e) => { e.stopPropagation(); setMenuOpen(false); }}
+              className="flex items-center gap-2.5 px-3 py-2 text-xs text-text-secondary hover:bg-muted w-full text-left cursor-pointer"
+            >
+              <ShieldAlert className="w-3.5 h-3.5 text-text-tertiary" />
+              ทำเครื่องหมายว่าสแปม
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); setMenuOpen(false); }}
+              className="flex items-center gap-2.5 px-3 py-2 text-xs text-danger hover:bg-danger/5 w-full text-left cursor-pointer"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              ลบ
             </button>
           </div>
         )}

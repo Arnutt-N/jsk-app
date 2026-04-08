@@ -24,3 +24,8 @@ class MessageResponse(BaseModel):
     operator_name: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True, use_enum_values=True)
+
+
+class MessagePage(BaseModel):
+    messages: list[MessageResponse]
+    has_more: bool

@@ -17,6 +17,7 @@ from app.models.user import ChatMode, User
 from app.core.websocket_manager import ws_manager
 from app.schemas.ws_events import WSEventType
 from app.schemas.ws_events import TransferSessionPayload
+from app.schemas.message import MessagePage, MessageResponse
 from app.services.analytics_service import analytics_service
 from app.services.friend_service import friend_service
 from app.services.line_service import line_service
@@ -130,7 +131,7 @@ async def get_conversation(
         raise HTTPException(status_code=404, detail="User not found")
     return detail
 
-@router.get("/conversations/{line_user_id}/messages")
+@router.get("/conversations/{line_user_id}/messages", response_model=MessagePage)
 async def get_conversation_messages(
     line_user_id: str,
     before_id: Optional[int] = None,
@@ -139,11 +140,15 @@ async def get_conversation_messages(
     _current_user: User = Depends(deps.get_current_staff),
 ) -> Any:
     """Get paginated conversation messages with cursor-based pagination."""
-    return await live_chat_service.get_messages_paginated(
+    result = await live_chat_service.get_messages_paginated(
         line_user_id=line_user_id,
         before_id=before_id,
         limit=limit,
         db=db,
+    )
+    return MessagePage(
+        messages=[MessageResponse.model_validate(m) for m in result["messages"]],
+        has_more=result["has_more"],
     )
 
 @router.post("/conversations/{line_user_id}/messages")
