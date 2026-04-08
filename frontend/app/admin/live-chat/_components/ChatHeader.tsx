@@ -101,11 +101,11 @@ export function ChatHeader({
                   ? 'gradient-active text-white shadow-md shadow-brand-900/20'
                   : 'text-text-tertiary hover:text-text-primary'
               }`}
-              aria-label="Switch to Auto (Bot) mode"
+              aria-label="Switch to Bot mode"
               aria-pressed={isBot}
             >
               <Zap className="h-3.5 w-3.5" />
-              Auto
+              Bot
             </button>
             <button
               onClick={() => onToggleMode('HUMAN')}

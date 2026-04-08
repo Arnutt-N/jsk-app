@@ -95,12 +95,11 @@ export function MessageInput({
 
   return (
     <footer className="bg-surface border-t border-border-default relative thai-text">
-      {/* Bot mode indicator */}
+      {/* Bot mode indicator — inline bar */}
       {!isHumanMode && (
-        <div className="absolute -top-10 left-0 right-0 flex justify-center pointer-events-none z-10">
-          <span className="px-3 py-1.5 bg-black/75 text-white backdrop-blur-sm text-xs font-semibold rounded-full shadow-lg flex items-center gap-1.5 thai-no-break animate-fade-in-up">
-            <Bot className="w-3.5 h-3.5" />Bot is handling
-          </span>
+        <div className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-info/10 border-b border-info/20 text-info text-xs font-semibold thai-no-break">
+          <Bot className="w-3.5 h-3.5" />
+          Bot กำลังตอบอัตโนมัติ
         </div>
       )}
 
