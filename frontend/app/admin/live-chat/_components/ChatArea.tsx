@@ -220,6 +220,14 @@ export function ChatArea() {
             </div>
             <p className="text-text-primary font-semibold text-base mb-1 thai-no-break">Select a Conversation</p>
             <p className="text-text-tertiary text-sm">Choose from the sidebar to start chatting</p>
+            {wsStatus !== 'connected' && (
+              <div className="mt-4 mx-auto max-w-xs px-4 py-3 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl flex items-center gap-2.5 text-sm">
+                <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                <span className="text-amber-700 dark:text-amber-300">
+                  {wsStatus === 'reconnecting' ? 'กำลังเชื่อมต่อใหม่...' : 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้'}
+                </span>
+              </div>
+            )}
             <div className="flex gap-6 justify-center mt-6">
               <div>
                 <div className="text-2xl font-bold text-text-primary">{waitingCount}</div>
