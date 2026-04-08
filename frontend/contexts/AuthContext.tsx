@@ -78,7 +78,7 @@ async function readErrorMessage(response: Response): Promise<string> {
 }
 
 async function waitBeforeRetry(attempt: number): Promise<void> {
-  await new Promise((resolve) => window.setTimeout(resolve, attempt * 350));
+  await new Promise((resolve) => window.setTimeout(resolve, 800 + attempt * 500));
 }
 
 /**
@@ -166,7 +166,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(async (username: string, password: string) => {
     setIsLoading(true);
     try {
-      const maxAttempts = 3;
+      const maxAttempts = 4;
 
       for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
         try {
