@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react';
 import Link from 'next/link';
-import { Archive, Home, Inbox, MessageSquarePlus, Search, Users } from 'lucide-react';
+import { Archive, Home, Inbox, LogOut, MessageSquarePlus, Search, Users } from 'lucide-react';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useLiveChatStore } from '../_store/liveChatStore';
@@ -34,7 +34,7 @@ export function ConversationList() {
   const setActiveActionMenu = useLiveChatStore((s) => s.setActiveActionMenu);
 
   // Auth context
-  const { token } = useAuth();
+  const { token, logout } = useAuth();
 
   // API methods from Context
   const { formatTime, selectConversation, jumpToMessage, fetchConversations } = useLiveChatContext();
@@ -134,6 +134,14 @@ export function ConversationList() {
           title="เริ่มแชทใหม่"
         >
           <MessageSquarePlus className="w-5 h-5" />
+        </button>
+        <button
+          onClick={() => logout()}
+          className="w-10 h-10 rounded-xl bg-white/10 hover:bg-red-500/30 flex items-center justify-center text-sidebar-text-muted hover:text-white transition-all flex-shrink-0"
+          aria-label="ออกจากระบบ"
+          title="ออกจากระบบ"
+        >
+          <LogOut className="w-4 h-4" />
         </button>
       </div>
 

@@ -154,7 +154,7 @@ export default function BroadcastListPage() {
                 <Link href="/admin/chatbot/broadcast/new">
                     <Button className="gap-2">
                         <Plus className="w-4 h-4" />
-                        สร้างข้อความใหม่
+                        สร้างข้อความ
                     </Button>
                 </Link>
             </PageHeader>

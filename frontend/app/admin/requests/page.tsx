@@ -20,6 +20,7 @@ import {
     SquarePen,
     Trash2,
     Plus,
+    RefreshCw,
 } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { AssignModal } from '@/components/admin/AssignModal';
@@ -175,7 +176,7 @@ export default function AdminRequestList() {
                     </Link>
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => fetchRequests()}>
-                    Refresh
+                    <RefreshCw className="w-4 h-4" />
                 </Button>
             </PageHeader>
 
