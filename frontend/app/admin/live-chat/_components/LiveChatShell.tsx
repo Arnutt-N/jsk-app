@@ -33,26 +33,7 @@ export function LiveChatShell() {
       {/* Toast notifications */}
       <NotificationToast />
 
-      {/* Connection lost banner */}
-      {!backendOnline && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[60]">
-          <div className="bg-surface border border-danger/30 text-danger px-5 py-2.5 rounded-2xl shadow-xl flex items-center gap-3 text-sm font-medium thai-text backdrop-blur-md">
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-danger opacity-75" />
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-danger" />
-            </span>
-            <span className="thai-no-break text-text-secondary">ขาดการเชื่อมต่อ</span>
-            <button
-              onClick={fetchConversations}
-              className="ml-1 px-3 py-1 text-xs font-semibold rounded-lg bg-danger/10 hover:bg-danger/20 text-danger transition-colors focus-ring"
-              aria-label="ลองเชื่อมต่อใหม่"
-            >
-              <RefreshCw className="w-3.5 h-3.5 inline mr-1" />
-              ลองใหม่
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Connection lost is now shown inline in ChatArea */}
 
       {/* 3-Column Layout: Conversation List (dark) | Chat Area (light) | Customer Panel (optional) */}
       <div className="flex h-screen w-full bg-bg overflow-hidden font-sans">

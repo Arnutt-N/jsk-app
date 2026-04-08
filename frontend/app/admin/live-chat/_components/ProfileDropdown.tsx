@@ -43,15 +43,15 @@ export function ProfileDropdown() {
 
   return (
     <div ref={ref} className="relative">
-      {/* Trigger — Avatar button */}
+      {/* Trigger — Avatar with online status dot */}
       <button
         onClick={() => setOpen(!open)}
-        className="w-9 h-9 rounded-full ring-2 ring-white/20 hover:ring-brand-400/50 transition-all"
+        className="cursor-pointer rounded-full ring-2 ring-white/20 hover:ring-brand-400/50 transition-all"
         aria-label="Open profile menu"
         aria-expanded={open}
         aria-haspopup="menu"
       >
-        <Avatar size="sm" fallback={initials} />
+        <Avatar size="sm" fallback={initials} status="online" />
       </button>
 
       {/* Dropdown panel */}
@@ -62,7 +62,7 @@ export function ProfileDropdown() {
         >
           {/* User info + Theme toggle */}
           <div className="px-4 pt-4 pb-3 flex items-center gap-3">
-            <Avatar size="md" fallback={initials} />
+            <Avatar size="md" fallback={initials} status="online" />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-bold text-text-primary truncate">{displayName}</p>
               <p className="text-xs text-text-tertiary truncate capitalize">{user?.role?.toLowerCase().replace('_', ' ') || 'Admin'}</p>
@@ -73,7 +73,7 @@ export function ProfileDropdown() {
                 e.stopPropagation();
                 toggleTheme();
               }}
-              className="w-9 h-9 rounded-xl border border-border-default bg-bg hover:bg-muted flex items-center justify-center transition-colors"
+              className="w-9 h-9 rounded-xl border border-border-default bg-bg hover:bg-muted flex items-center justify-center transition-colors cursor-pointer"
               aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
             >
               {isDark ? (
@@ -95,7 +95,7 @@ export function ProfileDropdown() {
             <Link
               href="/admin"
               onClick={() => setOpen(false)}
-              className="flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary hover:bg-muted transition-colors"
+              className="flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary hover:bg-muted transition-colors cursor-pointer"
               role="menuitem"
             >
               <LayoutDashboard className="w-4 h-4 text-text-tertiary" />
@@ -104,7 +104,7 @@ export function ProfileDropdown() {
             <Link
               href="/admin/users"
               onClick={() => setOpen(false)}
-              className="flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary hover:bg-muted transition-colors"
+              className="flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary hover:bg-muted transition-colors cursor-pointer"
               role="menuitem"
             >
               <User className="w-4 h-4 text-text-tertiary" />
@@ -113,7 +113,7 @@ export function ProfileDropdown() {
             <Link
               href="/admin/settings"
               onClick={() => setOpen(false)}
-              className="flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary hover:bg-muted transition-colors"
+              className="flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary hover:bg-muted transition-colors cursor-pointer"
               role="menuitem"
             >
               <Settings className="w-4 h-4 text-text-tertiary" />
@@ -127,7 +127,7 @@ export function ProfileDropdown() {
           <div className="py-1.5">
             <button
               onClick={() => { setOpen(false); logout(); }}
-              className="flex items-center gap-3 px-4 py-2.5 text-sm text-danger hover:bg-danger/5 transition-colors w-full text-left"
+              className="flex items-center gap-3 px-4 py-2.5 text-sm text-danger hover:bg-danger/5 transition-colors w-full text-left cursor-pointer"
               role="menuitem"
             >
               <LogOut className="w-4 h-4" />

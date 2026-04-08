@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef } from 'react';
-import { MessageSquare, Wifi, WifiOff } from 'lucide-react';
+import { AlertTriangle, Bell, MessageSquare, RefreshCw, Wifi, WifiOff } from 'lucide-react';
 
 import { ProfileDropdown } from './ProfileDropdown';
 
@@ -171,13 +171,13 @@ export function ChatArea() {
       <div className="flex-1 flex flex-col">
         <header className="h-20 px-5 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-border-default flex items-center justify-between">
           <span className="font-semibold text-text-primary text-sm">Live Chat Console</span>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             {/* Connection status pill */}
             <div
               className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border ${
                 wsStatus === 'connected'
                   ? 'bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400 border-green-200 dark:border-green-500/20'
-                  : wsStatus === 'disconnected' || wsStatus === 'error'
+                  : wsStatus === 'disconnected'
                     ? 'bg-red-50 dark:bg-red-500/10 text-red-500 dark:text-red-400 border-red-200 dark:border-red-500/20'
                     : 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-500/20'
               }`}
@@ -189,11 +189,27 @@ export function ChatArea() {
                 )}
                 <span className={`relative inline-flex rounded-full h-2 w-2 ${
                   wsStatus === 'connected' ? 'bg-green-500' :
-                  wsStatus === 'disconnected' || wsStatus === 'error' ? 'bg-red-500' : 'bg-amber-500'
+                  wsStatus === 'disconnected' ? 'bg-red-500' : 'bg-amber-500'
                 }`} />
               </span>
               {connectionStatus.label}
             </div>
+
+            {/* Notification bell — waiting conversations */}
+            <button
+              className="relative p-2 rounded-xl text-text-tertiary hover:text-brand-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all cursor-pointer"
+              aria-label={`${waitingCount} conversations waiting`}
+              title={`${waitingCount} รอรับเรื่อง`}
+            >
+              <Bell className="w-5 h-5" />
+              {waitingCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-danger text-white text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-white dark:ring-gray-900 animate-pulse">
+                  {waitingCount}
+                </span>
+              )}
+            </button>
+
+            <div className="w-px h-8 bg-gray-200 dark:bg-gray-700" />
             <ProfileDropdown />
           </div>
         </header>
@@ -284,6 +300,26 @@ export function ChatArea() {
         <TypingIndicator visible={typingUsersCount > 0} />
         <div ref={messagesEndRef} />
       </div>
+      {/* Inline connection warning — above message input */}
+      {wsStatus !== 'connected' && (
+        <div className="px-4 py-2.5 bg-amber-50 dark:bg-amber-500/10 border-t border-amber-200 dark:border-amber-500/20 flex items-center gap-2.5 thai-text">
+          <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+          <span className="text-sm text-amber-700 dark:text-amber-300 flex-1">
+            {wsStatus === 'reconnecting'
+              ? 'กำลังเชื่อมต่อใหม่...'
+              : 'ขาดการเชื่อมต่อ — ข้อความจะถูกเก็บไว้ส่งภายหลัง'}
+          </span>
+          {(wsStatus === 'disconnected') && (
+            <button
+              onClick={() => window.location.reload()}
+              className="px-3 py-1 text-xs font-semibold rounded-lg bg-amber-100 dark:bg-amber-500/20 hover:bg-amber-200 dark:hover:bg-amber-500/30 text-amber-700 dark:text-amber-300 transition-colors cursor-pointer flex items-center gap-1"
+            >
+              <RefreshCw className="w-3 h-3" />
+              ลองใหม่
+            </button>
+          )}
+        </div>
+      )}
       <MessageInput
         inputText={inputText}
         sending={sending}
