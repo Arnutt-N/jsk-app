@@ -2,9 +2,10 @@
 
 import React, { useMemo } from 'react';
 import Link from 'next/link';
-import { Archive, Home, Inbox, LogOut, MessageSquarePlus, Search, Users } from 'lucide-react';
+import { Archive, Home, Inbox, MessageSquarePlus, Search, Users } from 'lucide-react';
 
 import { useAuth } from '@/contexts/AuthContext';
+import { ProfileDropdown } from './ProfileDropdown';
 import { useLiveChatStore } from '../_store/liveChatStore';
 import { useConversations } from '../_hooks/useConversations';
 import { useLiveChatContext } from '../_context/LiveChatContext';
@@ -34,7 +35,7 @@ export function ConversationList() {
   const setActiveActionMenu = useLiveChatStore((s) => s.setActiveActionMenu);
 
   // Auth context
-  const { token, logout } = useAuth();
+  const { token } = useAuth();
 
   // API methods from Context
   const { formatTime, selectConversation, jumpToMessage, fetchConversations } = useLiveChatContext();
@@ -135,14 +136,7 @@ export function ConversationList() {
         >
           <MessageSquarePlus className="w-5 h-5" />
         </button>
-        <button
-          onClick={() => logout()}
-          className="w-10 h-10 rounded-xl bg-white/10 hover:bg-red-500/30 flex items-center justify-center text-sidebar-text-muted hover:text-white transition-all flex-shrink-0"
-          aria-label="ออกจากระบบ"
-          title="ออกจากระบบ"
-        >
-          <LogOut className="w-4 h-4" />
-        </button>
+        <ProfileDropdown />
       </div>
 
       {/* Search + Filter */}
@@ -294,19 +288,29 @@ export function ConversationList() {
       </div>
 
       {/* Summary bar */}
-      <div className="px-4 py-2.5 border-t border-white/10 bg-black/20 text-[11px] text-sidebar-fg/80 flex items-center justify-center gap-4">
-        <span className="flex items-center gap-1.5">
-          <span className="h-3 w-3 rounded-full bg-online" />
-          {activeCount} active
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="h-3 w-3 rounded-full bg-away" />
-          {waitingCount} waiting
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="h-3 w-3 rounded-full bg-offline" />
-          <span className="text-sidebar-text-muted">{closedCount} offline</span>
-        </span>
+      <div className="px-3 py-2 border-t border-white/10 bg-black/20">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-3 text-[11px]">
+            <span className="flex items-center gap-1.5 text-green-400">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-50" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-400" />
+              </span>
+              {activeCount}
+            </span>
+            <span className="flex items-center gap-1.5 text-amber-400">
+              <span className="h-2 w-2 rounded-full bg-amber-400" />
+              {waitingCount}
+            </span>
+            <span className="flex items-center gap-1.5 text-sidebar-text-muted">
+              <span className="h-2 w-2 rounded-full bg-white/20" />
+              {closedCount}
+            </span>
+          </div>
+          <span className="text-[10px] text-sidebar-text-muted font-medium">
+            {conversations.length} สนทนา
+          </span>
+        </div>
       </div>
       </div>
 
