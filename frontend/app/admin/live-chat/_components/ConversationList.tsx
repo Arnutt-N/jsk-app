@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { Archive, Home, Inbox, MessageSquarePlus, Search, Users } from 'lucide-react';
 
 import { useAuth } from '@/contexts/AuthContext';
-import { ProfileDropdown } from './ProfileDropdown';
 import { useLiveChatStore } from '../_store/liveChatStore';
 import { useConversations } from '../_hooks/useConversations';
 import { useLiveChatContext } from '../_context/LiveChatContext';
@@ -136,7 +135,6 @@ export function ConversationList() {
         >
           <MessageSquarePlus className="w-5 h-5" />
         </button>
-        <ProfileDropdown />
       </div>
 
       {/* Search + Filter */}

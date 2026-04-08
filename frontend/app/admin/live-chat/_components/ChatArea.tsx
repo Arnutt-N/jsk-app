@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef } from 'react';
-import { Home, MessageSquare, Wifi, WifiOff } from 'lucide-react';
-import Link from 'next/link';
+import { MessageSquare, Wifi, WifiOff } from 'lucide-react';
+
+import { ProfileDropdown } from './ProfileDropdown';
 
 import type { Message } from '@/lib/websocket/types';
 import { useLiveChatStore } from '../_store/liveChatStore';
@@ -168,16 +169,32 @@ export function ChatArea() {
     const activeCount = conversations.filter((c) => c.session?.status === 'ACTIVE').length;
     return (
       <div className="flex-1 flex flex-col">
-        <header className="h-20 px-5 bg-white/80 backdrop-blur-sm border-b border-border-default flex items-center justify-between">
+        <header className="h-20 px-5 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-border-default flex items-center justify-between">
           <span className="font-semibold text-text-primary text-sm">Live Chat Console</span>
           <div className="flex items-center gap-3">
-            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${connectionStatus.className}`} aria-live="polite">
-              <ConnIcon className="w-4 h-4" />
+            {/* Connection status pill */}
+            <div
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border ${
+                wsStatus === 'connected'
+                  ? 'bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400 border-green-200 dark:border-green-500/20'
+                  : wsStatus === 'disconnected' || wsStatus === 'error'
+                    ? 'bg-red-50 dark:bg-red-500/10 text-red-500 dark:text-red-400 border-red-200 dark:border-red-500/20'
+                    : 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-500/20'
+              }`}
+              aria-live="polite"
+            >
+              <span className="relative flex h-2 w-2">
+                {wsStatus === 'connected' && (
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-50" />
+                )}
+                <span className={`relative inline-flex rounded-full h-2 w-2 ${
+                  wsStatus === 'connected' ? 'bg-green-500' :
+                  wsStatus === 'disconnected' || wsStatus === 'error' ? 'bg-red-500' : 'bg-amber-500'
+                }`} />
+              </span>
               {connectionStatus.label}
             </div>
-            <Link href="/admin" className="px-3 py-1.5 bg-muted hover:bg-border-hover text-text-secondary rounded-xl text-xs font-medium flex items-center gap-1.5 transition-all">
-              <Home className="w-4 h-4" />Admin
-            </Link>
+            <ProfileDropdown />
           </div>
         </header>
         <div className="flex-1 flex items-center justify-center bg-bg thai-text">

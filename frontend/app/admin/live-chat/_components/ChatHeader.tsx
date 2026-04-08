@@ -12,6 +12,7 @@ import {
 import { Avatar } from '@/components/ui/Avatar';
 import type { CurrentChat } from '../_types';
 import { SessionActions } from './SessionActions';
+import { ProfileDropdown } from './ProfileDropdown';
 
 interface ChatHeaderProps {
   currentChat: CurrentChat | null;
@@ -142,6 +143,9 @@ export function ChatHeader({
           >
             {showCustomerPanel ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
           </button>
+
+          <div className="mx-1 hidden h-6 w-px bg-border-default sm:block" />
+          <ProfileDropdown />
         </div>
       </div>
     </header>
