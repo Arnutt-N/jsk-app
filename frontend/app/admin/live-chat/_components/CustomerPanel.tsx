@@ -89,7 +89,13 @@ export function CustomerPanel({
       {/* Profile section */}
       <div className="p-5 border-b border-border-default text-center">
         <div className="relative inline-block">
-          <Image src={currentChat.picture_url} width={80} height={80} className="w-20 h-20 rounded-full object-cover mx-auto ring-4 ring-surface shadow-md" alt={currentChat.display_name} />
+          {currentChat.picture_url ? (
+            <Image src={currentChat.picture_url} width={80} height={80} className="w-20 h-20 rounded-full object-cover mx-auto ring-4 ring-surface shadow-md" alt={currentChat.display_name} />
+          ) : (
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-brand-400 to-brand-700 flex items-center justify-center text-white text-2xl font-bold mx-auto ring-4 ring-surface shadow-md">
+              {currentChat.display_name?.charAt(0)?.toUpperCase() || '?'}
+            </div>
+          )}
           <div className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-surface ${isActive ? 'bg-online' : isWaiting ? 'bg-away' : 'bg-offline'}`} />
         </div>
         <p className="font-semibold text-text-primary text-sm mt-3 thai-no-break">{currentChat.display_name}</p>
