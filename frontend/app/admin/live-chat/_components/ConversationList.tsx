@@ -89,23 +89,23 @@ export function ConversationList() {
       <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 mix-blend-overlay pointer-events-none" />
 
       <div className="relative z-10 flex h-full flex-col">
-      {/* Header */}
-      <div className="h-16 px-3 border-b border-white/10 flex items-center">
+      {/* Header — matches admin layout h-20 and navbar height */}
+      <div className="h-20 px-4 border-b border-white/10 flex items-center">
         <Link
           href="/admin"
-          className="w-9 h-9 rounded-xl gradient-active flex items-center justify-center text-white shadow-lg shadow-brand-500/20 ring-2 ring-brand-500/10 hover:shadow-brand-500/30 transition-shadow flex-shrink-0"
+          className="w-10 h-10 rounded-2xl gradient-active flex items-center justify-center text-white shadow-lg shadow-brand-500/20 ring-4 ring-brand-500/10 hover:shadow-brand-500/30 transition-shadow flex-shrink-0"
           aria-label="Back to admin dashboard"
         >
-          <Home className="w-3.5 h-3.5" />
+          <Home className="w-4 h-4" />
         </Link>
-        <h1 className="flex-1 text-center text-white font-bold text-sm tracking-wide">Live Chat</h1>
+        <h1 className="flex-1 text-center text-white font-bold text-base tracking-wide">Live Chat</h1>
         <button
           onClick={() => setShowCreateChat(true)}
-          className="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all flex-shrink-0 cursor-pointer"
+          className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all flex-shrink-0 cursor-pointer"
           aria-label="เริ่มแชทใหม่"
           title="เริ่มแชทใหม่"
         >
-          <MessageSquarePlus className="w-4.5 h-4.5" />
+          <MessageSquarePlus className="w-5 h-5" />
         </button>
       </div>
 
