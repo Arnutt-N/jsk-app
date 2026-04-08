@@ -20,7 +20,7 @@ export default function PageHeader({
         <div
             className={cn(
                 'flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4',
-                'pb-4 border-b border-border-default',
+                'pb-4',
                 className
             )}
         >
