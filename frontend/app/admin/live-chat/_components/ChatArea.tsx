@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef } from 'react';
-import { Home, MessageSquare, Wifi, WifiOff } from 'lucide-react';
-import Link from 'next/link';
+import { AlertTriangle, Bell, MessageSquare, RefreshCw, Wifi, WifiOff } from 'lucide-react';
+
+import { ProfileDropdown } from './ProfileDropdown';
 
 import type { Message } from '@/lib/websocket/types';
 import { useLiveChatStore } from '../_store/liveChatStore';
@@ -168,16 +169,48 @@ export function ChatArea() {
     const activeCount = conversations.filter((c) => c.session?.status === 'ACTIVE').length;
     return (
       <div className="flex-1 flex flex-col">
-        <header className="h-20 px-5 bg-white/80 backdrop-blur-sm border-b border-border-default flex items-center justify-between">
+        <header className="h-20 px-5 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-border-default flex items-center justify-between">
           <span className="font-semibold text-text-primary text-sm">Live Chat Console</span>
-          <div className="flex items-center gap-3">
-            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${connectionStatus.className}`} aria-live="polite">
-              <ConnIcon className="w-4 h-4" />
+          <div className="flex items-center gap-2.5">
+            {/* Connection status pill */}
+            <div
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border ${
+                wsStatus === 'connected'
+                  ? 'bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400 border-green-200 dark:border-green-500/20'
+                  : wsStatus === 'disconnected'
+                    ? 'bg-red-50 dark:bg-red-500/10 text-red-500 dark:text-red-400 border-red-200 dark:border-red-500/20'
+                    : 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-500/20'
+              }`}
+              aria-live="polite"
+            >
+              <span className="relative flex h-2 w-2">
+                {wsStatus === 'connected' && (
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-50" />
+                )}
+                <span className={`relative inline-flex rounded-full h-2 w-2 ${
+                  wsStatus === 'connected' ? 'bg-green-500' :
+                  wsStatus === 'disconnected' ? 'bg-red-500' : 'bg-amber-500'
+                }`} />
+              </span>
               {connectionStatus.label}
             </div>
-            <Link href="/admin" className="px-3 py-1.5 bg-muted hover:bg-border-hover text-text-secondary rounded-xl text-xs font-medium flex items-center gap-1.5 transition-all">
-              <Home className="w-4 h-4" />Admin
-            </Link>
+
+            {/* Notification bell — waiting conversations */}
+            <button
+              className="relative p-2 rounded-xl text-text-tertiary hover:text-brand-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all cursor-pointer"
+              aria-label={`${waitingCount} conversations waiting`}
+              title={`${waitingCount} รอรับเรื่อง`}
+            >
+              <Bell className="w-5 h-5" />
+              {waitingCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-danger text-white text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-white dark:ring-gray-900 animate-pulse">
+                  {waitingCount}
+                </span>
+              )}
+            </button>
+
+            <div className="w-px h-8 bg-gray-200 dark:bg-gray-700" />
+            <ProfileDropdown />
           </div>
         </header>
         <div className="flex-1 flex items-center justify-center bg-bg thai-text">
@@ -187,6 +220,14 @@ export function ChatArea() {
             </div>
             <p className="text-text-primary font-semibold text-base mb-1 thai-no-break">Select a Conversation</p>
             <p className="text-text-tertiary text-sm">Choose from the sidebar to start chatting</p>
+            {wsStatus !== 'connected' && (
+              <div className="mt-4 mx-auto max-w-xs px-4 py-3 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl flex items-center gap-2.5 text-sm">
+                <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                <span className="text-amber-700 dark:text-amber-300">
+                  {wsStatus === 'reconnecting' ? 'กำลังเชื่อมต่อใหม่...' : 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้'}
+                </span>
+              </div>
+            )}
             <div className="flex gap-6 justify-center mt-6">
               <div>
                 <div className="text-2xl font-bold text-text-primary">{waitingCount}</div>
@@ -267,6 +308,26 @@ export function ChatArea() {
         <TypingIndicator visible={typingUsersCount > 0} />
         <div ref={messagesEndRef} />
       </div>
+      {/* Inline connection warning — above message input */}
+      {wsStatus !== 'connected' && (
+        <div className="px-4 py-2.5 bg-amber-50 dark:bg-amber-500/10 border-t border-amber-200 dark:border-amber-500/20 flex items-center gap-2.5 thai-text">
+          <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+          <span className="text-sm text-amber-700 dark:text-amber-300 flex-1">
+            {wsStatus === 'reconnecting'
+              ? 'กำลังเชื่อมต่อใหม่...'
+              : 'ขาดการเชื่อมต่อ — ข้อความจะถูกเก็บไว้ส่งภายหลัง'}
+          </span>
+          {(wsStatus === 'disconnected') && (
+            <button
+              onClick={() => window.location.reload()}
+              className="px-3 py-1 text-xs font-semibold rounded-lg bg-amber-100 dark:bg-amber-500/20 hover:bg-amber-200 dark:hover:bg-amber-500/30 text-amber-700 dark:text-amber-300 transition-colors cursor-pointer flex items-center gap-1"
+            >
+              <RefreshCw className="w-3 h-3" />
+              ลองใหม่
+            </button>
+          )}
+        </div>
+      )}
       <MessageInput
         inputText={inputText}
         sending={sending}

@@ -604,10 +604,10 @@ class LiveChatService:
                 )
 
         unread_counts: dict[str, int] = {}
-        if admin_id_str:
+        if admin_id:
             unread_counts = await self.get_unread_counts(
                 [user.line_user_id for user, _session, _last_msg in rows if user.line_user_id],
-                admin_id=admin_id_str,
+                admin_id=str(admin_id),
                 db=db,
             )
 

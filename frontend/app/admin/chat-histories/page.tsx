@@ -15,7 +15,9 @@ import {
     ChevronRight,
     AlertCircle,
     RefreshCw,
+    User,
 } from 'lucide-react';
+import Image from 'next/image';
 import PageHeader from '@/app/admin/components/PageHeader';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -56,17 +58,6 @@ interface SearchResultItem {
 /* ---------- Helpers ---------- */
 
 const ITEMS_PER_PAGE = 20;
-
-/** สีพื้นหลัง avatar ตามอักษรตัวแรก */
-const AVATAR_COLORS = [
-    'bg-brand-500', 'bg-info', 'bg-success', 'bg-warning',
-    'bg-danger', 'bg-brand-700', 'bg-pink-500', 'bg-teal-500',
-];
-
-function avatarColor(name: string): string {
-    const code = name.charCodeAt(0) || 0;
-    return AVATAR_COLORS[code % AVATAR_COLORS.length];
-}
 
 /** แปลง ISO timestamp เป็นข้อความ relative เช่น "2 นาทีที่แล้ว" */
 function relativeTime(isoString: string): string {
@@ -235,20 +226,20 @@ export default function ChatHistoriesPage() {
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
                         <thead>
-                            <tr className="bg-gray-50/50 border-b border-gray-100 text-xs font-bold text-gray-500 uppercase tracking-wider dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-400">
+                            <tr className="bg-bg/50 border-b border-border-default text-xs font-bold text-text-tertiary uppercase tracking-wider">
                                 <th className="px-6 py-4">ผู้ใช้</th>
                                 <th className="px-6 py-4">ข้อความล่าสุด</th>
                                 <th className="px-6 py-4">เวลา</th>
                                 <th className="px-6 py-4">โหมดแชท</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100 bg-white/40 dark:divide-gray-700 dark:bg-transparent">
+                        <tbody className="divide-y divide-border-default bg-surface/40">
                             {loading ? (
                                 Array(5).fill(0).map((_, i) => (
                                     <tr key={i} className="animate-pulse">
                                         <td colSpan={4} className="px-6 py-8">
-                                            <div className="h-4 bg-gray-100 rounded-full w-3/4 mb-3 dark:bg-gray-700" />
-                                            <div className="h-3 bg-gray-50 rounded-full w-1/2 dark:bg-gray-700/50" />
+                                            <div className="h-4 bg-muted rounded-full w-3/4 mb-3" />
+                                            <div className="h-3 bg-muted/50 rounded-full w-1/2" />
                                         </td>
                                     </tr>
                                 ))
@@ -257,7 +248,7 @@ export default function ChatHistoriesPage() {
                                 searchGrouped.length === 0 ? (
                                     <tr>
                                         <td colSpan={4} className="px-6 py-12 text-center">
-                                            <div className="flex flex-col items-center gap-3 text-gray-400 dark:text-gray-500">
+                                            <div className="flex flex-col items-center gap-3 text-text-tertiary">
                                                 <Search className="w-12 h-12 opacity-20" />
                                                 <p className="text-sm">ไม่พบผลลัพธ์สำหรับ &quot;{debouncedSearch}&quot;</p>
                                             </div>
@@ -270,7 +261,7 @@ export default function ChatHistoriesPage() {
                                         return (
                                             <tr
                                                 key={lineUserId}
-                                                className="hover:bg-gray-50/50 transition-colors cursor-pointer dark:hover:bg-gray-700/30"
+                                                className="hover:bg-bg/50 transition-colors cursor-pointer"
                                                 onClick={() => goToDetail(lineUserId)}
                                                 role="button"
                                                 tabIndex={0}
@@ -278,24 +269,26 @@ export default function ChatHistoriesPage() {
                                             >
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-3">
-                                                        <div className={`w-10 h-10 rounded-full ${avatarColor(name)} flex items-center justify-center text-white font-bold text-sm shrink-0`}>
-                                                            {name[0]?.toUpperCase() || '?'}
+                                                        <div className="w-10 h-10 rounded-full bg-surface-secondary overflow-hidden shrink-0">
+                                                            <div className="w-full h-full flex items-center justify-center text-text-secondary">
+                                                                <User className="w-5 h-5" />
+                                                            </div>
                                                         </div>
                                                         <div>
-                                                            <div className="text-sm font-bold text-gray-700 dark:text-gray-200">{name}</div>
-                                                            <div className="text-[10px] text-gray-400 font-mono dark:text-gray-500">{lineUserId.substring(0, 8)}...</div>
+                                                            <div className="text-sm font-bold text-text-secondary">{name}</div>
+                                                            <div className="text-[10px] text-text-tertiary font-mono">{lineUserId.substring(0, 8)}...</div>
                                                         </div>
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    <div className="text-sm text-gray-600 dark:text-gray-300">
+                                                    <div className="text-sm text-text-secondary">
                                                         {truncate(first.content || '-', 50)}
                                                     </div>
-                                                    <div className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
+                                                    <div className="text-[10px] text-text-tertiary mt-0.5">
                                                         พบ {items.length} ผลลัพธ์
                                                     </div>
                                                 </td>
-                                                <td className="px-6 py-4 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                                <td className="px-6 py-4 text-xs text-text-tertiary whitespace-nowrap">
                                                     {first.created_at ? relativeTime(first.created_at) : '-'}
                                                 </td>
                                                 <td className="px-6 py-4">
@@ -310,7 +303,7 @@ export default function ChatHistoriesPage() {
                                 paginatedConversations.length === 0 ? (
                                     <tr>
                                         <td colSpan={4} className="px-6 py-12 text-center">
-                                            <div className="flex flex-col items-center gap-3 text-gray-400 dark:text-gray-500">
+                                            <div className="flex flex-col items-center gap-3 text-text-tertiary">
                                                 <MessageCircle className="w-12 h-12 opacity-20" />
                                                 <p className="text-sm">ยังไม่มีประวัติการสนทนา</p>
                                             </div>
@@ -322,7 +315,7 @@ export default function ChatHistoriesPage() {
                                         return (
                                             <tr
                                                 key={conv.line_user_id}
-                                                className="hover:bg-gray-50/50 transition-colors cursor-pointer dark:hover:bg-gray-700/30"
+                                                className="hover:bg-bg/50 transition-colors cursor-pointer"
                                                 onClick={() => goToDetail(conv.line_user_id)}
                                                 role="button"
                                                 tabIndex={0}
@@ -330,25 +323,31 @@ export default function ChatHistoriesPage() {
                                             >
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-3">
-                                                        <div className={`w-10 h-10 rounded-full ${avatarColor(name)} flex items-center justify-center text-white font-bold text-sm shrink-0`}>
-                                                            {name[0]?.toUpperCase() || '?'}
+                                                        <div className="w-10 h-10 rounded-full bg-surface-secondary overflow-hidden shrink-0">
+                                                            {conv.picture_url ? (
+                                                                <Image src={conv.picture_url} alt={name} width={40} height={40} className="w-full h-full object-cover" />
+                                                            ) : (
+                                                                <div className="w-full h-full flex items-center justify-center text-text-secondary">
+                                                                    <User className="w-5 h-5" />
+                                                                </div>
+                                                            )}
                                                         </div>
                                                         <div>
-                                                            <div className="text-sm font-bold text-gray-700 dark:text-gray-200">{name}</div>
-                                                            <div className="text-[10px] text-gray-400 font-mono dark:text-gray-500">
+                                                            <div className="text-sm font-bold text-text-secondary">{name}</div>
+                                                            <div className="text-[10px] text-text-tertiary font-mono">
                                                                 {conv.line_user_id.substring(0, 8)}...
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-1">
+                                                    <p className="text-sm text-text-secondary line-clamp-1">
                                                         {conv.last_message
                                                             ? truncate(conv.last_message.content, 50)
-                                                            : <span className="italic text-gray-400 dark:text-gray-500">ยังไม่มีข้อความ</span>}
+                                                            : <span className="italic text-text-tertiary">ยังไม่มีข้อความ</span>}
                                                     </p>
                                                 </td>
-                                                <td className="px-6 py-4 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                                <td className="px-6 py-4 text-xs text-text-tertiary whitespace-nowrap">
                                                     {conv.last_message?.created_at
                                                         ? relativeTime(conv.last_message.created_at)
                                                         : '-'}
@@ -372,8 +371,8 @@ export default function ChatHistoriesPage() {
 
                 {/* Pagination */}
                 {!isSearching && (
-                    <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/30 flex items-center justify-between dark:border-gray-700 dark:bg-gray-800/30">
-                        <p className="text-xs text-gray-500 font-medium dark:text-gray-400">
+                    <div className="px-6 py-4 border-t border-border-default bg-bg/30 flex items-center justify-between">
+                        <p className="text-xs text-text-tertiary font-medium">
                             {conversations.length} สนทนา (หน้า {page + 1}/{totalPages})
                         </p>
                         <div className="flex items-center gap-2">

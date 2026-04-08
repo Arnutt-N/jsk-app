@@ -12,6 +12,7 @@ import {
 import { Avatar } from '@/components/ui/Avatar';
 import type { CurrentChat } from '../_types';
 import { SessionActions } from './SessionActions';
+import { ProfileDropdown } from './ProfileDropdown';
 
 interface ChatHeaderProps {
   currentChat: CurrentChat | null;
@@ -100,11 +101,11 @@ export function ChatHeader({
                   ? 'gradient-active text-white shadow-md shadow-brand-900/20'
                   : 'text-text-tertiary hover:text-text-primary'
               }`}
-              aria-label="Switch to Auto (Bot) mode"
+              aria-label="Switch to Bot mode"
               aria-pressed={isBot}
             >
               <Zap className="h-3.5 w-3.5" />
-              Auto
+              Bot
             </button>
             <button
               onClick={() => onToggleMode('HUMAN')}
@@ -142,6 +143,9 @@ export function ChatHeader({
           >
             {showCustomerPanel ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
           </button>
+
+          <div className="mx-1 hidden h-6 w-px bg-border-default sm:block" />
+          <ProfileDropdown />
         </div>
       </div>
     </header>
