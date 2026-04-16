@@ -10,7 +10,6 @@ const notoThai = Noto_Sans_Thai({
     display: 'swap',
     preload: true,
     fallback: ['system-ui', 'sans-serif'],
-    adjustFontFallback: false,
 })
 
 const inter = Inter({
