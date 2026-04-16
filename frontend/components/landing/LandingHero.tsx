@@ -39,7 +39,7 @@ const STAT_CARDS = [
     labelKey: 'hero_mock_response',
     valueKey: 'hero_mock_response_val',
     trendKey: 'hero_mock_response_trend',
-    color: 'text-emerald-600 dark:text-emerald-400',
+    color: 'text-emerald-700 dark:text-emerald-400',
     bg: 'bg-emerald-50 dark:bg-emerald-900/20',
     icon: Zap,
   },
@@ -185,7 +185,7 @@ export function LandingHero({ locale }: LandingHeroProps) {
                       <p className={`text-2xl font-black mt-1 ${card.color}`}>
                         {t(locale, card.valueKey)}
                       </p>
-                      <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold mt-1">
+                      <p className="text-xs text-emerald-700 dark:text-emerald-400 font-bold mt-1">
                         {t(locale, card.trendKey)}
                       </p>
                     </motion.div>
