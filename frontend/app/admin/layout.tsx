@@ -124,7 +124,11 @@ function AdminShell({ children }: { children: React.ReactNode }) {
 
   const toggleAdminLocale = () => setAdminLocale((prev) => (prev === 'th' ? 'en' : 'th'));
 
+  // Sync mobile menu with router: close it whenever the route changes.
+  // This is an intentional use of an effect to mirror external state
+  // (Next.js router pathname) into local UI state.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsMobileMenuOpen(false);
   }, [pathname]);
 
