@@ -213,7 +213,7 @@ function LoginForm() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-[#FAFAFA] dark:bg-slate-950 transition-colors duration-500 font-sans">
       <div className="fixed inset-0 z-0 pointer-events-none flex justify-center overflow-hidden">
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] mix-blend-overlay" />
+        <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-[0.03] mix-blend-overlay" />
 
         <motion.div
           animate={{
@@ -374,12 +374,15 @@ function LoginForm() {
                     <button
                       type="button"
                       onClick={() => setShowPassword((prev) => !prev)}
+                      aria-label={showPassword ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'}
+                      aria-controls="password"
+                      title={showPassword ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'}
                       className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-xl text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all cursor-pointer"
                     >
                       {showPassword ? (
-                        <EyeOff className="w-4.5 h-4.5" />
+                        <EyeOff className="w-4.5 h-4.5" aria-hidden="true" />
                       ) : (
-                        <Eye className="w-4.5 h-4.5" />
+                        <Eye className="w-4.5 h-4.5" aria-hidden="true" />
                       )}
                     </button>
                   </div>
@@ -421,25 +424,6 @@ function LoginForm() {
                   <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-blue-800 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 </Button>
               </form>
-
-              <div className="mt-6">
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-slate-200 dark:border-white/10" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-white dark:bg-slate-900 px-2 text-slate-400 font-medium">
-                      หรือ
-                    </span>
-                  </div>
-                </div>
-                <div className="mt-4 text-center text-sm font-medium text-slate-600 dark:text-slate-400">
-                  ยังไม่มีบัญชี?{' '}
-                  <Link href="/register" className="text-blue-600 dark:text-blue-400 hover:underline font-bold">
-                    ลงทะเบียนเจ้าหน้าที่
-                  </Link>
-                </div>
-              </div>
 
               {process.env.NODE_ENV === 'development' && isLocalhost && (
                 <div className="pt-6">

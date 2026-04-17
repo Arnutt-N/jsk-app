@@ -33,7 +33,7 @@ export default function Home() {
     <div className="min-h-screen bg-[#FAFAFA] dark:bg-slate-950 font-sans text-slate-900 dark:text-white selection:bg-blue-100 selection:text-blue-950 overflow-x-hidden">
       {/* Fixed Background with noise + animated blur orbs */}
       <div className="fixed inset-0 z-0 pointer-events-none flex justify-center overflow-hidden">
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.02] mix-blend-overlay" />
+        <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-[0.02] mix-blend-overlay" />
         <motion.div
           style={{ y: y1 }}
           className="absolute top-[-20%] left-[-10%] w-[1000px] h-[800px] bg-blue-900/10 dark:bg-blue-400/10 blur-[120px] rounded-full"

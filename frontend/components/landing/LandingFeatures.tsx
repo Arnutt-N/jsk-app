@@ -106,7 +106,7 @@ export function LandingFeatures({ locale }: LandingFeaturesProps) {
           >
             <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-50 dark:bg-emerald-900/10 rounded-full blur-3xl -mr-10 -mt-10" />
             <div className="relative z-10">
-              <div className="w-16 h-16 rounded-2xl bg-emerald-100 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-800/30 flex items-center justify-center mb-6">
+              <div className="w-16 h-16 rounded-2xl bg-emerald-100 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-800/30 flex items-center justify-center mb-6">
                 <BarChart3 className="w-8 h-8" />
               </div>
               <h4 className="font-heading text-3xl font-black text-slate-900 dark:text-white mb-4">
