@@ -118,7 +118,7 @@ export default function EditRichMenuPage() {
                 }
             }
 
-            alert('เน€เธยเน€เธเธ‘เน€เธยเน€เธโ€”เน€เธเธ–เน€เธยเน€เธเธเน€เธเธ“เน€เธโฌเน€เธเธเน€เธยเน€เธย!');
+            alert('บันทึกสำเร็จ!');
             router.push('/admin/rich-menus');
         } catch {
             alert('Error saving rich menu');
@@ -137,13 +137,13 @@ export default function EditRichMenuPage() {
             <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-100">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-700">Edit Rich Menu</h1>
-                    <p className="text-sm text-slate-500 mt-1">เน€เธยเน€เธยเน€เธยเน€เธยเน€เธยเน€เธโฌเน€เธเธเน€เธยเน€เธเธ: {menu?.name}</p>
+                    <p className="text-sm text-slate-500 mt-1">แก้ไขเมนู: {menu?.name}</p>
                 </div>
                 <Link
                     href="/admin/rich-menus"
                     className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors text-sm font-medium cursor-pointer"
                 >
-                    เนยย เน€เธยเน€เธเธ…เน€เธเธ‘เน€เธย
+                    ← กลับ
                 </Link>
             </div>
 
@@ -153,7 +153,7 @@ export default function EditRichMenuPage() {
                     {/* Left: Form Fields */}
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-slate-600 mb-1">เน€เธยเน€เธเธ—เน€เธยเน€เธเธเน€เธโฌเน€เธเธเน€เธยเน€เธเธ</label>
+                            <label className="block text-sm font-medium text-slate-600 mb-1">ชื่อเมนู</label>
                             <input
                                 type="text"
                                 value={name}
@@ -184,7 +184,7 @@ export default function EditRichMenuPage() {
 
                     {/* Right: Image Preview */}
                     <div>
-                        <label className="block text-sm font-medium text-slate-600 mb-2">เน€เธเธเน€เธเธเน€เธยเน€เธย เน€เธเธ’เน€เธยเน€เธโฌเน€เธเธเน€เธยเน€เธเธ</label>
+                        <label className="block text-sm font-medium text-slate-600 mb-2">รูปภาพเมนู</label>
                         <div
                             onClick={() => fileInputRef.current?.click()}
                             className="w-full aspect-[250/168.6] bg-slate-100 rounded-xl border-2 border-dashed border-slate-300 hover:border-primary/40 transition-colors cursor-pointer overflow-hidden group relative"
@@ -197,11 +197,11 @@ export default function EditRichMenuPage() {
                                     <svg className="w-12 h-12 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                     </svg>
-                                    <span className="text-sm">เน€เธยเน€เธเธ…เน€เธเธ”เน€เธยเน€เธโฌเน€เธยเน€เธเธ—เน€เธยเน€เธเธเน€เธเธเน€เธเธ‘เน€เธยเน€เธยเน€เธเธเน€เธเธ…เน€เธโ€เน€เธเธเน€เธเธเน€เธยเน€เธย เน€เธเธ’เน€เธย</span>
+                                    <span className="text-sm">คลิกเพื่ออัปโหลดรูปภาพ</span>
                                 </div>
                             )}
                             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                <span className="text-white text-sm font-medium">เน€เธโฌเน€เธยเน€เธเธ…เน€เธเธ•เน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธเน€เธยเน€เธย เน€เธเธ’เน€เธย</span>
+                                <span className="text-white text-sm font-medium">เปลี่ยนรูปภาพ</span>
                             </div>
                         </div>
                         <input
@@ -211,7 +211,7 @@ export default function EditRichMenuPage() {
                             onChange={handleImageChange}
                             className="hidden"
                         />
-                        <p className="text-xs text-slate-400 mt-2">เน€เธเธเน€เธเธเน€เธยเน€เธเธเน€เธเธ‘เน€เธย JPEG, PNG เน€เธยเน€เธยเน€เธเธ’เน€เธโ€ 2500x1686 px</p>
+                        <p className="text-xs text-slate-400 mt-2">รองรับ JPEG, PNG ขนาด 2500x1686 px</p>
                     </div>
                 </div>
 
@@ -221,7 +221,7 @@ export default function EditRichMenuPage() {
                         href="/admin/rich-menus"
                         className="px-6 py-2.5 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors text-sm font-medium cursor-pointer"
                     >
-                        เน€เธเธเน€เธยเน€เธโฌเน€เธเธ…เน€เธเธ”เน€เธย
+                        ยกเลิก
                     </Link>
                     <button
                         onClick={handleSave}
@@ -231,10 +231,10 @@ export default function EditRichMenuPage() {
                         {saving ? (
                             <>
                                 <Loader2 className="h-4 w-4 animate-spin" />
-                                เน€เธยเน€เธเธ“เน€เธเธ…เน€เธเธ‘เน€เธยเน€เธยเน€เธเธ‘เน€เธยเน€เธโ€”เน€เธเธ–เน€เธย...
+                                กำลังบันทึก...
                             </>
                         ) : (
-                            'เน€เธยเน€เธเธ‘เน€เธยเน€เธโ€”เน€เธเธ–เน€เธยเน€เธยเน€เธเธ’เน€เธเธเน€เธยเน€เธยเน€เธยเน€เธยเน€เธย'
+                            'บันทึกการแก้ไข'
                         )}
                     </button>
                 </div>

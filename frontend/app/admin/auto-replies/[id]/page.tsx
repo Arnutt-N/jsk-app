@@ -191,8 +191,8 @@ export default function CategoryDetailPage() {
         if (res.ok) fetchCategoryDetail();
     };
 
-    if (loading) return <div className="p-8 text-center text-text-tertiary">เน€เธยเน€เธเธ“เน€เธเธ…เน€เธเธ‘เน€เธยเน€เธยเน€เธเธเน€เธเธ…เน€เธโ€...</div>;
-    if (!category) return <div className="p-8 text-center text-text-tertiary">เน€เธยเน€เธเธเน€เธยเน€เธยเน€เธยเน€เธยเน€เธยเน€เธเธเน€เธเธเน€เธเธเน€เธเธ…</div>;
+    if (loading) return <div className="p-8 text-center text-text-tertiary">กำลังโหลด...</div>;
+    if (!category) return <div className="p-8 text-center text-text-tertiary">ไม่พบข้อมูล</div>;
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500 max-w-7xl mx-auto">

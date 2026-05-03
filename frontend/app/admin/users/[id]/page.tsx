@@ -50,10 +50,10 @@ function passwordStrength(pw: string): { level: number; label: string; color: st
     if (/[A-Z]/.test(pw)) score++;
     if (/[0-9]/.test(pw)) score++;
     if (/[^A-Za-z0-9]/.test(pw)) score++;
-    if (score <= 1) return { level: 1, label: 'เน€เธเธเน€เธยเน€เธเธเน€เธย', color: 'bg-red-500' };
-    if (score <= 2) return { level: 2, label: 'เน€เธยเน€เธเธ’เน€เธยเน€เธยเน€เธเธ…เน€เธเธ’เน€เธย', color: 'bg-amber-500' };
-    if (score <= 3) return { level: 3, label: 'เน€เธโ€เน€เธเธ•', color: 'bg-blue-500' };
-    return { level: 4, label: 'เน€เธยเน€เธยเน€เธยเน€เธยเน€เธยเน€เธเธเน€เธย', color: 'bg-green-500' };
+    if (score <= 1) return { level: 1, label: 'อ่อน', color: 'bg-red-500' };
+    if (score <= 2) return { level: 2, label: 'ปานกลาง', color: 'bg-amber-500' };
+    if (score <= 3) return { level: 3, label: 'ดี', color: 'bg-blue-500' };
+    return { level: 4, label: 'แข็งแรง', color: 'bg-green-500' };
 }
 
 export default function UserDetailPage() {
@@ -107,10 +107,10 @@ export default function UserDetailPage() {
                 setRole(data.role);
                 setIsActive(data.is_active);
             } else {
-                setError('เน€เธยเน€เธเธเน€เธยเน€เธยเน€เธยเน€เธยเน€เธเธเน€เธยเน€เธยเน€เธยเน€เธย');
+                setError('ไม่พบผู้ใช้');
             }
         } catch {
-            setError('เน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ’เน€เธเธเน€เธเธ’เน€เธเธเน€เธโ€“เน€เธโฌเน€เธยเน€เธเธ—เน€เธยเน€เธเธเน€เธเธเน€เธโ€ขเน€เธยเน€เธเธเน€เธโฌเน€เธยเน€เธเธ”เน€เธเธเน€เธยเน€เธยเน€เธโฌเน€เธเธเน€เธเธเน€เธเธเน€เธยเน€เธยเน€เธโ€เน€เธย');
+            setError('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้');
         } finally {
             setLoading(false);
         }
@@ -140,14 +140,14 @@ export default function UserDetailPage() {
                 body: JSON.stringify(payload),
             });
             if (res.ok) {
-                setAlert({ type: 'success', title: 'เน€เธเธเน€เธเธ“เน€เธโฌเน€เธเธเน€เธยเน€เธย', message: 'เน€เธเธเน€เธเธ‘เน€เธยเน€เธโฌเน€เธโ€เน€เธโ€ขเน€เธยเน€เธยเน€เธเธเน€เธเธเน€เธเธเน€เธเธ…เน€เธโฌเน€เธเธเน€เธเธ•เน€เธเธเน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธเน€เธยเน€เธเธ…เน€เธยเน€เธเธ' });
+                setAlert({ type: 'success', title: 'สำเร็จ', message: 'อัปเดตข้อมูลเรียบร้อยแล้ว' });
                 fetchUser();
             } else {
                 const err = await res.json();
-                setError(err.detail || 'เน€เธโฌเน€เธยเน€เธเธ”เน€เธโ€เน€เธยเน€เธยเน€เธเธเน€เธยเน€เธเธ”เน€เธโ€เน€เธยเน€เธเธ…เน€เธเธ’เน€เธโ€');
+                setError(err.detail || 'เกิดข้อผิดพลาด');
             }
         } catch {
-            setError('เน€เธโฌเน€เธยเน€เธเธ”เน€เธโ€เน€เธยเน€เธยเน€เธเธเน€เธยเน€เธเธ”เน€เธโ€เน€เธยเน€เธเธ…เน€เธเธ’เน€เธโ€เน€เธยเน€เธยเน€เธยเน€เธเธ’เน€เธเธเน€เธโฌเน€เธยเน€เธเธ—เน€เธยเน€เธเธเน€เธเธเน€เธโ€ขเน€เธยเน€เธเธ');
+            setError('เกิดข้อผิดพลาดในการเชื่อมต่อ');
         } finally {
             setSaving(false);
         }
@@ -155,7 +155,7 @@ export default function UserDetailPage() {
 
     const handleChangePassword = async () => {
         if (newPassword.length < 8) {
-            setError('เน€เธเธเน€เธเธเน€เธเธ‘เน€เธเธเน€เธยเน€เธยเน€เธเธ’เน€เธยเน€เธโ€ขเน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ•เน€เธเธเน€เธเธเน€เธยเน€เธเธ’เน€เธยเน€เธยเน€เธยเน€เธเธเน€เธเธ 8 เน€เธโ€ขเน€เธเธ‘เน€เธเธเน€เธเธเน€เธเธ‘เน€เธยเน€เธเธเน€เธเธ');
+            setError('รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร');
             return;
         }
         setPasswordSaving(true);
@@ -168,13 +168,13 @@ export default function UserDetailPage() {
             });
             if (res.ok) {
                 setNewPassword('');
-                setAlert({ type: 'success', title: 'เน€เธเธเน€เธเธ“เน€เธโฌเน€เธเธเน€เธยเน€เธย', message: 'เน€เธโฌเน€เธยเน€เธเธ…เน€เธเธ•เน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธเน€เธเธ‘เน€เธเธเน€เธยเน€เธยเน€เธเธ’เน€เธยเน€เธโฌเน€เธเธเน€เธเธ•เน€เธเธเน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธเน€เธยเน€เธเธ…เน€เธยเน€เธเธ' });
+                setAlert({ type: 'success', title: 'สำเร็จ', message: 'เปลี่ยนรหัสผ่านเรียบร้อยแล้ว' });
             } else {
                 const err = await res.json();
-                setError(err.detail || 'เน€เธโฌเน€เธยเน€เธเธ”เน€เธโ€เน€เธยเน€เธยเน€เธเธเน€เธยเน€เธเธ”เน€เธโ€เน€เธยเน€เธเธ…เน€เธเธ’เน€เธโ€');
+                setError(err.detail || 'เกิดข้อผิดพลาด');
             }
         } catch {
-            setError('เน€เธโฌเน€เธยเน€เธเธ”เน€เธโ€เน€เธยเน€เธยเน€เธเธเน€เธยเน€เธเธ”เน€เธโ€เน€เธยเน€เธเธ…เน€เธเธ’เน€เธโ€เน€เธยเน€เธยเน€เธยเน€เธเธ’เน€เธเธเน€เธโฌเน€เธยเน€เธเธ—เน€เธยเน€เธเธเน€เธเธเน€เธโ€ขเน€เธยเน€เธเธ');
+            setError('เกิดข้อผิดพลาดในการเชื่อมต่อ');
         } finally {
             setPasswordSaving(false);
         }
@@ -182,7 +182,7 @@ export default function UserDetailPage() {
 
     const handleResetPassword = async () => {
         if (resetPw.length < 8) {
-            setResetError('เน€เธเธเน€เธเธเน€เธเธ‘เน€เธเธเน€เธยเน€เธยเน€เธเธ’เน€เธยเน€เธโ€ขเน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ•เน€เธเธเน€เธเธเน€เธยเน€เธเธ’เน€เธยเน€เธยเน€เธยเน€เธเธเน€เธเธ 8 เน€เธโ€ขเน€เธเธ‘เน€เธเธเน€เธเธเน€เธเธ‘เน€เธยเน€เธเธเน€เธเธ');
+            setResetError('รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร');
             return;
         }
         setResetLoading(true);
@@ -196,13 +196,13 @@ export default function UserDetailPage() {
             if (res.ok) {
                 setShowReset(false);
                 setResetPw('');
-                setAlert({ type: 'success', title: 'เน€เธเธเน€เธเธ“เน€เธโฌเน€เธเธเน€เธยเน€เธย', message: 'เน€เธเธเน€เธเธ•เน€เธโฌเน€เธยเน€เธยเน€เธโ€ขเน€เธเธเน€เธเธเน€เธเธ‘เน€เธเธเน€เธยเน€เธยเน€เธเธ’เน€เธยเน€เธโฌเน€เธเธเน€เธเธ•เน€เธเธเน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธเน€เธยเน€เธเธ…เน€เธยเน€เธเธ' });
+                setAlert({ type: 'success', title: 'สำเร็จ', message: 'รีเซ็ตรหัสผ่านเรียบร้อยแล้ว' });
             } else {
                 const err = await res.json();
-                setResetError(err.detail || 'เน€เธโฌเน€เธยเน€เธเธ”เน€เธโ€เน€เธยเน€เธยเน€เธเธเน€เธยเน€เธเธ”เน€เธโ€เน€เธยเน€เธเธ…เน€เธเธ’เน€เธโ€');
+                setResetError(err.detail || 'เกิดข้อผิดพลาด');
             }
         } catch {
-            setResetError('เน€เธโฌเน€เธยเน€เธเธ”เน€เธโ€เน€เธยเน€เธยเน€เธเธเน€เธยเน€เธเธ”เน€เธโ€เน€เธยเน€เธเธ…เน€เธเธ’เน€เธโ€เน€เธยเน€เธยเน€เธยเน€เธเธ’เน€เธเธเน€เธโฌเน€เธยเน€เธเธ—เน€เธยเน€เธเธเน€เธเธเน€เธโ€ขเน€เธยเน€เธเธ');
+            setResetError('เกิดข้อผิดพลาดในการเชื่อมต่อ');
         } finally {
             setResetLoading(false);
         }
@@ -213,7 +213,7 @@ export default function UserDetailPage() {
             <div className="flex items-center justify-center min-h-[60vh]">
                 <div className="flex flex-col items-center gap-3">
                     <Loader2 className="w-8 h-8 text-brand-500 animate-spin" />
-                    <span className="text-text-secondary text-sm">เน€เธยเน€เธเธ“เน€เธเธ…เน€เธเธ‘เน€เธยเน€เธยเน€เธเธเน€เธเธ…เน€เธโ€...</span>
+                    <span className="text-text-secondary text-sm">กำลังโหลด...</span>
                 </div>
             </div>
         );
@@ -222,9 +222,9 @@ export default function UserDetailPage() {
     if (!userData) {
         return (
             <div className="max-w-4xl mx-auto text-center">
-                <p className="text-text-secondary">{error || 'เน€เธยเน€เธเธเน€เธยเน€เธยเน€เธยเน€เธยเน€เธเธเน€เธยเน€เธยเน€เธยเน€เธย'}</p>
+                <p className="text-text-secondary">{error || 'ไม่พบผู้ใช้'}</p>
                 <Button variant="outline" className="mt-4" onClick={() => router.push('/admin/users')}>
-                    เน€เธยเน€เธเธ…เน€เธเธ‘เน€เธยเน€เธยเน€เธยเน€เธเธเน€เธยเน€เธยเน€เธเธ’เน€เธเธเน€เธเธ’เน€เธเธเน€เธยเน€เธเธ’เน€เธเธ
+                    กลับไปหน้ารายการ
                 </Button>
             </div>
         );
@@ -261,7 +261,7 @@ export default function UserDetailPage() {
                             <h1 className="text-xl font-bold text-text-primary truncate">{userData.display_name || 'Unknown'}</h1>
                             <Badge variant={badge.variant} size="sm">{badge.label}</Badge>
                             {!userData.is_active && (
-                                <Badge variant="danger" size="sm">เน€เธยเน€เธเธ”เน€เธโ€เน€เธยเน€เธยเน€เธยเน€เธยเน€เธเธ’เน€เธย</Badge>
+                                <Badge variant="danger" size="sm">ปิดใช้งาน</Badge>
                             )}
                         </div>
                         <div className="flex items-center gap-4 text-sm text-text-secondary flex-wrap">
@@ -276,7 +276,7 @@ export default function UserDetailPage() {
                             {userData.created_at && (
                                 <span className="flex items-center gap-1">
                                     <Calendar className="w-4 h-4" />
-                                    เน€เธเธเน€เธเธเน€เธยเน€เธเธ’เน€เธยเน€เธโฌเน€เธเธเน€เธเธ—เน€เธยเน€เธเธ {new Date(userData.created_at).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}
+                                    สร้างเมื่อ {new Date(userData.created_at).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}
                                 </span>
                             )}
                         </div>
@@ -289,17 +289,17 @@ export default function UserDetailPage() {
 
             {/* Edit Form */}
             <div className="bg-surface rounded-2xl border border-border-default p-6 shadow-sm">
-                <h2 className="text-lg font-semibold text-text-primary mb-4">เน€เธยเน€เธยเน€เธยเน€เธยเน€เธยเน€เธยเน€เธยเน€เธเธเน€เธเธเน€เธเธเน€เธเธ…</h2>
+                <h2 className="text-lg font-semibold text-text-primary mb-4">แก้ไขข้อมูล</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-sm font-medium text-text-primary mb-1.5">เน€เธยเน€เธเธ—เน€เธยเน€เธเธเน€เธโ€”เน€เธเธ•เน€เธยเน€เธยเน€เธเธเน€เธโ€เน€เธย</label>
+                        <label className="block text-sm font-medium text-text-primary mb-1.5">ชื่อที่แสดง</label>
                         <Input
                             value={displayName}
                             onChange={(e) => setDisplayName(e.target.value)}
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-text-primary mb-1.5">เน€เธเธเน€เธเธ•เน€เธโฌเน€เธเธเน€เธเธ…</label>
+                        <label className="block text-sm font-medium text-text-primary mb-1.5">อีเมล</label>
                         <Input
                             type="email"
                             value={email}
@@ -307,7 +307,7 @@ export default function UserDetailPage() {
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-text-primary mb-1.5">เน€เธยเน€เธโ€”เน€เธยเน€เธเธ’เน€เธโ€”</label>
+                        <label className="block text-sm font-medium text-text-primary mb-1.5">บทบาท</label>
                         <Select
                             value={role}
                             onChange={(e) => setRole(e.target.value)}
@@ -315,11 +315,11 @@ export default function UserDetailPage() {
                             disabled={isSelf}
                         />
                         {isSelf && (
-                            <p className="text-xs text-text-tertiary mt-1">เน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ’เน€เธเธเน€เธเธ’เน€เธเธเน€เธโ€“เน€เธโฌเน€เธยเน€เธเธ…เน€เธเธ•เน€เธยเน€เธเธเน€เธยเน€เธยเน€เธโ€”เน€เธยเน€เธเธ’เน€เธโ€”เน€เธยเน€เธเธเน€เธยเน€เธโ€ขเน€เธเธ‘เน€เธเธเน€เธโฌเน€เธเธเน€เธยเน€เธยเน€เธโ€เน€เธย</p>
+                            <p className="text-xs text-text-tertiary mt-1">ไม่สามารถเปลี่ยนบทบาทของตัวเองได้</p>
                         )}
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-text-primary mb-1.5">เน€เธเธเน€เธโ€“เน€เธเธ’เน€เธยเน€เธเธ</label>
+                        <label className="block text-sm font-medium text-text-primary mb-1.5">สถานะ</label>
                         <button
                             onClick={() => !isSelf && setIsActive(v => !v)}
                             disabled={isSelf}
@@ -331,7 +331,7 @@ export default function UserDetailPage() {
                                 <ToggleLeft className="w-8 h-8 text-gray-400" />
                             )}
                             <span className={isActive ? 'text-green-600 font-medium' : 'text-text-tertiary'}>
-                                {isActive ? 'เน€เธโฌเน€เธยเน€เธเธ”เน€เธโ€เน€เธยเน€เธยเน€เธยเน€เธยเน€เธเธ’เน€เธย' : 'เน€เธยเน€เธเธ”เน€เธโ€เน€เธยเน€เธยเน€เธยเน€เธยเน€เธเธ’เน€เธย'}
+                                {isActive ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
                             </span>
                         </button>
                     </div>
@@ -348,7 +348,7 @@ export default function UserDetailPage() {
                         onClick={handleSave}
                         isLoading={saving}
                     >
-                        เน€เธยเน€เธเธ‘เน€เธยเน€เธโ€”เน€เธเธ–เน€เธย
+                        บันทึก
                     </Button>
                     {currentUser?.role === 'SUPER_ADMIN' && !isSelf && userData.username && (
                         <Button
@@ -356,7 +356,7 @@ export default function UserDetailPage() {
                             leftIcon={<Key className="w-4 h-4" />}
                             onClick={() => { setShowReset(true); setResetPw(''); setResetError(''); }}
                         >
-                            เน€เธเธเน€เธเธ•เน€เธโฌเน€เธยเน€เธยเน€เธโ€ขเน€เธเธเน€เธเธเน€เธเธ‘เน€เธเธเน€เธยเน€เธยเน€เธเธ’เน€เธย
+                            รีเซ็ตรหัสผ่าน
                         </Button>
                     )}
                 </div>
@@ -365,13 +365,13 @@ export default function UserDetailPage() {
             {/* Change Password Section */}
             {userData.username && (
                 <div className="bg-surface rounded-2xl border border-border-default p-6 shadow-sm">
-                    <h2 className="text-lg font-semibold text-text-primary mb-4">เน€เธโฌเน€เธยเน€เธเธ…เน€เธเธ•เน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธเน€เธเธ‘เน€เธเธเน€เธยเน€เธยเน€เธเธ’เน€เธย</h2>
+                    <h2 className="text-lg font-semibold text-text-primary mb-4">เปลี่ยนรหัสผ่าน</h2>
                     <div className="max-w-md">
                         <div>
-                            <label className="block text-sm font-medium text-text-primary mb-1.5">เน€เธเธเน€เธเธเน€เธเธ‘เน€เธเธเน€เธยเน€เธยเน€เธเธ’เน€เธยเน€เธยเน€เธเธเน€เธเธเน€เธย</label>
+                            <label className="block text-sm font-medium text-text-primary mb-1.5">รหัสผ่านใหม่</label>
                             <Input
                                 type="password"
-                                placeholder="เน€เธเธเน€เธเธเน€เธยเน€เธเธ’เน€เธยเน€เธยเน€เธยเน€เธเธเน€เธเธ 8 เน€เธโ€ขเน€เธเธ‘เน€เธเธเน€เธเธเน€เธเธ‘เน€เธยเน€เธเธเน€เธเธ"
+                                placeholder="อย่างน้อย 8 ตัวอักษร"
                                 value={newPassword}
                                 onChange={(e) => setNewPassword(e.target.value)}
                             />
@@ -396,7 +396,7 @@ export default function UserDetailPage() {
                             isLoading={passwordSaving}
                             disabled={!newPassword}
                         >
-                            เน€เธโฌเน€เธยเน€เธเธ…เน€เธเธ•เน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธเน€เธเธ‘เน€เธเธเน€เธยเน€เธยเน€เธเธ’เน€เธย
+                            เปลี่ยนรหัสผ่าน
                         </Button>
                     </div>
                 </div>
@@ -404,7 +404,7 @@ export default function UserDetailPage() {
 
             {/* Account Info */}
             <div className="bg-surface rounded-2xl border border-border-default p-6 shadow-sm">
-                <h2 className="text-lg font-semibold text-text-primary mb-4">เน€เธยเน€เธยเน€เธเธเน€เธเธเน€เธเธเน€เธเธ…เน€เธยเน€เธเธ‘เน€เธยเน€เธยเน€เธเธ•</h2>
+                <h2 className="text-lg font-semibold text-text-primary mb-4">ข้อมูลบัญชี</h2>
                 <dl className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                     <div>
                         <dt className="text-text-tertiary">ID</dt>
@@ -415,13 +415,13 @@ export default function UserDetailPage() {
                         <dd className="text-text-primary font-mono mt-0.5">{userData.username || '-'}</dd>
                     </div>
                     <div>
-                        <dt className="text-text-tertiary">เน€เธเธเน€เธเธเน€เธยเน€เธเธ’เน€เธยเน€เธโฌเน€เธเธเน€เธเธ—เน€เธยเน€เธเธ</dt>
+                        <dt className="text-text-tertiary">สร้างเมื่อ</dt>
                         <dd className="text-text-primary mt-0.5">
                             {userData.created_at ? new Date(userData.created_at).toLocaleString('th-TH') : '-'}
                         </dd>
                     </div>
                     <div>
-                        <dt className="text-text-tertiary">เน€เธเธเน€เธเธ‘เน€เธยเน€เธโฌเน€เธโ€เน€เธโ€ขเน€เธเธ…เน€เธยเน€เธเธ’เน€เธเธเน€เธเธเน€เธโ€</dt>
+                        <dt className="text-text-tertiary">อัปเดตล่าสุด</dt>
                         <dd className="text-text-primary mt-0.5">
                             {userData.updated_at ? new Date(userData.updated_at).toLocaleString('th-TH') : '-'}
                         </dd>
@@ -439,16 +439,16 @@ export default function UserDetailPage() {
             <Modal
                 isOpen={showReset}
                 onClose={() => setShowReset(false)}
-                title="เน€เธเธเน€เธเธ•เน€เธโฌเน€เธยเน€เธยเน€เธโ€ขเน€เธเธเน€เธเธเน€เธเธ‘เน€เธเธเน€เธยเน€เธยเน€เธเธ’เน€เธย"
+                title="รีเซ็ตรหัสผ่าน"
                 description={userData.display_name || userData.username || ''}
                 maxWidth="sm"
             >
                 <div className="space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-text-primary mb-1.5">เน€เธเธเน€เธเธเน€เธเธ‘เน€เธเธเน€เธยเน€เธยเน€เธเธ’เน€เธยเน€เธยเน€เธเธเน€เธเธเน€เธย *</label>
+                        <label className="block text-sm font-medium text-text-primary mb-1.5">รหัสผ่านใหม่ *</label>
                         <Input
                             type="password"
-                            placeholder="เน€เธเธเน€เธเธเน€เธยเน€เธเธ’เน€เธยเน€เธยเน€เธยเน€เธเธเน€เธเธ 8 เน€เธโ€ขเน€เธเธ‘เน€เธเธเน€เธเธเน€เธเธ‘เน€เธยเน€เธเธเน€เธเธ"
+                            placeholder="อย่างน้อย 8 ตัวอักษร"
                             value={resetPw}
                             onChange={(e) => setResetPw(e.target.value)}
                         />
@@ -473,10 +473,10 @@ export default function UserDetailPage() {
 
                     <div className="flex gap-3 pt-2">
                         <Button variant="ghost" className="flex-1" onClick={() => setShowReset(false)} disabled={resetLoading}>
-                            เน€เธเธเน€เธยเน€เธโฌเน€เธเธ…เน€เธเธ”เน€เธย
+                            เปลี่ยนรหัสผ่าน
                         </Button>
                         <Button variant="warning" className="flex-1" onClick={handleResetPassword} isLoading={resetLoading}>
-                            เน€เธเธเน€เธเธ•เน€เธโฌเน€เธยเน€เธยเน€เธโ€ขเน€เธเธเน€เธเธเน€เธเธ‘เน€เธเธเน€เธยเน€เธยเน€เธเธ’เน€เธย
+                            รีเซ็ตรหัสผ่าน
                         </Button>
                     </div>
                 </div>
