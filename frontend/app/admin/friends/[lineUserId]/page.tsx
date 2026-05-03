@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Timeline, type TimelineItem } from '@/components/ui/Timeline';
 import { useAuth } from '@/contexts/AuthContext';
 
-// เน€เธยเน€เธยเน€เธเธเน€เธเธเน€เธเธเน€เธเธ…เน€เธโฌเน€เธยเน€เธเธ—เน€เธยเน€เธเธเน€เธยเน€เธยเน€เธเธ’เน€เธย API
+// ข้อมูลเพื่อนจาก API
 interface FriendInfo {
     line_user_id: string;
     display_name: string;
@@ -21,7 +21,7 @@ interface FriendInfo {
     refollow_count?: number;
 }
 
-// เน€เธโฌเน€เธเธเน€เธโ€ขเน€เธเธเน€เธยเน€เธเธ’เน€เธเธเน€เธโ€เน€เธยเน€เธยเน€เธเธเน€เธยเน€เธโฌเน€เธยเน€เธเธ—เน€เธยเน€เธเธเน€เธยเน€เธยเน€เธเธ’เน€เธย API
+// เหตุการณ์ของเพื่อนจาก API
 interface FriendEvent {
     id: number;
     event_type: string;
@@ -30,7 +30,7 @@ interface FriendEvent {
     created_at?: string;
 }
 
-// เน€เธยเน€เธยเน€เธเธ…เน€เธย status เน€เธโฌเน€เธยเน€เธยเน€เธย Badge variant
+// แปลง status เป็น Badge variant
 function getStatusBadgeVariant(status: string): 'success' | 'danger' | 'warning' {
     switch (status) {
         case 'ACTIVE': return 'success';
@@ -40,17 +40,17 @@ function getStatusBadgeVariant(status: string): 'success' | 'danger' | 'warning'
     }
 }
 
-// เน€เธยเน€เธยเน€เธเธ…เน€เธย status เน€เธโฌเน€เธยเน€เธยเน€เธยเน€เธยเน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ’เน€เธเธเน€เธย เน€เธเธ’เน€เธเธเน€เธเธ’เน€เธยเน€เธโ€”เน€เธเธ
+// แปลง status เป็นข้อความภาษาไทย
 function getStatusLabel(status: string): string {
     switch (status) {
-        case 'ACTIVE': return 'เน€เธยเน€เธเธ“เน€เธเธ…เน€เธเธ‘เน€เธยเน€เธโ€ขเน€เธเธ”เน€เธโ€เน€เธโ€ขเน€เธเธ’เน€เธเธ';
-        case 'BLOCKED': return 'เน€เธโ€“เน€เธเธเน€เธยเน€เธยเน€เธเธ…เน€เธยเน€เธเธเน€เธย';
-        case 'UNFOLLOWED': return 'เน€เธโฌเน€เธเธ…เน€เธเธ”เน€เธยเน€เธโ€ขเน€เธเธ”เน€เธโ€เน€เธโ€ขเน€เธเธ’เน€เธเธ';
+        case 'ACTIVE': return 'กำลังติดตาม';
+        case 'BLOCKED': return 'ถูกบล็อค';
+        case 'UNFOLLOWED': return 'เลิกติดตาม';
         default: return status;
     }
 }
 
-// เน€เธยเน€เธเธ“เน€เธยเน€เธเธเน€เธโ€เน€เธเธเน€เธเธเน€เธเธเน€เธเธเน€เธโฌเน€เธเธเน€เธเธ…เน€เธเธ’เน€เธเธเน€เธยเน€เธเธ’เน€เธยเน€เธเธเน€เธเธเน€เธเธเน€เธเธเน€เธยเน€เธเธ’เน€เธยเน€เธเธเน€เธเธเน€เธยเน€เธเธเน€เธเธ‘เน€เธยเน€เธโ€”เน€เธเธ•เน€เธย เน€เธโฌเน€เธยเน€เธยเน€เธยเน€เธยเน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ’เน€เธเธเน€เธย เน€เธเธ’เน€เธเธเน€เธเธ’เน€เธยเน€เธโ€”เน€เธเธ
+// คำนวณระยะเวลาห่างระหว่างสองวันที่ เป็นข้อความภาษาไทย
 function getDurationBetween(from: Date, to: Date): string {
     const diffMs = to.getTime() - from.getTime();
     if (diffMs < 0) return '';
@@ -60,26 +60,26 @@ function getDurationBetween(from: Date, to: Date): string {
         const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
         if (diffHours === 0) {
             const diffMinutes = Math.floor(diffMs / (1000 * 60));
-            return `${diffMinutes} เน€เธยเน€เธเธ’เน€เธโ€”เน€เธเธ•เน€เธเธเน€เธเธ…เน€เธเธ‘เน€เธยเน€เธยเน€เธเธ’เน€เธยเน€เธโฌเน€เธเธเน€เธโ€ขเน€เธเธเน€เธยเน€เธเธ’เน€เธเธเน€เธโ€เน€เธยเน€เธยเน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธยเน€เธยเน€เธเธ’`;
+            return `${diffMinutes} นาทีหลังจากเหตุการณ์ก่อนหน้า`;
         }
-        return `${diffHours} เน€เธยเน€เธเธ‘เน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ…เน€เธเธ‘เน€เธยเน€เธยเน€เธเธ’เน€เธยเน€เธโฌเน€เธเธเน€เธโ€ขเน€เธเธเน€เธยเน€เธเธ’เน€เธเธเน€เธโ€เน€เธยเน€เธยเน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธยเน€เธยเน€เธเธ’`;
+        return `${diffHours} ชั่วโมงหลังจากเหตุการณ์ก่อนหน้า`;
     }
     if (diffDays < 30) {
-        return `${diffDays} เน€เธเธเน€เธเธ‘เน€เธยเน€เธเธเน€เธเธ…เน€เธเธ‘เน€เธยเน€เธยเน€เธเธ’เน€เธยเน€เธโฌเน€เธเธเน€เธโ€ขเน€เธเธเน€เธยเน€เธเธ’เน€เธเธเน€เธโ€เน€เธยเน€เธยเน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธยเน€เธยเน€เธเธ’`;
+        return `${diffDays} วันหลังจากเหตุการณ์ก่อนหน้า`;
     }
     const diffMonths = Math.floor(diffDays / 30);
     if (diffMonths < 12) {
-        return `${diffMonths} เน€เธโฌเน€เธโ€เน€เธเธ—เน€เธเธเน€เธยเน€เธเธเน€เธเธ…เน€เธเธ‘เน€เธยเน€เธยเน€เธเธ’เน€เธยเน€เธโฌเน€เธเธเน€เธโ€ขเน€เธเธเน€เธยเน€เธเธ’เน€เธเธเน€เธโ€เน€เธยเน€เธยเน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธยเน€เธยเน€เธเธ’`;
+        return `${diffMonths} เดือนหลังจากเหตุการณ์ก่อนหน้า`;
     }
     const diffYears = Math.floor(diffMonths / 12);
     const remainingMonths = diffMonths % 12;
     if (remainingMonths === 0) {
-        return `${diffYears} เน€เธยเน€เธเธ•เน€เธเธเน€เธเธ…เน€เธเธ‘เน€เธยเน€เธยเน€เธเธ’เน€เธยเน€เธโฌเน€เธเธเน€เธโ€ขเน€เธเธเน€เธยเน€เธเธ’เน€เธเธเน€เธโ€เน€เธยเน€เธยเน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธยเน€เธยเน€เธเธ’`;
+        return `${diffYears} ปีหลังจากเหตุการณ์ก่อนหน้า`;
     }
-    return `${diffYears} เน€เธยเน€เธเธ• ${remainingMonths} เน€เธโฌเน€เธโ€เน€เธเธ—เน€เธเธเน€เธยเน€เธเธเน€เธเธ…เน€เธเธ‘เน€เธยเน€เธยเน€เธเธ’เน€เธยเน€เธโฌเน€เธเธเน€เธโ€ขเน€เธเธเน€เธยเน€เธเธ’เน€เธเธเน€เธโ€เน€เธยเน€เธยเน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธยเน€เธยเน€เธเธ’`;
+    return `${diffYears} ปี ${remainingMonths} เดือนหลังจากเหตุการณ์ก่อนหน้า`;
 }
 
-// เน€เธยเน€เธยเน€เธเธ…เน€เธย event เน€เธยเน€เธเธ’เน€เธย API เน€เธโฌเน€เธยเน€เธยเน€เธย TimelineItem
+// แปลง event จาก API เป็น TimelineItem
 function mapEventToTimelineItem(
     event: FriendEvent,
     previousEvent: FriendEvent | null
@@ -100,22 +100,22 @@ function mapEventToTimelineItem(
     switch (event.event_type) {
         case 'FOLLOW':
             type = 'follow';
-            title = 'เน€เธโฌเน€เธยเน€เธเธ”เน€เธยเน€เธเธเน€เธโฌเน€เธยเน€เธเธ—เน€เธยเน€เธเธเน€เธย (เน€เธยเน€เธเธเน€เธเธ‘เน€เธยเน€เธยเน€เธยเน€เธเธเน€เธย)';
+            title = 'เพิ่มเพื่อน (ครั้งแรก)';
             icon = <UserCheck className="w-3.5 h-3.5" />;
             break;
         case 'UNFOLLOW':
             type = 'unfollow';
-            title = 'เน€เธเธเน€เธยเน€เธโฌเน€เธเธ…เน€เธเธ”เน€เธยเน€เธยเน€เธเธ’เน€เธเธเน€เธโ€ขเน€เธเธ”เน€เธโ€เน€เธโ€ขเน€เธเธ’เน€เธเธ';
+            title = 'ยกเลิกการติดตาม';
             icon = <UserX className="w-3.5 h-3.5" />;
             break;
         case 'REFOLLOW':
             type = 'refollow';
-            title = `เน€เธยเน€เธเธ…เน€เธเธ‘เน€เธยเน€เธเธเน€เธเธ’เน€เธโฌเน€เธยเน€เธยเน€เธยเน€เธโฌเน€เธยเน€เธเธ—เน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ•เน€เธยเน€เธยเน€เธเธเน€เธเธ‘เน€เธยเน€เธย (เน€เธยเน€เธเธเน€เธเธ‘เน€เธยเน€เธยเน€เธโ€”เน€เธเธ•เน€เธย ${event.refollow_count ?? '?'})`;
+            title = `กลับมาเป็นเพื่อนอีกครั้ง (ครั้งที่ ${event.refollow_count ?? '?'})`;
             icon = <RefreshCw className="w-3.5 h-3.5" />;
             break;
         case 'BLOCK':
             type = 'block';
-            title = 'เน€เธยเน€เธเธ…เน€เธยเน€เธเธเน€เธยเน€เธโฌเน€เธยเน€เธเธ—เน€เธยเน€เธเธเน€เธย';
+            title = 'บล็อคเพื่อน';
             icon = <ShieldBan className="w-3.5 h-3.5" />;
             break;
         default:
@@ -124,7 +124,7 @@ function mapEventToTimelineItem(
             icon = undefined;
     }
 
-    // เน€เธยเน€เธเธ“เน€เธยเน€เธเธเน€เธโ€เน€เธเธเน€เธเธเน€เธเธเน€เธเธเน€เธโฌเน€เธเธเน€เธเธ…เน€เธเธ’เน€เธโ€ขเน€เธเธ‘เน€เธยเน€เธยเน€เธยเน€เธโ€ขเน€เธยเน€เธโฌเน€เธเธเน€เธโ€ขเน€เธเธเน€เธยเน€เธเธ’เน€เธเธเน€เธโ€เน€เธยเน€เธยเน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธยเน€เธยเน€เธเธ’
+    // คำนวณระยะเวลาตั้งแต่เหตุการณ์ก่อนหน้า
     let description: string | undefined;
     if (previousEvent) {
         const prevDate = new Date(previousEvent.timestamp || previousEvent.created_at || '');
@@ -152,13 +152,13 @@ export default function FriendTimelinePage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const API_BASE = '/api/v1';
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
     const authHeaders = useMemo(() => {
         if (!token) return {} as Record<string, string>;
         return { Authorization: `Bearer ${token}` };
     }, [token]);
 
-    // เน€เธโ€เน€เธเธ–เน€เธยเน€เธยเน€เธยเน€เธเธเน€เธเธเน€เธเธเน€เธเธ…เน€เธโฌเน€เธยเน€เธเธ—เน€เธยเน€เธเธเน€เธยเน€เธยเน€เธเธ…เน€เธเธ events เน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธเน€เธยเน€เธเธ‘เน€เธย
+    // ดึงข้อมูลเพื่อนและ events พร้อมกัน
     const fetchData = useCallback(async () => {
         setLoading(true);
         setError(null);
@@ -169,23 +169,23 @@ export default function FriendTimelinePage() {
             ]);
 
             if (!friendsRes.ok) {
-                throw new Error(`เน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ’เน€เธเธเน€เธเธ’เน€เธเธเน€เธโ€“เน€เธโ€เน€เธเธ–เน€เธยเน€เธยเน€เธยเน€เธเธเน€เธเธเน€เธเธเน€เธเธ…เน€เธโฌเน€เธยเน€เธเธ—เน€เธยเน€เธเธเน€เธยเน€เธยเน€เธโ€เน€เธย (${friendsRes.status})`);
+                throw new Error(`ไม่สามารถดึงข้อมูลเพื่อนได้ (${friendsRes.status})`);
             }
             if (!eventsRes.ok) {
-                throw new Error(`เน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ’เน€เธเธเน€เธเธ’เน€เธเธเน€เธโ€“เน€เธโ€เน€เธเธ–เน€เธยเน€เธยเน€เธเธเน€เธเธเน€เธเธเน€เธเธ‘เน€เธโ€ขเน€เธเธ”เน€เธโฌเน€เธเธเน€เธโ€ขเน€เธเธเน€เธยเน€เธเธ’เน€เธเธเน€เธโ€เน€เธยเน€เธยเน€เธโ€เน€เธย (${eventsRes.status})`);
+                throw new Error(`ไม่สามารถดึงประวัติเหตุการณ์ได้ (${eventsRes.status})`);
             }
 
             const friendsData = await friendsRes.json();
             const eventsData = await eventsRes.json();
 
-            // เน€เธเธเน€เธเธ’เน€เธโฌเน€เธยเน€เธเธ—เน€เธยเน€เธเธเน€เธยเน€เธยเน€เธเธ’เน€เธย list
+            // หาเพื่อนจาก list
             const matchedFriend = (friendsData.friends ?? []).find(
                 (f: FriendInfo) => f.line_user_id === lineUserId
             );
             setFriendInfo(matchedFriend ?? null);
             setEvents(eventsData.events ?? eventsData ?? []);
         } catch (err: unknown) {
-            const message = err instanceof Error ? err.message : 'เน€เธโฌเน€เธยเน€เธเธ”เน€เธโ€เน€เธยเน€เธยเน€เธเธเน€เธยเน€เธเธ”เน€เธโ€เน€เธยเน€เธเธ…เน€เธเธ’เน€เธโ€เน€เธโ€”เน€เธเธ•เน€เธยเน€เธยเน€เธเธเน€เธยเน€เธโ€”เน€เธเธเน€เธเธ’เน€เธยเน€เธเธเน€เธเธ’เน€เธโฌเน€เธเธเน€เธโ€ขเน€เธเธ';
+            const message = err instanceof Error ? err.message : 'เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ';
             setError(message);
         } finally {
             setLoading(false);
@@ -196,7 +196,7 @@ export default function FriendTimelinePage() {
         fetchData();
     }, [fetchData]);
 
-    // เน€เธยเน€เธเธ“เน€เธยเน€เธเธเน€เธโ€เน€เธยเน€เธเธ“เน€เธยเน€เธเธเน€เธย follow เน€เธโ€”เน€เธเธ‘เน€เธยเน€เธยเน€เธเธเน€เธเธเน€เธโ€ (FOLLOW + REFOLLOW)
+    // คำนวณจำนวน follow ทั้งหมด (FOLLOW + REFOLLOW)
     const followCount = events.filter(
         (e) => e.event_type === 'FOLLOW' || e.event_type === 'REFOLLOW'
     ).length;
@@ -205,7 +205,7 @@ export default function FriendTimelinePage() {
         (e) => e.event_type === 'REFOLLOW'
     ).length;
 
-    // เน€เธยเน€เธยเน€เธเธ…เน€เธย events เน€เธโฌเน€เธยเน€เธยเน€เธย timeline items (เน€เธโฌเน€เธเธเน€เธเธ•เน€เธเธเน€เธยเน€เธยเน€เธเธ’เน€เธยเน€เธยเน€เธเธเน€เธเธเน€เธยเน€เธยเน€เธยเน€เธโฌเน€เธยเน€เธยเน€เธเธ’)
+    // แปลง events เป็น timeline items (เรียงจากใหม่ไปเก่า)
     const sortedEvents = [...events].sort(
         (a, b) => new Date(a.timestamp || a.created_at || '').getTime()
                  - new Date(b.timestamp || b.created_at || '').getTime()
@@ -216,19 +216,19 @@ export default function FriendTimelinePage() {
         return mapEventToTimelineItem(event, previousEvent);
     }).reverse();
 
-    // เน€เธเธเน€เธยเน€เธยเน€เธเธ’ Loading
+    // หน้า Loading
     if (loading) {
         return (
             <div className="p-6 max-w-4xl mx-auto thai-text">
                 <div className="flex items-center justify-center py-20">
                     <Loader2 className="w-8 h-8 animate-spin text-brand-500" />
-                    <span className="ml-3 text-text-secondary">เน€เธยเน€เธเธ“เน€เธเธ…เน€เธเธ‘เน€เธยเน€เธยเน€เธเธเน€เธเธ…เน€เธโ€เน€เธยเน€เธยเน€เธเธเน€เธเธเน€เธเธเน€เธเธ…...</span>
+                    <span className="ml-3 text-text-secondary">กำลังโหลดข้อมูล...</span>
                 </div>
             </div>
         );
     }
 
-    // เน€เธเธเน€เธยเน€เธยเน€เธเธ’ Error
+    // หน้า Error
     if (error) {
         return (
             <div className="p-6 max-w-4xl mx-auto thai-text">
@@ -237,7 +237,7 @@ export default function FriendTimelinePage() {
                     className="inline-flex items-center gap-2 text-sm text-text-secondary hover:text-brand-500 transition-colors mb-6"
                 >
                     <ArrowLeft className="w-4 h-4" />
-                    <span>เน€เธยเน€เธเธเน€เธเธเน€เธเธเน€เธเธ‘เน€เธโ€ขเน€เธเธ”เน€เธโฌเน€เธยเน€เธเธ—เน€เธยเน€เธเธเน€เธย</span>
+                    <span>ประวัติเพื่อน</span>
                 </Link>
                 <Card variant="outlined" padding="lg">
                     <CardContent>
@@ -250,32 +250,32 @@ export default function FriendTimelinePage() {
 
     return (
         <div className="p-6 max-w-4xl mx-auto thai-text">
-            {/* เน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธยเน€เธเธ…เน€เธเธ‘เน€เธย */}
+            {/* ปุ่มกลับ */}
             <Link
                 href="/admin/friends"
                 className="inline-flex items-center gap-2 text-sm text-text-secondary hover:text-brand-500 transition-colors mb-6"
             >
                 <ArrowLeft className="w-4 h-4" />
-                <span>เน€เธยเน€เธเธเน€เธเธเน€เธเธเน€เธเธ‘เน€เธโ€ขเน€เธเธ”เน€เธโฌเน€เธยเน€เธเธ—เน€เธยเน€เธเธเน€เธย</span>
+                <span>ประวัติเพื่อน</span>
             </Link>
 
-            {/* เน€เธเธเน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ‘เน€เธเธ เนโฌโ€ เน€เธยเน€เธเธ—เน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธยเน€เธยเน€เธยเน€เธย */}
+            {/* ส่วนหัว — ชื่อผู้ใช้ */}
             <div className="mb-8">
                 <h1 className="text-2xl font-bold text-text-primary tracking-tight">
-                    {friendInfo?.display_name ?? 'เน€เธยเน€เธเธเน€เธยเน€เธโ€”เน€เธเธเน€เธเธ’เน€เธยเน€เธยเน€เธเธ—เน€เธยเน€เธเธ'}
+                    {friendInfo?.display_name ?? 'ไม่ทราบชื่อ'}
                 </h1>
                 <p className="text-sm text-text-secondary font-mono mt-1">
                     {lineUserId}
                 </p>
             </div>
 
-            {/* เน€เธเธเน€เธเธเน€เธเธเน€เธย 3 เน€เธยเน€เธเธ’เน€เธเธเน€เธยเน€เธโ€ */}
+            {/* สรุป 3 การ์ด */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-                {/* เน€เธยเน€เธเธ’เน€เธเธเน€เธยเน€เธโ€ 1: เน€เธเธเน€เธโ€“เน€เธเธ’เน€เธยเน€เธเธ */}
+                {/* การ์ด 1: สถานะ */}
                 <Card variant="default" padding="lg">
                     <CardContent>
                         <p className="text-xs text-text-secondary font-medium uppercase tracking-wider mb-2">
-                            เน€เธเธเน€เธโ€“เน€เธเธ’เน€เธยเน€เธเธ
+                            สถานะ
                         </p>
                         <Badge
                             variant={getStatusBadgeVariant(friendInfo?.friend_status ?? '')}
@@ -286,11 +286,11 @@ export default function FriendTimelinePage() {
                     </CardContent>
                 </Card>
 
-                {/* เน€เธยเน€เธเธ’เน€เธเธเน€เธยเน€เธโ€ 2: เน€เธยเน€เธเธเน€เธเธ‘เน€เธยเน€เธยเน€เธโ€”เน€เธเธ•เน€เธย Follow */}
+                {/* การ์ด 2: ครั้งที่ Follow */}
                 <Card variant="default" padding="lg">
                     <CardContent>
                         <p className="text-xs text-text-secondary font-medium uppercase tracking-wider mb-2">
-                            เน€เธยเน€เธเธเน€เธเธ‘เน€เธยเน€เธยเน€เธโ€”เน€เธเธ•เน€เธย Follow
+                            ครั้งที่ Follow
                         </p>
                         <p className="text-3xl font-bold text-text-primary">
                             {followCount}
@@ -298,11 +298,11 @@ export default function FriendTimelinePage() {
                     </CardContent>
                 </Card>
 
-                {/* เน€เธยเน€เธเธ’เน€เธเธเน€เธยเน€เธโ€ 3: เน€เธยเน€เธเธเน€เธเธ‘เน€เธยเน€เธยเน€เธโ€”เน€เธเธ•เน€เธย Refollow */}
+                {/* การ์ด 3: ครั้งที่ Refollow */}
                 <Card variant="default" padding="lg">
                     <CardContent>
                         <p className="text-xs text-text-secondary font-medium uppercase tracking-wider mb-2">
-                            เน€เธยเน€เธเธเน€เธเธ‘เน€เธยเน€เธยเน€เธโ€”เน€เธเธ•เน€เธย Refollow
+                            ครั้งที่ Refollow
                         </p>
                         <p className="text-3xl font-bold text-text-primary">
                             {refollowCount}
@@ -314,10 +314,10 @@ export default function FriendTimelinePage() {
             {/* Timeline */}
             <div className="mb-4">
                 <h2 className="text-lg font-semibold text-text-primary mb-1">
-                    เน€เธยเน€เธโ€”เน€เธเธเน€เธยเน€เธยเน€เธเธ…เน€เธยเน€เธยเน€เธโฌเน€เธเธเน€เธโ€ขเน€เธเธเน€เธยเน€เธเธ’เน€เธเธเน€เธโ€เน€เธย
+                    ไทม์ไลน์เหตุการณ์
                 </h2>
                 <p className="text-sm text-text-secondary mb-6">
-                    เน€เธยเน€เธเธเน€เธเธเน€เธเธเน€เธเธ‘เน€เธโ€ขเน€เธเธ”เน€เธยเน€เธเธ’เน€เธเธเน€เธโฌเน€เธยเน€เธเธ”เน€เธยเน€เธเธเน€เธโฌเน€เธยเน€เธเธ—เน€เธยเน€เธเธเน€เธย เน€เธเธเน€เธยเน€เธโฌเน€เธเธ…เน€เธเธ”เน€เธย เน€เธยเน€เธเธ…เน€เธเธเน€เธยเน€เธเธ…เน€เธเธ‘เน€เธยเน€เธเธเน€เธเธ’เน€เธโ€ขเน€เธเธ”เน€เธโ€เน€เธโ€ขเน€เธเธ’เน€เธเธ
+                    ประวัติการเพิ่มเพื่อน ยกเลิก และกลับมาติดตาม
                 </p>
             </div>
 
@@ -325,7 +325,7 @@ export default function FriendTimelinePage() {
                 <Card variant="outlined" padding="lg">
                     <CardContent>
                         <p className="text-center text-text-secondary py-4">
-                            เน€เธเธเน€เธเธ‘เน€เธยเน€เธยเน€เธเธเน€เธยเน€เธเธเน€เธเธ•เน€เธยเน€เธเธเน€เธเธเน€เธเธเน€เธเธ‘เน€เธโ€ขเน€เธเธ”เน€เธโฌเน€เธเธเน€เธโ€ขเน€เธเธเน€เธยเน€เธเธ’เน€เธเธเน€เธโ€เน€เธย
+                            ยังไม่มีประวัติเหตุการณ์
                         </p>
                     </CardContent>
                 </Card>
