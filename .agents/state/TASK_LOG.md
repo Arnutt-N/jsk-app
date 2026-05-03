@@ -38,6 +38,353 @@
 
 ## Task History (Newest First)
 
+### Task #36 - 2026-05-04 00:28 - Claude Code
+
+**Task ID**: `task-supabase-keepalive-guard-20260504`
+**Agent**: Claude Code (Opus 4.7, 1M context)
+**Status**: completed
+**Duration**: ~1.5 hours (diagnosis + verification + ops setup)
+
+#### Cross-Platform Context
+- Read summaries from: Antigravity (`session-summary-20260407-1543.md`), CodeX (`session-summary-20260407-0029.md`, `session-summary-20260406-2244.md`, `session-summary-20260406-0156.md`), Claude Code (`session-summary-20260406-0100.md`)
+- Key insights from other agents: Frankfurt migration was already in production; bcrypt rounds=10 and PgBouncer-compatible pool settings were already merged via PR #35; no session activity for ~26 days before this one.
+
+#### Work Completed
+- Diagnosed production login outage end-to-end:
+  - Vercel rewrite was healthy (`x-koyeb-glb` header reached Koyeb edge).
+  - Koyeb container was crash-looping at FastAPI `lifespan → _initialize_database()`.
+  - Koyeb logs surfaced `(ENOTFOUND) tenant/user postgres.<redacted-project-ref> not found` — Supabase project was auto-paused by free-tier inactivity policy.
+- Confirmed recovery after the user restored the Supabase project: login endpoint returns `401 Invalid username or password` (FastAPI handler reachable, DB query path live), `/api/v1/health` returns `{"database":true,"redis":true,"status":"healthy"}`.
+- Added a GitHub Actions cron workflow (`.github/workflows/keepalive.yml`) that:
+  - Pings the existing `/api/v1/health` endpoint twice daily (09:00 + 21:00 UTC).
+  - Retries up to 3× with 30s backoff to absorb Koyeb cold starts.
+  - Asserts `"database":true` in the response, not just HTTP 200.
+  - Writes a remediation runbook to the GitHub job summary on failure.
+- No backend or frontend source changes were required — `health.py` already executes `SELECT 1` against the DB.
+
+#### Files Modified
+- `.github/workflows/keepalive.yml` (new)
+- `project-log-md/claude_code/session-summary-20260504-0028.md` (new)
+- `.agents/state/TASK_LOG.md`
+- `.agents/state/SESSION_INDEX.md`
+- `.agents/state/current-session.json`
+
+#### Session Summary
+- Location: `project-log-md/claude_code/session-summary-20260504-0028.md`
+- Checkpoint: not created (ops-only session, no code change to verify)
+
+#### Blockers
+- None.
+
+#### Next Steps
+- Commit and push the new files; trigger `Run workflow` once after merge to confirm the schedule is wired up.
+- Optionally set repo variable `HEALTHCHECK_URL` to override the default endpoint without editing YAML.
+- Outstanding from prior sessions: manual login-after-idle browser regression (Task #34); Phase 7 cleanup of the old Mumbai Supabase project (Task #31).
+
+---
+
+### Task #35 - 2026-04-07 15:43 - Antigravity
+
+**Task ID**: `task-db-stale-connection-timeout-20260407`
+**Agent**: Antigravity
+**Status**: completed
+**Duration**: ~1 hour
+
+#### Cross-Platform Context
+- Read summaries from: CodeX (`session-summary-20260407-0029.md`, `session-summary-20260406-2244.md`, `session-summary-20260406-0156.md`)
+- Key insights from other agents: Frontend auth forms were stabilized by CodeX, but the actual backend connections were experiencing TCP drops.
+
+#### Work Completed
+- Fixed the persistent login failures and timeout drops that occur after periods of inactivity.
+- Tuned PostgreSQL connection pool settings in `backend/app/db/session.py`.
+- Reduced pool_recycle to 250 and added tcp_keepalives under connect_args.
+
+#### Files Modified
+- `backend/app/db/session.py`
+
+#### Session Summary
+- Location: `project-log-md/antigravity/session-summary-20260407-1543.md`
+- Checkpoint: `.agents/state/checkpoints/handover-antigravity-20260407-1543.json`
+
+#### Blockers
+- Agentic execution of sequential terminal Git operations was failing silently on Windows CMD wrappers, requiring a manual fix script via copy-paste.
+
+#### Next Steps
+- Verify the connection fix on `main`.
+
+---
+
+### Task #34 - 2026-04-07 00:29 - CodeX
+
+**Task ID**: `task-login-after-idle-handoff-20260407`
+**Agent**: CodeX (Codex GPT-5)
+**Status**: completed
+**Duration**: ~2 hours
+
+#### Cross-Platform Context
+- Read summaries from: CodeX (`session-summary-20260406-2244.md`, `session-summary-20260406-0156.md`), Claude Code (`session-summary-20260406-0100.md`, `session-summary-20260404-0030.md`), Antigravity (`session-summary-20260404-1204.md`)
+- Key insights from other agents: `main` already included the earlier mobile login/logout fix and Frankfurt performance work, but the repeated-login-after-idle issue still reproduced and now affected desktop Chrome too; the Antigravity login redesign remained separate from the auth-flow fix.
+
+#### Work Completed
+- Re-investigated the repeated-login-after-idle issue after the user reproduced it on both mobile and desktop Chrome.
+- Refactored `frontend/app/login/page.tsx` so credential submission reads from live form/DOM refs rather than React-controlled state, reducing autofill/state drift risk.
+- Updated `frontend/contexts/AuthContext.tsx` to classify login failures as 401 vs network/5xx and retry transient login failures automatically in the same click.
+- Verified targeted frontend lint in WSL for the 2 changed auth files.
+- Committed `fix(auth): stabilize login after idle` (`44ab7aa`), pushed `fix/login-transient-auth-failures`, opened PR #26, merged it to `main`, synced local `main` to `c4a73c4`, and deleted the local/remote feature branch.
+
+#### Files Modified
+- `frontend/app/login/page.tsx`
+- `frontend/contexts/AuthContext.tsx`
+- `.agents/PROJECT_STATUS.md`
+- `.agents/state/current-session.json`
+- `.agents/state/task.md`
+- `.agents/state/TASK_LOG.md`
+- `.agents/state/SESSION_INDEX.md`
+- `project-log-md/codeX/session-summary-20260407-0029.md`
+- `.agents/state/checkpoints/handover-codeX-20260407-0029.json`
+
+#### Session Summary
+- Location: `project-log-md/codeX/session-summary-20260407-0029.md`
+- Checkpoint: `.agents/state/checkpoints/handover-codeX-20260407-0029.json`
+
+#### Blockers
+- Full frontend `npm run build` and `npx tsc --noEmit` timed out in the current WSL environment, so only targeted lint was verified in this session.
+- Unrelated dirty local artifacts remain in the workspace (`.agents/*`, docs/tooling files, and `frontend/next-env.d.ts`).
+
+#### Next Steps
+- Run manual regression on real mobile and desktop browsers for login-after-idle using the merged `main` branch.
+- If the intermittent login issue still appears, capture backend/network traces to determine whether infrastructure cold-start or stale connections remain beyond the frontend auth flow.
+- Investigate why full frontend `build` and `tsc` are timing out in WSL before the next frontend release candidate.
+
+---
+
+### Task #33 - 2026-04-06 22:44 - CodeX
+
+**Task ID**: `task-analytics-ci-hardening-20260406`
+**Agent**: CodeX (Codex GPT-5)
+**Status**: completed
+**Duration**: ~4 hours
+
+#### Cross-Platform Context
+- Read summaries from: CodeX (`session-summary-20260406-0156.md`), Claude Code (`session-summary-20260406-0100.md`, `session-summary-20260404-0030.md`), Antigravity (`session-summary-20260404-1204.md`)
+- Key insights from other agents: `main` already includes the mobile login/logout fix from PR #24, production/performance context is current from the Frankfurt migration work, and the login redesign remains a separate follow-up from Antigravity
+
+#### Work Completed
+- Confirmed PR #24 is merged into `main`, synced local `main`, and created `fix/operator-performance-analytics` for the follow-up regression/test work
+- Fixed the analytics operator performance regression by making `operator_name` fallback safe when query rows omit that attribute
+- Removed the hardcoded skips from 7 WebSocket/DB-backed tests and defaulted backend tests to safe local Docker services (`backend/app/.env`) so they can run in the normal suite/CI path
+- Stabilized WebSocket/API tests by reusing a shared session-scoped `TestClient` instead of repeatedly restarting app lifespan across incompatible event loops
+- Hardened Redis/PubSub disconnect logic to support both `aclose()` and legacy `close()` and to tolerate loop shutdown during teardown
+- Verified the target suites and then the full backend suite in WSL + Python 3.13: `ENV_FILE=/mnt/d/genAI/jsk-app/backend/app/.env python -m pytest -q` -> `217 passed`
+
+#### Files Modified
+- `backend/app/core/pubsub_manager.py`
+- `backend/app/core/redis_client.py`
+- `backend/app/services/analytics_service.py`
+- `backend/tests/conftest.py`
+- `backend/tests/test_analytics_service.py`
+- `backend/tests/test_multi_operator.py`
+- `backend/tests/test_reconnection.py`
+- `backend/tests/test_session_claim.py`
+- `backend/tests/test_websocket.py`
+- `.agents/PROJECT_STATUS.md`
+- `.agents/state/current-session.json`
+- `.agents/state/task.md`
+- `.agents/state/TASK_LOG.md`
+- `.agents/state/SESSION_INDEX.md`
+- `project-log-md/codeX/session-summary-20260406-2244.md`
+- `.agents/state/checkpoints/handover-codeX-20260406-2244.json`
+
+#### Session Summary
+- Location: `project-log-md/codeX/session-summary-20260406-2244.md`
+- Checkpoint: `.agents/state/checkpoints/handover-codeX-20260406-2244.json`
+
+#### Blockers
+- None
+
+#### Next Steps
+- Review and commit the local changes on `fix/operator-performance-analytics`
+- Push the branch and open a PR with only analytics/test-harness hardening
+- Keep unrelated dirty `.agents`/docs/local artifacts out of the code PR unless explicitly intended
+
+---
+
+### Task #32 - 2026-04-06 01:56 - CodeX
+
+**Task ID**: `task-branch-assessment-handoff-20260406`
+**Agent**: CodeX (Codex GPT-5)
+**Status**: completed
+**Duration**: ~35 minutes
+
+#### Cross-Platform Context
+- Read summaries from: Claude Code (`session-summary-20260406-0100.md`, `session-summary-20260404-0030.md`, `session-summary-20260321-1100.md`), Antigravity (`session-summary-20260404-1204.md`), CodeX (`session-summary-20260330-0819.md`)
+- Key insights from other agents: production is already live on Frankfurt, login redesign remains uncommitted, landing redesign is merged, and CI/`main` are stable enough for branch cleanup analysis
+
+#### Work Completed
+- Audited all 5 local branches not merged into `main` using `git log`, `git diff`, `git cherry`, and spot checks against the current `main`
+- Determined that no remaining local branch should be merged directly into `main`
+- Verified that many historically important fixes from `feat/ui-workflow-audit` are already present on the current `main`, so no immediate cherry-pick is required
+- Wrote a branch assessment report for Claude Code at `project-log-md/codeX/branch-assessment-20260406-0153.md`
+- Executed a formal handoff update in `.agents` and `project-log-md` so Claude Code can continue directly from the branch assessment
+
+#### Files Modified
+- `.agents/PROJECT_STATUS.md`
+- `.agents/state/current-session.json`
+- `.agents/state/task.md`
+- `.agents/state/TASK_LOG.md`
+- `.agents/state/SESSION_INDEX.md`
+- `project-log-md/codeX/branch-assessment-20260406-0153.md`
+- `project-log-md/codeX/session-summary-20260406-0156.md`
+- `.agents/state/checkpoints/handover-codeX-20260406-0156.json`
+
+#### Session Summary
+- Location: `project-log-md/codeX/session-summary-20260406-0156.md`
+- Checkpoint: `.agents/state/checkpoints/handover-codeX-20260406-0156.json`
+
+#### Blockers
+- None
+
+#### Next Steps
+- Claude Code should read `project-log-md/codeX/branch-assessment-20260406-0153.md` first
+- Decide whether to delete the 5 stale local branches immediately or keep them as historical references
+- If any old branch logic is still needed, re-implement it on a fresh branch rather than merging stale history
+
+---
+
+### Task #31 - 2026-04-06 01:00 - Claude Code
+
+**Task ID**: `task-production-deploy-frankfurt-migration-20260405`
+**Agent**: Claude Code (Opus 4.6)
+**Status**: completed
+**Duration**: ~10 hours (across 2026-04-05 to 2026-04-06)
+
+#### Cross-Platform Context
+- Read summaries from: Antigravity, Claude Code, CodeX
+- Key insights: Antigravity login page redesign uncommitted, CodeX landing page merged, CI green
+
+#### Work Completed
+- Updated deploy docs (DEPLOY + CD) with seed admin step, ADMIN_URL, LIFF v2
+- Fixed next.config.js rewrite for production (localhost → NEXT_PUBLIC_API_URL)
+- Configured GitHub Actions CD (production environment, secrets, variables, branch restriction)
+- Disabled Koyeb autodeploy to prevent double-deploy
+- Updated design system page with full component inventory (PR #23 merged)
+- Fixed Tailwind purge issue with dynamic class construction
+- Diagnosed production latency: Koyeb (Washington) ↔ Supabase (Mumbai) = ~500ms per query
+- Created PRD + Plan for Frankfurt migration
+- Executed full Frankfurt migration (Phase 1-6): Supabase + Upstash + Koyeb → Frankfurt
+- Migrated schema (27 Alembic migrations), admin user, geography, 8 data tables
+- Updated all env vars (Koyeb, GitHub secrets, LINE webhook verified)
+- Benchmarked: health 1.3s→0.6s, DB queries 2-4x faster
+
+#### Files Modified
+- `docs/DEPLOY_VERCEL_KOYEB_SUPABASE_UPSTASH_TH.md`
+- `docs/GITHUB_ACTIONS_CD_VERCEL_KOYEB_TH.md`
+- `backend/.env.production.example`
+- `backend/app/.env.example`
+- `frontend/next.config.js`
+- `frontend/app/admin/design-system/page.tsx`
+- `backend/.env`
+- `.claude/PRPs/prds/region-migration-frankfurt.prd.md`
+- `.claude/PRPs/plans/region-migration-frankfurt-phase1-2.plan.md`
+
+#### Session Summary
+- Location: `project-log-md/claude_code/session-summary-20260406-0100.md`
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260406-0100.json`
+
+#### Blockers
+- None
+
+#### Additional Work (same session)
+- Reduced bcrypt rounds 12→10, added verify_password_async, optimized DB pool (commit `252a1e2`)
+- Reviewed CodeX branch assessment — all 5 stale branches recommended close
+- Deleted 23 branches (5 stale unmerged + 18 merged) local + remote
+- Only `main` remains
+
+#### Next Steps
+- Benchmark login after Koyeb redeploy (expect ~0.8s with rounds=10)
+- Delete old Supabase Mumbai (Phase 7 cleanup)
+- Review/commit Antigravity login page changes
+
+---
+
+### Task #30 - 2026-04-04 12:04 - Antigravity
+
+**Task ID**: `task-login-redesign-20260404`
+**Agent**: Antigravity
+**Status**: completed
+**Duration**: ~1 hour
+
+#### Cross-Platform Context
+- Read summaries from: Claude Code (session-summary-20260404-0030.md)
+- Key insights from other agents: Claude merged PR#17 and requested follow-up on login page unstaged changes.
+
+#### Work Completed
+- Re-designed the login page UI `frontend/app/login/page.tsx` based on the landing page theme.
+- Modified the logo to be a navy blue gradient box with only the `JSK` text.
+- Changing sign-in context messages to `JSK 4.0 Platform` and `เข้าสู่ระบบจัดการงานสำหรับเจ้าหน้าที่`.
+- Replaced the submit button to single text `เข้าสู่ระบบ`.
+- Added a new register link portion separated by an "or" divider.
+- Added shrink and wrap preventative styling on the Local Dev Quick Bypass button.
+- Added Copyright notice footer.
+- Used WSL `rsync` workflow to sync code changes to Linux `frontend` to reflect changes.
+
+#### Files Modified
+- `frontend/app/login/page.tsx`
+
+#### Session Summary
+- Location: `project-log-md/antigravity/session-summary-20260404-1204.md`
+- Checkpoint: `.agents/state/checkpoints/handover-antigravity-20260404-1204.json`
+
+#### Blockers
+- Initial confusion between Windows files being modified vs WSL Next.js dev server serving isolated files; resolved by standard file syncing workflow.
+
+#### Next Steps
+- Review and commit changes.
+- Check PR statuses for next feature implementation.
+
+---
+
+### Task #29 - 2026-04-04 00:30 - Claude Code
+
+**Task ID**: `task-backend-startup-hints-pr17-20260403`
+**Agent**: Claude Code (Opus 4.6)
+**Status**: completed
+**Duration**: ~2 hours
+
+#### Cross-Platform Context
+- Read summaries from: CodeX (session-summary-20260330-0819.md), Claude Code (session-summary-20260321-1100.md)
+- Key insights: CodeX completed landing page redesign merge + handoff; Claude previously restored CI health on main
+
+#### Work Completed
+- Created PR #17 (`fix/backend-connection-startup-hints`) with Thai description
+- Code reviewed PR #17 using 5 parallel Sonnet agents (CLAUDE.md compliance, bug scan, git blame, prev PR comments, code comment compliance) — no high-confidence issues found
+- Merged PR #17 to main with `--delete-branch`
+- Fixed frontend login page duplicate `export default` build error (line 390-396 removed)
+- Cleared `.next` and `node_modules/.cache` to resolve stale Webpack cache
+
+#### Files Modified
+- `backend/app/core/connection_targets.py` (new — URL description, credential stripping, localhost detection)
+- `backend/app/main.py` (refactored startup with actionable error messages)
+- `backend/app/core/redis_client.py` (warning-level log)
+- `backend/app/core/pubsub_manager.py` (warning-level log)
+- `backend/tests/test_connection_targets.py` (new — unit tests)
+- `backend/tests/test_main_startup.py` (Docker hint test)
+- `frontend/app/login/page.tsx` (removed duplicate export default)
+
+#### Session Summary
+- Location: `project-log-md/claude_code/session-summary-20260404-0030.md`
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260404-0030.json`
+
+#### Blockers
+- None
+
+#### Next Steps
+- Login page has unstaged changes from previous session (redesign) — review and commit if ready
+- Smart Port PPTX created at `docs/ระบบสมุดพก_Smart_Port.pptx` — needs credentials for internal page screenshots
+- Consider Phase 2 roadmap items
+
+---
+
 ### Task #28 - 2026-03-30 08:19 - CodeX
 
 **Task ID**: `task-landing-redesign-merge-handoff-20260330`
@@ -1250,12 +1597,12 @@
 
 | Metric | Value |
 |--------|-------|
-| Total Tasks | 25 |
-| Completed | 25 |
+| Total Tasks | 34 |
+| Completed | 34 |
 | In Progress | 0 |
 | Blocked | 0 |
 | First Entry | 2026-02-10 |
-| Last Entry | 2026-03-18 |
+| Last Entry | 2026-04-07 |
 
 ### Agents Contributed
 1. **Claude Code**: 7 tasks (#1, #4, #5, #10, #14, #18, #20)
