@@ -49,7 +49,7 @@
   --chart-4: hsl(38 92% 50%);
   --chart-5: hsl(217 91% 60%);
 
-  /* WCAG AA Accessible Text Colors (โฅ4.5:1 on white) */
+  /* WCAG AA Accessible Text Colors (โฅ4.5:1 on white) */
   /* Use these for text on light backgrounds instead of brand-500 / danger / success */
   --color-brand-text: hsl(224 76% 48%);     /* brand-700, ~5.8:1 ratio */
   --color-danger-text: hsl(0 72% 51%);      /* danger-dark, ~5.6:1 ratio */
