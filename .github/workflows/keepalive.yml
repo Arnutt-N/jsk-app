@@ -1,0 +1,92 @@
+name: Keepalive Health Ping
+
+# Pings the production /health endpoint on a schedule to keep the
+# Supabase free-tier project from being auto-paused after 7 days of
+# inactivity. The endpoint executes `SELECT 1` against Postgres so
+# every successful ping registers as DB activity in Supabase.
+#
+# Add a repository variable HEALTHCHECK_URL to override the default URL
+# (Settings → Secrets and variables → Actions → Variables).
+
+on:
+  schedule:
+    # 09:00 UTC daily = 16:00 Bangkok (ICT). Adjust if needed.
+    - cron: '0 9 * * *'
+    # Optional safety net at 21:00 UTC = 04:00 Bangkok (next day) so a
+    # single transient cold-start failure doesn't leave Supabase idle
+    # for 24h. Comment out if once-per-day is the goal.
+    - cron: '0 21 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: keepalive-${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  ping-health:
+    name: Ping Backend Health Endpoint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      HEALTHCHECK_URL: ${{ vars.HEALTHCHECK_URL || 'https://jsk-app.vercel.app/api/v1/health' }}
+      MAX_ATTEMPTS: 3
+      RETRY_BACKOFF_SECONDS: 30
+      REQUEST_TIMEOUT_SECONDS: 60
+    steps:
+      - name: Ping health endpoint with cold-start retry
+        run: |
+          set -u
+          ATTEMPT=0
+          while [ $ATTEMPT -lt "$MAX_ATTEMPTS" ]; do
+            ATTEMPT=$((ATTEMPT + 1))
+            echo "::group::Attempt $ATTEMPT / $MAX_ATTEMPTS"
+            echo "URL: $HEALTHCHECK_URL"
+
+            HTTP_CODE=$(curl --silent --show-error \
+              --max-time "$REQUEST_TIMEOUT_SECONDS" \
+              --output /tmp/health_response.json \
+              --write-out "%{http_code}" \
+              "$HEALTHCHECK_URL" || echo "000")
+
+            echo "HTTP status: $HTTP_CODE"
+            echo "Body:"
+            head -c 500 /tmp/health_response.json || true
+            echo
+            echo "::endgroup::"
+
+            if [ "$HTTP_CODE" = "200" ] && grep -q '"database":true' /tmp/health_response.json; then
+              echo "Health check passed: database connected, Supabase activity registered."
+              exit 0
+            fi
+
+            if [ "$ATTEMPT" -lt "$MAX_ATTEMPTS" ]; then
+              echo "Retrying in ${RETRY_BACKOFF_SECONDS}s (Koyeb cold-start can take 5-15s)..."
+              sleep "$RETRY_BACKOFF_SECONDS"
+            fi
+          done
+
+          echo "All $MAX_ATTEMPTS attempts failed."
+          echo "Last status: $HTTP_CODE"
+          exit 1
+
+      - name: Notify on failure (job summary)
+        if: failure()
+        run: |
+          {
+            echo "## Keepalive ping failed"
+            echo
+            echo "Endpoint: \`$HEALTHCHECK_URL\`"
+            echo
+            echo "Likely causes:"
+            echo "- Koyeb backend down or deploying"
+            echo "- Supabase project paused, deleted, or unreachable"
+            echo "- DATABASE_URL on Koyeb out of sync with Supabase project ref"
+            echo
+            echo "Action:"
+            echo "1. Check https://supabase.com/dashboard for project status"
+            echo "2. Check Koyeb service health"
+            echo "3. Re-run this workflow once recovered"
+          } >> "$GITHUB_STEP_SUMMARY"
