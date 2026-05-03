@@ -1,0 +1,62 @@
+name: Encoding Check
+
+# Catches the UTF-8 / Windows-874 round-trip corruption that produced
+# mojibake across 7 admin detail pages on 2026-04-05 (PRs #40 and #41).
+# The check is fast (a few seconds) and runs on every PR plus every
+# push to main as a safety net in case the .editorconfig and
+# .gitattributes guards are bypassed.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: encoding-check-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scan:
+    name: Source Encoding Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Run encoding scan
+        run: python scripts/check_encoding.py
+
+      - name: Failure runbook
+        if: failure()
+        run: |
+          {
+            echo "## Encoding scan failed"
+            echo
+            echo "One or more source files contain mojibake or stray control chars."
+            echo
+            echo "Likely cause: an editor opened a UTF-8 file as Windows-874 (cp874)"
+            echo "and re-saved it. This corrupts Thai characters into a"
+            echo "consistent mojibake signature detected by the scanner."
+            echo
+            echo "**Recovery**: \`python scripts/fix_mojibake.py\`"
+            echo
+            echo "**Prevention**:"
+            echo "- Verify your editor honours \`.editorconfig\` (UTF-8, LF)."
+            echo "- VS Code: set \`\"files.encoding\": \"utf8\"\` in settings."
+            echo "- JetBrains: File Encoding -> UTF-8 (no BOM), Project Encoding too."
+          } >> "$GITHUB_STEP_SUMMARY"

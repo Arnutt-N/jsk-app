@@ -1,0 +1,23 @@
+root = true
+
+# Default: every text file is UTF-8 (no BOM) with LF line endings.
+# This prevents the encoding regression we hit on 2026-04-05 where an
+# editor reading UTF-8 bytes as Windows-874 (cp874) mangled every Thai
+# label into mojibake when re-saving.
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+[*.{py,sh}]
+indent_size = 4
+
+[Makefile]
+indent_style = tab
+
+# Markdown is whitespace-sensitive in some places; do not strip line endings.
+[*.md]
+trim_trailing_whitespace = false
