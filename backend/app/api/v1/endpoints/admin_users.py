@@ -75,9 +75,17 @@ class UserWorkload(BaseModel):
     id: int
     display_name: Optional[str] = None
     role: UserRole
+    # active_tasks = sum of all OPEN (non-terminal) states the user owns:
+    #   PENDING + ACKNOWLEDGED + IN_PROGRESS + AWAITING_APPROVAL
     active_tasks: int
-    pending_tasks: int
+    # PENDING with this user as assignee but not yet acknowledged ("รอรับเรื่อง")
+    awaiting_ack_tasks: int
+    # ACKNOWLEDGED ("รอดำเนินการ" -- queued)
+    acknowledged_tasks: int
     in_progress_tasks: int
+    awaiting_approval_tasks: int
+    # Legacy alias kept for backwards compat with older frontend code
+    pending_tasks: int
 
 
 # ── Helpers ──────────────────────────────────────────────────────────
@@ -226,35 +234,47 @@ async def list_user_workload(
     result = await db.execute(query)
     users = result.scalars().all()
 
-    # Single GROUP BY query for all users' workload stats
+    # Single GROUP BY query for all users' workload stats.
+    # Counts each OPEN lifecycle state separately so the dashboard can
+    # show the full breakdown (รอรับเรื่อง / รอดำเนินการ / กำลังดำเนินการ / รออนุมัติ).
     user_ids = [u.id for u in users]
     if user_ids:
         from sqlalchemy import case
         stats_query = (
             select(
                 ServiceRequest.assigned_agent_id,
-                func.count(case((ServiceRequest.status == RequestStatus.PENDING, 1))).label("pending"),
+                func.count(case((ServiceRequest.status == RequestStatus.PENDING, 1))).label("awaiting_ack"),
+                func.count(case((ServiceRequest.status == RequestStatus.ACKNOWLEDGED, 1))).label("acknowledged"),
                 func.count(case((ServiceRequest.status == RequestStatus.IN_PROGRESS, 1))).label("in_progress"),
+                func.count(case((ServiceRequest.status == RequestStatus.AWAITING_APPROVAL, 1))).label("awaiting_approval"),
             )
             .where(ServiceRequest.assigned_agent_id.in_(user_ids))
             .group_by(ServiceRequest.assigned_agent_id)
         )
         stats_result = await db.execute(stats_query)
-        stats_map = {row.assigned_agent_id: (row.pending, row.in_progress) for row in stats_result.all()}
+        stats_map = {
+            row.assigned_agent_id: (row.awaiting_ack, row.acknowledged, row.in_progress, row.awaiting_approval)
+            for row in stats_result.all()
+        }
     else:
         stats_map = {}
 
     user_workloads = []
     for user in users:
-        pending, in_progress = stats_map.get(user.id, (0, 0))
+        awaiting_ack, acknowledged, in_progress, awaiting_approval = stats_map.get(user.id, (0, 0, 0, 0))
+        active_tasks = awaiting_ack + acknowledged + in_progress + awaiting_approval
         user_workloads.append(
             UserWorkload(
                 id=user.id,
                 display_name=user.display_name or user.username,
                 role=user.role,
-                active_tasks=pending + in_progress,
-                pending_tasks=pending,
+                active_tasks=active_tasks,
+                awaiting_ack_tasks=awaiting_ack,
+                acknowledged_tasks=acknowledged,
                 in_progress_tasks=in_progress,
+                awaiting_approval_tasks=awaiting_approval,
+                # Legacy alias mirrors awaiting_ack for older frontend
+                pending_tasks=awaiting_ack,
             )
         )
 

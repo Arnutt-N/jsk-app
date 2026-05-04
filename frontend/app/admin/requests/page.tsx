@@ -21,18 +21,50 @@ import {
     Trash2,
     Plus,
     RefreshCw,
+    Hourglass,
+    Inbox,
+    ShieldCheck,
+    HelpCircle,
 } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { AssignModal } from '@/components/admin/AssignModal';
 import { ActionIconButton } from '@/components/ui/ActionIconButton';
 import PageHeader from '@/app/admin/components/PageHeader';
 import { StaggerContainer, StaggerItem } from '@/components/ui/PageTransition';
+import {
+    type RequestStatus,
+    STATUS_OPTIONS,
+    getStatusLabelForRequest,
+    getStatusVariantForRequest,
+    getStatusIconForRequest,
+} from '@/lib/constants/request-status';
+import { usePermissions } from '@/lib/permissions';
+
+// Bridge between shared module (icons stored as string names) and the
+// lucide-react components actually rendered. Centralised so swapping an
+// icon only requires one map update.
+const STATUS_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+    Clock,
+    Hourglass,
+    Inbox,
+    Eye,
+    ShieldCheck,
+    CheckCircle2,
+    AlertCircle,
+    HelpCircle,
+};
+
+function StatusIcon({ name, className }: { name: string; className?: string }) {
+    const Icon = STATUS_ICONS[name] ?? HelpCircle;
+    return <Icon className={className} />;
+}
 
 interface ServiceRequest {
     id: string;
     firstname: string;
     lastname: string;
-    status: 'pending' | 'in_progress' | 'completed' | 'rejected';
+    // Backend RequestStatus enum (UPPERCASE). Nullable for legacy rows.
+    status: RequestStatus | null;
     priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
     due_date?: string;
     topic_category: string;
@@ -62,13 +94,31 @@ export default function AdminRequestList() {
         setFetchError(null);
         try {
             const query = new URLSearchParams();
-            if (filter.status) query.append('status', filter.status);
+            // The "AWAITING_ASSIGNMENT" pseudo-status maps to PENDING with
+            // no assignee. The backend doesn't expose that as an enum, so
+            // we fetch all PENDING and filter unassigned client-side below.
+            const isAwaitingAssignmentFilter = filter.status === 'AWAITING_ASSIGNMENT';
+            if (filter.status && !isAwaitingAssignmentFilter) {
+                query.append('status', filter.status);
+            } else if (isAwaitingAssignmentFilter) {
+                query.append('status', 'PENDING');
+            }
             if (filter.category) query.append('category', filter.category);
             if (debouncedSearch) query.append('search', debouncedSearch);
 
             const res = await fetch(`${API_BASE}/admin/requests?${query.toString()}`);
             if (!res.ok) throw new Error('Failed to fetch requests');
-            const data = await res.json();
+            let data: ServiceRequest[] = await res.json();
+
+            if (isAwaitingAssignmentFilter) {
+                data = data.filter((r) => !r.assigned_agent_id);
+            } else if (filter.status === 'PENDING') {
+                // The bare PENDING filter on the dropdown means "assigned but
+                // not yet acknowledged" -- exclude unassigned so each filter
+                // option shows a distinct subset.
+                data = data.filter((r) => Boolean(r.assigned_agent_id));
+            }
+
             setRequests(data);
         } catch (err: unknown) {
             console.error('[requests] โหลดข้อมูลคำร้องล้มเหลว:', err);
@@ -89,21 +139,11 @@ export default function AdminRequestList() {
         void fetchRequests();
     }, [fetchRequests]);
 
-
-    const getStatusStyles = (status: string) => {
-        switch (status) {
-            case 'pending': return { variant: 'warning' as const, label: 'รอรับเรื่อง', icon: <Clock className="w-3 h-3" /> };
-            case 'in_progress': return { variant: 'info' as const, label: 'กำลังดำเนินการ', icon: <Eye className="w-3 h-3" /> };
-            case 'completed': return { variant: 'success' as const, label: 'ดำเนินการแล้ว', icon: <CheckCircle2 className="w-3 h-3" /> };
-            case 'rejected': return { variant: 'danger' as const, label: 'ปฏิเสธ', icon: <AlertCircle className="w-3 h-3" /> };
-            // Handle NULL/Undefined as "New"
-            case null:
-            case undefined:
-            case '':
-                return { variant: 'warning' as const, label: 'มาใหม่ (รอรับงาน)', icon: <Clock className="w-3 h-3" /> };
-            default: return { variant: 'gray' as const, label: status || 'Unknown', icon: null };
-        }
-    };
+    // Effective permissions for the logged-in admin -- decides whether
+    // the assign button is rendered. Returns null while loading; we
+    // fall back to "no permissions" until the fetch resolves.
+    const permissions = usePermissions();
+    const canAssignWork = permissions?.can_assign ?? false;
 
     const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(null);
     const [viewModalOpen, setViewModalOpen] = useState(false);
@@ -119,20 +159,27 @@ export default function AdminRequestList() {
     const confirmAssign = async (agentId: number) => {
         if (!assigningRequest) return;
         try {
+            // Assigning a request only sets the assignee. Status stays at
+            // PENDING (now displayed as "รอรับเรื่อง") until the assignee
+            // clicks "รับเรื่อง" on the detail page, which advances it to
+            // ACKNOWLEDGED. This separation is what gives us a real
+            // "supervisor handed off but worker has not seen it yet" state.
             const res = await fetch(`${API_BASE}/admin/requests/${assigningRequest.id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ assigned_agent_id: agentId, status: assigningRequest.status === 'pending' ? 'in_progress' : undefined })
+                body: JSON.stringify({ assigned_agent_id: agentId }),
             });
-            if (!res.ok) throw new Error('Failed to assign agent');
+            if (!res.ok) {
+                const errBody = await res.json().catch(() => ({}));
+                throw new Error(errBody?.detail || 'Failed to assign agent');
+            }
 
-            // Optimistic update or refresh
             fetchRequests();
             setAssignModalOpen(false);
             setAssigningRequest(null);
         } catch (err) {
             console.error(err);
-            alert('Failed to assign agent');
+            alert(err instanceof Error ? err.message : 'มอบหมายงานไม่สำเร็จ');
         }
     };
 
@@ -199,13 +246,7 @@ export default function AdminRequestList() {
                                 <Select
                                     value={filter.status}
                                     onChange={(e) => setFilter(prev => ({ ...prev, status: e.target.value }))}
-                                    options={[
-                                        { value: '', label: 'ทุกสถานะ' },
-                                        { value: 'pending', label: 'รอรับเรื่อง' },
-                                        { value: 'in_progress', label: 'กำลังดำเนินการ' },
-                                        { value: 'completed', label: 'ดำเนินการแล้ว' },
-                                        { value: 'rejected', label: 'ปฏิเสธ' },
-                                    ]}
+                                    options={STATUS_OPTIONS}
                                 />
                                 <Select
                                     value={filter.category}
@@ -298,24 +339,34 @@ export default function AdminRequestList() {
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <Badge variant={getStatusStyles(req.status).variant} className="gap-1.5 py-1 px-2.5">
-                                            {getStatusStyles(req.status).icon}
-                                            {getStatusStyles(req.status).label}
+                                        <Badge variant={getStatusVariantForRequest(req)} className="gap-1.5 py-1 px-2.5">
+                                            <StatusIcon name={getStatusIconForRequest(req)} className="w-3 h-3" />
+                                            {getStatusLabelForRequest(req)}
                                         </Badge>
                                     </td>
                                     <td className="px-6 py-4">
                                         {req.assignee_name ? (
-                                            <div
-                                                className="flex items-center gap-2 cursor-pointer hover:bg-muted p-1.5 rounded-lg -ml-1.5 transition-colors group/agent"
-                                                onClick={() => handleAssign(req)}
-                                                title="คลิกเพื่อเปลี่ยนผู้รับผิดชอบ"
-                                            >
-                                                <div className="w-6 h-6 bg-brand-100 rounded-full flex items-center justify-center text-[10px] font-bold text-brand-600 group-hover/agent:bg-brand-200 transition-colors dark:bg-brand-500/20 dark:text-brand-400">
-                                                    {req.assignee_name[0]}
+                                            canAssignWork ? (
+                                                <div
+                                                    className="flex items-center gap-2 cursor-pointer hover:bg-muted p-1.5 rounded-lg -ml-1.5 transition-colors group/agent"
+                                                    onClick={() => handleAssign(req)}
+                                                    title="คลิกเพื่อเปลี่ยนผู้รับผิดชอบ"
+                                                >
+                                                    <div className="w-6 h-6 bg-brand-100 rounded-full flex items-center justify-center text-[10px] font-bold text-brand-600 group-hover/agent:bg-brand-200 transition-colors dark:bg-brand-500/20 dark:text-brand-400">
+                                                        {req.assignee_name[0]}
+                                                    </div>
+                                                    <span className="text-xs font-medium text-text-secondary group-hover/agent:text-brand-700">{req.assignee_name}</span>
                                                 </div>
-                                                <span className="text-xs font-medium text-text-secondary group-hover/agent:text-brand-700">{req.assignee_name}</span>
-                                            </div>
-                                        ) : (
+                                            ) : (
+                                                // Read-only: AGENT/USER see the assignee but cannot reassign
+                                                <div className="flex items-center gap-2 p-1.5 -ml-1.5">
+                                                    <div className="w-6 h-6 bg-brand-100 rounded-full flex items-center justify-center text-[10px] font-bold text-brand-600 dark:bg-brand-500/20 dark:text-brand-400">
+                                                        {req.assignee_name[0]}
+                                                    </div>
+                                                    <span className="text-xs font-medium text-text-secondary">{req.assignee_name}</span>
+                                                </div>
+                                            )
+                                        ) : canAssignWork ? (
                                             <button
                                                 onClick={() => handleAssign(req)}
                                                 className="flex items-center gap-1.5 cursor-pointer hover:bg-bg p-1 rounded-full pr-2.5 border border-transparent hover:border-border-default transition-all whitespace-nowrap group/assign"
@@ -324,8 +375,11 @@ export default function AdminRequestList() {
                                                 <div className="w-5 h-5 bg-muted rounded-full flex items-center justify-center text-text-tertiary group-hover/assign:bg-brand-500 group-hover/assign:text-white transition-colors shadow-sm">
                                                     <UserPlus className="w-4 h-4" />
                                                 </div>
-                                                <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider group-hover/assign:text-brand-600 transition-colors">Assign</span>
+                                                <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider group-hover/assign:text-brand-600 transition-colors">มอบหมาย</span>
                                             </button>
+                                        ) : (
+                                            // No assignee + no permission to assign -- show muted placeholder
+                                            <span className="text-[10px] text-text-tertiary italic">ยังไม่มอบหมาย</span>
                                         )}
                                     </td>
                                     <td className="px-6 py-4 text-right">
@@ -387,8 +441,8 @@ export default function AdminRequestList() {
                             <div>
                                 <label className="text-xs text-text-tertiary">สถานะ</label>
                                 <div className="mt-1">
-                                    <Badge variant={getStatusStyles(selectedRequest.status).variant}>
-                                        {getStatusStyles(selectedRequest.status).label}
+                                    <Badge variant={getStatusVariantForRequest(selectedRequest)}>
+                                        {getStatusLabelForRequest(selectedRequest)}
                                     </Badge>
                                 </div>
                             </div>

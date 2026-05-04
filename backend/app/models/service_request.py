@@ -6,7 +6,20 @@ import enum
 from app.db.base import Base
 
 class RequestStatus(str, enum.Enum):
+    """Request lifecycle states (ordered by workflow progression).
+
+    PENDING            -> Just submitted. Display label depends on assignment:
+                          - assigned_agent_id IS NULL -> "รอมอบหมาย" (awaiting assignment)
+                          - assigned_agent_id IS NOT NULL -> "รอรับเรื่อง" (assigned, awaiting acknowledgement)
+    ACKNOWLEDGED       -> Assignee acknowledged the assignment. "รอดำเนินการ" (queued).
+    IN_PROGRESS        -> Assignee actively working. "กำลังดำเนินการ".
+    AWAITING_APPROVAL  -> Work done, awaiting supervisor approval. "รออนุมัติ".
+    COMPLETED          -> Approved and closed. "เสร็จสิ้น".
+    REJECTED           -> Declined by supervisor. "ปฏิเสธ".
+    """
+
     PENDING = "PENDING"
+    ACKNOWLEDGED = "ACKNOWLEDGED"
     IN_PROGRESS = "IN_PROGRESS"
     AWAITING_APPROVAL = "AWAITING_APPROVAL"
     COMPLETED = "COMPLETED"

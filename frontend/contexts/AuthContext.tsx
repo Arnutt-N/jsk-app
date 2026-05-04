@@ -7,7 +7,9 @@ import { installAdminAuthFetchInterceptor, syncAdminAuthToken } from '@/lib/auth
 interface User {
   id: string;
   username: string;
-  role: 'SUPER_ADMIN' | 'ADMIN' | 'AGENT' | 'USER';
+  // Mirrors backend UserRole enum (backend/app/models/user.py).
+  // DIRECTOR + HEAD added 2026-05-04 alongside the request workflow split.
+  role: 'SUPER_ADMIN' | 'ADMIN' | 'DIRECTOR' | 'HEAD' | 'AGENT' | 'USER';
   display_name?: string;
 }
 

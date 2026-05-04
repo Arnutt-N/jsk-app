@@ -5,7 +5,11 @@ import { useRouter } from 'next/navigation';
 
 import { useAuth } from '@/contexts/AuthContext';
 
-type AllowedRole = 'SUPER_ADMIN' | 'ADMIN' | 'AGENT';
+// Mirrors the User.role union in AuthContext (excluding USER, who is
+// never an admin). DIRECTOR + HEAD added 2026-05-04 for the request
+// workflow split -- they share AGENT-equivalent fallback behaviour
+// since they are mid-tier supervisors, not top-level operators.
+type AllowedRole = 'SUPER_ADMIN' | 'ADMIN' | 'DIRECTOR' | 'HEAD' | 'AGENT';
 
 interface PageAccessGuardProps {
   allowedRoles: AllowedRole[];
@@ -13,7 +17,9 @@ interface PageAccessGuardProps {
   children: React.ReactNode;
 }
 
-function resolveFallbackPath(role: 'SUPER_ADMIN' | 'ADMIN' | 'AGENT' | 'USER' | undefined): string {
+function resolveFallbackPath(
+  role: 'SUPER_ADMIN' | 'ADMIN' | 'DIRECTOR' | 'HEAD' | 'AGENT' | 'USER' | undefined
+): string {
   if (role === 'AGENT') {
     return '/admin/live-chat';
   }
