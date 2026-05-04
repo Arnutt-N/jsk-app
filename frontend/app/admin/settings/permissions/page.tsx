@@ -25,7 +25,6 @@ import {
   type PermissionRule,
 } from '@/lib/permissions'
 import { useAuth } from '@/contexts/AuthContext'
-import { syncAdminAuthToken } from '@/lib/authFetch'
 
 // Roles displayed as columns -- keep ordered by privilege (highest first).
 const ROLE_COLUMNS = ['SUPER_ADMIN', 'ADMIN', 'DIRECTOR', 'HEAD', 'AGENT', 'USER'] as const
@@ -75,15 +74,11 @@ export default function PermissionSettingsPage() {
   }, [])
 
   useEffect(() => {
-    // Wait for the auth token to be available before kicking off any
-    // protected request. Without this guard the first fetch races
-    // AuthContext's syncAdminAuthToken effect and returns 401.
+    // Wait for the auth token to be available before kicking off the
+    // protected fetch. AuthContext now syncs the window-global token
+    // synchronously inside setToken (centralised race fix), so once
+    // `token` is truthy here the fetch interceptor already has it.
     if (!token) return
-    // Belt-and-suspenders: child component effects fire BEFORE the
-    // parent's `[token]` effect on update (React fires children first
-    // on subsequent renders), so by the time this effect runs the
-    // window-global token may still be null. Push it ourselves.
-    syncAdminAuthToken(token)
     // Mount-time fetch: load() sets multiple pieces of local state.
     // The React 19 lint rule warns against any setState in an effect,
     // but a one-shot fetch on mount is the canonical exception (same
