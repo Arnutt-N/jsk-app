@@ -23,7 +23,6 @@ import {
   updatePermissions,
   usePermissions,
   type PermissionRule,
-  type PermissionSummary,
 } from '@/lib/permissions'
 
 // Roles displayed as columns -- keep ordered by privilege (highest first).
@@ -68,6 +67,11 @@ export default function PermissionSettingsPage() {
   }, [])
 
   useEffect(() => {
+    // Mount-time fetch: load() sets multiple pieces of local state.
+    // The React 19 lint rule warns against any setState in an effect,
+    // but a one-shot fetch on mount is the canonical exception (same
+    // pattern PR #38 suppresses for the live-chat menu route sync).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void load()
   }, [load])
 
