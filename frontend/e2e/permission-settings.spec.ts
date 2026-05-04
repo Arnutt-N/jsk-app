@@ -34,17 +34,26 @@ test.describe('Permission settings page (Stage 2)', () => {
     expect(flat).toContain('USER')
   })
 
-  // The "rule rows render" + "SUPER_ADMIN lockout" tests need rule
-  // rows actually populated in the test DB. The Stage 1 migration
-  // (m3n4o5p6q7r8) issues an ALTER TYPE ADD VALUE then op.execute("COMMIT")
-  // to make the new enum visible -- in CI's fresh DB the COMMIT can
-  // disrupt the implicit transaction wrapping subsequent migrations
-  // (n4o5p6q7r8s9 INSERT seeds), leaving the matrix empty in CI even
-  // though the same migration chain populates correctly on Supabase.
-  //
-  // Defer these row-content assertions until we add a dedicated
-  // test-data fixture for CI (or refactor the Stage 1 data migration
-  // into its own revision so the COMMIT is isolated). For now the
-  // 8 passing tests cover the critical smoke surface: auth flow,
-  // page render, all 6 role columns / 6 lifecycle filter options.
+  test('matrix renders at least three rule rows', async ({ page }) => {
+    await expect(page.locator('table')).toBeVisible({ timeout: 10_000 })
+    // Wait for any tbody row to appear (rules load via fetch on mount).
+    // The backend's lifespan ensure_seed_rows() hook guarantees the
+    // 3 DEFAULT_POLICY keys exist on every startup, so this should
+    // hold even in fresh CI databases where the alembic seed step was
+    // skipped due to a transaction-wrapping issue.
+    const rows = page.locator('table tbody tr')
+    await expect(rows.first()).toBeVisible({ timeout: 10_000 })
+    expect(await rows.count()).toBeGreaterThanOrEqual(3)
+  })
+
+  test('at least one disabled checkbox exists (SUPER_ADMIN lockout)', async ({ page }) => {
+    await expect(page.locator('table')).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('table tbody tr').first()).toBeVisible({ timeout: 10_000 })
+    // The SUPER_ADMIN cell on the edit_permission_settings row is the
+    // ONLY disabled checkbox in the matrix (server-side lockout safeguard
+    // mirrored on the client). Asserting count >= 1 is enough -- if the
+    // safeguard is removed, count drops to 0 and this test fires.
+    const disabledChecks = page.locator('table input[type="checkbox"]:disabled')
+    expect(await disabledChecks.count()).toBeGreaterThanOrEqual(1)
+  })
 })
