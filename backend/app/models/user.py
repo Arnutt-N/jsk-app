@@ -5,8 +5,25 @@ import enum
 from app.db.base import Base
 
 class UserRole(str, enum.Enum):
+    """Application-wide user roles.
+
+    Hierarchy (ordered by privilege, highest first):
+      SUPER_ADMIN -> Owner-level: all permissions, can edit permission settings.
+      ADMIN       -> Office-level: all operational permissions, can edit permission settings.
+      DIRECTOR    -> Director (ผู้อำนวยการ): supervisor of HEAD/AGENT staff.
+      HEAD        -> Head of section (หัวหน้าฝ่าย): supervises AGENT staff.
+      AGENT       -> Front-line officer (เจ้าหน้าที่): processes assigned work.
+      USER        -> End user (LIFF / public): submits requests only.
+
+    DIRECTOR and HEAD share the same default permissions as ADMIN for
+    request workflow actions (assign, self-assign) but cannot edit
+    permission settings (only SUPER_ADMIN/ADMIN can).
+    """
+
     SUPER_ADMIN = "SUPER_ADMIN"
     ADMIN = "ADMIN"
+    DIRECTOR = "DIRECTOR"
+    HEAD = "HEAD"
     AGENT = "AGENT"
     USER = "USER"
 

@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import {
     Clock,
+    Inbox,
     CheckCircle2,
     AlertCircle,
     Eye,
@@ -14,27 +15,40 @@ import {
     ChevronLeft,
     Search,
     AlertTriangle,
-    Flag
+    Flag,
+    ShieldCheck,
 } from 'lucide-react';
 import PageHeader from '../../components/PageHeader';
+import type { RequestStatus } from '@/lib/constants/request-status';
 
 interface ServiceRequest {
     id: string;
     firstname: string;
     lastname: string;
-    status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'REJECTED';
+    status: RequestStatus;
     priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
     due_date?: string;
     topic_category: string;
     created_at: string;
     agency: string;
+    assigned_agent_id?: number;
 }
 
-const COLUMNS = [
-    { id: 'PENDING', label: 'รอรับเรื่อง', icon: <Clock className="w-4 h-4 text-amber-500" />, color: 'bg-amber-500' },
-    { id: 'IN_PROGRESS', label: 'กำลังดำเนินการ', icon: <Eye className="w-4 h-4 text-blue-500" />, color: 'bg-blue-500' },
-    { id: 'COMPLETED', label: 'ดำเนินการแล้ว', icon: <CheckCircle2 className="w-4 h-4 text-green-500" />, color: 'bg-green-500' },
-    { id: 'REJECTED', label: 'ปฏิเสธ', icon: <AlertCircle className="w-4 h-4 text-rose-500" />, color: 'bg-rose-500' }
+// Kanban columns ordered by lifecycle progression. ACKNOWLEDGED slots
+// between PENDING (assigned but not yet acknowledged) and IN_PROGRESS
+// so the board reads left-to-right as the workflow advances.
+const COLUMNS: Array<{
+    id: RequestStatus;
+    label: string;
+    icon: React.ReactNode;
+    color: string;
+}> = [
+    { id: 'PENDING',           label: 'รอรับเรื่อง',    icon: <Clock className="w-4 h-4 text-amber-500" />,        color: 'bg-amber-500' },
+    { id: 'ACKNOWLEDGED',      label: 'รอดำเนินการ',   icon: <Inbox className="w-4 h-4 text-orange-500" />,       color: 'bg-orange-500' },
+    { id: 'IN_PROGRESS',       label: 'กำลังดำเนินการ', icon: <Eye className="w-4 h-4 text-blue-500" />,           color: 'bg-blue-500' },
+    { id: 'AWAITING_APPROVAL', label: 'รออนุมัติ',      icon: <ShieldCheck className="w-4 h-4 text-violet-500" />, color: 'bg-violet-500' },
+    { id: 'COMPLETED',         label: 'เสร็จสิ้น',      icon: <CheckCircle2 className="w-4 h-4 text-green-500" />, color: 'bg-green-500' },
+    { id: 'REJECTED',          label: 'ปฏิเสธ',         icon: <AlertCircle className="w-4 h-4 text-rose-500" />,   color: 'bg-rose-500' },
 ];
 
 export default function KanbanPage() {

@@ -9,6 +9,7 @@ from datetime import datetime
 
 from app.db.session import get_db
 from app.api.deps import get_current_admin
+from app.core.permissions import can_assign, can_self_assign
 from app.models.service_request import ServiceRequest, RequestStatus, RequestPriority
 from app.models.media_file import MediaFile
 from app.schemas.service_request_liff import ServiceRequestResponse
@@ -19,10 +20,13 @@ router = APIRouter()
 
 class RequestStats(BaseModel):
     total: int
-    pending: int
-    in_progress: int
-    completed: int
-    rejected: int
+    pending: int            # PENDING (no assignee) -- "รอมอบหมาย"
+    awaiting_ack: int       # PENDING (with assignee) -- "รอรับเรื่อง"
+    acknowledged: int       # ACKNOWLEDGED -- "รอดำเนินการ"
+    in_progress: int        # IN_PROGRESS -- "กำลังดำเนินการ"
+    awaiting_approval: int  # AWAITING_APPROVAL -- "รออนุมัติ"
+    completed: int          # COMPLETED -- "เสร็จสิ้น"
+    rejected: int           # REJECTED -- "ปฏิเสธ"
 
 class StatusUpdate(BaseModel):
     status: RequestStatus
@@ -139,13 +143,28 @@ async def create_request(
 
 @router.get("/stats", response_model=RequestStats)
 async def get_request_stats(db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_admin)):
-    """Get summary statistics for admin dashboard."""
+    """Get summary statistics for admin dashboard.
+
+    Splits PENDING into two display buckets based on assignment:
+      - pending:      PENDING + no assignee (or status is NULL legacy rows)
+      - awaiting_ack: PENDING + has assignee (assigned but not yet acknowledged)
+    """
+    pending_no_assignee = (
+        (ServiceRequest.status == RequestStatus.PENDING) | (ServiceRequest.status.is_(None))
+    ) & (ServiceRequest.assigned_agent_id.is_(None))
+    pending_with_assignee = (
+        (ServiceRequest.status == RequestStatus.PENDING) & (ServiceRequest.assigned_agent_id.isnot(None))
+    )
+
     query = select(
         func.count(ServiceRequest.id).label("total"),
-        func.count(ServiceRequest.id).filter((ServiceRequest.status == RequestStatus.PENDING) | (ServiceRequest.status.is_(None))).label("pending"),
+        func.count(ServiceRequest.id).filter(pending_no_assignee).label("pending"),
+        func.count(ServiceRequest.id).filter(pending_with_assignee).label("awaiting_ack"),
+        func.count(ServiceRequest.id).filter(ServiceRequest.status == RequestStatus.ACKNOWLEDGED).label("acknowledged"),
         func.count(ServiceRequest.id).filter(ServiceRequest.status == RequestStatus.IN_PROGRESS).label("in_progress"),
+        func.count(ServiceRequest.id).filter(ServiceRequest.status == RequestStatus.AWAITING_APPROVAL).label("awaiting_approval"),
         func.count(ServiceRequest.id).filter(ServiceRequest.status == RequestStatus.COMPLETED).label("completed"),
-        func.count(ServiceRequest.id).filter(ServiceRequest.status == RequestStatus.REJECTED).label("rejected")
+        func.count(ServiceRequest.id).filter(ServiceRequest.status == RequestStatus.REJECTED).label("rejected"),
     )
     result = await db.execute(query)
     row = result.one()
@@ -178,17 +197,26 @@ async def get_monthly_stats(db: AsyncSession = Depends(get_db), current_admin: U
 
 class WorkloadStats(BaseModel):
     agent_name: str
-    pending_count: int
-    in_progress_count: int
+    awaiting_ack_count: int        # PENDING + assignee == this agent ("รอรับเรื่อง")
+    acknowledged_count: int        # ACKNOWLEDGED ("รอดำเนินการ")
+    in_progress_count: int         # IN_PROGRESS ("กำลังดำเนินการ")
+    awaiting_approval_count: int   # AWAITING_APPROVAL ("รออนุมัติ")
 
 @router.get("/stats/workload", response_model=List[WorkloadStats])
 async def get_workload_stats(db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_admin)):
-    """Get workload distribution across agents."""
+    """Get workload distribution across agents.
+
+    Counts only OPEN states the agent is responsible for (PENDING with
+    assignee, ACKNOWLEDGED, IN_PROGRESS, AWAITING_APPROVAL). COMPLETED
+    and REJECTED are excluded -- they are no longer the agent's load.
+    """
     query = (
         select(
             User.display_name.label("agent_name"),
-            func.count(ServiceRequest.id).filter(ServiceRequest.status == RequestStatus.PENDING).label("pending_count"),
-            func.count(ServiceRequest.id).filter(ServiceRequest.status == RequestStatus.IN_PROGRESS).label("in_progress_count")
+            func.count(ServiceRequest.id).filter(ServiceRequest.status == RequestStatus.PENDING).label("awaiting_ack_count"),
+            func.count(ServiceRequest.id).filter(ServiceRequest.status == RequestStatus.ACKNOWLEDGED).label("acknowledged_count"),
+            func.count(ServiceRequest.id).filter(ServiceRequest.status == RequestStatus.IN_PROGRESS).label("in_progress_count"),
+            func.count(ServiceRequest.id).filter(ServiceRequest.status == RequestStatus.AWAITING_APPROVAL).label("awaiting_approval_count"),
         )
         .join(User, ServiceRequest.assigned_agent_id == User.id)
         .group_by(User.display_name)
@@ -294,34 +322,53 @@ class RequestUpdate(BaseModel):
 
 @router.patch("/{request_id}", response_model=ServiceRequestResponse)
 async def update_request(
-    request_id: int, 
+    request_id: int,
     update_data: RequestUpdate,
     db: AsyncSession = Depends(get_db),
     current_admin: User = Depends(get_current_admin)
 ):
-    """Update request status, priority, due date or assign an agent."""
+    """Update request status, priority, due date or assign an agent.
+
+    Authorization (Stage 1, hardcoded; Stage 2 will read from
+    permission_settings table):
+      - Reassigning to ANOTHER user: requires can_assign(current_admin.role)
+      - Self-assigning (assigned_agent_id == current_admin.id):
+        requires can_self_assign(current_admin.role)
+      - Status transitions, priority, due_date edits: any admin role
+    """
     query = select(ServiceRequest).where(ServiceRequest.id == request_id)
     result = await db.execute(query)
     request = result.scalar_one_or_none()
-    
+
     if not request:
         raise HTTPException(status_code=404, detail="Request not found")
-    
+
+    # Permission check on assignment changes
+    if update_data.assigned_agent_id is not None and update_data.assigned_agent_id != request.assigned_agent_id:
+        is_self_assign = update_data.assigned_agent_id == current_admin.id
+        if is_self_assign and not can_self_assign(current_admin.role):
+            raise HTTPException(status_code=403, detail="คุณไม่มีสิทธิ์รับเรื่องด้วยตนเอง (self-assign)")
+        if not is_self_assign and not can_assign(current_admin.role):
+            raise HTTPException(status_code=403, detail="คุณไม่มีสิทธิ์มอบหมายงานให้ผู้อื่น")
+
     # Update fields
     if update_data.status is not None:
         request.status = update_data.status
         if update_data.status == RequestStatus.COMPLETED:
             request.completed_at = func.now()
-            
+
     if update_data.priority is not None:
         request.priority = update_data.priority
     if update_data.due_date is not None:
         request.due_date = update_data.due_date
     if update_data.assigned_agent_id is not None:
         request.assigned_agent_id = update_data.assigned_agent_id
+        # Auto-record who assigned (used for audit / Telegram notification routing)
+        if update_data.assigned_agent_id != current_admin.id:
+            request.assigned_by_id = current_admin.id
     if update_data.assigned_by_id is not None:
         request.assigned_by_id = update_data.assigned_by_id
-        
+
     await db.commit()
     await db.refresh(request)
     return request
