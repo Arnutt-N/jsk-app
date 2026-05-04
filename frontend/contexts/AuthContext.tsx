@@ -113,17 +113,27 @@ function isTokenExpired(token: string): boolean {
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
+  const [tokenState, setTokenState] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+
+  // Wrap setToken so the window-global mirror used by the fetch
+  // interceptor is updated SYNCHRONOUSLY, before React schedules the
+  // re-render. The previous useEffect-based sync ran AFTER children's
+  // effects on update (React fires children's effects before parent's
+  // on subsequent renders), so any child fetch fired during a token
+  // change would see the stale window global and 401. Centralising the
+  // sync here makes every authenticated page race-free without needing
+  // belt-and-suspenders calls in each one.
+  const token = tokenState;
+  const setToken = useCallback((next: string | null) => {
+    syncAdminAuthToken(next);
+    setTokenState(next);
+  }, []);
 
   useEffect(() => {
     installAdminAuthFetchInterceptor();
   }, []);
-
-  useEffect(() => {
-    syncAdminAuthToken(token);
-  }, [token]);
 
   // เริ่มต้น auth state จาก localStorage เมื่อ component mount
   useEffect(() => {
