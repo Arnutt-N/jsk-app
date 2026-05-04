@@ -1,0 +1,6 @@
+.vercel
+
+# Playwright artifacts (E2E test runner outputs)
+/playwright-report/
+/test-results/
+/playwright/.cache/
