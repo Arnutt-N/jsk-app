@@ -94,6 +94,19 @@ jobs:
         working-directory: backend
         run: alembic upgrade head
 
+      - name: Create backend/app/.env stub for safety scripts
+        # backend/scripts/_script_safety.py reads backend/app/.env to
+        # determine the active DB target as a guardrail. CI uses env
+        # vars instead of files, so we drop a minimal stub matching the
+        # env values above so seed_admin.py's safety check passes.
+        working-directory: backend
+        run: |
+          mkdir -p app
+          cat > app/.env <<EOF
+          DATABASE_URL=$DATABASE_URL
+          ENVIRONMENT=$ENVIRONMENT
+          EOF
+
       - name: Seed admin user
         working-directory: backend
         run: python scripts/seed_admin.py
