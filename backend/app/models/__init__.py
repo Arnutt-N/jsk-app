@@ -16,3 +16,4 @@ from .canned_response import CannedResponse
 from .tag import Tag, UserTag
 from .request_comment import RequestComment
 from .broadcast import Broadcast
+from .permission_setting import PermissionSetting

@@ -71,6 +71,30 @@ async def _initialize_business_hours() -> None:
         ) from None
 
 
+async def _initialize_permission_policy() -> None:
+    """Warm the permission_settings cache on startup.
+
+    The cache is read by every authenticated request that touches an
+    assign / self-assign / settings-edit check, so loading once here
+    avoids a DB round-trip on the first such request. If the load
+    fails (e.g. table not yet migrated) the helpers fall back to
+    DEFAULT_POLICY -- never blocks startup.
+    """
+    from app.db.session import AsyncSessionLocal
+    from app.core.permissions import load_policy
+
+    try:
+        async with AsyncSessionLocal() as db:
+            await load_policy(db)
+            logger.info("Permission policy loaded into cache.")
+    except Exception as exc:  # noqa: BLE001 -- intentional graceful degrade
+        logger.warning(
+            "Could not load permission policy at startup: %s; "
+            "permission checks will use hardcoded DEFAULT_POLICY until next refresh",
+            exc,
+        )
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     credential_service.validate_configuration()
@@ -86,6 +110,9 @@ async def lifespan(_: FastAPI):
 
     # Initialize default business hours
     await _initialize_business_hours()
+
+    # Warm the permission policy cache (degrades gracefully on failure)
+    await _initialize_permission_policy()
 
     # Start background tasks
     await start_cleanup_task()
