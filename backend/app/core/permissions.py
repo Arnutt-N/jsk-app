@@ -119,6 +119,65 @@ async def load_policy(db: AsyncSession) -> dict[str, frozenset[UserRole]]:
     return merged
 
 
+# Friendly Thai descriptions surfaced in the Settings UI when the
+# self-heal hook below has to insert a missing row. They mirror the
+# strings seeded by alembic migration n4o5p6q7r8s9 so the UI looks
+# identical regardless of which path populated the table.
+_SEED_DESCRIPTIONS: dict[str, str] = {
+    KEY_ASSIGN: "มอบหมายงานให้ผู้อื่น",
+    KEY_SELF_ASSIGN: "รับเรื่องเอง (self-assign)",
+    KEY_EDIT_SETTINGS: "แก้ไขการตั้งค่าสิทธิ์",
+}
+
+
+async def ensure_seed_rows(db: AsyncSession) -> int:
+    """Self-heal: ensure DEFAULT_POLICY keys exist in permission_settings.
+
+    Called from the lifespan hook on startup so a fresh database (CI,
+    a freshly-restored backup, or a developer who wiped their dev DB)
+    always has the three default rules even if alembic's seed step did
+    not run -- e.g. if a previous migration's COMMIT broke the
+    transaction wrapping the seed INSERT, which we observed in CI on
+    Postgres 16.
+
+    Idempotent: only inserts keys that are missing. Existing rows are
+    left untouched, including any role customisations applied through
+    the Settings UI.
+    """
+    from app.models.permission_setting import PermissionSetting
+
+    try:
+        existing = await db.execute(select(PermissionSetting.key))
+        existing_keys = {row[0] for row in existing.all()}
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Could not check permission_settings rows: %s", exc)
+        return 0
+
+    inserted = 0
+    for key, default_roles in DEFAULT_POLICY.items():
+        if key in existing_keys:
+            continue
+        db.add(
+            PermissionSetting(
+                key=key,
+                allowed_roles=sorted(r.value for r in default_roles),
+                description=_SEED_DESCRIPTIONS.get(key),
+            )
+        )
+        inserted += 1
+
+    if inserted:
+        try:
+            await db.commit()
+            logger.info("Seeded %d missing permission_settings row(s).", inserted)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Failed to seed permission_settings: %s", exc)
+            await db.rollback()
+            return 0
+
+    return inserted
+
+
 def invalidate_cache() -> None:
     """Drop the in-process cache. Call after a PATCH writes new rows.
 

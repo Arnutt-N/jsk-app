@@ -81,10 +81,14 @@ async def _initialize_permission_policy() -> None:
     DEFAULT_POLICY -- never blocks startup.
     """
     from app.db.session import AsyncSessionLocal
-    from app.core.permissions import load_policy
+    from app.core.permissions import ensure_seed_rows, load_policy
 
     try:
         async with AsyncSessionLocal() as db:
+            # Self-heal: insert any missing DEFAULT_POLICY rows. Covers
+            # fresh CI databases / wiped dev DBs / restored backups
+            # where alembic's seed step never ran.
+            await ensure_seed_rows(db)
             await load_policy(db)
             logger.info("Permission policy loaded into cache.")
     except Exception as exc:  # noqa: BLE001 -- intentional graceful degrade
