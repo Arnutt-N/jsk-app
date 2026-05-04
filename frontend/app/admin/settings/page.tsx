@@ -15,6 +15,7 @@ import {
     Puzzle,
     ChevronRight,
     RefreshCw,
+    ShieldCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
@@ -140,6 +141,37 @@ export default function SettingsOverviewPage() {
                     );
                 })}
             </StaggerContainer>
+
+            {/* การจัดการระบบ -- non-integration settings (permissions, etc.) */}
+            <div className="mt-10">
+                <h2 className="text-sm font-bold text-text-tertiary uppercase tracking-wider mb-3">
+                    การจัดการระบบ
+                </h2>
+                <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <StaggerItem>
+                        <Link href="/admin/settings/permissions">
+                            <Card hover="border" className="h-full">
+                                <CardHeader>
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-900/30 flex items-center justify-center">
+                                                <ShieldCheck className="w-5 h-5 text-brand-500" />
+                                            </div>
+                                            <div>
+                                                <CardTitle>การกำหนดสิทธิ์</CardTitle>
+                                                <CardDescription>
+                                                    กำหนดว่า role ใดสามารถมอบหมายงาน รับเรื่องเอง และแก้ไขการตั้งค่าได้
+                                                </CardDescription>
+                                            </div>
+                                        </div>
+                                        <ChevronRight className="w-5 h-5 text-text-tertiary" />
+                                    </div>
+                                </CardHeader>
+                            </Card>
+                        </Link>
+                    </StaggerItem>
+                </StaggerContainer>
+            </div>
         </div>
     );
 }

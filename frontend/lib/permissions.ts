@@ -22,10 +22,19 @@ export interface MyPermissions {
   can_edit_permissions: boolean
 }
 
+/** A single editable permission rule, matches backend PermissionRule schema. */
+export interface PermissionRule {
+  key: string
+  allowed_roles: string[]
+  description: string | null
+}
+
 export interface PermissionSummary {
   assign_allowed_roles: string[]
   self_assign_allowed_roles: string[]
   permission_settings_editor_roles: string[]
+  /** Stage 2: full editable rule set; empty if backend pre-Stage-2. */
+  rules?: PermissionRule[]
 }
 
 let cachedMyPermissions: MyPermissions | null = null
@@ -59,6 +68,41 @@ export async function fetchPermissionSummary(): Promise<PermissionSummary | null
     return (await res.json()) as PermissionSummary
   } catch {
     return null
+  }
+}
+
+export interface UpdatePermissionsResult {
+  ok: boolean
+  summary?: PermissionSummary
+  error?: string
+}
+
+/**
+ * PATCH the editable permission rules. Auto-invalidates the local
+ * cache so the next usePermissions() read reflects the new policy.
+ *
+ * Backend rejects with 403 if the caller lacks `can_edit_permissions`,
+ * 400 if any rule contains an unknown key/role, or if SUPER_ADMIN is
+ * removed from `edit_permission_settings` (lockout safeguard).
+ */
+export async function updatePermissions(
+  rules: PermissionRule[],
+): Promise<UpdatePermissionsResult> {
+  try {
+    const res = await fetch(`${API_BASE}/admin/settings/permissions`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ updates: rules }),
+    })
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}))
+      return { ok: false, error: errBody?.detail || `HTTP ${res.status}` }
+    }
+    const summary = (await res.json()) as PermissionSummary
+    invalidatePermissionsCache()
+    return { ok: true, summary }
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Network error' }
   }
 }
 
