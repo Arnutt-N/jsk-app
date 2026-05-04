@@ -24,6 +24,7 @@ import {
   usePermissions,
   type PermissionRule,
 } from '@/lib/permissions'
+import { useAuth } from '@/contexts/AuthContext'
 
 // Roles displayed as columns -- keep ordered by privilege (highest first).
 const ROLE_COLUMNS = ['SUPER_ADMIN', 'ADMIN', 'DIRECTOR', 'HEAD', 'AGENT', 'USER'] as const
@@ -43,6 +44,12 @@ const KEY_EDIT_SETTINGS = 'edit_permission_settings'
 export default function PermissionSettingsPage() {
   const me = usePermissions()
   const canEdit = me?.can_edit_permissions ?? false
+  // The auth token lives in AuthContext state and is mirrored into a
+  // window global by `syncAdminAuthToken(token)` so the global fetch
+  // interceptor can attach it. Until that mirror runs, fetches against
+  // protected endpoints return 401 -- so we gate the load() effect on
+  // `token` becoming truthy. (Race observed in CI E2E.)
+  const { token } = useAuth()
 
   const [rules, setRules] = useState<PermissionRule[]>([])
   const [originalRules, setOriginalRules] = useState<PermissionRule[]>([])
@@ -67,13 +74,18 @@ export default function PermissionSettingsPage() {
   }, [])
 
   useEffect(() => {
+    // Wait for the auth token to be synced into the fetch interceptor
+    // before kicking off any protected request. Without this guard the
+    // first fetch races AuthContext's syncAdminAuthToken effect and
+    // returns 401, leaving the matrix empty.
+    if (!token) return
     // Mount-time fetch: load() sets multiple pieces of local state.
     // The React 19 lint rule warns against any setState in an effect,
     // but a one-shot fetch on mount is the canonical exception (same
     // pattern PR #38 suppresses for the live-chat menu route sync).
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void load()
-  }, [load])
+  }, [load, token])
 
   const isDirty = useMemo(() => {
     if (rules.length !== originalRules.length) return true
