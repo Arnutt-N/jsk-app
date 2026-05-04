@@ -109,7 +109,10 @@ jobs:
 
       - name: Seed admin user
         working-directory: backend
-        run: python scripts/seed_admin.py
+        # --apply is required: seed_admin defaults to a dry-run that
+        # only prints the plan. Without it the admin user is never
+        # actually written and Playwright login times out.
+        run: python scripts/seed_admin.py --apply
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
