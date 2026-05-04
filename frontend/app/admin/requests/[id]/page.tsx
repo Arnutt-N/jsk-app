@@ -111,10 +111,11 @@ export default function RequestDetailPage() {
             if (!res.ok) throw new Error('Failed to fetch request detail');
             const data = await res.json();
             setRequest(data);
-            // Initialize local form state
+            // Initialize local form state. Coerce nullable status -> '' so
+            // the manage form (string-typed) stays well-typed.
             setManageFormData(prev => ({
                 ...prev,
-                status: data.status,
+                status: data.status ?? '',
                 priority: data.priority,
                 due_date: data.due_date ? data.due_date.split('T')[0] : '',
                 comment: '' // Reset comment on reload
@@ -221,9 +222,10 @@ export default function RequestDetailPage() {
 
     const handleCancelManage = () => {
         if (!request) return;
-        // Revert to original request data
+        // Revert to original request data. Coerce nullable status -> '' so
+        // the form (which expects string) stays well-typed.
         setManageFormData({
-            status: request.status,
+            status: request.status ?? '',
             priority: request.priority,
             due_date: request.due_date ? request.due_date.split('T')[0] : '',
             comment: ''
