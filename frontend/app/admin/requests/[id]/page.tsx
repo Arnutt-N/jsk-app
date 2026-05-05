@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import {
     User,
-    Clock,
     FileText,
     CheckCircle2,
     Calendar,
@@ -29,7 +28,6 @@ import {
 import { AssignModal } from '@/components/admin/AssignModal';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
-import PageHeader from '../../components/PageHeader';
 import {
     type RequestStatus,
     getStatusLabelForRequest,
@@ -288,114 +286,140 @@ export default function RequestDetailPage() {
         <div className="p-4 md:p-8 text-text-primary animate-in fade-in duration-500">
             <div className="max-w-5xl mx-auto">
 
-                {/* PageHeader -- workflow buttons render conditionally on state machine + permissions */}
-                <PageHeader title={`#${request.id} ${request.topic_category}`}>
+                {/* "กลับ" text button -- replaces icon-only chevron, more discoverable on mobile */}
+                <div className="mb-4">
                     <Link href="/admin/requests">
-                        <Button variant="ghost" size="icon-sm">
-                            <ChevronLeft className="w-5 h-5" />
+                        <Button variant="outline" size="sm" leftIcon={<ChevronLeft size={16} />}>
+                            กลับ
                         </Button>
                     </Link>
+                </div>
 
-                    {/* "รับเรื่อง": only the assignee on a PENDING+assigned request, advances to ACKNOWLEDGED */}
-                    {request.status === 'PENDING' && isAssignee && (
-                        <Button
-                            variant="warning"
-                            size="sm"
-                            onClick={() => handleUpdateField({ status: 'ACKNOWLEDGED' })}
-                            leftIcon={<Inbox size={18} />}
-                        >
-                            รับเรื่อง
-                        </Button>
+                {/* Hero card -- title (no #id prefix), subcategory, badges, and LEFT-aligned workflow buttons */}
+                <div className="bg-surface rounded-2xl shadow-sm border border-border-default p-4 md:p-6 mb-6">
+                    <h1 className="text-xl sm:text-2xl font-bold text-text-primary tracking-tight thai-no-break mb-1">
+                        {request.topic_category}
+                    </h1>
+                    {request.topic_subcategory && (
+                        <p className="text-sm text-text-tertiary thai-no-break mb-4">
+                            {request.topic_subcategory}
+                        </p>
                     )}
 
-                    {/* "เริ่มดำเนินการ": after acknowledging, kick off real work */}
-                    {request.status === 'ACKNOWLEDGED' && isAssignee && (
-                        <Button
-                            variant="primary"
-                            size="sm"
-                            onClick={() => handleUpdateField({ status: 'IN_PROGRESS' })}
-                            leftIcon={<Play size={18} />}
-                        >
-                            เริ่มดำเนินการ
-                        </Button>
-                    )}
+                    {/* Status + priority badges */}
+                    <div className="flex flex-wrap items-center gap-3 mb-4">
+                        <span className={`px-3 py-1 rounded-lg text-[10px] font-bold border transition-all ${
+                            request.priority === 'URGENT' ? 'bg-rose-50 border-rose-200 text-rose-600' :
+                            request.priority === 'HIGH' ? 'bg-orange-50 border-orange-200 text-orange-600' :
+                            request.priority === 'MEDIUM' ? 'bg-yellow-50 border-yellow-200 text-yellow-600' :
+                            'bg-emerald-50 border-emerald-200 text-emerald-600'
+                        }`}>
+                            {request.priority === 'URGENT' ? 'ด่วนที่สุด' :
+                                request.priority === 'HIGH' ? 'ด่วนมาก' :
+                                    request.priority === 'MEDIUM' ? 'ด่วน' :
+                                        request.priority === 'LOW' ? 'ปกติ' : 'ไม่ระบุ'}
+                        </span>
 
-                    {/* "ส่งอนุมัติ": when work is done, send to supervisor */}
-                    {request.status === 'IN_PROGRESS' && isAssignee && (
-                        <Button
-                            variant="primary"
-                            size="sm"
-                            onClick={() => handleUpdateField({ status: 'AWAITING_APPROVAL' })}
-                            leftIcon={<ShieldCheck size={18} />}
-                        >
-                            ส่งอนุมัติ
-                        </Button>
-                    )}
+                        <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ring-1 ring-inset inline-flex items-center gap-1 ${
+                            request.status === 'PENDING' ? (request.assigned_agent_id ? 'bg-amber-50 text-amber-700 ring-amber-200' : 'bg-bg text-text-secondary ring-border-default') :
+                            request.status === 'ACKNOWLEDGED' ? 'bg-orange-50 text-orange-700 ring-orange-200' :
+                            request.status === 'IN_PROGRESS' ? 'bg-blue-50 text-blue-700 ring-blue-200' :
+                            request.status === 'AWAITING_APPROVAL' ? 'bg-violet-50 text-violet-700 ring-violet-200' :
+                            request.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' :
+                            request.status === 'REJECTED' ? 'bg-rose-50 text-rose-700 ring-rose-200' :
+                            'bg-bg text-text-secondary ring-border-default'
+                        }`}>
+                            <div className={`w-1.5 h-1.5 rounded-full ${
+                                request.status === 'PENDING' ? (request.assigned_agent_id ? 'bg-amber-500' : 'bg-text-tertiary') :
+                                request.status === 'ACKNOWLEDGED' ? 'bg-orange-500' :
+                                request.status === 'IN_PROGRESS' ? 'bg-blue-500' :
+                                request.status === 'AWAITING_APPROVAL' ? 'bg-violet-500' :
+                                request.status === 'COMPLETED' ? 'bg-emerald-500' :
+                                request.status === 'REJECTED' ? 'bg-rose-500' :
+                                'bg-text-tertiary'
+                            }`}></div>
+                            {getStatusLabelForRequest(request)}
+                        </span>
+                    </div>
 
-                    {/* "อนุมัติ": supervisors close out an AWAITING_APPROVAL request */}
-                    {request.status === 'AWAITING_APPROVAL' && canApprove && (
-                        <Button
-                            variant="success"
-                            size="sm"
-                            onClick={() => handleUpdateField({ status: 'COMPLETED' })}
-                            leftIcon={<CheckCircle2 size={18} />}
-                        >
-                            อนุมัติ
-                        </Button>
-                    )}
+                    {/* Workflow buttons -- LEFT-aligned, wrap on mobile. Order: assign → assignee actions → supervisor reject */}
+                    <div className="flex flex-wrap gap-2 pt-4 border-t border-border-default">
+                        {/* "มอบหมาย" / "เปลี่ยนผู้รับผิดชอบ": supervisors only, hidden on terminal states (matches reject-button guard) */}
+                        {canApprove && request.status !== 'COMPLETED' && request.status !== 'REJECTED' && (
+                            <Button
+                                variant="primary"
+                                size="sm"
+                                onClick={() => setAssignModalOpen(true)}
+                                leftIcon={<UserPlus size={18} />}
+                            >
+                                {request.assigned_agent_id ? 'เปลี่ยนผู้รับผิดชอบ' : 'มอบหมาย'}
+                            </Button>
+                        )}
 
-                    {/* "ปฏิเสธ": supervisors can reject from any open state */}
-                    {canApprove && request.status !== 'COMPLETED' && request.status !== 'REJECTED' && (
-                        <Button
-                            variant="danger"
-                            size="sm"
-                            onClick={() => handleUpdateField({ status: 'REJECTED' })}
-                            leftIcon={<XCircle size={18} />}
-                        >
-                            ปฏิเสธ
-                        </Button>
-                    )}
-                </PageHeader>
+                        {/* "รับเรื่อง": only the assignee on a PENDING+assigned request, advances to ACKNOWLEDGED */}
+                        {request.status === 'PENDING' && isAssignee && (
+                            <Button
+                                variant="warning"
+                                size="sm"
+                                onClick={() => handleUpdateField({ status: 'ACKNOWLEDGED' })}
+                                leftIcon={<Inbox size={18} />}
+                            >
+                                รับเรื่อง
+                            </Button>
+                        )}
 
-                {/* Status & Priority Badges + Tab Card */}
-                <div className="bg-surface rounded-t-2xl shadow-sm border-x border-t border-border-default p-4 md:p-6 mt-6">
-                    <div className="flex flex-wrap items-center gap-3">
-                                    <span className={`px-3 py-1 rounded-lg text-[10px] font-bold border transition-all ${request.priority === 'URGENT' ? 'bg-rose-50 border-rose-200 text-rose-600' :
-                                        request.priority === 'HIGH' ? 'bg-orange-50 border-orange-200 text-orange-600' :
-                                            request.priority === 'MEDIUM' ? 'bg-yellow-50 border-yellow-200 text-yellow-600' :
-                                                'bg-emerald-50 border-emerald-200 text-emerald-600'
-                                        }`}>
-                                        {request.priority === 'URGENT' ? 'ด่วนที่สุด' :
-                                            request.priority === 'HIGH' ? 'ด่วนมาก' :
-                                                request.priority === 'MEDIUM' ? 'ด่วน' :
-                                                    request.priority === 'LOW' ? 'ปกติ' : 'ไม่ระบุ'}
-                                    </span>
+                        {/* "เริ่มดำเนินการ": after acknowledging, kick off real work */}
+                        {request.status === 'ACKNOWLEDGED' && isAssignee && (
+                            <Button
+                                variant="primary"
+                                size="sm"
+                                onClick={() => handleUpdateField({ status: 'IN_PROGRESS' })}
+                                leftIcon={<Play size={18} />}
+                            >
+                                เริ่มดำเนินการ
+                            </Button>
+                        )}
 
-                                    <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ring-1 ring-inset inline-flex items-center gap-1 ${
-                                        request.status === 'PENDING' ? (request.assigned_agent_id ? 'bg-amber-50 text-amber-700 ring-amber-200' : 'bg-bg text-text-secondary ring-border-default') :
-                                        request.status === 'ACKNOWLEDGED' ? 'bg-orange-50 text-orange-700 ring-orange-200' :
-                                        request.status === 'IN_PROGRESS' ? 'bg-blue-50 text-blue-700 ring-blue-200' :
-                                        request.status === 'AWAITING_APPROVAL' ? 'bg-violet-50 text-violet-700 ring-violet-200' :
-                                        request.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' :
-                                        request.status === 'REJECTED' ? 'bg-rose-50 text-rose-700 ring-rose-200' :
-                                        'bg-bg text-text-secondary ring-border-default'
-                                    }`}>
-                                        <div className={`w-1.5 h-1.5 rounded-full ${
-                                            request.status === 'PENDING' ? (request.assigned_agent_id ? 'bg-amber-500' : 'bg-text-tertiary') :
-                                            request.status === 'ACKNOWLEDGED' ? 'bg-orange-500' :
-                                            request.status === 'IN_PROGRESS' ? 'bg-blue-500' :
-                                            request.status === 'AWAITING_APPROVAL' ? 'bg-violet-500' :
-                                            request.status === 'COMPLETED' ? 'bg-emerald-500' :
-                                            request.status === 'REJECTED' ? 'bg-rose-500' :
-                                            'bg-text-tertiary'
-                                        }`}></div>
-                                        {getStatusLabelForRequest(request)}
-                                    </span>
-                                </div>
+                        {/* "ส่งอนุมัติ": when work is done, send to supervisor */}
+                        {request.status === 'IN_PROGRESS' && isAssignee && (
+                            <Button
+                                variant="primary"
+                                size="sm"
+                                onClick={() => handleUpdateField({ status: 'AWAITING_APPROVAL' })}
+                                leftIcon={<ShieldCheck size={18} />}
+                            >
+                                ส่งอนุมัติ
+                            </Button>
+                        )}
+
+                        {/* "อนุมัติ": supervisors close out an AWAITING_APPROVAL request */}
+                        {request.status === 'AWAITING_APPROVAL' && canApprove && (
+                            <Button
+                                variant="success"
+                                size="sm"
+                                onClick={() => handleUpdateField({ status: 'COMPLETED' })}
+                                leftIcon={<CheckCircle2 size={18} />}
+                            >
+                                อนุมัติ
+                            </Button>
+                        )}
+
+                        {/* "ปฏิเสธ": supervisors can reject from any open state */}
+                        {canApprove && request.status !== 'COMPLETED' && request.status !== 'REJECTED' && (
+                            <Button
+                                variant="danger"
+                                size="sm"
+                                onClick={() => handleUpdateField({ status: 'REJECTED' })}
+                                leftIcon={<XCircle size={18} />}
+                            >
+                                ปฏิเสธ
+                            </Button>
+                        )}
+                    </div>
                 </div>
 
                 {/* Tab Navigation */}
-                <div className="bg-surface border-x border-b border-border-default px-2 flex justify-center overflow-x-auto no-scrollbar">
+                <div className="bg-surface rounded-t-2xl border border-border-default px-2 flex justify-center overflow-x-auto no-scrollbar">
                     {tabs.map((tab) => (
                         <button
                             key={tab.id}
@@ -589,14 +613,17 @@ export default function RequestDetailPage() {
                                         className="w-full p-4 bg-bg border border-border-default rounded-xl text-sm outline-none focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all resize-none min-h-[120px]"
                                     ></textarea>
                                     <div className="flex justify-end">
-                                        <button
+                                        <Button
+                                            variant="primary"
+                                            size="md"
                                             onClick={handleAddComment}
                                             disabled={!newComment.trim() || submittingComment}
-                                            className={`flex items-center gap-2 px-6 py-2.5 bg-gradient-to-br from-primary to-primary-dark text-white rounded-xl text-sm font-bold hover:bg-primary-dark transition-all shadow-lg shadow-primary/20 ${!newComment.trim() || submittingComment ? 'opacity-50 shadow-none cursor-default' : 'cursor-pointer'}`}
+                                            isLoading={submittingComment}
+                                            leftIcon={<Send size={16} />}
                                             title="Save Comment"
                                         >
-                                            <Send size={16} /> บันทึกข้อมูล
-                                        </button>
+                                            บันทึกข้อมูล
+                                        </Button>
                                     </div>
                                 </div>
                             </div>
@@ -714,18 +741,17 @@ export default function RequestDetailPage() {
 
                             {/* Action Buttons */}
                             <div className="pt-6 border-t border-border-default flex justify-end gap-3">
-                                <button
-                                    onClick={handleCancelManage}
-                                    className="px-5 py-2.5 bg-muted text-text-secondary rounded-xl text-sm font-bold hover:bg-muted transition-all cursor-pointer"
-                                >
+                                <Button variant="outline" size="md" onClick={handleCancelManage}>
                                     ยกเลิก
-                                </button>
-                                <button
+                                </Button>
+                                <Button
+                                    variant="primary"
+                                    size="md"
                                     onClick={handleSaveManage}
-                                    className="px-6 py-2.5 bg-gradient-to-br from-primary to-primary-dark text-white rounded-xl text-sm font-bold hover:bg-primary-dark transition-all shadow-lg shadow-primary/20 cursor-pointer flex items-center gap-2"
+                                    leftIcon={<CheckCircle2 size={18} />}
                                 >
-                                    <CheckCircle2 size={18} /> บันทึก
-                                </button>
+                                    บันทึก
+                                </Button>
                             </div>
                         </div>
                     )}
