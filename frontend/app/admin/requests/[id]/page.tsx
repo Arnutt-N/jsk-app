@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { AssignModal } from '@/components/admin/AssignModal';
 import { Button } from '@/components/ui/Button';
+import CalendarPickerTH from '@/components/ui/CalendarPickerTH';
 import { useToast } from '@/components/ui/Toast';
 import {
     type RequestStatus,
@@ -147,6 +148,17 @@ export default function RequestDetailPage() {
     }, [fetchComments, fetchDetail, params.id]);
 
     // --- Handlers ---
+    // Stable reference so the calendar's dayCells useMemo doesn't invalidate every render.
+    const handleDueDateChange = useCallback((iso: string | null) => {
+        if (!iso) {
+            setManageFormData(prev => ({ ...prev, due_date: '' }));
+            return;
+        }
+        const d = new Date(iso);
+        const ymd = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        setManageFormData(prev => ({ ...prev, due_date: ymd }));
+    }, []);
+
     const handleUpdateField = async (fieldData: RequestUpdatePayload) => {
         try {
             const res = await fetch(`${API_BASE}/admin/requests/${params.id}`, {
@@ -306,13 +318,15 @@ export default function RequestDetailPage() {
                         </p>
                     )}
 
-                    {/* Status + priority badges */}
-                    <div className="flex flex-wrap items-center gap-3 mb-4">
-                        <span className={`px-3 py-1 rounded-lg text-[10px] font-bold border transition-all ${
-                            request.priority === 'URGENT' ? 'bg-rose-50 border-rose-200 text-rose-600' :
-                            request.priority === 'HIGH' ? 'bg-orange-50 border-orange-200 text-orange-600' :
-                            request.priority === 'MEDIUM' ? 'bg-yellow-50 border-yellow-200 text-yellow-600' :
-                            'bg-emerald-50 border-emerald-200 text-emerald-600'
+                    {/* Status + priority badges -- shared shape: h-7 (28px), text-[11px], ring-1 ring-inset.
+                        Both pills match height/typography so the row reads as a single tier. */}
+                    <div className="flex flex-wrap items-center gap-2 mb-4">
+                        <span className={`inline-flex items-center h-7 px-2.5 rounded-lg text-[11px] font-bold ring-1 ring-inset transition-all ${
+                            request.priority === 'URGENT' ? 'bg-rose-50 text-rose-700 ring-rose-200' :
+                            request.priority === 'HIGH' ? 'bg-orange-50 text-orange-700 ring-orange-200' :
+                            request.priority === 'MEDIUM' ? 'bg-yellow-50 text-yellow-700 ring-yellow-200' :
+                            request.priority === 'LOW' ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' :
+                            'bg-bg text-text-secondary ring-border-default'
                         }`}>
                             {request.priority === 'URGENT' ? 'ด่วนที่สุด' :
                                 request.priority === 'HIGH' ? 'ด่วนมาก' :
@@ -320,7 +334,7 @@ export default function RequestDetailPage() {
                                         request.priority === 'LOW' ? 'ปกติ' : 'ไม่ระบุ'}
                         </span>
 
-                        <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ring-1 ring-inset inline-flex items-center gap-1 ${
+                        <span className={`inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-[11px] font-bold ring-1 ring-inset ${
                             request.status === 'PENDING' ? (request.assigned_agent_id ? 'bg-amber-50 text-amber-700 ring-amber-200' : 'bg-bg text-text-secondary ring-border-default') :
                             request.status === 'ACKNOWLEDGED' ? 'bg-orange-50 text-orange-700 ring-orange-200' :
                             request.status === 'IN_PROGRESS' ? 'bg-blue-50 text-blue-700 ring-blue-200' :
@@ -329,7 +343,7 @@ export default function RequestDetailPage() {
                             request.status === 'REJECTED' ? 'bg-rose-50 text-rose-700 ring-rose-200' :
                             'bg-bg text-text-secondary ring-border-default'
                         }`}>
-                            <div className={`w-1.5 h-1.5 rounded-full ${
+                            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
                                 request.status === 'PENDING' ? (request.assigned_agent_id ? 'bg-amber-500' : 'bg-text-tertiary') :
                                 request.status === 'ACKNOWLEDGED' ? 'bg-orange-500' :
                                 request.status === 'IN_PROGRESS' ? 'bg-blue-500' :
@@ -337,7 +351,7 @@ export default function RequestDetailPage() {
                                 request.status === 'COMPLETED' ? 'bg-emerald-500' :
                                 request.status === 'REJECTED' ? 'bg-rose-500' :
                                 'bg-text-tertiary'
-                            }`}></div>
+                            }`}></span>
                             {getStatusLabelForRequest(request)}
                         </span>
                     </div>
@@ -705,7 +719,9 @@ export default function RequestDetailPage() {
                                     </label>
                                     <div
                                         onClick={() => setAssignModalOpen(true)}
-                                        className="w-full px-4 py-2.5 bg-bg border border-border-default rounded-lg text-sm font-bold cursor-pointer hover:bg-bg transition-colors flex justify-between items-center"
+                                        className={`w-full px-4 py-2.5 bg-bg border border-border-default rounded-lg text-sm cursor-pointer hover:bg-bg transition-colors flex justify-between items-center ${
+                                            request.assignee_name ? 'font-bold text-text-primary' : 'font-medium text-text-tertiary'
+                                        }`}
                                     >
                                         <span>{request.assignee_name || "ยังไม่ได้มอบหมาย"}</span>
                                         <Settings2 size={16} className="text-text-tertiary" />
@@ -714,14 +730,15 @@ export default function RequestDetailPage() {
 
                                 <div className="space-y-3">
                                     <label className="text-xs font-bold text-text-tertiary uppercase tracking-wider flex items-center gap-2">
-                                        <Calendar size={14} className="text-amber-500" /> กำหนดเสร็จ (Due Date)
+                                        <Calendar size={14} className="text-amber-500" /> กำหนดเสร็จ
                                     </label>
-                                    <input
-                                        type="date"
-                                        className="w-full px-4 py-2.5 bg-bg border border-border-default rounded-lg text-sm font-bold outline-none cursor-pointer"
-                                        // Use Local State
-                                        value={manageFormData.due_date}
-                                        onChange={(e) => setManageFormData(prev => ({ ...prev, due_date: e.target.value }))}
+                                    {/* TZ-safe adapter: backend stores YYYY-MM-DD; CalendarPickerTH talks ISO.
+                                        Parsing 'YYYY-MM-DDT00:00:00' (no Z) yields LOCAL midnight, which the
+                                        picker then re-renders via .getFullYear/.getMonth/.getDate — so the
+                                        displayed date matches what was saved regardless of timezone. */}
+                                    <CalendarPickerTH
+                                        value={manageFormData.due_date ? new Date(`${manageFormData.due_date}T00:00:00`).toISOString() : null}
+                                        onChange={handleDueDateChange}
                                     />
                                 </div>
                             </div>
