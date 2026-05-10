@@ -24,10 +24,21 @@ import {
     ShieldCheck,
     XCircle,
     Play,
+    MoreVertical,
+    RotateCcw,
+    Undo2,
 } from 'lucide-react';
 import { AssignModal } from '@/components/admin/AssignModal';
 import { Button } from '@/components/ui/Button';
 import CalendarPickerTH from '@/components/ui/CalendarPickerTH';
+import {
+    DropdownMenu,
+    DropdownMenuTrigger,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+} from '@/components/ui/DropdownMenu';
 import { useToast } from '@/components/ui/Toast';
 import {
     type RequestStatus,
@@ -356,9 +367,12 @@ export default function RequestDetailPage() {
                         </span>
                     </div>
 
-                    {/* Workflow buttons -- LEFT-aligned, wrap on mobile. Order: assign → assignee actions → supervisor reject */}
-                    <div className="flex flex-wrap gap-2 pt-4 border-t border-border-default">
-                        {/* "มอบหมาย" / "เปลี่ยนผู้รับผิดชอบ": supervisors only, hidden on terminal states (matches reject-button guard) */}
+                    {/* Workflow buttons. Permission tiers:
+                        - Primary advance: assignee OR supervisor (canApprove)
+                        - Approval / reject / reopen: supervisor only
+                        - Override kebab: supervisor only, surfaces force-complete + revert-to-pending */}
+                    <div className="flex flex-wrap items-center gap-2 pt-4 border-t border-border-default">
+                        {/* "มอบหมาย" / "เปลี่ยนผู้รับผิดชอบ": supervisor only, open states */}
                         {canApprove && request.status !== 'COMPLETED' && request.status !== 'REJECTED' && (
                             <Button
                                 variant="primary"
@@ -370,8 +384,8 @@ export default function RequestDetailPage() {
                             </Button>
                         )}
 
-                        {/* "รับเรื่อง": only the assignee on a PENDING+assigned request, advances to ACKNOWLEDGED */}
-                        {request.status === 'PENDING' && isAssignee && (
+                        {/* "รับเรื่อง": assignee OR supervisor — supervisor can advance on assignee's behalf */}
+                        {request.status === 'PENDING' && (isAssignee || canApprove) && (
                             <Button
                                 variant="warning"
                                 size="sm"
@@ -382,8 +396,8 @@ export default function RequestDetailPage() {
                             </Button>
                         )}
 
-                        {/* "เริ่มดำเนินการ": after acknowledging, kick off real work */}
-                        {request.status === 'ACKNOWLEDGED' && isAssignee && (
+                        {/* "เริ่มดำเนินการ": assignee OR supervisor */}
+                        {request.status === 'ACKNOWLEDGED' && (isAssignee || canApprove) && (
                             <Button
                                 variant="primary"
                                 size="sm"
@@ -394,8 +408,8 @@ export default function RequestDetailPage() {
                             </Button>
                         )}
 
-                        {/* "ส่งอนุมัติ": when work is done, send to supervisor */}
-                        {request.status === 'IN_PROGRESS' && isAssignee && (
+                        {/* "ส่งอนุมัติ": assignee OR supervisor */}
+                        {request.status === 'IN_PROGRESS' && (isAssignee || canApprove) && (
                             <Button
                                 variant="primary"
                                 size="sm"
@@ -406,7 +420,7 @@ export default function RequestDetailPage() {
                             </Button>
                         )}
 
-                        {/* "อนุมัติ": supervisors close out an AWAITING_APPROVAL request */}
+                        {/* "อนุมัติ": supervisor only — closes out an AWAITING_APPROVAL request */}
                         {request.status === 'AWAITING_APPROVAL' && canApprove && (
                             <Button
                                 variant="success"
@@ -418,7 +432,7 @@ export default function RequestDetailPage() {
                             </Button>
                         )}
 
-                        {/* "ปฏิเสธ": supervisors can reject from any open state */}
+                        {/* "ปฏิเสธ": supervisor only, open states */}
                         {canApprove && request.status !== 'COMPLETED' && request.status !== 'REJECTED' && (
                             <Button
                                 variant="danger"
@@ -428,6 +442,58 @@ export default function RequestDetailPage() {
                             >
                                 ปฏิเสธ
                             </Button>
+                        )}
+
+                        {/* "เปิดเรื่องใหม่": supervisor only, REJECTED -> PENDING. Backend has no
+                            ALLOWED_TRANSITIONS guard, so revert is a simple PATCH. */}
+                        {canApprove && request.status === 'REJECTED' && (
+                            <Button
+                                variant="primary"
+                                size="sm"
+                                onClick={() => handleUpdateField({ status: 'PENDING', assigned_agent_id: null })}
+                                leftIcon={<RotateCcw size={18} />}
+                            >
+                                เปิดเรื่องใหม่
+                            </Button>
+                        )}
+
+                        {/* Override kebab: supervisor-only escape hatches outside the linear workflow.
+                            Visible whenever the request is in an open state (not terminal). The two
+                            inner items self-gate: force-complete needs an open state, revert-to-pending
+                            additionally excludes PENDING (no-op). */}
+                        {canApprove && request.status !== 'COMPLETED' && request.status !== 'REJECTED' && (
+                            <DropdownMenu>
+                                <DropdownMenuTrigger
+                                    aria-label="การจัดการพิเศษ"
+                                    className="inline-flex items-center justify-center h-9 w-9 rounded-lg border border-border-default bg-surface text-text-secondary hover:bg-bg hover:text-text-primary transition-colors"
+                                >
+                                    <MoreVertical size={18} />
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="min-w-[12rem]">
+                                    <DropdownMenuLabel>การจัดการพิเศษ</DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+
+                                    {/* "บังคับเสร็จสิ้น": skip approval flow when assignee is unavailable.
+                                        Outer guard already excludes terminal states. */}
+                                    <DropdownMenuItem
+                                        onClick={() => handleUpdateField({ status: 'COMPLETED' })}
+                                    >
+                                        <CheckCircle2 size={16} className="text-emerald-600" />
+                                        บังคับเสร็จสิ้น
+                                    </DropdownMenuItem>
+
+                                    {/* "ย้อนกลับ รอรับเรื่อง": revert mid-flow records that were advanced by mistake.
+                                        Hidden on PENDING (already there). */}
+                                    {request.status !== 'PENDING' && (
+                                        <DropdownMenuItem
+                                            onClick={() => handleUpdateField({ status: 'PENDING' })}
+                                        >
+                                            <Undo2 size={16} className="text-amber-600" />
+                                            ย้อนกลับ รอรับเรื่อง
+                                        </DropdownMenuItem>
+                                    )}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                         )}
                     </div>
                 </div>
@@ -658,10 +724,12 @@ export default function RequestDetailPage() {
                                         <Flag size={14} className="text-amber-500" /> ระดับความสำคัญ
                                     </label>
                                 </div>
-                                {/* Buttons Row */}
+                                {/* Buttons Row -- pills wrap into a 2-col grid on mobile and a balanced
+                                    3-col / 4-col grid on desktop so 6 status options never overflow the
+                                    card. Removed flex-1 + whitespace-nowrap (grid items size themselves). */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    {/* Status Buttons */}
-                                    <div className="flex gap-2">
+                                    {/* Status Buttons (6 options -> 2x3 mobile, 3x2 desktop) */}
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                                         {[
                                             { value: 'PENDING',           label: 'รอรับเรื่อง',    activeClass: 'bg-amber-50 text-amber-700 border-amber-400',     dotClass: 'bg-amber-500' },
                                             { value: 'ACKNOWLEDGED',      label: 'รอดำเนินการ',   activeClass: 'bg-orange-50 text-orange-700 border-orange-400', dotClass: 'bg-orange-500' },
@@ -674,18 +742,18 @@ export default function RequestDetailPage() {
                                                 key={s.value}
                                                 // Update Local State Only
                                                 onClick={() => setManageFormData(prev => ({ ...prev, status: s.value }))}
-                                                className={`flex-1 px-2 py-2.5 text-[11px] font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1 border whitespace-nowrap ${manageFormData.status === s.value
+                                                className={`px-2 py-2.5 text-[11px] font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1 border ${manageFormData.status === s.value
                                                     ? s.activeClass
                                                     : 'bg-surface text-text-tertiary border-border-default hover:border-text-tertiary hover:bg-bg'
                                                     }`}
                                             >
                                                 <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${manageFormData.status === s.value ? s.dotClass : 'bg-text-tertiary'}`}></span>
-                                                {s.label}
+                                                <span className="truncate">{s.label}</span>
                                             </button>
                                         ))}
                                     </div>
-                                    {/* Priority Buttons */}
-                                    <div className="flex gap-2">
+                                    {/* Priority Buttons (4 options -> 2x2 mobile, 1x4 desktop) */}
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                                         {[
                                             { value: 'LOW', label: 'ปกติ' },
                                             { value: 'MEDIUM', label: 'ด่วน' },
@@ -696,7 +764,7 @@ export default function RequestDetailPage() {
                                                 key={p.value}
                                                 // Update Local State Only
                                                 onClick={() => setManageFormData(prev => ({ ...prev, priority: p.value }))}
-                                                className={`flex-1 px-2 py-2.5 text-[11px] font-bold rounded-lg transition-all cursor-pointer border whitespace-nowrap ${manageFormData.priority === p.value
+                                                className={`px-2 py-2.5 text-[11px] font-bold rounded-lg transition-all cursor-pointer border ${manageFormData.priority === p.value
                                                     ? (p.value === 'URGENT' ? 'bg-rose-50 text-rose-700 border-rose-400' :
                                                         p.value === 'HIGH' ? 'bg-orange-50 text-orange-700 border-orange-400' :
                                                             p.value === 'MEDIUM' ? 'bg-yellow-50 text-yellow-700 border-yellow-400' :
@@ -704,7 +772,7 @@ export default function RequestDetailPage() {
                                                     : 'bg-surface text-text-tertiary border-border-default hover:border-text-tertiary hover:bg-bg'
                                                     }`}
                                             >
-                                                {p.label}
+                                                <span className="truncate">{p.label}</span>
                                             </button>
                                         ))}
                                     </div>
