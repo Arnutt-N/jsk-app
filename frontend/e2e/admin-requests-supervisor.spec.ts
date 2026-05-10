@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import { loginAsAdmin } from './utils/auth'
 
 /**
@@ -10,17 +10,32 @@ import { loginAsAdmin } from './utils/auth'
  *
  * Strategy:
  *   - Login as the seeded admin (canApprove === true).
- *   - Navigate to /admin/requests, pick the first row, follow it to the
- *     detail page. If the test DB has zero requests, skip (the list-page
- *     spec already covers empty-state regressions).
- *   - Assert hero card structure, override kebab, and mobile pill grid.
- *
- * Why no full lifecycle test (PENDING -> COMPLETED): each click triggers
- * a real PATCH against the test backend, and chaining 4 transitions in
- * one test couples the spec to seed-data state and to other specs that
- * may run in parallel. Cover individual button visibility + override
- * menu open/close instead -- behavior contract, not workflow integration.
+ *   - Navigate to /admin/requests, find the first row's link, and goto
+ *     it directly. We don't click the row because the table row's link
+ *     is on a nested cell and `<tr>.click()` doesn't reliably bubble to
+ *     a navigation in the test runner.
+ *   - If the test DB has zero requests, skip (the list-page spec
+ *     already covers empty-state regressions).
  */
+
+/**
+ * Resolve the URL of the first request detail page from the list view.
+ * Returns null if no request row is present (test DB is empty).
+ *
+ * The list page renders `<Link href="/admin/requests/{id}">` inside each
+ * table row, plus a separate `/admin/requests/create` button at the top.
+ * We exclude the `create` link by filtering on the numeric id pattern.
+ */
+async function getFirstRequestDetailUrl(page: Page): Promise<string | null> {
+  const links = page.locator('a[href*="/admin/requests/"]')
+  const count = await links.count()
+  for (let i = 0; i < count; i++) {
+    const href = await links.nth(i).getAttribute('href')
+    if (href && /\/admin\/requests\/\d+$/.test(href)) return href
+  }
+  return null
+}
+
 test.describe('Request detail page -- supervisor view', () => {
   test.beforeEach(async ({ page }) => {
     await loginAsAdmin(page)
@@ -29,54 +44,40 @@ test.describe('Request detail page -- supervisor view', () => {
   })
 
   test('hero card renders supervisor-tier workflow buttons', async ({ page }) => {
-    const firstRow = page.locator('table tbody tr').first()
-    const rowCount = await firstRow.count()
-    test.skip(rowCount === 0, 'no requests in test DB; supervisor view nothing to render')
-
-    // Click the first row -- the row itself is the link in this list,
-    // but rendering can use either <a> wrapping or onClick. Try both.
-    const rowLink = firstRow.locator('a[href*="/admin/requests/"]').first()
-    if (await rowLink.count() > 0) {
-      await rowLink.click()
-    } else {
-      await firstRow.click()
-    }
-
-    // Land on detail. URL pattern is /admin/requests/<id>.
-    await page.waitForURL(/\/admin\/requests\/\d+$/, { timeout: 10_000 })
+    const detailUrl = await getFirstRequestDetailUrl(page)
+    test.skip(!detailUrl, 'no requests in test DB; supervisor view nothing to render')
+    await page.goto(detailUrl!)
 
     // Hero card: title with topic_category + back button + workflow row
-    await expect(page.getByRole('button', { name: 'กลับ' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'กลับ' })).toBeVisible({ timeout: 10_000 })
 
     // Status pill (one of the lifecycle labels) -- spot-check that any
     // pill renders so we know the hero card mounted with valid data.
-    const anyStatusPill = page.locator('text=/รอมอบหมาย|รอรับเรื่อง|รอดำเนินการ|กำลังดำเนินการ|รออนุมัติ|เสร็จสิ้น|ปฏิเสธ/').first()
+    const anyStatusPill = page
+      .locator('text=/รอมอบหมาย|รอรับเรื่อง|รอดำเนินการ|กำลังดำเนินการ|รออนุมัติ|เสร็จสิ้น|ปฏิเสธ/')
+      .first()
     await expect(anyStatusPill).toBeVisible()
 
-    // Supervisor (admin role, canApprove=true) sees at minimum:
-    //   - "มอบหมาย" or "เปลี่ยนผู้รับผิดชอบ" (open states)
-    //   - "ปฏิเสธ" (open states), or "เปิดเรื่องใหม่" (REJECTED)
-    // We don't assert which one specifically because the row's status
-    // varies; assert that at least one supervisor primary button is
-    // visible, ignoring the status the request happened to be in.
-    const supervisorButton = page.locator('button').filter({
-      hasText: /มอบหมาย|เปลี่ยนผู้รับผิดชอบ|ปฏิเสธ|เปิดเรื่องใหม่|รับเรื่อง|เริ่มดำเนินการ|ส่งอนุมัติ|อนุมัติ/,
-    }).first()
+    // Supervisor (admin role, canApprove=true) sees at minimum one of:
+    //   - "มอบหมาย" / "เปลี่ยนผู้รับผิดชอบ" (open states)
+    //   - "ปฏิเสธ" (open states)
+    //   - "เปิดเรื่องใหม่" (REJECTED)
+    //   - or one of the advance buttons (รับเรื่อง / เริ่ม / ส่ง / อนุมัติ)
+    // We don't care which specifically because the row's status varies.
+    const supervisorButton = page
+      .locator('button')
+      .filter({
+        hasText: /มอบหมาย|เปลี่ยนผู้รับผิดชอบ|ปฏิเสธ|เปิดเรื่องใหม่|รับเรื่อง|เริ่มดำเนินการ|ส่งอนุมัติ|^อนุมัติ$/,
+      })
+      .first()
     await expect(supervisorButton).toBeVisible()
   })
 
   test('override kebab menu opens and contains escape-hatch items', async ({ page }) => {
-    const firstRow = page.locator('table tbody tr').first()
-    const rowCount = await firstRow.count()
-    test.skip(rowCount === 0, 'no requests in test DB')
-
-    const rowLink = firstRow.locator('a[href*="/admin/requests/"]').first()
-    if (await rowLink.count() > 0) {
-      await rowLink.click()
-    } else {
-      await firstRow.click()
-    }
-    await page.waitForURL(/\/admin\/requests\/\d+$/, { timeout: 10_000 })
+    const detailUrl = await getFirstRequestDetailUrl(page)
+    test.skip(!detailUrl, 'no requests in test DB')
+    await page.goto(detailUrl!)
+    await expect(page.getByRole('button', { name: 'กลับ' })).toBeVisible({ timeout: 10_000 })
 
     // The kebab is hidden on terminal-state requests (COMPLETED/REJECTED).
     // If it isn't there, skip the menu test rather than fail.
@@ -102,25 +103,18 @@ test.describe('Request detail page -- supervisor view', () => {
   test('mobile viewport: status/priority pills grid does not overflow card', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 800 })
 
-    const firstRow = page.locator('table tbody tr').first()
-    const rowCount = await firstRow.count()
-    test.skip(rowCount === 0, 'no requests in test DB')
-
-    const rowLink = firstRow.locator('a[href*="/admin/requests/"]').first()
-    if (await rowLink.count() > 0) {
-      await rowLink.click()
-    } else {
-      await firstRow.click()
-    }
-    await page.waitForURL(/\/admin\/requests\/\d+$/, { timeout: 10_000 })
+    const detailUrl = await getFirstRequestDetailUrl(page)
+    test.skip(!detailUrl, 'no requests in test DB')
+    await page.goto(detailUrl!)
+    await expect(page.getByRole('button', { name: 'กลับ' })).toBeVisible({ timeout: 10_000 })
 
     // Switch to manage tab where the pills live.
     const manageTab = page.getByRole('button', { name: /จัดการคำร้อง/ })
     await manageTab.click()
 
     // Status pills container -- the grid should have 6 buttons that
-    // collectively don't exceed the card width. Pick the first pill
-    // and assert its bounding box stays within viewport.
+    // collectively don't exceed the viewport width. Pick any pill and
+    // assert its bounding box stays within viewport.
     const firstStatusPill = page.locator('button', { hasText: 'รอรับเรื่อง' }).last()
     await expect(firstStatusPill).toBeVisible()
 
@@ -141,17 +135,10 @@ test.describe('Request detail page -- supervisor view', () => {
       consoleErrors.push(err.message)
     })
 
-    const firstRow = page.locator('table tbody tr').first()
-    const rowCount = await firstRow.count()
-    test.skip(rowCount === 0, 'no requests in test DB')
-
-    const rowLink = firstRow.locator('a[href*="/admin/requests/"]').first()
-    if (await rowLink.count() > 0) {
-      await rowLink.click()
-    } else {
-      await firstRow.click()
-    }
-    await page.waitForURL(/\/admin\/requests\/\d+$/, { timeout: 10_000 })
+    const detailUrl = await getFirstRequestDetailUrl(page)
+    test.skip(!detailUrl, 'no requests in test DB')
+    await page.goto(detailUrl!)
+    await expect(page.getByRole('button', { name: 'กลับ' })).toBeVisible({ timeout: 10_000 })
 
     // Wait briefly for any deferred network calls (fetchDetail, fetchComments).
     await page.waitForTimeout(1500)
