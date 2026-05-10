@@ -323,34 +323,25 @@ export default function RequestDetailPage() {
                     </Link>
                 </div>
 
-                {/* Hero card -- title (no #id prefix), subcategory, badges, and LEFT-aligned workflow buttons */}
-                <div className="bg-surface rounded-2xl shadow-sm border border-border-default p-4 md:p-6 mb-6">
-                    <h1 className="text-xl sm:text-2xl font-bold text-text-primary tracking-tight thai-no-break mb-1">
-                        {request.topic_category}
-                    </h1>
-                    {request.topic_subcategory && (
-                        <p className="text-sm text-text-tertiary thai-no-break mb-4">
-                            {request.topic_subcategory}
-                        </p>
-                    )}
+                {/* Hero card -- Linear-inspired single-row layout. Title + badges +
+                    actions live on one flex row that wraps gracefully on narrow viewports.
+                    `ml-auto` pushes the action group to the right edge on desktop; on
+                    mobile the buttons drop to their own line below the badges.
 
-                    {/* Status + priority badges -- shared shape: h-7 (28px), text-[11px], ring-1 ring-inset.
-                        Both pills match height/typography so the row reads as a single tier. */}
-                    <div className="flex flex-wrap items-center gap-2 mb-4">
-                        <span className={`inline-flex items-center h-7 px-2.5 rounded-lg text-[11px] font-bold ring-1 ring-inset transition-all ${
-                            request.priority === 'URGENT' ? 'bg-rose-50 text-rose-700 ring-rose-200' :
-                            request.priority === 'HIGH' ? 'bg-orange-50 text-orange-700 ring-orange-200' :
-                            request.priority === 'MEDIUM' ? 'bg-yellow-50 text-yellow-700 ring-yellow-200' :
-                            request.priority === 'LOW' ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' :
-                            'bg-bg text-text-secondary ring-border-default'
-                        }`}>
-                            {request.priority === 'URGENT' ? 'ด่วนที่สุด' :
-                                request.priority === 'HIGH' ? 'ด่วนมาก' :
-                                    request.priority === 'MEDIUM' ? 'ด่วน' :
-                                        request.priority === 'LOW' ? 'ปกติ' : 'ไม่ระบุ'}
-                        </span>
+                    Why one row: prior 3-section layout (title -> badges -> divider ->
+                    buttons) used 5+ vertical cells for what enterprise tools (Linear /
+                    Jira / GitHub Issues) compress into 1-2. The redesign saves vertical
+                    space and matches the visual hierarchy of comparable case-mgmt UIs. */}
+                <div className="bg-surface rounded-2xl shadow-sm border border-border-default p-4 md:p-5 mb-6">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                        <h1 className="text-lg sm:text-xl font-bold text-text-primary tracking-tight thai-no-break">
+                            {request.topic_category}
+                        </h1>
 
-                        <span className={`inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-[11px] font-bold ring-1 ring-inset ${
+                        {/* Status + priority badges -- inline with title. Shared shape:
+                            h-7 (28px), text-[11px], ring-1 ring-inset. Status carries
+                            visual weight (dot + label), priority is plain chip. */}
+                        <span className={`inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-[11px] font-bold ring-1 ring-inset shrink-0 ${
                             request.status === 'PENDING' ? (request.assigned_agent_id ? 'bg-amber-50 text-amber-700 ring-amber-200' : 'bg-bg text-text-secondary ring-border-default') :
                             request.status === 'ACKNOWLEDGED' ? 'bg-orange-50 text-orange-700 ring-orange-200' :
                             request.status === 'IN_PROGRESS' ? 'bg-blue-50 text-blue-700 ring-blue-200' :
@@ -370,13 +361,26 @@ export default function RequestDetailPage() {
                             }`}></span>
                             {getStatusLabelForRequest(request)}
                         </span>
-                    </div>
 
-                    {/* Workflow buttons. Permission tiers:
-                        - Primary advance: assignee OR supervisor (canApprove)
-                        - Approval / reject / reopen: supervisor only
-                        - Override kebab: supervisor only, surfaces force-complete + revert-to-pending */}
-                    <div className="flex flex-wrap items-center gap-2 pt-4 border-t border-border-default">
+                        <span className={`inline-flex items-center h-7 px-2.5 rounded-lg text-[11px] font-bold ring-1 ring-inset shrink-0 transition-all ${
+                            request.priority === 'URGENT' ? 'bg-rose-50 text-rose-700 ring-rose-200' :
+                            request.priority === 'HIGH' ? 'bg-orange-50 text-orange-700 ring-orange-200' :
+                            request.priority === 'MEDIUM' ? 'bg-yellow-50 text-yellow-700 ring-yellow-200' :
+                            request.priority === 'LOW' ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' :
+                            'bg-bg text-text-secondary ring-border-default'
+                        }`}>
+                            {request.priority === 'URGENT' ? 'ด่วนที่สุด' :
+                                request.priority === 'HIGH' ? 'ด่วนมาก' :
+                                    request.priority === 'MEDIUM' ? 'ด่วน' :
+                                        request.priority === 'LOW' ? 'ปกติ' : 'ไม่ระบุ'}
+                        </span>
+
+                        {/* Action group: pushed to the right via ml-auto on flex parent.
+                            Permission tiers:
+                            - Primary advance: assignee OR supervisor (canApprove)
+                            - Approval / reject / reopen: supervisor only
+                            - Override kebab: supervisor only, surfaces force-complete + revert-to-pending */}
+                        <div className="flex flex-wrap items-center gap-2 ml-auto">
                         {/* "มอบหมาย" / "เปลี่ยนผู้รับผิดชอบ": supervisor only, open states */}
                         {canApprove && request.status !== 'COMPLETED' && request.status !== 'REJECTED' && (
                             <Button
@@ -508,7 +512,16 @@ export default function RequestDetailPage() {
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         )}
+                        </div>
                     </div>
+                    {/* Subcategory sits below the title row as a quiet caption.
+                        Pulled out of the hero's main flex row so it doesn't
+                        compete with badges or actions for horizontal space. */}
+                    {request.topic_subcategory && (
+                        <p className="text-sm text-text-tertiary thai-no-break mt-2">
+                            {request.topic_subcategory}
+                        </p>
+                    )}
                 </div>
 
                 {/* Tab Navigation */}
@@ -737,12 +750,19 @@ export default function RequestDetailPage() {
                                         <Flag size={14} className="text-amber-500" /> ระดับความสำคัญ
                                     </label>
                                 </div>
-                                {/* Buttons Row -- pills wrap into a 2-col grid on mobile and a balanced
-                                    3-col / 4-col grid on desktop so 6 status options never overflow the
-                                    card. Removed flex-1 + whitespace-nowrap (grid items size themselves). */}
+                                {/* Compact chip pills -- inline-flex with intrinsic width.
+                                    Each chip sizes to its label + padding so "ปกติ" (3 char)
+                                    is visibly smaller than "ด่วนที่สุด" (8 char). Linear/Notion
+                                    style: chips read as a single tier and the rhythm matches
+                                    the hero badges (h-7 px-3 text-[11px]).
+
+                                    Removed: flex-1 (which stretched all chips to equal width),
+                                    grid (which forced equal cells), whitespace-nowrap (no longer
+                                    needed -- chips never wrap their own labels), truncate
+                                    (chips never narrow enough to need ellipsis). */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    {/* Status Buttons (6 options -> 2x3 mobile, 3x2 desktop) */}
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                    {/* Status chips (6 options) */}
+                                    <div className="flex flex-wrap gap-2">
                                         {[
                                             { value: 'PENDING',           label: 'รอรับเรื่อง',    activeClass: 'bg-amber-50 text-amber-700 border-amber-400',     dotClass: 'bg-amber-500' },
                                             { value: 'ACKNOWLEDGED',      label: 'รอดำเนินการ',   activeClass: 'bg-orange-50 text-orange-700 border-orange-400', dotClass: 'bg-orange-500' },
@@ -755,18 +775,18 @@ export default function RequestDetailPage() {
                                                 key={s.value}
                                                 // Update Local State Only
                                                 onClick={() => setManageFormData(prev => ({ ...prev, status: s.value }))}
-                                                className={`px-2 py-2.5 text-[11px] font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1 border ${manageFormData.status === s.value
+                                                className={`inline-flex items-center gap-1.5 h-7 px-3 text-[11px] font-bold rounded-lg transition-all cursor-pointer border ${manageFormData.status === s.value
                                                     ? s.activeClass
                                                     : 'bg-surface text-text-tertiary border-border-default hover:border-text-tertiary hover:bg-bg'
                                                     }`}
                                             >
                                                 <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${manageFormData.status === s.value ? s.dotClass : 'bg-text-tertiary'}`}></span>
-                                                <span className="truncate">{s.label}</span>
+                                                {s.label}
                                             </button>
                                         ))}
                                     </div>
-                                    {/* Priority Buttons (4 options -> 2x2 mobile, 1x4 desktop) */}
-                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                    {/* Priority chips (4 options) */}
+                                    <div className="flex flex-wrap gap-2">
                                         {[
                                             { value: 'LOW', label: 'ปกติ' },
                                             { value: 'MEDIUM', label: 'ด่วน' },
@@ -777,7 +797,7 @@ export default function RequestDetailPage() {
                                                 key={p.value}
                                                 // Update Local State Only
                                                 onClick={() => setManageFormData(prev => ({ ...prev, priority: p.value }))}
-                                                className={`px-2 py-2.5 text-[11px] font-bold rounded-lg transition-all cursor-pointer border ${manageFormData.priority === p.value
+                                                className={`inline-flex items-center h-7 px-3 text-[11px] font-bold rounded-lg transition-all cursor-pointer border ${manageFormData.priority === p.value
                                                     ? (p.value === 'URGENT' ? 'bg-rose-50 text-rose-700 border-rose-400' :
                                                         p.value === 'HIGH' ? 'bg-orange-50 text-orange-700 border-orange-400' :
                                                             p.value === 'MEDIUM' ? 'bg-yellow-50 text-yellow-700 border-yellow-400' :
@@ -785,7 +805,7 @@ export default function RequestDetailPage() {
                                                     : 'bg-surface text-text-tertiary border-border-default hover:border-text-tertiary hover:bg-bg'
                                                     }`}
                                             >
-                                                <span className="truncate">{p.label}</span>
+                                                {p.label}
                                             </button>
                                         ))}
                                     </div>
