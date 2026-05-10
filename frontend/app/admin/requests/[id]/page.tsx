@@ -46,6 +46,7 @@ import {
 } from '@/lib/constants/request-status';
 import { usePermissions } from '@/lib/permissions';
 import { useAuth } from '@/contexts/AuthContext';
+import { useGuardedUpdate } from '@/hooks/useGuardedUpdate';
 
 // Interfaces for API Data
 interface Comment {
@@ -188,27 +189,9 @@ export default function RequestDetailPage() {
         }
     };
 
-    // In-flight guard for one-shot workflow buttons. Prevents:
-    // - duplicate PATCH requests if a user double-clicks (or hammers Enter on
-    //   a focused DropdownMenuItem)
-    // - unhandled promise rejections from onClick={() => handleUpdateField(...)}
-    //   patterns. handleUpdateField re-throws to support handleSaveManage's
-    //   bulk-save flow control, but workflow buttons don't care about the
-    //   throw -- the toast already informed the user.
-    const [submitting, setSubmitting] = useState(false);
-    const guardedUpdate = useCallback(async (fieldData: RequestUpdatePayload) => {
-        if (submitting) return;
-        setSubmitting(true);
-        try {
-            await handleUpdateField(fieldData);
-        } catch {
-            /* toast already shown by handleUpdateField */
-        } finally {
-            setSubmitting(false);
-        }
-        // handleUpdateField is defined in the same component scope and is stable across renders.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [submitting]);
+    // In-flight guard for one-shot workflow buttons -- see useGuardedUpdate
+    // for behavior contract (drops concurrent calls, catches rejections).
+    const [submitting, guardedUpdate] = useGuardedUpdate(handleUpdateField);
 
     // Bulk Save Handler for Manage Tab
     const handleSaveManage = async () => {
