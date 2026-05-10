@@ -184,9 +184,31 @@ export default function RequestDetailPage() {
             await fetchDetail();
         } catch (err: unknown) {
             toast({ title: 'ผิดพลาด', description: getErrorMessage(err), variant: 'error' });
-            throw err; // Re-throw to handle in caller
+            throw err; // Re-throw so handleSaveManage can stop the bulk-save flow
         }
     };
+
+    // In-flight guard for one-shot workflow buttons. Prevents:
+    // - duplicate PATCH requests if a user double-clicks (or hammers Enter on
+    //   a focused DropdownMenuItem)
+    // - unhandled promise rejections from onClick={() => handleUpdateField(...)}
+    //   patterns. handleUpdateField re-throws to support handleSaveManage's
+    //   bulk-save flow control, but workflow buttons don't care about the
+    //   throw -- the toast already informed the user.
+    const [submitting, setSubmitting] = useState(false);
+    const guardedUpdate = useCallback(async (fieldData: RequestUpdatePayload) => {
+        if (submitting) return;
+        setSubmitting(true);
+        try {
+            await handleUpdateField(fieldData);
+        } catch {
+            /* toast already shown by handleUpdateField */
+        } finally {
+            setSubmitting(false);
+        }
+        // handleUpdateField is defined in the same component scope and is stable across renders.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [submitting]);
 
     // Bulk Save Handler for Manage Tab
     const handleSaveManage = async () => {
@@ -389,7 +411,8 @@ export default function RequestDetailPage() {
                             <Button
                                 variant="warning"
                                 size="sm"
-                                onClick={() => handleUpdateField({ status: 'ACKNOWLEDGED' })}
+                                disabled={submitting}
+                                onClick={() => { void guardedUpdate({ status: 'ACKNOWLEDGED' }); }}
                                 leftIcon={<Inbox size={18} />}
                             >
                                 รับเรื่อง
@@ -401,7 +424,8 @@ export default function RequestDetailPage() {
                             <Button
                                 variant="primary"
                                 size="sm"
-                                onClick={() => handleUpdateField({ status: 'IN_PROGRESS' })}
+                                disabled={submitting}
+                                onClick={() => { void guardedUpdate({ status: 'IN_PROGRESS' }); }}
                                 leftIcon={<Play size={18} />}
                             >
                                 เริ่มดำเนินการ
@@ -413,7 +437,8 @@ export default function RequestDetailPage() {
                             <Button
                                 variant="primary"
                                 size="sm"
-                                onClick={() => handleUpdateField({ status: 'AWAITING_APPROVAL' })}
+                                disabled={submitting}
+                                onClick={() => { void guardedUpdate({ status: 'AWAITING_APPROVAL' }); }}
                                 leftIcon={<ShieldCheck size={18} />}
                             >
                                 ส่งอนุมัติ
@@ -425,7 +450,8 @@ export default function RequestDetailPage() {
                             <Button
                                 variant="success"
                                 size="sm"
-                                onClick={() => handleUpdateField({ status: 'COMPLETED' })}
+                                disabled={submitting}
+                                onClick={() => { void guardedUpdate({ status: 'COMPLETED' }); }}
                                 leftIcon={<CheckCircle2 size={18} />}
                             >
                                 อนุมัติ
@@ -437,7 +463,8 @@ export default function RequestDetailPage() {
                             <Button
                                 variant="danger"
                                 size="sm"
-                                onClick={() => handleUpdateField({ status: 'REJECTED' })}
+                                disabled={submitting}
+                                onClick={() => { void guardedUpdate({ status: 'REJECTED' }); }}
                                 leftIcon={<XCircle size={18} />}
                             >
                                 ปฏิเสธ
@@ -450,7 +477,8 @@ export default function RequestDetailPage() {
                             <Button
                                 variant="primary"
                                 size="sm"
-                                onClick={() => handleUpdateField({ status: 'PENDING', assigned_agent_id: null })}
+                                disabled={submitting}
+                                onClick={() => { void guardedUpdate({ status: 'PENDING', assigned_agent_id: null }); }}
                                 leftIcon={<RotateCcw size={18} />}
                             >
                                 เปิดเรื่องใหม่
@@ -476,7 +504,8 @@ export default function RequestDetailPage() {
                                     {/* "บังคับเสร็จสิ้น": skip approval flow when assignee is unavailable.
                                         Outer guard already excludes terminal states. */}
                                     <DropdownMenuItem
-                                        onClick={() => handleUpdateField({ status: 'COMPLETED' })}
+                                        disabled={submitting}
+                                        onClick={() => { void guardedUpdate({ status: 'COMPLETED' }); }}
                                     >
                                         <CheckCircle2 size={16} className="text-emerald-600" />
                                         บังคับเสร็จสิ้น
@@ -486,7 +515,8 @@ export default function RequestDetailPage() {
                                         Hidden on PENDING (already there). */}
                                     {request.status !== 'PENDING' && (
                                         <DropdownMenuItem
-                                            onClick={() => handleUpdateField({ status: 'PENDING' })}
+                                            disabled={submitting}
+                                            onClick={() => { void guardedUpdate({ status: 'PENDING' }); }}
                                         >
                                             <Undo2 size={16} className="text-amber-600" />
                                             ย้อนกลับ รอรับเรื่อง

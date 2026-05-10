@@ -108,18 +108,35 @@ const DropdownMenuContent = React.forwardRef<HTMLDivElement, DropdownMenuContent
       else if (targetRef) (targetRef as React.MutableRefObject<T | null>).current = value;
     };
 
-    // Position calculation
+    // Position calculation -- measures the actual menu width once mounted, then
+    // computes left so the menu's edges align with the trigger as requested
+    // (start/end/center) and clamps within the viewport with an 8px margin.
+    // This avoids the prior bug where align="end" pinned the menu's *left*
+    // edge to the trigger's right edge plus a CSS transform; on narrow
+    // viewports the transform could push the menu off-screen.
     useEffect(() => {
-      if (!open || !triggerRef.current) return;
-      const rect = triggerRef.current.getBoundingClientRect();
-      const top = rect.bottom + sideOffset + window.scrollY;
-      let left = rect.left + window.scrollX;
+      if (!open || !triggerRef.current || !contentRef.current) return;
+      const triggerRect = triggerRef.current.getBoundingClientRect();
+      const menuWidth = contentRef.current.offsetWidth;
+      const top = triggerRect.bottom + sideOffset + window.scrollY;
+      const scrollX = window.scrollX;
 
+      let left: number;
       if (align === 'end') {
-        left = rect.right + window.scrollX;
+        left = triggerRect.right - menuWidth + scrollX;
       } else if (align === 'center') {
-        left = rect.left + rect.width / 2 + window.scrollX;
+        left = triggerRect.left + triggerRect.width / 2 - menuWidth / 2 + scrollX;
+      } else {
+        left = triggerRect.left + scrollX;
       }
+
+      // Clamp to viewport with an 8px margin. If the viewport is narrower
+      // than the menu itself, just pin to the left margin (better than
+      // overflowing right where it would be cropped).
+      const margin = 8;
+      const minLeft = margin + scrollX;
+      const maxLeft = window.innerWidth - menuWidth - margin + scrollX;
+      left = maxLeft >= minLeft ? Math.max(minLeft, Math.min(left, maxLeft)) : minLeft;
 
       setPosition({ top, left });
     }, [open, align, sideOffset, triggerRef]);
@@ -192,12 +209,10 @@ const DropdownMenuContent = React.forwardRef<HTMLDivElement, DropdownMenuContent
 
     if (!open) return null;
 
-    const alignClass =
-      align === 'end'
-        ? '-translate-x-full'
-        : align === 'center'
-          ? '-translate-x-1/2'
-          : '';
+    // Hide the menu (visibility-only, so layout still measures) until the
+    // position effect runs. position starts at {0,0}; without this the menu
+    // would flash at the top-left corner before snapping into place.
+    const measured = position.top !== 0 || position.left !== 0;
 
     const content = (
       <div
@@ -210,7 +225,7 @@ const DropdownMenuContent = React.forwardRef<HTMLDivElement, DropdownMenuContent
         className={cn(
           'fixed z-50 min-w-[8rem] overflow-hidden rounded-xl border border-gray-200 bg-white p-1 shadow-xl',
           'animate-scale-in',
-          alignClass,
+          !measured && 'invisible',
           className
         )}
         style={{ top: position.top, left: position.left }}
