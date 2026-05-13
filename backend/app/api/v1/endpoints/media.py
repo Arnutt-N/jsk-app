@@ -184,18 +184,24 @@ async def upload_media(
     db: AsyncSession = Depends(get_db),
     _admin=Depends(get_current_admin),
 ):
-    """Upload a file (admin only). Auto-detects category from MIME type."""
+    """Upload a file (admin only). Auto-detects category from MIME type.
+
+    Falls back to filename extension when the browser sent a generic
+    ``application/octet-stream`` — otherwise ``.jpg``/``.png`` uploads
+    end up categorised as OTHER.
+    """
     content = await file.read()
     if len(content) > MAX_UPLOAD_BYTES:
         raise HTTPException(status_code=413, detail="File too large (max 10MB)")
     mime = file.content_type or "application/octet-stream"
+    filename = file.filename or "untitled"
 
     media = MediaFile(
-        filename=file.filename or "untitled",
+        filename=filename,
         mime_type=mime,
         data=content,
         size_bytes=len(content),
-        category=detect_category(mime),
+        category=detect_category(mime, filename),
     )
 
     db.add(media)
@@ -408,13 +414,14 @@ async def upload_media_legacy(
     if len(content) > MAX_UPLOAD_BYTES:
         raise HTTPException(status_code=413, detail="File too large (max 10MB)")
     mime = file.content_type or "application/octet-stream"
+    filename = file.filename or "untitled"
 
     media = MediaFile(
-        filename=file.filename or "untitled",
+        filename=filename,
         mime_type=mime,
         data=content,
         size_bytes=len(content),
-        category=detect_category(mime),
+        category=detect_category(mime, filename),
     )
 
     db.add(media)
