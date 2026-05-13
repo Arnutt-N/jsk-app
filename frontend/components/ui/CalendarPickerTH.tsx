@@ -328,7 +328,7 @@ export default function CalendarPickerTH({
           onBlur={handleBlur}
           onFocus={() => setIsEditing(true)}
           aria-label="วันที่"
-          className="w-12 px-2 py-2 text-center text-sm font-medium bg-transparent text-text-primary focus:outline-none placeholder:text-gray-300"
+          className="w-10 px-2 py-2 text-center text-sm font-medium bg-transparent text-text-primary focus:outline-none placeholder:text-gray-300"
         />
 
         <span className="text-gray-300 font-light">/</span>
@@ -344,23 +344,27 @@ export default function CalendarPickerTH({
           onBlur={handleBlur}
           onFocus={() => setIsEditing(true)}
           aria-label="เดือน"
-          className="w-12 px-2 py-2 text-center text-sm font-medium bg-transparent text-text-primary focus:outline-none placeholder:text-gray-300"
+          className="w-10 px-2 py-2 text-center text-sm font-medium bg-transparent text-text-primary focus:outline-none placeholder:text-gray-300"
         />
 
         <span className="text-gray-300 font-light">/</span>
 
-        {/* Year Input */}
+        {/* Year Input — `flex-1` so it expands to fill the available
+            space inside the bordered container; this keeps the action
+            icons anchored to the right edge instead of clustering near
+            the centre. The `min-w-[80px]` floor prevents the field from
+            collapsing too narrow in tight grids. */}
         <input
           ref={yearRef}
           type="text"
           inputMode="numeric"
-          placeholder="ปปปป (พ.ศ.)"
+          placeholder="ปปปป"
           defaultValue={parts.beYear}
           onInput={(e) => handleInput(e, 'year')}
           onBlur={handleBlur}
           onFocus={() => setIsEditing(true)}
           aria-label="ปี พ.ศ."
-          className="flex-1 min-w-[60px] px-2 py-2 text-center text-sm font-medium bg-transparent text-text-primary focus:outline-none placeholder:text-gray-300"
+          className="flex-1 min-w-[80px] px-2 py-2 text-center text-sm font-medium bg-transparent text-text-primary focus:outline-none placeholder:text-gray-300"
         />
 
         {/* Action icons grouped with consistent spacing, separated from year input */}
@@ -385,7 +389,7 @@ export default function CalendarPickerTH({
                 if (monthRef.current) monthRef.current.value = "";
                 if (yearRef.current) yearRef.current.value = "";
               }}
-              className="p-1.5 rounded-lg text-text-tertiary hover:text-text-primary hover:bg-bg transition-colors"
+              className="p-1.5 rounded-lg text-text-tertiary hover:text-text-primary hover:bg-bg transition-colors cursor-pointer"
               aria-label="ล้างวันที่"
             >
               <X size={16} />
@@ -400,7 +404,7 @@ export default function CalendarPickerTH({
             aria-label="เปิดปฏิทินเลือกวันที่"
             title="เปิดปฏิทิน (หรือพิมพ์วันที่ในช่องด้านซ้าย)"
             className={cn(
-              "p-1.5 rounded-lg transition-all duration-200",
+              "p-1.5 rounded-lg transition-all duration-200 cursor-pointer",
               isOpen
                 ? "bg-blue-500 text-white"
                 : "text-text-tertiary hover:bg-bg hover:text-text-primary"

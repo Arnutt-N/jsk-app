@@ -137,7 +137,50 @@ Scope: Practical recipes for current JSK admin primitives (including Wave 1-3 mi
 </CommandDialog>
 ```
 
-### 2.8 Chart Container
+### 2.8 Destructive Confirmation (ConfirmDialog)
+
+Use `ConfirmDialog` for ALL delete / cancel-cannot-be-undone actions. It
+guarantees the same chrome across pages: danger icon, title, formatted
+description, outline-Cancel + danger-Confirm buttons, optional loading
+spinner. The `description` prop accepts `ReactNode` so the caller can
+bold the item identifier and add a red warning footnote.
+
+```tsx
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+
+<ConfirmDialog
+  isOpen={isOpen}
+  onClose={() => setOpen(false)}
+  onConfirm={handleDelete}
+  title="ยืนยันการลบ"
+  description={
+    <>
+      คุณต้องการลบคำร้องของ <b>{name}</b> ใช่หรือไม่?
+      <br />
+      <span className="text-xs text-red-500 mt-2 block">
+        คำร้องที่ลบไปแล้วจะไม่สามารถกู้คืนได้
+      </span>
+    </>
+  }
+  confirmText="ยืนยันลบ"
+  cancelText="ยกเลิก"
+  variant="danger"
+  isLoading={submitting}
+/>
+```
+
+Rules:
+- One canonical wording for the warning: `X ที่ลบไปแล้วจะไม่สามารถกู้คืนได้`
+  (positive negation, applied consistently across request / file /
+  broadcast / integration).
+- Use `<b>` to highlight the item identifier in the question, not red text.
+- Use `variant="danger"` (default) for destructive intents. Use
+  `variant="warning"` for irreversible but non-destructive actions (e.g.
+  sending a broadcast).
+- Do NOT use raw `<Modal>` for confirmations; reserve `Modal` for forms
+  and content-bearing dialogs.
+
+### 2.9 Chart Container
 
 ```tsx
 <ChartContainer

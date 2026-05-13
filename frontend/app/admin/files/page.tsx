@@ -13,7 +13,7 @@ import {
   Tabs, TabsList, TabsTrigger, TabsContent,
   Checkbox,
 } from '@/components/ui';
-import { ModalAlert } from '@/components/ui/ModalAlert';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { useToast } from '@/components/ui/Toast';
 import { ActionIconButton } from '@/components/ui/ActionIconButton';
@@ -919,15 +919,24 @@ export default function FilesPage() {
       {/* ================================================================= */}
       {/* Delete Confirmation                                                */}
       {/* ================================================================= */}
-      <ModalAlert
+      {/* Shared ConfirmDialog — the description composes the count (bold)
+          and a red warning footnote, matching the request/broadcast/
+          integration delete dialogs for visual consistency. */}
+      <ConfirmDialog
         isOpen={deleteConfirm.show}
         onClose={() => setDeleteConfirm({ ids: [], show: false })}
-        type="confirm"
-        title="ยืนยันการลบ"
-        message={`คุณต้องการลบ ${deleteConfirm.ids.length} ไฟล์ใช่หรือไม่? การดำเนินการนี้ไม่สามารถย้อนกลับได้`}
         onConfirm={() => deleteFiles(deleteConfirm.ids)}
-        confirmText="ลบ"
+        title="ยืนยันการลบ"
+        description={
+          <>
+            คุณต้องการลบ <b>{deleteConfirm.ids.length}</b> ไฟล์ใช่หรือไม่?
+            <br />
+            <span className="text-xs text-red-500 mt-2 block">ไฟล์ที่ลบไปแล้วจะไม่สามารถกู้คืนได้</span>
+          </>
+        }
+        confirmText="ยืนยันลบ"
         cancelText="ยกเลิก"
+        variant="danger"
       />
     </div>
   );

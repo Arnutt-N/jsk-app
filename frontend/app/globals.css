@@ -16,6 +16,15 @@
   --color-brand-800: hsl(226 71% 40%);
   --color-brand-900: hsl(224 64% 33%);
 
+  /* Primary token aliases (map to brand). Several admin pages reference
+     `text-primary` / `bg-primary` / `from-primary` / `border-primary`
+     from earlier iterations — without these aliases the classes resolve
+     to nothing (white-on-white pattern). Aliased to brand-500/700 so
+     the alpha modifier (text-primary/40, bg-primary/12) keeps working
+     and the WCAG-tuned brand-text remains for body copy. */
+  --color-primary: hsl(217 91% 60%);          /* = brand-500 */
+  --color-primary-dark: hsl(224 76% 48%);     /* = brand-700 */
+
   /* Semantic Colors (HSL) */
   --color-success: hsl(142 71% 45%);
   --color-success-light: hsl(142 69% 73%);
@@ -855,6 +864,11 @@
   --color-border-subtle: hsl(215 28% 17%);
   --color-border-default: hsl(217 19% 27%);
   --color-border-hover: hsl(215 14% 34%);
+
+  /* Primary aliases — lighten for dark mode so the legacy `text-primary`
+     usages stay readable on dark surfaces. */
+  --color-primary: hsl(213 94% 68%);          /* = brand-400 */
+  --color-primary-dark: hsl(217 91% 60%);     /* = brand-500 */
 
   --shadow-sm: 0 1px 3px 0 hsl(0 0% 0% / 0.3), 0 1px 2px -1px hsl(0 0% 0% / 0.3);
   --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.4), 0 2px 4px -2px hsl(0 0% 0% / 0.3);

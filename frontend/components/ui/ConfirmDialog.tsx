@@ -13,7 +13,13 @@ interface ConfirmDialogProps {
   onClose: () => void;
   onConfirm: () => void;
   title: string;
-  description?: string;
+  /**
+   * Body content. Accepts ReactNode so callers can compose formatted
+   * markup (e.g. `<b>` for the item name, a red warning line) while
+   * keeping the dialog's chrome and button styling consistent across
+   * surfaces. Plain strings still work for simple cases.
+   */
+  description?: React.ReactNode;
   confirmText?: string;
   cancelText?: string;
   variant?: ConfirmVariant;

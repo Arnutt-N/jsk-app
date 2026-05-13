@@ -24,6 +24,7 @@ import {
     ChevronRight,
 } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { ActionIconButton } from '@/components/ui/ActionIconButton';
 import PageHeader from '@/app/admin/components/PageHeader';
 
@@ -328,21 +329,24 @@ export default function BroadcastListPage() {
                 </div>
             </Card>
 
-            {/* Delete confirmation modal */}
-            <Modal isOpen={!!deleteTarget} onClose={() => setDeleteTarget(null)} title="ยืนยันการลบ" maxWidth="sm">
-                <div className="space-y-4">
-                    <p className="text-sm text-text-secondary">
+            {/* Delete confirmation — shared ConfirmDialog. */}
+            <ConfirmDialog
+                isOpen={!!deleteTarget}
+                onClose={() => setDeleteTarget(null)}
+                onConfirm={handleDelete}
+                title="ยืนยันการลบ"
+                description={
+                    <>
                         คุณต้องการลบข้อความ <b>{deleteTarget?.title}</b> ใช่หรือไม่?
-                        <br /><span className="text-xs text-red-500 mt-2 block">* การกระทำนี้ไม่สามารถย้อนกลับได้</span>
-                    </p>
-                    <div className="flex justify-end gap-2 pt-2">
-                        <Button variant="ghost" onClick={() => setDeleteTarget(null)}>ยกเลิก</Button>
-                        <Button variant="danger" onClick={handleDelete} disabled={actionLoading}>
-                            {actionLoading ? 'กำลังลบ...' : 'ยืนยันลบ'}
-                        </Button>
-                    </div>
-                </div>
-            </Modal>
+                        <br />
+                        <span className="text-xs text-red-500 mt-2 block">ข้อความที่ลบไปแล้วจะไม่สามารถกู้คืนได้</span>
+                    </>
+                }
+                confirmText="ยืนยันลบ"
+                cancelText="ยกเลิก"
+                variant="danger"
+                isLoading={actionLoading}
+            />
 
             {/* Send confirmation modal */}
             <Modal isOpen={!!sendTarget} onClose={() => setSendTarget(null)} title="ยืนยันการส่ง" maxWidth="sm">

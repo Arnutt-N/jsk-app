@@ -27,6 +27,7 @@ import {
     HelpCircle,
 } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { AssignModal } from '@/components/admin/AssignModal';
 import { ActionIconButton } from '@/components/ui/ActionIconButton';
 import PageHeader from '@/app/admin/components/PageHeader';
@@ -460,8 +461,8 @@ export default function AdminRequestList() {
                         </div>
                         <div className="pt-4 border-t border-border-default flex justify-end">
                             <Link href={`/admin/requests/${selectedRequest.id}`}>
-                                <Button className="gap-2">
-                                    ดูรายละเอียดเต็ม <ChevronRight className="w-4 h-4" />
+                                <Button className="whitespace-nowrap">
+                                    ดูรายละเอียด
                                 </Button>
                             </Link>
                         </div>
@@ -469,19 +470,25 @@ export default function AdminRequestList() {
                 )}
             </Modal>
 
-            {/* Delete Modal */}
-            <Modal isOpen={deleteModalOpen} onClose={() => setDeleteModalOpen(false)} title="ยืนยันการลบ" maxWidth="sm">
-                <div className="space-y-4">
-                    <p className="text-sm text-text-secondary">
+            {/* Delete confirmation — shared ConfirmDialog ensures the chrome
+                (danger icon, red confirm button, two-column layout) stays
+                consistent with file/integration/broadcast delete dialogs. */}
+            <ConfirmDialog
+                isOpen={deleteModalOpen}
+                onClose={() => setDeleteModalOpen(false)}
+                onConfirm={confirmDelete}
+                title="ยืนยันการลบ"
+                description={
+                    <>
                         คุณต้องการลบคำร้องของ <b>{selectedRequest?.firstname} {selectedRequest?.lastname}</b> ใช่หรือไม่?
-                        <br /><span className="text-xs text-red-500 mt-2 block">* การกระทำนี้ไม่สามารถย้อนกลับได้</span>
-                    </p>
-                    <div className="flex justify-end gap-2 pt-2">
-                        <Button variant="ghost" onClick={() => setDeleteModalOpen(false)}>ยกเลิก</Button>
-                        <Button variant="danger" onClick={confirmDelete}>ยืนยันลบ</Button>
-                    </div>
-                </div>
-            </Modal>
+                        <br />
+                        <span className="text-xs text-red-500 mt-2 block">คำร้องที่ลบไปแล้วจะไม่สามารถกู้คืนได้</span>
+                    </>
+                }
+                confirmText="ยืนยันลบ"
+                cancelText="ยกเลิก"
+                variant="danger"
+            />
 
             {/* Assign Modal */}
             <AssignModal

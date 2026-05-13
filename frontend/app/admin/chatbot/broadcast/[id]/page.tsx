@@ -20,6 +20,7 @@ import {
     Trash2,
 } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import PageHeader from '@/app/admin/components/PageHeader';
 
 interface BroadcastDetail {
@@ -424,21 +425,27 @@ export default function BroadcastDetailPage() {
                 </div>
             </Modal>
 
-            {/* Delete Modal */}
-            <Modal isOpen={deleteModal} onClose={() => setDeleteModal(false)} title="ยืนยันการส่ง" maxWidth="sm">
-                <div className="space-y-4">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
+            {/* Delete confirmation — shared ConfirmDialog. Title and confirm
+                label were previously misleading ("ยืนยันการส่ง" / "ไม่ยกเลิก");
+                fixed during the migration to match the actual destructive
+                action. */}
+            <ConfirmDialog
+                isOpen={deleteModal}
+                onClose={() => setDeleteModal(false)}
+                onConfirm={handleDelete}
+                title="ยืนยันการลบ"
+                description={
+                    <>
                         คุณต้องการลบข้อความ <b>{broadcast.title}</b> ใช่หรือไม่?
-                        <br /><span className="text-xs text-red-500 mt-2 block">* การกระทำนี้ไม่สามารถย้อนกลับได้</span>
-                    </p>
-                    <div className="flex justify-end gap-2 pt-2">
-                        <Button variant="ghost" onClick={() => setDeleteModal(false)}>ยกเลิก</Button>
-                        <Button variant="danger" onClick={handleDelete} disabled={actionLoading}>
-                            ไม่ยกเลิก
-                        </Button>
-                    </div>
-                </div>
-            </Modal>
+                        <br />
+                        <span className="text-xs text-red-500 mt-2 block">ข้อความที่ลบไปแล้วจะไม่สามารถกู้คืนได้</span>
+                    </>
+                }
+                confirmText="ยืนยันลบ"
+                cancelText="ยกเลิก"
+                variant="danger"
+                isLoading={actionLoading}
+            />
         </div>
     );
 }

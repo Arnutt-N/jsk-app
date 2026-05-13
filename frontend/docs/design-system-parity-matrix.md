@@ -11,7 +11,8 @@ Source baseline: `research/common/ui-design-system-comparison-merged.md`
 | Card | `frontend/components/ui/Card.tsx` | Adopted (existing) | Keep current 6-variant implementation |
 | Badge | `frontend/components/ui/Badge.tsx` | Adopted (existing) | Keep current 7-variant implementation |
 | Toast | `frontend/components/ui/Toast.tsx` | Adopted (existing) | Custom Zustand architecture retained |
-| Dialog / AlertDialog | `frontend/components/ui/Modal.tsx`, `frontend/components/ui/ModalAlert.tsx` | Adopted (equivalent) | Keep current API |
+| Dialog (generic) | `frontend/components/ui/Modal.tsx` | Adopted (equivalent) | Keep current API; use for forms, previews, custom content |
+| AlertDialog (destructive confirm) | `frontend/components/ui/ConfirmDialog.tsx` | **Canonical** (since PR #54) | Use for ALL delete confirmations. `description` accepts `ReactNode` for bold names + red footnote. `ModalAlert.tsx` is deprecated for confirms — migrate remaining callers. |
 | Table | `frontend/components/ui/Table.tsx` | Available (unused) | Available, not yet imported by any page |
 | Pagination | `frontend/components/ui/Pagination.tsx` | Available (unused) | Available, not yet imported by any page |
 | Textarea | `frontend/components/ui/Textarea.tsx` | Available (unused) | Available, not yet imported by any page |
@@ -28,7 +29,7 @@ Source baseline: `research/common/ui-design-system-comparison-merged.md`
 
 | Example Token Family | JSK Token | Status |
 |---|---|---|
-| `primary` / `primary-foreground` | `brand-500` / `white` | Adopted (mapped) |
+| `primary` / `primary-foreground` | `brand-500` / `white` | Adopted (mapped). `--color-primary` and `--color-primary-dark` are now aliases of `brand-500` / `brand-700` in `globals.css` so legacy `text-primary` / `bg-primary` / `from-primary` classes resolve correctly (fixed in PR #54 — previously they were no-ops, producing white-on-white icons). |
 | `muted` / `muted-foreground` | `gray-100` / `text-text-secondary` | Adopted (mapped) |
 | `popover` / `popover-foreground` | `surface` / `text-text-primary` | Adopted (mapped) |
 | `input` | `border-border-default` | Adopted (mapped) |
