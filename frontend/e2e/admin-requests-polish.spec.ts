@@ -1,26 +1,47 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import { loginAsAdmin } from './utils/auth'
 
 /**
  * /admin/requests* — UI polish regression suite (PRD A).
  *
- * This spec guards 7 visual/copy fixes documented in
- * `.claude/PRPs/plans/completed/request-mgmt-polish.prd.md` so that future
+ * Guards 7 visual/copy fixes documented in
+ * `.claude/PRPs/plans/completed/request-mgmt-polish.prd.md` so future
  * UI refactors don't silently revert the fixes.
  *
- * The tests favor SEMANTIC assertions (class names, text content, computed
- * styles) over pixel-perfect screenshots because:
+ * Selector strategy (mirrors `admin-requests-supervisor.spec.ts`):
+ *   - To open the preview Modal: click the "เรียกดู" (Eye) ActionIconButton
+ *     in the row's action column — NOT the row itself. The row is not a
+ *     navigation element; clicking <tr> doesn't reliably trigger the
+ *     onClick handler in Playwright's test runner.
+ *   - To navigate to a detail page: scan all `<a href*="/admin/requests/">`
+ *     and match the numeric-id regex `/admin/requests/\d+$/`. This skips
+ *     the `/admin/requests/create` link and works regardless of seed.
+ *
+ * Tests favor SEMANTIC assertions (class names, text content, aria-label)
+ * over pixel-perfect screenshots because:
  *   1. Screenshots are flaky across OS / font rendering.
  *   2. Semantic assertions tell future readers WHAT the fix protected.
  *   3. Test failures point to the specific regression, not "image differs".
- *
- * `toHaveScreenshot()` is included as an OPTIONAL baseline guard that runs
- * only when baselines exist on disk (the first run with `--update-snapshots`
- * creates them). Without baselines the screenshot assertions short-circuit.
- *
- * If you change any of the fixes intentionally, re-baseline with:
- *   npx playwright test admin-requests-polish --update-snapshots
  */
+
+/**
+ * Resolve the URL of a request detail page from the list view.
+ * Returns null if no request row is present (test DB is empty).
+ *
+ * Each row contains `<Link href="/admin/requests/{id}">` wrapping the
+ * SquarePen ActionIconButton. We loop because `.first()` would pick up
+ * the create-link too on some renderings.
+ */
+async function getFirstRequestDetailUrl(page: Page): Promise<string | null> {
+  const links = page.locator('a[href*="/admin/requests/"]')
+  const count = await links.count()
+  for (let i = 0; i < count; i++) {
+    const href = await links.nth(i).getAttribute('href')
+    if (href && /\/admin\/requests\/\d+$/.test(href)) return href
+  }
+  return null
+}
+
 test.describe('Admin Requests UI Polish', () => {
   test.beforeEach(async ({ page }) => {
     await loginAsAdmin(page)
@@ -30,32 +51,36 @@ test.describe('Admin Requests UI Polish', () => {
     await page.goto('/admin/requests')
     await expect(page.locator('table')).toBeVisible({ timeout: 10_000 })
 
-    // Open the first row's preview modal. The list renders rows as <tr>
-    // with onClick — use the first data row (skip header).
-    const firstRow = page.locator('table tbody tr').first()
-    await firstRow.click()
+    // Open the preview Modal by clicking the "เรียกดู" (Eye) action
+    // button on the first row. handleView(req) sets selectedRequest +
+    // viewModalOpen, which renders the modal with the "ดูรายละเอียดเต็ม"
+    // CTA. We can't click the <tr> reliably — the row click handler isn't
+    // bubbled correctly in the test runner.
+    const viewButton = page.locator('button[title="เรียกดู"], button[aria-label="เรียกดู"]').first()
+    const viewButtonCount = await viewButton.count()
+    if (viewButtonCount === 0) {
+      test.skip(true, 'No request rows / view action button in test DB')
+      return
+    }
+    await viewButton.click()
 
-    // The modal contains the "ดูรายละเอียดเต็ม" button. Verify the class.
-    const fullDetailButton = page.locator('a:has-text("ดูรายละเอียดเต็ม") button, button:has-text("ดูรายละเอียดเต็ม")').first()
-    await expect(fullDetailButton).toBeVisible()
+    // Modal opens — find the navigation button. Next.js Link renders as
+    // <a href="..."><button>...</button></a> so the button is inside an a.
+    const fullDetailButton = page.locator('a:has(button) button:has-text("ดูรายละเอียดเต็ม")').first()
+    await expect(fullDetailButton).toBeVisible({ timeout: 5_000 })
     await expect(fullDetailButton).toHaveClass(/whitespace-nowrap/)
   })
 
   test('detail page tab nav uses text-text-secondary for inactive (#2)', async ({ page }) => {
-    // Visit any existing request — fall back to the first request listed
-    // in /admin/requests so this test stays robust across DB seeds.
     await page.goto('/admin/requests')
     await expect(page.locator('table')).toBeVisible({ timeout: 10_000 })
 
-    const firstDetailLink = await page.locator('a[href^="/admin/requests/"]').filter({
-      hasNot: page.locator('text="สร้างคำร้อง"'),
-    }).first().getAttribute('href')
-
-    if (!firstDetailLink) {
-      test.skip(true, 'No request to navigate to')
+    const detailUrl = await getFirstRequestDetailUrl(page)
+    if (!detailUrl) {
+      test.skip(true, 'No requests in test DB')
       return
     }
-    await page.goto(firstDetailLink)
+    await page.goto(detailUrl)
 
     // Each tab is a <button> in the tab navigation row. Inactive tabs
     // should use text-text-secondary (darker than the original
@@ -67,24 +92,22 @@ test.describe('Admin Requests UI Polish', () => {
     await expect(tabs.first()).toBeVisible({ timeout: 10_000 })
 
     // At least one tab should carry the secondary or primary color class.
-    // We check the className contains either the active or inactive token.
     const tabsClasses = await tabs.evaluateAll((els: HTMLElement[]) =>
-      els.map(e => e.className),
+      els.map((e) => e.className),
     )
-    expect(tabsClasses.some(c => /text-text-secondary|text-primary/.test(c))).toBe(true)
+    expect(tabsClasses.some((c) => /text-text-secondary|text-primary/.test(c))).toBe(true)
   })
 
   test('date picker has w-10 / w-10 / w-24 width proportions (#3)', async ({ page }) => {
     await page.goto('/admin/requests')
     await expect(page.locator('table')).toBeVisible({ timeout: 10_000 })
-    const detailHref = await page.locator('a[href^="/admin/requests/"]').filter({
-      hasNot: page.locator('text="สร้างคำร้อง"'),
-    }).first().getAttribute('href')
-    if (!detailHref) {
-      test.skip(true, 'No request to navigate to')
+
+    const detailUrl = await getFirstRequestDetailUrl(page)
+    if (!detailUrl) {
+      test.skip(true, 'No requests in test DB')
       return
     }
-    await page.goto(detailHref)
+    await page.goto(detailUrl)
 
     // Navigate to manage tab where the date picker is rendered.
     const manageTab = page.locator('button:has-text("จัดการ")').first()
@@ -104,25 +127,36 @@ test.describe('Admin Requests UI Polish', () => {
   test('AssignModal title strips "(Assign Request)" and has no Active Tasks footnote (#7a, #7b)', async ({ page }) => {
     await page.goto('/admin/requests')
     await expect(page.locator('table')).toBeVisible({ timeout: 10_000 })
-    const detailHref = await page.locator('a[href^="/admin/requests/"]').filter({
-      hasNot: page.locator('text="สร้างคำร้อง"'),
-    }).first().getAttribute('href')
-    if (!detailHref) {
-      test.skip(true, 'No request to navigate to')
+
+    const detailUrl = await getFirstRequestDetailUrl(page)
+    if (!detailUrl) {
+      test.skip(true, 'No requests in test DB')
       return
     }
-    await page.goto(detailHref)
+    await page.goto(detailUrl)
 
-    // Open AssignModal via the "มอบหมายงาน" trigger (button or dropdown).
-    const assignTrigger = page.locator('button:has-text("มอบหมาย"), div:has-text("ยังไม่ได้มอบหมาย")').first()
-    if (!(await assignTrigger.isVisible())) test.skip(true, 'Assign trigger not visible')
+    // Open AssignModal — first try the "มอบหมายงาน" trigger button, fall
+    // back to the assignee div in the manage tab. The trigger varies by
+    // request status (hero card workflow row vs. manage form).
+    await expect(page.getByRole('button', { name: 'กลับ' })).toBeVisible({ timeout: 10_000 })
+
+    const assignTrigger = page
+      .locator(
+        'button:has-text("มอบหมาย"), button:has-text("เปลี่ยนผู้รับผิดชอบ"), div[title*="คลิกเพื่อเปลี่ยนผู้รับผิดชอบ"]',
+      )
+      .first()
+    const triggerCount = await assignTrigger.count()
+    if (triggerCount === 0) {
+      test.skip(true, 'Assign trigger not present on this request (likely terminal status)')
+      return
+    }
     await assignTrigger.click()
 
     // Title check: should be exactly "มอบหมายงาน" — no parenthetical.
-    const title = page.locator('h2, h3, [role="heading"]').filter({ hasText: /มอบหมายงาน/ }).first()
-    await expect(title).toBeVisible({ timeout: 5_000 })
-    const titleText = await title.textContent()
-    expect(titleText).toContain('มอบหมายงาน')
+    // The Modal renders the title as a heading element.
+    const modalTitle = page.locator('[role="dialog"]').locator('text=มอบหมายงาน').first()
+    await expect(modalTitle).toBeVisible({ timeout: 5_000 })
+    const titleText = await modalTitle.textContent()
     expect(titleText).not.toContain('Assign Request')
     expect(titleText).not.toContain('(')
 
@@ -131,40 +165,46 @@ test.describe('Admin Requests UI Polish', () => {
     await expect(page.locator('text=/Active Tasks.*Pending.*In Progress/')).toHaveCount(0)
   })
 
-  test('ConfirmDialog footnote uses context-specific copy, not generic AI-ish phrase (#8)', async ({ page }) => {
+  test('ConfirmDialog footnote uses context-specific copy (#8)', async ({ page }) => {
     await page.goto('/admin/requests')
     await expect(page.locator('table')).toBeVisible({ timeout: 10_000 })
 
-    // Look for the delete trigger on a row's action menu. The exact
-    // selector depends on the menu pattern — we open the first row's
-    // kebab/more menu if one exists.
-    const moreButton = page.locator('button[aria-label*="more"], button:has(svg.lucide-more-vertical)').first()
-    if (!(await moreButton.isVisible())) test.skip(true, 'No more-menu on rows in this seed')
-    await moreButton.click()
+    // Look for the delete trigger on a row's action menu. The list page
+    // renders an ActionIconButton (Trash2 icon) with title="ลบ" in each
+    // row's action column.
+    const deleteButton = page.locator('button[title="ลบ"], button[aria-label="ลบ"]').first()
+    const deleteCount = await deleteButton.count()
+    if (deleteCount === 0) {
+      test.skip(true, 'No delete action visible on rows in test DB')
+      return
+    }
+    await deleteButton.click()
 
-    const deleteOption = page.locator('text=/ลบ/').first()
-    if (!(await deleteOption.isVisible())) test.skip(true, 'No delete action visible')
-    await deleteOption.click()
-
-    // The delete modal should contain the new context-specific copy.
-    // For requests/page.tsx this is "คำร้องที่ลบไปแล้วจะหายถาวร".
+    // The delete modal renders the new context-specific copy.
     await expect(page.locator('text=คำร้องที่ลบไปแล้วจะหายถาวร')).toBeVisible({ timeout: 5_000 })
 
-    // The old generic phrase should NOT appear anywhere.
-    await expect(page.locator('text=/^\\* การกระทำนี้ไม่สามารถย้อนกลับได้/')).toHaveCount(0)
+    // The old generic phrase should NOT appear.
+    await expect(page.locator('text=การกระทำนี้ไม่สามารถย้อนกลับได้')).toHaveCount(0)
   })
 
-  // Optional screenshot baselines — run with `--update-snapshots` to
-  // generate. CI runs that don't have baselines will skip via the
-  // toHaveScreenshot soft-fail in non-CI mode.
+  // Optional screenshot baseline — run with `--update-snapshots` to
+  // generate. CI runs without baselines will fail this test; gated behind
+  // the UPDATE_SCREENSHOTS env var so CI doesn't depend on it.
   test('visual baseline: list modal at narrow viewport (320px)', async ({ page }) => {
+    test.skip(
+      process.env.UPDATE_SCREENSHOTS !== '1',
+      'Screenshot baseline run — set UPDATE_SCREENSHOTS=1 to enable',
+    )
     await page.setViewportSize({ width: 320, height: 800 })
     await page.goto('/admin/requests')
     await expect(page.locator('table')).toBeVisible({ timeout: 10_000 })
 
-    const firstRow = page.locator('table tbody tr').first()
-    if (!(await firstRow.isVisible())) test.skip(true, 'No rows to preview')
-    await firstRow.click()
+    const viewButton = page.locator('button[title="เรียกดู"]').first()
+    if ((await viewButton.count()) === 0) {
+      test.skip(true, 'No rows to preview')
+      return
+    }
+    await viewButton.click()
 
     await expect(page).toHaveScreenshot('list-modal-320.png', {
       maxDiffPixelRatio: 0.02,
