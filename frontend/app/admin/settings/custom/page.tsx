@@ -16,6 +16,7 @@ import {
     Puzzle,
 } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { ActionIconButton } from '@/components/ui/ActionIconButton';
@@ -410,38 +411,26 @@ export default function CustomIntegrationsPage() {
                 </div>
             </Modal>
 
-            {/* Delete Confirmation */}
-            <Modal
+            {/* Delete confirmation — shared ConfirmDialog. Spinner state
+                during the network call is rendered via the `isLoading`
+                prop, which the dialog uses for the confirm button. */}
+            <ConfirmDialog
                 isOpen={showDeleteModal}
                 onClose={() => setShowDeleteModal(false)}
+                onConfirm={handleDelete}
                 title="ยืนยันการลบ"
-                maxWidth="sm"
-            >
-                <div className="text-center p-2">
-                    <p className="text-text-secondary mb-6 text-sm">
-                        คุณต้องการลบ Integration นี้หรือไม่? การลบ Integration จะไม่สามารถกู้คืนได้
-                    </p>
-                    <div className="flex gap-3 justify-center">
-                        <Button variant="ghost" onClick={() => setShowDeleteModal(false)}>
-                            ยกเลิก
-                        </Button>
-                        <Button
-                            variant="danger"
-                            onClick={handleDelete}
-                            disabled={processing === 'DELETE'}
-                            leftIcon={
-                                processing === 'DELETE' ? (
-                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : (
-                                    <Trash2 className="w-4 h-4" />
-                                )
-                            }
-                        >
-                            ลบ
-                        </Button>
-                    </div>
-                </div>
-            </Modal>
+                description={
+                    <>
+                        คุณต้องการลบ Integration นี้หรือไม่?
+                        <br />
+                        <span className="text-xs text-red-500 mt-2 block">การลบ Integration จะไม่สามารถกู้คืนได้</span>
+                    </>
+                }
+                confirmText="ลบ"
+                cancelText="ยกเลิก"
+                variant="danger"
+                isLoading={processing === 'DELETE'}
+            />
         </div>
     );
 }

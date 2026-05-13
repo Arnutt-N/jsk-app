@@ -919,16 +919,22 @@ export default function FilesPage() {
       {/* ================================================================= */}
       {/* Delete Confirmation                                                */}
       {/* ================================================================= */}
-      {/* Uses the shared ConfirmDialog so the danger icon + red confirm
-          button are consistent with other delete dialogs (requests,
-          broadcast, integrations). The variant defaults to "danger". */}
+      {/* Shared ConfirmDialog — the description composes the count (bold)
+          and a red warning footnote, matching the request/broadcast/
+          integration delete dialogs for visual consistency. */}
       <ConfirmDialog
         isOpen={deleteConfirm.show}
         onClose={() => setDeleteConfirm({ ids: [], show: false })}
         onConfirm={() => deleteFiles(deleteConfirm.ids)}
         title="ยืนยันการลบ"
-        description={`คุณต้องการลบ ${deleteConfirm.ids.length} ไฟล์ใช่หรือไม่? ไฟล์ที่ลบไปแล้วจะไม่สามารถกู้คืนได้`}
-        confirmText="ลบ"
+        description={
+          <>
+            คุณต้องการลบ <b>{deleteConfirm.ids.length}</b> ไฟล์ใช่หรือไม่?
+            <br />
+            <span className="text-xs text-red-500 mt-2 block">ไฟล์ที่ลบไปแล้วจะไม่สามารถกู้คืนได้</span>
+          </>
+        }
+        confirmText="ยืนยันลบ"
         cancelText="ยกเลิก"
         variant="danger"
       />
