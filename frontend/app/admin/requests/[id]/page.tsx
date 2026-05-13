@@ -480,7 +480,7 @@ export default function RequestDetailPage() {
                             <DropdownMenu>
                                 <DropdownMenuTrigger
                                     aria-label="การจัดการพิเศษ"
-                                    className="inline-flex items-center justify-center h-9 w-9 rounded-lg border border-border-default bg-surface text-text-secondary hover:bg-bg hover:text-text-primary transition-colors"
+                                    className="inline-flex items-center justify-center h-9 w-9 rounded-lg border border-border-default bg-surface text-text-secondary hover:bg-bg hover:text-text-primary transition-colors cursor-pointer"
                                 >
                                     <MoreVertical size={18} />
                                 </DropdownMenuTrigger>

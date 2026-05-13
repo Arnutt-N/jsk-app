@@ -333,7 +333,7 @@ export default function BroadcastListPage() {
                 <div className="space-y-4">
                     <p className="text-sm text-text-secondary">
                         คุณต้องการลบข้อความ <b>{deleteTarget?.title}</b> ใช่หรือไม่?
-                        <br /><span className="text-xs text-red-500 mt-2 block">ข้อความที่ลบไปแล้วจะกู้คืนไม่ได้</span>
+                        <br /><span className="text-xs text-red-500 mt-2 block">ข้อความที่ลบไปแล้วจะไม่สามารถกู้คืนได้</span>
                     </p>
                     <div className="flex justify-end gap-2 pt-2">
                         <Button variant="ghost" onClick={() => setDeleteTarget(null)}>ยกเลิก</Button>

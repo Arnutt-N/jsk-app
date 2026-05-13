@@ -349,7 +349,11 @@ export default function CalendarPickerTH({
 
         <span className="text-gray-300 font-light">/</span>
 
-        {/* Year Input — wider for 4-digit ปปปป + visual proportion 1 : 1 : 2.5 */}
+        {/* Year Input — `flex-1` so it expands to fill the available
+            space inside the bordered container; this keeps the action
+            icons anchored to the right edge instead of clustering near
+            the centre. The `min-w-[80px]` floor prevents the field from
+            collapsing too narrow in tight grids. */}
         <input
           ref={yearRef}
           type="text"
@@ -360,7 +364,7 @@ export default function CalendarPickerTH({
           onBlur={handleBlur}
           onFocus={() => setIsEditing(true)}
           aria-label="ปี พ.ศ."
-          className="w-24 px-2 py-2 text-center text-sm font-medium bg-transparent text-text-primary focus:outline-none placeholder:text-gray-300"
+          className="flex-1 min-w-[80px] px-2 py-2 text-center text-sm font-medium bg-transparent text-text-primary focus:outline-none placeholder:text-gray-300"
         />
 
         {/* Action icons grouped with consistent spacing, separated from year input */}

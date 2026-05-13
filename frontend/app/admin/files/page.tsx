@@ -13,7 +13,7 @@ import {
   Tabs, TabsList, TabsTrigger, TabsContent,
   Checkbox,
 } from '@/components/ui';
-import { ModalAlert } from '@/components/ui/ModalAlert';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { useToast } from '@/components/ui/Toast';
 import { ActionIconButton } from '@/components/ui/ActionIconButton';
@@ -919,15 +919,18 @@ export default function FilesPage() {
       {/* ================================================================= */}
       {/* Delete Confirmation                                                */}
       {/* ================================================================= */}
-      <ModalAlert
+      {/* Uses the shared ConfirmDialog so the danger icon + red confirm
+          button are consistent with other delete dialogs (requests,
+          broadcast, integrations). The variant defaults to "danger". */}
+      <ConfirmDialog
         isOpen={deleteConfirm.show}
         onClose={() => setDeleteConfirm({ ids: [], show: false })}
-        type="confirm"
-        title="ยืนยันการลบ"
-        message={`คุณต้องการลบ ${deleteConfirm.ids.length} ไฟล์ใช่หรือไม่? ไฟล์ที่ลบไปแล้วจะกู้คืนไม่ได้`}
         onConfirm={() => deleteFiles(deleteConfirm.ids)}
+        title="ยืนยันการลบ"
+        description={`คุณต้องการลบ ${deleteConfirm.ids.length} ไฟล์ใช่หรือไม่? ไฟล์ที่ลบไปแล้วจะไม่สามารถกู้คืนได้`}
         confirmText="ลบ"
         cancelText="ยกเลิก"
+        variant="danger"
       />
     </div>
   );

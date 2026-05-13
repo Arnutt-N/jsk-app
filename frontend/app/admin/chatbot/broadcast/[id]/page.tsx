@@ -429,7 +429,7 @@ export default function BroadcastDetailPage() {
                 <div className="space-y-4">
                     <p className="text-sm text-gray-600 dark:text-gray-400">
                         คุณต้องการลบข้อความ <b>{broadcast.title}</b> ใช่หรือไม่?
-                        <br /><span className="text-xs text-red-500 mt-2 block">ข้อความที่ลบไปแล้วจะกู้คืนไม่ได้</span>
+                        <br /><span className="text-xs text-red-500 mt-2 block">ข้อความที่ลบไปแล้วจะไม่สามารถกู้คืนได้</span>
                     </p>
                     <div className="flex justify-end gap-2 pt-2">
                         <Button variant="ghost" onClick={() => setDeleteModal(false)}>ยกเลิก</Button>
