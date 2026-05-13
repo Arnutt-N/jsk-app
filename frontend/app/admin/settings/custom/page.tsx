@@ -419,7 +419,7 @@ export default function CustomIntegrationsPage() {
             >
                 <div className="text-center p-2">
                     <p className="text-text-secondary mb-6 text-sm">
-                        คุณต้องการลบ Integration นี้หรือไม่? การดำเนินการนี้ไม่สามารถย้อนกลับได้
+                        คุณต้องการลบ Integration นี้หรือไม่? การลบ Integration จะมีผลทันทีและกู้คืนไม่ได้
                     </p>
                     <div className="flex gap-3 justify-center">
                         <Button variant="ghost" onClick={() => setShowDeleteModal(false)}>

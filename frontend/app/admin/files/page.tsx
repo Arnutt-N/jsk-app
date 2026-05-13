@@ -924,7 +924,7 @@ export default function FilesPage() {
         onClose={() => setDeleteConfirm({ ids: [], show: false })}
         type="confirm"
         title="ยืนยันการลบ"
-        message={`คุณต้องการลบ ${deleteConfirm.ids.length} ไฟล์ใช่หรือไม่? การดำเนินการนี้ไม่สามารถย้อนกลับได้`}
+        message={`คุณต้องการลบ ${deleteConfirm.ids.length} ไฟล์ใช่หรือไม่? ไฟล์ที่ลบไปแล้วจะกู้คืนไม่ได้`}
         onConfirm={() => deleteFiles(deleteConfirm.ids)}
         confirmText="ลบ"
         cancelText="ยกเลิก"

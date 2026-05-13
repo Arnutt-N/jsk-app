@@ -73,7 +73,7 @@ export const AssignModal: React.FC<AssignModalProps> = ({
     );
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title="มอบหมายงาน (Assign Request)" maxWidth="md">
+        <Modal isOpen={isOpen} onClose={onClose} title="มอบหมายงาน" maxWidth="md">
             <div className="space-y-4">
                 {/* Search */}
                 <div className="relative">
@@ -140,8 +140,7 @@ export const AssignModal: React.FC<AssignModalProps> = ({
                     )}
                 </div>
 
-                <div className="flex justify-between items-center pt-2 text-xs text-text-tertiary">
-                    <p>* Active Tasks = Pending + In Progress</p>
+                <div className="flex justify-end items-center pt-2">
                     <Button variant="ghost" size="sm" onClick={onClose}>ปิดหน้าต่าง</Button>
                 </div>
             </div>

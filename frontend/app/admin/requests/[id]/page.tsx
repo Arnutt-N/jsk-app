@@ -532,7 +532,7 @@ export default function RequestDetailPage() {
                             onClick={() => setActiveTab(tab.id)}
                             className={`flex items-center gap-2 px-4 py-3 text-xs font-bold transition-all border-b-2 whitespace-nowrap outline-none cursor-pointer ${activeTab === tab.id
                                 ? 'border-primary text-primary'
-                                : 'border-transparent text-text-tertiary hover:text-text-secondary'
+                                : 'border-transparent text-text-secondary hover:text-text-primary hover:border-border-default'
                                 }`}
                         >
                             <tab.icon size={16} />

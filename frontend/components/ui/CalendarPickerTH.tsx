@@ -328,7 +328,7 @@ export default function CalendarPickerTH({
           onBlur={handleBlur}
           onFocus={() => setIsEditing(true)}
           aria-label="วันที่"
-          className="w-12 px-2 py-2 text-center text-sm font-medium bg-transparent text-text-primary focus:outline-none placeholder:text-gray-300"
+          className="w-10 px-2 py-2 text-center text-sm font-medium bg-transparent text-text-primary focus:outline-none placeholder:text-gray-300"
         />
 
         <span className="text-gray-300 font-light">/</span>
@@ -344,23 +344,23 @@ export default function CalendarPickerTH({
           onBlur={handleBlur}
           onFocus={() => setIsEditing(true)}
           aria-label="เดือน"
-          className="w-12 px-2 py-2 text-center text-sm font-medium bg-transparent text-text-primary focus:outline-none placeholder:text-gray-300"
+          className="w-10 px-2 py-2 text-center text-sm font-medium bg-transparent text-text-primary focus:outline-none placeholder:text-gray-300"
         />
 
         <span className="text-gray-300 font-light">/</span>
 
-        {/* Year Input */}
+        {/* Year Input — wider for 4-digit ปปปป + visual proportion 1 : 1 : 2.5 */}
         <input
           ref={yearRef}
           type="text"
           inputMode="numeric"
-          placeholder="ปปปป (พ.ศ.)"
+          placeholder="ปปปป"
           defaultValue={parts.beYear}
           onInput={(e) => handleInput(e, 'year')}
           onBlur={handleBlur}
           onFocus={() => setIsEditing(true)}
           aria-label="ปี พ.ศ."
-          className="flex-1 min-w-[60px] px-2 py-2 text-center text-sm font-medium bg-transparent text-text-primary focus:outline-none placeholder:text-gray-300"
+          className="w-24 px-2 py-2 text-center text-sm font-medium bg-transparent text-text-primary focus:outline-none placeholder:text-gray-300"
         />
 
         {/* Action icons grouped with consistent spacing, separated from year input */}

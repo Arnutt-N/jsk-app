@@ -460,7 +460,7 @@ export default function AdminRequestList() {
                         </div>
                         <div className="pt-4 border-t border-border-default flex justify-end">
                             <Link href={`/admin/requests/${selectedRequest.id}`}>
-                                <Button className="gap-2">
+                                <Button className="gap-2 whitespace-nowrap">
                                     ดูรายละเอียดเต็ม <ChevronRight className="w-4 h-4" />
                                 </Button>
                             </Link>
@@ -474,7 +474,7 @@ export default function AdminRequestList() {
                 <div className="space-y-4">
                     <p className="text-sm text-text-secondary">
                         คุณต้องการลบคำร้องของ <b>{selectedRequest?.firstname} {selectedRequest?.lastname}</b> ใช่หรือไม่?
-                        <br /><span className="text-xs text-red-500 mt-2 block">* การกระทำนี้ไม่สามารถย้อนกลับได้</span>
+                        <br /><span className="text-xs text-red-500 mt-2 block">คำร้องที่ลบไปแล้วจะหายถาวร</span>
                     </p>
                     <div className="flex justify-end gap-2 pt-2">
                         <Button variant="ghost" onClick={() => setDeleteModalOpen(false)}>ยกเลิก</Button>
