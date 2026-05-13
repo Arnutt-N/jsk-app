@@ -26,8 +26,9 @@ This document defines what is intentionally in-scope and out-of-scope for the ad
 - `frontend/components/ui/Card.tsx`
 - `frontend/components/ui/Badge.tsx`
 - `frontend/components/ui/Toast.tsx`
-- `frontend/components/ui/Modal.tsx`
-- `frontend/components/ui/ModalAlert.tsx`
+- `frontend/components/ui/Modal.tsx` (generic dialog — forms, previews, custom content)
+- `frontend/components/ui/ConfirmDialog.tsx` (**canonical destructive confirmation** since PR #54; `description` accepts `ReactNode` to compose bold names + red warning footnotes — see `docs/design-system-cookbook.md` for usage)
+- `frontend/components/ui/ModalAlert.tsx` (legacy; new code should not import this — prefer `ConfirmDialog` for confirms, `Modal` for generic dialogs)
 - `frontend/app/admin/layout.tsx` (sidebar architecture contract; visual theming updates allowed when explicitly planned)
 
 Reason: these components are high-usage and already richer than baseline example equivalents.
