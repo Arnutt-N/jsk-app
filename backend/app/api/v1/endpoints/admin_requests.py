@@ -9,6 +9,7 @@ from datetime import datetime
 
 from app.db.session import get_db
 from app.api.deps import get_current_admin
+from app.core.audit import create_audit_log
 from app.core.permissions import can_assign, can_self_assign
 from app.models.service_request import ServiceRequest, RequestStatus, RequestPriority
 from app.models.media_file import MediaFile
@@ -351,11 +352,30 @@ async def update_request(
         if not is_self_assign and not can_assign(current_admin.role):
             raise HTTPException(status_code=403, detail="คุณไม่มีสิทธิ์มอบหมายงานให้ผู้อื่น")
 
+    # Detect revert-from-COMPLETED BEFORE mutating so we can:
+    #   1. Reset completed_at symmetrically (it was set to func.now() on entry)
+    #   2. Write an audit_log row capturing who unwound the approval
+    # Only COMPLETED -> AWAITING_APPROVAL/IN_PROGRESS counts as a "revert" for
+    # the audit trail. COMPLETED -> REJECTED is treated as a normal rejection,
+    # COMPLETED -> PENDING is reachable only via the existing kebab "ย้อนกลับ
+    # รอรับเรื่อง" path which already has its own semantics.
+    is_revert_from_completed = (
+        update_data.status is not None
+        and request.status == RequestStatus.COMPLETED
+        and update_data.status in (
+            RequestStatus.AWAITING_APPROVAL,
+            RequestStatus.IN_PROGRESS,
+        )
+    )
+    prior_status = request.status
+
     # Update fields
     if update_data.status is not None:
         request.status = update_data.status
         if update_data.status == RequestStatus.COMPLETED:
             request.completed_at = func.now()
+        elif is_revert_from_completed:
+            request.completed_at = None  # symmetric reset
 
     if update_data.priority is not None:
         request.priority = update_data.priority
@@ -368,6 +388,19 @@ async def update_request(
             request.assigned_by_id = current_admin.id
     if update_data.assigned_by_id is not None:
         request.assigned_by_id = update_data.assigned_by_id
+
+    if is_revert_from_completed:
+        await create_audit_log(
+            db=db,
+            admin_id=current_admin.id,
+            action="revert_approval",
+            resource_type="service_request",
+            resource_id=str(request.id),
+            details={
+                "from_status": prior_status.value,
+                "to_status": update_data.status.value,
+            },
+        )
 
     await db.commit()
     await db.refresh(request)

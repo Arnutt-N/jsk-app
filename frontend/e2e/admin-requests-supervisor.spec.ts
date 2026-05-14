@@ -36,6 +36,35 @@ async function getFirstRequestDetailUrl(page: Page): Promise<string | null> {
   return null
 }
 
+/**
+ * PRD B revert flow: locate a request currently in COMPLETED state by
+ * driving the on-page status filter dropdown. We deliberately do NOT
+ * use URL query params here -- the list page owns filter state in React
+ * (not the URL), so `?status=COMPLETED` would be ignored.
+ *
+ * The dropdown is a native `<select>` rendered by the canonical Select
+ * component. Native selects accept either the option value or label via
+ * `selectOption`. We try the enum value first ("COMPLETED") and fall
+ * back to the Thai label ("เสร็จสิ้น") if the option-by-value path
+ * fails -- this keeps the test resilient if STATUS_OPTIONS gets
+ * reordered or relabeled.
+ *
+ * Returns null if no COMPLETED row exists in the test DB.
+ */
+async function getFirstCompletedRequestDetailUrl(page: Page): Promise<string | null> {
+  // The status filter is the FIRST <select> on the requests list page
+  // (search input is a text input; category is the second <select>).
+  const statusSelect = page.locator('select').first()
+  try {
+    await statusSelect.selectOption('COMPLETED')
+  } catch {
+    await statusSelect.selectOption({ label: 'เสร็จสิ้น' })
+  }
+  // Let the React state propagate and the (filtered) table re-render.
+  await page.waitForTimeout(300)
+  return getFirstRequestDetailUrl(page)
+}
+
 test.describe('Request detail page -- supervisor view', () => {
   test.beforeEach(async ({ page }) => {
     await loginAsAdmin(page)
@@ -124,6 +153,120 @@ test.describe('Request detail page -- supervisor view', () => {
       expect(box.x).toBeGreaterThanOrEqual(0)
       expect(box.x + box.width).toBeLessThanOrEqual(375)
     }
+  })
+
+  // -------------------------------------------------------------------
+  // PRD B: revert-from-COMPLETED via the kebab "การจัดการพิเศษ" menu.
+  //
+  // These tests assume the test DB has at least one COMPLETED request.
+  // If not, each test skips rather than fails. The seeded fixtures in
+  // CI include at least one completed row; locally you may need to run
+  // a request through approval before exercising this path.
+  // -------------------------------------------------------------------
+
+  test('revert kebab shows both revert items on COMPLETED request', async ({ page }) => {
+    const detailUrl = await getFirstCompletedRequestDetailUrl(page)
+    test.skip(!detailUrl, 'no COMPLETED requests in test DB; revert flow has nothing to exercise')
+    await page.goto(detailUrl!)
+    await expect(page.getByRole('button', { name: 'กลับ' })).toBeVisible({ timeout: 10_000 })
+
+    // Kebab MUST be visible on COMPLETED for supervisor (PRD B changed
+    // the visibility guard: previously hidden on COMPLETED, now hidden
+    // only on REJECTED).
+    const kebab = page.getByRole('button', { name: 'การจัดการพิเศษ' })
+    await expect(kebab).toBeVisible()
+    await kebab.click()
+
+    const menu = page.getByRole('menu')
+    await expect(menu).toBeVisible()
+
+    // Both revert items present.
+    await expect(
+      page.getByRole('menuitem', { name: /ยกเลิกอนุมัติ.*รออนุมัติ/ }),
+    ).toBeVisible()
+    await expect(
+      page.getByRole('menuitem', { name: /ยกเลิกอนุมัติ.*กำลังดำเนินการ/ }),
+    ).toBeVisible()
+
+    // "บังคับเสร็จสิ้น" is self-gated away on COMPLETED rows -- it would
+    // be a no-op so PRD B hides it.
+    await expect(
+      page.getByRole('menuitem', { name: /บังคับเสร็จสิ้น/ }),
+    ).toBeHidden()
+
+    await page.keyboard.press('Escape')
+    await expect(menu).toBeHidden()
+  })
+
+  test('cancelling the revert dialog keeps status as COMPLETED', async ({ page }) => {
+    const detailUrl = await getFirstCompletedRequestDetailUrl(page)
+    test.skip(!detailUrl, 'no COMPLETED requests in test DB')
+    await page.goto(detailUrl!)
+    await expect(page.getByRole('button', { name: 'กลับ' })).toBeVisible({ timeout: 10_000 })
+
+    // The status pill we expect to remain after cancel.
+    const completedPill = page.locator('text=เสร็จสิ้น').first()
+    await expect(completedPill).toBeVisible()
+
+    await page.getByRole('button', { name: 'การจัดการพิเศษ' }).click()
+    await page.getByRole('menuitem', { name: /ยกเลิกอนุมัติ.*รออนุมัติ/ }).click()
+
+    // ConfirmDialog opens.
+    const dialog = page.getByRole('dialog')
+    await expect(dialog).toBeVisible()
+
+    // Cancel button copy in our canonical ConfirmDialog is "ยกเลิก".
+    await dialog.getByRole('button', { name: /ยกเลิก/ }).first().click()
+    await expect(dialog).toBeHidden()
+
+    // Status pill MUST still read "เสร็จสิ้น" -- no PATCH was sent.
+    await expect(page.locator('text=เสร็จสิ้น').first()).toBeVisible()
+  })
+
+  test('confirming the revert dialog sends PATCH and the page reloads', async ({ page }) => {
+    const detailUrl = await getFirstCompletedRequestDetailUrl(page)
+    test.skip(!detailUrl, 'no COMPLETED requests in test DB')
+
+    // Intercept the PATCH so the test does NOT mutate seeded data. We
+    // return a fulfilled response with the new status payload; the
+    // frontend's useGuardedUpdate fires a window.location.reload() on
+    // success, which we observe via a navigation wait.
+    await page.route('**/api/v1/admin/requests/*', async (route) => {
+      if (route.request().method() === 'PATCH') {
+        // Echo the PATCH body back so the page mounts cleanly post-reload.
+        const body = route.request().postDataJSON?.() ?? {}
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ ok: true, ...body }),
+        })
+        return
+      }
+      await route.continue()
+    })
+
+    await page.goto(detailUrl!)
+    await expect(page.getByRole('button', { name: 'กลับ' })).toBeVisible({ timeout: 10_000 })
+
+    await page.getByRole('button', { name: 'การจัดการพิเศษ' }).click()
+    await page.getByRole('menuitem', { name: /ยกเลิกอนุมัติ.*รออนุมัติ/ }).click()
+
+    const dialog = page.getByRole('dialog')
+    await expect(dialog).toBeVisible()
+
+    // Wait for the PATCH to be sent when confirm fires.
+    const patchPromise = page.waitForRequest(
+      (req) =>
+        req.method() === 'PATCH' &&
+        /\/api\/v1\/admin\/requests\/\d+$/.test(req.url()),
+    )
+
+    // Confirm button copy is "ยืนยัน" in our canonical ConfirmDialog.
+    await dialog.getByRole('button', { name: /ยืนยัน/ }).click()
+
+    const patchRequest = await patchPromise
+    const payload = patchRequest.postDataJSON?.() as { status?: string } | undefined
+    expect(payload?.status).toBe('AWAITING_APPROVAL')
   })
 
   test('console stays clean -- no unhandled promise rejections on hero card', async ({ page }) => {
