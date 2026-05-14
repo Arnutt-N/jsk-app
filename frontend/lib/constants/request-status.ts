@@ -72,7 +72,9 @@ export const STATUS_TRANSITIONS: Record<RequestStatus, RequestStatus[]> = {
   ACKNOWLEDGED:      ['IN_PROGRESS', 'REJECTED'],
   IN_PROGRESS:       ['AWAITING_APPROVAL', 'REJECTED', 'COMPLETED'],
   AWAITING_APPROVAL: ['COMPLETED', 'REJECTED', 'IN_PROGRESS'],
-  COMPLETED:         [],
+  // PRD B: revert-from-COMPLETED via the kebab "การจัดการพิเศษ" menu
+  // (supervisor only, audit-logged in the backend update_request handler).
+  COMPLETED:         ['AWAITING_APPROVAL', 'IN_PROGRESS'],
   REJECTED:          ['PENDING'],
 }
 

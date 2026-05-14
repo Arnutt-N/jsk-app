@@ -29,6 +29,7 @@ import {
     Undo2,
 } from 'lucide-react';
 import { AssignModal } from '@/components/admin/AssignModal';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Button } from '@/components/ui/Button';
 import CalendarPickerTH from '@/components/ui/CalendarPickerTH';
 import {
@@ -104,6 +105,13 @@ export default function RequestDetailPage() {
     const [loading, setLoading] = useState(true);
     const [submittingComment, setSubmittingComment] = useState(false);
     const [assignModalOpen, setAssignModalOpen] = useState(false);
+    // PRD B: revert-from-COMPLETED flow. Both kebab items share one
+    // dialog — `target` records which status to revert to so the
+    // ConfirmDialog body can interpolate the right label.
+    const [revertConfirm, setRevertConfirm] = useState<{
+        open: boolean
+        target: 'AWAITING_APPROVAL' | 'IN_PROGRESS' | null
+    }>({ open: false, target: null });
 
     // Permission state for workflow button visibility.
     // - userId: numeric form of the logged-in user's id (AuthContext stores as string)
@@ -323,17 +331,27 @@ export default function RequestDetailPage() {
                     </Link>
                 </div>
 
-                {/* Hero card -- Linear-inspired single-row layout. Title + badges +
-                    actions live on one flex row that wraps gracefully on narrow viewports.
-                    `ml-auto` pushes the action group to the right edge on desktop; on
-                    mobile the buttons drop to their own line below the badges.
+                {/* PRD B: Merged card layout. The hero (title row + subcategory caption),
+                    tab navigation, and tab content live inside ONE outer card with internal
+                    border-t dividers between sections. PR #53's Linear-inspired single-row
+                    hero layout is preserved verbatim — only the OUTER chrome was previously
+                    three separate cards, which user feedback described as "fragmented".
 
-                    Why one row: prior 3-section layout (title -> badges -> divider ->
-                    buttons) used 5+ vertical cells for what enterprise tools (Linear /
-                    Jira / GitHub Issues) compress into 1-2. The redesign saves vertical
-                    space and matches the visual hierarchy of comparable case-mgmt UIs. */}
-                <div className="bg-surface rounded-2xl shadow-sm border border-border-default p-4 md:p-5 mb-6">
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                    Why one outer card: the prior 3-card stack (hero / tab-nav / tab-content)
+                    used 3 borders and 2 gap rows for what reads naturally as a single
+                    document. Merging keeps Linear-style hero density while restoring the
+                    "one page = one unit" feel.
+
+                    Why explicit `border-t` dividers vs `:nth-child` magic: the dividers are
+                    auditable from JSX and survive accidental content reordering. */}
+                <div className="bg-surface rounded-2xl shadow-sm border border-border-default mb-6">
+
+                    {/* Hero section -- Linear-inspired single-row layout. Title + badges +
+                        actions live on one flex row that wraps gracefully on narrow viewports.
+                        `ml-auto` pushes the action group to the right edge on desktop; on
+                        mobile the buttons drop to their own line below the badges. */}
+                    <div className="p-4 md:p-5">
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                         <h1 className="text-lg sm:text-xl font-bold text-text-primary tracking-tight thai-no-break">
                             {request.topic_category}
                         </h1>
@@ -473,10 +491,9 @@ export default function RequestDetailPage() {
                         )}
 
                         {/* Override kebab: supervisor-only escape hatches outside the linear workflow.
-                            Visible whenever the request is in an open state (not terminal). The two
-                            inner items self-gate: force-complete needs an open state, revert-to-pending
-                            additionally excludes PENDING (no-op). */}
-                        {canApprove && request.status !== 'COMPLETED' && request.status !== 'REJECTED' && (
+                            Visible whenever the request is NOT in the REJECTED terminal state (PRD B
+                            opened COMPLETED to revert flows). Each inner item self-gates by status. */}
+                        {canApprove && request.status !== 'REJECTED' && (
                             <DropdownMenu>
                                 <DropdownMenuTrigger
                                     aria-label="การจัดการพิเศษ"
@@ -489,18 +506,21 @@ export default function RequestDetailPage() {
                                     <DropdownMenuSeparator />
 
                                     {/* "บังคับเสร็จสิ้น": skip approval flow when assignee is unavailable.
-                                        Outer guard already excludes terminal states. */}
-                                    <DropdownMenuItem
-                                        disabled={submitting}
-                                        onClick={() => { void guardedUpdate({ status: 'COMPLETED' }); }}
-                                    >
-                                        <CheckCircle2 size={16} className="text-emerald-600" />
-                                        บังคับเสร็จสิ้น
-                                    </DropdownMenuItem>
+                                        Now self-gates against COMPLETED (used to rely on outer guard). */}
+                                    {request.status !== 'COMPLETED' && (
+                                        <DropdownMenuItem
+                                            disabled={submitting}
+                                            onClick={() => { void guardedUpdate({ status: 'COMPLETED' }); }}
+                                        >
+                                            <CheckCircle2 size={16} className="text-emerald-600" />
+                                            บังคับเสร็จสิ้น
+                                        </DropdownMenuItem>
+                                    )}
 
                                     {/* "ย้อนกลับ รอรับเรื่อง": revert mid-flow records that were advanced by mistake.
-                                        Hidden on PENDING (already there). */}
-                                    {request.status !== 'PENDING' && (
+                                        Hidden on PENDING (already there) AND on COMPLETED (use the
+                                        dedicated revert items below for that case). */}
+                                    {request.status !== 'PENDING' && request.status !== 'COMPLETED' && (
                                         <DropdownMenuItem
                                             disabled={submitting}
                                             onClick={() => { void guardedUpdate({ status: 'PENDING' }); }}
@@ -508,6 +528,29 @@ export default function RequestDetailPage() {
                                             <Undo2 size={16} className="text-amber-600" />
                                             ย้อนกลับ รอรับเรื่อง
                                         </DropdownMenuItem>
+                                    )}
+
+                                    {/* PRD B: revert-from-COMPLETED. Two explicit targets — admin picks
+                                        whichever previous stage matches the recovery they need. Both
+                                        funnel through a ConfirmDialog (rendered near the AssignModal
+                                        below) which writes an audit_log entry via the backend handler. */}
+                                    {request.status === 'COMPLETED' && (
+                                        <>
+                                            <DropdownMenuItem
+                                                disabled={submitting}
+                                                onClick={() => setRevertConfirm({ open: true, target: 'AWAITING_APPROVAL' })}
+                                            >
+                                                <Undo2 size={16} className="text-amber-600" />
+                                                ยกเลิกอนุมัติ → รออนุมัติ
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                                disabled={submitting}
+                                                onClick={() => setRevertConfirm({ open: true, target: 'IN_PROGRESS' })}
+                                            >
+                                                <Undo2 size={16} className="text-amber-600" />
+                                                ยกเลิกอนุมัติ → กำลังดำเนินการ
+                                            </DropdownMenuItem>
+                                        </>
                                     )}
                                 </DropdownMenuContent>
                             </DropdownMenu>
@@ -524,9 +567,13 @@ export default function RequestDetailPage() {
                     )}
                 </div>
 
-                {/* Tab Navigation */}
-                <div className="bg-surface rounded-t-2xl border border-border-default px-2 flex justify-center overflow-x-auto no-scrollbar">
-                    {tabs.map((tab) => (
+                    {/* PRD B: internal divider — separates hero section from tab nav. */}
+                    <div className="border-t border-border-default" />
+
+                    {/* Tab Navigation -- the outer card owns the border/background now,
+                        so this just keeps the layout primitives (horizontal scroll, centering). */}
+                    <div className="px-2 flex justify-center overflow-x-auto no-scrollbar">
+                        {tabs.map((tab) => (
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
@@ -541,8 +588,11 @@ export default function RequestDetailPage() {
                     ))}
                 </div>
 
-                {/* Tab Content Area */}
-                <div className="bg-surface rounded-b-2xl shadow-sm border-x border-b border-border-default p-4 sm:p-6 md:p-8 min-h-[400px]">
+                {/* PRD B: internal divider — separates tab nav from tab content. */}
+                <div className="border-t border-border-default" />
+
+                {/* Tab Content Area -- outer merged card owns the border/background now. */}
+                <div className="p-4 sm:p-6 md:p-8 min-h-[400px]">
 
                     {/* 1. รายละเอียดคำร้อง */}
                     {activeTab === 'details' && (
@@ -875,6 +925,7 @@ export default function RequestDetailPage() {
                     )}
 
                 </div>
+                </div>{/* closes merged card (hero + tab nav + tab content) */}
 
                 {/* Footer info */}
                 <div className="mt-6 px-4 flex justify-between items-center text-[10px] text-text-tertiary font-bold uppercase tracking-widest">
@@ -892,6 +943,41 @@ export default function RequestDetailPage() {
                 onClose={() => setAssignModalOpen(false)}
                 onAssign={handleAssignRequest}
                 currentAssigneeId={request.assigned_agent_id}
+            />
+
+            {/* PRD B: revert-from-COMPLETED confirmation. Shared between the
+                two kebab items (AWAITING_APPROVAL / IN_PROGRESS) via the
+                `revertConfirm.target` discriminator. Backend handler writes
+                an audit_log row on confirm. */}
+            <ConfirmDialog
+                isOpen={revertConfirm.open}
+                onClose={() => setRevertConfirm({ open: false, target: null })}
+                onConfirm={() => {
+                    if (revertConfirm.target) {
+                        void guardedUpdate({ status: revertConfirm.target });
+                    }
+                    setRevertConfirm({ open: false, target: null });
+                }}
+                title="ยืนยันยกเลิกการอนุมัติ"
+                description={
+                    <>
+                        คำร้องจะกลับไปสถานะ{' '}
+                        <b>
+                            {revertConfirm.target === 'AWAITING_APPROVAL'
+                                ? 'รออนุมัติ'
+                                : revertConfirm.target === 'IN_PROGRESS'
+                                    ? 'กำลังดำเนินการ'
+                                    : ''}
+                        </b>
+                        <br />
+                        <span className="text-xs text-amber-600 mt-2 block">
+                            การกระทำนี้จะถูกบันทึกในประวัติ
+                        </span>
+                    </>
+                }
+                confirmText="ยืนยัน"
+                cancelText="ยกเลิก"
+                variant="warning"
             />
         </div>
     );
