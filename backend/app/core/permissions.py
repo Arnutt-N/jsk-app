@@ -40,6 +40,7 @@ logger = logging.getLogger(__name__)
 KEY_ASSIGN = "assign_request"
 KEY_SELF_ASSIGN = "self_assign_request"
 KEY_EDIT_SETTINGS = "edit_permission_settings"
+KEY_REVERT = "revert_approval"
 
 # Hardcoded fallback used when the DB row is missing OR the cache hasn't
 # loaded yet. Mirrors the migration seed values.
@@ -57,6 +58,10 @@ DEFAULT_POLICY: dict[str, frozenset[UserRole]] = {
         UserRole.HEAD,
     }),
     KEY_EDIT_SETTINGS: frozenset({
+        UserRole.SUPER_ADMIN,
+        UserRole.ADMIN,
+    }),
+    KEY_REVERT: frozenset({
         UserRole.SUPER_ADMIN,
         UserRole.ADMIN,
     }),
@@ -127,6 +132,7 @@ _SEED_DESCRIPTIONS: dict[str, str] = {
     KEY_ASSIGN: "มอบหมายงานให้ผู้อื่น",
     KEY_SELF_ASSIGN: "รับเรื่องเอง (self-assign)",
     KEY_EDIT_SETTINGS: "แก้ไขการตั้งค่าสิทธิ์",
+    KEY_REVERT: "ยกเลิกการอนุมัติ",
 }
 
 
@@ -223,6 +229,11 @@ def can_edit_permission_settings(role: UserRole | str | None) -> bool:
     return _check(role, KEY_EDIT_SETTINGS)
 
 
+def can_revert_approval(role: UserRole | str | None) -> bool:
+    """Whether `role` can revert a COMPLETED request to AWAITING_APPROVAL or IN_PROGRESS."""
+    return _check(role, KEY_REVERT)
+
+
 def get_permission_summary() -> dict[str, list[str]]:
     """Return current permission map as plain JSON-serialisable dict.
 
@@ -234,4 +245,5 @@ def get_permission_summary() -> dict[str, list[str]]:
         "assign_allowed_roles": sorted(r.value for r in _allowed_for(KEY_ASSIGN)),
         "self_assign_allowed_roles": sorted(r.value for r in _allowed_for(KEY_SELF_ASSIGN)),
         "permission_settings_editor_roles": sorted(r.value for r in _allowed_for(KEY_EDIT_SETTINGS)),
+        "revert_approval_allowed_roles": sorted(r.value for r in _allowed_for(KEY_REVERT)),
     }

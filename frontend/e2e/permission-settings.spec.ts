@@ -34,16 +34,23 @@ test.describe('Permission settings page (Stage 2)', () => {
     expect(flat).toContain('USER')
   })
 
-  test('matrix renders at least three rule rows', async ({ page }) => {
+  test('matrix renders at least four rule rows', async ({ page }) => {
     await expect(page.locator('table')).toBeVisible({ timeout: 10_000 })
     // Wait for any tbody row to appear (rules load via fetch on mount).
     // The backend's lifespan ensure_seed_rows() hook guarantees the
-    // 3 DEFAULT_POLICY keys exist on every startup, so this should
-    // hold even in fresh CI databases where the alembic seed step was
-    // skipped due to a transaction-wrapping issue.
+    // 4 DEFAULT_POLICY keys exist on every startup (PRD C added revert_approval).
     const rows = page.locator('table tbody tr')
     await expect(rows.first()).toBeVisible({ timeout: 10_000 })
-    expect(await rows.count()).toBeGreaterThanOrEqual(3)
+    expect(await rows.count()).toBeGreaterThanOrEqual(4)
+  })
+
+  test('matrix shows revert_approval row with Thai label', async ({ page }) => {
+    await expect(page.locator('table')).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('table tbody tr').first()).toBeVisible({ timeout: 10_000 })
+    // Assert the Thai description for revert_approval is rendered.
+    const rowTexts = await page.locator('table tbody tr').allInnerTexts()
+    const flat = rowTexts.join(' | ')
+    expect(flat).toContain('ยกเลิกการอนุมัติ')
   })
 
   test('at least one disabled checkbox exists (SUPER_ADMIN lockout)', async ({ page }) => {

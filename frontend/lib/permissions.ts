@@ -20,6 +20,7 @@ export interface MyPermissions {
   can_assign: boolean
   can_self_assign: boolean
   can_edit_permissions: boolean
+  can_revert_approval: boolean
 }
 
 /** A single editable permission rule, matches backend PermissionRule schema. */
@@ -33,6 +34,7 @@ export interface PermissionSummary {
   assign_allowed_roles: string[]
   self_assign_allowed_roles: string[]
   permission_settings_editor_roles: string[]
+  revert_approval_allowed_roles: string[]
   /** Stage 2: full editable rule set; empty if backend pre-Stage-2. */
   rules?: PermissionRule[]
 }
