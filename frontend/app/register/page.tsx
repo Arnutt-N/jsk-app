@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'motion/react';
+import { motion, useReducedMotion } from 'motion/react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
@@ -32,7 +32,9 @@ import { cn } from '@/lib/utils';
 export default function RegisterPage() {
   const router = useRouter();
   const { toast } = useToast();
-  
+  const prefersReducedMotion = useReducedMotion();
+  const passwordRef = useRef<HTMLInputElement>(null);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -76,6 +78,7 @@ export default function RegisterPage() {
         description: 'กรุณาตรวจสอบรหัสผ่านและยืนยันรหัสผ่านอีกครั้ง',
         variant: 'error',
       });
+      passwordRef.current?.focus();
       return;
     }
 
@@ -100,20 +103,24 @@ export default function RegisterPage() {
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] mix-blend-overlay" />
 
         {/* Animated Orbs */}
+        {!prefersReducedMotion && (
         <motion.div
           animate={{ y: [0, 50, 0], x: [0, 30, 0], scale: [1, 1.1, 1] }}
           transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut' }}
           className="absolute top-[-10%] left-[-5%] w-[800px] h-[800px] bg-blue-900/10 dark:bg-blue-400/10 blur-[120px] rounded-full"
         />
+        )}
+        {!prefersReducedMotion && (
         <motion.div
           animate={{ y: [0, -40, 0], x: [0, -20, 0], scale: [1, 1.05, 1] }}
           transition={{ duration: 25, repeat: Infinity, ease: 'easeInOut' }}
           className="absolute bottom-[-10%] right-[-5%] w-[700px] h-[700px] bg-blue-400/10 dark:bg-blue-900/15 blur-[120px] rounded-full"
         />
+        )}
       </div>
 
       <motion.div
-        initial={{ opacity: 0, y: 40, scale: 0.95 }}
+        initial={prefersReducedMotion ? false : { opacity: 0, y: 40, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
         className="relative z-10 w-full max-w-4xl"
@@ -147,7 +154,7 @@ export default function RegisterPage() {
                 <div className="space-y-6">
                   <div className="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-white/5">
                     <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-                      <User className="w-4 h-4" />
+                      <User className="w-4 h-4" aria-hidden="true" />
                     </div>
                     <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">1. ข้อมูลผู้ใช้งาน</h3>
                   </div>
@@ -157,7 +164,8 @@ export default function RegisterPage() {
                       <Label htmlFor="fullName" className="text-sm font-bold text-slate-700 dark:text-slate-300">ชื่อ-นามสกุล <span className="text-danger">*</span></Label>
                       <Input
                         id="fullName" name="fullName" required
-                        placeholder="นายทดสอบ ระบบงาน"
+                        autoComplete="name"
+                        placeholder="นายทดสอบ ระบบงาน…"
                         value={formData.fullName} onChange={handleChange}
                         className="h-12 bg-slate-50 dark:bg-slate-800/50 rounded-xl border-slate-200 dark:border-white/10 focus:ring-blue-500 focus:border-blue-500"
                       />
@@ -167,7 +175,8 @@ export default function RegisterPage() {
                       <div className="relative group">
                         <Input
                           id="email" name="email" type="email" required
-                          placeholder="officer@example.com"
+                          autoComplete="email" spellCheck={false}
+                          placeholder="officer@example.com…"
                           value={formData.email} onChange={handleChange}
                           className="pl-11 h-12 bg-slate-50 dark:bg-slate-800/50 rounded-xl border-slate-200 dark:border-white/10 focus:ring-blue-500 focus:border-blue-500"
                         />
@@ -179,13 +188,15 @@ export default function RegisterPage() {
                       <Label htmlFor="password" className="text-sm font-bold text-slate-700 dark:text-slate-300">รหัสผ่าน <span className="text-danger">*</span></Label>
                       <div className="relative group">
                         <Input
+                          ref={passwordRef}
                           id="password" name="password" type={showPassword ? 'text' : 'password'} required
                           placeholder="••••••••"
+                          autoComplete="new-password"
                           value={formData.password} onChange={handleChange}
                           className="pl-11 pr-12 h-12 bg-slate-50 dark:bg-slate-800/50 rounded-xl border-slate-200 dark:border-white/10 focus:ring-blue-500 focus:border-blue-500"
                         />
-                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-slate-400 group-focus-within:text-blue-600" />
-                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600">
+                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-slate-400 group-focus-within:text-blue-600" aria-hidden="true" />
+                        <button type="button" aria-label={showPassword ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'} onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none rounded-md">
                           {showPassword ? <EyeOff className="w-4.5 h-4.5" /> : <Eye className="w-4.5 h-4.5" />}
                         </button>
                       </div>
@@ -196,11 +207,12 @@ export default function RegisterPage() {
                         <Input
                           id="confirmPassword" name="confirmPassword" type={showConfirmPassword ? 'text' : 'password'} required
                           placeholder="••••••••"
+                          autoComplete="new-password"
                           value={formData.confirmPassword} onChange={handleChange}
                           className="pl-11 pr-12 h-12 bg-slate-50 dark:bg-slate-800/50 rounded-xl border-slate-200 dark:border-white/10 focus:ring-blue-500 focus:border-blue-500"
                         />
-                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-slate-400 group-focus-within:text-blue-600" />
-                        <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600">
+                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-slate-400 group-focus-within:text-blue-600" aria-hidden="true" />
+                        <button type="button" aria-label={showConfirmPassword ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'} onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none rounded-md">
                           {showConfirmPassword ? <EyeOff className="w-4.5 h-4.5" /> : <Eye className="w-4.5 h-4.5" />}
                         </button>
                       </div>
@@ -212,15 +224,16 @@ export default function RegisterPage() {
                 <div className="space-y-6 pt-4">
                   <div className="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-white/5">
                     <div className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-                      <Building2 className="w-4 h-4" />
+                      <Building2 className="w-4 h-4" aria-hidden="true" />
                     </div>
                     <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">2. ข้อมูลหน่วยงาน</h3>
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <div className="space-y-2 lg:col-span-3">
-                      <Label className="text-sm font-bold text-slate-700 dark:text-slate-300">ส่วนราชการ <span className="text-danger">*</span></Label>
-                      <select 
+                      <Label htmlFor="sectorType" className="text-sm font-bold text-slate-700 dark:text-slate-300">ส่วนราชการ <span className="text-danger">*</span></Label>
+                      <select
+                        id="sectorType"
                         name="sectorType" value={formData.sectorType} onChange={handleChange} required
                         className="w-full h-12 px-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-white/10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-slate-700 dark:text-slate-200 appearance-none"
                       >
@@ -232,34 +245,34 @@ export default function RegisterPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-sm font-bold text-slate-700 dark:text-slate-300">กระทรวง <span className="text-danger">*</span></Label>
-                      <Input name="ministry" placeholder="เช่น กระทรวงยุติธรรม" value={formData.ministry} onChange={handleChange} required className="h-12 bg-slate-50 dark:bg-slate-800/50 rounded-xl" />
+                      <Label htmlFor="ministry" className="text-sm font-bold text-slate-700 dark:text-slate-300">กระทรวง <span className="text-danger">*</span></Label>
+                      <Input id="ministry" name="ministry" placeholder="เช่น กระทรวงยุติธรรม…" value={formData.ministry} onChange={handleChange} required className="h-12 bg-slate-50 dark:bg-slate-800/50 rounded-xl" />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-sm font-bold text-slate-700 dark:text-slate-300">กรม <span className="text-danger">*</span></Label>
-                      <Input name="department" placeholder="เช่น กรมคุมประพฤติ" value={formData.department} onChange={handleChange} required className="h-12 bg-slate-50 dark:bg-slate-800/50 rounded-xl" />
+                      <Label htmlFor="department" className="text-sm font-bold text-slate-700 dark:text-slate-300">กรม <span className="text-danger">*</span></Label>
+                      <Input id="department" name="department" placeholder="เช่น กรมคุมประพฤติ…" value={formData.department} onChange={handleChange} required className="h-12 bg-slate-50 dark:bg-slate-800/50 rounded-xl" />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-sm font-bold text-slate-700 dark:text-slate-300">สำนัก/กอง</Label>
-                      <Input name="bureau" placeholder="ระบุสำนักหรือกอง (ถ้ามี)" value={formData.bureau} onChange={handleChange} className="h-12 bg-slate-50 dark:bg-slate-800/50 rounded-xl" />
+                      <Label htmlFor="bureau" className="text-sm font-bold text-slate-700 dark:text-slate-300">สำนัก/กอง</Label>
+                      <Input id="bureau" name="bureau" placeholder="ระบุสำนักหรือกอง (ถ้ามี)…" value={formData.bureau} onChange={handleChange} className="h-12 bg-slate-50 dark:bg-slate-800/50 rounded-xl" />
                     </div>
-                    
+
                     <div className="space-y-2">
-                      <Label className="text-sm font-bold text-slate-700 dark:text-slate-300">กลุ่ม/ฝ่าย</Label>
-                      <Input name="division" placeholder="ระบุกลุ่มหรือฝ่าย (ถ้ามี)" value={formData.division} onChange={handleChange} className="h-12 bg-slate-50 dark:bg-slate-800/50 rounded-xl" />
+                      <Label htmlFor="division" className="text-sm font-bold text-slate-700 dark:text-slate-300">กลุ่ม/ฝ่าย</Label>
+                      <Input id="division" name="division" placeholder="ระบุกลุ่มหรือฝ่าย (ถ้ามี)…" value={formData.division} onChange={handleChange} className="h-12 bg-slate-50 dark:bg-slate-800/50 rounded-xl" />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-sm font-bold text-slate-700 dark:text-slate-300">หน่วยงานตามกฎหมาย</Label>
+                      <Label htmlFor="legalAgency" className="text-sm font-bold text-slate-700 dark:text-slate-300">หน่วยงานตามกฎหมาย</Label>
                       <div className="relative group">
-                        <Input name="legalAgency" placeholder="ระบุหน่วยงานตามกฎหมาย" value={formData.legalAgency} onChange={handleChange} className="pl-11 h-12 bg-slate-50 dark:bg-slate-800/50 rounded-xl" />
-                        <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-slate-400 group-focus-within:text-blue-600" />
+                        <Input id="legalAgency" name="legalAgency" placeholder="ระบุหน่วยงานตามกฎหมาย…" value={formData.legalAgency} onChange={handleChange} className="pl-11 h-12 bg-slate-50 dark:bg-slate-800/50 rounded-xl" />
+                        <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-slate-400 group-focus-within:text-blue-600" aria-hidden="true" />
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-sm font-bold text-slate-700 dark:text-slate-300">หน่วยงานตามมอบหมายงาน</Label>
+                      <Label htmlFor="assignedAgency" className="text-sm font-bold text-slate-700 dark:text-slate-300">หน่วยงานตามมอบหมายงาน</Label>
                       <div className="relative group">
-                        <Input name="assignedAgency" placeholder="ระบุหน่วยงานที่ได้รับมอบหมาย" value={formData.assignedAgency} onChange={handleChange} className="pl-11 h-12 bg-slate-50 dark:bg-slate-800/50 rounded-xl" />
-                        <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-slate-400 group-focus-within:text-blue-600" />
+                        <Input id="assignedAgency" name="assignedAgency" placeholder="ระบุหน่วยงานที่ได้รับมอบหมาย…" value={formData.assignedAgency} onChange={handleChange} className="pl-11 h-12 bg-slate-50 dark:bg-slate-800/50 rounded-xl" />
+                        <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-slate-400 group-focus-within:text-blue-600" aria-hidden="true" />
                       </div>
                     </div>
                   </div>
@@ -269,36 +282,36 @@ export default function RegisterPage() {
                 <div className="space-y-6 pt-4">
                   <div className="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-white/5">
                     <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                      <MapPin className="w-4 h-4" />
+                      <MapPin className="w-4 h-4" aria-hidden="true" />
                     </div>
                     <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">3. ข้อมูลพื้นที่ราชการ</h3>
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="space-y-2">
-                      <Label className="text-sm font-bold text-slate-700 dark:text-slate-300">จังหวัด</Label>
-                      <Input name="province" placeholder="ระบุจังหวัด" value={formData.province} onChange={handleChange} className="h-12 bg-slate-50 dark:bg-slate-800/50 rounded-xl" />
+                      <Label htmlFor="province" className="text-sm font-bold text-slate-700 dark:text-slate-300">จังหวัด</Label>
+                      <Input id="province" name="province" placeholder="ระบุจังหวัด…" value={formData.province} onChange={handleChange} className="h-12 bg-slate-50 dark:bg-slate-800/50 rounded-xl" />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-sm font-bold text-slate-700 dark:text-slate-300">อำเภอ</Label>
-                      <Input name="district" placeholder="ระบุอำเภอ" value={formData.district} onChange={handleChange} className="h-12 bg-slate-50 dark:bg-slate-800/50 rounded-xl" />
+                      <Label htmlFor="district" className="text-sm font-bold text-slate-700 dark:text-slate-300">อำเภอ</Label>
+                      <Input id="district" name="district" placeholder="ระบุอำเภอ…" value={formData.district} onChange={handleChange} className="h-12 bg-slate-50 dark:bg-slate-800/50 rounded-xl" />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-sm font-bold text-slate-700 dark:text-slate-300">ตำบล</Label>
-                      <Input name="subDistrict" placeholder="ระบุตำบล" value={formData.subDistrict} onChange={handleChange} className="h-12 bg-slate-50 dark:bg-slate-800/50 rounded-xl" />
+                      <Label htmlFor="subDistrict" className="text-sm font-bold text-slate-700 dark:text-slate-300">ตำบล</Label>
+                      <Input id="subDistrict" name="subDistrict" placeholder="ระบุตำบล…" value={formData.subDistrict} onChange={handleChange} className="h-12 bg-slate-50 dark:bg-slate-800/50 rounded-xl" />
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-sm font-bold text-slate-700 dark:text-slate-300">กลุ่มจังหวัด</Label>
-                      <Input name="provincialCluster" placeholder="เช่น กลุ่มจังหวัดภาคตะวันออกเฉียงเหนือตอนบน 2" value={formData.provincialCluster} onChange={handleChange} className="h-12 bg-slate-50 dark:bg-slate-800/50 rounded-xl" />
+                      <Label htmlFor="provincialCluster" className="text-sm font-bold text-slate-700 dark:text-slate-300">กลุ่มจังหวัด</Label>
+                      <Input id="provincialCluster" name="provincialCluster" placeholder="เช่น กลุ่มจังหวัดภาคตะวันออกเฉียงเหนือตอนบน 2…" value={formData.provincialCluster} onChange={handleChange} className="h-12 bg-slate-50 dark:bg-slate-800/50 rounded-xl" />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-sm font-bold text-slate-700 dark:text-slate-300">เขตจังหวัด</Label>
-                      <Input name="provincialZone" placeholder="ระบุเขตจังหวัด" value={formData.provincialZone} onChange={handleChange} className="h-12 bg-slate-50 dark:bg-slate-800/50 rounded-xl" />
+                      <Label htmlFor="provincialZone" className="text-sm font-bold text-slate-700 dark:text-slate-300">เขตจังหวัด</Label>
+                      <Input id="provincialZone" name="provincialZone" placeholder="ระบุเขตจังหวัด…" value={formData.provincialZone} onChange={handleChange} className="h-12 bg-slate-50 dark:bg-slate-800/50 rounded-xl" />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-sm font-bold text-slate-700 dark:text-slate-300">เขตตรวจราชการ</Label>
-                      <Input name="inspectionZone" placeholder="เช่น เขตตรวจราชการที่ 11" value={formData.inspectionZone} onChange={handleChange} className="h-12 bg-slate-50 dark:bg-slate-800/50 rounded-xl" />
+                      <Label htmlFor="inspectionZone" className="text-sm font-bold text-slate-700 dark:text-slate-300">เขตตรวจราชการ</Label>
+                      <Input id="inspectionZone" name="inspectionZone" placeholder="เช่น เขตตรวจราชการที่ 11…" value={formData.inspectionZone} onChange={handleChange} className="h-12 bg-slate-50 dark:bg-slate-800/50 rounded-xl" />
                     </div>
                   </div>
                 </div>
@@ -328,7 +341,7 @@ export default function RegisterPage() {
 
         {/* Copyright */}
         <motion.div
-          initial={{ opacity: 0 }}
+          initial={prefersReducedMotion ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.8 }}
           className="mt-8 flex flex-col items-center gap-4"
