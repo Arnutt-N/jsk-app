@@ -10,7 +10,7 @@ from datetime import datetime
 from app.db.session import get_db
 from app.api.deps import get_current_admin
 from app.core.audit import create_audit_log
-from app.core.permissions import can_assign, can_self_assign
+from app.core.permissions import can_assign, can_self_assign, can_revert_approval
 from app.models.service_request import ServiceRequest, RequestStatus, RequestPriority
 from app.models.media_file import MediaFile
 from app.schemas.service_request_liff import ServiceRequestResponse
@@ -368,6 +368,13 @@ async def update_request(
         )
     )
     prior_status = request.status
+
+    # Permission guard: revert approval requires explicit permission
+    if is_revert_from_completed and not can_revert_approval(current_admin.role):
+        raise HTTPException(
+            status_code=403,
+            detail="คุณไม่มีสิทธิ์ยกเลิกการอนุมัติ",
+        )
 
     # Update fields
     if update_data.status is not None:

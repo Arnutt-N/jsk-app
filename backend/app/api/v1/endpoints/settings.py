@@ -7,12 +7,14 @@ from app.core.permissions import (
     can_assign,
     can_self_assign,
     can_edit_permission_settings,
+    can_revert_approval,
     get_permission_summary,
     load_policy,
     invalidate_cache,
     KEY_ASSIGN,
     KEY_SELF_ASSIGN,
     KEY_EDIT_SETTINGS,
+    KEY_REVERT,
 )
 from app.models.permission_setting import PermissionSetting
 from app.models.user import User, UserRole
@@ -42,6 +44,7 @@ class PermissionSummary(BaseModel):
     assign_allowed_roles: List[str]
     self_assign_allowed_roles: List[str]
     permission_settings_editor_roles: List[str]
+    revert_approval_allowed_roles: List[str]
     # Full editable rule set (Stage 2). Empty for clients that only need
     # the legacy summary fields above.
     rules: List[PermissionRule] = Field(default_factory=list)
@@ -57,10 +60,11 @@ class MyPermissions(BaseModel):
     can_assign: bool
     can_self_assign: bool
     can_edit_permissions: bool
+    can_revert_approval: bool
 
 
 # Set of valid permission keys -- updates touching anything else are rejected.
-ALLOWED_PERMISSION_KEYS = {KEY_ASSIGN, KEY_SELF_ASSIGN, KEY_EDIT_SETTINGS}
+ALLOWED_PERMISSION_KEYS = {KEY_ASSIGN, KEY_SELF_ASSIGN, KEY_EDIT_SETTINGS, KEY_REVERT}
 
 
 async def _load_rules(db: AsyncSession) -> List[PermissionRule]:
@@ -134,11 +138,16 @@ async def update_permissions(
                 status_code=400,
                 detail=f"role ไม่รู้จัก: {', '.join(unknown_roles)}",
             )
-        # Lockout safeguard
+        # Lockout safeguard: prevent removing SUPER_ADMIN from critical permissions.
         if rule.key == KEY_EDIT_SETTINGS and "SUPER_ADMIN" not in rule.allowed_roles:
             raise HTTPException(
                 status_code=400,
                 detail="ห้ามถอด SUPER_ADMIN ออกจากสิทธิ์แก้ไขการตั้งค่า มิฉะนั้นจะไม่มีใครแก้ได้อีก",
+            )
+        if rule.key == KEY_REVERT and "SUPER_ADMIN" not in rule.allowed_roles:
+            raise HTTPException(
+                status_code=400,
+                detail="ห้ามถอด SUPER_ADMIN ออกจากสิทธิ์ยกเลิกการอนุมัติ",
             )
 
     # Apply -- one upsert per rule.
@@ -187,6 +196,7 @@ async def get_my_permissions(current_admin: User = Depends(get_current_admin)):
         can_assign=can_assign(current_admin.role),
         can_self_assign=can_self_assign(current_admin.role),
         can_edit_permissions=can_edit_permission_settings(current_admin.role),
+        can_revert_approval=can_revert_approval(current_admin.role),
     )
 
 class ValidateLineTokenRequest(BaseModel):

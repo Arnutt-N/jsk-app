@@ -317,6 +317,7 @@ export default function RequestDetailPage() {
     //   "ปฏิเสธ" / "มอบหมาย" buttons on the supervisor path)
     const isAssignee = userId !== null && request.assigned_agent_id === userId;
     const canApprove = permissions?.can_assign ?? false;
+    const canRevertApproval = permissions?.can_revert_approval ?? false;
 
     return (
         <div className="p-4 md:p-8 text-text-primary animate-in fade-in duration-500">
@@ -493,7 +494,7 @@ export default function RequestDetailPage() {
                         {/* Override kebab: supervisor-only escape hatches outside the linear workflow.
                             Visible whenever the request is NOT in the REJECTED terminal state (PRD B
                             opened COMPLETED to revert flows). Each inner item self-gates by status. */}
-                        {canApprove && request.status !== 'REJECTED' && (
+                        {(canApprove || canRevertApproval) && request.status !== 'REJECTED' && (
                             <DropdownMenu>
                                 <DropdownMenuTrigger
                                     aria-label="การจัดการพิเศษ"
@@ -534,7 +535,7 @@ export default function RequestDetailPage() {
                                         whichever previous stage matches the recovery they need. Both
                                         funnel through a ConfirmDialog (rendered near the AssignModal
                                         below) which writes an audit_log entry via the backend handler. */}
-                                    {request.status === 'COMPLETED' && (
+                                    {request.status === 'COMPLETED' && canRevertApproval && (
                                         <>
                                             <DropdownMenuItem
                                                 disabled={submitting}
