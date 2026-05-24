@@ -252,3 +252,105 @@ def test_forward_transition_does_not_log_revert_audit():
 
     audit_rows = [obj for obj in fake_db.added if isinstance(obj, AuditLog)]
     assert audit_rows == []
+
+
+def test_unassign_request_clears_assigned_agent():
+    fake_db = _FakeDB()
+    fake_request = SimpleNamespace(
+        id=42,
+        status=RequestStatus.IN_PROGRESS,
+        completed_at=None,
+        priority="LOW",
+        due_date=None,
+        assigned_agent_id=5,
+        assigned_by_id=7,
+    )
+    fake_db._fake_request = fake_request
+    teardown = _patch_admin_overrides(fake_db)
+
+    client = TestClient(app)
+    try:
+        response = client.patch(
+            "/api/v1/admin/requests/42",
+            json={"unassign": True},
+        )
+    finally:
+        client.close()
+        teardown()
+
+    assert response.status_code == 200
+    assert fake_db.committed is True
+    assert fake_request.assigned_agent_id is None
+    assert fake_request.assigned_by_id is None
+
+
+def test_unassign_request_forbidden_for_agent_role():
+    fake_db = _FakeDB()
+    fake_request = SimpleNamespace(
+        id=42,
+        status=RequestStatus.IN_PROGRESS,
+        completed_at=None,
+        priority="LOW",
+        due_date=None,
+        assigned_agent_id=5,
+        assigned_by_id=7,
+    )
+    fake_db._fake_request = fake_request
+
+    async def _override_get_db():
+        yield fake_db
+
+    async def _override_get_current_admin():
+        return SimpleNamespace(
+            id=3,
+            username="agent-user",
+            display_name="Agent User",
+            role=UserRole.AGENT,
+        )
+
+    app.dependency_overrides[session_get_db] = _override_get_db
+    app.dependency_overrides[deps.get_current_admin] = _override_get_current_admin
+
+    client = TestClient(app)
+    try:
+        response = client.patch(
+            "/api/v1/admin/requests/42",
+            json={"unassign": True},
+        )
+    finally:
+        client.close()
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 403
+    assert fake_request.assigned_agent_id == 5  # unchanged
+
+
+def test_assign_request_still_works_after_refactor():
+    """Regression test: normal assign via assigned_agent_id still works."""
+    fake_db = _FakeDB()
+    fake_request = SimpleNamespace(
+        id=42,
+        status=RequestStatus.PENDING,
+        completed_at=None,
+        priority="LOW",
+        due_date=None,
+        assigned_agent_id=None,
+        assigned_by_id=None,
+    )
+    fake_db._fake_request = fake_request
+    teardown = _patch_admin_overrides(fake_db)
+
+    client = TestClient(app)
+    try:
+        response = client.patch(
+            "/api/v1/admin/requests/42",
+            json={"assigned_agent_id": 5},
+        )
+    finally:
+        client.close()
+        teardown()
+
+    assert response.status_code == 200
+    assert fake_db.committed is True
+    assert fake_request.assigned_agent_id == 5
+    assert fake_request.assigned_by_id == 7  # recorded by current_admin id

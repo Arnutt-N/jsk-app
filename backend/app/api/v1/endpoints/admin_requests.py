@@ -320,6 +320,7 @@ class RequestUpdate(BaseModel):
     due_date: Optional[datetime] = None
     assigned_agent_id: Optional[int] = None
     assigned_by_id: Optional[int] = None
+    unassign: bool = False
 
 @router.patch("/{request_id}", response_model=ServiceRequestResponse)
 async def update_request(
@@ -345,12 +346,21 @@ async def update_request(
         raise HTTPException(status_code=404, detail="Request not found")
 
     # Permission check on assignment changes
-    if update_data.assigned_agent_id is not None and update_data.assigned_agent_id != request.assigned_agent_id:
-        is_self_assign = update_data.assigned_agent_id == current_admin.id
-        if is_self_assign and not can_self_assign(current_admin.role):
-            raise HTTPException(status_code=403, detail="คุณไม่มีสิทธิ์รับเรื่องด้วยตนเอง (self-assign)")
-        if not is_self_assign and not can_assign(current_admin.role):
-            raise HTTPException(status_code=403, detail="คุณไม่มีสิทธิ์มอบหมายงานให้ผู้อื่น")
+    is_changing_assignee = (
+        (update_data.assigned_agent_id is not None and update_data.assigned_agent_id != request.assigned_agent_id)
+        or (update_data.unassign and request.assigned_agent_id is not None)
+    )
+    if is_changing_assignee:
+        if update_data.unassign:
+            # Unassign requires can_assign permission
+            if not can_assign(current_admin.role):
+                raise HTTPException(status_code=403, detail="คุณไม่มีสิทธิ์ถอนการมอบหมายงาน")
+        else:
+            is_self_assign = update_data.assigned_agent_id == current_admin.id
+            if is_self_assign and not can_self_assign(current_admin.role):
+                raise HTTPException(status_code=403, detail="คุณไม่มีสิทธิ์รับเรื่องด้วยตนเอง (self-assign)")
+            if not is_self_assign and not can_assign(current_admin.role):
+                raise HTTPException(status_code=403, detail="คุณไม่มีสิทธิ์มอบหมายงานให้ผู้อื่น")
 
     # Detect revert-from-COMPLETED BEFORE mutating so we can:
     #   1. Reset completed_at symmetrically (it was set to func.now() on entry)
@@ -388,7 +398,21 @@ async def update_request(
         request.priority = update_data.priority
     if update_data.due_date is not None:
         request.due_date = update_data.due_date
-    if update_data.assigned_agent_id is not None:
+    if update_data.unassign:
+        prior_agent_id = request.assigned_agent_id
+        request.assigned_agent_id = None
+        request.assigned_by_id = None
+        await create_audit_log(
+            db=db,
+            admin_id=current_admin.id,
+            action="unassign",
+            resource_type="service_request",
+            resource_id=str(request.id),
+            details={
+                "from_agent_id": prior_agent_id,
+            },
+        )
+    elif update_data.assigned_agent_id is not None:
         request.assigned_agent_id = update_data.assigned_agent_id
         # Auto-record who assigned (used for audit / Telegram notification routing)
         if update_data.assigned_agent_id != current_admin.id:
