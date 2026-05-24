@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { Alert } from '@/components/ui/Alert'
+import { AGENCIES } from '@/lib/constants/agencies'
 import {
     User,
     Building2,
@@ -31,6 +32,12 @@ const STEPS = [
 ]
 
 const TOPIC_OPTIONS: Record<string, string[]> = {
+    "แจ้งเบาะแสยาเสพติด": [
+        "ปัญหายาเสพติด",
+        "ผู้เสพ/ผู้ป่วยที่เฝ้าระวัง/อันตราย",
+        "ขอความช่วยเหลือบำบัดผู้เสพ",
+        "ครอบครัวที่ต้องเข้าช่วยเหลือจากผลกระทบยาเสพติด"
+    ],
     "กองทุนยุติธรรม": [
         "ค่าจ้างทนายความ",
         "ค่าธรรมเนียมศาล",
@@ -632,9 +639,11 @@ export default function LiffServiceRequestV2() {
                                             required
                                         >
                                             <option value="">-- เลือกหน่วยงานของท่าน --</option>
-                                            <option value="ศูนย์ยุติธรรมชุมชน">ศูนย์ยุติธรรมชุมชน</option>
-                                            <option value="ศูนย์ดำรงธรรม">ศูนย์ดำรงธรรม</option>
-                                            <option value="สถานีตำรวจภูธร">สถานีตำรวจภูธร</option>
+                                            {AGENCIES.map(agency => (
+                                                <option key={agency.value} value={agency.value}>
+                                                    {agency.label}
+                                                </option>
+                                            ))}
                                         </select>
                                         {fieldErrors.agency && <p className="text-red-500 text-[10px] mt-1">{fieldErrors.agency}</p>}
                                     </div>
