@@ -5,9 +5,16 @@ import Head from 'next/head'
 import Script from 'next/script'
 import { Province, District, SubDistrict } from '../../../types/location'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
+import { AGENCIES } from '@/lib/constants/agencies'
 
 // --- CONSTANTS ---
 const TOPIC_OPTIONS: Record<string, string[]> = {
+    "แจ้งเบาะแสยาเสพติด": [
+        "ปัญหายาเสพติด",
+        "ผู้เสพ/ผู้ป่วยที่เฝ้าระวัง/อันตราย",
+        "ขอความช่วยเหลือบำบัดผู้เสพ",
+        "ครอบครัวที่ต้องเข้าช่วยเหลือจากผลกระทบยาเสพติด"
+    ],
     "กองทุนยุติธรรม": [
         "ค่าจ้างทนายความ",
         "ค่าธรรมเนียมศาล",
@@ -282,6 +289,26 @@ export default function LiffServiceRequestV2() {
         }
     }
 
+    const handleClose = () => {
+        try {
+            window.liff?.closeWindow()
+        } catch {
+            window.close()
+        }
+    }
+
+    const [timeLeft, setTimeLeft] = useState(5)
+
+    useEffect(() => {
+        if (!success) return
+        if (timeLeft <= 0) {
+            handleClose()
+            return
+        }
+        const timer = setTimeout(() => setTimeLeft(prev => prev - 1), 1000)
+        return () => clearTimeout(timer)
+    }, [success, timeLeft])
+
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -300,9 +327,10 @@ export default function LiffServiceRequestV2() {
                         </svg>
                     </div>
                     <h2 className="text-xl font-bold text-gray-900 mb-2">บันทึกข้อมูลสำเร็จ</h2>
-                    <p className="text-gray-500 mb-6">เจ้าหน้าที่ได้รับเรื่องของท่านแล้ว<br />เราจะดำเนินการตรวจสอบโดยเร็วที่สุด</p>
+                    <p className="text-gray-500 mb-2">เจ้าหน้าที่ได้รับเรื่องของท่านแล้ว<br />เราจะดำเนินการตรวจสอบโดยเร็วที่สุด</p>
+                    <p className="text-xs text-gray-400 mb-6">(ปิดหน้าต่างอัตโนมัติใน {timeLeft} วินาที)</p>
                     <button
-                        onClick={() => window.liff?.closeWindow()}
+                        onClick={handleClose}
                         className="w-full bg-gray-900 text-white py-3 rounded-xl font-medium"
                     >
                         ปิดหน้าต่าง
@@ -435,11 +463,11 @@ export default function LiffServiceRequestV2() {
                             required
                         >
                             <option value="">-- เลือกหน่วยงาน --</option>
-                            <option value="สำนักงานยุติธรรมจังหวัด">สำนักงานยุติธรรมจังหวัด</option>
-                            <option value="ศูนย์ดำรงธรรม">ศูนย์ดำรงธรรม</option>
-                            <option value="สถานีตำรวจภูธร">สถานีตำรวจภูธร</option>
-                            <option value="ที่ว่าการอำเภอ">ที่ว่าการอำเภอ (ศูนย์ไกล่เกลี่ยฯ)</option>
-                            <option value="อื่นๆ">อื่นๆ</option>
+                            {AGENCIES.map(agency => (
+                                <option key={agency.value} value={agency.value}>
+                                    {agency.label}
+                                </option>
+                            ))}
                         </select>
                     </div>
 

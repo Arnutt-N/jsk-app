@@ -38,6 +38,54 @@
 
 ## Task History (Newest First)
 
+### Task #37 - 2026-05-24 10:24 - Claude Code
+
+**Task ID**: `task-assign-modal-improvements-20260524`
+**Agent**: Claude Code (Opus 4.7, 1M context)
+**Status**: completed
+**Duration**: ~2 hours (plan + implement + review + commit + PR + merge)
+
+#### Cross-Platform Context
+- Read summaries from: Claude Code (`session-summary-20260504-0028.md`)
+- Key insights from other agents: Production infra stable after Supabase keepalive guard; no cross-platform work needed for this session.
+
+#### Work Completed
+- Created PRD D: `.claude/PRPs/prds/assign-modal-improvements.prd.md`
+- Created PRP plan: `.claude/PRPs/plans/assign-modal-improvements.plan.md`
+- Implemented all 5 tasks via parallel agents:
+  1. Thai label in AssignModal (`frontend/components/admin/AssignModal.tsx`)
+  2. Inline confirm step before assign/reassign (`frontend/components/admin/AssignModal.tsx`)
+  3. Backend unassign support (`backend/app/api/v1/endpoints/admin_requests.py`)
+  4. Unassign button in request detail page (`frontend/app/admin/requests/[id]/page.tsx`)
+  5. Backend unit tests for unassign + regression test (`backend/tests/test_admin_requests_endpoints.py`)
+- Post-review fixes: audit log for unassign (`from_agent_id`), regression test for normal assign
+- Commit: `f1cfb84`
+- PR #60 created, CI all green (Backend Pytest, Frontend Lint/Build, Playwright Smoke, Source Encoding Scan, Vercel)
+- Squash merged to `main`, branch deleted
+
+#### Files Modified
+- `frontend/components/admin/AssignModal.tsx`
+- `frontend/app/admin/requests/[id]/page.tsx`
+- `backend/app/api/v1/endpoints/admin_requests.py`
+- `backend/tests/test_admin_requests_endpoints.py`
+- `.claude/PRPs/prds/assign-modal-improvements.prd.md` (new)
+- `.claude/PRPs/plans/assign-modal-improvements.plan.md` (new, archived)
+- `.claude/PRPs/reports/assign-modal-improvements-report.md` (new)
+
+#### Session Summary
+- Location: `project-log-md/claude_code/session-summary-20260524-1024.md`
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260524-1024.json`
+
+#### Blockers
+- None.
+
+#### Next Steps
+- Review `.claude/PRPs/prds/` for next PRD/milestone
+- Read `.agents/state/TASK_LOG.md` for full project context
+- Check `.agents/state/SESSION_INDEX.md` for recent cross-platform summaries
+
+---
+
 ### Task #36 - 2026-05-04 00:28 - Claude Code
 
 **Task ID**: `task-supabase-keepalive-guard-20260504`
