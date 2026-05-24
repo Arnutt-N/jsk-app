@@ -27,6 +27,7 @@ import {
     MoreVertical,
     RotateCcw,
     Undo2,
+    UserX,
 } from 'lucide-react';
 import { AssignModal } from '@/components/admin/AssignModal';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -105,6 +106,7 @@ export default function RequestDetailPage() {
     const [loading, setLoading] = useState(true);
     const [submittingComment, setSubmittingComment] = useState(false);
     const [assignModalOpen, setAssignModalOpen] = useState(false);
+    const [unassignDialogOpen, setUnassignDialogOpen] = useState(false);
     // PRD B: revert-from-COMPLETED flow. Both kebab items share one
     // dialog — `target` records which status to revert to so the
     // ConfirmDialog body can interpolate the right label.
@@ -296,6 +298,11 @@ export default function RequestDetailPage() {
         if (request?.status === 'PENDING') {
             setManageFormData(prev => ({ ...prev, status: 'IN_PROGRESS' }));
         }
+    };
+
+    const handleUnassign = async () => {
+        await handleUpdateField({ unassign: true });
+        setUnassignDialogOpen(false);
     };
 
     // --- UI Helpers ---
@@ -869,14 +876,27 @@ export default function RequestDetailPage() {
                                     <label className="text-xs font-bold text-text-tertiary uppercase tracking-wider flex items-center gap-2">
                                         <UserPlus size={14} className="text-primary" /> มอบหมายงานให้
                                     </label>
-                                    <div
-                                        onClick={() => setAssignModalOpen(true)}
-                                        className={`w-full px-4 py-2.5 bg-bg border border-border-default rounded-lg text-sm cursor-pointer hover:bg-bg transition-colors flex justify-between items-center ${
-                                            request.assignee_name ? 'font-bold text-text-primary' : 'font-medium text-text-tertiary'
-                                        }`}
-                                    >
-                                        <span>{request.assignee_name || "ยังไม่ได้มอบหมาย"}</span>
-                                        <Settings2 size={16} className="text-text-tertiary" />
+                                    <div className="flex gap-2">
+                                        <div
+                                            onClick={() => setAssignModalOpen(true)}
+                                            className={`flex-1 px-4 py-2.5 bg-bg border border-border-default rounded-lg text-sm cursor-pointer hover:bg-bg transition-colors flex justify-between items-center ${
+                                                request.assignee_name ? 'font-bold text-text-primary' : 'font-medium text-text-tertiary'
+                                            }`}
+                                        >
+                                            <span>{request.assignee_name || "ยังไม่ได้มอบหมาย"}</span>
+                                            <Settings2 size={16} className="text-text-tertiary" />
+                                        </div>
+                                        {canApprove && request.assigned_agent_id && (
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="h-auto px-3 border-danger/30 text-danger hover:bg-danger/5 hover:text-danger"
+                                                onClick={() => setUnassignDialogOpen(true)}
+                                                title="ถอนการมอบหมาย"
+                                            >
+                                                <UserX size={16} />
+                                            </Button>
+                                        )}
                                     </div>
                                 </div>
 
@@ -944,6 +964,17 @@ export default function RequestDetailPage() {
                 onClose={() => setAssignModalOpen(false)}
                 onAssign={handleAssignRequest}
                 currentAssigneeId={request.assigned_agent_id}
+            />
+
+            <ConfirmDialog
+                isOpen={unassignDialogOpen}
+                onClose={() => setUnassignDialogOpen(false)}
+                onConfirm={handleUnassign}
+                title="ถอนการมอบหมาย"
+                description={`ถอนการมอบหมายงานจาก ${request.assignee_name || 'ผู้รับผิดชอบ'}?`}
+                confirmText="ถอนการมอบหมาย"
+                cancelText="ยกเลิก"
+                variant="warning"
             />
 
             {/* PRD B: revert-from-COMPLETED confirmation. Shared between the

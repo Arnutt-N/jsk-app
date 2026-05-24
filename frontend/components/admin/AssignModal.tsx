@@ -31,6 +31,7 @@ export const AssignModal: React.FC<AssignModalProps> = ({
     const [loading, setLoading] = useState(false);
     const [search, setSearch] = useState('');
     const [assigningId, setAssigningId] = useState<number | null>(null);
+    const [pendingAgent, setPendingAgent] = useState<Agent | null>(null);
 
     const API_BASE = '/api/v1';
 
@@ -54,11 +55,29 @@ export const AssignModal: React.FC<AssignModalProps> = ({
         }
     }, [fetchAgents, isOpen]);
 
-    const handleAssign = async (agent: Agent) => {
-        setAssigningId(agent.id);
-        await onAssign(agent.id, agent.display_name);
+    useEffect(() => {
+        if (!isOpen) {
+            setPendingAgent(null);
+            setAssigningId(null);
+            setSearch('');
+        }
+    }, [isOpen]);
+
+    const handleSelect = (agent: Agent) => {
+        setPendingAgent(agent);
+    };
+
+    const handleConfirm = async () => {
+        if (!pendingAgent) return;
+        setAssigningId(pendingAgent.id);
+        await onAssign(pendingAgent.id, pendingAgent.display_name);
         setAssigningId(null);
+        setPendingAgent(null);
         onClose();
+    };
+
+    const handleCancelConfirm = () => {
+        setPendingAgent(null);
     };
 
     const getWorkloadColor = (count: number) => {
@@ -120,7 +139,7 @@ export const AssignModal: React.FC<AssignModalProps> = ({
                                         <div className="flex items-center gap-2 mt-1">
                                             <div className={`text-[10px] font-bold px-2 py-0.5 rounded-md border flex items-center gap-1 ${getWorkloadColor(agent.active_tasks)}`}>
                                                 <div className={`w-1.5 h-1.5 rounded-full ${agent.active_tasks > 8 ? 'bg-danger' : 'bg-current'}`}></div>
-                                                Workload: {agent.active_tasks} tasks
+                                                งานที่รับผิดชอบ: {agent.active_tasks} งาน
                                             </div>
                                         </div>
                                     </div>
@@ -129,7 +148,7 @@ export const AssignModal: React.FC<AssignModalProps> = ({
                                     size="sm"
                                     variant={currentAssigneeId === agent.id ? "outline" : "primary"}
                                     disabled={currentAssigneeId === agent.id || assigningId !== null}
-                                    onClick={() => handleAssign(agent)}
+                                    onClick={() => handleSelect(agent)}
                                     isLoading={assigningId === agent.id}
                                     className={currentAssigneeId === agent.id ? "border-brand-200 text-brand-600 bg-brand-50" : ""}
                                 >
@@ -139,6 +158,26 @@ export const AssignModal: React.FC<AssignModalProps> = ({
                         ))
                     )}
                 </div>
+
+                {pendingAgent && (
+                    <div className="border-t border-border-default pt-4 mt-2">
+                        <div className="bg-warning/5 border border-warning/20 rounded-xl p-4">
+                            <p className="text-sm font-semibold text-text-primary mb-3">
+                                {currentAssigneeId
+                                    ? `เปลี่ยนผู้รับผิดชอบจาก ${agents.find(a => a.id === currentAssigneeId)?.display_name || 'เดิม'} เป็น ${pendingAgent.display_name}?`
+                                    : `มอบหมายงานให้ ${pendingAgent.display_name}?`}
+                            </p>
+                            <div className="flex gap-2 justify-end">
+                                <Button variant="outline" size="sm" onClick={handleCancelConfirm} disabled={assigningId !== null}>
+                                    ยกเลิก
+                                </Button>
+                                <Button variant="warning" size="sm" onClick={handleConfirm} isLoading={assigningId === pendingAgent.id}>
+                                    ยืนยัน
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 <div className="flex justify-end items-center pt-2">
                     <Button variant="ghost" size="sm" onClick={onClose}>ปิดหน้าต่าง</Button>
