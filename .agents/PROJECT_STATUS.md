@@ -1,18 +1,18 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-04-02 14:32 by CodeX (`.agents` migration verification on `chore/rename-agent-to-agents`; project milestones unchanged)
+> **Last Updated:** 2026-05-24 10:24 by Claude Code (PRD D: AssignModal Improvements merged via PR #60)
 
 ## Thai Summary
-เนเธเธ 27 เธเธฑเนเธเธ•เธญเธ **เน€เธชเธฃเนเธเธชเธกเธเธนเธฃเธ“เน 100%** โ€” เธ—เธธเธเธเธตเน€เธเธญเธฃเนเธ–เธนเธ implement เนเธฅเนเธง
-- เธเธฑเนเธเธ•เธญเธเธ–เธฑเธ”เนเธ: frontend lint/build gate, backend test gate, merge to main
+แผน 27 ขั้นตอน **เสร็จสมบูรณ์ 100%** — ทุกฟีเจอร์ถูก implement แล้ว
+- ขั้นตอนถัดไป: frontend lint/build gate, backend test gate, merge to main
 
-## ๐• NEW AGENT? START HERE
+## 🆕 NEW AGENT? START HERE
 1. **Entry Point:** `../START_HERE.md` - Friendly welcome and quick links
 2. **Follow:** `.agents/workflows/start-here.md` - Step-by-step guide
 3. **Keep Handy:** `.agents/QUICK_START_CARD.md` - Quick reference
 
 ## Agent Collaboration Quick Reference
-- **๐€ Start Here:** `.agents/workflows/start-here.md` - Universal entry workflow
+- **🚀 Start Here:** `.agents/workflows/start-here.md` - Universal entry workflow
 - **Universal Prompt:** `AGENT_PROMPT_TEMPLATE.md` (project root)
 - **Quick Card:** `.agents/QUICK_START_CARD.md`
 - **Pickup Workflow:** `.agents/workflows/pickup-from-any.md`
@@ -59,7 +59,7 @@
 
 ### Phase 7: Live Chat Refactoring (Status: PLANNED)
 - Audit completed: 2026-02-12 22:00
-- Goal: `slate-*` โ’ `gray-*`, dark mode support
+- Goal: `slate-*` → `gray-*`, dark mode support
 
 ### Phase 2: Core UX (7/7 done)
 - [x] 2.1 design system foundations
@@ -123,6 +123,7 @@
 - [2026-02-13] All 321 files committed and pushed to `origin/fix/live-chat-redesign-issues`.
 
 ## Recent Completions
+- [2026-05-24 10:24] Claude Code: Implemented PRD D — AssignModal Improvements (confirm dialog + Thai labels + unassign + audit log + regression test). Created PRD, plan, report. Implemented via 5 tasks with parallel agents. PR #60 merged to `main`, CI all green, branch deleted. Universal handoff artifacts created. (Claude Code)
 - [2026-03-30 08:19] CodeX: completed landing page redesign workflow on `feat/landing-page-redesign`, addressed PR review findings (responsive nav fallback + non-dead public links), verified targeted frontend lint/build, merged PR #14 into `main`, pushed `origin/main`, and executed universal handoff workflow artifacts (CodeX)
 - [2026-03-15 17:18] CodeX: fixed `/admin/files` media contract by adding secure admin list/delete endpoints, aligned frontend list/delete vs public upload/download routes, added backend media endpoint tests, verified `pytest tests/test_media_endpoints.py -q`, `npm run lint -- app/admin/files/page.tsx`, and `npm run build`, then executed universal handoff workflow artifacts (CodeX)
 - [2026-03-15 19:00] Claude Code: Skills audit (39 skills reviewed) + 4 skills updated — skn-auth-security (authFetch/PageAccessGuard/get_current_staff), skn-design-system (MessageBubble tokens, new pages, text-gradient fix), skn-service-request + skn-settings-config (frontmatter added) (Claude Code)

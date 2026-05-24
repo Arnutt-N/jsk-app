@@ -1,0 +1,41 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "Claude Code (Opus 4.7)",
+  "timestamp": "2026-05-23T22:05:27+07:00",
+  "status": "completed",
+  "work_summary": "PRD C: Configurable Permission Matrix — added revert_approval as DB-backed permission key. Backend guard (403), lockout safeguard (SUPER_ADMIN), frontend gate (canRevertApproval). PR #58 squash-merged to main. All CI green.",
+  "priority_actions": [
+    "Production verify: permission matrix UI shows revert_approval row with Thai label",
+    "Verify AGENT/DIRECTOR cannot see revert items on COMPLETED requests",
+    "Verify ADMIN/SUPER_ADMIN can revert COMPLETED → IN_PROGRESS"
+  ],
+  "context_for_next_agent": {
+    "branch": "main",
+    "latest_commit": "86cfc2f feat(permissions): configurable revert_approval permission key (PRD C) (#58)",
+    "pr_merged": "#58",
+    "files_changed": [
+      "backend/app/core/permissions.py",
+      "backend/app/api/v1/endpoints/settings.py",
+      "backend/app/api/v1/endpoints/admin_requests.py",
+      "frontend/lib/permissions.ts",
+      "frontend/app/admin/requests/[id]/page.tsx",
+      "frontend/e2e/permission-settings.spec.ts",
+      "backend/tests/test_permissions.py"
+    ],
+    "key_decisions": [
+      "ensure_seed_rows() auto-inserts revert_approval key at startup — no Alembic migration needed",
+      "PermissionSummary Pydantic schema must include revert_approval_allowed_roles to avoid ValidationError",
+      "Kebab outer gate uses (canApprove || canRevertApproval) so users with revert-only permission see the menu",
+      "UNKNOWN_ROLE string raises ValueError in _check() — test uses pytest.raises(ValueError)"
+    ]
+  },
+  "task_log_entry": "Task #38 in .agents/state/TASK_LOG.md",
+  "cross_platform_read": [
+    {
+      "platform": "claude_code",
+      "file": "session-summary-20260505-2339.md",
+      "key_insight": "PRD B: request detail UX overhaul (hero card, assign trigger, invisible buttons) — merged as PR #57"
+    }
+  ]
+}
