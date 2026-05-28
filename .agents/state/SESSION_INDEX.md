@@ -2,7 +2,7 @@
 
 > **Master index of ALL session summaries from ALL agents across ALL platforms**
 >
-> **Last Updated**: 2026-05-24 10:28
+> **Last Updated**: 2026-05-25 01:00
 
 ---
 
@@ -11,8 +11,8 @@
 | Metric | Value |
 |--------|-------|
 | Total Platforms | 11 |
-| Total Session Summaries | 107 |
-| Most Recent | 2026-05-24 10:24 (Claude Code - AssignModal Improvements PRD D merged via PR #60) |
+| Total Session Summaries | 108 |
+| Most Recent | 2026-05-25 01:00 (Claude Code - Drug Reporting PRD E merged via PR #61) |
 | Oldest | 2026-02-10 07:00 (Claude Code) |
 
 ---
@@ -82,6 +82,7 @@ cat project-log-md/kimi_code/session-summary-20260214-0430.md
 
 | # | File | Date | Task | Status |
 |---|------|------|------|--------|
+| 14 | `session-summary-20260525-0100.md` | 2026-05-25 01:00 | Drug Reporting PRD E (drug category + agencies + escalation + LIFF auto-close) | COMPLETE |
 | 13 | `session-summary-20260524-1024.md` | 2026-05-24 10:24 | AssignModal Improvements PRD D (confirm + unassign + audit log) | COMPLETE |
 | 12 | `session-summary-20260504-0028.md` | 2026-05-04 00:28 | Supabase keepalive guard via GitHub Actions cron | COMPLETE |
 | 11 | `session-summary-20260406-0100.md` | 2026-04-06 01:00 | Production deploy + Frankfurt migration + design system | COMPLETE |
@@ -172,6 +173,7 @@ cat project-log-md/kimi_code/session-summary-20260214-0430.md
 
 | Task # | Task ID | Agent | Session Summary |
 |--------|---------|-------|-----------------|
+| 38 | task-drug-reporting-prd-e-20260525 | Claude Code | `claude_code/session-summary-20260525-0100.md` |
 | 37 | task-assign-modal-improvements-20260524 | Claude Code | `claude_code/session-summary-20260524-1024.md` |
 | 36 | task-supabase-keepalive-guard-20260504 | Claude Code | `claude_code/session-summary-20260504-0028.md` |
 | 35 | task-db-stale-connection-timeout-20260407 | Antigravity | `antigravity/session-summary-20260407-1543.md` |
