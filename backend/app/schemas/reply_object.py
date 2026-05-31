@@ -15,6 +15,7 @@ class ObjectTypeEnum(str, Enum):
     VIDEO = "video"
     AUDIO = "audio"
     LOCATION = "location"
+    IMAGEMAP = "imagemap"
 
 
 class ReplyObjectBase(BaseModel):
