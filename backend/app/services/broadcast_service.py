@@ -108,8 +108,9 @@ class BroadcastService:
     #  Message building
     # ------------------------------------------------------------------ #
 
-    def _build_messages(self, broadcast: Broadcast) -> list:
+    async def _build_messages(self, broadcast: Broadcast, db: AsyncSession) -> list:
         """Convert broadcast content JSONB into LINE message objects."""
+        from app.services.response_parser import resolve_object
         content = broadcast.content
         messages = []
 
@@ -154,6 +155,15 @@ class BroadcastService:
                         FlexMessage(alt_text=item.get("alt_text", "Flex Message"), contents=container)
                     )
 
+        elif broadcast.message_type == BroadcastType.OBJECT_REF:
+            object_id = content.get("object_id", "")
+            if object_id:
+                resolved = await resolve_object(object_id, db)
+                if resolved:
+                    messages.append(resolved)
+                else:
+                    logger.warning("Broadcast %s: reply object '%s' not found", broadcast.id, object_id)
+
         return messages[:5]  # LINE API limit
 
     # ------------------------------------------------------------------ #
@@ -165,7 +175,7 @@ class BroadcastService:
         if broadcast.status not in (BroadcastStatus.DRAFT, BroadcastStatus.SCHEDULED):
             raise ValueError(f"Cannot send broadcast in status {broadcast.status}")
 
-        messages = self._build_messages(broadcast)
+        messages = await self._build_messages(broadcast, db)
         if not messages:
             raise ValueError("Broadcast has no valid messages to send")
 
