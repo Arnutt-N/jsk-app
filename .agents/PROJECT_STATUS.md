@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-05-25 01:00 by Claude Code (PRD E: Drug Reporting merged via PR #61)
+> **Last Updated:** 2026-05-31 15:00 by Claude Code (PRD reply-objects-consistency created, 10 PRs merged, all plans archived)
 
 ## Thai Summary
 แผน 27 ขั้นตอน **เสร็จสมบูรณ์ 100%** — ทุกฟีเจอร์ถูก implement แล้ว
