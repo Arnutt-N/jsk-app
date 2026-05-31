@@ -20,6 +20,7 @@ class BroadcastType(str, Enum):
     IMAGE = "image"
     FLEX = "flex"
     MULTI = "multi"
+    OBJECT_REF = "object_ref"
 
 
 class Broadcast(Base):

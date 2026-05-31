@@ -127,20 +127,24 @@ async def test_cancel_broadcast_rejects_failed():
         await svc.cancel_broadcast(db, bc)
 
 
-def test_build_messages_text():
+@pytest.mark.asyncio
+async def test_build_messages_text():
     svc = BroadcastService()
     bc = _broadcast(content={"text": "Hello world"})
-    msgs = svc._build_messages(bc)
+    db = AsyncMock()
+    msgs = await svc._build_messages(bc, db)
     assert len(msgs) == 1
     assert msgs[0].text == "Hello world"
 
 
-def test_build_messages_multi_truncates_to_5():
+@pytest.mark.asyncio
+async def test_build_messages_multi_truncates_to_5():
     svc = BroadcastService()
     items = [{"type": "text", "text": f"msg{i}"} for i in range(10)]
     bc = _broadcast(
         message_type=BroadcastType.MULTI,
         content={"messages": items},
     )
-    msgs = svc._build_messages(bc)
+    db = AsyncMock()
+    msgs = await svc._build_messages(bc, db)
     assert len(msgs) == 5
