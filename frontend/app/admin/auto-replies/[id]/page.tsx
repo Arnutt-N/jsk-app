@@ -37,7 +37,7 @@ interface IntentCategory {
 }
 
 const MATCH_TYPES = ['exact', 'contains', 'starts_with', 'regex'];
-const REPLY_TYPES = ['text', 'flex', 'image', 'sticker', 'video'];
+const REPLY_TYPES = ['text', 'flex', 'image', 'sticker', 'video', 'audio', 'location', 'imagemap', 'template'];
 
 export default function CategoryDetailPage() {
     const params = useParams();
@@ -137,7 +137,7 @@ export default function CategoryDetailPage() {
         e.preventDefault();
 
         let payload = null;
-        if (responseFormData.reply_type === 'flex' || responseFormData.reply_type === 'template') {
+        if (['flex', 'template', 'imagemap', 'audio', 'location'].includes(responseFormData.reply_type)) {
             try {
                 payload = JSON.parse(responseFormData.payload);
                 setPayloadError(null);
@@ -506,7 +506,7 @@ export default function CategoryDetailPage() {
                                 </div>
                             )}
 
-                            {(responseFormData.reply_type === 'flex' || responseFormData.reply_type === 'template') && (
+                            {(responseFormData.reply_type === 'flex' || responseFormData.reply_type === 'template' || responseFormData.reply_type === 'imagemap' || responseFormData.reply_type === 'audio' || responseFormData.reply_type === 'location') && (
                                 <div>
                                     <label className="block text-xs font-semibold text-text-tertiary uppercase tracking-wide mb-1.5">
                                         JSON Payload

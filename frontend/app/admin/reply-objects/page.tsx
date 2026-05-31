@@ -23,7 +23,7 @@ interface ReplyObject {
     created_at: string;
 }
 
-const OBJECT_TYPES = ['text', 'flex', 'image', 'sticker', 'video', 'audio', 'location'];
+const OBJECT_TYPES = ['text', 'flex', 'image', 'sticker', 'video', 'audio', 'location', 'imagemap'];
 
 export default function ReplyObjectsPage() {
     const [objects, setObjects] = useState<ReplyObject[]>([]);
