@@ -414,21 +414,55 @@ export default function RequestDetailPage() {
         });
     };
 
+    // --- Derived state (computed BEFORE any early return so hooks rules are satisfied) ---
+    const isAssignee = userId !== null && request?.assigned_agent_id === userId;
+    const canApprove = permissions?.can_assign ?? false;
+    const canRevertApproval = permissions?.can_revert_approval ?? false;
+
+    // P1: dirty-state tracker for manage tab
+    const isManageDirty = useMemo(() => {
+        if (!request) return false;
+        const currentDue = request.due_date ? request.due_date.split('T')[0] : '';
+        return manageFormData.status !== (request.status ?? '')
+            || manageFormData.priority !== request.priority
+            || manageFormData.due_date !== currentDue
+            || manageFormData.comment.trim().length > 0;
+    }, [request, manageFormData]);
+
+    // P1: intercept tab switch when manage tab has unsaved changes
+    const handleTabClick = useCallback((tabId: string) => {
+        if (activeTab === 'manage' && isManageDirty && tabId !== 'manage') {
+            setPendingTab(tabId);
+            return;
+        }
+        setActiveTab(tabId);
+    }, [activeTab, isManageDirty]);
+
+    const confirmTabSwitch = useCallback(() => {
+        if (pendingTab) {
+            setActiveTab(pendingTab);
+            setPendingTab(null);
+        }
+    }, [pendingTab]);
+
     // --- Memoized formatted dates (avoid re-parsing on every render) ---
+    const createdAtStr = request?.created_at;
+    const dueDateStr = request?.due_date;
+
     const formattedCreatedAt = useMemo(() => {
-        if (!request) return '';
-        return new Date(request.created_at).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
-    }, [request?.created_at]);
+        if (!createdAtStr) return '';
+        return new Date(createdAtStr).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
+    }, [createdAtStr]);
 
     const formattedDueDate = useMemo(() => {
-        if (!request?.due_date) return null;
-        return new Date(request.due_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
-    }, [request?.due_date]);
+        if (!dueDateStr) return null;
+        return new Date(dueDateStr).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
+    }, [dueDateStr]);
 
     const formattedFooterDate = useMemo(() => {
-        if (!request) return '';
-        return new Date(request.created_at).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-    }, [request?.created_at]);
+        if (!createdAtStr) return '';
+        return new Date(createdAtStr).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }, [createdAtStr]);
 
     // --- UI Helpers ---
     const tabs = [
@@ -452,37 +486,6 @@ export default function RequestDetailPage() {
             </Link>
         </div>
     );
-
-    // Derived authorisation state -- must be after the null check on `request`.
-    const isAssignee = userId !== null && request.assigned_agent_id === userId;
-    const canApprove = permissions?.can_assign ?? false;
-    const canRevertApproval = permissions?.can_revert_approval ?? false;
-
-    // P1: dirty-state tracker for manage tab
-    const isManageDirty = useMemo(() => {
-        if (!request) return false;
-        const currentDue = request.due_date ? request.due_date.split('T')[0] : '';
-        return manageFormData.status !== (request.status ?? '')
-            || manageFormData.priority !== request.priority
-            || manageFormData.due_date !== currentDue
-            || manageFormData.comment.trim().length > 0;
-    }, [request, manageFormData]);
-
-    // P1: intercept tab switch when manage tab has unsaved changes
-    const handleTabClick = (tabId: string) => {
-        if (activeTab === 'manage' && isManageDirty && tabId !== 'manage') {
-            setPendingTab(tabId);
-            return;
-        }
-        setActiveTab(tabId);
-    };
-
-    const confirmTabSwitch = () => {
-        if (pendingTab) {
-            setActiveTab(pendingTab);
-            setPendingTab(null);
-        }
-    };
 
     return (
         <div className="p-4 md:p-8 text-text-primary">
