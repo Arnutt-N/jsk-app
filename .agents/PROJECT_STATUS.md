@@ -1,10 +1,12 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-05-25 01:00 by Claude Code (PRD E: Drug Reporting merged via PR #61)
+> **Last Updated:** 2026-06-01 17:05 by Claude Code (UAT fixes: revert notes + AGENT→STAFF + test users)
 
 ## Thai Summary
 แผน 27 ขั้นตอน **เสร็จสมบูรณ์ 100%** — ทุกฟีเจอร์ถูก implement แล้ว
-- ขั้นตอนถัดไป: frontend lint/build gate, backend test gate, merge to main
+- PRD C (Configurable Permission Matrix) merged PR #74
+- UAT checklist พร้อมสำหรับ PRD B + C
+- ขั้นตอนถัดไป: UAT บน staging โดย Super Admin
 
 ## 🆕 NEW AGENT? START HERE
 1. **Entry Point:** `../START_HERE.md` - Friendly welcome and quick links
@@ -123,6 +125,7 @@
 - [2026-02-13] All 321 files committed and pushed to `origin/fix/live-chat-redesign-issues`.
 
 ## Recent Completions
+- [2026-06-01 09:47] Claude Code: PRD C Configurable Permission Matrix — verified all 5 code phases complete, ran 10/10 unit tests (all pass), verified E2E integration (7/7 layers pass), created UAT release note, committed + pushed + created PR #74, merged to main. Code review completed with positive verdict. (Claude Code)
 - [2026-05-25 01:00] Claude Code: Implemented PRD E — Drug Reporting (แจ้งเบาะแสยาเสพติด). Added drug reporting category with 4 subcategories, 4 agencies, EscalationDialog (ปปส./ตำรวจ/กรมการปกครอง), merged ร้องเรียน+ร้องทุกข์ into combined entry, LIFF request-v2 auto-close countdown. 12 files, 29 unit tests pass. PR #61 merged to `main` via squash. (Claude Code)
 - [2026-05-24 10:24] Claude Code: Implemented PRD D — AssignModal Improvements (confirm dialog + Thai labels + unassign + audit log + regression test). Created PRD, plan, report. Implemented via 5 tasks with parallel agents. PR #60 merged to `main`, CI all green, branch deleted. Universal handoff artifacts created. (Claude Code)
 - [2026-03-30 08:19] CodeX: completed landing page redesign workflow on `feat/landing-page-redesign`, addressed PR review findings (responsive nav fallback + non-dead public links), verified targeted frontend lint/build, merged PR #14 into `main`, pushed `origin/main`, and executed universal handoff workflow artifacts (CodeX)

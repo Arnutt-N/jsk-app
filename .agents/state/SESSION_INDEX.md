@@ -12,7 +12,7 @@
 |--------|-------|
 | Total Platforms | 11 |
 | Total Session Summaries | 108 |
-| Most Recent | 2026-05-25 01:00 (Claude Code - Drug Reporting PRD E merged via PR #61) |
+| Most Recent | 2026-06-01 09:47 (Claude Code - Configurable Permission Matrix PRD C merged via PR #74) |
 | Oldest | 2026-02-10 07:00 (Claude Code) |
 
 ---
@@ -49,7 +49,7 @@ cat project-log-md/kimi_code/session-summary-20260214-0430.md
 | Platform | Directory | Summaries | Latest | Agent Count |
 |----------|-----------|-----------|--------|-------------|
 | **Kimi Code** | `project-log-md/kimi_code/` | [Scan] | 2026-02-14 | 1+ |
-| **Claude Code** | `project-log-md/claude_code/` | [Scan] | 2026-05-24 | 1+ |
+| **Claude Code** | `project-log-md/claude_code/` | [Scan] | 2026-06-01 | 1+ |
 | **Antigravity** | `project-log-md/antigravity/` | [Scan] | 2026-04-04 | 1+ |
 | **cline** | `project-log-md/cline/` | [Scan] | 2026-02-15 | 1+ |
 | **CodeX** | `project-log-md/codeX/` | [Scan] | 2026-04-07 | 1+ |
@@ -82,6 +82,8 @@ cat project-log-md/kimi_code/session-summary-20260214-0430.md
 
 | # | File | Date | Task | Status |
 |---|------|------|------|--------|
+| 16 | `session-summary-20260601-1705.md` | 2026-06-01 17:05 | UAT fixes (revert notes + AGENT→STAFF + test users) + impeccable init | COMPLETE |
+| 15 | `session-summary-20260601-0947.md` | 2026-06-01 09:47 | Configurable Permission Matrix PRD C (verification + tests + code review + PR #74 merged) | COMPLETE |
 | 14 | `session-summary-20260525-0100.md` | 2026-05-25 01:00 | Drug Reporting PRD E (drug category + agencies + escalation + LIFF auto-close) | COMPLETE |
 | 13 | `session-summary-20260524-1024.md` | 2026-05-24 10:24 | AssignModal Improvements PRD D (confirm + unassign + audit log) | COMPLETE |
 | 12 | `session-summary-20260504-0028.md` | 2026-05-04 00:28 | Supabase keepalive guard via GitHub Actions cron | COMPLETE |
@@ -280,3 +282,5 @@ project-log-md/[PLATFORM]/session-summary-[YYYYMMDD-HHMM].md
 ---
 
 *This index ensures every agent can find and read every other agent's work, regardless of platform.*
+
+| 6 | `session-summary-20260601-2239.md` | 2026-06-01 22:39 | Impeccable pass (score 22→28) | ✅ COMPLETE |

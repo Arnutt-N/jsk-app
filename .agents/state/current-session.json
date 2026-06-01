@@ -1,41 +1,43 @@
 {
   "version": "1.0",
-  "last_updated": "2026-05-25T01:00:00+07:00",
+  "last_updated": "2026-06-01T09:47:00+07:00",
   "platform": "claude_code",
-  "agent_id": "claude_code_qwen3_6_max",
-  "session_id": "sess-20260525-claude-code-prd-e-drug-reporting",
+  "agent_id": "claude_code_mimo_v2_5_pro",
+  "session_id": "sess-20260601-claude-code-prd-c-handoff",
   "project": {
     "name": "JskApp",
     "root": "D:/genAI/jsk-app",
-    "branch": "feat/community-agencies-drug-reporting"
+    "branch": "main"
   },
   "current_task": {
-    "id": "task-drug-reporting-prd-e-20260525",
-    "title": "PRD E: Drug Reporting (แจ้งเบาะแสยาเสพติด) — subcategories, agencies, escalation, LIFF auto-close",
+    "id": "task-prd-c-handoff-20260601",
+    "title": "PRD C: Configurable Permission Matrix — verification, tests, code review, PR merge, handoff",
     "status": "completed",
     "priority": "high"
   },
   "context": {
     "recent_files": [
-      "frontend/lib/constants/categories.ts",
-      "frontend/lib/constants/agencies.ts",
-      "frontend/lib/constants/__tests__/categories.test.ts",
-      "frontend/lib/constants/__tests__/agencies.test.ts",
-      "frontend/components/ui/EscalationDialog.tsx",
-      "frontend/app/admin/requests/create/page.tsx",
-      "frontend/app/admin/requests/page.tsx",
+      "backend/app/core/permissions.py",
+      "backend/app/api/v1/endpoints/admin_requests.py",
+      "backend/app/api/v1/endpoints/settings.py",
+      "frontend/lib/permissions.ts",
       "frontend/app/admin/requests/[id]/page.tsx",
-      "frontend/app/liff/request-v2/page.tsx",
-      "frontend/app/liff/service-request/page.tsx",
-      ".claude/PRPs/reviews/local-review-prd-e-drug-reporting.md",
-      ".agents/state/TASK_LOG.md",
-      ".agents/state/SESSION_INDEX.md",
-      ".agents/state/current-session.json"
+      "backend/tests/test_permissions.py",
+      "frontend/e2e/permission-settings.spec.ts",
+      ".claude/PRPs/reports/configurable-permission-matrix-uat-release-note.md",
+      ".claude/PRPs/reports/uat-checklist-prd-b-c.md"
     ],
-    "active_branch": "feat/community-agencies-drug-reporting",
-    "commit": "b616929 (PR #61 merged to main via squash)"
+    "active_branch": "main",
+    "commit": "2ad645d (PR #74 merged to main)"
   },
   "handoff_history": [
+    {
+      "from": "claude_code",
+      "to": "any",
+      "timestamp": "2026-06-01T09:47:00+07:00",
+      "task": "PRD C: Configurable Permission Matrix — verified all phases, ran tests, code review, PR #74 merged",
+      "status": "completed"
+    },
     {
       "from": "claude_code",
       "to": "any",
@@ -63,37 +65,31 @@
       "timestamp": "2026-04-07T15:43:00+07:00",
       "task": "Fixed database idle connection timeouts (partially reverted by PR #35 PgBouncer fix)",
       "status": "completed"
-    },
-    {
-      "from": "codeX",
-      "to": "any",
-      "timestamp": "2026-04-07T00:29:15.0761628+07:00",
-      "task": "Login-after-idle auth stabilization merged to main (PR #26) + universal handoff",
-      "status": "completed"
     }
   ],
   "blockers": [],
   "next_steps": [
-    "Check .claude/PRPs/prds/ for next PRD/milestone to implement",
-    "Read .agents/state/TASK_LOG.md for full project context",
-    "Check .agents/state/SESSION_INDEX.md for recent cross-platform summaries"
+    "UAT บน staging สำหรับ PRD B + C (ดู .claude/PRPs/reports/uat-checklist-prd-b-c.md)",
+    "Check .claude/PRPs/prds/ สำหรับ PRD/milestone ถัดไป",
+    "Read .agents/state/TASK_LOG.md สำหรับ project context เต็ม"
   ],
   "plan_status": {
-    "plan_file": ".claude/PRPs/plans/community-agencies-drug-reporting.plan.md",
-    "total_phases": 3,
-    "status": "All tasks completed. PR #61 merged to main via squash. CI all green."
+    "plan_file": ".claude/PRPs/plans/configurable-permission-matrix.plan.md",
+    "total_phases": 6,
+    "status": "All code phases (1-5) complete. Phase 6 (UAT) pending — checklist created. PR #74 merged to main."
   },
   "cross_platform_context": {
     "summaries_read": [
-      "claude_code/session-summary-20260524-1024.md"
+      "claude_code/session-summary-20260525-0100.md"
     ],
-    "key_insights": "PRD E complete: drug reporting category with subcategories, agencies, escalation dialog, LIFF auto-close. All CI green. No cross-platform blockers."
+    "key_insights": "PRD C complete: configurable revert_approval permission. All CI green (except Playwright timeout). UAT checklist ready for Super Admin."
   },
   "reference_docs": [
-    ".claude/PRPs/reviews/local-review-prd-e-drug-reporting.md",
-    ".claude/PRPs/prds/community-agencies-drug-reporting.prd.md",
-    ".claude/PRPs/plans/community-agencies-drug-reporting.plan.md",
-    "project-log-md/claude_code/session-summary-20260525-0100.md",
+    ".claude/PRPs/prds/configurable-permission-matrix.prd.md",
+    ".claude/PRPs/reports/configurable-permission-matrix-report.md",
+    ".claude/PRPs/reports/configurable-permission-matrix-uat-release-note.md",
+    ".claude/PRPs/reports/uat-checklist-prd-b-c.md",
+    "project-log-md/claude_code/session-summary-20260601-0947.md",
     ".agents/state/TASK_LOG.md",
     ".agents/state/SESSION_INDEX.md"
   ],
