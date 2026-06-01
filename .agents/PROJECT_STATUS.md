@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-06-02 00:32 by Antigravity/Cline (CommandPalette + logger + broken-image fallback committed)
+> **Last Updated:** 2026-06-02 01:39 by Kimi Code CLI (critique fixes on request detail page, PR #77 opened)
 
 ## Thai Summary
 แผน 27 ขั้นตอน **เสร็จสมบูรณ์ 100%** — ทุกฟีเจอร์ถูก implement แล้ว
@@ -123,6 +123,7 @@
 - [2026-02-13] All 321 files committed and pushed to `origin/fix/live-chat-redesign-issues`.
 
 ## Recent Completions
+- [2026-06-02 01:39] Kimi Code CLI: Applied all P0–P3 critique fixes on `/admin/requests/[id]` — destructive-action confirmations (reject/force-complete), hero button explosion cleanup, dirty-state tracking on manage tab, uppercase eyebrow label removal, decorative gradient removal, footer cruft replacement. TypeScript compiles clean. PR #77 opened from `fix/critique-request-detail`. (Kimi Code CLI)
 - [2026-06-02 00:32] Antigravity: Committed CommandPalette (⌘K launcher), production logger utility, logger migration across 30+ pages, broken-image fallback in files page. Commit c31c8c9 on `fix/impeccable-remaining-issues`. (Antigravity/Cline)
 - [2026-05-25 01:00] Claude Code: Implemented PRD E — Drug Reporting. Added drug reporting category with 4 subcategories, 4 agencies, EscalationDialog, merged categories, LIFF auto-close countdown. 12 files, 29 unit tests pass. PR #61 merged to main via squash. (Claude Code)
 - [2026-05-24 10:24] Claude Code: Implemented PRD D — AssignModal Improvements. PR #60 merged to main, CI all green. (Claude Code)

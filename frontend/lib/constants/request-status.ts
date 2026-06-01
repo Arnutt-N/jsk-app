@@ -148,3 +148,91 @@ export function getStatusIconForRequest(req: RequestLike): string {
   }
   return STATUS_CONFIG[normalized].icon
 }
+
+/**
+ * Tailwind color classes for status badges/chips — includes dark mode variants.
+ * Centralized here so the page doesn't scatter hardcoded bg-{color}-50 strings.
+ */
+export interface StatusColorSet {
+  bg: string
+  text: string
+  ring: string
+  dot: string
+  border: string
+}
+
+export const STATUS_CHIP_COLORS: Record<RequestStatus, StatusColorSet> = {
+  PENDING: {
+    bg: 'bg-amber-50 dark:bg-amber-950/30',
+    text: 'text-amber-700 dark:text-amber-300',
+    ring: 'ring-amber-200 dark:ring-amber-800',
+    dot: 'bg-amber-500 dark:bg-amber-400',
+    border: 'border-amber-400 dark:border-amber-700',
+  },
+  ACKNOWLEDGED: {
+    bg: 'bg-orange-50 dark:bg-orange-950/30',
+    text: 'text-orange-700 dark:text-orange-300',
+    ring: 'ring-orange-200 dark:ring-orange-800',
+    dot: 'bg-orange-500 dark:bg-orange-400',
+    border: 'border-orange-400 dark:border-orange-700',
+  },
+  IN_PROGRESS: {
+    bg: 'bg-blue-50 dark:bg-blue-950/30',
+    text: 'text-blue-700 dark:text-blue-300',
+    ring: 'ring-blue-200 dark:ring-blue-800',
+    dot: 'bg-blue-500 dark:bg-blue-400',
+    border: 'border-blue-400 dark:border-blue-700',
+  },
+  AWAITING_APPROVAL: {
+    bg: 'bg-violet-50 dark:bg-violet-950/30',
+    text: 'text-violet-700 dark:text-violet-300',
+    ring: 'ring-violet-200 dark:ring-violet-800',
+    dot: 'bg-violet-500 dark:bg-violet-400',
+    border: 'border-violet-400 dark:border-violet-700',
+  },
+  COMPLETED: {
+    bg: 'bg-emerald-50 dark:bg-emerald-950/30',
+    text: 'text-emerald-700 dark:text-emerald-300',
+    ring: 'ring-emerald-200 dark:ring-emerald-800',
+    dot: 'bg-emerald-500 dark:bg-emerald-400',
+    border: 'border-emerald-400 dark:border-emerald-700',
+  },
+  REJECTED: {
+    bg: 'bg-rose-50 dark:bg-rose-950/30',
+    text: 'text-rose-700 dark:text-rose-300',
+    ring: 'ring-rose-200 dark:ring-rose-800',
+    dot: 'bg-rose-500 dark:bg-rose-400',
+    border: 'border-rose-400 dark:border-rose-700',
+  },
+}
+
+export const PRIORITY_CHIP_COLORS: Record<string, StatusColorSet> = {
+  URGENT: {
+    bg: 'bg-rose-50 dark:bg-rose-950/30',
+    text: 'text-rose-700 dark:text-rose-300',
+    ring: 'ring-rose-200 dark:ring-rose-800',
+    dot: 'bg-rose-500 dark:bg-rose-400',
+    border: 'border-rose-400 dark:border-rose-700',
+  },
+  HIGH: {
+    bg: 'bg-orange-50 dark:bg-orange-950/30',
+    text: 'text-orange-700 dark:text-orange-300',
+    ring: 'ring-orange-200 dark:ring-orange-800',
+    dot: 'bg-orange-500 dark:bg-orange-400',
+    border: 'border-orange-400 dark:border-orange-700',
+  },
+  MEDIUM: {
+    bg: 'bg-yellow-50 dark:bg-yellow-950/30',
+    text: 'text-yellow-700 dark:text-yellow-300',
+    ring: 'ring-yellow-200 dark:ring-yellow-800',
+    dot: 'bg-yellow-500 dark:bg-yellow-400',
+    border: 'border-yellow-400 dark:border-yellow-700',
+  },
+  LOW: {
+    bg: 'bg-emerald-50 dark:bg-emerald-950/30',
+    text: 'text-emerald-700 dark:text-emerald-300',
+    ring: 'ring-emerald-200 dark:ring-emerald-800',
+    dot: 'bg-emerald-500 dark:bg-emerald-400',
+    border: 'border-emerald-400 dark:border-emerald-700',
+  },
+}

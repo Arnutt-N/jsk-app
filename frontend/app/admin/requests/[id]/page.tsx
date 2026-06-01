@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import {
     User,
@@ -34,7 +35,6 @@ import { AssignModal } from '@/components/admin/AssignModal';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EscalationDialog } from '@/components/ui/EscalationDialog';
 import { Button } from '@/components/ui/Button';
-import CalendarPickerTH from '@/components/ui/CalendarPickerTH';
 import {
     DropdownMenu,
     DropdownMenuTrigger,
@@ -46,12 +46,17 @@ import {
 import { useToast } from '@/components/ui/Toast';
 import {
     type RequestStatus,
+    getStatusLabel,
     getStatusLabelForRequest,
+    STATUS_CHIP_COLORS,
+    PRIORITY_CHIP_COLORS,
 } from '@/lib/constants/request-status';
 import { usePermissions } from '@/lib/permissions';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGuardedUpdate } from '@/hooks/useGuardedUpdate';
 import { logger } from '@/lib/logger';
+
+const CalendarPickerTH = dynamic(() => import('@/components/ui/CalendarPickerTH'));
 
 // Interfaces for API Data
 interface Comment {
@@ -92,6 +97,67 @@ function getErrorMessage(error: unknown): string {
     return error instanceof Error ? error.message : 'Unknown error';
 }
 
+// ------------------------------------------------------------------
+// Sub-component: isolated comment-input state to prevent full-page
+// re-renders on every keystroke in the textarea.
+// ------------------------------------------------------------------
+function CommentInputSection({ requestId, onSuccess }: {
+    requestId: string | string[];
+    onSuccess: () => void;
+}) {
+    const [newComment, setNewComment] = useState('');
+    const [submittingComment, setSubmittingComment] = useState(false);
+    const { toast } = useToast();
+    const API_BASE = '/api/v1';
+
+    const handleAddComment = async () => {
+        if (!newComment.trim()) return;
+        setSubmittingComment(true);
+        try {
+            const res = await fetch(`${API_BASE}/admin/requests/${requestId}/comments`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: newComment })
+            });
+            if (!res.ok) throw new Error('Failed to post comment');
+            setNewComment('');
+            onSuccess();
+        } catch (err: unknown) {
+            toast({ title: 'ผิดพลาด', description: getErrorMessage(err), variant: 'error' });
+        } finally {
+            setSubmittingComment(false);
+        }
+    };
+
+    return (
+        <div className="bg-bg rounded-2xl border border-border-default p-6">
+            <h4 className="text-sm font-bold text-text-secondary mb-4">เพิ่มความเห็น</h4>
+            <div className="space-y-4">
+                <textarea
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    placeholder="พิมพ์ความเห็นหรือบันทึกการดำเนินงาน..."
+                    aria-label="เพิ่มความเห็นหรือบันทึกการดำเนินงาน"
+                    className="w-full p-4 bg-bg border border-border-default rounded-xl text-sm outline-none focus:border-primary/40 focus:bg-surface focus:ring-4 focus:ring-primary/10 transition-all resize-none min-h-[120px]"
+                ></textarea>
+                <div className="flex justify-end">
+                    <Button
+                        variant="primary"
+                        size="md"
+                        onClick={handleAddComment}
+                        disabled={!newComment.trim() || submittingComment}
+                        isLoading={submittingComment}
+                        leftIcon={<Send size={16} />}
+                        aria-label="บันทึกความเห็น"
+                    >
+                        บันทึกข้อมูล
+                    </Button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export default function RequestDetailPage() {
     const params = useParams();
     const { toast } = useToast();
@@ -105,9 +171,7 @@ export default function RequestDetailPage() {
         comment: ''
     });
     const [comments, setComments] = useState<Comment[]>([]);
-    const [newComment, setNewComment] = useState('');
     const [loading, setLoading] = useState(true);
-    const [submittingComment, setSubmittingComment] = useState(false);
     const [assignModalOpen, setAssignModalOpen] = useState(false);
     const [unassignDialogOpen, setUnassignDialogOpen] = useState(false);
     const [escalationDialogOpen, setEscalationDialogOpen] = useState(false);
@@ -162,8 +226,8 @@ export default function RequestDetailPage() {
             if (!res.ok) throw new Error('Failed to fetch comments');
             const data = await res.json();
             setComments(data);
-        } catch (err) {
-            logger.error(err);
+        } catch (err: unknown) {
+            logger.error(getErrorMessage(err));
         }
     }, [API_BASE, params.id]);
 
@@ -276,26 +340,6 @@ export default function RequestDetailPage() {
         });
     };
 
-    const handleAddComment = async () => {
-        if (!newComment.trim()) return;
-
-        setSubmittingComment(true);
-        try {
-            const res = await fetch(`${API_BASE}/admin/requests/${params.id}/comments`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content: newComment })
-            });
-            if (!res.ok) throw new Error('Failed to post comment');
-            setNewComment('');
-            fetchComments();
-        } catch (err: unknown) {
-            toast({ title: 'ผิดพลาด', description: getErrorMessage(err), variant: 'error' });
-        } finally {
-            setSubmittingComment(false);
-        }
-    };
-
     const handleAssignRequest = async (agentId: number) => {
         // For assignment, we update immediately as it's a specific modal action
         await handleUpdateField({
@@ -349,7 +393,18 @@ export default function RequestDetailPage() {
 
     if (loading) return <LoadingSpinner label="กำลังโหลด..." />;
 
-    if (!request) return <div className="p-8 text-center">ไม่พบข้อมูลคำร้อง</div>;
+    if (!request) return (
+        <div className="p-8 md:p-16 text-center flex flex-col items-center gap-4 text-text-tertiary animate-in fade-in duration-500">
+            <FileText className="w-16 h-16 opacity-20" aria-hidden="true" />
+            <p className="text-lg font-bold text-text-secondary">ไม่พบข้อมูลคำร้อง</p>
+            <p className="text-sm">คำร้องนี้อาจถูกลบหรือไม่มีอยู่ในระบบ</p>
+            <Link href="/admin/requests">
+                <Button variant="outline" size="sm" leftIcon={<ChevronLeft size={16} />}>
+                    กลับไปหน้ารายการ
+                </Button>
+            </Link>
+        </div>
+    );
 
     // Derived authorisation state -- must be after the null check on `request`.
     const isAssignee = userId !== null && request.assigned_agent_id === userId;
@@ -357,14 +412,14 @@ export default function RequestDetailPage() {
     const canRevertApproval = permissions?.can_revert_approval ?? false;
 
     // P1: dirty-state tracker for manage tab
-    const isManageDirty = (() => {
+    const isManageDirty = useMemo(() => {
         if (!request) return false;
         const currentDue = request.due_date ? request.due_date.split('T')[0] : '';
         return manageFormData.status !== (request.status ?? '')
             || manageFormData.priority !== request.priority
             || manageFormData.due_date !== currentDue
             || manageFormData.comment.trim().length > 0;
-    })();
+    }, [request, manageFormData]);
 
     // P1: intercept tab switch when manage tab has unsaved changes
     const handleTabClick = (tabId: string) => {
@@ -414,48 +469,39 @@ export default function RequestDetailPage() {
                         actions live on one flex row that wraps gracefully on narrow viewports.
                         `ml-auto` pushes the action group to the right edge on desktop; on
                         mobile the buttons drop to their own line below the badges. */}
-                    <div className="p-4 md:p-5">
+                    <div className="p-5 md:p-6">
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-                        <h1 className="text-lg sm:text-xl font-bold text-text-primary tracking-tight thai-no-break">
+                        <h1 className="text-xl sm:text-2xl font-extrabold text-text-primary tracking-tight thai-no-break">
                             {request.topic_category}
                         </h1>
 
                         {/* Status + priority badges -- inline with title. Shared shape:
-                            h-7 (28px), text-[11px], ring-1 ring-inset. Status carries
+                            h-8 (32px), text-xs, ring-1 ring-inset. Status carries
                             visual weight (dot + label), priority is plain chip. */}
-                        <span className={`inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-[11px] font-bold ring-1 ring-inset shrink-0 ${
-                            request.status === 'PENDING' ? (request.assigned_agent_id ? 'bg-amber-50 text-amber-700 ring-amber-200' : 'bg-bg text-text-secondary ring-border-default') :
-                            request.status === 'ACKNOWLEDGED' ? 'bg-orange-50 text-orange-700 ring-orange-200' :
-                            request.status === 'IN_PROGRESS' ? 'bg-blue-50 text-blue-700 ring-blue-200' :
-                            request.status === 'AWAITING_APPROVAL' ? 'bg-violet-50 text-violet-700 ring-violet-200' :
-                            request.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' :
-                            request.status === 'REJECTED' ? 'bg-rose-50 text-rose-700 ring-rose-200' :
-                            'bg-bg text-text-secondary ring-border-default'
-                        }`}>
-                            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                                request.status === 'PENDING' ? (request.assigned_agent_id ? 'bg-amber-500' : 'bg-text-tertiary') :
-                                request.status === 'ACKNOWLEDGED' ? 'bg-orange-500' :
-                                request.status === 'IN_PROGRESS' ? 'bg-blue-500' :
-                                request.status === 'AWAITING_APPROVAL' ? 'bg-violet-500' :
-                                request.status === 'COMPLETED' ? 'bg-emerald-500' :
-                                request.status === 'REJECTED' ? 'bg-rose-500' :
-                                'bg-text-tertiary'
-                            }`}></span>
-                            {getStatusLabelForRequest(request)}
-                        </span>
+                        {request.status && request.status in STATUS_CHIP_COLORS ? (
+                            <span className={`inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-bold ring-1 ring-inset shrink-0 ${STATUS_CHIP_COLORS[request.status].bg} ${STATUS_CHIP_COLORS[request.status].text} ${STATUS_CHIP_COLORS[request.status].ring}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_CHIP_COLORS[request.status].dot}`}></span>
+                                {getStatusLabelForRequest(request)}
+                            </span>
+                        ) : (
+                            <span className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-bold ring-1 ring-inset shrink-0 bg-bg text-text-secondary ring-border-default">
+                                <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-text-tertiary"></span>
+                                {getStatusLabelForRequest(request)}
+                            </span>
+                        )}
 
-                        <span className={`inline-flex items-center h-7 px-2.5 rounded-lg text-[11px] font-bold ring-1 ring-inset shrink-0 transition-all ${
-                            request.priority === 'URGENT' ? 'bg-rose-50 text-rose-700 ring-rose-200' :
-                            request.priority === 'HIGH' ? 'bg-orange-50 text-orange-700 ring-orange-200' :
-                            request.priority === 'MEDIUM' ? 'bg-yellow-50 text-yellow-700 ring-yellow-200' :
-                            request.priority === 'LOW' ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' :
-                            'bg-bg text-text-secondary ring-border-default'
-                        }`}>
-                            {request.priority === 'URGENT' ? 'ด่วนที่สุด' :
-                                request.priority === 'HIGH' ? 'ด่วนมาก' :
-                                    request.priority === 'MEDIUM' ? 'ด่วน' :
-                                        request.priority === 'LOW' ? 'ปกติ' : 'ไม่ระบุ'}
-                        </span>
+                        {request.priority in PRIORITY_CHIP_COLORS ? (
+                            <span className={`inline-flex items-center h-8 px-3 rounded-lg text-xs font-bold ring-1 ring-inset shrink-0 transition-all ${PRIORITY_CHIP_COLORS[request.priority].bg} ${PRIORITY_CHIP_COLORS[request.priority].text} ${PRIORITY_CHIP_COLORS[request.priority].ring}`}>
+                                {request.priority === 'URGENT' ? 'ด่วนที่สุด' :
+                                    request.priority === 'HIGH' ? 'ด่วนมาก' :
+                                        request.priority === 'MEDIUM' ? 'ด่วน' :
+                                            request.priority === 'LOW' ? 'ปกติ' : 'ไม่ระบุ'}
+                            </span>
+                        ) : (
+                            <span className="inline-flex items-center h-8 px-3 rounded-lg text-xs font-bold ring-1 ring-inset shrink-0 bg-bg text-text-secondary ring-border-default">
+                                ไม่ระบุ
+                            </span>
+                        )}
 
                         {/* P1: Adaptive primary CTA — shows ONLY the next logical workflow step.
                             Secondary actions (assign, escalate, reject, reopen, overrides) move to
@@ -564,20 +610,20 @@ export default function RequestDetailPage() {
                         {(canApprove || canRevertApproval) && request.status !== 'REJECTED' && (
                             <DropdownMenu>
                                 <DropdownMenuTrigger
-                                    aria-label="การจัดการพิเศษ"
-                                    className="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-border-default bg-surface text-text-secondary hover:bg-bg hover:text-text-primary transition-colors cursor-pointer"
+                                    aria-label="ตัวเลือกเพิ่มเติม"
+                                    className="inline-flex items-center justify-center h-11 w-11 sm:h-8 sm:w-8 rounded-lg border border-border-default bg-surface text-text-secondary hover:bg-bg hover:text-text-primary transition-colors cursor-pointer"
                                 >
                                     <MoreVertical size={16} />
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="min-w-[12rem]">
-                                    <DropdownMenuLabel>การจัดการพิเศษ</DropdownMenuLabel>
+                                    <DropdownMenuLabel>ตัวเลือกเพิ่มเติม</DropdownMenuLabel>
                                     <DropdownMenuSeparator />
                                     {request.status !== 'COMPLETED' && (
                                         <DropdownMenuItem
                                             disabled={submitting}
                                             onClick={() => setForceCompleteConfirm(true)}
                                         >
-                                            <CheckCircle2 size={16} className="text-emerald-600" />
+                                            <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
                                             บังคับเสร็จสิ้น
                                         </DropdownMenuItem>
                                     )}
@@ -586,7 +632,7 @@ export default function RequestDetailPage() {
                                             disabled={submitting}
                                             onClick={() => { void guardedUpdate({ status: 'PENDING' }); }}
                                         >
-                                            <Undo2 size={16} className="text-amber-600" />
+                                            <Undo2 size={16} className="text-amber-600 dark:text-amber-400" aria-hidden="true" />
                                             ย้อนกลับ รอรับเรื่อง
                                         </DropdownMenuItem>
                                     )}
@@ -596,14 +642,14 @@ export default function RequestDetailPage() {
                                                 disabled={submitting}
                                                 onClick={() => setRevertConfirm({ open: true, target: 'AWAITING_APPROVAL', notes: '' })}
                                             >
-                                                <Undo2 size={16} className="text-amber-600" />
+                                                <Undo2 size={16} className="text-amber-600 dark:text-amber-400" aria-hidden="true" />
                                                 ยกเลิกอนุมัติ → รออนุมัติ
                                             </DropdownMenuItem>
                                             <DropdownMenuItem
                                                 disabled={submitting}
                                                 onClick={() => setRevertConfirm({ open: true, target: 'IN_PROGRESS', notes: '' })}
                                             >
-                                                <Undo2 size={16} className="text-amber-600" />
+                                                <Undo2 size={16} className="text-amber-600 dark:text-amber-400" aria-hidden="true" />
                                                 ยกเลิกอนุมัติ → กำลังดำเนินการ
                                             </DropdownMenuItem>
                                         </>
@@ -619,17 +665,21 @@ export default function RequestDetailPage() {
 
                     {/* Tab Navigation -- the outer card owns the border/background now,
                         so this just keeps the layout primitives (horizontal scroll, centering). */}
-                    <div className="px-2 flex justify-center overflow-x-auto no-scrollbar relative">
+                    <div role="tablist" aria-label="รายละเอียดคำร้อง" className="px-2 flex justify-center overflow-x-auto no-scrollbar relative">
                         {tabs.map((tab) => (
                         <button
                             key={tab.id}
+                            id={`tab-${tab.id}`}
+                            role="tab"
+                            aria-selected={activeTab === tab.id}
+                            aria-controls={`panel-${tab.id}`}
                             onClick={() => handleTabClick(tab.id)}
-                            className={`flex items-center gap-2 px-4 py-3 text-xs font-bold transition-all border-b-2 whitespace-nowrap cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset rounded-t-md ${activeTab === tab.id
+                            className={`flex items-center gap-2 px-4 py-3.5 text-sm font-bold transition-all border-b-[3px] whitespace-nowrap cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset rounded-t-md ${activeTab === tab.id
                                 ? 'border-primary text-primary'
                                 : 'border-transparent text-text-secondary hover:text-text-primary hover:border-border-default'
                                 }`}
                         >
-                            <tab.icon size={16} />
+                            <tab.icon size={16} aria-hidden="true" />
                             {tab.label}
                             {tab.id === 'manage' && isManageDirty && (
                                 <span className="w-2 h-2 rounded-full bg-amber-500" aria-label="มีการเปลี่ยนแปลงที่ยังไม่บันทึก" />
@@ -642,79 +692,78 @@ export default function RequestDetailPage() {
                 <div className="border-t border-border-default" />
 
                 {/* Tab Content Area -- outer merged card owns the border/background now. */}
-                <div className="p-4 sm:p-6 md:p-8 min-h-[400px]">
+                <div className="p-4 sm:p-6 md:p-8 min-h-[300px] sm:min-h-[400px]">
 
                     {/* 1. รายละเอียดคำร้อง */}
                     {activeTab === 'details' && (
-                        <div className="space-y-6 animate-in fade-in duration-300">
+                        <div id="panel-details" role="tabpanel" aria-labelledby="tab-details" className="space-y-8">
                             {/* Category + Subcategory — clean text hierarchy, no decorative icon */}
-                            <div className="pb-6 border-b border-border-default">
+                            <div className="pb-8 border-b border-border-default">
                                 <div className="flex items-center gap-6">
                                     <div className="flex flex-col justify-center">
-                                        <span className="text-xs text-text-tertiary">หมวดหมู่</span>
-                                        <span className="text-base font-bold text-text-primary">{request.topic_category}</span>
+                                        <span className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary">หมวดหมู่</span>
+                                        <span className="text-lg font-bold text-text-primary">{request.topic_category}</span>
                                     </div>
                                     <div className="w-px h-8 bg-border-default"></div>
                                     <div className="flex flex-col justify-center">
-                                        <span className="text-xs text-text-tertiary">ประเภท</span>
-                                        <span className="text-base font-bold text-text-primary">{request.topic_subcategory || "-"}</span>
+                                        <span className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary">ประเภท</span>
+                                        <span className="text-lg font-bold text-text-primary">{request.topic_subcategory || "-"}</span>
                                     </div>
                                 </div>
                             </div>
 
                             {/* 4-Item Info Grid - Equal Widths */}
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 py-2">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 py-6">
                                 <div className="space-y-2">
-                                    <label className="text-xs text-text-tertiary">วันที่ยื่นคำร้อง</label>
-                                    <div className="text-sm font-semibold text-text-primary">
+                                    <span className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary">วันที่ยื่นคำร้อง</span>
+                                    <div className="text-base font-semibold text-text-primary">
                                         {new Date(request.created_at).toLocaleString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' })}
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-xs text-text-tertiary">ระดับความสำคัญ</label>
+                                    <span className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary">ระดับความสำคัญ</span>
                                     <div>
-                                        <span className={`px-3 py-1 rounded-lg text-xs font-bold border inline-block text-center min-w-[80px] ${request.priority === 'URGENT' ? 'bg-rose-50 border-rose-200 text-rose-600' :
-                                            request.priority === 'HIGH' ? 'bg-orange-50 border-orange-200 text-orange-600' :
-                                                request.priority === 'MEDIUM' ? 'bg-yellow-50 border-yellow-200 text-yellow-600' :
-                                                    'bg-emerald-50 border-emerald-200 text-emerald-600'
-                                            }`}>
-                                            {request.priority === 'URGENT' ? 'ด่วนที่สุด' :
-                                                request.priority === 'HIGH' ? 'ด่วนมาก' :
-                                                    request.priority === 'MEDIUM' ? 'ด่วน' :
-                                                        'ปกติ'}
-                                        </span>
+                                        {request.priority in PRIORITY_CHIP_COLORS ? (
+                                            <span className={`px-3 py-1 rounded-lg text-xs font-bold border inline-block text-center min-w-[80px] ${PRIORITY_CHIP_COLORS[request.priority].bg} ${PRIORITY_CHIP_COLORS[request.priority].border} ${PRIORITY_CHIP_COLORS[request.priority].text}`}>
+                                                {request.priority === 'URGENT' ? 'ด่วนที่สุด' :
+                                                    request.priority === 'HIGH' ? 'ด่วนมาก' :
+                                                        request.priority === 'MEDIUM' ? 'ด่วน' :
+                                                            'ปกติ'}
+                                            </span>
+                                        ) : (
+                                            <span className="px-3 py-1 rounded-lg text-xs font-bold border inline-block text-center min-w-[80px] bg-bg border-border-default text-text-secondary">
+                                                ไม่ระบุ
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-xs text-text-tertiary">กำหนดแล้วเสร็จ</label>
-                                    <div className={`text-sm font-semibold ${request.due_date ? 'text-text-primary' : 'text-text-tertiary italic'}`}>
+                                    <span className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary">กำหนดแล้วเสร็จ</span>
+                                    <div className={`text-base font-semibold ${request.due_date ? 'text-text-primary' : 'text-text-tertiary italic'}`}>
                                         {request.due_date ? new Date(request.due_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' }) : 'ไม่ได้กำหนด'}
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-xs text-text-tertiary">ผู้รับผิดชอบ</label>
-                                    <div className={`text-sm font-semibold ${request.assignee_name ? 'text-text-primary' : 'text-text-tertiary italic'}`}>
+                                    <span className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary">ผู้รับผิดชอบ</span>
+                                    <div className={`text-base font-semibold ${request.assignee_name ? 'text-text-primary' : 'text-text-tertiary italic'}`}>
                                         {request.assignee_name || "ยังไม่ได้มอบหมาย"}
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="border-t border-border-default"></div>
-
-
-                            <div className="space-y-1.5">
-                                <label className="text-xs text-text-tertiary">รายละเอียดเพิ่มเติม</label>
+                            <div className="space-y-2">
+                                <span className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary">รายละเอียดเพิ่มเติม</span>
                                 <div className="w-full px-4 py-3 bg-bg border border-border-default rounded-xl text-sm leading-relaxed whitespace-pre-wrap min-h-[100px]">
                                     {request.description || "ไม่มีรายละเอียดเพิ่มเติม"}
                                 </div>
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-xs text-text-tertiary">ไฟล์แนบ ({request.attachments?.length || 0})</label>
+                                <span className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary">ไฟล์แนบ ({request.attachments?.length || 0})</span>
                                 <div className="flex flex-wrap gap-2">
                                     {request.attachments?.map((file, idx) => (
-                                        <a key={idx} href={file.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3 py-2 bg-surface border border-border-default rounded-lg text-xs font-semibold text-text-secondary hover:border-primary/40 hover:text-primary hover:bg-primary/8 transition-all cursor-pointer">
-                                            <Paperclip size={14} className="text-primary" /> {file.name}
+                                        <a key={idx} href={file.url} target="_blank" rel="noopener noreferrer" aria-label={`เปิดไฟล์ ${file.name} ในแท็บใหม่`} className="flex items-center gap-2 px-3 py-2 bg-surface border border-border-default rounded-lg text-xs font-semibold text-text-secondary hover:border-primary/40 hover:text-primary hover:bg-primary/8 transition-all cursor-pointer">
+                                            <Paperclip size={14} className="text-primary" aria-hidden="true" /> {file.name}
                                         </a>
                                     ))}
                                     {(!request.attachments || request.attachments.length === 0) && (
@@ -727,9 +776,9 @@ export default function RequestDetailPage() {
 
                     {/* 2. ข้อมูลผู้ติดต่อ */}
                     {activeTab === 'contact' && (
-                        <div className="space-y-8 animate-in fade-in duration-300">
+                        <div id="panel-contact" role="tabpanel" aria-labelledby="tab-contact" className="space-y-8">
                             <div className="flex flex-col items-center p-6 bg-bg rounded-2xl border border-border-default">
-                                <div className="w-20 h-20 rounded-full border-2 border-border-default mb-4 bg-bg flex items-center justify-center text-text-secondary text-2xl font-bold">
+                                <div className="w-24 h-24 rounded-full border-2 border-border-default mb-4 bg-bg flex items-center justify-center text-text-secondary text-3xl font-bold ring-2 ring-offset-2 ring-offset-surface ring-primary/20">
                                     {request.firstname ? request.firstname[0] : '?'}
                                 </div>
                                 <h3 className="text-lg font-bold text-text-primary">{request.prefix}{request.firstname} {request.lastname}</h3>
@@ -737,23 +786,23 @@ export default function RequestDetailPage() {
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="p-4 border border-border-default rounded-xl flex items-center gap-4">
-                                    <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center shrink-0"><Building2 size={20} /></div>
+                                    <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center shrink-0"><Building2 size={20} aria-hidden="true" /></div>
                                     <div className="overflow-hidden">
-                                        <p className="text-xs text-text-tertiary">หน่วยงาน / ที่อยู่</p>
+                                        <p className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary">หน่วยงาน / ที่อยู่</p>
                                         <p className="text-sm font-bold truncate">{request.sub_district}, {request.district}, {request.province}</p>
                                     </div>
                                 </div>
                                 <div className="p-4 border border-border-default rounded-xl flex items-center gap-4">
-                                    <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center shrink-0"><Phone size={20} /></div>
+                                    <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center shrink-0"><Phone size={20} aria-hidden="true" /></div>
                                     <div>
-                                        <p className="text-xs text-text-tertiary">หมายเลขโทรศัพท์</p>
+                                        <p className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary">หมายเลขโทรศัพท์</p>
                                         <p className="text-sm font-bold">{request.phone_number}</p>
                                     </div>
                                 </div>
                                 <div className="p-4 border border-border-default rounded-xl flex items-center gap-4 md:col-span-2">
-                                    <div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center shrink-0"><Mail size={20} /></div>
+                                    <div className="w-10 h-10 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-full flex items-center justify-center shrink-0"><Mail size={20} aria-hidden="true" /></div>
                                     <div>
-                                        <p className="text-xs text-text-tertiary">อีเมล</p>
+                                        <p className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary">อีเมล</p>
                                         <p className="text-sm font-bold">{request.email || "-"}</p>
                                     </div>
                                 </div>
@@ -763,7 +812,7 @@ export default function RequestDetailPage() {
 
                     {/* 3. การดำเนินงาน/ความเห็น */}
                     {activeTab === 'comments' && (
-                        <div className="space-y-8 animate-in fade-in duration-300 px-2">
+                        <div id="panel-comments" role="tabpanel" aria-labelledby="tab-comments" className="space-y-8">
                             {/* Timeline History */}
                             <div className="relative pl-8 border-l-2 border-border-default space-y-8 ml-3">
                                 {comments.length === 0 ? (
@@ -773,18 +822,24 @@ export default function RequestDetailPage() {
                                     const isSystem = comment.display_name?.toUpperCase() === 'SYSTEM';
                                     const isAdmin = comment.display_name?.toUpperCase().includes('ADMIN');
 
-                                    const dotColor = isSystem ? 'bg-amber-400 shadow-amber-100' :
+                                    const bubbleTint = isSystem
+                                        ? 'bg-amber-50/60 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800'
+                                        : isAdmin
+                                            ? 'bg-brand-50/60 dark:bg-brand-900/10 border-brand-200 dark:border-brand-800'
+                                            : 'bg-bg border-border-default';
+
+                                    const dotColor = isSystem ? 'bg-amber-400 dark:bg-amber-500 shadow-amber-100 dark:shadow-amber-900/20' :
                                         isAdmin ? 'bg-primary shadow-primary/10' :
                                             'bg-text-tertiary shadow-border-default';
 
                                     return (
                                         <div key={i} className="relative group">
                                             {/* Timeline Dot */}
-                                            <div className={`absolute -left-[39px] top-0 w-5 h-5 rounded-full border-4 border-white shadow-md ${dotColor}`}></div>
+                                            <div className={`absolute -left-[41px] top-0 w-6 h-6 rounded-full border-[5px] border-surface shadow-md ${dotColor}`}></div>
 
                                             {/* Header */}
                                             <div className="flex items-center justify-between mb-2">
-                                                <span className={`text-xs font-bold uppercase tracking-wider ${isSystem ? 'text-amber-500' : isAdmin ? 'text-primary' : 'text-text-secondary'}`}>
+                                                <span className={`text-xs font-bold ${isSystem ? 'text-amber-500 dark:text-amber-400' : isAdmin ? 'text-primary' : 'text-text-secondary'}`}>
                                                     {comment.display_name}
                                                 </span>
                                                 <span className="text-[10px] font-bold text-text-tertiary">
@@ -792,8 +847,8 @@ export default function RequestDetailPage() {
                                                 </span>
                                             </div>
 
-                                            {/* Content Bubble */}
-                                            <div className="bg-bg border border-border-default rounded-2xl rounded-tl-sm p-4 text-sm text-text-secondary leading-relaxed shadow-sm group-hover:bg-surface group-hover:border-border-default group-hover:shadow-md transition-all">
+                                            {/* Content Bubble — tinted by role for instant scannability */}
+                                            <div className={`${bubbleTint} rounded-2xl rounded-tl-sm p-4 text-sm text-text-secondary leading-relaxed shadow-sm group-hover:bg-surface group-hover:border-border-default group-hover:shadow-md transition-all`}>
                                                 {comment.content}
                                             </div>
                                         </div>
@@ -801,50 +856,23 @@ export default function RequestDetailPage() {
                                 })}
                             </div>
 
-                            {/* Divider */}
-                            <div className="border-t border-border-default my-8"></div>
-
-                            {/* Comment Input */}
-                            <div className="bg-surface rounded-2xl border border-border-default p-6 shadow-sm">
-                                <h4 className="text-sm font-bold text-text-secondary mb-4">เพิ่มความเห็น</h4>
-                                <div className="space-y-4">
-                                    <textarea
-                                        value={newComment}
-                                        onChange={(e) => setNewComment(e.target.value)}
-                                        placeholder="พิมพ์ความเห็นหรือบันทึกการดำเนินงาน..."
-                                        className="w-full p-4 bg-bg border border-border-default rounded-xl text-sm outline-none focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all resize-none min-h-[120px]"
-                                    ></textarea>
-                                    <div className="flex justify-end">
-                                        <Button
-                                            variant="primary"
-                                            size="md"
-                                            onClick={handleAddComment}
-                                            disabled={!newComment.trim() || submittingComment}
-                                            isLoading={submittingComment}
-                                            leftIcon={<Send size={16} />}
-                                            title="Save Comment"
-                                        >
-                                            บันทึกข้อมูล
-                                        </Button>
-                                    </div>
-                                </div>
-                            </div>
+                            <CommentInputSection requestId={params.id ?? ''} onSuccess={fetchComments} />
                         </div>
                     )}
 
                     {/* 4. จัดการคำร้อง */}
                     {activeTab === 'manage' && (
-                        <div className="space-y-8 animate-in fade-in duration-300">
+                        <div id="panel-manage" role="tabpanel" aria-labelledby="tab-manage" className="space-y-8">
                             {/* Row 1: Status + Priority */}
-                            <div className="space-y-3">
+                            <div className="space-y-4">
                                 {/* Labels Row */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <label className="text-xs text-text-tertiary flex items-center gap-2">
-                                        <Activity size={14} className="text-cyan-500" /> สถานะคำร้อง
-                                    </label>
-                                    <label className="text-xs text-text-tertiary flex items-center gap-2">
-                                        <Flag size={14} className="text-amber-500" /> ระดับความสำคัญ
-                                    </label>
+                                    <span className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary flex items-center gap-2">
+                                        <Activity size={14} className="text-cyan-500 dark:text-cyan-400" aria-hidden="true" /> สถานะคำร้อง
+                                    </span>
+                                    <span className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary flex items-center gap-2">
+                                        <Flag size={14} className="text-amber-500 dark:text-amber-400" aria-hidden="true" /> ระดับความสำคัญ
+                                    </span>
                                 </div>
                                 {/* Compact chip pills -- inline-flex with intrinsic width.
                                     Each chip sizes to its label + padding so "ปกติ" (3 char)
@@ -859,27 +887,33 @@ export default function RequestDetailPage() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     {/* Status chips (6 options) */}
                                     <div className="flex flex-wrap gap-2">
-                                        {[
-                                            { value: 'PENDING',           label: 'รอรับเรื่อง',    activeClass: 'bg-amber-50 text-amber-700 border-amber-400',     dotClass: 'bg-amber-500' },
-                                            { value: 'ACKNOWLEDGED',      label: 'รอดำเนินการ',   activeClass: 'bg-orange-50 text-orange-700 border-orange-400', dotClass: 'bg-orange-500' },
-                                            { value: 'IN_PROGRESS',       label: 'กำลังดำเนินการ', activeClass: 'bg-blue-50 text-blue-700 border-blue-400',       dotClass: 'bg-blue-500' },
-                                            { value: 'AWAITING_APPROVAL', label: 'รออนุมัติ',      activeClass: 'bg-violet-50 text-violet-700 border-violet-400', dotClass: 'bg-violet-500' },
-                                            { value: 'COMPLETED',         label: 'เสร็จสิ้น',      activeClass: 'bg-emerald-50 text-emerald-700 border-emerald-400', dotClass: 'bg-emerald-500' },
-                                            { value: 'REJECTED',          label: 'ปฏิเสธ',         activeClass: 'bg-rose-50 text-rose-700 border-rose-400',       dotClass: 'bg-rose-500' },
-                                        ].map((s) => (
-                                            <button
-                                                key={s.value}
-                                                // Update Local State Only
-                                                onClick={() => setManageFormData(prev => ({ ...prev, status: s.value }))}
-                                                className={`inline-flex items-center gap-1.5 h-7 px-3 text-[11px] font-bold rounded-lg transition-all cursor-pointer border ${manageFormData.status === s.value
-                                                    ? s.activeClass
-                                                    : 'bg-surface text-text-tertiary border-border-default hover:border-text-tertiary hover:bg-bg'
-                                                    }`}
-                                            >
-                                                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${manageFormData.status === s.value ? s.dotClass : 'bg-text-tertiary'}`}></span>
-                                                {s.label}
-                                            </button>
-                                        ))}
+                                        {(
+                                            [
+                                                'PENDING',
+                                                'ACKNOWLEDGED',
+                                                'IN_PROGRESS',
+                                                'AWAITING_APPROVAL',
+                                                'COMPLETED',
+                                                'REJECTED',
+                                            ] as RequestStatus[]
+                                        ).map((s) => {
+                                            const colors = STATUS_CHIP_COLORS[s];
+                                            const label = getStatusLabel(s);
+                                            const active = manageFormData.status === s;
+                                            return (
+                                                <button
+                                                    key={s}
+                                                    onClick={() => setManageFormData(prev => ({ ...prev, status: s }))}
+                                                    className={`inline-flex items-center gap-1.5 h-8 px-3.5 text-xs font-bold rounded-lg transition-all cursor-pointer border ${active
+                                                        ? `${colors.bg} ${colors.text} ${colors.border}`
+                                                        : 'bg-surface text-text-tertiary border-border-default hover:border-text-tertiary hover:bg-bg'
+                                                        }`}
+                                                >
+                                                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${active ? colors.dot : 'bg-text-tertiary'}`}></span>
+                                                    {label}
+                                                </button>
+                                            );
+                                        })}
                                     </div>
                                     {/* Priority chips (4 options) */}
                                     <div className="flex flex-wrap gap-2">
@@ -888,42 +922,43 @@ export default function RequestDetailPage() {
                                             { value: 'MEDIUM', label: 'ด่วน' },
                                             { value: 'HIGH', label: 'ด่วนมาก' },
                                             { value: 'URGENT', label: 'ด่วนที่สุด' }
-                                        ].map((p) => (
-                                            <button
-                                                key={p.value}
-                                                // Update Local State Only
-                                                onClick={() => setManageFormData(prev => ({ ...prev, priority: p.value }))}
-                                                className={`inline-flex items-center h-7 px-3 text-[11px] font-bold rounded-lg transition-all cursor-pointer border ${manageFormData.priority === p.value
-                                                    ? (p.value === 'URGENT' ? 'bg-rose-50 text-rose-700 border-rose-400' :
-                                                        p.value === 'HIGH' ? 'bg-orange-50 text-orange-700 border-orange-400' :
-                                                            p.value === 'MEDIUM' ? 'bg-yellow-50 text-yellow-700 border-yellow-400' :
-                                                                'bg-emerald-50 text-emerald-700 border-emerald-400')
-                                                    : 'bg-surface text-text-tertiary border-border-default hover:border-text-tertiary hover:bg-bg'
-                                                    }`}
-                                            >
-                                                {p.label}
-                                            </button>
-                                        ))}
+                                        ].map((p) => {
+                                            const colors = PRIORITY_CHIP_COLORS[p.value];
+                                            const active = manageFormData.priority === p.value;
+                                            return (
+                                                <button
+                                                    key={p.value}
+                                                    onClick={() => setManageFormData(prev => ({ ...prev, priority: p.value }))}
+                                                    className={`inline-flex items-center h-8 px-3.5 text-xs font-bold rounded-lg transition-all cursor-pointer border ${active && colors
+                                                        ? `${colors.bg} ${colors.text} ${colors.border}`
+                                                        : 'bg-surface text-text-tertiary border-border-default hover:border-text-tertiary hover:bg-bg'
+                                                        }`}
+                                                >
+                                                    {p.label}
+                                                </button>
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             </div>
 
                             {/* Row 2: Assignment + Due Date */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-                                <div className="space-y-3">
-                                    <label className="text-xs text-text-tertiary flex items-center gap-2">
-                                        <UserPlus size={14} className="text-primary" /> มอบหมายงานให้
-                                    </label>
+                                <div className="space-y-4">
+                                    <span className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary flex items-center gap-2">
+                                        <UserPlus size={14} className="text-primary" aria-hidden="true" /> มอบหมายงานให้
+                                    </span>
                                     <div className="flex gap-2">
-                                        <div
+                                        <button
+                                            type="button"
                                             onClick={() => setAssignModalOpen(true)}
-                                            className={`flex-1 px-4 py-2.5 bg-bg border border-border-default rounded-lg text-sm cursor-pointer hover:bg-bg transition-colors flex justify-between items-center ${
+                                            className={`flex-1 px-4 py-2.5 bg-bg border border-border-default rounded-lg text-sm cursor-pointer hover:bg-bg transition-colors flex justify-between items-center text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
                                                 request.assignee_name ? 'font-bold text-text-primary' : 'font-medium text-text-tertiary'
                                             }`}
                                         >
                                             <span>{request.assignee_name || "ยังไม่ได้มอบหมาย"}</span>
-                                            <Settings2 size={16} className="text-text-tertiary" />
-                                        </div>
+                                            <Settings2 size={16} className="text-text-tertiary" aria-hidden="true" />
+                                        </button>
                                         {canApprove && request.assigned_agent_id && (
                                             <Button
                                                 variant="outline"
@@ -938,10 +973,10 @@ export default function RequestDetailPage() {
                                     </div>
                                 </div>
 
-                                <div className="space-y-3">
-                                    <label className="text-xs text-text-tertiary flex items-center gap-2">
-                                        <Calendar size={14} className="text-amber-500" /> กำหนดเสร็จ
-                                    </label>
+                                <div className="space-y-4">
+                                    <span className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary flex items-center gap-2">
+                                        <Calendar size={14} className="text-amber-500 dark:text-amber-400" aria-hidden="true" /> กำหนดเสร็จ
+                                    </span>
                                     {/* TZ-safe adapter: backend stores YYYY-MM-DD; CalendarPickerTH talks ISO.
                                         Parsing 'YYYY-MM-DDT00:00:00' (no Z) yields LOCAL midnight, which the
                                         picker then re-renders via .getFullYear/.getMonth/.getDate — so the
@@ -954,20 +989,21 @@ export default function RequestDetailPage() {
                             </div>
 
                             {/* Row 3: Comment / Note Field */}
-                            <div className="space-y-3">
-                                <label className="text-xs text-text-tertiary flex items-center gap-2">
-                                    <MessageSquare size={14} className="text-text-tertiary" /> บันทึกช่วยจำ / เหตุผลการดำเนินการ
+                            <div className="space-y-4">
+                                <label htmlFor="manage-comment" className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary flex items-center gap-2">
+                                    <MessageSquare size={14} className="text-text-tertiary" aria-hidden="true" /> บันทึกช่วยจำ / เหตุผลการดำเนินการ
                                 </label>
                                 <textarea
+                                    id="manage-comment"
                                     value={manageFormData.comment}
                                     onChange={(e) => setManageFormData(prev => ({ ...prev, comment: e.target.value }))}
                                     placeholder="ระบุรายละเอียดการดำเนินการ, เหตุผลการยกเลิก, หรือข้อความถึงผู้เกี่ยวข้อง..."
-                                    className="w-full p-4 bg-bg border border-border-default rounded-xl text-sm outline-none focus:border-primary/40 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all resize-none min-h-[100px]"
+                                    className="w-full p-4 bg-bg border border-border-default rounded-xl text-sm outline-none focus:border-primary/40 focus:bg-surface focus:ring-4 focus:ring-primary/10 transition-all resize-none min-h-[100px]"
                                 ></textarea>
                             </div>
 
                             {/* Action Buttons */}
-                            <div className="pt-6 border-t border-border-default flex justify-end gap-3">
+                            <div className="pt-8 border-t border-border-default flex justify-end gap-3">
                                 <Button variant="outline" size="md" onClick={handleCancelManage}>
                                     ยกเลิก
                                 </Button>
@@ -1047,7 +1083,7 @@ export default function RequestDetailPage() {
                             value={rejectConfirm.reason}
                             onChange={(e) => setRejectConfirm(prev => ({ ...prev, reason: e.target.value }))}
                         />
-                        <span className="text-xs text-amber-600 mt-2 block">
+                        <span className="text-xs text-amber-600 dark:text-amber-400 mt-2 block">
                             การกระทำนี้จะถูกบันทึกในประวัติ
                         </span>
                     </>
@@ -1100,7 +1136,7 @@ export default function RequestDetailPage() {
                             value={revertConfirm.notes}
                             onChange={(e) => setRevertConfirm(prev => ({ ...prev, notes: e.target.value }))}
                         />
-                        <span className="text-xs text-amber-600 mt-2 block">
+                        <span className="text-xs text-amber-600 dark:text-amber-400 mt-2 block">
                             การกระทำนี้จะถูกบันทึกในประวัติ
                         </span>
                     </>
