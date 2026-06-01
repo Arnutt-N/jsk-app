@@ -16,7 +16,11 @@ from linebot.v3.messaging import (
     FlexContainer,
     ImageMessage,
     StickerMessage,
-    LocationMessage
+    LocationMessage,
+    VideoMessage,
+    AudioMessage,
+    ImagemapMessage,
+    ImagemapBaseSize
 )
 from app.models.reply_object import ReplyObject, ObjectType
 import logging
@@ -151,6 +155,33 @@ def build_message_from_object(obj: ReplyObject) -> Optional[Any]:
         elif obj.object_type == ObjectType.TEXT:
             # Text Template
             return TextMessage(text=payload.get("text", ""))
+
+        elif obj.object_type == ObjectType.VIDEO:
+            # Video Message
+            return VideoMessage(
+                original_content_url=payload.get("original_content_url") or payload.get("url"),
+                preview_image_url=payload.get("preview_image_url") or payload.get("preview_url") or payload.get("url"),
+            )
+
+        elif obj.object_type == ObjectType.AUDIO:
+            # Audio Message
+            return AudioMessage(
+                original_content_url=payload.get("original_content_url") or payload.get("url"),
+                duration=int(payload.get("duration", 0)),
+            )
+
+        elif obj.object_type == ObjectType.IMAGEMAP:
+            # ImageMap Message
+            base_size = ImagemapBaseSize(
+                width=int(payload.get("base_size", {}).get("width", 1040)),
+                height=int(payload.get("base_size", {}).get("height", 1040)),
+            )
+            return ImagemapMessage(
+                base_url=payload.get("base_url") or payload.get("url"),
+                alt_text=obj.alt_text or payload.get("alt_text") or f"ImageMap: {obj.name}",
+                base_size=base_size,
+                actions=payload.get("actions", []),
+            )
         
         else:
             logger.warning(f"Unsupported object type: {obj.object_type}")

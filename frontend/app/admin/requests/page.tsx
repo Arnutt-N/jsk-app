@@ -254,6 +254,7 @@ export default function AdminRequestList() {
                                     onChange={(e) => setFilter(prev => ({ ...prev, category: e.target.value }))}
                                     options={[
                                         { value: '', label: 'ทุกหมวดหมู่' },
+                                        { value: 'แจ้งเบาะแสยาเสพติด', label: 'แจ้งเบาะแสยาเสพติด' },
                                         { value: 'กองทุนยุติธรรม', label: 'กองทุนยุติธรรม' },
                                         { value: 'รับเรื่องราวร้องทุกข์', label: 'รับเรื่องราวร้องทุกข์' },
                                         { value: 'เงินเยียวยาเหยื่ออาชญากรรม', label: 'เงินเยียวยาเหยื่ออาชญากรรม' },

@@ -19,6 +19,7 @@ class MatchType(str, enum.Enum):
     EXACT = "exact"
     CONTAINS = "contains"
     REGEX = "regex"
+    STARTS_WITH = "starts_with"
 
 class AutoReply(Base):
     __tablename__ = "auto_replies"

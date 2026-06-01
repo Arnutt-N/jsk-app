@@ -15,6 +15,8 @@ import { Select } from '@/components/ui/Select';
 import { Textarea } from '@/components/ui/Textarea';
 import { useAuth } from '@/contexts/AuthContext';
 import PageHeader from '@/app/admin/components/PageHeader';
+import { CATEGORIES, DRUG_REPORTING_SUBCATEGORIES } from '@/lib/constants/categories';
+import { AGENCIES } from '@/lib/constants/agencies';
 import {
     ArrowLeft,
     ArrowRight,
@@ -62,14 +64,6 @@ const PREFIX_OPTIONS = [
     { value: 'อื่นๆ', label: 'อื่นๆ' },
 ];
 
-const CATEGORY_OPTIONS = [
-    { value: 'ร้องเรียน', label: 'ร้องเรียน' },
-    { value: 'ร้องทุกข์', label: 'ร้องทุกข์' },
-    { value: 'แจ้งเบาะแส', label: 'แจ้งเบาะแส' },
-    { value: 'ขอความช่วยเหลือ', label: 'ขอความช่วยเหลือ' },
-    { value: 'อื่นๆ', label: 'อื่นๆ' },
-];
-
 const PRIORITY_OPTIONS = [
     { value: 'LOW', label: 'LOW — ต่ำ' },
     { value: 'MEDIUM', label: 'MEDIUM — ปานกลาง' },
@@ -106,19 +100,21 @@ export default function CreateRequestPage() {
             lastname: '',
             phone_number: '',
             email: '',
-            topic_category: 'ร้องเรียน',
+            topic_category: 'แจ้งเบาะแสยาเสพติด',
             topic_subcategory: '',
             description: '',
             priority: 'MEDIUM',
             province: '',
             district: '',
             sub_district: '',
-            agency: '',
+            agency: 'ผู้นำชุมชนและจิตอาสา',
         },
         mode: 'onTouched',
     });
 
-    const { register, handleSubmit, trigger, formState: { errors } } = form;
+    const { register, handleSubmit, trigger, watch, setValue, formState: { errors } } = form;
+
+    const selectedCategory = watch('topic_category');
 
     const API_BASE = '/api/v1';
 
@@ -310,17 +306,26 @@ export default function CreateRequestPage() {
                                         <label className="block text-xs font-medium text-text-secondary mb-1.5">หมวดหมู่</label>
                                         <Select
                                             {...register('topic_category')}
-                                            options={CATEGORY_OPTIONS}
+                                            options={[...CATEGORIES]}
                                             state={errors.topic_category ? 'error' : 'default'}
                                             errorMessage={errors.topic_category?.message}
                                         />
                                     </div>
                                     <div>
                                         <label className="block text-xs font-medium text-text-secondary mb-1.5">หมวดหมู่ย่อย</label>
-                                        <Input
-                                            {...register('topic_subcategory')}
-                                            placeholder="ระบุหมวดหมู่ย่อย (ถ้ามี)"
-                                        />
+                                        {selectedCategory === 'แจ้งเบาะแสยาเสพติด' ? (
+                                            <Select
+                                                options={[...DRUG_REPORTING_SUBCATEGORIES]}
+                                                value={watch('topic_subcategory') || ''}
+                                                onChange={(e) => setValue('topic_subcategory', e.target.value)}
+                                                placeholder="-- เลือกปัญหาย่อย --"
+                                            />
+                                        ) : (
+                                            <Input
+                                                {...register('topic_subcategory')}
+                                                placeholder="ระบุหมวดหมู่ย่อย (ถ้ามี)"
+                                            />
+                                        )}
                                     </div>
                                 </div>
 
@@ -376,9 +381,10 @@ export default function CreateRequestPage() {
                                     </div>
                                     <div>
                                         <label className="block text-xs font-medium text-text-secondary mb-1.5">หน่วยงานที่รับผิดชอบ</label>
-                                        <Input
+                                        <Select
                                             {...register('agency')}
-                                            placeholder="หน่วยงาน"
+                                            options={[...AGENCIES]}
+                                            placeholder="-- เลือกหน่วยงาน --"
                                         />
                                     </div>
                                 </div>

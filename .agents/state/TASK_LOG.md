@@ -38,6 +38,52 @@
 
 ## Task History (Newest First)
 
+### Task #38 - 2026-05-25 01:00 - Claude Code
+
+**Task ID**: `task-drug-reporting-prd-e-20260525`
+**Agent**: claude_code (qwen3.6-max)
+**Status**: completed
+**Duration**: ~2 hours
+
+#### Cross-Platform Context
+- Read summaries from: claude_code (session-summary-20260524-1024.md)
+- Key insights from other agents: PRD D assign modal merged, production infra stable
+
+#### Work Completed
+- Added "แจ้งเบาะแสยาเสพติด" as first category (before merged ร้องเรียน/ร้องทุกข์)
+- Merged "ร้องเรียน" + "ร้องทุกข์" → "ร้องเรียน/ร้องทุกข์" single entry
+- 4 drug reporting subcategories with conditional dropdown on admin create
+- 4 agencies constant shared across admin + LIFF pages
+- EscalationDialog component (ปปส./ตำรวจ/กรมการปกครอง)
+- LIFF request-v2 auto-close countdown (5 seconds)
+- 29 unit tests all pass, ESLint clean, TypeScript clean
+- PR #61 squashed and merged to main
+
+#### Files Modified
+- `frontend/lib/constants/categories.ts` (new)
+- `frontend/lib/constants/agencies.ts` (new)
+- `frontend/lib/constants/__tests__/categories.test.ts` (new, 15 tests)
+- `frontend/lib/constants/__tests__/agencies.test.ts` (new, 8 tests)
+- `frontend/components/ui/EscalationDialog.tsx` (new)
+- `frontend/app/admin/requests/create/page.tsx` (import constants, conditional dropdown)
+- `frontend/app/admin/requests/page.tsx` (+filter option)
+- `frontend/app/admin/requests/[id]/page.tsx` (+escalation button)
+- `frontend/app/liff/request-v2/page.tsx` (+drug topic, AGENCIES, auto-close)
+- `frontend/app/liff/service-request/page.tsx` (+drug topic, AGENCIES)
+
+#### Session Summary
+- Location: `project-log-md/claude_code/session-summary-20260525-0100.md`
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260525-0100.json`
+
+#### Blockers
+- None
+
+#### Next Steps
+- Continue with next PRD milestone from .claude/PRPs/prds/
+- Backfill E2E tests with proper data-testid selectors
+
+---
+
 ### Task #37 - 2026-05-24 10:24 - Claude Code
 
 **Task ID**: `task-assign-modal-improvements-20260524`

@@ -18,10 +18,11 @@ import {
     Clock,
     Users,
     Eye,
+    Package,
 } from 'lucide-react';
 import PageHeader from '@/app/admin/components/PageHeader';
 
-type MessageType = 'text' | 'image' | 'flex';
+type MessageType = 'text' | 'image' | 'flex' | 'object_ref';
 
 interface BroadcastDraft {
     title: string;
@@ -41,6 +42,7 @@ const TYPE_OPTIONS: { type: MessageType; label: string; desc: string; icon: Reac
     { type: 'text', label: 'ข้อความ', desc: 'ส่งข้อความตัวอักษรธรรมดา', icon: <FileText className="w-8 h-8" /> },
     { type: 'image', label: 'รูปภาพ', desc: 'ส่งรูปภาพพร้อม URL', icon: <ImageIcon className="w-8 h-8" /> },
     { type: 'flex', label: 'Flex Message', desc: 'ส่ง Flex Message ด้วย JSON', icon: <Code2 className="w-8 h-8" /> },
+    { type: 'object_ref', label: 'Reply Object', desc: 'ใช้ template ที่มีอยู่แล้ว', icon: <Package className="w-8 h-8" /> },
 ];
 
 export default function BroadcastCreatePage() {
@@ -68,6 +70,7 @@ export default function BroadcastCreatePage() {
     const [imagePreviewUrl, setImagePreviewUrl] = useState('');
     const [flexJson, setFlexJson] = useState('');
     const [flexAltText, setFlexAltText] = useState('');
+    const [objectIdRef, setObjectIdRef] = useState('');
     const [scheduleDate, setScheduleDate] = useState('');
 
     const canProceed = (): boolean => {
@@ -78,6 +81,7 @@ export default function BroadcastCreatePage() {
                 if (draft.message_type === 'text') return !!textContent.trim();
                 if (draft.message_type === 'image') return !!imageUrl.trim();
                 if (draft.message_type === 'flex') return !!flexJson.trim();
+                if (draft.message_type === 'object_ref') return !!objectIdRef.trim();
                 return false;
             }
             case 2: return true;
@@ -97,6 +101,7 @@ export default function BroadcastCreatePage() {
                     return { alt_text: flexAltText || draft.title, flex: {} };
                 }
             }
+            case 'object_ref': return { object_id: objectIdRef.replace(/^\$/, '') };
             default: return {};
         }
     };
@@ -314,6 +319,20 @@ export default function BroadcastCreatePage() {
                                 </div>
                             )}
 
+                            {draft.message_type === 'object_ref' && (
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-text-secondary mb-1.5">Reply Object ID *</label>
+                                        <Input
+                                            value={objectIdRef}
+                                            onChange={(e) => setObjectIdRef(e.target.value)}
+                                            placeholder="flex_welcome (ไม่ต้องใส่ $)"
+                                        />
+                                        <p className="text-xs text-text-tertiary mt-1">ใส่ object_id ของ reply object ที่ต้องการใช้</p>
+                                    </div>
+                                </div>
+                            )}
+
                             {draft.message_type === 'flex' && (
                                 <div className="space-y-4">
                                     <div>
@@ -383,7 +402,7 @@ export default function BroadcastCreatePage() {
                                     <div>
                                         <label className="text-xs text-text-tertiary">ประเภทข้อความ</label>
                                         <p className="text-sm font-medium text-text-primary">
-                                            {draft.message_type === 'text' ? 'ข้อความ' : draft.message_type === 'image' ? 'รูปภาพ' : 'Flex Message'}
+                                            {draft.message_type === 'text' ? 'ข้อความ' : draft.message_type === 'image' ? 'รูปภาพ' : draft.message_type === 'object_ref' ? 'Reply Object' : 'Flex Message'}
                                         </p>
                                     </div>
                                     <div>
@@ -406,6 +425,11 @@ export default function BroadcastCreatePage() {
                                         <div className="bg-white dark:bg-gray-700 rounded-xl p-2 shadow-sm">
                                             {/* eslint-disable-next-line @next/next/no-img-element */}
                                             <img src={imageUrl} alt="Preview" className="rounded-lg max-w-full" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                                        </div>
+                                    )}
+                                    {draft.message_type === 'object_ref' && objectIdRef && (
+                                        <div className="bg-white dark:bg-gray-700 rounded-xl p-4 shadow-sm">
+                                            <p className="text-sm font-mono text-text-secondary">${objectIdRef.replace(/^\$/, '')}</p>
                                         </div>
                                     )}
                                     {draft.message_type === 'flex' && (

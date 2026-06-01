@@ -29,8 +29,13 @@ python run.py --target local
 cd frontend
 npm install
 npm run dev
-npm run lint
-npm run build
+npm run lint         # ESLint on all files
+npx eslint <file>    # Lint specific file(s)
+npm run build        # Production build (tsc + next build)
+npx tsc --noEmit     # Type-check only (faster than full build)
+npx vitest run       # Run all unit tests (29 tests across 3 files)
+npx vitest run --reporter=verbose  # Detailed test output
+npx playwright test  # Run E2E tests (requires dev server running)
 ```
 
 ### Database Migrations (Alembic)
@@ -120,7 +125,15 @@ components/
 └── admin/                  # Admin-specific (ChatModeToggle, TypingIndicator)
 
 hooks/
-└── useTheme.ts             # Theme persistence in localStorage
+├── useTheme.ts             # Theme persistence in localStorage
+└── useGuardedUpdate.ts     # Prevents concurrent form submissions
+
+lib/
+└── constants/
+    ├── categories.ts       # Shared category/subcategory constants (admin + LIFF)
+    ├── agencies.ts         # Shared agency constants (admin + LIFF)
+    ├── request-status.ts   # Status labels, variants, icons
+    └── permissions.ts      # Role-based permission checks
 ```
 
 ### API Routes (prefix: `/api/v1`)
@@ -186,6 +199,26 @@ Always verify LIFF ID tokens on backend. Never trust client-side decoded data.
 ```python
 # In endpoint
 line_user_id = await verify_liff_token(id_token)
+```
+
+### Shared Constants Pattern
+Category, subcategory, and agency options are defined once in `frontend/lib/constants/` and imported by both admin pages and LIFF mini-apps. When adding or reordering options, update the constants file only — all consumers pick up the change. Tests in `lib/constants/__tests__/` verify ordering and validity.
+
+```typescript
+// In lib/constants/categories.ts — source of truth
+export const CATEGORIES = [
+  { value: 'แจ้งเบาะแสยาเสพติด', label: 'แจ้งเบาะแสยาเสพติด' },
+  { value: 'ร้องเรียน/ร้องทุกข์', label: 'ร้องเรียน/ร้องทุกข์' },
+  // ...
+] as const;
+
+// In admin create page — use spread to pass mutable copy to Select
+import { CATEGORIES } from '@/lib/constants/categories';
+<Select options={[...CATEGORIES]} />
+
+// In LIFF pages — iterate AGENCIES constant instead of hardcoding <option>s
+import { AGENCIES } from '@/lib/constants/agencies';
+{AGENCIES.map(a => <option key={a.value} value={a.value}>{a.label}</option>)}
 ```
 
 ### Frontend Data Fetching
@@ -276,3 +309,17 @@ Commit format: `<type>(<scope>): <description>`
 Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `chore`
 
 Example: `feat(live-chat): add operator typing indicator`
+
+### CI Checks (run on push)
+- **Frontend Lint & Build**: ESLint + `tsc --noEmit` + `next build`
+- **Backend Pytest**: `python -m pytest`
+- **Playwright Smoke**: E2E tests against Vercel preview deployment
+- **Source Encoding Scan**: Checks for malformed UTF-8 / BOM issues
+- **Vercel**: Preview deployment for PR review
+
+### PRP Artifacts (`.claude/PRPs/`)
+Feature work follows PRP (Planning-Review-Polish) structure:
+- `prds/` — Feature specifications (e.g., `community-agencies-drug-reporting.prd.md`)
+- `plans/` — Implementation plans with phases and tasks
+- `reports/` — Completion reports with validation evidence
+- `reviews/` — Code review artifacts (local reviews before commit, PR reviews)

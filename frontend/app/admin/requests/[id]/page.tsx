@@ -28,9 +28,11 @@ import {
     RotateCcw,
     Undo2,
     UserX,
+    Forward,
 } from 'lucide-react';
 import { AssignModal } from '@/components/admin/AssignModal';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { EscalationDialog } from '@/components/ui/EscalationDialog';
 import { Button } from '@/components/ui/Button';
 import CalendarPickerTH from '@/components/ui/CalendarPickerTH';
 import {
@@ -107,6 +109,7 @@ export default function RequestDetailPage() {
     const [submittingComment, setSubmittingComment] = useState(false);
     const [assignModalOpen, setAssignModalOpen] = useState(false);
     const [unassignDialogOpen, setUnassignDialogOpen] = useState(false);
+    const [escalationDialogOpen, setEscalationDialogOpen] = useState(false);
     // PRD B: revert-from-COMPLETED flow. Both kebab items share one
     // dialog — `target` records which status to revert to so the
     // ConfirmDialog body can interpolate the right label.
@@ -305,6 +308,22 @@ export default function RequestDetailPage() {
         setUnassignDialogOpen(false);
     };
 
+    const handleEscalate = async (agency: string, reason: string) => {
+        await handleUpdateField({
+            details: {
+                escalated_to: agency,
+                escalation_reason: reason,
+                escalated_at: new Date().toISOString(),
+            }
+        });
+        setEscalationDialogOpen(false);
+        toast({
+            title: 'ส่งต่อสำเร็จ',
+            description: `ส่งต่อคำร้องไปยัง ${agency} เรียบร้อยแล้ว`,
+            variant: 'success',
+        });
+    };
+
     // --- UI Helpers ---
     const tabs = [
         { id: 'details', label: 'รายละเอียดคำร้อง', icon: FileText },
@@ -416,6 +435,18 @@ export default function RequestDetailPage() {
                                 leftIcon={<UserPlus size={18} />}
                             >
                                 {request.assigned_agent_id ? 'เปลี่ยนผู้รับผิดชอบ' : 'มอบหมาย'}
+                            </Button>
+                        )}
+
+                        {/* "ส่งต่อหน่วยงานเฉพาะทาง": supervisor only, drug category only */}
+                        {canApprove && request.topic_category === 'แจ้งเบาะแสยาเสพติด' && request.status !== 'COMPLETED' && request.status !== 'REJECTED' && (
+                            <Button
+                                variant="warning"
+                                size="sm"
+                                onClick={() => setEscalationDialogOpen(true)}
+                                leftIcon={<Forward size={18} />}
+                            >
+                                ส่งต่อหน่วยงานเฉพาะทาง
                             </Button>
                         )}
 
@@ -975,6 +1006,13 @@ export default function RequestDetailPage() {
                 confirmText="ถอนการมอบหมาย"
                 cancelText="ยกเลิก"
                 variant="warning"
+            />
+
+            <EscalationDialog
+                isOpen={escalationDialogOpen}
+                onClose={() => setEscalationDialogOpen(false)}
+                onConfirm={handleEscalate}
+                isLoading={submitting}
             />
 
             {/* PRD B: revert-from-COMPLETED confirmation. Shared between the
