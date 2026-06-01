@@ -19,34 +19,28 @@ interface StatsCardProps {
 
 const colorMap = {
   primary: {
-    iconBg: 'bg-gradient-to-br from-brand-100 to-brand-50',
+    iconBg: 'bg-brand-50 dark:bg-brand-900/20',
     text: 'text-brand-600',
-    glow: 'group-hover:shadow-brand-500/20',
   },
   success: {
-    iconBg: 'bg-gradient-to-br from-success/15 to-success/5',
+    iconBg: 'bg-success/10 dark:bg-success/15',
     text: 'text-success-text',
-    glow: 'group-hover:shadow-success/20',
   },
   warning: {
-    iconBg: 'bg-gradient-to-br from-warning/15 to-warning/5',
+    iconBg: 'bg-warning/10 dark:bg-warning/15',
     text: 'text-warning-text',
-    glow: 'group-hover:shadow-warning/20',
   },
   danger: {
-    iconBg: 'bg-gradient-to-br from-danger/15 to-danger/5',
+    iconBg: 'bg-danger/10 dark:bg-danger/15',
     text: 'text-danger-text',
-    glow: 'group-hover:shadow-danger/20',
   },
   info: {
-    iconBg: 'bg-gradient-to-br from-info/15 to-info/5',
+    iconBg: 'bg-info/10 dark:bg-info/15',
     text: 'text-info-text',
-    glow: 'group-hover:shadow-info/20',
   },
   navy: {
-    iconBg: 'bg-gradient-to-br from-brand-100 to-brand-50',
+    iconBg: 'bg-brand-50 dark:bg-brand-900/20',
     text: 'text-brand-600',
-    glow: 'group-hover:shadow-brand-500/20',
   },
 };
 
@@ -66,11 +60,8 @@ export default function StatsCard({
       <div
         className={cn(
           'w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0',
-          'transition-all duration-300',
-          'group-hover:scale-110 group-hover:shadow-lg',
           colors.iconBg,
           colors.text,
-          colors.glow
         )}
       >
         {icon}
@@ -115,10 +106,10 @@ export default function StatsCard({
   const containerClasses = cn(
     'bg-surface rounded-2xl p-5',
     'border border-border-default',
-    'shadow-sm shadow-gray-200/50 dark:shadow-none',
-    'transition-all duration-300 ease-out',
+    'shadow-sm',
+    'transition-all duration-200 ease-out',
     'group cursor-pointer',
-    'hover:-translate-y-1 hover:shadow-lg',
+    'hover:-translate-y-0.5 hover:shadow-md',
     'hover:border-border-hover',
     'block h-full'
   );

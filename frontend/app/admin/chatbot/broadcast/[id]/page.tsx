@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/components/ui/Toast';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -58,6 +59,7 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 export default function BroadcastDetailPage() {
+    const { toast } = useToast();
     const params = useParams();
     const router = useRouter();
     const { token } = useAuth();
@@ -105,7 +107,7 @@ export default function BroadcastDetailPage() {
             setSendModal(false);
             fetchBroadcast();
         } catch (err: unknown) {
-            alert(err instanceof Error ? err.message : 'ส่งไม่สำเร็จ');
+            toast({ variant: 'error', title: 'ส่งไม่สำเร็จ', description: err instanceof Error ? err.message : 'กรุณาลองใหม่' });
         } finally {
             setActionLoading(false);
         }
@@ -119,7 +121,7 @@ export default function BroadcastDetailPage() {
             setCancelModal(false);
             fetchBroadcast();
         } catch {
-            alert('ยกเลิกไม่สำเร็จ');
+            toast({ variant: 'error', title: 'ยกเลิกไม่สำเร็จ', description: 'กรุณาลองใหม่' });
         } finally {
             setActionLoading(false);
         }
@@ -132,7 +134,7 @@ export default function BroadcastDetailPage() {
             if (!res.ok) throw new Error('Failed');
             router.push('/admin/chatbot/broadcast');
         } catch {
-            alert('ลบไม่สำเร็จ');
+            toast({ variant: 'error', title: 'ลบไม่สำเร็จ', description: 'กรุณาลองใหม่' });
         } finally {
             setActionLoading(false);
         }

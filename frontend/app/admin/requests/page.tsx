@@ -40,6 +40,7 @@ import {
     getStatusIconForRequest,
 } from '@/lib/constants/request-status';
 import { usePermissions } from '@/lib/permissions';
+import { useToast } from '@/components/ui/Toast';
 
 // Bridge between shared module (icons stored as string names) and the
 // lucide-react components actually rendered. Centralised so swapping an
@@ -80,6 +81,7 @@ interface ServiceRequest {
 
 
 export default function AdminRequestList() {
+    const { toast } = useToast();
     const [requests, setRequests] = useState<ServiceRequest[]>([]);
     const [loading, setLoading] = useState(true);
     const [fetchError, setFetchError] = useState<string | null>(null);
@@ -178,9 +180,17 @@ export default function AdminRequestList() {
             fetchRequests();
             setAssignModalOpen(false);
             setAssigningRequest(null);
+            toast({
+                variant: 'success',
+                title: 'มอบหมายงานสำเร็จ',
+            });
         } catch (err) {
             console.error(err);
-            alert(err instanceof Error ? err.message : 'มอบหมายงานไม่สำเร็จ');
+            toast({
+                variant: 'error',
+                title: 'มอบหมายงานไม่สำเร็จ',
+                description: err instanceof Error ? err.message : 'กรุณาลองใหม่อีกครั้ง',
+            });
         }
     };
 
@@ -208,9 +218,17 @@ export default function AdminRequestList() {
             setRequests(prev => prev.filter(r => r.id !== selectedRequest.id));
             setDeleteModalOpen(false);
             setSelectedRequest(null);
+            toast({
+                variant: 'success',
+                title: 'ลบคำร้องสำเร็จ',
+            });
         } catch (err) {
             console.error(err);
-            alert('Failed to delete request');
+            toast({
+                variant: 'error',
+                title: 'ลบคำร้องไม่สำเร็จ',
+                description: 'กรุณาลองใหม่อีกครั้ง',
+            });
         }
     };
 

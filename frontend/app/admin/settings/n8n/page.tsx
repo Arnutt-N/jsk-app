@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import PageHeader from '@/app/admin/components/PageHeader';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { useToast } from '@/components/ui/Toast';
 
 interface N8nConfig {
     webhook_url: string;
@@ -34,6 +35,7 @@ interface TestResult {
 
 export default function N8nSettingsPage() {
     const router = useRouter();
+    const { toast } = useToast();
     const { token } = useAuth();
     const authHeaders = useMemo(() => {
         const h: Record<string, string> = {};
@@ -93,10 +95,10 @@ export default function N8nSettingsPage() {
                 setShowSaveModal(true);
             } else {
                 const err = await res.json();
-                alert(err.detail || 'Save failed');
+                toast({ variant: 'error', title: 'บันทึกไม่สำเร็จ', description: err.detail || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล' });
             }
         } catch {
-            alert('เกิดข้อผิดพลาดในการบันทึก');
+            toast({ variant: 'error', title: 'เกิดข้อผิดพลาด', description: 'ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่อีกครั้ง' });
         } finally {
             setProcessing(null);
         }

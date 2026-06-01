@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import PageHeader from '../../components/PageHeader';
+import { useToast } from '@/components/ui/Toast';
 
 interface TemplateBounds {
     x: number;
@@ -203,6 +204,7 @@ const TemplateIcon = ({ areas, width, height, isActive }: { areas: TemplateArea[
 
 export default function NewRichMenuPage() {
     const router = useRouter();
+    const { toast } = useToast();
     const API_BASE = '/api/v1';
 
     const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
@@ -280,7 +282,7 @@ export default function NewRichMenuPage() {
 
     const handleSave = async (syncToLine: boolean = false) => {
         if (!form.name || !file || !selectedTemplate) {
-            alert("Please provide a name, upload an image, and select a template.");
+            toast({ variant: 'warning', title: 'ข้อมูลไม่ครบถ้วน', description: 'กรุณากรอกชื่อ อัปโหลดรูปภาพ และเลือกเทมเพลต' });
             return;
         }
 
@@ -323,16 +325,16 @@ export default function NewRichMenuPage() {
                 });
                 if (!syncRes.ok) {
                     const errorData = await syncRes.json();
-                    alert(`Saved locally, but Sync to LINE failed: ${errorData.detail || 'Unknown error'}`);
+                    toast({ variant: 'error', title: 'ซิงค์ไม่สำเร็จ', description: `บันทึกแล้ว แต่ซิงค์ไป LINE ไม่สำเร็จ: ${errorData.detail || 'ไม่ทราบสาเหตุ'}` });
                     router.push('/admin/rich-menus');
                     return;
                 }
             }
 
-            alert(syncToLine ? "Rich Menu created and synced successfully!" : "Rich Menu saved as draft!");
+            toast({ variant: 'success', title: syncToLine ? 'สร้างและซิงค์สำเร็จ' : 'บันทึกสำเร็จ', description: syncToLine ? 'สร้าง Rich Menu และซิงค์ไป LINE เรียบร้อยแล้ว' : 'บันทึก Rich Menu เป็นฉบับร่างแล้ว' });
             router.push('/admin/rich-menus');
         } catch (error: unknown) {
-            alert(error instanceof Error ? error.message : 'Unknown error');
+            toast({ variant: 'error', title: 'เกิดข้อผิดพลาด', description: error instanceof Error ? error.message : 'ไม่ทราบสาเหตุ' });
         } finally {
             setIsSaving(false);
         }

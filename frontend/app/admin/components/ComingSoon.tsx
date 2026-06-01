@@ -1,20 +1,15 @@
 'use client';
 
-import { Rocket, ArrowLeft, Bell, Sparkles } from 'lucide-react';
+import { Rocket, ArrowLeft, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
 export default function ComingSoonPage() {
     return (
-        <div className="flex flex-col items-center justify-center min-h-[70vh] text-center px-6 animate-in fade-in zoom-in duration-700">
-            {/* Ambient Background Glows */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-brand-500/10 rounded-full blur-[120px] pointer-events-none" />
-            <div className="absolute top-1/4 left-1/3 w-[300px] h-[300px] bg-brand-500/5 rounded-full blur-[100px] pointer-events-none" />
+        <div className="flex flex-col items-center justify-center min-h-[70vh] text-center px-6 animate-in fade-in duration-500">
 
             <div className="relative group">
-                {/* Icon Container with Glassmorphism */}
-                <div className="w-24 h-24 bg-white/40 backdrop-blur-xl border border-white/60 shadow-2xl shadow-brand-500/10 rounded-[2.5rem] flex items-center justify-center mb-8 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 cursor-default dark:bg-gray-800/40 dark:border-gray-700/60">
-                    <Rocket className="w-10 h-10 text-brand-500 animate-bounce dark:text-brand-400" />
-                    <Sparkles className="absolute -top-2 -right-2 w-6 h-6 text-warning animate-pulse" />
+                <div className="w-24 h-24 bg-brand-50 border border-brand-100 rounded-[2.5rem] flex items-center justify-center mb-8 cursor-default dark:bg-brand-900/20 dark:border-brand-800/30">
+                    <Rocket className="w-10 h-10 text-brand-500 animate-float dark:text-brand-400" />
                 </div>
             </div>
 
@@ -57,7 +52,7 @@ export default function ComingSoonPage() {
             </div>
 
             {/* Bottom Status Info */}
-            <div className="mt-20 flex items-center gap-6 text-[10px] font-bold text-text-tertiary uppercase tracking-widest border-t border-border-subtle pt-8 w-full max-w-xs justify-center">
+            <div className="mt-20 flex items-center gap-6 text-xs font-medium text-text-tertiary border-t border-border-subtle pt-8 w-full max-w-xs justify-center">
                 <div className="flex items-center gap-2">
                     <div className="w-1.5 h-1.5 bg-success rounded-full animate-pulse" />
                     Version 1.2

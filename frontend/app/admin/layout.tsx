@@ -7,7 +7,7 @@ import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { SessionTimeoutWarning } from '@/components/admin/SessionTimeoutWarning';
 import { cn } from '@/lib/utils';
 import {
-  Bell, Menu, Search, LogOut, ChevronLeft, ChevronRight,
+  Bell, Menu, Search, LogOut, ChevronLeft, ChevronRight, X,
   LayoutDashboard, FileText, Bot, MessageCircle,
   Reply, MessageSquareReply, PanelTop, Users,
   UserCog, BarChart3, Megaphone, FolderOpen,
@@ -108,6 +108,7 @@ function SidebarUserInfo({ isCollapsed }: { isCollapsed: boolean }) {
 function AdminShell({ children }: { children: React.ReactNode }) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [adminLocale, setAdminLocale] = useState<AdminLocale>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('jsk-admin-locale');
@@ -233,21 +234,29 @@ function AdminShell({ children }: { children: React.ReactNode }) {
             )}
           >
             <div className="absolute inset-0 bg-gradient-to-b from-sidebar-bg via-sidebar-accent to-sidebar-border opacity-100 pointer-events-none" />
-            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 mix-blend-overlay pointer-events-none" />
+
+            {/* Mobile close button */}
+            <button
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="absolute top-4 right-4 z-20 lg:hidden p-1.5 rounded-lg text-sidebar-text-muted hover:text-white hover:bg-white/10 transition-colors"
+              aria-label="Close menu"
+            >
+              <X className="w-5 h-5" />
+            </button>
 
             {/* Sidebar Logo */}
             <div className="relative z-10 h-20 flex items-center justify-center px-4 border-b border-white/10">
               {isSidebarCollapsed ? (
-                <div className="w-10 h-10 rounded-2xl gradient-logo flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-brand-500/20 ring-4 ring-brand-500/10">
+                <div className="w-10 h-10 rounded-2xl gradient-logo flex items-center justify-center text-white font-bold text-sm">
                   JS
                 </div>
               ) : (
                 <Link href="/admin" className="flex items-center gap-3 w-full">
-                  <div className="w-10 h-10 rounded-2xl gradient-logo flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-brand-500/20 ring-4 ring-brand-500/10 flex-shrink-0">
+                  <div className="w-10 h-10 rounded-2xl gradient-logo flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
                     JS
                   </div>
                   <div className="flex-1">
-                    <h1 className="text-white font-bold text-xl bg-gradient-to-r from-white to-sidebar-text-muted bg-clip-text text-transparent tracking-wide leading-tight">
+                    <h1 className="text-white font-bold text-xl tracking-wide leading-tight">
                       JSK
                     </h1>
                     <p className="text-[10px] text-sidebar-text-muted tracking-widest uppercase">Admin</p>
@@ -322,13 +331,26 @@ function AdminShell({ children }: { children: React.ReactNode }) {
                   <Menu className="w-5 h-5" />
                 </button>
 
-                <button
-                  className="md:hidden p-2 bg-surface rounded-xl shadow-sm border border-border-default text-text-secondary hover:text-brand-600 transition-colors cursor-pointer"
-                  aria-label="Search"
-                  onClick={() => {/* TODO: implement mobile search */}}
-                >
-                  <Search className="w-5 h-5" />
-                </button>
+                {isMobileSearchOpen ? (
+                  <div className="md:hidden flex items-center bg-muted/50 rounded-xl px-3 py-2 border border-border-default focus-within:ring-2 focus-within:ring-brand-100 transition-all w-full max-w-xs">
+                    <Search className="w-4 h-4 text-sidebar-text-muted mr-2 flex-shrink-0" />
+                    <input
+                      type="text"
+                      placeholder="ค้นหา..."
+                      className="bg-transparent text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none w-full"
+                      autoFocus
+                      onBlur={() => setIsMobileSearchOpen(false)}
+                    />
+                  </div>
+                ) : (
+                  <button
+                    className="md:hidden p-2 bg-surface rounded-xl shadow-sm border border-border-default text-text-secondary hover:text-brand-600 transition-colors cursor-pointer"
+                    aria-label="Search"
+                    onClick={() => setIsMobileSearchOpen(true)}
+                  >
+                    <Search className="w-5 h-5" />
+                  </button>
+                )}
 
                 <div className="hidden md:flex items-center bg-muted/50 rounded-xl px-4 py-2.5 border border-border-default focus-within:ring-2 focus-within:ring-brand-100 dark:focus-within:ring-brand-900 transition-all w-64">
                   <Search className="w-4 h-4 text-sidebar-text-muted mr-2 flex-shrink-0" />
@@ -350,10 +372,11 @@ function AdminShell({ children }: { children: React.ReactNode }) {
                 <Tooltip content="Notifications">
                   <button
                     className="p-2.5 rounded-xl text-text-tertiary hover:text-brand-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all relative"
-                    aria-label="Notifications"
+                    aria-label="Notifications, new notifications available"
                   >
-                    <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white dark:ring-gray-800 animate-pulse" />
+                    <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white dark:ring-gray-800 animate-pulse" aria-hidden="true" />
                     <Bell className="w-5 h-5" />
+                    <span className="sr-only">New notifications available</span>
                   </button>
                 </Tooltip>
 

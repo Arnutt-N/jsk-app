@@ -167,9 +167,6 @@
   --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.1), 0 4px 6px -4px hsl(0 0% 0% / 0.1);
   --shadow-xl: 0 20px 25px -5px hsl(0 0% 0% / 0.1), 0 8px 10px -6px hsl(0 0% 0% / 0.1);
   --shadow-2xl: 0 25px 50px -12px hsl(0 0% 0% / 0.25);
-  --shadow-glow: 0 0 20px hsl(217 91% 60% / 0.3);
-  --shadow-glow-sm: 0 0 10px hsl(217 91% 60% / 0.2);
-  --shadow-glow-lg: 0 0 30px hsl(217 91% 60% / 0.4);
   
   /* Typography */
   --font-sans: var(--font-noto-thai), "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -228,8 +225,6 @@
   --ease-in: cubic-bezier(0.4, 0, 1, 1);
   --ease-out: cubic-bezier(0, 0, 0.2, 1);
   --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
-  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
 /* Fluid Typography */
@@ -337,7 +332,7 @@
   }
 
   .ds-section-title {
-    @apply text-xs font-semibold uppercase tracking-wider text-gray-500;
+    @apply text-xs font-semibold tracking-wide text-gray-500;
   }
 
   .thai-text {
@@ -518,20 +513,6 @@
     );
   }
 
-  /* Gradient Text */
-  .text-gradient {
-    background: linear-gradient(135deg, hsl(217 91% 60%), hsl(213 94% 68%));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-
-  .text-gradient-premium {
-    background: linear-gradient(135deg, hsl(221 83% 53%), hsl(213 97% 87%));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
 
   /* Landing page styles removed — replaced by inline Tailwind in redesign */
 
@@ -650,33 +631,6 @@
     }
   }
   
-  @keyframes shine {
-    from { 
-      transform: translateX(-100%) skewX(-15deg); 
-    }
-    to { 
-      transform: translateX(200%) skewX(-15deg); 
-    }
-  }
-  
-  @keyframes shimmer {
-    0% { 
-      background-position: -200% 0; 
-    }
-    100% { 
-      background-position: 200% 0; 
-    }
-  }
-  
-  @keyframes pulse-glow {
-    0%, 100% {
-      box-shadow: 0 0 0 0 hsl(217 91% 60% / 0.4);
-    }
-    50% {
-      box-shadow: 0 0 0 10px hsl(217 91% 60% / 0);
-    }
-  }
-  
   @keyframes float {
     0%, 100% { 
       transform: translateY(0); 
@@ -692,15 +646,6 @@
     }
     to { 
       transform: rotate(360deg); 
-    }
-  }
-  
-  @keyframes bounce-subtle {
-    0%, 100% { 
-      transform: translateY(0); 
-    }
-    50% { 
-      transform: translateY(-4px); 
     }
   }
   
@@ -730,38 +675,20 @@
     animation: fade-in-down 400ms ease-out forwards; 
   }
   
-  .animate-scale-in { 
-    animation: scale-in 300ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards; 
+  .animate-scale-in {
+    animation: scale-in 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
   
   .animate-slide-in-right { 
     animation: slide-in-right 300ms ease-out forwards; 
   }
   
-  .animate-shine { 
-    animation: shine 2s infinite; 
-  }
-  
-  .animate-shimmer {
-    background: linear-gradient(90deg, transparent 0%, hsl(0 0% 100% / 0.4) 50%, transparent 100%);
-    background-size: 200% 100%;
-    animation: shimmer 1.5s infinite;
-  }
-  
-  .animate-pulse-glow { 
-    animation: pulse-glow 2s ease-in-out infinite; 
-  }
-  
-  .animate-float { 
+  .animate-float {
     animation: float 3s ease-in-out infinite; 
   }
   
   .animate-spin { 
     animation: spin 1s linear infinite; 
-  }
-  
-  .animate-bounce-subtle { 
-    animation: bounce-subtle 2s ease-in-out infinite; 
   }
   
   .animate-shake { 
@@ -783,25 +710,10 @@
   .delay-400 { animation-delay: 400ms; }
   .delay-500 { animation-delay: 500ms; }
 
-  /* ── Live Chat Animations (from example admin-chat-system) ── */
-  @keyframes typing-bounce {
-    0%, 60%, 100% { transform: translateY(0); }
-    30% { transform: translateY(-6px); }
-  }
-
+  /* ── Live Chat Animations ── */
   @keyframes slide-in-left {
     from { opacity: 0; transform: translateX(-20px); }
     to { opacity: 1; transform: translateX(0); }
-  }
-
-  @keyframes blink-badge {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
-  }
-
-  @keyframes pulse-ring {
-    0% { transform: scale(0.8); opacity: 1; }
-    100% { transform: scale(2); opacity: 0; }
   }
 
   @keyframes toast-slide {
@@ -812,17 +724,6 @@
   /* Chat message animations */
   .msg-in { animation: slide-in-left 0.3s ease-out; }
   .msg-out { animation: slide-in-right 0.3s ease-out; }
-
-  /* Typing dots */
-  .typing-dot {
-    animation: typing-bounce 1.4s infinite ease-in-out;
-  }
-  .typing-dot:nth-child(1) { animation-delay: 0s; }
-  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
-  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
-
-  /* Badge blink */
-  .blink-badge { animation: blink-badge 1s ease-in-out infinite; }
 
   /* Toast slide-in */
   .toast-slide { animation: toast-slide 0.4s ease-out; }
