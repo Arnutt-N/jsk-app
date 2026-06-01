@@ -31,14 +31,14 @@ interface UserRecord {
 const ROLE_BADGE: Record<string, { variant: 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'gray'; label: string; icon: React.ReactNode }> = {
     SUPER_ADMIN: { variant: 'primary', label: 'Super Admin', icon: <Shield className="w-4 h-4" /> },
     ADMIN: { variant: 'info', label: 'Admin', icon: <Shield className="w-4 h-4" /> },
-    AGENT: { variant: 'success', label: 'Agent', icon: <UserCog className="w-4 h-4" /> },
+    AGENT: { variant: 'success', label: 'Staff', icon: <UserCog className="w-4 h-4" /> },
     USER: { variant: 'gray', label: 'User', icon: <User className="w-4 h-4" /> },
 };
 
 const ROLE_OPTIONS: SelectOption[] = [
     { value: 'SUPER_ADMIN', label: 'Super Admin' },
     { value: 'ADMIN', label: 'Admin' },
-    { value: 'AGENT', label: 'Agent' },
+    { value: 'AGENT', label: 'Staff' },
     { value: 'USER', label: 'User' },
 ];
 

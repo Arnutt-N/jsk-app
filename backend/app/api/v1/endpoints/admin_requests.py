@@ -321,6 +321,7 @@ class RequestUpdate(BaseModel):
     assigned_agent_id: Optional[int] = None
     assigned_by_id: Optional[int] = None
     unassign: bool = False
+    notes: Optional[str] = None
 
 @router.patch("/{request_id}", response_model=ServiceRequestResponse)
 async def update_request(
@@ -430,6 +431,7 @@ async def update_request(
             details={
                 "from_status": prior_status.value,
                 "to_status": update_data.status.value,
+                "notes": update_data.notes,
             },
         )
 

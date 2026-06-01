@@ -58,7 +58,7 @@ interface UserListResponse {
 const ROLE_BADGE: Record<string, { variant: 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'gray'; label: string }> = {
     SUPER_ADMIN: { variant: 'primary', label: 'Super Admin' },
     ADMIN: { variant: 'info', label: 'Admin' },
-    AGENT: { variant: 'success', label: 'Agent' },
+    AGENT: { variant: 'success', label: 'Staff' },
     USER: { variant: 'gray', label: 'User' },
 };
 
@@ -66,7 +66,7 @@ const ROLE_OPTIONS: SelectOption[] = [
     { value: '', label: 'ทุกบทบาท' },
     { value: 'SUPER_ADMIN', label: 'Super Admin' },
     { value: 'ADMIN', label: 'Admin' },
-    { value: 'AGENT', label: 'Agent' },
+    { value: 'AGENT', label: 'Staff' },
     { value: 'USER', label: 'User' },
 ];
 
@@ -77,7 +77,7 @@ const STATUS_OPTIONS: SelectOption[] = [
 ];
 
 const CREATE_ROLE_OPTIONS: SelectOption[] = [
-    { value: 'AGENT', label: 'Agent (เจ้าหน้าที่)' },
+    { value: 'AGENT', label: 'Staff (เจ้าหน้าที่)' },
     { value: 'ADMIN', label: 'Admin (แอดมิน)' },
     { value: 'SUPER_ADMIN', label: 'Super Admin' },
 ];

@@ -116,7 +116,8 @@ export default function RequestDetailPage() {
     const [revertConfirm, setRevertConfirm] = useState<{
         open: boolean
         target: 'AWAITING_APPROVAL' | 'IN_PROGRESS' | null
-    }>({ open: false, target: null });
+        notes: string
+    }>({ open: false, target: null, notes: '' });
 
     // Permission state for workflow button visibility.
     // - userId: numeric form of the logged-in user's id (AuthContext stores as string)
@@ -577,14 +578,14 @@ export default function RequestDetailPage() {
                                         <>
                                             <DropdownMenuItem
                                                 disabled={submitting}
-                                                onClick={() => setRevertConfirm({ open: true, target: 'AWAITING_APPROVAL' })}
+                                                onClick={() => setRevertConfirm({ open: true, target: 'AWAITING_APPROVAL', notes: '' })}
                                             >
                                                 <Undo2 size={16} className="text-amber-600" />
                                                 ยกเลิกอนุมัติ → รออนุมัติ
                                             </DropdownMenuItem>
                                             <DropdownMenuItem
                                                 disabled={submitting}
-                                                onClick={() => setRevertConfirm({ open: true, target: 'IN_PROGRESS' })}
+                                                onClick={() => setRevertConfirm({ open: true, target: 'IN_PROGRESS', notes: '' })}
                                             >
                                                 <Undo2 size={16} className="text-amber-600" />
                                                 ยกเลิกอนุมัติ → กำลังดำเนินการ
@@ -1021,12 +1022,12 @@ export default function RequestDetailPage() {
                 an audit_log row on confirm. */}
             <ConfirmDialog
                 isOpen={revertConfirm.open}
-                onClose={() => setRevertConfirm({ open: false, target: null })}
+                onClose={() => setRevertConfirm({ open: false, target: null, notes: '' })}
                 onConfirm={() => {
                     if (revertConfirm.target) {
-                        void guardedUpdate({ status: revertConfirm.target });
+                        void guardedUpdate({ status: revertConfirm.target, notes: revertConfirm.notes || undefined });
                     }
-                    setRevertConfirm({ open: false, target: null });
+                    setRevertConfirm({ open: false, target: null, notes: '' });
                 }}
                 title="ยืนยันยกเลิกการอนุมัติ"
                 description={
@@ -1040,6 +1041,13 @@ export default function RequestDetailPage() {
                                     : ''}
                         </b>
                         <br />
+                        <textarea
+                            className="mt-3 w-full rounded-md border border-border-default bg-bg-primary p-2 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary"
+                            rows={3}
+                            placeholder="หมายเหตุ (ไม่บังคับ)"
+                            value={revertConfirm.notes}
+                            onChange={(e) => setRevertConfirm(prev => ({ ...prev, notes: e.target.value }))}
+                        />
                         <span className="text-xs text-amber-600 mt-2 block">
                             การกระทำนี้จะถูกบันทึกในประวัติ
                         </span>
