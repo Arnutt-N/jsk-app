@@ -199,6 +199,7 @@ def test_revert_completed_to_awaiting_approval_logs_audit():
     assert log.details == {
         "from_status": "COMPLETED",
         "to_status": "AWAITING_APPROVAL",
+        "notes": None,
     }
 
 
@@ -226,6 +227,7 @@ def test_revert_completed_to_in_progress_logs_audit():
     assert audit_rows[0].details == {
         "from_status": "COMPLETED",
         "to_status": "IN_PROGRESS",
+        "notes": None,
     }
 
 
