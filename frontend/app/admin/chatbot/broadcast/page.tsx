@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/components/ui/Toast';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -63,6 +64,7 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 export default function BroadcastListPage() {
+    const { toast } = useToast();
     const { token } = useAuth();
     const authHeaders = useMemo(() => {
         const h: Record<string, string> = {};
@@ -120,7 +122,7 @@ export default function BroadcastListPage() {
             fetchBroadcasts();
         } catch (err) {
             console.error(err);
-            alert('ลบไม่สำเร็จ');
+            toast({ variant: 'error', title: 'ลบไม่สำเร็จ', description: 'กรุณาลองใหม่' });
         } finally {
             setActionLoading(false);
         }
@@ -139,7 +141,7 @@ export default function BroadcastListPage() {
             fetchBroadcasts();
         } catch (err: unknown) {
             console.error(err);
-            alert(err instanceof Error ? err.message : 'ส่งไม่สำเร็จ');
+            toast({ variant: 'error', title: 'ส่งไม่สำเร็จ', description: err instanceof Error ? err.message : 'กรุณาลองใหม่' });
         } finally {
             setActionLoading(false);
         }

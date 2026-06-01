@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/components/ui/Toast';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -46,6 +47,7 @@ const TYPE_OPTIONS: { type: MessageType; label: string; desc: string; icon: Reac
 ];
 
 export default function BroadcastCreatePage() {
+    const { toast } = useToast();
     const router = useRouter();
     const { token } = useAuth();
     const authHeaders = useMemo(() => {
@@ -125,7 +127,7 @@ export default function BroadcastCreatePage() {
             router.push(`/admin/chatbot/broadcast/${data.id}`);
         } catch (err) {
             console.error(err);
-            alert('บันทึกไม่สำเร็จ');
+            toast({ variant: 'error', title: 'บันทึกไม่สำเร็จ', description: 'กรุณาลองใหม่' });
         } finally {
             setSaving(false);
         }
@@ -156,14 +158,14 @@ export default function BroadcastCreatePage() {
             router.push('/admin/chatbot/broadcast');
         } catch (err: unknown) {
             console.error(err);
-            alert(err instanceof Error ? err.message : 'ส่งไม่สำเร็จ');
+            toast({ variant: 'error', title: 'ส่งไม่สำเร็จ', description: err instanceof Error ? err.message : 'กรุณาลองใหม่' });
         } finally {
             setSaving(false);
         }
     };
 
     const handleSaveAndSchedule = async () => {
-        if (!scheduleDate) { alert('กรุณาเลือกวันเวลาที่ต้องการส่ง'); return; }
+        if (!scheduleDate) { toast({ variant: 'warning', title: 'กรุณาเลือกวันเวลาที่ต้องการส่ง' }); return; }
         setSaving(true);
         try {
             const body = {
@@ -192,7 +194,7 @@ export default function BroadcastCreatePage() {
             router.push('/admin/chatbot/broadcast');
         } catch (err) {
             console.error(err);
-            alert('ตั้งเวลาไม่สำเร็จ');
+            toast({ variant: 'error', title: 'ตั้งเวลาไม่สำเร็จ', description: 'กรุณาลองใหม่' });
         } finally {
             setSaving(false);
         }

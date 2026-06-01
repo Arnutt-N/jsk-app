@@ -23,6 +23,7 @@ import { ActionIconButton } from '@/components/ui/ActionIconButton';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/Card';
 import PageHeader from '@/app/admin/components/PageHeader';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { useToast } from '@/components/ui/Toast';
 
 interface Integration {
     id: number;
@@ -49,6 +50,7 @@ const emptyForm = {
 
 export default function CustomIntegrationsPage() {
     const router = useRouter();
+    const { toast } = useToast();
     const { token } = useAuth();
     const authHeaders = useMemo(() => {
         const h: Record<string, string> = {};
@@ -109,7 +111,7 @@ export default function CustomIntegrationsPage() {
                 try {
                     headers = JSON.parse(form.headers_json);
                 } catch {
-                    alert('Headers JSON ไม่ถูกต้อง');
+                    toast({ variant: 'warning', title: 'ข้อมูลไม่ถูกต้อง', description: 'รูปแบบ Headers JSON ไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง' });
                     setProcessing(null);
                     return;
                 }
@@ -139,10 +141,10 @@ export default function CustomIntegrationsPage() {
                 resetForm();
             } else {
                 const err = await res.json();
-                alert(err.detail || 'Save failed');
+                toast({ variant: 'error', title: 'บันทึกไม่สำเร็จ', description: err.detail || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล' });
             }
         } catch {
-            alert('เกิดข้อผิดพลาดในการบันทึก');
+            toast({ variant: 'error', title: 'เกิดข้อผิดพลาด', description: 'ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่อีกครั้ง' });
         } finally {
             setProcessing(null);
         }
@@ -159,7 +161,7 @@ export default function CustomIntegrationsPage() {
             if (!res.ok) throw new Error('Delete failed');
             await fetchIntegrations();
         } catch {
-            alert('เกิดข้อผิดพลาดในการลบ');
+            toast({ variant: 'error', title: 'เกิดข้อผิดพลาด', description: 'ไม่สามารถลบข้อมูลได้ กรุณาลองใหม่อีกครั้ง' });
         } finally {
             setProcessing(null);
             setShowDeleteModal(false);

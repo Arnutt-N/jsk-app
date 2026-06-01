@@ -101,7 +101,6 @@ export interface ButtonProps
   loadingText?: string;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
-  shine?: boolean;
   glow?: boolean;
 }
 
@@ -116,7 +115,6 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       loadingText,
       leftIcon,
       rightIcon,
-      shine = false,
       glow = false,
       children,
       disabled,
@@ -130,7 +128,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           ref={ref}
           className={cn(
             buttonVariants({ variant, size }),
-            glow && 'hover:shadow-glow',
+            glow && 'hover:shadow-lg',
             className
           )}
           {...props}
@@ -145,25 +143,12 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         className={cn(
           buttonVariants({ variant, size }),
-          glow && 'hover:shadow-glow',
+          glow && 'hover:shadow-lg',
           className
         )}
         disabled={isLoading || disabled}
         {...props}
       >
-        {/* Shine effect overlay */}
-        {shine && variant === 'primary' && !isLoading && (
-          <span className="absolute inset-0 overflow-hidden pointer-events-none">
-            <span
-              className="absolute inset-0 -translate-x-full group-hover:animate-shine"
-              style={{
-                background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent)',
-                transform: 'translateX(-100%) skewX(-15deg)',
-              }}
-            />
-          </span>
-        )}
-
         {/* Loading overlay */}
         {isLoading && (
           <span className="absolute inset-0 flex items-center justify-center bg-inherit rounded-xl">

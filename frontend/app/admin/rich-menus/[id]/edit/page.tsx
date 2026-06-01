@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { useToast } from '@/components/ui/Toast';
 
 interface RichMenuArea {
     bounds: { x: number; y: number; w: number; h: number };
@@ -34,6 +35,7 @@ interface RichMenu {
 export default function EditRichMenuPage() {
     const params = useParams();
     const router = useRouter();
+    const { toast } = useToast();
     const menuId = params.id as string;
 
     const [menu, setMenu] = useState<RichMenu | null>(null);
@@ -62,7 +64,7 @@ export default function EditRichMenuPage() {
                     setImagePreview(`${baseHost}/${data.image_path}`);
                 }
             } else {
-                alert('Rich Menu not found');
+                toast({ variant: 'error', title: 'ไม่พบ Rich Menu', description: 'ไม่พบข้อมูล Rich Menu ที่ต้องการ' });
                 router.push('/admin/rich-menus');
             }
         } catch (error) {
@@ -100,7 +102,7 @@ export default function EditRichMenuPage() {
 
             if (!updateRes.ok) {
                 const err = await updateRes.json();
-                alert(`Update failed: ${err.detail}`);
+                toast({ variant: 'error', title: 'อัปเดตไม่สำเร็จ', description: `${err.detail}` });
                 setSaving(false);
                 return;
             }
@@ -114,14 +116,14 @@ export default function EditRichMenuPage() {
                     body: formData
                 });
                 if (!uploadRes.ok) {
-                    alert('Image upload failed');
+                    toast({ variant: 'error', title: 'อัปโหลดรูปภาพไม่สำเร็จ', description: 'ไม่สามารถอัปโหลดรูปภาพได้' });
                 }
             }
 
-            alert('บันทึกสำเร็จ!');
+            toast({ variant: 'success', title: 'บันทึกสำเร็จ', description: 'แก้ไข Rich Menu เรียบร้อยแล้ว' });
             router.push('/admin/rich-menus');
         } catch {
-            alert('Error saving rich menu');
+            toast({ variant: 'error', title: 'เกิดข้อผิดพลาด', description: 'ไม่สามารถบันทึก Rich Menu ได้' });
         } finally {
             setSaving(false);
         }

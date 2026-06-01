@@ -50,7 +50,7 @@ const cardVariants = cva(
           'cursor-pointer',
         ],
         glow: [
-          'hover:shadow-glow hover:border-brand-200',
+          'hover:shadow-lg hover:border-brand-200',
           'cursor-pointer',
         ],
         border: [
@@ -133,13 +133,12 @@ CardHeader.displayName = 'CardHeader';
 // Card Title
 const CardTitle = React.forwardRef<
   HTMLHeadingElement,
-  React.HTMLAttributes<HTMLHeadingElement> & { gradient?: boolean }
->(({ className, gradient = false, ...props }, ref) => (
+  React.HTMLAttributes<HTMLHeadingElement>
+>(({ className, ...props }, ref) => (
   <h3
     ref={ref}
     className={cn(
-      'text-lg font-semibold tracking-tight',
-      gradient ? 'text-gradient' : 'text-text-primary',
+      'text-lg font-semibold tracking-tight text-text-primary',
       className
     )}
     {...props}

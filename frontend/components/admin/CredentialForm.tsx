@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Plus, Edit2, Trash2, CheckCircle, Shield, Bot, Send, Database, Globe } from 'lucide-react';
+import { useToast } from '@/components/ui/Toast';
 
 interface Credential {
     id: number;
@@ -24,6 +25,7 @@ interface CredentialFormData {
 }
 
 export default function CredentialList() {
+    const { toast } = useToast();
     const [credentials, setCredentials] = useState<Credential[]>([]);
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
@@ -116,10 +118,10 @@ export default function CredentialList() {
                 fetchCredentials();
             } else {
                 const err = await res.json();
-                alert(`Error: ${err.detail || 'Failed to save'}`);
+                toast({ variant: 'error', title: 'บันทึกไม่สำเร็จ', description: err.detail || 'กรุณาลองใหม่' });
             }
         } catch {
-            alert('Network error');
+            toast({ variant: 'error', title: 'เชื่อมต่อไม่ได้', description: 'กรุณาตรวจสอบเครือข่ายแล้วลองใหม่' });
         }
     };
 
@@ -134,7 +136,7 @@ export default function CredentialList() {
                 fetchCredentials();
             }
         } catch {
-            alert('Delete failed');
+            toast({ variant: 'error', title: 'ลบไม่สำเร็จ', description: 'กรุณาลองใหม่' });
         }
     };
 
@@ -145,9 +147,9 @@ export default function CredentialList() {
                 method: 'POST'
             });
             const result = await res.json();
-            alert(result.message);
+            toast({ variant: res.ok ? 'success' : 'error', title: result.message || 'ตรวจสอบสำเร็จ' });
         } catch {
-            alert('Verification failed');
+            toast({ variant: 'error', title: 'ตรวจสอบไม่สำเร็จ', description: 'กรุณาลองใหม่' });
         } finally {
             setVerifying(null);
         }
@@ -160,9 +162,10 @@ export default function CredentialList() {
             });
             if (res.ok) {
                 fetchCredentials();
+                toast({ variant: 'success', title: 'ตั้งค่าเริ่มต้นสำเร็จ' });
             }
         } catch {
-            alert('Failed to set default');
+            toast({ variant: 'error', title: 'ตั้งค่าไม่สำเร็จ', description: 'กรุณาลองใหม่' });
         }
     };
 
