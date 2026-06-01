@@ -87,19 +87,17 @@ const MAX_RECENT = 5;
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const [recent, setRecent] = useState<string[]>([]);
-  const router = useRouter();
-  const { logout } = useAuth();
-
-  // Load recent items
-  useEffect(() => {
+  const [recent, setRecent] = useState<string[]>(() => {
+    if (typeof window === 'undefined') return [];
     try {
       const stored = localStorage.getItem(RECENT_KEY);
-      if (stored) setRecent(JSON.parse(stored));
-    } catch (err) {
-      logger.warn('Failed to load recent commands', err);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
     }
-  }, []);
+  });
+  const router = useRouter();
+  const { logout } = useAuth();
 
   // ⌘K / Ctrl+K shortcut + custom event from navbar trigger
   useEffect(() => {
@@ -268,7 +266,7 @@ export function CommandPalette() {
 
           <Command.List className="max-h-[50vh] overflow-y-auto p-2">
             <Command.Empty className="py-12 text-center text-sm text-text-tertiary">
-              ไม่พบรายการที่ตรงกับ "{search}"
+              ไม่พบรายการที่ตรงกับ &quot;{search}&quot;
             </Command.Empty>
 
             {recent.length > 0 && !search && (
