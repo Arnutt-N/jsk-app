@@ -6,6 +6,7 @@ import { ArrowLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import PageHeader from '../../components/PageHeader';
 import { useToast } from '@/components/ui/Toast';
+import { logger } from '@/lib/logger';
 
 interface TemplateBounds {
     x: number;
@@ -254,7 +255,7 @@ export default function NewRichMenuPage() {
                 if (objRes.ok) setReplyObjects((await objRes.json()) as ReplyObjectLite[]);
                 if (intentRes.ok) setAutoReplies((await intentRes.json()) as AutoReplyLite[]);
             } catch (error) {
-                console.error("Data fetch failed", error);
+                logger.error("Data fetch failed", error);
             }
         };
         fetchData();

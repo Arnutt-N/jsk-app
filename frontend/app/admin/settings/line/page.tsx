@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import PageHeader from '@/app/admin/components/PageHeader';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { useToast } from '@/components/ui/Toast';
+import { logger } from '@/lib/logger';
 
 interface SettingItem {
     key: string;
@@ -60,7 +61,7 @@ export default function LineSettingsPage() {
                 }
             }
         } catch (error) {
-            console.error("Failed to fetch settings", error);
+            logger.error("Failed to fetch settings", error);
         } finally {
             setLoading(false);
         }

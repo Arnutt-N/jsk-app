@@ -24,6 +24,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/componen
 import PageHeader from '@/app/admin/components/PageHeader';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { useToast } from '@/components/ui/Toast';
+import { logger } from '@/lib/logger';
 
 interface Integration {
     id: number;
@@ -75,7 +76,7 @@ export default function CustomIntegrationsPage() {
             const res = await fetch(`${API_BASE}/admin/settings/integrations`, { headers: authHeaders });
             if (res.ok) setIntegrations(await res.json());
         } catch (err) {
-            console.error('Failed to fetch integrations', err);
+            logger.error('Failed to fetch integrations', err);
         } finally {
             setLoading(false);
         }

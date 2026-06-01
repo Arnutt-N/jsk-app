@@ -20,6 +20,7 @@ import { Select } from '@/components/ui/Select';
 import { Input } from '@/components/ui/Input';
 import { useAuth } from '@/contexts/AuthContext';
 import PageHeader from '../../components/PageHeader';
+import { logger } from '@/lib/logger';
 
 interface FriendEvent {
     id: number;
@@ -126,7 +127,7 @@ export default function FriendHistoryPage() {
                 setStats(data);
             }
         } catch (error) {
-            console.error('Failed to fetch stats:', error);
+            logger.error('Failed to fetch stats:', error);
         }
     }, [API_BASE, authHeaders]);
 
@@ -150,7 +151,7 @@ export default function FriendHistoryPage() {
                 setTotalPages(data.total_pages);
             }
         } catch (error) {
-            console.error('Failed to fetch events:', error);
+            logger.error('Failed to fetch events:', error);
         } finally {
             setLoading(false);
         }

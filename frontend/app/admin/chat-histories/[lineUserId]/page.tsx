@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import PageHeader from '@/app/admin/components/PageHeader';
 import { useAuth } from '@/contexts/AuthContext';
+import { logger } from '@/lib/logger';
 
 /* ---------- Types ---------- */
 
@@ -125,7 +126,7 @@ export default function ChatHistoryDetailPage() {
             setHasMore(msgData.has_more);
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : 'Unknown error';
-            console.error('[chat-detail] โหลดข้อมูลล้มเหลว:', message);
+            logger.error('[chat-detail] โหลดข้อมูลล้มเหลว:', message);
             setFetchError('ไม่สามารถโหลดประวัติสนทนาได้ กรุณาลองใหม่');
         } finally {
             setLoading(false);
@@ -159,7 +160,7 @@ export default function ChatHistoryDetailPage() {
             setHasMore(data.has_more);
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : 'Unknown error';
-            console.error('[chat-detail] โหลดข้อความเก่าล้มเหลว:', message);
+            logger.error('[chat-detail] โหลดข้อความเก่าล้มเหลว:', message);
         } finally {
             setLoadingMore(false);
         }

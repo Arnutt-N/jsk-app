@@ -18,6 +18,7 @@ import {
     ShieldCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { logger } from '@/lib/logger';
 
 interface ProviderStatus {
     provider: string;
@@ -74,7 +75,7 @@ export default function SettingsOverviewPage() {
                 setError('ไม่สามารถโหลดข้อมูลได้');
             }
         } catch (err: unknown) {
-            console.error('[settings] โหลด overview ล้มเหลว:', err);
+            logger.error('[settings] โหลด overview ล้มเหลว:', err);
             setError('ไม่สามารถโหลดข้อมูลได้');
         } finally {
             setLoading(false);

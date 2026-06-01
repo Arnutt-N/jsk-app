@@ -22,6 +22,7 @@ import {
     Package,
 } from 'lucide-react';
 import PageHeader from '@/app/admin/components/PageHeader';
+import { logger } from '@/lib/logger';
 
 type MessageType = 'text' | 'image' | 'flex' | 'object_ref';
 
@@ -126,7 +127,7 @@ export default function BroadcastCreatePage() {
             const data = await res.json();
             router.push(`/admin/chatbot/broadcast/${data.id}`);
         } catch (err) {
-            console.error(err);
+            logger.error(err);
             toast({ variant: 'error', title: 'บันทึกไม่สำเร็จ', description: 'กรุณาลองใหม่' });
         } finally {
             setSaving(false);
@@ -157,7 +158,7 @@ export default function BroadcastCreatePage() {
             }
             router.push('/admin/chatbot/broadcast');
         } catch (err: unknown) {
-            console.error(err);
+            logger.error(err);
             toast({ variant: 'error', title: 'ส่งไม่สำเร็จ', description: err instanceof Error ? err.message : 'กรุณาลองใหม่' });
         } finally {
             setSaving(false);
@@ -193,7 +194,7 @@ export default function BroadcastCreatePage() {
             }
             router.push('/admin/chatbot/broadcast');
         } catch (err) {
-            console.error(err);
+            logger.error(err);
             toast({ variant: 'error', title: 'ตั้งเวลาไม่สำเร็จ', description: 'กรุณาลองใหม่' });
         } finally {
             setSaving(false);

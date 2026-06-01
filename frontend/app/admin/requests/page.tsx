@@ -41,6 +41,7 @@ import {
 } from '@/lib/constants/request-status';
 import { usePermissions } from '@/lib/permissions';
 import { useToast } from '@/components/ui/Toast';
+import { logger } from '@/lib/logger';
 
 // Bridge between shared module (icons stored as string names) and the
 // lucide-react components actually rendered. Centralised so swapping an
@@ -124,7 +125,7 @@ export default function AdminRequestList() {
 
             setRequests(data);
         } catch (err: unknown) {
-            console.error('[requests] โหลดข้อมูลคำร้องล้มเหลว:', err);
+            logger.error('[requests] โหลดข้อมูลคำร้องล้มเหลว:', err);
             setFetchError('ไม่สามารถโหลดข้อมูลคำร้องได้ กรุณาลองใหม่');
         } finally {
             setLoading(false);
@@ -185,7 +186,7 @@ export default function AdminRequestList() {
                 title: 'มอบหมายงานสำเร็จ',
             });
         } catch (err) {
-            console.error(err);
+            logger.error(err);
             toast({
                 variant: 'error',
                 title: 'มอบหมายงานไม่สำเร็จ',
@@ -223,7 +224,7 @@ export default function AdminRequestList() {
                 title: 'ลบคำร้องสำเร็จ',
             });
         } catch (err) {
-            console.error(err);
+            logger.error(err);
             toast({
                 variant: 'error',
                 title: 'ลบคำร้องไม่สำเร็จ',

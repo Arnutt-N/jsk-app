@@ -37,6 +37,7 @@ import {
   TrendingUp,
   Calendar,
 } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -234,7 +235,7 @@ function downloadPDF(reportType: string, startDate: string, endDate: string, tok
       URL.revokeObjectURL(link.href);
     })
     .catch((err) => {
-      console.error('PDF download error:', err);
+      logger.error('PDF download error:', err);
     });
 }
 
@@ -346,7 +347,7 @@ export default function ReportsPage() {
           }
         }
       } catch (err) {
-        console.error('Failed to fetch report:', err);
+        logger.error('Failed to fetch report:', err);
       } finally {
         setLoading(false);
       }

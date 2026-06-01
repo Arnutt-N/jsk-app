@@ -23,6 +23,7 @@ import {
 import { Modal } from '@/components/ui/Modal';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import PageHeader from '@/app/admin/components/PageHeader';
+import { logger } from '@/lib/logger';
 
 interface BroadcastDetail {
     id: number;
@@ -88,7 +89,7 @@ export default function BroadcastDetailPage() {
             const data = await res.json();
             setBroadcast(data);
         } catch (err) {
-            console.error(err);
+            logger.error(err);
             setFetchError('ไม่สามารถโหลดข้อมูล Broadcast ได้');
         } finally {
             setLoading(false);

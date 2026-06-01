@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Search, User as UserIcon } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 interface Agent {
     id: number;
@@ -43,7 +44,7 @@ export const AssignModal: React.FC<AssignModalProps> = ({
             const data = await res.json();
             setAgents(data);
         } catch (err) {
-            console.error(err);
+            logger.error(err);
         } finally {
             setLoading(false);
         }

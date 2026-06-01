@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/Badge';
 import PageHeader from '@/app/admin/components/PageHeader';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { useToast } from '@/components/ui/Toast';
+import { logger } from '@/lib/logger';
 
 interface N8nConfig {
     webhook_url: string;
@@ -66,7 +67,7 @@ export default function N8nSettingsPage() {
                 setError('ไม่สามารถโหลดข้อมูลได้');
             }
         } catch (err) {
-            console.error('Failed to fetch n8n config', err);
+            logger.error('Failed to fetch n8n config', err);
             setError('ไม่สามารถโหลดข้อมูลได้');
         } finally {
             setLoading(false);

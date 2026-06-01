@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/Badge";
 import { RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
 import { StaggerContainer, StaggerItem } from "@/components/ui/PageTransition";
 import PageHeader from "../components/PageHeader";
+import { logger } from '@/lib/logger';
 
 interface AuditLog {
   id: number;
@@ -80,7 +81,7 @@ export default function AuditLogPage() {
         setStats(statsData);
       }
     } catch (error) {
-      console.error("Failed to fetch audit logs:", error);
+      logger.error("Failed to fetch audit logs:", error);
     } finally {
       setLoading(false);
     }

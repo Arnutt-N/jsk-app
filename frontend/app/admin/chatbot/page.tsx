@@ -8,6 +8,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import StatsCard from '../components/StatsCard';
 import { StaggerContainer, StaggerItem } from '@/components/ui/PageTransition';
 import PageHeader from '../components/PageHeader';
+import { logger } from '@/lib/logger';
 
 interface ReplyObjectSummary {
     id: number;
@@ -39,7 +40,7 @@ async function getChatbotData() {
             error: null
         };
     } catch (error) {
-        console.error('Chatbot Dashboard Fetch Error:', error);
+        logger.error('Chatbot Dashboard Fetch Error:', error);
         return {
             replyObjects: [],
             intentCategories: [],

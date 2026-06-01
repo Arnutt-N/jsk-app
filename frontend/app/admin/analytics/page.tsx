@@ -33,6 +33,7 @@ import { StaggerContainer, StaggerItem } from "@/components/ui/PageTransition";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { MessageType, WebSocketMessage } from "@/lib/websocket/types";
+import { logger } from '@/lib/logger';
 
 interface KPIData {
   waiting: number;
@@ -138,7 +139,7 @@ export default function AnalyticsPage() {
       if (opsRes.ok) setOperators(await opsRes.json());
       if (dashRes.ok) setDashboard(await dashRes.json());
     } catch (error) {
-      console.error("Failed to fetch analytics:", error);
+      logger.error("Failed to fetch analytics:", error);
     } finally {
       setLoading(false);
     }

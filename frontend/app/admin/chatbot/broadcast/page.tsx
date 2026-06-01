@@ -28,6 +28,7 @@ import { Modal } from '@/components/ui/Modal';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { ActionIconButton } from '@/components/ui/ActionIconButton';
 import PageHeader from '@/app/admin/components/PageHeader';
+import { logger } from '@/lib/logger';
 
 interface Broadcast {
     id: number;
@@ -101,7 +102,7 @@ export default function BroadcastListPage() {
             setBroadcasts(data.items);
             setTotal(data.total);
         } catch (err) {
-            console.error(err);
+            logger.error(err);
             setFetchError('ไม่สามารถโหลดรายการ Broadcast ได้');
         } finally {
             setLoading(false);
@@ -121,7 +122,7 @@ export default function BroadcastListPage() {
             setDeleteTarget(null);
             fetchBroadcasts();
         } catch (err) {
-            console.error(err);
+            logger.error(err);
             toast({ variant: 'error', title: 'ลบไม่สำเร็จ', description: 'กรุณาลองใหม่' });
         } finally {
             setActionLoading(false);
@@ -140,7 +141,7 @@ export default function BroadcastListPage() {
             setSendTarget(null);
             fetchBroadcasts();
         } catch (err: unknown) {
-            console.error(err);
+            logger.error(err);
             toast({ variant: 'error', title: 'ส่งไม่สำเร็จ', description: err instanceof Error ? err.message : 'กรุณาลองใหม่' });
         } finally {
             setActionLoading(false);
