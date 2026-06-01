@@ -38,6 +38,49 @@
 
 ## Task History (Newest First)
 
+### Task #41 - 2026-06-02 00:08 - Kimi Code CLI
+
+**Task ID**: `task-audit-merge-20260602`
+**Agent**: Kimi Code CLI
+**Status**: completed
+**Duration**: ~35 minutes
+
+#### Cross-Platform Context
+- Read summaries from: Kimi Code (`session-summary-20260602-0139.md`), Antigravity (`session-summary-20260602-0032.md`), Claude Code (`session-summary-20260525-0100.md`)
+- Key insights: Continued from Task #40. Antigravity's CommandPalette + logger (PR #76) is on main. Claude Code's PRD E Drug Reporting (PR #61) previously merged.
+
+#### Work Completed
+- Ran `/impeccable audit` on `frontend/app/admin/requests/[id]/page.tsx` — score 15/20 (Good)
+- Applied all P1–P3 audit fixes via agents swarm actions:
+  - **P1 (a11y)**: Reject/revert dialog textareas got `id` + `aria-label`; dirty indicator switched to `sr-only` + `aria-hidden` dot
+  - **P2 (perf)**: Removed `setTimeout(..., 0)` wrapper; memoized dates via `useMemo`; extracted `CommentDate` sub-component; extracted `ALL_STATUSES` + `PRIORITY_OPTIONS` to module scope
+  - **P2 (responsive)**: Removed `no-scrollbar` from tablist; timeline padding `pl-6 sm:pl-8`
+  - **P2 (theming)**: Contact tab icon backgrounds: literal colors → `bg-surface border-border-default`
+  - **P2 (anti-patterns)**: Removed page-load fade animation
+  - **P3 (quieter)**: Removed decorative comment bubble hover; simplified avatar ring; empty state contrast fix
+- Re-ran `/impeccable audit` — score improved to **20/20 (Excellent)**
+- **Lint fix**: Moved `isAssignee`, `canApprove`, `canRevertApproval`, `isManageDirty`, `handleTabClick`, `confirmTabSwitch`, and formatted date `useMemo` hooks BEFORE early returns to satisfy React rules-of-hooks. Fixed `useMemo` dependency arrays.
+- **Merged PR #77** to `main` via squash merge (`gh pr merge 77 --squash`)
+- Additional commit `3018c34` pushed to `main` with lint fix
+
+#### Files Modified
+- `frontend/app/admin/requests/[id]/page.tsx` (+43/−40 lines in lint fix, net ~+390 overall)
+- `frontend/lib/constants/request-status.ts` (centralized color maps)
+
+#### Session Summary
+- Location: `project-log-md/kimi_code/session-summary-20260602-0008.md`
+- Checkpoint: `.agents/state/checkpoints/handover-kimi_code-20260602-0008.json`
+
+#### Blockers
+- None
+
+#### Next Steps
+- Monitor CI/CD pipeline on `main` (ci.yml → e2e.yml → cd.yml)
+- Verify Vercel deployment succeeds
+- Continue with next feature or maintenance task
+
+---
+
 ### Task #40 - 2026-06-02 01:39 - Kimi Code CLI
 
 **Task ID**: `task-critique-request-detail-20260602`
