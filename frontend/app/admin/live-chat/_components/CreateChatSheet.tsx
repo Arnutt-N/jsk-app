@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/contexts/AuthContext';
+import { logger } from '@/lib/logger';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -89,7 +90,7 @@ export function CreateChatSheet({ isOpen, onClose, onCreated }: CreateChatSheetP
       );
       setSearchResults(items);
     } catch (err) {
-      console.error('Search users failed:', err);
+      logger.error('Search users failed:', err);
       setError('เกิดข้อผิดพลาดในการค้นหา');
     } finally {
       setSearching(false);
@@ -133,7 +134,7 @@ export function CreateChatSheet({ isOpen, onClose, onCreated }: CreateChatSheetP
       resetForm();
       onCreated?.();
     } catch (err) {
-      console.error('Create chat failed:', err);
+      logger.error('Create chat failed:', err);
       setError('เกิดข้อผิดพลาดในการสร้างแชท');
     } finally {
       setSubmitting(false);

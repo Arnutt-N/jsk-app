@@ -20,6 +20,7 @@ import { ActionIconButton } from '@/components/ui/ActionIconButton';
 import { cn } from '@/lib/utils';
 import { StaggerContainer, StaggerItem } from '@/components/ui/PageTransition';
 import PageHeader from '../components/PageHeader';
+import { logger } from '@/lib/logger';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -132,6 +133,19 @@ export default function FilesPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<{ ids: string[]; show: boolean }>({ ids: [], show: false });
   const [copied, setCopied] = useState(false);
 
+  // Track files whose <img> failed to load so we can show the category icon
+  // fallback instead of a broken-image glyph. Cleared when the file list refetches.
+  const [brokenIds, setBrokenIds] = useState<Set<string>>(new Set());
+  const markBroken = useCallback((id: string) => {
+    setBrokenIds(prev => {
+      if (prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+  }, []);
+  useEffect(() => { setBrokenIds(new Set()); }, [files]);
+
   // Drag and drop
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -173,7 +187,7 @@ export default function FilesPage() {
       if (res.ok) setStats(await res.json());
       else console.warn('Media stats returned status', res.status);
     } catch (err) {
-      console.error('Failed to fetch media stats:', err);
+      logger.error('Failed to fetch media stats:', err);
     }
   }, [headers]);
 
@@ -204,11 +218,11 @@ export default function FilesPage() {
           successCount++;
         } else {
           failCount++;
-          console.error('Upload failed for', f.name, res.status);
+          logger.error(`Upload failed for ${f.name} (status=${res.status})`);
         }
       } catch (err) {
         failCount++;
-        console.error('Upload error for', f.name, err);
+        logger.error(`Upload error for ${f.name}`, err);
       }
     }
     setUploading(false);
@@ -349,13 +363,16 @@ export default function FilesPage() {
   // -----------------------------------------------------------------------
   // File preview URL (internal, for images)
   // -----------------------------------------------------------------------
-  const getPreviewUrl = (file: MediaFile) => {
+  const getPreviewUrl = useCallback((file: MediaFile) => {
     if (file.thumbnail_url) return file.thumbnail_url;
     if (file.public_url) return file.public_url;
-    // /media/{id} is unauthenticated — safe for <img src>, <video src>, <audio src>
+    // NOTE: the `/media/{id}` endpoint serves the raw binary; the <img>
+    // tag will still issue a request and may 401/404 for private files
+    // that lack a public token. The render path tracks broken loads in
+    // `brokenIds` and falls back to the category icon.
     if (isImageMime(file.mime_type)) return `${API_BASE}/media/${file.id}`;
     return null;
-  };
+  }, []);
 
   // -----------------------------------------------------------------------
   // Render
@@ -520,6 +537,8 @@ export default function FilesPage() {
                 <StaggerContainer className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
                   {files.map(file => {
                     const preview = getPreviewUrl(file);
+                    const isBroken = brokenIds.has(file.id);
+                    const showImage = preview && !isBroken;
                     const isSelected = selected.has(file.id);
                     return (
                       <StaggerItem key={file.id}>
@@ -553,16 +572,20 @@ export default function FilesPage() {
                           className="aspect-square bg-gray-50 dark:bg-gray-800 flex items-center justify-center cursor-pointer overflow-hidden"
                           onClick={() => setPreviewFile(file)}
                         >
-                          {preview ? (
+                          {showImage ? (
                             <img
                               src={preview}
                               alt={file.filename}
                               className="w-full h-full object-cover"
                               loading="lazy"
+                              onError={() => markBroken(file.id)}
                             />
                           ) : (
-                            <div className="text-text-tertiary">
+                            <div className="flex flex-col items-center gap-1 text-text-tertiary" aria-hidden={!showImage}>
                               {getCategoryIcon(file.category)}
+                              <span className="text-[10px] px-1 text-center line-clamp-2 max-w-[90%]">
+                                {file.filename}
+                              </span>
                               <span className="sr-only">{file.filename}</span>
                             </div>
                           )}
@@ -834,12 +857,23 @@ export default function FilesPage() {
         {previewFile && (
           <div className="space-y-4">
             {isImageMime(previewFile.mime_type) ? (
-              <div className="flex justify-center">
-                <img
-                  src={`${API_BASE}/media/${previewFile.id}`}
-                  alt={previewFile.filename}
-                  className="max-h-[60vh] rounded-xl object-contain"
-                />
+              <div className="flex justify-center min-h-[120px]">
+                {brokenIds.has(previewFile.id) ? (
+                  <div className="flex flex-col items-center justify-center gap-2 py-12 text-text-tertiary">
+                    {getCategoryIcon(previewFile.category)}
+                    <p className="text-sm">ไม่สามารถโหลดภาพตัวอย่างได้</p>
+                    <Button size="sm" variant="outline" onClick={() => downloadFile(previewFile)}>
+                      <Download className="w-4 h-4 mr-1.5" />ดาวน์โหลด
+                    </Button>
+                  </div>
+                ) : (
+                  <img
+                    src={getPreviewUrl(previewFile) ?? `${API_BASE}/media/${previewFile.id}`}
+                    alt={previewFile.filename}
+                    className="max-h-[60vh] rounded-xl object-contain"
+                    onError={() => markBroken(previewFile.id)}
+                  />
+                )}
               </div>
             ) : isVideoMime(previewFile.mime_type) ? (
               <video

@@ -13,6 +13,7 @@ import { AdminSearchFilterBar } from '@/components/admin/AdminSearchFilterBar';
 import { AdminTableHead, type AdminTableHeadColumn } from '@/components/admin/AdminTableHead';
 import { useAuth } from '@/contexts/AuthContext';
 import PageHeader from '../components/PageHeader';
+import { logger } from '@/lib/logger';
 
 interface Friend {
     line_user_id: string;
@@ -65,7 +66,7 @@ export default function FriendsPage() {
                 setFriends(data.friends);
             }
         } catch (error) {
-            console.error(error);
+            logger.error(error);
         } finally {
             setLoading(false);
         }

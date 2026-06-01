@@ -6,6 +6,7 @@ import Script from 'next/script'
 import { Province, District, SubDistrict } from '../../../types/location'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { AGENCIES } from '@/lib/constants/agencies'
+import { logger } from '@/lib/logger';
 
 // --- CONSTANTS ---
 const TOPIC_OPTIONS: Record<string, string[]> = {
@@ -123,7 +124,7 @@ export default function LiffServiceRequestV2() {
                     // Mock profile for dev if needed
                 }
             } catch (err: unknown) {
-                console.error('LIFF Init Error:', err)
+                logger.error('LIFF Init Error:', err)
                 setError('Failed to initialize LIFF. You might be opening this outside LINE.')
             } finally {
                 setLoading(false)
@@ -137,7 +138,7 @@ export default function LiffServiceRequestV2() {
                 const data = await res.json()
                 setProvinces(data)
             } catch (err) {
-                console.error("Provinces fetch error:", err)
+                logger.error("Provinces fetch error:", err)
             }
         }
 
@@ -180,7 +181,7 @@ export default function LiffServiceRequestV2() {
                 const data = await res.json()
                 setDistricts(data)
             } catch (err) {
-                console.error(err)
+                logger.error(err)
             } finally {
                 setLoadingDistricts(false)
             }
@@ -207,7 +208,7 @@ export default function LiffServiceRequestV2() {
                 const data = await res.json()
                 setSubDistricts(data)
             } catch (err) {
-                console.error(err)
+                logger.error(err)
             } finally {
                 setLoadingSubDistricts(false)
             }
@@ -245,7 +246,7 @@ export default function LiffServiceRequestV2() {
             }))
         } catch (err) {
             alert('อัพโหลดไฟล์ไม่สำเร็จ')
-            console.error(err)
+            logger.error(err)
         }
     }
 

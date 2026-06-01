@@ -10,6 +10,7 @@ import { ActionIconButton } from '@/components/ui/ActionIconButton';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/Toast';
+import { logger } from '@/lib/logger';
 
 interface RichMenu {
     id: number;
@@ -42,7 +43,7 @@ export default function RichMenuListPage() {
                 setMenus(data);
             }
         } catch (error) {
-            console.error("Failed to fetch rich menus", error);
+            logger.error("Failed to fetch rich menus", error);
         } finally {
             setLoading(false);
         }

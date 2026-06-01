@@ -19,6 +19,7 @@ import { ActionIconButton } from '@/components/ui/ActionIconButton';
 import StatsCard from '../components/StatsCard';
 import { StaggerContainer, StaggerItem } from '@/components/ui/PageTransition';
 import PageHeader from '../components/PageHeader';
+import { logger } from '@/lib/logger';
 
 /* ── Types ─────────────────────────────────────────────────────────── */
 
@@ -153,7 +154,7 @@ export default function UsersPage() {
                 setTotal(data.total);
             }
         } catch (e) {
-            console.error('Failed to fetch users', e);
+            logger.error('Failed to fetch users', e);
         } finally {
             setLoading(false);
         }
@@ -164,7 +165,7 @@ export default function UsersPage() {
             const res = await fetch(`${API_BASE}/admin/users/stats`, { headers: authHeaders });
             if (res.ok) setStats(await res.json());
         } catch (e) {
-            console.error('Failed to fetch stats', e);
+            logger.error('Failed to fetch stats', e);
         }
     }, [API_BASE, authHeaders]);
 

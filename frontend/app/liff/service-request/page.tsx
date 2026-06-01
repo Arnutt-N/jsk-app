@@ -22,6 +22,7 @@ import {
     Shield,
     Loader2
 } from 'lucide-react'
+import { logger } from '@/lib/logger';
 
 // --- CONSTANTS ---
 const STEPS = [
@@ -140,7 +141,7 @@ export default function LiffServiceRequestV2() {
                     return
                 }
             } catch (err: unknown) {
-                console.error('LIFF Init Error:', err)
+                logger.error('LIFF Init Error:', err)
                 // Don't show error to user immediately, just log it. 
                 // We'll fallback to manual inputs if LIFF fails.
             }
@@ -159,7 +160,7 @@ export default function LiffServiceRequestV2() {
                 const data = await res.json()
                 setProvinces(data)
             } catch (err: unknown) {
-                console.error("Provinces fetch error:", err)
+                logger.error("Provinces fetch error:", err)
                 setError(err instanceof Error ? err.message : 'Failed to load provinces') // Show detail to user for debugging
             } finally {
                 // Unblock UI as soon as provinces are loaded (or failed)
@@ -214,7 +215,7 @@ export default function LiffServiceRequestV2() {
                 const data = await res.json()
                 setDistricts(data)
             } catch (err) {
-                console.error(err)
+                logger.error(err)
             } finally {
                 setLoadingDistricts(false)
             }
@@ -241,7 +242,7 @@ export default function LiffServiceRequestV2() {
                 const data = await res.json()
                 setSubDistricts(data)
             } catch (err) {
-                console.error(err)
+                logger.error(err)
             } finally {
                 setLoadingSubDistricts(false)
             }
@@ -279,7 +280,7 @@ export default function LiffServiceRequestV2() {
             }))
         } catch (err) {
             alert('อัพโหลดไฟล์ไม่สำเร็จ')
-            console.error(err)
+            logger.error(err)
         }
     }
 
@@ -382,7 +383,7 @@ export default function LiffServiceRequestV2() {
             setShowConfirm(false)
             window.scrollTo(0, 0)
         } catch (err: unknown) {
-            console.error("Submit Error:", err)
+            logger.error("Submit Error:", err)
             setError(err instanceof Error ? err.message : 'Failed to submit')
             setShowConfirm(false)
             window.scrollTo(0, 0)
@@ -404,7 +405,7 @@ export default function LiffServiceRequestV2() {
                 // the user will see the "please close manually" message.
             }
         } catch (e) {
-            console.error('Close window failed:', e)
+            logger.error('Close window failed:', e)
         }
     }
 

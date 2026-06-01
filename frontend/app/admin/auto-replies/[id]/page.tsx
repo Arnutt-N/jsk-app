@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { ActionIconButton } from '@/components/ui/ActionIconButton';
 import PageHeader from '../../components/PageHeader';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { logger } from '@/lib/logger';
 
 interface IntentKeyword {
     id: number;
@@ -82,7 +83,7 @@ export default function CategoryDetailPage() {
             const res = await fetch(`${API_BASE}/admin/intents/categories/${params.id}`);
             if (res.ok) setCategory(await res.json());
         } catch (error) {
-            console.error('Error fetching category:', error);
+            logger.error('Error fetching category:', error);
         } finally {
             setLoading(false);
         }

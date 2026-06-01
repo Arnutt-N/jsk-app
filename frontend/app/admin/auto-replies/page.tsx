@@ -10,6 +10,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { ActionIconButton } from '@/components/ui/ActionIconButton';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { logger } from '@/lib/logger';
 
 interface IntentCategory {
     id: number;
@@ -42,7 +43,7 @@ export default function IntentsPage() {
             const res = await fetch(`${API_BASE}/admin/intents/categories`);
             if (res.ok) setCategories(await res.json());
         } catch (error) {
-            console.error('Error fetching categories:', error);
+            logger.error('Error fetching categories:', error);
         } finally {
             setLoading(false);
         }

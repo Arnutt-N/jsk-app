@@ -10,6 +10,7 @@ import { ActionIconButton } from '@/components/ui/ActionIconButton';
 import { StaggerContainer, StaggerItem } from '@/components/ui/PageTransition';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/Toast';
+import { logger } from '@/lib/logger';
 
 interface ReplyObject {
     id: number;
@@ -48,7 +49,7 @@ export default function ReplyObjectsPage() {
             const res = await fetch(`${API_BASE}/admin/reply-objects`);
             if (res.ok) setObjects(await res.json());
         } catch (error) {
-            console.error('Error:', error);
+            logger.error('Error:', error);
         } finally {
             setLoading(false);
         }

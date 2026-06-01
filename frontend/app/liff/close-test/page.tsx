@@ -6,6 +6,7 @@ import Script from 'next/script'
 import { CheckCircle2 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
+import { logger } from '@/lib/logger';
 
 export default function CloseTestPage() {
     const [timeLeft, setTimeLeft] = useState(5)
@@ -28,7 +29,7 @@ export default function CloseTestPage() {
                     setStatus('LIFF Not Found (External Browser?)')
                 }
             } catch (e: unknown) {
-                console.error(e)
+                logger.error(e)
                 setLiffError(e instanceof Error ? e.message : 'Unknown error')
                 setStatus('LIFF Init Failed')
             }
@@ -55,7 +56,7 @@ export default function CloseTestPage() {
                 }
             }
         } catch (e: unknown) {
-            console.error('Close window failed:', e)
+            logger.error('Close window failed:', e)
             setStatus(`Close Failed: ${e instanceof Error ? e.message : 'Unknown error'}`)
         }
     }

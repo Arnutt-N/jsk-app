@@ -7,6 +7,7 @@ import {
 import {
     Users, MessageSquare, Clock, CheckCircle
 } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 interface AnalyticsSummary {
     total_sessions: number;
@@ -56,7 +57,7 @@ export default function AnalyticsPage() {
             }
 
         } catch (error) {
-            console.error("Failed to fetch analytics", error);
+            logger.error("Failed to fetch analytics", error);
         }
     }, [API_BASE, dateRange.from, dateRange.to]);
 

@@ -20,6 +20,7 @@ import {
     Building2,
     Loader2
 } from 'lucide-react'
+import { logger } from '@/lib/logger';
 
 // --- CONSTANTS ---
 const TOPIC_OPTIONS: Record<string, string[]> = {
@@ -110,7 +111,7 @@ export default function LiffServiceRequestSingle() {
                     }
                 }
             } catch (err: unknown) {
-                console.error('LIFF Init Error:', err)
+                logger.error('LIFF Init Error:', err)
             } finally {
                 setLoading(false)
             }
@@ -124,7 +125,7 @@ export default function LiffServiceRequestSingle() {
                 const data = await res.json()
                 setProvinces(data)
             } catch (err) {
-                console.error("Provinces fetch error:", err)
+                logger.error("Provinces fetch error:", err)
             }
         }
 
@@ -168,7 +169,7 @@ export default function LiffServiceRequestSingle() {
                 const data = await res.json()
                 setDistricts(data)
             } catch (err) {
-                console.error(err)
+                logger.error(err)
             } finally {
                 setLoadingDistricts(false)
             }
@@ -194,7 +195,7 @@ export default function LiffServiceRequestSingle() {
                 const data = await res.json()
                 setSubDistricts(data)
             } catch (err) {
-                console.error(err)
+                logger.error(err)
             } finally {
                 setLoadingSubDistricts(false)
             }
@@ -226,7 +227,7 @@ export default function LiffServiceRequestSingle() {
             }))
         } catch (err) {
             alert('อัพโหลดไฟล์ไม่สำเร็จ')
-            console.error(err)
+            logger.error(err)
         }
     }
 
@@ -321,7 +322,7 @@ export default function LiffServiceRequestSingle() {
                 }
             }
         } catch (e) {
-            console.error('Close window failed:', e)
+            logger.error('Close window failed:', e)
         }
     }
 

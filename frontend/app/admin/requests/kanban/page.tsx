@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import PageHeader from '../../components/PageHeader';
 import type { RequestStatus } from '@/lib/constants/request-status';
+import { logger } from '@/lib/logger';
 
 interface ServiceRequest {
     id: string;
@@ -65,7 +66,7 @@ export default function KanbanPage() {
             const res = await fetch(url);
             if (!res.ok) {
                 const errorData = await res.json().catch(() => ({}));
-                console.error('Fetch Error Detail:', {
+                logger.error('Fetch Error Detail:', {
                     status: res.status,
                     statusText: res.statusText,
                     error: errorData
@@ -75,7 +76,7 @@ export default function KanbanPage() {
             const data = await res.json();
             setRequests(data);
         } catch (err) {
-            console.error('Kanban Fetch error:', err);
+            logger.error('Kanban Fetch error:', err);
         } finally {
             setLoading(false);
         }

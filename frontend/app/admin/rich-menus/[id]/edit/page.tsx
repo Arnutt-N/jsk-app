@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { useToast } from '@/components/ui/Toast';
+import { logger } from '@/lib/logger';
 
 interface RichMenuArea {
     bounds: { x: number; y: number; w: number; h: number };
@@ -68,7 +69,7 @@ export default function EditRichMenuPage() {
                 router.push('/admin/rich-menus');
             }
         } catch (error) {
-            console.error('Failed to fetch rich menu', error);
+            logger.error('Failed to fetch rich menu', error);
         } finally {
             setLoading(false);
         }

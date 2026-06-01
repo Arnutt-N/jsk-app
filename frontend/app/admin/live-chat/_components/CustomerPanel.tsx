@@ -7,6 +7,7 @@ import { Bell, Calendar, Clock, Copy, ExternalLink, MessageSquare, RefreshCw, St
 import type { CurrentChat } from '../_types';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLiveChatContext } from '../_context/LiveChatContext';
+import { logger } from '@/lib/logger';
 
 export function CustomerPanel({
   currentChat,
@@ -47,7 +48,7 @@ export function CustomerPanel({
       link.remove();
       URL.revokeObjectURL(objectUrl);
     } catch (error) {
-      console.error(error);
+      logger.error(error);
     }
   };
 
@@ -66,7 +67,7 @@ export function CustomerPanel({
         fetchConversations(),
       ]);
     } catch (error) {
-      console.error(error);
+      logger.error(error);
     } finally {
       setRefreshing(false);
     }

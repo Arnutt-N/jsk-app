@@ -21,6 +21,7 @@ import { PageTransition } from '@/components/ui/PageTransition';
 import { ThemeToggleSwitch } from '@/components/admin/ThemeToggleSwitch';
 import { AdminLanguageToggle, type AdminLocale } from '@/components/admin/AdminLanguageToggle';
 import SidebarItem from '@/components/admin/SidebarItem';
+import { CommandPalette } from '@/components/admin/CommandPalette';
 
 interface MenuItem {
   name: string;
@@ -352,14 +353,18 @@ function AdminShell({ children }: { children: React.ReactNode }) {
                   </button>
                 )}
 
-                <div className="hidden md:flex items-center bg-muted/50 rounded-xl px-4 py-2.5 border border-border-default focus-within:ring-2 focus-within:ring-brand-100 dark:focus-within:ring-brand-900 transition-all w-64">
-                  <Search className="w-4 h-4 text-sidebar-text-muted mr-2 flex-shrink-0" />
-                  <input
-                    type="text"
-                    placeholder="Search..."
-                    className="bg-transparent text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none w-full"
-                  />
-                </div>
+                {/* Command palette trigger — opens ⌘K */}
+                <button
+                  onClick={() => document.dispatchEvent(new Event('jsk:open-command-palette'))}
+                  className="hidden md:flex items-center gap-2 bg-muted/50 rounded-xl pl-3 pr-2 py-2 border border-border-default hover:border-brand-300 transition-colors w-64 text-left"
+                  aria-label="Open command palette (Ctrl+K)"
+                >
+                  <Search className="w-4 h-4 text-text-tertiary flex-shrink-0" />
+                  <span className="flex-1 text-sm text-text-tertiary">ค้นหา...</span>
+                  <kbd className="hidden lg:inline-flex items-center px-1.5 h-5 text-[10px] font-mono text-text-tertiary bg-surface border border-border-default rounded">
+                    Ctrl K
+                  </kbd>
+                </button>
               </div>
 
               <div className="flex items-center gap-2.5">
@@ -411,6 +416,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
           )}
 
       <SessionTimeoutWarning />
+      <CommandPalette />
     </div>
   );
 }

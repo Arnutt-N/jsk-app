@@ -51,6 +51,7 @@ import {
 import { usePermissions } from '@/lib/permissions';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGuardedUpdate } from '@/hooks/useGuardedUpdate';
+import { logger } from '@/lib/logger';
 
 // Interfaces for API Data
 interface Comment {
@@ -146,7 +147,7 @@ export default function RequestDetailPage() {
                 comment: '' // Reset comment on reload
             }));
         } catch (err: unknown) {
-            console.error(getErrorMessage(err));
+            logger.error(getErrorMessage(err));
         } finally {
             setLoading(false);
         }
@@ -159,7 +160,7 @@ export default function RequestDetailPage() {
             const data = await res.json();
             setComments(data);
         } catch (err) {
-            console.error(err);
+            logger.error(err);
         }
     }, [API_BASE, params.id]);
 

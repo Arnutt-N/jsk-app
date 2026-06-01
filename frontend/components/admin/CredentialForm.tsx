@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Plus, Edit2, Trash2, CheckCircle, Shield, Bot, Send, Database, Globe } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
+import { logger } from '@/lib/logger';
 
 interface Credential {
     id: number;
@@ -51,7 +52,7 @@ export default function CredentialList() {
                 setCredentials(data.credentials);
             }
         } catch (error) {
-            console.error("Failed to fetch credentials", error);
+            logger.error("Failed to fetch credentials", error);
         } finally {
             setLoading(false);
         }

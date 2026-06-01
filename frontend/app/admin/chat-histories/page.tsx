@@ -20,6 +20,7 @@ import {
 import Image from 'next/image';
 import PageHeader from '@/app/admin/components/PageHeader';
 import { useAuth } from '@/contexts/AuthContext';
+import { logger } from '@/lib/logger';
 
 /* ---------- Types ---------- */
 
@@ -125,7 +126,7 @@ export default function ChatHistoriesPage() {
             setConversations(data.conversations);
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : 'Unknown error';
-            console.error('[chat-histories] โหลดข้อมูลสนทนาล้มเหลว:', message);
+            logger.error('[chat-histories] โหลดข้อมูลสนทนาล้มเหลว:', message);
             setFetchError('ไม่สามารถโหลดข้อมูลสนทนาได้ กรุณาลองใหม่');
         } finally {
             setLoading(false);
@@ -147,7 +148,7 @@ export default function ChatHistoriesPage() {
             setSearchResults(data.items ?? []);
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : 'Unknown error';
-            console.error('[chat-histories] ค้นหาล้มเหลว:', message);
+            logger.error('[chat-histories] ค้นหาล้มเหลว:', message);
             setFetchError('ค้นหาล้มเหลว กรุณาลองใหม่');
         } finally {
             setLoading(false);
