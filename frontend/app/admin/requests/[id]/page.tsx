@@ -111,14 +111,17 @@ export default function RequestDetailPage() {
     const [assignModalOpen, setAssignModalOpen] = useState(false);
     const [unassignDialogOpen, setUnassignDialogOpen] = useState(false);
     const [escalationDialogOpen, setEscalationDialogOpen] = useState(false);
-    // PRD B: revert-from-COMPLETED flow. Both kebab items share one
-    // dialog — `target` records which status to revert to so the
-    // ConfirmDialog body can interpolate the right label.
+    // PRD B: revert-from-COMPLETED flow
     const [revertConfirm, setRevertConfirm] = useState<{
         open: boolean
         target: 'AWAITING_APPROVAL' | 'IN_PROGRESS' | null
         notes: string
     }>({ open: false, target: null, notes: '' });
+    // P0: destructive-action confirmations
+    const [rejectConfirm, setRejectConfirm] = useState<{ open: boolean; reason: string }>({ open: false, reason: '' });
+    const [forceCompleteConfirm, setForceCompleteConfirm] = useState(false);
+    // P1: manage-tab dirty-state tracking
+    const [pendingTab, setPendingTab] = useState<string | null>(null);
 
     // Permission state for workflow button visibility.
     // - userId: numeric form of the logged-in user's id (AuthContext stores as string)
@@ -310,6 +313,16 @@ export default function RequestDetailPage() {
         setUnassignDialogOpen(false);
     };
 
+    const handleReject = async () => {
+        await handleUpdateField({ status: 'REJECTED', reason: rejectConfirm.reason || undefined });
+        setRejectConfirm({ open: false, reason: '' });
+    };
+
+    const handleForceComplete = async () => {
+        await handleUpdateField({ status: 'COMPLETED' });
+        setForceCompleteConfirm(false);
+    };
+
     const handleEscalate = async (agency: string, reason: string) => {
         await handleUpdateField({
             details: {
@@ -339,13 +352,35 @@ export default function RequestDetailPage() {
     if (!request) return <div className="p-8 text-center">ไม่พบข้อมูลคำร้อง</div>;
 
     // Derived authorisation state -- must be after the null check on `request`.
-    // - isAssignee: user is the one this request is assigned to (drives the
-    //   "รับเรื่อง" / "เริ่มดำเนินการ" / "ส่งอนุมัติ" buttons on the assignee path)
-    // - canApprove: user has supervisor-tier permissions (drives "อนุมัติ" /
-    //   "ปฏิเสธ" / "มอบหมาย" buttons on the supervisor path)
     const isAssignee = userId !== null && request.assigned_agent_id === userId;
     const canApprove = permissions?.can_assign ?? false;
     const canRevertApproval = permissions?.can_revert_approval ?? false;
+
+    // P1: dirty-state tracker for manage tab
+    const isManageDirty = (() => {
+        if (!request) return false;
+        const currentDue = request.due_date ? request.due_date.split('T')[0] : '';
+        return manageFormData.status !== (request.status ?? '')
+            || manageFormData.priority !== request.priority
+            || manageFormData.due_date !== currentDue
+            || manageFormData.comment.trim().length > 0;
+    })();
+
+    // P1: intercept tab switch when manage tab has unsaved changes
+    const handleTabClick = (tabId: string) => {
+        if (activeTab === 'manage' && isManageDirty && tabId !== 'manage') {
+            setPendingTab(tabId);
+            return;
+        }
+        setActiveTab(tabId);
+    };
+
+    const confirmTabSwitch = () => {
+        if (pendingTab) {
+            setActiveTab(pendingTab);
+            setPendingTab(null);
+        }
+    };
 
     return (
         <div className="p-4 md:p-8 text-text-primary animate-in fade-in duration-500">
@@ -422,145 +457,130 @@ export default function RequestDetailPage() {
                                         request.priority === 'LOW' ? 'ปกติ' : 'ไม่ระบุ'}
                         </span>
 
-                        {/* Action group: pushed to the right via ml-auto on flex parent.
-                            Permission tiers:
-                            - Primary advance: assignee OR supervisor (canApprove)
-                            - Approval / reject / reopen: supervisor only
-                            - Override kebab: supervisor only, surfaces force-complete + revert-to-pending */}
+                        {/* P1: Adaptive primary CTA — shows ONLY the next logical workflow step.
+                            Secondary actions (assign, escalate, reject, reopen, overrides) move to
+                            the secondary toolbar row below the hero. */}
                         <div className="flex flex-wrap items-center gap-2 ml-auto">
-                        {/* "มอบหมาย" / "เปลี่ยนผู้รับผิดชอบ": supervisor only, open states */}
+                            {/* Next-step CTA */}
+                            {request.status === 'PENDING' && (isAssignee || canApprove) && (
+                                <Button
+                                    variant="warning"
+                                    size="sm"
+                                    disabled={submitting}
+                                    onClick={() => { void guardedUpdate({ status: 'ACKNOWLEDGED' }); }}
+                                    leftIcon={<Inbox size={18} />}
+                                >
+                                    รับเรื่อง
+                                </Button>
+                            )}
+                            {request.status === 'ACKNOWLEDGED' && (isAssignee || canApprove) && (
+                                <Button
+                                    variant="primary"
+                                    size="sm"
+                                    disabled={submitting}
+                                    onClick={() => { void guardedUpdate({ status: 'IN_PROGRESS' }); }}
+                                    leftIcon={<Play size={18} />}
+                                >
+                                    เริ่มดำเนินการ
+                                </Button>
+                            )}
+                            {request.status === 'IN_PROGRESS' && (isAssignee || canApprove) && (
+                                <Button
+                                    variant="primary"
+                                    size="sm"
+                                    disabled={submitting}
+                                    onClick={() => { void guardedUpdate({ status: 'AWAITING_APPROVAL' }); }}
+                                    leftIcon={<ShieldCheck size={18} />}
+                                >
+                                    ส่งอนุมัติ
+                                </Button>
+                            )}
+                            {request.status === 'AWAITING_APPROVAL' && canApprove && (
+                                <Button
+                                    variant="success"
+                                    size="sm"
+                                    disabled={submitting}
+                                    onClick={() => { void guardedUpdate({ status: 'COMPLETED' }); }}
+                                    leftIcon={<CheckCircle2 size={18} />}
+                                >
+                                    อนุมัติ
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+                    {/* Subcategory sits below the title row as a quiet caption. */}
+                    {request.topic_subcategory && (
+                        <p className="text-sm text-text-tertiary thai-no-break mt-2">
+                            {request.topic_subcategory}
+                        </p>
+                    )}
+
+                    {/* P1: Secondary toolbar — assignment, escalation, destructive actions,
+                        and override kebab. Smaller, left-aligned, below the primary CTA. */}
+                    <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-border-subtle">
                         {canApprove && request.status !== 'COMPLETED' && request.status !== 'REJECTED' && (
                             <Button
-                                variant="primary"
+                                variant="ghost"
                                 size="sm"
                                 onClick={() => setAssignModalOpen(true)}
-                                leftIcon={<UserPlus size={18} />}
+                                leftIcon={<UserPlus size={16} />}
                             >
                                 {request.assigned_agent_id ? 'เปลี่ยนผู้รับผิดชอบ' : 'มอบหมาย'}
                             </Button>
                         )}
-
-                        {/* "ส่งต่อหน่วยงานเฉพาะทาง": supervisor only, drug category only */}
                         {canApprove && request.topic_category === 'แจ้งเบาะแสยาเสพติด' && request.status !== 'COMPLETED' && request.status !== 'REJECTED' && (
                             <Button
-                                variant="warning"
+                                variant="ghost"
                                 size="sm"
                                 onClick={() => setEscalationDialogOpen(true)}
-                                leftIcon={<Forward size={18} />}
+                                leftIcon={<Forward size={16} />}
                             >
                                 ส่งต่อหน่วยงานเฉพาะทาง
                             </Button>
                         )}
-
-                        {/* "รับเรื่อง": assignee OR supervisor — supervisor can advance on assignee's behalf */}
-                        {request.status === 'PENDING' && (isAssignee || canApprove) && (
-                            <Button
-                                variant="warning"
-                                size="sm"
-                                disabled={submitting}
-                                onClick={() => { void guardedUpdate({ status: 'ACKNOWLEDGED' }); }}
-                                leftIcon={<Inbox size={18} />}
-                            >
-                                รับเรื่อง
-                            </Button>
-                        )}
-
-                        {/* "เริ่มดำเนินการ": assignee OR supervisor */}
-                        {request.status === 'ACKNOWLEDGED' && (isAssignee || canApprove) && (
-                            <Button
-                                variant="primary"
-                                size="sm"
-                                disabled={submitting}
-                                onClick={() => { void guardedUpdate({ status: 'IN_PROGRESS' }); }}
-                                leftIcon={<Play size={18} />}
-                            >
-                                เริ่มดำเนินการ
-                            </Button>
-                        )}
-
-                        {/* "ส่งอนุมัติ": assignee OR supervisor */}
-                        {request.status === 'IN_PROGRESS' && (isAssignee || canApprove) && (
-                            <Button
-                                variant="primary"
-                                size="sm"
-                                disabled={submitting}
-                                onClick={() => { void guardedUpdate({ status: 'AWAITING_APPROVAL' }); }}
-                                leftIcon={<ShieldCheck size={18} />}
-                            >
-                                ส่งอนุมัติ
-                            </Button>
-                        )}
-
-                        {/* "อนุมัติ": supervisor only — closes out an AWAITING_APPROVAL request */}
-                        {request.status === 'AWAITING_APPROVAL' && canApprove && (
-                            <Button
-                                variant="success"
-                                size="sm"
-                                disabled={submitting}
-                                onClick={() => { void guardedUpdate({ status: 'COMPLETED' }); }}
-                                leftIcon={<CheckCircle2 size={18} />}
-                            >
-                                อนุมัติ
-                            </Button>
-                        )}
-
-                        {/* "ปฏิเสธ": supervisor only, open states */}
                         {canApprove && request.status !== 'COMPLETED' && request.status !== 'REJECTED' && (
                             <Button
-                                variant="danger"
+                                variant="outline"
                                 size="sm"
+                                className="border-danger/30 text-danger hover:bg-danger/5 hover:text-danger"
                                 disabled={submitting}
-                                onClick={() => { void guardedUpdate({ status: 'REJECTED' }); }}
-                                leftIcon={<XCircle size={18} />}
+                                onClick={() => setRejectConfirm({ open: true, reason: '' })}
+                                leftIcon={<XCircle size={16} />}
                             >
                                 ปฏิเสธ
                             </Button>
                         )}
-
-                        {/* "เปิดเรื่องใหม่": supervisor only, REJECTED -> PENDING. Backend has no
-                            ALLOWED_TRANSITIONS guard, so revert is a simple PATCH. */}
                         {canApprove && request.status === 'REJECTED' && (
                             <Button
-                                variant="primary"
+                                variant="ghost"
                                 size="sm"
                                 disabled={submitting}
                                 onClick={() => { void guardedUpdate({ status: 'PENDING', assigned_agent_id: null }); }}
-                                leftIcon={<RotateCcw size={18} />}
+                                leftIcon={<RotateCcw size={16} />}
                             >
                                 เปิดเรื่องใหม่
                             </Button>
                         )}
-
-                        {/* Override kebab: supervisor-only escape hatches outside the linear workflow.
-                            Visible whenever the request is NOT in the REJECTED terminal state (PRD B
-                            opened COMPLETED to revert flows). Each inner item self-gates by status. */}
                         {(canApprove || canRevertApproval) && request.status !== 'REJECTED' && (
                             <DropdownMenu>
                                 <DropdownMenuTrigger
                                     aria-label="การจัดการพิเศษ"
-                                    className="inline-flex items-center justify-center h-9 w-9 rounded-lg border border-border-default bg-surface text-text-secondary hover:bg-bg hover:text-text-primary transition-colors cursor-pointer"
+                                    className="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-border-default bg-surface text-text-secondary hover:bg-bg hover:text-text-primary transition-colors cursor-pointer"
                                 >
-                                    <MoreVertical size={18} />
+                                    <MoreVertical size={16} />
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="min-w-[12rem]">
                                     <DropdownMenuLabel>การจัดการพิเศษ</DropdownMenuLabel>
                                     <DropdownMenuSeparator />
-
-                                    {/* "บังคับเสร็จสิ้น": skip approval flow when assignee is unavailable.
-                                        Now self-gates against COMPLETED (used to rely on outer guard). */}
                                     {request.status !== 'COMPLETED' && (
                                         <DropdownMenuItem
                                             disabled={submitting}
-                                            onClick={() => { void guardedUpdate({ status: 'COMPLETED' }); }}
+                                            onClick={() => setForceCompleteConfirm(true)}
                                         >
                                             <CheckCircle2 size={16} className="text-emerald-600" />
                                             บังคับเสร็จสิ้น
                                         </DropdownMenuItem>
                                     )}
-
-                                    {/* "ย้อนกลับ รอรับเรื่อง": revert mid-flow records that were advanced by mistake.
-                                        Hidden on PENDING (already there) AND on COMPLETED (use the
-                                        dedicated revert items below for that case). */}
                                     {request.status !== 'PENDING' && request.status !== 'COMPLETED' && (
                                         <DropdownMenuItem
                                             disabled={submitting}
@@ -570,11 +590,6 @@ export default function RequestDetailPage() {
                                             ย้อนกลับ รอรับเรื่อง
                                         </DropdownMenuItem>
                                     )}
-
-                                    {/* PRD B: revert-from-COMPLETED. Two explicit targets — admin picks
-                                        whichever previous stage matches the recovery they need. Both
-                                        funnel through a ConfirmDialog (rendered near the AssignModal
-                                        below) which writes an audit_log entry via the backend handler. */}
                                     {request.status === 'COMPLETED' && canRevertApproval && (
                                         <>
                                             <DropdownMenuItem
@@ -596,16 +611,7 @@ export default function RequestDetailPage() {
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         )}
-                        </div>
                     </div>
-                    {/* Subcategory sits below the title row as a quiet caption.
-                        Pulled out of the hero's main flex row so it doesn't
-                        compete with badges or actions for horizontal space. */}
-                    {request.topic_subcategory && (
-                        <p className="text-sm text-text-tertiary thai-no-break mt-2">
-                            {request.topic_subcategory}
-                        </p>
-                    )}
                 </div>
 
                     {/* PRD B: internal divider — separates hero section from tab nav. */}
@@ -613,18 +619,21 @@ export default function RequestDetailPage() {
 
                     {/* Tab Navigation -- the outer card owns the border/background now,
                         so this just keeps the layout primitives (horizontal scroll, centering). */}
-                    <div className="px-2 flex justify-center overflow-x-auto no-scrollbar">
+                    <div className="px-2 flex justify-center overflow-x-auto no-scrollbar relative">
                         {tabs.map((tab) => (
                         <button
                             key={tab.id}
-                            onClick={() => setActiveTab(tab.id)}
-                            className={`flex items-center gap-2 px-4 py-3 text-xs font-bold transition-all border-b-2 whitespace-nowrap outline-none cursor-pointer ${activeTab === tab.id
+                            onClick={() => handleTabClick(tab.id)}
+                            className={`flex items-center gap-2 px-4 py-3 text-xs font-bold transition-all border-b-2 whitespace-nowrap cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset rounded-t-md ${activeTab === tab.id
                                 ? 'border-primary text-primary'
                                 : 'border-transparent text-text-secondary hover:text-text-primary hover:border-border-default'
                                 }`}
                         >
                             <tab.icon size={16} />
                             {tab.label}
+                            {tab.id === 'manage' && isManageDirty && (
+                                <span className="w-2 h-2 rounded-full bg-amber-500" aria-label="มีการเปลี่ยนแปลงที่ยังไม่บันทึก" />
+                            )}
                         </button>
                     ))}
                 </div>
@@ -638,19 +647,16 @@ export default function RequestDetailPage() {
                     {/* 1. รายละเอียดคำร้อง */}
                     {activeTab === 'details' && (
                         <div className="space-y-6 animate-in fade-in duration-300">
-                            {/* Card Header: Category info V2 */}
-                            <div className="pb-6 border-b border-border-default flex items-start gap-4">
-                                <div className="w-12 h-12 bg-gradient-to-br from-primary to-primary-dark rounded-2xl flex items-center justify-center text-white shadow-primary/20 shadow-lg shrink-0">
-                                    <CheckCircle2 size={24} />
-                                </div>
-                                <div className="flex items-center gap-6 h-12">
-                                    <div className="flex flex-col justify-center h-full">
-                                        <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wide">หมวดหมู่</span>
+                            {/* Category + Subcategory — clean text hierarchy, no decorative icon */}
+                            <div className="pb-6 border-b border-border-default">
+                                <div className="flex items-center gap-6">
+                                    <div className="flex flex-col justify-center">
+                                        <span className="text-xs text-text-tertiary">หมวดหมู่</span>
                                         <span className="text-base font-bold text-text-primary">{request.topic_category}</span>
                                     </div>
                                     <div className="w-px h-8 bg-border-default"></div>
-                                    <div className="flex flex-col justify-center h-full">
-                                        <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wide">ประเภท</span>
+                                    <div className="flex flex-col justify-center">
+                                        <span className="text-xs text-text-tertiary">ประเภท</span>
                                         <span className="text-base font-bold text-text-primary">{request.topic_subcategory || "-"}</span>
                                     </div>
                                 </div>
@@ -659,13 +665,13 @@ export default function RequestDetailPage() {
                             {/* 4-Item Info Grid - Equal Widths */}
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 py-2">
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-text-tertiary uppercase tracking-wider">วันที่ยื่นคำร้อง</label>
+                                    <label className="text-xs text-text-tertiary">วันที่ยื่นคำร้อง</label>
                                     <div className="text-sm font-semibold text-text-primary">
                                         {new Date(request.created_at).toLocaleString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' })}
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-text-tertiary uppercase tracking-wider">ระดับความสำคัญ</label>
+                                    <label className="text-xs text-text-tertiary">ระดับความสำคัญ</label>
                                     <div>
                                         <span className={`px-3 py-1 rounded-lg text-xs font-bold border inline-block text-center min-w-[80px] ${request.priority === 'URGENT' ? 'bg-rose-50 border-rose-200 text-rose-600' :
                                             request.priority === 'HIGH' ? 'bg-orange-50 border-orange-200 text-orange-600' :
@@ -680,13 +686,13 @@ export default function RequestDetailPage() {
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-text-tertiary uppercase tracking-wider">กำหนดแล้วเสร็จ</label>
+                                    <label className="text-xs text-text-tertiary">กำหนดแล้วเสร็จ</label>
                                     <div className={`text-sm font-semibold ${request.due_date ? 'text-text-primary' : 'text-text-tertiary italic'}`}>
                                         {request.due_date ? new Date(request.due_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' }) : 'ไม่ได้กำหนด'}
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-text-tertiary uppercase tracking-wider">ผู้รับผิดชอบ</label>
+                                    <label className="text-xs text-text-tertiary">ผู้รับผิดชอบ</label>
                                     <div className={`text-sm font-semibold ${request.assignee_name ? 'text-text-primary' : 'text-text-tertiary italic'}`}>
                                         {request.assignee_name || "ยังไม่ได้มอบหมาย"}
                                     </div>
@@ -697,14 +703,14 @@ export default function RequestDetailPage() {
 
 
                             <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-text-tertiary uppercase tracking-wider">รายละเอียดเพิ่มเติม</label>
+                                <label className="text-xs text-text-tertiary">รายละเอียดเพิ่มเติม</label>
                                 <div className="w-full px-4 py-3 bg-bg border border-border-default rounded-xl text-sm leading-relaxed whitespace-pre-wrap min-h-[100px]">
                                     {request.description || "ไม่มีรายละเอียดเพิ่มเติม"}
                                 </div>
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-text-tertiary uppercase tracking-wider">ไฟล์แนบ ({request.attachments?.length || 0})</label>
+                                <label className="text-xs text-text-tertiary">ไฟล์แนบ ({request.attachments?.length || 0})</label>
                                 <div className="flex flex-wrap gap-2">
                                     {request.attachments?.map((file, idx) => (
                                         <a key={idx} href={file.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3 py-2 bg-surface border border-border-default rounded-lg text-xs font-semibold text-text-secondary hover:border-primary/40 hover:text-primary hover:bg-primary/8 transition-all cursor-pointer">
@@ -723,8 +729,8 @@ export default function RequestDetailPage() {
                     {activeTab === 'contact' && (
                         <div className="space-y-8 animate-in fade-in duration-300">
                             <div className="flex flex-col items-center p-6 bg-bg rounded-2xl border border-border-default">
-                                <div className="w-24 h-24 rounded-full border-4 border-white shadow-md mb-4 bg-primary/12 flex items-center justify-center text-primary text-3xl font-bold">
-                                    {request.firstname[0]}
+                                <div className="w-20 h-20 rounded-full border-2 border-border-default mb-4 bg-bg flex items-center justify-center text-text-secondary text-2xl font-bold">
+                                    {request.firstname ? request.firstname[0] : '?'}
                                 </div>
                                 <h3 className="text-lg font-bold text-text-primary">{request.prefix}{request.firstname} {request.lastname}</h3>
                                 <p className="text-sm text-primary font-bold">{request.agency}</p>
@@ -733,21 +739,21 @@ export default function RequestDetailPage() {
                                 <div className="p-4 border border-border-default rounded-xl flex items-center gap-4">
                                     <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center shrink-0"><Building2 size={20} /></div>
                                     <div className="overflow-hidden">
-                                        <p className="text-xs font-bold text-text-tertiary uppercase">หน่วยงาน / ที่อยู่</p>
+                                        <p className="text-xs text-text-tertiary">หน่วยงาน / ที่อยู่</p>
                                         <p className="text-sm font-bold truncate">{request.sub_district}, {request.district}, {request.province}</p>
                                     </div>
                                 </div>
                                 <div className="p-4 border border-border-default rounded-xl flex items-center gap-4">
                                     <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center shrink-0"><Phone size={20} /></div>
                                     <div>
-                                        <p className="text-xs font-bold text-text-tertiary uppercase">หมายเลขโทรศัพท์</p>
+                                        <p className="text-xs text-text-tertiary">หมายเลขโทรศัพท์</p>
                                         <p className="text-sm font-bold">{request.phone_number}</p>
                                     </div>
                                 </div>
                                 <div className="p-4 border border-border-default rounded-xl flex items-center gap-4 md:col-span-2">
                                     <div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center shrink-0"><Mail size={20} /></div>
                                     <div>
-                                        <p className="text-xs font-bold text-text-tertiary uppercase">อีเมล</p>
+                                        <p className="text-xs text-text-tertiary">อีเมล</p>
                                         <p className="text-sm font-bold">{request.email || "-"}</p>
                                     </div>
                                 </div>
@@ -755,7 +761,6 @@ export default function RequestDetailPage() {
                         </div>
                     )}
 
-                    {/* 3. การดำเนินงาน/ความเห็น */}
                     {/* 3. การดำเนินงาน/ความเห็น */}
                     {activeTab === 'comments' && (
                         <div className="space-y-8 animate-in fade-in duration-300 px-2">
@@ -834,10 +839,10 @@ export default function RequestDetailPage() {
                             <div className="space-y-3">
                                 {/* Labels Row */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <label className="text-xs font-bold text-text-tertiary uppercase tracking-wider flex items-center gap-2">
+                                    <label className="text-xs text-text-tertiary flex items-center gap-2">
                                         <Activity size={14} className="text-cyan-500" /> สถานะคำร้อง
                                     </label>
-                                    <label className="text-xs font-bold text-text-tertiary uppercase tracking-wider flex items-center gap-2">
+                                    <label className="text-xs text-text-tertiary flex items-center gap-2">
                                         <Flag size={14} className="text-amber-500" /> ระดับความสำคัญ
                                     </label>
                                 </div>
@@ -906,7 +911,7 @@ export default function RequestDetailPage() {
                             {/* Row 2: Assignment + Due Date */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                                 <div className="space-y-3">
-                                    <label className="text-xs font-bold text-text-tertiary uppercase tracking-wider flex items-center gap-2">
+                                    <label className="text-xs text-text-tertiary flex items-center gap-2">
                                         <UserPlus size={14} className="text-primary" /> มอบหมายงานให้
                                     </label>
                                     <div className="flex gap-2">
@@ -934,7 +939,7 @@ export default function RequestDetailPage() {
                                 </div>
 
                                 <div className="space-y-3">
-                                    <label className="text-xs font-bold text-text-tertiary uppercase tracking-wider flex items-center gap-2">
+                                    <label className="text-xs text-text-tertiary flex items-center gap-2">
                                         <Calendar size={14} className="text-amber-500" /> กำหนดเสร็จ
                                     </label>
                                     {/* TZ-safe adapter: backend stores YYYY-MM-DD; CalendarPickerTH talks ISO.
@@ -950,7 +955,7 @@ export default function RequestDetailPage() {
 
                             {/* Row 3: Comment / Note Field */}
                             <div className="space-y-3">
-                                <label className="text-xs font-bold text-text-tertiary uppercase tracking-wider flex items-center gap-2">
+                                <label className="text-xs text-text-tertiary flex items-center gap-2">
                                     <MessageSquare size={14} className="text-text-tertiary" /> บันทึกช่วยจำ / เหตุผลการดำเนินการ
                                 </label>
                                 <textarea
@@ -981,13 +986,10 @@ export default function RequestDetailPage() {
                 </div>
                 </div>{/* closes merged card (hero + tab nav + tab content) */}
 
-                {/* Footer info */}
-                <div className="mt-6 px-4 flex justify-between items-center text-[10px] text-text-tertiary font-bold uppercase tracking-widest">
-                    <p>© 2026 Admin Portal</p>
-                    <div className="flex gap-4">
-                        <span className="cursor-pointer hover:text-primary">Manual</span>
-                        <span className="cursor-pointer hover:text-primary">Support</span>
-                    </div>
+                {/* P3: Subtle metadata footer */}
+                <div className="mt-6 px-4 flex justify-between items-center text-xs text-text-tertiary">
+                    <p>คำร้อง #{request.id}</p>
+                    <p>{new Date(request.created_at).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
                 </div>
 
             </div>
@@ -1017,10 +1019,59 @@ export default function RequestDetailPage() {
                 isLoading={submitting}
             />
 
-            {/* PRD B: revert-from-COMPLETED confirmation. Shared between the
-                two kebab items (AWAITING_APPROVAL / IN_PROGRESS) via the
-                `revertConfirm.target` discriminator. Backend handler writes
-                an audit_log row on confirm. */}
+            {/* P1: dirty-state tab-switch confirmation */}
+            <ConfirmDialog
+                isOpen={pendingTab !== null}
+                onClose={() => setPendingTab(null)}
+                onConfirm={confirmTabSwitch}
+                title="ยังไม่ได้บันทึกการเปลี่ยนแปลง"
+                description="มีการแก้ไขในหน้าจัดการคำร้องที่ยังไม่ได้บันทึก หากเปลี่ยนแท็บ ข้อมูลที่แก้ไขจะสูญหาย"
+                confirmText="เปลี่ยนแท็บ"
+                cancelText="อยู่ที่หน้านี้"
+                variant="warning"
+            />
+
+            {/* P0: reject confirmation with mandatory reason */}
+            <ConfirmDialog
+                isOpen={rejectConfirm.open}
+                onClose={() => setRejectConfirm({ open: false, reason: '' })}
+                onConfirm={handleReject}
+                title="ยืนยันปฏิเสธคำร้อง"
+                description={
+                    <>
+                        คำร้องจะถูกเปลี่ยนสถานะเป็น <b>ปฏิเสธ</b> และไม่สามารถแก้ไขได้ในภายหลัง
+                        <textarea
+                            className="mt-3 w-full rounded-md border border-border-default bg-bg p-2 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary"
+                            rows={3}
+                            placeholder="เหตุผลการปฏิเสธ *"
+                            value={rejectConfirm.reason}
+                            onChange={(e) => setRejectConfirm(prev => ({ ...prev, reason: e.target.value }))}
+                        />
+                        <span className="text-xs text-amber-600 mt-2 block">
+                            การกระทำนี้จะถูกบันทึกในประวัติ
+                        </span>
+                    </>
+                }
+                confirmText="ปฏิเสธคำร้อง"
+                cancelText="ยกเลิก"
+                variant="danger"
+                isLoading={submitting}
+            />
+
+            {/* P0: force-complete confirmation */}
+            <ConfirmDialog
+                isOpen={forceCompleteConfirm}
+                onClose={() => setForceCompleteConfirm(false)}
+                onConfirm={handleForceComplete}
+                title="บังคับเสร็จสิ้น"
+                description="การดำเนินการนี้จะข้ามขั้นตอนการอนุมัติและปิดคำร้องทันที ใช้กรณีที่ไม่สามารถรอการอนุมัติได้"
+                confirmText="บังคับเสร็จสิ้น"
+                cancelText="ยกเลิก"
+                variant="warning"
+                isLoading={submitting}
+            />
+
+            {/* PRD B: revert-from-COMPLETED confirmation */}
             <ConfirmDialog
                 isOpen={revertConfirm.open}
                 onClose={() => setRevertConfirm({ open: false, target: null, notes: '' })}
@@ -1043,7 +1094,7 @@ export default function RequestDetailPage() {
                         </b>
                         <br />
                         <textarea
-                            className="mt-3 w-full rounded-md border border-border-default bg-bg-primary p-2 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary"
+                            className="mt-3 w-full rounded-md border border-border-default bg-bg p-2 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary"
                             rows={3}
                             placeholder="หมายเหตุ (ไม่บังคับ)"
                             value={revertConfirm.notes}
