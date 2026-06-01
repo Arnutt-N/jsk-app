@@ -98,6 +98,26 @@ function getErrorMessage(error: unknown): string {
 }
 
 // ------------------------------------------------------------------
+// Module-level constants: static arrays extracted from JSX to avoid
+// re-creating references on every render.
+// ------------------------------------------------------------------
+const ALL_STATUSES: RequestStatus[] = [
+    'PENDING',
+    'ACKNOWLEDGED',
+    'IN_PROGRESS',
+    'AWAITING_APPROVAL',
+    'COMPLETED',
+    'REJECTED',
+];
+
+const PRIORITY_OPTIONS = [
+    { value: 'LOW', label: 'ปกติ' },
+    { value: 'MEDIUM', label: 'ด่วน' },
+    { value: 'HIGH', label: 'ด่วนมาก' },
+    { value: 'URGENT', label: 'ด่วนที่สุด' },
+];
+
+// ------------------------------------------------------------------
 // Sub-component: isolated comment-input state to prevent full-page
 // re-renders on every keystroke in the textarea.
 // ------------------------------------------------------------------
@@ -156,6 +176,20 @@ function CommentInputSection({ requestId, onSuccess }: {
             </div>
         </div>
     );
+}
+
+// ------------------------------------------------------------------
+// Sub-component: memoized comment date formatting to avoid re-parsing
+// Date objects on every parent render.
+// ------------------------------------------------------------------
+function CommentDate({ dateStr }: { dateStr: string }) {
+    const formatted = useMemo(() => {
+        const d = new Date(dateStr);
+        const date = d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' });
+        const time = d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+        return `${date}, ${time}`;
+    }, [dateStr]);
+    return <span className="text-[10px] font-bold text-text-tertiary">{formatted}</span>;
 }
 
 export default function RequestDetailPage() {
@@ -233,11 +267,8 @@ export default function RequestDetailPage() {
 
     useEffect(() => {
         if (params.id) {
-            const timer = window.setTimeout(() => {
-                void fetchDetail();
-                void fetchComments();
-            }, 0);
-            return () => window.clearTimeout(timer);
+            void fetchDetail();
+            void fetchComments();
         }
     }, [fetchComments, fetchDetail, params.id]);
 
@@ -383,6 +414,22 @@ export default function RequestDetailPage() {
         });
     };
 
+    // --- Memoized formatted dates (avoid re-parsing on every render) ---
+    const formattedCreatedAt = useMemo(() => {
+        if (!request) return '';
+        return new Date(request.created_at).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
+    }, [request?.created_at]);
+
+    const formattedDueDate = useMemo(() => {
+        if (!request?.due_date) return null;
+        return new Date(request.due_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
+    }, [request?.due_date]);
+
+    const formattedFooterDate = useMemo(() => {
+        if (!request) return '';
+        return new Date(request.created_at).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }, [request?.created_at]);
+
     // --- UI Helpers ---
     const tabs = [
         { id: 'details', label: 'รายละเอียดคำร้อง', icon: FileText },
@@ -394,7 +441,7 @@ export default function RequestDetailPage() {
     if (loading) return <LoadingSpinner label="กำลังโหลด..." />;
 
     if (!request) return (
-        <div className="p-8 md:p-16 text-center flex flex-col items-center gap-4 text-text-tertiary animate-in fade-in duration-500">
+        <div className="p-8 md:p-16 text-center flex flex-col items-center gap-4 text-text-tertiary">
             <FileText className="w-16 h-16 opacity-20" aria-hidden="true" />
             <p className="text-lg font-bold text-text-secondary">ไม่พบข้อมูลคำร้อง</p>
             <p className="text-sm">คำร้องนี้อาจถูกลบหรือไม่มีอยู่ในระบบ</p>
@@ -438,7 +485,7 @@ export default function RequestDetailPage() {
     };
 
     return (
-        <div className="p-4 md:p-8 text-text-primary animate-in fade-in duration-500">
+        <div className="p-4 md:p-8 text-text-primary">
             <div className="max-w-5xl mx-auto">
 
                 {/* "กลับ" text button -- replaces icon-only chevron, more discoverable on mobile */}
@@ -665,7 +712,7 @@ export default function RequestDetailPage() {
 
                     {/* Tab Navigation -- the outer card owns the border/background now,
                         so this just keeps the layout primitives (horizontal scroll, centering). */}
-                    <div role="tablist" aria-label="รายละเอียดคำร้อง" className="px-2 flex justify-center overflow-x-auto no-scrollbar relative">
+                    <div role="tablist" aria-label="รายละเอียดคำร้อง" className="px-2 flex justify-center overflow-x-auto relative">
                         {tabs.map((tab) => (
                         <button
                             key={tab.id}
@@ -682,7 +729,10 @@ export default function RequestDetailPage() {
                             <tab.icon size={16} aria-hidden="true" />
                             {tab.label}
                             {tab.id === 'manage' && isManageDirty && (
-                                <span className="w-2 h-2 rounded-full bg-amber-500" aria-label="มีการเปลี่ยนแปลงที่ยังไม่บันทึก" />
+                                <>
+                                    <span className="w-2 h-2 rounded-full bg-amber-500" aria-hidden="true" />
+                                    <span className="sr-only">มีการเปลี่ยนแปลงที่ยังไม่บันทึก</span>
+                                </>
                             )}
                         </button>
                     ))}
@@ -717,7 +767,7 @@ export default function RequestDetailPage() {
                                 <div className="space-y-2">
                                     <span className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary">วันที่ยื่นคำร้อง</span>
                                     <div className="text-base font-semibold text-text-primary">
-                                        {new Date(request.created_at).toLocaleString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                        {formattedCreatedAt}
                                     </div>
                                 </div>
                                 <div className="space-y-2">
@@ -740,7 +790,7 @@ export default function RequestDetailPage() {
                                 <div className="space-y-2">
                                     <span className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary">กำหนดแล้วเสร็จ</span>
                                     <div className={`text-base font-semibold ${request.due_date ? 'text-text-primary' : 'text-text-tertiary italic'}`}>
-                                        {request.due_date ? new Date(request.due_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' }) : 'ไม่ได้กำหนด'}
+                                        {formattedDueDate ?? 'ไม่ได้กำหนด'}
                                     </div>
                                 </div>
                                 <div className="space-y-2">
@@ -778,7 +828,7 @@ export default function RequestDetailPage() {
                     {activeTab === 'contact' && (
                         <div id="panel-contact" role="tabpanel" aria-labelledby="tab-contact" className="space-y-8">
                             <div className="flex flex-col items-center p-6 bg-bg rounded-2xl border border-border-default">
-                                <div className="w-24 h-24 rounded-full border-2 border-border-default mb-4 bg-bg flex items-center justify-center text-text-secondary text-3xl font-bold ring-2 ring-offset-2 ring-offset-surface ring-primary/20">
+                                <div className="w-24 h-24 rounded-full border-2 border-border-default mb-4 bg-bg flex items-center justify-center text-text-secondary text-3xl font-bold">
                                     {request.firstname ? request.firstname[0] : '?'}
                                 </div>
                                 <h3 className="text-lg font-bold text-text-primary">{request.prefix}{request.firstname} {request.lastname}</h3>
@@ -786,21 +836,21 @@ export default function RequestDetailPage() {
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="p-4 border border-border-default rounded-xl flex items-center gap-4">
-                                    <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center shrink-0"><Building2 size={20} aria-hidden="true" /></div>
+                                    <div className="w-10 h-10 bg-surface border border-border-default text-text-secondary rounded-full flex items-center justify-center shrink-0"><Building2 size={20} aria-hidden="true" /></div>
                                     <div className="overflow-hidden">
                                         <p className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary">หน่วยงาน / ที่อยู่</p>
                                         <p className="text-sm font-bold truncate">{request.sub_district}, {request.district}, {request.province}</p>
                                     </div>
                                 </div>
                                 <div className="p-4 border border-border-default rounded-xl flex items-center gap-4">
-                                    <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center shrink-0"><Phone size={20} aria-hidden="true" /></div>
+                                    <div className="w-10 h-10 bg-surface border border-border-default text-text-secondary rounded-full flex items-center justify-center shrink-0"><Phone size={20} aria-hidden="true" /></div>
                                     <div>
                                         <p className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary">หมายเลขโทรศัพท์</p>
                                         <p className="text-sm font-bold">{request.phone_number}</p>
                                     </div>
                                 </div>
                                 <div className="p-4 border border-border-default rounded-xl flex items-center gap-4 md:col-span-2">
-                                    <div className="w-10 h-10 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-full flex items-center justify-center shrink-0"><Mail size={20} aria-hidden="true" /></div>
+                                    <div className="w-10 h-10 bg-surface border border-border-default text-text-secondary rounded-full flex items-center justify-center shrink-0"><Mail size={20} aria-hidden="true" /></div>
                                     <div>
                                         <p className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary">อีเมล</p>
                                         <p className="text-sm font-bold">{request.email || "-"}</p>
@@ -814,9 +864,9 @@ export default function RequestDetailPage() {
                     {activeTab === 'comments' && (
                         <div id="panel-comments" role="tabpanel" aria-labelledby="tab-comments" className="space-y-8">
                             {/* Timeline History */}
-                            <div className="relative pl-8 border-l-2 border-border-default space-y-8 ml-3">
+                            <div className="relative pl-6 sm:pl-8 border-l-2 border-border-default space-y-8 ml-3">
                                 {comments.length === 0 ? (
-                                    <div className="text-center py-10 text-text-tertiary text-xs italic pl-4">ยังไม่มีประวัติการดำเนินงาน</div>
+                                    <div className="text-center py-10 text-text-secondary text-xs italic pl-4">ยังไม่มีประวัติการดำเนินงาน</div>
                                 ) : comments.map((comment, i) => {
                                     // Determine styling based on user role/name
                                     const isSystem = comment.display_name?.toUpperCase() === 'SYSTEM';
@@ -842,13 +892,11 @@ export default function RequestDetailPage() {
                                                 <span className={`text-xs font-bold ${isSystem ? 'text-amber-500 dark:text-amber-400' : isAdmin ? 'text-primary' : 'text-text-secondary'}`}>
                                                     {comment.display_name}
                                                 </span>
-                                                <span className="text-[10px] font-bold text-text-tertiary">
-                                                    {new Date(comment.created_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}, {new Date(comment.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
-                                                </span>
+                                                <CommentDate dateStr={comment.created_at} />
                                             </div>
 
                                             {/* Content Bubble — tinted by role for instant scannability */}
-                                            <div className={`${bubbleTint} rounded-2xl rounded-tl-sm p-4 text-sm text-text-secondary leading-relaxed shadow-sm group-hover:bg-surface group-hover:border-border-default group-hover:shadow-md transition-all`}>
+                                            <div className={`${bubbleTint} rounded-2xl rounded-tl-sm p-4 text-sm text-text-secondary leading-relaxed shadow-sm`}>
                                                 {comment.content}
                                             </div>
                                         </div>
@@ -887,16 +935,7 @@ export default function RequestDetailPage() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     {/* Status chips (6 options) */}
                                     <div className="flex flex-wrap gap-2">
-                                        {(
-                                            [
-                                                'PENDING',
-                                                'ACKNOWLEDGED',
-                                                'IN_PROGRESS',
-                                                'AWAITING_APPROVAL',
-                                                'COMPLETED',
-                                                'REJECTED',
-                                            ] as RequestStatus[]
-                                        ).map((s) => {
+                                        {ALL_STATUSES.map((s) => {
                                             const colors = STATUS_CHIP_COLORS[s];
                                             const label = getStatusLabel(s);
                                             const active = manageFormData.status === s;
@@ -917,12 +956,7 @@ export default function RequestDetailPage() {
                                     </div>
                                     {/* Priority chips (4 options) */}
                                     <div className="flex flex-wrap gap-2">
-                                        {[
-                                            { value: 'LOW', label: 'ปกติ' },
-                                            { value: 'MEDIUM', label: 'ด่วน' },
-                                            { value: 'HIGH', label: 'ด่วนมาก' },
-                                            { value: 'URGENT', label: 'ด่วนที่สุด' }
-                                        ].map((p) => {
+                                        {PRIORITY_OPTIONS.map((p) => {
                                             const colors = PRIORITY_CHIP_COLORS[p.value];
                                             const active = manageFormData.priority === p.value;
                                             return (
@@ -1025,7 +1059,7 @@ export default function RequestDetailPage() {
                 {/* P3: Subtle metadata footer */}
                 <div className="mt-6 px-4 flex justify-between items-center text-xs text-text-tertiary">
                     <p>คำร้อง #{request.id}</p>
-                    <p>{new Date(request.created_at).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                    <p>{formattedFooterDate}</p>
                 </div>
 
             </div>
@@ -1077,6 +1111,8 @@ export default function RequestDetailPage() {
                     <>
                         คำร้องจะถูกเปลี่ยนสถานะเป็น <b>ปฏิเสธ</b> และไม่สามารถแก้ไขได้ในภายหลัง
                         <textarea
+                            id="reject-reason"
+                            aria-label="เหตุผลการปฏิเสธ"
                             className="mt-3 w-full rounded-md border border-border-default bg-bg p-2 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary"
                             rows={3}
                             placeholder="เหตุผลการปฏิเสธ *"
@@ -1130,6 +1166,8 @@ export default function RequestDetailPage() {
                         </b>
                         <br />
                         <textarea
+                            id="revert-notes"
+                            aria-label="หมายเหตุการยกเลิกอนุมัติ"
                             className="mt-3 w-full rounded-md border border-border-default bg-bg p-2 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary"
                             rows={3}
                             placeholder="หมายเหตุ (ไม่บังคับ)"
