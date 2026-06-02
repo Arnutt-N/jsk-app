@@ -41,18 +41,6 @@ export function CommandPalette({ open: controlledOpen, onOpenChange }: CommandPa
   const open = controlledOpen ?? internalOpen;
   const setOpen = onOpenChange ?? setInternalOpen;
 
-  // Keyboard shortcut: Cmd+K / Ctrl+K
-  useEffect(() => {
-    const down = (e: KeyboardEvent) => {
-      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault();
-        setOpen(!open);
-      }
-    };
-    document.addEventListener('keydown', down);
-    return () => document.removeEventListener('keydown', down);
-  }, [open, setOpen]);
-
   const navigate = useCallback(
     (path: string) => {
       setOpen(false);
@@ -60,6 +48,43 @@ export function CommandPalette({ open: controlledOpen, onOpenChange }: CommandPa
     },
     [setOpen, router]
   );
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      // Cmd+K / Ctrl+K: Open command palette
+      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setOpen(!open);
+        return;
+      }
+
+      // Don't trigger shortcuts when typing in inputs
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      // Number shortcuts for navigation (Cmd+1, Cmd+2, etc.)
+      if (e.metaKey || e.ctrlKey) {
+        switch (e.key) {
+          case '1':
+            e.preventDefault();
+            navigate('/admin');
+            break;
+          case '2':
+            e.preventDefault();
+            navigate('/admin/requests');
+            break;
+          case '3':
+            e.preventDefault();
+            navigate('/admin/live-chat');
+            break;
+        }
+      }
+    };
+    document.addEventListener('keydown', down);
+    return () => document.removeEventListener('keydown', down);
+  }, [open, setOpen, navigate]);
 
   const toggleTheme = useCallback(
     (newTheme: 'light' | 'dark' | 'system') => {
