@@ -60,6 +60,7 @@ export default function StatsCard({
       <div
         className={cn(
           'w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0',
+          'transition-transform duration-200 group-hover:scale-105',
           colors.iconBg,
           colors.text,
         )}
@@ -109,8 +110,8 @@ export default function StatsCard({
     'shadow-sm',
     'transition-all duration-200 ease-out',
     'group cursor-pointer',
-    'hover:-translate-y-0.5 hover:shadow-md',
-    'hover:border-border-hover',
+    'hover:-translate-y-1 hover:shadow-lg',
+    'hover:border-brand-200',
     'block h-full'
   );
 

@@ -248,16 +248,16 @@ function AdminShell({ children }: { children: React.ReactNode }) {
             {/* Sidebar Logo */}
             <div className="relative z-10 h-20 flex items-center justify-center px-4 border-b border-white/10">
               {isSidebarCollapsed ? (
-                <div className="w-10 h-10 rounded-2xl gradient-logo flex items-center justify-center text-white font-bold text-sm">
+                <div className="w-10 h-10 rounded-2xl gradient-logo flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-brand-500/20">
                   JS
                 </div>
               ) : (
                 <Link href="/admin" className="flex items-center gap-3 w-full">
-                  <div className="w-10 h-10 rounded-2xl gradient-logo flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                  <div className="w-10 h-10 rounded-2xl gradient-logo flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow-lg shadow-brand-500/20">
                     JS
                   </div>
                   <div className="flex-1">
-                    <h1 className="text-white font-bold text-xl tracking-wide leading-tight">
+                    <h1 className="font-bold text-xl tracking-wide leading-tight bg-gradient-to-r from-white to-sidebar-text-muted bg-clip-text text-transparent">
                       JSK
                     </h1>
                     <p className="text-[10px] text-sidebar-text-muted tracking-widest uppercase">Admin</p>
