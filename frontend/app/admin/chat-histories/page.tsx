@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { Tooltip } from '@/components/ui/Tooltip';
 import { Input } from '@/components/ui/Input';
 import {
     Search,
@@ -377,26 +378,30 @@ export default function ChatHistoriesPage() {
                             {conversations.length} สนทนา (หน้า {page + 1}/{totalPages})
                         </p>
                         <div className="flex items-center gap-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-8 w-8 p-0"
-                                disabled={page === 0}
-                                onClick={() => setPage((p) => Math.max(0, p - 1))}
-                                aria-label="หน้าก่อนหน้า"
-                            >
-                                <ChevronLeft className="w-4 h-4" />
-                            </Button>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-8 w-8 p-0"
-                                disabled={page >= totalPages - 1}
-                                onClick={() => setPage((p) => p + 1)}
-                                aria-label="หน้าถัดไป"
-                            >
-                                <ChevronRight className="w-4 h-4" />
-                            </Button>
+                            <Tooltip content="หน้าก่อนหน้า">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 w-8 p-0"
+                                    disabled={page === 0}
+                                    onClick={() => setPage((p) => Math.max(0, p - 1))}
+                                    aria-label="หน้าก่อนหน้า"
+                                >
+                                    <ChevronLeft className="w-4 h-4" />
+                                </Button>
+                            </Tooltip>
+                            <Tooltip content="หน้าถัดไป">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 w-8 p-0"
+                                    disabled={page >= totalPages - 1}
+                                    onClick={() => setPage((p) => p + 1)}
+                                    aria-label="หน้าถัดไป"
+                                >
+                                    <ChevronRight className="w-4 h-4" />
+                                </Button>
+                            </Tooltip>
                         </div>
                     </div>
                 )}
