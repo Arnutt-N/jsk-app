@@ -415,6 +415,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
             />
           )}
 
+      <CommandPalette />
       <SessionTimeoutWarning />
       <CommandPalette />
     </div>
