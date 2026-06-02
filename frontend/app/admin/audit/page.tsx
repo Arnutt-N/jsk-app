@@ -184,7 +184,7 @@ export default function AuditLogPage() {
       <div className="bg-surface rounded-2xl border border-border-default p-4 shadow-sm">
         <div className="flex flex-col sm:flex-row gap-4">
           <Input
-            placeholder="Filter by action..."
+            placeholder="กรองตามการกระทำ..."
             value={filter.action}
             onChange={(e) => {
               setFilter({ ...filter, action: e.target.value });
@@ -193,7 +193,7 @@ export default function AuditLogPage() {
             className="w-full sm:w-48"
           />
           <Input
-            placeholder="Filter by resource type..."
+            placeholder="กรองตามประเภททรัพยากร..."
             value={filter.resource_type}
             onChange={(e) => {
               setFilter({ ...filter, resource_type: e.target.value });
