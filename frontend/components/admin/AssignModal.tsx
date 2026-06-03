@@ -111,7 +111,7 @@ export const AssignModal: React.FC<AssignModalProps> = ({
                 <div className="max-h-[400px] overflow-y-auto space-y-2 pr-1 scrollbar-thin">
                     {loading ? (
                         <div className="flex justify-center py-8">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                            <div className="animate-spin rounded-full h-8 w-8 border-b border-primary"></div>
                         </div>
                     ) : filteredAgents.length === 0 ? (
                         <div className="text-center py-8 text-text-tertiary">

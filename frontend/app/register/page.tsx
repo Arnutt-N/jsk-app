@@ -136,10 +136,8 @@ export default function RegisterPage() {
               </Link>
 
               <div className="space-y-2 text-center">
-                <CardTitle className="font-heading text-3xl font-black tracking-tight">
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-950 to-blue-500 dark:from-blue-300 dark:to-blue-500">
-                    ลงทะเบียนเจ้าหน้าที่
-                  </span>
+                <CardTitle className="font-heading text-3xl font-black tracking-tight text-brand-700 dark:text-brand-300">
+                  ลงทะเบียนเจ้าหน้าที่
                 </CardTitle>
                 <CardDescription className="text-slate-500 dark:text-slate-400 font-medium text-base">
                   กรอกข้อมูลเพื่อขอสิทธิ์การเข้าใช้งานระบบ JSK 4.0 Platform

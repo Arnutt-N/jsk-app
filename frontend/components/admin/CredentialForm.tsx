@@ -243,7 +243,7 @@ export default function CredentialList() {
                                     </button>
                                     <button
                                         onClick={() => handleOpenEdit(cred)}
-                                        className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all cursor-pointer"
+                                        className="p-2 text-slate-500 hover:text-blue-700 hover:bg-blue-100 rounded-lg transition-all cursor-pointer"
                                         title="Edit"
                                     >
                                         <Edit2 className="w-5 h-5" />
@@ -251,7 +251,7 @@ export default function CredentialList() {
                                     {!cred.is_default && (
                                         <button
                                             onClick={() => handleSetDefault(cred.id)}
-                                            className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all cursor-pointer"
+                                            className="p-2 text-slate-500 hover:text-amber-700 hover:bg-amber-100 rounded-lg transition-all cursor-pointer"
                                             title="Set as Default"
                                         >
                                             <CheckCircle className="w-5 h-5 opacity-50" />
@@ -259,7 +259,7 @@ export default function CredentialList() {
                                     )}
                                     <button
                                         onClick={() => handleDelete(cred.id)}
-                                        className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all cursor-pointer"
+                                        className="p-2 text-slate-500 hover:text-red-700 hover:bg-red-100 rounded-lg transition-all cursor-pointer"
                                         title="Delete"
                                     >
                                         <Trash2 className="w-5 h-5" />

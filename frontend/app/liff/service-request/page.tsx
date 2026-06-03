@@ -880,13 +880,13 @@ export default function LiffServiceRequestV2() {
                         <Button
                             type="button"
                             variant="ghost"
-                            className="w-full py-2 h-auto text-xs text-gray-400 hover:text-red-500 hover:bg-red-50 font-medium"
+                            className="w-full py-2 h-auto text-xs text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 font-medium"
                             onClick={handleClose}
                         >
                             ยกเลิกรายการ
                         </Button>
 
-                        <p className="text-center text-[10px] text-gray-400 mt-4 px-4 leading-relaxed opacity-70">
+                        <p className="text-center text-[10px] text-gray-600 dark:text-gray-400 mt-4 px-4 leading-relaxed">
                             ข้อมูลของท่านจะถูกใช้เพื่อการวิเคราะห์และดำเนินการให้ความช่วยเหลือโดยบุคลากรของรัฐที่เกี่ยวข้องเท่านั้น ภายใต้กฎหมายคุ้มครองข้อมูลส่วนบุคคล (PDPA)
                         </p>
                     </div>
