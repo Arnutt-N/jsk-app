@@ -14,6 +14,8 @@ import { Select, type SelectOption } from '@/components/ui/Select';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { ModalAlert } from '@/components/ui/ModalAlert';
+import { readErrorMessage } from '@/lib/api-error';
+import logger from '@/lib/logger';
 
 interface UserRecord {
     id: number;
@@ -107,9 +109,12 @@ export default function UserDetailPage() {
                 setRole(data.role);
                 setIsActive(data.is_active);
             } else {
-                setError('ไม่พบผู้ใช้');
+                const msg = await readErrorMessage(res, 'ไม่พบผู้ใช้');
+                logger.error('fetchUser failed', { status: res.status, userId });
+                setError(msg);
             }
-        } catch {
+        } catch (err) {
+            logger.error('fetchUser error', err, { userId });
             setError('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้');
         } finally {
             setLoading(false);
@@ -143,10 +148,12 @@ export default function UserDetailPage() {
                 setAlert({ type: 'success', title: 'สำเร็จ', message: 'อัปเดตข้อมูลเรียบร้อยแล้ว' });
                 fetchUser();
             } else {
-                const err = await res.json();
-                setError(err.detail || 'เกิดข้อผิดพลาด');
+                const msg = await readErrorMessage(res, 'เกิดข้อผิดพลาด');
+                logger.error('handleSave failed', { status: res.status, userId });
+                setError(msg);
             }
-        } catch {
+        } catch (err) {
+            logger.error('handleSave error', err, { userId });
             setError('เกิดข้อผิดพลาดในการเชื่อมต่อ');
         } finally {
             setSaving(false);
@@ -170,10 +177,12 @@ export default function UserDetailPage() {
                 setNewPassword('');
                 setAlert({ type: 'success', title: 'สำเร็จ', message: 'เปลี่ยนรหัสผ่านเรียบร้อยแล้ว' });
             } else {
-                const err = await res.json();
-                setError(err.detail || 'เกิดข้อผิดพลาด');
+                const msg = await readErrorMessage(res, 'เกิดข้อผิดพลาด');
+                logger.error('changePassword failed', { status: res.status, userId });
+                setError(msg);
             }
-        } catch {
+        } catch (err) {
+            logger.error('changePassword error', err, { userId });
             setError('เกิดข้อผิดพลาดในการเชื่อมต่อ');
         } finally {
             setPasswordSaving(false);
@@ -198,10 +207,12 @@ export default function UserDetailPage() {
                 setResetPw('');
                 setAlert({ type: 'success', title: 'สำเร็จ', message: 'รีเซ็ตรหัสผ่านเรียบร้อยแล้ว' });
             } else {
-                const err = await res.json();
-                setResetError(err.detail || 'เกิดข้อผิดพลาด');
+                const msg = await readErrorMessage(res, 'เกิดข้อผิดพลาด');
+                logger.error('resetPassword failed', { status: res.status, userId });
+                setResetError(msg);
             }
-        } catch {
+        } catch (err) {
+            logger.error('resetPassword error', err, { userId });
             setResetError('เกิดข้อผิดพลาดในการเชื่อมต่อ');
         } finally {
             setResetLoading(false);

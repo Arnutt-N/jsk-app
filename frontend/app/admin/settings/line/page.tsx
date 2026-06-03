@@ -9,6 +9,7 @@ import PageHeader from '@/app/admin/components/PageHeader';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { useToast } from '@/components/ui/Toast';
 import { logger } from '@/lib/logger';
+import { readErrorMessage } from '@/lib/api-error';
 
 interface SettingItem {
     key: string;
@@ -59,6 +60,10 @@ export default function LineSettingsPage() {
                 if (!mapped.LINE_CHANNEL_ACCESS_TOKEN || !mapped.LINE_CHANNEL_SECRET) {
                     setIsEditing(true);
                 }
+            } else {
+                const msg = await readErrorMessage(res, 'ไม่สามารถโหลดข้อมูลได้');
+                logger.error('fetchLineSettings failed', { status: res.status });
+                toast({ title: 'ผิดพลาด', description: msg, variant: 'error' });
             }
         } catch (error) {
             logger.error("Failed to fetch settings", error);
@@ -115,11 +120,13 @@ export default function LineSettingsPage() {
                 setValidationResult({ success: true, botInfo: data.data });
                 setCanSave(true);
             } else {
+                logger.error('connectLine failed', { status: res.status });
                 setValidationResult({ success: false, error: data.detail || 'Validation failed' });
                 setCanSave(false);
             }
             setShowStatusModal(true);
         } catch (error: unknown) {
+            logger.error('connectLine error', error);
             const errorMessage = error instanceof Error ? error.message : 'Network error';
             setValidationResult({ success: false, error: errorMessage });
             setShowStatusModal(true);

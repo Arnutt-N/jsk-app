@@ -25,6 +25,7 @@ import PageHeader from '@/app/admin/components/PageHeader';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { useToast } from '@/components/ui/Toast';
 import { logger } from '@/lib/logger';
+import { readErrorMessage } from '@/lib/api-error';
 
 interface Integration {
     id: number;
@@ -74,7 +75,13 @@ export default function CustomIntegrationsPage() {
     const fetchIntegrations = useCallback(async () => {
         try {
             const res = await fetch(`${API_BASE}/admin/settings/integrations`, { headers: authHeaders });
-            if (res.ok) setIntegrations(await res.json());
+            if (res.ok) {
+                setIntegrations(await res.json());
+            } else {
+                const msg = await readErrorMessage(res, 'ไม่สามารถโหลดข้อมูลได้');
+                logger.error('Failed to fetch integrations', { status: res.status });
+                toast({ variant: 'error', title: msg });
+            }
         } catch (err) {
             logger.error('Failed to fetch integrations', err);
         } finally {
@@ -144,7 +151,8 @@ export default function CustomIntegrationsPage() {
                 const err = await res.json();
                 toast({ variant: 'error', title: 'บันทึกไม่สำเร็จ', description: err.detail || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล' });
             }
-        } catch {
+        } catch (err) {
+            logger.error('Failed to save integration', err);
             toast({ variant: 'error', title: 'เกิดข้อผิดพลาด', description: 'ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่อีกครั้ง' });
         } finally {
             setProcessing(null);
@@ -161,7 +169,8 @@ export default function CustomIntegrationsPage() {
             });
             if (!res.ok) throw new Error('Delete failed');
             await fetchIntegrations();
-        } catch {
+        } catch (err) {
+            logger.error('Failed to delete integration', err);
             toast({ variant: 'error', title: 'เกิดข้อผิดพลาด', description: 'ไม่สามารถลบข้อมูลได้ กรุณาลองใหม่อีกครั้ง' });
         } finally {
             setProcessing(null);

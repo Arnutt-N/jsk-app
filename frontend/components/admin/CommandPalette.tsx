@@ -19,11 +19,13 @@ import {
   LayoutDashboard, FileText, Bot, MessageCircle, History, Megaphone,
   Reply, MessageSquareReply, PanelTop, Users, UserCog, FolderOpen,
   BarChart3, Shield, Settings, Palette, Plus, BarChart, LogOut, Moon,
+  Keyboard,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { logger } from '@/lib/logger';
+import { HELP_ENTRIES } from '@/lib/help-content';
 
 // ---------------------------------------------------------------------------
 // Command definitions
@@ -32,7 +34,7 @@ type CommandItem = {
   id: string;
   label: string;
   thaiLabel: string;
-  group: 'หน้า' | 'การดำเนินการ' | 'การตั้งค่า';
+  group: 'หน้า' | 'การดำเนินการ' | 'การตั้งค่า' | 'ช่วยเหลือ';
   icon: LucideIcon;
   href?: string;
   action?: () => void;
@@ -214,7 +216,36 @@ export function CommandPalette() {
       },
     ];
 
-    return [...pageItems, ...actionItems, ...settingsItems];
+    const helpItems: CommandItem[] = [
+      {
+        id: 'help:shortcuts',
+        label: 'View All Shortcuts',
+        thaiLabel: 'ดูแป้นพิมพ์ลัดทั้งหมด',
+        group: 'ช่วยเหลือ',
+        icon: Keyboard,
+        action: () => {
+          window.dispatchEvent(new CustomEvent('jsk:open-help', { detail: { entryId: 'keyboard-shortcuts' } }));
+          setOpen(false);
+          setSearch('');
+        },
+        keywords: ['keyboard', 'shortcut', 'แป้นพิมพ์ลัด', 'hotkey', 'ลัด'],
+      },
+      ...HELP_ENTRIES.map((entry) => ({
+        id: `help:${entry.id}`,
+        label: entry.titleEn,
+        thaiLabel: entry.title,
+        group: 'ช่วยเหลือ' as const,
+        icon: entry.icon,
+        action: () => {
+          window.dispatchEvent(new CustomEvent('jsk:open-help', { detail: { entryId: entry.id } }));
+          setOpen(false);
+          setSearch('');
+        },
+        keywords: entry.keywords,
+      })),
+    ];
+
+    return [...pageItems, ...actionItems, ...settingsItems, ...helpItems];
   }, [navigateAndClose, toggleTheme, logout]);
 
   if (!open) return null;
@@ -292,7 +323,7 @@ export function CommandPalette() {
               </Command.Group>
             )}
 
-            {(['หน้า', 'การดำเนินการ', 'การตั้งค่า'] as const).map((groupName) => {
+            {(['หน้า', 'การดำเนินการ', 'การตั้งค่า', 'ช่วยเหลือ'] as const).map((groupName) => {
               const groupItems = items.filter((i) => i.group === groupName);
               if (groupItems.length === 0) return null;
               return (

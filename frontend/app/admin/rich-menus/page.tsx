@@ -11,6 +11,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/Toast';
 import { logger } from '@/lib/logger';
+import { readErrorMessage } from '@/lib/api-error';
 
 interface RichMenu {
     id: number;
@@ -41,6 +42,10 @@ export default function RichMenuListPage() {
             if (res.ok) {
                 const data = await res.json();
                 setMenus(data);
+            } else {
+                const msg = await readErrorMessage(res, 'ไม่สามารถโหลดข้อมูลเมนูได้');
+                logger.error('fetchMenus failed', { status: res.status });
+                toast({ title: 'ผิดพลาด', description: msg, variant: 'error' });
             }
         } catch (error) {
             logger.error("Failed to fetch rich menus", error);
@@ -59,9 +64,14 @@ export default function RichMenuListPage() {
             if (res.ok) {
                 setMenus(menus.filter(m => m.id !== id));
                 toast({ title: 'สำเร็จ', description: 'ลบ Rich Menu เรียบร้อย', variant: 'success' });
+            } else {
+                const msg = await readErrorMessage(res, 'ไม่สามารถลบ Rich Menu ได้');
+                logger.error('deleteRichMenu failed', { status: res.status, id });
+                toast({ title: 'ผิดพลาด', description: msg, variant: 'error' });
             }
-        } catch {
-            toast({ title: 'ผิดพลาด', description: 'ไม่สามารถลบ Rich Menu ได้', variant: 'error' });
+        } catch (err) {
+            logger.error('deleteRichMenu error', err, { id });
+            toast({ title: 'ผิดพลาด', description: 'เกิดข้อผิดพลาด กรุณาลองใหม่', variant: 'error' });
         }
     };
 
@@ -72,11 +82,13 @@ export default function RichMenuListPage() {
                 toast({ title: 'สำเร็จ', description: 'Sync ไปยัง LINE สำเร็จ', variant: 'success' });
                 fetchMenus();
             } else {
-                const err = await res.json();
-                toast({ title: 'ผิดพลาด', description: err.detail || 'Sync failed', variant: 'error' });
+                const msg = await readErrorMessage(res, 'Sync ไปยัง LINE ล้มเหลว');
+                logger.error('syncRichMenu failed', { status: res.status, id });
+                toast({ title: 'ผิดพลาด', description: msg, variant: 'error' });
             }
-        } catch {
-            toast({ title: 'ผิดพลาด', description: 'Error syncing to LINE', variant: 'error' });
+        } catch (err) {
+            logger.error('syncRichMenu error', err, { id });
+            toast({ title: 'ผิดพลาด', description: 'เกิดข้อผิดพลาด กรุณาลองใหม่', variant: 'error' });
         }
     };
 
@@ -87,11 +99,13 @@ export default function RichMenuListPage() {
                 toast({ title: 'สำเร็จ', description: 'ตั้งเป็นเมนูหลักสำเร็จ', variant: 'success' });
                 fetchMenus();
             } else {
-                const err = await res.json();
-                toast({ title: 'ผิดพลาด', description: err.detail || 'Publish failed', variant: 'error' });
+                const msg = await readErrorMessage(res, 'ไม่สามารถตั้งเป็นเมนูหลักได้');
+                logger.error('publishRichMenu failed', { status: res.status, id });
+                toast({ title: 'ผิดพลาด', description: msg, variant: 'error' });
             }
-        } catch {
-            toast({ title: 'ผิดพลาด', description: 'Error publishing rich menu', variant: 'error' });
+        } catch (err) {
+            logger.error('publishRichMenu error', err, { id });
+            toast({ title: 'ผิดพลาด', description: 'เกิดข้อผิดพลาด กรุณาลองใหม่', variant: 'error' });
         }
     };
 

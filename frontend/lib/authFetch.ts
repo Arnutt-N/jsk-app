@@ -5,6 +5,16 @@ declare global {
   }
 }
 
+function interceptAuthErrors(res: Response): Response {
+  if (res.status === 401) {
+    window.dispatchEvent(new CustomEvent('jsk:auth-expired', { detail: { response: res.clone() } }))
+  }
+  if (res.status === 403) {
+    window.dispatchEvent(new CustomEvent('jsk:forbidden', { detail: { response: res.clone() } }))
+  }
+  return res
+}
+
 function getRequestUrl(input: RequestInfo | URL): string {
   if (typeof input === 'string') {
     return input;
@@ -52,7 +62,7 @@ export function installAdminAuthFetchInterceptor(): void {
 
     try {
       if (!token || !isAdminApiRequest(input) || hasAuthorizationHeader(input, init)) {
-        return await nativeFetch(input, init);
+        return interceptAuthErrors(await nativeFetch(input, init));
       }
 
       if (input instanceof Request) {
@@ -60,13 +70,13 @@ export function installAdminAuthFetchInterceptor(): void {
           ...init,
           headers: buildAuthHeaders(init?.headers ?? input.headers, token),
         });
-        return await nativeFetch(request);
+        return interceptAuthErrors(await nativeFetch(request));
       }
 
-      return await nativeFetch(input, {
+      return interceptAuthErrors(await nativeFetch(input, {
         ...init,
         headers: buildAuthHeaders(init?.headers, token),
-      });
+      }));
     } catch (error: unknown) {
       const url = getRequestUrl(input);
       if (error instanceof TypeError && (error.message === 'Failed to fetch' || error.message === 'Load failed')) {
