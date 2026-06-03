@@ -21,6 +21,12 @@ A handoff is **invalid** unless all 5 artifacts are updated/created in the same 
 
 > **⚠️ CRITICAL**: `.agents/state/TASK_LOG.md` is **APPEND-ONLY**. Never overwrite existing entries. Always prepend new tasks to the top of the "Task History" section.
 
+> **🛡️ CRITICAL SAFETY RULE (Prevents Wrong Directory Creation)**:
+> 1. **Always use Absolute Paths via `PROJECT_ROOT`**: Before creating or modifying any handoff artifact, define `PROJECT_ROOT=$(git rev-parse --show-toplevel)`.
+> 2. **Never rely on relative paths** (e.g., `.agents/...`) without verifying the current working directory first.
+> 3. **Pre-flight Check**: Always run `cd "$PROJECT_ROOT"` before executing file creation commands.
+> 4. **Subshell for Subdirectories**: If you must `cd` into a subdirectory (e.g., `frontend/`), use a subshell `(cd frontend && ...)` so the main working directory remains unchanged.
+
 ---
 
 ## Step 1: Capture Current Work
