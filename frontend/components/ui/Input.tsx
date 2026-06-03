@@ -26,7 +26,7 @@ const inputVariants = cva(
           'focus:bg-surface focus:border-brand-500 focus:ring-brand-500/20',
         ],
         flushed: [
-          'rounded-none border-0 border-b-2 border-border-subtle bg-transparent px-0',
+          'rounded-none border-0 border-b border-border-subtle bg-transparent px-0',
           'focus:border-brand-500 focus:ring-0',
         ],
       },

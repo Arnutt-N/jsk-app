@@ -7,6 +7,12 @@ description: Universal pickup workflow for any AI coding platform
 ## Purpose
 Start work from the latest valid state and detect stale or contradictory handoff data early.
 
+> **🛡️ CRITICAL SAFETY RULE (Prevents Wrong Directory Creation)**:
+> 1. **Always use Absolute Paths via `PROJECT_ROOT`**: Before creating or modifying any handoff artifact, define `PROJECT_ROOT=$(git rev-parse --show-toplevel)`.
+> 2. **Never rely on relative paths** (e.g., `.agents/...`) without verifying the current working directory first.
+> 3. **Pre-flight Check**: Always run `cd "$PROJECT_ROOT"` before executing file creation commands.
+> 4. **Subshell for Subdirectories**: If you must `cd` into a subdirectory (e.g., `frontend/`), use a subshell `(cd frontend && ...)` so the main working directory remains unchanged.
+
 ---
 
 ## Step 1: Locate Latest Handoff Artifacts (From ALL Platforms)

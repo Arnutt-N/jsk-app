@@ -19,11 +19,11 @@ export const Alert: React.FC<AlertProps> = ({
     ...props
 }) => {
     const variants = {
-        primary: 'bg-brand-500/10 text-brand-text dark:text-brand-300 border-l-4 border-l-brand-500',
-        success: 'bg-success/10 text-success-text dark:text-success-light border-l-4 border-l-success',
-        danger:  'bg-danger/10 text-danger-text dark:text-danger-light border-l-4 border-l-danger',
-        warning: 'bg-warning/10 text-warning-text dark:text-warning-light border-l-4 border-l-warning',
-        info:    'bg-info/10 text-info-text dark:text-info-light border-l-4 border-l-info',
+        primary: 'bg-brand-500/10 text-brand-700 dark:text-brand-300 border border-brand-500/20 dark:border-brand-500/30',
+        success: 'bg-success/10 text-success-text dark:text-success-light border border-success/20 dark:border-success/30',
+        danger:  'bg-danger/10 text-danger-text dark:text-danger-light border border-danger/20 dark:border-danger/30',
+        warning: 'bg-warning/10 text-warning-text dark:text-warning-light border border-warning/20 dark:border-warning/30',
+        info:    'bg-info/10 text-info-text dark:text-info-light border border-info/20 dark:border-info/30',
     };
 
     const icons = {
