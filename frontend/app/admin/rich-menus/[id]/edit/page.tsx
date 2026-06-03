@@ -73,7 +73,7 @@ export default function EditRichMenuPage() {
         } finally {
             setLoading(false);
         }
-    }, [API_BASE, menuId, router]);
+    }, [API_BASE, menuId, router, toast]);
 
     useEffect(() => {
         fetchMenu();
