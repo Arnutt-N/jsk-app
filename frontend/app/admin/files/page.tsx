@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils';
 import { StaggerContainer, StaggerItem } from '@/components/ui/PageTransition';
 import PageHeader from '../components/PageHeader';
 import { logger } from '@/lib/logger';
+import { readErrorMessage } from '@/lib/api-error';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -169,13 +170,19 @@ export default function FilesPage() {
       params.set('page_size', '24');
 
       const res = await fetch(`${API_BASE}/admin/media?${params}`, { headers });
-      if (!res.ok) throw new Error('Failed to load files');
-      const data = await res.json();
-      setFiles(data.items || []);
-      setTotalPages(data.total_pages || 1);
-      setTotalItems(data.total || 0);
-    } catch {
-      toast({ title: 'ไม่สามารถโหลดไฟล์ได้', variant: 'error' });
+      if (res.ok) {
+        const data = await res.json();
+        setFiles(data.items || []);
+        setTotalPages(data.total_pages || 1);
+        setTotalItems(data.total || 0);
+      } else {
+        const msg = await readErrorMessage(res, 'ไม่สามารถโหลดไฟล์ได้');
+        logger.error('fetchFiles failed', { status: res.status });
+        toast({ title: msg, variant: 'error' });
+      }
+    } catch (err) {
+      logger.error('fetchFiles error', err);
+      toast({ title: 'เกิดข้อผิดพลาด กรุณาลองใหม่', variant: 'error' });
     } finally {
       setLoading(false);
     }
@@ -184,8 +191,13 @@ export default function FilesPage() {
   const fetchStats = useCallback(async () => {
     try {
       const res = await fetch(`${API_BASE}/admin/media/stats`, { headers });
-      if (res.ok) setStats(await res.json());
-      else console.warn('Media stats returned status', res.status);
+      if (res.ok) {
+        setStats(await res.json());
+      } else {
+        const msg = await readErrorMessage(res, 'ไม่สามารถโหลดสถิติไฟล์ได้');
+        logger.error('fetchStats failed', { status: res.status });
+        logger.warn('Stats fetch error detail', msg);
+      }
     } catch (err) {
       logger.error('Failed to fetch media stats:', err);
     }
@@ -247,16 +259,22 @@ export default function FilesPage() {
   const downloadFile = useCallback(async (file: MediaFile) => {
     try {
       const res = await fetch(`${API_BASE}/admin/media/${file.id}/download`, { headers });
-      if (!res.ok) throw new Error();
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = file.filename;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch {
-      toast({ title: 'ดาวน์โหลดล้มเหลว', variant: 'error' });
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = file.filename;
+        a.click();
+        URL.revokeObjectURL(url);
+      } else {
+        const msg = await readErrorMessage(res, 'ดาวน์โหลดล้มเหลว');
+        logger.error('downloadFile failed', { status: res.status, fileId: file.id });
+        toast({ title: msg, variant: 'error' });
+      }
+    } catch (err) {
+      logger.error('downloadFile error', err, { fileId: file.id });
+      toast({ title: 'เกิดข้อผิดพลาด กรุณาลองใหม่', variant: 'error' });
     }
   }, [headers, toast]);
 
@@ -265,13 +283,19 @@ export default function FilesPage() {
       const res = await fetch(`${API_BASE}/admin/media/${file.id}/public`, {
         method: 'POST', headers,
       });
-      if (!res.ok) throw new Error();
-      const updated = await res.json() as MediaFile;
-      setFiles(prev => prev.map(f => f.id === updated.id ? updated : f));
-      setPublicLinkFile(updated);
-      toast({ title: 'สร้างลิงก์สาธารณะสำเร็จ', variant: 'success' });
-    } catch {
-      toast({ title: 'ไม่สามารถสร้างลิงก์ได้', variant: 'error' });
+      if (res.ok) {
+        const updated = await res.json() as MediaFile;
+        setFiles(prev => prev.map(f => f.id === updated.id ? updated : f));
+        setPublicLinkFile(updated);
+        toast({ title: 'สร้างลิงก์สาธารณะสำเร็จ', variant: 'success' });
+      } else {
+        const msg = await readErrorMessage(res, 'ไม่สามารถสร้างลิงก์ได้');
+        logger.error('createPublicLink failed', { status: res.status, fileId: file.id });
+        toast({ title: msg, variant: 'error' });
+      }
+    } catch (err) {
+      logger.error('createPublicLink error', err, { fileId: file.id });
+      toast({ title: 'เกิดข้อผิดพลาด กรุณาลองใหม่', variant: 'error' });
     }
   }, [headers, toast]);
 
@@ -280,38 +304,50 @@ export default function FilesPage() {
       const res = await fetch(`${API_BASE}/admin/media/${file.id}/public`, {
         method: 'DELETE', headers,
       });
-      if (!res.ok) throw new Error();
-      const updated = await res.json() as MediaFile;
-      setFiles(prev => prev.map(f => f.id === updated.id ? updated : f));
-      setPublicLinkFile(null);
-      toast({ title: 'ยกเลิกลิงก์สาธารณะแล้ว', variant: 'success' });
-      fetchStats();
-    } catch {
-      toast({ title: 'ไม่สามารถยกเลิกลิงก์ได้', variant: 'error' });
+      if (res.ok) {
+        const updated = await res.json() as MediaFile;
+        setFiles(prev => prev.map(f => f.id === updated.id ? updated : f));
+        setPublicLinkFile(null);
+        toast({ title: 'ยกเลิกลิงก์สาธารณะแล้ว', variant: 'success' });
+        fetchStats();
+      } else {
+        const msg = await readErrorMessage(res, 'ไม่สามารถยกเลิกลิงก์ได้');
+        logger.error('revokePublicLink failed', { status: res.status, fileId: file.id });
+        toast({ title: msg, variant: 'error' });
+      }
+    } catch (err) {
+      logger.error('revokePublicLink error', err, { fileId: file.id });
+      toast({ title: 'เกิดข้อผิดพลาด กรุณาลองใหม่', variant: 'error' });
     }
   }, [headers, toast, fetchStats]);
 
   const deleteFiles = useCallback(async (ids: string[]) => {
     try {
+      let res: Response;
       if (ids.length === 1) {
-        const res = await fetch(`${API_BASE}/admin/media/${ids[0]}`, {
+        res = await fetch(`${API_BASE}/admin/media/${ids[0]}`, {
           method: 'DELETE', headers,
         });
-        if (!res.ok) throw new Error();
       } else {
-        const res = await fetch(`${API_BASE}/admin/media/bulk-delete`, {
+        res = await fetch(`${API_BASE}/admin/media/bulk-delete`, {
           method: 'POST',
           headers: { ...headers, 'Content-Type': 'application/json' },
           body: JSON.stringify({ ids }),
         });
-        if (!res.ok) throw new Error();
       }
-      toast({ title: `ลบ ${ids.length} ไฟล์สำเร็จ`, variant: 'success' });
-      setSelected(new Set());
-      fetchFiles();
-      fetchStats();
-    } catch {
-      toast({ title: 'ลบไฟล์ล้มเหลว', variant: 'error' });
+      if (res.ok) {
+        toast({ title: `ลบ ${ids.length} ไฟล์สำเร็จ`, variant: 'success' });
+        setSelected(new Set());
+        fetchFiles();
+        fetchStats();
+      } else {
+        const msg = await readErrorMessage(res, 'ลบไฟล์ล้มเหลว');
+        logger.error('deleteFiles failed', { status: res.status, count: ids.length });
+        toast({ title: msg, variant: 'error' });
+      }
+    } catch (err) {
+      logger.error('deleteFiles error', err, { count: ids.length });
+      toast({ title: 'เกิดข้อผิดพลาด กรุณาลองใหม่', variant: 'error' });
     }
     setDeleteConfirm({ ids: [], show: false });
   }, [headers, toast, fetchFiles, fetchStats]);
@@ -323,12 +359,18 @@ export default function FilesPage() {
         headers: { ...headers, 'Content-Type': 'application/json' },
         body: JSON.stringify({ ids: Array.from(selected) }),
       });
-      if (!res.ok) throw new Error();
-      toast({ title: 'สร้างลิงก์สาธารณะสำเร็จ', variant: 'success' });
-      setSelected(new Set());
-      fetchFiles();
-    } catch {
-      toast({ title: 'ไม่สามารถสร้างลิงก์ได้', variant: 'error' });
+      if (res.ok) {
+        toast({ title: 'สร้างลิงก์สาธารณะสำเร็จ', variant: 'success' });
+        setSelected(new Set());
+        fetchFiles();
+      } else {
+        const msg = await readErrorMessage(res, 'ไม่สามารถสร้างลิงก์ได้');
+        logger.error('bulkCreatePublic failed', { status: res.status });
+        toast({ title: msg, variant: 'error' });
+      }
+    } catch (err) {
+      logger.error('bulkCreatePublic error', err);
+      toast({ title: 'เกิดข้อผิดพลาด กรุณาลองใหม่', variant: 'error' });
     }
   }, [headers, selected, toast, fetchFiles]);
 

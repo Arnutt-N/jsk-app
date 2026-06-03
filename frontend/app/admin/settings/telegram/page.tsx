@@ -20,6 +20,7 @@ import PageHeader from '@/app/admin/components/PageHeader';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { useToast } from '@/components/ui/Toast';
 import { logger } from '@/lib/logger';
+import { readErrorMessage } from '@/lib/api-error';
 
 interface TelegramConfig {
     bot_token_masked: string;
@@ -64,7 +65,9 @@ export default function TelegramSettingsPage() {
                 setConfig(data);
                 if (!data.is_connected) setIsEditing(true);
             } else {
-                setError('ไม่สามารถโหลดข้อมูลได้');
+                const msg = await readErrorMessage(res, 'ไม่สามารถโหลดข้อมูลได้');
+                logger.error('Failed to fetch Telegram config', { status: res.status });
+                setError(msg);
             }
         } catch (err) {
             logger.error('Failed to fetch Telegram config', err);
@@ -95,7 +98,8 @@ export default function TelegramSettingsPage() {
                 const err = await res.json();
                 toast({ variant: 'error', title: 'บันทึกไม่สำเร็จ', description: err.detail || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล' });
             }
-        } catch {
+        } catch (err) {
+            logger.error('Failed to save Telegram config', err);
             toast({ variant: 'error', title: 'เกิดข้อผิดพลาด', description: 'ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่อีกครั้ง' });
         } finally {
             setProcessing(null);

@@ -22,6 +22,7 @@ import { ThemeToggleSwitch } from '@/components/admin/ThemeToggleSwitch';
 import { AdminLanguageToggle, type AdminLocale } from '@/components/admin/AdminLanguageToggle';
 import SidebarItem from '@/components/admin/SidebarItem';
 import { CommandPalette } from '@/components/admin/CommandPalette';
+import { HelpSheet } from '@/components/admin/HelpSheet';
 
 interface MenuItem {
   name: string;
@@ -416,8 +417,8 @@ function AdminShell({ children }: { children: React.ReactNode }) {
           )}
 
       <CommandPalette />
+      <HelpSheet />
       <SessionTimeoutWarning />
-      <CommandPalette />
     </div>
   );
 }

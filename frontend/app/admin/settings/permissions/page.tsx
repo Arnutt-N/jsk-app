@@ -12,11 +12,13 @@
  * is disabled) and server-side (PATCH rejects with 400).
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useUndoableState } from '@/hooks/useUndoableState'
 import Link from 'next/link'
-import { ChevronLeft, ShieldCheck, AlertCircle, CheckCircle2, Lock } from 'lucide-react'
+import { ChevronLeft, ShieldCheck, AlertCircle, CheckCircle2, Lock, Undo2, Redo2 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
+import { Tooltip } from '@/components/ui/Tooltip'
 import PageHeader from '@/app/admin/components/PageHeader'
 import {
   fetchPermissionSummary,
@@ -51,7 +53,7 @@ export default function PermissionSettingsPage() {
   // `token` becoming truthy. (Race observed in CI E2E.)
   const { token } = useAuth()
 
-  const [rules, setRules] = useState<PermissionRule[]>([])
+  const [rules, setRules, { undo, redo, canUndo, canRedo, reset: resetRules }] = useUndoableState<PermissionRule[]>([])
   const [originalRules, setOriginalRules] = useState<PermissionRule[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -68,10 +70,10 @@ export default function PermissionSettingsPage() {
       return
     }
     const fetched = summary.rules ?? []
-    setRules(fetched)
+    resetRules(fetched)
     setOriginalRules(fetched.map((r) => ({ ...r, allowed_roles: [...r.allowed_roles] })))
     setLoading(false)
-  }, [])
+  }, [resetRules])
 
   useEffect(() => {
     // Wait for the auth token to be available before kicking off the
@@ -97,6 +99,31 @@ export default function PermissionSettingsPage() {
       return a !== b
     })
   }, [rules, originalRules])
+
+  // Keyboard shortcuts: Cmd/Ctrl+Z = undo, Cmd/Ctrl+Shift+Z = redo
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement
+      // ข้ามการทำงานหากกำลังพิมพ์ในช่องกรอกข้อมูล
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable
+      ) {
+        return
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault()
+        undo()
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'z' && e.shiftKey) {
+        e.preventDefault()
+        redo()
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [undo, redo])
 
   const toggleRole = (ruleKey: string, role: RoleValue) => {
     if (!canEdit) return
@@ -132,16 +159,16 @@ export default function PermissionSettingsPage() {
     setSuccess('บันทึกการตั้งค่าสิทธิ์เรียบร้อย')
     if (result.summary?.rules) {
       const next = result.summary.rules
-      setRules(next)
+      resetRules(next)
       setOriginalRules(next.map((r) => ({ ...r, allowed_roles: [...r.allowed_roles] })))
     }
   }
 
-  const handleCancel = () => {
-    setRules(originalRules.map((r) => ({ ...r, allowed_roles: [...r.allowed_roles] })))
+  const handleCancel = useCallback(() => {
+    resetRules(originalRules.map((r) => ({ ...r, allowed_roles: [...r.allowed_roles] })))
     setError(null)
     setSuccess(null)
-  }
+  }, [originalRules, resetRules])
 
   const isCellLocked = (ruleKey: string, role: RoleValue): boolean => {
     return ruleKey === KEY_EDIT_SETTINGS && role === 'SUPER_ADMIN'
@@ -240,6 +267,30 @@ export default function PermissionSettingsPage() {
 
       {canEdit && !loading && (
         <div className="flex justify-end gap-3">
+          <div className="flex items-center gap-1 mr-auto">
+            <Tooltip content="ย้อนกลับ (⌘Z)">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={undo}
+                disabled={!canUndo}
+                className="h-8 w-8 p-0"
+              >
+                <Undo2 className="h-4 w-4" />
+              </Button>
+            </Tooltip>
+            <Tooltip content="ทำซ้ำ (⌘⇧Z)">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={redo}
+                disabled={!canRedo}
+                className="h-8 w-8 p-0"
+              >
+                <Redo2 className="h-4 w-4" />
+              </Button>
+            </Tooltip>
+          </div>
           <Button variant="outline" onClick={handleCancel} disabled={!isDirty || saving}>
             ยกเลิก
           </Button>

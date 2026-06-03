@@ -20,6 +20,7 @@ import StatsCard from '../components/StatsCard';
 import { StaggerContainer, StaggerItem } from '@/components/ui/PageTransition';
 import PageHeader from '../components/PageHeader';
 import { logger } from '@/lib/logger';
+import { readErrorMessage } from '@/lib/api-error';
 
 /* ── Types ─────────────────────────────────────────────────────────── */
 
@@ -152,6 +153,10 @@ export default function UsersPage() {
                 setUsers(data.users);
                 setTotalPages(data.total_pages);
                 setTotal(data.total);
+            } else {
+                const msg = await readErrorMessage(res, 'ไม่สามารถโหลดรายชื่อผู้ใช้ได้');
+                logger.error('fetchUsers failed', { status: res.status });
+                setAlert({ type: 'error', title: 'ไม่สำเร็จ', message: msg });
             }
         } catch (e) {
             logger.error('Failed to fetch users', e);
@@ -163,7 +168,11 @@ export default function UsersPage() {
     const fetchStats = useCallback(async () => {
         try {
             const res = await fetch(`${API_BASE}/admin/users/stats`, { headers: authHeaders });
-            if (res.ok) setStats(await res.json());
+            if (res.ok) {
+                setStats(await res.json());
+            } else {
+                logger.error('fetchStats failed', { status: res.status });
+            }
         } catch (e) {
             logger.error('Failed to fetch stats', e);
         }
@@ -201,10 +210,12 @@ export default function UsersPage() {
                 fetchUsers();
                 fetchStats();
             } else {
-                const err = await res.json();
-                setCreateError(err.detail || 'เกิดข้อผิดพลาด');
+                const msg = await readErrorMessage(res, 'เกิดข้อผิดพลาด');
+                logger.error('createUser failed', { status: res.status });
+                setCreateError(msg);
             }
-        } catch {
+        } catch (err) {
+            logger.error('createUser error', err);
             setCreateError('เกิดข้อผิดพลาดในการเชื่อมต่อ');
         } finally {
             setCreateLoading(false);
@@ -234,10 +245,12 @@ export default function UsersPage() {
                 fetchUsers();
                 fetchStats();
             } else {
-                const err = await res.json();
-                setEditError(err.detail || 'เกิดข้อผิดพลาด');
+                const msg = await readErrorMessage(res, 'เกิดข้อผิดพลาด');
+                logger.error('editUser failed', { status: res.status });
+                setEditError(msg);
             }
-        } catch {
+        } catch (err) {
+            logger.error('editUser error', err);
             setEditError('เกิดข้อผิดพลาดในการเชื่อมต่อ');
         } finally {
             setEditLoading(false);
@@ -258,11 +271,13 @@ export default function UsersPage() {
                 fetchUsers();
                 fetchStats();
             } else {
-                const err = await res.json();
+                const msg = await readErrorMessage(res, 'ไม่สามารถลบผู้ใช้ได้');
+                logger.error('deleteUser failed', { status: res.status });
                 setDeleteUser(null);
-                setAlert({ type: 'error', title: 'ไม่สำเร็จ', message: err.detail || 'ไม่สามารถลบผู้ใช้ได้' });
+                setAlert({ type: 'error', title: 'ไม่สำเร็จ', message: msg });
             }
-        } catch {
+        } catch (err) {
+            logger.error('deleteUser error', err);
             setDeleteUser(null);
             setAlert({ type: 'error', title: 'ไม่สำเร็จ', message: 'เกิดข้อผิดพลาดในการเชื่อมต่อ' });
         } finally {
@@ -289,10 +304,12 @@ export default function UsersPage() {
                 setResetPassword('');
                 setAlert({ type: 'success', title: 'สำเร็จ', message: 'รีเซ็ตรหัสผ่านเรียบร้อยแล้ว' });
             } else {
-                const err = await res.json();
-                setResetError(err.detail || 'เกิดข้อผิดพลาด');
+                const msg = await readErrorMessage(res, 'เกิดข้อผิดพลาด');
+                logger.error('resetPassword failed', { status: res.status });
+                setResetError(msg);
             }
-        } catch {
+        } catch (err) {
+            logger.error('resetPassword error', err);
             setResetError('เกิดข้อผิดพลาดในการเชื่อมต่อ');
         } finally {
             setResetLoading(false);

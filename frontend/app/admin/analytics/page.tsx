@@ -34,6 +34,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { MessageType, WebSocketMessage } from "@/lib/websocket/types";
 import { logger } from '@/lib/logger';
+import { readErrorMessage } from '@/lib/api-error';
 
 interface KPIData {
   waiting: number;
@@ -135,9 +136,27 @@ export default function AnalyticsPage() {
         fetch(`/api/v1/admin/analytics/dashboard?days=${days}`, { headers: authHeaders }),
       ]);
 
-      if (kpisRes.ok) setKpis(await kpisRes.json());
-      if (opsRes.ok) setOperators(await opsRes.json());
-      if (dashRes.ok) setDashboard(await dashRes.json());
+      if (kpisRes.ok) {
+        setKpis(await kpisRes.json());
+      } else {
+        const msg = await readErrorMessage(kpisRes, 'ไม่สามารถโหลด KPI ได้');
+        logger.error('fetchAnalytics kpis failed', { status: kpisRes.status });
+        logger.warn('KPI fetch error detail', msg);
+      }
+      if (opsRes.ok) {
+        setOperators(await opsRes.json());
+      } else {
+        const msg = await readErrorMessage(opsRes, 'ไม่สามารถโหลดข้อมูลผู้ปฏิบัติการได้');
+        logger.error('fetchAnalytics operators failed', { status: opsRes.status });
+        logger.warn('Operators fetch error detail', msg);
+      }
+      if (dashRes.ok) {
+        setDashboard(await dashRes.json());
+      } else {
+        const msg = await readErrorMessage(dashRes, 'ไม่สามารถโหลดข้อมูล Dashboard ได้');
+        logger.error('fetchAnalytics dashboard failed', { status: dashRes.status });
+        logger.warn('Dashboard fetch error detail', msg);
+      }
     } catch (error) {
       logger.error("Failed to fetch analytics:", error);
     } finally {

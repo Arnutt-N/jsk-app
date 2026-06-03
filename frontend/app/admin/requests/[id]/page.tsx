@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useUndoableState } from '@/hooks/useUndoableState';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
@@ -28,6 +29,7 @@ import {
     MoreVertical,
     RotateCcw,
     Undo2,
+    Redo2,
     UserX,
     Forward,
 } from 'lucide-react';
@@ -44,6 +46,7 @@ import {
     DropdownMenuSeparator,
 } from '@/components/ui/DropdownMenu';
 import { useToast } from '@/components/ui/Toast';
+import { Tooltip } from '@/components/ui/Tooltip';
 import {
     type RequestStatus,
     getStatusLabel,
@@ -198,7 +201,7 @@ export default function RequestDetailPage() {
     const [activeTab, setActiveTab] = useState('details');
     const [request, setRequest] = useState<ServiceRequestDetail | null>(null);
     // Local state for Manage Tab (Bulk Save)
-    const [manageFormData, setManageFormData] = useState({
+    const [manageFormData, setManageFormData, { undo, redo, canUndo, canRedo, reset: resetManageForm }] = useUndoableState({
         status: '',
         priority: '',
         due_date: '',
@@ -240,19 +243,18 @@ export default function RequestDetailPage() {
             setRequest(data);
             // Initialize local form state. Coerce nullable status -> '' so
             // the manage form (string-typed) stays well-typed.
-            setManageFormData(prev => ({
-                ...prev,
+            resetManageForm({
                 status: data.status ?? '',
                 priority: data.priority,
                 due_date: data.due_date ? data.due_date.split('T')[0] : '',
                 comment: '' // Reset comment on reload
-            }));
+            });
         } catch (err: unknown) {
             logger.error(getErrorMessage(err));
         } finally {
             setLoading(false);
         }
-    }, [API_BASE, params.id]);
+    }, [API_BASE, params.id, resetManageForm]);
 
     const fetchComments = useCallback(async () => {
         try {
@@ -348,8 +350,13 @@ export default function RequestDetailPage() {
             // For safety, let's ensure we are synced.
             if (Object.keys(updates).length === 0) {
                 // If no updates to request, fetchDetail wasn't called.
-                // But we want to clear the comment field in local state.
-                setManageFormData(prev => ({ ...prev, comment: '' }));
+                // Reset form to server baseline and clear undo history.
+                resetManageForm({
+                    status: request.status ?? '',
+                    priority: request.priority,
+                    due_date: request.due_date ? request.due_date.split('T')[0] : '',
+                    comment: ''
+                });
             }
 
         } catch (err: unknown) {
@@ -359,17 +366,41 @@ export default function RequestDetailPage() {
         }
     };
 
-    const handleCancelManage = () => {
+    const handleCancelManage = useCallback(() => {
         if (!request) return;
-        // Revert to original request data. Coerce nullable status -> '' so
-        // the form (which expects string) stays well-typed.
-        setManageFormData({
+        // Revert to original request data and clear undo history.
+        resetManageForm({
             status: request.status ?? '',
             priority: request.priority,
             due_date: request.due_date ? request.due_date.split('T')[0] : '',
             comment: ''
         });
-    };
+    }, [request, resetManageForm]);
+
+    // Keyboard shortcuts: Cmd/Ctrl+Z = undo, Cmd/Ctrl+Shift+Z = redo
+    useEffect(() => {
+        const handler = (e: KeyboardEvent) => {
+            const target = e.target as HTMLElement
+            // ข้ามการทำงานหากกำลังพิมพ์ในช่องกรอกข้อมูล
+            if (
+                target.tagName === 'INPUT' ||
+                target.tagName === 'TEXTAREA' ||
+                target.isContentEditable
+            ) {
+                return
+            }
+            if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) {
+                e.preventDefault()
+                undo()
+            }
+            if ((e.metaKey || e.ctrlKey) && e.key === 'z' && e.shiftKey) {
+                e.preventDefault()
+                redo()
+            }
+        }
+        window.addEventListener('keydown', handler)
+        return () => window.removeEventListener('keydown', handler)
+    }, [undo, redo])
 
     const handleAssignRequest = async (agentId: number) => {
         // For assignment, we update immediately as it's a specific modal action
@@ -1041,6 +1072,30 @@ export default function RequestDetailPage() {
 
                             {/* Action Buttons */}
                             <div className="pt-8 border-t border-border-default flex justify-end gap-3">
+                                <div className="flex items-center gap-1 mr-auto">
+                                    <Tooltip content="ย้อนกลับ (⌘Z)">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={undo}
+                                            disabled={!canUndo}
+                                            className="h-8 w-8 p-0"
+                                        >
+                                            <Undo2 className="h-4 w-4" />
+                                        </Button>
+                                    </Tooltip>
+                                    <Tooltip content="ทำซ้ำ (⌘⇧Z)">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={redo}
+                                            disabled={!canRedo}
+                                            className="h-8 w-8 p-0"
+                                        >
+                                            <Redo2 className="h-4 w-4" />
+                                        </Button>
+                                    </Tooltip>
+                                </div>
                                 <Button variant="outline" size="md" onClick={handleCancelManage}>
                                     ยกเลิก
                                 </Button>
