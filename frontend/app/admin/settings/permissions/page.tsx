@@ -73,7 +73,7 @@ export default function PermissionSettingsPage() {
     resetRules(fetched)
     setOriginalRules(fetched.map((r) => ({ ...r, allowed_roles: [...r.allowed_roles] })))
     setLoading(false)
-  }, [])
+  }, [resetRules])
 
   useEffect(() => {
     // Wait for the auth token to be available before kicking off the
