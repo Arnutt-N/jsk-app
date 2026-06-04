@@ -360,8 +360,8 @@ export default function AdminRequestList() {
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <Badge variant={getStatusVariantForRequest(req)} className="gap-1.5 py-1 px-2.5">
-                                            <StatusIcon name={getStatusIconForRequest(req)} className="w-3 h-3" />
+                                        <Badge variant={getStatusVariantForRequest(req)} className="gap-1.5 py-1 px-2.5 whitespace-nowrap">
+                                            <StatusIcon name={getStatusIconForRequest(req)} className="w-3 h-3 shrink-0" />
                                             {getStatusLabelForRequest(req)}
                                         </Badge>
                                     </td>
