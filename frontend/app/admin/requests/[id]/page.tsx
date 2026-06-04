@@ -591,7 +591,7 @@ export default function RequestDetailPage() {
                             {/* Next-step CTA */}
                             {request.status === 'PENDING' && (isAssignee || canApprove) && (
                                 <Button
-                                    variant="warning"
+                                    variant="primary"
                                     size="sm"
                                     disabled={submitting}
                                     onClick={() => { void guardedUpdate({ status: 'ACKNOWLEDGED' }); }}
@@ -1096,7 +1096,7 @@ export default function RequestDetailPage() {
                                         </Button>
                                     </Tooltip>
                                 </div>
-                                <Button variant="outline" size="md" onClick={handleCancelManage}>
+                                <Button variant="ghost" size="md" onClick={handleCancelManage}>
                                     ยกเลิก
                                 </Button>
                                 <Button

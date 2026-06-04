@@ -19,11 +19,11 @@ const inputVariants = cva(
       variant: {
         outline: [
           'border-border-default',
-          'focus:border-brand-500 focus:ring-brand-500/20',
+          'focus:ring-2 focus:ring-brand-500/20 focus:ring-offset-0',
         ],
         filled: [
           'border-transparent bg-bg',
-          'focus:bg-surface focus:border-brand-500 focus:ring-brand-500/20',
+          'focus:bg-surface focus:ring-2 focus:ring-brand-500/20 focus:ring-offset-0',
         ],
         flushed: [
           'rounded-none border-0 border-b border-border-subtle bg-transparent px-0',

@@ -7,19 +7,20 @@ import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { SessionTimeoutWarning } from '@/components/admin/SessionTimeoutWarning';
 import { cn } from '@/lib/utils';
 import {
-  Bell, Menu, Search, LogOut, ChevronLeft, ChevronRight, X,
+  Menu, Search, LogOut, ChevronLeft, ChevronRight, X,
   LayoutDashboard, FileText, Bot, MessageCircle,
   Reply, MessageSquareReply, PanelTop, Users,
   UserCog, BarChart3, Megaphone, FolderOpen,
   Settings, Palette, Shield, History,
 } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
-import { Tooltip } from '@/components/ui/Tooltip';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { PageTransition } from '@/components/ui/PageTransition';
 import { ThemeToggleSwitch } from '@/components/admin/ThemeToggleSwitch';
 import { AdminLanguageToggle, type AdminLocale } from '@/components/admin/AdminLanguageToggle';
+import { UserMenu } from '@/components/admin/UserMenu';
+import { NotificationPanel } from '@/components/admin/NotificationPanel';
 import SidebarItem from '@/components/admin/SidebarItem';
 import { CommandPalette } from '@/components/admin/CommandPalette';
 import { HelpSheet } from '@/components/admin/HelpSheet';
@@ -375,25 +376,11 @@ function AdminShell({ children }: { children: React.ReactNode }) {
                 {/* Theme Toggle Switch */}
                 <ThemeToggleSwitch />
 
-                <Tooltip content="Notifications">
-                  <button
-                    className="p-2.5 rounded-xl text-text-tertiary hover:text-brand-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all relative"
-                    aria-label="Notifications, new notifications available"
-                  >
-                    <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white dark:ring-gray-800 animate-pulse" aria-hidden="true" />
-                    <Bell className="w-5 h-5" />
-                    <span className="sr-only">New notifications available</span>
-                  </button>
-                </Tooltip>
+                <NotificationPanel />
 
                 <div className="w-px h-8 bg-gray-200 dark:bg-gray-700 mx-1" />
 
-                <Avatar
-                  size="sm"
-                  fallback="AD"
-                  status="online"
-                  className="ring-2 ring-brand-500/20 ring-offset-1 ring-offset-white dark:ring-offset-gray-800"
-                />
+                <UserMenu />
               </div>
             </header>
 

@@ -11,12 +11,23 @@ interface AdminLanguageToggleProps {
   className?: string;
 }
 
+/**
+ * Language switch (TH / EN) for the admin Navbar.
+ *
+ * Why a "pending i18n" notice in the tooltip: the admin app currently has
+ * no real i18n dictionary, so toggling only flips a persisted flag. We
+ * surface that explicitly so users know the switch is recorded but won't
+ * change visible copy yet. When translation keys land, remove the
+ * "(coming soon)" suffix from the title.
+ */
 export function AdminLanguageToggle({ locale, onToggle, className }: AdminLanguageToggleProps) {
   return (
     <button
       type="button"
       onClick={onToggle}
-      aria-label={`Switch to ${locale === 'th' ? 'English' : 'Thai'}`}
+      title={`เปลี่ยนเป็นภาษา${locale === 'th' ? 'อังกฤษ' : 'ไทย'} (เร็วๆ นี้)`}
+      aria-label={`เปลี่ยนเป็นภาษา${locale === 'th' ? 'อังกฤษ' : 'ไทย'}`}
+      data-locale={locale}
       className={cn(
         'relative inline-flex h-8 items-center rounded-full p-0.5',
         'border border-gray-200 dark:border-white/10',
@@ -29,9 +40,10 @@ export function AdminLanguageToggle({ locale, onToggle, className }: AdminLangua
       {/* TH option */}
       <span
         className={cn(
-          'relative z-10 flex h-7 w-9 items-center justify-center rounded-full text-xs font-bold transition-colors',
+          'relative z-10 flex h-7 w-9 items-center justify-center rounded-full text-xs font-bold transition-colors select-none',
           locale === 'th' ? 'text-white' : 'text-gray-400'
         )}
+        aria-hidden="true"
       >
         TH
       </span>
@@ -39,9 +51,10 @@ export function AdminLanguageToggle({ locale, onToggle, className }: AdminLangua
       {/* EN option */}
       <span
         className={cn(
-          'relative z-10 flex h-7 w-9 items-center justify-center rounded-full text-xs font-bold transition-colors',
+          'relative z-10 flex h-7 w-9 items-center justify-center rounded-full text-xs font-bold transition-colors select-none',
           locale === 'en' ? 'text-white' : 'text-gray-400'
         )}
+        aria-hidden="true"
       >
         EN
       </span>
