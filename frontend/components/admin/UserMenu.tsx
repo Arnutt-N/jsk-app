@@ -49,7 +49,7 @@ export function UserMenu({ className }: UserMenuProps) {
       <DropdownMenuTrigger
         aria-label="เมนูผู้ใช้"
         className={cn(
-          'group inline-flex items-center gap-1.5 rounded-full p-0.5 pr-2',
+          'group inline-flex items-center gap-1.5 rounded-full p-0.5',
           'cursor-pointer',
           'transition-all duration-200',
           'hover:bg-gray-50 dark:hover:bg-gray-700',
@@ -63,9 +63,6 @@ export function UserMenu({ className }: UserMenuProps) {
           status="online"
           className="ring-2 ring-brand-500/20 ring-offset-1 ring-offset-white dark:ring-offset-gray-800"
         />
-        <span className="hidden md:inline text-sm font-semibold text-text-primary group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">
-          {displayName}
-        </span>
         <ChevronDown
           className="hidden md:block w-3.5 h-3.5 text-text-tertiary group-hover:text-text-primary transition-colors"
           aria-hidden="true"

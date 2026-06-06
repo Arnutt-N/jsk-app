@@ -613,7 +613,7 @@ export default function RequestDetailPage() {
                             )}
                             {request.status === 'IN_PROGRESS' && (isAssignee || canApprove) && (
                                 <Button
-                                    variant="primary"
+                                    variant="warning"
                                     size="sm"
                                     disabled={submitting}
                                     onClick={() => { void guardedUpdate({ status: 'AWAITING_APPROVAL' }); }}
@@ -633,6 +633,43 @@ export default function RequestDetailPage() {
                                     อนุมัติ
                                 </Button>
                             )}
+                            {/* Secondary actions surfaced in the same top-right
+                                group so the user can reach them without scanning
+                                a second toolbar row. Primary action stays leftmost;
+                                secondary follows after a hairline divider. */}
+                            {canApprove && request.status !== 'COMPLETED' && request.status !== 'REJECTED' && (
+                                <>
+                                    <span aria-hidden="true" className="mx-1 h-6 w-px bg-border-default" />
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setAssignModalOpen(true)}
+                                        leftIcon={<UserPlus size={16} />}
+                                    >
+                                        {request.assigned_agent_id ? 'เปลี่ยนผู้รับผิดชอบ' : 'มอบหมาย'}
+                                    </Button>
+                                    {request.topic_category === 'แจ้งเบาะแสยาเสพติด' && (
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => setEscalationDialogOpen(true)}
+                                            leftIcon={<Forward size={16} />}
+                                        >
+                                            ส่งต่อหน่วยงานเฉพาะทาง
+                                        </Button>
+                                    )}
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="border-danger/30 text-danger hover:bg-danger/5 hover:text-danger"
+                                        disabled={submitting}
+                                        onClick={() => setRejectConfirm({ open: true, reason: '' })}
+                                        leftIcon={<XCircle size={16} />}
+                                    >
+                                        ปฏิเสธ
+                                    </Button>
+                                </>
+                            )}
                         </div>
                     </div>
                     {/* Subcategory sits below the title row as a quiet caption. */}
@@ -642,41 +679,12 @@ export default function RequestDetailPage() {
                         </p>
                     )}
 
-                    {/* P1: Secondary toolbar — assignment, escalation, destructive actions,
-                        and override kebab. Smaller, left-aligned, below the primary CTA. */}
+                    {/* P1: Secondary toolbar — REJECTED-state reopen action and
+                        override kebab. The other secondary actions (assign,
+                        escalate, reject) moved into the top-right primary
+                        CTA group above; only REJECTED-specific flows and the
+                        kebab live here now. */}
                     <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-border-subtle">
-                        {canApprove && request.status !== 'COMPLETED' && request.status !== 'REJECTED' && (
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setAssignModalOpen(true)}
-                                leftIcon={<UserPlus size={16} />}
-                            >
-                                {request.assigned_agent_id ? 'เปลี่ยนผู้รับผิดชอบ' : 'มอบหมาย'}
-                            </Button>
-                        )}
-                        {canApprove && request.topic_category === 'แจ้งเบาะแสยาเสพติด' && request.status !== 'COMPLETED' && request.status !== 'REJECTED' && (
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setEscalationDialogOpen(true)}
-                                leftIcon={<Forward size={16} />}
-                            >
-                                ส่งต่อหน่วยงานเฉพาะทาง
-                            </Button>
-                        )}
-                        {canApprove && request.status !== 'COMPLETED' && request.status !== 'REJECTED' && (
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="border-danger/30 text-danger hover:bg-danger/5 hover:text-danger"
-                                disabled={submitting}
-                                onClick={() => setRejectConfirm({ open: true, reason: '' })}
-                                leftIcon={<XCircle size={16} />}
-                            >
-                                ปฏิเสธ
-                            </Button>
-                        )}
                         {canApprove && request.status === 'REJECTED' && (
                             <Button
                                 variant="ghost"
