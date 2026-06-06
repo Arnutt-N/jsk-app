@@ -23,6 +23,7 @@ import {
     RefreshCw,
     Hourglass,
     Inbox,
+    Play,
     ShieldCheck,
     HelpCircle,
 } from 'lucide-react';
@@ -51,6 +52,7 @@ const STATUS_ICONS: Record<string, React.ComponentType<{ className?: string }>> 
     Hourglass,
     Inbox,
     Eye,
+    Play,
     ShieldCheck,
     CheckCircle2,
     AlertCircle,

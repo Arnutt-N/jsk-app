@@ -44,6 +44,10 @@ const requestSchema = z.object({
     district: z.string().optional(),
     sub_district: z.string().optional(),
     agency: z.string().optional(),
+    // Optional override of submission date. Defaults to "today" in
+    // defaultValues; left optional so existing POST payloads don't break
+    // when the field is absent.
+    created_at: z.string().optional(),
 });
 
 type RequestFormValues = z.infer<typeof requestSchema>;
@@ -108,6 +112,7 @@ export default function CreateRequestPage() {
             district: '',
             sub_district: '',
             agency: 'ผู้นำชุมชนและจิตอาสา',
+            created_at: new Date().toISOString().split('T')[0],
         },
         mode: 'onTouched',
     });
@@ -147,10 +152,19 @@ export default function CreateRequestPage() {
                 headers['Authorization'] = `Bearer ${token}`;
             }
 
+            // Only send created_at if user overrode the default. Backend
+            // auto-fills with NOW() when omitted, so sending the same value
+            // is redundant — but harmless.
+            const { created_at, ...rest } = data;
+            const payload = {
+                ...rest,
+                ...(created_at ? { created_at: new Date(`${created_at}T00:00:00`).toISOString() } : {}),
+            };
+
             const res = await fetch(`${API_BASE}/admin/requests`, {
                 method: 'POST',
                 headers,
-                body: JSON.stringify(data),
+                body: JSON.stringify(payload),
             });
 
             if (!res.ok) {
@@ -309,6 +323,18 @@ export default function CreateRequestPage() {
                                             options={[...CATEGORIES]}
                                             state={errors.topic_category ? 'error' : 'default'}
                                             errorMessage={errors.topic_category?.message}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-text-secondary mb-1.5">
+                                            วันที่ยื่นคำร้อง <span className="text-text-tertiary font-normal">(ค่าเริ่มต้น = วันนี้)</span>
+                                        </label>
+                                        <Input
+                                            type="date"
+                                            max={new Date().toISOString().split('T')[0]}
+                                            {...register('created_at')}
+                                            state={errors.created_at ? 'error' : 'default'}
+                                            errorMessage={errors.created_at?.message}
                                         />
                                     </div>
                                     <div>

@@ -40,7 +40,7 @@ interface StatusConfig {
 export const STATUS_CONFIG: Record<RequestStatus, StatusConfig> = {
   PENDING:           { label: 'รอรับเรื่อง',    variant: 'warning', icon: 'Clock' },
   ACKNOWLEDGED:      { label: 'รอดำเนินการ',   variant: 'warning', icon: 'Inbox' },
-  IN_PROGRESS:       { label: 'กำลังดำเนินการ', variant: 'info',    icon: 'Eye' },
+  IN_PROGRESS:       { label: 'กำลังดำเนินการ', variant: 'info',    icon: 'Play' },
   AWAITING_APPROVAL: { label: 'รออนุมัติ',      variant: 'primary', icon: 'ShieldCheck' },
   COMPLETED:         { label: 'เสร็จสิ้น',      variant: 'success', icon: 'CheckCircle2' },
   REJECTED:          { label: 'ปฏิเสธ',         variant: 'danger',  icon: 'AlertCircle' },
