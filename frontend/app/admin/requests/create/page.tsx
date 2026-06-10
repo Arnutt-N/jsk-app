@@ -5,10 +5,11 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Card, CardContent } from '@/components/ui/Card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
@@ -25,12 +26,21 @@ import {
     Phone,
     FileText,
     MapPin,
+    MessageSquare,
+    X,
+    Calendar,
+    StickyNote,
+    Flag,
+    Building2,
 } from 'lucide-react';
+
+const CalendarPickerTH = dynamic(() => import('@/components/ui/CalendarPickerTH'));
 
 // ---------- Zod Schema ----------
 
 const requestSchema = z.object({
     source: z.string().default('PHONE'),
+    source_other: z.string().optional(),
     prefix: z.string().default('นาย'),
     firstname: z.string().min(1, 'กรุณากรอกชื่อ'),
     lastname: z.string().min(1, 'กรุณากรอกนามสกุล'),
@@ -44,10 +54,8 @@ const requestSchema = z.object({
     district: z.string().optional(),
     sub_district: z.string().optional(),
     agency: z.string().optional(),
-    // Optional override of submission date. Defaults to "today" in
-    // defaultValues; left optional so existing POST payloads don't break
-    // when the field is absent.
     created_at: z.string().optional(),
+    note: z.string().optional(),
 });
 
 type RequestFormValues = z.infer<typeof requestSchema>;
@@ -56,9 +64,11 @@ type RequestFormValues = z.infer<typeof requestSchema>;
 
 const SOURCE_OPTIONS = [
     { value: 'PHONE', label: 'โทรศัพท์' },
-    { value: 'PAPER', label: 'กระดาษ' },
+    { value: 'FORM', label: 'แบบฟอร์มคำร้อง' },
+    { value: 'FACEBOOK', label: 'Facebook' },
+    { value: 'LINE', label: 'LINE' },
     { value: 'WALK_IN', label: 'Walk-in' },
-    { value: 'ADMIN', label: 'อื่นๆ' },
+    { value: 'OTHER', label: 'อื่นๆ' },
 ];
 
 const PREFIX_OPTIONS = [
@@ -76,7 +86,7 @@ const PRIORITY_OPTIONS = [
 ];
 
 const STEPS = [
-    { label: 'ข้อมูลผู้ร้อง', icon: Phone },
+    { label: 'ข้อมูลผู้ร้อง & ช่องทาง', icon: Phone },
     { label: 'รายละเอียดคำร้อง', icon: FileText },
     { label: 'ที่อยู่ / หน่วยงาน', icon: MapPin },
 ];
@@ -94,11 +104,13 @@ export default function CreateRequestPage() {
     const [step, setStep] = useState(0);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [showConfirm, setShowConfirm] = useState(false);
 
     const form = useForm<RequestFormValues>({
         resolver: zodResolver(requestSchema),
         defaultValues: {
             source: 'PHONE',
+            source_other: '',
             prefix: 'นาย',
             firstname: '',
             lastname: '',
@@ -113,6 +125,7 @@ export default function CreateRequestPage() {
             sub_district: '',
             agency: 'ผู้นำชุมชนและจิตอาสา',
             created_at: new Date().toISOString().split('T')[0],
+            note: '',
         },
         mode: 'onTouched',
     });
@@ -120,6 +133,8 @@ export default function CreateRequestPage() {
     const { register, handleSubmit, trigger, watch, setValue, formState: { errors } } = form;
 
     const selectedCategory = watch('topic_category');
+    const selectedSource = watch('source');
+    const createdAtValue = watch('created_at');
 
     const API_BASE = '/api/v1';
 
@@ -140,9 +155,25 @@ export default function CreateRequestPage() {
         }
     };
 
-    const onSubmit = async (data: RequestFormValues) => {
+    const handleDateChange = (iso: string | null) => {
+        if (!iso) {
+            setValue('created_at', '');
+            return;
+        }
+        const d = new Date(iso);
+        const ymd = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        setValue('created_at', ymd);
+    };
+
+    const onFormSubmit = () => {
+        // Show confirmation modal instead of submitting directly
+        setShowConfirm(true);
+    };
+
+    const doSubmit = async (data: RequestFormValues) => {
         setSubmitting(true);
         setError(null);
+        setShowConfirm(false);
 
         try {
             const headers: Record<string, string> = {
@@ -152,12 +183,11 @@ export default function CreateRequestPage() {
                 headers['Authorization'] = `Bearer ${token}`;
             }
 
-            // Only send created_at if user overrode the default. Backend
-            // auto-fills with NOW() when omitted, so sending the same value
-            // is redundant — but harmless.
-            const { created_at, ...rest } = data;
+            const { created_at, source_other, ...rest } = data;
             const payload = {
                 ...rest,
+                // If source is OTHER, append the custom text
+                ...(rest.source === 'OTHER' && source_other ? { source: source_other } : {}),
                 ...(created_at ? { created_at: new Date(`${created_at}T00:00:00`).toISOString() } : {}),
             };
 
@@ -185,7 +215,7 @@ export default function CreateRequestPage() {
     return (
         <div className="space-y-6 animate-in fade-in duration-500 thai-text">
             {/* Page Header */}
-            <PageHeader title="สร้างคำร้องใหม่" subtitle="บันทึกคำร้องจากช่องทางอื่น เช่น โทรศัพท์ กระดาษ หรือ Walk-in">
+            <PageHeader title="สร้างคำร้องใหม่" subtitle="บันทึกคำร้องจากช่องทางอื่น เช่น โทรศัพท์ แบบฟอร์ม Facebook LINE Walk-in">
                 <Link href="/admin/requests">
                     <Button variant="outline" size="sm" leftIcon={<ChevronLeft className="w-4 h-4" />}>
                         กลับ
@@ -208,7 +238,6 @@ export default function CreateRequestPage() {
                             <button
                                 type="button"
                                 onClick={() => {
-                                    // อนุญาตให้กดกลับไปขั้นตอนก่อนหน้าได้
                                     if (i < step) setStep(i);
                                 }}
                                 className={`
@@ -239,19 +268,47 @@ export default function CreateRequestPage() {
             {/* Form Card */}
             <Card glass className="border-none shadow-sm max-w-2xl mx-auto">
                 <CardContent className="p-6">
-                    <form onSubmit={handleSubmit(onSubmit)}>
-                        {/* Step 0: ข้อมูลผู้ร้อง */}
+                    <form onSubmit={handleSubmit(onFormSubmit)}>
+                        {/* Step 0: ข้อมูลผู้ร้อง & ช่องทาง */}
                         {step === 0 && (
                             <div className="space-y-5">
                                 <h2 className="text-lg font-bold text-text-primary">ข้อมูลผู้ร้อง & ช่องทาง</h2>
 
-                                <div>
-                                    <label className="block text-xs font-medium text-text-secondary mb-1.5">ช่องทางรับเรื่อง</label>
-                                    <Select
-                                        {...register('source')}
-                                        options={SOURCE_OPTIONS}
-                                    />
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
+                                            <Phone className="w-3.5 h-3.5 text-text-tertiary" />
+                                            ช่องทางรับเรื่อง
+                                        </label>
+                                        <Select
+                                            {...register('source')}
+                                            options={SOURCE_OPTIONS}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
+                                            <Calendar className="w-3.5 h-3.5 text-text-tertiary" />
+                                            วันที่รับเรื่อง <span className="text-text-tertiary font-normal">(ค่าเริ่มต้น = วันนี้)</span>
+                                        </label>
+                                        <CalendarPickerTH
+                                            value={createdAtValue ? new Date(`${createdAtValue}T00:00:00`).toISOString() : null}
+                                            onChange={handleDateChange}
+                                        />
+                                    </div>
                                 </div>
+
+                                {/* Show "other" channel input when อื่นๆ is selected */}
+                                {selectedSource === 'OTHER' && (
+                                    <div className="animate-in slide-in-from-top-2">
+                                        <label className="block text-xs font-medium text-text-secondary mb-1.5">
+                                            ระบุช่องทาง <span className="text-danger">*</span>
+                                        </label>
+                                        <Input
+                                            {...register('source_other')}
+                                            placeholder="ระบุช่องทางรับเรื่อง..."
+                                        />
+                                    </div>
+                                )}
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
@@ -289,7 +346,10 @@ export default function CreateRequestPage() {
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-xs font-medium text-text-secondary mb-1.5">เบอร์โทรศัพท์</label>
+                                        <label className="block text-xs font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
+                                            <Phone className="w-3.5 h-3.5 text-text-tertiary" />
+                                            เบอร์โทรศัพท์
+                                        </label>
                                         <Input
                                             type="tel"
                                             {...register('phone_number')}
@@ -297,7 +357,10 @@ export default function CreateRequestPage() {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-medium text-text-secondary mb-1.5">อีเมล</label>
+                                        <label className="block text-xs font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
+                                            <MessageSquare className="w-3.5 h-3.5 text-text-tertiary" />
+                                            อีเมล
+                                        </label>
                                         <Input
                                             type="email"
                                             {...register('email')}
@@ -323,18 +386,6 @@ export default function CreateRequestPage() {
                                             options={[...CATEGORIES]}
                                             state={errors.topic_category ? 'error' : 'default'}
                                             errorMessage={errors.topic_category?.message}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-medium text-text-secondary mb-1.5">
-                                            วันที่ยื่นคำร้อง <span className="text-text-tertiary font-normal">(ค่าเริ่มต้น = วันนี้)</span>
-                                        </label>
-                                        <Input
-                                            type="date"
-                                            max={new Date().toISOString().split('T')[0]}
-                                            {...register('created_at')}
-                                            state={errors.created_at ? 'error' : 'default'}
-                                            errorMessage={errors.created_at?.message}
                                         />
                                     </div>
                                     <div>
@@ -369,10 +420,26 @@ export default function CreateRequestPage() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-xs font-medium text-text-secondary mb-1.5">ความเร่งด่วน</label>
+                                    <label className="block text-xs font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
+                                        <Flag className="w-3.5 h-3.5 text-text-tertiary" />
+                                        ความเร่งด่วน
+                                    </label>
                                     <Select
                                         {...register('priority')}
                                         options={PRIORITY_OPTIONS}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
+                                        <StickyNote className="w-3.5 h-3.5 text-text-tertiary" />
+                                        หมายเหตุ
+                                    </label>
+                                    <Textarea
+                                        {...register('note')}
+                                        placeholder="บันทึกเพิ่มเติม (ถ้ามี)..."
+                                        rows={3}
+                                        className="w-full p-3 bg-bg border border-border-default rounded-xl text-sm outline-none focus:border-primary/40 focus:bg-surface focus:ring-4 focus:ring-primary/10 transition-all resize-none"
                                     />
                                 </div>
                             </div>
@@ -385,28 +452,40 @@ export default function CreateRequestPage() {
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-xs font-medium text-text-secondary mb-1.5">จังหวัด</label>
+                                        <label className="block text-xs font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
+                                            <MapPin className="w-3.5 h-3.5 text-text-tertiary" />
+                                            จังหวัด
+                                        </label>
                                         <Input
                                             {...register('province')}
                                             placeholder="จังหวัด"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-medium text-text-secondary mb-1.5">อำเภอ / เขต</label>
+                                        <label className="block text-xs font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
+                                            <MapPin className="w-3.5 h-3.5 text-text-tertiary" />
+                                            อำเภอ / เขต
+                                        </label>
                                         <Input
                                             {...register('district')}
                                             placeholder="อำเภอ / เขต"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-medium text-text-secondary mb-1.5">ตำบล / แขวง</label>
+                                        <label className="block text-xs font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
+                                            <MapPin className="w-3.5 h-3.5 text-text-tertiary" />
+                                            ตำบล / แขวง
+                                        </label>
                                         <Input
                                             {...register('sub_district')}
                                             placeholder="ตำบล / แขวง"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-medium text-text-secondary mb-1.5">หน่วยงานที่รับผิดชอบ</label>
+                                        <label className="block text-xs font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
+                                            <Building2 className="w-3.5 h-3.5 text-text-tertiary" />
+                                            หน่วยงานที่รับผิดชอบ
+                                        </label>
                                         <Select
                                             {...register('agency')}
                                             options={[...AGENCIES]}
@@ -439,30 +518,77 @@ export default function CreateRequestPage() {
                                 <div />
                             )}
 
-                            {step < 2 ? (
-                                <Button
-                                    type="button"
-                                    variant="primary"
-                                    onClick={handleNext}
-                                    rightIcon={<ArrowRight className="w-4 h-4" />}
-                                >
-                                    ถัดไป
-                                </Button>
-                            ) : (
-                                <Button
-                                    type="submit"
-                                    variant="success"
-                                    isLoading={submitting}
-                                    loadingText="กำลังบันทึก..."
-                                    leftIcon={<Check className="w-4 h-4" />}
-                                >
-                                    บันทึกคำร้อง
-                                </Button>
-                            )}
+                            <div className="flex items-center gap-3">
+                                <Link href="/admin/requests">
+                                    <Button type="button" variant="ghost">
+                                        ยกเลิก
+                                    </Button>
+                                </Link>
+                                {step < 2 ? (
+                                    <Button
+                                        type="button"
+                                        variant="primary"
+                                        onClick={handleNext}
+                                        rightIcon={<ArrowRight className="w-4 h-4" />}
+                                    >
+                                        ถัดไป
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        type="submit"
+                                        variant="success"
+                                        leftIcon={<Check className="w-4 h-4" />}
+                                    >
+                                        บันทึกคำร้อง
+                                    </Button>
+                                )}
+                            </div>
                         </div>
                     </form>
                 </CardContent>
             </Card>
+
+            {/* Confirmation Modal */}
+            {showConfirm && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200" role="dialog" aria-modal="true" aria-labelledby="confirm-create-title">
+                    <Card className="w-full max-w-sm shadow-2xl">
+                        <CardHeader className="text-center pb-2">
+                            <div className="w-12 h-12 bg-brand-100 rounded-full flex items-center justify-center mx-auto mb-4 text-brand-600">
+                                <MessageSquare className="w-6 h-6" />
+                            </div>
+                            <CardTitle id="confirm-create-title" className="text-lg">ยืนยันสร้างคำร้อง</CardTitle>
+                        </CardHeader>
+                        <CardContent className="text-center space-y-4">
+                            <p className="text-sm text-text-secondary">
+                                กรุณาตรวจสอบข้อมูลให้ถูกต้อง<br />
+                                เมื่อกดบันทึกแล้วคำร้องจะเข้าสู่ระบบทันที
+                            </p>
+                            <div className="flex gap-3 pt-2">
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    className="flex-1"
+                                    onClick={() => setShowConfirm(false)}
+                                    leftIcon={<X className="w-4 h-4" />}
+                                >
+                                    ยกเลิก
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="primary"
+                                    className="flex-1"
+                                    onClick={handleSubmit(doSubmit)}
+                                    isLoading={submitting}
+                                    loadingText="กำลังบันทึก..."
+                                    leftIcon={<Check className="w-4 h-4" />}
+                                >
+                                    ยืนยันบันทึก
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
         </div>
     );
 }

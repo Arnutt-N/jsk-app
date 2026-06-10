@@ -304,7 +304,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
             {/* Bottom collapse toggle — HR-IMS style */}
             <button
               onClick={toggleSidebar}
-              className="relative z-10 flex h-10 w-full items-center justify-center border-t border-white/10 text-sidebar-text-muted transition-colors hover:bg-white/5 hover:text-white"
+              className="relative z-10 flex h-10 w-full items-center justify-center border-t border-white/10 text-sidebar-text-muted transition-colors hover:bg-white/5 hover:text-white cursor-pointer"
               aria-label={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             >
               {isSidebarCollapsed
