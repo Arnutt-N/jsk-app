@@ -50,7 +50,14 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      // CI uses the runner's preinstalled Google Chrome (channel) so the
+      // workflow never downloads a browser bundle — `playwright install`
+      // has been hanging indefinitely on GitHub runners after the
+      // download completes. Local runs keep the regular bundled chromium.
+      use: {
+        ...devices['Desktop Chrome'],
+        ...(process.env.CI ? { channel: 'chrome' as const } : {}),
+      },
     },
   ],
 
