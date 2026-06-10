@@ -61,6 +61,7 @@ import { CATEGORIES, DRUG_REPORTING_SUBCATEGORIES, isValidCategory, isValidDrugR
 import { usePermissions } from '@/lib/permissions';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGuardedUpdate } from '@/hooks/useGuardedUpdate';
+import { buildChangedFields } from '@/lib/diff-fields';
 import { logger } from '@/lib/logger';
 
 const CalendarPickerTH = dynamic(() => import('@/components/ui/CalendarPickerTH'));
@@ -495,16 +496,7 @@ export default function RequestDetailPage() {
 
     const handleSaveDetails = async () => {
         if (!request) return;
-        const updates: Record<string, string> = {};
-        if (detailsFormData.topic_category !== (request.topic_category || '')) {
-            updates.topic_category = detailsFormData.topic_category;
-        }
-        if (detailsFormData.topic_subcategory !== (request.topic_subcategory || '')) {
-            updates.topic_subcategory = detailsFormData.topic_subcategory;
-        }
-        if (detailsFormData.description !== (request.description || '')) {
-            updates.description = detailsFormData.description;
-        }
+        const updates = buildChangedFields(detailsFormData, request as unknown as Record<string, unknown>);
         if (Object.keys(updates).length > 0) {
             try {
                 await handleUpdateField(updates);
@@ -541,16 +533,7 @@ export default function RequestDetailPage() {
 
     const handleSaveContact = async () => {
         if (!request) return;
-        const updates: Record<string, string> = {};
-        if (contactFormData.prefix !== (request.prefix || '')) updates.prefix = contactFormData.prefix;
-        if (contactFormData.firstname !== (request.firstname || '')) updates.firstname = contactFormData.firstname;
-        if (contactFormData.lastname !== (request.lastname || '')) updates.lastname = contactFormData.lastname;
-        if (contactFormData.phone_number !== (request.phone_number || '')) updates.phone_number = contactFormData.phone_number;
-        if (contactFormData.email !== (request.email || '')) updates.email = contactFormData.email;
-        if (contactFormData.agency !== (request.agency || '')) updates.agency = contactFormData.agency;
-        if (contactFormData.province !== (request.province || '')) updates.province = contactFormData.province;
-        if (contactFormData.district !== (request.district || '')) updates.district = contactFormData.district;
-        if (contactFormData.sub_district !== (request.sub_district || '')) updates.sub_district = contactFormData.sub_district;
+        const updates = buildChangedFields(contactFormData, request as unknown as Record<string, unknown>);
         if (Object.keys(updates).length > 0) {
             try {
                 await handleUpdateField(updates);
