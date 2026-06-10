@@ -27,7 +27,7 @@ jobs:
   e2e:
     name: Playwright Smoke
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     services:
       postgres:
         image: postgres:16
@@ -125,9 +125,35 @@ jobs:
         working-directory: frontend
         run: npm ci
 
-      - name: Install Playwright browsers (chromium only)
+      # Cache the Playwright browser bundle. Every recent run of this
+      # workflow died here: the chromium zip finishes downloading in
+      # seconds, then `playwright install --with-deps` hangs until the
+      # job-level timeout kills the run. With a warm cache the install
+      # step skips the download entirely; the deps install is split out
+      # and given its own short timeout so a hang fails fast with a
+      # clear step name instead of eating the whole job budget.
+      - name: Get Playwright version
+        id: playwright-version
         working-directory: frontend
-        run: npx playwright install --with-deps chromium
+        run: echo "version=$(node -p "require('./package-lock.json').packages['node_modules/@playwright/test'].version")" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
+
+      - name: Install Playwright system dependencies
+        working-directory: frontend
+        timeout-minutes: 5
+        run: npx playwright install-deps chromium
+
+      - name: Install Playwright browsers (chromium only)
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        working-directory: frontend
+        timeout-minutes: 5
+        run: npx playwright install chromium
 
       - name: Start backend
         working-directory: backend
