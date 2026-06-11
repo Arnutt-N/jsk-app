@@ -27,7 +27,7 @@ jobs:
   e2e:
     name: Playwright Smoke
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     services:
       postgres:
         image: postgres:16
@@ -125,9 +125,15 @@ jobs:
         working-directory: frontend
         run: npm ci
 
-      - name: Install Playwright browsers (chromium only)
-        working-directory: frontend
-        run: npx playwright install --with-deps chromium
+      # No `playwright install` here on purpose: every run since at
+      # least June 4 hung indefinitely inside `npx playwright install`
+      # right after the chromium download completed, eating the whole
+      # job timeout before any test ran. The Playwright config instead
+      # sets `channel: 'chrome'` when CI=true, which drives the Google
+      # Chrome build preinstalled on ubuntu-latest runners — nothing to
+      # download or install at all.
+      - name: Verify preinstalled Chrome
+        run: google-chrome --version
 
       - name: Start backend
         working-directory: backend

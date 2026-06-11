@@ -327,6 +327,191 @@ def test_unassign_request_forbidden_for_agent_role():
     assert fake_request.assigned_agent_id == 5  # unchanged
 
 
+# ---------------------------------------------------------------------------
+# Details/contact tab edit tests (request-detail edit feature, Phase 1).
+# The PATCH handler now accepts 12 new optional fields and applies them
+# with "None = no update" semantics, plus recomputes requester_name
+# whenever any of prefix/firstname/lastname is present in the payload.
+# ---------------------------------------------------------------------------
+
+
+def _build_editable_request(request_id: int = 50) -> SimpleNamespace:
+    """A PENDING request carrying all editable details/contact fields."""
+    return SimpleNamespace(
+        id=request_id,
+        status=RequestStatus.PENDING,
+        completed_at=None,
+        priority="LOW",
+        due_date=None,
+        assigned_agent_id=None,
+        assigned_by_id=None,
+        topic_category="ร้องเรียน/ร้องทุกข์",
+        topic_subcategory="เดิม",
+        description="รายละเอียดเดิม",
+        prefix="นาย",
+        firstname="สมชาย",
+        lastname="ใจดี",
+        requester_name="นาย สมชาย ใจดี",
+        phone_number="0812345678",
+        email="somchai@example.com",
+        sub_district="ในเมือง",
+        district="เมือง",
+        province="ขอนแก่น",
+        agency="อบต.ตัวอย่าง",
+    )
+
+
+def test_update_details_fields_applied():
+    fake_db = _FakeDB()
+    fake_request = _build_editable_request()
+    fake_db._fake_request = fake_request
+    teardown = _patch_admin_overrides(fake_db)
+
+    client = TestClient(app)
+    try:
+        response = client.patch(
+            "/api/v1/admin/requests/50",
+            json={
+                "topic_category": "แจ้งเบาะแสยาเสพติด",
+                "topic_subcategory": "ปัญหายาเสพติด",
+                "description": "รายละเอียดใหม่",
+            },
+        )
+    finally:
+        client.close()
+        teardown()
+
+    assert response.status_code == 200
+    assert fake_db.committed is True
+    assert fake_request.topic_category == "แจ้งเบาะแสยาเสพติด"
+    assert fake_request.topic_subcategory == "ปัญหายาเสพติด"
+    assert fake_request.description == "รายละเอียดใหม่"
+    # Untouched fields keep their values (None = no update semantics).
+    assert fake_request.firstname == "สมชาย"
+    assert fake_request.requester_name == "นาย สมชาย ใจดี"
+
+
+def test_update_contact_fields_applied():
+    fake_db = _FakeDB()
+    fake_request = _build_editable_request(request_id=51)
+    fake_db._fake_request = fake_request
+    teardown = _patch_admin_overrides(fake_db)
+
+    client = TestClient(app)
+    try:
+        response = client.patch(
+            "/api/v1/admin/requests/51",
+            json={
+                "phone_number": "0899999999",
+                "email": "new@example.com",
+                "agency": "เทศบาลใหม่",
+                "province": "เชียงใหม่",
+                "district": "เมืองเชียงใหม่",
+                "sub_district": "ช้างคลาน",
+            },
+        )
+    finally:
+        client.close()
+        teardown()
+
+    assert response.status_code == 200
+    assert fake_request.phone_number == "0899999999"
+    assert fake_request.email == "new@example.com"
+    assert fake_request.agency == "เทศบาลใหม่"
+    assert fake_request.province == "เชียงใหม่"
+    assert fake_request.district == "เมืองเชียงใหม่"
+    assert fake_request.sub_district == "ช้างคลาน"
+    # Contact-only update must not touch the name fields.
+    assert fake_request.requester_name == "นาย สมชาย ใจดี"
+
+
+def test_update_name_field_recomputes_requester_name():
+    """Changing only firstname must rebuild requester_name from the
+    already-updated prefix/firstname/lastname on the row."""
+    fake_db = _FakeDB()
+    fake_request = _build_editable_request(request_id=52)
+    fake_db._fake_request = fake_request
+    teardown = _patch_admin_overrides(fake_db)
+
+    client = TestClient(app)
+    try:
+        response = client.patch(
+            "/api/v1/admin/requests/52",
+            json={"firstname": "สมหญิง"},
+        )
+    finally:
+        client.close()
+        teardown()
+
+    assert response.status_code == 200
+    assert fake_request.firstname == "สมหญิง"
+    assert fake_request.requester_name == "นาย สมหญิง ใจดี"
+
+
+def test_update_all_name_fields_recomputes_requester_name():
+    fake_db = _FakeDB()
+    fake_request = _build_editable_request(request_id=53)
+    fake_db._fake_request = fake_request
+    teardown = _patch_admin_overrides(fake_db)
+
+    client = TestClient(app)
+    try:
+        response = client.patch(
+            "/api/v1/admin/requests/53",
+            json={"prefix": "นาง", "firstname": "สมหญิง", "lastname": "ใจงาม"},
+        )
+    finally:
+        client.close()
+        teardown()
+
+    assert response.status_code == 200
+    assert fake_request.requester_name == "นาง สมหญิง ใจงาม"
+
+
+def test_update_without_name_fields_keeps_requester_name():
+    """A details-only PATCH must not trigger the recompute path."""
+    fake_db = _FakeDB()
+    fake_request = _build_editable_request(request_id=54)
+    fake_db._fake_request = fake_request
+    teardown = _patch_admin_overrides(fake_db)
+
+    client = TestClient(app)
+    try:
+        response = client.patch(
+            "/api/v1/admin/requests/54",
+            json={"description": "อัปเดตรายละเอียดอย่างเดียว"},
+        )
+    finally:
+        client.close()
+        teardown()
+
+    assert response.status_code == 200
+    assert fake_request.requester_name == "นาย สมชาย ใจดี"
+
+
+def test_clearing_prefix_with_empty_string_recomputes_name():
+    """Accepted PATCH semantic: empty string = intentional clear. The
+    recompute drops blank parts, so requester_name omits the prefix."""
+    fake_db = _FakeDB()
+    fake_request = _build_editable_request(request_id=55)
+    fake_db._fake_request = fake_request
+    teardown = _patch_admin_overrides(fake_db)
+
+    client = TestClient(app)
+    try:
+        response = client.patch(
+            "/api/v1/admin/requests/55",
+            json={"prefix": ""},
+        )
+    finally:
+        client.close()
+        teardown()
+
+    assert response.status_code == 200
+    assert fake_request.prefix == ""
+    assert fake_request.requester_name == "สมชาย ใจดี"
+
+
 def test_assign_request_still_works_after_refactor():
     """Regression test: normal assign via assigned_agent_id still works."""
     fake_db = _FakeDB()

@@ -32,6 +32,9 @@ import {
     Redo2,
     UserX,
     Forward,
+    Edit3,
+    Save,
+    X as XIcon,
 } from 'lucide-react';
 import { AssignModal } from '@/components/admin/AssignModal';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -54,9 +57,11 @@ import {
     STATUS_CHIP_COLORS,
     PRIORITY_CHIP_COLORS,
 } from '@/lib/constants/request-status';
+import { CATEGORIES, DRUG_REPORTING_SUBCATEGORIES, isValidCategory, isValidDrugReportingSubcategory } from '@/lib/constants/categories';
 import { usePermissions } from '@/lib/permissions';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGuardedUpdate } from '@/hooks/useGuardedUpdate';
+import { buildChangedFields } from '@/lib/diff-fields';
 import { logger } from '@/lib/logger';
 
 const CalendarPickerTH = dynamic(() => import('@/components/ui/CalendarPickerTH'));
@@ -133,6 +138,44 @@ function CommentInputSection({ requestId, onSuccess }: {
     const { toast } = useToast();
     const API_BASE = '/api/v1';
 
+    // Undo/Redo state for comment textarea
+    const [commentHistory, setCommentHistory] = useState<string[]>(['']);
+    const [historyIndex, setHistoryIndex] = useState(0);
+
+    const pushToHistory = (value: string) => {
+        const newHistory = commentHistory.slice(0, historyIndex + 1);
+        newHistory.push(value);
+        setCommentHistory(newHistory);
+        setHistoryIndex(newHistory.length - 1);
+    };
+
+    const handleCommentChange = (value: string) => {
+        setNewComment(value);
+        // Only push to history on significant changes (debounced in real app)
+        if (value !== commentHistory[historyIndex]) {
+            pushToHistory(value);
+        }
+    };
+
+    const undo = () => {
+        if (historyIndex > 0) {
+            const newIndex = historyIndex - 1;
+            setHistoryIndex(newIndex);
+            setNewComment(commentHistory[newIndex]);
+        }
+    };
+
+    const redo = () => {
+        if (historyIndex < commentHistory.length - 1) {
+            const newIndex = historyIndex + 1;
+            setHistoryIndex(newIndex);
+            setNewComment(commentHistory[newIndex]);
+        }
+    };
+
+    const canUndo = historyIndex > 0;
+    const canRedo = historyIndex < commentHistory.length - 1;
+
     const handleAddComment = async () => {
         if (!newComment.trim()) return;
         setSubmittingComment(true);
@@ -144,6 +187,9 @@ function CommentInputSection({ requestId, onSuccess }: {
             });
             if (!res.ok) throw new Error('Failed to post comment');
             setNewComment('');
+            // Reset history after successful submit
+            setCommentHistory(['']);
+            setHistoryIndex(0);
             onSuccess();
         } catch (err: unknown) {
             toast({ title: 'ผิดพลาด', description: getErrorMessage(err), variant: 'error' });
@@ -152,18 +198,51 @@ function CommentInputSection({ requestId, onSuccess }: {
         }
     };
 
+    const handleCancel = () => {
+        setNewComment('');
+        setCommentHistory(['']);
+        setHistoryIndex(0);
+    };
+
     return (
         <div className="bg-bg rounded-2xl border border-border-default p-6">
             <h4 className="text-sm font-bold text-text-secondary mb-4">เพิ่มความเห็น</h4>
             <div className="space-y-4">
                 <textarea
                     value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
+                    onChange={(e) => handleCommentChange(e.target.value)}
                     placeholder="พิมพ์ความเห็นหรือบันทึกการดำเนินงาน..."
                     aria-label="เพิ่มความเห็นหรือบันทึกการดำเนินงาน"
                     className="w-full p-4 bg-bg border border-border-default rounded-xl text-sm outline-none focus:border-primary/40 focus:bg-surface focus:ring-4 focus:ring-primary/10 transition-all resize-none min-h-[120px]"
                 ></textarea>
-                <div className="flex justify-end">
+                <div className="pt-4 border-t border-border-default flex justify-end gap-3">
+                    <div className="flex items-center gap-1 mr-auto">
+                        <Tooltip content="ย้อนกลับ (⌘Z)">
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={undo}
+                                disabled={!canUndo}
+                                className="h-8 w-8 p-0"
+                            >
+                                <Undo2 className="h-4 w-4" />
+                            </Button>
+                        </Tooltip>
+                        <Tooltip content="ทำซ้ำ (⌘⇧Z)">
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={redo}
+                                disabled={!canRedo}
+                                className="h-8 w-8 p-0"
+                            >
+                                <Redo2 className="h-4 w-4" />
+                            </Button>
+                        </Tooltip>
+                    </div>
+                    <Button variant="ghost" size="md" onClick={handleCancel}>
+                        ยกเลิก
+                    </Button>
                     <Button
                         variant="primary"
                         size="md"
@@ -173,7 +252,7 @@ function CommentInputSection({ requestId, onSuccess }: {
                         leftIcon={<Send size={16} />}
                         aria-label="บันทึกความเห็น"
                     >
-                        บันทึกข้อมูล
+                        บันทึก
                     </Button>
                 </div>
             </div>
@@ -223,6 +302,29 @@ export default function RequestDetailPage() {
     const [forceCompleteConfirm, setForceCompleteConfirm] = useState(false);
     // P1: manage-tab dirty-state tracking
     const [pendingTab, setPendingTab] = useState<string | null>(null);
+
+    // Edit mode states for details and contact tabs
+    const [detailsEditMode, setDetailsEditMode] = useState(false);
+    const [contactEditMode, setContactEditMode] = useState(false);
+    const [detailsFormData, setDetailsFormData] = useState<{
+        topic_category: string;
+        topic_subcategory: string;
+        description: string;
+    }>({ topic_category: '', topic_subcategory: '', description: '' });
+    const [contactFormData, setContactFormData] = useState<{
+        prefix: string;
+        firstname: string;
+        lastname: string;
+        phone_number: string;
+        email: string;
+        agency: string;
+        province: string;
+        district: string;
+        sub_district: string;
+    }>({
+        prefix: '', firstname: '', lastname: '', phone_number: '',
+        email: '', agency: '', province: '', district: '', sub_district: ''
+    });
 
     // Permission state for workflow button visibility.
     // - userId: numeric form of the logged-in user's id (AuthContext stores as string)
@@ -376,6 +478,81 @@ export default function RequestDetailPage() {
             comment: ''
         });
     }, [request, resetManageForm]);
+
+    // --- Edit mode handlers ---
+    const handleEnterDetailsEdit = useCallback(() => {
+        if (!request) return;
+        setDetailsFormData({
+            topic_category: request.topic_category || '',
+            topic_subcategory: request.topic_subcategory || '',
+            description: request.description || '',
+        });
+        setDetailsEditMode(true);
+    }, [request]);
+
+    const handleCancelDetailsEdit = useCallback(() => {
+        setDetailsEditMode(false);
+    }, []);
+
+    const handleSaveDetails = async () => {
+        if (!request) return;
+        const updates = buildChangedFields(detailsFormData, request as unknown as Record<string, unknown>);
+        if (Object.keys(updates).length > 0) {
+            try {
+                await handleUpdateField(updates);
+                toast({ title: 'สำเร็จ', description: 'บันทึกรายละเอียดเรียบร้อย', variant: 'success' });
+                setDetailsEditMode(false);
+            } catch {
+                // Error already handled by handleUpdateField (toast shown);
+                // stay in edit mode so the user's changes aren't lost.
+            }
+        } else {
+            setDetailsEditMode(false);
+        }
+    };
+
+    const handleEnterContactEdit = useCallback(() => {
+        if (!request) return;
+        setContactFormData({
+            prefix: request.prefix || '',
+            firstname: request.firstname || '',
+            lastname: request.lastname || '',
+            phone_number: request.phone_number || '',
+            email: request.email || '',
+            agency: request.agency || '',
+            province: request.province || '',
+            district: request.district || '',
+            sub_district: request.sub_district || '',
+        });
+        setContactEditMode(true);
+    }, [request]);
+
+    const handleCancelContactEdit = useCallback(() => {
+        setContactEditMode(false);
+    }, []);
+
+    const handleSaveContact = async () => {
+        if (!request) return;
+        const updates = buildChangedFields(contactFormData, request as unknown as Record<string, unknown>);
+        if (Object.keys(updates).length > 0) {
+            try {
+                await handleUpdateField(updates);
+                toast({ title: 'สำเร็จ', description: 'บันทึกข้อมูลผู้ติดต่อเรียบร้อย', variant: 'success' });
+                setContactEditMode(false);
+            } catch {
+                // Error already handled by handleUpdateField (toast shown);
+                // stay in edit mode so the user's changes aren't lost.
+            }
+        } else {
+            setContactEditMode(false);
+        }
+    };
+
+    // In-flight guards for the two edit-mode save buttons. Separate from
+    // `submitting` (workflow buttons) so saving one tab doesn't lock the
+    // hero CTA group, and vice versa.
+    const [savingDetails, guardedSaveDetails] = useGuardedUpdate<void>(handleSaveDetails);
+    const [savingContact, guardedSaveContact] = useGuardedUpdate<void>(handleSaveContact);
 
     // Keyboard shortcuts: Cmd/Ctrl+Z = undo, Cmd/Ctrl+Shift+Z = redo
     useEffect(() => {
@@ -789,18 +966,110 @@ export default function RequestDetailPage() {
                     {/* 1. รายละเอียดคำร้อง */}
                     {activeTab === 'details' && (
                         <div id="panel-details" role="tabpanel" aria-labelledby="tab-details" className="space-y-8">
+                            {/* Action buttons for details tab */}
+                            <div className="flex justify-end">
+                                {!detailsEditMode ? (
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={handleEnterDetailsEdit}
+                                        leftIcon={<Edit3 size={14} />}
+                                    >
+                                        แก้ไข
+                                    </Button>
+                                ) : (
+                                    <div className="flex gap-2">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={handleCancelDetailsEdit}
+                                            disabled={savingDetails}
+                                            leftIcon={<XIcon size={14} />}
+                                        >
+                                            ยกเลิก
+                                        </Button>
+                                        <Button
+                                            variant="primary"
+                                            size="sm"
+                                            onClick={() => { void guardedSaveDetails(); }}
+                                            disabled={savingDetails}
+                                            isLoading={savingDetails}
+                                            leftIcon={<Save size={14} />}
+                                        >
+                                            บันทึก
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
                             {/* Category + Subcategory — clean text hierarchy, no decorative icon */}
                             <div className="pb-8 border-b border-border-default">
                                 <div className="flex items-center gap-6">
-                                    <div className="flex flex-col justify-center">
-                                        <span className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary">หมวดหมู่</span>
-                                        <span className="text-lg font-bold text-text-primary">{request.topic_category}</span>
-                                    </div>
-                                    <div className="w-px h-8 bg-border-default"></div>
-                                    <div className="flex flex-col justify-center">
-                                        <span className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary">ประเภท</span>
-                                        <span className="text-lg font-bold text-text-primary">{request.topic_subcategory || "-"}</span>
-                                    </div>
+                                    {!detailsEditMode ? (
+                                        <>
+                                            <div className="flex flex-col justify-center">
+                                                <span className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary">หมวดหมู่</span>
+                                                <span className="text-lg font-bold text-text-primary">{request.topic_category}</span>
+                                            </div>
+                                            <div className="w-px h-8 bg-border-default"></div>
+                                            <div className="flex flex-col justify-center">
+                                                <span className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary">ประเภท</span>
+                                                <span className="text-lg font-bold text-text-primary">{request.topic_subcategory || "-"}</span>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div className="flex flex-col justify-center flex-1">
+                                                <label htmlFor="edit-topic-category" className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary mb-1">หมวดหมู่</label>
+                                                <select
+                                                    id="edit-topic-category"
+                                                    value={detailsFormData.topic_category}
+                                                    onChange={(e) => setDetailsFormData(prev => ({
+                                                        ...prev,
+                                                        topic_category: e.target.value,
+                                                        // เปลี่ยนหมวดหมู่ → ล้างประเภทย่อยเดิมที่อาจไม่สัมพันธ์กัน
+                                                        topic_subcategory: '',
+                                                    }))}
+                                                    className="w-full p-2 bg-bg border border-border-default rounded-lg text-base font-bold outline-none focus:border-primary/40 focus:ring-4 focus:ring-primary/10 cursor-pointer"
+                                                >
+                                                    {/* Legacy rows may hold a category outside the current list — keep it selectable so opening edit mode doesn't silently change data */}
+                                                    {detailsFormData.topic_category && !isValidCategory(detailsFormData.topic_category) && (
+                                                        <option value={detailsFormData.topic_category}>{detailsFormData.topic_category}</option>
+                                                    )}
+                                                    {CATEGORIES.map(c => (
+                                                        <option key={c.value} value={c.value}>{c.label}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div className="flex flex-col justify-center flex-1">
+                                                <label htmlFor="edit-topic-subcategory" className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary mb-1">ประเภท</label>
+                                                {detailsFormData.topic_category === 'แจ้งเบาะแสยาเสพติด' ? (
+                                                    <select
+                                                        id="edit-topic-subcategory"
+                                                        value={detailsFormData.topic_subcategory}
+                                                        onChange={(e) => setDetailsFormData(prev => ({ ...prev, topic_subcategory: e.target.value }))}
+                                                        className="w-full p-2 bg-bg border border-border-default rounded-lg text-base font-bold outline-none focus:border-primary/40 focus:ring-4 focus:ring-primary/10 cursor-pointer"
+                                                    >
+                                                        <option value="">— เลือกประเภท —</option>
+                                                        {detailsFormData.topic_subcategory && !isValidDrugReportingSubcategory(detailsFormData.topic_subcategory) && (
+                                                            <option value={detailsFormData.topic_subcategory}>{detailsFormData.topic_subcategory}</option>
+                                                        )}
+                                                        {DRUG_REPORTING_SUBCATEGORIES.map(s => (
+                                                            <option key={s.value} value={s.value}>{s.label}</option>
+                                                        ))}
+                                                    </select>
+                                                ) : (
+                                                    <input
+                                                        id="edit-topic-subcategory"
+                                                        type="text"
+                                                        value={detailsFormData.topic_subcategory}
+                                                        onChange={(e) => setDetailsFormData(prev => ({ ...prev, topic_subcategory: e.target.value }))}
+                                                        className="w-full p-2 bg-bg border border-border-default rounded-lg text-base font-bold outline-none focus:border-primary/40 focus:ring-4 focus:ring-primary/10"
+                                                        placeholder="ประเภท"
+                                                    />
+                                                )}
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             </div>
 
@@ -845,9 +1114,19 @@ export default function RequestDetailPage() {
 
                             <div className="space-y-2">
                                 <span className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary">รายละเอียดเพิ่มเติม</span>
-                                <div className="w-full px-4 py-3 bg-bg border border-border-default rounded-xl text-sm leading-relaxed whitespace-pre-wrap min-h-[100px]">
-                                    {request.description || "ไม่มีรายละเอียดเพิ่มเติม"}
-                                </div>
+                                {!detailsEditMode ? (
+                                    <div className="w-full px-4 py-3 bg-bg border border-border-default rounded-xl text-sm leading-relaxed whitespace-pre-wrap min-h-[100px]">
+                                        {request.description || "ไม่มีรายละเอียดเพิ่มเติม"}
+                                    </div>
+                                ) : (
+                                    <textarea
+                                        value={detailsFormData.description}
+                                        onChange={(e) => setDetailsFormData(prev => ({ ...prev, description: e.target.value }))}
+                                        className="w-full p-4 bg-bg border border-border-default rounded-xl text-sm leading-relaxed outline-none focus:border-primary/40 focus:ring-4 focus:ring-primary/10 resize-none min-h-[100px]"
+                                        rows={4}
+                                        placeholder="รายละเอียดเพิ่มเติม..."
+                                    />
+                                )}
                             </div>
 
                             <div className="space-y-2">
@@ -869,36 +1148,186 @@ export default function RequestDetailPage() {
                     {/* 2. ข้อมูลผู้ติดต่อ */}
                     {activeTab === 'contact' && (
                         <div id="panel-contact" role="tabpanel" aria-labelledby="tab-contact" className="space-y-8">
-                            <div className="flex flex-col items-center p-6 bg-bg rounded-2xl border border-border-default">
-                                <div className="w-24 h-24 rounded-full border-2 border-border-default mb-4 bg-bg flex items-center justify-center text-text-secondary text-3xl font-bold">
-                                    {request.firstname ? request.firstname[0] : '?'}
-                                </div>
-                                <h3 className="text-lg font-bold text-text-primary">{request.prefix}{request.firstname} {request.lastname}</h3>
-                                <p className="text-sm text-primary font-bold">{request.agency}</p>
+                            {/* Action buttons for contact tab */}
+                            <div className="flex justify-end">
+                                {!contactEditMode ? (
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={handleEnterContactEdit}
+                                        leftIcon={<Edit3 size={14} />}
+                                    >
+                                        แก้ไข
+                                    </Button>
+                                ) : (
+                                    <div className="flex gap-2">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={handleCancelContactEdit}
+                                            disabled={savingContact}
+                                            leftIcon={<XIcon size={14} />}
+                                        >
+                                            ยกเลิก
+                                        </Button>
+                                        <Button
+                                            variant="primary"
+                                            size="sm"
+                                            onClick={() => { void guardedSaveContact(); }}
+                                            disabled={savingContact}
+                                            isLoading={savingContact}
+                                            leftIcon={<Save size={14} />}
+                                        >
+                                            บันทึก
+                                        </Button>
+                                    </div>
+                                )}
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="p-4 border border-border-default rounded-xl flex items-center gap-4">
-                                    <div className="w-10 h-10 bg-surface border border-border-default text-text-secondary rounded-full flex items-center justify-center shrink-0"><Building2 size={20} aria-hidden="true" /></div>
-                                    <div className="overflow-hidden">
-                                        <p className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary">หน่วยงาน / ที่อยู่</p>
-                                        <p className="text-sm font-bold truncate">{request.sub_district}, {request.district}, {request.province}</p>
+                            {!contactEditMode ? (
+                                <>
+                                    <div className="flex flex-col items-center p-6 bg-bg rounded-2xl border border-border-default">
+                                        <div className="w-24 h-24 rounded-full border-2 border-border-default mb-4 bg-bg flex items-center justify-center text-text-secondary text-3xl font-bold">
+                                            {request.firstname ? request.firstname[0] : '?'}
+                                        </div>
+                                        <h3 className="text-lg font-bold text-text-primary">{request.prefix}{request.firstname} {request.lastname}</h3>
+                                        <p className="text-sm text-primary font-bold">{request.agency}</p>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="p-4 border border-border-default rounded-xl flex items-center gap-4">
+                                            <div className="w-10 h-10 bg-surface border border-border-default text-text-secondary rounded-full flex items-center justify-center shrink-0"><Building2 size={20} aria-hidden="true" /></div>
+                                            <div className="overflow-hidden">
+                                                <p className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary">หน่วยงาน / ที่อยู่</p>
+                                                <p className="text-sm font-bold truncate">{request.sub_district}, {request.district}, {request.province}</p>
+                                            </div>
+                                        </div>
+                                        <div className="p-4 border border-border-default rounded-xl flex items-center gap-4">
+                                            <div className="w-10 h-10 bg-surface border border-border-default text-text-secondary rounded-full flex items-center justify-center shrink-0"><Phone size={20} aria-hidden="true" /></div>
+                                            <div>
+                                                <p className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary">หมายเลขโทรศัพท์</p>
+                                                <p className="text-sm font-bold">{request.phone_number}</p>
+                                            </div>
+                                        </div>
+                                        <div className="p-4 border border-border-default rounded-xl flex items-center gap-4 md:col-span-2">
+                                            <div className="w-10 h-10 bg-surface border border-border-default text-text-secondary rounded-full flex items-center justify-center shrink-0"><Mail size={20} aria-hidden="true" /></div>
+                                            <div>
+                                                <p className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary">อีเมล</p>
+                                                <p className="text-sm font-bold">{request.email || "-"}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="space-y-6">
+                                    {/* ชื่อ-นามสกุล */}
+                                    <div className="grid grid-cols-1 sm:grid-cols-[120px_1fr_1fr] gap-4">
+                                        <div className="space-y-1">
+                                            <label htmlFor="edit-prefix" className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary">คำนำหน้า</label>
+                                            <input
+                                                id="edit-prefix"
+                                                type="text"
+                                                value={contactFormData.prefix}
+                                                onChange={(e) => setContactFormData(prev => ({ ...prev, prefix: e.target.value }))}
+                                                className="w-full p-2.5 bg-bg border border-border-default rounded-lg text-sm outline-none focus:border-primary/40 focus:ring-4 focus:ring-primary/10"
+                                                placeholder="นาย/นาง/นางสาว"
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label htmlFor="edit-firstname" className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary">ชื่อ</label>
+                                            <input
+                                                id="edit-firstname"
+                                                type="text"
+                                                value={contactFormData.firstname}
+                                                onChange={(e) => setContactFormData(prev => ({ ...prev, firstname: e.target.value }))}
+                                                className="w-full p-2.5 bg-bg border border-border-default rounded-lg text-sm outline-none focus:border-primary/40 focus:ring-4 focus:ring-primary/10"
+                                                placeholder="ชื่อ"
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label htmlFor="edit-lastname" className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary">นามสกุล</label>
+                                            <input
+                                                id="edit-lastname"
+                                                type="text"
+                                                value={contactFormData.lastname}
+                                                onChange={(e) => setContactFormData(prev => ({ ...prev, lastname: e.target.value }))}
+                                                className="w-full p-2.5 bg-bg border border-border-default rounded-lg text-sm outline-none focus:border-primary/40 focus:ring-4 focus:ring-primary/10"
+                                                placeholder="นามสกุล"
+                                            />
+                                        </div>
+                                    </div>
+                                    {/* ช่องทางติดต่อ */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-1">
+                                            <label htmlFor="edit-phone" className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary">หมายเลขโทรศัพท์</label>
+                                            <input
+                                                id="edit-phone"
+                                                type="tel"
+                                                value={contactFormData.phone_number}
+                                                onChange={(e) => setContactFormData(prev => ({ ...prev, phone_number: e.target.value }))}
+                                                className="w-full p-2.5 bg-bg border border-border-default rounded-lg text-sm outline-none focus:border-primary/40 focus:ring-4 focus:ring-primary/10"
+                                                placeholder="0XXXXXXXXX"
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label htmlFor="edit-email" className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary">อีเมล</label>
+                                            <input
+                                                id="edit-email"
+                                                type="email"
+                                                value={contactFormData.email}
+                                                onChange={(e) => setContactFormData(prev => ({ ...prev, email: e.target.value }))}
+                                                className="w-full p-2.5 bg-bg border border-border-default rounded-lg text-sm outline-none focus:border-primary/40 focus:ring-4 focus:ring-primary/10"
+                                                placeholder="name@example.com"
+                                            />
+                                        </div>
+                                    </div>
+                                    {/* หน่วยงาน + ที่อยู่ */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-1 md:col-span-2">
+                                            <label htmlFor="edit-agency" className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary">หน่วยงาน</label>
+                                            <input
+                                                id="edit-agency"
+                                                type="text"
+                                                value={contactFormData.agency}
+                                                onChange={(e) => setContactFormData(prev => ({ ...prev, agency: e.target.value }))}
+                                                className="w-full p-2.5 bg-bg border border-border-default rounded-lg text-sm outline-none focus:border-primary/40 focus:ring-4 focus:ring-primary/10"
+                                                placeholder="หน่วยงาน"
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label htmlFor="edit-sub-district" className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary">ตำบล/แขวง</label>
+                                            <input
+                                                id="edit-sub-district"
+                                                type="text"
+                                                value={contactFormData.sub_district}
+                                                onChange={(e) => setContactFormData(prev => ({ ...prev, sub_district: e.target.value }))}
+                                                className="w-full p-2.5 bg-bg border border-border-default rounded-lg text-sm outline-none focus:border-primary/40 focus:ring-4 focus:ring-primary/10"
+                                                placeholder="ตำบล/แขวง"
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label htmlFor="edit-district" className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary">อำเภอ/เขต</label>
+                                            <input
+                                                id="edit-district"
+                                                type="text"
+                                                value={contactFormData.district}
+                                                onChange={(e) => setContactFormData(prev => ({ ...prev, district: e.target.value }))}
+                                                className="w-full p-2.5 bg-bg border border-border-default rounded-lg text-sm outline-none focus:border-primary/40 focus:ring-4 focus:ring-primary/10"
+                                                placeholder="อำเภอ/เขต"
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label htmlFor="edit-province" className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary">จังหวัด</label>
+                                            <input
+                                                id="edit-province"
+                                                type="text"
+                                                value={contactFormData.province}
+                                                onChange={(e) => setContactFormData(prev => ({ ...prev, province: e.target.value }))}
+                                                className="w-full p-2.5 bg-bg border border-border-default rounded-lg text-sm outline-none focus:border-primary/40 focus:ring-4 focus:ring-primary/10"
+                                                placeholder="จังหวัด"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="p-4 border border-border-default rounded-xl flex items-center gap-4">
-                                    <div className="w-10 h-10 bg-surface border border-border-default text-text-secondary rounded-full flex items-center justify-center shrink-0"><Phone size={20} aria-hidden="true" /></div>
-                                    <div>
-                                        <p className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary">หมายเลขโทรศัพท์</p>
-                                        <p className="text-sm font-bold">{request.phone_number}</p>
-                                    </div>
-                                </div>
-                                <div className="p-4 border border-border-default rounded-xl flex items-center gap-4 md:col-span-2">
-                                    <div className="w-10 h-10 bg-surface border border-border-default text-text-secondary rounded-full flex items-center justify-center shrink-0"><Mail size={20} aria-hidden="true" /></div>
-                                    <div>
-                                        <p className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary">อีเมล</p>
-                                        <p className="text-sm font-bold">{request.email || "-"}</p>
-                                    </div>
-                                </div>
-                            </div>
+                            )}
                         </div>
                     )}
 
