@@ -315,6 +315,7 @@ async def get_request_detail(request_id: int, db: AsyncSession = Depends(get_db)
     return request
 
 class RequestUpdate(BaseModel):
+    # Existing fields
     status: Optional[RequestStatus] = None
     priority: Optional[str] = None
     due_date: Optional[datetime] = None
@@ -322,6 +323,22 @@ class RequestUpdate(BaseModel):
     assigned_by_id: Optional[int] = None
     unassign: bool = False
     notes: Optional[str] = None
+
+    # NEW: Fields for details tab
+    topic_category: Optional[str] = None
+    topic_subcategory: Optional[str] = None
+    description: Optional[str] = None
+
+    # NEW: Fields for contact tab
+    prefix: Optional[str] = None
+    firstname: Optional[str] = None
+    lastname: Optional[str] = None
+    phone_number: Optional[str] = None
+    email: Optional[str] = None
+    sub_district: Optional[str] = None
+    district: Optional[str] = None
+    province: Optional[str] = None
+    agency: Optional[str] = None
 
 @router.patch("/{request_id}", response_model=ServiceRequestResponse)
 async def update_request(
@@ -420,6 +437,44 @@ async def update_request(
             request.assigned_by_id = current_admin.id
     if update_data.assigned_by_id is not None:
         request.assigned_by_id = update_data.assigned_by_id
+
+    # NEW: Update details tab fields
+    if update_data.topic_category is not None:
+        request.topic_category = update_data.topic_category
+    if update_data.topic_subcategory is not None:
+        request.topic_subcategory = update_data.topic_subcategory
+    if update_data.description is not None:
+        request.description = update_data.description
+
+    # NEW: Update contact tab fields
+    if update_data.prefix is not None:
+        request.prefix = update_data.prefix
+    if update_data.firstname is not None:
+        request.firstname = update_data.firstname
+    if update_data.lastname is not None:
+        request.lastname = update_data.lastname
+    if update_data.phone_number is not None:
+        request.phone_number = update_data.phone_number
+    if update_data.email is not None:
+        request.email = update_data.email
+    if update_data.sub_district is not None:
+        request.sub_district = update_data.sub_district
+    if update_data.district is not None:
+        request.district = update_data.district
+    if update_data.province is not None:
+        request.province = update_data.province
+    if update_data.agency is not None:
+        request.agency = update_data.agency
+
+    # NEW: Recompute requester_name if any name field changed
+    name_fields_changed = any([
+        update_data.prefix is not None,
+        update_data.firstname is not None,
+        update_data.lastname is not None
+    ])
+    if name_fields_changed:
+        name_parts = [p for p in [request.prefix, request.firstname, request.lastname] if p]
+        request.requester_name = " ".join(name_parts) if name_parts else None
 
     if is_revert_from_completed:
         await create_audit_log(
