@@ -42,7 +42,10 @@ export default defineConfig({
     baseURL: process.env.BASE_URL ?? 'http://localhost:3000',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
-    video: 'retain-on-failure',
+    // Video needs the ffmpeg binary from the Playwright bundle, which CI
+    // no longer installs (it uses the runner's preinstalled Chrome via
+    // channel below). Trace + screenshot still cover failure debugging.
+    video: process.env.CI ? 'off' : 'retain-on-failure',
     actionTimeout: 10_000,
     navigationTimeout: 15_000,
   },
@@ -50,7 +53,14 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      // CI uses the runner's preinstalled Google Chrome (channel) so the
+      // workflow never downloads a browser bundle — `playwright install`
+      // has been hanging indefinitely on GitHub runners after the
+      // download completes. Local runs keep the regular bundled chromium.
+      use: {
+        ...devices['Desktop Chrome'],
+        ...(process.env.CI ? { channel: 'chrome' as const } : {}),
+      },
     },
   ],
 
