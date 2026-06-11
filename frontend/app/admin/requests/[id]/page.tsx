@@ -626,6 +626,7 @@ export default function RequestDetailPage() {
     const isAssignee = userId !== null && request?.assigned_agent_id === userId;
     const canApprove = permissions?.can_assign ?? false;
     const canRevertApproval = permissions?.can_revert_approval ?? false;
+    const canEditRequestDetails = permissions?.can_edit_request_details ?? false;
 
     // P1: dirty-state tracker for manage tab
     const isManageDirty = useMemo(() => {
@@ -969,14 +970,16 @@ export default function RequestDetailPage() {
                             {/* Action buttons for details tab */}
                             <div className="flex justify-end">
                                 {!detailsEditMode ? (
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={handleEnterDetailsEdit}
-                                        leftIcon={<Edit3 size={14} />}
-                                    >
-                                        แก้ไข
-                                    </Button>
+                                    canEditRequestDetails && (
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={handleEnterDetailsEdit}
+                                            leftIcon={<Edit3 size={14} />}
+                                        >
+                                            แก้ไข
+                                        </Button>
+                                    )
                                 ) : (
                                     <div className="flex gap-2">
                                         <Button
@@ -1151,14 +1154,16 @@ export default function RequestDetailPage() {
                             {/* Action buttons for contact tab */}
                             <div className="flex justify-end">
                                 {!contactEditMode ? (
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={handleEnterContactEdit}
-                                        leftIcon={<Edit3 size={14} />}
-                                    >
-                                        แก้ไข
-                                    </Button>
+                                    canEditRequestDetails && (
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={handleEnterContactEdit}
+                                            leftIcon={<Edit3 size={14} />}
+                                        >
+                                            แก้ไข
+                                        </Button>
+                                    )
                                 ) : (
                                     <div className="flex gap-2">
                                         <Button

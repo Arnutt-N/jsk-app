@@ -10,7 +10,7 @@ from datetime import datetime
 from app.db.session import get_db
 from app.api.deps import get_current_admin
 from app.core.audit import create_audit_log
-from app.core.permissions import can_assign, can_self_assign, can_revert_approval
+from app.core.permissions import can_assign, can_self_assign, can_revert_approval, can_edit_request_details
 from app.models.service_request import ServiceRequest, RequestStatus, RequestPriority
 from app.models.media_file import MediaFile
 from app.schemas.service_request_liff import ServiceRequestResponse
@@ -340,6 +340,15 @@ class RequestUpdate(BaseModel):
     province: Optional[str] = None
     agency: Optional[str] = None
 
+
+# Fields gated by the edit_request_details permission (details + contact tabs).
+EDITABLE_DETAIL_CONTACT_FIELDS = (
+    "topic_category", "topic_subcategory", "description",
+    "prefix", "firstname", "lastname", "phone_number", "email",
+    "sub_district", "district", "province", "agency",
+)
+
+
 @router.patch("/{request_id}", response_model=ServiceRequestResponse)
 async def update_request(
     request_id: int,
@@ -355,6 +364,8 @@ async def update_request(
       - Self-assigning (assigned_agent_id == current_admin.id):
         requires can_self_assign(current_admin.role)
       - Status transitions, priority, due_date edits: any admin role
+      - Details/contact field edits: requires
+        can_edit_request_details(current_admin.role)
     """
     query = select(ServiceRequest).where(ServiceRequest.id == request_id)
     result = await db.execute(query)
@@ -402,6 +413,18 @@ async def update_request(
         raise HTTPException(
             status_code=403,
             detail="คุณไม่มีสิทธิ์ยกเลิกการอนุมัติ",
+        )
+
+    # Permission guard: editing details/contact fields requires explicit permission.
+    # Checked only when the payload actually carries one of those fields so
+    # workflow-only PATCHes (status / assignment / priority) are unaffected.
+    is_editing_details = any(
+        getattr(update_data, f) is not None for f in EDITABLE_DETAIL_CONTACT_FIELDS
+    )
+    if is_editing_details and not can_edit_request_details(current_admin.role):
+        raise HTTPException(
+            status_code=403,
+            detail="คุณไม่มีสิทธิ์แก้ไขข้อมูลคำร้อง",
         )
 
     # Update fields

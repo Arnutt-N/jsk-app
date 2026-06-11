@@ -22,6 +22,8 @@ Default policy keys (must match `permission_settings.key` rows):
   assign_request               SUPER_ADMIN, ADMIN, DIRECTOR, HEAD
   self_assign_request          SUPER_ADMIN, ADMIN, DIRECTOR, HEAD
   edit_permission_settings     SUPER_ADMIN, ADMIN
+  revert_approval              SUPER_ADMIN, ADMIN
+  edit_request_details         SUPER_ADMIN, ADMIN
 """
 from __future__ import annotations
 
@@ -41,6 +43,7 @@ KEY_ASSIGN = "assign_request"
 KEY_SELF_ASSIGN = "self_assign_request"
 KEY_EDIT_SETTINGS = "edit_permission_settings"
 KEY_REVERT = "revert_approval"
+KEY_EDIT_REQUEST_DETAILS = "edit_request_details"
 
 # Hardcoded fallback used when the DB row is missing OR the cache hasn't
 # loaded yet. Mirrors the migration seed values.
@@ -62,6 +65,10 @@ DEFAULT_POLICY: dict[str, frozenset[UserRole]] = {
         UserRole.ADMIN,
     }),
     KEY_REVERT: frozenset({
+        UserRole.SUPER_ADMIN,
+        UserRole.ADMIN,
+    }),
+    KEY_EDIT_REQUEST_DETAILS: frozenset({
         UserRole.SUPER_ADMIN,
         UserRole.ADMIN,
     }),
@@ -133,6 +140,7 @@ _SEED_DESCRIPTIONS: dict[str, str] = {
     KEY_SELF_ASSIGN: "รับเรื่องเอง (self-assign)",
     KEY_EDIT_SETTINGS: "แก้ไขการตั้งค่าสิทธิ์",
     KEY_REVERT: "ยกเลิกการอนุมัติ",
+    KEY_EDIT_REQUEST_DETAILS: "แก้ไขข้อมูลคำร้อง (รายละเอียด/ผู้ติดต่อ)",
 }
 
 
@@ -234,6 +242,11 @@ def can_revert_approval(role: UserRole | str | None) -> bool:
     return _check(role, KEY_REVERT)
 
 
+def can_edit_request_details(role: UserRole | str | None) -> bool:
+    """Whether `role` can edit a request's details/contact fields."""
+    return _check(role, KEY_EDIT_REQUEST_DETAILS)
+
+
 def get_permission_summary() -> dict[str, list[str]]:
     """Return current permission map as plain JSON-serialisable dict.
 
@@ -246,4 +259,5 @@ def get_permission_summary() -> dict[str, list[str]]:
         "self_assign_allowed_roles": sorted(r.value for r in _allowed_for(KEY_SELF_ASSIGN)),
         "permission_settings_editor_roles": sorted(r.value for r in _allowed_for(KEY_EDIT_SETTINGS)),
         "revert_approval_allowed_roles": sorted(r.value for r in _allowed_for(KEY_REVERT)),
+        "edit_request_details_allowed_roles": sorted(r.value for r in _allowed_for(KEY_EDIT_REQUEST_DETAILS)),
     }

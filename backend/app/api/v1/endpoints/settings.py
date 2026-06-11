@@ -8,6 +8,7 @@ from app.core.permissions import (
     can_self_assign,
     can_edit_permission_settings,
     can_revert_approval,
+    can_edit_request_details,
     get_permission_summary,
     load_policy,
     invalidate_cache,
@@ -15,6 +16,7 @@ from app.core.permissions import (
     KEY_SELF_ASSIGN,
     KEY_EDIT_SETTINGS,
     KEY_REVERT,
+    KEY_EDIT_REQUEST_DETAILS,
 )
 from app.models.permission_setting import PermissionSetting
 from app.models.user import User, UserRole
@@ -45,6 +47,7 @@ class PermissionSummary(BaseModel):
     self_assign_allowed_roles: List[str]
     permission_settings_editor_roles: List[str]
     revert_approval_allowed_roles: List[str]
+    edit_request_details_allowed_roles: List[str]
     # Full editable rule set (Stage 2). Empty for clients that only need
     # the legacy summary fields above.
     rules: List[PermissionRule] = Field(default_factory=list)
@@ -61,10 +64,11 @@ class MyPermissions(BaseModel):
     can_self_assign: bool
     can_edit_permissions: bool
     can_revert_approval: bool
+    can_edit_request_details: bool
 
 
 # Set of valid permission keys -- updates touching anything else are rejected.
-ALLOWED_PERMISSION_KEYS = {KEY_ASSIGN, KEY_SELF_ASSIGN, KEY_EDIT_SETTINGS, KEY_REVERT}
+ALLOWED_PERMISSION_KEYS = {KEY_ASSIGN, KEY_SELF_ASSIGN, KEY_EDIT_SETTINGS, KEY_REVERT, KEY_EDIT_REQUEST_DETAILS}
 
 
 async def _load_rules(db: AsyncSession) -> List[PermissionRule]:
@@ -197,6 +201,7 @@ async def get_my_permissions(current_admin: User = Depends(get_current_admin)):
         can_self_assign=can_self_assign(current_admin.role),
         can_edit_permissions=can_edit_permission_settings(current_admin.role),
         can_revert_approval=can_revert_approval(current_admin.role),
+        can_edit_request_details=can_edit_request_details(current_admin.role),
     )
 
 class ValidateLineTokenRequest(BaseModel):

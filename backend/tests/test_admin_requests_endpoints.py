@@ -541,3 +541,96 @@ def test_assign_request_still_works_after_refactor():
     assert fake_db.committed is True
     assert fake_request.assigned_agent_id == 5
     assert fake_request.assigned_by_id == 7  # recorded by current_admin id
+
+
+# ---------------------------------------------------------------------------
+# edit_request_details permission guard (Phase 1).
+# Details/contact field edits require can_edit_request_details(); the
+# default policy grants it to SUPER_ADMIN/ADMIN only. Workflow-only
+# PATCHes (status / assignment / priority) must not hit the guard.
+# ---------------------------------------------------------------------------
+
+
+def _patch_agent_overrides(fake_db):
+    """Override deps with an AGENT-role admin (no edit_request_details)."""
+
+    async def _override_get_db():
+        yield fake_db
+
+    async def _override_get_current_admin():
+        return SimpleNamespace(
+            id=3,
+            username="agent-user",
+            display_name="Agent User",
+            role=UserRole.AGENT,
+        )
+
+    app.dependency_overrides[session_get_db] = _override_get_db
+    app.dependency_overrides[deps.get_current_admin] = _override_get_current_admin
+
+    def _teardown():
+        app.dependency_overrides.clear()
+
+    return _teardown
+
+
+def test_edit_details_forbidden_for_agent_role():
+    fake_db = _FakeDB()
+    fake_request = _build_editable_request(request_id=60)
+    fake_db._fake_request = fake_request
+    teardown = _patch_agent_overrides(fake_db)
+
+    client = TestClient(app)
+    try:
+        response = client.patch(
+            "/api/v1/admin/requests/60",
+            json={"description": "แก้โดยไม่มีสิทธิ์"},
+        )
+    finally:
+        client.close()
+        teardown()
+
+    assert response.status_code == 403
+    assert fake_request.description == "รายละเอียดเดิม"  # unchanged
+
+
+def test_edit_contact_forbidden_for_agent_role():
+    fake_db = _FakeDB()
+    fake_request = _build_editable_request(request_id=61)
+    fake_db._fake_request = fake_request
+    teardown = _patch_agent_overrides(fake_db)
+
+    client = TestClient(app)
+    try:
+        response = client.patch(
+            "/api/v1/admin/requests/61",
+            json={"phone_number": "0999999999"},
+        )
+    finally:
+        client.close()
+        teardown()
+
+    assert response.status_code == 403
+    assert fake_request.phone_number == "0812345678"  # unchanged
+
+
+def test_workflow_patch_not_blocked_by_details_guard_for_agent():
+    """Status-only PATCH stays open to any admin role — the new guard
+    must trigger only when a details/contact field is in the payload."""
+    fake_db = _FakeDB()
+    fake_request = _build_editable_request(request_id=62)
+    fake_db._fake_request = fake_request
+    teardown = _patch_agent_overrides(fake_db)
+
+    client = TestClient(app)
+    try:
+        response = client.patch(
+            "/api/v1/admin/requests/62",
+            json={"status": "IN_PROGRESS"},
+        )
+    finally:
+        client.close()
+        teardown()
+
+    assert response.status_code == 200
+    assert fake_request.status == RequestStatus.IN_PROGRESS
