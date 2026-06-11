@@ -153,7 +153,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         {isLoading && (
           <span className="absolute inset-0 flex items-center justify-center bg-inherit rounded-xl">
             <Loader2 className="w-4 h-4 animate-spin" />
-            {loadingText && <span className="ml-2">{loadingText}</span>}
+            {loadingText && <span className="ml-2 font-normal">{loadingText}</span>}
           </span>
         )}
 

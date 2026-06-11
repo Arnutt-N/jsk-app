@@ -1,61 +1,83 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { LogOut, User as UserIcon, Settings as SettingsIcon, ChevronDown } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import { Avatar } from '@/components/ui/Avatar';
+import { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
 import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-} from '@/components/ui/DropdownMenu';
+  LogOut,
+  User as UserIcon,
+  Settings as SettingsIcon,
+  LayoutDashboard,
+  MessageCircle,
+  Sun,
+  Moon,
+} from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/components/providers';
+import { Avatar } from '@/components/ui/Avatar';
 import { cn } from '@/lib/utils';
 
 interface UserMenuProps {
   className?: string;
 }
 
+type StaffRole = 'SUPER_ADMIN' | 'ADMIN' | 'AGENT';
+
 /**
  * Profile dropdown mounted in the admin Navbar.
  *
- * Why a button-styled wrapper instead of a bare trigger: the original
- * `<Avatar />` was a static `<div>` with no cursor / click target. Wrapping
- * the avatar in a `cursor-pointer` button with hover/focus styles restores
- * the affordance users expect from a profile menu (Linear / Notion pattern).
- *
- * The menu delegates auth to `useAuth().logout` rather than calling the
- * logout endpoint directly, so the AuthContext state stays in sync (token
- * cleared, redirect to /login, etc.).
+ * Mirrors the live-chat ProfileDropdown look: avatar trigger (no chevron),
+ * rounded panel, role-gated items, theme toggle. Uses custom dropdown
+ * for consistency with live-chat page design.
  */
 export function UserMenu({ className }: UserMenuProps) {
   const { user, logout } = useAuth();
+  const { resolvedTheme, toggleTheme } = useTheme();
   const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
 
   const displayName = user?.display_name || user?.username || 'Administrator';
-  const role = user?.role ?? '';
+  const role = (user?.role ?? '') as StaffRole | '';
   const initials = displayName.substring(0, 2).toUpperCase();
+  const isDark = resolvedTheme === 'dark';
 
-  const goToProfile = () => router.push('/admin/users');
-  const goToSettings = () => router.push('/admin/settings');
-  const handleLogout = () => {
-    logout?.();
-  };
+  const isAdmin = role === 'SUPER_ADMIN' || role === 'ADMIN';
+  const isAgent = role === 'AGENT';
+
+  // Close on click outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    if (open) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [open]);
+
+  // Close on Escape
+  useEffect(() => {
+    function handleEscape(e: KeyboardEvent) {
+      if (e.key === 'Escape') setOpen(false);
+    }
+    if (open) {
+      document.addEventListener('keydown', handleEscape);
+      return () => document.removeEventListener('keydown', handleEscape);
+    }
+  }, [open]);
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        aria-label="เมนูผู้ใช้"
-        className={cn(
-          'group inline-flex items-center gap-1.5 rounded-full p-0.5',
-          'cursor-pointer',
-          'transition-all duration-200',
-          'hover:bg-gray-50 dark:hover:bg-gray-700',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/50 focus-visible:ring-offset-2',
-          className
-        )}
+    <div ref={ref} className={cn('relative', className)}>
+      {/* Trigger — Avatar with online status dot */}
+      <button
+        onClick={() => setOpen(!open)}
+        className="cursor-pointer rounded-full ring-2 ring-white/20 hover:ring-brand-400/50 transition-all p-0.5"
+        aria-label="Open profile menu"
+        aria-expanded={open}
+        aria-haspopup="menu"
       >
         <Avatar
           size="sm"
@@ -63,41 +85,98 @@ export function UserMenu({ className }: UserMenuProps) {
           status="online"
           className="ring-2 ring-brand-500/20 ring-offset-1 ring-offset-white dark:ring-offset-gray-800"
         />
-        <ChevronDown
-          className="hidden md:block w-3.5 h-3.5 text-text-tertiary group-hover:text-text-primary transition-colors"
-          aria-hidden="true"
-        />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-[14rem]">
-        <DropdownMenuLabel className="font-normal">
-          <div className="flex flex-col gap-0.5 py-1">
-            <span className="text-sm font-semibold text-text-primary">{displayName}</span>
-            {role && (
-              <span className="text-[10px] font-bold uppercase tracking-wider text-text-tertiary">
-                {role}
-              </span>
-            )}
-          </div>
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={goToProfile}>
-          <UserIcon size={16} aria-hidden="true" />
-          โปรไฟล์
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={goToSettings}>
-          <SettingsIcon size={16} aria-hidden="true" />
-          ตั้งค่า
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onClick={handleLogout}
-          className="text-danger hover:bg-danger/5 hover:text-danger focus:bg-danger/5 focus:text-danger"
+      </button>
+
+      {/* Dropdown panel */}
+      {open && (
+        <div
+          role="menu"
+          className="absolute right-0 top-full mt-2 w-64 bg-surface rounded-2xl shadow-2xl border border-border-default overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200"
         >
-          <LogOut size={16} aria-hidden="true" />
-          ออกจากระบบ
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+          {/* User info + Theme toggle */}
+          <div className="px-4 pt-4 pb-3 flex items-center gap-3">
+            <Avatar size="md" fallback={initials} status="online" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-text-primary truncate">{displayName}</p>
+              <p className="text-xs text-text-tertiary truncate capitalize">{role.replace('_', ' ').toLowerCase() || 'admin'}</p>
+            </div>
+            {/* Theme toggle */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleTheme();
+              }}
+              className="w-9 h-9 rounded-xl border border-border-default bg-bg hover:bg-muted flex items-center justify-center transition-colors cursor-pointer"
+              aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {isDark ? (
+                <Sun className="w-4 h-4 text-amber-500" />
+              ) : (
+                <Moon className="w-4 h-4 text-brand-400" />
+              )}
+            </button>
+          </div>
+
+          <div className="border-t border-border-default" />
+
+          {/* Menu items */}
+          <div className="py-1.5">
+            {isAdmin && (
+              <Link
+                href="/admin"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary hover:bg-muted transition-colors cursor-pointer"
+                role="menuitem"
+              >
+                <LayoutDashboard className="w-4 h-4 text-text-tertiary" />
+                แอดมิน
+              </Link>
+            )}
+            <Link
+              href="/admin/live-chat"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary hover:bg-muted transition-colors cursor-pointer"
+              role="menuitem"
+            >
+              <MessageCircle className="w-4 h-4 text-text-tertiary" />
+              ไลฟ์แชท
+            </Link>
+            <Link
+              href="/admin/users"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary hover:bg-muted transition-colors cursor-pointer"
+              role="menuitem"
+            >
+              <UserIcon className="w-4 h-4 text-text-tertiary" />
+              โปรไฟล์
+            </Link>
+            <Link
+              href="/admin/settings"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary hover:bg-muted transition-colors cursor-pointer"
+              role="menuitem"
+            >
+              <SettingsIcon className="w-4 h-4 text-text-tertiary" />
+              ตั้งค่า
+            </Link>
+          </div>
+
+          <div className="border-t border-border-default" />
+
+          {/* Sign Out */}
+          <div className="py-1.5">
+            <button
+              onClick={() => { setOpen(false); logout?.(); }}
+              className="flex items-center gap-3 px-4 py-2.5 text-sm text-danger hover:bg-danger/5 transition-colors w-full text-left cursor-pointer"
+              role="menuitem"
+            >
+              <LogOut className="w-4 h-4" />
+              ออกจากระบบ
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 

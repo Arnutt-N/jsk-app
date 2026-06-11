@@ -413,12 +413,13 @@ function LoginForm() {
                 <Button
                   type="submit"
                   disabled={isBusy}
-                  className="w-full h-14 mt-4 rounded-full bg-blue-900 hover:bg-blue-800 text-white font-black text-base shadow-lg shadow-blue-900/20 hover:shadow-blue-900/40 hover:scale-[1.02] active:scale-[0.98] transition-all group overflow-hidden cursor-pointer"
+                  variant="primary"
+                  size="lg"
+                  className="w-full h-14 mt-4"
                   isLoading={isBusy}
-                  loadingText="กำลังเข้าสู่ระบบ..."
+                  loadingText="กำลังเข้าสู่ระบบ"
                 >
                   เข้าสู่ระบบ
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-blue-800 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 </Button>
               </form>
 
