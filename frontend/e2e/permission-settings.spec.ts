@@ -5,7 +5,7 @@ import { loginAsAdmin } from './utils/auth'
  * /admin/settings/permissions -- Stage 2 editable matrix.
  *
  * Verifies the page mounts, the matrix renders all 6 role columns, and
- * the 3 default rules are present. Does NOT mutate the policy -- those
+ * the 5 default rules are present. Does NOT mutate the policy -- those
  * mutations would persist in the shared dev DB and pollute later runs.
  */
 test.describe('Permission settings page (Stage 2)', () => {
@@ -34,14 +34,16 @@ test.describe('Permission settings page (Stage 2)', () => {
     expect(flat).toContain('USER')
   })
 
-  test('matrix renders at least four rule rows', async ({ page }) => {
+  test('matrix renders at least five rule rows', async ({ page }) => {
     await expect(page.locator('table')).toBeVisible({ timeout: 10_000 })
     // Wait for any tbody row to appear (rules load via fetch on mount).
     // The backend's lifespan ensure_seed_rows() hook guarantees the
-    // 4 DEFAULT_POLICY keys exist on every startup (PRD C added revert_approval).
+    // 5 DEFAULT_POLICY keys exist on every startup (PRD C added
+    // revert_approval; edit-request-details-permission PRD added
+    // edit_request_details).
     const rows = page.locator('table tbody tr')
     await expect(rows.first()).toBeVisible({ timeout: 10_000 })
-    expect(await rows.count()).toBeGreaterThanOrEqual(4)
+    expect(await rows.count()).toBeGreaterThanOrEqual(5)
   })
 
   test('matrix shows revert_approval row with Thai label', async ({ page }) => {
@@ -51,6 +53,15 @@ test.describe('Permission settings page (Stage 2)', () => {
     const rowTexts = await page.locator('table tbody tr').allInnerTexts()
     const flat = rowTexts.join(' | ')
     expect(flat).toContain('ยกเลิกการอนุมัติ')
+  })
+
+  test('matrix shows edit_request_details row with Thai label', async ({ page }) => {
+    await expect(page.locator('table')).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('table tbody tr').first()).toBeVisible({ timeout: 10_000 })
+    // Assert the Thai description for edit_request_details is rendered.
+    const rowTexts = await page.locator('table tbody tr').allInnerTexts()
+    const flat = rowTexts.join(' | ')
+    expect(flat).toContain('แก้ไขข้อมูลคำร้อง (รายละเอียด/ผู้ติดต่อ)')
   })
 
   test('at least one disabled checkbox exists (SUPER_ADMIN lockout)', async ({ page }) => {
