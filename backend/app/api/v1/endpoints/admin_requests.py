@@ -427,6 +427,15 @@ async def update_request(
             detail="คุณไม่มีสิทธิ์แก้ไขข้อมูลคำร้อง",
         )
 
+    # Snapshot current values BEFORE the "# Update fields" block mutates the
+    # row, so the audit diff records true old -> new transitions. Only fields
+    # present in the payload are candidates.
+    prior_detail_values = {
+        f: getattr(request, f, None)
+        for f in EDITABLE_DETAIL_CONTACT_FIELDS
+        if getattr(update_data, f) is not None
+    }
+
     # Update fields
     if update_data.status is not None:
         request.status = update_data.status
@@ -511,6 +520,23 @@ async def update_request(
                 "to_status": update_data.status.value,
                 "notes": update_data.notes,
             },
+        )
+
+    # Audit trail for detail/contact edits: one entry per PATCH covering all
+    # fields whose value actually changed (PRD: request-edit-audit-log).
+    changed_fields = {
+        f: {"old": old, "new": getattr(request, f, None)}
+        for f, old in prior_detail_values.items()
+        if getattr(request, f, None) != old
+    }
+    if changed_fields:
+        await create_audit_log(
+            db=db,
+            admin_id=current_admin.id,
+            action="edit_request_details",
+            resource_type="service_request",
+            resource_id=str(request.id),
+            details={"fields": changed_fields},
         )
 
     await db.commit()

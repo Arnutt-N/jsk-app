@@ -63,6 +63,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useGuardedUpdate } from '@/hooks/useGuardedUpdate';
 import { buildChangedFields } from '@/lib/diff-fields';
 import { logger } from '@/lib/logger';
+import { AuditTimelineEntry } from '@/components/admin/AuditTimelineEntry';
+import { mergeTimeline, type AuditLogEntry } from '@/lib/timeline-merge';
 
 const CalendarPickerTH = dynamic(() => import('@/components/ui/CalendarPickerTH'));
 
@@ -287,6 +289,7 @@ export default function RequestDetailPage() {
         comment: ''
     });
     const [comments, setComments] = useState<Comment[]>([]);
+    const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [assignModalOpen, setAssignModalOpen] = useState(false);
     const [unassignDialogOpen, setUnassignDialogOpen] = useState(false);
@@ -369,12 +372,33 @@ export default function RequestDetailPage() {
         }
     }, [API_BASE, params.id]);
 
+    const fetchAuditLogs = useCallback(async () => {
+        try {
+            const res = await fetch(
+                `${API_BASE}/admin/audit/logs?resource_type=service_request&resource_id=${encodeURIComponent(String(params.id))}&action=edit_request_details&days=3650&limit=200`
+            );
+            if (!res.ok) throw new Error('Failed to fetch audit logs');
+            const data = await res.json();
+            setAuditLogs(data.logs ?? []);
+        } catch (err: unknown) {
+            // Graceful degradation: timeline ยังแสดง comments ได้แม้ audit fetch ล้ม
+            logger.error(getErrorMessage(err));
+        }
+    }, [API_BASE, params.id]);
+
+    // Timeline แท็บการดำเนินงาน = comments + ประวัติแก้ไขข้อมูล เรียงเวลา
+    const mergedTimeline = useMemo(
+        () => mergeTimeline(comments, auditLogs),
+        [comments, auditLogs]
+    );
+
     useEffect(() => {
         if (params.id) {
             void fetchDetail();
             void fetchComments();
+            void fetchAuditLogs();
         }
-    }, [fetchComments, fetchDetail, params.id]);
+    }, [fetchAuditLogs, fetchComments, fetchDetail, params.id]);
 
     // --- Handlers ---
     // Stable reference so the calendar's dayCells useMemo doesn't invalidate every render.
@@ -502,6 +526,7 @@ export default function RequestDetailPage() {
                 await handleUpdateField(updates);
                 toast({ title: 'สำเร็จ', description: 'บันทึกรายละเอียดเรียบร้อย', variant: 'success' });
                 setDetailsEditMode(false);
+                void fetchAuditLogs(); // refresh ประวัติแก้ไขใน timeline
             } catch {
                 // Error already handled by handleUpdateField (toast shown);
                 // stay in edit mode so the user's changes aren't lost.
@@ -539,6 +564,7 @@ export default function RequestDetailPage() {
                 await handleUpdateField(updates);
                 toast({ title: 'สำเร็จ', description: 'บันทึกข้อมูลผู้ติดต่อเรียบร้อย', variant: 'success' });
                 setContactEditMode(false);
+                void fetchAuditLogs(); // refresh ประวัติแก้ไขใน timeline
             } catch {
                 // Error already handled by handleUpdateField (toast shown);
                 // stay in edit mode so the user's changes aren't lost.
@@ -1341,9 +1367,13 @@ export default function RequestDetailPage() {
                         <div id="panel-comments" role="tabpanel" aria-labelledby="tab-comments" className="space-y-8">
                             {/* Timeline History */}
                             <div className="relative pl-6 sm:pl-8 border-l-2 border-border-default space-y-8 ml-3">
-                                {comments.length === 0 ? (
+                                {mergedTimeline.length === 0 ? (
                                     <div className="text-center py-10 text-text-secondary text-xs italic pl-4">ยังไม่มีประวัติการดำเนินงาน</div>
-                                ) : comments.map((comment, i) => {
+                                ) : mergedTimeline.map((item) => {
+                                    if (item.kind === 'audit') {
+                                        return <AuditTimelineEntry key={`a-${item.audit.id}`} audit={item.audit} />;
+                                    }
+                                    const comment = item.comment;
                                     // Determine styling based on user role/name
                                     const isSystem = comment.display_name?.toUpperCase() === 'SYSTEM';
                                     const isAdmin = comment.display_name?.toUpperCase().includes('ADMIN');
@@ -1359,7 +1389,7 @@ export default function RequestDetailPage() {
                                             'bg-text-tertiary shadow-border-default';
 
                                     return (
-                                        <div key={i} className="relative group">
+                                        <div key={`c-${comment.id}`} className="relative group">
                                             {/* Timeline Dot */}
                                             <div className={`absolute -left-[41px] top-0 w-6 h-6 rounded-full border-[5px] border-surface shadow-md ${dotColor}`}></div>
 

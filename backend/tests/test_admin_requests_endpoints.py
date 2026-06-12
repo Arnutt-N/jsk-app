@@ -634,3 +634,124 @@ def test_workflow_patch_not_blocked_by_details_guard_for_agent():
 
     assert response.status_code == 200
     assert fake_request.status == RequestStatus.IN_PROGRESS
+
+
+# ---------------------------------------------------------------------------
+# edit_request_details audit trail (request-edit-audit-log, Phase 1).
+# Every PATCH that actually changes a details/contact field must write
+# exactly one audit_log row with action="edit_request_details" whose
+# details JSON carries a {"fields": {field: {"old", "new"}}} diff for the
+# changed fields only. Unchanged values and workflow-only payloads must
+# not produce an entry.
+# ---------------------------------------------------------------------------
+
+
+def test_edit_detail_field_logs_audit_with_diff():
+    fake_db = _FakeDB()
+    fake_request = _build_editable_request(request_id=70)
+    fake_db._fake_request = fake_request
+    teardown = _patch_admin_overrides(fake_db)
+
+    client = TestClient(app)
+    try:
+        response = client.patch(
+            "/api/v1/admin/requests/70",
+            json={"phone_number": "0899999999", "firstname": "สมหญิง"},
+        )
+    finally:
+        client.close()
+        teardown()
+
+    assert response.status_code == 200
+    assert fake_db.committed is True
+
+    audit_rows = [obj for obj in fake_db.added if isinstance(obj, AuditLog)]
+    assert len(audit_rows) == 1
+    log = audit_rows[0]
+    assert log.action == "edit_request_details"
+    assert log.resource_type == "service_request"
+    assert log.resource_id == "70"
+    assert log.admin_id == 7
+    assert log.details == {
+        "fields": {
+            "phone_number": {"old": "0812345678", "new": "0899999999"},
+            "firstname": {"old": "สมชาย", "new": "สมหญิง"},
+        }
+    }
+
+
+def test_edit_with_unchanged_value_excluded_from_diff():
+    """A field sent with its current value must not appear in the diff —
+    only fields whose value actually changed are recorded."""
+    fake_db = _FakeDB()
+    fake_request = _build_editable_request(request_id=71)
+    fake_db._fake_request = fake_request
+    teardown = _patch_admin_overrides(fake_db)
+
+    client = TestClient(app)
+    try:
+        response = client.patch(
+            "/api/v1/admin/requests/71",
+            json={"phone_number": "0812345678", "district": "เมืองใหม่"},
+        )
+    finally:
+        client.close()
+        teardown()
+
+    assert response.status_code == 200
+
+    audit_rows = [obj for obj in fake_db.added if isinstance(obj, AuditLog)]
+    assert len(audit_rows) == 1
+    assert audit_rows[0].details == {
+        "fields": {
+            "district": {"old": "เมือง", "new": "เมืองใหม่"},
+        }
+    }
+
+
+def test_edit_all_values_unchanged_logs_nothing():
+    """Re-submitting the current values is a no-op for the audit trail."""
+    fake_db = _FakeDB()
+    fake_request = _build_editable_request(request_id=72)
+    fake_db._fake_request = fake_request
+    teardown = _patch_admin_overrides(fake_db)
+
+    client = TestClient(app)
+    try:
+        response = client.patch(
+            "/api/v1/admin/requests/72",
+            json={"phone_number": "0812345678", "email": "somchai@example.com"},
+        )
+    finally:
+        client.close()
+        teardown()
+
+    assert response.status_code == 200
+
+    audit_rows = [obj for obj in fake_db.added if isinstance(obj, AuditLog)]
+    assert audit_rows == []
+
+
+def test_workflow_only_patch_logs_no_edit_audit():
+    """Priority-only PATCH carries no details/contact field, so the
+    edit_request_details audit path must stay silent."""
+    fake_db = _FakeDB()
+    fake_request = _build_editable_request(request_id=73)
+    fake_db._fake_request = fake_request
+    teardown = _patch_admin_overrides(fake_db)
+
+    client = TestClient(app)
+    try:
+        response = client.patch(
+            "/api/v1/admin/requests/73",
+            json={"priority": "HIGH"},
+        )
+    finally:
+        client.close()
+        teardown()
+
+    assert response.status_code == 200
+    assert fake_request.priority == "HIGH"
+
+    audit_rows = [obj for obj in fake_db.added if isinstance(obj, AuditLog)]
+    assert audit_rows == []
