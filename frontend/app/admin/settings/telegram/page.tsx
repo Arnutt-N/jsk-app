@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import {
     ArrowLeft,
     Zap,
-    Check,
+    Save,
     X,
     SquarePen,
     CheckCircle2,
@@ -234,6 +234,8 @@ export default function TelegramSettingsPage() {
                         {config?.is_connected && (
                             <Button
                                 variant="ghost"
+                                disabled={processing === 'SAVE'}
+                                leftIcon={<X className="w-4 h-4" />}
                                 onClick={() => {
                                     setIsEditing(false);
                                     setForm({ bot_token: '', chat_id: '' });
@@ -243,17 +245,14 @@ export default function TelegramSettingsPage() {
                             </Button>
                         )}
                         <Button
+                            variant="primary"
                             onClick={handleSave}
-                            disabled={!form.bot_token || !form.chat_id || processing === 'SAVE'}
-                            leftIcon={
-                                processing === 'SAVE' ? (
-                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : (
-                                    <Check className="w-4 h-4" />
-                                )
-                            }
+                            disabled={!form.bot_token || !form.chat_id}
+                            isLoading={processing === 'SAVE'}
+                            loadingText="กำลังบันทึก..."
+                            leftIcon={<Save className="w-4 h-4" />}
                         >
-                            {processing === 'SAVE' ? 'กำลังบันทึก...' : 'บันทึก'}
+                            บันทึก
                         </Button>
                     </div>
                 )}

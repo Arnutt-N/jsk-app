@@ -7,7 +7,7 @@ import {
     ArrowLeft,
     Plus,
     Zap,
-    Check,
+    Save,
     X,
     Trash2,
     SquarePen,
@@ -310,21 +310,23 @@ export default function CustomIntegrationsPage() {
                         </div>
                     </CardContent>
                     <CardFooter divider align="end" className="flex-col sm:flex-row">
-                        <Button variant="ghost" onClick={resetForm}>
+                        <Button
+                            variant="ghost"
+                            onClick={resetForm}
+                            disabled={processing === 'SAVE'}
+                            leftIcon={<X className="w-4 h-4" />}
+                        >
                             ยกเลิก
                         </Button>
                         <Button
+                            variant="primary"
                             onClick={handleSave}
-                            disabled={!form.name || !form.url || processing === 'SAVE'}
-                            leftIcon={
-                                processing === 'SAVE' ? (
-                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : (
-                                    <Check className="w-4 h-4" />
-                                )
-                            }
+                            disabled={!form.name || !form.url}
+                            isLoading={processing === 'SAVE'}
+                            loadingText="กำลังบันทึก..."
+                            leftIcon={<Save className="w-4 h-4" />}
                         >
-                            {processing === 'SAVE' ? 'กำลังบันทึก...' : 'บันทึก'}
+                            บันทึก
                         </Button>
                     </CardFooter>
                 </Card>

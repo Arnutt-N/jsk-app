@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Zap, Check, X, SquarePen, AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react';
+import { ArrowLeft, Zap, Save, X, SquarePen, AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import PageHeader from '@/app/admin/components/PageHeader';
@@ -253,14 +253,14 @@ export default function LineSettingsPage() {
                         </Button>
 
                         <Button
+                            variant="primary"
                             onClick={handleSave}
-                            disabled={!canSave || processing === 'SAVE'}
-                            leftIcon={processing === 'SAVE'
-                                ? <Loader2 className="w-4 h-4 animate-spin" />
-                                : <Check className="w-4 h-4" />
-                            }
+                            disabled={!canSave}
+                            isLoading={processing === 'SAVE'}
+                            loadingText="Saving..."
+                            leftIcon={<Save className="w-4 h-4" />}
                         >
-                            {processing === 'SAVE' ? 'Saving...' : 'Save'}
+                            Save
                         </Button>
                     </div>
                 )}
