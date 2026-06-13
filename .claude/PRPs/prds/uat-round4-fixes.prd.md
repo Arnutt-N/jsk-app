@@ -18,7 +18,7 @@
 ## PR B — [med] ปุ่ม ยกเลิก/บันทึก unity ทั้งโปรเจค (state + ไอคอน)
 > **สถานะ: ✅ complete** — PR #96 (squash merged, main `abae936`)
 > detail tabs (details/contact/manage) gate save ด้วย dirty check (`buildChangedFields`/`isManageDirty`) เหมือน comment tab · create form ปุ่มยกเลิก ghost+`X`, บันทึก primary+`Save` ตรง canonical FormActions
-> follow-up (ยังไม่ทำ): sweep ปุ่ม settings/users/files ที่เหลือ
+> follow-up: ✅ done — PR #100 (squash merged, main `4a8dcf6`) sweep ปุ่ม save/cancel 5 หน้า settings (custom·n8n·telegram·line·permissions) → cancel ghost+`X`, save primary+`Save`+`isLoading`/`loadingText` (เลิก manual `Check`+`Loader2`); ทำ inline ไม่ยัด FormActions เพราะมี test-connection/edit-toggle/undo-redo ปน · เว้น modal users (label save ไม่มาตรฐาน), files revoke link, ConfirmDialog (canonical อยู่แล้ว)
 **อาการ**:
 1. แท็บ "การดำเนินงาน/ความเห็น" ปุ่มบันทึก disabled จนกว่าจะพิมพ์ (saveDisabled) แต่แท็บ "จัดการคำร้อง" **ไม่มี disabled state** (บันทึก active ตลอด) → ไม่ consistent
 2. ไอคอนปุ่มบันทึก/ยกเลิก + การตกแต่ง ทุกหน้า ไม่ unity (issue #6)
