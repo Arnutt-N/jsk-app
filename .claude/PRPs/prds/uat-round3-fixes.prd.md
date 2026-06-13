@@ -79,6 +79,8 @@ dropdown ของ avatar (UserMenu) เป็น selector ; desktop คงเ�
 
 ## PR F — [polish] LIFF form: chevron < > + dropdown edge
 
+> **สถานะ: ✅ complete** — globals.css `.liff-form select` (appearance-none + custom chevron, ไม่ชิดขอบ) + class `liff-form` ที่ฟอร์ม request-v2/service-request + ปุ่ม nav `< กลับ`/`ถัดไป >` ใส่ `whitespace-nowrap` (ไม่หล่นบรรทัด)
+
 **ไฟล์**: `frontend/app/liff/request-v2/page.tsx` (+ service-request variants ถ้ากระทบ)
 - ปุ่ม step nav "< กลับ" / "ถัดไป >" ไม่ให้ข้อความ/ไอคอนหล่นบรรทัด (whitespace-nowrap / flex)
 - dropdown selector chevron `v` ไม่ชิดขอบ (เพิ่ม pr / appearance-none + custom chevron แบบ FormSelect ฝั่ง admin)
