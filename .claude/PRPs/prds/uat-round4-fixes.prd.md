@@ -46,6 +46,8 @@
 4. ปุ่มยกเลิก/บันทึก unity → ครอบใน PR B
 
 ## PR E — [low] LIFF service-request: chevron + ปิดหน้าหลัง submit
+> **สถานะ: ✅ complete** — PR #99 (squash merged, main `ddc1048`)
+> #3 chevron กลับ/ถัดไป หล่นบรรทัดเพราะ Tailwind Preflight `svg{display:block}` + ไอคอนอยู่ใน inline span → ย้ายไปใช้ `Button` prop `leftIcon`/`rightIcon` (flex row + flex-shrink-0) เอา manual mr-2/ml-2 + nowrap ซ้ำซ้อนออก · #4 เพิ่มปุ่ม X ปิดฟอร์มที่ header sticky เรียก `handleClose()` (auto-close 5s + `liff.closeWindow()` หลัง submit มีอยู่แล้วใน success screen)
 **ไฟล์**: `frontend/app/liff/service-request/page.tsx`
 1. ปุ่ม "< กลับ" / "ถัดไป >" **ยังหล่นบรรทัด** แม้ใส่ `whitespace-nowrap` แล้ว — เจาะลึก: อาจเป็นที่ icon+text ใน `<Button>` ไม่ได้ inline หรือ flex-1 บีบจนตัด → wrap label ใน `<span className="inline-flex items-center whitespace-nowrap">` หรือปรับ Button ให้ icon+text เป็น flex nowrap
 2. กดส่งข้อมูลสำเร็จ แต่หน้าไม่ปิดเอง (LIFF) → เพิ่มปุ่ม **กากบาท (X) ปิดฟอร์ม** หรือ redirect กลับหน้าแรก/index หลัง success ; ตรวจ success screen ปัจจุบัน (มี setSuccess ไหม) ว่าควรมี `liff.closeWindow()` หรือปุ่มปิด/กลับ
