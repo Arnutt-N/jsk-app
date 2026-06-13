@@ -203,6 +203,11 @@ function AdminShell({ children }: { children: React.ReactNode }) {
     .filter((group) => group.items.length > 0);
 
   const toggleSidebar = () => setIsSidebarCollapsed(!isSidebarCollapsed);
+  // On mobile the sidebar opens as a full drawer: force the expanded
+  // layout (logo + labels, w-64) regardless of the desktop collapse state
+  // so the close button sits beside the logo instead of overlapping the
+  // narrow w-20 logo tile. Desktop margins still follow isSidebarCollapsed.
+  const effectiveCollapsed = isMobileMenuOpen ? false : isSidebarCollapsed;
   const isLiveChat = pathname.includes('/admin/live-chat');
 
   if (isLiveChat) {
@@ -232,7 +237,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
               'flex flex-col overflow-hidden',
               'transition-all duration-300 ease-in-out',
               'border-r border-white/5',
-              isSidebarCollapsed ? 'w-20' : 'w-64',
+              effectiveCollapsed ? 'w-20' : 'w-64',
               isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
             )}
           >
@@ -249,7 +254,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
 
             {/* Sidebar Logo */}
             <div className="relative z-10 h-20 flex items-center justify-center px-4 border-b border-white/10">
-              {isSidebarCollapsed ? (
+              {effectiveCollapsed ? (
                 <div className="w-10 h-10 rounded-2xl gradient-logo flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-brand-500/20">
                   JS
                 </div>
@@ -272,7 +277,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
             <nav className="relative z-10 flex-1 overflow-y-auto py-4 px-3 space-y-6 scrollbar-sidebar">
               {visibleMenuGroups.map((group) => (
                 <div key={group.title}>
-                  {!isSidebarCollapsed && (
+                  {!effectiveCollapsed && (
                     <h3 className="px-3 mb-2 text-[10px] font-semibold text-sidebar-text-muted uppercase tracking-widest">
                       {group.title}
                     </h3>
@@ -287,7 +292,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
                             label={item.name}
                             href={item.href}
                             isActive={isActive}
-                            isCollapsed={isSidebarCollapsed}
+                            isCollapsed={effectiveCollapsed}
                             target={item.openInNewTab ? '_blank' : undefined}
                           />
                         </li>
@@ -299,7 +304,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
             </nav>
 
             {/* User Section */}
-            <SidebarUserInfo isCollapsed={isSidebarCollapsed} />
+            <SidebarUserInfo isCollapsed={effectiveCollapsed} />
 
             {/* Bottom collapse toggle — HR-IMS style */}
             <button

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { REQUEST_FIELD_LABELS, getRequestFieldLabel } from '../request-field-labels';
+import { REQUEST_FIELD_LABELS, getRequestFieldLabel, getAuditEditScopeLabel } from '../request-field-labels';
 
 // ต้องตรงกับ EDITABLE_DETAIL_CONTACT_FIELDS ฝั่ง backend
 // (backend/app/api/v1/endpoints/admin_requests.py) — ถ้า backend เพิ่ม/ลบ field
@@ -39,5 +39,24 @@ describe('getRequestFieldLabel', () => {
 
     it('falls back to the raw field name for unknown fields', () => {
         expect(getRequestFieldLabel('future_field')).toBe('future_field');
+    });
+});
+
+describe('getAuditEditScopeLabel', () => {
+    it('labels a details-only edit', () => {
+        expect(getAuditEditScopeLabel(['topic_category', 'description'])).toBe('แก้ไขรายละเอียดคำร้อง');
+    });
+
+    it('labels a contact-only edit (incl. address fields)', () => {
+        expect(getAuditEditScopeLabel(['phone_number', 'province', 'district'])).toBe('แก้ไขข้อมูลผู้ติดต่อ');
+    });
+
+    it('falls back to the generic label for a mixed edit', () => {
+        expect(getAuditEditScopeLabel(['description', 'phone_number'])).toBe('แก้ไขข้อมูลคำร้อง');
+    });
+
+    it('falls back to the generic label for empty or unknown fields', () => {
+        expect(getAuditEditScopeLabel([])).toBe('แก้ไขข้อมูลคำร้อง');
+        expect(getAuditEditScopeLabel(['mystery_field'])).toBe('แก้ไขข้อมูลคำร้อง');
     });
 });

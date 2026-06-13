@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { getRequestFieldLabel } from '@/lib/constants/request-field-labels';
+import { getRequestFieldLabel, getAuditEditScopeLabel } from '@/lib/constants/request-field-labels';
 import type { AuditLogEntry } from '@/lib/timeline-merge';
 
 /**
@@ -19,6 +19,7 @@ export function AuditTimelineEntry({ audit }: { audit: AuditLogEntry }) {
     }, [audit.created_at]);
 
     const fields = audit.details?.fields ?? {};
+    const scopeLabel = getAuditEditScopeLabel(Object.keys(fields));
 
     return (
         <div className="relative group">
@@ -30,7 +31,7 @@ export function AuditTimelineEntry({ audit }: { audit: AuditLogEntry }) {
                 <span className="text-xs font-bold text-violet-500 dark:text-violet-400 flex items-center gap-2">
                     {audit.admin_name ?? 'ไม่ระบุผู้ใช้'}
                     <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-300">
-                        แก้ไขข้อมูลคำร้อง
+                        {scopeLabel}
                     </span>
                 </span>
                 <span className="text-[10px] font-bold text-text-tertiary">{formatted}</span>
