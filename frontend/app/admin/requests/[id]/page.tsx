@@ -58,6 +58,8 @@ import {
     PRIORITY_CHIP_COLORS,
 } from '@/lib/constants/request-status';
 import { CATEGORIES, DRUG_REPORTING_SUBCATEGORIES, isValidCategory, isValidDrugReportingSubcategory } from '@/lib/constants/categories';
+import { AGENCIES } from '@/lib/constants/agencies';
+import { ThaiAddressCascade } from '@/components/forms/ThaiAddressCascade';
 import { usePermissions } from '@/lib/permissions';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGuardedUpdate } from '@/hooks/useGuardedUpdate';
@@ -993,46 +995,11 @@ export default function RequestDetailPage() {
                     {/* 1. รายละเอียดคำร้อง */}
                     {activeTab === 'details' && (
                         <div id="panel-details" role="tabpanel" aria-labelledby="tab-details" className="space-y-8">
-                            {/* Action buttons for details tab */}
-                            <div className="flex justify-end">
-                                {!detailsEditMode ? (
-                                    canEditRequestDetails && (
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={handleEnterDetailsEdit}
-                                            leftIcon={<Edit3 size={14} />}
-                                        >
-                                            แก้ไข
-                                        </Button>
-                                    )
-                                ) : (
-                                    <div className="flex gap-2">
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={handleCancelDetailsEdit}
-                                            disabled={savingDetails}
-                                            leftIcon={<XIcon size={14} />}
-                                        >
-                                            ยกเลิก
-                                        </Button>
-                                        <Button
-                                            variant="primary"
-                                            size="sm"
-                                            onClick={() => { void guardedSaveDetails(); }}
-                                            disabled={savingDetails}
-                                            isLoading={savingDetails}
-                                            leftIcon={<Save size={14} />}
-                                        >
-                                            บันทึก
-                                        </Button>
-                                    </div>
-                                )}
-                            </div>
-                            {/* Category + Subcategory — clean text hierarchy, no decorative icon */}
+                            {/* Category + Subcategory — clean text hierarchy, no decorative icon.
+                                UAT: ปุ่มแก้ไขอยู่แถวเดียวกับชื่อแบบคำร้อง มุมขวาบน */}
                             <div className="pb-8 border-b border-border-default">
-                                <div className="flex items-center gap-6">
+                                <div className="flex items-start justify-between gap-4">
+                                <div className="flex items-center gap-6 flex-1">
                                     {!detailsEditMode ? (
                                         <>
                                             <div className="flex flex-col justify-center">
@@ -1099,6 +1066,17 @@ export default function RequestDetailPage() {
                                             </div>
                                         </>
                                     )}
+                                </div>
+                                {!detailsEditMode && canEditRequestDetails && (
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={handleEnterDetailsEdit}
+                                        leftIcon={<Edit3 size={14} />}
+                                    >
+                                        แก้ไข
+                                    </Button>
+                                )}
                                 </div>
                             </div>
 
@@ -1171,52 +1149,53 @@ export default function RequestDetailPage() {
                                     )}
                                 </div>
                             </div>
+
+                            {/* UAT: ปุ่มยกเลิก/บันทึกอยู่ล่างขวาของฟอร์มแก้ไข */}
+                            {detailsEditMode && (
+                                <div className="flex justify-end gap-2 pt-2">
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={handleCancelDetailsEdit}
+                                        disabled={savingDetails}
+                                        leftIcon={<XIcon size={14} />}
+                                    >
+                                        ยกเลิก
+                                    </Button>
+                                    <Button
+                                        variant="primary"
+                                        size="sm"
+                                        onClick={() => { void guardedSaveDetails(); }}
+                                        disabled={savingDetails}
+                                        isLoading={savingDetails}
+                                        leftIcon={<Save size={14} />}
+                                    >
+                                        บันทึก
+                                    </Button>
+                                </div>
+                            )}
                         </div>
                     )}
 
                     {/* 2. ข้อมูลผู้ติดต่อ */}
                     {activeTab === 'contact' && (
                         <div id="panel-contact" role="tabpanel" aria-labelledby="tab-contact" className="space-y-8">
-                            {/* Action buttons for contact tab */}
-                            <div className="flex justify-end">
-                                {!contactEditMode ? (
-                                    canEditRequestDetails && (
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={handleEnterContactEdit}
-                                            leftIcon={<Edit3 size={14} />}
-                                        >
-                                            แก้ไข
-                                        </Button>
-                                    )
-                                ) : (
-                                    <div className="flex gap-2">
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={handleCancelContactEdit}
-                                            disabled={savingContact}
-                                            leftIcon={<XIcon size={14} />}
-                                        >
-                                            ยกเลิก
-                                        </Button>
-                                        <Button
-                                            variant="primary"
-                                            size="sm"
-                                            onClick={() => { void guardedSaveContact(); }}
-                                            disabled={savingContact}
-                                            isLoading={savingContact}
-                                            leftIcon={<Save size={14} />}
-                                        >
-                                            บันทึก
-                                        </Button>
-                                    </div>
-                                )}
-                            </div>
                             {!contactEditMode ? (
                                 <>
-                                    <div className="flex flex-col items-center p-6 bg-bg rounded-2xl border border-border-default">
+                                    {/* UAT: ปุ่มแก้ไขอยู่มุมขวาบนของกรอบโปรไฟล์ผู้ยื่น */}
+                                    <div className="relative flex flex-col items-center p-6 bg-bg rounded-2xl border border-border-default">
+                                        {canEditRequestDetails && (
+                                            <div className="absolute top-4 right-4">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={handleEnterContactEdit}
+                                                    leftIcon={<Edit3 size={14} />}
+                                                >
+                                                    แก้ไข
+                                                </Button>
+                                            </div>
+                                        )}
                                         <div className="w-24 h-24 rounded-full border-2 border-border-default mb-4 bg-bg flex items-center justify-center text-text-secondary text-3xl font-bold">
                                             {request.firstname ? request.firstname[0] : '?'}
                                         </div>
@@ -1310,52 +1289,57 @@ export default function RequestDetailPage() {
                                             />
                                         </div>
                                     </div>
-                                    {/* หน่วยงาน + ที่อยู่ */}
+                                    {/* หน่วยงาน + ที่อยู่ — dropdown ชุดเดียวกับฟอร์ม LIFF (unity/consistency) */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="space-y-1 md:col-span-2">
                                             <label htmlFor="edit-agency" className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary">หน่วยงาน</label>
-                                            <input
+                                            <select
                                                 id="edit-agency"
-                                                type="text"
                                                 value={contactFormData.agency}
                                                 onChange={(e) => setContactFormData(prev => ({ ...prev, agency: e.target.value }))}
-                                                className="w-full p-2.5 bg-bg border border-border-default rounded-lg text-sm outline-none focus:border-primary/40 focus:ring-4 focus:ring-primary/10"
-                                                placeholder="หน่วยงาน"
-                                            />
+                                                className="w-full p-2.5 bg-bg border border-border-default rounded-lg text-sm outline-none focus:border-primary/40 focus:ring-4 focus:ring-primary/10 cursor-pointer"
+                                            >
+                                                <option value="">— เลือกหน่วยงาน —</option>
+                                                {/* Legacy rows may hold an agency outside the current list — keep it selectable so opening edit mode doesn't silently change data */}
+                                                {contactFormData.agency && !AGENCIES.some(a => a.value === contactFormData.agency) && (
+                                                    <option value={contactFormData.agency}>{contactFormData.agency}</option>
+                                                )}
+                                                {AGENCIES.map(a => (
+                                                    <option key={a.value} value={a.value}>{a.label}</option>
+                                                ))}
+                                            </select>
                                         </div>
-                                        <div className="space-y-1">
-                                            <label htmlFor="edit-sub-district" className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary">ตำบล/แขวง</label>
-                                            <input
-                                                id="edit-sub-district"
-                                                type="text"
-                                                value={contactFormData.sub_district}
-                                                onChange={(e) => setContactFormData(prev => ({ ...prev, sub_district: e.target.value }))}
-                                                className="w-full p-2.5 bg-bg border border-border-default rounded-lg text-sm outline-none focus:border-primary/40 focus:ring-4 focus:ring-primary/10"
-                                                placeholder="ตำบล/แขวง"
-                                            />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <label htmlFor="edit-district" className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary">อำเภอ/เขต</label>
-                                            <input
-                                                id="edit-district"
-                                                type="text"
-                                                value={contactFormData.district}
-                                                onChange={(e) => setContactFormData(prev => ({ ...prev, district: e.target.value }))}
-                                                className="w-full p-2.5 bg-bg border border-border-default rounded-lg text-sm outline-none focus:border-primary/40 focus:ring-4 focus:ring-primary/10"
-                                                placeholder="อำเภอ/เขต"
-                                            />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <label htmlFor="edit-province" className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary">จังหวัด</label>
-                                            <input
-                                                id="edit-province"
-                                                type="text"
-                                                value={contactFormData.province}
-                                                onChange={(e) => setContactFormData(prev => ({ ...prev, province: e.target.value }))}
-                                                className="w-full p-2.5 bg-bg border border-border-default rounded-lg text-sm outline-none focus:border-primary/40 focus:ring-4 focus:ring-primary/10"
-                                                placeholder="จังหวัด"
-                                            />
-                                        </div>
+                                        <ThaiAddressCascade
+                                            value={{
+                                                province: contactFormData.province,
+                                                district: contactFormData.district,
+                                                sub_district: contactFormData.sub_district,
+                                            }}
+                                            onChange={(addr) => setContactFormData(prev => ({ ...prev, ...addr }))}
+                                        />
+                                    </div>
+
+                                    {/* UAT: ปุ่มยกเลิก/บันทึกอยู่ล่างขวาของฟอร์มแก้ไข */}
+                                    <div className="flex justify-end gap-2 pt-2">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={handleCancelContactEdit}
+                                            disabled={savingContact}
+                                            leftIcon={<XIcon size={14} />}
+                                        >
+                                            ยกเลิก
+                                        </Button>
+                                        <Button
+                                            variant="primary"
+                                            size="sm"
+                                            onClick={() => { void guardedSaveContact(); }}
+                                            disabled={savingContact}
+                                            isLoading={savingContact}
+                                            leftIcon={<Save size={14} />}
+                                        >
+                                            บันทึก
+                                        </Button>
                                     </div>
                                 </div>
                             )}

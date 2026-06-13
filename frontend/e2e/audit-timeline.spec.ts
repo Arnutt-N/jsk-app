@@ -36,7 +36,18 @@ test.describe('Request detail -- audit timeline', () => {
   test('comments tab renders the merged timeline without crashing', async ({ page }) => {
     const detailUrl = await getFirstRequestDetailUrl(page)
     test.skip(!detailUrl, 'no requests in test DB; nothing to render')
+
+    // Capture the audit-logs API status. The page swallows fetch errors by
+    // design (graceful degradation), so a 500 here would otherwise be
+    // invisible to the UI -- exactly the regression UAT caught when the
+    // model declared created_at naive against a timestamptz column.
+    const auditResponse = page.waitForResponse(
+      (r) => r.url().includes('/admin/audit/logs') && r.url().includes('resource_id='),
+      { timeout: 15_000 }
+    )
     await page.goto(detailUrl!)
+    const res = await auditResponse
+    expect(res.status(), 'GET /admin/audit/logs must not error').toBe(200)
 
     await page.getByRole('tab', { name: /การดำเนินงาน/ }).click()
     await expect(page.locator('#panel-comments')).toBeVisible({ timeout: 10_000 })
