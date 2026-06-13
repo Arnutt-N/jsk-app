@@ -14,7 +14,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useUndoableState } from '@/hooks/useUndoableState'
 import Link from 'next/link'
-import { ChevronLeft, ShieldCheck, AlertCircle, CheckCircle2, Lock, Undo2, Redo2 } from 'lucide-react'
+import { ChevronLeft, ShieldCheck, AlertCircle, CheckCircle2, Lock, Undo2, Redo2, X, Save } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
@@ -291,11 +291,23 @@ export default function PermissionSettingsPage() {
               </Button>
             </Tooltip>
           </div>
-          <Button variant="outline" onClick={handleCancel} disabled={!isDirty || saving}>
+          <Button
+            variant="ghost"
+            onClick={handleCancel}
+            disabled={!isDirty || saving}
+            leftIcon={<X className="h-4 w-4" />}
+          >
             ยกเลิก
           </Button>
-          <Button variant="primary" onClick={handleSave} disabled={!isDirty || saving}>
-            {saving ? 'กำลังบันทึก...' : 'บันทึก'}
+          <Button
+            variant="primary"
+            onClick={handleSave}
+            disabled={!isDirty}
+            isLoading={saving}
+            loadingText="กำลังบันทึก..."
+            leftIcon={<Save className="h-4 w-4" />}
+          >
+            บันทึก
           </Button>
         </div>
       )}
