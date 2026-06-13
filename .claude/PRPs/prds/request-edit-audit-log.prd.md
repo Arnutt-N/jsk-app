@@ -133,7 +133,7 @@ ADMIN แก้เบอร์โทรในแท็บผู้ติดต�
 |---|-------|-------------|--------|----------|---------|----------|
 | 1 | Backend: capture diff + API | สร้าง audit entry พร้อม old→new ใน update_request, เพิ่ม resource_id filter, pytest | complete | - | - | [plan](../plans/completed/request-edit-audit-log-phase1.plan.md) · [report](../reports/request-edit-audit-log-phase1-report.md) |
 | 2 | Frontend: timeline merge | fetch audit ราย request, แทรก timeline เรียงเวลา, ชื่อ field ไทย, component แยก | complete | - | 1 | [plan](../plans/completed/request-edit-audit-log-phase2.plan.md) · [report](../reports/request-edit-audit-log-phase2-report.md) |
-| 3 | E2E + validation | Playwright/UAT ยืนยัน entry ปรากฏ, completion report | pending | - | 2 | - |
+| 3 | E2E + validation | Playwright/UAT ยืนยัน entry ปรากฏ, completion report | complete | - | 2 | [report](../reports/request-edit-audit-log-phase3-report.md) |
 
 ### Phase Details
 
