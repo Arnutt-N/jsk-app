@@ -16,6 +16,9 @@
 **แนวแก้**: ทำ loading fallback กลาง 1 แบบ (centered, `min-h-[60vh]`/`min-h-screen` flex items-center justify-center + LoadingSpinner + ข้อความ) ใช้ทุกที่ ; กัน layout shift ตอน login redirect (spinner อยู่ใน container เดียวกับ content)
 
 ## PR B — [med] ปุ่ม ยกเลิก/บันทึก unity ทั้งโปรเจค (state + ไอคอน)
+> **สถานะ: ✅ complete** — PR #96 (squash merged, main `abae936`)
+> detail tabs (details/contact/manage) gate save ด้วย dirty check (`buildChangedFields`/`isManageDirty`) เหมือน comment tab · create form ปุ่มยกเลิก ghost+`X`, บันทึก primary+`Save` ตรง canonical FormActions
+> follow-up (ยังไม่ทำ): sweep ปุ่ม settings/users/files ที่เหลือ
 **อาการ**:
 1. แท็บ "การดำเนินงาน/ความเห็น" ปุ่มบันทึก disabled จนกว่าจะพิมพ์ (saveDisabled) แต่แท็บ "จัดการคำร้อง" **ไม่มี disabled state** (บันทึก active ตลอด) → ไม่ consistent
 2. ไอคอนปุ่มบันทึก/ยกเลิก + การตกแต่ง ทุกหน้า ไม่ unity (issue #6)
