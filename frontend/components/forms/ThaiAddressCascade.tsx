@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import type { Province, District, SubDistrict } from '@/types/location';
 import { logger } from '@/lib/logger';
+import { FormSelect } from '@/components/forms/FormSelect';
 
 export interface ThaiAddress {
     province: string;
@@ -14,13 +15,10 @@ interface ThaiAddressCascadeProps {
     value: ThaiAddress;
     onChange: (next: ThaiAddress) => void;
     labelClassName?: string;
-    selectClassName?: string;
 }
 
 const DEFAULT_LABEL_CLASS =
     'text-[11px] font-bold uppercase tracking-wider text-text-tertiary';
-const DEFAULT_SELECT_CLASS =
-    'w-full p-2.5 bg-bg border border-border-default rounded-lg text-sm outline-none focus:border-primary/40 focus:ring-4 focus:ring-primary/10 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed';
 
 /**
  * Dropdown ที่อยู่แบบลำดับชั้น จังหวัด → อำเภอ/เขต → ตำบล/แขวง
@@ -41,7 +39,6 @@ export function ThaiAddressCascade({
     value,
     onChange,
     labelClassName = DEFAULT_LABEL_CLASS,
-    selectClassName = DEFAULT_SELECT_CLASS,
 }: ThaiAddressCascadeProps) {
     const [provinces, setProvinces] = useState<Province[]>([]);
     const [districts, setDistricts] = useState<District[]>([]);
@@ -146,47 +143,44 @@ export function ThaiAddressCascade({
         <>
             <div className="space-y-1 md:col-span-2">
                 <label htmlFor="edit-province" className={labelClassName}>จังหวัด</label>
-                <select
+                <FormSelect
                     id="edit-province"
                     value={provinceId ?? ''}
                     onChange={handleProvinceChange}
-                    className={selectClassName}
                 >
                     <option value="">{provincePlaceholder}</option>
                     {provinces.map((p) => (
                         <option key={p.PROVINCE_ID} value={p.PROVINCE_ID}>{p.PROVINCE_THAI}</option>
                     ))}
-                </select>
+                </FormSelect>
             </div>
             <div className="space-y-1">
                 <label htmlFor="edit-district" className={labelClassName}>อำเภอ/เขต</label>
-                <select
+                <FormSelect
                     id="edit-district"
                     value={districtId ?? ''}
                     onChange={handleDistrictChange}
                     disabled={!provinceId}
-                    className={selectClassName}
                 >
                     <option value="">{districtPlaceholder}</option>
                     {districts.map((d) => (
                         <option key={d.DISTRICT_ID} value={d.DISTRICT_ID}>{d.DISTRICT_THAI}</option>
                     ))}
-                </select>
+                </FormSelect>
             </div>
             <div className="space-y-1">
                 <label htmlFor="edit-sub-district" className={labelClassName}>ตำบล/แขวง</label>
-                <select
+                <FormSelect
                     id="edit-sub-district"
                     value={selectedSubDistrict?.SUB_DISTRICT_ID ?? ''}
                     onChange={handleSubDistrictChange}
                     disabled={!districtId}
-                    className={selectClassName}
                 >
                     <option value="">{subDistrictPlaceholder}</option>
                     {subDistricts.map((s) => (
                         <option key={s.SUB_DISTRICT_ID} value={s.SUB_DISTRICT_ID}>{s.SUB_DISTRICT_THAI}</option>
                     ))}
-                </select>
+                </FormSelect>
             </div>
         </>
     );

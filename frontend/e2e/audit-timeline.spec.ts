@@ -81,10 +81,11 @@ test.describe('Request detail -- audit timeline', () => {
     await page.getByRole('button', { name: 'บันทึก' }).click()
     await expect(page.getByText('บันทึกข้อมูลผู้ติดต่อเรียบร้อย')).toBeVisible({ timeout: 10_000 })
 
-    // The audit entry must appear in the merged timeline.
+    // The audit entry must appear in the merged timeline. A phone edit is a
+    // contact-tab field, so the scope badge reads "แก้ไขข้อมูลผู้ติดต่อ".
     await page.getByRole('tab', { name: /การดำเนินงาน/ }).click()
     await expect(page.locator('#panel-comments')).toBeVisible({ timeout: 10_000 })
-    await expect(page.getByText('แก้ไขข้อมูลคำร้อง').first()).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText('แก้ไขข้อมูลผู้ติดต่อ').first()).toBeVisible({ timeout: 10_000 })
     await expect(page.getByText('หมายเลขโทรศัพท์').first()).toBeVisible()
     await expect(page.getByText(flipped).first()).toBeVisible()
 

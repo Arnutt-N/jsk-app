@@ -60,6 +60,7 @@ import {
 import { CATEGORIES, DRUG_REPORTING_SUBCATEGORIES, isValidCategory, isValidDrugReportingSubcategory } from '@/lib/constants/categories';
 import { AGENCIES } from '@/lib/constants/agencies';
 import { ThaiAddressCascade } from '@/components/forms/ThaiAddressCascade';
+import { FormSelect } from '@/components/forms/FormSelect';
 import { usePermissions } from '@/lib/permissions';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGuardedUpdate } from '@/hooks/useGuardedUpdate';
@@ -1016,7 +1017,7 @@ export default function RequestDetailPage() {
                                         <>
                                             <div className="flex flex-col justify-center flex-1">
                                                 <label htmlFor="edit-topic-category" className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary mb-1">หมวดหมู่</label>
-                                                <select
+                                                <FormSelect
                                                     id="edit-topic-category"
                                                     value={detailsFormData.topic_category}
                                                     onChange={(e) => setDetailsFormData(prev => ({
@@ -1025,7 +1026,7 @@ export default function RequestDetailPage() {
                                                         // เปลี่ยนหมวดหมู่ → ล้างประเภทย่อยเดิมที่อาจไม่สัมพันธ์กัน
                                                         topic_subcategory: '',
                                                     }))}
-                                                    className="w-full p-2 bg-bg border border-border-default rounded-lg text-base font-bold outline-none focus:border-primary/40 focus:ring-4 focus:ring-primary/10 cursor-pointer"
+                                                    className="p-2 text-base font-bold"
                                                 >
                                                     {/* Legacy rows may hold a category outside the current list — keep it selectable so opening edit mode doesn't silently change data */}
                                                     {detailsFormData.topic_category && !isValidCategory(detailsFormData.topic_category) && (
@@ -1034,16 +1035,16 @@ export default function RequestDetailPage() {
                                                     {CATEGORIES.map(c => (
                                                         <option key={c.value} value={c.value}>{c.label}</option>
                                                     ))}
-                                                </select>
+                                                </FormSelect>
                                             </div>
                                             <div className="flex flex-col justify-center flex-1">
                                                 <label htmlFor="edit-topic-subcategory" className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary mb-1">ประเภท</label>
                                                 {detailsFormData.topic_category === 'แจ้งเบาะแสยาเสพติด' ? (
-                                                    <select
+                                                    <FormSelect
                                                         id="edit-topic-subcategory"
                                                         value={detailsFormData.topic_subcategory}
                                                         onChange={(e) => setDetailsFormData(prev => ({ ...prev, topic_subcategory: e.target.value }))}
-                                                        className="w-full p-2 bg-bg border border-border-default rounded-lg text-base font-bold outline-none focus:border-primary/40 focus:ring-4 focus:ring-primary/10 cursor-pointer"
+                                                        className="p-2 text-base font-bold"
                                                     >
                                                         <option value="">— เลือกประเภท —</option>
                                                         {detailsFormData.topic_subcategory && !isValidDrugReportingSubcategory(detailsFormData.topic_subcategory) && (
@@ -1052,7 +1053,7 @@ export default function RequestDetailPage() {
                                                         {DRUG_REPORTING_SUBCATEGORIES.map(s => (
                                                             <option key={s.value} value={s.value}>{s.label}</option>
                                                         ))}
-                                                    </select>
+                                                    </FormSelect>
                                                 ) : (
                                                     <input
                                                         id="edit-topic-subcategory"
@@ -1293,11 +1294,10 @@ export default function RequestDetailPage() {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="space-y-1 md:col-span-2">
                                             <label htmlFor="edit-agency" className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary">หน่วยงาน</label>
-                                            <select
+                                            <FormSelect
                                                 id="edit-agency"
                                                 value={contactFormData.agency}
                                                 onChange={(e) => setContactFormData(prev => ({ ...prev, agency: e.target.value }))}
-                                                className="w-full p-2.5 bg-bg border border-border-default rounded-lg text-sm outline-none focus:border-primary/40 focus:ring-4 focus:ring-primary/10 cursor-pointer"
                                             >
                                                 <option value="">— เลือกหน่วยงาน —</option>
                                                 {/* Legacy rows may hold an agency outside the current list — keep it selectable so opening edit mode doesn't silently change data */}
@@ -1307,7 +1307,7 @@ export default function RequestDetailPage() {
                                                 {AGENCIES.map(a => (
                                                     <option key={a.value} value={a.value}>{a.label}</option>
                                                 ))}
-                                            </select>
+                                            </FormSelect>
                                         </div>
                                         <ThaiAddressCascade
                                             value={{
