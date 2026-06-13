@@ -521,7 +521,7 @@ export default function LiffServiceRequestV2() {
                     ))}
                 </div>
 
-                <form onSubmit={handleFormSubmit} className="space-y-6">
+                <form onSubmit={handleFormSubmit} className="liff-form space-y-6">
                     {error && (
                         <Alert variant="danger" title="เกิดข้อผิดพลาด">
                             {error}
@@ -848,7 +848,7 @@ export default function LiffServiceRequestV2() {
                                 <Button
                                     type="button"
                                     variant="outline"
-                                    className="flex-1 py-3 h-auto"
+                                    className="flex-1 py-3 h-auto whitespace-nowrap"
                                     onClick={prevStep}
                                 >
                                     <ChevronLeft className="w-4 h-4 mr-2" /> กลับ
@@ -859,7 +859,7 @@ export default function LiffServiceRequestV2() {
                                 <Button
                                     type="button"
                                     variant="primary"
-                                    className="flex-[2] py-3 h-auto"
+                                    className="flex-[2] py-3 h-auto whitespace-nowrap"
                                     onClick={nextStep}
                                 >
                                     ถัดไป <ChevronRight className="w-4 h-4 ml-2" />

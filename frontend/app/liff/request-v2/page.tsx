@@ -311,7 +311,7 @@ export default function LiffServiceRequestV2() {
                 <p className="text-xs opacity-80">ยุติธรรมจังหวัดสกลนคร | API: {provinces.length > 0 ? 'Connected' : 'Connecting...'}</p>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-4 space-y-6 max-w-lg mx-auto">
+            <form onSubmit={handleSubmit} className="liff-form p-4 space-y-6 max-w-lg mx-auto">
                 {error && (
                     <div className="p-3 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100">
                         {error}
