@@ -9,6 +9,7 @@ import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { cn } from '@/lib/utils';
 import { ActionIconButton } from '@/components/ui/ActionIconButton';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import PageHeader from '../../components/PageHeader';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { logger } from '@/lib/logger';
@@ -192,7 +193,7 @@ export default function CategoryDetailPage() {
         if (res.ok) fetchCategoryDetail();
     };
 
-    if (loading) return <div className="p-8 text-center text-text-tertiary">กำลังโหลด...</div>;
+    if (loading) return <LoadingSpinner label="กำลังโหลด..." />;
     if (!category) return <div className="p-8 text-center text-text-tertiary">ไม่พบข้อมูล</div>;
 
     return (

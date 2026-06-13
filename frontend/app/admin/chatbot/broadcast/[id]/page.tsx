@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import PageHeader from '@/app/admin/components/PageHeader';
 import { logger } from '@/lib/logger';
 
@@ -147,10 +148,7 @@ export default function BroadcastDetailPage() {
                 <PageHeader title="รายละเอียด Broadcast" />
                 <Card glass className="border-none shadow-sm">
                     <CardContent className="p-8">
-                        <div className="flex items-center justify-center gap-3 text-gray-400">
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                            <span className="text-sm">กำลังโหลด...</span>
-                        </div>
+                        <LoadingSpinner label="กำลังโหลด..." fullPage={false} />
                     </CardContent>
                 </Card>
             </div>

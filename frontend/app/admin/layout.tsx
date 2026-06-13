@@ -63,16 +63,16 @@ function AdminAuthGate({ children }: { children: React.ReactNode }) {
 
   if (isLoading || !isAuthenticated) {
     return (
-      <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <LoadingSpinner label="กำลังโหลด..." />
+      <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 lg:pl-64">
+        <LoadingSpinner label="กำลังโหลด..." fullPage={false} />
       </div>
     );
   }
 
   if (user?.role === 'AGENT' && pathname !== '/admin/live-chat') {
     return (
-      <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <LoadingSpinner label="กำลังโหลด..." />
+      <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 lg:pl-64">
+        <LoadingSpinner label="กำลังโหลด..." fullPage={false} />
       </div>
     );
   }
