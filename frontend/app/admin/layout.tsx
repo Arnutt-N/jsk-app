@@ -375,17 +375,18 @@ function AdminShell({ children }: { children: React.ReactNode }) {
               </div>
 
               <div className="flex items-center gap-2.5">
-                {/* Language Toggle TH/EN */}
-                <AdminLanguageToggle locale={adminLocale} onToggle={toggleAdminLocale} />
-
-                {/* Theme Toggle Switch */}
-                <ThemeToggleSwitch />
+                {/* Language + Theme toggles — desktop only. On mobile they move
+                    into the profile dropdown (UserMenu) to declutter the navbar. */}
+                <div className="hidden sm:flex items-center gap-2.5">
+                  <AdminLanguageToggle locale={adminLocale} onToggle={toggleAdminLocale} />
+                  <ThemeToggleSwitch />
+                </div>
 
                 <NotificationPanel />
 
                 <div className="w-px h-8 bg-gray-200 dark:bg-gray-700 mx-1" />
 
-                <UserMenu />
+                <UserMenu locale={adminLocale} onToggleLocale={toggleAdminLocale} />
               </div>
             </header>
 
