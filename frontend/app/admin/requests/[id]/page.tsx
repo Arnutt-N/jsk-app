@@ -13,7 +13,6 @@ import {
     Calendar,
     Building2,
     Paperclip,
-    Send,
     UserPlus,
     MessageSquare,
     Phone,
@@ -33,13 +32,12 @@ import {
     UserX,
     Forward,
     Edit3,
-    Save,
-    X as XIcon,
 } from 'lucide-react';
 import { AssignModal } from '@/components/admin/AssignModal';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EscalationDialog } from '@/components/ui/EscalationDialog';
 import { Button } from '@/components/ui/Button';
+import { FormActions } from '@/components/admin/FormActions';
 import {
     DropdownMenu,
     DropdownMenuTrigger,
@@ -245,20 +243,12 @@ function CommentInputSection({ requestId, onSuccess }: {
                             </Button>
                         </Tooltip>
                     </div>
-                    <Button variant="ghost" size="md" onClick={handleCancel}>
-                        ยกเลิก
-                    </Button>
-                    <Button
-                        variant="primary"
-                        size="md"
-                        onClick={handleAddComment}
-                        disabled={!newComment.trim() || submittingComment}
-                        isLoading={submittingComment}
-                        leftIcon={<Send size={16} />}
-                        aria-label="บันทึกความเห็น"
-                    >
-                        บันทึก
-                    </Button>
+                    <FormActions
+                        onCancel={handleCancel}
+                        onSave={handleAddComment}
+                        saving={submittingComment}
+                        saveDisabled={!newComment.trim()}
+                    />
                 </div>
             </div>
         </div>
@@ -1161,25 +1151,11 @@ export default function RequestDetailPage() {
                             {/* UAT: ปุ่มยกเลิก/บันทึกอยู่ล่างขวาของฟอร์มแก้ไข */}
                             {detailsEditMode && (
                                 <div className="flex justify-end gap-2 pt-2">
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={handleCancelDetailsEdit}
-                                        disabled={savingDetails}
-                                        leftIcon={<XIcon size={14} />}
-                                    >
-                                        ยกเลิก
-                                    </Button>
-                                    <Button
-                                        variant="primary"
-                                        size="sm"
-                                        onClick={() => { void guardedSaveDetails(); }}
-                                        disabled={savingDetails}
-                                        isLoading={savingDetails}
-                                        leftIcon={<Save size={14} />}
-                                    >
-                                        บันทึก
-                                    </Button>
+                                    <FormActions
+                                        onCancel={handleCancelDetailsEdit}
+                                        onSave={() => { void guardedSaveDetails(); }}
+                                        saving={savingDetails}
+                                    />
                                 </div>
                             )}
                         </div>
@@ -1215,7 +1191,7 @@ export default function RequestDetailPage() {
                                             <div className="w-10 h-10 bg-surface border border-border-default text-text-secondary rounded-full flex items-center justify-center shrink-0"><Building2 size={20} aria-hidden="true" /></div>
                                             <div className="overflow-hidden">
                                                 <p className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary">หน่วยงาน / ที่อยู่</p>
-                                                <p className="text-sm font-bold truncate">{request.sub_district}, {request.district}, {request.province}</p>
+                                                <p className="text-sm font-bold truncate">{[request.sub_district, request.district, request.province].filter(Boolean).join(', ') || 'ไม่ระบุ'}</p>
                                             </div>
                                         </div>
                                         <div className="p-4 border border-border-default rounded-xl flex items-center gap-4">
@@ -1328,25 +1304,11 @@ export default function RequestDetailPage() {
 
                                     {/* UAT: ปุ่มยกเลิก/บันทึกอยู่ล่างขวาของฟอร์มแก้ไข */}
                                     <div className="flex justify-end gap-2 pt-2">
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={handleCancelContactEdit}
-                                            disabled={savingContact}
-                                            leftIcon={<XIcon size={14} />}
-                                        >
-                                            ยกเลิก
-                                        </Button>
-                                        <Button
-                                            variant="primary"
-                                            size="sm"
-                                            onClick={() => { void guardedSaveContact(); }}
-                                            disabled={savingContact}
-                                            isLoading={savingContact}
-                                            leftIcon={<Save size={14} />}
-                                        >
-                                            บันทึก
-                                        </Button>
+                                        <FormActions
+                                            onCancel={handleCancelContactEdit}
+                                            onSave={() => { void guardedSaveContact(); }}
+                                            saving={savingContact}
+                                        />
                                     </div>
                                 </div>
                             )}
@@ -1357,7 +1319,7 @@ export default function RequestDetailPage() {
                     {activeTab === 'comments' && (
                         <div id="panel-comments" role="tabpanel" aria-labelledby="tab-comments" className="space-y-8">
                             {/* Timeline History */}
-                            <div className="relative pl-6 sm:pl-8 border-l-2 border-border-default space-y-8 ml-3">
+                            <div className="relative pl-8 border-l-2 border-border-default space-y-8 ml-3">
                                 {mergedTimeline.length === 0 ? (
                                     <div className="text-center py-10 text-text-secondary text-xs italic pl-4">ยังไม่มีประวัติการดำเนินงาน</div>
                                 ) : mergedTimeline.map((item) => {
@@ -1382,7 +1344,7 @@ export default function RequestDetailPage() {
                                     return (
                                         <div key={`c-${comment.id}`} className="relative group">
                                             {/* Timeline Dot */}
-                                            <div className={`absolute -left-[41px] top-0 w-6 h-6 rounded-full border-[5px] border-surface shadow-md ${dotColor}`}></div>
+                                            <div className={`absolute -left-[45px] top-0 w-6 h-6 rounded-full border-[5px] border-surface shadow-md ${dotColor}`}></div>
 
                                             {/* Header */}
                                             <div className="flex items-center justify-between mb-2">
@@ -1559,17 +1521,11 @@ export default function RequestDetailPage() {
                                         </Button>
                                     </Tooltip>
                                 </div>
-                                <Button variant="ghost" size="md" onClick={handleCancelManage}>
-                                    ยกเลิก
-                                </Button>
-                                <Button
-                                    variant="primary"
-                                    size="md"
-                                    onClick={handleSaveManage}
-                                    leftIcon={<CheckCircle2 size={18} />}
-                                >
-                                    บันทึก
-                                </Button>
+                                <FormActions
+                                    onCancel={handleCancelManage}
+                                    onSave={handleSaveManage}
+                                    saving={loading}
+                                />
                             </div>
                         </div>
                     )}

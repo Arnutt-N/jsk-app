@@ -24,7 +24,7 @@ export function AuditTimelineEntry({ audit }: { audit: AuditLogEntry }) {
     return (
         <div className="relative group">
             {/* Timeline Dot — ตำแหน่ง/ขนาดต้องตรงกับ dot ของ comment ให้แนวเส้นตรงกัน */}
-            <div className="absolute -left-[41px] top-0 w-6 h-6 rounded-full border-[5px] border-surface shadow-md bg-violet-400 dark:bg-violet-500 shadow-violet-100 dark:shadow-violet-900/20"></div>
+            <div className="absolute -left-[45px] top-0 w-6 h-6 rounded-full border-[5px] border-surface shadow-md bg-violet-400 dark:bg-violet-500 shadow-violet-100 dark:shadow-violet-900/20"></div>
 
             {/* Header */}
             <div className="flex items-center justify-between mb-2">

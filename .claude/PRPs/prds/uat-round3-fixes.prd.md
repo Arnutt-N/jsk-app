@@ -39,6 +39,9 @@
 
 ## PR C — [กลาง] Unity หน้า request detail (3 ประเด็นรวม)
 
+> **สถานะ: ✅ complete** — แผน: `.claude/PRPs/plans/completed/uat-round3-pr-c-detail-unity.plan.md` · รายงาน: `.claude/PRPs/reports/uat-round3-pr-c-detail-unity-report.md`
+> FormActions ใช้ร่วม 4 แท็บ · dot กึ่งกลางเส้น (pl-8 + -left-[45px]) · ที่อยู่ว่าง→"ไม่ระบุ"
+
 **ไฟล์**: `frontend/app/admin/requests/[id]/page.tsx`, `frontend/components/admin/AuditTimelineEntry.tsx`
 1. **ปุ่มยกเลิก/บันทึก ทุกแท็บให้เหมือนกัน** (รายละเอียด / ที่อยู่ / การดำเนินงาน·ความเห็น / จัดการคำร้อง)
    — ตอนนี้ position/ขนาด/ไอคอนไม่ตรงกัน → ทำ pattern เดียว (ล่างขวา, ปุ่มเดียวกัน) อาจแตก component `<FormActions onCancel onSave saving/>`
