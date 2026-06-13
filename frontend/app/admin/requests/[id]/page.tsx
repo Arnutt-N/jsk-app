@@ -657,6 +657,21 @@ export default function RequestDetailPage() {
     const canRevertApproval = permissions?.can_revert_approval ?? false;
     const canEditRequestDetails = permissions?.can_edit_request_details ?? false;
 
+    // --- Workflow button gating (PR B: role-capped single row + overflow kebab) ---
+    // Tier: canApprove (can_assign) === supervisor (superadmin/admin/director/head);
+    // staff (AGENT)/user reach actions only as the assignee. Secondary/override
+    // actions live in the kebab so the visible row stays at <=2 (staff) / <=3
+    // (supervisor) buttons.
+    const reqStatus = request?.status;
+    const isActiveStatus = reqStatus !== 'COMPLETED' && reqStatus !== 'REJECTED';
+    const isDrugReport = request?.topic_category === 'แจ้งเบาะแสยาเสพติด';
+    const showEscalateInKebab = isDrugReport && (isAssignee || canApprove) && isActiveStatus;
+    const showForceComplete = canApprove && reqStatus !== 'COMPLETED';
+    const showRevertToPending = canApprove && reqStatus !== 'PENDING' && reqStatus !== 'COMPLETED';
+    const showRevertApproval = reqStatus === 'COMPLETED' && canRevertApproval;
+    const workflowKebabHasItems =
+        showEscalateInKebab || showForceComplete || showRevertToPending || showRevertApproval;
+
     // P1: dirty-state tracker for manage tab
     const isManageDirty = useMemo(() => {
         if (!request) return false;
@@ -791,11 +806,13 @@ export default function RequestDetailPage() {
                             </span>
                         )}
 
-                        {/* P1: Adaptive primary CTA — shows ONLY the next logical workflow step.
-                            Secondary actions (assign, escalate, reject, reopen, overrides) move to
-                            the secondary toolbar row below the hero. */}
+                        {/* PR B: single role-capped workflow row. One status-driven
+                            next-step CTA, then มอบหมาย (supervisor only) and ปฏิเสธ
+                            (assignee or supervisor). Overflow/secondary actions live in
+                            the rightmost kebab. Caps: staff/user <=2 buttons + kebab,
+                            supervisor <=3 buttons + kebab. */}
                         <div className="flex flex-wrap items-center gap-2 ml-auto">
-                            {/* Next-step CTA */}
+                            {/* Next-step CTA — exactly one button driven by status */}
                             {request.status === 'PENDING' && (isAssignee || canApprove) && (
                                 <Button
                                     variant="primary"
@@ -840,42 +857,100 @@ export default function RequestDetailPage() {
                                     อนุมัติ
                                 </Button>
                             )}
-                            {/* Secondary actions surfaced in the same top-right
-                                group so the user can reach them without scanning
-                                a second toolbar row. Primary action stays leftmost;
-                                secondary follows after a hairline divider. */}
-                            {canApprove && request.status !== 'COMPLETED' && request.status !== 'REJECTED' && (
-                                <>
-                                    <span aria-hidden="true" className="mx-1 h-6 w-px bg-border-default" />
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => setAssignModalOpen(true)}
-                                        leftIcon={<UserPlus size={16} />}
+                            {request.status === 'REJECTED' && canApprove && (
+                                <Button
+                                    variant="primary"
+                                    size="sm"
+                                    disabled={submitting}
+                                    onClick={() => { void guardedUpdate({ status: 'PENDING', assigned_agent_id: null }); }}
+                                    leftIcon={<RotateCcw size={18} />}
+                                >
+                                    เปิดเรื่องใหม่
+                                </Button>
+                            )}
+
+                            {/* มอบหมาย — supervisor only (can_assign) */}
+                            {canApprove && isActiveStatus && (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setAssignModalOpen(true)}
+                                    leftIcon={<UserPlus size={16} />}
+                                >
+                                    {request.assigned_agent_id ? 'เปลี่ยนผู้รับผิดชอบ' : 'มอบหมาย'}
+                                </Button>
+                            )}
+
+                            {/* ปฏิเสธ — assignee (staff) or supervisor */}
+                            {(isAssignee || canApprove) && isActiveStatus && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="border-danger/30 text-danger hover:bg-danger/5 hover:text-danger"
+                                    disabled={submitting}
+                                    onClick={() => setRejectConfirm({ open: true, reason: '' })}
+                                    leftIcon={<XCircle size={16} />}
+                                >
+                                    ปฏิเสธ
+                                </Button>
+                            )}
+
+                            {/* Overflow kebab — rightmost. Secondary/override actions. */}
+                            {workflowKebabHasItems && (
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger
+                                        aria-label="ตัวเลือกเพิ่มเติม"
+                                        className="inline-flex items-center justify-center h-11 w-11 sm:h-8 sm:w-8 rounded-lg border border-border-default bg-surface text-text-secondary hover:bg-bg hover:text-text-primary transition-colors cursor-pointer"
                                     >
-                                        {request.assigned_agent_id ? 'เปลี่ยนผู้รับผิดชอบ' : 'มอบหมาย'}
-                                    </Button>
-                                    {request.topic_category === 'แจ้งเบาะแสยาเสพติด' && (
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => setEscalationDialogOpen(true)}
-                                            leftIcon={<Forward size={16} />}
-                                        >
-                                            ส่งต่อหน่วยงานเฉพาะทาง
-                                        </Button>
-                                    )}
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="border-danger/30 text-danger hover:bg-danger/5 hover:text-danger"
-                                        disabled={submitting}
-                                        onClick={() => setRejectConfirm({ open: true, reason: '' })}
-                                        leftIcon={<XCircle size={16} />}
-                                    >
-                                        ปฏิเสธ
-                                    </Button>
-                                </>
+                                        <MoreVertical size={16} />
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="min-w-[12rem]">
+                                        <DropdownMenuLabel>ตัวเลือกเพิ่มเติม</DropdownMenuLabel>
+                                        <DropdownMenuSeparator />
+                                        {showEscalateInKebab && (
+                                            <DropdownMenuItem onClick={() => setEscalationDialogOpen(true)}>
+                                                <Forward size={16} className="text-primary" aria-hidden="true" />
+                                                ส่งต่อหน่วยงานเฉพาะทาง
+                                            </DropdownMenuItem>
+                                        )}
+                                        {showForceComplete && (
+                                            <DropdownMenuItem
+                                                disabled={submitting}
+                                                onClick={() => setForceCompleteConfirm(true)}
+                                            >
+                                                <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+                                                บังคับเสร็จสิ้น
+                                            </DropdownMenuItem>
+                                        )}
+                                        {showRevertToPending && (
+                                            <DropdownMenuItem
+                                                disabled={submitting}
+                                                onClick={() => { void guardedUpdate({ status: 'PENDING' }); }}
+                                            >
+                                                <Undo2 size={16} className="text-amber-600 dark:text-amber-400" aria-hidden="true" />
+                                                ย้อนกลับ รอรับเรื่อง
+                                            </DropdownMenuItem>
+                                        )}
+                                        {showRevertApproval && (
+                                            <>
+                                                <DropdownMenuItem
+                                                    disabled={submitting}
+                                                    onClick={() => setRevertConfirm({ open: true, target: 'AWAITING_APPROVAL', notes: '' })}
+                                                >
+                                                    <Undo2 size={16} className="text-amber-600 dark:text-amber-400" aria-hidden="true" />
+                                                    ยกเลิกอนุมัติ → รออนุมัติ
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem
+                                                    disabled={submitting}
+                                                    onClick={() => setRevertConfirm({ open: true, target: 'IN_PROGRESS', notes: '' })}
+                                                >
+                                                    <Undo2 size={16} className="text-amber-600 dark:text-amber-400" aria-hidden="true" />
+                                                    ยกเลิกอนุมัติ → กำลังดำเนินการ
+                                                </DropdownMenuItem>
+                                            </>
+                                        )}
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
                             )}
                         </div>
                     </div>
@@ -886,74 +961,6 @@ export default function RequestDetailPage() {
                         </p>
                     )}
 
-                    {/* P1: Secondary toolbar — REJECTED-state reopen action and
-                        override kebab. The other secondary actions (assign,
-                        escalate, reject) moved into the top-right primary
-                        CTA group above; only REJECTED-specific flows and the
-                        kebab live here now. */}
-                    <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-border-subtle">
-                        {canApprove && request.status === 'REJECTED' && (
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                disabled={submitting}
-                                onClick={() => { void guardedUpdate({ status: 'PENDING', assigned_agent_id: null }); }}
-                                leftIcon={<RotateCcw size={16} />}
-                            >
-                                เปิดเรื่องใหม่
-                            </Button>
-                        )}
-                        {(canApprove || canRevertApproval) && request.status !== 'REJECTED' && (
-                            <DropdownMenu>
-                                <DropdownMenuTrigger
-                                    aria-label="ตัวเลือกเพิ่มเติม"
-                                    className="inline-flex items-center justify-center h-11 w-11 sm:h-8 sm:w-8 rounded-lg border border-border-default bg-surface text-text-secondary hover:bg-bg hover:text-text-primary transition-colors cursor-pointer"
-                                >
-                                    <MoreVertical size={16} />
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="min-w-[12rem]">
-                                    <DropdownMenuLabel>ตัวเลือกเพิ่มเติม</DropdownMenuLabel>
-                                    <DropdownMenuSeparator />
-                                    {request.status !== 'COMPLETED' && (
-                                        <DropdownMenuItem
-                                            disabled={submitting}
-                                            onClick={() => setForceCompleteConfirm(true)}
-                                        >
-                                            <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
-                                            บังคับเสร็จสิ้น
-                                        </DropdownMenuItem>
-                                    )}
-                                    {request.status !== 'PENDING' && request.status !== 'COMPLETED' && (
-                                        <DropdownMenuItem
-                                            disabled={submitting}
-                                            onClick={() => { void guardedUpdate({ status: 'PENDING' }); }}
-                                        >
-                                            <Undo2 size={16} className="text-amber-600 dark:text-amber-400" aria-hidden="true" />
-                                            ย้อนกลับ รอรับเรื่อง
-                                        </DropdownMenuItem>
-                                    )}
-                                    {request.status === 'COMPLETED' && canRevertApproval && (
-                                        <>
-                                            <DropdownMenuItem
-                                                disabled={submitting}
-                                                onClick={() => setRevertConfirm({ open: true, target: 'AWAITING_APPROVAL', notes: '' })}
-                                            >
-                                                <Undo2 size={16} className="text-amber-600 dark:text-amber-400" aria-hidden="true" />
-                                                ยกเลิกอนุมัติ → รออนุมัติ
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem
-                                                disabled={submitting}
-                                                onClick={() => setRevertConfirm({ open: true, target: 'IN_PROGRESS', notes: '' })}
-                                            >
-                                                <Undo2 size={16} className="text-amber-600 dark:text-amber-400" aria-hidden="true" />
-                                                ยกเลิกอนุมัติ → กำลังดำเนินการ
-                                            </DropdownMenuItem>
-                                        </>
-                                    )}
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        )}
-                    </div>
                 </div>
 
                     {/* PRD B: internal divider — separates hero section from tab nav. */}

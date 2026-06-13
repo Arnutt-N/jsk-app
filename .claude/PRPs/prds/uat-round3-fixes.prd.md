@@ -22,6 +22,9 @@
 
 ## PR B — [สูง] ปุ่ม workflow การ์ดคำร้องตามบทบาท + เคบับ inline
 
+> **สถานะ: ✅ complete** — แผน(archived): `.claude/PRPs/plans/completed/uat-round3-pr-b-role-workflow-buttons.plan.md` · รายงาน: `.claude/PRPs/reports/uat-round3-pr-b-role-workflow-buttons-report.md`
+> ยุบแถวเดียว: staff=next-step+ปฏิเสธ+เคบับ (2+1), supervisor=+มอบหมาย (3+1); ส่งต่อ/override เข้าเคบับ. backend status transition = any admin role (staff reject ได้)
+
 **ไฟล์**: `frontend/app/admin/requests/[id]/page.tsx` (hero card workflow buttons), `frontend/lib/permissions.ts`
 **กติกาปุ่ม (cap)**:
 - **staff (เดิม AGENT) / user ทั่วไป**: แสดง **ไม่เกิน 2 ปุ่ม + เคบับ 1 ปุ่ม**
