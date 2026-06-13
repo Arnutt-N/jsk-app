@@ -3,10 +3,11 @@
 // To convert to RSC, auth must migrate to httpOnly cookies.
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Loader2, UserCheck, UserX, RefreshCw, ShieldBan } from 'lucide-react';
+import { ArrowLeft, UserCheck, UserX, RefreshCw, ShieldBan } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/Card';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Badge } from '@/components/ui/Badge';
 import { Timeline, type TimelineItem } from '@/components/ui/Timeline';
 import { useAuth } from '@/contexts/AuthContext';
@@ -218,14 +219,7 @@ export default function FriendTimelinePage() {
 
     // หน้า Loading
     if (loading) {
-        return (
-            <div className="p-6 max-w-4xl mx-auto thai-text">
-                <div className="flex items-center justify-center py-20">
-                    <Loader2 className="w-8 h-8 animate-spin text-brand-500" />
-                    <span className="ml-3 text-text-secondary">กำลังโหลดข้อมูล...</span>
-                </div>
-            </div>
-        );
+        return <LoadingSpinner label="กำลังโหลดข้อมูล..." />;
     }
 
     // หน้า Error

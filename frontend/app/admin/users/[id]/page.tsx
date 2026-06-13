@@ -5,10 +5,11 @@ import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
     ArrowLeft, User, Shield, UserCog, Mail, Calendar,
-    Key, ToggleLeft, ToggleRight, Save, Loader2,
+    Key, ToggleLeft, ToggleRight, Save,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Input } from '@/components/ui/Input';
 import { Select, type SelectOption } from '@/components/ui/Select';
 import { Badge } from '@/components/ui/Badge';
@@ -220,14 +221,7 @@ export default function UserDetailPage() {
     };
 
     if (loading) {
-        return (
-            <div className="flex items-center justify-center min-h-[60vh]">
-                <div className="flex flex-col items-center gap-3">
-                    <Loader2 className="w-8 h-8 text-brand-500 animate-spin" />
-                    <span className="text-text-secondary text-sm">กำลังโหลด...</span>
-                </div>
-            </div>
-        );
+        return <LoadingSpinner label="กำลังโหลด..." />;
     }
 
     if (!userData) {

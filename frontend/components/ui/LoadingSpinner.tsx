@@ -14,7 +14,12 @@ interface LoadingSpinnerProps {
     size?: 'sm' | 'md' | 'lg';
     label?: string;
     className?: string;
-    /** If true, renders full-height centered (min-h-[40vh]). Default: true */
+    /**
+     * If true, fills the available content viewport and centers (vertically +
+     * horizontally). Sized to the admin <main> area (100vh minus the 5rem
+     * header and 3rem padding) so a page-level spinner sits at the same spot as
+     * the auth-gate spinner — no perceived "jump" on login→admin. Default: true.
+     */
     fullPage?: boolean;
 }
 
@@ -30,7 +35,7 @@ export function LoadingSpinner({
         <div
             className={cn(
                 'flex flex-col items-center justify-center gap-3',
-                fullPage && 'min-h-[40vh] w-full',
+                fullPage && 'min-h-[calc(100vh-8rem)] w-full',
                 className
             )}
         >
