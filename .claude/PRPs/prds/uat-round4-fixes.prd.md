@@ -36,6 +36,8 @@
 **แนวแก้**: เพิ่ม `focus:outline-none` / `focus-visible:outline-none` แล้วใช้ ring เดียว (focus-visible:ring) ; เอา default browser outline (สีเทาดำ) ออก ไม่ให้ซ้อน
 
 ## PR D — [low] /admin/requests/create เรียง source + label วันที่
+> **สถานะ: ✅ complete** — PR #98 (squash merged, main `2b20094`)
+> เรียง SOURCE_OPTIONS = FORM→PHONE→Facebook→LINE→Walk-in→อื่นๆ · rename 'โทรศัพท์'→'โทรศัพท์ติดต่อ' (value 'PHONE' คงเดิม, default/payload ไม่กระทบ) · ลบ helper "(ค่าเริ่มต้น = วันนี้)"
 **ไฟล์**: `frontend/app/admin/requests/create/page.tsx`
 1. เรียง `SOURCE_OPTIONS` ใหม่ตามนี้: **แบบฟอร์มคำร้อง → โทรศัพท์ติดต่อ → Facebook → LINE → Walk-in → อื่นๆ**
    (ค่าเดิม: PHONE 'โทรศัพท์', FORM 'แบบฟอร์มคำร้อง', FACEBOOK, LINE, WALK_IN, OTHER — แก้ทั้งลำดับและ label 'โทรศัพท์'→'โทรศัพท์ติดต่อ')
