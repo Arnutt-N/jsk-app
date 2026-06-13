@@ -18,6 +18,17 @@ from app.schemas.auth import AuthUserResponse, LoginRequest, LoginResponse, Toke
 
 router = APIRouter()
 
+# Roles allowed to authenticate into the admin console. DIRECTOR and HEAD were
+# added 2026-05-04 alongside the request workflow split; they share ADMIN-level
+# access and must be able to both log in and refresh their token.
+_ADMIN_AUTH_ROLES = [
+    UserRole.SUPER_ADMIN,
+    UserRole.ADMIN,
+    UserRole.DIRECTOR,
+    UserRole.HEAD,
+    UserRole.AGENT,
+]
+
 
 def _to_auth_user(user: User) -> AuthUserResponse:
     return AuthUserResponse(
@@ -36,7 +47,7 @@ async def login(
     result = await db.execute(
         select(User).where(
             User.username == payload.username,
-            User.role.in_([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.AGENT]),
+            User.role.in_(_ADMIN_AUTH_ROLES),
         )
     )
     user = result.scalar_one_or_none()
@@ -109,7 +120,7 @@ async def refresh(
     result = await db.execute(
         select(User).where(
             User.id == user_id,
-            User.role.in_([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.AGENT]),
+            User.role.in_(_ADMIN_AUTH_ROLES),
         )
     )
     user = result.scalar_one_or_none()

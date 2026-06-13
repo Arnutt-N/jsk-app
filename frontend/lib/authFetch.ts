@@ -5,10 +5,54 @@ declare global {
   }
 }
 
-function interceptAuthErrors(res: Response): Response {
+/**
+ * Refresh handler registered by AuthContext. Returns a fresh access token,
+ * or null when refresh is impossible (no refresh token / refresh rejected).
+ * Kept here (not in React) so the fetch interceptor can transparently
+ * refresh + retry an admin request that 401s on an expired access token.
+ */
+type RefreshHandler = () => Promise<string | null>;
+let refreshHandler: RefreshHandler | null = null;
+
+// Single in-flight refresh shared across concurrent 401s, so a burst of
+// expired-token requests triggers exactly ONE /auth/refresh call.
+let inflightRefresh: Promise<string | null> | null = null;
+
+export function setAuthRefreshHandler(handler: RefreshHandler | null): void {
+  refreshHandler = handler;
+}
+
+async function runRefresh(): Promise<string | null> {
+  if (!refreshHandler) {
+    return null;
+  }
+  if (!inflightRefresh) {
+    const handler = refreshHandler;
+    inflightRefresh = (async () => {
+      try {
+        return await handler();
+      } catch {
+        return null;
+      } finally {
+        inflightRefresh = null;
+      }
+    })();
+  }
+  return inflightRefresh;
+}
+
+// Fired only for an admin request that 401s and could NOT be recovered by a
+// silent refresh. AuthContext listens for this to logout. Deliberately NOT
+// fired for login/refresh 401s (bad credentials etc.) so those keep their own
+// error handling instead of being turned into a logout.
+function notifyAuthExpired(res: Response): Response {
   if (res.status === 401) {
     window.dispatchEvent(new CustomEvent('jsk:auth-expired', { detail: { response: res.clone() } }))
   }
+  return notifyForbidden(res)
+}
+
+function notifyForbidden(res: Response): Response {
   if (res.status === 403) {
     window.dispatchEvent(new CustomEvent('jsk:forbidden', { detail: { response: res.clone() } }))
   }
@@ -29,6 +73,11 @@ function getRequestUrl(input: RequestInfo | URL): string {
 
 function isAdminApiRequest(input: RequestInfo | URL): boolean {
   return getRequestUrl(input).includes('/api/v1/admin/');
+}
+
+// Never refresh+retry the refresh call itself (guards against recursion).
+function isRefreshRequest(input: RequestInfo | URL): boolean {
+  return getRequestUrl(input).includes('/auth/refresh');
 }
 
 function hasAuthorizationHeader(input: RequestInfo | URL, init?: RequestInit): boolean {
@@ -61,22 +110,59 @@ export function installAdminAuthFetchInterceptor(): void {
     const token = window.__JSK_ADMIN_AUTH_TOKEN__ ?? null;
 
     try {
+      // Pass through untouched: no token, non-admin call, or caller already
+      // set its own Authorization (e.g. AuthContext's /auth/refresh). A 401
+      // here (e.g. bad login credentials) must NOT trigger a logout.
       if (!token || !isAdminApiRequest(input) || hasAuthorizationHeader(input, init)) {
-        return interceptAuthErrors(await nativeFetch(input, init));
+        return notifyForbidden(await nativeFetch(input, init));
       }
+
+      // Admin API with an injected bearer token. On 401 (expired token),
+      // refresh once and retry the same request a single time.
+      const canRetry = !isRefreshRequest(input);
 
       if (input instanceof Request) {
-        const request = new Request(input, {
-          ...init,
-          headers: buildAuthHeaders(init?.headers ?? input.headers, token),
-        });
-        return interceptAuthErrors(await nativeFetch(request));
+        // Clone before sending: the first attempt consumes the body stream,
+        // so a retry must be built from an untouched copy.
+        const retrySource = input.clone();
+        const firstRes = await nativeFetch(
+          new Request(input, { headers: buildAuthHeaders(input.headers, token) })
+        );
+
+        if (firstRes.status !== 401 || !canRetry) {
+          return notifyAuthExpired(firstRes);
+        }
+
+        const newToken = await runRefresh();
+        if (!newToken) {
+          return notifyAuthExpired(firstRes);
+        }
+
+        const retriedRes = await nativeFetch(
+          new Request(retrySource, { headers: buildAuthHeaders(retrySource.headers, newToken) })
+        );
+        return notifyAuthExpired(retriedRes);
       }
 
-      return interceptAuthErrors(await nativeFetch(input, {
+      const firstRes = await nativeFetch(input, {
         ...init,
         headers: buildAuthHeaders(init?.headers, token),
-      }));
+      });
+
+      if (firstRes.status !== 401 || !canRetry) {
+        return notifyAuthExpired(firstRes);
+      }
+
+      const newToken = await runRefresh();
+      if (!newToken) {
+        return notifyAuthExpired(firstRes);
+      }
+
+      const retriedRes = await nativeFetch(input, {
+        ...init,
+        headers: buildAuthHeaders(init?.headers, newToken),
+      });
+      return notifyAuthExpired(retriedRes);
     } catch (error: unknown) {
       const url = getRequestUrl(input);
       if (error instanceof TypeError && (error.message === 'Failed to fetch' || error.message === 'Load failed')) {
