@@ -5,6 +5,8 @@
 > ผู้ใช้ทำงาน PR-by-PR; commit ไม่มี Co-Authored-By; squash merge + delete branch
 
 ## PR A — [med] Loading UI unity (centered + styled)
+> **สถานะ: ✅ complete** — PR #95 (squash merged, main `8fb8ad2`)
+> LoadingSpinner fullPage→`calc(100vh-8rem)` center · gate spinner `lg:pl-64`+`fullPage={false}` กัน login→admin shift · แทน loading 4 จุด (auto-replies/[id], users/[id], friends/[lineUserId], broadcast/[id]) ด้วย LoadingSpinner กลาง
 **อาการ** (ภาพ 772724.jpg): บนมือถือจังหวะ "ย้อนกลับ"/redirect ขึ้น spinner + "กำลังโหลด..." **ดิบ มุมซ้ายบน** ไม่ centered/ไม่ styled; desktop login→admin มี spinner กลางจอ แล้ว "ขยับ" มากลาง content (layout shift)
 **จุดตรวจ**:
 - `frontend/app/admin/loading.tsx` (route-level fallback — น่าจะเป็นตัวที่ดิบ)
