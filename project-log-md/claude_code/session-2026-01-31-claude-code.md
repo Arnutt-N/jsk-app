@@ -46,7 +46,7 @@ Added two new MCP servers to enhance development capabilities:
 **Status:** Added to `.claude.json`, will connect when Next.js dev server runs
 
 #### 2.2 Context7 MCP
-**Command:** `claude mcp add context7 -- npx -y @upstash/context7-mcp --api-key ctx7sk-238be70f-453f-43fa-8993-5e32f787bf29`
+**Command:** `claude mcp add context7 -- npx -y @upstash/context7-mcp --api-key <CONTEXT7_API_KEY>`
 
 **Purpose:** Real-time documentation search and reference
 **Status:** Added with API key, awaiting connection
