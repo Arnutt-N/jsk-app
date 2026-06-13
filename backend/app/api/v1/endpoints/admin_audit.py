@@ -17,7 +17,9 @@ async def get_audit_logs(
     admin_id: Optional[int] = Query(None, description="Filter by admin ID"),
     action: Optional[str] = Query(None, description="Filter by action type"),
     resource_type: Optional[str] = Query(None, description="Filter by resource type"),
-    days: int = Query(7, ge=1, le=90, description="Number of days to look back"),
+    resource_id: Optional[str] = Query(None, description="Filter by resource ID"),
+    # le=3650: timeline หน้า request detail ต้องเห็นประวัติแก้ไขทั้งหมด ไม่ใช่แค่ 90 วัน
+    days: int = Query(7, ge=1, le=3650, description="Number of days to look back (default 7)"),
     limit: int = Query(50, ge=1, le=500, description="Number of logs to return"),
     offset: int = Query(0, ge=0, description="Pagination offset"),
     db: AsyncSession = Depends(get_db),
@@ -45,7 +47,10 @@ async def get_audit_logs(
     
     if resource_type:
         query = query.where(AuditLog.resource_type == resource_type)
-    
+
+    if resource_id:
+        query = query.where(AuditLog.resource_id == resource_id)
+
     # Count total
     count_query = query.with_only_columns(func.count())
     total = await db.scalar(count_query)
@@ -55,17 +60,19 @@ async def get_audit_logs(
     result = await db.execute(query)
     logs = result.scalars().all()
     
-    # Enrich with admin names
+    # Enrich with admin names — single batched query (avoids N+1 per log row)
+    admin_ids = {log.admin_id for log in logs if log.admin_id}
+    user_map: dict = {}
+    if admin_ids:
+        users_result = await db.execute(select(User).where(User.id.in_(admin_ids)))
+        user_map = {u.id: u.display_name for u in users_result.scalars().all()}
+
     enriched_logs = []
     for log in logs:
         admin_name = None
         if log.admin_id:
-            user_result = await db.execute(
-                select(User).where(User.id == log.admin_id)
-            )
-            user = user_result.scalar_one_or_none()
-            admin_name = user.display_name if user else f"Admin {log.admin_id}"
-        
+            admin_name = user_map.get(log.admin_id) or f"Admin {log.admin_id}"
+
         enriched_logs.append({
             "id": log.id,
             "admin_id": log.admin_id,
