@@ -494,9 +494,19 @@ export default function LiffServiceRequestV2() {
                             JSK 4.0 Platform • ยุติธรรมจังหวัดสกลนคร
                         </p>
                     </div>
-                    <Badge variant={provinces.length > 0 ? "success" : "warning"} className="h-6">
-                        {provinces.length > 0 ? "Online" : "Connecting..."}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                        <Badge variant={provinces.length > 0 ? "success" : "warning"} className="h-6">
+                            {provinces.length > 0 ? "Online" : "Connecting..."}
+                        </Badge>
+                        <button
+                            type="button"
+                            onClick={handleClose}
+                            aria-label="ปิดหน้าต่าง"
+                            className="p-1.5 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -848,10 +858,11 @@ export default function LiffServiceRequestV2() {
                                 <Button
                                     type="button"
                                     variant="outline"
-                                    className="flex-1 py-3 h-auto whitespace-nowrap"
+                                    className="flex-1 py-3 h-auto"
                                     onClick={prevStep}
+                                    leftIcon={<ChevronLeft className="w-4 h-4" />}
                                 >
-                                    <ChevronLeft className="w-4 h-4 mr-2" /> กลับ
+                                    กลับ
                                 </Button>
                             )}
 
@@ -859,10 +870,11 @@ export default function LiffServiceRequestV2() {
                                 <Button
                                     type="button"
                                     variant="primary"
-                                    className="flex-[2] py-3 h-auto whitespace-nowrap"
+                                    className="flex-[2] py-3 h-auto"
                                     onClick={nextStep}
+                                    rightIcon={<ChevronRight className="w-4 h-4" />}
                                 >
-                                    ถัดไป <ChevronRight className="w-4 h-4 ml-2" />
+                                    ถัดไป
                                 </Button>
                             ) : (
                                 <Button
