@@ -29,6 +29,8 @@
 - ไอคอนมาตรฐาน: ยกเลิก = `X`, บันทึก = `Save` (ตาม FormActions)
 
 ## PR C — [low] โฟกัสช่อง input วันที่ (focus ring ซ้อน)
+> **สถานะ: ✅ complete** — PR #97 (squash merged, main `c4ad675`)
+> root cause = ปุ่ม clear(X)+ปฏิทินใน CalendarPickerTH ไม่มี `focus:outline-none` → outline เทาดำเบราว์เซอร์ซ้อน `focus-within:ring` ฟ้าของ container · แก้: ปุ่มทั้งสองใส่ `focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400` (คลิกเมาส์เหลือ ring เดียว, Tab คีย์บอร์ดยังมี indicator) · input ย่อย 3 ช่องมี outline-none อยู่แล้ว
 **อาการ**: ช่องวันที่ (แท็บจัดการคำร้อง + create form) ตอนคลิก/เคอร์เซอร์อยู่ในช่อง มีโฟกัส **สีเทาดำ (outline เบราว์เซอร์) ซ้อนกับสีฟ้า/น้ำเงิน (custom ring)** พอเอาเมาส์ออกถึงเป็นสีฟ้าอย่างเดียว
 **ไฟล์**: `frontend/components/ui/CalendarPickerTH.tsx` (และ/หรือ trigger input ของมัน)
 **แนวแก้**: เพิ่ม `focus:outline-none` / `focus-visible:outline-none` แล้วใช้ ring เดียว (focus-visible:ring) ; เอา default browser outline (สีเทาดำ) ออก ไม่ให้ซ้อน
