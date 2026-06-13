@@ -69,6 +69,8 @@
 
 ## PR E — [polish] มือถือ: ย้าย toggle ภาษา/ธีม เข้า dropdown โปรไฟล์
 
+> **สถานะ: ✅ complete** — header toggles `hidden sm:flex` (เดสก์ท็อปเท่านั้น); UserMenu dropdown เพิ่ม AdminLanguageToggle `sm:hidden` (มือถือ) + theme toggle เดิมมีอยู่แล้วใน dropdown
+
 **ไฟล์**: `frontend/app/admin/layout.tsx` (header), `frontend/components/admin/UserMenu.tsx`,
 `AdminLanguageToggle.tsx`, `ThemeToggleSwitch.tsx`
 **ปัญหา**: บนมือถือ navbar header แน่น (TH/EN + sun/moon inline)

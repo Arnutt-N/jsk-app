@@ -15,10 +15,17 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/components/providers';
 import { Avatar } from '@/components/ui/Avatar';
+import { AdminLanguageToggle, type AdminLocale } from '@/components/admin/AdminLanguageToggle';
 import { cn } from '@/lib/utils';
 
 interface UserMenuProps {
   className?: string;
+  /**
+   * Locale + toggle for the in-dropdown language switch. Shown only on mobile
+   * (sm:hidden) — on desktop the language toggle lives in the Navbar header.
+   */
+  locale?: AdminLocale;
+  onToggleLocale?: () => void;
 }
 
 type StaffRole = 'SUPER_ADMIN' | 'ADMIN' | 'AGENT';
@@ -30,7 +37,7 @@ type StaffRole = 'SUPER_ADMIN' | 'ADMIN' | 'AGENT';
  * rounded panel, role-gated items, theme toggle. Uses custom dropdown
  * for consistency with live-chat page design.
  */
-export function UserMenu({ className }: UserMenuProps) {
+export function UserMenu({ className, locale, onToggleLocale }: UserMenuProps) {
   const { user, logout } = useAuth();
   const { resolvedTheme, toggleTheme } = useTheme();
   const router = useRouter();
@@ -100,6 +107,12 @@ export function UserMenu({ className }: UserMenuProps) {
               <p className="text-sm font-bold text-text-primary truncate">{displayName}</p>
               <p className="text-xs text-text-tertiary truncate capitalize">{role.replace('_', ' ').toLowerCase() || 'admin'}</p>
             </div>
+            {/* Language toggle — mobile only; desktop keeps it in the Navbar header */}
+            {locale && onToggleLocale && (
+              <div className="sm:hidden">
+                <AdminLanguageToggle locale={locale} onToggle={onToggleLocale} />
+              </div>
+            )}
             {/* Theme toggle */}
             <button
               onClick={(e) => {
