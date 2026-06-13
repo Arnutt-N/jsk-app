@@ -63,7 +63,9 @@ function AdminAuthGate({ children }: { children: React.ReactNode }) {
 
   if (isLoading || !isAuthenticated) {
     return (
-      <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 lg:pl-64">
+      // pt-20 ชดเชยความสูง header (h-20) + lg:pl-64 ชดเชย sidebar เพื่อให้ spinner
+      // ตอน auth นั่งตำแหน่งเดียวกับ content spinner (calc(100vh-8rem) ใน <main>) — กัน jump ตอน auth→page
+      <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 pt-20 lg:pl-64">
         <LoadingSpinner label="กำลังโหลด..." fullPage={false} />
       </div>
     );
@@ -71,7 +73,9 @@ function AdminAuthGate({ children }: { children: React.ReactNode }) {
 
   if (user?.role === 'AGENT' && pathname !== '/admin/live-chat') {
     return (
-      <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 lg:pl-64">
+      // pt-20 ชดเชยความสูง header (h-20) + lg:pl-64 ชดเชย sidebar เพื่อให้ spinner
+      // ตอน auth นั่งตำแหน่งเดียวกับ content spinner (calc(100vh-8rem) ใน <main>) — กัน jump ตอน auth→page
+      <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 pt-20 lg:pl-64">
         <LoadingSpinner label="กำลังโหลด..." fullPage={false} />
       </div>
     );
