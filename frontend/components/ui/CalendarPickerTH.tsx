@@ -389,7 +389,7 @@ export default function CalendarPickerTH({
                 if (monthRef.current) monthRef.current.value = "";
                 if (yearRef.current) yearRef.current.value = "";
               }}
-              className="p-1.5 rounded-lg text-text-tertiary hover:text-text-primary hover:bg-bg transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg text-text-tertiary hover:text-text-primary hover:bg-bg transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
               aria-label="ล้างวันที่"
             >
               <X size={16} />
@@ -404,7 +404,7 @@ export default function CalendarPickerTH({
             aria-label="เปิดปฏิทินเลือกวันที่"
             title="เปิดปฏิทิน (หรือพิมพ์วันที่ในช่องด้านซ้าย)"
             className={cn(
-              "p-1.5 rounded-lg transition-all duration-200 cursor-pointer",
+              "p-1.5 rounded-lg transition-all duration-200 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400",
               isOpen
                 ? "bg-blue-500 text-white"
                 : "text-text-tertiary hover:bg-bg hover:text-text-primary"
