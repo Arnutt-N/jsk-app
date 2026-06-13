@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { installAdminAuthFetchInterceptor, syncAdminAuthToken } from '@/lib/authFetch';
+import { installAdminAuthFetchInterceptor, syncAdminAuthToken, setAuthRefreshHandler } from '@/lib/authFetch';
 
 interface User {
   id: string;
@@ -271,16 +271,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.replace('/login');
   }, [router]);
 
-  const refreshToken = useCallback(async () => {
+  // Perform the refresh and RETURN the new access token (or null on failure).
+  // Deliberately does NOT logout here — the caller decides. The fetch
+  // interceptor registers this so an expired-token admin request can refresh
+  // and retry transparently; an unrecoverable 401 then logs out via the
+  // jsk:auth-expired listener below.
+  const refreshAccessToken = useCallback(async (): Promise<string | null> => {
     if (isLocalhostDevBypass()) {
-      return;
+      return null;
     }
 
     try {
       const refreshTokenValue = localStorage.getItem('auth_refresh_token');
       if (!refreshTokenValue) {
-        logout();
-        return;
+        return null;
       }
 
       const response = await fetch('/api/v1/auth/refresh', {
@@ -290,22 +294,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setToken(data.access_token);
-        localStorage.setItem('auth_token', data.access_token);
-        if (data.refresh_token) {
-          localStorage.setItem('auth_refresh_token', data.refresh_token);
-        }
-      } else {
-        // Token refresh failed, logout
-        logout();
+      if (!response.ok) {
+        return null;
       }
+
+      const data = await response.json();
+      setToken(data.access_token);
+      localStorage.setItem('auth_token', data.access_token);
+      if (data.refresh_token) {
+        localStorage.setItem('auth_refresh_token', data.refresh_token);
+      }
+      return data.access_token as string;
     } catch (error) {
       console.error('Token refresh error:', error);
+      return null;
+    }
+  }, [setToken]);
+
+  const refreshToken = useCallback(async () => {
+    const newToken = await refreshAccessToken();
+    if (!newToken && !isLocalhostDevBypass()) {
       logout();
     }
-  }, [logout]);
+  }, [refreshAccessToken, logout]);
+
+  // Wire the fetch interceptor's silent refresh to this provider, and treat a
+  // genuine auth-expired signal (the interceptor already tried to refresh and
+  // failed) as a logout.
+  useEffect(() => {
+    setAuthRefreshHandler(refreshAccessToken);
+    const onAuthExpired = () => logout();
+    window.addEventListener('jsk:auth-expired', onAuthExpired as EventListener);
+    return () => {
+      setAuthRefreshHandler(null);
+      window.removeEventListener('jsk:auth-expired', onAuthExpired as EventListener);
+    };
+  }, [refreshAccessToken, logout]);
 
   const value: AuthContextType = {
     user,
