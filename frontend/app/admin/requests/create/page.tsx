@@ -65,8 +65,8 @@ type RequestFormValues = z.infer<typeof requestSchema>;
 // ---------- Constants ----------
 
 const SOURCE_OPTIONS = [
-    { value: 'PHONE', label: 'โทรศัพท์' },
     { value: 'FORM', label: 'แบบฟอร์มคำร้อง' },
+    { value: 'PHONE', label: 'โทรศัพท์ติดต่อ' },
     { value: 'FACEBOOK', label: 'Facebook' },
     { value: 'LINE', label: 'LINE' },
     { value: 'WALK_IN', label: 'Walk-in' },
@@ -301,7 +301,7 @@ export default function CreateRequestPage() {
                                     <div>
                                         <label className="block text-xs font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
                                             <Calendar className="w-3.5 h-3.5 text-text-tertiary" />
-                                            วันที่รับเรื่อง <span className="text-text-tertiary font-normal">(ค่าเริ่มต้น = วันนี้)</span>
+                                            วันที่รับเรื่อง
                                         </label>
                                         <CalendarPickerTH
                                             value={createdAtValue ? new Date(`${createdAtValue}T00:00:00`).toISOString() : null}
