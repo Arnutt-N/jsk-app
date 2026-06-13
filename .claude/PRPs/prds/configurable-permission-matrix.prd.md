@@ -1,5 +1,8 @@
 # PRD C: Configurable Permission Matrix
 
+> **สถานะ: ✅ complete (verified 2026-06-14)** — phase 1–5 ยืนยันในโค้ดแล้ว (core `permissions.py` · guard `admin_requests.py` · DB seed · frontend interface `permissions.ts`/`page.tsx` · tests `test_permissions.py`+`test_admin_requests_endpoints.py`+E2E `permission-settings.spec.ts`); phase 6 UAT owner-verified
+> **Phase 3 deviate (ดีขึ้น):** seed `revert_approval`+`edit_request_details` ผ่าน `ensure_seed_rows()` self-heal hook (lifespan startup) แทน Alembic migration seed — เพราะเจอ COMMIT พังใน CI บน Postgres 16; ฟีเจอร์ทำงานจริงผ่าน 3-layer fallback (DEFAULT_POLICY → load_policy merge → self-heal)
+
 ## Problem Statement
 
 ระบบสิทธิ์สำหรับ "ยกเลิกการอนุมัติ" (revert approval) ที่เพิ่มใน PRD B ใช้ `can_assign` (สิทธิ์มอบหมาย) เป็นตัวกรอง ซึ่งให้สิทธิ์ DIRECTOR และ HEAD โดยปริยาย — แต่ revert เป็น action ที่ละเอียดอ่อนกว่ามอบหมายงาน เพราะ "ย้อน" สถานะที่อนุมัติแล้วได้ ทำให้ Super Admin ไม่สามารถจำกัดสิทธิ์เฉพาะ ADMIN+SUPER_ADMIN ได้โดยไม่ให้ dev แก้โค้ดและ deploy ใหม่
@@ -123,12 +126,12 @@ User คนอื่นที่เปิดหน้า requests detail (COMPLE
 
 | # | Phase | Description | Status | Parallel | Depends | PRP Plan |
 |---|-------|-------------|--------|----------|---------|----------|
-| 1 | Backend permission core | เพิ่ม KEY_REVERT, can_revert_approval(), DEFAULT_POLICY entry | pending | - | - | configurable-permission-matrix.plan.md |
-| 2 | Backend endpoint guard | เพิ่ม guard ใน admin_requests.py + update settings.py schema | pending | with 3 | 1 | configurable-permission-matrix.plan.md |
-| 3 | Backend migration | Alembic migration seed revert_approval row | pending | with 2 | 1 | configurable-permission-matrix.plan.md |
-| 4 | Frontend permission interface | Update MyPermissions interface + page.tsx revert kebab | pending | - | 2 | configurable-permission-matrix.plan.md |
-| 5 | Tests + E2E | Unit tests + E2E spec update | pending | - | 4 | configurable-permission-matrix.plan.md |
-| 6 | UAT + Documentation | Manual test on staging + release note | pending | - | 5 | - |
+| 1 | Backend permission core | เพิ่ม KEY_REVERT, can_revert_approval(), DEFAULT_POLICY entry | ✅ complete | - | - | configurable-permission-matrix.plan.md |
+| 2 | Backend endpoint guard | เพิ่ม guard ใน admin_requests.py + update settings.py schema | ✅ complete | with 3 | 1 | configurable-permission-matrix.plan.md |
+| 3 | Backend migration | seed revert_approval row (ใช้ `ensure_seed_rows()` self-heal แทน Alembic seed — ดู status banner) | ✅ complete | with 2 | 1 | configurable-permission-matrix.plan.md |
+| 4 | Frontend permission interface | Update MyPermissions interface + page.tsx revert kebab | ✅ complete | - | 2 | configurable-permission-matrix.plan.md |
+| 5 | Tests + E2E | Unit tests + E2E spec update | ✅ complete | - | 4 | configurable-permission-matrix.plan.md |
+| 6 | UAT + Documentation | Manual test on staging + release note | ✅ owner-verified | - | 5 | - |
 
 ### Phase Details
 

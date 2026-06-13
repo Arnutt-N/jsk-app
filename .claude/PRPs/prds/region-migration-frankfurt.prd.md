@@ -1,5 +1,7 @@
 # Region Migration: Colocate Stack in Frankfurt
 
+> **สถานะ: ✅ complete (verified 2026-06-14)** — phase 1–6 เสร็จ (provision → migrate → move Koyeb → update env → verify/benchmark); phase 7 (cleanup ลบ Supabase Mumbai/Upstash เดิม) เป็น manual ops นอก repo — owner ยืนยันทำแล้ว
+
 ## Problem Statement
 
 Admin/operator ใช้งาน production dashboard (jsk-app.vercel.app) แล้วทุกอย่างช้ามาก — login ~3.5s, โหลดหน้า ~2-4s, เปลี่ยนเมนูช้า ทั้งที่ใช้เทคโนโลยีใหม่ (Next.js 16, FastAPI, async PostgreSQL) สาเหตุคือ Koyeb backend อยู่ Washington DC แต่ Supabase database อยู่ Mumbai ทำให้ทุก DB query เสีย ~500ms ต่อ roundtrip
@@ -129,7 +131,7 @@ Admin เปิด jsk-app.vercel.app/admin
 | 4 | Move Koyeb to Frankfurt | สร้าง/ย้าย Koyeb service ไป Frankfurt region | complete | - | 3 | - |
 | 5 | Update All Env Vars | อัปเดต Vercel, GitHub secrets, LINE webhook | complete | - | 4 | - |
 | 6 | Verify & Benchmark | ทดสอบ latency + functional test ทุกหน้า | complete | - | 5 | - |
-| 7 | Cleanup | ลบ Supabase/Upstash/Koyeb เดิม | pending | - | 6 | - |
+| 7 | Cleanup | ลบ Supabase/Upstash/Koyeb เดิม | ✅ complete | - | 6 | — manual ops, owner-verified |
 
 ### Phase Details
 
