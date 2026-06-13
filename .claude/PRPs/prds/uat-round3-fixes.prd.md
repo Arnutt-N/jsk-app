@@ -52,6 +52,9 @@
 
 ## PR D — [กลาง/ใหญ่สุด] Admin create form = LIFF parity
 
+> **สถานะ: ✅ complete** — แผน: `.claude/PRPs/plans/completed/uat-round3-pr-d-create-form-liff-parity.plan.md` · รายงาน: `.claude/PRPs/reports/uat-round3-pr-d-create-form-liff-parity-report.md`
+> สลับ step (ผู้ร้อง→สถานที่/หน่วยงาน→รายละเอียด) · ที่อยู่ ThaiAddressCascade · TOPIC_OPTIONS shared (7 หมวด) cascade ทุกหมวด · submit แท็บสุดท้าย · LIFF refactor ใช้ shared. Follow-up: unify CATEGORIES ทั้งแอป (list filter/edit)
+
 **ไฟล์**: `frontend/app/admin/requests/create/page.tsx` (ตรวจ path จริง), เทียบ `frontend/app/liff/request-v2/page.tsx`
 **ปัญหา**: ลำดับ step admin = ผู้ร้อง → รายละเอียด → ที่อยู่ ; พอกด "ถัดไป" ที่ step รายละเอียดกลับให้บันทึกเลย
 ทั้งที่ที่อยู่ (step สุดท้าย) ยังไม่กรอก

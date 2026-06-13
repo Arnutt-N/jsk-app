@@ -2,7 +2,7 @@
 // Client Component required: useAuth() reads JWT from localStorage for API calls.
 // To convert to RSC, auth must migrate to httpOnly cookies.
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
@@ -16,8 +16,9 @@ import { Select } from '@/components/ui/Select';
 import { Textarea } from '@/components/ui/Textarea';
 import { useAuth } from '@/contexts/AuthContext';
 import PageHeader from '@/app/admin/components/PageHeader';
-import { CATEGORIES, DRUG_REPORTING_SUBCATEGORIES } from '@/lib/constants/categories';
+import { TOPIC_OPTIONS, TOPIC_CATEGORY_OPTIONS } from '@/lib/constants/categories';
 import { AGENCIES } from '@/lib/constants/agencies';
+import { ThaiAddressCascade } from '@/components/forms/ThaiAddressCascade';
 import {
     ArrowLeft,
     ArrowRight,
@@ -85,16 +86,21 @@ const PRIORITY_OPTIONS = [
     { value: 'URGENT', label: 'URGENT — เร่งด่วน' },
 ];
 
+// Order mirrors the LIFF request-v2 form: ผู้ร้อง → สถานที่/หน่วยงาน →
+// รายละเอียด, so the final step holds the submit and address is filled before
+// the request is created (previously address was last but felt skippable).
 const STEPS = [
     { label: 'ข้อมูลผู้ร้อง & ช่องทาง', icon: Phone },
+    { label: 'สถานที่ / หน่วยงาน', icon: MapPin },
     { label: 'รายละเอียดคำร้อง', icon: FileText },
-    { label: 'ที่อยู่ / หน่วยงาน', icon: MapPin },
 ];
 
-// Fields validated per step before allowing navigation forward
+// Fields validated per step before allowing navigation forward. Step 1
+// (address/agency) is optional, so it has no gate. The required topic
+// fields live in the final step and are validated by the zod resolver on
+// submit.
 const STEP_FIELDS: Record<number, (keyof RequestFormValues)[]> = {
     0: ['firstname', 'lastname', 'email'],
-    1: ['topic_category', 'description'],
 };
 
 export default function CreateRequestPage() {
@@ -135,6 +141,12 @@ export default function CreateRequestPage() {
     const selectedCategory = watch('topic_category');
     const selectedSource = watch('source');
     const createdAtValue = watch('created_at');
+
+    // Subcategory options depend on the selected category, so clear a stale
+    // selection whenever the category changes (mirrors the LIFF cascade).
+    useEffect(() => {
+        setValue('topic_subcategory', '');
+    }, [selectedCategory, setValue]);
 
     const API_BASE = '/api/v1';
 
@@ -373,8 +385,8 @@ export default function CreateRequestPage() {
                             </div>
                         )}
 
-                        {/* Step 1: รายละเอียดคำร้อง */}
-                        {step === 1 && (
+                        {/* Step 2: รายละเอียดคำร้อง (final step — submit lives here) */}
+                        {step === 2 && (
                             <div className="space-y-5">
                                 <h2 className="text-lg font-bold text-text-primary">รายละเอียดคำร้อง</h2>
 
@@ -383,19 +395,19 @@ export default function CreateRequestPage() {
                                         <label className="block text-xs font-medium text-text-secondary mb-1.5">หมวดหมู่</label>
                                         <Select
                                             {...register('topic_category')}
-                                            options={[...CATEGORIES]}
+                                            options={TOPIC_CATEGORY_OPTIONS}
                                             state={errors.topic_category ? 'error' : 'default'}
                                             errorMessage={errors.topic_category?.message}
                                         />
                                     </div>
                                     <div>
                                         <label className="block text-xs font-medium text-text-secondary mb-1.5">หมวดหมู่ย่อย</label>
-                                        {selectedCategory === 'แจ้งเบาะแสยาเสพติด' ? (
+                                        {TOPIC_OPTIONS[selectedCategory]?.length ? (
                                             <Select
-                                                options={[...DRUG_REPORTING_SUBCATEGORIES]}
+                                                options={TOPIC_OPTIONS[selectedCategory].map((s) => ({ value: s, label: s }))}
                                                 value={watch('topic_subcategory') || ''}
                                                 onChange={(e) => setValue('topic_subcategory', e.target.value)}
-                                                placeholder="-- เลือกปัญหาย่อย --"
+                                                placeholder="-- เลือกรายละเอียด --"
                                             />
                                         ) : (
                                             <Input
@@ -445,43 +457,13 @@ export default function CreateRequestPage() {
                             </div>
                         )}
 
-                        {/* Step 2: ที่อยู่ / หน่วยงาน */}
-                        {step === 2 && (
+                        {/* Step 1: สถานที่ / หน่วยงาน — cascade dropdowns mirroring LIFF */}
+                        {step === 1 && (
                             <div className="space-y-5">
-                                <h2 className="text-lg font-bold text-text-primary">ที่อยู่ / หน่วยงาน</h2>
+                                <h2 className="text-lg font-bold text-text-primary">สถานที่ / หน่วยงาน</h2>
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-xs font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
-                                            <MapPin className="w-3.5 h-3.5 text-text-tertiary" />
-                                            จังหวัด
-                                        </label>
-                                        <Input
-                                            {...register('province')}
-                                            placeholder="จังหวัด"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
-                                            <MapPin className="w-3.5 h-3.5 text-text-tertiary" />
-                                            อำเภอ / เขต
-                                        </label>
-                                        <Input
-                                            {...register('district')}
-                                            placeholder="อำเภอ / เขต"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
-                                            <MapPin className="w-3.5 h-3.5 text-text-tertiary" />
-                                            ตำบล / แขวง
-                                        </label>
-                                        <Input
-                                            {...register('sub_district')}
-                                            placeholder="ตำบล / แขวง"
-                                        />
-                                    </div>
-                                    <div>
+                                    <div className="sm:col-span-2">
                                         <label className="block text-xs font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
                                             <Building2 className="w-3.5 h-3.5 text-text-tertiary" />
                                             หน่วยงานที่รับผิดชอบ
@@ -492,6 +474,21 @@ export default function CreateRequestPage() {
                                             placeholder="-- เลือกหน่วยงาน --"
                                         />
                                     </div>
+
+                                    {/* จังหวัด → อำเภอ/เขต → ตำบล/แขวง (reuse ThaiAddressCascade) */}
+                                    <ThaiAddressCascade
+                                        labelClassName="block text-xs font-medium text-text-secondary mb-1.5"
+                                        value={{
+                                            province: watch('province') || '',
+                                            district: watch('district') || '',
+                                            sub_district: watch('sub_district') || '',
+                                        }}
+                                        onChange={(addr) => {
+                                            setValue('province', addr.province);
+                                            setValue('district', addr.district);
+                                            setValue('sub_district', addr.sub_district);
+                                        }}
+                                    />
                                 </div>
                             </div>
                         )}
