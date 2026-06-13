@@ -23,6 +23,7 @@ import {
     ArrowLeft,
     ArrowRight,
     Check,
+    Save,
     ChevronLeft,
     Phone,
     FileText,
@@ -517,7 +518,7 @@ export default function CreateRequestPage() {
 
                             <div className="flex items-center gap-3">
                                 <Link href="/admin/requests">
-                                    <Button type="button" variant="ghost">
+                                    <Button type="button" variant="ghost" leftIcon={<X className="w-4 h-4" />}>
                                         ยกเลิก
                                     </Button>
                                 </Link>
@@ -533,8 +534,8 @@ export default function CreateRequestPage() {
                                 ) : (
                                     <Button
                                         type="submit"
-                                        variant="success"
-                                        leftIcon={<Check className="w-4 h-4" />}
+                                        variant="primary"
+                                        leftIcon={<Save className="w-4 h-4" />}
                                     >
                                         บันทึกคำร้อง
                                     </Button>
@@ -577,7 +578,7 @@ export default function CreateRequestPage() {
                                     onClick={handleSubmit(doSubmit)}
                                     isLoading={submitting}
                                     loadingText="กำลังบันทึก..."
-                                    leftIcon={<Check className="w-4 h-4" />}
+                                    leftIcon={<Save className="w-4 h-4" />}
                                 >
                                     ยืนยันบันทึก
                                 </Button>

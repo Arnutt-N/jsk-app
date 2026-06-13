@@ -672,6 +672,21 @@ export default function RequestDetailPage() {
             || manageFormData.comment.trim().length > 0;
     }, [request, manageFormData]);
 
+    // Dirty trackers for the details / contact edit forms. Reuse the same
+    // buildChangedFields diff the save handlers use, so "disabled until dirty"
+    // matches exactly what a save would send — keeps all four edit tabs
+    // (details / contact / manage / comment) consistent: save stays muted
+    // until the user actually changes something.
+    const isDetailsDirty = useMemo(() => {
+        if (!request) return false;
+        return Object.keys(buildChangedFields(detailsFormData, request as unknown as Record<string, unknown>)).length > 0;
+    }, [request, detailsFormData]);
+
+    const isContactDirty = useMemo(() => {
+        if (!request) return false;
+        return Object.keys(buildChangedFields(contactFormData, request as unknown as Record<string, unknown>)).length > 0;
+    }, [request, contactFormData]);
+
     // P1: intercept tab switch when manage tab has unsaved changes
     const handleTabClick = useCallback((tabId: string) => {
         if (activeTab === 'manage' && isManageDirty && tabId !== 'manage') {
@@ -1155,6 +1170,7 @@ export default function RequestDetailPage() {
                                         onCancel={handleCancelDetailsEdit}
                                         onSave={() => { void guardedSaveDetails(); }}
                                         saving={savingDetails}
+                                        saveDisabled={!isDetailsDirty}
                                     />
                                 </div>
                             )}
@@ -1308,6 +1324,7 @@ export default function RequestDetailPage() {
                                             onCancel={handleCancelContactEdit}
                                             onSave={() => { void guardedSaveContact(); }}
                                             saving={savingContact}
+                                            saveDisabled={!isContactDirty}
                                         />
                                     </div>
                                 </div>
@@ -1525,6 +1542,7 @@ export default function RequestDetailPage() {
                                     onCancel={handleCancelManage}
                                     onSave={handleSaveManage}
                                     saving={loading}
+                                    saveDisabled={!isManageDirty}
                                 />
                             </div>
                         </div>
