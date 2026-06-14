@@ -27,7 +27,6 @@ import {
   EyeOff
 } from 'lucide-react';
 import Link from 'next/link';
-import { cn } from '@/lib/utils';
 
 export default function RegisterPage() {
   const router = useRouter();

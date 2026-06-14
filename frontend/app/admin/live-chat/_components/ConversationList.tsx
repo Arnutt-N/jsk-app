@@ -2,9 +2,8 @@
 
 import React, { useMemo } from 'react';
 import Link from 'next/link';
-import { Home, Inbox, MessageSquarePlus, Search, Users } from 'lucide-react';
+import { Home, Inbox, MessageSquarePlus, Search } from 'lucide-react';
 
-import { useAuth } from '@/contexts/AuthContext';
 import { useLiveChatStore } from '../_store/liveChatStore';
 import { useConversations } from '../_hooks/useConversations';
 import { useLiveChatContext } from '../_context/LiveChatContext';
@@ -32,9 +31,6 @@ export function ConversationList() {
   const setSearchQuery = useLiveChatStore((s) => s.setSearchQuery);
   const setFilterStatus = useLiveChatStore((s) => s.setFilterStatus);
   const setActiveActionMenu = useLiveChatStore((s) => s.setActiveActionMenu);
-
-  // Auth context
-  const { token } = useAuth();
 
   // API methods from Context
   const { formatTime, selectConversation, jumpToMessage, fetchConversations } = useLiveChatContext();

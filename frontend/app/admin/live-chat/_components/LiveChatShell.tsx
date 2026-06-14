@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { AlertCircle, RefreshCw } from 'lucide-react';
 
 import { useLiveChatStore } from '../_store/liveChatStore';
 import { useLiveChatContext } from '../_context/LiveChatContext';

@@ -1,6 +1,5 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import {
@@ -40,7 +39,6 @@ type StaffRole = 'SUPER_ADMIN' | 'ADMIN' | 'AGENT';
 export function UserMenu({ className, locale, onToggleLocale }: UserMenuProps) {
   const { user, logout } = useAuth();
   const { resolvedTheme, toggleTheme } = useTheme();
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -50,7 +48,6 @@ export function UserMenu({ className, locale, onToggleLocale }: UserMenuProps) {
   const isDark = resolvedTheme === 'dark';
 
   const isAdmin = role === 'SUPER_ADMIN' || role === 'ADMIN';
-  const isAgent = role === 'AGENT';
 
   // Close on click outside
   useEffect(() => {

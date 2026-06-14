@@ -164,7 +164,6 @@ export function ChatArea() {
 
   // Empty state (no conversation selected)
   if (!selectedId) {
-    const ConnIcon = connectionStatus.icon;
     const waitingCount = conversations.filter((c) => c.session?.status === 'WAITING').length;
     const activeCount = conversations.filter((c) => c.session?.status === 'ACTIVE').length;
     return (
