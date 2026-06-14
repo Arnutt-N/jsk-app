@@ -20,9 +20,12 @@ import {
     Upload,
     X,
     Shield,
-    Loader2
+    Loader2,
+    RotateCcw,
+    AlertTriangle
 } from 'lucide-react'
 import { logger } from '@/lib/logger';
+import { useToast } from '@/components/ui/Toast';
 
 // --- CONSTANTS ---
 const STEPS = [
@@ -77,6 +80,8 @@ export default function LiffServiceRequestV2() {
     const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
     const [profile, setProfile] = useState<LiffProfile | null>(null)
     const [isInLineApp, setIsInLineApp] = useState(false)
+    const [showLeaveConfirm, setShowLeaveConfirm] = useState(false)
+    const { toast } = useToast()
 
     // Location Data State
     const [provinces, setProvinces] = useState<Province[]>([])
@@ -88,7 +93,7 @@ export default function LiffServiceRequestV2() {
     const [loadingSubDistricts, setLoadingSubDistricts] = useState(false)
 
     // Form Data
-    const [formData, setFormData] = useState({
+    const INITIAL_FORM_DATA = {
         // Personal
         prefix: '',
         firstname: '',
@@ -109,7 +114,8 @@ export default function LiffServiceRequestV2() {
 
         // Attachments
         attachments: [] as Array<{ id: string, url: string, name: string }>
-    })
+    }
+    const [formData, setFormData] = useState(INITIAL_FORM_DATA)
 
     // Selected IDs for cascading logic (Not submitted)
     const [selectedProvinceId, setSelectedProvinceId] = useState<number | null>(null)
@@ -142,16 +148,25 @@ export default function LiffServiceRequestV2() {
                 }
             } catch (err: unknown) {
                 logger.error('LIFF Init Error:', err)
-                // Don't show error to user immediately, just log it. 
+                // Don't show error to user immediately, just log it.
                 // We'll fallback to manual inputs if LIFF fails.
+                // Still try to detect the LINE in-app context so the success
+                // screen + auto-close behave correctly even if init hiccupped
+                // (otherwise isInLineApp stays false on mobile and never closes).
+                try {
+                    setIsInLineApp(liff.isInClient())
+                } catch {
+                    // Not in the LINE client (or LIFF unavailable) — leave as false.
+                }
             }
         }
 
         const fetchProvinces = async () => {
             try {
-                // Use env var or default to relative path (which uses proxy)
-                const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api/v1'
-                const res = await fetch(`${API_BASE}/locations/provinces`)
+                // Use the relative path so the request goes through the Next.js
+                // rewrite proxy (same as districts/media/submit). Avoids a
+                // cross-origin CORS failure on preview deployments.
+                const res = await fetch(`/api/v1/locations/provinces`)
 
                 if (!res.ok) {
                     const txt = await res.text()
@@ -382,6 +397,9 @@ export default function LiffServiceRequestV2() {
             setSuccess(true)
             setShowConfirm(false)
             window.scrollTo(0, 0)
+            // Re-sync in-client status when success shows so the auto-close
+            // below fires reliably even if liff.init() lagged on mobile.
+            try { setIsInLineApp(liff.isInClient()) } catch { /* not in LINE */ }
         } catch (err: unknown) {
             logger.error("Submit Error:", err)
             setError(err instanceof Error ? err.message : 'Failed to submit')
@@ -392,36 +410,84 @@ export default function LiffServiceRequestV2() {
         }
     }
 
+    // Auto-close countdown state (only works in LINE App)
+    const [timeLeft, setTimeLeft] = useState(5)
+
+    // Clear only the fields belonging to the current step ("ล้างค่า" per tab).
+    const clearStep = () => {
+        if (step === 0) {
+            setFormData(prev => ({ ...prev, prefix: '', firstname: '', lastname: '', phone_number: '', email: '' }))
+        } else if (step === 1) {
+            setFormData(prev => ({ ...prev, agency: '', province: '', district: '', sub_district: '' }))
+            setSelectedProvinceId(null)
+            setSelectedDistrictId(null)
+            setDistricts([])
+            setSubDistricts([])
+        } else if (step === 2) {
+            setFormData(prev => ({ ...prev, topic_category: '', topic_subcategory: '', description: '' }))
+        } else if (step === 3) {
+            setFormData(prev => ({ ...prev, attachments: [] }))
+        }
+        setFieldErrors({})
+        toast({ variant: 'success', title: 'ล้างข้อมูลแท็บนี้แล้ว' })
+    }
+
+    // Reset the whole form back to its initial state (used by "ยื่นคำร้องใหม่").
+    const resetForm = () => {
+        setStep(0)
+        setFormData({ ...INITIAL_FORM_DATA, attachments: [] })
+        setSelectedProvinceId(null)
+        setSelectedDistrictId(null)
+        setDistricts([])
+        setSubDistricts([])
+        setFieldErrors({})
+        setError(null)
+        setShowConfirm(false)
+        setSuccess(false)
+        setTimeLeft(5)
+        window.scrollTo(0, 0)
+    }
+
+    // Close the LIFF window. Only meaningful inside the LINE in-app browser.
     const handleClose = () => {
         try {
-            if (liff.isInClient()) {
-                // Inside LINE App - use LIFF close
-                liff.closeWindow()
-            } else {
-                // External Browser - just try window.close()
-                // DO NOT redirect to LIFF URL as it reopens the form!
-                window.close()
-                // If window.close() doesn't work (e.g., not opened by script),
-                // the user will see the "please close manually" message.
-            }
+            liff.closeWindow()
         } catch (e) {
             logger.error('Close window failed:', e)
         }
     }
 
-    // Auto-close countdown state (only works in LINE App)
-    const [timeLeft, setTimeLeft] = useState(5)
+    // "ยกเลิกรายการ" leave action. Inside LINE we close the LIFF window; in an
+    // external (desktop) browser the tab can't be closed by script, so navigate
+    // back to the public landing page instead.
+    const performLeave = () => {
+        if (liff.isInClient()) {
+            handleClose()
+        } else {
+            window.location.href = '/'
+        }
+    }
+
+    // "ยกเลิกรายการ" button — always confirm before leaving the form.
+    const requestCancel = () => {
+        setShowLeaveConfirm(true)
+    }
+
+    // Resolve the leave confirmation.
+    const confirmLeave = () => {
+        performLeave()
+        setShowLeaveConfirm(false)
+    }
 
     useEffect(() => {
-        let timer: NodeJS.Timeout
-        // Only auto-close if inside LINE App
-        if (success && isInLineApp && timeLeft > 0) {
-            timer = setTimeout(() => {
-                setTimeLeft(prev => prev - 1)
-            }, 1000)
-        } else if (success && isInLineApp && timeLeft === 0) {
+        // Auto-close only runs inside the LINE in-app browser; an external
+        // browser tab cannot be closed programmatically, so skip it there.
+        if (!success || !isInLineApp) return
+        if (timeLeft <= 0) {
             handleClose()
+            return
         }
+        const timer = setTimeout(() => setTimeLeft(prev => prev - 1), 1000)
         return () => clearTimeout(timer)
     }, [success, timeLeft, isInLineApp])
 
@@ -464,9 +530,20 @@ export default function LiffServiceRequestV2() {
                                         แล้วใส่เบอร์โทรศัพท์ที่ใช้ยื่นเรื่อง
                                     </p>
                                 </div>
-                                <p className="text-[11px] text-gray-400 px-4">
-                                    ท่านสามารถปิดหน้านี้ได้ทันที
-                                </p>
+                                <Button
+                                    variant="primary"
+                                    className="w-full py-4 text-lg mb-3"
+                                    onClick={resetForm}
+                                >
+                                    ยื่นคำร้องใหม่
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    className="w-full"
+                                    onClick={() => { window.location.href = '/' }}
+                                >
+                                    กลับหน้าหลัก
+                                </Button>
                             </>
                         )}
                     </CardContent>
@@ -498,14 +575,6 @@ export default function LiffServiceRequestV2() {
                         <Badge variant={provinces.length > 0 ? "success" : "warning"} className="h-6">
                             {provinces.length > 0 ? "Online" : "Connecting..."}
                         </Badge>
-                        <button
-                            type="button"
-                            onClick={handleClose}
-                            aria-label="ปิดหน้าต่าง"
-                            className="p-1.5 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
-                        >
-                            <X className="w-5 h-5" />
-                        </button>
                     </div>
                 </div>
             </div>
@@ -540,9 +609,21 @@ export default function LiffServiceRequestV2() {
 
                     <Card glass className="overflow-hidden">
                         <CardHeader className="bg-gray-50/50 border-b border-gray-100">
-                            <CardTitle className="text-base flex items-center gap-2">
-                                {STEPS[step].icon} {STEPS[step].title}
-                            </CardTitle>
+                            <div className="flex items-center justify-between gap-2">
+                                <CardTitle className="text-base flex items-center gap-2">
+                                    {STEPS[step].icon} {STEPS[step].title}
+                                </CardTitle>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={clearStep}
+                                    leftIcon={<RotateCcw className="w-3.5 h-3.5" />}
+                                    className="h-7 px-2 text-xs text-gray-500 dark:text-gray-400 shrink-0"
+                                >
+                                    ล้างค่า
+                                </Button>
+                            </div>
                         </CardHeader>
                         <CardContent className="pt-6">
                             {/* Step 1: Personal */}
@@ -893,7 +974,8 @@ export default function LiffServiceRequestV2() {
                             type="button"
                             variant="ghost"
                             className="w-full py-2 h-auto text-xs text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 font-medium"
-                            onClick={handleClose}
+                            onClick={requestCancel}
+                            leftIcon={<X className="w-3.5 h-3.5" />}
                         >
                             ยกเลิกรายการ
                         </Button>
@@ -934,6 +1016,44 @@ export default function LiffServiceRequestV2() {
                                         isLoading={submitting}
                                     >
                                         ยืนยันคำขอ
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+                )}
+
+                {/* Leave / cancel confirmation */}
+                {showLeaveConfirm && (
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200" role="dialog" aria-modal="true" aria-labelledby="cancel-dialog-title">
+                        <Card className="w-full max-w-sm shadow-2xl">
+                            <CardHeader className="text-center pb-2">
+                                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-red-600">
+                                    <AlertTriangle className="w-6 h-6" />
+                                </div>
+                                <CardTitle id="cancel-dialog-title" className="text-lg">
+                                    {isInLineApp ? 'ปิดแบบฟอร์มนี้?' : 'ออกจากหน้านี้?'}
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="text-center space-y-4">
+                                <p className="text-sm text-gray-500">
+                                    ข้อมูลที่กรอกไว้ทั้งหมดจะหายไป<br />
+                                    และไม่สามารถกู้คืนได้
+                                </p>
+                                <div className="flex gap-3 pt-2">
+                                    <Button
+                                        variant="ghost"
+                                        className="flex-1"
+                                        onClick={() => setShowLeaveConfirm(false)}
+                                    >
+                                        ไม่ใช่
+                                    </Button>
+                                    <Button
+                                        variant="danger"
+                                        className="flex-1"
+                                        onClick={confirmLeave}
+                                    >
+                                        ยืนยัน
                                     </Button>
                                 </div>
                             </CardContent>
