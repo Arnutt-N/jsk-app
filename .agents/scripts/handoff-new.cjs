@@ -12,6 +12,8 @@
  * Creates:
  *   - .agents/state/checkpoints/handover-<platform>-<YYYYMMDD-HHMM>.json   (source of truth)
  *   - project-log-md/<platform>/session-summary-<YYYYMMDD-HHMM>.md         (narrative; fill in)
+ * Syncs .agents/state/current-session.json and refreshes .agents/PROJECT_STATUS.md
+ * (Last Updated line + a Recent Completions entry) so validate_handoff_state.py stays green.
  * Then runs gen-handoff-views.cjs so TASK_LOG.md + SESSION_INDEX.md update automatically.
  * Prints the remaining manual steps (review summary, commit, push).
  */
@@ -27,6 +29,14 @@ const CANON = {
   kilo_code: 'kilo_code', cline: 'cline', antigravity: 'antigravity',
   gemini_cli: 'gemini_cli', open_code: 'open_code', qwen: 'qwen',
 };
+
+const DISPLAY = {
+  claude_code: 'Claude Code', codex: 'Codex', kimi_code: 'Kimi Code',
+  kilo_code: 'Kilo Code', cline: 'Cline', antigravity: 'Antigravity',
+  gemini_cli: 'Gemini CLI', open_code: 'OpenCode', qwen: 'Qwen',
+};
+const displayName = (p) =>
+  DISPLAY[p] || p.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
 function main() {
   const ROOT = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim();
@@ -46,6 +56,7 @@ function main() {
   const time = `${p2(d.getHours())}${p2(d.getMinutes())}`;
   const ts = `${date}-${time}`;
   const iso = `${date.slice(0, 4)}-${date.slice(4, 6)}-${date.slice(6, 8)}T${time.slice(0, 2)}:${time.slice(2, 4)}:00Z`;
+  const humanTs = `${date.slice(0, 4)}-${date.slice(4, 6)}-${date.slice(6, 8)} ${time.slice(0, 2)}:${time.slice(2, 4)}`;
 
   let head = '';
   try { head = execFileSync('git', ['rev-parse', '--short', 'HEAD'], { cwd: ROOT, encoding: 'utf8' }).trim(); } catch {}
@@ -119,6 +130,30 @@ function main() {
     ) + '\n'
   );
 
+  // Refresh PROJECT_STATUS.md (Last Updated line + one Recent Completions entry) so the
+  // validator's freshness check stays green. Only these two spots are touched — the curated
+  // Thai summary / milestones are left intact. Fail-open: never block a handoff on this.
+  try {
+    const psPath = path.join(ROOT, '.agents', 'PROJECT_STATUS.md');
+    if (fs.existsSync(psPath)) {
+      let ps = fs.readFileSync(psPath, 'utf8');
+      const disp = displayName(platform);
+      const oneLine = summaryArg.replace(/\s+/g, ' ').trim();
+      const note = oneLine.split(/(?<=[.!?])\s/)[0].replace(/[()]/g, '').slice(0, 90);
+      const luRe = /^>?\s*\*\*Last Updated:\*\*.*$/m;
+      if (luRe.test(ps)) {
+        ps = ps.replace(luRe, `> **Last Updated:** ${humanTs} by ${disp} (${note})`);
+      }
+      const rcRe = /^(##\s*Recent Completions\s*\n)/m;
+      if (rcRe.test(ps)) {
+        ps = ps.replace(rcRe, `$1- [${humanTs}] ${disp}: ${oneLine.slice(0, 240)} (${disp})\n`);
+      }
+      fs.writeFileSync(psPath, ps);
+    }
+  } catch {
+    /* fail-open */
+  }
+
   // Regenerate the views from the (now updated) source of truth.
   execFileSync('node', [path.join(ROOT, '.agents', 'scripts', 'gen-handoff-views.cjs')], {
     cwd: ROOT, stdio: 'inherit',
@@ -130,6 +165,7 @@ function main() {
       'Handoff scaffolded:',
       `  checkpoint: .agents/state/checkpoints/handover-${platform}-${ts}.json`,
       `  summary:    project-log-md/${platform}/session-summary-${ts}.md`,
+      '  status:     .agents/PROJECT_STATUS.md (Last Updated + recent-completion)',
       '',
       'Next: (1) flesh out the summary .md, (2) git add + commit the artifacts,',
       '      (3) push. Verify: python .agents/scripts/validate_handoff_state.py',
