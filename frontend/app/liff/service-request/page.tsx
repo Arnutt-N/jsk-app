@@ -80,7 +80,7 @@ export default function LiffServiceRequestV2() {
     const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
     const [profile, setProfile] = useState<LiffProfile | null>(null)
     const [isInLineApp, setIsInLineApp] = useState(false)
-    const [confirmAction, setConfirmAction] = useState<null | 'clear' | 'cancel'>(null)
+    const [showLeaveConfirm, setShowLeaveConfirm] = useState(false)
     const { toast } = useToast()
 
     // Location Data State
@@ -413,14 +413,26 @@ export default function LiffServiceRequestV2() {
     // Auto-close countdown state (only works in LINE App)
     const [timeLeft, setTimeLeft] = useState(5)
 
-    // Whether the user has entered anything worth confirming before discarding.
-    const isFormDirty = () => {
-        if (step > 0) return true
-        if (formData.attachments.length > 0) return true
-        return Object.entries(formData).some(([k, v]) => k !== 'attachments' && v !== '')
+    // Clear only the fields belonging to the current step ("ล้างค่า" per tab).
+    const clearStep = () => {
+        if (step === 0) {
+            setFormData(prev => ({ ...prev, prefix: '', firstname: '', lastname: '', phone_number: '', email: '' }))
+        } else if (step === 1) {
+            setFormData(prev => ({ ...prev, agency: '', province: '', district: '', sub_district: '' }))
+            setSelectedProvinceId(null)
+            setSelectedDistrictId(null)
+            setDistricts([])
+            setSubDistricts([])
+        } else if (step === 2) {
+            setFormData(prev => ({ ...prev, topic_category: '', topic_subcategory: '', description: '' }))
+        } else if (step === 3) {
+            setFormData(prev => ({ ...prev, attachments: [] }))
+        }
+        setFieldErrors({})
+        toast({ variant: 'success', title: 'ล้างข้อมูลแท็บนี้แล้ว' })
     }
 
-    // Reset the whole form back to its initial state ("ล้างค่า").
+    // Reset the whole form back to its initial state (used by "ยื่นคำร้องใหม่").
     const resetForm = () => {
         setStep(0)
         setFormData({ ...INITIAL_FORM_DATA, attachments: [] })
@@ -456,29 +468,15 @@ export default function LiffServiceRequestV2() {
         }
     }
 
-    // "ล้างค่า" button — confirm first only when there is data to lose.
-    const requestClear = () => {
-        if (isFormDirty()) {
-            setConfirmAction('clear')
-        } else {
-            toast({ variant: 'info', title: 'ฟอร์มยังว่างอยู่' })
-        }
-    }
-
     // "ยกเลิกรายการ" button — always confirm before leaving the form.
     const requestCancel = () => {
-        setConfirmAction('cancel')
+        setShowLeaveConfirm(true)
     }
 
-    // Resolve the pending confirm-dialog action.
-    const confirmPendingAction = () => {
-        if (confirmAction === 'clear') {
-            resetForm()
-            toast({ variant: 'success', title: 'ล้างข้อมูลแล้ว' })
-        } else if (confirmAction === 'cancel') {
-            performLeave()
-        }
-        setConfirmAction(null)
+    // Resolve the leave confirmation.
+    const confirmLeave = () => {
+        performLeave()
+        setShowLeaveConfirm(false)
     }
 
     useEffect(() => {
@@ -577,16 +575,6 @@ export default function LiffServiceRequestV2() {
                         <Badge variant={provinces.length > 0 ? "success" : "warning"} className="h-6">
                             {provinces.length > 0 ? "Online" : "Connecting..."}
                         </Badge>
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={requestClear}
-                            leftIcon={<RotateCcw className="w-3.5 h-3.5" />}
-                            className="h-7 px-2 text-xs text-gray-600 dark:text-gray-300"
-                        >
-                            ล้างค่า
-                        </Button>
                     </div>
                 </div>
             </div>
@@ -621,9 +609,21 @@ export default function LiffServiceRequestV2() {
 
                     <Card glass className="overflow-hidden">
                         <CardHeader className="bg-gray-50/50 border-b border-gray-100">
-                            <CardTitle className="text-base flex items-center gap-2">
-                                {STEPS[step].icon} {STEPS[step].title}
-                            </CardTitle>
+                            <div className="flex items-center justify-between gap-2">
+                                <CardTitle className="text-base flex items-center gap-2">
+                                    {STEPS[step].icon} {STEPS[step].title}
+                                </CardTitle>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={clearStep}
+                                    leftIcon={<RotateCcw className="w-3.5 h-3.5" />}
+                                    className="h-7 px-2 text-xs text-gray-500 dark:text-gray-400 shrink-0"
+                                >
+                                    ล้างค่า
+                                </Button>
+                            </div>
                         </CardHeader>
                         <CardContent className="pt-6">
                             {/* Step 1: Personal */}
@@ -1023,8 +1023,8 @@ export default function LiffServiceRequestV2() {
                     </div>
                 )}
 
-                {/* Clear / Cancel confirmation */}
-                {confirmAction && (
+                {/* Leave / cancel confirmation */}
+                {showLeaveConfirm && (
                     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200" role="dialog" aria-modal="true" aria-labelledby="cancel-dialog-title">
                         <Card className="w-full max-w-sm shadow-2xl">
                             <CardHeader className="text-center pb-2">
@@ -1032,9 +1032,7 @@ export default function LiffServiceRequestV2() {
                                     <AlertTriangle className="w-6 h-6" />
                                 </div>
                                 <CardTitle id="cancel-dialog-title" className="text-lg">
-                                    {confirmAction === 'clear'
-                                        ? 'ล้างข้อมูลทั้งหมด?'
-                                        : isInLineApp ? 'ปิดแบบฟอร์มนี้?' : 'ออกจากหน้านี้?'}
+                                    {isInLineApp ? 'ปิดแบบฟอร์มนี้?' : 'ออกจากหน้านี้?'}
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="text-center space-y-4">
@@ -1046,16 +1044,16 @@ export default function LiffServiceRequestV2() {
                                     <Button
                                         variant="ghost"
                                         className="flex-1"
-                                        onClick={() => setConfirmAction(null)}
+                                        onClick={() => setShowLeaveConfirm(false)}
                                     >
                                         ไม่ใช่
                                     </Button>
                                     <Button
                                         variant="danger"
                                         className="flex-1"
-                                        onClick={confirmPendingAction}
+                                        onClick={confirmLeave}
                                     >
-                                        {confirmAction === 'clear' ? 'ล้างข้อมูล' : 'ยืนยัน'}
+                                        ยืนยัน
                                     </Button>
                                 </div>
                             </CardContent>
