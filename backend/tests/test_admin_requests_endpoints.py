@@ -79,6 +79,7 @@ def test_create_comment_ignores_forged_user_id_query_param():
 
     app.dependency_overrides[session_get_db] = _override_get_db
     app.dependency_overrides[deps.get_current_admin] = _override_get_current_admin
+    app.dependency_overrides[deps.get_current_manager] = _override_get_current_admin
 
     client = TestClient(app)
     try:
@@ -159,6 +160,7 @@ def _patch_admin_overrides(fake_db: _FakeDB):
 
     app.dependency_overrides[session_get_db] = _override_get_db
     app.dependency_overrides[deps.get_current_admin] = _override_get_current_admin
+    app.dependency_overrides[deps.get_current_manager] = _override_get_current_admin
 
     def teardown():
         app.dependency_overrides.clear()
@@ -312,6 +314,7 @@ def test_unassign_request_forbidden_for_agent_role():
 
     app.dependency_overrides[session_get_db] = _override_get_db
     app.dependency_overrides[deps.get_current_admin] = _override_get_current_admin
+    app.dependency_overrides[deps.get_current_manager] = _override_get_current_admin
 
     client = TestClient(app)
     try:
@@ -544,6 +547,93 @@ def test_assign_request_still_works_after_refactor():
 
 
 # ---------------------------------------------------------------------------
+# Manager-tier (DIRECTOR/HEAD) access tests (Phase 1 — dead-policy fix).
+# DIRECTOR/HEAD now reach request endpoints via get_current_manager.
+# DEFAULT_POLICY grants them assign/self-assign but NOT revert_approval
+# or edit_request_details, so the inner can_* guards must still fire.
+# ---------------------------------------------------------------------------
+
+
+def _patch_manager_overrides(fake_db, role=UserRole.DIRECTOR):
+    """Override deps with a manager-tier role (DIRECTOR or HEAD)."""
+
+    async def _override_get_db():
+        yield fake_db
+
+    async def _override_get_current_manager():
+        return SimpleNamespace(
+            id=9,
+            username="director-user",
+            display_name="Director User",
+            role=role,
+        )
+
+    app.dependency_overrides[session_get_db] = _override_get_db
+    app.dependency_overrides[deps.get_current_admin] = _override_get_current_manager
+    app.dependency_overrides[deps.get_current_manager] = _override_get_current_manager
+
+    def _teardown():
+        app.dependency_overrides.clear()
+
+    return _teardown
+
+
+def test_director_can_assign_request():
+    """DIRECTOR passes the manager gate AND can_assign() -> assignment succeeds.
+
+    Before the fix DIRECTOR was blocked at get_current_admin and never
+    reached can_assign — the policy that granted DIRECTOR assign rights
+    was dead.
+    """
+    fake_db = _FakeDB()
+    fake_request = SimpleNamespace(
+        id=70,
+        status=RequestStatus.PENDING,
+        completed_at=None,
+        priority="LOW",
+        due_date=None,
+        assigned_agent_id=None,
+        assigned_by_id=None,
+    )
+    fake_db._fake_request = fake_request
+    teardown = _patch_manager_overrides(fake_db, role=UserRole.DIRECTOR)
+
+    client = TestClient(app)
+    try:
+        response = client.patch(
+            "/api/v1/admin/requests/70",
+            json={"assigned_agent_id": 5},
+        )
+    finally:
+        client.close()
+        teardown()
+
+    assert response.status_code == 200
+    assert fake_request.assigned_agent_id == 5
+
+
+def test_head_revert_approval_forbidden():
+    """HEAD reaches the endpoint (manager gate) but can_revert_approval()
+    is False in the default policy -> revert is blocked with 403."""
+    fake_db = _FakeDB()
+    fake_db._fake_request = _build_completed_request(request_id=71)
+    teardown = _patch_manager_overrides(fake_db, role=UserRole.HEAD)
+
+    client = TestClient(app)
+    try:
+        response = client.patch(
+            "/api/v1/admin/requests/71",
+            json={"status": "AWAITING_APPROVAL"},
+        )
+    finally:
+        client.close()
+        teardown()
+
+    assert response.status_code == 403
+    assert fake_db._fake_request.status == RequestStatus.COMPLETED  # unchanged
+
+
+# ---------------------------------------------------------------------------
 # edit_request_details permission guard (Phase 1).
 # Details/contact field edits require can_edit_request_details(); the
 # default policy grants it to SUPER_ADMIN/ADMIN only. Workflow-only
@@ -567,6 +657,7 @@ def _patch_agent_overrides(fake_db):
 
     app.dependency_overrides[session_get_db] = _override_get_db
     app.dependency_overrides[deps.get_current_admin] = _override_get_current_admin
+    app.dependency_overrides[deps.get_current_manager] = _override_get_current_admin
 
     def _teardown():
         app.dependency_overrides.clear()

@@ -8,7 +8,7 @@ from typing import List, Optional
 from datetime import datetime
 
 from app.db.session import get_db
-from app.api.deps import get_current_admin
+from app.api.deps import get_current_admin, get_current_manager
 from app.core.audit import create_audit_log
 from app.core.permissions import can_assign, can_self_assign, can_revert_approval, can_edit_request_details
 from app.models.service_request import ServiceRequest, RequestStatus, RequestPriority
@@ -143,7 +143,7 @@ async def create_request(
 
 
 @router.get("/stats", response_model=RequestStats)
-async def get_request_stats(db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_admin)):
+async def get_request_stats(db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_manager)):
     """Get summary statistics for admin dashboard.
 
     Splits PENDING into two display buckets based on assignment:
@@ -176,7 +176,7 @@ class MonthlyStats(BaseModel):
     count: int
 
 @router.get("/stats/monthly", response_model=List[MonthlyStats])
-async def get_monthly_stats(db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_admin)):
+async def get_monthly_stats(db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_manager)):
     """Get request counts grouped by month (last 12 months)."""
     # Using text() for the order by to reference the alias
     from sqlalchemy import text
@@ -204,7 +204,7 @@ class WorkloadStats(BaseModel):
     awaiting_approval_count: int   # AWAITING_APPROVAL ("รออนุมัติ")
 
 @router.get("/stats/workload", response_model=List[WorkloadStats])
-async def get_workload_stats(db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_admin)):
+async def get_workload_stats(db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_manager)):
     """Get workload distribution across agents.
 
     Counts only OPEN states the agent is responsible for (PENDING with
@@ -230,7 +230,7 @@ class PerformanceStats(BaseModel):
     on_time_percentage: float
 
 @router.get("/stats/performance", response_model=PerformanceStats)
-async def get_performance_stats(db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_admin)):
+async def get_performance_stats(db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_manager)):
     """Analyze agent performance."""
     # Simplified calculation for cycle time
     cycle_time_query = select(
@@ -265,7 +265,7 @@ async def list_requests(
     skip: int = 0,
     limit: int = 100,
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin)
+    current_admin: User = Depends(get_current_manager)
 ):
     """List all service requests with filtering and search."""
     # query = select(ServiceRequest).offset(skip).limit(limit).order_by(ServiceRequest.created_at.desc())
@@ -306,7 +306,7 @@ async def list_requests(
 
 
 @router.get("/{request_id}", response_model=ServiceRequestResponse)
-async def get_request_detail(request_id: int, db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_admin)):
+async def get_request_detail(request_id: int, db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_manager)):
     """Get full details of a specific request."""
     result = await db.execute(select(ServiceRequest).where(ServiceRequest.id == request_id))
     request = result.scalar_one_or_none()
@@ -354,7 +354,7 @@ async def update_request(
     request_id: int,
     update_data: RequestUpdate,
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin)
+    current_admin: User = Depends(get_current_manager)
 ):
     """Update request status, priority, due date or assign an agent.
 
@@ -570,7 +570,7 @@ async def create_comment(
     request_id: int,
     comment_data: RequestCommentCreate,
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin)
+    current_admin: User = Depends(get_current_manager)
 ):
     """Add a new internal comment to a request."""
     result = await db.execute(select(ServiceRequest).where(ServiceRequest.id == request_id))
@@ -598,7 +598,7 @@ async def create_comment(
     )
 
 @router.get("/{request_id}/comments", response_model=List[RequestCommentResponse])
-async def list_comments(request_id: int, db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_admin)):
+async def list_comments(request_id: int, db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_manager)):
     """List all internal comments for a specific request."""
     query = (
         select(RequestComment, User.display_name)
