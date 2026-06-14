@@ -1,35 +1,17 @@
 {
-  "last_updated": "2026-06-14T15:34:00Z",
+  "last_updated": "2026-06-14T16:02:00Z",
   "platform": "claude_code",
-  "current_task": "Stop-hook handoff enforcement (Task #44) — script committed 0779260, local settings.json wiring",
+  "current_task": "Redesigned handoff system: checkpoints = single source of truth; TASK_LOG.md + SESSION_INDEX.md generated; handoff-new.cjs 1-command scaffold; dead-file cleanup",
   "plan_status": "completed",
   "next_steps": [
-    "Real-device mobile test: LIFF auto-close after service-request submit (LINE in-app) — pending from Task #43",
-    "Optional: make Stop-hook enforcement team-wide (un-gitignore .claude/settings.json or per-dev wiring)"
+    "Flesh out narrative in project-log-md/claude_code/session-summary-20260614-1602.md if needed",
+    "Deferred: consolidate duplicate workflows (agent-handover/pick-up/task-summary/session-summary) — referenced by INDEX.md/WORKFLOWS_GUIDE.md/skills",
+    "Pending from Task #43: real-device mobile LIFF auto-close test"
   ],
   "handoff_history": [
-    {
-      "timestamp": "2026-06-14T15:34:00Z",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "0779260",
-      "status": "committed",
-      "note": "Stop-hook handoff enforcement (Task #44)"
-    },
-    {
-      "timestamp": "2026-06-14T12:27:00Z",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "2e8fab5",
-      "prs": ["#102", "#103", "#104"],
-      "status": "merged"
-    },
-    {
-      "timestamp": "2026-06-03T18:30:00Z",
-      "platform": "claude_code",
-      "branch": "feat/undo-redo-help-error-handling",
-      "status": "merged"
-    }
+    { "timestamp": "2026-06-14T16:02:00Z", "platform": "claude_code", "branch": "main", "head": "51fdbcd", "status": "completed", "note": "handoff-system redesign" },
+    { "timestamp": "2026-06-14T15:34:00Z", "platform": "claude_code", "branch": "main", "head": "0779260", "status": "completed", "note": "stop-hook enforcement" },
+    { "timestamp": "2026-06-14T12:27:00Z", "platform": "claude_code", "branch": "main", "head": "2e8fab5", "prs": ["#102", "#103", "#104"], "status": "merged" }
   ],
   "cross_platform_context": {
     "summaries_read": [
@@ -37,6 +19,6 @@
       "kimi_code/session-summary-20260602-0008.md",
       "antigravity/session-summary-20260602-0032.md"
     ],
-    "key_insights": "Handoff enforcement is now automated for claude_code via a Stop hook (.agents/scripts/handoff-stop-check.cjs). End sessions by running the handoff workflow so a fresh checkpoint is the latest commit. Task #43 recovered the #79-#101 log gap; git main remains the source of truth for that period."
+    "key_insights": "Handoff system redesigned to single-source-of-truth (checkpoints) + generated views (TASK_LOG/SESSION_INDEX via gen-handoff-views.cjs). Use handoff-new.cjs to create handoffs. Stop hook enforces it. Do NOT hand-edit the generated files."
   }
 }

@@ -1,156 +1,111 @@
-# Cross-Platform Session Index
+<!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
+# Cross-Platform Session Index (generated)
 
-> **Master index of ALL session summaries from ALL agents across ALL platforms**
->
-> **Last Updated**: 2026-06-14 15:34
+> **Last generated**: 2026-06-14 16:02 (from newest checkpoint)
 
----
-
-## 📊 Quick Stats
+## Quick Stats
 
 | Metric | Value |
 |--------|-------|
-| Total Platforms | 11 |
-| Total Session Summaries | 113 |
-| Most Recent | 2026-06-14 15:34 (Claude Code - Stop-hook handoff enforcement, Task #44) |
-| Oldest | 2026-02-10 07:00 (Claude Code) |
+| Handoff checkpoints | 62 |
+| Session summaries on disk | 147 |
+| Platforms | 8 (antigravity, claude_code, cline, codex, gemini_cli, kilo_code, kimi_code, open_code) |
+| Most recent | 2026-06-14 16:02 — claude_code |
 
----
+> Regenerate after any handoff: `node .agents/scripts/gen-handoff-views.cjs`
 
-## 📖 How to Use This Index
+## antigravity (4)
 
-### For Agents Starting Work
+| When | Status | Checkpoint |
+|------|--------|------------|
+| 2026-06-02 00:32 | completed | `handover-antigravity-20260602-0032.json` |
+| 2026-04-07 15:43 | completed | `handover-antigravity-20260407-1543.json` |
+| 2026-04-04 12:04 | completed | `handover-antigravity-20260404-1204.json` |
+| 2026-02-15 03:20 | completed | `handover-antigravity-20260215-0320.json` |
 
-**Read these in order:**
-1. **`.agents/state/TASK_LOG.md`** - Quick overview of all tasks
-2. **This index** - Find specific session summaries by platform
-3. **Recent summaries** - Read last 2-3 summaries from ANY platform
-4. **Current session** - `.agents/state/current-session.json`
+## claude_code (27)
 
-### Finding Recent Work
+| When | Status | Checkpoint |
+|------|--------|------------|
+| 2026-06-14 16:02 | completed | `handover-claude_code-20260614-1602.json` |
+| 2026-06-14 15:34 | completed | `handover-claude_code-20260614-1534.json` |
+| 2026-06-14 12:27 | completed | `handover-claude_code-20260614-1227.json` |
+| 2026-06-03 18:30 | completed | `handover-claude_code-20260603-1830.json` |
+| 2026-05-25 01:00 | completed | `handover-claude_code-20260525-0100.json` |
+| 2026-05-24 10:24 | completed | `handover-claude_code-20260524-1024.json` |
+| 2026-05-23 22:05 | completed | `handover-claude_code-20260523-2205.json` |
+| 2026-05-05 23:39 | in_progress (code complete, blocked on commit by GateGuard hook; fix applied to settings.json, awaiting session restart) | `handover-claude_code-20260505-2339.json` |
+| 2026-04-06 01:00 | completed | `handover-claude_code-20260406-0100.json` |
+| 2026-04-04 00:30 | completed | `handover-claude_code-20260404-0030.json` |
+| 2026-03-29 20:30 | completed | `handover-claude_code-20260329-2030.json` |
+| 2026-03-21 11:00 | completed | `handover-claude_code-20260321-1100.json` |
+| 2026-03-15 19:00 | completed | `handover-claude_code-20260315-1900.json` |
+| 2026-03-15 17:30 | completed | `handover-claude_code-20260315-1730.json` |
+| 2026-02-20 22:20 | completed | `handover-claude_code-20260220-2220.json` |
+| 2026-02-18 02:04 | completed | `handover-claude_code-20260218-0204.json` |
+| 2026-02-15 23:00 | completed | `handover-claude_code-20260215-2300.json` |
+| 2026-02-15 21:00 | handoff_to_codex | `handover-claude_code-20260215-2100.json` |
+| 2026-02-15 18:00 | completed | `handover-claude_code-20260215-1800.json` |
+| 2026-02-13 03:00 | unknown | `handover-claude_code-20260213-0300.json` |
+| … | | +7 older |
 
-```bash
-# Find latest summary across ALL platforms
-ls -lt project-log-md/*/*.md | head -5
+## cline (1)
 
-# Find latest summary from specific platform
-ls -lt project-log-md/claude_code/*.md | head -3
+| When | Status | Checkpoint |
+|------|--------|------------|
+| 2026-02-15 03:25 | completed | `handover-cline-20260215-0325.json` |
 
-# Read specific summary
-cat project-log-md/claude_code/session-summary-20260603-1830.md
-```
+## codex (16)
 
----
+| When | Status | Checkpoint |
+|------|--------|------------|
+| 2026-04-07 00:29 | completed | `handover-codeX-20260407-0029.json` |
+| 2026-04-06 22:44 | completed | `handover-codeX-20260406-2244.json` |
+| 2026-04-06 01:56 | completed | `handover-codeX-20260406-0156.json` |
+| 2026-03-30 08:19 | completed | `handover-codeX-20260330-0819.json` |
+| 2026-03-29 18:25 | completed | `handover-codeX-20260329-1825.json` |
+| 2026-03-15 17:18 | completed | `handover-codeX-20260315-1718.json` |
+| 2026-03-15 15:42 | completed | `handover-codeX-20260315-1542.json` |
+| 2026-02-15 18:48 | completed | `handover-codeX-20260215-1848.json` |
+| 2026-02-15 18:22 | completed | `handover-codeX-20260215-1822.json` |
+| 2026-02-14 12:51 | unknown | `handover-codeX-20260214-1251.json` |
+| 2026-02-12 08:45 | completed | `handover-codex-20260212-0845.json` |
+| 2026-02-10 21:15 | completed | `handover-codeX-20260210-2115.json` |
+| 2026-02-10 06:49 | in_progress | `handover-codeX-20260210-0649.json` |
+| 2026-02-09 00:27 | completed | `handover-codeX-20260209-0027.json` |
+| 2026-02-08 03:00 | in_progress | `handover-codeX-20260208-0300.json` |
+| 2026-02-08 02:47 | in_progress | `handover-codeX-20260208-0247.json` |
 
-## 📁 Platform Directories
+## gemini_cli (1)
 
-### Active Platforms
+| When | Status | Checkpoint |
+|------|--------|------------|
+| 2026-04-03 12:00 | completed | `handover-gemini_cli-20260403-1200.json` |
 
-| Platform | Directory | Summaries | Latest | Agent Count |
-|----------|-----------|-----------|--------|-------------|
-| **Claude Code** | `project-log-md/claude_code/` | [Scan] | 2026-06-14 | 1+ |
-| **Kimi Code** | `project-log-md/kimi_code/` | [Scan] | 2026-06-02 | 1+ |
-| **Antigravity** | `project-log-md/antigravity/` | [Scan] | 2026-06-02 | 1+ |
-| **cline** | `project-log-md/cline/` | [Scan] | 2026-02-15 | 1+ |
-| **CodeX** | `project-log-md/codeX/` | [Scan] | 2026-04-07 | 1+ |
-| **Open Code** | `project-log-md/open_code/` | [Scan] | 2026-02-14 | 1+ |
-| **Gemini CLI** | `project-log-md/gemini_cli/` | [Scan] | [Check] | 0+ |
-| **Kilo Code** | `project-log-md/kilo_code/` | [Scan] | [Check] | 0+ |
-| **Qwen** | `project-log-md/qwen/` | [Scan] | [Check] | 0+ |
-| **Other** | `project-log-md/other/` | [Scan] | [Check] | 0+ |
+## kilo_code (1)
 
-### Archive
-| Platform | Directory | Note |
-|----------|-----------|------|
-| Archive | `project-log-md/archive/` | Old/deprecated summaries |
+| When | Status | Checkpoint |
+|------|--------|------------|
+| 2026-02-15 03:20 | completed | `handover-kilo_code-20260215-0320.json` |
 
----
+## kimi_code (11)
 
-## 📜 Session Summaries by Platform
+| When | Status | Checkpoint |
+|------|--------|------------|
+| 2026-06-02 01:39 | completed | `handover-kimi_code-20260602-0139.json` |
+| 2026-06-02 00:08 | completed | `handover-kimi_code-20260602-0008.json` |
+| 2026-02-14 13:25 | unknown | `handover-kimi-20260214-1325.json` |
+| 2026-02-14 04:30 | unknown | `handover-kimi-20260214-0430.json` |
+| 2026-02-13 18:48 | unknown | `handover-kimi_code-20260213-1848.json` |
+| 2026-02-11 22:00 | completed | `handover-kimi_code-20260211-2200.json` |
+| 2026-02-10 22:07 | completed | `handover-kimi_code-20260210-2207.json` |
+| 2026-02-10 06:47 | completed | `handover-kimi_code-20260210-0647.json` |
+| 2026-02-07 21:30 | completed | `handover-kimi-20260207-2130.json` |
+| 2026-02-06 19:14 | unknown | `handover-kimi_code-any-20260206-1914.json` |
+| 2026-02-04 20:00 | unknown | `handover-kimi_code-any-20260204-2000.json` |
 
-### Claude Code (`project-log-md/claude_code/`)
+## open_code (1)
 
-| # | File | Date | Task | Status |
-|---|------|------|------|--------|
-| 17 | `session-summary-20260614-1534.md` | 2026-06-14 15:34 | Stop-hook handoff enforcement (Task #44) | ✅ COMPLETE |
-| 16 | `session-summary-20260614-1227.md` | 2026-06-14 12:27 | PRs #102/#103/#104: PRD closure + cleanup + LIFF redesign (Task #43) | ✅ COMPLETE |
-| 15 | `session-summary-20260603-1830.md` ⚠️ never written to disk | 2026-06-03 18:30 | PR #78 merged: Undo/Redo, Help System, Error Handling | ⚠️ LOGGED ONLY (md missing) |
-| 14 | `session-summary-20260525-0100.md` | 2026-05-25 01:00 | Drug Reporting PRD E | COMPLETE |
-| 13 | `session-summary-20260524-1024.md` | 2026-05-24 10:24 | AssignModal Improvements PRD D | COMPLETE |
-| 12 | `session-summary-20260504-0028.md` | 2026-05-04 00:28 | Supabase keepalive guard | COMPLETE |
-| 11 | `session-summary-20260406-0100.md` | 2026-04-06 01:00 | Production deploy + Frankfurt migration | COMPLETE |
-
-### Kimi Code CLI (`project-log-md/kimi_code/`)
-
-| # | File | Date | Task | Status |
-|---|------|------|------|--------|
-| 5 | `session-summary-20260602-0008.md` | 2026-06-02 00:08 | Audit fixes + PR #77 merge to main | ✅ COMPLETE |
-| 4 | `session-summary-20260602-0139.md` | 2026-06-02 01:39 | Critique fixes on request detail page (PR #77) | ✅ COMPLETE |
-| 3 | `session-summary-20260214-1325.md` | 2026-02-14 13:25 | Cross-platform session system | ✅ COMPLETE |
-
-### Antigravity (`project-log-md/antigravity/`)
-
-| # | File | Date | Task | Status |
-|---|------|------|------|--------|
-| 6 | `session-summary-20260602-0032.md` | 2026-06-02 00:32 | CommandPalette + logger + broken-image fallback | ✅ COMPLETE |
-| 5 | `session-summary-20260407-1543.md` | 2026-04-07 15:43 | Database connection drop/timeout fix | COMPLETE |
-| 4 | `session-summary-20260404-1204.md` | 2026-04-04 12:04 | Login page UI redesign | COMPLETE |
-
-*(Note: Other platform tables remain unchanged from previous scans)*
-
----
-
-## 🔗 Cross-References
-
-### Task Log to Session Summary Mapping
-
-| Task # | Task ID | Agent | Session Summary |
-|--------|---------|-------|-----------------|
-| 44 | task-stop-hook-handoff-enforcement-20260614 | Claude Code | `claude_code/session-summary-20260614-1534.md` |
-| 43 | task-liff-redesign-handoff-recovery-20260614 | Claude Code | `claude_code/session-summary-20260614-1227.md` |
-| 42 | task-undo-redo-help-error-handoff-20260603 | Claude Code | `claude_code/session-summary-20260603-1830.md` |
-| 41 | task-audit-merge-20260602 | Kimi Code CLI | `kimi_code/session-summary-20260602-0008.md` |
-| 40 | task-critique-request-detail-20260602 | Kimi Code CLI | `kimi_code/session-summary-20260602-0139.md` |
-| 39 | task-command-palette-logger-20260602 | Antigravity | `antigravity/session-summary-20260602-0032.md` |
-
----
-
-## 📚 Reading Guide for New Agents
-
-### Quick Context (5 minutes)
-```bash
-# 1. Read TASK_LOG for overview
-cat .agents/state/TASK_LOG.md | head -80
-
-# 2. Read latest 3 summaries from ANY platform
-ls -t project-log-md/*/*.md | head -3 | xargs cat
-
-# 3. Check current session
-cat .agents/state/current-session.json
-```
-
----
-
-## 📝 For Agents Creating Session Summaries
-
-### Naming Convention
-```
-project-log-md/[PLATFORM]/session-summary-[YYYYMMDD-HHMM].md
-```
-
-### Required Sections
-1. **Metadata** - Session ID, agent, date, duration
-2. **Work Completed** - Detailed list
-3. **Files Modified** - All files touched
-4. **Blockers** - Any issues encountered
-5. **Next Steps** - For next agent
-6. **Cross-Platform Notes** - Anything other platforms should know
-
-### After Creating Summary
-1. **Update this index** - Add entry to your platform's table
-2. **Link in TASK_LOG.md** - Add session summary reference
-3. **Cross-reference** - Update the mapping table above
-
----
-
-*This index ensures every agent can find and read every other agent's work, regardless of platform.*
+| When | Status | Checkpoint |
+|------|--------|------------|
+| 2026-02-14 23:00 | completed | `handover-open_code-20260214-2300.json` |

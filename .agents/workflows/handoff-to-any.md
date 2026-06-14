@@ -7,19 +7,55 @@ description: Universal handoff workflow for any AI coding platform
 ## Purpose
 Guarantee clean cross-platform continuity with no stale state drift.
 
-## Mandatory Handoff Contract
-A handoff is **invalid** unless all 5 artifacts are updated/created in the same session:
-1. `.agents/PROJECT_STATUS.md`
-2. `.agents/state/current-session.json`
-3. `.agents/state/TASK_LOG.md` ← **APPEND ONLY**
-4. `.agents/state/checkpoints/handover-[platform]-[YYYYMMDD-HHMM].json`
-5. `project-log-md/[platform]/session-summary-[YYYYMMDD-HHMM].md`
+---
 
-**Plus 2 cross-platform artifacts:**
-6. `.agents/state/SESSION_INDEX.md` ← Update with your session
-7. **Cross-platform notification** - Ensure next agent reads from all platforms
+## ✅ FAST PATH (v2 — preferred): one command
 
-> **⚠️ CRITICAL**: `.agents/state/TASK_LOG.md` is **APPEND-ONLY**. Never overwrite existing entries. Always prepend new tasks to the top of the "Task History" section.
+The handoff system was redesigned to a **single source of truth + generated views**.
+You no longer hand-edit 5–7 files. Run:
+
+```bash
+node .agents/scripts/handoff-new.cjs <platform> "<work summary>" ["<next step>" ...]
+# example:
+node .agents/scripts/handoff-new.cjs claude_code "Merged PR #105: fix X" "Re-test on mobile"
+```
+
+This creates the **checkpoint** (source of truth) + a **session-summary** stub, then
+auto-regenerates `TASK_LOG.md` and `SESSION_INDEX.md`. Then you only:
+1. Flesh out the generated `project-log-md/<platform>/session-summary-*.md`.
+2. `git add` + commit the artifacts, and push.
+3. Verify: `python .agents/scripts/validate_handoff_state.py`
+
+A Stop hook (`.agents/scripts/handoff-stop-check.cjs`) blocks session end until a fresh
+checkpoint exists, so this can't be silently skipped.
+
+### Architecture
+```
+.agents/state/checkpoints/handover-<platform>-<YYYYMMDD-HHMM>.json   ← SOURCE OF TRUTH (one/session)
+        └─ gen-handoff-views.cjs ─┬─→ .agents/state/TASK_LOG.md      ← GENERATED (do not hand-edit)
+                                  └─→ .agents/state/SESSION_INDEX.md  ← GENERATED (do not hand-edit)
+project-log-md/<platform>/session-summary-<YYYYMMDD-HHMM>.md          ← human narrative (linked)
+```
+Platform names are normalized by the generator (e.g. `codeX`→`codex`). Use canonical
+lowercase_underscore names: `claude_code`, `codex`, `kimi_code`, `antigravity`, …
+
+> **Do NOT hand-edit `TASK_LOG.md` or `SESSION_INDEX.md`** — they are regenerated from
+> checkpoints. Edit a checkpoint (or add one) and run `node .agents/scripts/gen-handoff-views.cjs`.
+
+---
+
+## Manual contract (fallback / reference)
+If you author artifacts by hand, a handoff still needs: the **checkpoint JSON** (#4 below)
+and a **session-summary MD** (#5) — those are the real source-of-truth + narrative. The rest
+(`PROJECT_STATUS.md` recent line, `TASK_LOG.md`, `SESSION_INDEX.md`) are now generated, so prefer
+the FAST PATH. Legacy list, for reference:
+1. `.agents/PROJECT_STATUS.md`  *(recent-completions line; optional)*
+2. `.agents/state/current-session.json`  *(optional pointer)*
+3. `.agents/state/TASK_LOG.md` ← **GENERATED — do not hand-edit**
+4. `.agents/state/checkpoints/handover-[platform]-[YYYYMMDD-HHMM].json`  ← **source of truth**
+5. `project-log-md/[platform]/session-summary-[YYYYMMDD-HHMM].md`  ← narrative
+6. `.agents/state/SESSION_INDEX.md` ← **GENERATED — do not hand-edit**
+7. Cross-platform notification message
 
 > **🛡️ CRITICAL SAFETY RULE (Prevents Wrong Directory Creation)**:
 > 1. **Always use Absolute Paths via `PROJECT_ROOT`**: Before creating or modifying any handoff artifact, define `PROJECT_ROOT=$(git rev-parse --show-toplevel)`.
