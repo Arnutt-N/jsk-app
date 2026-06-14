@@ -98,17 +98,15 @@
 
 ---
 
-## 🔄 Available Workflows (14 Total)
+## 🔄 Available Workflows (13 Total)
 
 ### 👥 Agent Collaboration
 
 | Workflow | Path | Purpose |
 |----------|------|---------|
-| **Pick-Up** | `workflows/pick-up.md` | Start session, resume from previous agent |
 | **Pickup from Any** | `workflows/pickup-from-any.md` | Universal pickup (cross-platform) |
-| **Agent Handover** | `workflows/agent-handover.md` | End session, prepare for next agent |
-| **Handoff to Any** | `workflows/handoff-to-any.md` | Universal handoff (cross-platform) |
-| **Session Summary** | `workflows/session-summary.md` | Create work summary in Thai |
+| **Handoff to Any** | `workflows/handoff-to-any.md` | Universal handoff (1-command `handoff-new.cjs`) |
+| **Session Summary** | `workflows/session-summary.md` | Narrative format for the per-session summary file |
 
 ### 🖥️ Development Operations
 
@@ -219,8 +217,8 @@
 
 | Problem | Solution |
 |---------|----------|
-| Don't know where to start | Read `INDEX.md` → Check `PROJECT_STATUS.md` → Use `pick-up.md` |
-| Need to handoff quickly | Use `agent-handover.md` template |
+| Don't know where to start | Read `INDEX.md` → Check `PROJECT_STATUS.md` → Use `pickup-from-any.md` |
+| Need to handoff quickly | Run `node .agents/scripts/handoff-new.cjs <platform> "<summary>"` (see `handoff-to-any.md`) |
 | App won't start | Check `run-app.md` → Verify Docker is running |
 | Database issues | Use `db-migration.md` → Check `backup-restore.md` |
 | Git problems | Use `git-workflow.md` |

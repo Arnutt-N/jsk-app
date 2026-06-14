@@ -100,7 +100,7 @@ LINE SPECIFIC?
 │     WORKING...                                              │
 │         │                                                   │
 │         │  ┌──────────────────┐                            │
-│         └──┤ task-summary.md  │◄── Document progress       │
+│         └──┤ session-summary  │◄── Document progress       │
 │            │ (as needed)      │                            │
 │            └──────────────────┘                            │
 │         │                                                   │
@@ -121,6 +121,7 @@ LINE SPECIFIC?
 |---------------|---------------|-----|
 | `agent-handover.md` | `handoff-to-any.md` | Universal version with validation |
 | `pick-up.md` | `pickup-from-any.md` | Universal version with checklist |
+| `task-summary.md` | `handoff-to-any.md` + `session-summary.md` | Folded into handoff orchestration + summary format |
 | - | `start-here.md` | NEW - Complete entry workflow |
 
 ---
@@ -148,4 +149,4 @@ LINE SPECIFIC?
 ---
 
 *All workflows follow standard format with YAML frontmatter*
-*Last updated: 2026-02-13*
+*Last updated: 2026-06-14 — removed 3 legacy shims (agent-handover/pick-up/task-summary); 13 workflows on disk*

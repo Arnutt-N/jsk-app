@@ -59,11 +59,10 @@
 |----------|------|---------|
 | **Start Here** | `start-here.md` | First entry point for any new agent |
 | **Task Log** | `../state/TASK_LOG.md` | Append-only history of all tasks from all agents |
-| **Session Index** | `../state/SESSION_INDEX.md` | Cross-platform index of all session summaries |
-| **Task Summary** | `task-summary.md` | Template for documenting completed work |
+| **Session Index** | `../state/SESSION_INDEX.md` | Cross-platform index of all session summaries (generated) |
 | **Universal Pickup** | `pickup-from-any.md` | Start session and resume work from any previous agent/platform |
-| **Universal Handoff** | `handoff-to-any.md` | End session and prepare context for the next agent/platform |
-| **Session Summary** | `session-summary.md` | Create work summary for continuity |
+| **Universal Handoff** | `handoff-to-any.md` | End session and prepare context for the next agent/platform (1-command `handoff-new.cjs`) |
+| **Session Summary** | `session-summary.md` | Narrative format for the per-session summary file |
 
 ### Development Operations
 

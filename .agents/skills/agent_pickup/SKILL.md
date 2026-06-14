@@ -19,7 +19,7 @@ Context7 MCP is active. Always attempt to use `mcp__context7__resolve-library-id
 
 ## Overview
 
-This skill automates the complete agent pickup workflow by orchestrating all the manual steps from the pickup-from-any.md and pick-up.md workflows into a single unified command.
+This skill automates the complete agent pickup workflow by orchestrating all the manual steps from the pickup-from-any.md workflow into a single unified command.
 
 **Use this skill when:** You're starting work and need to pick up where a previous agent left off.
 
@@ -423,7 +423,6 @@ git log -10 --oneline
 ## Related Workflows
 
 - `.agents/workflows/pickup-from-any.md` - Detailed pickup workflow
-- `.agents/workflows/pick-up.md` - Original pickup steps
 - `.agents/workflows/handoff-to-any.md` - Corresponding handoff workflow
 
 ---

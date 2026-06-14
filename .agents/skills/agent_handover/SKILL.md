@@ -19,7 +19,7 @@ Context7 MCP is active. Always attempt to use `mcp__context7__resolve-library-id
 
 ## Overview
 
-This skill automates the complete agent handoff workflow by orchestrating all the manual steps from the handoff-to-any.md, agent-handover.md, and session-summary.md workflows into a single unified command.
+This skill automates the complete agent handoff workflow by orchestrating all the manual steps from the handoff-to-any.md and session-summary.md workflows into a single unified command.
 
 **Use this skill when:** You're finishing work on a task and need to hand off to another agent (same or different platform).
 
@@ -366,7 +366,6 @@ Next agent should use: /agent_pickup
 
 - `.agents/workflows/handoff-to-any.md` - Detailed handoff workflow
 - `.agents/workflows/pickup-from-any.md` - Detailed pickup workflow
-- `.agents/workflows/agent-handover.md` - Original handoff steps
 - `.agents/workflows/session-summary.md` - Session summary format
 
 ---
