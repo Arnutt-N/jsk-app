@@ -77,6 +77,7 @@ export default function LiffServiceRequestV2() {
     const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
     const [profile, setProfile] = useState<LiffProfile | null>(null)
     const [isInLineApp, setIsInLineApp] = useState(false)
+    const [notice, setNotice] = useState<string | null>(null)
 
     // Location Data State
     const [provinces, setProvinces] = useState<Province[]>([])
@@ -88,7 +89,7 @@ export default function LiffServiceRequestV2() {
     const [loadingSubDistricts, setLoadingSubDistricts] = useState(false)
 
     // Form Data
-    const [formData, setFormData] = useState({
+    const INITIAL_FORM_DATA = {
         // Personal
         prefix: '',
         firstname: '',
@@ -109,7 +110,8 @@ export default function LiffServiceRequestV2() {
 
         // Attachments
         attachments: [] as Array<{ id: string, url: string, name: string }>
-    })
+    }
+    const [formData, setFormData] = useState(INITIAL_FORM_DATA)
 
     // Selected IDs for cascading logic (Not submitted)
     const [selectedProvinceId, setSelectedProvinceId] = useState<number | null>(null)
@@ -142,8 +144,16 @@ export default function LiffServiceRequestV2() {
                 }
             } catch (err: unknown) {
                 logger.error('LIFF Init Error:', err)
-                // Don't show error to user immediately, just log it. 
+                // Don't show error to user immediately, just log it.
                 // We'll fallback to manual inputs if LIFF fails.
+                // Still try to detect the LINE in-app context so the success
+                // screen + auto-close behave correctly even if init hiccupped
+                // (otherwise isInLineApp stays false on mobile and never closes).
+                try {
+                    setIsInLineApp(liff.isInClient())
+                } catch {
+                    // Not in the LINE client (or LIFF unavailable) — leave as false.
+                }
             }
         }
 
@@ -392,38 +402,65 @@ export default function LiffServiceRequestV2() {
         }
     }
 
+    // Auto-close countdown state (only works in LINE App)
+    const [timeLeft, setTimeLeft] = useState(5)
+
+    // Reset the whole form back to its initial state. Used as the desktop
+    // "cancel" action, where the browser tab cannot be closed programmatically.
+    const resetForm = () => {
+        setStep(0)
+        setFormData({ ...INITIAL_FORM_DATA, attachments: [] })
+        setSelectedProvinceId(null)
+        setSelectedDistrictId(null)
+        setDistricts([])
+        setSubDistricts([])
+        setFieldErrors({})
+        setError(null)
+        setShowConfirm(false)
+        setSuccess(false)
+        setTimeLeft(5)
+        window.scrollTo(0, 0)
+    }
+
+    // Close the LIFF window. Only meaningful inside the LINE in-app browser.
     const handleClose = () => {
         try {
-            if (liff.isInClient()) {
-                // Inside LINE App - use LIFF close
-                liff.closeWindow()
-            } else {
-                // External Browser - just try window.close()
-                // DO NOT redirect to LIFF URL as it reopens the form!
-                window.close()
-                // If window.close() doesn't work (e.g., not opened by script),
-                // the user will see the "please close manually" message.
-            }
+            liff.closeWindow()
         } catch (e) {
             logger.error('Close window failed:', e)
         }
     }
 
-    // Auto-close countdown state (only works in LINE App)
-    const [timeLeft, setTimeLeft] = useState(5)
+    // X / "ยกเลิกรายการ" buttons. Inside LINE we close the LIFF window; in an
+    // external (desktop) browser the tab can't be closed by script, so reset the
+    // form and surface a brief notice instead of doing nothing silently.
+    const handleCancel = () => {
+        if (liff.isInClient()) {
+            handleClose()
+        } else {
+            resetForm()
+            setNotice('ยกเลิกรายการแล้ว')
+        }
+    }
 
     useEffect(() => {
-        let timer: NodeJS.Timeout
-        // Only auto-close if inside LINE App
-        if (success && isInLineApp && timeLeft > 0) {
-            timer = setTimeout(() => {
-                setTimeLeft(prev => prev - 1)
-            }, 1000)
-        } else if (success && isInLineApp && timeLeft === 0) {
+        // Auto-close only runs inside the LINE in-app browser; an external
+        // browser tab cannot be closed programmatically, so skip it there.
+        if (!success || !isInLineApp) return
+        if (timeLeft <= 0) {
             handleClose()
+            return
         }
+        const timer = setTimeout(() => setTimeLeft(prev => prev - 1), 1000)
         return () => clearTimeout(timer)
     }, [success, timeLeft, isInLineApp])
+
+    // Auto-dismiss the transient notice toast.
+    useEffect(() => {
+        if (!notice) return
+        const t = setTimeout(() => setNotice(null), 2500)
+        return () => clearTimeout(t)
+    }, [notice])
 
     // Global loading spinner removed to allow instant render
     // if (loading) { ... }
@@ -464,8 +501,15 @@ export default function LiffServiceRequestV2() {
                                         แล้วใส่เบอร์โทรศัพท์ที่ใช้ยื่นเรื่อง
                                     </p>
                                 </div>
+                                <Button
+                                    variant="primary"
+                                    className="w-full py-4 text-lg mb-3"
+                                    onClick={resetForm}
+                                >
+                                    ยื่นคำร้องใหม่
+                                </Button>
                                 <p className="text-[11px] text-gray-400 px-4">
-                                    ท่านสามารถปิดหน้านี้ได้ทันที
+                                    หรือปิดแท็บนี้ได้ทันที
                                 </p>
                             </>
                         )}
@@ -477,6 +521,11 @@ export default function LiffServiceRequestV2() {
 
     return (
         <div className="min-h-screen bg-bg pb-20 font-sans">
+            {notice && (
+                <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[80] px-4 py-2.5 rounded-xl bg-gray-900/90 text-white text-sm font-medium shadow-lg animate-in fade-in slide-in-from-top-2 duration-200">
+                    {notice}
+                </div>
+            )}
             <Head>
                 <title>ยื่นคำร้อง - JSK 4.0</title>
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -500,7 +549,7 @@ export default function LiffServiceRequestV2() {
                         </Badge>
                         <button
                             type="button"
-                            onClick={handleClose}
+                            onClick={handleCancel}
                             aria-label="ปิดหน้าต่าง"
                             className="p-1.5 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
                         >
@@ -893,7 +942,7 @@ export default function LiffServiceRequestV2() {
                             type="button"
                             variant="ghost"
                             className="w-full py-2 h-auto text-xs text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 font-medium"
-                            onClick={handleClose}
+                            onClick={handleCancel}
                         >
                             ยกเลิกรายการ
                         </Button>
