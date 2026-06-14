@@ -1,0 +1,17 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-06-14T16:44:00Z",
+  "branch": "main",
+  "head_commit": "5a4f080",
+  "status": "completed",
+  "work_summary": "Consolidated duplicate handoff/pickup workflows: removed 3 legacy redirect shims (agent-handover/pick-up/task-summary), rewrote session-summary.md to v2 narrative-format-only, repointed all index+skill references to canonical workflows. .agents/workflows now holds 13 files (matches WORKFLOWS_GUIDE; was 16 vs stated 13). History untouched; validator PASS. Committed 5a4f080.",
+  "priority_actions": [
+    "Push to origin/main",
+    "Backlog: monitor Vercel deploy + post-merge feedback"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/claude_code/session-summary-20260614-1644.md",
+  "cross_platform_read": []
+}

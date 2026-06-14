@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 62 handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 63 handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-14 16:44 — claude_code — completed
+
+Consolidated duplicate handoff/pickup workflows: removed 3 legacy redirect shims (agent-handover/pick-up/task-summary), rewrote session-summary.md to v2 narrative-format-only, repointed all index+skill references to canonical workflows. .agents/workflows now holds 13 files (matches WORKFLOWS_GUIDE; was 16 vs stated 13). History untouched; validator PASS. Committed 5a4f080.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260614-1644.json`
+- Summary: `project-log-md/claude_code/session-summary-20260614-1644.md`
+
+---
 
 ### 2026-06-14 16:02 — claude_code — completed
 

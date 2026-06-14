@@ -1,17 +1,48 @@
 {
-  "last_updated": "2026-06-14T16:02:00Z",
+  "last_updated": "2026-06-14T16:44:00Z",
   "platform": "claude_code",
-  "current_task": "Redesigned handoff system: checkpoints = single source of truth; TASK_LOG.md + SESSION_INDEX.md generated; handoff-new.cjs 1-command scaffold; dead-file cleanup",
+  "current_task": "Consolidated duplicate handoff/pickup workflows: removed 3 legacy redirect shims (agent-handover/pick-up/task-summary), rewrote session-summary.md to v2 narrative-format-only, repointed all index+skil",
   "plan_status": "completed",
   "next_steps": [
-    "Flesh out narrative in project-log-md/claude_code/session-summary-20260614-1602.md if needed",
-    "Deferred: consolidate duplicate workflows (agent-handover/pick-up/task-summary/session-summary) — referenced by INDEX.md/WORKFLOWS_GUIDE.md/skills",
-    "Pending from Task #43: real-device mobile LIFF auto-close test"
+    "Push to origin/main",
+    "Backlog: monitor Vercel deploy + post-merge feedback"
   ],
   "handoff_history": [
-    { "timestamp": "2026-06-14T16:02:00Z", "platform": "claude_code", "branch": "main", "head": "51fdbcd", "status": "completed", "note": "handoff-system redesign" },
-    { "timestamp": "2026-06-14T15:34:00Z", "platform": "claude_code", "branch": "main", "head": "0779260", "status": "completed", "note": "stop-hook enforcement" },
-    { "timestamp": "2026-06-14T12:27:00Z", "platform": "claude_code", "branch": "main", "head": "2e8fab5", "prs": ["#102", "#103", "#104"], "status": "merged" }
+    {
+      "timestamp": "2026-06-14T16:44:00Z",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "5a4f080",
+      "status": "completed"
+    },
+    {
+      "timestamp": "2026-06-14T16:02:00Z",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "51fdbcd",
+      "status": "completed",
+      "note": "handoff-system redesign"
+    },
+    {
+      "timestamp": "2026-06-14T15:34:00Z",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "0779260",
+      "status": "completed",
+      "note": "stop-hook enforcement"
+    },
+    {
+      "timestamp": "2026-06-14T12:27:00Z",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "2e8fab5",
+      "prs": [
+        "#102",
+        "#103",
+        "#104"
+      ],
+      "status": "merged"
+    }
   ],
   "cross_platform_context": {
     "summaries_read": [
