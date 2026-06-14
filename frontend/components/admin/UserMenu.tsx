@@ -16,6 +16,7 @@ import { useTheme } from '@/components/providers';
 import { Avatar } from '@/components/ui/Avatar';
 import { AdminLanguageToggle, type AdminLocale } from '@/components/admin/AdminLanguageToggle';
 import { cn } from '@/lib/utils';
+import { getRoleLabel } from '@/lib/constants/roles';
 
 interface UserMenuProps {
   className?: string;
@@ -102,7 +103,7 @@ export function UserMenu({ className, locale, onToggleLocale }: UserMenuProps) {
             <Avatar size="md" fallback={initials} status="online" />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-bold text-text-primary truncate">{displayName}</p>
-              <p className="text-xs text-text-tertiary truncate capitalize">{role.replace('_', ' ').toLowerCase() || 'admin'}</p>
+              <p className="text-xs text-text-tertiary truncate">{role ? getRoleLabel(role) : 'Administrator'}</p>
             </div>
             {/* Language toggle — mobile only; desktop keeps it in the Navbar header */}
             {locale && onToggleLocale && (

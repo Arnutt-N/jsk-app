@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select, type SelectOption } from '@/components/ui/Select';
+import { ROLE, ROLE_META, STAFF_ROLES, getRoleOptionLabel, type Role, type RoleBadgeVariant } from '@/lib/constants/roles';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
@@ -57,19 +58,20 @@ interface UserListResponse {
 
 /* ── Constants ─────────────────────────────────────────────────────── */
 
-const ROLE_BADGE: Record<string, { variant: 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'gray'; label: string }> = {
-    SUPER_ADMIN: { variant: 'primary', label: 'Super Admin' },
-    ADMIN: { variant: 'info', label: 'Admin' },
-    AGENT: { variant: 'success', label: 'Staff' },
-    USER: { variant: 'gray', label: 'User' },
-};
+// Badge config for all six roles, sourced from the central role map.
+// Source of truth: lib/constants/roles.ts (AGENT renders as "Operator").
+const ROLE_BADGE: Record<string, { variant: RoleBadgeVariant; label: string }> = Object.fromEntries(
+    (Object.keys(ROLE_META) as Role[]).map(
+        (r): [string, { variant: RoleBadgeVariant; label: string }] => [r, { variant: ROLE_META[r].badge, label: ROLE_META[r].label }]
+    )
+);
 
+// Filter + edit-role options: all six roles (privilege order) plus the
+// "all roles" empty option. The edit modal reuses this minus the empty entry.
 const ROLE_OPTIONS: SelectOption[] = [
     { value: '', label: 'ทุกบทบาท' },
-    { value: 'SUPER_ADMIN', label: 'Super Admin' },
-    { value: 'ADMIN', label: 'Admin' },
-    { value: 'AGENT', label: 'Staff' },
-    { value: 'USER', label: 'User' },
+    ...STAFF_ROLES.map((r) => ({ value: r, label: getRoleOptionLabel(r) })),
+    { value: ROLE.USER, label: getRoleOptionLabel(ROLE.USER) },
 ];
 
 const STATUS_OPTIONS: SelectOption[] = [
@@ -78,10 +80,12 @@ const STATUS_OPTIONS: SelectOption[] = [
     { value: 'false', label: 'ปิดใช้งาน' },
 ];
 
+// Roles an admin can CREATE. Intentionally unchanged in Phase 2 (DIRECTOR/HEAD
+// creation is a permission concern for Phase 3) — only AGENT's label is renamed.
 const CREATE_ROLE_OPTIONS: SelectOption[] = [
-    { value: 'AGENT', label: 'Staff (เจ้าหน้าที่)' },
-    { value: 'ADMIN', label: 'Admin (แอดมิน)' },
-    { value: 'SUPER_ADMIN', label: 'Super Admin' },
+    { value: ROLE.AGENT, label: getRoleOptionLabel(ROLE.AGENT) },
+    { value: ROLE.ADMIN, label: getRoleOptionLabel(ROLE.ADMIN) },
+    { value: ROLE.SUPER_ADMIN, label: getRoleOptionLabel(ROLE.SUPER_ADMIN) },
 ];
 
 const PER_PAGE = 20;
