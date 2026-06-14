@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 63 handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 64 handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-14 17:01 — claude_code — completed
+
+Enhanced handoff-new.cjs to auto-refresh PROJECT_STATUS.md (Last Updated line + prepend one Recent Completions entry) as part of the 1-command handoff, closing the validator freshness WARNING permanently. Fail-open; curated sections untouched. Committed bf6a36d.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260614-1701.json`
+- Summary: `project-log-md/claude_code/session-summary-20260614-1701.md`
+
+---
 
 ### 2026-06-14 16:44 — claude_code — completed
 
