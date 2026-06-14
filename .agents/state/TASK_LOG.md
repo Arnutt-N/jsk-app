@@ -1,3 +1,37 @@
+### Task #44 - 2026-06-14 15:34 - Claude Code
+
+**Task ID**: `task-stop-hook-handoff-enforcement-20260614`
+**Agent**: claude_code
+**Status**: completed
+**Duration**: short follow-on
+
+#### Cross-Platform Context
+- Read summaries from: Claude Code (`session-summary-20260614-1227.md` = Task #43), Kimi Code (`session-summary-20260602-0008.md`), Antigravity (`session-summary-20260602-0032.md`)
+
+#### Work Completed
+- Added a **Stop-hook guard** enforcing the Universal Handoff at session end so the Task #43 gap (#79–#101) cannot silently recur.
+  - `.agents/scripts/handoff-stop-check.cjs` (committed `0779260`): blocks once (exit 2) when commits exist after the last checkpoint commit or the tree is dirty; `stop_hook_active` guard (stop again to bypass); fail-open; `execFileSync` (no shell).
+  - `.claude/settings.json` (local, **gitignored** in this repo) wires it to `hooks.Stop` via exec-form (`node` + `args`).
+- **Verified LIVE**: pipe-tested both branches, then the hook fired at a real Stop and blocked on commit `0779260`. This entry is the dogfood response that clears the gate.
+- Used the `update-config` skill for the settings.json change.
+
+#### Files Modified
+- `.agents/scripts/handoff-stop-check.cjs` (NEW, committed `0779260`)
+- `.claude/settings.json` (NEW, local/gitignored)
+
+#### Session Summary
+- Location: `project-log-md/claude_code/session-summary-20260614-1534.md`
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260614-1534.json`
+
+#### Blockers
+- None.
+
+#### Next Steps
+- Mobile real-device test (LIFF auto-close after submit) still pending from Task #43.
+- Optional: team-wide enforcement (un-gitignore settings or per-dev wiring).
+
+---
+
 ### Task #43 - 2026-06-14 12:27 - Claude Code
 
 **Task ID**: `task-liff-redesign-handoff-recovery-20260614`

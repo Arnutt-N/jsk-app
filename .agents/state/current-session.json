@@ -1,14 +1,21 @@
 {
-  "last_updated": "2026-06-14T12:27:00Z",
+  "last_updated": "2026-06-14T15:34:00Z",
   "platform": "claude_code",
-  "current_task": "LIFF service-request close/cancel redesign + PRD closure + tech-debt cleanup + handoff-log recovery (PRs #102, #103, #104 merged)",
+  "current_task": "Stop-hook handoff enforcement (Task #44) — script committed 0779260, local settings.json wiring",
   "plan_status": "completed",
   "next_steps": [
-    "Real-device mobile test: LIFF auto-close after service-request submit (LINE in-app)",
-    "Add device-side logging if mobile auto-close still fails",
-    "Optional: resolve remaining 10 frontend lint warnings (exhaustive-deps x8, next/image x2)"
+    "Real-device mobile test: LIFF auto-close after service-request submit (LINE in-app) — pending from Task #43",
+    "Optional: make Stop-hook enforcement team-wide (un-gitignore .claude/settings.json or per-dev wiring)"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-06-14T15:34:00Z",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "0779260",
+      "status": "committed",
+      "note": "Stop-hook handoff enforcement (Task #44)"
+    },
     {
       "timestamp": "2026-06-14T12:27:00Z",
       "platform": "claude_code",
@@ -26,10 +33,10 @@
   ],
   "cross_platform_context": {
     "summaries_read": [
+      "claude_code/session-summary-20260614-1227.md",
       "kimi_code/session-summary-20260602-0008.md",
-      "antigravity/session-summary-20260602-0032.md",
-      "claude_code/session-summary-20260525-0100.md"
+      "antigravity/session-summary-20260602-0032.md"
     ],
-    "key_insights": "TASK_LOG had an ~11-day gap (Task #42 / PR #78 on 2026-06-03 was the last logged handoff). PRs #79-#101 were never recorded; git history on main is the source of truth for that period. PR #77 (Kimi) and CommandPalette (Antigravity) are on main."
+    "key_insights": "Handoff enforcement is now automated for claude_code via a Stop hook (.agents/scripts/handoff-stop-check.cjs). End sessions by running the handoff workflow so a fresh checkpoint is the latest commit. Task #43 recovered the #79-#101 log gap; git main remains the source of truth for that period."
   }
 }
