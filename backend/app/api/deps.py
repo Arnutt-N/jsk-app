@@ -122,15 +122,54 @@ async def get_current_admin(
     return current_user
 
 
+async def get_current_manager(
+    current_user = Depends(get_current_user)
+):
+    """
+    Verify current user is a manager-level role for request workflow.
+
+    Allows SUPER_ADMIN, ADMIN, DIRECTOR, HEAD -- the roles that
+    DEFAULT_POLICY grants assign/self-assign rights. Used by request
+    workflow endpoints so DIRECTOR/HEAD can pass the outer gate and reach
+    the inner can_assign/can_self_assign checks. Sensitive operations
+    (revert, edit-details, delete) remain guarded by can_* helpers or by
+    get_current_admin, so widening this gate does NOT escalate privilege.
+    """
+    from app.models.user import UserRole
+
+    if current_user.role not in [
+        UserRole.SUPER_ADMIN,
+        UserRole.ADMIN,
+        UserRole.DIRECTOR,
+        UserRole.HEAD,
+    ]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Insufficient permissions"
+        )
+    return current_user
+
+
 async def get_current_staff(
     current_user = Depends(get_current_user)
 ):
     """
-    Verify current user is an admin, super_admin, or agent.
+    Verify current user is an internal staff member.
+
+    Allows every internal role -- ADMIN, SUPER_ADMIN, DIRECTOR, HEAD,
+    AGENT -- but not the public USER role. DIRECTOR/HEAD added so the two
+    mid-tier supervisor roles can reach staff-level surfaces (e.g. live
+    chat) alongside front-line AGENTs.
     """
     from app.models.user import UserRole
 
-    if current_user.role not in [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.AGENT]:
+    if current_user.role not in [
+        UserRole.ADMIN,
+        UserRole.SUPER_ADMIN,
+        UserRole.AGENT,
+        UserRole.DIRECTOR,
+        UserRole.HEAD,
+    ]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Insufficient permissions"

@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { SessionTimeoutWarning } from '@/components/admin/SessionTimeoutWarning';
 import { cn } from '@/lib/utils';
+import { isNavItemVisible } from '@/lib/nav-access';
 import {
   Menu, Search, LogOut, ChevronLeft, ChevronRight, X,
   LayoutDashboard, FileText, Bot, MessageCircle,
@@ -29,12 +30,10 @@ interface MenuItem {
   name: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
-  allowedRoles?: Array<'SUPER_ADMIN' | 'ADMIN' | 'AGENT'>;
+  allowedRoles?: Array<'SUPER_ADMIN' | 'ADMIN' | 'DIRECTOR' | 'HEAD' | 'AGENT'>;
   external?: boolean;
   openInNewTab?: boolean;
 }
-
-type StaffRole = 'SUPER_ADMIN' | 'ADMIN' | 'AGENT';
 
 function AdminAuthGate({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -157,8 +156,8 @@ function AdminShell({ children }: { children: React.ReactNode }) {
     {
       title: 'Service Requests',
       items: [
-        { name: 'Dashboard', href: '/admin', icon: LayoutDashboard, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
-        { name: 'Manage Requests', href: '/admin/requests', icon: FileText, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
+        { name: 'Dashboard', href: '/admin', icon: LayoutDashboard, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'DIRECTOR', 'HEAD'] },
+        { name: 'Manage Requests', href: '/admin/requests', icon: FileText, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'DIRECTOR', 'HEAD'] },
       ]
     },
     {
@@ -187,17 +186,8 @@ function AdminShell({ children }: { children: React.ReactNode }) {
     }
   ];
 
-  const isMenuItemVisible = (item: MenuItem) => {
-    if (!item.allowedRoles) {
-      return true;
-    }
-
-    if (!user || user.role === 'USER') {
-      return false;
-    }
-
-    return item.allowedRoles.includes(user.role as StaffRole);
-  };
+  const isMenuItemVisible = (item: MenuItem) =>
+    isNavItemVisible(user?.role, item.allowedRoles);
 
   const visibleMenuGroups = menuGroups
     .map((group) => ({

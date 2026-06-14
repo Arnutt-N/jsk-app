@@ -27,7 +27,7 @@ interface UserMenuProps {
   onToggleLocale?: () => void;
 }
 
-type StaffRole = 'SUPER_ADMIN' | 'ADMIN' | 'AGENT';
+type StaffRole = 'SUPER_ADMIN' | 'ADMIN' | 'DIRECTOR' | 'HEAD' | 'AGENT';
 
 /**
  * Profile dropdown mounted in the admin Navbar.
