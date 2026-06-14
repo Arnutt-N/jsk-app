@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/Button';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Input } from '@/components/ui/Input';
 import { Select, type SelectOption } from '@/components/ui/Select';
+import { ROLE, ROLE_META, getRoleOptionLabel, type RoleBadgeVariant } from '@/lib/constants/roles';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { ModalAlert } from '@/components/ui/ModalAlert';
@@ -31,18 +32,26 @@ interface UserRecord {
     updated_at: string | null;
 }
 
-const ROLE_BADGE: Record<string, { variant: 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'gray'; label: string; icon: React.ReactNode }> = {
-    SUPER_ADMIN: { variant: 'primary', label: 'Super Admin', icon: <Shield className="w-4 h-4" /> },
-    ADMIN: { variant: 'info', label: 'Admin', icon: <Shield className="w-4 h-4" /> },
-    AGENT: { variant: 'success', label: 'Staff', icon: <UserCog className="w-4 h-4" /> },
-    USER: { variant: 'gray', label: 'User', icon: <User className="w-4 h-4" /> },
+// Badge config sourced from the central role map (AGENT renders as "Operator").
+// Icons stay local to this page; management tiers reuse the Shield glyph.
+const ROLE_BADGE: Record<string, { variant: RoleBadgeVariant; label: string; icon: React.ReactNode }> = {
+    SUPER_ADMIN: { variant: ROLE_META.SUPER_ADMIN.badge, label: ROLE_META.SUPER_ADMIN.label, icon: <Shield className="w-4 h-4" /> },
+    ADMIN: { variant: ROLE_META.ADMIN.badge, label: ROLE_META.ADMIN.label, icon: <Shield className="w-4 h-4" /> },
+    DIRECTOR: { variant: ROLE_META.DIRECTOR.badge, label: ROLE_META.DIRECTOR.label, icon: <Shield className="w-4 h-4" /> },
+    HEAD: { variant: ROLE_META.HEAD.badge, label: ROLE_META.HEAD.label, icon: <Shield className="w-4 h-4" /> },
+    AGENT: { variant: ROLE_META.AGENT.badge, label: ROLE_META.AGENT.label, icon: <UserCog className="w-4 h-4" /> },
+    USER: { variant: ROLE_META.USER.badge, label: ROLE_META.USER.label, icon: <User className="w-4 h-4" /> },
 };
 
+// Edit-role select: all six roles so an existing DIRECTOR/HEAD user's current
+// role is always representable. (Creation restrictions live on the list page.)
 const ROLE_OPTIONS: SelectOption[] = [
-    { value: 'SUPER_ADMIN', label: 'Super Admin' },
-    { value: 'ADMIN', label: 'Admin' },
-    { value: 'AGENT', label: 'Staff' },
-    { value: 'USER', label: 'User' },
+    { value: ROLE.SUPER_ADMIN, label: getRoleOptionLabel(ROLE.SUPER_ADMIN) },
+    { value: ROLE.ADMIN, label: getRoleOptionLabel(ROLE.ADMIN) },
+    { value: ROLE.DIRECTOR, label: getRoleOptionLabel(ROLE.DIRECTOR) },
+    { value: ROLE.HEAD, label: getRoleOptionLabel(ROLE.HEAD) },
+    { value: ROLE.AGENT, label: getRoleOptionLabel(ROLE.AGENT) },
+    { value: ROLE.USER, label: getRoleOptionLabel(ROLE.USER) },
 ];
 
 function passwordStrength(pw: string): { level: number; label: string; color: string } {

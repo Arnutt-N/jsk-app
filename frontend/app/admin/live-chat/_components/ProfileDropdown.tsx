@@ -6,6 +6,7 @@ import { LayoutDashboard, LogOut, Settings, User } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/components/providers';
 import { Avatar } from '@/components/ui/Avatar';
+import { getRoleLabel } from '@/lib/constants/roles';
 
 export function ProfileDropdown() {
   const { user, logout } = useAuth();
@@ -65,7 +66,7 @@ export function ProfileDropdown() {
             <Avatar size="md" fallback={initials} status="online" />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-bold text-text-primary truncate">{displayName}</p>
-              <p className="text-xs text-text-tertiary truncate capitalize">{user?.role?.toLowerCase().replace('_', ' ') || 'Admin'}</p>
+              <p className="text-xs text-text-tertiary truncate">{user?.role ? getRoleLabel(user.role) : 'Admin'}</p>
             </div>
             {/* Theme toggle */}
             <button

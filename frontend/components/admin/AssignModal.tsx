@@ -5,6 +5,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Search, User as UserIcon } from 'lucide-react';
 import { logger } from '@/lib/logger';
+import { ROLE } from '@/lib/constants/roles';
 
 interface Agent {
     id: number;
@@ -39,7 +40,7 @@ export const AssignModal: React.FC<AssignModalProps> = ({
     const fetchAgents = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await fetch(`${API_BASE}/admin/users/workload?role=AGENT`);
+            const res = await fetch(`${API_BASE}/admin/users/workload?role=${ROLE.AGENT}`);
             if (!res.ok) throw new Error('Failed to fetch agents');
             const data = await res.json();
             setAgents(data);
