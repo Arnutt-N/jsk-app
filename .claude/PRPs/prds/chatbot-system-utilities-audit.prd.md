@@ -143,7 +143,7 @@ Operator/Admin login → (ทุก role เข้าได้) → เห็น
 
 | # | Phase | Description | Status | Parallel | Depends | PRP Plan |
 |---|-------|-------------|--------|----------|---------|----------|
-| 1 | Audit & Critical Fixes | Audit report เอกสาร + ปิด DIRECTOR/HEAD access bug + StaffRole type + deps gate | in-progress | - | - | [phase1 plan](../plans/chatbot-system-utilities-audit-phase1.plan.md) |
+| 1 | Audit & Critical Fixes | Audit report เอกสาร + ปิด DIRECTOR/HEAD access bug + StaffRole type + deps gate | ✅ complete | - | - | [report](../reports/chatbot-system-utilities-audit-phase1-report.md) · PR #105 |
 | 2 | Rename & Restructure | System Management→System and Utilities + AGENT label→Operator + sidebar nav + Image Resize menu placeholder | pending | - | 1 | - |
 | 3 | Permissions v2 (module-based) | Extend permission_settings: keys ใหม่ Chatbot+System + UI 3-module + role presets + per-module override | pending | - | 1, 2 | - |
 | 4 | Chatbot Management Hardening | Broadcast scheduler + CSV export wiring + rich menu size fix + Reply Objects ครบ types + (Could) narrowcast/multi-menu | pending | with 5 | 3 | - |
