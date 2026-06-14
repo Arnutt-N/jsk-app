@@ -20,9 +20,12 @@ import {
     Upload,
     X,
     Shield,
-    Loader2
+    Loader2,
+    RotateCcw,
+    AlertTriangle
 } from 'lucide-react'
 import { logger } from '@/lib/logger';
+import { useToast } from '@/components/ui/Toast';
 
 // --- CONSTANTS ---
 const STEPS = [
@@ -77,7 +80,8 @@ export default function LiffServiceRequestV2() {
     const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
     const [profile, setProfile] = useState<LiffProfile | null>(null)
     const [isInLineApp, setIsInLineApp] = useState(false)
-    const [notice, setNotice] = useState<string | null>(null)
+    const [confirmAction, setConfirmAction] = useState<null | 'clear' | 'cancel'>(null)
+    const { toast } = useToast()
 
     // Location Data State
     const [provinces, setProvinces] = useState<Province[]>([])
@@ -159,9 +163,10 @@ export default function LiffServiceRequestV2() {
 
         const fetchProvinces = async () => {
             try {
-                // Use env var or default to relative path (which uses proxy)
-                const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api/v1'
-                const res = await fetch(`${API_BASE}/locations/provinces`)
+                // Use the relative path so the request goes through the Next.js
+                // rewrite proxy (same as districts/media/submit). Avoids a
+                // cross-origin CORS failure on preview deployments.
+                const res = await fetch(`/api/v1/locations/provinces`)
 
                 if (!res.ok) {
                     const txt = await res.text()
@@ -392,6 +397,9 @@ export default function LiffServiceRequestV2() {
             setSuccess(true)
             setShowConfirm(false)
             window.scrollTo(0, 0)
+            // Re-sync in-client status when success shows so the auto-close
+            // below fires reliably even if liff.init() lagged on mobile.
+            try { setIsInLineApp(liff.isInClient()) } catch { /* not in LINE */ }
         } catch (err: unknown) {
             logger.error("Submit Error:", err)
             setError(err instanceof Error ? err.message : 'Failed to submit')
@@ -405,8 +413,14 @@ export default function LiffServiceRequestV2() {
     // Auto-close countdown state (only works in LINE App)
     const [timeLeft, setTimeLeft] = useState(5)
 
-    // Reset the whole form back to its initial state. Used as the desktop
-    // "cancel" action, where the browser tab cannot be closed programmatically.
+    // Whether the user has entered anything worth confirming before discarding.
+    const isFormDirty = () => {
+        if (step > 0) return true
+        if (formData.attachments.length > 0) return true
+        return Object.entries(formData).some(([k, v]) => k !== 'attachments' && v !== '')
+    }
+
+    // Reset the whole form back to its initial state ("ล้างค่า").
     const resetForm = () => {
         setStep(0)
         setFormData({ ...INITIAL_FORM_DATA, attachments: [] })
@@ -431,16 +445,44 @@ export default function LiffServiceRequestV2() {
         }
     }
 
-    // X / "ยกเลิกรายการ" buttons. Inside LINE we close the LIFF window; in an
-    // external (desktop) browser the tab can't be closed by script, so reset the
-    // form and surface a brief notice instead of doing nothing silently.
-    const handleCancel = () => {
+    // "ยกเลิกรายการ" leave action. Inside LINE we close the LIFF window; in an
+    // external (desktop) browser the tab can't be closed by script, so navigate
+    // back to the public landing page instead.
+    const performLeave = () => {
         if (liff.isInClient()) {
             handleClose()
         } else {
-            resetForm()
-            setNotice('ยกเลิกรายการแล้ว')
+            window.location.href = '/'
         }
+    }
+
+    // "ล้างค่า" button — confirm first only when there is data to lose.
+    const requestClear = () => {
+        if (isFormDirty()) {
+            setConfirmAction('clear')
+        } else {
+            toast({ variant: 'info', title: 'ฟอร์มยังว่างอยู่' })
+        }
+    }
+
+    // "ยกเลิกรายการ" button — confirm first only when there is data to lose.
+    const requestCancel = () => {
+        if (isFormDirty()) {
+            setConfirmAction('cancel')
+        } else {
+            performLeave()
+        }
+    }
+
+    // Resolve the pending confirm-dialog action.
+    const confirmPendingAction = () => {
+        if (confirmAction === 'clear') {
+            resetForm()
+            toast({ variant: 'success', title: 'ล้างข้อมูลแล้ว' })
+        } else if (confirmAction === 'cancel') {
+            performLeave()
+        }
+        setConfirmAction(null)
     }
 
     useEffect(() => {
@@ -454,13 +496,6 @@ export default function LiffServiceRequestV2() {
         const timer = setTimeout(() => setTimeLeft(prev => prev - 1), 1000)
         return () => clearTimeout(timer)
     }, [success, timeLeft, isInLineApp])
-
-    // Auto-dismiss the transient notice toast.
-    useEffect(() => {
-        if (!notice) return
-        const t = setTimeout(() => setNotice(null), 2500)
-        return () => clearTimeout(t)
-    }, [notice])
 
     // Global loading spinner removed to allow instant render
     // if (loading) { ... }
@@ -508,9 +543,13 @@ export default function LiffServiceRequestV2() {
                                 >
                                     ยื่นคำร้องใหม่
                                 </Button>
-                                <p className="text-[11px] text-gray-400 px-4">
-                                    หรือปิดแท็บนี้ได้ทันที
-                                </p>
+                                <Button
+                                    variant="ghost"
+                                    className="w-full"
+                                    onClick={() => { window.location.href = '/' }}
+                                >
+                                    กลับหน้าหลัก
+                                </Button>
                             </>
                         )}
                     </CardContent>
@@ -521,11 +560,6 @@ export default function LiffServiceRequestV2() {
 
     return (
         <div className="min-h-screen bg-bg pb-20 font-sans">
-            {notice && (
-                <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[80] px-4 py-2.5 rounded-xl bg-gray-900/90 text-white text-sm font-medium shadow-lg animate-in fade-in slide-in-from-top-2 duration-200">
-                    {notice}
-                </div>
-            )}
             <Head>
                 <title>ยื่นคำร้อง - JSK 4.0</title>
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -547,14 +581,6 @@ export default function LiffServiceRequestV2() {
                         <Badge variant={provinces.length > 0 ? "success" : "warning"} className="h-6">
                             {provinces.length > 0 ? "Online" : "Connecting..."}
                         </Badge>
-                        <button
-                            type="button"
-                            onClick={handleCancel}
-                            aria-label="ปิดหน้าต่าง"
-                            className="p-1.5 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
-                        >
-                            <X className="w-5 h-5" />
-                        </button>
                     </div>
                 </div>
             </div>
@@ -937,15 +963,27 @@ export default function LiffServiceRequestV2() {
                             )}
                         </div>
 
-                        {/* Row 2: Cancel */}
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            className="w-full py-2 h-auto text-xs text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 font-medium"
-                            onClick={handleCancel}
-                        >
-                            ยกเลิกรายการ
-                        </Button>
+                        {/* Row 2: Clear + Cancel */}
+                        <div className="flex gap-3">
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                className="flex-1 py-2 h-auto text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 font-medium"
+                                onClick={requestClear}
+                                leftIcon={<RotateCcw className="w-3.5 h-3.5" />}
+                            >
+                                ล้างค่า
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                className="flex-1 py-2 h-auto text-xs text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 font-medium"
+                                onClick={requestCancel}
+                                leftIcon={<X className="w-3.5 h-3.5" />}
+                            >
+                                ยกเลิกรายการ
+                            </Button>
+                        </div>
 
                         <p className="text-center text-[10px] text-gray-600 dark:text-gray-400 mt-4 px-4 leading-relaxed">
                             ข้อมูลของท่านจะถูกใช้เพื่อการวิเคราะห์และดำเนินการให้ความช่วยเหลือโดยบุคลากรของรัฐที่เกี่ยวข้องเท่านั้น ภายใต้กฎหมายคุ้มครองข้อมูลส่วนบุคคล (PDPA)
@@ -983,6 +1021,46 @@ export default function LiffServiceRequestV2() {
                                         isLoading={submitting}
                                     >
                                         ยืนยันคำขอ
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+                )}
+
+                {/* Clear / Cancel confirmation */}
+                {confirmAction && (
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200" role="dialog" aria-modal="true" aria-labelledby="cancel-dialog-title">
+                        <Card className="w-full max-w-sm shadow-2xl">
+                            <CardHeader className="text-center pb-2">
+                                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-red-600">
+                                    <AlertTriangle className="w-6 h-6" />
+                                </div>
+                                <CardTitle id="cancel-dialog-title" className="text-lg">
+                                    {confirmAction === 'clear'
+                                        ? 'ล้างข้อมูลทั้งหมด?'
+                                        : isInLineApp ? 'ปิดแบบฟอร์มนี้?' : 'ออกจากหน้านี้?'}
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="text-center space-y-4">
+                                <p className="text-sm text-gray-500">
+                                    ข้อมูลที่กรอกไว้ทั้งหมดจะหายไป<br />
+                                    และไม่สามารถกู้คืนได้
+                                </p>
+                                <div className="flex gap-3 pt-2">
+                                    <Button
+                                        variant="ghost"
+                                        className="flex-1"
+                                        onClick={() => setConfirmAction(null)}
+                                    >
+                                        ไม่ใช่
+                                    </Button>
+                                    <Button
+                                        variant="danger"
+                                        className="flex-1"
+                                        onClick={confirmPendingAction}
+                                    >
+                                        {confirmAction === 'clear' ? 'ล้างข้อมูล' : 'ยืนยัน'}
                                     </Button>
                                 </div>
                             </CardContent>
