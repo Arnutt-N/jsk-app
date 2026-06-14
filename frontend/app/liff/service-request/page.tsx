@@ -465,13 +465,9 @@ export default function LiffServiceRequestV2() {
         }
     }
 
-    // "ยกเลิกรายการ" button — confirm first only when there is data to lose.
+    // "ยกเลิกรายการ" button — always confirm before leaving the form.
     const requestCancel = () => {
-        if (isFormDirty()) {
-            setConfirmAction('cancel')
-        } else {
-            performLeave()
-        }
+        setConfirmAction('cancel')
     }
 
     // Resolve the pending confirm-dialog action.
@@ -581,6 +577,16 @@ export default function LiffServiceRequestV2() {
                         <Badge variant={provinces.length > 0 ? "success" : "warning"} className="h-6">
                             {provinces.length > 0 ? "Online" : "Connecting..."}
                         </Badge>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={requestClear}
+                            leftIcon={<RotateCcw className="w-3.5 h-3.5" />}
+                            className="h-7 px-2 text-xs text-gray-600 dark:text-gray-300"
+                        >
+                            ล้างค่า
+                        </Button>
                     </div>
                 </div>
             </div>
@@ -963,27 +969,16 @@ export default function LiffServiceRequestV2() {
                             )}
                         </div>
 
-                        {/* Row 2: Clear + Cancel */}
-                        <div className="flex gap-3">
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                className="flex-1 py-2 h-auto text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 font-medium"
-                                onClick={requestClear}
-                                leftIcon={<RotateCcw className="w-3.5 h-3.5" />}
-                            >
-                                ล้างค่า
-                            </Button>
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                className="flex-1 py-2 h-auto text-xs text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 font-medium"
-                                onClick={requestCancel}
-                                leftIcon={<X className="w-3.5 h-3.5" />}
-                            >
-                                ยกเลิกรายการ
-                            </Button>
-                        </div>
+                        {/* Row 2: Cancel */}
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            className="w-full py-2 h-auto text-xs text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 font-medium"
+                            onClick={requestCancel}
+                            leftIcon={<X className="w-3.5 h-3.5" />}
+                        >
+                            ยกเลิกรายการ
+                        </Button>
 
                         <p className="text-center text-[10px] text-gray-600 dark:text-gray-400 mt-4 px-4 leading-relaxed">
                             ข้อมูลของท่านจะถูกใช้เพื่อการวิเคราะห์และดำเนินการให้ความช่วยเหลือโดยบุคลากรของรัฐที่เกี่ยวข้องเท่านั้น ภายใต้กฎหมายคุ้มครองข้อมูลส่วนบุคคล (PDPA)
