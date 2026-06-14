@@ -40,6 +40,10 @@ function reportError(_error: unknown, _context?: ErrorContext): void {
   // TODO: forward to Sentry/Datadog when telemetry is added.
   // Example wiring (when ready):
   //   Sentry.captureException(_error, { extra: _context });
+  // Reference params so they stay in the signature (reserved for the
+  // telemetry provider above) without tripping no-unused-vars.
+  void _error;
+  void _context;
 }
 
 function formatMessage(msg: string, args: unknown[]): unknown[] {
@@ -93,7 +97,6 @@ export const logger = {
    */
   debug(msg: string, ...args: unknown[]): void {
     if (isDev) {
-      // eslint-disable-next-line no-console
       console.debug(...formatMessage(msg, args));
     }
   },

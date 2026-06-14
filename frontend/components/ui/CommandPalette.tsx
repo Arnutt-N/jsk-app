@@ -19,9 +19,6 @@ import {
   Users,
   BarChart3,
   Settings,
-  Search,
-  Bell,
-  LogOut,
   Moon,
   Sun,
   Monitor,
@@ -36,7 +33,7 @@ interface CommandPaletteProps {
 export function CommandPalette({ open: controlledOpen, onOpenChange }: CommandPaletteProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const router = useRouter();
-  const { theme, setTheme } = useTheme();
+  const { setTheme } = useTheme();
 
   const open = controlledOpen ?? internalOpen;
   const setOpen = onOpenChange ?? setInternalOpen;

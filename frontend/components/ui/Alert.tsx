@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertCircle, CheckCircle, Info, XCircle, X } from 'lucide-react';
+import { AlertCircle, CheckCircle, Info, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
