@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-06-14 17:01 by Claude Code (Enhanced handoff-new.cjs to auto-refresh PROJECT_STATUS.md Last Updated line + prepend one)
+> **Last Updated:** 2026-06-14 21:23 by Claude Code (Phase 1 complete: wired DIRECTOR/HEAD request access via new get_current_manager gate clos)
 
 ## Thai Summary
 แผนการปรับปรุง UX และ Error Handling **เสร็จสมบูรณ์ 100%** — ฟีเจอร์ Undo/Redo, Help System และ Error Handling ใหม่ถูก merge เข้าสู่ main แล้ว
@@ -46,6 +46,7 @@
 - [2026-06-03] All changes from PR #78 merged to `main`. Branch `feat/undo-redo-help-error-handling` is ready for deletion.
 
 ## Recent Completions
+- [2026-06-14 21:23] Claude Code: Phase 1 complete: wired DIRECTOR/HEAD request access via new get_current_manager gate (closed dead policy where DEFAULT_POLICY granted assign/self-assign but get_current_admin blocked them). Merged PR #105 with green CI (backend 61 tests, f (Claude Code)
 - [2026-06-14 17:01] Claude Code: Enhanced handoff-new.cjs to auto-refresh PROJECT_STATUS.md (Last Updated line + prepend one Recent Completions entry) as part of the 1-command handoff, closing the validator freshness WARNING permanently. Fail-open; curated sections untouch (Claude Code)
 - [2026-06-14 16:02] Claude Code: Redesigned the handoff system — checkpoints are the single source of truth; `TASK_LOG.md` + `SESSION_INDEX.md` are now **generated** (`gen-handoff-views.cjs`, recovered full ~62-entry history); added `handoff-new.cjs` 1-command scaffold; deleted 11 `.OLD` + legacy `.agents/handoffs/`. (Claude Code)
 - [2026-06-14 15:34] Claude Code: Added Stop-hook handoff enforcement (`.agents/scripts/handoff-stop-check.cjs` + local `.claude/settings.json`). Blocks session end once when a fresh handoff checkpoint is missing; verified live. (Task #44) (Claude Code)

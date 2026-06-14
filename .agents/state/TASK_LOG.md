@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 64 handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 65 handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-14 21:23 — claude_code — completed
+
+Phase 1 complete: wired DIRECTOR/HEAD request access via new get_current_manager gate (closed dead policy where DEFAULT_POLICY granted assign/self-assign but get_current_admin blocked them). Merged PR #105 with green CI (backend 61 tests, frontend 86 tests, Playwright pass). Opened Phase 2 branch with PRD/plan prep committed.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260614-2123.json`
+- Summary: `project-log-md/claude_code/session-summary-20260614-2123.md`
+
+---
 
 ### 2026-06-14 17:01 — claude_code — completed
 
