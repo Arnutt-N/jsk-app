@@ -1,13 +1,22 @@
 {
-  "last_updated": "2026-06-03T18:30:00Z",
+  "last_updated": "2026-06-14T12:27:00Z",
   "platform": "claude_code",
-  "current_task": "Complete handoff workflow after merging PR #78",
+  "current_task": "LIFF service-request close/cancel redesign + PRD closure + tech-debt cleanup + handoff-log recovery (PRs #102, #103, #104 merged)",
   "plan_status": "completed",
   "next_steps": [
-    "Monitor production deployment via Vercel",
-    "Address any post-merge feedback"
+    "Real-device mobile test: LIFF auto-close after service-request submit (LINE in-app)",
+    "Add device-side logging if mobile auto-close still fails",
+    "Optional: resolve remaining 10 frontend lint warnings (exhaustive-deps x8, next/image x2)"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-06-14T12:27:00Z",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "2e8fab5",
+      "prs": ["#102", "#103", "#104"],
+      "status": "merged"
+    },
     {
       "timestamp": "2026-06-03T18:30:00Z",
       "platform": "claude_code",
@@ -21,6 +30,6 @@
       "antigravity/session-summary-20260602-0032.md",
       "claude_code/session-summary-20260525-0100.md"
     ],
-    "key_insights": "PR #78 successfully merged with all CI/CD checks passing. Previous work by Kimi Code (PR #77) and Antigravity (CommandPalette) is also on main."
+    "key_insights": "TASK_LOG had an ~11-day gap (Task #42 / PR #78 on 2026-06-03 was the last logged handoff). PRs #79-#101 were never recorded; git history on main is the source of truth for that period. PR #77 (Kimi) and CommandPalette (Antigravity) are on main."
   }
 }
