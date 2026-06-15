@@ -6,7 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
 from typing import List
 
-from app.api.deps import get_db, get_current_admin
+from app.api.deps import get_db, get_current_admin, require_permission
+from app.core.permissions import KEY_MANAGE_REPLY_OBJECTS
 from app.models.reply_object import ReplyObject, ObjectType
 from app.models.user import User
 from app.schemas.reply_object import (
@@ -60,7 +61,7 @@ async def get_reply_object(
 async def create_reply_object(
     data: ReplyObjectCreate,
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin)
+    current_admin: User = Depends(require_permission(KEY_MANAGE_REPLY_OBJECTS))
 ):
     """Create a new reply object."""
     # Check if object_id already exists
@@ -90,7 +91,7 @@ async def update_reply_object(
     object_id: str,
     data: ReplyObjectUpdate,
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin)
+    current_admin: User = Depends(require_permission(KEY_MANAGE_REPLY_OBJECTS))
 ):
     """Update an existing reply object."""
     result = await db.execute(
@@ -116,7 +117,7 @@ async def update_reply_object(
 async def delete_reply_object(
     object_id: str,
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin)
+    current_admin: User = Depends(require_permission(KEY_MANAGE_REPLY_OBJECTS))
 ):
     """Delete a reply object."""
     result = await db.execute(

@@ -9,7 +9,8 @@ from sqlalchemy import select, func as sa_func
 
 from app.db.session import AsyncSessionLocal
 from app.models.media_file import MediaFile, FileCategory, detect_category
-from app.api.deps import get_db, get_current_admin
+from app.api.deps import get_db, get_current_admin, require_permission
+from app.core.permissions import KEY_MANAGE_FILES
 from app.core.config import settings
 from app.models.user import User
 
@@ -182,7 +183,7 @@ async def list_media(
 async def upload_media(
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
-    _admin=Depends(get_current_admin),
+    _admin=Depends(require_permission(KEY_MANAGE_FILES)),
 ):
     """Upload a file (admin only). Auto-detects category from MIME type.
 
@@ -215,7 +216,7 @@ async def upload_media(
 async def upload_media_alt(
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
-    _admin=Depends(get_current_admin),
+    _admin=Depends(require_permission(KEY_MANAGE_FILES)),
 ):
     """Alias for upload (backward compat)."""
     return await upload_media(file=file, db=db, _admin=_admin)
@@ -225,7 +226,7 @@ async def upload_media_alt(
 async def delete_media(
     media_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    _admin=Depends(get_current_admin),
+    _admin=Depends(require_permission(KEY_MANAGE_FILES)),
 ):
     """Delete a media file."""
     result = await db.execute(select(MediaFile).where(MediaFile.id == media_id))
@@ -243,7 +244,7 @@ async def update_media_metadata(
     media_id: uuid.UUID,
     update_data: MediaMetadataUpdate,
     db: AsyncSession = Depends(get_db),
-    _admin=Depends(get_current_admin),
+    _admin=Depends(require_permission(KEY_MANAGE_FILES)),
 ):
     """Update media file metadata (filename and/or category)."""
     result = await db.execute(select(MediaFile).where(MediaFile.id == media_id))
@@ -304,7 +305,7 @@ async def download_media(
 async def create_public_link(
     media_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    _admin=Depends(get_current_admin),
+    _admin=Depends(require_permission(KEY_MANAGE_FILES)),
 ):
     """Generate a public link for a media file."""
     result = await db.execute(select(MediaFile).where(MediaFile.id == media_id))
@@ -326,7 +327,7 @@ async def create_public_link(
 async def revoke_public_link(
     media_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    _admin=Depends(get_current_admin),
+    _admin=Depends(require_permission(KEY_MANAGE_FILES)),
 ):
     """Revoke a public link for a media file."""
     result = await db.execute(select(MediaFile).where(MediaFile.id == media_id))
@@ -351,7 +352,7 @@ async def revoke_public_link(
 async def bulk_delete_media(
     body: dict,
     db: AsyncSession = Depends(get_db),
-    _admin=Depends(get_current_admin),
+    _admin=Depends(require_permission(KEY_MANAGE_FILES)),
 ):
     """Delete multiple media files. Body: {"ids": ["uuid", ...]}"""
     ids = body.get("ids", [])
@@ -378,7 +379,7 @@ async def bulk_delete_media(
 async def bulk_create_public_links(
     body: dict,
     db: AsyncSession = Depends(get_db),
-    _admin=Depends(get_current_admin),
+    _admin=Depends(require_permission(KEY_MANAGE_FILES)),
 ):
     """Create public links for multiple files. Body: {"ids": ["uuid", ...]}"""
     ids = body.get("ids", [])
@@ -408,7 +409,7 @@ async def bulk_create_public_links(
 async def upload_media_legacy(
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
-    _admin: User = Depends(get_current_admin),
+    _admin: User = Depends(require_permission(KEY_MANAGE_FILES)),
 ):
     content = await file.read()
     if len(content) > MAX_UPLOAD_BYTES:

@@ -4,7 +4,8 @@ from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 from typing import List
 
-from app.api.deps import get_db, get_current_admin
+from app.api.deps import get_db, get_current_admin, require_permission
+from app.core.permissions import KEY_MANAGE_AUTO_REPLIES
 from app.models.intent import IntentCategory, IntentKeyword, IntentResponse, MatchType, ReplyType
 from app.models.user import User
 from app.schemas.intent import (
@@ -49,7 +50,7 @@ async def list_categories(
     return out
 
 @router.post("/categories", response_model=IntentCategoryResponse, status_code=status.HTTP_201_CREATED)
-async def create_category(data: IntentCategoryCreate, db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_admin)):
+async def create_category(data: IntentCategoryCreate, db: AsyncSession = Depends(get_db), current_admin: User = Depends(require_permission(KEY_MANAGE_AUTO_REPLIES))):
     # Check uniqueness
     existing = await db.execute(select(IntentCategory).filter(IntentCategory.name == data.name))
     if existing.scalars().first():
@@ -74,7 +75,7 @@ async def get_category(cat_id: int, db: AsyncSession = Depends(get_db), current_
     return cat
 
 @router.put("/categories/{cat_id}", response_model=IntentCategoryResponse)
-async def update_category(cat_id: int, data: IntentCategoryUpdate, db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_admin)):
+async def update_category(cat_id: int, data: IntentCategoryUpdate, db: AsyncSession = Depends(get_db), current_admin: User = Depends(require_permission(KEY_MANAGE_AUTO_REPLIES))):
     result = await db.execute(select(IntentCategory).filter(IntentCategory.id == cat_id))
     cat = result.scalars().first()
     if not cat:
@@ -88,7 +89,7 @@ async def update_category(cat_id: int, data: IntentCategoryUpdate, db: AsyncSess
     return cat
 
 @router.delete("/categories/{cat_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_category(cat_id: int, db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_admin)):
+async def delete_category(cat_id: int, db: AsyncSession = Depends(get_db), current_admin: User = Depends(require_permission(KEY_MANAGE_AUTO_REPLIES))):
     result = await db.execute(select(IntentCategory).filter(IntentCategory.id == cat_id))
     cat = result.scalars().first()
     if not cat:
@@ -100,7 +101,7 @@ async def delete_category(cat_id: int, db: AsyncSession = Depends(get_db), curre
 
 # --- Keywords ---
 @router.post("/keywords", response_model=IntentKeywordResponse, status_code=status.HTTP_201_CREATED)
-async def create_keyword(data: IntentKeywordCreate, db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_admin)):
+async def create_keyword(data: IntentKeywordCreate, db: AsyncSession = Depends(get_db), current_admin: User = Depends(require_permission(KEY_MANAGE_AUTO_REPLIES))):
     keyword = IntentKeyword(**data.model_dump())
     db.add(keyword)
     await db.commit()
@@ -108,7 +109,7 @@ async def create_keyword(data: IntentKeywordCreate, db: AsyncSession = Depends(g
     return keyword
 
 @router.put("/keywords/{k_id}", response_model=IntentKeywordResponse)
-async def update_keyword(k_id: int, data: IntentKeywordUpdate, db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_admin)):
+async def update_keyword(k_id: int, data: IntentKeywordUpdate, db: AsyncSession = Depends(get_db), current_admin: User = Depends(require_permission(KEY_MANAGE_AUTO_REPLIES))):
     result = await db.execute(select(IntentKeyword).filter(IntentKeyword.id == k_id))
     kw = result.scalars().first()
     if not kw:
@@ -122,7 +123,7 @@ async def update_keyword(k_id: int, data: IntentKeywordUpdate, db: AsyncSession 
     return kw
 
 @router.delete("/keywords/{k_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_keyword(k_id: int, db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_admin)):
+async def delete_keyword(k_id: int, db: AsyncSession = Depends(get_db), current_admin: User = Depends(require_permission(KEY_MANAGE_AUTO_REPLIES))):
     result = await db.execute(select(IntentKeyword).filter(IntentKeyword.id == k_id))
     kw = result.scalars().first()
     if not kw:
@@ -134,7 +135,7 @@ async def delete_keyword(k_id: int, db: AsyncSession = Depends(get_db), current_
 
 # --- Responses ---
 @router.post("/responses", response_model=IntentResponseResponse, status_code=status.HTTP_201_CREATED)
-async def create_intent_response(data: IntentResponseCreate, db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_admin)):
+async def create_intent_response(data: IntentResponseCreate, db: AsyncSession = Depends(get_db), current_admin: User = Depends(require_permission(KEY_MANAGE_AUTO_REPLIES))):
     res = IntentResponse(**data.model_dump())
     db.add(res)
     await db.commit()
@@ -142,7 +143,7 @@ async def create_intent_response(data: IntentResponseCreate, db: AsyncSession = 
     return res
 
 @router.put("/responses/{r_id}", response_model=IntentResponseResponse)
-async def update_intent_response(r_id: int, data: IntentResponseUpdate, db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_admin)):
+async def update_intent_response(r_id: int, data: IntentResponseUpdate, db: AsyncSession = Depends(get_db), current_admin: User = Depends(require_permission(KEY_MANAGE_AUTO_REPLIES))):
     result = await db.execute(select(IntentResponse).filter(IntentResponse.id == r_id))
     res = result.scalars().first()
     if not res:
@@ -156,7 +157,7 @@ async def update_intent_response(r_id: int, data: IntentResponseUpdate, db: Asyn
     return res
 
 @router.delete("/responses/{r_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_intent_response(r_id: int, db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_admin)):
+async def delete_intent_response(r_id: int, db: AsyncSession = Depends(get_db), current_admin: User = Depends(require_permission(KEY_MANAGE_AUTO_REPLIES))):
     result = await db.execute(select(IntentResponse).filter(IntentResponse.id == r_id))
     res = result.scalars().first()
     if not res:

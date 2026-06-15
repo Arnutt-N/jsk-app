@@ -32,6 +32,9 @@ def test_dashboard_endpoint_returns_aggregated_payload():
 
     app.dependency_overrides[deps.get_db] = _override_get_db
     app.dependency_overrides[deps.get_current_admin] = _override_get_current_admin
+    # Phase 3: analytics dashboard is gated by require_permission(KEY_VIEW_REPORTS),
+    # which resolves the user via deps.get_current_user — override that too.
+    app.dependency_overrides[deps.get_current_user] = _override_get_current_admin
     original_get_dashboard = admin_analytics.analytics_service.get_dashboard
     admin_analytics.analytics_service.get_dashboard = AsyncMock(return_value=payload)
 
@@ -50,6 +53,9 @@ def test_dashboard_endpoint_returns_aggregated_payload():
 def test_export_csv_endpoint_streams_file():
     app.dependency_overrides[deps.get_db] = _override_get_db
     app.dependency_overrides[deps.get_current_admin] = _override_get_current_admin
+    # Phase 3: export routes are gated by require_permission(KEY_EXPORT_CHAT),
+    # which resolves the user via deps.get_current_user — override that too.
+    app.dependency_overrides[deps.get_current_user] = _override_get_current_admin
 
     original_get_display_name = admin_export._get_display_name
     original_get_messages = admin_export._get_conversation_messages
@@ -103,6 +109,9 @@ def test_export_csv_endpoint_streams_file():
 def test_export_pdf_endpoint_streams_file():
     app.dependency_overrides[deps.get_db] = _override_get_db
     app.dependency_overrides[deps.get_current_admin] = _override_get_current_admin
+    # Phase 3: export routes are gated by require_permission(KEY_EXPORT_CHAT),
+    # which resolves the user via deps.get_current_user — override that too.
+    app.dependency_overrides[deps.get_current_user] = _override_get_current_admin
 
     original_get_display_name = admin_export._get_display_name
     original_get_messages = admin_export._get_conversation_messages

@@ -9,6 +9,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api import deps
+from app.api.deps import require_permission
+from app.core.permissions import KEY_EXPORT_CHAT
 from app.models.message import Message
 from app.models.user import User
 
@@ -54,7 +56,7 @@ async def _get_display_name(line_user_id: str, db: AsyncSession) -> str:
 async def export_conversation_csv(
     line_user_id: str,
     db: AsyncSession = Depends(deps.get_db),
-    _current_user: User = Depends(deps.get_current_admin),
+    _current_user: User = Depends(require_permission(KEY_EXPORT_CHAT)),
 ):
     """Export one conversation as CSV."""
     messages = await _get_conversation_messages(line_user_id, db)
@@ -94,7 +96,7 @@ async def export_conversation_csv(
 async def export_conversation_pdf(
     line_user_id: str,
     db: AsyncSession = Depends(deps.get_db),
-    _current_user: User = Depends(deps.get_current_admin),
+    _current_user: User = Depends(require_permission(KEY_EXPORT_CHAT)),
 ):
     """Export one conversation as PDF."""
     try:
