@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 66 handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 67 handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-16 00:21 — claude_code — completed
+
+Phase 3 Permissions v2 PR1 (backend) COMPLETE + pushed as PR #107. Implemented: engine (11 module keys + require_permission factory + capability API in core/permissions.py/deps.py/settings.py), enforcement on 13 endpoint files, alembic seed migration, backend tests (68 green). Security review: 0 CRIT/0 HIGH/2 MEDIUM-fixed/1 LOW-accepted. Discrete-keys + per-module level-preset model. Live-chat/requests untouched (Operator guard).
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260616-0021.json`
+- Summary: `project-log-md/claude_code/session-summary-20260616-0021.md`
+
+---
 
 ### 2026-06-15 21:52 — claude_code — completed
 
