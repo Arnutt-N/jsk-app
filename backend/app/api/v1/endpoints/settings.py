@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 from app.db.session import get_db
-from app.api.deps import get_current_admin
+from app.api.deps import get_current_admin, require_permission
 from app.core.permissions import (
     can_assign,
     can_self_assign,
@@ -15,6 +15,7 @@ from app.core.permissions import (
     invalidate_cache,
     ALL_PERMISSION_KEYS,
     PERMISSION_REGISTRY,
+    KEY_EDIT_SYSTEM_SETTINGS,
 )
 from app.models.permission_setting import PermissionSetting
 from app.models.user import User, UserRole
@@ -233,7 +234,7 @@ class ValidateLineTokenRequest(BaseModel):
 
 @router.post("/line/validate")
 @router.post("/line/validate/")
-async def validate_line_token(request: ValidateLineTokenRequest, current_admin: User = Depends(get_current_admin)):
+async def validate_line_token(request: ValidateLineTokenRequest, current_admin: User = Depends(require_permission(KEY_EDIT_SYSTEM_SETTINGS))):
     import httpx
     url = "https://api.line.me/v2/bot/info"
     headers = {"Authorization": f"Bearer {request.channel_access_token}"}
@@ -260,7 +261,7 @@ async def list_settings(db: AsyncSession = Depends(get_db), current_admin: User 
 async def update_setting(
     setting_data: SystemSettingBase,
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin)
+    current_admin: User = Depends(require_permission(KEY_EDIT_SYSTEM_SETTINGS))
 ):
     setting = await SettingsService.set_setting(
         db, 
