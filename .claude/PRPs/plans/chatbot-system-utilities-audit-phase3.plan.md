@@ -27,16 +27,31 @@ So that **every privileged action is gated by a single source of truth, each rol
 
 ---
 
-## ⚠️ Key Design Decisions — CONFIRM BEFORE IMPLEMENT
+## ✅ Key Design Decisions — CONFIRMED (2026-06-15)
 
-These four forks materially change the implementation. Recommended choices are made so the plan is concrete; flag any you want changed during review.
+All four forks confirmed by user on 2026-06-15. Decision 1 = the reconciled **discrete-keys storage + per-module level-preset UX** model (chosen as best long-term). Decisions 2–4 as recommended. DEFAULT_POLICY role table **accepted as proposed** (DIRECTOR/HEAD = `view_reports` only; `export_chat` = ADMIN+ only).
 
-### Decision 1 — Permission model: **discrete keys grouped by module** (RECOMMENDED) vs ordinal levels
-- **PRD wording**: "level None/View/Edit/Manage" per (role × module).
+### Decision 1 — ✅ CONFIRMED: discrete keys (storage/enforce) + per-module level presets (UX) + per-key override
+- **PRD wording**: "level None/View/Edit/Manage" per (role × module) + per-module override.
 - **Reality**: the engine is `key → frozenset[roles]` (a boolean capability per key). The 11 requested keys are themselves discrete capabilities (mostly `manage_*`), not points on one ordinal scale.
-- **RECOMMENDED**: keep the discrete-key model (matches the existing 5 keys exactly, **honors PRD's own "extend not replace" mandate**, preserves granularity). Render the matrix **grouped into 3 module sections**; tag each key with an informational level (`View`/`Edit`/`Manage`) **only for visual grouping**; provide **role presets** (one click applies a recommended key-set to a role) to deliver the "level" UX without an ordinal data type.
-- **Rejected — ordinal levels**: would require reworking `_check` from set-membership to ordinal comparison + a new `level` column, breaking "extend not replace" and collapsing distinct capabilities (e.g. can't separate "edit auto-replies" from "send broadcast"). Higher migration + regression risk.
-- **Impact if changed**: switching to ordinal levels rewrites the engine core, the migration, and the matrix UI — roughly doubles the phase.
+- **CONFIRMED model** (reconciles both worlds — best long-term):
+  - **Storage + enforcement stay discrete keys** — matches the existing 5 keys exactly, **honors PRD's "extend not replace" mandate**, preserves full granularity, no schema column added. The engine `_check` is untouched.
+  - **Each key carries `(module, level)` tags** in the registry (`level ∈ {View, Edit, Manage}`; see Level↔Key map below).
+  - **UX = per-(role, module) level selector** (None/View/Edit/Manage). Picking level *L* for module *M* and role *R* is a **preset action**: it grants *R* every key in *M* whose level ≤ *L*. This delivers the compact ordinal UX the PRD wants.
+  - **Per-module override = per-key toggles** — because storage is discrete, an admin can expand a module and toggle an individual key, producing a "custom" level. This IS the PRD's per-module override, for free.
+- **Why long-term**: granular capabilities are a *superset* of ordinal levels — you can always project levels onto keys (presets), but you can never recover a withheld capability from a collapsed ordinal. Mirrors enterprise RBAC (AWS IAM / Google Workspace / GitHub: capabilities + role presets), not a fixed level ladder.
+- **Rejected — native ordinal levels**: would rework `_check` to ordinal comparison + a new `level` column, break "extend not replace", and make exceptions (e.g. "edit auto-replies but not send broadcast") impossible without re-introducing discrete keys anyway.
+
+### Level ↔ Key mapping (drives the per-module level presets)
+A level selection grants all keys in that module at or below the chosen level. `Manage ⊃ Edit ⊃ View`.
+
+| Module | View (level 1) | Edit (level 2, adds) | Manage (level 3, adds) |
+|---|---|---|---|
+| **Service Requests** | *(reads — existing admin gate)* | `edit_request_details`, `revert_approval` | `assign_request`, `self_assign_request` |
+| **Chatbot Management** | *(reads — existing admin gate)* | `export_chat` | `manage_broadcast`, `manage_auto_replies`, `manage_rich_menus`, `manage_reply_objects` |
+| **System & Utilities** | `view_reports`, `view_audit_log` | `edit_settings`, `image_resize` | `manage_users`, `manage_files` |
+
+> Service-Requests keys are shown for completeness (already enforced via inline `can_*`); Phase 3 does **not** change their enforcement, only surfaces them in the grouped matrix. `None` (level 0) = no keys for that module.
 
 ### Decision 2 — Enforcement style: **new `require_permission(key)` dependency factory** (RECOMMENDED) vs inline `can_*()` everywhere
 - Existing module gates are blanket `Depends(get_current_admin)`; granular per-action checks in `admin_requests.py` are **inline** (because one route checks several sub-actions).
@@ -298,12 +313,12 @@ import { describe, it, expect } from 'vitest'
 - **GOTCHA**: keep the 5 existing keys/aliases byte-for-byte; do not reorder. `view_reports` default includes DIRECTOR+HEAD.
 - **VALIDATE**: `cd backend && python -c "from app.core.permissions import DEFAULT_POLICY; print(len(DEFAULT_POLICY))"` → expect 16.
 
-### Task 2: Add a `PERMISSION_REGISTRY` + `get_effective_capabilities()`
-- **ACTION**: In `permissions.py`, add an ordered registry mapping each key → `{module, level, label_th}`; add `get_effective_capabilities(role) -> dict[str, bool]` returning `{key: _check(role, key)}` for all keys.
-- **IMPLEMENT**: `Module = Literal["service_requests","chatbot","system"]`; `PERMISSION_REGISTRY: list[PermissionMeta]`; helper that iterates registry.
+### Task 2: Add a `PERMISSION_REGISTRY` (module + level) + level-preset + capability helpers
+- **ACTION**: In `permissions.py`, add an ordered registry mapping each key → `{module, level, label_th}`; add `keys_for_level(module, level)` (returns keys with `level ≤ chosen`), and `get_effective_capabilities(role) -> dict[str, bool]` returning `{key: _check(role, key)}` for all keys.
+- **IMPLEMENT**: `Module = Literal["service_requests","chatbot","system"]`; `Level = Literal[0,1,2,3]` (None/View/Edit/Manage); `PERMISSION_REGISTRY: list[PermissionMeta]` ordered Service Requests → Chatbot → System; `keys_for_level` powers the per-module level presets (Decision 1 / Level↔Key map).
 - **MIRROR**: existing module-docstring table (:1–27) for label text.
-- **GOTCHA**: registry is the single source the UI groups by; keep key order stable (Service Requests first, then Chatbot, then System) so UI rows are deterministic.
-- **VALIDATE**: unit test asserts every `DEFAULT_POLICY` key appears exactly once in the registry and vice-versa.
+- **GOTCHA**: registry is the single source the UI groups by AND the source of truth for the level→keys preset math — keep it consistent with the Level↔Key map table above. Keep key order stable so UI rows are deterministic.
+- **VALIDATE**: unit test asserts (a) every `DEFAULT_POLICY` key appears exactly once in the registry and vice-versa; (b) `keys_for_level('system', 3)` ⊇ `keys_for_level('system', 1)`.
 
 ### Task 3: `require_permission(key)` dependency factory
 - **ACTION**: In `backend/app/api/deps.py`, add a factory returning an async dependency that resolves `get_current_user`, checks `_check(user.role, key)`, raises 403 otherwise.
@@ -360,12 +375,12 @@ import { describe, it, expect } from 'vitest'
 - **GOTCHA**: this must stay in sync with backend registry — add a test asserting the key set equals the backend-provided keys (or a hardcoded expected set) to catch drift.
 - **VALIDATE**: `permission-modules.test.ts` — all 16 keys present, grouped into 3 modules, no duplicates.
 
-### Task 10: Rebuild the matrix UI (module-grouped + presets)
-- **ACTION**: Refactor `frontend/app/admin/settings/permissions/page.tsx` to render 3 collapsible module sections driven by the registry; add per-role "Apply preset" actions; lock SUPER_ADMIN checkbox on every key.
-- **IMPLEMENT**: keep checkbox cells, `useUndoableState`, keyboard undo/redo, `canEdit` gate, save via `updatePermissions`. Presets = predefined key-sets (Viewer/Operator/Manager) applied to a role column.
-- **MIRROR**: existing page structure (:1–317).
-- **GOTCHA**: SUPER_ADMIN cells disabled+checked for ALL keys (mirror backend lock); preserve the existing read-only mode when `!canEdit`.
-- **VALIDATE**: manual (dev server, WSL) — toggling + preset + save round-trips; SUPER_ADMIN uncheck blocked; visual check at 768/1440.
+### Task 10: Rebuild the matrix UI (per-module level selector + per-key override)
+- **ACTION**: Refactor `frontend/app/admin/settings/permissions/page.tsx` into 3 collapsible module sections. For each (role × module) cell render a **level selector** (None/View/Edit/Manage) driven by `keys_for_level`; allow expanding a module to reveal **per-key checkboxes** for override; lock SUPER_ADMIN everywhere.
+- **IMPLEMENT**: selecting level *L* checks exactly the keys with `level ≤ L` for that (role, module); manually toggling a key sets the cell label to "Custom". Keep `useUndoableState`, keyboard undo/redo, `canEdit` gate, save via `updatePermissions` (payload is still the flat per-key `allowed_roles` rules — the level UI is a projection). Derive the displayed level from the checked key-set on load.
+- **MIRROR**: existing page structure (:1–317) for checkbox cells, undo/redo, save flow, lock styling.
+- **GOTCHA**: SUPER_ADMIN cells disabled+at-Manage for ALL keys (mirror backend lock); preserve read-only mode when `!canEdit`; the on-the-wire contract is unchanged (per-key rules) so backend needs no level concept.
+- **VALIDATE**: manual (dev server, WSL) — level select ↔ key toggles round-trip, "Custom" shows on partial sets, save persists, SUPER_ADMIN uncheck blocked; visual check at 768/1440.
 
 ### Task 11: Tests — backend + frontend
 - **ACTION**: Write/extend the 4 test files (Files to Change). Cover: registry integrity, `get_effective_capabilities`, `require_permission` 403/200, generalized lockout 400, representative endpoint gating, frontend `hasPermission` + registry integrity.
@@ -489,5 +504,5 @@ npm run build                             # EXPECT: production build clean
 
 ## Notes
 - **Confidence (single-pass implementation): 8/10.** High because it's a faithful extension of a well-understood engine with strong test scaffolding already present. The −2 is the breadth of endpoint edits (~13 files) and the default-policy/role assignments needing human confirmation.
-- **Plan-first**: do not run `/prp-implement` until the 4 Key Design Decisions (esp. #1 model + the DEFAULT_POLICY role table) are confirmed.
+- **Decisions CONFIRMED 2026-06-15** — plan is ready for `/prp-implement`. Decision 1 = discrete-keys storage + per-module level-preset UX + per-key override; Decisions 2–4 as recommended; DEFAULT_POLICY role table accepted as proposed.
 - If the user later wants the 2-PR split: PR1 = Tasks 1–7 + backend tests (ships enforcement); PR2 = Tasks 8–10 + frontend tests (ships the UI). The capability API (Task 5) is the contract between them.
