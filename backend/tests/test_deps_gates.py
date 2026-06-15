@@ -16,7 +16,13 @@ from types import SimpleNamespace
 import pytest
 from fastapi import HTTPException
 
-from app.api.deps import get_current_admin, get_current_manager, get_current_staff
+from app.api.deps import (
+    get_current_admin,
+    get_current_manager,
+    get_current_staff,
+    require_permission,
+)
+from app.core.permissions import KEY_MANAGE_USERS, invalidate_cache
 from app.models.user import UserRole
 
 
@@ -103,4 +109,37 @@ async def test_get_current_admin_stays_strict(role: UserRole, allowed: bool) -> 
     else:
         with pytest.raises(HTTPException) as exc_info:
             await get_current_admin(current_user=_user(role))
+        assert exc_info.value.status_code == 403
+
+
+# ---------------------------------------------------------------------------
+# require_permission factory (Phase 3 — module permission gate).
+# require_permission(key) returns an async dependency _dependency(current_user)
+# that resolves to the DB-backed policy with DEFAULT_POLICY fallback. With the
+# cache cleared, manage_users defaults to {SUPER_ADMIN, ADMIN}, so ADMIN/
+# SUPER_ADMIN pass and AGENT/USER are rejected with 403.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "role,allowed",
+    [
+        (UserRole.SUPER_ADMIN, True),
+        (UserRole.ADMIN, True),
+        (UserRole.AGENT, False),
+        (UserRole.USER, False),
+    ],
+)
+async def test_require_permission_manage_users_gate(role: UserRole, allowed: bool) -> None:
+    # Ensure DEFAULT_POLICY applies (no DB row leaked from another test).
+    invalidate_cache()
+    dependency = require_permission(KEY_MANAGE_USERS)
+
+    if allowed:
+        result = await dependency(current_user=_user(role))
+        assert result.role is role
+    else:
+        with pytest.raises(HTTPException) as exc_info:
+            await dependency(current_user=_user(role))
         assert exc_info.value.status_code == 403

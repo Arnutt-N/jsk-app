@@ -5,7 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 from datetime import datetime, timedelta, timezone
 
-from app.api.deps import get_db, get_current_admin
+from app.api.deps import get_db, get_current_admin, require_permission
+from app.core.permissions import KEY_VIEW_AUDIT_LOG
 from app.models.audit_log import AuditLog
 from app.models.user import User
 
@@ -23,7 +24,7 @@ async def get_audit_logs(
     limit: int = Query(50, ge=1, le=500, description="Number of logs to return"),
     offset: int = Query(0, ge=0, description="Pagination offset"),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_admin)
+    current_user: User = Depends(require_permission(KEY_VIEW_AUDIT_LOG))
 ):
     """
     Get audit logs with filtering and pagination.
@@ -98,7 +99,7 @@ async def get_audit_logs(
 async def get_audit_stats(
     days: int = Query(7, ge=1, le=90, description="Number of days to look back"),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_admin)
+    current_user: User = Depends(require_permission(KEY_VIEW_AUDIT_LOG))
 ):
     """
     Get audit log statistics.

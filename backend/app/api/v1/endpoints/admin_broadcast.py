@@ -6,7 +6,8 @@ from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
-from app.api.deps import get_current_admin
+from app.api.deps import get_current_admin, require_permission
+from app.core.permissions import KEY_MANAGE_BROADCAST
 from app.models.broadcast import BroadcastStatus, BroadcastType
 from app.models.user import User
 from app.services.broadcast_service import broadcast_service
@@ -107,7 +108,7 @@ async def list_broadcasts(
 async def create_broadcast(
     payload: BroadcastCreate,
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin),
+    current_admin: User = Depends(require_permission(KEY_MANAGE_BROADCAST)),
 ):
     broadcast = await broadcast_service.create_broadcast(
         db,
@@ -138,7 +139,7 @@ async def update_broadcast(
     broadcast_id: int,
     payload: BroadcastUpdate,
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin),
+    current_admin: User = Depends(require_permission(KEY_MANAGE_BROADCAST)),
 ):
     broadcast = await broadcast_service.get_broadcast(db, broadcast_id)
     if not broadcast:
@@ -155,7 +156,7 @@ async def update_broadcast(
 async def delete_broadcast(
     broadcast_id: int,
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin),
+    current_admin: User = Depends(require_permission(KEY_MANAGE_BROADCAST)),
 ):
     broadcast = await broadcast_service.get_broadcast(db, broadcast_id)
     if not broadcast:
@@ -169,7 +170,7 @@ async def delete_broadcast(
 async def send_broadcast(
     broadcast_id: int,
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin),
+    current_admin: User = Depends(require_permission(KEY_MANAGE_BROADCAST)),
 ):
     broadcast = await broadcast_service.get_broadcast(db, broadcast_id)
     if not broadcast:
@@ -191,7 +192,7 @@ async def schedule_broadcast(
     broadcast_id: int,
     payload: ScheduleRequest,
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin),
+    current_admin: User = Depends(require_permission(KEY_MANAGE_BROADCAST)),
 ):
     broadcast = await broadcast_service.get_broadcast(db, broadcast_id)
     if not broadcast:
@@ -207,7 +208,7 @@ async def schedule_broadcast(
 async def cancel_broadcast(
     broadcast_id: int,
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin),
+    current_admin: User = Depends(require_permission(KEY_MANAGE_BROADCAST)),
 ):
     broadcast = await broadcast_service.get_broadcast(db, broadcast_id)
     if not broadcast:

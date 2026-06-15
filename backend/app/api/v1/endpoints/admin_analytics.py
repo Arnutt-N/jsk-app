@@ -3,7 +3,8 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 
-from app.api.deps import get_db, get_current_admin
+from app.api.deps import get_db, get_current_admin, require_permission
+from app.core.permissions import KEY_VIEW_REPORTS
 from app.models.user import User
 from app.services.analytics_service import analytics_service
 
@@ -13,7 +14,7 @@ router = APIRouter()
 @router.get("/live-kpis")
 async def get_live_kpis(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_admin)
+    current_user: User = Depends(require_permission(KEY_VIEW_REPORTS))
 ):
     """
     Get real-time KPIs for the dashboard.
@@ -38,7 +39,7 @@ async def get_operator_performance(
     operator_id: Optional[int] = Query(None, description="Filter by operator ID"),
     days: int = Query(7, ge=1, le=30, description="Number of days to look back"),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_admin)
+    current_user: User = Depends(require_permission(KEY_VIEW_REPORTS))
 ):
     """
     Get operator performance metrics.
@@ -53,7 +54,7 @@ async def get_operator_performance(
 async def get_hourly_stats(
     hours: int = Query(24, ge=1, le=168, description="Number of hours to look back"),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_admin)
+    current_user: User = Depends(require_permission(KEY_VIEW_REPORTS))
 ):
     """
     Get hourly message stats for charting.
@@ -67,7 +68,7 @@ async def get_hourly_stats(
 async def get_dashboard(
     days: int = Query(7, ge=1, le=30, description="Number of days to look back"),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_admin),
+    current_user: User = Depends(require_permission(KEY_VIEW_REPORTS)),
 ):
     """Get aggregated dashboard payload including trends, funnel, heatmap and percentiles."""
     return await analytics_service.get_dashboard(db, days)

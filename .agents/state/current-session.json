@@ -1,14 +1,28 @@
 {
-  "last_updated": "2026-06-14T21:23:00Z",
+  "last_updated": "2026-06-16T00:21:00Z",
   "platform": "claude_code",
-  "current_task": "Phase 1 complete: wired DIRECTOR/HEAD request access via new get_current_manager gate (closed dead policy where DEFAULT_POLICY granted assign/self-assign but get_current_admin blocked them). Merged PR",
+  "current_task": "Phase 3 Permissions v2 PR1 (backend) COMPLETE + pushed as PR #107. Implemented: engine (11 module keys + require_permission factory + capability API in core/permissions.py/deps.py/settings.py), enforc",
   "plan_status": "completed",
   "next_steps": [
-    "Run /compact then /prp-plan Phase 2 on branch feat/chatbot-sys-audit-phase2",
-    "Phase 2 Rename & Restructure: System Management->System and Utilities (layout.tsx:179), AGENT label->Operator via central role-label map (keep enum/DB), add Image Resize menu placeholder, fix AssignModal.tsx:42 hardcoded role=AGENT",
-    "Frontend runs on WSL per user — rerun 'npm ci' in WSL if reinstall interrupted by compact"
+    "Monitor PR #107 CI (Backend Pytest, Source Encoding Scan, Vercel) — fix if red",
+    "After PR1 merge: PR2 = frontend matrix UI (Task 8-10): lib/permissions.ts hasPermission, permission-modules.ts registry mirror, settings/permissions/page.tsx level-selector + per-key override, vitest",
+    "PR2 contract = GET /permissions/me capabilities map + GET /permissions registry"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-06-16T00:21:00Z",
+      "platform": "claude_code",
+      "branch": "feat/chatbot-sys-audit-phase3",
+      "head": "507a28f",
+      "status": "completed"
+    },
+    {
+      "timestamp": "2026-06-15T21:52:00Z",
+      "platform": "claude_code",
+      "branch": "feat/chatbot-sys-audit-phase3",
+      "head": "f63d2b4",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-06-14T21:23:00Z",
       "platform": "claude_code",

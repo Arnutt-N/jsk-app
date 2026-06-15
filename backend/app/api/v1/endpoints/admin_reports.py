@@ -11,7 +11,8 @@ from pydantic import BaseModel
 from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_admin, get_db
+from app.api.deps import get_current_admin, get_db, require_permission
+from app.core.permissions import KEY_VIEW_REPORTS, KEY_EXPORT_CHAT
 from app.models.chat_session import ChatSession, SessionStatus
 from app.models.friend_event import FriendEvent, FriendEventType
 from app.models.message import Message, MessageDirection
@@ -150,7 +151,7 @@ def _format_bucket(bucket_value: datetime, period: str) -> str:
 @router.get("/overview", response_model=OverviewResponse)
 async def report_overview(
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin),
+    current_admin: User = Depends(require_permission(KEY_VIEW_REPORTS)),
 ):
     now = datetime.now(timezone.utc)
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -315,7 +316,7 @@ async def report_service_requests(
     end_date: Optional[str] = None,
     period: str = Query("daily", pattern="^(daily|weekly|monthly)$"),
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin),
+    current_admin: User = Depends(require_permission(KEY_VIEW_REPORTS)),
 ):
     start, end = _parse_dates(start_date, end_date)
 
@@ -387,7 +388,7 @@ async def report_messages(
     end_date: Optional[str] = None,
     period: str = Query("daily", pattern="^(daily|weekly|monthly)$"),
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin),
+    current_admin: User = Depends(require_permission(KEY_VIEW_REPORTS)),
 ):
     start, end = _parse_dates(start_date, end_date)
 
@@ -445,7 +446,7 @@ async def report_operators(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin),
+    current_admin: User = Depends(require_permission(KEY_VIEW_REPORTS)),
 ):
     start, end = _parse_dates(start_date, end_date)
 
@@ -532,7 +533,7 @@ async def report_followers(
     end_date: Optional[str] = None,
     period: str = Query("daily", pattern="^(daily|weekly|monthly)$"),
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin),
+    current_admin: User = Depends(require_permission(KEY_VIEW_REPORTS)),
 ):
     start, end = _parse_dates(start_date, end_date)
 
@@ -618,7 +619,7 @@ async def export_report(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin),
+    current_admin: User = Depends(require_permission(KEY_EXPORT_CHAT)),
 ):
     start, end = _parse_dates(start_date, end_date)
     buf = io.StringIO()
@@ -704,7 +705,7 @@ async def export_report_pdf(
     ),
     period: int = Query(30, ge=1, le=90),
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin),
+    current_admin: User = Depends(require_permission(KEY_EXPORT_CHAT)),
 ):
     """Export report as PDF with Content-Disposition for direct download."""
     from app.services.pdf_report_service import PDFReportService

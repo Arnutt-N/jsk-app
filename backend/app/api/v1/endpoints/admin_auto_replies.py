@@ -6,7 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import List
 
-from app.api.deps import get_db, get_current_admin
+from app.api.deps import get_db, get_current_admin, require_permission
+from app.core.permissions import KEY_MANAGE_AUTO_REPLIES
 from app.models.auto_reply import AutoReply, MatchType, ReplyType
 from app.models.user import User
 from app.schemas.auto_reply import (
@@ -57,7 +58,7 @@ async def get_auto_reply(
 async def create_auto_reply(
     data: AutoReplyCreate,
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin)
+    current_admin: User = Depends(require_permission(KEY_MANAGE_AUTO_REPLIES))
 ):
     """Create a new auto-reply rule."""
     # Check if keyword already exists
@@ -85,7 +86,7 @@ async def update_auto_reply(
     reply_id: int,
     data: AutoReplyUpdate,
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin)
+    current_admin: User = Depends(require_permission(KEY_MANAGE_AUTO_REPLIES))
 ):
     """Update an existing auto-reply rule."""
     result = await db.execute(
@@ -113,7 +114,7 @@ async def update_auto_reply(
 async def delete_auto_reply(
     reply_id: int,
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin)
+    current_admin: User = Depends(require_permission(KEY_MANAGE_AUTO_REPLIES))
 ):
     """Delete an auto-reply rule."""
     result = await db.execute(

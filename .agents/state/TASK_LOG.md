@@ -1,8 +1,26 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 65 handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 67 handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-16 00:21 — claude_code — completed
+
+Phase 3 Permissions v2 PR1 (backend) COMPLETE + pushed as PR #107. Implemented: engine (11 module keys + require_permission factory + capability API in core/permissions.py/deps.py/settings.py), enforcement on 13 endpoint files, alembic seed migration, backend tests (68 green). Security review: 0 CRIT/0 HIGH/2 MEDIUM-fixed/1 LOW-accepted. Discrete-keys + per-module level-preset model. Live-chat/requests untouched (Operator guard).
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260616-0021.json`
+- Summary: `project-log-md/claude_code/session-summary-20260616-0021.md`
+
+---
+
+### 2026-06-15 21:52 — claude_code — completed
+
+Phase 3 (Permissions v2 module-based) PLAN-FIRST: recovered git (HEAD lock cleared, on main, deleted merged phase2 branch), branched feat/chatbot-sys-audit-phase3, ran 4 parallel explore agents, wrote full XL implementation plan (.claude/PRPs/plans/chatbot-system-utilities-audit-phase3.plan.md, committed f63d2b4), marked PRD Phase 3 in-progress. STOPPED before implement per user 'plan-first' choice. 4 design decisions + DEFAULT_POLICY role table flagged for user confirmation.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260615-2152.json`
+- Summary: `project-log-md/claude_code/session-summary-20260615-2152.md`
+
+---
 
 ### 2026-06-14 21:23 — claude_code — completed
 

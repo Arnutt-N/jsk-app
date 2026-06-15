@@ -6,7 +6,8 @@ import logging
 import os
 import shutil
 from app.db.session import get_db
-from app.api.deps import get_current_admin
+from app.api.deps import get_current_admin, require_permission
+from app.core.permissions import KEY_MANAGE_RICH_MENUS
 from app.models.rich_menu import RichMenu, RichMenuStatus
 from app.models.user import User
 from app.schemas.rich_menu import RichMenuResponse, RichMenuCreate
@@ -33,7 +34,7 @@ async def get_rich_menu(id: int, db: AsyncSession = Depends(get_db), current_adm
     return rich_menu
 
 @router.put("/{id}", response_model=RichMenuResponse)
-async def update_rich_menu(id: int, data: RichMenuCreate, db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_admin)):
+async def update_rich_menu(id: int, data: RichMenuCreate, db: AsyncSession = Depends(get_db), current_admin: User = Depends(require_permission(KEY_MANAGE_RICH_MENUS))):
     result = await db.execute(select(RichMenu).where(RichMenu.id == id))
     rich_menu = result.scalar_one_or_none()
     if not rich_menu:
@@ -61,7 +62,7 @@ async def update_rich_menu(id: int, data: RichMenuCreate, db: AsyncSession = Dep
 async def create_rich_menu(
     data: RichMenuCreate,
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin)
+    current_admin: User = Depends(require_permission(KEY_MANAGE_RICH_MENUS))
 ):
     # Construct LINE config object
     line_config = {
@@ -89,7 +90,7 @@ async def upload_rich_menu_image(
     id: int,
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin)
+    current_admin: User = Depends(require_permission(KEY_MANAGE_RICH_MENUS))
 ):
     result = await db.execute(select(RichMenu).where(RichMenu.id == id))
     rich_menu = result.scalar_one_or_none()
@@ -122,7 +123,7 @@ async def upload_rich_menu_image(
     return {"message": "Image saved", "path": file_path}
 
 @router.post("/{id}/sync")
-async def sync_rich_menu(id: int, db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_admin)):
+async def sync_rich_menu(id: int, db: AsyncSession = Depends(get_db), current_admin: User = Depends(require_permission(KEY_MANAGE_RICH_MENUS))):
     """
     Sync rich menu to LINE with idempotency.
     If already synced, verifies existence on LINE.
@@ -166,7 +167,7 @@ async def get_sync_status(id: int, db: AsyncSession = Depends(get_db), current_a
     return status_info
 
 @router.post("/{id}/publish")
-async def publish_rich_menu(id: int, db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_admin)):
+async def publish_rich_menu(id: int, db: AsyncSession = Depends(get_db), current_admin: User = Depends(require_permission(KEY_MANAGE_RICH_MENUS))):
     result = await db.execute(select(RichMenu).where(RichMenu.id == id))
     rich_menu = result.scalar_one_or_none()
     if not rich_menu:
@@ -182,7 +183,7 @@ async def publish_rich_menu(id: int, db: AsyncSession = Depends(get_db), current
     return {"message": "Rich Menu is now default on LINE Official Account"}
 
 @router.delete("/{id}")
-async def delete_rich_menu(id: int, db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_admin)):
+async def delete_rich_menu(id: int, db: AsyncSession = Depends(get_db), current_admin: User = Depends(require_permission(KEY_MANAGE_RICH_MENUS))):
     result = await db.execute(select(RichMenu).where(RichMenu.id == id))
     rich_menu = result.scalar_one_or_none()
     if not rich_menu:

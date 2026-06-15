@@ -6,7 +6,8 @@ from sqlalchemy import select, func, or_, and_
 from typing import List, Optional
 
 from app.db.session import get_db
-from app.api.deps import get_current_admin
+from app.api.deps import get_current_admin, require_permission
+from app.core.permissions import KEY_MANAGE_USERS
 from app.models.user import User, UserRole
 from app.models.service_request import ServiceRequest, RequestStatus
 from app.core.security import get_password_hash, verify_password
@@ -311,7 +312,7 @@ async def get_user(
 async def create_user(
     body: UserCreateRequest,
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin),
+    current_admin: User = Depends(require_permission(KEY_MANAGE_USERS)),
 ):
     """Create a new admin/agent user."""
     _check_role_permission(current_admin, body.role)
@@ -364,7 +365,7 @@ async def update_user(
     user_id: int,
     body: UserUpdateRequest,
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin),
+    current_admin: User = Depends(require_permission(KEY_MANAGE_USERS)),
 ):
     """Update user details."""
     result = await db.execute(select(User).where(User.id == user_id))
@@ -440,7 +441,7 @@ async def delete_user(
     user_id: int,
     hard: bool = Query(False),
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin),
+    current_admin: User = Depends(require_permission(KEY_MANAGE_USERS)),
 ):
     """Delete a user. Soft delete by default (set is_active=false). Use ?hard=true for hard delete."""
     result = await db.execute(select(User).where(User.id == user_id))
@@ -487,7 +488,7 @@ async def reset_password(
     user_id: int,
     body: ResetPasswordRequest,
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin),
+    current_admin: User = Depends(require_permission(KEY_MANAGE_USERS)),
 ):
     """Reset a user's password. SUPER_ADMIN only."""
     if current_admin.role != UserRole.SUPER_ADMIN:

@@ -62,6 +62,10 @@ def _patch_admin_overrides(fake_db: _FakeAuditDB):
     # or the endpoint connects to the real database.
     app.dependency_overrides[deps.get_db] = _override_get_db
     app.dependency_overrides[deps.get_current_admin] = _override_get_current_admin
+    # Phase 3: the logs/stats routes are now gated by
+    # require_permission(KEY_VIEW_AUDIT_LOG), which resolves the user via
+    # deps.get_current_user — override that too so the gate sees an ADMIN.
+    app.dependency_overrides[deps.get_current_user] = _override_get_current_admin
 
     def teardown():
         app.dependency_overrides.clear()

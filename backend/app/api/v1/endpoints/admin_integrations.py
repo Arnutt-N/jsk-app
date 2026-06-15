@@ -13,7 +13,8 @@ import httpx
 import logging
 
 from app.api import deps
-from app.api.deps import get_current_admin
+from app.api.deps import get_current_admin, require_permission
+from app.core.permissions import KEY_EDIT_SYSTEM_SETTINGS
 from app.db.session import get_db
 from app.models.user import User
 from app.models.credential import Credential, Provider
@@ -151,7 +152,7 @@ async def get_telegram_config(
 async def save_telegram_config(
     body: TelegramConfigIn,
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin),
+    current_admin: User = Depends(require_permission(KEY_EDIT_SYSTEM_SETTINGS)),
 ) -> Any:
     cred = await _upsert_credential(
         provider=Provider.TELEGRAM,
@@ -244,7 +245,7 @@ async def get_n8n_config(
 async def save_n8n_config(
     body: N8nConfigIn,
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin),
+    current_admin: User = Depends(require_permission(KEY_EDIT_SYSTEM_SETTINGS)),
 ) -> Any:
     creds_dict: Dict[str, Any] = {"webhook_url": body.webhook_url}
     if body.api_key:
@@ -340,7 +341,7 @@ async def list_integrations(
 async def create_integration(
     body: IntegrationIn,
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin),
+    current_admin: User = Depends(require_permission(KEY_EDIT_SYSTEM_SETTINGS)),
 ) -> Any:
     creds_dict: Dict[str, Any] = {
         "integration_type": body.integration_type,
@@ -379,7 +380,7 @@ async def update_integration(
     integration_id: int,
     body: IntegrationIn,
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin),
+    current_admin: User = Depends(require_permission(KEY_EDIT_SYSTEM_SETTINGS)),
 ) -> Any:
     obj = await db.get(Credential, integration_id)
     if not obj or obj.provider != Provider.CUSTOM:
@@ -425,7 +426,7 @@ async def update_integration(
 async def delete_integration(
     integration_id: int,
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin),
+    current_admin: User = Depends(require_permission(KEY_EDIT_SYSTEM_SETTINGS)),
 ) -> Any:
     obj = await db.get(Credential, integration_id)
     if not obj or obj.provider != Provider.CUSTOM:

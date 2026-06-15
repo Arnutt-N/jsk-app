@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Any, List
 from app.api import deps
-from app.api.deps import get_current_admin
+from app.api.deps import get_current_admin, require_permission
+from app.core.permissions import KEY_EDIT_SYSTEM_SETTINGS
 from app.models.user import User
 from app.services.credential_service import credential_service
 from app.models.credential import Provider
@@ -37,7 +38,7 @@ async def list_credentials(
 async def create_credential(
     request: CredentialCreate,
     db: AsyncSession = Depends(deps.get_db),
-    current_admin: User = Depends(get_current_admin)
+    current_admin: User = Depends(require_permission(KEY_EDIT_SYSTEM_SETTINGS))
 ) -> Any:
     """Create new credential"""
     credential = await credential_service.create_credential(request, db)
@@ -89,7 +90,7 @@ async def update_credential(
     id: int,
     request: CredentialUpdate,
     db: AsyncSession = Depends(deps.get_db),
-    current_admin: User = Depends(get_current_admin)
+    current_admin: User = Depends(require_permission(KEY_EDIT_SYSTEM_SETTINGS))
 ) -> Any:
     """Update credential"""
     credential = await credential_service.update_credential(id, request, db)
@@ -105,7 +106,7 @@ async def update_credential(
 async def delete_credential(
     id: int,
     db: AsyncSession = Depends(deps.get_db),
-    current_admin: User = Depends(get_current_admin)
+    current_admin: User = Depends(require_permission(KEY_EDIT_SYSTEM_SETTINGS))
 ) -> Any:
     """Delete credential"""
     success = await credential_service.delete_credential(id, db)
@@ -128,7 +129,7 @@ async def verify_credential(
 async def set_default_credential(
     id: int,
     db: AsyncSession = Depends(deps.get_db),
-    current_admin: User = Depends(get_current_admin)
+    current_admin: User = Depends(require_permission(KEY_EDIT_SYSTEM_SETTINGS))
 ) -> Any:
     """Set as default for provider"""
     credential = await credential_service.set_default(id, db)

@@ -28,7 +28,7 @@ Default policy keys (must match `permission_settings.key` rows):
 from __future__ import annotations
 
 import logging
-from typing import Iterable
+from typing import Iterable, Literal, NamedTuple
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -44,6 +44,21 @@ KEY_SELF_ASSIGN = "self_assign_request"
 KEY_EDIT_SETTINGS = "edit_permission_settings"
 KEY_REVERT = "revert_approval"
 KEY_EDIT_REQUEST_DETAILS = "edit_request_details"
+
+# Phase 3 -- module-based keys (Chatbot Management).
+KEY_MANAGE_BROADCAST = "manage_broadcast"
+KEY_MANAGE_AUTO_REPLIES = "manage_auto_replies"
+KEY_MANAGE_RICH_MENUS = "manage_rich_menus"
+KEY_MANAGE_REPLY_OBJECTS = "manage_reply_objects"
+KEY_EXPORT_CHAT = "export_chat"
+
+# Phase 3 -- module-based keys (System & Utilities).
+KEY_MANAGE_USERS = "manage_users"
+KEY_MANAGE_FILES = "manage_files"
+KEY_VIEW_REPORTS = "view_reports"
+KEY_VIEW_AUDIT_LOG = "view_audit_log"
+KEY_EDIT_SYSTEM_SETTINGS = "edit_settings"
+KEY_IMAGE_RESIZE = "image_resize"
 
 # Hardcoded fallback used when the DB row is missing OR the cache hasn't
 # loaded yet. Mirrors the migration seed values.
@@ -72,6 +87,25 @@ DEFAULT_POLICY: dict[str, frozenset[UserRole]] = {
         UserRole.SUPER_ADMIN,
         UserRole.ADMIN,
     }),
+    # --- Phase 3: Chatbot Management ---
+    KEY_MANAGE_BROADCAST: frozenset({UserRole.SUPER_ADMIN, UserRole.ADMIN}),
+    KEY_MANAGE_AUTO_REPLIES: frozenset({UserRole.SUPER_ADMIN, UserRole.ADMIN}),
+    KEY_MANAGE_RICH_MENUS: frozenset({UserRole.SUPER_ADMIN, UserRole.ADMIN}),
+    KEY_MANAGE_REPLY_OBJECTS: frozenset({UserRole.SUPER_ADMIN, UserRole.ADMIN}),
+    KEY_EXPORT_CHAT: frozenset({UserRole.SUPER_ADMIN, UserRole.ADMIN}),
+    # --- Phase 3: System & Utilities ---
+    KEY_MANAGE_USERS: frozenset({UserRole.SUPER_ADMIN, UserRole.ADMIN}),
+    KEY_MANAGE_FILES: frozenset({UserRole.SUPER_ADMIN, UserRole.ADMIN}),
+    # Managers (DIRECTOR/HEAD) may VIEW reports; writes stay ADMIN+.
+    KEY_VIEW_REPORTS: frozenset({
+        UserRole.SUPER_ADMIN,
+        UserRole.ADMIN,
+        UserRole.DIRECTOR,
+        UserRole.HEAD,
+    }),
+    KEY_VIEW_AUDIT_LOG: frozenset({UserRole.SUPER_ADMIN, UserRole.ADMIN}),
+    KEY_EDIT_SYSTEM_SETTINGS: frozenset({UserRole.SUPER_ADMIN, UserRole.ADMIN}),
+    KEY_IMAGE_RESIZE: frozenset({UserRole.SUPER_ADMIN, UserRole.ADMIN}),
 }
 
 # Legacy aliases kept for any code that still references them.
@@ -141,6 +175,19 @@ _SEED_DESCRIPTIONS: dict[str, str] = {
     KEY_EDIT_SETTINGS: "แก้ไขการตั้งค่าสิทธิ์",
     KEY_REVERT: "ยกเลิกการอนุมัติ",
     KEY_EDIT_REQUEST_DETAILS: "แก้ไขข้อมูลคำร้อง (รายละเอียด/ผู้ติดต่อ)",
+    # --- Phase 3: Chatbot Management ---
+    KEY_MANAGE_BROADCAST: "จัดการ Broadcast (สร้าง/แก้/ส่ง/ตั้งเวลา)",
+    KEY_MANAGE_AUTO_REPLIES: "จัดการข้อความตอบกลับอัตโนมัติ (intents/keywords/responses)",
+    KEY_MANAGE_RICH_MENUS: "จัดการ Rich Menu",
+    KEY_MANAGE_REPLY_OBJECTS: "จัดการ Reply Objects",
+    KEY_EXPORT_CHAT: "ส่งออกประวัติแชต (CSV/PDF)",
+    # --- Phase 3: System & Utilities ---
+    KEY_MANAGE_USERS: "จัดการผู้ใช้ (สร้าง/แก้/ลบ/รีเซ็ตรหัสผ่าน)",
+    KEY_MANAGE_FILES: "จัดการไฟล์ (อัปโหลด/ลบ/ลิงก์สาธารณะ)",
+    KEY_VIEW_REPORTS: "ดูรายงานและสถิติ",
+    KEY_VIEW_AUDIT_LOG: "ดู Audit Log",
+    KEY_EDIT_SYSTEM_SETTINGS: "แก้ไขการตั้งค่าระบบ (credentials/integrations)",
+    KEY_IMAGE_RESIZE: "ใช้เครื่องมือ Image Resize",
 }
 
 
@@ -245,6 +292,131 @@ def can_revert_approval(role: UserRole | str | None) -> bool:
 def can_edit_request_details(role: UserRole | str | None) -> bool:
     """Whether `role` can edit a request's details/contact fields."""
     return _check(role, KEY_EDIT_REQUEST_DETAILS)
+
+
+def can(role: UserRole | str | None, key: str) -> bool:
+    """Public capability check for an arbitrary permission key.
+
+    Thin public wrapper over the internal `_check` so call sites and the
+    `require_permission` dependency don't import a private symbol. Unknown
+    keys resolve to an empty allowed-set -> False (fail closed).
+    """
+    return _check(role, key)
+
+
+# --- Phase 3: module-based capability helpers -----------------------------
+# One thin helper per new key, mirroring the request-workflow helpers above.
+
+def can_manage_broadcast(role: UserRole | str | None) -> bool:
+    return _check(role, KEY_MANAGE_BROADCAST)
+
+
+def can_manage_auto_replies(role: UserRole | str | None) -> bool:
+    return _check(role, KEY_MANAGE_AUTO_REPLIES)
+
+
+def can_manage_rich_menus(role: UserRole | str | None) -> bool:
+    return _check(role, KEY_MANAGE_RICH_MENUS)
+
+
+def can_manage_reply_objects(role: UserRole | str | None) -> bool:
+    return _check(role, KEY_MANAGE_REPLY_OBJECTS)
+
+
+def can_export_chat(role: UserRole | str | None) -> bool:
+    return _check(role, KEY_EXPORT_CHAT)
+
+
+def can_manage_users(role: UserRole | str | None) -> bool:
+    return _check(role, KEY_MANAGE_USERS)
+
+
+def can_manage_files(role: UserRole | str | None) -> bool:
+    return _check(role, KEY_MANAGE_FILES)
+
+
+def can_view_reports(role: UserRole | str | None) -> bool:
+    return _check(role, KEY_VIEW_REPORTS)
+
+
+def can_view_audit_log(role: UserRole | str | None) -> bool:
+    return _check(role, KEY_VIEW_AUDIT_LOG)
+
+
+def can_edit_system_settings(role: UserRole | str | None) -> bool:
+    return _check(role, KEY_EDIT_SYSTEM_SETTINGS)
+
+
+def can_image_resize(role: UserRole | str | None) -> bool:
+    return _check(role, KEY_IMAGE_RESIZE)
+
+
+# --- Phase 3: module / level registry -------------------------------------
+# The registry is the single source of truth the Settings UI groups by, and
+# it powers the per-module level presets (None/View/Edit/Manage). Storage and
+# enforcement stay per-key (DEFAULT_POLICY + permission_settings); levels are
+# a presentation projection only -- no ordinal column is stored.
+
+Module = Literal["service_requests", "chatbot", "system"]
+
+# Level ordinals: 1=View, 2=Edit, 3=Manage. (0=None means "no key granted".)
+LEVEL_VIEW = 1
+LEVEL_EDIT = 2
+LEVEL_MANAGE = 3
+
+
+class PermissionMeta(NamedTuple):
+    key: str
+    module: Module
+    level: int  # LEVEL_VIEW | LEVEL_EDIT | LEVEL_MANAGE
+    label_th: str
+
+
+# Ordered Service Requests -> Chatbot -> System so UI rows are deterministic.
+PERMISSION_REGISTRY: tuple[PermissionMeta, ...] = (
+    # Service Requests (enforcement unchanged; surfaced for completeness).
+    PermissionMeta(KEY_EDIT_REQUEST_DETAILS, "service_requests", LEVEL_EDIT, _SEED_DESCRIPTIONS[KEY_EDIT_REQUEST_DETAILS]),
+    PermissionMeta(KEY_REVERT, "service_requests", LEVEL_EDIT, _SEED_DESCRIPTIONS[KEY_REVERT]),
+    PermissionMeta(KEY_ASSIGN, "service_requests", LEVEL_MANAGE, _SEED_DESCRIPTIONS[KEY_ASSIGN]),
+    PermissionMeta(KEY_SELF_ASSIGN, "service_requests", LEVEL_MANAGE, _SEED_DESCRIPTIONS[KEY_SELF_ASSIGN]),
+    # Chatbot Management.
+    PermissionMeta(KEY_EXPORT_CHAT, "chatbot", LEVEL_EDIT, _SEED_DESCRIPTIONS[KEY_EXPORT_CHAT]),
+    PermissionMeta(KEY_MANAGE_BROADCAST, "chatbot", LEVEL_MANAGE, _SEED_DESCRIPTIONS[KEY_MANAGE_BROADCAST]),
+    PermissionMeta(KEY_MANAGE_AUTO_REPLIES, "chatbot", LEVEL_MANAGE, _SEED_DESCRIPTIONS[KEY_MANAGE_AUTO_REPLIES]),
+    PermissionMeta(KEY_MANAGE_RICH_MENUS, "chatbot", LEVEL_MANAGE, _SEED_DESCRIPTIONS[KEY_MANAGE_RICH_MENUS]),
+    PermissionMeta(KEY_MANAGE_REPLY_OBJECTS, "chatbot", LEVEL_MANAGE, _SEED_DESCRIPTIONS[KEY_MANAGE_REPLY_OBJECTS]),
+    # System & Utilities.
+    PermissionMeta(KEY_VIEW_REPORTS, "system", LEVEL_VIEW, _SEED_DESCRIPTIONS[KEY_VIEW_REPORTS]),
+    PermissionMeta(KEY_VIEW_AUDIT_LOG, "system", LEVEL_VIEW, _SEED_DESCRIPTIONS[KEY_VIEW_AUDIT_LOG]),
+    PermissionMeta(KEY_EDIT_SYSTEM_SETTINGS, "system", LEVEL_EDIT, _SEED_DESCRIPTIONS[KEY_EDIT_SYSTEM_SETTINGS]),
+    PermissionMeta(KEY_IMAGE_RESIZE, "system", LEVEL_EDIT, _SEED_DESCRIPTIONS[KEY_IMAGE_RESIZE]),
+    PermissionMeta(KEY_MANAGE_USERS, "system", LEVEL_MANAGE, _SEED_DESCRIPTIONS[KEY_MANAGE_USERS]),
+    PermissionMeta(KEY_MANAGE_FILES, "system", LEVEL_MANAGE, _SEED_DESCRIPTIONS[KEY_MANAGE_FILES]),
+    PermissionMeta(KEY_EDIT_SETTINGS, "system", LEVEL_MANAGE, _SEED_DESCRIPTIONS[KEY_EDIT_SETTINGS]),
+)
+
+# Every key (existing + new) must appear in the registry exactly once.
+ALL_PERMISSION_KEYS: tuple[str, ...] = tuple(m.key for m in PERMISSION_REGISTRY)
+
+
+def keys_for_level(module: Module, level: int) -> list[str]:
+    """Keys in `module` whose level is <= `level` (the level-preset math).
+
+    Used by the UI to project a chosen module level (None/View/Edit/Manage)
+    onto the concrete per-key set. `level=0` -> empty list.
+    """
+    if level <= 0:
+        return []
+    return [m.key for m in PERMISSION_REGISTRY if m.module == module and m.level <= level]
+
+
+def get_effective_capabilities(role: UserRole | str | None) -> dict[str, bool]:
+    """Return {key: bool} for every registered key, for the given role.
+
+    Backs GET /admin/settings/permissions/me so the frontend can resolve
+    `hasPermission(key)` without enumerating keys client-side.
+    """
+    return {m.key: _check(role, m.key) for m in PERMISSION_REGISTRY}
 
 
 def get_permission_summary() -> dict[str, list[str]]:
