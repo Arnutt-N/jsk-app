@@ -175,3 +175,30 @@ async def get_current_staff(
             detail="Insufficient permissions"
         )
     return current_user
+
+
+def require_permission(key: str):
+    """Dependency factory: gate a route on a single module permission key.
+
+    Returns an async dependency that resolves the authenticated user via
+    `get_current_user`, then checks the DB-backed module policy (cached,
+    with DEFAULT_POLICY fallback) for `key`. Raises 403 when the user's
+    role lacks the key. Authentication (401) is still enforced upstream by
+    `get_current_user`. Fails closed: an unknown key resolves to an empty
+    allowed-set -> 403.
+
+    Usage:
+        @router.post("/")
+        async def create(..., current_admin = Depends(require_permission(KEY_MANAGE_BROADCAST))):
+    """
+    async def _dependency(current_user = Depends(get_current_user)):
+        from app.core.permissions import can
+
+        if not can(current_user.role, key):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="คุณไม่มีสิทธิ์ดำเนินการนี้",
+            )
+        return current_user
+
+    return _dependency

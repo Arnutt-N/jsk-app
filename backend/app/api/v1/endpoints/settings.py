@@ -10,13 +10,11 @@ from app.core.permissions import (
     can_revert_approval,
     can_edit_request_details,
     get_permission_summary,
+    get_effective_capabilities,
     load_policy,
     invalidate_cache,
-    KEY_ASSIGN,
-    KEY_SELF_ASSIGN,
-    KEY_EDIT_SETTINGS,
-    KEY_REVERT,
-    KEY_EDIT_REQUEST_DETAILS,
+    ALL_PERMISSION_KEYS,
+    PERMISSION_REGISTRY,
 )
 from app.models.permission_setting import PermissionSetting
 from app.models.user import User, UserRole
@@ -41,6 +39,19 @@ class PermissionRule(BaseModel):
     description: Optional[str] = Field(None, description="Thai description shown in the Settings UI")
 
 
+class PermissionKeyMeta(BaseModel):
+    """Static metadata for a permission key (module grouping + level tag).
+
+    Mirrors app.core.permissions.PERMISSION_REGISTRY so the Settings UI can
+    group rows into modules and render per-module level presets without
+    hardcoding the key list client-side.
+    """
+    key: str
+    label: str = Field(..., description="Thai label shown in the matrix")
+    module: str = Field(..., description="service_requests | chatbot | system")
+    level: int = Field(..., description="1=View, 2=Edit, 3=Manage")
+
+
 class PermissionSummary(BaseModel):
     """Compact view used by GET /permissions for backwards compatibility."""
     assign_allowed_roles: List[str]
@@ -51,6 +62,8 @@ class PermissionSummary(BaseModel):
     # Full editable rule set (Stage 2). Empty for clients that only need
     # the legacy summary fields above.
     rules: List[PermissionRule] = Field(default_factory=list)
+    # Phase 3: module/level metadata for the grouped matrix UI.
+    registry: List[PermissionKeyMeta] = Field(default_factory=list)
 
 
 class PermissionUpdate(BaseModel):
@@ -65,10 +78,15 @@ class MyPermissions(BaseModel):
     can_edit_permissions: bool
     can_revert_approval: bool
     can_edit_request_details: bool
+    # Phase 3: full effective capability map {key: bool} for all registered
+    # keys, so the frontend can resolve hasPermission(key) generically.
+    capabilities: dict[str, bool] = Field(default_factory=dict)
 
 
 # Set of valid permission keys -- updates touching anything else are rejected.
-ALLOWED_PERMISSION_KEYS = {KEY_ASSIGN, KEY_SELF_ASSIGN, KEY_EDIT_SETTINGS, KEY_REVERT, KEY_EDIT_REQUEST_DETAILS}
+# Sourced from the registry so it always covers every defined key (16 as of
+# Phase 3) without a second list to keep in sync.
+ALLOWED_PERMISSION_KEYS = set(ALL_PERMISSION_KEYS)
 
 
 async def _load_rules(db: AsyncSession) -> List[PermissionRule]:
@@ -87,6 +105,14 @@ async def _load_rules(db: AsyncSession) -> List[PermissionRule]:
     return rules
 
 
+def _registry_meta() -> List[PermissionKeyMeta]:
+    """Project PERMISSION_REGISTRY into the API metadata shape (ordered)."""
+    return [
+        PermissionKeyMeta(key=m.key, label=m.label_th, module=m.module, level=m.level)
+        for m in PERMISSION_REGISTRY
+    ]
+
+
 @router.get("/permissions", response_model=PermissionSummary)
 async def get_permissions(
     db: AsyncSession = Depends(get_db),
@@ -101,7 +127,7 @@ async def get_permissions(
     await load_policy(db)
     summary = get_permission_summary()
     rules = await _load_rules(db)
-    return PermissionSummary(**summary, rules=rules)
+    return PermissionSummary(**summary, rules=rules, registry=_registry_meta())
 
 
 @router.patch("/permissions", response_model=PermissionSummary)
@@ -142,16 +168,13 @@ async def update_permissions(
                 status_code=400,
                 detail=f"role ไม่รู้จัก: {', '.join(unknown_roles)}",
             )
-        # Lockout safeguard: prevent removing SUPER_ADMIN from critical permissions.
-        if rule.key == KEY_EDIT_SETTINGS and "SUPER_ADMIN" not in rule.allowed_roles:
+        # Lockout safeguard (Phase 3): SUPER_ADMIN is locked into EVERY key.
+        # SUPER_ADMIN is owner-level and must never lose any capability, or
+        # the system could be permanently locked out of part of itself.
+        if "SUPER_ADMIN" not in rule.allowed_roles:
             raise HTTPException(
                 status_code=400,
-                detail="ห้ามถอด SUPER_ADMIN ออกจากสิทธิ์แก้ไขการตั้งค่า มิฉะนั้นจะไม่มีใครแก้ได้อีก",
-            )
-        if rule.key == KEY_REVERT and "SUPER_ADMIN" not in rule.allowed_roles:
-            raise HTTPException(
-                status_code=400,
-                detail="ห้ามถอด SUPER_ADMIN ออกจากสิทธิ์ยกเลิกการอนุมัติ",
+                detail=f"ห้ามถอด SUPER_ADMIN ออกจากสิทธิ์ '{rule.key}'",
             )
 
     # Apply -- one upsert per rule.
@@ -182,7 +205,7 @@ async def update_permissions(
 
     summary = get_permission_summary()
     rules = await _load_rules(db)
-    return PermissionSummary(**summary, rules=rules)
+    return PermissionSummary(**summary, rules=rules, registry=_registry_meta())
 
 
 @router.get("/permissions/me", response_model=MyPermissions)
@@ -202,6 +225,7 @@ async def get_my_permissions(current_admin: User = Depends(get_current_admin)):
         can_edit_permissions=can_edit_permission_settings(current_admin.role),
         can_revert_approval=can_revert_approval(current_admin.role),
         can_edit_request_details=can_edit_request_details(current_admin.role),
+        capabilities=get_effective_capabilities(current_admin.role),
     )
 
 class ValidateLineTokenRequest(BaseModel):
