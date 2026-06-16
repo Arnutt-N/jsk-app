@@ -1,16 +1,16 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Cross-Platform Session Index (generated)
 
-> **Last generated**: 2026-06-17 00:35 (from newest checkpoint)
+> **Last generated**: 2026-06-17 06:40 (from newest checkpoint)
 
 ## Quick Stats
 
 | Metric | Value |
 |--------|-------|
-| Handoff checkpoints | 71 |
-| Session summaries on disk | 156 |
+| Handoff checkpoints | 72 |
+| Session summaries on disk | 157 |
 | Platforms | 8 (antigravity, claude_code, cline, codex, gemini_cli, kilo_code, kimi_code, open_code) |
-| Most recent | 2026-06-17 00:35 — claude_code |
+| Most recent | 2026-06-17 06:40 — claude_code |
 
 > Regenerate after any handoff: `node .agents/scripts/gen-handoff-views.cjs`
 
@@ -23,10 +23,11 @@
 | 2026-04-04 12:04 | completed | `handover-antigravity-20260404-1204.json` |
 | 2026-02-15 03:20 | completed | `handover-antigravity-20260215-0320.json` |
 
-## claude_code (36)
+## claude_code (37)
 
 | When | Status | Checkpoint |
 |------|--------|------------|
+| 2026-06-17 06:40 | completed | `handover-claude_code-20260617-0640.json` |
 | 2026-06-17 00:35 | completed | `handover-claude_code-20260617-0035.json` |
 | 2026-06-16 23:16 | completed | `handover-claude_code-20260616-2316.json` |
 | 2026-06-16 22:21 | completed | `handover-claude_code-20260616-2221.json` |
@@ -46,8 +47,7 @@
 | 2026-05-05 23:39 | in_progress (code complete, blocked on commit by GateGuard hook; fix applied to settings.json, awaiting session restart) | `handover-claude_code-20260505-2339.json` |
 | 2026-04-06 01:00 | completed | `handover-claude_code-20260406-0100.json` |
 | 2026-04-04 00:30 | completed | `handover-claude_code-20260404-0030.json` |
-| 2026-03-29 20:30 | completed | `handover-claude_code-20260329-2030.json` |
-| … | | +16 older |
+| … | | +17 older |
 
 ## cline (1)
 

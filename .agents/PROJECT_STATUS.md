@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-06-17 00:35 by Claude Code (Phase 4 PR1 Chatbot Management Hardening Must-fixes MERGED via squash #109, commit d540472)
+> **Last Updated:** 2026-06-17 06:40 by Claude Code (Phase 4 PR2 plan created Reply Objects full types + LINE-fidelity preview: add template4 s)
 
 ## Thai Summary
 แผนการปรับปรุง UX และ Error Handling **เสร็จสมบูรณ์ 100%** — ฟีเจอร์ Undo/Redo, Help System และ Error Handling ใหม่ถูก merge เข้าสู่ main แล้ว
@@ -46,6 +46,7 @@
 - [2026-06-03] All changes from PR #78 merged to `main`. Branch `feat/undo-redo-help-error-handling` is ready for deletion.
 
 ## Recent Completions
+- [2026-06-17 06:40] Claude Code: Phase 4 PR2 plan created (Reply Objects full types + LINE-fidelity preview): add template(4 sub-types)+text_v2, Quick reply as modifier, defer Coupon; full flex renderer for preview. Decisions locked with user. PR1 already merged (#109). No (Claude Code)
 - [2026-06-17 00:35] Claude Code: Phase 4 PR1 (Chatbot Management Hardening Must-fixes) MERGED via squash (#109, commit d540472) into main; CI all green (Backend Pytest, Frontend Lint/Build, Playwright Smoke). Delivered: broadcast scheduler (in-process asyncio), CSV export  (Claude Code)
 - [2026-06-16 23:16] Claude Code: Phase 4 PR1 (Chatbot Management Hardening Must-fixes) IMPLEMENTED + reviewed on branch feat/phase4-pr1-chatbot-hardening (commit 7dffad9). Broadcast scheduler (in-process asyncio), CSV export wiring, rich menu compact 843 fix, 5 broadcast-d (Claude Code)
 - [2026-06-16 22:21] Claude Code: Phase 4 PR1 plan created (Chatbot Management Hardening Must-fixes): broadcast scheduler in-process asyncio loop + CSV export wiring + rich menu compact 843 fix + broadcast detail label bug. PRD updated to in-progress; scheduler Open Questio (Claude Code)
