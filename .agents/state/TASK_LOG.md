@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 68 handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 69 handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-16 22:21 — claude_code — completed
+
+Phase 4 PR1 plan created (Chatbot Management Hardening Must-fixes): broadcast scheduler in-process asyncio loop + CSV export wiring + rich menu compact 843 fix + broadcast detail label bug. PRD updated to in-progress; scheduler Open Question decided = in-process asyncio (mirror session_cleanup), not APScheduler/Vercel cron.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260616-2221.json`
+- Summary: `project-log-md/claude_code/session-summary-20260616-2221.md`
+
+---
 
 ### 2026-06-16 21:22 — claude_code — completed
 

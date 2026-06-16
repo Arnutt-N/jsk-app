@@ -1,14 +1,20 @@
 {
-  "last_updated": "2026-06-16T21:22:00Z",
+  "last_updated": "2026-06-16T22:21:00Z",
   "platform": "claude_code",
-  "current_task": "Phase 3 PR2 (frontend matrix UI) complete & merged — PR #108 squash-merged to main (9cc0b0a). Permissions v2 fully shipped: backend enforcement (#107) + module-based matrix UI (#108). New: permission-",
+  "current_task": "Phase 4 PR1 plan created (Chatbot Management Hardening Must-fixes): broadcast scheduler in-process asyncio loop + CSV export wiring + rich menu compact 843 fix + broadcast detail label bug. PRD update",
   "plan_status": "completed",
   "next_steps": [
-    "Phase 4 — Chatbot Hardening (next phase of master PRD)",
-    "Update PRD Phase 3 row: in-progress -> done",
-    "Optional: manual QA of permissions matrix at 768/1440 in dev"
+    "Run /prp-implement on .claude/PRPs/plans/chatbot-system-utilities-audit-phase4-pr1.plan.md (branch + 7 tasks)",
+    "Plan Phase 4 PR2 = Reply Objects full types + preview"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-06-16T22:21:00Z",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "a48875a",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-06-16T21:22:00Z",
       "platform": "claude_code",

@@ -55,7 +55,7 @@ Admin dashboard ของ JskApp มีฟีเจอร์ Chatbot Management 
 
 - [ ] Image Resize: เก็บผลลัพธ์ที่ไหน (BLOB เดิม / populate `thumbnail_url` / object storage ใหม่)? — ตัดสินตอน plan Phase 5
 - [ ] Permission v2: per-module override เก็บระดับ "ต่อ role" หรือ "ต่อ user" ด้วย? — เริ่มที่ต่อ role ก่อน, per-user เป็น Could
-- [ ] Broadcast scheduler: ใช้ APScheduler in-process หรือ external cron/worker (Vercel cron + endpoint)? — ตัดสินตอน plan Phase 4
+- [x] Broadcast scheduler: ใช้ APScheduler in-process หรือ external cron/worker (Vercel cron + endpoint)? — **ตัดสิน 2026-06-16: in-process asyncio loop** (mirror `session_cleanup.py`); backend เป็น long-running uvicorn process ไม่ใช่ serverless
 - [ ] Design System: ทำ tokens package แยก (`skn-design-tokens-package`) หรือคงใน tailwind config? — รอผล Design System audit
 
 ---
@@ -146,7 +146,7 @@ Operator/Admin login → (ทุก role เข้าได้) → เห็น
 | 1 | Audit & Critical Fixes | Audit report เอกสาร + ปิด DIRECTOR/HEAD access bug + StaffRole type + deps gate | ✅ complete | - | - | [report](../reports/chatbot-system-utilities-audit-phase1-report.md) · PR #105 |
 | 2 | Rename & Restructure | System Management→System and Utilities + AGENT label→Operator + sidebar nav + Image Resize menu placeholder | ✅ complete | - | 1 | [report](../reports/chatbot-system-utilities-audit-phase2-report.md) · [plan](../plans/completed/chatbot-system-utilities-audit-phase2.plan.md) |
 | 3 | Permissions v2 (module-based) | Extend permission_settings: keys ใหม่ Chatbot+System + UI 3-module + role presets + per-module override | ✅ complete | - | 1, 2 | [plan](../plans/chatbot-system-utilities-audit-phase3.plan.md) · PR #107 (backend) · PR #108 (frontend) |
-| 4 | Chatbot Management Hardening | Broadcast scheduler + CSV export wiring + rich menu size fix + Reply Objects ครบ types + (Could) narrowcast/multi-menu | pending | with 5 | 3 | - |
+| 4 | Chatbot Management Hardening | Broadcast scheduler + CSV export wiring + rich menu size fix + Reply Objects ครบ types + (Could) narrowcast/multi-menu | 🔄 in-progress | with 5 | 3 | PR1 [plan](../plans/chatbot-system-utilities-audit-phase4-pr1.plan.md) (Must-fixes) · PR2 Reply Objects (pending) |
 | 5 | System & Utilities Features | Image Resize utility (เต็ม) + Audit Log coverage expansion + Reports polish | pending | with 4 | 3 | - |
 | 6 | Design System | tokens/component library ปรับปรุง + เอกสาร UX/UI base (ใช้ Impeccable + karpathy skills) | pending | - | 2 | - |
 
