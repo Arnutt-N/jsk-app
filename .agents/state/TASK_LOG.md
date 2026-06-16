@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 70 handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 71 handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-17 00:35 — claude_code — completed
+
+Phase 4 PR1 (Chatbot Management Hardening Must-fixes) MERGED via squash (#109, commit d540472) into main; CI all green (Backend Pytest, Frontend Lint/Build, Playwright Smoke). Delivered: broadcast scheduler (in-process asyncio), CSV export wiring, rich menu compact 843 fix, 5 broadcast-detail label fixes.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260617-0035.json`
+- Summary: `project-log-md/claude_code/session-summary-20260617-0035.md`
+
+---
 
 ### 2026-06-16 23:16 — claude_code — completed
 
