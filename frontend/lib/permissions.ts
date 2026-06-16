@@ -12,8 +12,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import type { PermissionKeyMeta } from '@/lib/constants/permission-modules'
 
 const API_BASE = '/api/v1'
+
+export type { PermissionKeyMeta }
 
 export interface MyPermissions {
   role: string
@@ -22,6 +25,12 @@ export interface MyPermissions {
   can_edit_permissions: boolean
   can_revert_approval: boolean
   can_edit_request_details: boolean
+  /**
+   * Phase 3: effective capability map {key: bool} covering every registered
+   * permission key. Optional so a pre-Phase-3 backend (no field) degrades to
+   * `hasPermission` -> false rather than throwing.
+   */
+  capabilities?: Record<string, boolean>
 }
 
 /** A single editable permission rule, matches backend PermissionRule schema. */
@@ -39,6 +48,11 @@ export interface PermissionSummary {
   edit_request_details_allowed_roles: string[]
   /** Stage 2: full editable rule set; empty if backend pre-Stage-2. */
   rules?: PermissionRule[]
+  /**
+   * Phase 3: module/level metadata for the grouped matrix UI. Empty when the
+   * backend predates Phase 3 — callers fall back to the static registry.
+   */
+  registry?: PermissionKeyMeta[]
 }
 
 let cachedMyPermissions: MyPermissions | null = null
@@ -86,8 +100,8 @@ export interface UpdatePermissionsResult {
  * cache so the next usePermissions() read reflects the new policy.
  *
  * Backend rejects with 403 if the caller lacks `can_edit_permissions`,
- * 400 if any rule contains an unknown key/role, or if SUPER_ADMIN is
- * removed from `edit_permission_settings` (lockout safeguard).
+ * 400 if any rule contains an unknown key/role, or if any rule's
+ * allowed_roles omits SUPER_ADMIN (generalized lockout — every key).
  */
 export async function updatePermissions(
   rules: PermissionRule[],
@@ -129,6 +143,33 @@ export function usePermissions(): MyPermissions | null {
   }, [])
 
   return perms
+}
+
+/**
+ * Resolve a capability from a permissions object. Missing/undefined map →
+ * false (fail closed), so callers never accidentally render a privileged
+ * control while permissions are still loading or absent.
+ */
+export function capabilityOf(perms: MyPermissions | null, key: string): boolean {
+  return perms?.capabilities?.[key] ?? false
+}
+
+/**
+ * Synchronous capability check against the session cache. Returns false until
+ * the first fetchMyPermissions() resolves (or if the key is unknown) — use the
+ * useHasPermission hook inside components so they re-render once it loads.
+ */
+export function hasPermission(key: string): boolean {
+  return capabilityOf(cachedMyPermissions, key)
+}
+
+/**
+ * React hook: whether the current user holds `key`. Re-renders when the
+ * permissions fetch resolves. Returns false while loading / on error.
+ */
+export function useHasPermission(key: string): boolean {
+  const perms = usePermissions()
+  return capabilityOf(perms, key)
 }
 
 /** Force a fresh fetch -- call after a permission settings change is saved. */
