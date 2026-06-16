@@ -377,13 +377,13 @@ export default function BroadcastDetailPage() {
                             {(broadcast.status === 'draft' || broadcast.status === 'scheduled') && (
                                 <Button className="w-full gap-2" onClick={() => setSendModal(true)}>
                                     <Send className="w-4 h-4" />
-                                    ส่งแล้ว
+                                    ส่ง
                                 </Button>
                             )}
                             {broadcast.status === 'scheduled' && (
                                 <Button variant="outline" className="w-full gap-2" onClick={() => setCancelModal(true)}>
                                     <XCircle className="w-4 h-4" />
-                                    ไม่พบข้อมูล
+                                    ยกเลิกการส่ง
                                 </Button>
                             )}
                             {(broadcast.status === 'draft' || broadcast.status === 'cancelled') && (
@@ -398,7 +398,7 @@ export default function BroadcastDetailPage() {
             </div>
 
             {/* Send Modal */}
-            <Modal isOpen={sendModal} onClose={() => setSendModal(false)} title="รายละเอียด Broadcast" maxWidth="sm">
+            <Modal isOpen={sendModal} onClose={() => setSendModal(false)} title="ยืนยันการส่ง Broadcast" maxWidth="sm">
                 <div className="space-y-4">
                     <p className="text-sm text-gray-600 dark:text-gray-400">
                         คุณต้องการส่งข้อความ <b>{broadcast.title}</b> ถึงผู้ติดตามทั้งหมดเลยใช่หรือไม่?
@@ -407,14 +407,14 @@ export default function BroadcastDetailPage() {
                         <Button variant="ghost" onClick={() => setSendModal(false)}>ยกเลิก</Button>
                         <Button onClick={handleSend} disabled={actionLoading} className="gap-2">
                             <Send className="w-4 h-4" />
-                            {actionLoading ? 'กำลังส่ง...' : 'ส่งแล้ว'}
+                            {actionLoading ? 'กำลังส่ง...' : 'ส่ง'}
                         </Button>
                     </div>
                 </div>
             </Modal>
 
             {/* Cancel Modal */}
-            <Modal isOpen={cancelModal} onClose={() => setCancelModal(false)} title="ไม่พบข้อมูล" maxWidth="sm">
+            <Modal isOpen={cancelModal} onClose={() => setCancelModal(false)} title="ยกเลิกการส่ง" maxWidth="sm">
                 <div className="space-y-4">
                     <p className="text-sm text-gray-600 dark:text-gray-400">ต้องการยกเลิกการตั้งเวลาส่งข้อความนี้ใช่หรือไม่?</p>
                     <div className="flex justify-end gap-2 pt-2">
