@@ -20,6 +20,25 @@ logger = logging.getLogger(__name__)
 UPLOAD_DIR = "uploads/rich_menus"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
+# LINE rich menu canvas sizes.
+# Ref: https://developers.line.biz/en/reference/messaging-api/#rich-menu-object
+RICH_MENU_WIDTH = 2500
+RICH_MENU_HEIGHT_LARGE = 1686
+RICH_MENU_HEIGHT_COMPACT = 843
+
+
+def resolve_rich_menu_size(template_type: str) -> dict:
+    """Map a frontend template_type id to the LINE canvas size.
+
+    Compact templates (ids containing "compact", e.g. "3-buttons-compact") use
+    height 843; large templates (e.g. "6-buttons") use 1686. Unknown/empty types
+    default to large, which LINE always accepts.
+    """
+    is_compact = "compact" in (template_type or "").lower()
+    height = RICH_MENU_HEIGHT_COMPACT if is_compact else RICH_MENU_HEIGHT_LARGE
+    return {"width": RICH_MENU_WIDTH, "height": height}
+
+
 @router.get("", response_model=List[RichMenuResponse])
 async def list_rich_menus(db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_admin)):
     result = await db.execute(select(RichMenu).order_by(RichMenu.created_at.desc()))
@@ -46,7 +65,7 @@ async def update_rich_menu(id: int, data: RichMenuCreate, db: AsyncSession = Dep
     
     # Update config
     line_config = {
-        "size": {"width": 2500, "height": 1686},
+        "size": resolve_rich_menu_size(data.template_type),
         "selected": False,
         "name": data.name,
         "chatBarText": data.chat_bar_text,
@@ -66,7 +85,7 @@ async def create_rich_menu(
 ):
     # Construct LINE config object
     line_config = {
-        "size": {"width": 2500, "height": 1686},
+        "size": resolve_rich_menu_size(data.template_type),
         "selected": False,
         "name": data.name,
         "chatBarText": data.chat_bar_text,

@@ -254,6 +254,29 @@ class BroadcastService:
         await db.refresh(broadcast)
         return broadcast
 
+    async def get_due_scheduled(self, db: AsyncSession, limit: int = 20) -> List[Broadcast]:
+        """Fetch scheduled broadcasts whose send time has arrived.
+
+        ``SELECT ... FOR UPDATE SKIP LOCKED`` lets concurrent pollers claim rows
+        without blocking each other. The durable double-send guard is the
+        ``SCHEDULED -> SENDING`` transition in ``send_broadcast`` (a row not in
+        SCHEDULED is rejected), so a row never sends twice across poll cycles even
+        after the lock is released on commit.
+        """
+        now = datetime.now(timezone.utc)
+        result = await db.execute(
+            select(Broadcast)
+            .where(
+                Broadcast.status == BroadcastStatus.SCHEDULED,
+                Broadcast.scheduled_at.isnot(None),
+                Broadcast.scheduled_at <= now,
+            )
+            .order_by(Broadcast.scheduled_at)
+            .limit(limit)
+            .with_for_update(skip_locked=True)
+        )
+        return list(result.scalars().all())
+
     async def get_broadcast_stats(self, db: AsyncSession) -> dict:
         """Return aggregate stats across all broadcasts."""
         result = await db.execute(

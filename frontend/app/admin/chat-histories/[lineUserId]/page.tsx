@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import PageHeader from '@/app/admin/components/PageHeader';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/components/ui/Toast';
 import { logger } from '@/lib/logger';
 
 /* ---------- Types ---------- */
@@ -80,6 +81,7 @@ export default function ChatHistoryDetailPage() {
     const params = useParams();
     const router = useRouter();
     const { token } = useAuth();
+    const { toast } = useToast();
 
     const lineUserId = params.lineUserId as string;
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -184,6 +186,34 @@ export default function ChatHistoryDetailPage() {
         URL.revokeObjectURL(url);
     }, [messages, lineUserId]);
 
+    /* ---- Export CSV: download from backend (UTF-8-SIG, opens cleanly in Excel) ---- */
+    const handleExportCsv = useCallback(async () => {
+        try {
+            const res = await fetch(
+                `${API_BASE}/admin/export/conversations/${lineUserId}/csv`,
+                { headers: authHeaders },
+            );
+            if (!res.ok) {
+                let msg = 'ดาวน์โหลด CSV ล้มเหลว';
+                if (res.status === 401) msg = 'เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่';
+                else if (res.status === 403) msg = 'ไม่มีสิทธิ์ export (ต้องเป็น Admin ขึ้นไป)';
+                logger.error('[chat-detail] export CSV failed', { status: res.status, lineUserId });
+                toast({ title: msg, variant: 'error' });
+                return;
+            }
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `chat-${lineUserId}-${new Date().toISOString().slice(0, 10)}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+        } catch (err: unknown) {
+            logger.error('[chat-detail] export CSV error', err, { lineUserId });
+            toast({ title: 'เกิดข้อผิดพลาด กรุณาลองใหม่', variant: 'error' });
+        }
+    }, [API_BASE, authHeaders, lineUserId, toast]);
+
     /* ---- Render message content by type ---- */
     const renderMessageContent = (msg: MessageItem) => {
         switch (msg.message_type) {
@@ -228,11 +258,20 @@ export default function ChatHistoryDetailPage() {
                 <Button
                     variant="outline"
                     size="sm"
+                    onClick={handleExportCsv}
+                    disabled={messages.length === 0}
+                    leftIcon={<Download className="w-4 h-4" />}
+                >
+                    CSV
+                </Button>
+                <Button
+                    variant="outline"
+                    size="sm"
                     onClick={handleExport}
                     disabled={messages.length === 0}
                     leftIcon={<Download className="w-4 h-4" />}
                 >
-                    Export
+                    TXT
                 </Button>
             </PageHeader>
 

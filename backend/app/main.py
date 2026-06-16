@@ -13,7 +13,12 @@ from app.core.redis_client import redis_client
 from app.core.websocket_manager import ws_manager
 from app.services.business_hours_service import business_hours_service
 from app.services.credential_service import credential_service
-from app.tasks import start_cleanup_task, stop_cleanup_task
+from app.tasks import (
+    start_broadcast_scheduler,
+    start_cleanup_task,
+    stop_broadcast_scheduler,
+    stop_cleanup_task,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -120,12 +125,14 @@ async def lifespan(_: FastAPI):
 
     # Start background tasks
     await start_cleanup_task()
+    await start_broadcast_scheduler()
     logger.info("Background tasks started.")
 
     try:
         yield
     finally:
         await stop_cleanup_task()
+        await stop_broadcast_scheduler()
         await pubsub_manager.disconnect()
         await redis_client.disconnect()
 
