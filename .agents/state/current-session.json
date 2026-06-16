@@ -1,14 +1,21 @@
 {
-  "last_updated": "2026-06-16T00:21:00Z",
+  "last_updated": "2026-06-16T21:22:00Z",
   "platform": "claude_code",
-  "current_task": "Phase 3 Permissions v2 PR1 (backend) COMPLETE + pushed as PR #107. Implemented: engine (11 module keys + require_permission factory + capability API in core/permissions.py/deps.py/settings.py), enforc",
+  "current_task": "Phase 3 PR2 (frontend matrix UI) complete & merged — PR #108 squash-merged to main (9cc0b0a). Permissions v2 fully shipped: backend enforcement (#107) + module-based matrix UI (#108). New: permission-",
   "plan_status": "completed",
   "next_steps": [
-    "Monitor PR #107 CI (Backend Pytest, Source Encoding Scan, Vercel) — fix if red",
-    "After PR1 merge: PR2 = frontend matrix UI (Task 8-10): lib/permissions.ts hasPermission, permission-modules.ts registry mirror, settings/permissions/page.tsx level-selector + per-key override, vitest",
-    "PR2 contract = GET /permissions/me capabilities map + GET /permissions registry"
+    "Phase 4 — Chatbot Hardening (next phase of master PRD)",
+    "Update PRD Phase 3 row: in-progress -> done",
+    "Optional: manual QA of permissions matrix at 768/1440 in dev"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-06-16T21:22:00Z",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "9cc0b0a",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-06-16T00:21:00Z",
       "platform": "claude_code",

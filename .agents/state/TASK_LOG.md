@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 67 handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 68 handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-16 21:22 — claude_code — completed
+
+Phase 3 PR2 (frontend matrix UI) complete & merged — PR #108 squash-merged to main (9cc0b0a). Permissions v2 fully shipped: backend enforcement (#107) + module-based matrix UI (#108). New: permission-modules.ts registry mirror + level helpers, hasPermission/capabilities in permissions.ts, rebuilt /admin/settings/permissions as 3 collapsible modules with per-(role,module) level presets + per-key override + SUPER_ADMIN locked everywhere. 135/135 frontend unit tests + Playwright smoke green. E2E spec updated for new layout.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260616-2122.json`
+- Summary: `project-log-md/claude_code/session-summary-20260616-2122.md`
+
+---
 
 ### 2026-06-16 00:21 — claude_code — completed
 
