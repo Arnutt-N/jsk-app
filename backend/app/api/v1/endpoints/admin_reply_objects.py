@@ -34,7 +34,14 @@ async def list_reply_objects(
     if category:
         query = query.filter(ReplyObject.category == category)
     if object_type:
-        query = query.filter(ReplyObject.object_type == object_type)
+        # The column is Enum(ObjectType); SQLAlchemy persists the member NAME
+        # (uppercase), so a raw lowercase string never matches. Convert the
+        # incoming value via the enum so the bound parameter is correct.
+        try:
+            object_type_enum = ObjectType(object_type)
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"Invalid object_type: {object_type}")
+        query = query.filter(ReplyObject.object_type == object_type_enum)
     
     query = query.offset(skip).limit(limit)
     result = await db.execute(query)

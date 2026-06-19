@@ -19,6 +19,8 @@ class ObjectType(str, enum.Enum):
     AUDIO = "audio"         # Audio Message
     LOCATION = "location"   # Location Message
     IMAGEMAP = "imagemap"   # ImageMap Message
+    TEMPLATE = "template"   # Template Message (buttons/confirm/carousel/image_carousel)
+    TEXT_V2 = "text_v2"     # Text v2 (emoji / substitution / mention)
 
 
 class ReplyObject(Base):

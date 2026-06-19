@@ -1,10 +1,12 @@
 """
 Pydantic schemas for Reply Object API
 """
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from typing import Optional, Dict, Any
 from datetime import datetime
 from enum import Enum
+
+from app.schemas.reply_object_validation import validate_payload_for_type
 
 
 class ObjectTypeEnum(str, Enum):
@@ -16,6 +18,8 @@ class ObjectTypeEnum(str, Enum):
     AUDIO = "audio"
     LOCATION = "location"
     IMAGEMAP = "imagemap"
+    TEMPLATE = "template"
+    TEXT_V2 = "text_v2"
 
 
 class ReplyObjectBase(BaseModel):
@@ -26,6 +30,11 @@ class ReplyObjectBase(BaseModel):
     payload: Dict[str, Any] = Field(..., description="Message payload (JSON)")
     alt_text: Optional[str] = Field(None, max_length=400, description="Alt text for accessibility")
     preview_url: Optional[str] = Field(None, max_length=500, description="Preview image URL")
+
+    @model_validator(mode="after")
+    def _validate_payload_shape(self):
+        validate_payload_for_type(self.object_type.value, self.payload)
+        return self
 
 
 class ReplyObjectCreate(ReplyObjectBase):
@@ -40,6 +49,13 @@ class ReplyObjectUpdate(BaseModel):
     alt_text: Optional[str] = Field(None, max_length=400)
     preview_url: Optional[str] = Field(None, max_length=500)
     is_active: Optional[bool] = None
+
+    @model_validator(mode="after")
+    def _validate_payload_shape(self):
+        # On update we can only validate when both the type and payload are given.
+        if self.object_type is not None and self.payload is not None:
+            validate_payload_for_type(self.object_type.value, self.payload)
+        return self
 
 
 class ReplyObjectResponse(ReplyObjectBase):
