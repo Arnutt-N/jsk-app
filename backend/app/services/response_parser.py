@@ -20,7 +20,9 @@ from linebot.v3.messaging import (
     VideoMessage,
     AudioMessage,
     ImagemapMessage,
-    ImagemapBaseSize
+    ImagemapBaseSize,
+    TemplateMessage,
+    QuickReply,
 )
 from app.models.reply_object import ReplyObject, ObjectType
 import logging
@@ -120,52 +122,65 @@ def build_message_from_object(obj: ReplyObject) -> Optional[Any]:
     """
     try:
         payload = obj.payload
-        
+        message = None
+
         if obj.object_type == ObjectType.FLEX:
             # Flex Message
             container = FlexContainer.from_dict(payload)
-            return FlexMessage(
+            message = FlexMessage(
                 alt_text=obj.alt_text or f"Message: {obj.name}",
                 contents=container
             )
-        
+
         elif obj.object_type == ObjectType.IMAGE:
             # Image Message
-            return ImageMessage(
+            message = ImageMessage(
                 original_content_url=payload.get("url"),
                 preview_image_url=payload.get("preview_url") or payload.get("url")
             )
-        
+
         elif obj.object_type == ObjectType.STICKER:
             # Sticker Message
-            return StickerMessage(
+            message = StickerMessage(
                 package_id=str(payload.get("package_id")),
                 sticker_id=str(payload.get("sticker_id"))
             )
-        
+
         elif obj.object_type == ObjectType.LOCATION:
             # Location Message
-            return LocationMessage(
+            message = LocationMessage(
                 title=payload.get("title", "Location"),
                 address=payload.get("address", ""),
                 latitude=float(payload.get("latitude", 0)),
                 longitude=float(payload.get("longitude", 0))
             )
-        
-        elif obj.object_type == ObjectType.TEXT:
-            # Text Template
-            return TextMessage(text=payload.get("text", ""))
+
+        elif obj.object_type in (ObjectType.TEXT, ObjectType.TEXT_V2):
+            # Text / Text v2 — both render as a TextMessage; text_v2's emoji /
+            # substitution features are handled by LINE from the same `text`.
+            message = TextMessage(text=payload.get("text", ""))
+
+        elif obj.object_type == ObjectType.TEMPLATE:
+            # Template Message (buttons / confirm / carousel / image_carousel).
+            # Payload is already LINE-API shaped (built by the editor), so let the
+            # SDK resolve the template + nested action oneOf via from_dict.
+            template_dict = payload.get("template") or {}
+            message = TemplateMessage.from_dict({
+                "type": "template",
+                "altText": obj.alt_text or payload.get("altText") or f"Template: {obj.name}",
+                "template": template_dict,
+            })
 
         elif obj.object_type == ObjectType.VIDEO:
             # Video Message
-            return VideoMessage(
+            message = VideoMessage(
                 original_content_url=payload.get("original_content_url") or payload.get("url"),
                 preview_image_url=payload.get("preview_image_url") or payload.get("preview_url") or payload.get("url"),
             )
 
         elif obj.object_type == ObjectType.AUDIO:
             # Audio Message
-            return AudioMessage(
+            message = AudioMessage(
                 original_content_url=payload.get("original_content_url") or payload.get("url"),
                 duration=int(payload.get("duration", 0)),
             )
@@ -176,17 +191,29 @@ def build_message_from_object(obj: ReplyObject) -> Optional[Any]:
                 width=int(payload.get("base_size", {}).get("width", 1040)),
                 height=int(payload.get("base_size", {}).get("height", 1040)),
             )
-            return ImagemapMessage(
+            message = ImagemapMessage(
                 base_url=payload.get("base_url") or payload.get("url"),
                 alt_text=obj.alt_text or payload.get("alt_text") or f"ImageMap: {obj.name}",
                 base_size=base_size,
                 actions=payload.get("actions", []),
             )
-        
+
         else:
             logger.warning(f"Unsupported object type: {obj.object_type}")
             return None
-            
+
+        # Quick reply is an optional modifier valid on ANY message type. The
+        # editor stores it at payload.quickReply ({items: [...]}, ≤13).
+        if message is not None and isinstance(payload, dict):
+            quick_reply = payload.get("quickReply")
+            if isinstance(quick_reply, dict) and quick_reply.get("items"):
+                try:
+                    message.quick_reply = QuickReply.from_dict(quick_reply)
+                except Exception as qr_exc:
+                    logger.warning(f"Invalid quickReply on {obj.object_id}: {qr_exc}")
+
+        return message
+
     except Exception as e:
         logger.error(f"Error building message from object {obj.object_id}: {e}")
         return None
