@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 79 handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 80 handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-20 19:44 — claude_code — completed
+
+6-agent panel reviewed the rich-menu implementation PLAN (verdict NEEDS_REVISION, confidence 6/10) verifying every snippet vs real code. Applied all 12 edits -> plan REVISED, confidence ~8-9. Caught real bugs I wrote: update_alias must be PUT not POST; model_validator missing 'return self' (would reject ALL inputs); bulk_unlink body was a set-literal {userIds} not dict; model register belongs in app/models/__init__.py not db/base.py; PUT /{id} needs RichMenuUpdate schema (template_type required = latent bug); MenuAction TS interface must be extended or tsc fails; Field(max_length=500) silently ignored on List[str] -> use Annotated; per-table migration guard; dependencies endpoint needs auth; IDOR = select(User).where(line_user_id==...).
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260620-1944.json`
+- Summary: `project-log-md/claude_code/session-summary-20260620-1944.md`
+
+---
 
 ### 2026-06-20 18:57 — claude_code — completed
 
