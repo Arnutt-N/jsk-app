@@ -1,13 +1,21 @@
 {
-  "last_updated": "2026-06-20T10:37:00Z",
+  "last_updated": "2026-06-20T17:38:00Z",
   "platform": "claude_code",
-  "current_task": "Merged PR #113 to main (squash d400368): Thai Buddhist-era (พ.ศ.) date pickers across admin + reply-object send (template/text_v2). CalendarPickerTH gained a month grid (year→month→day drill-down) kee",
+  "current_task": "Investigated rich-menu support + authored PRD. Findings: creating rich menus = fully implemented; tab switching (alias/richmenuswitch) = missing; per-user assignment = missing (only set-default-for-al",
   "plan_status": "completed",
   "next_steps": [
-    "Optional: clear stale .next generated type error referencing app/preview-check/page (pre-existing)",
-    "Future date pickers should reuse CalendarPickerTH + isoToYMD/isoToHM, never native type=date/datetime-local"
+    "Review/refine PRD — resolve Open Questions (endpoint auth, per-user targeting scope, live-chat auto-switch)",
+    "Break PRD into implementation plan under .claude/PRPs/plans/",
+    "Start Phase 1: fix RichMenuAreaAction schema — add richMenuAliasId field + action-type enum validation (closes silent richmenuswitch bug)"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-06-20T17:38:00Z",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "d998a73",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-06-20T10:37:00Z",
       "platform": "claude_code",

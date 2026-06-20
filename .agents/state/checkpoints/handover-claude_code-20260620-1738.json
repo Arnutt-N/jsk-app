@@ -1,0 +1,18 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-06-20T17:38:00Z",
+  "branch": "main",
+  "head_commit": "d998a73",
+  "status": "completed",
+  "work_summary": "Investigated rich-menu support + authored PRD. Findings: creating rich menus = fully implemented; tab switching (alias/richmenuswitch) = missing; per-user assignment = missing (only set-default-for-all). Wrote PRD .claude/PRPs/prds/rich-menu-switching-and-per-user.prd.md covering both gaps (2 new cache tables, schema validation fix for richMenuAliasId, 8 phases).",
+  "priority_actions": [
+    "Review/refine PRD — resolve Open Questions (endpoint auth, per-user targeting scope, live-chat auto-switch)",
+    "Break PRD into implementation plan under .claude/PRPs/plans/",
+    "Start Phase 1: fix RichMenuAreaAction schema — add richMenuAliasId field + action-type enum validation (closes silent richmenuswitch bug)"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/claude_code/session-summary-20260620-1738.md",
+  "cross_platform_read": []
+}

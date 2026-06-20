@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 76 handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 77 handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-20 17:38 — claude_code — completed
+
+Investigated rich-menu support + authored PRD. Findings: creating rich menus = fully implemented; tab switching (alias/richmenuswitch) = missing; per-user assignment = missing (only set-default-for-all). Wrote PRD .claude/PRPs/prds/rich-menu-switching-and-per-user.prd.md covering both gaps (2 new cache tables, schema validation fix for richMenuAliasId, 8 phases).
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260620-1738.json`
+- Summary: `project-log-md/claude_code/session-summary-20260620-1738.md`
+
+---
 
 ### 2026-06-20 10:37 — claude_code — completed
 
