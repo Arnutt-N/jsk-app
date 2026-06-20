@@ -1,7 +1,15 @@
 from pydantic import BaseModel, ConfigDict, Field, model_validator
-from typing import List, Dict, Any, Optional, Literal
+from typing import Annotated, List, Dict, Any, Optional, Literal
 from datetime import datetime
 from app.models.rich_menu import RichMenuStatus
+
+# LINE userId: "U" + 32 lowercase hex chars (33 total). Validated per-element.
+LineUserId = Annotated[str, Field(pattern=r"^U[0-9a-f]{32}$")]
+
+# Bulk link/unlink accept 1..500 userIds. The outer Field caps the LIST length;
+# a plain Field(max_length=...) on List[str] is silently ignored by Pydantic v2,
+# so the Annotated wrapper is required for the cap to actually enforce.
+LineUserIdList = Annotated[List[LineUserId], Field(min_length=1, max_length=500)]
 
 class SystemSettingBase(BaseModel):
     key: str
@@ -78,6 +86,15 @@ class RichMenuAliasResponse(BaseModel):
     updated_at: Optional[datetime]
 
     model_config = ConfigDict(from_attributes=True)
+
+class BulkLinkRequest(BaseModel):
+    # POST /richmenu/bulk/link → {"richMenuId": ..., "userIds": [...]}
+    rich_menu_id: int
+    user_ids: LineUserIdList
+
+class BulkUnlinkRequest(BaseModel):
+    # POST /richmenu/bulk/unlink → {"userIds": [...]} (no rich_menu_id)
+    user_ids: LineUserIdList
 
 class RichMenuResponse(BaseModel):
     id: int
