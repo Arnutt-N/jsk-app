@@ -17,3 +17,5 @@ from .tag import Tag, UserTag
 from .request_comment import RequestComment
 from .broadcast import Broadcast
 from .permission_setting import PermissionSetting
+from .rich_menu_alias import RichMenuAlias
+from .user_rich_menu_link import UserRichMenuLink
