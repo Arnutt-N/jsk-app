@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 74 handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 75 handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-20 08:12 — claude_code — completed
+
+Audit + fix Thai Buddhist-era (พ.ศ.) date input/display across all admin pages. CalendarPickerTH: added month grid (drill-down year→month→day) keeping typing + พ.ศ. validation. Replaced native datepickers with CalendarPickerTH in Reports custom range + Live Chat Analytics range. Broadcast schedule now = CalendarPickerTH (พ.ศ.) + separate time field. Fixed 6 ค.ศ./en-US displays to th-TH (friends, CustomerPanel, ChatArea, LiveChatContext, audit, analytics). Added isoToYMD/isoToHM helpers (local components, avoid +07 off-by-one). Added 2 vitest files (19/19 pass); tsc + eslint clean on changed files.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260620-0812.json`
+- Summary: `project-log-md/claude_code/session-summary-20260620-0812.md`
+
+---
 
 ### 2026-06-20 06:32 — claude_code — completed
 

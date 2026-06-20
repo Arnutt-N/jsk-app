@@ -488,7 +488,7 @@ export default function AnalyticsPage() {
       </Card>
 
       {kpis?.timestamp ? (
-        <p className="text-xs text-text-tertiary text-right">Last updated: {new Date(kpis.timestamp).toLocaleString()}</p>
+        <p className="text-xs text-text-tertiary text-right">Last updated: {new Date(kpis.timestamp).toLocaleString('th-TH', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
       ) : null}
     </div>
   );

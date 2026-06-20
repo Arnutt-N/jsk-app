@@ -724,7 +724,7 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
     const hours = Math.floor(mins / 60);
     if (hours < 24) return `${hours}h`;
     if (hours < 48) return 'Yesterday';
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return d.toLocaleDateString('th-TH', { month: 'short', day: 'numeric' });
   }, []);
 
   // Build state object from Zustand subscriptions for backward compat

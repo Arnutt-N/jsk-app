@@ -22,6 +22,7 @@ import {
     Package,
 } from 'lucide-react';
 import PageHeader from '@/app/admin/components/PageHeader';
+import CalendarPickerTH from '@/components/ui/CalendarPickerTH';
 import { logger } from '@/lib/logger';
 
 type MessageType = 'text' | 'image' | 'flex' | 'object_ref';
@@ -74,7 +75,20 @@ export default function BroadcastCreatePage() {
     const [flexJson, setFlexJson] = useState('');
     const [flexAltText, setFlexAltText] = useState('');
     const [objectIdRef, setObjectIdRef] = useState('');
-    const [scheduleDate, setScheduleDate] = useState('');
+    // Schedule split into a Thai (พ.ศ.) date picker + a separate time field.
+    // The native datetime-local control could only render a Gregorian (ค.ศ.)
+    // calendar, so we compose CalendarPickerTH with an <input type="time">.
+    const [scheduleDatePart, setScheduleDatePart] = useState('');
+    const [scheduleTime, setScheduleTime] = useState('');
+
+    const scheduledAt = useMemo(() => {
+        if (!scheduleDatePart || !scheduleTime) return null;
+        const d = new Date(scheduleDatePart);
+        if (isNaN(d.getTime())) return null;
+        const [h, m] = scheduleTime.split(':').map((n) => parseInt(n, 10));
+        d.setHours(h || 0, m || 0, 0, 0);
+        return d;
+    }, [scheduleDatePart, scheduleTime]);
 
     const canProceed = (): boolean => {
         switch (step) {
@@ -166,7 +180,8 @@ export default function BroadcastCreatePage() {
     };
 
     const handleSaveAndSchedule = async () => {
-        if (!scheduleDate) { toast({ variant: 'warning', title: 'กรุณาเลือกวันเวลาที่ต้องการส่ง' }); return; }
+        if (!scheduleDatePart) { toast({ variant: 'warning', title: 'กรุณาเลือกวันที่ต้องการส่ง' }); return; }
+        if (!scheduleTime || !scheduledAt) { toast({ variant: 'warning', title: 'กรุณาเลือกเวลาที่ต้องการส่ง' }); return; }
         setSaving(true);
         try {
             const body = {
@@ -186,7 +201,7 @@ export default function BroadcastCreatePage() {
             const schedRes = await fetch(`${API_BASE}/admin/broadcasts/${created.id}/schedule`, {
                 method: 'POST',
                 headers: { ...authHeaders, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ scheduled_at: new Date(scheduleDate).toISOString() }),
+                body: JSON.stringify({ scheduled_at: scheduledAt.toISOString() }),
             });
             if (!schedRes.ok) {
                 const errBody = await schedRes.json().catch(() => ({}));
@@ -443,14 +458,31 @@ export default function BroadcastCreatePage() {
                                 </div>
                             </div>
 
-                            {/* Schedule option */}
+                            {/* Schedule option — Thai (พ.ศ.) date picker + separate time field */}
                             <div className="border-t border-gray-100 dark:border-gray-700 pt-6 space-y-4">
                                 <label className="text-xs text-text-tertiary">ตั้งเวลาส่ง (ไม่บังคับ)</label>
-                                <Input
-                                    type="datetime-local"
-                                    value={scheduleDate}
-                                    onChange={(e) => setScheduleDate(e.target.value)}
-                                />
+                                <div className="flex flex-wrap items-start gap-3">
+                                    <div className="w-52">
+                                        <CalendarPickerTH
+                                            value={scheduleDatePart || null}
+                                            onChange={(iso) => setScheduleDatePart(iso ?? '')}
+                                        />
+                                    </div>
+                                    <Input
+                                        type="time"
+                                        value={scheduleTime}
+                                        onChange={(e) => setScheduleTime(e.target.value)}
+                                        disabled={!scheduleDatePart}
+                                        className="w-32"
+                                    />
+                                </div>
+                                {scheduledAt && (
+                                    <p className="text-xs text-text-tertiary">
+                                        จะส่งเมื่อ:{' '}
+                                        {scheduledAt.toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                        {' '}เวลา {scheduleTime} น.
+                                    </p>
+                                )}
                             </div>
 
                             {/* Action buttons */}
@@ -459,7 +491,7 @@ export default function BroadcastCreatePage() {
                                     <FileText className="w-4 h-4" />
                                     {saving ? 'กำลังบันทึก...' : 'บันทึกแบบร่าง'}
                                 </Button>
-                                {scheduleDate ? (
+                                {scheduleDatePart ? (
                                     <Button onClick={handleSaveAndSchedule} disabled={saving} className="gap-2">
                                         <Clock className="w-4 h-4" />
                                         {saving ? 'กำลังตั้งเวลา...' : 'ตั้งเวลาส่ง'}

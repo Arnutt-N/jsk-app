@@ -272,7 +272,7 @@ export function ChatArea() {
           <div className="flex-1 h-px bg-border-default" />
           <span className="px-3 py-1 bg-surface text-text-tertiary text-xs font-medium rounded-full shadow-sm border border-border-default">
             {currentChat?.session?.started_at
-              ? new Date(currentChat.session.started_at).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+              ? new Date(currentChat.session.started_at).toLocaleDateString('th-TH', { weekday: 'short', month: 'short', day: 'numeric' })
               : 'Today'}
           </span>
           <div className="flex-1 h-px bg-border-default" />

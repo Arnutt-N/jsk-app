@@ -203,7 +203,7 @@ export function CustomerPanel({
           <p className="text-[10px] text-text-tertiary font-semibold uppercase tracking-wider">Activity</p>
           <div className="flex items-center gap-2 text-xs text-text-secondary">
             <Clock className="w-3.5 h-3.5 text-text-tertiary" />
-            <span>Last active: {currentChat.session?.started_at ? new Date(currentChat.session.started_at).toLocaleDateString() : 'N/A'}</span>
+            <span>Last active: {currentChat.session?.started_at ? new Date(currentChat.session.started_at).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A'}</span>
           </div>
           <div className="flex items-center gap-2 text-xs text-text-secondary">
             <User className="w-3.5 h-3.5 text-text-tertiary" />
