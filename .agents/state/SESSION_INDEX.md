@@ -1,16 +1,16 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Cross-Platform Session Index (generated)
 
-> **Last generated**: 2026-06-20 23:43 (from newest checkpoint)
+> **Last generated**: 2026-06-21 01:37 (from newest checkpoint)
 
 ## Quick Stats
 
 | Metric | Value |
 |--------|-------|
-| Handoff checkpoints | 84 |
-| Session summaries on disk | 169 |
+| Handoff checkpoints | 85 |
+| Session summaries on disk | 170 |
 | Platforms | 8 (antigravity, claude_code, cline, codex, gemini_cli, kilo_code, kimi_code, open_code) |
-| Most recent | 2026-06-20 23:43 — claude_code |
+| Most recent | 2026-06-21 01:37 — claude_code |
 
 > Regenerate after any handoff: `node .agents/scripts/gen-handoff-views.cjs`
 
@@ -23,10 +23,11 @@
 | 2026-04-04 12:04 | completed | `handover-antigravity-20260404-1204.json` |
 | 2026-02-15 03:20 | completed | `handover-antigravity-20260215-0320.json` |
 
-## claude_code (49)
+## claude_code (50)
 
 | When | Status | Checkpoint |
 |------|--------|------------|
+| 2026-06-21 01:37 | completed | `handover-claude_code-20260621-0137.json` |
 | 2026-06-20 23:43 | completed | `handover-claude_code-20260620-2343.json` |
 | 2026-06-20 23:08 | completed | `handover-claude_code-20260620-2308.json` |
 | 2026-06-20 22:36 | completed | `handover-claude_code-20260620-2236.json` |
@@ -46,8 +47,7 @@
 | 2026-06-16 21:22 | completed | `handover-claude_code-20260616-2122.json` |
 | 2026-06-16 00:21 | completed | `handover-claude_code-20260616-0021.json` |
 | 2026-06-15 21:52 | completed | `handover-claude_code-20260615-2152.json` |
-| 2026-06-14 21:23 | completed | `handover-claude_code-20260614-2123.json` |
-| … | | +29 older |
+| … | | +30 older |
 
 ## cline (1)
 

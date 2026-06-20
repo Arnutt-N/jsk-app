@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 84 handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 85 handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-21 01:37 — claude_code — completed
+
+R1 Phase 1.2 + Phase 8 done on feat/rich-menu-switching-r1. Phase 1.2 (commit f3084fd): BulkLinkRequest + BulkUnlinkRequest in schemas/rich_menu.py for Phase 4 bulk per-user; userId validated per-element ^U[0-9a-f]{32}$ via LineUserId alias; list capped 1..500 via Annotated[List[...], Field(min_length=1,max_length=500)] (plain Field max_length on List[str] is silently ignored by Pydantic v2); 10 schema unit tests. Phase 8 (commit 3c90957): 8 TestClient integration tests for alias endpoints - route ordering (/aliases not cast to int), 401 no-token, 403 AGENT, 404 missing rich menu/alias, 409 not-synced and duplicate; sequenced fake DB + dependency_overrides, no live DB/LINE. Full suite 463 passed (was 445; +10 schema +8 endpoint), no regression.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260621-0137.json`
+- Summary: `project-log-md/claude_code/session-summary-20260621-0137.md`
+
+---
 
 ### 2026-06-20 23:43 — claude_code — completed
 
