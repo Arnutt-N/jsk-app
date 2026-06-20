@@ -1,14 +1,22 @@
 {
-  "last_updated": "2026-06-20T22:36:00Z",
+  "last_updated": "2026-06-20T23:08:00Z",
   "platform": "claude_code",
-  "current_task": "Fixed local alembic ghost-stamp blocker (alembic_version pinned to non-existent t0u1v2w3x4y5; alembic stamp/current both failed to resolve the phantom, so repaired via guarded raw UPDATE -> s9t0u1v2w3",
+  "current_task": "R1 Phase 3 done (commit 43205ea): RichMenuService alias methods create_alias_on_line/update_alias_on_line(PUT!)/delete_alias_on_line(404-safe)/list_aliases_from_line (raw httpx, returns .get('aliases'",
   "plan_status": "completed",
   "next_steps": [
-    "Phase 3: alias service methods (update_alias = PUT not POST!) + endpoints (register literal /aliases BEFORE /{id:int} or FastAPI casts aliases->int)",
-    "Finish Phase 1 Task 1.2 leftover schemas in backend/app/schemas/rich_menu.py: BulkLinkRequest/BulkUnlinkRequest + userId Field(pattern=^U[0-9a-f]{32}$) + Annotated[List[str], Field(max_length=500)] (plain List max_length is silently ignored)",
-    "Remote Supabase alembic still at r8s9t0u1v2w3 (behind head s9t0u1v2w3x4) - at deploy run --target remote upgrade head (applies s9 then t0); never casually run migrations on remote"
+    "Phase 5 (frontend switch UI): new/page.tsx + edit/page.tsx - add richmenuswitch option + alias dropdown (fetch GET /admin/rich-menus/aliases), MUST extend MenuAction interface or tsc fails; Task 5.2 also needs PUT /{id} to use RichMenuUpdate (already in schema) not RichMenuCreate",
+    "Finish Phase 1 Task 1.2 leftover: BulkLinkRequest/BulkUnlinkRequest + userId Field(pattern=^U[0-9a-f]{32}$) + Annotated[List[str],Field(max_length=500)] in schemas/rich_menu.py (needed by Phase 4 per-user)",
+    "Phase 8: add endpoint integration tests via TestClient (route /aliases NOT cast to int=422; 409 synced-guard; 404; auth 401/403) - deferred from Phase 3",
+    "Remote Supabase still at r8s9t0u1v2w3 - --target remote upgrade head only at deploy"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-06-20T23:08:00Z",
+      "platform": "claude_code",
+      "branch": "feat/rich-menu-switching-r1",
+      "head": "43205ea",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-06-20T22:36:00Z",
       "platform": "claude_code",
@@ -140,13 +148,6 @@
       "platform": "claude_code",
       "branch": "main",
       "head": "bf6a36d",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-14T16:44:00Z",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "5a4f080",
       "status": "completed"
     }
   ],

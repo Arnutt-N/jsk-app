@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 82 handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 83 handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-20 23:08 — claude_code — completed
+
+R1 Phase 3 done (commit 43205ea): RichMenuService alias methods create_alias_on_line/update_alias_on_line(PUT!)/delete_alias_on_line(404-safe)/list_aliases_from_line (raw httpx, returns .get('aliases',[])). rich_menus.py: GET/POST/PUT/DELETE /aliases endpoints declared BEFORE /{id} (route-order fix), auth get_current_admin read + require_permission(KEY_MANAGE_RICH_MENUS) write, synced-guard 409 + duplicate 409 + local rich_menu_aliases cache. 5 new service unit tests (mock httpx via unittest.mock - no respx/pytest-httpx in venv) + 8 schema pass; 445 tests collect clean.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260620-2308.json`
+- Summary: `project-log-md/claude_code/session-summary-20260620-2308.md`
+
+---
 
 ### 2026-06-20 22:36 — claude_code — completed
 

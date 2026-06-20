@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-06-20 22:36 by Claude Code (Fixed local alembic ghost-stamp blocker alembic_version pinned to non-existent t0u1v2w3x4y)
+> **Last Updated:** 2026-06-20 23:08 by Claude Code (R1 Phase 3 done commit 43205ea: RichMenuService alias methods create_alias_on_line/update_)
 
 ## Thai Summary
 แผนการปรับปรุง UX และ Error Handling **เสร็จสมบูรณ์ 100%** — ฟีเจอร์ Undo/Redo, Help System และ Error Handling ใหม่ถูก merge เข้าสู่ main แล้ว
@@ -46,6 +46,7 @@
 - [2026-06-03] All changes from PR #78 merged to `main`. Branch `feat/undo-redo-help-error-handling` is ready for deletion.
 
 ## Recent Completions
+- [2026-06-20 23:08] Claude Code: R1 Phase 3 done (commit 43205ea): RichMenuService alias methods create_alias_on_line/update_alias_on_line(PUT!)/delete_alias_on_line(404-safe)/list_aliases_from_line (raw httpx, returns .get('aliases',[])). rich_menus.py: GET/POST/PUT/DELET (Claude Code)
 - [2026-06-20 22:36] Claude Code: Fixed local alembic ghost-stamp blocker (alembic_version pinned to non-existent t0u1v2w3x4y5; alembic stamp/current both failed to resolve the phantom, so repaired via guarded raw UPDATE -> s9t0u1v2w3x4 real head). KEY: db_target --target l (Claude Code)
 - [2026-06-20 21:36] Claude Code: Established WSL bridge (Git Bash -> wsl bash -lc with venv_linux py3.13.12/pydantic2.12.5; files shared via /mnt/d; docker DB reachable) so backend CAN be validated from this Windows session. Implemented R1 Phase 1 on branch feat/rich-menu- (Claude Code)
 - [2026-06-20 19:44] Claude Code: 6-agent panel reviewed the rich-menu implementation PLAN (verdict NEEDS_REVISION, confidence 6/10) verifying every snippet vs real code. Applied all 12 edits -> plan REVISED, confidence ~8-9. Caught real bugs I wrote: update_alias must be P (Claude Code)
