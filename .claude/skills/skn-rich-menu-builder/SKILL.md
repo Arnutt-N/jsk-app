@@ -67,9 +67,15 @@ These rules are non-negotiable and must be followed every time:
    `set_default_on_line(db, rich_menu.line_rich_menu_id)` directly without a guard.
    Always sync before publish or you'll get a `None` ID error.
 
-10. **No auth on rich menu endpoints (current state)** — all routes use only `get_db`, no
-    `get_current_admin`. The comment in `api.py` says "# Admin APIs (no auth for now)".
-    When adding auth, import `get_current_admin` from `app.api.deps`.
+10. **Rich menu endpoints ARE auth-protected** — every route in `rich_menus.py` requires
+    auth: reads use `get_current_admin` (lines 43, 48, 181), writes use
+    `require_permission(KEY_MANAGE_RICH_MENUS)` (lines 56, 83, 111, 145, 189, 205).
+    `core/permissions.py` limits `KEY_MANAGE_RICH_MENUS` to SUPER_ADMIN + ADMIN.
+    Import both from `app.api.deps`; the permission key from `app.core.permissions`.
+    Any NEW rich-menu endpoint (alias / per-user / bulk) MUST add
+    `require_permission(KEY_MANAGE_RICH_MENUS)`.
+    (Corrected 2026-06-20 — this rule previously claimed "no auth for now", which was stale;
+    verified against `rich_menus.py`.)
 
 ---
 

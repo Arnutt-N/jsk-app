@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-06-20 17:38 by Claude Code (Investigated rich-menu support + authored PRD.)
+> **Last Updated:** 2026-06-20 18:41 by Claude Code (6-agent panel review of rich-menu PRD verdict NEEDS_REVISION then applied all 22 edits -> )
 
 ## Thai Summary
 แผนการปรับปรุง UX และ Error Handling **เสร็จสมบูรณ์ 100%** — ฟีเจอร์ Undo/Redo, Help System และ Error Handling ใหม่ถูก merge เข้าสู่ main แล้ว
@@ -46,6 +46,7 @@
 - [2026-06-03] All changes from PR #78 merged to `main`. Branch `feat/undo-redo-help-error-handling` is ready for deletion.
 
 ## Recent Completions
+- [2026-06-20 18:41] Claude Code: 6-agent panel review of rich-menu PRD (verdict NEEDS_REVISION) then applied all 22 edits -> PRD now REVISED/ready-to-execute. Panel caught + I verified a CRITICAL factual error: PRD wrongly claimed rich-menu endpoints have 'no auth' but ric (Claude Code)
 - [2026-06-20 17:38] Claude Code: Investigated rich-menu support + authored PRD. Findings: creating rich menus = fully implemented; tab switching (alias/richmenuswitch) = missing; per-user assignment = missing (only set-default-for-all). Wrote PRD .claude/PRPs/prds/rich-men (Claude Code)
 - [2026-06-20 10:37] Claude Code: Merged PR #113 to main (squash d400368): Thai Buddhist-era (พ.ศ.) date pickers across admin + reply-object send (template/text_v2). CalendarPickerTH gained a month grid (year→month→day drill-down) keeping typing + พ.ศ. validation; native da (Claude Code)
 - [2026-06-20 08:12] Claude Code: Audit + fix Thai Buddhist-era (พ.ศ.) date input/display across all admin pages. CalendarPickerTH: added month grid (drill-down year→month→day) keeping typing + พ.ศ. validation. Replaced native datepickers with CalendarPickerTH in Reports cu (Claude Code)

@@ -1,14 +1,21 @@
 {
-  "last_updated": "2026-06-20T17:38:00Z",
+  "last_updated": "2026-06-20T18:41:00Z",
   "platform": "claude_code",
-  "current_task": "Investigated rich-menu support + authored PRD. Findings: creating rich menus = fully implemented; tab switching (alias/richmenuswitch) = missing; per-user assignment = missing (only set-default-for-al",
+  "current_task": "6-agent panel review of rich-menu PRD (verdict NEEDS_REVISION) then applied all 22 edits -> PRD now REVISED/ready-to-execute. Panel caught + I verified a CRITICAL factual error: PRD wrongly claimed ri",
   "plan_status": "completed",
   "next_steps": [
-    "Review/refine PRD — resolve Open Questions (endpoint auth, per-user targeting scope, live-chat auto-switch)",
-    "Break PRD into implementation plan under .claude/PRPs/plans/",
-    "Start Phase 1: fix RichMenuAreaAction schema — add richMenuAliasId field + action-type enum validation (closes silent richmenuswitch bug)"
+    "Break revised PRD into implementation plan under .claude/PRPs/plans/ (consider R1=Feature A / R2=Feature B split)",
+    "Start Phase 1: RichMenuAreaAction schema — add richMenuAliasId + action-type enum + validator (aliasId required, data optional) + alias_id/userId format validators",
+    "Phase 2: create rich_menu_aliases + user_rich_menu_links tables (FK ondelete=RESTRICT, sync_status:str) with tested upgrade AND downgrade migration"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-06-20T18:41:00Z",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "a8cf662",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-06-20T17:38:00Z",
       "platform": "claude_code",

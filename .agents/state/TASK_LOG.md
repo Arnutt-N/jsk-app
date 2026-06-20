@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 77 handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 78 handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-20 18:41 — claude_code — completed
+
+6-agent panel review of rich-menu PRD (verdict NEEDS_REVISION) then applied all 22 edits -> PRD now REVISED/ready-to-execute. Panel caught + I verified a CRITICAL factual error: PRD wrongly claimed rich-menu endpoints have 'no auth' but rich_menus.py has full auth (get_current_admin / require_permission(KEY_MANAGE_RICH_MENUS)). Also fixed 2 more CRITICAL (richmenuswitch.data is optional not required; alias chicken-and-egg UX) + 6 HIGH + 6 MED + 3 LOW. Corrected stale skn-rich-menu-builder skill rule #10.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260620-1841.json`
+- Summary: `project-log-md/claude_code/session-summary-20260620-1841.md`
+
+---
 
 ### 2026-06-20 17:38 — claude_code — completed
 
