@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 83 handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 84 handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-20 23:43 — claude_code — completed
+
+Session close: R1 Rich Menu backend complete through Phase 3 on feat/rich-menu-switching-r1. 1. Fixed local alembic ghost-stamp blocker: alembic_version pinned to non-existent t0u1v2w3x4y5; both alembic stamp and current failed to resolve the phantom, repaired via guarded raw UPDATE to s9t0u1v2w3x4 real head. Discovered db_target target-local = backend/app/.env docker localhost, target-remote = backend/.env Supabase PROD, default env no ENV_FILE loads PROD - saved to memory. 2. Phase 2 commit e622941: RichMenuAlias + UserRichMenuLink models, FK rich_menus.id ondelete RESTRICT, sync_status, migration t0u1v2w3x4y5 per-table guards + unique indexes, up-down-up verified local. 3. Phase 3 commit 43205ea: RichMenuService alias methods create, update-PUT-not-POST, delete-404safe, list, plus GET POST PUT DELETE /aliases endpoints declared BEFORE /id route-order fix, auth + 409 synced and duplicate guards + local cache. 13 unit tests pass, 445 collect clean.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260620-2343.json`
+- Summary: `project-log-md/claude_code/session-summary-20260620-2343.md`
+
+---
 
 ### 2026-06-20 23:08 — claude_code — completed
 

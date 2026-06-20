@@ -1,0 +1,21 @@
+# Session Summary — claude_code — 2026-06-20T23:43:00Z
+
+**Branch**: `feat/rich-menu-switching-r1`  **HEAD**: `d40907c`
+**Checkpoint**: `.agents/state/checkpoints/handover-claude_code-20260620-2343.json`
+
+## Objective
+Session close: R1 Rich Menu backend complete through Phase 3 on feat/rich-menu-switching-r1. 1. Fixed local alembic ghost-stamp blocker: alembic_version pinned to non-existent t0u1v2w3x4y5; both alembic stamp and current failed to resolve the phantom, repaired via guarded raw UPDATE to s9t0u1v2w3x4 real head. Discovered db_target target-local = backend/app/.env docker localhost, target-remote = backend/.env Supabase PROD, default env no ENV_FILE loads PROD - saved to memory. 2. Phase 2 commit e622941: RichMenuAlias + UserRichMenuLink models, FK rich_menus.id ondelete RESTRICT, sync_status, migration t0u1v2w3x4y5 per-table guards + unique indexes, up-down-up verified local. 3. Phase 3 commit 43205ea: RichMenuService alias methods create, update-PUT-not-POST, delete-404safe, list, plus GET POST PUT DELETE /aliases endpoints declared BEFORE /id route-order fix, auth + 409 synced and duplicate guards + local cache. 13 unit tests pass, 445 collect clean.
+
+## Completed
+- Session close: R1 Rich Menu backend complete through Phase 3 on feat/rich-menu-switching-r1. 1. Fixed local alembic ghost-stamp blocker: alembic_version pinned to non-existent t0u1v2w3x4y5; both alembic stamp and current failed to resolve the phantom, repaired via guarded raw UPDATE to s9t0u1v2w3x4 real head. Discovered db_target target-local = backend/app/.env docker localhost, target-remote = backend/.env Supabase PROD, default env no ENV_FILE loads PROD - saved to memory. 2. Phase 2 commit e622941: RichMenuAlias + UserRichMenuLink models, FK rich_menus.id ondelete RESTRICT, sync_status, migration t0u1v2w3x4y5 per-table guards + unique indexes, up-down-up verified local. 3. Phase 3 commit 43205ea: RichMenuService alias methods create, update-PUT-not-POST, delete-404safe, list, plus GET POST PUT DELETE /aliases endpoints declared BEFORE /id route-order fix, auth + 409 synced and duplicate guards + local cache. 13 unit tests pass, 445 collect clean.
+
+## Next Steps
+- Phase 5 frontend NEW STACK fresh session recommended: new/page.tsx and edit/page.tsx add richmenuswitch option + alias dropdown fetch GET /admin/rich-menus/aliases; MUST extend MenuAction interface or tsc fails; Task 5.2 PUT /id use RichMenuUpdate already in schema
+- Finish Phase 1 Task 1.2 leftover schemas in schemas/rich_menu.py: BulkLinkRequest and BulkUnlinkRequest + userId Field pattern U-plus-32-hex + Annotated List-str Field max_length 500, plain List max_length ignored, needed by Phase 4 per-user
+- Phase 8: endpoint integration tests via TestClient, route /aliases not cast to int, 409 synced-guard, 404, auth 401 and 403, deferred from Phase 3
+- Remote Supabase alembic at r8s9t0u1v2w3 behind head, run target-remote upgrade head only at deploy
+
+## Blockers
+- _none_
+
+> Fill in detail above, then commit. TASK_LOG.md + SESSION_INDEX.md are generated.
