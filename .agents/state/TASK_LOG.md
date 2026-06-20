@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 75 handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 76 handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-20 10:37 — claude_code — completed
+
+Merged PR #113 to main (squash d400368): Thai Buddhist-era (พ.ศ.) date pickers across admin + reply-object send (template/text_v2). CalendarPickerTH gained a month grid (year→month→day drill-down) keeping typing + พ.ศ. validation; native datepickers in Reports & Live Chat Analytics replaced with CalendarPickerTH; Broadcast schedule = พ.ศ. date + separate time; 6 ค.ศ./en-US displays fixed to th-TH; added isoToYMD/isoToHM utils. All CI-equivalent checks run locally via WSL (Actions disabled): eslint 0-errors, tsc clean, next build exit 0, vitest 19/19, backend pytest 6/6, Playwright production visual verify of day/month/year พ.ศ. grids. Branch deleted (local+remote); local main synced to d400368.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260620-1037.json`
+- Summary: `project-log-md/claude_code/session-summary-20260620-1037.md`
+
+---
 
 ### 2026-06-20 08:12 — claude_code — completed
 

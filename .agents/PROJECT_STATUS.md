@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-06-20 08:12 by Claude Code (Audit + fix Thai Buddhist-era พ.ศ. date input/display across all admin pages.)
+> **Last Updated:** 2026-06-20 10:37 by Claude Code (Merged PR #113 to main squash d400368: Thai Buddhist-era พ.ศ. date pickers across admin + )
 
 ## Thai Summary
 แผนการปรับปรุง UX และ Error Handling **เสร็จสมบูรณ์ 100%** — ฟีเจอร์ Undo/Redo, Help System และ Error Handling ใหม่ถูก merge เข้าสู่ main แล้ว
@@ -46,6 +46,7 @@
 - [2026-06-03] All changes from PR #78 merged to `main`. Branch `feat/undo-redo-help-error-handling` is ready for deletion.
 
 ## Recent Completions
+- [2026-06-20 10:37] Claude Code: Merged PR #113 to main (squash d400368): Thai Buddhist-era (พ.ศ.) date pickers across admin + reply-object send (template/text_v2). CalendarPickerTH gained a month grid (year→month→day drill-down) keeping typing + พ.ศ. validation; native da (Claude Code)
 - [2026-06-20 08:12] Claude Code: Audit + fix Thai Buddhist-era (พ.ศ.) date input/display across all admin pages. CalendarPickerTH: added month grid (drill-down year→month→day) keeping typing + พ.ศ. validation. Replaced native datepickers with CalendarPickerTH in Reports cu (Claude Code)
 - [2026-06-20 06:32] Claude Code: Wire template/text_v2 + quickReply sending: extended build_message_from_object (response_parser.py) so reply objects of type TEMPLATE (buttons/confirm/carousel/image_carousel via TemplateMessage.from_dict) and TEXT_V2 (TextMessage) now send (Claude Code)
 - [2026-06-20 00:10] Claude Code: Phase 4 PR2 Phase A complete + PR #110 opened: Reply Objects template/text_v2 enum (uppercase migration verified vs live DB) + per-type payload validation + filter bug fix + LineFlexRenderer (recursive, XSS-safe) + tests (backend 21/full 42 (Claude Code)

@@ -1,13 +1,20 @@
 {
-  "last_updated": "2026-06-20T08:12:00Z",
+  "last_updated": "2026-06-20T10:37:00Z",
   "platform": "claude_code",
-  "current_task": "Audit + fix Thai Buddhist-era (พ.ศ.) date input/display across all admin pages. CalendarPickerTH: added month grid (drill-down year→month→day) keeping typing + พ.ศ. validation. Replaced native datepic",
+  "current_task": "Merged PR #113 to main (squash d400368): Thai Buddhist-era (พ.ศ.) date pickers across admin + reply-object send (template/text_v2). CalendarPickerTH gained a month grid (year→month→day drill-down) kee",
   "plan_status": "completed",
   "next_steps": [
-    "Run live Playwright visual verify of datepickers on Reports/Broadcast/Live-Chat-Analytics (needs dev server + admin login)",
-    "Optional: clear stale .next generated type error referencing app/preview-check/page (pre-existing, unrelated)"
+    "Optional: clear stale .next generated type error referencing app/preview-check/page (pre-existing)",
+    "Future date pickers should reuse CalendarPickerTH + isoToYMD/isoToHM, never native type=date/datetime-local"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-06-20T10:37:00Z",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "d400368",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-06-20T08:12:00Z",
       "platform": "claude_code",
