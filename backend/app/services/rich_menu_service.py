@@ -98,6 +98,67 @@ class RichMenuService:
             response.raise_for_status()
             return response.json()
 
+    # ---- Rich Menu Aliases (tab switching via `richmenuswitch`) ----
+
+    @staticmethod
+    async def create_alias_on_line(
+        db: AsyncSession, alias_id: str, line_rich_menu_id: str
+    ) -> Dict[str, Any]:
+        """Create an alias on LINE mapping alias_id -> rich menu (LINE returns empty body)."""
+        headers = await RichMenuService.get_client_headers(db)
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{RichMenuService.API_BASE}/richmenu/alias",
+                headers=headers,
+                json={"richMenuAliasId": alias_id, "richMenuId": line_rich_menu_id},
+            )
+            response.raise_for_status()
+            return response.json() if response.content else {}
+
+    @staticmethod
+    async def update_alias_on_line(
+        db: AsyncSession, alias_id: str, line_rich_menu_id: str
+    ) -> Dict[str, Any]:
+        """Re-point an existing alias to a different rich menu.
+
+        LINE uses PUT for alias updates (POST is create-only and returns 404/405).
+        alias_id itself is immutable; only the target rich menu can change.
+        """
+        headers = await RichMenuService.get_client_headers(db)
+        async with httpx.AsyncClient() as client:
+            response = await client.put(
+                f"{RichMenuService.API_BASE}/richmenu/alias/{alias_id}",
+                headers=headers,
+                json={"richMenuId": line_rich_menu_id},
+            )
+            response.raise_for_status()
+            return response.json() if response.content else {}
+
+    @staticmethod
+    async def delete_alias_on_line(db: AsyncSession, alias_id: str) -> int:
+        """Delete an alias on LINE. 404 is accepted (already gone)."""
+        headers = await RichMenuService.get_client_headers(db)
+        async with httpx.AsyncClient() as client:
+            response = await client.delete(
+                f"{RichMenuService.API_BASE}/richmenu/alias/{alias_id}",
+                headers=headers,
+            )
+            if response.status_code != 404:
+                response.raise_for_status()
+            return response.status_code
+
+    @staticmethod
+    async def list_aliases_from_line(db: AsyncSession) -> List[Dict[str, Any]]:
+        """List all rich menu aliases from LINE (response shape: {"aliases": [...]})."""
+        headers = await RichMenuService.get_client_headers(db)
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{RichMenuService.API_BASE}/richmenu/alias/list",
+                headers=headers,
+            )
+            response.raise_for_status()
+            return response.json().get("aliases", [])
+
     @staticmethod
     async def update_sync_status(
         db: AsyncSession,

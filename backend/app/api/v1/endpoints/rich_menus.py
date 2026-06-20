@@ -10,9 +10,17 @@ from app.api.deps import get_current_admin, require_permission
 from app.core.permissions import KEY_MANAGE_RICH_MENUS
 from app.models.rich_menu import RichMenu, RichMenuStatus
 from app.models.user import User
-from app.schemas.rich_menu import RichMenuResponse, RichMenuCreate
+from app.schemas.rich_menu import (
+    RichMenuResponse,
+    RichMenuCreate,
+    RichMenuAliasCreate,
+    RichMenuAliasUpdate,
+    RichMenuAliasResponse,
+)
+from app.models.rich_menu_alias import RichMenuAlias
 from app.services.rich_menu_service import RichMenuService
 from sqlalchemy import select
+from datetime import datetime, timezone
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -43,6 +51,103 @@ def resolve_rich_menu_size(template_type: str) -> dict:
 async def list_rich_menus(db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_admin)):
     result = await db.execute(select(RichMenu).order_by(RichMenu.created_at.desc()))
     return result.scalars().all()
+
+# ---- Rich Menu Aliases (tab switching via `richmenuswitch`) ----
+# IMPORTANT: these literal "/aliases" routes MUST be declared BEFORE "/{id}" so
+# FastAPI does not try to cast "aliases" to int (which would 422).
+
+@router.get("/aliases", response_model=List[RichMenuAliasResponse])
+async def list_rich_menu_aliases(
+    db: AsyncSession = Depends(get_db),
+    current_admin: User = Depends(get_current_admin),
+):
+    result = await db.execute(select(RichMenuAlias).order_by(RichMenuAlias.created_at.desc()))
+    return result.scalars().all()
+
+@router.post("/aliases", response_model=RichMenuAliasResponse)
+async def create_rich_menu_alias(
+    data: RichMenuAliasCreate,
+    db: AsyncSession = Depends(get_db),
+    current_admin: User = Depends(require_permission(KEY_MANAGE_RICH_MENUS)),
+):
+    # Target rich menu must exist and be synced to LINE (have a line_rich_menu_id).
+    result = await db.execute(select(RichMenu).where(RichMenu.id == data.rich_menu_id))
+    rich_menu = result.scalar_one_or_none()
+    if not rich_menu:
+        raise HTTPException(status_code=404, detail="Rich Menu not found")
+    if not rich_menu.line_rich_menu_id:
+        raise HTTPException(status_code=409, detail="Rich menu must be synced to LINE before creating an alias")
+
+    existing = await db.execute(select(RichMenuAlias).where(RichMenuAlias.alias_id == data.alias_id))
+    if existing.scalar_one_or_none():
+        raise HTTPException(status_code=409, detail="Alias id already exists")
+
+    alias = RichMenuAlias(alias_id=data.alias_id, rich_menu_id=rich_menu.id, sync_status="PENDING")
+    db.add(alias)
+    try:
+        await RichMenuService.create_alias_on_line(db, data.alias_id, rich_menu.line_rich_menu_id)
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail=f"LINE alias create failed: {str(e)}")
+
+    alias.sync_status = "SYNCED"
+    alias.last_synced_at = datetime.now(timezone.utc)
+    await db.commit()
+    await db.refresh(alias)
+    return alias
+
+@router.put("/aliases/{alias_id}", response_model=RichMenuAliasResponse)
+async def update_rich_menu_alias(
+    alias_id: str,
+    data: RichMenuAliasUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_admin: User = Depends(require_permission(KEY_MANAGE_RICH_MENUS)),
+):
+    result = await db.execute(select(RichMenuAlias).where(RichMenuAlias.alias_id == alias_id))
+    alias = result.scalar_one_or_none()
+    if not alias:
+        raise HTTPException(status_code=404, detail="Alias not found")
+
+    menu_result = await db.execute(select(RichMenu).where(RichMenu.id == data.rich_menu_id))
+    rich_menu = menu_result.scalar_one_or_none()
+    if not rich_menu:
+        raise HTTPException(status_code=404, detail="Rich Menu not found")
+    if not rich_menu.line_rich_menu_id:
+        raise HTTPException(status_code=409, detail="Rich menu must be synced to LINE before pointing an alias to it")
+
+    # alias_id is immutable on LINE; only the target rich menu changes (PUT).
+    try:
+        await RichMenuService.update_alias_on_line(db, alias_id, rich_menu.line_rich_menu_id)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"LINE alias update failed: {str(e)}")
+
+    alias.rich_menu_id = rich_menu.id
+    alias.sync_status = "SYNCED"
+    alias.last_synced_at = datetime.now(timezone.utc)
+    await db.commit()
+    await db.refresh(alias)
+    return alias
+
+@router.delete("/aliases/{alias_id}")
+async def delete_rich_menu_alias(
+    alias_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_admin: User = Depends(require_permission(KEY_MANAGE_RICH_MENUS)),
+):
+    result = await db.execute(select(RichMenuAlias).where(RichMenuAlias.alias_id == alias_id))
+    alias = result.scalar_one_or_none()
+    if not alias:
+        raise HTTPException(status_code=404, detail="Alias not found")
+
+    # 404 on LINE is accepted internally; log other failures but still remove locally.
+    try:
+        await RichMenuService.delete_alias_on_line(db, alias_id)
+    except Exception as e:
+        logger.warning("Failed to delete alias %s from LINE during local delete", alias_id, exc_info=e)
+
+    await db.delete(alias)
+    await db.commit()
+    return {"message": "Alias deleted"}
 
 @router.get("/{id}", response_model=RichMenuResponse)
 async def get_rich_menu(id: int, db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_admin)):
