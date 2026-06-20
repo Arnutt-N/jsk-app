@@ -248,6 +248,8 @@ class RichMenuAreaAction(BaseModel):
 
 ## Implementation Phases
 
+> **Implementation Plan:** `.claude/PRPs/plans/rich-menu-switching-and-per-user.plan.md` (self-contained, ครอบทั้ง 8 phases, สร้าง 2026-06-20). Phase statuses คง `pending` จนกว่าจะเริ่ม implement จริง
+
 | # | Phase | Description | Status | Parallel | Depends |
 |---|-------|-------------|--------|----------|---------|
 | 1 | Schema & Validation Fix | `richMenuAliasId` + action-type enum + validator (aliasId required, data optional) + format validators | pending | with 2 | - |

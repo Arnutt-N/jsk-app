@@ -1,14 +1,21 @@
 {
-  "last_updated": "2026-06-20T18:41:00Z",
+  "last_updated": "2026-06-20T18:57:00Z",
   "platform": "claude_code",
-  "current_task": "6-agent panel review of rich-menu PRD (verdict NEEDS_REVISION) then applied all 22 edits -> PRD now REVISED/ready-to-execute. Panel caught + I verified a CRITICAL factual error: PRD wrongly claimed ri",
+  "current_task": "Created self-contained PRP implementation plan covering ALL 8 phases of the rich-menu PRD (.claude/PRPs/plans/rich-menu-switching-and-per-user.plan.md). XL complexity, ~22 files, ~16 tasks each with A",
   "plan_status": "completed",
   "next_steps": [
-    "Break revised PRD into implementation plan under .claude/PRPs/plans/ (consider R1=Feature A / R2=Feature B split)",
-    "Start Phase 1: RichMenuAreaAction schema — add richMenuAliasId + action-type enum + validator (aliasId required, data optional) + alias_id/userId format validators",
-    "Phase 2: create rich_menu_aliases + user_rich_menu_links tables (FK ondelete=RESTRICT, sync_status:str) with tested upgrade AND downgrade migration"
+    "Run /prp-implement on the plan, OR start Phase 1 (schema validator: richMenuAliasId + Literal type + model_validator; alias/user/bulk schemas with format validators)",
+    "Phase 4 prep: read app/models/user.py + friend models to find the line_user_id table for the IDOR guard (only open lookup the plan defers)",
+    "Get current Alembic head (python scripts/db_target.py alembic --target local current) before writing the migration down_revision"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-06-20T18:57:00Z",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "8c51155",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-06-20T18:41:00Z",
       "platform": "claude_code",

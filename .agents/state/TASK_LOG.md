@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 78 handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 79 handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-20 18:57 — claude_code — completed
+
+Created self-contained PRP implementation plan covering ALL 8 phases of the rich-menu PRD (.claude/PRPs/plans/rich-menu-switching-and-per-user.plan.md). XL complexity, ~22 files, ~16 tasks each with ACTION/IMPLEMENT/MIRROR/IMPORTS/GOTCHA/VALIDATE. Captured verbatim patterns (file:line) via Explore agent: RichMenuService httpx+token, model+sync_status, require_permission auth (KEY_MANAGE_RICH_MENUS already exists), defensive Alembic up+down migration, and authFetch.ts auto-token (frontend needs NO auth changes). Linked plan from PRD. Confidence 8/10.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260620-1857.json`
+- Summary: `project-log-md/claude_code/session-summary-20260620-1857.md`
+
+---
 
 ### 2026-06-20 18:41 — claude_code — completed
 
