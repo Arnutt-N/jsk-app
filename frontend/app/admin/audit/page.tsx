@@ -230,7 +230,7 @@ export default function AuditLogPage() {
                   logs.map((log) => (
                     <tr key={log.id} className="border-b border-border-default hover:bg-bg/50 transition-colors">
                       <td className="px-6 py-4 text-sm">
-                        {new Date(log.created_at).toLocaleString()}
+                        {new Date(log.created_at).toLocaleString('th-TH', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                       </td>
                       <td className="px-6 py-4 text-sm">
                         {log.admin_name || `Admin ${log.admin_id}`}

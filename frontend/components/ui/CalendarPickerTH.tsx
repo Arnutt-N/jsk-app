@@ -92,7 +92,7 @@ export default function CalendarPickerTH({
   const [localError, setLocalError] = useState<string>("");
   const [viewMonthOverride, setViewMonthOverride] = useState<Date | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [calendarView, setCalendarView] = useState<"date" | "year">("date");
+  const [calendarView, setCalendarView] = useState<"date" | "month" | "year">("date");
   const [yearGridStart, setYearGridStart] = useState<number>(0);
 
   const viewMonth = useMemo<Date>(() => {
@@ -227,18 +227,38 @@ export default function CalendarPickerTH({
     next.setMonth(next.getMonth() + 1);
     setViewMonthOverride(next);
   };
+  const openMonthView = () => setCalendarView("month");
   const openYearView = () => {
     const beNow = toBE(viewMonth.getFullYear());
     setYearGridStart(beNow - (beNow % 12));
     setCalendarView("year");
   };
+  const goPrevYear = () => {
+    const next = new Date(viewMonth);
+    next.setFullYear(next.getFullYear() - 1);
+    setViewMonthOverride(next);
+  };
+  const goNextYear = () => {
+    const next = new Date(viewMonth);
+    next.setFullYear(next.getFullYear() + 1);
+    setViewMonthOverride(next);
+  };
   const goPrevDecade = () => setYearGridStart((s) => s - 12);
   const goNextDecade = () => setYearGridStart((s) => s + 12);
+  // Drill-down: year grid → month grid → day grid. Picking a month returns to
+  // the day view; picking a year steps down into the month view so the user
+  // keeps narrowing instead of jumping straight back to days.
+  const pickMonth = (monthZeroBased: number) => {
+    const next = new Date(viewMonth);
+    next.setMonth(monthZeroBased);
+    setViewMonthOverride(next);
+    setCalendarView("date");
+  };
   const pickYear = (beYear: number) => {
     const next = new Date(viewMonth);
     next.setFullYear(beYear - 543);
     setViewMonthOverride(next);
-    setCalendarView("date");
+    setCalendarView("month");
   };
 
   const dayCells: ReactNode[] = useMemo(() => {
@@ -398,7 +418,13 @@ export default function CalendarPickerTH({
 
           <button
             type="button"
-            onClick={() => setIsOpen((v) => !v)}
+            onClick={() =>
+              setIsOpen((v) => {
+                const next = !v;
+                if (next) setCalendarView("date");
+                return next;
+              })
+            }
             aria-haspopup="dialog"
             aria-expanded={isOpen}
             aria-label="เปิดปฏิทินเลือกวันที่"
@@ -432,18 +458,30 @@ export default function CalendarPickerTH({
             <div className="flex items-center justify-between mb-4">
               <button
                 type="button"
-                onClick={calendarView === "date" ? goPrevMonth : goPrevDecade}
-                aria-label={calendarView === "date" ? "เดือนก่อนหน้า" : "ช่วงปีก่อนหน้า"}
+                onClick={
+                  calendarView === "date"
+                    ? goPrevMonth
+                    : calendarView === "month"
+                      ? goPrevYear
+                      : goPrevDecade
+                }
+                aria-label={
+                  calendarView === "date"
+                    ? "เดือนก่อนหน้า"
+                    : calendarView === "month"
+                      ? "ปีก่อนหน้า"
+                      : "ช่วงปีก่อนหน้า"
+                }
                 className="p-2 rounded-lg hover:bg-bg transition-colors"
               >
                 <ChevronLeft size={18} className="text-text-secondary" />
               </button>
 
-              {calendarView === "date" ? (
+              {calendarView === "date" && (
                 <button
                   type="button"
-                  onClick={openYearView}
-                  aria-label="เลือกปี"
+                  onClick={openMonthView}
+                  aria-label="เลือกเดือน"
                   className="flex-1 mx-1 px-3 py-2 rounded-lg hover:bg-bg transition-colors text-center"
                 >
                   <span className="font-semibold text-text-primary">
@@ -453,11 +491,24 @@ export default function CalendarPickerTH({
                     {toBE(viewMonth.getFullYear())}
                   </span>
                 </button>
-              ) : (
+              )}
+              {calendarView === "month" && (
                 <button
                   type="button"
-                  onClick={() => setCalendarView("date")}
-                  aria-label="กลับมุมมองวันที่"
+                  onClick={openYearView}
+                  aria-label="เลือกปี"
+                  className="flex-1 mx-1 px-3 py-2 rounded-lg hover:bg-bg transition-colors text-center"
+                >
+                  <span className="text-blue-600 font-bold">
+                    {toBE(viewMonth.getFullYear())}
+                  </span>
+                </button>
+              )}
+              {calendarView === "year" && (
+                <button
+                  type="button"
+                  onClick={() => setCalendarView("month")}
+                  aria-label="กลับมุมมองเดือน"
                   className="flex-1 mx-1 px-3 py-2 rounded-lg hover:bg-bg transition-colors text-center font-semibold text-text-primary"
                 >
                   {yearGridStart} – {yearGridStart + 11}
@@ -466,15 +517,27 @@ export default function CalendarPickerTH({
 
               <button
                 type="button"
-                onClick={calendarView === "date" ? goNextMonth : goNextDecade}
-                aria-label={calendarView === "date" ? "เดือนถัดไป" : "ช่วงปีถัดไป"}
+                onClick={
+                  calendarView === "date"
+                    ? goNextMonth
+                    : calendarView === "month"
+                      ? goNextYear
+                      : goNextDecade
+                }
+                aria-label={
+                  calendarView === "date"
+                    ? "เดือนถัดไป"
+                    : calendarView === "month"
+                      ? "ปีถัดไป"
+                      : "ช่วงปีถัดไป"
+                }
                 className="p-2 rounded-lg hover:bg-bg transition-colors"
               >
                 <ChevronRight size={18} className="text-text-secondary" />
               </button>
             </div>
 
-            {calendarView === "date" ? (
+            {calendarView === "date" && (
               <>
                 {/* Weekday Headers */}
                 <div className="grid grid-cols-7 gap-1 mb-2">
@@ -494,7 +557,43 @@ export default function CalendarPickerTH({
                 {/* Day Grid */}
                 <div className="grid grid-cols-7 gap-1">{dayCells}</div>
               </>
-            ) : (
+            )}
+
+            {calendarView === "month" && (
+              /* Month Grid — all 12 months of the viewed year */
+              <div className="grid grid-cols-3 gap-2 py-2">
+                {THAI_MONTHS_SHORT.map((monthLabel, i) => {
+                  const isCurrent = viewMonth.getMonth() === i;
+                  const selectedDate = value ? new Date(value) : null;
+                  const isSelected =
+                    !!selectedDate &&
+                    selectedDate.getFullYear() === viewMonth.getFullYear() &&
+                    selectedDate.getMonth() === i;
+                  return (
+                    <motion.button
+                      key={monthLabel}
+                      type="button"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => pickMonth(i)}
+                      aria-label={THAI_MONTHS_LONG[i]}
+                      className={cn(
+                        "h-12 rounded-xl text-sm font-medium transition-all duration-150",
+                        isSelected
+                          ? "bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md"
+                          : isCurrent
+                            ? "bg-blue-50 text-blue-600 font-semibold ring-2 ring-blue-200"
+                            : "text-text-primary hover:bg-bg"
+                      )}
+                    >
+                      {monthLabel}
+                    </motion.button>
+                  );
+                })}
+              </div>
+            )}
+
+            {calendarView === "year" && (
               /* Year Grid */
               <div className="grid grid-cols-4 gap-2 py-2">
                 {Array.from({ length: 12 }, (_, i) => {

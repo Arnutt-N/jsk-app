@@ -1,0 +1,17 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-06-20T08:12:00Z",
+  "branch": "feat/reply-object-send-template-textv2",
+  "head_commit": "87e3ef1",
+  "status": "completed",
+  "work_summary": "Audit + fix Thai Buddhist-era (พ.ศ.) date input/display across all admin pages. CalendarPickerTH: added month grid (drill-down year→month→day) keeping typing + พ.ศ. validation. Replaced native datepickers with CalendarPickerTH in Reports custom range + Live Chat Analytics range. Broadcast schedule now = CalendarPickerTH (พ.ศ.) + separate time field. Fixed 6 ค.ศ./en-US displays to th-TH (friends, CustomerPanel, ChatArea, LiveChatContext, audit, analytics). Added isoToYMD/isoToHM helpers (local components, avoid +07 off-by-one). Added 2 vitest files (19/19 pass); tsc + eslint clean on changed files.",
+  "priority_actions": [
+    "Run live Playwright visual verify of datepickers on Reports/Broadcast/Live-Chat-Analytics (needs dev server + admin login)",
+    "Optional: clear stale .next generated type error referencing app/preview-check/page (pre-existing, unrelated)"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/claude_code/session-summary-20260620-0812.md",
+  "cross_platform_read": []
+}

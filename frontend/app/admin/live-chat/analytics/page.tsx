@@ -8,6 +8,8 @@ import {
     Users, MessageSquare, Clock, CheckCircle
 } from 'lucide-react';
 import { logger } from '@/lib/logger';
+import CalendarPickerTH from '@/components/ui/CalendarPickerTH';
+import { isoToYMD } from '@/lib/utils';
 
 interface AnalyticsSummary {
     total_sessions: number;
@@ -76,18 +78,20 @@ export default function AnalyticsPage() {
                     <h1 className="text-2xl font-bold text-slate-800">Live Chat Analytics</h1>
                     <p className="text-slate-500 text-sm">monitor performance and team efficiency</p>
                 </div>
-                <div className="flex gap-2">
-                    <input
-                        type="date"
-                        className="px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40"
-                        onChange={(e) => setDateRange(prev => ({ ...prev, from: e.target.value }))}
-                    />
+                <div className="flex items-center gap-2">
+                    <div className="w-44">
+                        <CalendarPickerTH
+                            value={dateRange.from || null}
+                            onChange={(iso) => setDateRange(prev => ({ ...prev, from: isoToYMD(iso) }))}
+                        />
+                    </div>
                     <span className="self-center text-slate-400">-</span>
-                    <input
-                        type="date"
-                        className="px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40"
-                        onChange={(e) => setDateRange(prev => ({ ...prev, to: e.target.value }))}
-                    />
+                    <div className="w-44">
+                        <CalendarPickerTH
+                            value={dateRange.to || null}
+                            onChange={(iso) => setDateRange(prev => ({ ...prev, to: isoToYMD(iso) }))}
+                        />
+                    </div>
                 </div>
             </div>
 

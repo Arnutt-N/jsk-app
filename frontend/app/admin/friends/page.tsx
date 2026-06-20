@@ -175,10 +175,10 @@ export default function FriendsPage() {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-text-secondary">
-                                            {friend.friend_since ? new Date(friend.friend_since).toLocaleDateString() : '-'}
+                                            {friend.friend_since ? new Date(friend.friend_since).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' }) : '-'}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-text-secondary">
-                                            {friend.last_message_at ? new Date(friend.last_message_at).toLocaleString() : '-'}
+                                            {friend.last_message_at ? new Date(friend.last_message_at).toLocaleString('th-TH', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right">
                                         </td>

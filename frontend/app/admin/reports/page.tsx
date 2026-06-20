@@ -7,6 +7,8 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/Table';
 import PageHeader from '@/app/admin/components/PageHeader';
+import CalendarPickerTH from '@/components/ui/CalendarPickerTH';
+import { isoToYMD } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   ResponsiveContainer,
@@ -383,20 +385,20 @@ export default function ReportsPage() {
         </Button>
       ))}
       {datePreset === 'custom' && (
-        <div className="flex items-center gap-1">
-          <input
-            type="date"
-            value={customStart}
-            onChange={(e) => setCustomStart(e.target.value)}
-            className="text-xs border border-border-default rounded-lg px-2 py-1.5 bg-surface text-text-primary"
-          />
+        <div className="flex items-center gap-2">
+          <div className="w-44">
+            <CalendarPickerTH
+              value={customStart || null}
+              onChange={(iso) => setCustomStart(isoToYMD(iso))}
+            />
+          </div>
           <span className="text-text-tertiary text-xs">-</span>
-          <input
-            type="date"
-            value={customEnd}
-            onChange={(e) => setCustomEnd(e.target.value)}
-            className="text-xs border border-border-default rounded-lg px-2 py-1.5 bg-surface text-text-primary"
-          />
+          <div className="w-44">
+            <CalendarPickerTH
+              value={customEnd || null}
+              onChange={(iso) => setCustomEnd(isoToYMD(iso))}
+            />
+          </div>
         </div>
       )}
     </div>

@@ -1,14 +1,27 @@
 {
-  "last_updated": "2026-06-20T00:10:00Z",
+  "last_updated": "2026-06-20T08:12:00Z",
   "platform": "claude_code",
-  "current_task": "Phase 4 PR2 Phase A complete + PR #110 opened: Reply Objects template/text_v2 enum (uppercase migration verified vs live DB) + per-type payload validation + filter bug fix + LineFlexRenderer (recursiv",
+  "current_task": "Audit + fix Thai Buddhist-era (พ.ศ.) date input/display across all admin pages. CalendarPickerTH: added month grid (drill-down year→month→day) keeping typing + พ.ศ. validation. Replaced native datepic",
   "plan_status": "completed",
   "next_steps": [
-    "Wait for CI on PR #110 then squash merge",
-    "Phase B: type-specific editors (TemplateEditor/TextV2Editor/QuickReplyEditor) + MessagePreview 2-col modal wired into reply-objects/page.tsx (plan Tasks 4-5)",
-    "Follow-up: fix latent matchtype enum bug (migration added lowercase starts_with but SQLAlchemy expects STARTS_WITH)"
+    "Run live Playwright visual verify of datepickers on Reports/Broadcast/Live-Chat-Analytics (needs dev server + admin login)",
+    "Optional: clear stale .next generated type error referencing app/preview-check/page (pre-existing, unrelated)"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-06-20T08:12:00Z",
+      "platform": "claude_code",
+      "branch": "feat/reply-object-send-template-textv2",
+      "head": "87e3ef1",
+      "status": "completed"
+    },
+    {
+      "timestamp": "2026-06-20T06:32:00Z",
+      "platform": "claude_code",
+      "branch": "feat/reply-object-send-template-textv2",
+      "head": "6b1f593",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-06-20T00:10:00Z",
       "platform": "claude_code",
