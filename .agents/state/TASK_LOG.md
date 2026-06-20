@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 80 handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 81 handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-20 21:36 — claude_code — completed
+
+Established WSL bridge (Git Bash -> wsl bash -lc with venv_linux py3.13.12/pydantic2.12.5; files shared via /mnt/d; docker DB reachable) so backend CAN be validated from this Windows session. Implemented R1 Phase 1 on branch feat/rich-menu-switching-r1 (commit a48a130): RichMenuAreaAction Literal type + richMenuAliasId + model_validator(return self), RichMenuUpdate + alias schemas; 8 unit tests PASS via WSL pytest. Closes silent richmenuswitch bug.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260620-2136.json`
+- Summary: `project-log-md/claude_code/session-summary-20260620-2136.md`
+
+---
 
 ### 2026-06-20 19:44 — claude_code — completed
 
