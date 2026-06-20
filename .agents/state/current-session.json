@@ -1,14 +1,21 @@
 {
-  "last_updated": "2026-06-20T21:36:00Z",
+  "last_updated": "2026-06-20T22:36:00Z",
   "platform": "claude_code",
-  "current_task": "Established WSL bridge (Git Bash -> wsl bash -lc with venv_linux py3.13.12/pydantic2.12.5; files shared via /mnt/d; docker DB reachable) so backend CAN be validated from this Windows session. Implemen",
+  "current_task": "Fixed local alembic ghost-stamp blocker (alembic_version pinned to non-existent t0u1v2w3x4y5; alembic stamp/current both failed to resolve the phantom, so repaired via guarded raw UPDATE -> s9t0u1v2w3",
   "plan_status": "completed",
   "next_steps": [
-    "DECISION PENDING: continue R1 in this (expensive ~42) session vs fresh WSL session (recommended)",
-    "BLOCKER before Phase 2: local DB alembic is stamped to non-existent revision t0u1v2w3x4y5 (a plan-review agent ran the example migration). Fix: find real head in backend/alembic/versions/ then alembic stamp <head>, before creating the rich_menu_aliases migration",
-    "Remaining R1: Phase 2 (alias model+migration), 3 (alias service+endpoints), 5 (switch UI), 6.1 (alias mgmt UI), 7 (delete guard), 8 (tests) — code lives on feat/rich-menu-switching-r1, not main"
+    "Phase 3: alias service methods (update_alias = PUT not POST!) + endpoints (register literal /aliases BEFORE /{id:int} or FastAPI casts aliases->int)",
+    "Finish Phase 1 Task 1.2 leftover schemas in backend/app/schemas/rich_menu.py: BulkLinkRequest/BulkUnlinkRequest + userId Field(pattern=^U[0-9a-f]{32}$) + Annotated[List[str], Field(max_length=500)] (plain List max_length is silently ignored)",
+    "Remote Supabase alembic still at r8s9t0u1v2w3 (behind head s9t0u1v2w3x4) - at deploy run --target remote upgrade head (applies s9 then t0); never casually run migrations on remote"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-06-20T22:36:00Z",
+      "platform": "claude_code",
+      "branch": "feat/rich-menu-switching-r1",
+      "head": "e622941",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-06-20T21:36:00Z",
       "platform": "claude_code",
@@ -141,14 +148,6 @@
       "branch": "main",
       "head": "5a4f080",
       "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-14T16:02:00Z",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "51fdbcd",
-      "status": "completed",
-      "note": "handoff-system redesign"
     }
   ],
   "cross_platform_context": {

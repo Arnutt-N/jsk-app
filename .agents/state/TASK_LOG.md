@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 81 handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 82 handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-20 22:36 — claude_code — completed
+
+Fixed local alembic ghost-stamp blocker (alembic_version pinned to non-existent t0u1v2w3x4y5; alembic stamp/current both failed to resolve the phantom, so repaired via guarded raw UPDATE -> s9t0u1v2w3x4 real head). KEY: db_target --target local = backend/app/.env (docker localhost), --target remote = backend/.env (Supabase PROD - do not touch). Implemented R1 Phase 2 (commit e622941): RichMenuAlias + UserRichMenuLink models (FK rich_menus.id ondelete=RESTRICT, sync_status tracking), registered in app/models/__init__.py; manual migration t0u1v2w3x4y5 (down=s9t0u1v2w3x4) with per-table existence guards + unique indexes + FK RESTRICT; up/down/up cycle verified on local DB; 8 schema tests pass, 440 tests collect clean.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260620-2236.json`
+- Summary: `project-log-md/claude_code/session-summary-20260620-2236.md`
+
+---
 
 ### 2026-06-20 21:36 — claude_code — completed
 
