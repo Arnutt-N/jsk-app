@@ -159,6 +159,92 @@ class RichMenuService:
             response.raise_for_status()
             return response.json().get("aliases", [])
 
+    # ---- Per-user assignment (override the default menu for one user) ----
+
+    @staticmethod
+    async def link_to_user(
+        db: AsyncSession, line_user_id: str, line_rich_menu_id: str
+    ) -> Dict[str, Any]:
+        """Link a rich menu to a single user (overrides the default menu).
+
+        Uses the LINE rich menu id (string), NOT the local DB id.
+        """
+        headers = await RichMenuService.get_client_headers(db)
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{RichMenuService.API_BASE}/user/{line_user_id}/richmenu/{line_rich_menu_id}",
+                headers=headers,
+            )
+            response.raise_for_status()
+            return response.json() if response.content else {}
+
+    @staticmethod
+    async def unlink_from_user(db: AsyncSession, line_user_id: str) -> int:
+        """Remove a user's per-user rich menu, reverting them to the default menu.
+
+        404 is accepted: the user may already have no per-user menu (e.g. they
+        are on the default), which makes unlinking effectively idempotent.
+        """
+        headers = await RichMenuService.get_client_headers(db)
+        async with httpx.AsyncClient() as client:
+            response = await client.delete(
+                f"{RichMenuService.API_BASE}/user/{line_user_id}/richmenu",
+                headers=headers,
+            )
+            if response.status_code != 404:
+                response.raise_for_status()
+            return response.status_code
+
+    @staticmethod
+    async def get_user_rich_menu(
+        db: AsyncSession, line_user_id: str
+    ) -> Optional[Dict[str, Any]]:
+        """Get the rich menu currently linked to a user. None if the user has none (404)."""
+        headers = await RichMenuService.get_client_headers(db)
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{RichMenuService.API_BASE}/user/{line_user_id}/richmenu",
+                headers=headers,
+            )
+            if response.status_code == 404:
+                return None
+            response.raise_for_status()
+            return response.json()
+
+    @staticmethod
+    async def bulk_link(
+        db: AsyncSession, line_rich_menu_id: str, user_ids: List[str]
+    ) -> Dict[str, Any]:
+        """Link one rich menu to up to 500 users in a single call.
+
+        Body is a dict: {"richMenuId": ..., "userIds": [...]}.
+        """
+        headers = await RichMenuService.get_client_headers(db)
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{RichMenuService.API_BASE}/richmenu/bulk/link",
+                headers=headers,
+                json={"richMenuId": line_rich_menu_id, "userIds": user_ids},
+            )
+            response.raise_for_status()
+            return response.json() if response.content else {}
+
+    @staticmethod
+    async def bulk_unlink(db: AsyncSession, user_ids: List[str]) -> Dict[str, Any]:
+        """Unlink the per-user rich menu for up to 500 users in a single call.
+
+        Body is a dict with userIds only (no richMenuId): {"userIds": [...]}.
+        """
+        headers = await RichMenuService.get_client_headers(db)
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{RichMenuService.API_BASE}/richmenu/bulk/unlink",
+                headers=headers,
+                json={"userIds": user_ids},
+            )
+            response.raise_for_status()
+            return response.json() if response.content else {}
+
     @staticmethod
     async def update_sync_status(
         db: AsyncSession,
