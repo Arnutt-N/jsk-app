@@ -41,10 +41,11 @@ interface TemplateSelection {
 }
 
 interface MenuAction {
-    type: 'uri' | 'message';
+    type: 'uri' | 'message' | 'richmenuswitch';
     uri: string;
     label: string;
     text: string;
+    richMenuAliasId?: string;
 }
 
 interface ReplyObjectLite {
@@ -56,6 +57,12 @@ interface ReplyObjectLite {
 interface AutoReplyLite {
     id: number;
     name: string;
+}
+
+interface AliasLite {
+    id: number;
+    alias_id: string;
+    rich_menu_id: number;
 }
 
 const PRESET_TEMPLATES: TemplateGroup[] = [
@@ -224,6 +231,7 @@ export default function NewRichMenuPage() {
     const [actions, setActions] = useState<MenuAction[]>([]);
     const [replyObjects, setReplyObjects] = useState<ReplyObjectLite[]>([]);
     const [autoReplies, setAutoReplies] = useState<AutoReplyLite[]>([]);
+    const [aliases, setAliases] = useState<AliasLite[]>([]);
     const [file, setFile] = useState<File | null>(null);
     const [isSaving, setIsSaving] = useState(false);
 
@@ -248,12 +256,14 @@ export default function NewRichMenuPage() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [objRes, intentRes] = await Promise.all([
+                const [objRes, intentRes, aliasRes] = await Promise.all([
                     fetch(`${API_BASE}/admin/reply-objects`),
-                    fetch(`${API_BASE}/admin/intents/categories`)
+                    fetch(`${API_BASE}/admin/intents/categories`),
+                    fetch(`${API_BASE}/admin/rich-menus/aliases`)
                 ]);
                 if (objRes.ok) setReplyObjects((await objRes.json()) as ReplyObjectLite[]);
                 if (intentRes.ok) setAutoReplies((await intentRes.json()) as AutoReplyLite[]);
+                if (aliasRes.ok) setAliases((await aliasRes.json()) as AliasLite[]);
             } catch (error) {
                 logger.error("Data fetch failed", error);
             }
@@ -284,6 +294,13 @@ export default function NewRichMenuPage() {
     const handleSave = async (syncToLine: boolean = false) => {
         if (!form.name || !file || !selectedTemplate) {
             toast({ variant: 'warning', title: 'ข้อมูลไม่ครบถ้วน', description: 'กรุณากรอกชื่อ อัปโหลดรูปภาพ และเลือกเทมเพลต' });
+            return;
+        }
+
+        // A "switch menu" area must point at an alias; the backend rejects it
+        // otherwise (422), so guard here for a friendly message.
+        if (actions.some((a) => a.type === 'richmenuswitch' && !a.richMenuAliasId)) {
+            toast({ variant: 'warning', title: 'ยังไม่ได้เลือกเมนูปลายทาง', description: 'พื้นที่ที่ตั้งเป็น "สลับเมนู" ต้องเลือก alias ปลายทางก่อนบันทึก' });
             return;
         }
 
@@ -444,11 +461,12 @@ export default function NewRichMenuPage() {
                                         >
                                             <option value="uri">Open URL</option>
                                             <option value="message">Send Msg</option>
+                                            <option value="richmenuswitch">สลับเมนู</option>
                                         </select>
                                     </div>
 
                                     <div className="space-y-3">
-                                        {actions[i]?.type === 'uri' ? (
+                                        {actions[i]?.type === 'uri' && (
                                             <div className="space-y-1">
                                                 <label className="text-[10px] font-bold text-slate-400">WEBSITE URL</label>
                                                 <input
@@ -458,7 +476,8 @@ export default function NewRichMenuPage() {
                                                     placeholder="https://"
                                                 />
                                             </div>
-                                        ) : (
+                                        )}
+                                        {actions[i]?.type === 'message' && (
                                             <div className="grid grid-cols-1 gap-3">
                                                 <div className="space-y-1">
                                                     <label className="text-[10px] font-bold text-slate-400">TEXT / PAYLOAD</label>
@@ -491,6 +510,30 @@ export default function NewRichMenuPage() {
                                                         </optgroup>
                                                     </select>
                                                 </div>
+                                            </div>
+                                        )}
+                                        {actions[i]?.type === 'richmenuswitch' && (
+                                            <div className="space-y-1">
+                                                <label className="text-[10px] font-bold text-slate-400">สลับไปที่เมนู (ALIAS)</label>
+                                                {aliases.length === 0 ? (
+                                                    <p className="text-[11px] text-amber-600 leading-snug">
+                                                        ยังไม่มี alias —{' '}
+                                                        <Link href="/admin/rich-menus" className="underline font-bold hover:text-amber-700">
+                                                            สร้าง alias ก่อน
+                                                        </Link>
+                                                    </p>
+                                                ) : (
+                                                    <select
+                                                        className="w-full text-sm bg-white border border-slate-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-primary/20 outline-none cursor-pointer"
+                                                        value={actions[i]?.richMenuAliasId || ''}
+                                                        onChange={(e) => handleActionChange(i, 'richMenuAliasId', e.target.value)}
+                                                    >
+                                                        <option value="">-- เลือก alias --</option>
+                                                        {aliases.map((a) => (
+                                                            <option key={a.id} value={a.alias_id}>{a.alias_id}</option>
+                                                        ))}
+                                                    </select>
+                                                )}
                                             </div>
                                         )}
                                     </div>

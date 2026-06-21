@@ -13,6 +13,7 @@ from app.models.user import User
 from app.schemas.rich_menu import (
     RichMenuResponse,
     RichMenuCreate,
+    RichMenuUpdate,
     RichMenuAliasCreate,
     RichMenuAliasUpdate,
     RichMenuAliasResponse,
@@ -380,26 +381,30 @@ async def get_rich_menu(id: int, db: AsyncSession = Depends(get_db), current_adm
     return rich_menu
 
 @router.put("/{id}", response_model=RichMenuResponse)
-async def update_rich_menu(id: int, data: RichMenuCreate, db: AsyncSession = Depends(get_db), current_admin: User = Depends(require_permission(KEY_MANAGE_RICH_MENUS))):
+async def update_rich_menu(id: int, data: RichMenuUpdate, db: AsyncSession = Depends(get_db), current_admin: User = Depends(require_permission(KEY_MANAGE_RICH_MENUS))):
     result = await db.execute(select(RichMenu).where(RichMenu.id == id))
     rich_menu = result.scalar_one_or_none()
     if not rich_menu:
         raise HTTPException(status_code=404, detail="Rich Menu not found")
-    
+
     # Update fields
     rich_menu.name = data.name
     rich_menu.chat_bar_text = data.chat_bar_text
-    
-    # Update config
+
+    # Update config. The canvas size (layout) is fixed at creation time, so the
+    # edit payload (RichMenuUpdate) intentionally omits template_type. Preserve
+    # the size already stored in config instead of re-deriving it; fall back to
+    # the large default only if a legacy record has no size recorded.
+    existing_size = (rich_menu.config or {}).get("size") or resolve_rich_menu_size("")
     line_config = {
-        "size": resolve_rich_menu_size(data.template_type),
+        "size": existing_size,
         "selected": False,
         "name": data.name,
         "chatBarText": data.chat_bar_text,
         "areas": [area.model_dump() for area in data.areas]
     }
     rich_menu.config = line_config
-    
+
     await db.commit()
     await db.refresh(rich_menu)
     return rich_menu

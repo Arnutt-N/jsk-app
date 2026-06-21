@@ -17,7 +17,14 @@ interface RichMenuArea {
         text?: string;
         data?: string;
         displayText?: string;
+        richMenuAliasId?: string;
     };
+}
+
+interface AliasLite {
+    id: number;
+    alias_id: string;
+    rich_menu_id: number;
 }
 
 interface RichMenu {
@@ -45,6 +52,7 @@ export default function EditRichMenuPage() {
     const [name, setName] = useState('');
     const [chatBarText, setChatBarText] = useState('');
     const [areas, setAreas] = useState<RichMenuArea[]>([]);
+    const [aliases, setAliases] = useState<AliasLite[]>([]);
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -79,6 +87,28 @@ export default function EditRichMenuPage() {
         fetchMenu();
     }, [fetchMenu]);
 
+    // Aliases populate the "switch menu" action dropdown. Plain fetch is enough —
+    // the rich-menus pages get their token injected by the authFetch interceptor.
+    useEffect(() => {
+        const fetchAliases = async () => {
+            try {
+                const res = await fetch(`${API_BASE}/admin/rich-menus/aliases`);
+                if (res.ok) setAliases((await res.json()) as AliasLite[]);
+            } catch (error) {
+                logger.error('Failed to fetch aliases', error);
+            }
+        };
+        fetchAliases();
+    }, [API_BASE]);
+
+    const handleAreaActionChange = (index: number, field: string, value: string) => {
+        setAreas((prev) =>
+            prev.map((area, i) =>
+                i === index ? { ...area, action: { ...area.action, [field]: value } } : area
+            )
+        );
+    };
+
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
@@ -88,6 +118,13 @@ export default function EditRichMenuPage() {
     };
 
     const handleSave = async () => {
+        // A "switch menu" area must point at an alias; the backend rejects it
+        // otherwise (422), so guard here for a friendly message.
+        if (areas.some((a) => a.action?.type === 'richmenuswitch' && !a.action?.richMenuAliasId)) {
+            toast({ variant: 'warning', title: 'ยังไม่ได้เลือกเมนูปลายทาง', description: 'พื้นที่ที่ตั้งเป็น "สลับเมนู" ต้องเลือก alias ปลายทางก่อนบันทึก' });
+            return;
+        }
+
         setSaving(true);
         try {
             // Update menu details
@@ -217,6 +254,82 @@ export default function EditRichMenuPage() {
                         <p className="text-xs text-slate-400 mt-2">รองรับ JPEG, PNG ขนาด 2500x1686 px</p>
                     </div>
                 </div>
+
+                {/* Area Actions */}
+                {areas.length > 0 && (
+                    <div className="space-y-4 pt-4 border-t border-slate-100">
+                        <div>
+                            <h3 className="text-sm font-bold text-slate-600">Area Actions</h3>
+                            <p className="text-xs text-slate-400 mt-0.5">กำหนดปลายทางของแต่ละพื้นที่บนเมนู</p>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {areas.map((area, i) => (
+                                <div key={i} className="p-4 bg-slate-50/60 rounded-xl border border-slate-200/60 space-y-3">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-xs font-bold text-slate-500 uppercase">
+                                            พื้นที่ {i + 1}
+                                        </span>
+                                        <select
+                                            value={area.action?.type || 'uri'}
+                                            onChange={(e) => handleAreaActionChange(i, 'type', e.target.value)}
+                                            className="text-xs bg-white border border-slate-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-primary/20 outline-none cursor-pointer"
+                                        >
+                                            <option value="uri">Open URL</option>
+                                            <option value="message">Send Msg</option>
+                                            <option value="richmenuswitch">สลับเมนู</option>
+                                        </select>
+                                    </div>
+
+                                    {area.action?.type === 'uri' && (
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-bold text-slate-400">WEBSITE URL</label>
+                                            <input
+                                                className="w-full text-sm bg-white border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary/20 outline-none"
+                                                value={area.action?.uri || ''}
+                                                onChange={(e) => handleAreaActionChange(i, 'uri', e.target.value)}
+                                                placeholder="https://"
+                                            />
+                                        </div>
+                                    )}
+                                    {area.action?.type === 'message' && (
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-bold text-slate-400">TEXT / PAYLOAD</label>
+                                            <input
+                                                className="w-full text-sm bg-white border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary/20 outline-none"
+                                                value={area.action?.text || ''}
+                                                onChange={(e) => handleAreaActionChange(i, 'text', e.target.value)}
+                                            />
+                                        </div>
+                                    )}
+                                    {area.action?.type === 'richmenuswitch' && (
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-bold text-slate-400">สลับไปที่เมนู (ALIAS)</label>
+                                            {aliases.length === 0 ? (
+                                                <p className="text-[11px] text-amber-600 leading-snug">
+                                                    ยังไม่มี alias —{' '}
+                                                    <Link href="/admin/rich-menus" className="underline font-bold hover:text-amber-700">
+                                                        สร้าง alias ก่อน
+                                                    </Link>
+                                                </p>
+                                            ) : (
+                                                <select
+                                                    className="w-full text-sm bg-white border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary/20 outline-none cursor-pointer"
+                                                    value={area.action?.richMenuAliasId || ''}
+                                                    onChange={(e) => handleAreaActionChange(i, 'richMenuAliasId', e.target.value)}
+                                                >
+                                                    <option value="">-- เลือก alias --</option>
+                                                    {aliases.map((a) => (
+                                                        <option key={a.id} value={a.alias_id}>{a.alias_id}</option>
+                                                    ))}
+                                                </select>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 {/* Action Buttons */}
                 <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
