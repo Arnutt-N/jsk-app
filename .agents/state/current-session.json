@@ -1,14 +1,20 @@
 {
-  "last_updated": "2026-06-21T19:06:00Z",
+  "last_updated": "2026-06-21T20:21:00+07:00",
   "platform": "claude_code",
-  "current_task": "Session complete - R1/R2 rich-menu-switching (incl Task 6.2 per-user assignment UI) MERGED to main via PR #114 (merge commit 3a90f4d). Flow: built Task 6.2 (backend read-enrichment user_link_count + f",
+  "current_task": "Hardened the .agents handoff system (branch chore/handoff-system-hardening, code commit 8b7f778): (1) fixed the checkpoint timestamp timezone bug — local time now carries the real UTC offset (+07:00) ",
   "plan_status": "completed",
   "next_steps": [
-    "Verify BACKEND prod deployment has the new Task 6.2 code (per-user endpoints + read enrichment) - Vercel deployed only the Next.js FRONTEND; FastAPI backend deploys separately and cd.yml auto-deploy is in disabled Actions",
-    "Smoke test on prod: open /admin/friends, assign a rich menu (single + bulk), confirm full loop frontend<->backend<->DB works end to end",
-    "Manual/E2E: verify 409 on unsynced menu, and that a richmenuswitch area survives sync to LINE (RichMenuService builds correct LINE action shape from richMenuAliasId)"
+    "Open a PR for chore/handoff-system-hardening; merge after CI (frontend lint/build, backend pytest, Source Encoding Scan) is green",
+    "When checkpoints age past ~6 months, run: node .agents/scripts/archive-checkpoints.cjs --months 6 --apply (then commit the moves)"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-06-21T20:21:00+07:00",
+      "platform": "claude_code",
+      "branch": "chore/handoff-system-hardening",
+      "head": "8b7f778",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-06-21T19:06:00Z",
       "platform": "claude_code",
@@ -140,13 +146,6 @@
       "platform": "claude_code",
       "branch": "feat/reply-object-send-template-textv2",
       "head": "6b1f593",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-20T00:10:00Z",
-      "platform": "claude_code",
-      "branch": "feat/phase4-pr2-reply-objects",
-      "head": "a43fc57",
       "status": "completed"
     }
   ],

@@ -1,0 +1,17 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-06-21T20:21:00+07:00",
+  "branch": "chore/handoff-system-hardening",
+  "head_commit": "8b7f778",
+  "status": "completed",
+  "work_summary": "Hardened the .agents handoff system (branch chore/handoff-system-hardening, code commit 8b7f778): (1) fixed the checkpoint timestamp timezone bug — local time now carries the real UTC offset (+07:00) instead of a fake trailing Z; (2) purged v1 documentation drift across handoff-to-any.md + start-here + pickup + quick-card + onboarding and rewrote 3 skills (agent_handover, agent_pickup, cross_platform_collaboration) so agents stop hand-editing generated files; (3) made validation automatic — handoff-new auto-runs validate_handoff_state.py, and handoff-stop-check is now a 2-gate (git freshness + state consistency) fail-open check; (4) added archive-checkpoints.cjs to keep TASK_LOG/SESSION_INDEX bounded, with the generator surfacing the archived count. 15 files, net -762 lines. This very handoff dogfoods the new code.",
+  "priority_actions": [
+    "Open a PR for chore/handoff-system-hardening; merge after CI (frontend lint/build, backend pytest, Source Encoding Scan) is green",
+    "When checkpoints age past ~6 months, run: node .agents/scripts/archive-checkpoints.cjs --months 6 --apply (then commit the moves)"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/claude_code/session-summary-20260621-2021.md",
+  "cross_platform_read": []
+}
