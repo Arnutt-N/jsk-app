@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 89 handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 90 handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-21 17:33 — claude_code — completed
+
+R1/R2 Phase 6.2 reviewed+fixed (commits 8ed4196 feat, 2ce0857 fix): per-user rich menu assignment UI (per-row modal + bulk toolbar) + user_link_count badge + current-menu column. Self-review (ecc reviewer agents failed on transient API ConnectionRefused) found 1 MEDIUM: bulk selection lingered across status-filter refetch -> fixed by clearing selection on statusFilter change. Local CI full-pass: backend 499 pytest, frontend lint 0-err + vitest 161 + next build OK, encoding 466 clean. Pushed; opening PR to main next.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260621-1733.json`
+- Summary: `project-log-md/claude_code/session-summary-20260621-1733.md`
+
+---
 
 ### 2026-06-21 16:15 — claude_code — completed
 
