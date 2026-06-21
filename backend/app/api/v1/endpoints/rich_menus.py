@@ -60,7 +60,24 @@ def resolve_rich_menu_size(template_type: str) -> dict:
 @router.get("", response_model=List[RichMenuResponse])
 async def list_rich_menus(db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_admin)):
     result = await db.execute(select(RichMenu).order_by(RichMenu.created_at.desc()))
-    return result.scalars().all()
+    menus = result.scalars().all()
+
+    # Batch-count per-user links grouped by rich_menu_id in ONE query (avoids
+    # N+1), then enrich each menu — mirrors the refollow_count enrichment in
+    # admin_friends.list_friends. Menus with no links default to 0.
+    counts_result = await db.execute(
+        select(UserRichMenuLink.rich_menu_id, func.count()).group_by(
+            UserRichMenuLink.rich_menu_id
+        )
+    )
+    link_counts = {rich_menu_id: count for rich_menu_id, count in counts_result.all()}
+
+    enriched = []
+    for menu in menus:
+        data = RichMenuResponse.model_validate(menu).model_dump()
+        data["user_link_count"] = link_counts.get(menu.id, 0)
+        enriched.append(data)
+    return enriched
 
 # ---- Rich Menu Aliases (tab switching via `richmenuswitch`) ----
 # IMPORTANT: these literal "/aliases" routes MUST be declared BEFORE "/{id}" so

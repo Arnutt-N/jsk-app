@@ -7,6 +7,7 @@ from app.api.deps import get_current_admin
 from app.models.user import User
 from app.schemas.friend import FriendListResponse, FriendResponse
 from app.services.friend_service import friend_service
+from app.services.rich_menu_service import RichMenuService
 from app.schemas.friend_event import (
     FriendEventListResponse,
     FriendEventListWithUserResponse,
@@ -40,11 +41,16 @@ async def list_friends(
     # Scope refollow counts to current page only
     line_user_ids = [f.line_user_id for f in friends if f.line_user_id]
     refollow_counts = await friend_service.get_user_refollow_counts(db, line_user_ids=line_user_ids)
+    # Current per-user rich menu binding per friend (same page scope).
+    rich_menu_links = await RichMenuService.get_current_links_for_users(db, line_user_ids)
 
     friend_list = []
     for friend in friends:
         data = FriendResponse.model_validate(friend).model_dump()
         data["refollow_count"] = refollow_counts.get(friend.line_user_id, 0)
+        link = rich_menu_links.get(friend.line_user_id)
+        data["rich_menu_id"] = link["rich_menu_id"] if link else None
+        data["rich_menu_name"] = link["rich_menu_name"] if link else None
         friend_list.append(data)
     return {
         "friends": friend_list,

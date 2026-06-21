@@ -4,6 +4,7 @@ from typing import List, Dict, Any, Optional
 import httpx
 from datetime import datetime, timezone
 from app.models.rich_menu import RichMenu, RichMenuStatus
+from app.models.user_rich_menu_link import UserRichMenuLink
 from app.services.settings_service import SettingsService
 import os
 
@@ -17,6 +18,37 @@ class RichMenuService:
         return {
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json"
+        }
+
+    @staticmethod
+    async def get_current_links_for_users(
+        db: AsyncSession, line_user_ids: List[str]
+    ) -> Dict[str, Dict[str, Any]]:
+        """Map each given line_user_id to its current rich menu {id, name}.
+
+        Joins user_rich_menu_links -> rich_menus so a friends-list page can show
+        which menu each user is bound to. Users with no per-user link are simply
+        absent from the result (the caller treats absence as "on the default
+        menu"). Scoped to the passed ids (one page) so we never scan the whole
+        table.
+        """
+        if not line_user_ids:
+            return {}
+        result = await db.execute(
+            select(
+                UserRichMenuLink.line_user_id.label("line_user_id"),
+                RichMenu.id.label("rich_menu_id"),
+                RichMenu.name.label("rich_menu_name"),
+            )
+            .join(RichMenu, RichMenu.id == UserRichMenuLink.rich_menu_id)
+            .where(UserRichMenuLink.line_user_id.in_(line_user_ids))
+        )
+        return {
+            row.line_user_id: {
+                "rich_menu_id": row.rich_menu_id,
+                "rich_menu_name": row.rich_menu_name,
+            }
+            for row in result.all()
         }
 
     @staticmethod

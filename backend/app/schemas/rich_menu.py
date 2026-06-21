@@ -109,5 +109,8 @@ class RichMenuResponse(BaseModel):
     last_sync_error: Optional[str]
     created_at: datetime
     updated_at: Optional[datetime]
+    # Number of users currently bound to this menu (rows in user_rich_menu_links).
+    # Populated by the list endpoint via a grouped count; defaults to 0.
+    user_link_count: int = 0
 
     model_config = ConfigDict(from_attributes=True)
