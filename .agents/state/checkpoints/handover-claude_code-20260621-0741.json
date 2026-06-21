@@ -1,0 +1,18 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-06-21T07:41:00Z",
+  "branch": "feat/rich-menu-switching-r1",
+  "head_commit": "c203aac",
+  "status": "completed",
+  "work_summary": "R1/R2 backend complete: Phase 4 (per-user rich menu link/unlink/bulk service + endpoints, cbf38be) + Phase 7 (delete guard + GET /{id}/dependencies endpoint, c203aac). Full TDD (RED-GREEN) + code/security review. Backend for rich-menu switching+per-user now 100% done; 491 tests pass (+28 today, 0 regression).",
+  "priority_actions": [
+    "Phase 5 (frontend): richmenuswitch action + alias dropdown in rich-menus new/edit pages",
+    "Phase 6 (frontend): alias management UI + per-user assignment UI on friends page + 'X users' badge",
+    "Run alembic upgrade head on local+remote for migration t0u1v2w3x4y5 before frontend wiring"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/claude_code/session-summary-20260621-0741.md",
+  "cross_platform_read": []
+}

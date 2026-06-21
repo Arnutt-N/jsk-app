@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-06-21 01:37 by Claude Code (R1 Phase 1.2 + Phase 8 done on feat/rich-menu-switching-r1.)
+> **Last Updated:** 2026-06-21 07:41 by Claude Code (R1/R2 backend complete: Phase 4 per-user rich menu link/unlink/bulk service + endpoints, c)
 
 ## Thai Summary
 แผนการปรับปรุง UX และ Error Handling **เสร็จสมบูรณ์ 100%** — ฟีเจอร์ Undo/Redo, Help System และ Error Handling ใหม่ถูก merge เข้าสู่ main แล้ว
@@ -46,6 +46,7 @@
 - [2026-06-03] All changes from PR #78 merged to `main`. Branch `feat/undo-redo-help-error-handling` is ready for deletion.
 
 ## Recent Completions
+- [2026-06-21 07:41] Claude Code: R1/R2 backend complete: Phase 4 (per-user rich menu link/unlink/bulk service + endpoints, cbf38be) + Phase 7 (delete guard + GET /{id}/dependencies endpoint, c203aac). Full TDD (RED-GREEN) + code/security review. Backend for rich-menu switc (Claude Code)
 - [2026-06-21 01:37] Claude Code: R1 Phase 1.2 + Phase 8 done on feat/rich-menu-switching-r1. Phase 1.2 (commit f3084fd): BulkLinkRequest + BulkUnlinkRequest in schemas/rich_menu.py for Phase 4 bulk per-user; userId validated per-element ^U[0-9a-f]{32}$ via LineUserId alias (Claude Code)
 - [2026-06-20 23:43] Claude Code: Session close: R1 Rich Menu backend complete through Phase 3 on feat/rich-menu-switching-r1. 1. Fixed local alembic ghost-stamp blocker: alembic_version pinned to non-existent t0u1v2w3x4y5; both alembic stamp and current failed to resolve t (Claude Code)
 - [2026-06-20 23:08] Claude Code: R1 Phase 3 done (commit 43205ea): RichMenuService alias methods create_alias_on_line/update_alias_on_line(PUT!)/delete_alias_on_line(404-safe)/list_aliases_from_line (raw httpx, returns .get('aliases',[])). rich_menus.py: GET/POST/PUT/DELET (Claude Code)

@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 85 handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 86 handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-21 07:41 — claude_code — completed
+
+R1/R2 backend complete: Phase 4 (per-user rich menu link/unlink/bulk service + endpoints, cbf38be) + Phase 7 (delete guard + GET /{id}/dependencies endpoint, c203aac). Full TDD (RED-GREEN) + code/security review. Backend for rich-menu switching+per-user now 100% done; 491 tests pass (+28 today, 0 regression).
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260621-0741.json`
+- Summary: `project-log-md/claude_code/session-summary-20260621-0741.md`
+
+---
 
 ### 2026-06-21 01:37 — claude_code — completed
 
