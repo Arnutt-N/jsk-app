@@ -1,8 +1,107 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 80 handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 91 handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-21 18:22 — claude_code — completed
+
+R1/R2 Phase 6.2 reviewed+polished (PR #114, commits 8ed4196 feat, 2ce0857 selection fix, 7075a25 review feedback): per-user rich menu assignment UI. Retried ecc:fastapi-reviewer + ecc:react-reviewer (1st attempt failed on transient API ConnectionRefused) - applied 6 real findings (model-instance serialization, explicit test mock, indeterminate select-all via Checkbox component, prev-derived toggle, fetchRichMenus log, modal label htmlFor); skipped pre-existing role=link / idiomatic void props / memoization. /ecc:security-scan (AgentShield) found nothing in Task 6.2 (only example/.vscode configs). Verified: pytest 3 pass + full suite 499 earlier, eslint 0-err, tsc clean.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260621-1822.json`
+- Summary: `project-log-md/claude_code/session-summary-20260621-1822.md`
+
+---
+
+### 2026-06-21 17:33 — claude_code — completed
+
+R1/R2 Phase 6.2 reviewed+fixed (commits 8ed4196 feat, 2ce0857 fix): per-user rich menu assignment UI (per-row modal + bulk toolbar) + user_link_count badge + current-menu column. Self-review (ecc reviewer agents failed on transient API ConnectionRefused) found 1 MEDIUM: bulk selection lingered across status-filter refetch -> fixed by clearing selection on statusFilter change. Local CI full-pass: backend 499 pytest, frontend lint 0-err + vitest 161 + next build OK, encoding 466 clean. Pushed; opening PR to main next.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260621-1733.json`
+- Summary: `project-log-md/claude_code/session-summary-20260621-1733.md`
+
+---
+
+### 2026-06-21 16:15 — claude_code — completed
+
+R1/R2 Phase 6.2 done (commit 8ed4196): per-user rich menu assignment UI on friends page - per-row assign modal (single) + checkbox bulk toolbar (bulk-link/bulk-unlink) + current-menu column; user_link_count 'X users' badge on rich-menus list; backend reads enriched (GET /admin/rich-menus +user_link_count grouped count, GET /admin/friends +rich_menu_id/name page-scoped JOIN). +2 pytest (499 pass), tsc clean, eslint clean on changed files. New component RichMenuAssignModal (key-remount picker, manual useAuth headers).
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260621-1615.json`
+- Summary: `project-log-md/claude_code/session-summary-20260621-1615.md`
+
+---
+
+### 2026-06-21 10:56 — claude_code — completed
+
+R1 Phase 6.1 done (commit 3360bbb): alias management UI at /admin/rich-menus/aliases (list + create with alias_id pattern/synced-target validation + per-row re-point PUT + delete ConfirmDialog) and an 'Aliases' link button on the rich-menus list header. Closes the Phase 5 switch-menu loop (the richmenuswitch dropdown's 'create alias first' empty-state now has a real page). tsc clean, eslint 0 errors on rich-menus. Phase 5 already shipped earlier this session (commit 044b779, 497 backend tests).
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260621-1056.json`
+- Summary: `project-log-md/claude_code/session-summary-20260621-1056.md`
+
+---
+
+### 2026-06-21 10:09 — claude_code — completed
+
+R1 Phase 5 done (commit 044b779): richmenuswitch switch-action UI on new+edit rich-menu pages + PUT edit-save fix (PUT /{id} now uses RichMenuUpdate, preserves stored canvas size instead of re-deriving from template_type, fixes latent 422). Local DB migration t0u1v2w3x4y5 verified already applied (both tables exist with correct FK RESTRICT + unique indexes). 497 backend tests pass (+6 today: test_rich_menu_update_endpoint.py), tsc/lint clean on rich-menus, vitest 161 pass. No regression.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260621-1009.json`
+- Summary: `project-log-md/claude_code/session-summary-20260621-1009.md`
+
+---
+
+### 2026-06-21 07:41 — claude_code — completed
+
+R1/R2 backend complete: Phase 4 (per-user rich menu link/unlink/bulk service + endpoints, cbf38be) + Phase 7 (delete guard + GET /{id}/dependencies endpoint, c203aac). Full TDD (RED-GREEN) + code/security review. Backend for rich-menu switching+per-user now 100% done; 491 tests pass (+28 today, 0 regression).
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260621-0741.json`
+- Summary: `project-log-md/claude_code/session-summary-20260621-0741.md`
+
+---
+
+### 2026-06-21 01:37 — claude_code — completed
+
+R1 Phase 1.2 + Phase 8 done on feat/rich-menu-switching-r1. Phase 1.2 (commit f3084fd): BulkLinkRequest + BulkUnlinkRequest in schemas/rich_menu.py for Phase 4 bulk per-user; userId validated per-element ^U[0-9a-f]{32}$ via LineUserId alias; list capped 1..500 via Annotated[List[...], Field(min_length=1,max_length=500)] (plain Field max_length on List[str] is silently ignored by Pydantic v2); 10 schema unit tests. Phase 8 (commit 3c90957): 8 TestClient integration tests for alias endpoints - route ordering (/aliases not cast to int), 401 no-token, 403 AGENT, 404 missing rich menu/alias, 409 not-synced and duplicate; sequenced fake DB + dependency_overrides, no live DB/LINE. Full suite 463 passed (was 445; +10 schema +8 endpoint), no regression.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260621-0137.json`
+- Summary: `project-log-md/claude_code/session-summary-20260621-0137.md`
+
+---
+
+### 2026-06-20 23:43 — claude_code — completed
+
+Session close: R1 Rich Menu backend complete through Phase 3 on feat/rich-menu-switching-r1. 1. Fixed local alembic ghost-stamp blocker: alembic_version pinned to non-existent t0u1v2w3x4y5; both alembic stamp and current failed to resolve the phantom, repaired via guarded raw UPDATE to s9t0u1v2w3x4 real head. Discovered db_target target-local = backend/app/.env docker localhost, target-remote = backend/.env Supabase PROD, default env no ENV_FILE loads PROD - saved to memory. 2. Phase 2 commit e622941: RichMenuAlias + UserRichMenuLink models, FK rich_menus.id ondelete RESTRICT, sync_status, migration t0u1v2w3x4y5 per-table guards + unique indexes, up-down-up verified local. 3. Phase 3 commit 43205ea: RichMenuService alias methods create, update-PUT-not-POST, delete-404safe, list, plus GET POST PUT DELETE /aliases endpoints declared BEFORE /id route-order fix, auth + 409 synced and duplicate guards + local cache. 13 unit tests pass, 445 collect clean.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260620-2343.json`
+- Summary: `project-log-md/claude_code/session-summary-20260620-2343.md`
+
+---
+
+### 2026-06-20 23:08 — claude_code — completed
+
+R1 Phase 3 done (commit 43205ea): RichMenuService alias methods create_alias_on_line/update_alias_on_line(PUT!)/delete_alias_on_line(404-safe)/list_aliases_from_line (raw httpx, returns .get('aliases',[])). rich_menus.py: GET/POST/PUT/DELETE /aliases endpoints declared BEFORE /{id} (route-order fix), auth get_current_admin read + require_permission(KEY_MANAGE_RICH_MENUS) write, synced-guard 409 + duplicate 409 + local rich_menu_aliases cache. 5 new service unit tests (mock httpx via unittest.mock - no respx/pytest-httpx in venv) + 8 schema pass; 445 tests collect clean.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260620-2308.json`
+- Summary: `project-log-md/claude_code/session-summary-20260620-2308.md`
+
+---
+
+### 2026-06-20 22:36 — claude_code — completed
+
+Fixed local alembic ghost-stamp blocker (alembic_version pinned to non-existent t0u1v2w3x4y5; alembic stamp/current both failed to resolve the phantom, so repaired via guarded raw UPDATE -> s9t0u1v2w3x4 real head). KEY: db_target --target local = backend/app/.env (docker localhost), --target remote = backend/.env (Supabase PROD - do not touch). Implemented R1 Phase 2 (commit e622941): RichMenuAlias + UserRichMenuLink models (FK rich_menus.id ondelete=RESTRICT, sync_status tracking), registered in app/models/__init__.py; manual migration t0u1v2w3x4y5 (down=s9t0u1v2w3x4) with per-table existence guards + unique indexes + FK RESTRICT; up/down/up cycle verified on local DB; 8 schema tests pass, 440 tests collect clean.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260620-2236.json`
+- Summary: `project-log-md/claude_code/session-summary-20260620-2236.md`
+
+---
+
+### 2026-06-20 21:36 — claude_code — completed
+
+Established WSL bridge (Git Bash -> wsl bash -lc with venv_linux py3.13.12/pydantic2.12.5; files shared via /mnt/d; docker DB reachable) so backend CAN be validated from this Windows session. Implemented R1 Phase 1 on branch feat/rich-menu-switching-r1 (commit a48a130): RichMenuAreaAction Literal type + richMenuAliasId + model_validator(return self), RichMenuUpdate + alias schemas; 8 unit tests PASS via WSL pytest. Closes silent richmenuswitch bug.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260620-2136.json`
+- Summary: `project-log-md/claude_code/session-summary-20260620-2136.md`
+
+---
 
 ### 2026-06-20 19:44 — claude_code — completed
 

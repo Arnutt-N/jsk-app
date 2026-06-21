@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Plus, SquarePen, Trash2 } from 'lucide-react';
+import { Plus, SquarePen, Trash2, Link2, Users } from 'lucide-react';
 import { AdminTableHead, type AdminTableHeadColumn } from '@/components/admin/AdminTableHead';
 import PageHeader from '@/app/admin/components/PageHeader';
 import { Button } from '@/components/ui/Button';
@@ -21,6 +21,8 @@ interface RichMenu {
     status: string;
     image_path: string | null;
     created_at: string;
+    // Count of users bound to this menu via per-user assignment (Task 6.2).
+    user_link_count?: number;
 }
 
 export default function RichMenuListPage() {
@@ -119,11 +121,18 @@ export default function RichMenuListPage() {
         <div className="space-y-6 animate-in fade-in duration-500 thai-text">
             {/* Header Section */}
             <PageHeader title="Rich Menus" subtitle="จัดการเมนู LINE Official Account">
-                <Link href="/admin/rich-menus/new">
-                    <Button size="sm" leftIcon={<Plus className="w-4 h-4" />}>
-                        New Menu
-                    </Button>
-                </Link>
+                <div className="flex items-center gap-2">
+                    <Link href="/admin/rich-menus/aliases">
+                        <Button size="sm" variant="ghost" leftIcon={<Link2 className="w-4 h-4" />}>
+                            Aliases
+                        </Button>
+                    </Link>
+                    <Link href="/admin/rich-menus/new">
+                        <Button size="sm" leftIcon={<Plus className="w-4 h-4" />}>
+                            New Menu
+                        </Button>
+                    </Link>
+                </div>
             </PageHeader>
 
             {loading ? (
@@ -170,6 +179,14 @@ export default function RichMenuListPage() {
                                             <span className="italic">&quot;{menu.chat_bar_text}&quot;</span>
                                         </div>
                                         <div className="text-[10px] text-text-tertiary mt-1 font-mono">{menu.line_rich_menu_id || 'LOCAL_ONLY'}</div>
+                                        {(menu.user_link_count ?? 0) > 0 && (
+                                            <div className="mt-1.5">
+                                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400">
+                                                    <Users className="w-3 h-3" />
+                                                    {menu.user_link_count} ผู้ใช้
+                                                </span>
+                                            </div>
+                                        )}
                                     </td>
                                     <td className="px-5 py-4 text-center">
                                         <span className={`px-2.5 py-1 text-[10px] font-bold rounded-full border ${menu.status === 'PUBLISHED'

@@ -13,6 +13,10 @@ class FriendResponse(BaseModel):
     last_message_at: Optional[datetime] = None
     chat_mode: str
     refollow_count: int = 0
+    # Current per-user rich menu binding (null when the user is on the default
+    # menu). Populated by the list endpoint from user_rich_menu_links.
+    rich_menu_id: Optional[int] = None
+    rich_menu_name: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True, use_enum_values=True)
 

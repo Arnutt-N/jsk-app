@@ -1,0 +1,20 @@
+# Session Summary — claude_code — 2026-06-21T10:56:00Z
+
+**Branch**: `feat/rich-menu-switching-r1`  **HEAD**: `3360bbb`
+**Checkpoint**: `.agents/state/checkpoints/handover-claude_code-20260621-1056.json`
+
+## Objective
+R1 Phase 6.1 done (commit 3360bbb): alias management UI at /admin/rich-menus/aliases (list + create with alias_id pattern/synced-target validation + per-row re-point PUT + delete ConfirmDialog) and an 'Aliases' link button on the rich-menus list header. Closes the Phase 5 switch-menu loop (the richmenuswitch dropdown's 'create alias first' empty-state now has a real page). tsc clean, eslint 0 errors on rich-menus. Phase 5 already shipped earlier this session (commit 044b779, 497 backend tests).
+
+## Completed
+- R1 Phase 6.1 done (commit 3360bbb): alias management UI at /admin/rich-menus/aliases (list + create with alias_id pattern/synced-target validation + per-row re-point PUT + delete ConfirmDialog) and an 'Aliases' link button on the rich-menus list header. Closes the Phase 5 switch-menu loop (the richmenuswitch dropdown's 'create alias first' empty-state now has a real page). tsc clean, eslint 0 errors on rich-menus. Phase 5 already shipped earlier this session (commit 044b779, 497 backend tests).
+
+## Next Steps
+- Task 6.2 (per-user, R2): assignment UI on FRIENDS page using useAuth() manual authHeaders (NOT global authFetch) calling POST/DELETE /admin/rich-menus/{id}/users/{user_id} (+ /users/bulk-link, /users/bulk-unlink); 'X users' badge needs backend list endpoint to also return user_link_count (subquery/JOIN on user_rich_menu_links) + add user_link_count to the RichMenu list interface in page.tsx
+- Run alembic upgrade head on REMOTE (Supabase PROD) before deploy - local applied+verified this session, remote still DEFERRED
+- Before mobile E2E: verify a richmenuswitch area survives sync to LINE - config now stores richMenuAliasId; confirm RichMenuService sync builds the correct LINE action shape (out of Phase 5/6.1 scope)
+
+## Blockers
+- _none_
+
+> Fill in detail above, then commit. TASK_LOG.md + SESSION_INDEX.md are generated.

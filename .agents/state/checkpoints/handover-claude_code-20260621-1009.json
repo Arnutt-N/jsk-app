@@ -1,0 +1,18 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-06-21T10:09:00Z",
+  "branch": "feat/rich-menu-switching-r1",
+  "head_commit": "044b779",
+  "status": "completed",
+  "work_summary": "R1 Phase 5 done (commit 044b779): richmenuswitch switch-action UI on new+edit rich-menu pages + PUT edit-save fix (PUT /{id} now uses RichMenuUpdate, preserves stored canvas size instead of re-deriving from template_type, fixes latent 422). Local DB migration t0u1v2w3x4y5 verified already applied (both tables exist with correct FK RESTRICT + unique indexes). 497 backend tests pass (+6 today: test_rich_menu_update_endpoint.py), tsc/lint clean on rich-menus, vitest 161 pass. No regression.",
+  "priority_actions": [
+    "Phase 6 (frontend): alias management UI (tab in rich-menus page) + per-user assignment UI on friends page (useAuth manual authHeaders) + 'X users' badge (needs user_link_count in list endpoint+RichMenu interface)",
+    "Run alembic upgrade head on REMOTE (Supabase PROD) before deploy - local applied+verified, remote DEFERRED this session per user",
+    "Verify richmenuswitch action survives sync to LINE: config now stores richMenuAliasId; confirm RichMenuService sync builds the correct LINE action shape before mobile E2E (out of Phase 5 scope)"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/claude_code/session-summary-20260621-1009.md",
+  "cross_platform_read": []
+}
