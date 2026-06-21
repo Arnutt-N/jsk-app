@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-06-21 17:33 by Claude Code (R1/R2 Phase 6.2 reviewed+fixed commits 8ed4196 feat, 2ce0857 fix: per-user rich menu assig)
+> **Last Updated:** 2026-06-21 18:22 by Claude Code (R1/R2 Phase 6.2 reviewed+polished PR #114, commits 8ed4196 feat, 2ce0857 selection fix, 70)
 
 ## Thai Summary
 แผนการปรับปรุง UX และ Error Handling **เสร็จสมบูรณ์ 100%** — ฟีเจอร์ Undo/Redo, Help System และ Error Handling ใหม่ถูก merge เข้าสู่ main แล้ว
@@ -46,6 +46,7 @@
 - [2026-06-03] All changes from PR #78 merged to `main`. Branch `feat/undo-redo-help-error-handling` is ready for deletion.
 
 ## Recent Completions
+- [2026-06-21 18:22] Claude Code: R1/R2 Phase 6.2 reviewed+polished (PR #114, commits 8ed4196 feat, 2ce0857 selection fix, 7075a25 review feedback): per-user rich menu assignment UI. Retried ecc:fastapi-reviewer + ecc:react-reviewer (1st attempt failed on transient API Conn (Claude Code)
 - [2026-06-21 17:33] Claude Code: R1/R2 Phase 6.2 reviewed+fixed (commits 8ed4196 feat, 2ce0857 fix): per-user rich menu assignment UI (per-row modal + bulk toolbar) + user_link_count badge + current-menu column. Self-review (ecc reviewer agents failed on transient API Conn (Claude Code)
 - [2026-06-21 16:15] Claude Code: R1/R2 Phase 6.2 done (commit 8ed4196): per-user rich menu assignment UI on friends page - per-row assign modal (single) + checkbox bulk toolbar (bulk-link/bulk-unlink) + current-menu column; user_link_count 'X users' badge on rich-menus lis (Claude Code)
 - [2026-06-21 10:56] Claude Code: R1 Phase 6.1 done (commit 3360bbb): alias management UI at /admin/rich-menus/aliases (list + create with alias_id pattern/synced-target validation + per-row re-point PUT + delete ConfirmDialog) and an 'Aliases' link button on the rich-menus (Claude Code)

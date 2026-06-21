@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 90 handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 91 handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-21 18:22 — claude_code — completed
+
+R1/R2 Phase 6.2 reviewed+polished (PR #114, commits 8ed4196 feat, 2ce0857 selection fix, 7075a25 review feedback): per-user rich menu assignment UI. Retried ecc:fastapi-reviewer + ecc:react-reviewer (1st attempt failed on transient API ConnectionRefused) - applied 6 real findings (model-instance serialization, explicit test mock, indeterminate select-all via Checkbox component, prev-derived toggle, fetchRichMenus log, modal label htmlFor); skipped pre-existing role=link / idiomatic void props / memoization. /ecc:security-scan (AgentShield) found nothing in Task 6.2 (only example/.vscode configs). Verified: pytest 3 pass + full suite 499 earlier, eslint 0-err, tsc clean.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260621-1822.json`
+- Summary: `project-log-md/claude_code/session-summary-20260621-1822.md`
+
+---
 
 ### 2026-06-21 17:33 — claude_code — completed
 
