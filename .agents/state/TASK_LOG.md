@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 86 handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 87 handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-21 10:09 — claude_code — completed
+
+R1 Phase 5 done (commit 044b779): richmenuswitch switch-action UI on new+edit rich-menu pages + PUT edit-save fix (PUT /{id} now uses RichMenuUpdate, preserves stored canvas size instead of re-deriving from template_type, fixes latent 422). Local DB migration t0u1v2w3x4y5 verified already applied (both tables exist with correct FK RESTRICT + unique indexes). 497 backend tests pass (+6 today: test_rich_menu_update_endpoint.py), tsc/lint clean on rich-menus, vitest 161 pass. No regression.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260621-1009.json`
+- Summary: `project-log-md/claude_code/session-summary-20260621-1009.md`
+
+---
 
 ### 2026-06-21 07:41 — claude_code — completed
 

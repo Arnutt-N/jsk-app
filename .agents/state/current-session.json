@@ -1,14 +1,21 @@
 {
-  "last_updated": "2026-06-21T07:41:00Z",
+  "last_updated": "2026-06-21T10:09:00Z",
   "platform": "claude_code",
-  "current_task": "R1/R2 backend complete: Phase 4 (per-user rich menu link/unlink/bulk service + endpoints, cbf38be) + Phase 7 (delete guard + GET /{id}/dependencies endpoint, c203aac). Full TDD (RED-GREEN) + code/secu",
+  "current_task": "R1 Phase 5 done (commit 044b779): richmenuswitch switch-action UI on new+edit rich-menu pages + PUT edit-save fix (PUT /{id} now uses RichMenuUpdate, preserves stored canvas size instead of re-derivin",
   "plan_status": "completed",
   "next_steps": [
-    "Phase 5 (frontend): richmenuswitch action + alias dropdown in rich-menus new/edit pages",
-    "Phase 6 (frontend): alias management UI + per-user assignment UI on friends page + 'X users' badge",
-    "Run alembic upgrade head on local+remote for migration t0u1v2w3x4y5 before frontend wiring"
+    "Phase 6 (frontend): alias management UI (tab in rich-menus page) + per-user assignment UI on friends page (useAuth manual authHeaders) + 'X users' badge (needs user_link_count in list endpoint+RichMenu interface)",
+    "Run alembic upgrade head on REMOTE (Supabase PROD) before deploy - local applied+verified, remote DEFERRED this session per user",
+    "Verify richmenuswitch action survives sync to LINE: config now stores richMenuAliasId; confirm RichMenuService sync builds the correct LINE action shape before mobile E2E (out of Phase 5 scope)"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-06-21T10:09:00Z",
+      "platform": "claude_code",
+      "branch": "feat/rich-menu-switching-r1",
+      "head": "044b779",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-06-21T07:41:00Z",
       "platform": "claude_code",
@@ -140,13 +147,6 @@
       "platform": "claude_code",
       "branch": "main",
       "head": "9cc0b0a",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-16T00:21:00Z",
-      "platform": "claude_code",
-      "branch": "feat/chatbot-sys-audit-phase3",
-      "head": "507a28f",
       "status": "completed"
     }
   ],
