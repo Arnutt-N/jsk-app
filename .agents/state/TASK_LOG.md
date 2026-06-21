@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 87 handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 88 handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-21 10:56 — claude_code — completed
+
+R1 Phase 6.1 done (commit 3360bbb): alias management UI at /admin/rich-menus/aliases (list + create with alias_id pattern/synced-target validation + per-row re-point PUT + delete ConfirmDialog) and an 'Aliases' link button on the rich-menus list header. Closes the Phase 5 switch-menu loop (the richmenuswitch dropdown's 'create alias first' empty-state now has a real page). tsc clean, eslint 0 errors on rich-menus. Phase 5 already shipped earlier this session (commit 044b779, 497 backend tests).
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260621-1056.json`
+- Summary: `project-log-md/claude_code/session-summary-20260621-1056.md`
+
+---
 
 ### 2026-06-21 10:09 — claude_code — completed
 
