@@ -50,6 +50,10 @@ def test_list_friends_serializes_friend_rows():
     admin_friends.friend_service.get_user_refollow_counts = AsyncMock(
         return_value={"U123": 0}
     )
+    # list_friends now also calls RichMenuService — mock it explicitly so this
+    # test exercises a defined path rather than relying on the shared db mock.
+    original_links = admin_friends.RichMenuService.get_current_links_for_users
+    admin_friends.RichMenuService.get_current_links_for_users = AsyncMock(return_value={})
 
     client = TestClient(app)
     try:
@@ -58,6 +62,7 @@ def test_list_friends_serializes_friend_rows():
         client.close()
         admin_friends.friend_service.list_friends = original_list_friends
         admin_friends.friend_service.get_user_refollow_counts = original_refollow
+        admin_friends.RichMenuService.get_current_links_for_users = original_links
         app.dependency_overrides.clear()
 
     assert response.status_code == 200

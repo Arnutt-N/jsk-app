@@ -74,9 +74,9 @@ async def list_rich_menus(db: AsyncSession = Depends(get_db), current_admin: Use
 
     enriched = []
     for menu in menus:
-        data = RichMenuResponse.model_validate(menu).model_dump()
-        data["user_link_count"] = link_counts.get(menu.id, 0)
-        enriched.append(data)
+        item = RichMenuResponse.model_validate(menu)
+        item.user_link_count = link_counts.get(menu.id, 0)
+        enriched.append(item)
     return enriched
 
 # ---- Rich Menu Aliases (tab switching via `richmenuswitch`) ----

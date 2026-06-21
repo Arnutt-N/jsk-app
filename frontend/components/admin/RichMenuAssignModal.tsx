@@ -93,10 +93,14 @@ export function RichMenuAssignModal({
                     </p>
                 ) : (
                     <div>
-                        <label className="mb-1.5 block text-sm font-medium text-text-primary">
+                        <label
+                            htmlFor="rich-menu-assign-select"
+                            className="mb-1.5 block text-sm font-medium text-text-primary"
+                        >
                             เลือก Rich Menu
                         </label>
                         <Select
+                            id="rich-menu-assign-select"
                             value={selectedMenuId}
                             onChange={(e) => setSelectedMenuId(e.target.value)}
                             options={options}

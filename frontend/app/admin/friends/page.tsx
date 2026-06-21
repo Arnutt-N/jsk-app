@@ -9,6 +9,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Button } from '@/components/ui/Button';
+import { Checkbox } from '@/components/ui/Checkbox';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/Toast';
 import type { SelectOption } from '@/components/ui/Select';
@@ -108,9 +109,11 @@ export default function FriendsPage() {
             if (res.ok) {
                 const data = await res.json();
                 setRichMenus(Array.isArray(data) ? data : []);
+            } else {
+                logger.error('fetchRichMenus failed', { status: res.status });
             }
         } catch (error) {
-            logger.error('fetchRichMenus failed', error);
+            logger.error('fetchRichMenus error', error);
         }
     }, [authHeaders]);
 
@@ -147,7 +150,11 @@ export default function FriendsPage() {
     const toggleSelectAllVisible = () =>
         setSelectedIds((prev) => {
             const next = new Set(prev);
-            if (allVisibleSelected) {
+            // Derive from prev, not the render-time allVisibleSelected, so rapid
+            // toggles never act on a stale snapshot.
+            const allSelected =
+                visibleIds.length > 0 && visibleIds.every((id) => prev.has(id));
+            if (allSelected) {
                 visibleIds.forEach((id) => next.delete(id));
             } else {
                 visibleIds.forEach((id) => next.add(id));
@@ -281,13 +288,13 @@ export default function FriendsPage() {
         }
     };
 
+    const someVisibleSelected = visibleIds.some((id) => selectedIds.has(id));
     const selectAllHeader = (
-        <input
-            type="checkbox"
-            checked={allVisibleSelected}
-            onChange={toggleSelectAllVisible}
+        <Checkbox
+            checked={allVisibleSelected ? true : someVisibleSelected ? 'indeterminate' : false}
+            onCheckedChange={toggleSelectAllVisible}
             aria-label="เลือกทั้งหมดในหน้านี้"
-            className="h-4 w-4 cursor-pointer rounded border-border-default accent-brand-600"
+            className="mx-auto"
         />
     );
 
@@ -396,12 +403,11 @@ export default function FriendsPage() {
                                             className="px-4 py-4 text-center"
                                             onClick={(e) => e.stopPropagation()}
                                         >
-                                            <input
-                                                type="checkbox"
+                                            <Checkbox
                                                 checked={selectedIds.has(friend.line_user_id)}
-                                                onChange={() => toggleSelect(friend.line_user_id)}
+                                                onCheckedChange={() => toggleSelect(friend.line_user_id)}
                                                 aria-label={`เลือก ${friend.display_name || friend.line_user_id}`}
-                                                className="h-4 w-4 cursor-pointer rounded border-border-default accent-brand-600"
+                                                className="mx-auto"
                                             />
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
