@@ -53,7 +53,13 @@ function main() {
   const { months, apply } = parseArgs(process.argv);
 
   const now = new Date();
-  const cut = new Date(now.getFullYear(), now.getMonth() - months, now.getDate());
+  // "Older than N months" = today's date shifted back N months, keeping the day-of-month
+  // but CLAMPED to the target month's length so day-overflow can't roll forward
+  // (e.g. Mar 31 − 1 month → Feb 28/29, not the normalized Mar 3 that new Date() would give).
+  const tgt = new Date(now.getFullYear(), now.getMonth() - months, 1); // 1st of target month
+  const daysInTgt = new Date(tgt.getFullYear(), tgt.getMonth() + 1, 0).getDate();
+  const cutDay = Math.min(now.getDate(), daysInTgt);
+  const cut = new Date(tgt.getFullYear(), tgt.getMonth(), cutDay);
   const cutKey = `${cut.getFullYear()}${p2(cut.getMonth() + 1)}${p2(cut.getDate())}0000`;
   const cutHuman = `${cut.getFullYear()}-${p2(cut.getMonth() + 1)}-${p2(cut.getDate())}`;
 
