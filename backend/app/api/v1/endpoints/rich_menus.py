@@ -22,7 +22,8 @@ from app.schemas.rich_menu import (
 from app.models.rich_menu_alias import RichMenuAlias
 from app.models.user_rich_menu_link import UserRichMenuLink
 from app.services.rich_menu_service import RichMenuService
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, func
+from sqlalchemy.exc import IntegrityError
 from datetime import datetime, timezone
 
 router = APIRouter()
@@ -211,6 +212,25 @@ async def _upsert_user_links(
             )
 
 
+async def _rich_menu_dependencies(db: AsyncSession, rich_menu_id: int) -> dict:
+    """What still points at this menu: alias ids + count of per-user links.
+
+    Used as a friendly pre-check before delete (the FK RESTRICT is the real
+    enforcer). Returns {"aliases": [alias_id, ...], "user_count": int}.
+    """
+    alias_result = await db.execute(
+        select(RichMenuAlias).where(RichMenuAlias.rich_menu_id == rich_menu_id)
+    )
+    aliases = [a.alias_id for a in alias_result.scalars().all()]
+    count_result = await db.execute(
+        select(func.count())
+        .select_from(UserRichMenuLink)
+        .where(UserRichMenuLink.rich_menu_id == rich_menu_id)
+    )
+    user_count = count_result.scalar() or 0
+    return {"aliases": aliases, "user_count": user_count}
+
+
 @router.post("/users/bulk-link")
 async def bulk_link_users(
     data: BulkLinkRequest,
@@ -331,6 +351,24 @@ async def get_user_rich_menu_assignment(
 
     line_menu = await RichMenuService.get_user_rich_menu(db, user_id)
     return {"line_user_id": user_id, "rich_menu": line_menu}
+
+
+@router.get("/{id}/dependencies")
+async def get_rich_menu_dependencies(
+    id: int,
+    db: AsyncSession = Depends(get_db),
+    current_admin: User = Depends(get_current_admin),
+):
+    """List what depends on this menu (aliases + per-user link count).
+
+    Frontend pre-fetches this before showing the delete confirm dialog so it
+    can warn about dependencies that would otherwise 409 the delete.
+    """
+    result = await db.execute(select(RichMenu).where(RichMenu.id == id))
+    rich_menu = result.scalar_one_or_none()
+    if not rich_menu:
+        raise HTTPException(status_code=404, detail="Rich Menu not found")
+    return await _rich_menu_dependencies(db, id)
 
 
 @router.get("/{id}", response_model=RichMenuResponse)
@@ -496,18 +534,41 @@ async def delete_rich_menu(id: int, db: AsyncSession = Depends(get_db), current_
     rich_menu = result.scalar_one_or_none()
     if not rich_menu:
         raise HTTPException(status_code=404, detail="Rich Menu not found")
-        
+
+    # Friendly pre-check: block delete while aliases or per-user links point here.
+    # (The FK RESTRICT is the real enforcer; this gives a clear 409 with the list.)
+    deps = await _rich_menu_dependencies(db, id)
+    if deps["aliases"] or deps["user_count"]:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "message": "Rich menu has dependencies; remove them before deleting",
+                "aliases": deps["aliases"],
+                "user_count": deps["user_count"],
+            },
+        )
+
     # Delete from LINE
     if rich_menu.line_rich_menu_id:
         try:
             await RichMenuService.delete_from_line(db, rich_menu.line_rich_menu_id)
         except Exception as e:
             logger.warning("Failed to delete rich menu %s from LINE during local delete", rich_menu.line_rich_menu_id, exc_info=e)
-            
+
     # Delete local file if exists
     if rich_menu.image_path and os.path.exists(rich_menu.image_path):
         os.remove(rich_menu.image_path)
-        
-    await db.delete(rich_menu)
-    await db.commit()
+
+    # FK RESTRICT backstop: a dependency created between the pre-check and the
+    # delete still raises IntegrityError — surface it as a 409, not a 500.
+    try:
+        await db.delete(rich_menu)
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail="Rich menu has dependencies; cannot delete",
+        )
+
     return {"message": "Rich Menu deleted"}
