@@ -1,7 +1,7 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 92 handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 92 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
 
 ### 2026-06-21 19:06 — claude_code — completed

@@ -41,6 +41,29 @@ function git(args, cwd) {
   }
 }
 
+// Run validate_handoff_state.py with whatever Python is on PATH.
+// Returns { status: 'pass'|'fail'|'skip', out }. 'skip' = no interpreter / no script
+// (fail-open: the caller treats skip as a pass so a missing Python never blocks).
+function runValidator(root) {
+  const script = path.join(root, '.agents', 'scripts', 'validate_handoff_state.py');
+  if (!fs.existsSync(script)) return { status: 'skip', out: '' };
+  for (const py of ['python3', 'python', 'py']) {
+    try {
+      const out = execFileSync(py, [script], {
+        cwd: root,
+        stdio: ['ignore', 'pipe', 'pipe'],
+        encoding: 'utf8',
+      });
+      return { status: 'pass', out };
+    } catch (err) {
+      if (err && err.code === 'ENOENT') continue; // this interpreter isn't installed
+      const out = [err && err.stdout, err && err.stderr].filter(Boolean).join('\n');
+      return { status: 'fail', out }; // interpreter ran, validator exited non-zero
+    }
+  }
+  return { status: 'skip', out: '' }; // no Python found
+}
+
 function main() {
   let input = {};
   try {
@@ -80,8 +103,29 @@ function main() {
 
   const dirty = git(['status', '--porcelain'], root).length > 0;
 
-  // Fresh handoff: latest checkpoint commit is HEAD and tree is clean.
-  if (behind === 0 && !dirty) return 0;
+  // Gate 1 (git freshness): latest checkpoint commit is HEAD and tree is clean.
+  // Gate 2 (state consistency): even with a fresh checkpoint, the state files can drift
+  // (stale current-session, missing required keys). Run validate_handoff_state.py as a
+  // second gate — best-effort + fail-open (no Python / can't run => never block on it).
+  if (behind === 0 && !dirty) {
+    const v = runValidator(root);
+    if (v.status === 'fail') {
+      const vmsg = [
+        '⛔ HANDOFF STATE INCONSISTENT — do not end the session yet.',
+        '',
+        'A fresh checkpoint exists, but validate_handoff_state.py reported FAIL:',
+        '',
+        v.out.trim(),
+        '',
+        'Common cause: current-session.json older than the newest checkpoint, or a missing',
+        'required key. Re-run the handoff (handoff-new.cjs auto-syncs these), then stop again.',
+        '  Check manually: python .agents/scripts/validate_handoff_state.py',
+      ].join('\n');
+      process.stderr.write(vmsg + '\n');
+      return 2;
+    }
+    return 0; // git-fresh and (validator PASS or unavailable)
+  }
 
   const detail = [
     behind > 0 ? `${behind} commit(s) after the last handoff checkpoint` : null,

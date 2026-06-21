@@ -121,55 +121,28 @@ Add to `handoff_history`:
 
 ---
 
-## Step 6: Create New Task Entry (Before Starting Work)
+## Step 6: Start Working — No Manual Task Entry Needed
 
-In `.agents/state/TASK_LOG.md`:
-1. Read the file to find the last task number
-2. Create new entry at the TOP (prepend) with new task number
-3. Set status as "🔄 IN PROGRESS"
-4. Link to previous task if continuing work
-5. **Reference session summaries you read** from other platforms
+The v2 handoff system has **no manual task entry, no task numbering, and no hand-edited
+index**. `TASK_LOG.md` and `SESSION_INDEX.md` are **generated** from checkpoint JSON.
 
-Example:
-```markdown
-### Task #9 - [YYYY-MM-DD HH:MM] - [Your Platform]
+- **Do not** create a "Task #N" entry — that convention is retired.
+- **Do not** hand-edit `TASK_LOG.md` or `SESSION_INDEX.md` (your edits get overwritten).
+- The record for your session is created **at the end** via the handoff command below.
 
-**Task ID**: `task-[new-id]`
-**Agent**: [platform]
-**Status**: 🔄 IN PROGRESS
-**Continues From**: Task #8 (Platform: [previous agent's platform])
+When your work is done, run the single handoff command (see
+`.agents/workflows/handoff-to-any.md`):
 
-#### Context from Previous Agents
-- Read: [Platform A] session-summary-[TIME].md - [Key point]
-- Read: [Platform B] session-summary-[TIME].md - [Key point]
-
-#### Work Planned
-- [ ] Item 1
-- [ ] Item 2
-
-#### Blockers
-- None yet
-
-#### Notes
-Picking up from Task #8 completed by [previous agent] on [platform].
-
----
+```bash
+node .agents/scripts/handoff-new.cjs <platform> "<work summary>" ["<next step>" ...]
 ```
 
----
-
-## Step 7: Update SESSION_INDEX.md
-
-Add your upcoming session to `.agents/state/SESSION_INDEX.md`:
-
-1. Find your platform's table
-2. Add entry for your session (even if in progress)
-3. Update cross-reference mapping
-4. Update "Last Updated" timestamp
+If another platform's work informed your session, capture it in your handoff's
+`cross_platform_read` (optional) or mention it in the work summary.
 
 ---
 
-## Step 8: Confirm Starting Point
+## Step 7: Confirm Starting Point
 
 Before coding, confirm in one short note:
 - current branch

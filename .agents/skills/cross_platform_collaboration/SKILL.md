@@ -12,21 +12,32 @@ metadata:
 
 # Cross-Platform Collaboration Standard
 
+> ⚠️ **v2 NOTE — read this first.** The handoff system was redesigned to a single
+> **source of truth (checkpoint JSON) + generated views**. The *concepts* below
+> (state-in-files, platform table, communication etiquette) still hold, but the
+> **concrete mechanics in this file are v1 and out of date** — the checkpoint schema,
+> file naming (`handover-[FROM]-[TO]`), "update task.md by hand", and the `skn-app`
+> paths no longer match reality. **For the authoritative procedure and schema, follow
+> [`.agents/workflows/handoff-to-any.md`](../../workflows/handoff-to-any.md) and use
+> `node .agents/scripts/handoff-new.cjs`.** Treat the examples here as conceptual only.
 
 ## Context7 Docs
 
 Context7 MCP is active. Always attempt to use `mcp__context7__resolve-library-id` for any libraries discussed in this standard to retrieve the most up-to-date documentation.
 
-## Mandatory Sync Gate (Critical)
+## Mandatory Sync Gate (v2)
 
-A handoff is invalid unless these artifacts are all updated in the same session:
-1. `.agents/PROJECT_STATUS.md`
-2. `.agents/state/current-session.json`
-3. `.agents/state/task.md`
-4. `.agents/state/checkpoints/handover-[platform]-[YYYYMMDD-HHMM].json`
-5. `project-log-md/[platform]/session-summary-[YYYYMMDD-HHMM].md`
+A handoff is created by **one command** — `node .agents/scripts/handoff-new.cjs <platform>
+"<summary>" ["<next step>" ...]` — which writes the checkpoint, the session-summary stub,
+syncs `current-session.json` + `PROJECT_STATUS.md`, and regenerates `TASK_LOG.md` +
+`SESSION_INDEX.md`. The only real source-of-truth artifacts you author are:
 
-If any item is missing, do not finalize handoff.
+1. `.agents/state/checkpoints/handover-<platform>-<YYYYMMDD-HHMM>.json` — **source of truth**
+2. `project-log-md/<platform>/session-summary-<YYYYMMDD-HHMM>.md` — human narrative
+
+`TASK_LOG.md`, `SESSION_INDEX.md`, and the `PROJECT_STATUS.md` recent-line are **generated /
+auto-updated — never hand-edit them**. A Stop hook blocks session end until a fresh
+checkpoint exists. See `handoff-to-any.md` for the full contract and checkpoint schema.
 
 ## Overview
 

@@ -202,21 +202,19 @@ ls -lt project-log-md/*/*.md | head -10
 ---
 
 ### TASK_LOG.md (state/)
-- 📜 **APPEND-ONLY** history of all tasks from all agents
-- 🔢 Sequential task numbering (Task #1, #2, #3...)
+- 📜 **GENERATED** history of all handoffs from all agents (newest first)
+- 🔑 Keyed by timestamp + platform — **no sequential task numbers** (retired in v2)
 - 📅 Timestamps and agent attribution
-- 📝 Work completed, files modified, blockers, next steps
-- 📊 Task statistics (total, by agent, completion rate)
+- 📝 Work summary, checkpoint + session-summary links
 
 **CRITICAL RULES:**
-- **Never overwrite** - Always append new entries
-- **Read first** - Check last task number before adding
-- **Prepend** - Add new entries at the top (newest first)
-- **Permanent** - This is the project history record
+- **Never hand-edit** - regenerated from `.agents/state/checkpoints/*.json` (the source of truth)
+- **To change it** - edit/add a checkpoint, then run `node .agents/scripts/gen-handoff-views.cjs`
+- **Created at handoff** - `handoff-new.cjs` writes the checkpoint and regenerates this file
 
 **Use when:** 
 - Starting work (read last 3-5 entries for context)
-- Finishing work (append your completed task)
+- Finishing work (run `handoff-new.cjs` — it updates this file for you)
 - Looking for who did what
 
 **Command:**

@@ -7,7 +7,7 @@
 
 | Metric | Value |
 |--------|-------|
-| Handoff checkpoints | 92 |
+| Handoff checkpoints (active) | 92 |
 | Session summaries on disk | 177 |
 | Platforms | 8 (antigravity, claude_code, cline, codex, gemini_cli, kilo_code, kimi_code, open_code) |
 | Most recent | 2026-06-21 19:06 — claude_code |

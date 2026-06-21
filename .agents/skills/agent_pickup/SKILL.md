@@ -1,435 +1,70 @@
 ---
 name: agent_pickup
 description: >
-  Universal agent pickup - automates workflow for resuming work from any previous AI agent or platform
-  Reference standard for SKN App. Use when needing general guidance, 
-  "อ้างอิง", "ดูคู่มือ", "standard".
-compatibility: SKN App Project
+  Universal agent pickup for SKN App — resume work from a previous agent/platform by
+  reading the latest handoff state. Use when starting a session / resuming, or on
+  "pickup", "รับช่วงงาน", "เริ่มงานต่อ", "อ่าน handoff ล่าสุด", "อ้างอิงคู่มือ pickup".
+compatibility: SKN App Project (JskApp)
 metadata:
   category: reference
-  tags: [reference, agent-pickup]
+  tags: [reference, agent-pickup, handoff-v2]
 ---
 
-# Agent Pickup Skill
+# Agent Pickup Skill (v2)
 
+**Use this when:** you're starting work and need to pick up where a previous agent
+(any platform) left off.
 
-## Context7 Docs
+## Read, in order
 
-Context7 MCP is active. Always attempt to use `mcp__context7__resolve-library-id` for any libraries discussed in this standard to retrieve the most up-to-date documentation.
-
-## Overview
-
-This skill automates the complete agent pickup workflow by orchestrating all the manual steps from the pickup-from-any.md workflow into a single unified command.
-
-**Use this skill when:** You're starting work and need to pick up where a previous agent left off.
-
----
-
-## Prerequisites
-
-1. `.agents/state/` directory exists
-2. Previous agent created a handoff checkpoint
-3. You're in the correct project directory
-
----
-
-## Automated Pickup Steps
-
-This skill automates the following workflow:
-
-### Step 1: Locate Latest Handoff
-
-**Action:** Find the most recent checkpoint file.
+1. `.agents/PROJECT_STATUS.md` — Thai summary, Active Milestones, Latest Pickup Status, Backlog.
+2. `.agents/state/TASK_LOG.md` — newest-first handoff log (generated). Read the top few entries.
+3. `.agents/state/SESSION_INDEX.md` — cross-platform index (generated).
+4. The latest `project-log-md/<platform>/session-summary-*.md` for full detail.
+5. (Optional) the newest checkpoint JSON in `.agents/state/checkpoints/` for the raw record.
 
 ```bash
-# List checkpoints to find latest
-ls -lt .agents/state/checkpoints/ | head -10
-
-# Or find only handoff files
-ls -lt .agents/state/checkpoints/handover-*.json | head -5
+# newest handoffs
+ls -t .agents/state/checkpoints/handover-*.json | head -3
 ```
 
-**Files to read:**
-1. `handover-{FROM}-{TO}-{TIMESTAMP}.json` (latest)
-2. `session-summary-{TIMESTAMP}.md` (latest)
-3. `.agents/state/current-session.json`
-4. `.agents/state/task.md`
+## Checkpoint schema you'll see (v2)
 
-### Step 2: Read Handoff Checkpoint
+`handoff_version`, `platform`, `agent`, `timestamp` (local time **with offset**, e.g.
+`+07:00`), `branch`, `head_commit`, `status`, `work_summary`, `priority_actions`,
+`context_for_next_agent`, `session_summary`, `cross_platform_read`.
 
-**Action:** Read and understand the handoff state.
+(If you find an old checkpoint with `from_platform`/`to_platform`, that's a legacy v1
+record — read it for history, but new handoffs use the schema above.)
 
-**What to check:**
-| Field | Description |
-|-------|-------------|
-| `from_platform` | Platform that handed off |
-| `to_platform` | Platform that should receive (should be you) |
-| `summary` | Summary of what was done |
-| `completed` | Items that are finished |
-| `in_progress` | Items partially done |
-| `next_actions` | What to do next |
-| `blockers` | Any issues blocking progress |
-
-### Step 3: Read Session Summary
-
-**Action:** Read the session summary for full context.
-
-**What to focus on:**
-- ✅ **Completed** - What's already done
-- 🚧 **In Progress** - What's partially done (note % complete)
-- 🛑 **Blockers** - Problems to address
-- ⏭️ **Next Steps** - Immediate actions to take
-
-### Step 4: Verify Environment
-
-**Action:** Verify you're in the correct environment.
+## Verify environment
 
 ```bash
-# Check git branch
 git branch --show-current
-
-# Check git status
 git status
-
-# Verify it matches the checkpoint's branch
 ```
 
-**If branch doesn't match:**
-```bash
-git checkout {branch-from-checkpoint}
-```
+If your branch doesn't match the checkpoint's `branch`, `git checkout <branch>` (only if
+that work is still in progress; completed work is usually merged to `main`).
 
-### Step 5: Update Your Session
+## Confirm starting point (one short note)
 
-**Action:** Update `.agents/state/current-session.json` with your platform info.
+State: current branch, top priority (from `priority_actions`), last 1-3 agents + what they
+did, and any open blockers. Then start working.
 
-**Template:**
-```json
-{
-  "version": "1.0",
-  "last_updated": "{ISO_TIMESTAMP}",
-  "platform": "{your-platform-code}",
-  "agent_id": "{your-agent-id}",
-  "session_id": "{unique-session-id}",
+## Do NOT do these (v1 habits, retired)
 
-  "project": {
-    "name": "SknApp",
-    "root": "{project-root}",
-    "branch": "{branch-from-checkpoint}"
-  },
+- ⛔ Don't pre-create a "Task #N" entry or hand-edit `TASK_LOG.md` / `SESSION_INDEX.md`
+  (generated). The record is written **at handoff** by `handoff-new.cjs`.
+- ⛔ Don't hand-edit `current-session.json` to "claim" the session — `handoff-new.cjs`
+  maintains it for you when you hand off.
 
-  "current_task": {
-    "id": "{task-id-from-checkpoint}",
-    "title": "{task-title-from-checkpoint}",
-    "status": "in_progress",
-    "priority": "{priority-from-checkpoint}"
-  },
+## First session (no checkpoint)
 
-  "context": {
-    "recent_files": [
-      "{files-you-will-work-on}"
-    ],
-    "active_branch": "{branch-from-checkpoint}",
-    "modified_files": []
-  },
+If `.agents/state/checkpoints/` is empty, just start working and create the first
+checkpoint at the end with `node .agents/scripts/handoff-new.cjs <platform> "<summary>"`.
 
-  "blockers": [
-    {
-      "issue": "{any-new-blockers}",
-      "severity": "medium"
-    }
-  ],
+## Authority / details
 
-  "next_steps": [
-    "{first-thing-you-will-do}",
-    "{second-thing}"
-  ]
-}
-```
-
-### Step 6: Update Task File
-
-**Action:** Update `.agents/state/task.md` to reflect you're taking over.
-
-**Template:**
-```markdown
-# Current Task
-
-**Status:** In Progress
-**Assigned:** {Your Name/Agent}
-**Started:** {date}
-
----
-
-## Objective
-
-{objective-from-checkpoint}
-
----
-
-## Subtasks
-
-- [x] {completed-item-from-checkpoint}
-- [x] {another-completed-item}
-- [ ] {in-progress-item-continue-here}
-- [ ] {pending-item-from-checkpoint}
-
----
-
-## Progress Notes
-
-### Session {date} ({Your Platform})
-- Picked up work from {previous-platform}
-- Continuing with {next-action}
-- {any-notes-about-transition}
-
----
-
-## Blockers
-
-{blockers-from-checkpoint or new ones}
-
----
-
-## Next Steps
-
-1. {first-action-from-checkpoint}
-   - {details}
-2. {second-action}
-```
-
-### Step 7: Understand the Context
-
-**Pre-work checklist:**
-- [ ] Read and understand **Session Summary**
-- [ ] Know what is **completed** and what is **in progress**
-- [ ] Understand any **blockers** identified
-- [ ] Know the **next steps** to take
-- [ ] Verified you're on the correct **branch**
-- [ ] Know which **files** were modified
-
-### Step 8: Begin Work
-
-**Action:** Start working on the first next action.
-
-```bash
-# Example: Open file to continue work
-# Or start command that was suggested
-```
-
-### Step 9: Update Task Progress
-
-**Action:** As you work, update `task.md` to track progress.
-
-```markdown
-## Progress Notes
-
-### Session {date} ({Your Platform})
-- [x] {completed action 1}
-- [x] {completed action 2}
-- [ ] {in progress action}
-- [ ] {pending action}
-
-### Issues Found
-- {any new issues discovered}
-```
-
----
-
-## Platform Codes
-
-| Platform | Code |
-|----------|------|
-| Claude Code | `claude-code` |
-| Antigravity/Cursor | `antigravity` |
-| Open Code/OpenAI | `open-code` |
-| Aider | `aider` |
-| GitHub Copilot | `copilot` |
-| Tabby | `tabby` |
-| Continue | `continue` |
-| Codeium | `codeium` |
-| Codium | `codium` |
-| Sweep | `sweep` |
-| CodeX | `codex` |
-| Qwen | `qwen` |
-| Gemini | `gemini` |
-| Kilo Code | `kilo_code` |
-| Kimi Code | `kimi_code` |
-| Other | `other` |
-
----
-
-## Pickup Complete Message
-
-After completing all steps, send this message to confirm pickup:
-
-```
-✅ PICKUP COMPLETE
-
-Platform: {Your Platform}
-Task: {Task Name}
-From: {Previous Platform}
-
-Files updated:
-- .agents/state/current-session.json
-- .agents/state/task.md
-
-Ready to continue work!
-
-Next action: {first-thing-you-will-do}
-```
-
----
-
-## First Session (No Checkpoint)
-
-If this is the first session and no checkpoint exists:
-
-**Action:** Initialize new session files.
-
-```bash
-# Create state directory if needed
-mkdir -p .agents/state/checkpoints
-
-# Create current-session.json with template
-# Create task.md with initial task
-```
-
-**Template for current-session.json:**
-```json
-{
-  "version": "1.0",
-  "last_updated": "{ISO_TIMESTAMP}",
-  "platform": "{your-platform}",
-  "agent_id": "{your-agent-id}",
-  "session_id": "{unique-session-id}",
-  "project": {
-    "name": "SknApp",
-    "root": "{project-root}",
-    "branch": "{current-branch}"
-  },
-  "current_task": {
-    "id": "task-{timestamp}",
-    "title": "{initial-task}",
-    "status": "in_progress",
-    "priority": "medium"
-  },
-  "context": {
-    "recent_files": [],
-    "active_branch": "{current-branch}",
-    "modified_files": []
-  },
-  "blockers": [],
-  "next_steps": ["{first-action}"]
-}
-```
-
----
-
-## Platform-Specific Pickup
-
-### Claude Code (`claude-code`)
-```bash
-# 1. Read state files
-cat .agents/state/current-session.json
-cat .agents/state/task.md
-
-# 2. Read latest checkpoint
-LATEST=$(ls -t .agents/state/checkpoints/handover-*.json | head -1)
-cat $LATEST
-
-# 3. Update session for Claude Code (use Edit tool)
-# 4. Begin work
-```
-
-### Antigravity/Cursor (`antigravity`)
-```bash
-# 1. Import task state
-# 2. Read artifacts from previous session
-# 3. Update task boundary
-# 4. Begin work
-```
-
-### Open Code/OpenAI (`open-code`)
-```bash
-# 1. Read markdown files
-cat .agents/state/task.md
-cat .agents/state/checkpoints/session-summary-*.md | tail -100
-
-# 2. Understand context
-# 3. Update files manually
-# 4. Begin work
-```
-
-### Kimi Code (`kimi_code`)
-```bash
-# 1. Read state files
-cat .agents/state/current-session.json
-cat .agents/state/task.md
-cat .agents/state/checkpoints/session-summary-*.md | tail -50
-
-# 2. Update session
-# 3. Begin work
-```
-
-### Aider (`aider`)
-```bash
-# 1. Pull latest changes
-git pull
-
-# 2. Read state files
-cat .agents/state/current-session.json
-cat .agents/state/task.md
-
-# 3. Add files to context
-aider .agents/state/current-session.json .agents/state/task.md
-
-# 4. Update and begin work
-```
-
----
-
-## Quick Pickup Checklist
-
-```
-□ Found latest handoff checkpoint
-□ Read handoff JSON and session summary
-□ Verified git branch matches checkpoint
-□ Updated current-session.json
-□ Updated task.md
-□ Understand context and next steps
-□ Ready to begin work
-```
-
----
-
-## Emergency Recovery
-
-If no checkpoint files exist:
-
-```bash
-# 1. Check git history for state files
-git log -- .agents/state/
-
-# 2. Restore from git if available
-git checkout {COMMIT-HASH} -- .agents/state/
-
-# 3. Or reconstruct from git commits
-git log -10 --oneline
-```
-
----
-
-## Related Workflows
-
-- `.agents/workflows/pickup-from-any.md` - Detailed pickup workflow
-- `.agents/workflows/handoff-to-any.md` - Corresponding handoff workflow
-
----
-
-## Notes
-
-- This skill preserves all existing workflow files - it's a wrapper/orchestrator
-- If no checkpoint exists, this is a "first session" - initialize new state files
-- The state files (`current-session.json`, `task.md`) are the single source of truth
-- Always verify git branch matches the checkpoint before starting work
+Full pickup: [`.agents/workflows/pickup-from-any.md`](../../workflows/pickup-from-any.md).
+Handoff (when you finish): [`.agents/skills/agent_handover/SKILL.md`](../agent_handover/SKILL.md).

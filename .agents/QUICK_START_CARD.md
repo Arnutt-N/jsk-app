@@ -139,10 +139,9 @@ git log --oneline -5
 
 - ✅ **Always read PROJECT_STATUS.md first**
 - ✅ **Always read TASK_LOG.md for context**
-- ✅ **Always APPEND to TASK_LOG.md (never overwrite)**
-- ✅ **Always validate state on pickup**
-- ❌ **Never modify locked files**
-- ❌ **Never skip the handoff protocol**
+- ✅ **Handoff with one command:** `node .agents/scripts/handoff-new.cjs <platform> "<summary>"`
+- ❌ **Never hand-edit TASK_LOG.md or SESSION_INDEX.md** (generated from checkpoints)
+- ❌ **Never skip the handoff protocol** (a Stop hook enforces it)
 
 ---
 
