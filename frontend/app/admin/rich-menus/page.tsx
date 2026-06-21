@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Plus, SquarePen, Trash2 } from 'lucide-react';
+import { Plus, SquarePen, Trash2, Link2 } from 'lucide-react';
 import { AdminTableHead, type AdminTableHeadColumn } from '@/components/admin/AdminTableHead';
 import PageHeader from '@/app/admin/components/PageHeader';
 import { Button } from '@/components/ui/Button';
@@ -119,11 +119,18 @@ export default function RichMenuListPage() {
         <div className="space-y-6 animate-in fade-in duration-500 thai-text">
             {/* Header Section */}
             <PageHeader title="Rich Menus" subtitle="จัดการเมนู LINE Official Account">
-                <Link href="/admin/rich-menus/new">
-                    <Button size="sm" leftIcon={<Plus className="w-4 h-4" />}>
-                        New Menu
-                    </Button>
-                </Link>
+                <div className="flex items-center gap-2">
+                    <Link href="/admin/rich-menus/aliases">
+                        <Button size="sm" variant="ghost" leftIcon={<Link2 className="w-4 h-4" />}>
+                            Aliases
+                        </Button>
+                    </Link>
+                    <Link href="/admin/rich-menus/new">
+                        <Button size="sm" leftIcon={<Plus className="w-4 h-4" />}>
+                            New Menu
+                        </Button>
+                    </Link>
+                </div>
             </PageHeader>
 
             {loading ? (
