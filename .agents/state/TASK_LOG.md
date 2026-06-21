@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 92 handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 93 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-21 20:21 — claude_code — completed
+
+Hardened the .agents handoff system (branch chore/handoff-system-hardening, code commit 8b7f778): (1) fixed the checkpoint timestamp timezone bug — local time now carries the real UTC offset (+07:00) instead of a fake trailing Z; (2) purged v1 documentation drift across handoff-to-any.md + start-here + pickup + quick-card + onboarding and rewrote 3 skills (agent_handover, agent_pickup, cross_platform_collaboration) so agents stop hand-editing generated files; (3) made validation automatic — handoff-new auto-runs validate_handoff_state.py, and handoff-stop-check is now a 2-gate (git freshness + state consistency) fail-open check; (4) added archive-checkpoints.cjs to keep TASK_LOG/SESSION_INDEX bounded, with the generator surfacing the archived count. 15 files, net -762 lines. This very handoff dogfoods the new code.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260621-2021.json`
+- Summary: `project-log-md/claude_code/session-summary-20260621-2021.md`
+
+---
 
 ### 2026-06-21 19:06 — claude_code — completed
 

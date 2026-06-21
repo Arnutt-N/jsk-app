@@ -1,10 +1,10 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-06-21 19:06 by Claude Code (Session complete - R1/R2 rich-menu-switching incl Task 6.2 per-user assignment UI MERGED t)
+> **Last Updated:** 2026-06-21 20:21 by Claude Code (Hardened the .agents handoff system branch chore/handoff-system-hardening, code commit 8b7)
 
 ## Thai Summary
-แผนการปรับปรุง UX และ Error Handling **เสร็จสมบูรณ์ 100%** — ฟีเจอร์ Undo/Redo, Help System และ Error Handling ใหม่ถูก merge เข้าสู่ main แล้ว
-- ขั้นตอนถัดไป: ตรวจสอบการ deploy บน Vercel และจัดการ feedback หลัง merge
+ฟีเจอร์ **Rich Menu Switching + การกำหนดเมนูรายบุคคล (R1/R2)** เสร็จสมบูรณ์และขึ้น production แล้ว — merge เข้า main ผ่าน PR #114 (merge commit `3a90f4d`), migrate ฐานข้อมูล Supabase PROD (richmenu alias + user_rich_menu_links แบบ additive) และ deploy frontend บน Vercel เรียบร้อย
+- ขั้นตอนถัดไป: ยืนยันว่า **backend prod** มีโค้ด Task 6.2 ครบ (Vercel deploy แค่ frontend), smoke test การกำหนด rich menu (เดี่ยว+กลุ่ม) บน /admin/friends ให้ครบ loop
 
 ## 🆕 NEW AGENT? START HERE
 1. **Entry Point:** `../START_HERE.md` - Friendly welcome and quick links
@@ -20,8 +20,8 @@
 - **Collaboration Standard:** `.agents/skills/cross_platform_collaboration/SKILL.md`
 - **Current Session:** `.agents/state/current-session.json`
 - **Current Task:** `.agents/state/task.md`
-- **Task History:** `.agents/state/TASK_LOG.md` (**APPEND-ONLY - all tasks from all agents**)
-- **Session Index:** `.agents/state/SESSION_INDEX.md` (**Cross-platform summary index**)
+- **Task History:** `.agents/state/TASK_LOG.md` (**GENERATED from checkpoints — do not hand-edit**)
+- **Session Index:** `.agents/state/SESSION_INDEX.md` (**GENERATED cross-platform index — do not hand-edit**)
 
 ## Technical Environment (Critical)
 - OS: Windows host + WSL2 required
@@ -30,6 +30,14 @@
 - Database: PostgreSQL + Redis
 
 ## Active Milestones
+
+### Rich Menu Switching & Per-User Assignment — R1/R2 (Status: COMPLETE - Merged to main, in PROD)
+- [x] Backend Phase 1–4, 7: schema validation fix (richMenuAliasId), RichMenuAlias + UserRichMenuLink models + migration `t0u1v2w3x4y5`, alias CRUD endpoints, per-user link/unlink/bulk service, delete-guard + dependencies endpoint.
+- [x] Frontend Phase 5–6.2: richmenuswitch switch-action UI (new+edit), alias management page `/admin/rich-menus/aliases`, per-user assignment UI on friends page (per-row modal + bulk toolbar), `user_link_count` badge, current-menu column.
+- [x] Reviewed (ecc fastapi + react reviewers, 6 findings applied) + AgentShield security scan (clean).
+- [x] Migrated Supabase PROD to alembic head `t0u1v2w3x4y5` (additive). Frontend deployed to Vercel (READY).
+- [x] Merged PR #114 (merge commit `3a90f4d`). Local CI green (pytest 499, lint, vitest 161, build, encoding).
+- [ ] **Open:** verify backend prod has Task 6.2 code (FastAPI deploys separately from Vercel frontend); smoke test on prod.
 
 ### UX & Error Handling Improvements (Status: COMPLETE - Merged to main)
 - [x] Added `useUndoableState` hook with undo/redo controls and keyboard shortcuts.
@@ -43,9 +51,10 @@
 - [x] Merged PR #78 to `main` branch.
 
 ## Latest Pickup Status
-- [2026-06-03] All changes from PR #78 merged to `main`. Branch `feat/undo-redo-help-error-handling` is ready for deletion.
+- [2026-06-21] R1/R2 Rich Menu (incl Task 6.2 per-user UI) merged to `main` via PR #114 (`3a90f4d`); Supabase PROD migrated; Vercel frontend deployed. Branch `feat/rich-menu-switching-r1` deleted. Working tree clean.
 
 ## Recent Completions
+- [2026-06-21 20:21] Claude Code: Hardened the .agents handoff system (branch chore/handoff-system-hardening, code commit 8b7f778): (1) fixed the checkpoint timestamp timezone bug — local time now carries the real UTC offset (+07:00) instead of a fake trailing Z; (2) purged (Claude Code)
 - [2026-06-21 19:06] Claude Code: Session complete - R1/R2 rich-menu-switching (incl Task 6.2 per-user assignment UI) MERGED to main via PR #114 (merge commit 3a90f4d). Flow: built Task 6.2 (backend read-enrichment user_link_count + friends current-menu; frontend per-row as (Claude Code)
 - [2026-06-21 18:22] Claude Code: R1/R2 Phase 6.2 reviewed+polished (PR #114, commits 8ed4196 feat, 2ce0857 selection fix, 7075a25 review feedback): per-user rich menu assignment UI. Retried ecc:fastapi-reviewer + ecc:react-reviewer (1st attempt failed on transient API Conn (Claude Code)
 - [2026-06-21 17:33] Claude Code: R1/R2 Phase 6.2 reviewed+fixed (commits 8ed4196 feat, 2ce0857 fix): per-user rich menu assignment UI (per-row modal + bulk toolbar) + user_link_count badge + current-menu column. Self-review (ecc reviewer agents failed on transient API Conn (Claude Code)

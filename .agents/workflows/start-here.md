@@ -104,11 +104,11 @@ cat .agents/state/TASK_LOG.md | head -100
 
 **Checklist**:
 - [ ] Read last 3-5 task entries
-- [ ] Note the last task number
 - [ ] Understand recent context
 - [ ] See patterns from previous agents
 
-> **Important**: TASK_LOG.md is **APPEND-ONLY**. Never overwrite existing entries.
+> **Important**: `TASK_LOG.md` is **GENERATED** from checkpoint JSON — read it, but never
+> hand-edit it. It's recreated by `handoff-new.cjs` / `gen-handoff-views.cjs` at handoff time.
 
 ---
 
@@ -242,46 +242,22 @@ cat .agents/state/task.md
 
 ---
 
-### Step 11: Create Your Task Entry (Before Working)
-**File**: `.agents/state/TASK_LOG.md`
+### Step 11: Just Start Working — Do NOT Pre-Create a Task Entry
 
-**What to do**: Create your task entry BEFORE starting implementation
+In the v2 handoff system there is **no manual task entry and no task numbering**.
+`TASK_LOG.md` and `SESSION_INDEX.md` are **generated** from checkpoint JSON, so:
 
-**Steps**:
-1. Read TASK_LOG.md to find the last task number (e.g., Task #7)
-2. Create new entry at the TOP with next number (e.g., Task #8)
-3. Set status as "🔄 IN PROGRESS"
-4. Link to previous task if continuing
+- **Do not** edit `TASK_LOG.md` or `SESSION_INDEX.md` by hand (your edits get overwritten).
+- **Do not** invent a "Task #N" — that convention is retired.
+- Track in-progress work however you like locally; the record is created at handoff time.
 
-**Template**:
-```markdown
-### Task #[N] - [YYYY-MM-DD HH:MM] - [Your Platform]
+You only write to the handoff system **at the end**, with one command:
 
-**Task ID**: `task-[id]`
-**Agent**: [platform]
-**Status**: 🔄 IN PROGRESS
-**Continues From**: Task #[N-1] (if applicable)
-
-#### Work Planned
-- [ ] Item 1
-- [ ] Item 2
-
-#### Blockers
-- None yet
-
-#### Notes
-[Picking up from previous agent / Starting new task]
-
----
-```
-
-**Commands**:
 ```bash
-# Find last task number
-grep "^### Task #" .agents/state/TASK_LOG.md | head -1
-
-# Edit TASK_LOG.md - prepend your entry
+node .agents/scripts/handoff-new.cjs <platform> "<work summary>" ["<next step>" ...]
 ```
+
+See `.agents/workflows/handoff-to-any.md` for the full handoff contract.
 
 ---
 

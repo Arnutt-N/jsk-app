@@ -79,7 +79,13 @@ function findSummary(summaries, platform, date, time) {
 }
 
 function main() {
+  // Top-level only: archived checkpoints live in checkpoints/archive/ and are intentionally
+  // excluded from the active views (readdir is non-recursive, and 'archive' fails .json).
   const files = fs.readdirSync(CK_DIR).filter((f) => f.endsWith('.json'));
+  const archiveDir = path.join(CK_DIR, 'archive');
+  const archivedCount = fs.existsSync(archiveDir)
+    ? fs.readdirSync(archiveDir).filter((f) => f.endsWith('.json')).length
+    : 0;
   const summaries = listSummaries();
   const entries = [];
   for (const f of files) {
@@ -109,7 +115,7 @@ function main() {
     banner,
     '# Task Log (generated)',
     '',
-    `> Source of truth: \`.agents/state/checkpoints/*.json\` — ${entries.length} handoffs, ${platforms.length} platforms.`,
+    `> Source of truth: \`.agents/state/checkpoints/*.json\` — ${entries.length} active handoffs, ${platforms.length} platforms${archivedCount ? ` (+${archivedCount} archived in checkpoints/archive/)` : ''}.`,
     '> Newest first. Keyed by timestamp + platform (no fragile sequential numbers).',
     '',
   ];
@@ -133,7 +139,8 @@ function main() {
     '',
     '| Metric | Value |',
     '|--------|-------|',
-    `| Handoff checkpoints | ${entries.length} |`,
+    `| Handoff checkpoints (active) | ${entries.length} |`,
+    ...(archivedCount ? [`| Archived checkpoints | ${archivedCount} |`] : []),
     `| Session summaries on disk | ${totalSummaries} |`,
     `| Platforms | ${platforms.length} (${platforms.join(', ')}) |`,
     `| Most recent | ${stamp} — ${entries[0] ? entries[0].platform : '-'} |`,

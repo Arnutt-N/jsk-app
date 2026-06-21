@@ -55,7 +55,14 @@ function main() {
   const date = `${d.getFullYear()}${p2(d.getMonth() + 1)}${p2(d.getDate())}`;
   const time = `${p2(d.getHours())}${p2(d.getMinutes())}`;
   const ts = `${date}-${time}`;
-  const iso = `${date.slice(0, 4)}-${date.slice(4, 6)}-${date.slice(6, 8)}T${time.slice(0, 2)}:${time.slice(2, 4)}:00Z`;
+  // Local wall-clock time with the machine's REAL UTC offset (e.g. +07:00).
+  // Never hard-code "Z": getHours()/getMinutes() are local, so tagging them UTC
+  // would shift every timestamp by the offset (the old bug — 19:06 +07 written as 19:06Z).
+  const offMin = -d.getTimezoneOffset(); // minutes east of UTC; +07:00 -> 420
+  const offSign = offMin >= 0 ? '+' : '-';
+  const offAbs = Math.abs(offMin);
+  const tzOffset = `${offSign}${p2(Math.floor(offAbs / 60))}:${p2(offAbs % 60)}`;
+  const iso = `${date.slice(0, 4)}-${date.slice(4, 6)}-${date.slice(6, 8)}T${time.slice(0, 2)}:${time.slice(2, 4)}:00${tzOffset}`;
   const humanTs = `${date.slice(0, 4)}-${date.slice(4, 6)}-${date.slice(6, 8)} ${time.slice(0, 2)}:${time.slice(2, 4)}`;
 
   let head = '';
@@ -159,6 +166,12 @@ function main() {
     cwd: ROOT, stdio: 'inherit',
   });
 
+  // Close the loop: validate the state we just wrote, automatically. The validator
+  // is the authority on cross-file consistency (timestamps, required keys, freshness).
+  // Best-effort + fail-open: a missing Python or a non-zero exit must never abort the
+  // handoff that already succeeded — we only surface the result for the human to act on.
+  const validatorOk = runValidator(ROOT, platform);
+
   process.stdout.write(
     [
       '',
@@ -166,12 +179,30 @@ function main() {
       `  checkpoint: .agents/state/checkpoints/handover-${platform}-${ts}.json`,
       `  summary:    project-log-md/${platform}/session-summary-${ts}.md`,
       '  status:     .agents/PROJECT_STATUS.md (Last Updated + recent-completion)',
+      `  validator:  ${validatorOk === null ? 'skipped (python not found)' : validatorOk ? 'PASS' : 'FAIL — see output above'}`,
       '',
-      'Next: (1) flesh out the summary .md, (2) git add + commit the artifacts,',
-      '      (3) push. Verify: python .agents/scripts/validate_handoff_state.py',
+      'Next: (1) flesh out the summary .md, (2) git add + commit the artifacts, (3) push.',
       '',
     ].join('\n')
   );
+}
+
+// Run validate_handoff_state.py with whatever Python is on PATH.
+// Returns true (PASS), false (FAIL), or null (no Python / could not run).
+function runValidator(root, platform) {
+  const script = path.join(root, '.agents', 'scripts', 'validate_handoff_state.py');
+  if (!fs.existsSync(script)) return null;
+  for (const py of ['python3', 'python', 'py']) {
+    try {
+      execFileSync(py, [script, '--platform', platform], { cwd: root, stdio: 'inherit' });
+      return true; // exit 0
+    } catch (err) {
+      // ENOENT = this interpreter isn't installed; try the next candidate.
+      if (err && err.code === 'ENOENT') continue;
+      return false; // interpreter ran but validator exited non-zero (FAIL)
+    }
+  }
+  return null; // no interpreter found
 }
 
 main();
