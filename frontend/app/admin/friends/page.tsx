@@ -319,7 +319,12 @@ export default function FriendsPage() {
                     searchValue={filter}
                     onSearchChange={setFilter}
                     statusValue={statusFilter ?? ''}
-                    onStatusChange={(value) => setStatusFilter(value || null)}
+                    onStatusChange={(value) => {
+                        // Status change refetches a different user set — drop the
+                        // selection so bulk actions never target now-hidden users.
+                        setStatusFilter(value || null);
+                        clearSelection();
+                    }}
                     searchPlaceholder="Search users..."
                     statusOptions={statusOptions}
                     showCategory={false}
