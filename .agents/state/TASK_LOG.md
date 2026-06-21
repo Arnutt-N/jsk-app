@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 91 handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 92 handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-21 19:06 — claude_code — completed
+
+Session complete - R1/R2 rich-menu-switching (incl Task 6.2 per-user assignment UI) MERGED to main via PR #114 (merge commit 3a90f4d). Flow: built Task 6.2 (backend read-enrichment user_link_count + friends current-menu; frontend per-row assign modal + bulk toolbar + RichMenuAssignModal) -> self-review -> retried ecc:fastapi-reviewer+react-reviewer (1st failed transient API) applied 6 real findings -> /ecc:security-scan AgentShield (nothing in Task 6.2) -> migrated Supabase PROD to alembic head t0u1v2w3x4y5 (richmenu alias + user_rich_menu_links, additive) -> merged -> Vercel frontend prod deploy READY (3a90f4d) -> synced main + deleted branch. Local CI all green (pytest 499, lint, vitest 161, build, encoding).
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260621-1906.json`
+- Summary: `project-log-md/claude_code/session-summary-20260621-1906.md`
+
+---
 
 ### 2026-06-21 18:22 — claude_code — completed
 

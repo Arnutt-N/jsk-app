@@ -1,15 +1,21 @@
 {
-  "last_updated": "2026-06-21T18:22:00Z",
+  "last_updated": "2026-06-21T19:06:00Z",
   "platform": "claude_code",
-  "current_task": "R1/R2 Phase 6.2 reviewed+polished (PR #114, commits 8ed4196 feat, 2ce0857 selection fix, 7075a25 review feedback): per-user rich menu assignment UI. Retried ecc:fastapi-reviewer + ecc:react-reviewer (",
+  "current_task": "Session complete - R1/R2 rich-menu-switching (incl Task 6.2 per-user assignment UI) MERGED to main via PR #114 (merge commit 3a90f4d). Flow: built Task 6.2 (backend read-enrichment user_link_count + f",
   "plan_status": "completed",
   "next_steps": [
-    "Merge PR #114 (CI won't run - Actions out of free minutes; rely on local validation in PR body)",
-    "Manual/E2E test per-user assignment against running backend+LINE: single assign/unassign, bulk-link/bulk-unlink, 409 on unsynced menu",
-    "Run alembic upgrade head on REMOTE (Supabase PROD) before deploy - Phase 4 user_rich_menu_links migration still DEFERRED on remote",
-    "Before mobile E2E: verify a richmenuswitch area survives sync to LINE (RichMenuService builds correct LINE action shape from richMenuAliasId)"
+    "Verify BACKEND prod deployment has the new Task 6.2 code (per-user endpoints + read enrichment) - Vercel deployed only the Next.js FRONTEND; FastAPI backend deploys separately and cd.yml auto-deploy is in disabled Actions",
+    "Smoke test on prod: open /admin/friends, assign a rich menu (single + bulk), confirm full loop frontend<->backend<->DB works end to end",
+    "Manual/E2E: verify 409 on unsynced menu, and that a richmenuswitch area survives sync to LINE (RichMenuService builds correct LINE action shape from richMenuAliasId)"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-06-21T19:06:00Z",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "3a90f4d",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-06-21T18:22:00Z",
       "platform": "claude_code",
@@ -141,13 +147,6 @@
       "platform": "claude_code",
       "branch": "feat/phase4-pr2-reply-objects",
       "head": "a43fc57",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-17T06:40:00Z",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "9656342",
       "status": "completed"
     }
   ],
