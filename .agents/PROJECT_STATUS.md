@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-06-21 20:21 by Claude Code (Hardened the .agents handoff system branch chore/handoff-system-hardening, code commit 8b7)
+> **Last Updated:** 2026-06-21 21:57 by Claude Code (Reviewed + merged PR #115 handoff-system hardening to main via merge commit 33729fd.)
 
 ## Thai Summary
 ฟีเจอร์ **Rich Menu Switching + การกำหนดเมนูรายบุคคล (R1/R2)** เสร็จสมบูรณ์และขึ้น production แล้ว — merge เข้า main ผ่าน PR #114 (merge commit `3a90f4d`), migrate ฐานข้อมูล Supabase PROD (richmenu alias + user_rich_menu_links แบบ additive) และ deploy frontend บน Vercel เรียบร้อย
@@ -54,6 +54,7 @@
 - [2026-06-21] R1/R2 Rich Menu (incl Task 6.2 per-user UI) merged to `main` via PR #114 (`3a90f4d`); Supabase PROD migrated; Vercel frontend deployed. Branch `feat/rich-menu-switching-r1` deleted. Working tree clean.
 
 ## Recent Completions
+- [2026-06-21 21:57] Claude Code: Reviewed + merged PR #115 (handoff-system hardening) to main via merge commit 33729fd. code-reviewer verdict APPROVE (0 CRITICAL / 0 HIGH); fixed the 1 MEDIUM it caught — archive-checkpoints.cjs date cutoff had a month-overflow (Mar 31 - 1m (Claude Code)
 - [2026-06-21 20:21] Claude Code: Hardened the .agents handoff system (branch chore/handoff-system-hardening, code commit 8b7f778): (1) fixed the checkpoint timestamp timezone bug — local time now carries the real UTC offset (+07:00) instead of a fake trailing Z; (2) purged (Claude Code)
 - [2026-06-21 19:06] Claude Code: Session complete - R1/R2 rich-menu-switching (incl Task 6.2 per-user assignment UI) MERGED to main via PR #114 (merge commit 3a90f4d). Flow: built Task 6.2 (backend read-enrichment user_link_count + friends current-menu; frontend per-row as (Claude Code)
 - [2026-06-21 18:22] Claude Code: R1/R2 Phase 6.2 reviewed+polished (PR #114, commits 8ed4196 feat, 2ce0857 selection fix, 7075a25 review feedback): per-user rich menu assignment UI. Retried ecc:fastapi-reviewer + ecc:react-reviewer (1st attempt failed on transient API Conn (Claude Code)

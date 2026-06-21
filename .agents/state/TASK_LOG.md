@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 93 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 94 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-21 21:57 — claude_code — completed
+
+Reviewed + merged PR #115 (handoff-system hardening) to main via merge commit 33729fd. code-reviewer verdict APPROVE (0 CRITICAL / 0 HIGH); fixed the 1 MEDIUM it caught — archive-checkpoints.cjs date cutoff had a month-overflow (Mar 31 - 1mo normalized to Mar 3), now clamps the day to the target month length (commit 08d9afd). Validated LOCALLY instead of GitHub Actions (free-minutes limit reached): scripts/check_encoding.py = 466 files clean, node --check on all 4 scripts OK, validate_handoff_state.py PASS, archive dry-run regression 6mo=0/4mo=35. Branch chore/handoff-system-hardening deleted (local+remote).
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260621-2157.json`
+- Summary: `project-log-md/claude_code/session-summary-20260621-2157.md`
+
+---
 
 ### 2026-06-21 20:21 — claude_code — completed
 

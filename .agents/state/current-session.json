@@ -1,13 +1,20 @@
 {
-  "last_updated": "2026-06-21T20:21:00+07:00",
+  "last_updated": "2026-06-21T21:57:00+07:00",
   "platform": "claude_code",
-  "current_task": "Hardened the .agents handoff system (branch chore/handoff-system-hardening, code commit 8b7f778): (1) fixed the checkpoint timestamp timezone bug — local time now carries the real UTC offset (+07:00) ",
+  "current_task": "Reviewed + merged PR #115 (handoff-system hardening) to main via merge commit 33729fd. code-reviewer verdict APPROVE (0 CRITICAL / 0 HIGH); fixed the 1 MEDIUM it caught — archive-checkpoints.cjs date ",
   "plan_status": "completed",
   "next_steps": [
-    "Open a PR for chore/handoff-system-hardening; merge after CI (frontend lint/build, backend pytest, Source Encoding Scan) is green",
-    "When checkpoints age past ~6 months, run: node .agents/scripts/archive-checkpoints.cjs --months 6 --apply (then commit the moves)"
+    "Carry-over from PR #114: verify backend prod has the Task 6.2 code (Vercel deployed frontend only); smoke test rich-menu assign (single+bulk) on /admin/friends",
+    "When checkpoints age past ~6 months, run: node .agents/scripts/archive-checkpoints.cjs --months 6 --apply"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-06-21T21:57:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "33729fd",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-06-21T20:21:00+07:00",
       "platform": "claude_code",
@@ -139,13 +146,6 @@
       "platform": "claude_code",
       "branch": "feat/reply-object-send-template-textv2",
       "head": "87e3ef1",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-20T06:32:00Z",
-      "platform": "claude_code",
-      "branch": "feat/reply-object-send-template-textv2",
-      "head": "6b1f593",
       "status": "completed"
     }
   ],
