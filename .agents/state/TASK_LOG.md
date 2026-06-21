@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 88 handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 89 handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-21 16:15 — claude_code — completed
+
+R1/R2 Phase 6.2 done (commit 8ed4196): per-user rich menu assignment UI on friends page - per-row assign modal (single) + checkbox bulk toolbar (bulk-link/bulk-unlink) + current-menu column; user_link_count 'X users' badge on rich-menus list; backend reads enriched (GET /admin/rich-menus +user_link_count grouped count, GET /admin/friends +rich_menu_id/name page-scoped JOIN). +2 pytest (499 pass), tsc clean, eslint clean on changed files. New component RichMenuAssignModal (key-remount picker, manual useAuth headers).
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260621-1615.json`
+- Summary: `project-log-md/claude_code/session-summary-20260621-1615.md`
+
+---
 
 ### 2026-06-21 10:56 — claude_code — completed
 

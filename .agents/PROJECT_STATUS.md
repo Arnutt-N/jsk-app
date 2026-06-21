@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-06-21 10:56 by Claude Code (R1 Phase 6.1 done commit 3360bbb: alias management UI at /admin/rich-menus/aliases list + )
+> **Last Updated:** 2026-06-21 16:15 by Claude Code (R1/R2 Phase 6.2 done commit 8ed4196: per-user rich menu assignment UI on friends page - pe)
 
 ## Thai Summary
 แผนการปรับปรุง UX และ Error Handling **เสร็จสมบูรณ์ 100%** — ฟีเจอร์ Undo/Redo, Help System และ Error Handling ใหม่ถูก merge เข้าสู่ main แล้ว
@@ -46,6 +46,7 @@
 - [2026-06-03] All changes from PR #78 merged to `main`. Branch `feat/undo-redo-help-error-handling` is ready for deletion.
 
 ## Recent Completions
+- [2026-06-21 16:15] Claude Code: R1/R2 Phase 6.2 done (commit 8ed4196): per-user rich menu assignment UI on friends page - per-row assign modal (single) + checkbox bulk toolbar (bulk-link/bulk-unlink) + current-menu column; user_link_count 'X users' badge on rich-menus lis (Claude Code)
 - [2026-06-21 10:56] Claude Code: R1 Phase 6.1 done (commit 3360bbb): alias management UI at /admin/rich-menus/aliases (list + create with alias_id pattern/synced-target validation + per-row re-point PUT + delete ConfirmDialog) and an 'Aliases' link button on the rich-menus (Claude Code)
 - [2026-06-21 10:09] Claude Code: R1 Phase 5 done (commit 044b779): richmenuswitch switch-action UI on new+edit rich-menu pages + PUT edit-save fix (PUT /{id} now uses RichMenuUpdate, preserves stored canvas size instead of re-deriving from template_type, fixes latent 422). (Claude Code)
 - [2026-06-21 07:41] Claude Code: R1/R2 backend complete: Phase 4 (per-user rich menu link/unlink/bulk service + endpoints, cbf38be) + Phase 7 (delete guard + GET /{id}/dependencies endpoint, c203aac). Full TDD (RED-GREEN) + code/security review. Backend for rich-menu switc (Claude Code)
