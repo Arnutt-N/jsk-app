@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 95 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 96 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-22 07:27 — claude_code — completed
+
+Live-chat console remediation — planning complete (no source changes), branch PUSHED to origin. 5 fan-out workflows: multi-expert audit (37 findings 5H/21M/11L) -> PRD v2 (BLOCKERs B1 backend-dep + B2 WCAG resolved) -> 6-expert PRD review -> 8 /prp-plan plans -> 12-expert plan review (snippet faithfulness 99%, 7 cross-phase BLOCKERs). Branch docs/livechat-audit-remediation-prp pushed to origin (commits 9e4c098 + 5b0bd3e), unmerged, no PR yet. CI Actions disabled — validate locally.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260622-0727.json`
+- Summary: `project-log-md/claude_code/session-summary-20260622-0727.md`
+
+---
 
 ### 2026-06-22 07:15 — claude_code — completed
 
