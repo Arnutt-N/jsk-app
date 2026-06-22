@@ -1,13 +1,22 @@
 {
-  "last_updated": "2026-06-21T21:57:00+07:00",
+  "last_updated": "2026-06-22T07:15:00+07:00",
   "platform": "claude_code",
-  "current_task": "Reviewed + merged PR #115 (handoff-system hardening) to main via merge commit 33729fd. code-reviewer verdict APPROVE (0 CRITICAL / 0 HIGH); fixed the 1 MEDIUM it caught — archive-checkpoints.cjs date ",
+  "current_task": "Live-chat console remediation — planning complete (no source changes). Ran 5 fan-out workflows: multi-expert audit (37 findings: 5H/21M/11L) -> PRD v2 (post-review, BLOCKERs B1 backend-dep + B2 WCAG r",
   "plan_status": "completed",
   "next_steps": [
-    "Carry-over from PR #114: verify backend prod has the Task 6.2 code (Vercel deployed frontend only); smoke test rich-menu assign (single+bulk) on /admin/friends",
-    "When checkpoints age past ~6 months, run: node .agents/scripts/archive-checkpoints.cjs --months 6 --apply"
+    "Close 7 cross-phase BLOCKERs before implementing (see .claude/PRPs/reviews/livechat-plan-review.md section 3): add File-Ownership table for useConversations.ts/ConversationItem.tsx/ConversationList.tsx + serialize chain P1->P3->P4->P5->P6, fix Phase 6 to use renamed useConversationStats, create e2e/live-chat-smoke.spec.ts baseline, add automated tests for H3 memo + M16 claim contention + Phase 8 ack-timeout, set Phase 8 contract to 30 keys not 31",
+    "Fix 2 wrong plan snippets: Phase 3 --text-2xs must be in @theme not :root; Phase 5/M13 optionId/formattedTime props already exist",
+    "Implement Phase 1 (Quick Wins MVP, frontend-only, confidence 8/10) via /ecc:prp-implement .claude/PRPs/plans/phase-1-quick-wins.plan.md",
+    "Decide whether to push branch / open PR (currently local-only, unmerged)"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-06-22T07:15:00+07:00",
+      "platform": "claude_code",
+      "branch": "docs/livechat-audit-remediation-prp",
+      "head": "9e4c098",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-06-21T21:57:00+07:00",
       "platform": "claude_code",
@@ -139,13 +148,6 @@
       "platform": "claude_code",
       "branch": "main",
       "head": "d400368",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-20T08:12:00Z",
-      "platform": "claude_code",
-      "branch": "feat/reply-object-send-template-textv2",
-      "head": "87e3ef1",
       "status": "completed"
     }
   ],

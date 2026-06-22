@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-06-21 21:57 by Claude Code (Reviewed + merged PR #115 handoff-system hardening to main via merge commit 33729fd.)
+> **Last Updated:** 2026-06-22 07:15 by Claude Code (Live-chat console remediation — planning complete no source changes.)
 
 ## Thai Summary
 ฟีเจอร์ **Rich Menu Switching + การกำหนดเมนูรายบุคคล (R1/R2)** เสร็จสมบูรณ์และขึ้น production แล้ว — merge เข้า main ผ่าน PR #114 (merge commit `3a90f4d`), migrate ฐานข้อมูล Supabase PROD (richmenu alias + user_rich_menu_links แบบ additive) และ deploy frontend บน Vercel เรียบร้อย
@@ -54,6 +54,7 @@
 - [2026-06-21] R1/R2 Rich Menu (incl Task 6.2 per-user UI) merged to `main` via PR #114 (`3a90f4d`); Supabase PROD migrated; Vercel frontend deployed. Branch `feat/rich-menu-switching-r1` deleted. Working tree clean.
 
 ## Recent Completions
+- [2026-06-22 07:15] Claude Code: Live-chat console remediation — planning complete (no source changes). Ran 5 fan-out workflows: multi-expert audit (37 findings: 5H/21M/11L) -> PRD v2 (post-review, BLOCKERs B1 backend-dep + B2 WCAG resolved) -> 6-expert PRD review -> 8 /pr (Claude Code)
 - [2026-06-21 21:57] Claude Code: Reviewed + merged PR #115 (handoff-system hardening) to main via merge commit 33729fd. code-reviewer verdict APPROVE (0 CRITICAL / 0 HIGH); fixed the 1 MEDIUM it caught — archive-checkpoints.cjs date cutoff had a month-overflow (Mar 31 - 1m (Claude Code)
 - [2026-06-21 20:21] Claude Code: Hardened the .agents handoff system (branch chore/handoff-system-hardening, code commit 8b7f778): (1) fixed the checkpoint timestamp timezone bug — local time now carries the real UTC offset (+07:00) instead of a fake trailing Z; (2) purged (Claude Code)
 - [2026-06-21 19:06] Claude Code: Session complete - R1/R2 rich-menu-switching (incl Task 6.2 per-user assignment UI) MERGED to main via PR #114 (merge commit 3a90f4d). Flow: built Task 6.2 (backend read-enrichment user_link_count + friends current-menu; frontend per-row as (Claude Code)
