@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 96 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 97 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-24 22:14 — claude_code — completed
+
+Live-chat remediation — closed 7 plan-review BLOCKERs at document level (commit e1823ad, pushed). Created .claude/PRPs/plans/PLAN-REVIEW-FIXES.md (authoritative errata: B1-B7 + 2 snippet corrections, verified vs live source), expanded PRD File-Ownership table (useConversationStats/ConversationItem/ConversationList/MessageBubble owner-chains P1->P3->P4->P5->P6 + W3 messages-only), and added frontend/e2e/live-chat-smoke.spec.ts regression baseline (B3). Planning fully done; ready for implementation. Branch docs/livechat-audit-remediation-prp.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260624-2214.json`
+- Summary: `project-log-md/claude_code/session-summary-20260624-2214.md`
+
+---
 
 ### 2026-06-22 07:27 — claude_code — completed
 

@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-06-22 07:27 by Claude Code (Live-chat console remediation — planning complete no source changes, branch PUSHED to orig)
+> **Last Updated:** 2026-06-24 22:14 by Claude Code (Live-chat remediation — closed 7 plan-review BLOCKERs at document level commit e1823ad, pu)
 
 ## Thai Summary
 ฟีเจอร์ **Rich Menu Switching + การกำหนดเมนูรายบุคคล (R1/R2)** เสร็จสมบูรณ์และขึ้น production แล้ว — merge เข้า main ผ่าน PR #114 (merge commit `3a90f4d`), migrate ฐานข้อมูล Supabase PROD (richmenu alias + user_rich_menu_links แบบ additive) และ deploy frontend บน Vercel เรียบร้อย
@@ -54,6 +54,7 @@
 - [2026-06-21] R1/R2 Rich Menu (incl Task 6.2 per-user UI) merged to `main` via PR #114 (`3a90f4d`); Supabase PROD migrated; Vercel frontend deployed. Branch `feat/rich-menu-switching-r1` deleted. Working tree clean.
 
 ## Recent Completions
+- [2026-06-24 22:14] Claude Code: Live-chat remediation — closed 7 plan-review BLOCKERs at document level (commit e1823ad, pushed). Created .claude/PRPs/plans/PLAN-REVIEW-FIXES.md (authoritative errata: B1-B7 + 2 snippet corrections, verified vs live source), expanded PRD F (Claude Code)
 - [2026-06-22 07:27] Claude Code: Live-chat console remediation — planning complete (no source changes), branch PUSHED to origin. 5 fan-out workflows: multi-expert audit (37 findings 5H/21M/11L) -> PRD v2 (BLOCKERs B1 backend-dep + B2 WCAG resolved) -> 6-expert PRD review - (Claude Code)
 - [2026-06-22 07:15] Claude Code: Live-chat console remediation — planning complete (no source changes). Ran 5 fan-out workflows: multi-expert audit (37 findings: 5H/21M/11L) -> PRD v2 (post-review, BLOCKERs B1 backend-dep + B2 WCAG resolved) -> 6-expert PRD review -> 8 /pr (Claude Code)
 - [2026-06-21 21:57] Claude Code: Reviewed + merged PR #115 (handoff-system hardening) to main via merge commit 33729fd. code-reviewer verdict APPROVE (0 CRITICAL / 0 HIGH); fixed the 1 MEDIUM it caught — archive-checkpoints.cjs date cutoff had a month-overflow (Mar 31 - 1m (Claude Code)

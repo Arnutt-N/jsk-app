@@ -1,15 +1,22 @@
 {
-  "last_updated": "2026-06-22T07:27:00+07:00",
+  "last_updated": "2026-06-24T22:14:00+07:00",
   "platform": "claude_code",
-  "current_task": "Live-chat console remediation — planning complete (no source changes), branch PUSHED to origin. 5 fan-out workflows: multi-expert audit (37 findings 5H/21M/11L) -> PRD v2 (BLOCKERs B1 backend-dep + B2",
+  "current_task": "Live-chat remediation — closed 7 plan-review BLOCKERs at document level (commit e1823ad, pushed). Created .claude/PRPs/plans/PLAN-REVIEW-FIXES.md (authoritative errata: B1-B7 + 2 snippet corrections, ",
   "plan_status": "completed",
   "next_steps": [
-    "Close 7 cross-phase BLOCKERs before implementing (see .claude/PRPs/reviews/livechat-plan-review.md section 3): File-Ownership table for useConversations.ts/ConversationItem.tsx/ConversationList.tsx + serialize chain P1->P3->P4->P5->P6, Phase 6 use renamed useConversationStats, create e2e/live-chat-smoke.spec.ts baseline, add tests for H3 memo + M16 claim contention + Phase 8 ack-timeout, Phase 8 contract 30 keys not 31",
-    "Fix 2 wrong plan snippets: Phase 3 --text-2xs in @theme not :root; Phase 5/M13 optionId/formattedTime props already exist",
-    "Implement Phase 1 (Quick Wins MVP, frontend-only, confidence 8/10) via /ecc:prp-implement .claude/PRPs/plans/phase-1-quick-wins.plan.md",
-    "Decide whether to open a PR for the pushed branch (gh pr create) or implement directly on it"
+    "Validate e2e/live-chat-smoke.spec.ts in WSL: set E2E_ADMIN_PASSWORD, confirm selectors (listbox/textarea) against running app, get green as the regression baseline, then un-skip the H1 Send-name test during Phase 1",
+    "Implement Phase 1 (Quick Wins MVP) via /ecc:prp-implement .claude/PRPs/plans/phase-1-quick-wins.plan.md — apply errata B4 (add LiveChatContextMemo.test.tsx for H3)",
+    "When implementing Phase 3/5/6/8 apply their errata items from PLAN-REVIEW-FIXES.md (S1 @theme, S2 props-already-exist, B1 useConversationStats+sortBy, B7 contract capture-live ~30 keys)",
+    "Follow File-Ownership serialize chain for ConversationItem/ConversationList (P1->P3->P4->P5->P6) — do not merge those files in parallel"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-06-24T22:14:00+07:00",
+      "platform": "claude_code",
+      "branch": "docs/livechat-audit-remediation-prp",
+      "head": "e1823ad",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-06-22T07:27:00+07:00",
       "platform": "claude_code",
@@ -141,13 +148,6 @@
       "platform": "claude_code",
       "branch": "main",
       "head": "a8cf662",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-20T17:38:00Z",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "d998a73",
       "status": "completed"
     }
   ],
