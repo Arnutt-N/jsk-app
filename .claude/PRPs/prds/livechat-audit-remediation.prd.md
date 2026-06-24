@@ -175,8 +175,14 @@ When มีลูกค้าหลายคนรอในคิวพร้อ
 - **`MessageInput.tsx`**: owner = Phase 1 (a11y+hit area); Phase 2 (W1 focus), Phase 4 (motion) rebase หลัง P1 merge
 - **`CustomerPanel.tsx`**: owner = Phase 2 (a11y dialog/labels); Phase 3 (token/hierarchy), Phase 5 (perf), Phase 7 (M20 notes) rebase ตามลำดับ
 - **`globals.css`**: owner = Phase 3 (token); Phase 4 (motion token/W4) ประสานก่อนแก้
-- **`ChatArea.tsx`**: owner = Phase 1 (H4/W3 live region); Phase 5 (perf) rebase
+- **`ChatArea.tsx`**: owner = Phase 1 (H4/W3 live region — **W3 = messages `role="log"` เท่านั้น**); Phase 5 (perf) rebase. หมายเหตุ: Phase 2 ทำ live region แยกสำหรับ typing/connection/session (ไม่แตะ messages region ของ P1) เพื่อเลี่ยง nested live region
+- **`useConversations.ts` / `useConversationStats.ts`**: owner = Phase 5 (M12 memoize + L9.7 rename `useConversations`→`useConversationStats`, signature `(conversations, query)`); **Phase 6 (M15 sort) ต้องเพิ่ม param `sortBy` ใน `useConversationStats` ของ P5 — ห้ามอ้าง `useConversations` 3-param แบบเดิม** (จะ break)
+- **`ConversationItem.tsx`**: owner-chain **P1 → P3 → P4 → P5 → P6** (serialize, ห้าม merge ขนาน). P5 เปลี่ยน prop signature เป็น breaking (`onClick→onSelect(id)`, `onMenuClick→onMenuToggle(id)`) → P6 ต้องวาง badge/contender บน signature ใหม่ของ P5
+- **`ConversationList.tsx`**: owner-chain **P1 → P3 → P4 → P5 → P6** (serialize). `optionId`/`formattedTime` props **มีอยู่แล้ว** (:220,223) — อย่าเพิ่มซ้ำ
+- **`MessageBubble.tsx`**: owner = Phase 4 (isNew/motion); Phase 5 (`formattedTime` prop) rebase หลัง P4
 - กฎ: เฟส parallel ที่ชน owner file เดียวกัน → serialize เฉพาะไฟล์นั้น (ไม่ใช่ทั้งเฟส)
+
+> **ก่อน implement เฟสใด ๆ อ่าน [PLAN-REVIEW-FIXES.md](../plans/PLAN-REVIEW-FIXES.md)** — errata รวม 7 cross-phase BLOCKERs + 2 snippet corrections จาก plan review (wf_634ea6c6-886). แก้แล้วจึงเริ่มได้
 
 ### Phase Details
 
