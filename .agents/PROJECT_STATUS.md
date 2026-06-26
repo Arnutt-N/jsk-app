@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-06-27 00:40 by Claude Code (Implemented Live-Chat Phase 1 Quick Wins via 5 parallel file-owned agents: H1 composer a11)
+> **Last Updated:** 2026-06-27 05:27 by Claude Code (Implemented Live-Chat Phase 2 A11y Compliance WCAG 2.2 AA via 5 parallel file-owned agents)
 
 ## Thai Summary
 ฟีเจอร์ **Rich Menu Switching + การกำหนดเมนูรายบุคคล (R1/R2)** เสร็จสมบูรณ์และขึ้น production แล้ว — merge เข้า main ผ่าน PR #114 (merge commit `3a90f4d`), migrate ฐานข้อมูล Supabase PROD (richmenu alias + user_rich_menu_links แบบ additive) และ deploy frontend บน Vercel เรียบร้อย
@@ -54,6 +54,7 @@
 - [2026-06-21] R1/R2 Rich Menu (incl Task 6.2 per-user UI) merged to `main` via PR #114 (`3a90f4d`); Supabase PROD migrated; Vercel frontend deployed. Branch `feat/rich-menu-switching-r1` deleted. Working tree clean.
 
 ## Recent Completions
+- [2026-06-27 05:27] Claude Code: Implemented Live-Chat Phase 2 (A11y Compliance WCAG 2.2 AA) via 5 parallel file-owned agents: H5 new MobileDrawer (role=dialog + focus trap/Escape/restore) wired into LiveChatShell mobile branch; M7 sr-only/option-aria-label presence status (Claude Code)
 - [2026-06-27 00:40] Claude Code: Implemented Live-Chat Phase 1 (Quick Wins) via 5 parallel file-owned agents: H1 composer a11y (aria-label/pressed/expanded + aria-hidden SVGs), M4/W5 hit-areas >=24px, H3 memoize Context value, M3 delete dead ChatState (value now 30 keys no (Claude Code)
 - [2026-06-26 23:00] Claude Code: Cleared the WSL Playwright system-deps blocker (libnspr4/libnss3/libasound2t64/xvfb + dpkg --configure -a repair); re-bootstrapped the local e2e stack (docker db/redis on Windows host + backend run.py --no-reload + next dev) against the LOC (Claude Code)
 - [2026-06-24 22:14] Claude Code: Live-chat remediation — closed 7 plan-review BLOCKERs at document level (commit e1823ad, pushed). Created .claude/PRPs/plans/PLAN-REVIEW-FIXES.md (authoritative errata: B1-B7 + 2 snippet corrections, verified vs live source), expanded PRD F (Claude Code)

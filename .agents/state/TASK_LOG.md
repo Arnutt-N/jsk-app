@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 99 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 100 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-27 05:27 — claude_code — completed
+
+Implemented Live-Chat Phase 2 (A11y Compliance WCAG 2.2 AA) via 5 parallel file-owned agents: H5 new MobileDrawer (role=dialog + focus trap/Escape/restore) wired into LiveChatShell mobile branch; M7 sr-only/option-aria-label presence status (ConversationItem/ChatHeader/CustomerPanel); M8 CreateChatSheet htmlFor/id labels + role=alert + aria-required; M9 CustomerPanel Notes label; W1 .focus-ring sweep; W2 status-pill text contrast (emerald/amber-700 +dark); W3 separated live regions (messages role=log from P1 + connection/typing role=status, no nesting); M21 break-words + focus-visible kebab. Added 3 test files (14 cases). Validation green: tsc 0, eslint 0, vitest 194/194, live-chat e2e smoke green. Committed f3fb456 on docs/livechat-audit-remediation-prp.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260627-0527.json`
+- Summary: `project-log-md/claude_code/session-summary-20260627-0527.md`
+
+---
 
 ### 2026-06-27 00:40 — claude_code — completed
 
