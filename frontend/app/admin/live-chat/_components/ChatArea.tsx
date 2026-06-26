@@ -181,6 +181,7 @@ export function ChatArea() {
                     ? 'bg-danger/10 text-danger border-danger/20'
                     : 'bg-away/10 text-away border-away/20'
               }`}
+              role="status"
               aria-live="polite"
             >
               <span className="relative flex h-2 w-2">
@@ -305,11 +306,12 @@ export function ChatArea() {
         })}
         {virtualEnabled && <div aria-hidden style={{ height: `${visibleWindow.bottomPadding}px` }} />}
         <TypingIndicator visible={typingUsersCount > 0} />
+        <div role="status" aria-live="polite" className="sr-only">{typingUsersCount > 0 ? 'กำลังพิมพ์' : ''}</div>
         <div ref={messagesEndRef} />
       </div>
       {/* Inline connection warning — above message input */}
       {wsStatus !== 'connected' && (
-        <div className="px-4 py-2.5 bg-amber-50 dark:bg-amber-500/10 border-t border-amber-200 dark:border-amber-500/20 flex items-center gap-2.5 thai-text">
+        <div role="status" aria-live="polite" className="px-4 py-2.5 bg-amber-50 dark:bg-amber-500/10 border-t border-amber-200 dark:border-amber-500/20 flex items-center gap-2.5 thai-text">
           <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
           <span className="text-sm text-amber-700 dark:text-amber-300 flex-1">
             {wsStatus === 'reconnecting'

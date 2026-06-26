@@ -41,11 +41,14 @@ export const ConversationItem = memo(function ConversationItem({
     return () => document.removeEventListener('mousedown', handleClick);
   }, [menuOpen]);
 
+  const statusLabel = isActive ? 'ออนไลน์' : isWaiting ? 'กำลังรอ' : 'ออฟไลน์';
+
   return (
     <div
       id={optionId}
       role="option"
       aria-selected={selected}
+      aria-label={`${conversation.display_name}, ${statusLabel}${conversation.unread_count > 0 ? `, ${conversation.unread_count} ข้อความใหม่` : ''}`}
       className={`group relative flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all thai-text ${
         selected
           ? 'gradient-active text-white shadow-lg shadow-brand-900/30'
@@ -62,6 +65,7 @@ export const ConversationItem = memo(function ConversationItem({
           alt={conversation.display_name}
         />
         <div
+          aria-hidden
           className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-sidebar-bg ${
             isActive ? 'bg-online' : isWaiting ? 'bg-away' : 'bg-offline'
           }`}
@@ -72,7 +76,7 @@ export const ConversationItem = memo(function ConversationItem({
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
           <span className="flex items-center gap-1 min-w-0">
-            <span className={`font-semibold truncate text-sm ${selected ? 'text-white' : 'text-sidebar-fg'}`}>
+            <span className={`font-semibold truncate break-words text-sm ${selected ? 'text-white' : 'text-sidebar-fg'}`}>
               {conversation.display_name}
             </span>
             {isVip && <Star className="w-3 h-3 text-yellow-400 fill-yellow-400 flex-shrink-0" />}
@@ -82,7 +86,7 @@ export const ConversationItem = memo(function ConversationItem({
           </span>
         </div>
         <div className="flex items-center justify-between gap-2 mt-0.5">
-          <span className={`truncate text-xs thai-no-break ${selected ? 'text-white/80' : 'text-sidebar-text-muted'}`}>
+          <span className={`truncate break-words text-xs thai-no-break ${selected ? 'text-white/80' : 'text-sidebar-text-muted'}`}>
             {conversation.last_message?.content || 'No messages yet'}
           </span>
           <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -133,7 +137,7 @@ export const ConversationItem = memo(function ConversationItem({
             setMenuOpen(!menuOpen);
             onMenuClick();
           }}
-          className={`p-1.5 rounded-lg cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity ${selected ? 'text-white/80 hover:text-white' : 'text-sidebar-text-muted hover:text-white'}`}
+          className={`p-1.5 rounded-lg cursor-pointer opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity focus-ring ${selected ? 'text-white/80 hover:text-white' : 'text-sidebar-text-muted hover:text-white'}`}
           aria-label={`Open actions for ${conversation.display_name}`}
         >
           <MoreVertical className="w-4 h-4" />
@@ -142,14 +146,14 @@ export const ConversationItem = memo(function ConversationItem({
           <div className="absolute right-0 top-full mt-1 w-44 bg-surface rounded-xl shadow-2xl border border-border-default overflow-hidden z-50 animate-in fade-in slide-in-from-top-1 duration-150">
             <button
               onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onClick(); }}
-              className="flex items-center gap-2.5 px-3 py-2 text-xs text-text-secondary hover:bg-muted w-full text-left cursor-pointer"
+              className="flex items-center gap-2.5 px-3 py-2 text-xs text-text-secondary hover:bg-muted w-full text-left cursor-pointer focus-ring"
             >
               <Eye className="w-3.5 h-3.5 text-text-tertiary" />
               ดูประวัติแชท
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onMarkRead(); }}
-              className="flex items-center gap-2.5 px-3 py-2 text-xs text-text-secondary hover:bg-muted w-full text-left cursor-pointer"
+              className="flex items-center gap-2.5 px-3 py-2 text-xs text-text-secondary hover:bg-muted w-full text-left cursor-pointer focus-ring"
             >
               <CheckCheck className="w-3.5 h-3.5 text-text-tertiary" />
               ทำเครื่องหมายว่าอ่านแล้ว

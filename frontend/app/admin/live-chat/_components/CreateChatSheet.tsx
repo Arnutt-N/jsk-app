@@ -159,11 +159,13 @@ export function CreateChatSheet({ isOpen, onClose, onCreated }: CreateChatSheetP
         <div className="mt-6 space-y-5">
           {/* ค้นหาผู้ใช้ */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-text-primary">
+            <label htmlFor="cc-user-query" className="text-sm font-medium text-text-primary">
               ค้นหาผู้ใช้ <span className="text-danger">*</span>
             </label>
             <div className="flex gap-2">
               <Input
+                id="cc-user-query"
+                aria-required="true"
                 placeholder="ชื่อหรือ LINE User ID"
                 value={userQuery}
                 onChange={(e) => setUserQuery(e.target.value)}
@@ -190,7 +192,7 @@ export function CreateChatSheet({ isOpen, onClose, onCreated }: CreateChatSheetP
                 <button
                   key={user.line_user_id}
                   onClick={() => setSelectedUser(user)}
-                  className="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-bg transition-colors text-left"
+                  className="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-bg transition-colors text-left focus-ring"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
@@ -236,7 +238,7 @@ export function CreateChatSheet({ isOpen, onClose, onCreated }: CreateChatSheetP
               </div>
               <button
                 onClick={() => setSelectedUser(null)}
-                className="text-xs text-text-tertiary hover:text-danger transition-colors"
+                className="text-xs text-text-tertiary hover:text-danger transition-colors focus-ring"
                 aria-label="เปลี่ยนผู้ใช้"
               >
                 เปลี่ยน
@@ -246,10 +248,11 @@ export function CreateChatSheet({ isOpen, onClose, onCreated }: CreateChatSheetP
 
           {/* ข้อความเริ่มต้น (ไม่บังคับ) */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-text-primary">
+            <label htmlFor="cc-initial-message" className="text-sm font-medium text-text-primary">
               ข้อความเริ่มต้น <span className="text-text-tertiary text-xs">(ไม่บังคับ)</span>
             </label>
             <Textarea
+              id="cc-initial-message"
               placeholder="พิมพ์ข้อความที่ต้องการส่งให้ผู้ใช้..."
               value={initialMessage}
               onChange={(e) => setInitialMessage(e.target.value)}
@@ -259,10 +262,11 @@ export function CreateChatSheet({ isOpen, onClose, onCreated }: CreateChatSheetP
 
           {/* เหตุผล (ไม่บังคับ) */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-text-primary">
+            <label htmlFor="cc-reason" className="text-sm font-medium text-text-primary">
               เหตุผล <span className="text-text-tertiary text-xs">(ไม่บังคับ)</span>
             </label>
             <Input
+              id="cc-reason"
               placeholder="เหตุผลในการเริ่มแชท..."
               value={reason}
               onChange={(e) => setReason(e.target.value)}
@@ -272,7 +276,7 @@ export function CreateChatSheet({ isOpen, onClose, onCreated }: CreateChatSheetP
 
           {/* Error */}
           {error && (
-            <p className="text-sm text-danger bg-danger/10 rounded-lg px-3 py-2">
+            <p role="alert" aria-live="assertive" className="text-sm text-danger bg-danger/10 rounded-lg px-3 py-2">
               {error}
             </p>
           )}

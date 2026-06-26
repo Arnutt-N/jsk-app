@@ -8,6 +8,7 @@ import { ChatArea } from './ChatArea';
 import { ConversationList } from './ConversationList';
 import { CustomerPanel } from './CustomerPanel';
 import { NotificationToast } from './NotificationToast';
+import { MobileDrawer } from './MobileDrawer';
 import { TransferDialog } from './TransferDialog';
 
 export function LiveChatShell() {
@@ -62,17 +63,17 @@ export function LiveChatShell() {
         
         {/* Column 3: Customer Profile Panel - Light, fixed 320px width, conditional */}
         {selectedId && showCustomerPanel && (
-          <div
-            className={isMobileView ? 'fixed inset-0 z-40 bg-black/40 backdrop-blur-sm' : 'hidden md:flex'}
-            onClick={isMobileView ? () => setShowCustomerPanel(false) : undefined}
-          >
-            <div
-              className={isMobileView ? 'absolute right-0 top-0 h-full w-[88%] max-w-sm' : 'h-full'}
-              onClick={isMobileView ? (e) => e.stopPropagation() : undefined}
-            >
+          isMobileView ? (
+            <MobileDrawer open onClose={() => setShowCustomerPanel(false)} titleId="customer-panel-title">
               <CustomerPanel currentChat={currentChat} onClose={() => setShowCustomerPanel(false)} />
+            </MobileDrawer>
+          ) : (
+            <div className="hidden md:flex">
+              <div className="h-full">
+                <CustomerPanel currentChat={currentChat} onClose={() => setShowCustomerPanel(false)} />
+              </div>
             </div>
-          </div>
+          )
         )}
         <TransferDialog
           open={showTransferDialog}

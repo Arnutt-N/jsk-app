@@ -44,6 +44,7 @@ export function ChatHeader({
   const isVip = currentChat?.tags?.some((tag) => tag.name.toUpperCase() === 'VIP');
 
   const statusColor = isActive ? 'bg-online' : currentChat ? 'bg-away' : 'bg-offline';
+  const statusLabel = isActive ? 'ออนไลน์' : currentChat ? 'กำลังรอ' : 'ออฟไลน์';
   const displayName = currentChat?.display_name || 'Unknown User';
   const fallback = displayName.charAt(0) || 'U';
 
@@ -55,7 +56,7 @@ export function ChatHeader({
           {isMobileView && (
             <button
               onClick={onBackToList}
-              className="rounded-xl border border-border-default p-2 text-text-tertiary transition-colors hover:bg-muted"
+              className="rounded-xl border border-border-default p-2 text-text-tertiary transition-colors hover:bg-muted focus-ring"
               aria-label="Back to conversations"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -63,7 +64,7 @@ export function ChatHeader({
           )}
 
           <button
-            className="relative cursor-pointer"
+            className="relative cursor-pointer focus-ring rounded-full"
             onClick={onToggleCustomerPanel}
             aria-label="Toggle customer panel"
           >
@@ -75,13 +76,15 @@ export function ChatHeader({
               className="border-2 border-white ring-2 ring-brand-500/20"
             />
             <span
+              aria-hidden
               className={`absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-white ${statusColor}`}
             />
+            <span className="sr-only">{statusLabel}</span>
           </button>
 
           <div>
             <div className="flex items-center gap-1.5">
-              <p className="thai-no-break text-base font-bold text-text-primary">{displayName}</p>
+              <p className="thai-no-break break-words text-base font-bold text-text-primary">{displayName}</p>
               {isVip && <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />}
             </div>
             <p className="thai-no-break text-xs text-text-tertiary">
@@ -96,7 +99,7 @@ export function ChatHeader({
           <div className="hidden md:flex items-center gap-1 p-1 bg-muted rounded-full">
             <button
               onClick={() => onToggleMode('BOT')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all duration-200 ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all duration-200 focus-ring ${
                 isBot
                   ? 'gradient-active text-white shadow-md shadow-brand-900/20'
                   : 'text-text-tertiary hover:text-text-primary'
@@ -109,7 +112,7 @@ export function ChatHeader({
             </button>
             <button
               onClick={() => onToggleMode('HUMAN')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all duration-200 ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all duration-200 focus-ring ${
                 !isBot
                   ? 'gradient-active text-white shadow-md shadow-brand-900/20'
                   : 'text-text-tertiary hover:text-text-primary'
@@ -134,7 +137,7 @@ export function ChatHeader({
 
           <button
             onClick={onToggleCustomerPanel}
-            className={`rounded-xl border p-2 transition-colors ${
+            className={`rounded-xl border p-2 transition-colors focus-ring ${
               showCustomerPanel
                 ? 'border-brand-200 bg-brand-50 text-brand-600'
                 : 'border-border-default bg-surface text-text-tertiary hover:bg-muted'
