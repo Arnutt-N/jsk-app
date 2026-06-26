@@ -60,11 +60,15 @@ test.describe('/admin/live-chat smoke', () => {
     await expect(page.getByRole('listbox')).toBeVisible()
   })
 
-  test('message composer is present', async ({ page }) => {
+  test('chat pane renders its empty state until a conversation is selected', async ({ page }) => {
     await gotoLiveChat(page)
-    // MessageInput renders a <textarea> (disabled until HUMAN mode / a
-    // session is selected) — its presence is the smoke signal.
-    await expect(page.locator('textarea').first()).toBeVisible()
+    // ChatArea returns an empty-state pane when `selectedId` is null
+    // (ChatArea.tsx: `if (!selectedId) return <empty state>`). The
+    // <textarea> composer is only mounted AFTER a conversation is selected,
+    // so on an empty seed the always-true smoke signal is the empty-state
+    // CTA in the chat pane. The composer-after-selection path is covered by
+    // the next test (which skips gracefully when the seed has no rows).
+    await expect(page.getByText(/select a conversation/i)).toBeVisible()
   })
 
   test('selecting a conversation reveals the chat area', async ({ page }) => {
