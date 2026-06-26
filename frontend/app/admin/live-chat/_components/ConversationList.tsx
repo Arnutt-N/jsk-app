@@ -31,6 +31,7 @@ export function ConversationList() {
   const setSearchQuery = useLiveChatStore((s) => s.setSearchQuery);
   const setFilterStatus = useLiveChatStore((s) => s.setFilterStatus);
   const setActiveActionMenu = useLiveChatStore((s) => s.setActiveActionMenu);
+  const markRead = useLiveChatStore((s) => s.markRead);
 
   // API methods from Context
   const { formatTime, selectConversation, jumpToMessage, fetchConversations } = useLiveChatContext();
@@ -226,6 +227,7 @@ export function ConversationList() {
                     setActiveActionMenu(null);
                   }}
                   onMenuClick={() => setActiveActionMenu(activeActionMenu === conversation.line_user_id ? null : conversation.line_user_id)}
+                  onMarkRead={() => markRead(conversation.line_user_id)}
                 />
             ))}
           </div>
@@ -235,19 +237,19 @@ export function ConversationList() {
       {/* Summary bar */}
       <div className="px-3 py-2.5 border-t border-white/10 bg-black/20">
         <div className="flex items-center justify-between gap-2 text-[11px]">
-          <span className="flex items-center gap-1.5 text-green-400 font-medium">
+          <span className="flex items-center gap-1.5 text-online font-medium">
             <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-50" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-400" />
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-online opacity-50" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-online" />
             </span>
             {activeCount} active
           </span>
-          <span className="flex items-center gap-1.5 text-amber-400 font-medium">
-            <span className="h-2 w-2 rounded-full bg-amber-400" />
+          <span className="flex items-center gap-1.5 text-away font-medium">
+            <span className="h-2 w-2 rounded-full bg-away" />
             {waitingCount} waiting
           </span>
           <span className="flex items-center gap-1.5 text-sidebar-text-muted font-medium">
-            <span className="h-2 w-2 rounded-full bg-white/20" />
+            <span className="h-2 w-2 rounded-full bg-offline" />
             {closedCount} offline
           </span>
         </div>

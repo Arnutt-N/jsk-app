@@ -22,32 +22,7 @@ import type {
 import { useLiveChatStore } from '../_store/liveChatStore';
 import type { Conversation, CurrentChat, Session } from '../_types';
 
-// State shape exposed via context (matches Zustand store)
-interface ChatState {
-  conversations: Conversation[];
-  selectedId: string | null;
-  currentChat: CurrentChat | null;
-  messages: Message[];
-  loading: boolean;
-  backendOnline: boolean;
-  filterStatus: string | null;
-  searchQuery: string;
-  inputText: string;
-  sending: boolean;
-  claiming: boolean;
-  showCustomerPanel: boolean;
-  activeActionMenu: string | null;
-  showTransferDialog: boolean;
-  showCannedPicker: boolean;
-  soundEnabled: boolean;
-  pendingMessages: Set<string>;
-  failedMessages: Map<string, string>;
-  hasMoreHistory: boolean;
-  isLoadingHistory: boolean;
-}
-
 interface LiveChatContextValue {
-  state: ChatState;
   wsStatus: ConnectionState;
   isMobileView: boolean;
   typingUsersCount: number;
@@ -140,27 +115,14 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
   // ── Zustand store ──
   const store = useLiveChatStore;
 
-  // Subscribe to state slices needed for Context compatibility & effects
+  // Subscribe only to the store slices still consumed by derived values
+  // (selectedConversation, isHumanMode) and effects. All other UI fields
+  // (inputText, sending, pickers, etc.) are read directly from the store by
+  // the components that need them, so the provider does not re-render on them.
   const conversations = store((s) => s.conversations);
   const selectedId = store((s) => s.selectedId);
   const currentChat = store((s) => s.currentChat);
   const messages = store((s) => s.messages);
-  const loading = store((s) => s.loading);
-  const backendOnline = store((s) => s.backendOnline);
-  const filterStatus = store((s) => s.filterStatus);
-  const searchQuery = store((s) => s.searchQuery);
-  const inputText = store((s) => s.inputText);
-  const sending = store((s) => s.sending);
-  const claiming = store((s) => s.claiming);
-  const showCustomerPanel = store((s) => s.showCustomerPanel);
-  const activeActionMenu = store((s) => s.activeActionMenu);
-  const showTransferDialog = store((s) => s.showTransferDialog);
-  const showCannedPicker = store((s) => s.showCannedPicker);
-  const soundEnabled = store((s) => s.soundEnabled);
-  const pendingMessages = store((s) => s.pendingMessages);
-  const failedMessages = store((s) => s.failedMessages);
-  const hasMoreHistory = store((s) => s.hasMoreHistory);
-  const isLoadingHistory = store((s) => s.isLoadingHistory);
 
   const { user, token } = useAuth();
   const searchParams = useSearchParams();
@@ -727,37 +689,11 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
     return d.toLocaleDateString('th-TH', { month: 'short', day: 'numeric' });
   }, []);
 
-  // Build state object from Zustand subscriptions for backward compat
-  const state: ChatState = useMemo(() => ({
-    conversations,
-    selectedId,
-    currentChat,
-    messages,
-    loading,
-    backendOnline,
-    filterStatus,
-    searchQuery,
-    inputText,
-    sending,
-    claiming,
-    showCustomerPanel,
-    activeActionMenu,
-    showTransferDialog,
-    showCannedPicker,
-    soundEnabled,
-    pendingMessages,
-    failedMessages,
-    hasMoreHistory,
-    isLoadingHistory,
-  }), [
-    conversations, selectedId, currentChat, messages, loading, backendOnline,
-    filterStatus, searchQuery, inputText, sending, claiming, showCustomerPanel,
-    activeActionMenu, showTransferDialog, showCannedPicker, soundEnabled,
-    pendingMessages, failedMessages, hasMoreHistory, isLoadingHistory,
-  ]);
-
-  const value: LiveChatContextValue = {
-    state,
+  // Memoize the context value so consumers only re-render when one of the
+  // exposed derived values or callbacks actually changes identity. Without
+  // this, a fresh object literal each render forces every consumer to
+  // re-render even when nothing it reads has changed.
+  const value = useMemo<LiveChatContextValue>(() => ({
     wsStatus,
     isMobileView,
     typingUsersCount,
@@ -788,7 +724,38 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
     retryMessage,
     startTyping,
     formatTime,
-  };
+  }), [
+    wsStatus,
+    isMobileView,
+    typingUsersCount,
+    focusedMessageId,
+    isHumanMode,
+    selectedConversation,
+    setSearchQuery,
+    setFilterStatus,
+    setInputText,
+    setShowCustomerPanel,
+    setActiveActionMenu,
+    setShowTransferDialog,
+    setShowCannedPicker,
+    setSoundEnabled,
+    selectConversation,
+    jumpToMessage,
+    clearFocusedMessage,
+    fetchConversations,
+    fetchChatDetail,
+    sendMessage,
+    sendMedia,
+    claimSession,
+    closeSession,
+    transferSession,
+    toggleMode,
+    loadOlderMessages,
+    reconnect,
+    retryMessage,
+    startTyping,
+    formatTime,
+  ]);
 
   return <LiveChatContext.Provider value={value}>{children}</LiveChatContext.Provider>;
 }

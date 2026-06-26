@@ -39,6 +39,7 @@ export function ChatArea() {
   const failedMessages = useLiveChatStore((s) => s.failedMessages);
   const hasMoreHistory = useLiveChatStore((s) => s.hasMoreHistory);
   const isLoadingHistory = useLiveChatStore((s) => s.isLoadingHistory);
+  const liveMessage = useLiveChatStore((s) => s.liveMessage);
 
   // API methods and non-store state from Context
   const {
@@ -175,20 +176,20 @@ export function ChatArea() {
             <div
               className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border ${
                 wsStatus === 'connected'
-                  ? 'bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400 border-green-200 dark:border-green-500/20'
+                  ? 'bg-online/10 text-online border-online/20'
                   : wsStatus === 'disconnected'
-                    ? 'bg-red-50 dark:bg-red-500/10 text-red-500 dark:text-red-400 border-red-200 dark:border-red-500/20'
-                    : 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-500/20'
+                    ? 'bg-danger/10 text-danger border-danger/20'
+                    : 'bg-away/10 text-away border-away/20'
               }`}
               aria-live="polite"
             >
               <span className="relative flex h-2 w-2">
                 {wsStatus === 'connected' && (
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-50" />
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-online opacity-50" />
                 )}
                 <span className={`relative inline-flex rounded-full h-2 w-2 ${
-                  wsStatus === 'connected' ? 'bg-green-500' :
-                  wsStatus === 'disconnected' ? 'bg-red-500' : 'bg-amber-500'
+                  wsStatus === 'connected' ? 'bg-online' :
+                  wsStatus === 'disconnected' ? 'bg-danger' : 'bg-away'
                 }`} />
               </span>
               {connectionStatus.label}
@@ -260,7 +261,6 @@ export function ChatArea() {
       <div
         ref={messagesContainerRef}
         className="flex-1 overflow-y-auto p-4 space-y-2 bg-bg custom-scrollbar"
-        aria-live="polite"
         onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
       >
         <div ref={historySentinelRef} />
@@ -327,6 +327,9 @@ export function ChatArea() {
           )}
         </div>
       )}
+      <div role="log" aria-live="polite" aria-relevant="additions" className="sr-only">
+        {liveMessage}
+      </div>
       <MessageInput
         inputText={inputText}
         sending={sending}

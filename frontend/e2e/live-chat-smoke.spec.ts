@@ -89,8 +89,16 @@ test.describe('/admin/live-chat smoke', () => {
    * until H1 is implemented, so it is skipped now and must be un-skipped as
    * part of Phase 1 to prove the fix + prevent future regression.
    */
-  test.skip('Send button exposes an accessible name (un-skip in Phase 1/H1)', async ({ page }) => {
+  test('Send button exposes an accessible name (H1)', async ({ page }) => {
     await gotoLiveChat(page)
-    await expect(page.getByRole('button', { name: /send|ส่ง/i })).toBeVisible()
+    // The composer (and its Send button) only mounts after a conversation is
+    // selected — same data-dependence as the test above. Skip gracefully on an
+    // empty seed; H1 is also covered deterministically by the MessageInput unit
+    // test. When data exists this proves the Send button has an accessible name.
+    const convo = await firstConversation(page)
+    test.skip(convo === null, 'no seeded conversation — Send button mounts only after selecting one')
+
+    await convo!.click()
+    await expect(page.getByRole('button', { name: /ส่งข้อความ|send/i })).toBeVisible()
   })
 })

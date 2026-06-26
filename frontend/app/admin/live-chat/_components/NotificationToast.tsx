@@ -79,9 +79,9 @@ export function NotificationToast() {
               <button
                 aria-label="Dismiss notification"
                 onClick={() => dismissToast(toast.id)}
-                className="shrink-0 rounded-md p-0.5 text-text-tertiary hover:text-text-primary"
+                className="shrink-0 rounded-md p-1.5 text-text-tertiary hover:text-text-primary"
               >
-                <X className="h-3.5 w-3.5" />
+                <X className="h-3.5 w-3.5" aria-hidden />
               </button>
             </div>
             <p className="mt-0.5 line-clamp-2 text-xs text-text-secondary">{toast.message}</p>

@@ -124,17 +124,43 @@ export function MessageInput({
         {/* Top Toolbar */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1">
-            <button type="button" onClick={toggleEmojiPicker} className={btnClass(showEmojiPicker)} title="Emoji">
-              <Smile className="w-5 h-5" />
+            <button
+              type="button"
+              onClick={toggleEmojiPicker}
+              className={btnClass(showEmojiPicker)}
+              title="Emoji"
+              aria-label="แทรกอิโมจิ"
+              aria-pressed={showEmojiPicker}
+            >
+              <Smile className="w-5 h-5" aria-hidden />
             </button>
-            <button type="button" onClick={toggleStickerPicker} className={btnClass(showStickerPicker)} title="Stickers">
-              <Sticker className="w-5 h-5" />
+            <button
+              type="button"
+              onClick={toggleStickerPicker}
+              className={btnClass(showStickerPicker)}
+              title="Stickers"
+              aria-label="แทรกสติกเกอร์"
+              aria-pressed={showStickerPicker}
+            >
+              <Sticker className="w-5 h-5" aria-hidden />
             </button>
-            <button type="button" onClick={openFilePicker} className={btnClass(false)} title="Upload Image">
-              <ImageIcon className="w-5 h-5" />
+            <button
+              type="button"
+              onClick={openFilePicker}
+              className={btnClass(false)}
+              title="Upload Image"
+              aria-label="อัปโหลดรูปภาพ"
+            >
+              <ImageIcon className="w-5 h-5" aria-hidden />
             </button>
-            <button type="button" onClick={openFilePicker} className={btnClass(false)} title="Upload File">
-              <Paperclip className="w-5 h-5" />
+            <button
+              type="button"
+              onClick={openFilePicker}
+              className={btnClass(false)}
+              title="Upload File"
+              aria-label="แนบไฟล์"
+            >
+              <Paperclip className="w-5 h-5" aria-hidden />
             </button>
             <div className="w-px h-5 bg-border-default mx-1" />
             <button
@@ -142,17 +168,33 @@ export function MessageInput({
               onClick={toggleQuickReplies}
               className={btnClass(showQuickReplies)}
               title="Quick Replies"
+              aria-label="ข้อความด่วน"
+              aria-pressed={showQuickReplies}
             >
-              <Zap className="w-5 h-5" />
+              <Zap className="w-5 h-5" aria-hidden />
             </button>
-            <button type="button" onClick={onToggleCannedPicker} className={btnClass(showCannedPicker)} title="Canned Responses">
-              <MessageSquareText className="w-5 h-5" />
+            <button
+              type="button"
+              onClick={onToggleCannedPicker}
+              className={btnClass(showCannedPicker)}
+              title="Canned Responses"
+              aria-label="ข้อความสำเร็จรูป"
+              aria-pressed={showCannedPicker}
+            >
+              <MessageSquareText className="w-5 h-5" aria-hidden />
             </button>
           </div>
 
           <div className="flex items-center gap-1">
-            <button type="button" onClick={onToggleSound} className={btnClass(!soundEnabled)} title={soundEnabled ? 'Mute' : 'Unmute'}>
-              {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+            <button
+              type="button"
+              onClick={onToggleSound}
+              className={btnClass(!soundEnabled)}
+              title={soundEnabled ? 'Mute' : 'Unmute'}
+              aria-label={soundEnabled ? 'ปิดเสียงแจ้งเตือน' : 'เปิดเสียงแจ้งเตือน'}
+              aria-pressed={!soundEnabled}
+            >
+              {soundEnabled ? <Volume2 className="w-4 h-4" aria-hidden /> : <VolumeX className="w-4 h-4" aria-hidden />}
             </button>
           </div>
         </div>
@@ -195,21 +237,24 @@ export function MessageInput({
             <button
               type="button"
               onClick={toggleInputExpanded}
-              className="absolute right-2 top-2 p-1 text-text-tertiary hover:text-text-primary rounded"
+              className="absolute right-2 top-2 p-1.5 inline-flex items-center justify-center text-text-tertiary hover:text-text-primary rounded"
+              aria-label={inputExpanded ? 'ย่อกล่องข้อความ' : 'ขยายกล่องข้อความ'}
+              aria-expanded={inputExpanded}
             >
-              {inputExpanded ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}
+              {inputExpanded ? <Minimize2 className="w-3 h-3" aria-hidden /> : <Maximize2 className="w-3 h-3" aria-hidden />}
             </button>
           </div>
 
           <button
             type="submit"
             disabled={!inputText.trim() || sending || !isHumanMode}
+            aria-label="ส่งข้อความ"
             className={`p-3 rounded-xl shadow-sm transition-all flex-shrink-0 ${inputText.trim() && isHumanMode
                 ? 'bg-brand-600 text-white hover:bg-brand-700 hover:shadow active:scale-95'
                 : 'bg-muted text-text-tertiary cursor-not-allowed'
               }`}
           >
-            <Send className="w-5 h-5" />
+            <Send className="w-5 h-5" aria-hidden />
           </button>
         </form>
       </div>

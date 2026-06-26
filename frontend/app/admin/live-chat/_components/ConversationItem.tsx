@@ -12,6 +12,7 @@ interface ConversationItemProps {
   formattedTime?: string;
   onClick: () => void;
   onMenuClick: () => void;
+  onMarkRead: () => void;
 }
 
 export const ConversationItem = memo(function ConversationItem({
@@ -21,6 +22,7 @@ export const ConversationItem = memo(function ConversationItem({
   formattedTime,
   onClick,
   onMenuClick,
+  onMarkRead,
 }: ConversationItemProps) {
   const [menuOpen, setMenuOpen] = React.useState(false);
   const menuRef = React.useRef<HTMLDivElement>(null);
@@ -97,7 +99,7 @@ export const ConversationItem = memo(function ConversationItem({
             </span>
             {/* Unread badge */}
             {conversation.unread_count > 0 && (
-              <span className="min-w-[18px] h-[18px] px-1 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+              <span className="min-w-[18px] h-[18px] px-1 bg-danger text-white text-[10px] font-bold rounded-full flex items-center justify-center">
                 {conversation.unread_count > 9 ? '9+' : conversation.unread_count}
               </span>
             )}
@@ -146,47 +148,57 @@ export const ConversationItem = memo(function ConversationItem({
               ดูประวัติแชท
             </button>
             <button
-              onClick={(e) => { e.stopPropagation(); setMenuOpen(false); }}
-              className="flex items-center gap-2.5 px-3 py-2 text-xs text-text-secondary hover:bg-muted w-full text-left cursor-pointer"
-            >
-              <Pin className="w-3.5 h-3.5 text-text-tertiary" />
-              ปักหมุด
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); setMenuOpen(false); }}
+              onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onMarkRead(); }}
               className="flex items-center gap-2.5 px-3 py-2 text-xs text-text-secondary hover:bg-muted w-full text-left cursor-pointer"
             >
               <CheckCheck className="w-3.5 h-3.5 text-text-tertiary" />
               ทำเครื่องหมายว่าอ่านแล้ว
             </button>
             <button
-              onClick={(e) => { e.stopPropagation(); setMenuOpen(false); }}
-              className="flex items-center gap-2.5 px-3 py-2 text-xs text-text-secondary hover:bg-muted w-full text-left cursor-pointer"
+              disabled
+              aria-disabled="true"
+              className="flex items-center gap-2.5 px-3 py-2 text-xs text-text-secondary w-full text-left opacity-50 cursor-not-allowed"
+            >
+              <Pin className="w-3.5 h-3.5 text-text-tertiary" />
+              ปักหมุด
+              <span className="ml-auto text-[9px] text-text-tertiary">เร็ว ๆ นี้</span>
+            </button>
+            <button
+              disabled
+              aria-disabled="true"
+              className="flex items-center gap-2.5 px-3 py-2 text-xs text-text-secondary w-full text-left opacity-50 cursor-not-allowed"
             >
               <VolumeX className="w-3.5 h-3.5 text-text-tertiary" />
               ปิดเสียงแจ้งเตือน
+              <span className="ml-auto text-[9px] text-text-tertiary">เร็ว ๆ นี้</span>
             </button>
             <button
-              onClick={(e) => { e.stopPropagation(); setMenuOpen(false); }}
-              className="flex items-center gap-2.5 px-3 py-2 text-xs text-text-secondary hover:bg-muted w-full text-left cursor-pointer"
+              disabled
+              aria-disabled="true"
+              className="flex items-center gap-2.5 px-3 py-2 text-xs text-text-secondary w-full text-left opacity-50 cursor-not-allowed"
             >
               <Archive className="w-3.5 h-3.5 text-text-tertiary" />
               ซ่อนสนทนา
+              <span className="ml-auto text-[9px] text-text-tertiary">เร็ว ๆ นี้</span>
             </button>
             <div className="border-t border-border-default my-1" />
             <button
-              onClick={(e) => { e.stopPropagation(); setMenuOpen(false); }}
-              className="flex items-center gap-2.5 px-3 py-2 text-xs text-text-secondary hover:bg-muted w-full text-left cursor-pointer"
+              disabled
+              aria-disabled="true"
+              className="flex items-center gap-2.5 px-3 py-2 text-xs text-text-secondary w-full text-left opacity-50 cursor-not-allowed"
             >
               <ShieldAlert className="w-3.5 h-3.5 text-text-tertiary" />
               ทำเครื่องหมายว่าสแปม
+              <span className="ml-auto text-[9px] text-text-tertiary">เร็ว ๆ นี้</span>
             </button>
             <button
-              onClick={(e) => { e.stopPropagation(); setMenuOpen(false); }}
-              className="flex items-center gap-2.5 px-3 py-2 text-xs text-danger hover:bg-danger/5 w-full text-left cursor-pointer"
+              disabled
+              aria-disabled="true"
+              className="flex items-center gap-2.5 px-3 py-2 text-xs text-danger w-full text-left opacity-50 cursor-not-allowed"
             >
               <Trash2 className="w-3.5 h-3.5" />
               ลบ
+              <span className="ml-auto text-[9px] text-text-tertiary">เร็ว ๆ นี้</span>
             </button>
           </div>
         )}
