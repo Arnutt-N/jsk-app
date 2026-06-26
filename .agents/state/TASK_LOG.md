@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 97 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 98 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-26 23:00 — claude_code — completed
+
+Cleared the WSL Playwright system-deps blocker (libnspr4/libnss3/libasound2t64/xvfb + dpkg --configure -a repair); re-bootstrapped the local e2e stack (docker db/redis on Windows host + backend run.py --no-reload + next dev) against the LOCAL docker DB via ENV_FILE=app/.env; seeded admin and validated the live-chat smoke spec GREEN (2 passed, 2 skipped, 0 failed). Found and fixed one wrong test assumption (test 2 asserted a textarea composer is always present, but ChatArea renders an empty-state when no conversation is selected) committed as 3f269b8 on docs/livechat-audit-remediation-prp.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260626-2300.json`
+- Summary: `project-log-md/claude_code/session-summary-20260626-2300.md`
+
+---
 
 ### 2026-06-24 22:14 — claude_code — completed
 

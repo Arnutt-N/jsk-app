@@ -1,15 +1,21 @@
 {
-  "last_updated": "2026-06-24T22:14:00+07:00",
+  "last_updated": "2026-06-26T23:00:00+07:00",
   "platform": "claude_code",
-  "current_task": "Live-chat remediation — closed 7 plan-review BLOCKERs at document level (commit e1823ad, pushed). Created .claude/PRPs/plans/PLAN-REVIEW-FIXES.md (authoritative errata: B1-B7 + 2 snippet corrections, ",
+  "current_task": "Cleared the WSL Playwright system-deps blocker (libnspr4/libnss3/libasound2t64/xvfb + dpkg --configure -a repair); re-bootstrapped the local e2e stack (docker db/redis on Windows host + backend run.py",
   "plan_status": "completed",
   "next_steps": [
-    "Validate e2e/live-chat-smoke.spec.ts in WSL: set E2E_ADMIN_PASSWORD, confirm selectors (listbox/textarea) against running app, get green as the regression baseline, then un-skip the H1 Send-name test during Phase 1",
-    "Implement Phase 1 (Quick Wins MVP) via /ecc:prp-implement .claude/PRPs/plans/phase-1-quick-wins.plan.md — apply errata B4 (add LiveChatContextMemo.test.tsx for H3)",
-    "When implementing Phase 3/5/6/8 apply their errata items from PLAN-REVIEW-FIXES.md (S1 @theme, S2 props-already-exist, B1 useConversationStats+sortBy, B7 contract capture-live ~30 keys)",
-    "Follow File-Ownership serialize chain for ConversationItem/ConversationList (P1->P3->P4->P5->P6) — do not merge those files in parallel"
+    "Implement Phase 1 Quick Wins via /ecc:prp-implement .claude/PRPs/plans/phase-1-quick-wins.plan.md (read plans/PLAN-REVIEW-FIXES.md errata first)",
+    "During Phase 1 H1, un-skip the Send-accessible-name e2e test and re-run the live-chat smoke spec",
+    "To re-run e2e on this 9p/WSL box use a local playwright override config (navTimeout 90s, retries 2) placed under frontend/; full recipe is in memory project_livechat_remediation"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-06-26T23:00:00+07:00",
+      "platform": "claude_code",
+      "branch": "docs/livechat-audit-remediation-prp",
+      "head": "3f269b8",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-06-24T22:14:00+07:00",
       "platform": "claude_code",
@@ -141,13 +147,6 @@
       "platform": "claude_code",
       "branch": "main",
       "head": "8c51155",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-20T18:41:00Z",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "a8cf662",
       "status": "completed"
     }
   ],
