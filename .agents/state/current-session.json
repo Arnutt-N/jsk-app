@@ -1,14 +1,21 @@
 {
-  "last_updated": "2026-06-27T05:27:00+07:00",
+  "last_updated": "2026-06-27T06:42:00+07:00",
   "platform": "claude_code",
-  "current_task": "Implemented Live-Chat Phase 2 (A11y Compliance WCAG 2.2 AA) via 5 parallel file-owned agents: H5 new MobileDrawer (role=dialog + focus trap/Escape/restore) wired into LiveChatShell mobile branch; M7 s",
+  "current_task": "Implemented Live-Chat Phase 3 (Design System Unify) via 5 parallel file-owned agents: M1/L4 analytics page rebuilt on design tokens + ds-* utils + Recharts via var(--color-*); M6 CustomerPanel hierarc",
   "plan_status": "completed",
   "next_steps": [
-    "Implement Phase 3 (Design System Unify) via /ecc:prp-implement .claude/PRPs/plans/phase-3-design-system-unify.plan.md - read plans/PLAN-REVIEW-FIXES.md first (apply S1: --text-2xs must be declared in @theme NOT :root). Fold the deferred ChatArea amber connection-warning banners (raw Tailwind) into the Phase 3 token unification.",
-    "Run the manual NVDA+Chrome a11y walkthrough for Phase 2 (primary acceptance, not yet done): mobile drawer focus-trap/Escape/restore, option status names, CreateChatSheet labels, separated live regions.",
-    "Respect file serialize chain P1->P3->P4->P5->P6 for ConversationItem/List; CustomerPanel owner is Phase 2 (now done) - P3/P5/P7 rebase after. globals.css is the Phase 3 owner."
+    "Implement Phase 4 (Motion Polish) via /ecc:prp-implement .claude/PRPs/plans/phase-4-motion-polish.plan.md - read plans/PLAN-REVIEW-FIXES.md first. Phase 4 owns motion/AnimatePresence + the prefers-reduced-motion (W4) hook; it shares globals.css with Phase 3 (now merged) so rebase-clean.",
+    "Cross-phase debt: live-chat-wide grep slate=0 NOT met yet - TransferDialog.tsx still has slate-* (owner Phase 1/6). Run full next build on CI/Vercel to confirm --text-2xs generates (skipped locally: dev-server coexistence + 9p cost). Manual NVDA walkthrough (Phase 2) still pending.",
+    "To re-run live-chat e2e on this WSL/9p box: scratchpad run_e2e.py (poll/seed/warm) + a frontend/ playwright override config (navTimeout 90s retries 2, delete after); recipe + fan-out file-ownership map are in memory project_livechat_remediation."
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-06-27T06:42:00+07:00",
+      "platform": "claude_code",
+      "branch": "docs/livechat-audit-remediation-prp",
+      "head": "66ba8fc",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-06-27T05:27:00+07:00",
       "platform": "claude_code",
@@ -140,13 +147,6 @@
       "platform": "claude_code",
       "branch": "feat/rich-menu-switching-r1",
       "head": "e622941",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-20T21:36:00Z",
-      "platform": "claude_code",
-      "branch": "feat/rich-menu-switching-r1",
-      "head": "a48a130",
       "status": "completed"
     }
   ],

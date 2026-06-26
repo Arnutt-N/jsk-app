@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 100 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 101 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-27 06:42 — claude_code — completed
+
+Implemented Live-Chat Phase 3 (Design System Unify) via 5 parallel file-owned agents: M1/L4 analytics page rebuilt on design tokens + ds-* utils + Recharts via var(--color-*); M6 CustomerPanel hierarchy (removed 3 dead N/A stat tiles + unused imports, Notes/Export bordered surface, metadata bg-muted); L2 new live-chat-avatar.ts getAvatarFallbackUrl helper (brand blue 3b82f6, replaced indigo 6366f1 at 3 sites); L3 new --text-2xs token in globals.css @theme (errata S1) + micro-fonts swapped in CustomerPanel/ConversationItem; L5 emoji/sticker bg-surface/bg-muted tokens + larger cells. New test live-chat-avatar.test.ts (4). Validation green: tsc 0, eslint 0, vitest 198/198, e2e smoke green; token gate 0 slate/0 indigo/0 microfont in 6 scope files. Committed 66ba8fc.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260627-0642.json`
+- Summary: `project-log-md/claude_code/session-summary-20260627-0642.md`
+
+---
 
 ### 2026-06-27 05:27 — claude_code — completed
 
