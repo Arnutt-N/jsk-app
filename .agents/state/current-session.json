@@ -1,14 +1,21 @@
 {
-  "last_updated": "2026-06-26T23:00:00+07:00",
+  "last_updated": "2026-06-27T00:40:00+07:00",
   "platform": "claude_code",
-  "current_task": "Cleared the WSL Playwright system-deps blocker (libnspr4/libnss3/libasound2t64/xvfb + dpkg --configure -a repair); re-bootstrapped the local e2e stack (docker db/redis on Windows host + backend run.py",
+  "current_task": "Implemented Live-Chat Phase 1 (Quick Wins) via 5 parallel file-owned agents: H1 composer a11y (aria-label/pressed/expanded + aria-hidden SVGs), M4/W5 hit-areas >=24px, H3 memoize Context value, M3 del",
   "plan_status": "completed",
   "next_steps": [
-    "Implement Phase 1 Quick Wins via /ecc:prp-implement .claude/PRPs/plans/phase-1-quick-wins.plan.md (read plans/PLAN-REVIEW-FIXES.md errata first)",
-    "During Phase 1 H1, un-skip the Send-accessible-name e2e test and re-run the live-chat smoke spec",
-    "To re-run e2e on this 9p/WSL box use a local playwright override config (navTimeout 90s, retries 2) placed under frontend/; full recipe is in memory project_livechat_remediation"
+    "Implement Phase 2 (W1 focus-visible across page + W2 contrast audit) via /ecc:prp-implement .claude/PRPs/plans/phase-2-*.plan.md - read plans/PLAN-REVIEW-FIXES.md first; fold the ChatArea amber connection-warning banners (out-of-scope in P1) into the P2 token/contrast work",
+    "Respect file serialize chain P1->P3->P4->P5->P6 for ConversationItem/List; Phase 5 will rename onClick->onSelect / onMenuClick->onMenuToggle (do NOT rename earlier)",
+    "To re-run live-chat e2e on this WSL/9p box: scratchpad run_e2e.py (poll/seed/warm) + a frontend/ playwright override config (navTimeout 90s retries 2); recipe + fan-out file-ownership map are in memory project_livechat_remediation"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-06-27T00:40:00+07:00",
+      "platform": "claude_code",
+      "branch": "docs/livechat-audit-remediation-prp",
+      "head": "07367fe",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-06-26T23:00:00+07:00",
       "platform": "claude_code",
@@ -140,13 +147,6 @@
       "platform": "claude_code",
       "branch": "main",
       "head": "e255a9d",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-20T18:57:00Z",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "8c51155",
       "status": "completed"
     }
   ],
