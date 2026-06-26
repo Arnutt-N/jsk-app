@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
-import { Bell, Calendar, Clock, Copy, ExternalLink, MessageSquare, RefreshCw, Star, Trash2, User, X } from 'lucide-react';
+import { Bell, Clock, Copy, ExternalLink, RefreshCw, Star, Trash2, User, X } from 'lucide-react';
 
 import type { CurrentChat } from '../_types';
 import { useAuth } from '@/contexts/AuthContext';
@@ -147,7 +147,7 @@ export function CustomerPanel({
             {currentChat.tags.map((tag) => (
               <span
                 key={tag.id}
-                className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium text-white thai-no-break"
+                className="inline-flex items-center rounded-full px-2 py-0.5 text-2xs font-medium text-white thai-no-break"
                 style={{ backgroundColor: tag.color }}
               >
                 {tag.name}
@@ -155,32 +155,13 @@ export function CustomerPanel({
             ))}
           </div>
         )}
-
-        {/* Stats grid */}
-        <div className="grid grid-cols-3 gap-2 mt-4">
-          <div className="bg-gray-50 rounded-xl p-2.5">
-            <MessageSquare className="w-3.5 h-3.5 text-text-tertiary mx-auto mb-1" />
-            <div className="text-sm font-bold text-text-primary">N/A</div>
-            <div className="text-[10px] text-text-tertiary">Chats</div>
-          </div>
-          <div className="bg-gray-50 rounded-xl p-2.5">
-            <Star className="w-3.5 h-3.5 text-text-tertiary mx-auto mb-1" />
-            <div className="text-sm font-bold text-text-primary">N/A</div>
-            <div className="text-[10px] text-text-tertiary">Rating</div>
-          </div>
-          <div className="bg-gray-50 rounded-xl p-2.5">
-            <Calendar className="w-3.5 h-3.5 text-text-tertiary mx-auto mb-1" />
-            <div className="text-sm font-bold text-text-primary">N/A</div>
-            <div className="text-[10px] text-text-tertiary">Joined</div>
-          </div>
-        </div>
       </div>
 
       {/* Details section */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
         {/* LINE ID */}
-        <div className="bg-gray-50 rounded-xl p-3">
-          <p className="text-[10px] text-text-tertiary font-semibold mb-1.5 uppercase tracking-wider">LINE ID</p>
+        <div className="bg-muted rounded-xl p-3">
+          <p className="text-2xs text-text-tertiary font-semibold mb-1.5 uppercase tracking-wider">LINE ID</p>
           <div className="flex items-center gap-2">
             <p className="text-xs text-text-secondary font-mono truncate break-words flex-1">{currentChat.line_user_id}</p>
             <button onClick={copyLineId} className="p-1 text-text-tertiary hover:text-brand-600 rounded transition-colors focus-ring" aria-label="Copy LINE ID">
@@ -190,18 +171,18 @@ export function CustomerPanel({
         </div>
 
         {/* Session Status */}
-        <div className="bg-gray-50 rounded-xl p-3 flex justify-between items-center">
+        <div className="bg-muted rounded-xl p-3 flex justify-between items-center">
           <span className="text-xs text-text-tertiary">Session</span>
-          <span className={`px-2 py-1 rounded-lg text-[10px] font-semibold ${
-            isActive ? 'bg-online/15 text-emerald-700 dark:text-emerald-400' : isWaiting ? 'bg-away/15 text-amber-700 dark:text-amber-400' : 'bg-gray-100 text-slate-600 dark:text-slate-300'
+          <span className={`px-2 py-1 rounded-lg text-2xs font-semibold ${
+            isActive ? 'bg-online/15 text-emerald-700 dark:text-emerald-400' : isWaiting ? 'bg-away/15 text-amber-700 dark:text-amber-400' : 'bg-gray-100 text-text-secondary'
           }`}>
             {currentChat.session?.status || 'None'}
           </span>
         </div>
 
         {/* Activity */}
-        <div className="bg-gray-50 rounded-xl p-3 space-y-2">
-          <p className="text-[10px] text-text-tertiary font-semibold uppercase tracking-wider">Activity</p>
+        <div className="bg-muted rounded-xl p-3 space-y-2">
+          <p className="text-2xs text-text-tertiary font-semibold uppercase tracking-wider">Activity</p>
           <div className="flex items-center gap-2 text-xs text-text-secondary">
             <Clock className="w-3.5 h-3.5 text-text-tertiary" />
             <span>Last active: {currentChat.session?.started_at ? new Date(currentChat.session.started_at).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A'}</span>
@@ -213,8 +194,8 @@ export function CustomerPanel({
         </div>
 
         {/* Internal Notes */}
-        <div className="bg-gray-50 rounded-xl p-3 space-y-2">
-          <label htmlFor="customer-notes" className="text-[10px] text-text-tertiary font-semibold uppercase tracking-wider">Internal Notes</label>
+        <div className="bg-surface border border-border-default rounded-xl p-3 space-y-2">
+          <label htmlFor="customer-notes" className="text-2xs text-text-tertiary font-semibold uppercase tracking-wider">Internal Notes</label>
           <textarea
             id="customer-notes"
             placeholder="Add notes about this customer..."
@@ -224,8 +205,8 @@ export function CustomerPanel({
         </div>
 
         {/* Export */}
-        <div className="bg-gray-50 rounded-xl p-3 space-y-2">
-          <p className="text-[10px] text-text-tertiary font-semibold uppercase tracking-wider">Export</p>
+        <div className="bg-surface border border-border-default rounded-xl p-3 space-y-2">
+          <p className="text-2xs text-text-tertiary font-semibold uppercase tracking-wider">Export</p>
           <div className="flex gap-2">
             <button
               onClick={() => downloadExport(exportCsvUrl, `${currentChat.line_user_id}.csv`)}

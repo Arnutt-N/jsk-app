@@ -15,6 +15,7 @@ import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/contexts/AuthContext';
 import { logger } from '@/lib/logger';
+import { getAvatarFallbackUrl } from '@/lib/constants/live-chat-avatar';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -196,10 +197,7 @@ export function CreateChatSheet({ isOpen, onClose, onCreated }: CreateChatSheetP
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={
-                      user.picture_url ||
-                      `https://ui-avatars.com/api/?name=${encodeURIComponent(user.display_name)}&background=6366f1&color=fff&size=32`
-                    }
+                    src={user.picture_url || getAvatarFallbackUrl(user.display_name, 32)}
                     alt={user.display_name}
                     className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                   />
@@ -221,10 +219,7 @@ export function CreateChatSheet({ isOpen, onClose, onCreated }: CreateChatSheetP
             <div className="flex items-center gap-3 p-3 border border-brand-200 bg-brand-50 dark:border-brand-500/30 dark:bg-brand-500/10 rounded-xl">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={
-                  selectedUser.picture_url ||
-                  `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedUser.display_name)}&background=6366f1&color=fff&size=32`
-                }
+                src={selectedUser.picture_url || getAvatarFallbackUrl(selectedUser.display_name, 32)}
                 alt={selectedUser.display_name}
                 className="w-10 h-10 rounded-full object-cover flex-shrink-0"
               />

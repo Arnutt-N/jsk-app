@@ -4,6 +4,7 @@ import React, { memo } from 'react';
 import { Archive, Bot, CheckCheck, Eye, MoreVertical, Pin, ShieldAlert, Star, Trash2, User, VolumeX } from 'lucide-react';
 
 import type { Conversation } from '../_types';
+import { getAvatarFallbackUrl } from '@/lib/constants/live-chat-avatar';
 
 interface ConversationItemProps {
   optionId: string;
@@ -60,7 +61,7 @@ export const ConversationItem = memo(function ConversationItem({
       <div className="relative flex-shrink-0">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={conversation.picture_url || `https://ui-avatars.com/api/?name=${conversation.display_name}&background=6366f1&color=fff&size=40`}
+          src={conversation.picture_url || getAvatarFallbackUrl(conversation.display_name, 40)}
           className="w-10 h-10 rounded-full object-cover"
           alt={conversation.display_name}
         />
@@ -81,7 +82,7 @@ export const ConversationItem = memo(function ConversationItem({
             </span>
             {isVip && <Star className="w-3 h-3 text-yellow-400 fill-yellow-400 flex-shrink-0" />}
           </span>
-          <span className={`text-[10px] flex-shrink-0 thai-no-break ${selected ? 'text-white/80' : 'text-sidebar-text-muted'}`}>
+          <span className={`text-2xs flex-shrink-0 thai-no-break ${selected ? 'text-white/80' : 'text-sidebar-text-muted'}`}>
             {formattedTime || ''}
           </span>
         </div>
@@ -91,7 +92,7 @@ export const ConversationItem = memo(function ConversationItem({
           </span>
           <div className="flex items-center gap-1.5 flex-shrink-0">
             {/* Mode badge */}
-            <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-medium ${
+            <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-2xs font-medium ${
               selected
                 ? 'bg-white/15 text-white'
                 : isBot
@@ -103,7 +104,7 @@ export const ConversationItem = memo(function ConversationItem({
             </span>
             {/* Unread badge */}
             {conversation.unread_count > 0 && (
-              <span className="min-w-[18px] h-[18px] px-1 bg-danger text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+              <span className="min-w-[18px] h-[18px] px-1 bg-danger text-white text-2xs font-bold rounded-full flex items-center justify-center">
                 {conversation.unread_count > 9 ? '9+' : conversation.unread_count}
               </span>
             )}
@@ -116,14 +117,14 @@ export const ConversationItem = memo(function ConversationItem({
             {conversation.tags.slice(0, 2).map((tag) => (
               <span
                 key={tag.id}
-                className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium text-white thai-no-break"
+                className="inline-flex items-center rounded-full px-1.5 py-0.5 text-2xs font-medium text-white thai-no-break"
                 style={{ backgroundColor: tag.color }}
               >
                 {tag.name}
               </span>
             ))}
             {conversation.tags.length > 2 && (
-              <span className={`text-[10px] ${selected ? 'text-white/80' : 'text-sidebar-text-muted'}`}>+{conversation.tags.length - 2}</span>
+              <span className={`text-2xs ${selected ? 'text-white/80' : 'text-sidebar-text-muted'}`}>+{conversation.tags.length - 2}</span>
             )}
           </div>
         )}
@@ -165,7 +166,7 @@ export const ConversationItem = memo(function ConversationItem({
             >
               <Pin className="w-3.5 h-3.5 text-text-tertiary" />
               ปักหมุด
-              <span className="ml-auto text-[9px] text-text-tertiary">เร็ว ๆ นี้</span>
+              <span className="ml-auto text-2xs text-text-tertiary">เร็ว ๆ นี้</span>
             </button>
             <button
               disabled
@@ -174,7 +175,7 @@ export const ConversationItem = memo(function ConversationItem({
             >
               <VolumeX className="w-3.5 h-3.5 text-text-tertiary" />
               ปิดเสียงแจ้งเตือน
-              <span className="ml-auto text-[9px] text-text-tertiary">เร็ว ๆ นี้</span>
+              <span className="ml-auto text-2xs text-text-tertiary">เร็ว ๆ นี้</span>
             </button>
             <button
               disabled
@@ -183,7 +184,7 @@ export const ConversationItem = memo(function ConversationItem({
             >
               <Archive className="w-3.5 h-3.5 text-text-tertiary" />
               ซ่อนสนทนา
-              <span className="ml-auto text-[9px] text-text-tertiary">เร็ว ๆ นี้</span>
+              <span className="ml-auto text-2xs text-text-tertiary">เร็ว ๆ นี้</span>
             </button>
             <div className="border-t border-border-default my-1" />
             <button
@@ -193,7 +194,7 @@ export const ConversationItem = memo(function ConversationItem({
             >
               <ShieldAlert className="w-3.5 h-3.5 text-text-tertiary" />
               ทำเครื่องหมายว่าสแปม
-              <span className="ml-auto text-[9px] text-text-tertiary">เร็ว ๆ นี้</span>
+              <span className="ml-auto text-2xs text-text-tertiary">เร็ว ๆ นี้</span>
             </button>
             <button
               disabled
@@ -202,7 +203,7 @@ export const ConversationItem = memo(function ConversationItem({
             >
               <Trash2 className="w-3.5 h-3.5" />
               ลบ
-              <span className="ml-auto text-[9px] text-text-tertiary">เร็ว ๆ นี้</span>
+              <span className="ml-auto text-2xs text-text-tertiary">เร็ว ๆ นี้</span>
             </button>
           </div>
         )}
