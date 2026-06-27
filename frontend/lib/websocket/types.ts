@@ -120,6 +120,8 @@ export interface PresencePayload {
     id: number;
     status: string;
     active_chats: number;
+    display_name?: string;
+    name?: string;
   }>;
 }
 

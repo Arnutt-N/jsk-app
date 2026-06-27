@@ -174,12 +174,18 @@ async def websocket_endpoint(
                         "payload": {"admin_id": admin_id},
                         "timestamp": timestamp
                     })
-                    # Send presence update
+                    # Send presence update to the newly-authenticated client
                     await ws_manager.send_personal(websocket, {
                         "type": WSEventType.PRESENCE_UPDATE.value,
                         "payload": {"operators": await ws_manager.get_online_admins()},
                         "timestamp": timestamp
                     })
+                    # Broadcast updated roster so OTHER operators see this one
+                    # come online. Exclude the registrant: it already received
+                    # the full roster via the send_personal presence push above,
+                    # so broadcasting to it too would deliver a duplicate
+                    # presence_update ahead of its next request.
+                    await ws_manager.broadcast_presence(exclude_admin=admin_id)
                 else:
                     ws_health_monitor.record_error("auth_failed")
                     await ws_manager.send_personal(websocket, {
@@ -664,4 +670,9 @@ async def websocket_endpoint(
         if admin_id:
             ws_rate_limiter.reset(admin_id)
         await ws_manager.disconnect(websocket)
+        # Broadcast updated roster AFTER cleanup so the list reflects the new
+        # state (the just-disconnected operator is excluded). Only when this
+        # connection was authenticated.
+        if admin_id:
+            await ws_manager.broadcast_presence()
 

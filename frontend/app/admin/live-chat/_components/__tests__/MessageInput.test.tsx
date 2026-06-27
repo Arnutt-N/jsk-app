@@ -11,6 +11,10 @@ const defaultProps = {
   isHumanMode: true,
   showCannedPicker: false,
   soundEnabled: true,
+  // Phase 6 (M17): required prop. With sessionOwnerId undefined, isOwner=true →
+  // composer is never gated and the ownership banner never renders, so the
+  // existing a11y assertions below remain valid.
+  currentUserId: 1,
   onInputChange: vi.fn(),
   onSend: vi.fn(),
   onSendFile: vi.fn(),

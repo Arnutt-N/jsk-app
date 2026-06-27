@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react';
 import Link from 'next/link';
-import { Home, Inbox, MessageSquarePlus, Search } from 'lucide-react';
+import { ArrowDownWideNarrow, Home, Inbox, MessageSquarePlus, Search } from 'lucide-react';
 
 import { useLiveChatStore } from '../_store/liveChatStore';
 import { useConversationStats } from '../_hooks/useConversationStats';
@@ -35,7 +35,10 @@ export function ConversationList() {
   // API methods from Context
   const { formatTime, selectConversation, jumpToMessage, fetchConversations } = useLiveChatContext();
 
-  const { filtered, waitingCount, activeCount, closedCount } = useConversationStats(conversations, searchQuery);
+  // M15: sort by longest-waiting (queue triage) vs. the default recent order.
+  const [sortBy, setSortBy] = React.useState<'recent' | 'longest-waiting'>('recent');
+
+  const { filtered, waitingCount, activeCount, closedCount } = useConversationStats(conversations, searchQuery, sortBy);
 
   // Stable handlers so ConversationItem's React.memo can skip re-renders.
   const handleSelect = React.useCallback((id: string) => {
@@ -148,6 +151,20 @@ export function ConversationList() {
               </span>
             </button>
           ))}
+          <button
+            type="button"
+            onClick={() => setSortBy((s) => (s === 'longest-waiting' ? 'recent' : 'longest-waiting'))}
+            aria-pressed={sortBy === 'longest-waiting'}
+            title={sortBy === 'longest-waiting' ? 'เรียงตามรอนานสุด (กดเพื่อกลับสู่ล่าสุด)' : 'เรียงตามรอนานสุด'}
+            aria-label="สลับการเรียงลำดับตามเวลารอคิว"
+            className={`flex-shrink-0 py-1.5 px-2 rounded-lg transition-colors ${
+              sortBy === 'longest-waiting'
+                ? 'gradient-active text-white shadow-lg shadow-brand-900/30'
+                : 'bg-white/5 text-sidebar-text-muted hover:text-white'
+            }`}
+          >
+            <ArrowDownWideNarrow className="w-4 h-4" />
+          </button>
         </div>
       </div>
 

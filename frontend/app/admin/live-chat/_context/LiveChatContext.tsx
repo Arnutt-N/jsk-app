@@ -17,11 +17,17 @@ import type {
   ConnectionState,
   ConversationUpdatePayload,
   Message,
+  PresencePayload,
   SessionTransferredPayload,
 } from '@/lib/websocket/types';
 import { useLiveChatStore } from '../_store/liveChatStore';
 import type { Conversation, CurrentChat, Session } from '../_types';
 import { API_BASE } from '../_lib/constants';
+
+interface ClaimContender {
+  operatorId: number;
+  name: string;
+}
 
 interface LiveChatContextValue {
   wsStatus: ConnectionState;
@@ -30,6 +36,10 @@ interface LiveChatContextValue {
   focusedMessageId: number | null;
   isHumanMode: boolean;
   selectedConversation: Conversation | null;
+  currentUserId: number;
+  onlineOperators: PresencePayload['operators'];
+  claimContenders: Record<string, ClaimContender>;
+  getClaimContender: (lineUserId: string) => ClaimContender | undefined;
   setSearchQuery: (value: string) => void;
   setFilterStatus: (value: string | null) => void;
   setInputText: (value: string) => void;
@@ -83,6 +93,30 @@ const mergeSession = (existing: Session | undefined, incoming?: Session): Sessio
     started_at: incoming.started_at ?? existing?.started_at,
     operator_id: incoming.operator_id ?? existing?.operator_id,
   };
+};
+
+/**
+ * Resolve an operator's human-readable name from the presence list, normalizing
+ * the string presence id against the numeric operator id. Falls back to the
+ * `Operator #id` convention shared with the backend payload.
+ */
+export const resolveOperatorName = (
+  operators: PresencePayload['operators'],
+  operatorId: number,
+): string => {
+  const match = operators.find((op) => Number(op.id) === operatorId);
+  return match?.display_name || match?.name || `Operator #${operatorId}`;
+};
+
+/**
+ * Immutably drop a key from a record. Returns the same reference when the key is
+ * absent so React can bail out of a no-op state update.
+ */
+export const removeKey = <V,>(record: Record<string, V>, key: string): Record<string, V> => {
+  if (!(key in record)) return record;
+  const next = { ...record };
+  delete next[key];
+  return next;
 };
 
 const mergeConversationUpdate = (
@@ -152,6 +186,18 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
   const [isMobileView, setIsMobileView] = React.useState(false);
   const [typingUsersCount, setTypingUsersCount] = React.useState(0);
   const [focusedMessageId, setFocusedMessageId] = React.useState<number | null>(null);
+  // Multi-operator presence + claim contention (Phase 6).
+  const [onlineOperators, setOnlineOperators] = React.useState<PresencePayload['operators']>([]);
+  const [claimContenders, setClaimContenders] = React.useState<Record<string, ClaimContender>>({});
+
+  // AuthContext stores `user.id` as a string; operator ids on sessions/presence
+  // are numeric. Normalize once so every comparison stays numeric.
+  const currentUserId = Number(user?.id ?? 0);
+
+  const getClaimContender = useCallback(
+    (lineUserId: string): ClaimContender | undefined => claimContenders[lineUserId],
+    [claimContenders],
+  );
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -376,9 +422,24 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
             : undefined,
         });
       }
+      const operatorName = resolveOperatorName(onlineOperators, operatorId);
+      // Reflect (or clear) the contention lock for this room. When I am the
+      // claimer the lock is mine — clear it so I am not shown a lock on my own
+      // room; otherwise record who took it so other operators see it disabled.
+      setClaimContenders((prev) =>
+        operatorId === currentUserId
+          ? removeKey(prev, lineUserId)
+          : { ...prev, [lineUserId]: { operatorId, name: operatorName } },
+      );
+      const roomName =
+        chat?.line_user_id === lineUserId
+          ? chat?.display_name
+          : getStore().conversations.find((c) => c.line_user_id === lineUserId)?.display_name;
       getStore().addNotification({
         title: 'Session Claimed',
-        message: `Operator #${operatorId} claimed a session`,
+        message: roomName
+          ? `${operatorName} รับเรื่อง '${roomName}' ไปแล้ว`
+          : `${operatorName} รับเรื่องไปแล้ว`,
         type: 'system',
       });
       fetchConversations();
@@ -388,13 +449,35 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
       if (chat?.line_user_id === lineUserId) {
         getStore().setCurrentChat({ ...chat, chat_mode: 'BOT', session: undefined });
       }
+      setClaimContenders((prev) => removeKey(prev, lineUserId));
       fetchConversations();
     },
     onSessionTransferred: (payload: SessionTransferredPayload) => {
       handleSessionTransferred(payload);
+      setClaimContenders((prev) => removeKey(prev, payload.line_user_id));
       getStore().addNotification({
         title: 'Session Transferred',
         message: `Session transferred to operator #${payload.to_operator_id}`,
+        type: 'system',
+      });
+    },
+    onPresenceUpdate: (operators) => setOnlineOperators(operators),
+    onError: (message) => {
+      const normalized = (message || '').toLowerCase();
+      const isClaimConflict =
+        normalized.includes('already claimed') ||
+        normalized.includes('session_not_found') ||
+        normalized.includes('session not found');
+      if (!isClaimConflict) return;
+      // A claim lost the race on the backend — reset the local in-flight state
+      // and surface an in-context toast that names the room when we know it.
+      getStore().setClaiming(false);
+      const roomName = getStore().currentChat?.display_name;
+      getStore().addNotification({
+        title: 'Claim unavailable',
+        message: roomName
+          ? `ไม่สามารถรับเรื่อง '${roomName}' ได้ — มีผู้อื่นรับไปแล้ว`
+          : message || 'Session already claimed by another operator.',
         type: 'system',
       });
     },
@@ -707,6 +790,10 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
     focusedMessageId,
     isHumanMode,
     selectedConversation,
+    currentUserId,
+    onlineOperators,
+    claimContenders,
+    getClaimContender,
     setSearchQuery,
     setFilterStatus,
     setInputText,
@@ -738,6 +825,10 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
     focusedMessageId,
     isHumanMode,
     selectedConversation,
+    currentUserId,
+    onlineOperators,
+    claimContenders,
+    getClaimContender,
     setSearchQuery,
     setFilterStatus,
     setInputText,

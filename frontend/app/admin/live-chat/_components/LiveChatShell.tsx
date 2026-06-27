@@ -10,6 +10,7 @@ import { CustomerPanel } from './CustomerPanel';
 import { NotificationToast } from './NotificationToast';
 import { MobileDrawer } from './MobileDrawer';
 import { TransferDialog } from './TransferDialog';
+import { useOperatorRoster } from '../_hooks/useOperatorRoster';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { PanelErrorFallback } from './PanelErrorFallback';
 
@@ -28,7 +29,17 @@ export function LiveChatShell() {
     setShowTransferDialog,
     transferSession,
     setShowCustomerPanel,
+    currentUserId,
+    onlineOperators,
   } = useLiveChatContext();
+
+  // Operator roster for the Transfer picker — lazily fetched while the dialog is
+  // open, merging live presence (online/away) with the offline workload roster.
+  const { operators: rosterOperators, loading: rosterLoading } = useOperatorRoster(
+    onlineOperators,
+    currentUserId,
+    showTransferDialog,
+  );
 
   return (
     <>
@@ -97,6 +108,8 @@ export function LiveChatShell() {
           open={showTransferDialog}
           onClose={() => setShowTransferDialog(false)}
           onTransfer={transferSession}
+          operators={rosterOperators}
+          loading={rosterLoading}
         />
       </div>
     </>

@@ -2,11 +2,28 @@
 
 import React, { memo } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Archive, Bot, CheckCheck, Eye, MoreVertical, Pin, ShieldAlert, Star, Trash2, User, VolumeX } from 'lucide-react';
+import { Archive, Bot, CheckCheck, Clock, Eye, MoreVertical, Pin, ShieldAlert, Star, Trash2, User, VolumeX } from 'lucide-react';
 
 import type { Conversation } from '../_types';
 import { getAvatarFallbackUrl } from '@/lib/constants/live-chat-avatar';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
+import { formatWaiting, getWaitingSeconds, getWaitingTier } from '@/lib/waiting-time';
+
+/** How often the WAITING badge refreshes so the elapsed label stays current. */
+const WAITING_REFRESH_MS = 30_000;
+
+/** Token-based badge classes per SLA tier, with a selected-row variant that
+ *  stays legible on the brand gradient background. */
+const WAITING_BADGE_CLASS: Record<'amber' | 'red', { default: string; selected: string }> = {
+  amber: {
+    default: 'bg-warning/15 text-warning-text',
+    selected: 'bg-white/15 text-warning-light',
+  },
+  red: {
+    default: 'bg-danger/15 text-danger-text',
+    selected: 'bg-white/15 text-danger-light',
+  },
+};
 
 interface ConversationItemProps {
   optionId: string;
@@ -36,6 +53,19 @@ export const ConversationItem = memo(function ConversationItem({
   const isActive = conversation.session?.status === 'ACTIVE';
   const isVip = conversation.tags?.some((t) => t.name.toUpperCase() === 'VIP');
   const isBot = conversation.chat_mode === 'BOT';
+
+  // Waiting-time badge (M15): only for WAITING sessions that carry a started_at.
+  const waitingStartedAt = isWaiting ? conversation.session?.started_at : undefined;
+  // Tick state forces a re-render so the elapsed label refreshes; the value
+  // itself is unused (the real value is computed fresh during render).
+  const [, refreshWaiting] = React.useState(0);
+  React.useEffect(() => {
+    if (!waitingStartedAt) return;
+    const id = setInterval(() => refreshWaiting((n) => n + 1), WAITING_REFRESH_MS);
+    return () => clearInterval(id);
+  }, [waitingStartedAt]);
+  const waitingSeconds = waitingStartedAt ? getWaitingSeconds(waitingStartedAt) : 0;
+  const waitingTier = getWaitingTier(waitingSeconds);
 
   // Close menu on outside click
   React.useEffect(() => {
@@ -107,6 +137,18 @@ export const ConversationItem = memo(function ConversationItem({
               {isBot ? <Bot className="w-2.5 h-2.5" /> : <User className="w-2.5 h-2.5" />}
               {isBot ? 'Bot' : 'Manual'}
             </span>
+            {/* Waiting-time badge (amber ≥5m, red ≥15m) */}
+            {waitingStartedAt && waitingTier !== 'normal' && (
+              <span
+                className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-2xs font-medium tabular-nums ${
+                  WAITING_BADGE_CLASS[waitingTier][selected ? 'selected' : 'default']
+                }`}
+                aria-label={`รอคิว ${formatWaiting(waitingSeconds)}`}
+              >
+                <Clock className="w-2.5 h-2.5" />
+                {formatWaiting(waitingSeconds)}
+              </span>
+            )}
             {/* Unread badge */}
             {conversation.unread_count > 0 && (
               <span className="min-w-[18px] h-[18px] px-1 bg-danger text-white text-2xs font-bold rounded-full flex items-center justify-center tabular-nums">

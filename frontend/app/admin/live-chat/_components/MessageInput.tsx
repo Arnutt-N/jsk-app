@@ -4,6 +4,7 @@ import React, { useRef } from 'react';
 import {
   Bot,
   ImageIcon,
+  Lock,
   MessageSquareText,
   Maximize2,
   Minimize2,
@@ -28,6 +29,14 @@ interface MessageInputProps {
   isHumanMode: boolean;
   showCannedPicker: boolean;
   soundEnabled: boolean;
+  /** operator_id that currently owns the session (undefined = unowned/waiting). */
+  sessionOwnerId?: number;
+  /** Human-readable name of the session owner, for the ownership banner. */
+  sessionOwnerName?: string;
+  /** The signed-in operator's numeric id, used to decide ownership. */
+  currentUserId: number;
+  /** Take over an other-owned room (transfers the session to the current user). */
+  onTakeOver?: () => void;
   onInputChange: (value: string) => void;
   onSend: () => void;
   onSendFile: (file: File) => void;
@@ -44,6 +53,10 @@ export function MessageInput({
   isHumanMode,
   showCannedPicker,
   soundEnabled,
+  sessionOwnerId,
+  sessionOwnerName,
+  currentUserId,
+  onTakeOver,
   onInputChange,
   onSend,
   onSendFile,
@@ -66,6 +79,12 @@ export function MessageInput({
   const toggleQuickReplies = useLiveChatStore((s) => s.toggleQuickReplies);
   const toggleInputExpanded = useLiveChatStore((s) => s.toggleInputExpanded);
   const closeAllPickers = useLiveChatStore((s) => s.closeAllPickers);
+
+  // M17: ownership gate. A session with no owner (waiting) is open to anyone;
+  // once an operator owns it, only that operator may type. Backend already
+  // enforces this (_require_active_session_owner) — this is the UX affordance.
+  const isOwner = !sessionOwnerId || sessionOwnerId === currentUserId;
+  const showOwnershipBanner = isHumanMode && !isOwner;
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -103,6 +122,30 @@ export function MessageInput({
         </div>
       )}
 
+      {/* M17: ownership banner — shown when another operator owns this session.
+          Mirrors the bot-mode inline bar; the take-over button transfers the
+          session to the current operator. */}
+      {showOwnershipBanner && (
+        <div
+          role="status"
+          className="flex items-center justify-center gap-2 px-3 py-1.5 bg-warning/10 border-b border-warning/20 text-warning-text text-xs font-semibold thai-no-break"
+        >
+          <Lock className="w-3.5 h-3.5 shrink-0" aria-hidden />
+          <span>
+            Claimed by {sessionOwnerName || 'operator อื่น'} — ห้องนี้กำลังถูกดูแลโดยคนอื่น
+          </span>
+          {onTakeOver && (
+            <button
+              type="button"
+              onClick={onTakeOver}
+              className="ml-1 px-2 py-0.5 rounded-md bg-warning/20 hover:bg-warning/30 text-warning-text font-semibold transition-colors focus-ring shrink-0"
+            >
+              รับช่วงต่อ
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Popups Container (Absolute positioning) */}
       <div className="absolute bottom-full left-0 mb-2 px-2 flex flex-col gap-2 z-20">
         <CannedResponsePicker
@@ -119,7 +162,7 @@ export function MessageInput({
       {showQuickReplies && <QuickReplies onSelect={handleQuickReplySelect} />}
 
       {/* Toolbar & Input */}
-      <div className={`p-3 space-y-3 ${!isHumanMode ? 'opacity-60 pointer-events-none grayscale' : ''}`}>
+      <div className={`p-3 space-y-3 ${!isHumanMode || !isOwner ? 'opacity-60 pointer-events-none grayscale' : ''}`}>
 
         {/* Top Toolbar */}
         <div className="flex items-center justify-between">
@@ -227,7 +270,7 @@ export function MessageInput({
                 onTyping();
               }}
               onKeyDown={handleKeyDown}
-              disabled={!isHumanMode || sending}
+              disabled={!isHumanMode || sending || !isOwner}
               placeholder="Type a message..."
               rows={inputExpanded ? 4 : 1}
               className="w-full bg-bg border border-border-default rounded-xl px-4 py-3 text-sm text-text-primary placeholder:text-text-tertiary outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 focus:bg-surface resize-none transition-colors shadow-sm thai-no-break custom-scrollbar"
@@ -247,9 +290,9 @@ export function MessageInput({
 
           <button
             type="submit"
-            disabled={!inputText.trim() || sending || !isHumanMode}
+            disabled={!inputText.trim() || sending || !isHumanMode || !isOwner}
             aria-label="ส่งข้อความ"
-            className={`p-3 rounded-xl shadow-sm transition-[background-color,box-shadow,transform] flex-shrink-0 ${inputText.trim() && isHumanMode
+            className={`p-3 rounded-xl shadow-sm transition-[background-color,box-shadow,transform] flex-shrink-0 ${inputText.trim() && isHumanMode && isOwner
                 ? 'bg-brand-600 text-white hover:bg-brand-700 hover:shadow active:scale-95'
                 : 'bg-muted text-text-tertiary cursor-not-allowed'
               }`}

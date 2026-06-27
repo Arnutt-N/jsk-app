@@ -46,6 +46,9 @@ class ConnectionManager:
         self.ws_to_admin: Dict[WebSocket, str] = {}
         # admin metadata: {connected_at, last_ping, rooms}
         self.admin_metadata: Dict[str, dict] = {}
+        # admin_id (str) -> display_name cache, populated once at register() time
+        # so the hot get_online_admins() path never has to query the DB.
+        self.admin_display_names: Dict[str, str] = {}
         # analytics subscription tracking
         self.analytics_ws: Set[WebSocket] = set()
         self.analytics_subscribers: Dict[str, int] = {}
@@ -71,9 +74,18 @@ class ConnectionManager:
             logger.warning("Pub/Sub not available, running in local-only mode")
 
     async def _handle_remote_broadcast(self, data: dict):
-        """Handle broadcast from other servers via Pub/Sub."""
-        # Only broadcast locally - don't re-publish to avoid loops
-        await self._broadcast_local(data)
+        """Handle broadcast from other servers via Pub/Sub.
+
+        Redis delivers published messages to the publishing process too, so this
+        also fires for our OWN broadcast_to_all. Honor the carried _exclude_admin
+        here (mirrors _handle_remote_room_message) — otherwise an excluded admin
+        would still receive the message via the pubsub round-trip even though the
+        direct local broadcast skipped it.
+        """
+        exclude_admin = data.get("_exclude_admin")
+        # Strip internal routing fields before delivering to clients
+        message = {k: v for k, v in data.items() if not k.startswith("_")}
+        await self._broadcast_local(message, exclude_admin=exclude_admin)
 
     async def _handle_remote_room_message(self, data: dict):
         """Handle room message from other servers via Pub/Sub."""
@@ -107,6 +119,7 @@ class ConnectionManager:
 
         await self._redis_register_presence(admin_id)
         await self._redis_mark_operator_online(admin_id)
+        await self._cache_admin_display_name(admin_id)
         logger.info(f"Admin {admin_id} registered. Connections: {len(self.connections[admin_id])}")
 
     async def disconnect(self, websocket: WebSocket):
@@ -139,6 +152,70 @@ class ConnectionManager:
 
         self.ws_to_admin.pop(websocket, None)
         logger.info(f"Admin {admin_id} disconnected")
+
+    async def _cache_admin_display_name(self, admin_id: str) -> None:
+        """Cache an operator's display_name once at register time.
+
+        get_online_admins() is async and called frequently, so it must not hit
+        the DB. We resolve display_name a single time here (keyed by str(admin_id)
+        to match the Redis presence key type) and reuse it in every presence
+        payload. Imports are local to avoid an import cycle between this module
+        and app.db.session / app.models.user.
+        """
+        key = str(admin_id)
+        if key in self.admin_display_names:
+            return
+        try:
+            admin_id_int = int(admin_id)
+        except (TypeError, ValueError):
+            return
+        try:
+            from sqlalchemy import select
+            from app.db.session import AsyncSessionLocal
+            from app.models.user import User
+
+            async with AsyncSessionLocal() as db:
+                result = await db.execute(
+                    select(User.display_name).where(User.id == admin_id_int)
+                )
+                display_name = result.scalar_one_or_none()
+            if display_name:
+                self.admin_display_names[key] = display_name
+        except Exception as e:
+            logger.error("Failed to cache display_name for admin %s: %s", admin_id, e)
+
+    def _resolve_display_name(self, admin_id) -> str:
+        """Resolve a cached display_name, falling back to a stable label.
+
+        display_name is nullable (User.display_name) so we always provide a
+        non-empty fallback for the UI.
+        """
+        return self.admin_display_names.get(str(admin_id)) or f"Operator #{admin_id}"
+
+    async def broadcast_presence(self, exclude_admin: Optional[str] = None) -> None:
+        """Broadcast the current online-operator roster to all admins.
+
+        Called ONLY on register/disconnect (never on ping/touch_presence) to
+        avoid a presence broadcast loop / load. Uses the string literal
+        "presence_update" instead of WSEventType to keep this module free of an
+        import cycle with app.schemas.ws_events. Wrapped in try/except so a
+        broadcast failure can never break connect/disconnect.
+
+        On register, pass exclude_admin=<the new admin_id>: that operator already
+        received the full roster via the auth-time send_personal presence push,
+        so re-sending it as a broadcast would deliver a duplicate presence_update
+        ahead of the operator's own next request (and breaks single-client tests
+        that expect exactly one presence frame after auth).
+        """
+        try:
+            operators = await self.get_online_admins()
+            await self.broadcast_to_all({
+                "type": "presence_update",
+                "payload": {"operators": operators},
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }, exclude_admin=exclude_admin)
+        except Exception as e:
+            logger.error("Failed to broadcast presence: %s", e)
 
     async def subscribe_analytics(self, websocket: WebSocket):
         """Subscribe an authenticated websocket to analytics updates."""
@@ -242,7 +319,11 @@ class ConnectionManager:
 
         disconnected = []
         success = False
-        for ws in self.connections[admin_id]:
+        # Snapshot the connection set: send_json awaits, and a concurrent
+        # register/disconnect (e.g. a presence broadcast firing while another
+        # operator connects) can mutate self.connections[admin_id] mid-loop,
+        # which raises "Set changed size during iteration".
+        for ws in list(self.connections[admin_id]):
             try:
                 await ws.send_json(data)
                 success = True
@@ -307,9 +388,15 @@ class ConnectionManager:
 
     async def broadcast_to_all(self, data: dict, exclude_admin: Optional[str] = None):
         """Broadcast to all connected admins across all servers."""
-        # Publish to Redis for other servers
+        # Publish to Redis for other servers (and our own loopback). Carry
+        # _exclude_admin so the round-trip honors the exclusion too — otherwise
+        # an excluded admin still receives the message via pubsub. Mirrors the
+        # _room_id/_exclude_admin envelope used by broadcast_to_room.
         if self._pubsub_initialized:
-            await pubsub_manager.publish(self.BROADCAST_CHANNEL, data)
+            await pubsub_manager.publish(
+                self.BROADCAST_CHANNEL,
+                {**data, "_exclude_admin": exclude_admin},
+            )
 
         # Broadcast locally
         await self._broadcast_local(data, exclude_admin)
@@ -336,11 +423,14 @@ class ConnectionManager:
                 result = []
                 for admin_id in admin_ids:
                     active_chats = await self._redis_get_active_room_count(admin_id)
+                    display_name = self._resolve_display_name(admin_id)
                     result.append(
                         {
                             "id": str(admin_id),
                             "status": "online",
                             "active_chats": active_chats,
+                            "display_name": display_name,
+                            "name": display_name,
                         }
                     )
                 return result
@@ -350,10 +440,13 @@ class ConnectionManager:
         result = []
         for admin_id, meta in self.admin_metadata.items():
             if meta.get("status") == "online":
+                display_name = self._resolve_display_name(admin_id)
                 result.append({
                     "id": admin_id,
                     "status": meta["status"],
-                    "active_chats": len(meta.get("rooms", []))
+                    "active_chats": len(meta.get("rooms", [])),
+                    "display_name": display_name,
+                    "name": display_name,
                 })
         return result
 

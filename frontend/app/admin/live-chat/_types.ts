@@ -31,3 +31,17 @@ export interface Conversation {
 export interface CurrentChat extends Conversation {
   messages?: Message[];
 }
+
+/**
+ * Normalized operator entry for the Transfer picker. Online entries are derived
+ * from WebSocket presence; offline entries are merged from the roster endpoint
+ * (`/admin/users/workload`). `online` is the convenience flag for status !==
+ * 'offline'.
+ */
+export interface OperatorOption {
+  id: number;
+  display_name: string;
+  status: 'online' | 'away' | 'offline';
+  active_chats: number;
+  online: boolean;
+}

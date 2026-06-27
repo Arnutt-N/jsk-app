@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 import type { CurrentChat } from '../_types';
+import { useLiveChatContext } from '../_context/LiveChatContext';
 import { SessionActions } from './SessionActions';
 import { ProfileDropdown } from './ProfileDropdown';
 
@@ -39,9 +40,17 @@ export function ChatHeader({
   onTransfer,
   onToggleCustomerPanel,
 }: ChatHeaderProps) {
+  const { currentUserId, getClaimContender } = useLiveChatContext();
   const isBot = currentChat?.chat_mode === 'BOT';
   const isActive = currentChat?.session?.status === 'ACTIVE';
   const isVip = currentChat?.tags?.some((tag) => tag.name.toUpperCase() === 'VIP');
+
+  // Reflect the broadcast claim-contention lock: show "X กำลังรับเรื่อง..." only
+  // when someone ELSE holds/contends the claim for this room (M16). The contender
+  // map already clears on close/transfer (context-owned), so we just read state.
+  const contender = currentChat ? getClaimContender(currentChat.line_user_id) : undefined;
+  const claimedByOther =
+    contender && contender.operatorId !== currentUserId ? { name: contender.name } : undefined;
 
   const statusColor = isActive ? 'bg-online' : currentChat ? 'bg-away' : 'bg-offline';
   const statusLabel = isActive ? 'ออนไลน์' : currentChat ? 'กำลังรอ' : 'ออฟไลน์';
@@ -130,6 +139,7 @@ export function ChatHeader({
           <SessionActions
             session={currentChat?.session}
             claiming={claiming}
+            claimedByOther={claimedByOther}
             onClaim={onClaim}
             onClose={onClose}
             onTransfer={onTransfer}

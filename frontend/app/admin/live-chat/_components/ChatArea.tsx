@@ -50,10 +50,14 @@ export function ChatArea() {
     focusedMessageId,
     clearFocusedMessage,
     isHumanMode,
+    currentUserId,
+    onlineOperators,
+    getClaimContender,
     sendMessage,
     sendMedia,
     claimSession,
     closeSession,
+    transferSession,
     toggleMode,
     setInputText,
     setShowTransferDialog,
@@ -67,6 +71,23 @@ export function ChatArea() {
   } = useLiveChatContext();
 
   const reduced = useReducedMotion();
+
+  // M17: resolve the session owner's display name for the composer ownership
+  // banner. Prefer the live presence list, fall back to the claim contender
+  // (covers owners not currently in presence), then the shared `Operator #id`
+  // convention used by the backend payload. Plain derived value — the React
+  // Compiler memoizes it; a manual useMemo here cannot preserve its deps.
+  const sessionOwnerId = currentChat?.session?.operator_id;
+  const sessionOwnerName = ((): string | undefined => {
+    if (!sessionOwnerId) return undefined;
+    const fromPresence = onlineOperators.find((op) => Number(op.id) === sessionOwnerId);
+    const presenceName = fromPresence?.display_name || fromPresence?.name;
+    if (presenceName) return presenceName;
+    const lineUserId = currentChat?.line_user_id;
+    const contender = lineUserId ? getClaimContender(lineUserId) : undefined;
+    if (contender?.operatorId === sessionOwnerId) return contender.name;
+    return `Operator #${sessionOwnerId}`;
+  })();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const historySentinelRef = useRef<HTMLDivElement>(null);
@@ -375,6 +396,10 @@ export function ChatArea() {
         isHumanMode={isHumanMode}
         showCannedPicker={showCannedPicker}
         soundEnabled={soundEnabled}
+        sessionOwnerId={sessionOwnerId}
+        sessionOwnerName={sessionOwnerName}
+        currentUserId={currentUserId}
+        onTakeOver={() => transferSession(currentUserId)}
         onInputChange={setInputText}
         onSend={() => sendMessage(inputText)}
         onSendFile={sendMedia}
