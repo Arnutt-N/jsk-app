@@ -1,10 +1,15 @@
-"""Tests for _check_role_permission helper in admin_users."""
+"""Tests for _check_role_permission helper and the /workload auth gate."""
 from types import SimpleNamespace
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fastapi import HTTPException
+from fastapi.testclient import TestClient
 
+from app.api import deps
 from app.api.v1.endpoints.admin_users import _check_role_permission
+from app.db.session import get_db as session_get_db
+from app.main import app
 from app.models.user import UserRole
 
 
@@ -58,3 +63,41 @@ def test_managing_user_role_has_no_restriction():
     _check_role_permission(_user(UserRole.AGENT), UserRole.USER)
     _check_role_permission(_user(UserRole.ADMIN), UserRole.USER)
     _check_role_permission(_user(UserRole.SUPER_ADMIN), UserRole.USER)
+
+
+# ── /workload auth gate ──────────────────────────────────────────────
+# Phase 6: GET /admin/users/workload is gated by get_current_staff (not
+# get_current_admin) so live-chat operators (AGENT) can fetch the operator
+# roster for the transfer picker. The endpoint imports get_db from
+# app.db.session, so the override key is session_get_db (mirrors
+# test_admin_requests_endpoints.py).
+
+
+def test_workload_allows_non_admin_staff_agent():
+    """A non-admin staff member (role AGENT) gets 200 from /workload."""
+    fake_agent = SimpleNamespace(id=1, role=UserRole.AGENT, username="operator")
+
+    # No users matched -> endpoint short-circuits to an empty roster; this
+    # keeps the test focused on the auth gate without needing a real DB.
+    empty_result = MagicMock()
+    empty_result.scalars.return_value.all.return_value = []
+
+    mock_db = AsyncMock()
+    mock_db.execute.return_value = empty_result
+
+    async def _override_get_db():
+        yield mock_db
+
+    async def _override_get_current_staff():
+        return fake_agent
+
+    app.dependency_overrides[session_get_db] = _override_get_db
+    app.dependency_overrides[deps.get_current_staff] = _override_get_current_staff
+
+    client = TestClient(app)
+    try:
+        response = client.get("/api/v1/admin/users/workload")
+        assert response.status_code == 200
+        assert response.json() == []
+    finally:
+        app.dependency_overrides.clear()
