@@ -1,3 +1,4 @@
+import { execSync } from 'node:child_process'
 import { expect, test, type BrowserContext, type Locator, type Page } from '@playwright/test'
 import { loginAs } from './utils/auth'
 
@@ -17,7 +18,21 @@ import { loginAs } from './utils/auth'
  * a SECOND operator sees over the WebSocket. So this suite drives two isolated
  * contexts (ctxA = admin, ctxB = staff/AGENT) and asserts cross-context state.
  *
+ * RETRY-SAFETY / ORDERING (why this suite is serial + self-reseeding):
+ *   Both tests mutate ONE shared seeded session. Test 1 claims it, flipping it
+ *   WAITING → ACTIVE. If test 1 failed AFTER the claim landed, a naive retry would
+ *   find no Claim button and fail forever — and test 2 would inherit whatever
+ *   state test 1 left. To make each test (and each Playwright retry) independent:
+ *     1. `test.describe.configure({ mode: 'serial' })` — the two tests never run
+ *        concurrently against the shared DB row.
+ *     2. `beforeEach` reseeds the session back to WAITING FIRST (before any
+ *        context/login), gated on the E2E_SEED_CMD env var (see beforeEach).
+ *     3. Test 2 claims the session itself when a Claim button is present, so it
+ *        works whether it starts WAITING (reseeded) or ACTIVE (already claimed).
+ *
  * Selector strategy (mirrors live-chat-smoke.spec.ts — semantic roles/names):
+ *   - Console-ready landmark: role="listbox", name "Conversation list"
+ *     (ConversationList — always mounted on desktop, independent of seed size).
  *   - Conversation rows: role="option" (ConversationItem), accessible name
  *     includes the customer display_name + a status word ("กำลังรอ" for WAITING).
  *   - Claim button:    role="button", aria-label "Claim session"      (SessionActions)
@@ -45,17 +60,60 @@ const STAFF_DISPLAY_NAME = 'Staff Test'
 /**
  * Generous timeout for assertions that depend on cross-context WebSocket
  * propagation (claim broadcast, presence roster). The default expect timeout
- * (5s) is too tight for a state change that has to round-trip A → server → B.
+ * (5s) is far too tight for a state change that has to round-trip
+ * A → server → B on a slow machine, so bump it well past the round-trip cost.
+ * The 2-client config provides correspondingly generous overall timeouts.
  */
-const WS_TIMEOUT = 15_000
+const WS_TIMEOUT = 30_000
+
+/**
+ * Timeout for the console-ready landmark. A cold dev server compiles the
+ * /admin/live-chat route on first hit (can take double-digit seconds on the
+ * 9p/WSL box) before the conversation list mounts; allow generously for that
+ * first-compile + WebSocket bootstrap. This replaces the old `networkidle`
+ * wait, which could never settle here (open WS + REST polling fallback) and so
+ * burned the entire timeout every run.
+ */
+const CONSOLE_READY_TIMEOUT = 45_000
+
+/**
+ * Reset the shared seeded session back to WAITING before a test attempt.
+ *
+ * Gated on E2E_SEED_CMD: when the orchestrator sets it to the reseed command
+ * (e.g. the backend seed script invocation), run it synchronously so the test
+ * starts from a fresh WAITING session — this is what makes the two tests, and
+ * each Playwright retry, independent and retry-safe. When the env var is unset
+ * or empty, skip reseeding and keep the existing external-seed behavior.
+ *
+ * A reseed failure is non-fatal: we warn and continue, because the live
+ * precondition skip-guard in `beforeEach` still protects against a broken stack
+ * (and hard-throwing here would turn an environment problem into a red suite).
+ */
+function reseedWaitingSession(): void {
+  const cmd = process.env.E2E_SEED_CMD
+  if (!cmd) return
+  try {
+    execSync(cmd, { stdio: 'pipe', timeout: 90_000 })
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.warn('[2client] reseed failed:', msg)
+  }
+}
 
 /** Sign in as `username`, open the live-chat console, and wait for it to settle. */
 async function openLiveChatAs(page: Page, username: string, password: string): Promise<void> {
   await loginAs(page, username, password)
   await page.goto(LIVE_CHAT)
-  // Force-dynamic page + WebSocket bootstrap — wait for the network to settle
-  // rather than a fixed sleep (the repo's testing rules ban flaky waits).
-  await page.waitForLoadState('networkidle')
+  // Deterministic readiness signal. The live-chat console holds an open
+  // WebSocket AND a REST polling fallback, so the network never reaches
+  // `networkidle` — waiting on it here just burns the whole timeout every run.
+  // Instead wait for a concrete landmark that proves the console mounted: the
+  // conversation-list container (ConversationList renders an always-present
+  // role="listbox" aria-label="Conversation list", regardless of how many
+  // conversations the seed has). No fixed sleeps (the repo bans flaky waits).
+  await expect(
+    page.getByRole('listbox', { name: /conversation list/i }),
+  ).toBeVisible({ timeout: CONSOLE_READY_TIMEOUT })
 }
 
 /**
@@ -82,12 +140,25 @@ async function assertSeedPresent(row: Locator): Promise<void> {
 }
 
 test.describe('/admin/live-chat 2-client (Phase 6)', () => {
+  // Serial: both tests share ONE seeded DB row (reseeded to WAITING per test in
+  // beforeEach). Running them concurrently would let one test's claim race the
+  // other's reseed. Serial + per-test reseed = deterministic, retry-safe.
+  test.describe.configure({ mode: 'serial' })
+
   let ctxA: BrowserContext
   let ctxB: BrowserContext
   let pageA: Page
   let pageB: Page
 
   test.beforeEach(async ({ browser }) => {
+    // Reset the shared session to WAITING BEFORE anything else (before contexts
+    // exist and before either operator logs in), so the console's first fetch
+    // already reflects the fresh WAITING state. This is the linchpin of
+    // retry-safety: every test attempt — including retries after a mid-test
+    // failure — starts from a known WAITING session instead of inheriting an
+    // ACTIVE row left by a prior claim. No-op when E2E_SEED_CMD is unset.
+    reseedWaitingSession()
+
     // Two fully isolated contexts so each operator has its own auth + WebSocket.
     ctxA = await browser.newContext()
     ctxB = await browser.newContext()
@@ -133,10 +204,12 @@ test.describe('/admin/live-chat 2-client (Phase 6)', () => {
     // so the transfer test doesn't spuriously skip when a prior test already
     // claimed the room (ACTIVE, no Claim button). Skip only when the group is
     // empty (CLOSED/None = no live session, e.g. seed missing / WS down).
+    // On a HEALTHY stack with the reseed in place the session is WAITING, the
+    // Claim button surfaces, and the tests RUN and ASSERT (they do not skip).
     const sessionLive = await sessionActions(pageA)
       .getByRole('button')
       .first()
-      .waitFor({ state: 'visible', timeout: 12_000 })
+      .waitFor({ state: 'visible', timeout: WS_TIMEOUT })
       .then(() => true)
       .catch(() => false)
     test.skip(
@@ -154,9 +227,11 @@ test.describe('/admin/live-chat 2-client (Phase 6)', () => {
   test('claim contention: operator B sees a disabled lock after operator A claims', async () => {
     // Operator A claims the WAITING session. Claim button accessible name is
     // "Claim session" (SessionActions aria-label, stable even while "Claiming...").
-    await sessionActions(pageA)
-      .getByRole('button', { name: /claim session/i })
-      .click()
+    // Assert the (right) Claim button is visible before clicking so we click a
+    // stable, settled element rather than racing the room's first render.
+    const claimBtn = sessionActions(pageA).getByRole('button', { name: /claim session/i })
+    await expect(claimBtn).toBeVisible({ timeout: WS_TIMEOUT })
+    await claimBtn.click()
 
     // Over the WebSocket, operator B's header swaps the Claim button for a
     // DISABLED lock. Its accessible name is "<name> กำลังรับเรื่อง" (aria-label);
@@ -168,9 +243,10 @@ test.describe('/admin/live-chat 2-client (Phase 6)', () => {
 
   test('transfer picker lists the online AGENT by display name', async () => {
     // The Transfer button only renders for an ACTIVE (claimed) session. Make
-    // operator A hold the session: if the Claim button is still present (fresh
-    // WAITING seed) claim it; if a prior test already claimed it, the session is
-    // already ACTIVE and only Transfer/Done show — so this is self-contained.
+    // operator A hold the session: with the per-test reseed the session starts
+    // WAITING, so the Claim button is present — claim it. (If a prior attempt
+    // left it ACTIVE, only Transfer/Done show and the claim is skipped — so this
+    // is self-contained whatever state it starts in.)
     const actions = sessionActions(pageA)
     await expect(actions).toBeVisible({ timeout: WS_TIMEOUT })
 
@@ -186,7 +262,7 @@ test.describe('/admin/live-chat 2-client (Phase 6)', () => {
 
     // TransferDialog renders role="dialog" (aria-label "Transfer session").
     const dialog = pageA.getByRole('dialog')
-    await expect(dialog).toBeVisible()
+    await expect(dialog).toBeVisible({ timeout: WS_TIMEOUT })
 
     // Operator B (AGENT "Staff Test") is online via its open WebSocket, so the
     // presence-sourced picker lists it by display_name. Generous timeout because

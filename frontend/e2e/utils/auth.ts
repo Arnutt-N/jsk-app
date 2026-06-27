@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test'
+import { expect, type Page } from '@playwright/test'
 
 /**
  * Log in as an arbitrary seeded user (generic primitive).
@@ -11,6 +11,15 @@ import type { Page } from '@playwright/test'
  * Form-targeting strategy is identical to the original admin login: native
  * <input>/<input>/<button>, matched by name/type attribute so it survives
  * label rewording.
+ *
+ * Cold-server hardening: on a slow/first-hit /login the route is still
+ * compiling when the page resolves, so the inputs and submit button can mount
+ * a beat late. We make each element's readiness explicit -- wait for the field
+ * to be visible before filling, assert the value actually landed before
+ * submitting, and wait for the button to be visible before clicking -- so a
+ * dropped keystroke surfaces as a clear field-level failure instead of a
+ * confusing post-login navigation timeout. This matters most when two browser
+ * contexts log in back-to-back against a cold WSL/9p dev server.
  */
 export async function loginAs(page: Page, username: string, password: string): Promise<void> {
   await page.goto('/login')
@@ -18,14 +27,33 @@ export async function loginAs(page: Page, username: string, password: string): P
   // The login form is a basic <input>/<input>/<button>. We target by
   // input name attribute since the page uses native form elements --
   // resilient against label rewording.
-  await page.locator('input[name="username"], input[type="text"]').first().fill(username)
-  await page.locator('input[name="password"], input[type="password"]').first().fill(password)
+  const usernameInput = page.locator('input[name="username"], input[type="text"]').first()
+  const passwordInput = page.locator('input[name="password"], input[type="password"]').first()
+
+  // Wait for each input to actually be mounted+visible before typing. On a
+  // cold-compiled /login, fill() can otherwise fire before the field exists
+  // and the keystrokes get dropped, which only shows up later as a baffling
+  // login timeout. The explicit wait makes the real cause visible.
+  await usernameInput.waitFor({ state: 'visible' })
+  await usernameInput.fill(username)
+  await passwordInput.waitFor({ state: 'visible' })
+  await passwordInput.fill(password)
+
+  // Confirm the fields really received their values before we submit. If a
+  // cold-compile race dropped a keystroke, this fails here (pointing at the
+  // exact field) instead of as a post-login navigation timeout.
+  await expect(usernameInput).toHaveValue(username)
+  await expect(passwordInput).toHaveValue(password)
 
   // Some toolkits render submit buttons as <button type="submit"> while
   // others use a styled <button>. Prefer name then text fallback.
   const submitButton = page.locator(
     'button[type="submit"], button:has-text("เข้าสู่ระบบ"), button:has-text("Log in")',
   ).first()
+  // Make the visible-precondition explicit so the click can't fire before the
+  // button has mounted on a first-hit /login compile. (click() also auto-waits
+  // for actionability; this just gives a clearer failure if it never appears.)
+  await submitButton.waitFor({ state: 'visible' })
   await submitButton.click()
 
   // The login flow ends on /admin (or /admin/something). Be lenient
