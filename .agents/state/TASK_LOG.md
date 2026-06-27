@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 101 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 102 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-27 09:53 — claude_code — completed
+
+Implemented Live-Chat Phase 4 (Motion & Polish) via 1 foundation + 7 parallel file-owned agents (commit 031d67b): W4 new useReducedMotion hook (useSyncExternalStore, SSR-safe) gating ChatArea scrollIntoView + TypingIndicator anim; M2/M11a toast+dropdown exit via AnimatePresence (motion/react); L6 toast layout reorder; L7 MessageBubble isNew entrance gate (state-during-render baseline, no virtualize/room-switch replay); M21 tabular-nums/focus-ring/inset-outline/break-words + typing-bounce keyframe; L1 transition-all->specific (4 files + .hover-lift); L11 send icon centering; globals.css --duration-toast token + keyframe token mapping. Fixed 5 React-Compiler eslint errors (refs-in-render -> state-during-render in ChatArea; set-state-in-effect -> useSyncExternalStore in hook). Validation WSL: tsc 0, eslint 0, vitest 203/203, next build OK, 0 transition-all in L1 scope.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260627-0953.json`
+- Summary: `project-log-md/claude_code/session-summary-20260627-0953.md`
+
+---
 
 ### 2026-06-27 06:42 — claude_code — completed
 
