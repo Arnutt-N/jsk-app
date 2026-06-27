@@ -1,14 +1,21 @@
 {
-  "last_updated": "2026-06-27T09:53:00+07:00",
+  "last_updated": "2026-06-27T10:50:00+07:00",
   "platform": "claude_code",
-  "current_task": "Implemented Live-Chat Phase 4 (Motion & Polish) via 1 foundation + 7 parallel file-owned agents (commit 031d67b): W4 new useReducedMotion hook (useSyncExternalStore, SSR-safe) gating ChatArea scrollIn",
+  "current_task": "Implemented Live-Chat Phase 5 (React/Perf Hardening) via 6 parallel file-owned agents (commit 12abb86): M10 component-level ErrorBoundary per panel (ConversationList/ChatArea/CustomerPanel) inside pro",
   "plan_status": "completed",
   "next_steps": [
-    "Phases 5-8 remain - read .claude/PRPs/plans/PLAN-REVIEW-FIXES.md before each (B1/B2: Phase 6 use useConversationStats + add sortBy there not 3-param useConversations; B5 claim-contention test; B6/B7 Phase 8 ack-timeout races + capture contract live ~30 keys assert by type).",
-    "Phase 4 manual verify still pending: toggle OS reduced-motion (Windows Settings>Accessibility>Visual effects>Animation OFF) to confirm W4 + walk phase-4 plan edge-case checklist. Manual NVDA+Chrome walkthrough (Phase 2 a11y acceptance) also still pending.",
-    "Cross-phase debt: TransferDialog.tsx still has slate-* + transition-all (owner Phase 1/6); live-chat-wide slate=0 NOT met yet."
+    "Phases 6-8 remain - read .claude/PRPs/plans/PLAN-REVIEW-FIXES.md before each. Phase 6 (operator UX multi-operator) is the only backend-touching phase (presence broadcast + display_name enrich + roster + transfer 4xx); apply B1/B2 (useConversationStats now exists with (conversations,query) - add sortBy as 3rd param THERE for M15, not a 3-param useConversations) + B5 claim-contention test.",
+    "Phase 5 known limits (documented, not bugs): ConversationList reads conversations via Zustand selector so memo benefit is partial; onMarkRead stays inline arrow; L9.4 still O(n) (no store-shape change). Manual perf verify (React DevTools Profiler: typing in search only re-renders changed items; M10 throw-test) still pending.",
+    "Cross-phase debt unchanged: TransferDialog.tsx still slate-*/transition-all (Phase 1/6 owner); manual NVDA walkthrough (Phase 2) + OS reduced-motion toggle (Phase 4 W4) still pending."
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-06-27T10:50:00+07:00",
+      "platform": "claude_code",
+      "branch": "docs/livechat-audit-remediation-prp",
+      "head": "12abb86",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-06-27T09:53:00+07:00",
       "platform": "claude_code",
@@ -140,13 +147,6 @@
       "platform": "claude_code",
       "branch": "feat/rich-menu-switching-r1",
       "head": "d40907c",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-20T23:08:00Z",
-      "platform": "claude_code",
-      "branch": "feat/rich-menu-switching-r1",
-      "head": "43205ea",
       "status": "completed"
     }
   ],

@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 102 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 103 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-27 10:50 — claude_code — completed
+
+Implemented Live-Chat Phase 5 (React/Perf Hardening) via 6 parallel file-owned agents (commit 12abb86): M10 component-level ErrorBoundary per panel (ConversationList/ChatArea/CustomerPanel) inside provider + new PanelErrorFallback (one panel crash no longer white-screens page/drops WS); M11b AbortController in analytics fetch (no stale overwrite); M12/L9.7 new useConversationStats single-pass useMemo hook replacing useConversations (3x filter) + pure computeConversationStats; M13 ConversationItem prop rename onClick->onSelect(id)/onMenuClick->onMenuToggle(id) + stable useCallback so React.memo skips (store.getState() for toggle); L8 table key fix; L9.1 rAF scroll throttle; L9.2 preformat timestamp (MessageBubble formattedTime prop); L9.3 parallel REST fallback; L9.4 single-pass reorderConversationsToTop helper; L9.5 sticker lazy+size; L9.6 drop onConnectionChange double-fire; L9.8 shared API_BASE in _lib/constants.ts. Orchestrator caught+fixed cross-file leak: ConversationItem.a11y.test.tsx (Phase 2) still used old props -> renamed. New tests useConversationStats(9)+conversationUpdate(4). Validation WSL: tsc 0, eslint 0 (React-Compiler rules clean first try), vitest 216/216, next build OK.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260627-1050.json`
+- Summary: `project-log-md/claude_code/session-summary-20260627-1050.md`
+
+---
 
 ### 2026-06-27 09:53 — claude_code — completed
 
