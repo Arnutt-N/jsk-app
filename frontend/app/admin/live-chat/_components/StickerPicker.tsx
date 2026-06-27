@@ -39,7 +39,7 @@ export function StickerPicker({ onSelect }: StickerPickerProps) {
               className="aspect-square flex items-center justify-center p-2 rounded-lg hover:bg-muted border border-transparent hover:border-border-default transition-all"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={s.url} alt={`Sticker ${s.id}`} className="w-full h-full object-contain" />
+              <img src={s.url} alt={`Sticker ${s.id}`} className="w-full h-full object-contain" loading="lazy" width={64} height={64} />
             </button>
           ))}
         </div>

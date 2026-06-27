@@ -10,6 +10,8 @@ import { CustomerPanel } from './CustomerPanel';
 import { NotificationToast } from './NotificationToast';
 import { MobileDrawer } from './MobileDrawer';
 import { TransferDialog } from './TransferDialog';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
+import { PanelErrorFallback } from './PanelErrorFallback';
 
 export function LiveChatShell() {
   // Read state from Zustand
@@ -56,21 +58,37 @@ export function LiveChatShell() {
       {/* 3-Column Layout: Conversation List (dark) | Chat Area (light) | Customer Panel (optional) */}
       <div className="flex h-screen w-full bg-bg overflow-hidden font-sans">
         {/* Column 1: Conversation List - Dark sidebar, fixed 320px width */}
-        {(!isMobileView || !selectedId) && <ConversationList />}
+        {(!isMobileView || !selectedId) && (
+          <ErrorBoundary fallback={(_e, reset) => (
+            <aside className="w-full md:w-80 flex-shrink-0 border-r border-white/10 bg-sidebar-bg flex flex-col">
+              <PanelErrorFallback label="รายการแชท" reset={reset} />
+            </aside>
+          )}>
+            <ConversationList />
+          </ErrorBoundary>
+        )}
 
         {/* Column 2: Chat Area - Light content, flexible width */}
-        {(!isMobileView || selectedId) && <ChatArea />}
-        
+        {(!isMobileView || selectedId) && (
+          <ErrorBoundary fallback={(_e, reset) => <PanelErrorFallback label="หน้าต่างแชท" reset={reset} />}>
+            <ChatArea />
+          </ErrorBoundary>
+        )}
+
         {/* Column 3: Customer Profile Panel - Light, fixed 320px width, conditional */}
         {selectedId && showCustomerPanel && (
           isMobileView ? (
             <MobileDrawer open onClose={() => setShowCustomerPanel(false)} titleId="customer-panel-title">
-              <CustomerPanel currentChat={currentChat} onClose={() => setShowCustomerPanel(false)} />
+              <ErrorBoundary fallback={(_e, reset) => <PanelErrorFallback label="ข้อมูลลูกค้า" reset={reset} />}>
+                <CustomerPanel currentChat={currentChat} onClose={() => setShowCustomerPanel(false)} />
+              </ErrorBoundary>
             </MobileDrawer>
           ) : (
             <div className="hidden md:flex">
               <div className="h-full">
-                <CustomerPanel currentChat={currentChat} onClose={() => setShowCustomerPanel(false)} />
+                <ErrorBoundary fallback={(_e, reset) => <PanelErrorFallback label="ข้อมูลลูกค้า" reset={reset} />}>
+                  <CustomerPanel currentChat={currentChat} onClose={() => setShowCustomerPanel(false)} />
+                </ErrorBoundary>
               </div>
             </div>
           )

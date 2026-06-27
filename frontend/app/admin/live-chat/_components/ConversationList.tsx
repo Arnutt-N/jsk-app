@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Home, Inbox, MessageSquarePlus, Search } from 'lucide-react';
 
 import { useLiveChatStore } from '../_store/liveChatStore';
-import { useConversations } from '../_hooks/useConversations';
+import { useConversationStats } from '../_hooks/useConversationStats';
 import { useLiveChatContext } from '../_context/LiveChatContext';
 import { ConversationItem } from './ConversationItem';
 import { CreateChatSheet } from './CreateChatSheet';
@@ -27,7 +27,6 @@ export function ConversationList() {
   const searchQuery = useLiveChatStore((s) => s.searchQuery);
   const filterStatus = useLiveChatStore((s) => s.filterStatus);
   const loading = useLiveChatStore((s) => s.loading);
-  const activeActionMenu = useLiveChatStore((s) => s.activeActionMenu);
   const setSearchQuery = useLiveChatStore((s) => s.setSearchQuery);
   const setFilterStatus = useLiveChatStore((s) => s.setFilterStatus);
   const setActiveActionMenu = useLiveChatStore((s) => s.setActiveActionMenu);
@@ -36,7 +35,17 @@ export function ConversationList() {
   // API methods from Context
   const { formatTime, selectConversation, jumpToMessage, fetchConversations } = useLiveChatContext();
 
-  const { filtered, waitingCount, activeCount } = useConversations(conversations, searchQuery);
+  const { filtered, waitingCount, activeCount, closedCount } = useConversationStats(conversations, searchQuery);
+
+  // Stable handlers so ConversationItem's React.memo can skip re-renders.
+  const handleSelect = React.useCallback((id: string) => {
+    selectConversation(id);
+    setActiveActionMenu(null);
+  }, [selectConversation, setActiveActionMenu]);
+
+  const handleMenuToggle = React.useCallback((id: string) => {
+    setActiveActionMenu(useLiveChatStore.getState().activeActionMenu === id ? null : id);
+  }, [setActiveActionMenu]);
 
   // Apply filter chip selection to the search-filtered list
   const filteredConversations = useMemo(() => {
@@ -52,7 +61,6 @@ export function ConversationList() {
   const [searchResults, setSearchResults] = React.useState<SearchMessageResult[]>([]);
   const [searching, setSearching] = React.useState(false);
   const [showCreateChat, setShowCreateChat] = React.useState(false);
-  const closedCount = conversations.filter((c) => !c.session || c.session.status === 'CLOSED').length;
 
   React.useEffect(() => {
     const q = searchQuery.trim();
@@ -222,11 +230,8 @@ export function ConversationList() {
                   conversation={conversation}
                   selected={selectedId === conversation.line_user_id}
                   formattedTime={conversation.last_message?.created_at ? formatTime(conversation.last_message.created_at) : undefined}
-                  onClick={() => {
-                    selectConversation(conversation.line_user_id);
-                    setActiveActionMenu(null);
-                  }}
-                  onMenuClick={() => setActiveActionMenu(activeActionMenu === conversation.line_user_id ? null : conversation.line_user_id)}
+                  onSelect={handleSelect}
+                  onMenuToggle={handleMenuToggle}
                   onMarkRead={() => markRead(conversation.line_user_id)}
                 />
             ))}

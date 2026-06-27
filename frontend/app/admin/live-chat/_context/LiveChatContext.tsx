@@ -21,6 +21,7 @@ import type {
 } from '@/lib/websocket/types';
 import { useLiveChatStore } from '../_store/liveChatStore';
 import type { Conversation, CurrentChat, Session } from '../_types';
+import { API_BASE } from '../_lib/constants';
 
 interface LiveChatContextValue {
   wsStatus: ConnectionState;
@@ -56,10 +57,23 @@ interface LiveChatContextValue {
 }
 
 const LiveChatContext = createContext<LiveChatContextValue | undefined>(undefined);
-const API_BASE = '/api/v1';
 
 // Helper to get current store state without subscribing
 const getStore = () => useLiveChatStore.getState();
+
+/**
+ * Move (or insert) the updated conversation to the top of the list in a single
+ * pass, preserving the relative order of the remaining conversations. A
+ * not-present id is simply prepended (matching the old "new conversation"
+ * branch). Pure + immutable: returns a new array, never mutates the input.
+ */
+export function reorderConversationsToTop<T extends { line_user_id: string }>(list: T[], updated: T): T[] {
+  const next: T[] = [updated];
+  for (let i = 0; i < list.length; i++) {
+    if (list[i].line_user_id !== updated.line_user_id) next.push(list[i]);
+  }
+  return next;
+}
 
 const mergeSession = (existing: Session | undefined, incoming?: Session): Session | undefined => {
   if (!incoming) return existing;
@@ -300,12 +314,7 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
       data,
       unread,
     );
-    if (idx === -1) {
-      getStore().setConversations([updated, ...list]);
-    } else {
-      list.splice(idx, 1);
-      getStore().setConversations([updated, ...list]);
-    }
+    getStore().setConversations(reorderConversationsToTop(getStore().conversations, updated));
     if (isSelected) {
       const currentChat = mergeConversationUpdate(getStore().currentChat, data, unread);
       getStore().setCurrentChat(currentChat);
@@ -515,8 +524,7 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({ text }),
       });
       if (!res.ok) throw new Error('send failed');
-      await fetchChatDetail(s.selectedId, true);
-      await fetchConversations();
+      await Promise.all([fetchChatDetail(s.selectedId, true), fetchConversations()]);
       handleMessageAck(tempId);
       getStore().setInputText('');
     } catch {
@@ -539,8 +547,7 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
         body: formData,
       });
       if (!res.ok) throw new Error('media send failed');
-      await fetchChatDetail(s.selectedId, true);
-      await fetchConversations();
+      await Promise.all([fetchChatDetail(s.selectedId, true), fetchConversations()]);
     } catch {
       getStore().setBackendOnline(false);
     } finally {

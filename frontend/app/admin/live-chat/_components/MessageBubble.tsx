@@ -10,6 +10,7 @@ interface MessageBubbleProps {
   elementId?: string;
   isPending: boolean;
   isFailed: boolean;
+  formattedTime: string;
   senderLabel: string;
   showSender: boolean;
   showAvatar: boolean;
@@ -86,6 +87,7 @@ export const MessageBubble = memo(function MessageBubble({
   elementId,
   isPending,
   isFailed,
+  formattedTime,
   senderLabel,
   showSender,
   showAvatar,
@@ -137,7 +139,7 @@ export const MessageBubble = memo(function MessageBubble({
         {/* Timestamp & Status (Bottom) */}
         <div className="flex items-center gap-1 px-1">
           <span className="text-[10px] text-text-tertiary tabular-nums">
-            {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            {formattedTime}
           </span>
           {isAdmin && (
             <div className="flex items-center gap-1">

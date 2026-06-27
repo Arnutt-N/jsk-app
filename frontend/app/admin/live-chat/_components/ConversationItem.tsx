@@ -13,8 +13,8 @@ interface ConversationItemProps {
   conversation: Conversation;
   selected: boolean;
   formattedTime?: string;
-  onClick: () => void;
-  onMenuClick: () => void;
+  onSelect: (lineUserId: string) => void;
+  onMenuToggle: (lineUserId: string) => void;
   onMarkRead: () => void;
 }
 
@@ -23,13 +23,15 @@ export const ConversationItem = memo(function ConversationItem({
   conversation,
   selected,
   formattedTime,
-  onClick,
-  onMenuClick,
+  onSelect,
+  onMenuToggle,
   onMarkRead,
 }: ConversationItemProps) {
   const [menuOpen, setMenuOpen] = React.useState(false);
   const menuRef = React.useRef<HTMLDivElement>(null);
   const reduced = useReducedMotion();
+  const handleSelect = React.useCallback(() => onSelect(conversation.line_user_id), [onSelect, conversation.line_user_id]);
+  const handleMenuToggle = React.useCallback(() => onMenuToggle(conversation.line_user_id), [onMenuToggle, conversation.line_user_id]);
   const isWaiting = conversation.session?.status === 'WAITING';
   const isActive = conversation.session?.status === 'ACTIVE';
   const isVip = conversation.tags?.some((t) => t.name.toUpperCase() === 'VIP');
@@ -58,7 +60,7 @@ export const ConversationItem = memo(function ConversationItem({
           ? 'gradient-active text-white shadow-lg shadow-brand-900/30'
           : 'text-sidebar-text-muted hover:bg-white/5 border border-transparent'
       }`}
-      onClick={onClick}
+      onClick={handleSelect}
     >
       {/* Avatar + status dot */}
       <div className="relative flex-shrink-0">
@@ -139,7 +141,7 @@ export const ConversationItem = memo(function ConversationItem({
           onClick={(e) => {
             e.stopPropagation();
             setMenuOpen(!menuOpen);
-            onMenuClick();
+            handleMenuToggle();
           }}
           className={`p-1.5 rounded-lg cursor-pointer opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity focus-ring ${selected ? 'text-white/80 hover:text-white' : 'text-sidebar-text-muted hover:text-white'}`}
           aria-label={`Open actions for ${conversation.display_name}`}
@@ -156,7 +158,7 @@ export const ConversationItem = memo(function ConversationItem({
               className="absolute right-0 top-full mt-1 w-44 bg-surface rounded-xl shadow-2xl border border-border-default overflow-hidden z-50"
             >
               <button
-                onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onClick(); }}
+                onClick={(e) => { e.stopPropagation(); setMenuOpen(false); handleSelect(); }}
                 className="flex items-center gap-2.5 px-3 py-2 text-xs text-text-secondary hover:bg-muted w-full text-left cursor-pointer focus-ring"
               >
                 <Eye className="w-3.5 h-3.5 text-text-tertiary" />

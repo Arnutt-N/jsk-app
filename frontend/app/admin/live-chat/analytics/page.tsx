@@ -10,6 +10,7 @@ import {
 import { logger } from '@/lib/logger';
 import CalendarPickerTH from '@/components/ui/CalendarPickerTH';
 import { isoToYMD } from '@/lib/utils';
+import { API_BASE } from '../_lib/constants';
 
 const CHART = {
     grid: 'var(--color-border-subtle, #e5e7eb)',
@@ -44,15 +45,13 @@ export default function AnalyticsPage() {
     const [operatorStats, setOperatorStats] = useState<OperatorStat[]>([]);
     const [dateRange, setDateRange] = useState({ from: '', to: '' });
 
-    const API_BASE = '/api/v1';
-
-    const fetchData = useCallback(async () => {
+    const fetchData = useCallback(async (signal?: AbortSignal) => {
         try {
             const query = `?from_date=${dateRange.from}&to_date=${dateRange.to}`;
 
             const [analyticsRes, operatorsRes] = await Promise.all([
-                fetch(`${API_BASE}/admin/live-chat/analytics${query}`),
-                fetch(`${API_BASE}/admin/live-chat/analytics/operators${query}`)
+                fetch(`${API_BASE}/admin/live-chat/analytics${query}`, { signal }),
+                fetch(`${API_BASE}/admin/live-chat/analytics/operators${query}`, { signal })
             ]);
 
             if (analyticsRes.ok) {
@@ -67,15 +66,20 @@ export default function AnalyticsPage() {
             }
 
         } catch (error) {
+            if (error instanceof DOMException && error.name === 'AbortError') return;
             logger.error("Failed to fetch analytics", error);
         }
-    }, [API_BASE, dateRange.from, dateRange.to]);
+    }, [dateRange.from, dateRange.to]);
 
     useEffect(() => {
+        const controller = new AbortController();
         const timer = window.setTimeout(() => {
-            void fetchData();
+            void fetchData(controller.signal);
         }, 0);
-        return () => window.clearTimeout(timer);
+        return () => {
+            window.clearTimeout(timer);
+            controller.abort();
+        };
     }, [fetchData]);
 
     return (
@@ -197,7 +201,7 @@ export default function AnalyticsPage() {
                                 </tr>
                             ) : (
                                 operatorStats.map((op, i) => (
-                                    <tr key={i} className="hover:bg-muted/50">
+                                    <tr key={op.operator_name ?? `op-${i}`} className="hover:bg-muted/50">
                                         <td className="px-6 py-4 text-sm font-medium text-text-primary">{op.operator_name || 'System'}</td>
                                         <td className="px-6 py-4 text-sm text-text-secondary">{op.total_sessions}</td>
                                         <td className="px-6 py-4 text-sm text-text-secondary">{op.avg_response_time}s</td>

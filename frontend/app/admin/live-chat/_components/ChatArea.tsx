@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { AlertTriangle, Bell, MessageSquare, RefreshCw, Wifi, WifiOff } from 'lucide-react';
 
 import { ProfileDropdown } from './ProfileDropdown';
@@ -73,6 +73,23 @@ export function ChatArea() {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = React.useState(0);
   const [viewportHeight, setViewportHeight] = React.useState(0);
+
+  // L9.1: throttle scroll-driven setState with requestAnimationFrame so the
+  // virtualization recompute runs at most once per frame instead of on every
+  // scroll event. Read scrollTop synchronously BEFORE the rAF callback because
+  // React nullifies e.currentTarget after the handler returns.
+  const scrollRafRef = useRef<number | null>(null);
+  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const top = e.currentTarget.scrollTop;
+    if (scrollRafRef.current != null) return;
+    scrollRafRef.current = requestAnimationFrame(() => {
+      scrollRafRef.current = null;
+      setScrollTop(top);
+    });
+  }, []);
+  useEffect(() => () => {
+    if (scrollRafRef.current != null) cancelAnimationFrame(scrollRafRef.current);
+  }, []);
 
   // L7: baseline count of messages that already existed when this conversation
   // was opened. Anything appended after the baseline (absolute idx >= baseline)
@@ -279,7 +296,7 @@ export function ChatArea() {
       <div
         ref={messagesContainerRef}
         className="flex-1 overflow-y-auto p-4 space-y-2 bg-bg custom-scrollbar"
-        onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
+        onScroll={handleScroll}
       >
         <div ref={historySentinelRef} />
         {virtualEnabled && <div aria-hidden style={{ height: `${visibleWindow.topPadding}px` }} />}
@@ -306,6 +323,7 @@ export function ChatArea() {
           const showAvatar = !next || next.direction !== message.direction || next.sender_role !== message.sender_role;
           const pending = !!(message.temp_id && pendingMessages.has(message.temp_id));
           const failed = !!(message.temp_id && failedMessages.has(message.temp_id));
+          const formattedTime = new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
           return (
             <MessageBubble
               key={message.id || message.temp_id}
@@ -313,6 +331,7 @@ export function ChatArea() {
               elementId={message.id ? `message-${message.id}` : undefined}
               isPending={pending}
               isFailed={failed}
+              formattedTime={formattedTime}
               senderLabel={getSenderLabel(message, currentChat?.display_name)}
               showSender={showSender}
               showAvatar={showAvatar}

@@ -168,8 +168,6 @@ export function useLiveChatSocket(options: UseLiveChatSocketOptions): UseLiveCha
     adminId, // Use admin ID from auth context
     token,   // JWT token for authentication
     onMessage: handleMessage,
-    onConnect: () => onConnectionChange?.('connected'),
-    onDisconnect: () => onConnectionChange?.('disconnected'),
   });
 
   // Notify parent of status changes

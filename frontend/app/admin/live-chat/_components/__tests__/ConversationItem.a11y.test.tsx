@@ -23,8 +23,8 @@ describe('ConversationItem a11y', () => {
         conversation={waitingConversation}
         selected={false}
         formattedTime="10:00"
-        onClick={vi.fn()}
-        onMenuClick={vi.fn()}
+        onSelect={vi.fn()}
+        onMenuToggle={vi.fn()}
         onMarkRead={vi.fn()}
       />,
     );
@@ -39,8 +39,8 @@ describe('ConversationItem a11y', () => {
         optionId="conv-2"
         conversation={waitingConversation}
         selected={false}
-        onClick={vi.fn()}
-        onMenuClick={vi.fn()}
+        onSelect={vi.fn()}
+        onMenuToggle={vi.fn()}
         onMarkRead={vi.fn()}
       />,
     );
@@ -60,8 +60,8 @@ describe('ConversationItem a11y', () => {
         optionId="conv-3"
         conversation={unreadConversation}
         selected={false}
-        onClick={vi.fn()}
-        onMenuClick={vi.fn()}
+        onSelect={vi.fn()}
+        onMenuToggle={vi.fn()}
         onMarkRead={vi.fn()}
       />,
     );
@@ -76,8 +76,8 @@ describe('ConversationItem a11y', () => {
         optionId="conv-4"
         conversation={waitingConversation}
         selected={false}
-        onClick={vi.fn()}
-        onMenuClick={vi.fn()}
+        onSelect={vi.fn()}
+        onMenuToggle={vi.fn()}
         onMarkRead={vi.fn()}
       />,
     );
@@ -97,8 +97,8 @@ describe('ConversationItem a11y', () => {
         optionId="conv-5"
         conversation={activeConversation}
         selected={false}
-        onClick={vi.fn()}
-        onMenuClick={vi.fn()}
+        onSelect={vi.fn()}
+        onMenuToggle={vi.fn()}
         onMarkRead={vi.fn()}
       />,
     );
@@ -118,8 +118,8 @@ describe('ConversationItem a11y', () => {
         optionId="conv-6"
         conversation={offlineConversation}
         selected={false}
-        onClick={vi.fn()}
-        onMenuClick={vi.fn()}
+        onSelect={vi.fn()}
+        onMenuToggle={vi.fn()}
         onMarkRead={vi.fn()}
       />,
     );
