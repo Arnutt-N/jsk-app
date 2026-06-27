@@ -1,5 +1,37 @@
 # Plan: Phase 8 — Provider Refactor (split LiveChatProvider into custom hooks)
 
+---
+
+## 🔄 REFRESH 2026-06-28 — re-review vs current code (3 ecc reviewers: architect + react + code-reviewer). APPLY BEFORE IMPLEMENTING — where these conflict with the original task bodies below, THESE WIN.
+
+**Verdict (unanimous): NEEDS-REFRESH-THEN-GO.** The architecture (4-hook split + single `useLiveChatSocket` call kept in the provider as the composition seam) is still sound. The deltas below are content/count/scope drift from Phases 1/5/6/7 — `LiveChatContext.tsx` is now **~874 lines** (plan was written at 803). Re-locate everything by SYMBOL, not the plan's line numbers.
+
+### BLOCKERS (reflect before Task 0)
+- **B-R1 — Contract = 34 keys, NOT 31, and there is NO `state` member.** Phase 1/M3 removed the dead `state`; Phase 6 added `currentUserId`, `onlineOperators`, `claimContenders`, `getClaimContender`. Delete every "31 keys" and the "`state` has 21 keys" assertion (errata B7's "~30" is ALSO stale → it's 34). Task 0 must assert exactly these 34 (capture live from the `value` useMemo): `wsStatus, isMobileView, typingUsersCount, focusedMessageId, isHumanMode, selectedConversation, currentUserId, onlineOperators, claimContenders, getClaimContender, setSearchQuery, setFilterStatus, setInputText, setShowCustomerPanel, setActiveActionMenu, setShowTransferDialog, setShowCannedPicker, setSoundEnabled, selectConversation, jumpToMessage, clearFocusedMessage, fetchConversations, fetchChatDetail, sendMessage, sendMedia, claimSession, closeSession, transferSession, toggleMode, loadOlderMessages, reconnect, retryMessage, startTyping, formatTime`.
+- **B-R2 — No `state` memo / no "21 subscriptions".** Provider now subscribes only 4 store slices (`conversations, selectedId, currentChat, messages`) + derives `selectedConversation` (memo) + `isHumanMode`. Strike all "21 selectors / keep the state memo" text from Summary, the Subscription-block pattern, Task 5, Task 6.
+- **B-R3 — `value` is ALREADY `useMemo`-wrapped** (Phase 1 H3) with a 34-dep array. Task 6 = PRESERVE the memo and rebuild its 34 deps from hook returns. Drop the "check if memoized / don't add memo" branch — it's done.
+
+### HIGH (resolve while writing the hooks)
+- **H-R1 — Phase 6 presence + claim-contention is a 5th responsibility the plan ignores → KEEP IT IN THE PROVIDER** (socket-coupled + cross-cutting; consistent with "socket stays in provider"). Provider-owned: state `onlineOperators`/`claimContenders`/`currentUserId` + `getClaimContender` useCallback + socket callbacks `onPresenceUpdate` (sets onlineOperators) + `onError` (claim-conflict → `setClaiming(false)` + `addNotification`) + contender logic inside `onSessionClaimed`/`onSessionClosed`/`onSessionTransferred` (uses `resolveOperatorName` + `removeKey`). Task 4's "small inline onTyping/onConnectionChange/onSession* block" is NOT small — enumerate all of the above when reassembling the socket config.
+- **H-R2 — `API_BASE` already lives in `_lib/constants.ts`** → Task 2 IMPORTS it (`from '../_lib/constants'`); do not move/redefine.
+- **H-R3 — Three Phase-6 exported pure helpers must also move to `liveChatApi.ts`:** `reorderConversationsToTop`, `resolveOperatorName`, `removeKey` (alongside `mergeSession`/`mergeConversationUpdate`/`readErrorMessage`). ⚠ `reorderConversationsToTop` is imported by `_context/__tests__/conversationUpdate.test.ts` → either re-export it from `LiveChatContext` OR update that test's import. ("0 consumer changes" = the 4 UI components, NOT this test.)
+- **H-R4 — Export/move the `ClaimContender` interface** (currently ≈ top of provider) so the socket config / `useChatRoom` can type contenders — put in `_types.ts` or export from the provider.
+- **H-R5 — New `wsStatusRef` sync effect** (`useEffect(() => { wsStatusRef.current = wsStatus }, [wsStatus])`) must STAY in the provider — add to Task 6 keep-list (without it, callbacks read a frozen ws status).
+
+### MEDIUM
+- **M-R1 — Split the combined ref-sync effect** (`selectedIdRef.current = selectedId; messagesRef.current = messages` in ONE effect): delete it; `messagesRef` sync → `useMessageFlow`, `selectedIdRef` sync stays in provider. Keep both as PURE ref-sync (no setState — React-Compiler `set-state-in-effect`).
+- **M-R2 — Cross-apply errata B6 + B7** (not in the plan body): B6 = 3 ack-timeout race cases in `useMessageFlow.test.tsx` (late-ack must-not-resurrect / retry new-tempId no-dup-bubble / HTTP fallback stays `Promise.all` parallel — don't revert Phase 5 L9.3); B7 = assert by member+type, count = 34.
+- **M-R3 — Inject `fetchMessagesPage` into `useChatRoom`** (its selected-id load effect uses both `fetchChatDetail` + `fetchMessagesPage`).
+- **M-R4 — Branch note stale:** we are ON `docs/livechat-audit-remediation-prp` (Phases 1–7 committed, unmerged, no PR) — do NOT "branch off main"; continue on this branch, one-task-per-commit.
+- **M-R5 — Reuse existing Task-0 scaffolding:** `LiveChatContextMemo.test.tsx` + `claimContention.test.tsx` already render the provider with a `matchMedia` stub + `useLiveChatSocket` mock — extend, don't rebuild (and `LiveChatContextMemo.test.tsx` may need updating after the split).
+
+### LOW
+- **L-R1 — React-Compiler guards:** do NOT `useCallback`-wrap `onConnectionChange` (closes over `wsStatus` for `wasOffline` — keep inline). Ack-timeout `getStore()`-in-setTimeout is safe. `typingUsersRef` mutation in `onTyping` is an event callback (safe).
+- **L-R2 — Line refs ~+30–70 off**; every symbol still findable → symbol-relative.
+- **L-R3 — File-size target:** with presence/contention + socket config + 34-dep memo staying in the provider, target provider **< 400** (< 300 is aspirational); each hook < 400.
+
+---
+
 ## Summary
 
 `LiveChatContext.tsx` is an 803-line god-component (`LiveChatProvider`) that owns *everything*: 21 Zustand store subscriptions, a media-query effect, every API method (fetch/send/claim/close/transfer/toggle/history), every WebSocket handler (`onNewMessage`, `onMessageSent`, `onMessageAck`, `onMessageFailed`, `onTyping`, `onSessionClaimed`, `onSessionClosed`, `onSessionTransferred`, `onConversationUpdate`, `onConnectionChange`), the optimistic-send + 10s ack-timeout flow, room join/leave lifecycle, polling fallbacks, and the assembly of the context `value`. This phase extracts four focused custom hooks — `useMediaQuery`, `useConversationSync`, `useMessageFlow`, `useChatRoom` — so the provider becomes a thin composition root under 400 lines and each hook file is under 400 lines. **No behavior changes.** This is a pure mechanical refactor: move code into hooks, wire them back together, verify every flow still works identically.
