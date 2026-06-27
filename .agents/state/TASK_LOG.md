@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 104 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 105 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-27 17:48 — claude_code — completed
+
+Live-Chat Phase 6 ACCEPTANCE follow-up (commit 9361fba): (1) CONFIRMED auth relax /admin/users/workload get_current_admin->get_current_staff so AGENT/DIRECTOR/HEAD operators load transfer-picker offline roster (+test_workload_allows_non_admin_staff_agent). (2) M16 BUGFIX caught by the 2-client acceptance test: claim-contention lock was UNREACHABLE - onSessionClaimed flips room to ACTIVE AND sets contender in the same broadcast, but SessionActions gated the lock on status==WAITING, so B saw owner Transfer/Done instead of the lock; fix = claimedByOther now takes precedence over status-derived actions. Unit test missed it (asserted context state, not SessionActions render). (3) New e2e frontend/e2e/live-chat-2client.spec.ts (2 browser contexts admin A + AGENT B) for claim contention + transfer picker + generic loginAs() helper; skip-guarded on live precondition. (4) seed_live_chat_e2e.py idempotent WAITING session. Validation: backend pytest green (workload+WS regression), tsc 0, eslint 0. LIVE 2-client run NOT green on WSL/9p - surfaced 2 ENV blockers: (a) WS handshake auth_failed in browser (REST auth works, backend logs auth_failed) so claim broadcast never reaches B; (b) seeded WAITING session observed CLOSED + chat_mode BOT shortly after seeding (cleanup task or bot flow). Spec+seed committed ready to run once env fixed.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260627-1748.json`
+- Summary: `project-log-md/claude_code/session-summary-20260627-1748.md`
+
+---
 
 ### 2026-06-27 16:29 — claude_code — completed
 

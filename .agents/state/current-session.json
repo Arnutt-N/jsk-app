@@ -1,16 +1,22 @@
 {
-  "last_updated": "2026-06-27T16:29:00+07:00",
+  "last_updated": "2026-06-27T17:48:00+07:00",
   "platform": "claude_code",
-  "current_task": "Implemented Live-Chat Phase 6 (operator UX multi-operator + scoped backend) via 6 parallel file-owned agents in 2 barriered stages (commit 5ef9ff7). H2 searchable operator-picker TransferDialog (prese",
+  "current_task": "Live-Chat Phase 6 ACCEPTANCE follow-up (commit 9361fba): (1) CONFIRMED auth relax /admin/users/workload get_current_admin->get_current_staff so AGENT/DIRECTOR/HEAD operators load transfer-picker offli",
   "plan_status": "completed",
   "next_steps": [
-    "Phase 7 (operator UX enhancements, frontend-only)",
-    "Phase 8 (provider refactor; apply errata B6/B7 - capture-live ~30-key contract, ack-timeout race tests)",
-    "2-client MANUAL test: claim contention + transfer picker (required acceptance, not yet run)",
-    "DECIDE: relax /admin/users/workload auth get_current_admin->get_current_staff so AGENT operators get offline roster (security decision; online picker + numeric fallback work today)",
-    "Consider opening PR for Phases 1-6 (branch unmerged, no PR yet)"
+    "FOCUSED ENV DEBUG to get 2-client e2e green: root-cause WS auth_failed in browser (compare REST token vs WS authenticate_ws_user; check token passing in useLiveChatSocket/client.ts; DEV_AUTH_BYPASS?) + why seeded WAITING session becomes CLOSED/BOT (session_cleanup task? bot auto-reply on seeded INCOMING msg?)",
+    "Then re-run: bring up stack (docker+backend+frontend), seed (create_test_users --apply --password test1234 + seed_live_chat_e2e --apply + seed_admin ADMIN_DEFAULT_PASSWORD=test1234), warm routes, npx playwright test live-chat-2client with relaxed timeouts",
+    "Phase 7 (operator UX enhancements, frontend-only) + Phase 8 (provider refactor, errata B6/B7)",
+    "Consider opening PR for Phases 1-6 (branch unmerged, no PR)"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-06-27T17:48:00+07:00",
+      "platform": "claude_code",
+      "branch": "docs/livechat-audit-remediation-prp",
+      "head": "9361fba",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-06-27T16:29:00+07:00",
       "platform": "claude_code",
@@ -142,13 +148,6 @@
       "platform": "claude_code",
       "branch": "feat/rich-menu-switching-r1",
       "head": "c203aac",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-21T01:37:00Z",
-      "platform": "claude_code",
-      "branch": "feat/rich-menu-switching-r1",
-      "head": "3c90957",
       "status": "completed"
     }
   ],

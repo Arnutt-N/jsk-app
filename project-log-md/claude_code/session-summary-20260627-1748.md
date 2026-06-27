@@ -1,0 +1,21 @@
+# Session Summary — claude_code — 2026-06-27T17:48:00+07:00
+
+**Branch**: `docs/livechat-audit-remediation-prp`  **HEAD**: `9361fba`
+**Checkpoint**: `.agents/state/checkpoints/handover-claude_code-20260627-1748.json`
+
+## Objective
+Live-Chat Phase 6 ACCEPTANCE follow-up (commit 9361fba): (1) CONFIRMED auth relax /admin/users/workload get_current_admin->get_current_staff so AGENT/DIRECTOR/HEAD operators load transfer-picker offline roster (+test_workload_allows_non_admin_staff_agent). (2) M16 BUGFIX caught by the 2-client acceptance test: claim-contention lock was UNREACHABLE - onSessionClaimed flips room to ACTIVE AND sets contender in the same broadcast, but SessionActions gated the lock on status==WAITING, so B saw owner Transfer/Done instead of the lock; fix = claimedByOther now takes precedence over status-derived actions. Unit test missed it (asserted context state, not SessionActions render). (3) New e2e frontend/e2e/live-chat-2client.spec.ts (2 browser contexts admin A + AGENT B) for claim contention + transfer picker + generic loginAs() helper; skip-guarded on live precondition. (4) seed_live_chat_e2e.py idempotent WAITING session. Validation: backend pytest green (workload+WS regression), tsc 0, eslint 0. LIVE 2-client run NOT green on WSL/9p - surfaced 2 ENV blockers: (a) WS handshake auth_failed in browser (REST auth works, backend logs auth_failed) so claim broadcast never reaches B; (b) seeded WAITING session observed CLOSED + chat_mode BOT shortly after seeding (cleanup task or bot flow). Spec+seed committed ready to run once env fixed.
+
+## Completed
+- Live-Chat Phase 6 ACCEPTANCE follow-up (commit 9361fba): (1) CONFIRMED auth relax /admin/users/workload get_current_admin->get_current_staff so AGENT/DIRECTOR/HEAD operators load transfer-picker offline roster (+test_workload_allows_non_admin_staff_agent). (2) M16 BUGFIX caught by the 2-client acceptance test: claim-contention lock was UNREACHABLE - onSessionClaimed flips room to ACTIVE AND sets contender in the same broadcast, but SessionActions gated the lock on status==WAITING, so B saw owner Transfer/Done instead of the lock; fix = claimedByOther now takes precedence over status-derived actions. Unit test missed it (asserted context state, not SessionActions render). (3) New e2e frontend/e2e/live-chat-2client.spec.ts (2 browser contexts admin A + AGENT B) for claim contention + transfer picker + generic loginAs() helper; skip-guarded on live precondition. (4) seed_live_chat_e2e.py idempotent WAITING session. Validation: backend pytest green (workload+WS regression), tsc 0, eslint 0. LIVE 2-client run NOT green on WSL/9p - surfaced 2 ENV blockers: (a) WS handshake auth_failed in browser (REST auth works, backend logs auth_failed) so claim broadcast never reaches B; (b) seeded WAITING session observed CLOSED + chat_mode BOT shortly after seeding (cleanup task or bot flow). Spec+seed committed ready to run once env fixed.
+
+## Next Steps
+- FOCUSED ENV DEBUG to get 2-client e2e green: root-cause WS auth_failed in browser (compare REST token vs WS authenticate_ws_user; check token passing in useLiveChatSocket/client.ts; DEV_AUTH_BYPASS?) + why seeded WAITING session becomes CLOSED/BOT (session_cleanup task? bot auto-reply on seeded INCOMING msg?)
+- Then re-run: bring up stack (docker+backend+frontend), seed (create_test_users --apply --password test1234 + seed_live_chat_e2e --apply + seed_admin ADMIN_DEFAULT_PASSWORD=test1234), warm routes, npx playwright test live-chat-2client with relaxed timeouts
+- Phase 7 (operator UX enhancements, frontend-only) + Phase 8 (provider refactor, errata B6/B7)
+- Consider opening PR for Phases 1-6 (branch unmerged, no PR)
+
+## Blockers
+- _none_
+
+> Fill in detail above, then commit. TASK_LOG.md + SESSION_INDEX.md are generated.
