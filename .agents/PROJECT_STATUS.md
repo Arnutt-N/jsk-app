@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-06-27 10:50 by Claude Code (Implemented Live-Chat Phase 5 React/Perf Hardening via 6 parallel file-owned agents commit)
+> **Last Updated:** 2026-06-27 16:29 by Claude Code (Implemented Live-Chat Phase 6 operator UX multi-operator + scoped backend via 6 parallel f)
 
 ## Thai Summary
 ฟีเจอร์ **Rich Menu Switching + การกำหนดเมนูรายบุคคล (R1/R2)** เสร็จสมบูรณ์และขึ้น production แล้ว — merge เข้า main ผ่าน PR #114 (merge commit `3a90f4d`), migrate ฐานข้อมูล Supabase PROD (richmenu alias + user_rich_menu_links แบบ additive) และ deploy frontend บน Vercel เรียบร้อย
@@ -54,6 +54,7 @@
 - [2026-06-21] R1/R2 Rich Menu (incl Task 6.2 per-user UI) merged to `main` via PR #114 (`3a90f4d`); Supabase PROD migrated; Vercel frontend deployed. Branch `feat/rich-menu-switching-r1` deleted. Working tree clean.
 
 ## Recent Completions
+- [2026-06-27 16:29] Claude Code: Implemented Live-Chat Phase 6 (operator UX multi-operator + scoped backend) via 6 parallel file-owned agents in 2 barriered stages (commit 5ef9ff7). H2 searchable operator-picker TransferDialog (presence online + /admin/users/workload offli (Claude Code)
 - [2026-06-27 10:50] Claude Code: Implemented Live-Chat Phase 5 (React/Perf Hardening) via 6 parallel file-owned agents (commit 12abb86): M10 component-level ErrorBoundary per panel (ConversationList/ChatArea/CustomerPanel) inside provider + new PanelErrorFallback (one pane (Claude Code)
 - [2026-06-27 09:53] Claude Code: Implemented Live-Chat Phase 4 (Motion & Polish) via 1 foundation + 7 parallel file-owned agents (commit 031d67b): W4 new useReducedMotion hook (useSyncExternalStore, SSR-safe) gating ChatArea scrollIntoView + TypingIndicator anim; M2/M11a t (Claude Code)
 - [2026-06-27 06:42] Claude Code: Implemented Live-Chat Phase 3 (Design System Unify) via 5 parallel file-owned agents: M1/L4 analytics page rebuilt on design tokens + ds-* utils + Recharts via var(--color-*); M6 CustomerPanel hierarchy (removed 3 dead N/A stat tiles + unus (Claude Code)

@@ -1,14 +1,23 @@
 {
-  "last_updated": "2026-06-27T10:50:00+07:00",
+  "last_updated": "2026-06-27T16:29:00+07:00",
   "platform": "claude_code",
-  "current_task": "Implemented Live-Chat Phase 5 (React/Perf Hardening) via 6 parallel file-owned agents (commit 12abb86): M10 component-level ErrorBoundary per panel (ConversationList/ChatArea/CustomerPanel) inside pro",
+  "current_task": "Implemented Live-Chat Phase 6 (operator UX multi-operator + scoped backend) via 6 parallel file-owned agents in 2 barriered stages (commit 5ef9ff7). H2 searchable operator-picker TransferDialog (prese",
   "plan_status": "completed",
   "next_steps": [
-    "Phases 6-8 remain - read .claude/PRPs/plans/PLAN-REVIEW-FIXES.md before each. Phase 6 (operator UX multi-operator) is the only backend-touching phase (presence broadcast + display_name enrich + roster + transfer 4xx); apply B1/B2 (useConversationStats now exists with (conversations,query) - add sortBy as 3rd param THERE for M15, not a 3-param useConversations) + B5 claim-contention test.",
-    "Phase 5 known limits (documented, not bugs): ConversationList reads conversations via Zustand selector so memo benefit is partial; onMarkRead stays inline arrow; L9.4 still O(n) (no store-shape change). Manual perf verify (React DevTools Profiler: typing in search only re-renders changed items; M10 throw-test) still pending.",
-    "Cross-phase debt unchanged: TransferDialog.tsx still slate-*/transition-all (Phase 1/6 owner); manual NVDA walkthrough (Phase 2) + OS reduced-motion toggle (Phase 4 W4) still pending."
+    "Phase 7 (operator UX enhancements, frontend-only)",
+    "Phase 8 (provider refactor; apply errata B6/B7 - capture-live ~30-key contract, ack-timeout race tests)",
+    "2-client MANUAL test: claim contention + transfer picker (required acceptance, not yet run)",
+    "DECIDE: relax /admin/users/workload auth get_current_admin->get_current_staff so AGENT operators get offline roster (security decision; online picker + numeric fallback work today)",
+    "Consider opening PR for Phases 1-6 (branch unmerged, no PR yet)"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-06-27T16:29:00+07:00",
+      "platform": "claude_code",
+      "branch": "docs/livechat-audit-remediation-prp",
+      "head": "5ef9ff7",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-06-27T10:50:00+07:00",
       "platform": "claude_code",
@@ -140,13 +149,6 @@
       "platform": "claude_code",
       "branch": "feat/rich-menu-switching-r1",
       "head": "3c90957",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-20T23:43:00Z",
-      "platform": "claude_code",
-      "branch": "feat/rich-menu-switching-r1",
-      "head": "d40907c",
       "status": "completed"
     }
   ],

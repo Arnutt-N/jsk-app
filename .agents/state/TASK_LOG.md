@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 103 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 104 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-27 16:29 — claude_code — completed
+
+Implemented Live-Chat Phase 6 (operator UX multi-operator + scoped backend) via 6 parallel file-owned agents in 2 barriered stages (commit 5ef9ff7). H2 searchable operator-picker TransferDialog (presence online + /admin/users/workload offline) + useOperatorRoster + presence_update finally wired into LiveChatContext; M16 claim-contention UI (claimContenders state, disabled lock 'X กำลังรับเรื่อง', room-name toast); M17 ownership banner + composer gate + take-over=transferSession(self); M15 waiting-time badge (amber 5m/red 15m) + longest-waiting sort in useConversationStats (errata B1). Backend scoped: BE-2 display_name enrich (cached at register), BE-1 broadcast presence_update on register/disconnect (exclude self), BE-4 transfer ValueError->404/403/400 constants+test. Orchestrator root-caused+fixed 16 WS pytest regressions from the new broadcast: send_to_admin list() snapshot (Set-changed-size race) + broadcast_to_all carries _exclude_admin through Redis pubsub loopback (mirrors broadcast_to_room). Closed MessageInput.test.tsx fixture leak (new required currentUserId). Validation WSL ALL GREEN: tsc 0, eslint 0, vitest 234/234, next build OK, pytest 504/504.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260627-1629.json`
+- Summary: `project-log-md/claude_code/session-summary-20260627-1629.md`
+
+---
 
 ### 2026-06-27 10:50 — claude_code — completed
 
