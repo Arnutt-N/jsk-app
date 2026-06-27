@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-06-27 21:59 by Claude Code (Hardened the 2-client live-chat e2e Phase 6 acceptance to a RELIABLE single-run pass on th)
+> **Last Updated:** 2026-06-28 00:48 by Claude Code (Phase 7 operator UX M18/M19/M20/L10 implemented via 5 parallel file-owned agents + 3-exper)
 
 ## Thai Summary
 ฟีเจอร์ **Rich Menu Switching + การกำหนดเมนูรายบุคคล (R1/R2)** เสร็จสมบูรณ์และขึ้น production แล้ว — merge เข้า main ผ่าน PR #114 (merge commit `3a90f4d`), migrate ฐานข้อมูล Supabase PROD (richmenu alias + user_rich_menu_links แบบ additive) และ deploy frontend บน Vercel เรียบร้อย
@@ -54,6 +54,7 @@
 - [2026-06-21] R1/R2 Rich Menu (incl Task 6.2 per-user UI) merged to `main` via PR #114 (`3a90f4d`); Supabase PROD migrated; Vercel frontend deployed. Branch `feat/rich-menu-switching-r1` deleted. Working tree clean.
 
 ## Recent Completions
+- [2026-06-28 00:48] Claude Code: Phase 7 operator UX (M18/M19/M20/L10) implemented via 5 parallel file-owned agents + 3-expertise review (react/a11y/ts); committed a91f23f. M18 hide manual mode toggle during session + Thai session-aware label; M19 quick-replies(preset) vs  (Claude Code)
 - [2026-06-27 21:59] Claude Code: Hardened the 2-client live-chat e2e (Phase 6 acceptance) to a RELIABLE single-run pass on the WSL/9p box via 3 file-owned agents (commit d99a59d). Replaced networkidle (never settles w/ open WS + REST poll) with a deterministic role=listbox (Claude Code)
 - [2026-06-27 19:49] Claude Code: Fixed the 2 env blockers from the Phase 6 2-client e2e — BOTH were real bugs (commit 393b22c). (1) WS auth_failed = real bug in frontend/hooks/useWebSocket.ts: 'effectiveToken = isDevMode ? undefined : token' forced the WS token to undefine (Claude Code)
 - [2026-06-27 17:48] Claude Code: Live-Chat Phase 6 ACCEPTANCE follow-up (commit 9361fba): (1) CONFIRMED auth relax /admin/users/workload get_current_admin->get_current_staff so AGENT/DIRECTOR/HEAD operators load transfer-picker offline roster (+test_workload_allows_non_adm (Claude Code)

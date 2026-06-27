@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 107 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 108 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-28 00:48 — claude_code — completed
+
+Phase 7 operator UX (M18/M19/M20/L10) implemented via 5 parallel file-owned agents + 3-expertise review (react/a11y/ts); committed a91f23f. M18 hide manual mode toggle during session + Thai session-aware label; M19 quick-replies(preset) vs canned distinct Thai labels + component-level mutual-exclusion (no store edit); M20 useCustomerNotes localStorage-per-line_user_id hook (debounced+saved indicator, uses adjust-state-during-render not useEffect to satisfy React-Compiler eslint) + removed N/A stats & disabled VIP/Bell/ViewProfile/Delete false-affordances; L10 toast shows customer display_name + clickable->selectConversation + Thai SessionActions labels. Orchestrator closed 2 cross-file leaks agents could not see: (1) MessageInput.test.tsx asserted old aria-labels -> fixed; (2) NotificationToast aria-live region was gated behind early-return null -> a11y HIGH, made live region pre-exist (WCAG 4.1.3). Also added role=status on mode label + saved indicator, Thai-ized header aria-labels, defensive onSelect guard. Validation: tsc 0, eslint 0, vitest live-chat+hooks 62/62.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260628-0048.json`
+- Summary: `project-log-md/claude_code/session-summary-20260628-0048.md`
+
+---
 
 ### 2026-06-27 21:59 — claude_code — completed
 
