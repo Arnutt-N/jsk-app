@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 108 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 109 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-28 05:42 — claude_code — completed
+
+Phase 8 plan REFRESHED via 3 ecc reviewers (architect/react/code-reviewer) before implementing — verdict NEEDS-REFRESH-THEN-GO; added a REFRESH addendum to phase-8-provider-refactor.plan.md (commit c400ad8). KEY DRIFT caught (plan written at 803 lines, file now 874 after P1/5/6/7): (1) contract=34 keys NOT 31 — M3 removed dead 'state', P6 added currentUserId/onlineOperators/claimContenders/getClaimContender; errata B7's '~30' is ALSO stale → use 34, capture live, assert by member+type; (2) presence+claim-contention = 5th responsibility the plan ignores → KEEP IN PROVIDER (socket-coupled: onPresenceUpdate/onError + contender logic in onSessionClaimed/Closed/Transferred via resolveOperatorName/removeKey); (3) API_BASE already in _lib/constants (import not move); (4) value already useMemo'd w/ 34 deps (P1 H3 done); (5) 3 P6 pure helpers reorderConversationsToTop/resolveOperatorName/removeKey → liveChatApi.ts, BUT reorderConversationsToTop is imported by conversationUpdate.test.ts (re-export or update import); (6) export ClaimContender interface; (7) keep new wsStatusRef sync effect in provider; (8) split combined selectedIdRef+messagesRef effect; (9) cross-apply errata B6 (3 ack-timeout race tests) + B7; (10) branch note stale (continue on this branch). Architecture (4-hook split + socket-in-provider seam) still SOUND — only content/count/scope refresh needed. Phase 7 also shipped+pushed THIS session (a91f23f + handoff 7072410). Implement Phase 8 DEFERRED to a FRESH session per user decision (high-blast-radius refactor needs context headroom; vitest on 9p is slow; sequential 8-task NOT parallel).
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260628-0542.json`
+- Summary: `project-log-md/claude_code/session-summary-20260628-0542.md`
+
+---
 
 ### 2026-06-28 00:48 — claude_code — completed
 

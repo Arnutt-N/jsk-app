@@ -1,14 +1,21 @@
 {
-  "last_updated": "2026-06-28T00:48:00+07:00",
+  "last_updated": "2026-06-28T05:42:00+07:00",
   "platform": "claude_code",
-  "current_task": "Phase 7 operator UX (M18/M19/M20/L10) implemented via 5 parallel file-owned agents + 3-expertise review (react/a11y/ts); committed a91f23f. M18 hide manual mode toggle during session + Thai session-aw",
+  "current_task": "Phase 8 plan REFRESHED via 3 ecc reviewers (architect/react/code-reviewer) before implementing — verdict NEEDS-REFRESH-THEN-GO; added a REFRESH addendum to phase-8-provider-refactor.plan.md (commit c4",
   "plan_status": "completed",
   "next_steps": [
+    "Implement Phase 8 in a FRESH session via ecc:prp-implement — sequential Task 0-7, validate per task, one-hook-per-commit; plan + REFRESH addendum ready in .claude/PRPs/plans/phase-8-provider-refactor.plan.md",
     "Open PR for Phases 1-7 (branch docs/livechat-audit-remediation-prp unmerged, no PR)",
-    "Phase 8 - provider refactor (errata B6/B7 in PLAN-REVIEW-FIXES) = last remaining phase",
-    "Follow-up: ToastNotification discriminated union (require lineUserId when type=message) - ts review MEDIUM, deferred, no runtime bug"
+    "After P8: ToastNotification discriminated union (P7 ts review MEDIUM, deferred, no runtime bug)"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-06-28T05:42:00+07:00",
+      "platform": "claude_code",
+      "branch": "docs/livechat-audit-remediation-prp",
+      "head": "c400ad8",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-06-28T00:48:00+07:00",
       "platform": "claude_code",
@@ -140,13 +147,6 @@
       "platform": "claude_code",
       "branch": "feat/rich-menu-switching-r1",
       "head": "2ce0857",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-21T16:15:00Z",
-      "platform": "claude_code",
-      "branch": "feat/rich-menu-switching-r1",
-      "head": "8ed4196",
       "status": "completed"
     }
   ],

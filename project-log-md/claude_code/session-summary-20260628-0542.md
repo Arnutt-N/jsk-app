@@ -1,0 +1,20 @@
+# Session Summary — claude_code — 2026-06-28T05:42:00+07:00
+
+**Branch**: `docs/livechat-audit-remediation-prp`  **HEAD**: `c400ad8`
+**Checkpoint**: `.agents/state/checkpoints/handover-claude_code-20260628-0542.json`
+
+## Objective
+Phase 8 plan REFRESHED via 3 ecc reviewers (architect/react/code-reviewer) before implementing — verdict NEEDS-REFRESH-THEN-GO; added a REFRESH addendum to phase-8-provider-refactor.plan.md (commit c400ad8). KEY DRIFT caught (plan written at 803 lines, file now 874 after P1/5/6/7): (1) contract=34 keys NOT 31 — M3 removed dead 'state', P6 added currentUserId/onlineOperators/claimContenders/getClaimContender; errata B7's '~30' is ALSO stale → use 34, capture live, assert by member+type; (2) presence+claim-contention = 5th responsibility the plan ignores → KEEP IN PROVIDER (socket-coupled: onPresenceUpdate/onError + contender logic in onSessionClaimed/Closed/Transferred via resolveOperatorName/removeKey); (3) API_BASE already in _lib/constants (import not move); (4) value already useMemo'd w/ 34 deps (P1 H3 done); (5) 3 P6 pure helpers reorderConversationsToTop/resolveOperatorName/removeKey → liveChatApi.ts, BUT reorderConversationsToTop is imported by conversationUpdate.test.ts (re-export or update import); (6) export ClaimContender interface; (7) keep new wsStatusRef sync effect in provider; (8) split combined selectedIdRef+messagesRef effect; (9) cross-apply errata B6 (3 ack-timeout race tests) + B7; (10) branch note stale (continue on this branch). Architecture (4-hook split + socket-in-provider seam) still SOUND — only content/count/scope refresh needed. Phase 7 also shipped+pushed THIS session (a91f23f + handoff 7072410). Implement Phase 8 DEFERRED to a FRESH session per user decision (high-blast-radius refactor needs context headroom; vitest on 9p is slow; sequential 8-task NOT parallel).
+
+## Completed
+- Phase 8 plan REFRESHED via 3 ecc reviewers (architect/react/code-reviewer) before implementing — verdict NEEDS-REFRESH-THEN-GO; added a REFRESH addendum to phase-8-provider-refactor.plan.md (commit c400ad8). KEY DRIFT caught (plan written at 803 lines, file now 874 after P1/5/6/7): (1) contract=34 keys NOT 31 — M3 removed dead 'state', P6 added currentUserId/onlineOperators/claimContenders/getClaimContender; errata B7's '~30' is ALSO stale → use 34, capture live, assert by member+type; (2) presence+claim-contention = 5th responsibility the plan ignores → KEEP IN PROVIDER (socket-coupled: onPresenceUpdate/onError + contender logic in onSessionClaimed/Closed/Transferred via resolveOperatorName/removeKey); (3) API_BASE already in _lib/constants (import not move); (4) value already useMemo'd w/ 34 deps (P1 H3 done); (5) 3 P6 pure helpers reorderConversationsToTop/resolveOperatorName/removeKey → liveChatApi.ts, BUT reorderConversationsToTop is imported by conversationUpdate.test.ts (re-export or update import); (6) export ClaimContender interface; (7) keep new wsStatusRef sync effect in provider; (8) split combined selectedIdRef+messagesRef effect; (9) cross-apply errata B6 (3 ack-timeout race tests) + B7; (10) branch note stale (continue on this branch). Architecture (4-hook split + socket-in-provider seam) still SOUND — only content/count/scope refresh needed. Phase 7 also shipped+pushed THIS session (a91f23f + handoff 7072410). Implement Phase 8 DEFERRED to a FRESH session per user decision (high-blast-radius refactor needs context headroom; vitest on 9p is slow; sequential 8-task NOT parallel).
+
+## Next Steps
+- Implement Phase 8 in a FRESH session via ecc:prp-implement — sequential Task 0-7, validate per task, one-hook-per-commit; plan + REFRESH addendum ready in .claude/PRPs/plans/phase-8-provider-refactor.plan.md
+- Open PR for Phases 1-7 (branch docs/livechat-audit-remediation-prp unmerged, no PR)
+- After P8: ToastNotification discriminated union (P7 ts review MEDIUM, deferred, no runtime bug)
+
+## Blockers
+- _none_
+
+> Fill in detail above, then commit. TASK_LOG.md + SESSION_INDEX.md are generated.
