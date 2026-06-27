@@ -91,7 +91,7 @@ export function MessageInput({
   };
 
   const btnClass = (active: boolean) =>
-    `p-2 rounded-lg transition-colors ${active ? 'bg-brand-50 text-brand-600' : 'text-text-tertiary hover:text-text-primary hover:bg-muted'}`;
+    `p-2 rounded-lg transition-colors focus-ring ${active ? 'bg-brand-50 text-brand-600' : 'text-text-tertiary hover:text-text-primary hover:bg-muted'}`;
 
   return (
     <footer className="bg-surface border-t border-border-default relative thai-text">
@@ -230,14 +230,14 @@ export function MessageInput({
               disabled={!isHumanMode || sending}
               placeholder="Type a message..."
               rows={inputExpanded ? 4 : 1}
-              className="w-full bg-bg border border-border-default rounded-xl px-4 py-3 text-sm text-text-primary placeholder:text-text-tertiary outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 focus:bg-surface resize-none transition-all shadow-sm thai-no-break custom-scrollbar"
+              className="w-full bg-bg border border-border-default rounded-xl px-4 py-3 text-sm text-text-primary placeholder:text-text-tertiary outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 focus:bg-surface resize-none transition-colors shadow-sm thai-no-break custom-scrollbar"
               style={{ minHeight: '44px', maxHeight: '120px' }}
             />
             {/* Expand Toggle */}
             <button
               type="button"
               onClick={toggleInputExpanded}
-              className="absolute right-2 top-2 p-1.5 inline-flex items-center justify-center text-text-tertiary hover:text-text-primary rounded"
+              className="absolute right-2 top-2 p-1.5 inline-flex items-center justify-center text-text-tertiary hover:text-text-primary rounded focus-ring"
               aria-label={inputExpanded ? 'ย่อกล่องข้อความ' : 'ขยายกล่องข้อความ'}
               aria-expanded={inputExpanded}
             >
@@ -249,12 +249,12 @@ export function MessageInput({
             type="submit"
             disabled={!inputText.trim() || sending || !isHumanMode}
             aria-label="ส่งข้อความ"
-            className={`p-3 rounded-xl shadow-sm transition-all flex-shrink-0 ${inputText.trim() && isHumanMode
+            className={`p-3 rounded-xl shadow-sm transition-[background-color,box-shadow,transform] flex-shrink-0 ${inputText.trim() && isHumanMode
                 ? 'bg-brand-600 text-white hover:bg-brand-700 hover:shadow active:scale-95'
                 : 'bg-muted text-text-tertiary cursor-not-allowed'
               }`}
           >
-            <Send className="w-5 h-5" aria-hidden />
+            <Send className="w-5 h-5 translate-x-[1px]" aria-hidden />
           </button>
         </form>
       </div>

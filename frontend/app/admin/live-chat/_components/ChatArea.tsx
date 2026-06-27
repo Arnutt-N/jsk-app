@@ -12,6 +12,7 @@ import { ChatHeader } from './ChatHeader';
 import { MessageBubble } from './MessageBubble';
 import { MessageInput } from './MessageInput';
 import { TypingIndicator } from './TypingIndicator';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 
 function getSenderLabel(message: Message, displayName?: string) {
   if (message.direction === 'INCOMING') return displayName || 'User';
@@ -65,11 +66,27 @@ export function ChatArea() {
     selectConversation,
   } = useLiveChatContext();
 
+  const reduced = useReducedMotion();
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const historySentinelRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = React.useState(0);
   const [viewportHeight, setViewportHeight] = React.useState(0);
+
+  // L7: baseline count of messages that already existed when this conversation
+  // was opened. Anything appended after the baseline (absolute idx >= baseline)
+  // is treated as "new" and gets the entrance animation. The baseline is captured
+  // during render via the React-sanctioned "adjust state when a prop changes"
+  // pattern (https://react.dev/learn/you-might-not-need-an-effect) — re-captured
+  // synchronously whenever selectedId changes, so existing/historical messages
+  // never animate and the entrance does not replay when switching rooms.
+  const [prevSelectedId, setPrevSelectedId] = React.useState<string | null>(selectedId);
+  const [baselineCount, setBaselineCount] = React.useState(messages.length);
+  if (selectedId !== prevSelectedId) {
+    setPrevSelectedId(selectedId);
+    setBaselineCount(messages.length);
+  }
 
   // Helper to check if user is near bottom of scroll container
   const isNearBottom = () => {
@@ -81,9 +98,9 @@ export function ChatArea() {
   // Only auto-scroll if near bottom (not when user scrolled up to read older messages)
   useEffect(() => {
     if (isNearBottom()) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      messagesEndRef.current?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth' });
     }
-  }, [messages.length]);
+  }, [messages.length, reduced]);
 
   useEffect(() => {
     const container = messagesContainerRef.current;
@@ -108,11 +125,11 @@ export function ChatArea() {
     );
     const timer = window.setTimeout(() => {
       const target = document.getElementById(`message-${focusedMessageId}`);
-      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (target) target.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' });
       clearFocusedMessage();
     }, 40);
     return () => window.clearTimeout(timer);
-  }, [clearFocusedMessage, focusedMessageId, messages]);
+  }, [clearFocusedMessage, focusedMessageId, messages, reduced]);
 
   useEffect(() => {
     if (!historySentinelRef.current || !selectedId) return;
@@ -231,11 +248,11 @@ export function ChatArea() {
             )}
             <div className="flex gap-6 justify-center mt-6">
               <div>
-                <div className="text-2xl font-bold text-text-primary">{waitingCount}</div>
+                <div className="text-2xl font-bold text-text-primary tabular-nums">{waitingCount}</div>
                 <div className="text-xs text-text-tertiary">Waiting</div>
               </div>
               <div>
-                <div className="text-2xl font-bold text-text-primary">{activeCount}</div>
+                <div className="text-2xl font-bold text-text-primary tabular-nums">{activeCount}</div>
                 <div className="text-xs text-text-tertiary">Active</div>
               </div>
             </div>
@@ -300,6 +317,7 @@ export function ChatArea() {
               showSender={showSender}
               showAvatar={showAvatar}
               incomingAvatar={currentChat?.picture_url}
+              isNew={idx >= baselineCount}
               onRetry={retryMessage}
             />
           );

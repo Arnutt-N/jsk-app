@@ -99,7 +99,7 @@ export function ChatHeader({
           <div className="hidden md:flex items-center gap-1 p-1 bg-muted rounded-full">
             <button
               onClick={() => onToggleMode('BOT')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all duration-200 focus-ring ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-colors duration-200 focus-ring ${
                 isBot
                   ? 'gradient-active text-white shadow-md shadow-brand-900/20'
                   : 'text-text-tertiary hover:text-text-primary'
@@ -112,7 +112,7 @@ export function ChatHeader({
             </button>
             <button
               onClick={() => onToggleMode('HUMAN')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all duration-200 focus-ring ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-colors duration-200 focus-ring ${
                 !isBot
                   ? 'gradient-active text-white shadow-md shadow-brand-900/20'
                   : 'text-text-tertiary hover:text-text-primary'

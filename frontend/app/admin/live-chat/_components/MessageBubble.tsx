@@ -15,6 +15,7 @@ interface MessageBubbleProps {
   showAvatar: boolean;
   incomingAvatar?: string;
   onRetry?: (tempId: string) => void;
+  isNew?: boolean;
 }
 
 function getMessageText(message: Message): React.ReactNode {
@@ -40,7 +41,7 @@ function renderMessageContent(message: Message): React.ReactNode {
       return (
         <a href={imageUrl} target="_blank" rel="noreferrer" className="block">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={imageUrl} alt="Incoming image" className="max-h-48 rounded-lg object-cover" />
+          <img src={imageUrl} alt="Incoming image" className="max-h-48 rounded-lg object-cover outline outline-1 -outline-offset-1 outline-black/5" />
         </a>
       );
     }
@@ -90,6 +91,7 @@ export const MessageBubble = memo(function MessageBubble({
   showAvatar,
   incomingAvatar,
   onRetry,
+  isNew,
 }: MessageBubbleProps) {
   const incoming = message.direction === 'INCOMING';
   const isAdmin = !incoming;
@@ -98,7 +100,7 @@ export const MessageBubble = memo(function MessageBubble({
   return (
     <div
       id={elementId}
-      className={`flex items-end gap-2 px-4 ${incoming ? 'justify-start msg-in' : 'justify-end msg-out flex-row-reverse'}`}
+      className={`flex items-end gap-2 px-4 ${incoming ? 'justify-start' : 'justify-end flex-row-reverse'} ${isNew ? (incoming ? 'msg-in' : 'msg-out') : ''}`}
     >
       {/* Avatar (Outside Bubble) */}
       {!isAdmin && (
@@ -106,7 +108,7 @@ export const MessageBubble = memo(function MessageBubble({
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={incomingAvatar}
-            className="w-7 h-7 rounded-full object-cover flex-shrink-0 bg-bg"
+            className="w-7 h-7 rounded-full object-cover flex-shrink-0 bg-bg outline outline-1 -outline-offset-1 outline-black/10"
             alt={senderLabel}
           />
         ) : <div className="w-7 flex-shrink-0" />
@@ -122,7 +124,7 @@ export const MessageBubble = memo(function MessageBubble({
 
         {/* Message Bubble */}
         <div
-          className={`relative px-4 py-2.5 text-sm leading-relaxed rounded-2xl shadow-sm ${incoming
+          className={`relative px-4 py-2.5 text-sm leading-relaxed rounded-2xl shadow-sm break-words whitespace-pre-wrap ${incoming
               ? 'rounded-tl-sm bg-surface border border-border-default text-text-primary'
               : isBot
                 ? 'rounded-tr-sm bg-bg border border-border-subtle text-text-primary'
@@ -134,7 +136,7 @@ export const MessageBubble = memo(function MessageBubble({
 
         {/* Timestamp & Status (Bottom) */}
         <div className="flex items-center gap-1 px-1">
-          <span className="text-[10px] text-text-tertiary">
+          <span className="text-[10px] text-text-tertiary tabular-nums">
             {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </span>
           {isAdmin && (

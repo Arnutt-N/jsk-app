@@ -98,7 +98,7 @@ export function ConversationList() {
         <h1 className="flex-1 text-center text-white font-bold text-base tracking-wide">Live Chat</h1>
         <button
           onClick={() => setShowCreateChat(true)}
-          className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all flex-shrink-0 cursor-pointer"
+          className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors flex-shrink-0 cursor-pointer"
           aria-label="เริ่มแชทใหม่"
           title="เริ่มแชทใหม่"
         >
@@ -115,7 +115,7 @@ export function ConversationList() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search conversations..."
-            className="w-full pl-10 pr-3 py-2 bg-white/5 border border-white/10 text-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500/40 placeholder:text-sidebar-text-muted transition-all thai-no-break"
+            className="w-full pl-10 pr-3 py-2 bg-white/5 border border-white/10 text-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500/40 placeholder:text-sidebar-text-muted transition-colors thai-no-break"
             aria-label="Search conversations"
           />
         </div>
@@ -123,7 +123,7 @@ export function ConversationList() {
           {filterButtons.map((btn) => (
             <button
               key={btn.key ?? 'all'}
-              className={`flex-1 py-1.5 px-2 text-[11px] font-semibold rounded-lg transition-all ${
+              className={`flex-1 py-1.5 px-2 text-[11px] font-semibold rounded-lg transition-colors ${
                 filterStatus === btn.key
                   ? 'gradient-active text-white shadow-lg shadow-brand-900/30'
                   : 'bg-white/5 text-sidebar-text-muted hover:text-white'
@@ -182,7 +182,7 @@ export function ConversationList() {
                   <button
                     key={result.id}
                     onClick={() => jumpToMessage(result.line_user_id, result.id)}
-                    className="w-full text-left p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-all"
+                    className="w-full text-left p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
                   >
                     <div className="text-[11px] text-white font-medium truncate">
                       {result.display_name || result.line_user_id}

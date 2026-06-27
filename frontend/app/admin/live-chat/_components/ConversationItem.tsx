@@ -1,10 +1,12 @@
 'use client';
 
 import React, { memo } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
 import { Archive, Bot, CheckCheck, Eye, MoreVertical, Pin, ShieldAlert, Star, Trash2, User, VolumeX } from 'lucide-react';
 
 import type { Conversation } from '../_types';
 import { getAvatarFallbackUrl } from '@/lib/constants/live-chat-avatar';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 
 interface ConversationItemProps {
   optionId: string;
@@ -27,6 +29,7 @@ export const ConversationItem = memo(function ConversationItem({
 }: ConversationItemProps) {
   const [menuOpen, setMenuOpen] = React.useState(false);
   const menuRef = React.useRef<HTMLDivElement>(null);
+  const reduced = useReducedMotion();
   const isWaiting = conversation.session?.status === 'WAITING';
   const isActive = conversation.session?.status === 'ACTIVE';
   const isVip = conversation.tags?.some((t) => t.name.toUpperCase() === 'VIP');
@@ -50,7 +53,7 @@ export const ConversationItem = memo(function ConversationItem({
       role="option"
       aria-selected={selected}
       aria-label={`${conversation.display_name}, ${statusLabel}${conversation.unread_count > 0 ? `, ${conversation.unread_count} ข้อความใหม่` : ''}`}
-      className={`group relative flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all thai-text ${
+      className={`group relative flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors thai-text ${
         selected
           ? 'gradient-active text-white shadow-lg shadow-brand-900/30'
           : 'text-sidebar-text-muted hover:bg-white/5 border border-transparent'
@@ -104,7 +107,7 @@ export const ConversationItem = memo(function ConversationItem({
             </span>
             {/* Unread badge */}
             {conversation.unread_count > 0 && (
-              <span className="min-w-[18px] h-[18px] px-1 bg-danger text-white text-2xs font-bold rounded-full flex items-center justify-center">
+              <span className="min-w-[18px] h-[18px] px-1 bg-danger text-white text-2xs font-bold rounded-full flex items-center justify-center tabular-nums">
                 {conversation.unread_count > 9 ? '9+' : conversation.unread_count}
               </span>
             )}
@@ -143,70 +146,78 @@ export const ConversationItem = memo(function ConversationItem({
         >
           <MoreVertical className="w-4 h-4" />
         </button>
-        {menuOpen && (
-          <div className="absolute right-0 top-full mt-1 w-44 bg-surface rounded-xl shadow-2xl border border-border-default overflow-hidden z-50 animate-in fade-in slide-in-from-top-1 duration-150">
-            <button
-              onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onClick(); }}
-              className="flex items-center gap-2.5 px-3 py-2 text-xs text-text-secondary hover:bg-muted w-full text-left cursor-pointer focus-ring"
+        <AnimatePresence>
+          {menuOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: reduced ? 0 : -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: reduced ? 0 : -4 }}
+              transition={{ duration: reduced ? 0 : 0.15, ease: [0, 0, 0.2, 1] }}
+              className="absolute right-0 top-full mt-1 w-44 bg-surface rounded-xl shadow-2xl border border-border-default overflow-hidden z-50"
             >
-              <Eye className="w-3.5 h-3.5 text-text-tertiary" />
-              ดูประวัติแชท
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onMarkRead(); }}
-              className="flex items-center gap-2.5 px-3 py-2 text-xs text-text-secondary hover:bg-muted w-full text-left cursor-pointer focus-ring"
-            >
-              <CheckCheck className="w-3.5 h-3.5 text-text-tertiary" />
-              ทำเครื่องหมายว่าอ่านแล้ว
-            </button>
-            <button
-              disabled
-              aria-disabled="true"
-              className="flex items-center gap-2.5 px-3 py-2 text-xs text-text-secondary w-full text-left opacity-50 cursor-not-allowed"
-            >
-              <Pin className="w-3.5 h-3.5 text-text-tertiary" />
-              ปักหมุด
-              <span className="ml-auto text-2xs text-text-tertiary">เร็ว ๆ นี้</span>
-            </button>
-            <button
-              disabled
-              aria-disabled="true"
-              className="flex items-center gap-2.5 px-3 py-2 text-xs text-text-secondary w-full text-left opacity-50 cursor-not-allowed"
-            >
-              <VolumeX className="w-3.5 h-3.5 text-text-tertiary" />
-              ปิดเสียงแจ้งเตือน
-              <span className="ml-auto text-2xs text-text-tertiary">เร็ว ๆ นี้</span>
-            </button>
-            <button
-              disabled
-              aria-disabled="true"
-              className="flex items-center gap-2.5 px-3 py-2 text-xs text-text-secondary w-full text-left opacity-50 cursor-not-allowed"
-            >
-              <Archive className="w-3.5 h-3.5 text-text-tertiary" />
-              ซ่อนสนทนา
-              <span className="ml-auto text-2xs text-text-tertiary">เร็ว ๆ นี้</span>
-            </button>
-            <div className="border-t border-border-default my-1" />
-            <button
-              disabled
-              aria-disabled="true"
-              className="flex items-center gap-2.5 px-3 py-2 text-xs text-text-secondary w-full text-left opacity-50 cursor-not-allowed"
-            >
-              <ShieldAlert className="w-3.5 h-3.5 text-text-tertiary" />
-              ทำเครื่องหมายว่าสแปม
-              <span className="ml-auto text-2xs text-text-tertiary">เร็ว ๆ นี้</span>
-            </button>
-            <button
-              disabled
-              aria-disabled="true"
-              className="flex items-center gap-2.5 px-3 py-2 text-xs text-danger w-full text-left opacity-50 cursor-not-allowed"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              ลบ
-              <span className="ml-auto text-2xs text-text-tertiary">เร็ว ๆ นี้</span>
-            </button>
-          </div>
-        )}
+              <button
+                onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onClick(); }}
+                className="flex items-center gap-2.5 px-3 py-2 text-xs text-text-secondary hover:bg-muted w-full text-left cursor-pointer focus-ring"
+              >
+                <Eye className="w-3.5 h-3.5 text-text-tertiary" />
+                ดูประวัติแชท
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onMarkRead(); }}
+                className="flex items-center gap-2.5 px-3 py-2 text-xs text-text-secondary hover:bg-muted w-full text-left cursor-pointer focus-ring"
+              >
+                <CheckCheck className="w-3.5 h-3.5 text-text-tertiary" />
+                ทำเครื่องหมายว่าอ่านแล้ว
+              </button>
+              <button
+                disabled
+                aria-disabled="true"
+                className="flex items-center gap-2.5 px-3 py-2 text-xs text-text-secondary w-full text-left opacity-50 cursor-not-allowed"
+              >
+                <Pin className="w-3.5 h-3.5 text-text-tertiary" />
+                ปักหมุด
+                <span className="ml-auto text-2xs text-text-tertiary">เร็ว ๆ นี้</span>
+              </button>
+              <button
+                disabled
+                aria-disabled="true"
+                className="flex items-center gap-2.5 px-3 py-2 text-xs text-text-secondary w-full text-left opacity-50 cursor-not-allowed"
+              >
+                <VolumeX className="w-3.5 h-3.5 text-text-tertiary" />
+                ปิดเสียงแจ้งเตือน
+                <span className="ml-auto text-2xs text-text-tertiary">เร็ว ๆ นี้</span>
+              </button>
+              <button
+                disabled
+                aria-disabled="true"
+                className="flex items-center gap-2.5 px-3 py-2 text-xs text-text-secondary w-full text-left opacity-50 cursor-not-allowed"
+              >
+                <Archive className="w-3.5 h-3.5 text-text-tertiary" />
+                ซ่อนสนทนา
+                <span className="ml-auto text-2xs text-text-tertiary">เร็ว ๆ นี้</span>
+              </button>
+              <div className="border-t border-border-default my-1" />
+              <button
+                disabled
+                aria-disabled="true"
+                className="flex items-center gap-2.5 px-3 py-2 text-xs text-text-secondary w-full text-left opacity-50 cursor-not-allowed"
+              >
+                <ShieldAlert className="w-3.5 h-3.5 text-text-tertiary" />
+                ทำเครื่องหมายว่าสแปม
+                <span className="ml-auto text-2xs text-text-tertiary">เร็ว ๆ นี้</span>
+              </button>
+              <button
+                disabled
+                aria-disabled="true"
+                className="flex items-center gap-2.5 px-3 py-2 text-xs text-danger w-full text-left opacity-50 cursor-not-allowed"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                ลบ
+                <span className="ml-auto text-2xs text-text-tertiary">เร็ว ๆ นี้</span>
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

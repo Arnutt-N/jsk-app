@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import { X, MessageSquare, Bell } from 'lucide-react'
+import { AnimatePresence, motion } from 'motion/react'
 import { cn } from '@/lib/utils'
+import { useReducedMotion } from '@/hooks/useReducedMotion'
 import { useLiveChatStore } from '../_store/liveChatStore'
 
 const TOAST_DURATION_MS = 5000
@@ -54,14 +56,22 @@ export function NotificationToast() {
     }
   }, [])
 
+  const reduced = useReducedMotion()
+
   if (notifications.length === 0) return null
 
   return (
     <div className="fixed right-4 top-4 z-[var(--z-toast)] flex flex-col gap-2" aria-live="polite">
+      <AnimatePresence initial={false}>
       {notifications.map((toast) => (
-        <div
+        <motion.div
           key={toast.id}
-          className="toast-slide relative flex w-80 items-start gap-3 rounded-xl border border-border-default bg-surface p-4 shadow-xl"
+          layout
+          initial={{ opacity: 0, x: reduced ? 0 : 32 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: reduced ? 0 : 32 }}
+          transition={{ duration: reduced ? 0 : 0.2, ease: [0, 0, 0.2, 1] }}
+          className="relative flex w-80 items-start gap-3 rounded-xl border border-border-default bg-surface p-4 shadow-xl"
         >
           {toast.avatar ? (
             <Image src={toast.avatar} alt="User avatar" width={40} height={40} className="h-10 w-10 shrink-0 rounded-full bg-gray-100" />
@@ -86,8 +96,9 @@ export function NotificationToast() {
             </div>
             <p className="mt-0.5 line-clamp-2 text-xs text-text-secondary">{toast.message}</p>
           </div>
-        </div>
+        </motion.div>
       ))}
+      </AnimatePresence>
     </div>
   )
 }
