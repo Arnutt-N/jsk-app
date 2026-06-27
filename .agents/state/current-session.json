@@ -1,15 +1,21 @@
 {
-  "last_updated": "2026-06-27T17:48:00+07:00",
+  "last_updated": "2026-06-27T19:49:00+07:00",
   "platform": "claude_code",
-  "current_task": "Live-Chat Phase 6 ACCEPTANCE follow-up (commit 9361fba): (1) CONFIRMED auth relax /admin/users/workload get_current_admin->get_current_staff so AGENT/DIRECTOR/HEAD operators load transfer-picker offli",
+  "current_task": "Fixed the 2 env blockers from the Phase 6 2-client e2e — BOTH were real bugs (commit 393b22c). (1) WS auth_failed = real bug in frontend/hooks/useWebSocket.ts: 'effectiveToken = isDevMode ? undefined ",
   "plan_status": "completed",
   "next_steps": [
-    "FOCUSED ENV DEBUG to get 2-client e2e green: root-cause WS auth_failed in browser (compare REST token vs WS authenticate_ws_user; check token passing in useLiveChatSocket/client.ts; DEV_AUTH_BYPASS?) + why seeded WAITING session becomes CLOSED/BOT (session_cleanup task? bot auto-reply on seeded INCOMING msg?)",
-    "Then re-run: bring up stack (docker+backend+frontend), seed (create_test_users --apply --password test1234 + seed_live_chat_e2e --apply + seed_admin ADMIN_DEFAULT_PASSWORD=test1234), warm routes, npx playwright test live-chat-2client with relaxed timeouts",
-    "Phase 7 (operator UX enhancements, frontend-only) + Phase 8 (provider refactor, errata B6/B7)",
-    "Consider opening PR for Phases 1-6 (branch unmerged, no PR)"
+    "Run the 2-client e2e on a FASTER machine / CI runner for a clean single-run pass (9p too slow; spec + seed + retries ready). Stack-up: docker db/redis up; backend run.py --target local --no-reload (bg); frontend npm run dev (bg); seed_admin ADMIN_DEFAULT_PASSWORD=test1234 + create_test_users --apply --password test1234 + seed_live_chat_e2e --apply; warm routes; scratch playwright config timeout120/nav90/action60/retries1; E2E_ADMIN/STAFF=admin/staff+test1234. GOTCHA: pkill of next dev/run.py unreliable here (port 3000 EADDRINUSE on restart) - kill by port.",
+    "Open PR for Phases 1-6 + acceptance (branch docs/livechat-audit-remediation-prp unmerged, no PR)",
+    "Phase 7 (operator UX enhancements, frontend-only) + Phase 8 (provider refactor, errata B6/B7)"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-06-27T19:49:00+07:00",
+      "platform": "claude_code",
+      "branch": "docs/livechat-audit-remediation-prp",
+      "head": "393b22c",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-06-27T17:48:00+07:00",
       "platform": "claude_code",
@@ -141,13 +147,6 @@
       "platform": "claude_code",
       "branch": "feat/rich-menu-switching-r1",
       "head": "044b779",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-21T07:41:00Z",
-      "platform": "claude_code",
-      "branch": "feat/rich-menu-switching-r1",
-      "head": "c203aac",
       "status": "completed"
     }
   ],

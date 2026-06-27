@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 105 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 106 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-27 19:49 — claude_code — completed
+
+Fixed the 2 env blockers from the Phase 6 2-client e2e — BOTH were real bugs (commit 393b22c). (1) WS auth_failed = real bug in frontend/hooks/useWebSocket.ts: 'effectiveToken = isDevMode ? undefined : token' forced the WS token to undefined in dev mode assuming a backend dev-bypass, but authenticate_ws_user (ws_live_chat.py) has NO bypass and always jwt.decodes a real access token -> dev-mode live-chat WS handshake failed 100% (REST worked via dev_bypass, masking it; WS tests mocked authenticate_ws_user so never caught). Fixed: always send the real token (deps already include effectiveToken so it reconnects when AuthContext hydrates). (2) Seed session went CLOSED: session_cleanup task (WAITING_ABANDONMENT_MINUTES=10) auto-closes unclaimed WAITING older than 10min; seed started_at=-5min + long stack-up exceeded it -> fixed seed to now-1min. Plus e2e robustness: sequential 2-op login (Promise.all overwhelmed cold dev server), loginAs waitForURL 15s->45s, skip-guard accepts any session affordance not just Claim. LIVE VALIDATION 5 runs on WSL/9p: every assertion passed live >=1x - claim contention GREEN (B sees 'X กำลังรับเรื่อง' lock over WS after A claims = M16 fix works end-to-end) + transfer picker GREEN (lists online AGENT = WS presence + workload auth relax). 9p box too slow to land BOTH 2-context tests green in ONE run (each flakes on a different timing spot: login/claim-render/WS-broadcast); spec has retries:1. tsc 0. Commits this session: 5ef9ff7 P6 impl, 9361fba P6 acceptance, 393b22c e2e blockers.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260627-1949.json`
+- Summary: `project-log-md/claude_code/session-summary-20260627-1949.md`
+
+---
 
 ### 2026-06-27 17:48 — claude_code — completed
 

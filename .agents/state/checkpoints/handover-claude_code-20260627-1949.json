@@ -1,0 +1,18 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-06-27T19:49:00+07:00",
+  "branch": "docs/livechat-audit-remediation-prp",
+  "head_commit": "393b22c",
+  "status": "completed",
+  "work_summary": "Fixed the 2 env blockers from the Phase 6 2-client e2e — BOTH were real bugs (commit 393b22c). (1) WS auth_failed = real bug in frontend/hooks/useWebSocket.ts: 'effectiveToken = isDevMode ? undefined : token' forced the WS token to undefined in dev mode assuming a backend dev-bypass, but authenticate_ws_user (ws_live_chat.py) has NO bypass and always jwt.decodes a real access token -> dev-mode live-chat WS handshake failed 100% (REST worked via dev_bypass, masking it; WS tests mocked authenticate_ws_user so never caught). Fixed: always send the real token (deps already include effectiveToken so it reconnects when AuthContext hydrates). (2) Seed session went CLOSED: session_cleanup task (WAITING_ABANDONMENT_MINUTES=10) auto-closes unclaimed WAITING older than 10min; seed started_at=-5min + long stack-up exceeded it -> fixed seed to now-1min. Plus e2e robustness: sequential 2-op login (Promise.all overwhelmed cold dev server), loginAs waitForURL 15s->45s, skip-guard accepts any session affordance not just Claim. LIVE VALIDATION 5 runs on WSL/9p: every assertion passed live >=1x - claim contention GREEN (B sees 'X กำลังรับเรื่อง' lock over WS after A claims = M16 fix works end-to-end) + transfer picker GREEN (lists online AGENT = WS presence + workload auth relax). 9p box too slow to land BOTH 2-context tests green in ONE run (each flakes on a different timing spot: login/claim-render/WS-broadcast); spec has retries:1. tsc 0. Commits this session: 5ef9ff7 P6 impl, 9361fba P6 acceptance, 393b22c e2e blockers.",
+  "priority_actions": [
+    "Run the 2-client e2e on a FASTER machine / CI runner for a clean single-run pass (9p too slow; spec + seed + retries ready). Stack-up: docker db/redis up; backend run.py --target local --no-reload (bg); frontend npm run dev (bg); seed_admin ADMIN_DEFAULT_PASSWORD=test1234 + create_test_users --apply --password test1234 + seed_live_chat_e2e --apply; warm routes; scratch playwright config timeout120/nav90/action60/retries1; E2E_ADMIN/STAFF=admin/staff+test1234. GOTCHA: pkill of next dev/run.py unreliable here (port 3000 EADDRINUSE on restart) - kill by port.",
+    "Open PR for Phases 1-6 + acceptance (branch docs/livechat-audit-remediation-prp unmerged, no PR)",
+    "Phase 7 (operator UX enhancements, frontend-only) + Phase 8 (provider refactor, errata B6/B7)"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/claude_code/session-summary-20260627-1949.md",
+  "cross_platform_read": []
+}
