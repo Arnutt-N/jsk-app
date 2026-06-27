@@ -105,6 +105,25 @@ export function MessageInput({
     textareaRef.current?.focus();
   };
 
+  // M19: the two preset surfaces — Quick Replies (Zap, system preset) and
+  // Canned Responses (MessageSquareText) — are mutually exclusive; only one
+  // may be open at a time. Coordinate via existing actions/props only.
+  const handleToggleQuickReplies = () => {
+    // Opening Quick Replies closes the canned picker.
+    if (!showQuickReplies) {
+      onCloseCanned();
+    }
+    toggleQuickReplies();
+  };
+
+  const handleToggleCannedPicker = () => {
+    // Opening the canned picker closes Quick Replies (and emoji/sticker).
+    if (!showCannedPicker) {
+      closeAllPickers();
+    }
+    onToggleCannedPicker();
+  };
+
   const openFilePicker = () => {
     fileInputRef.current?.click();
   };
@@ -208,19 +227,19 @@ export function MessageInput({
             <div className="w-px h-5 bg-border-default mx-1" />
             <button
               type="button"
-              onClick={toggleQuickReplies}
+              onClick={handleToggleQuickReplies}
               className={btnClass(showQuickReplies)}
-              title="Quick Replies"
-              aria-label="ข้อความด่วน"
+              title="ข้อความด่วน (ค่าตั้งต้นระบบ)"
+              aria-label="ข้อความด่วน (ค่าตั้งต้นระบบ)"
               aria-pressed={showQuickReplies}
             >
               <Zap className="w-5 h-5" aria-hidden />
             </button>
             <button
               type="button"
-              onClick={onToggleCannedPicker}
+              onClick={handleToggleCannedPicker}
               className={btnClass(showCannedPicker)}
-              title="Canned Responses"
+              title="ข้อความสำเร็จรูป"
               aria-label="ข้อความสำเร็จรูป"
               aria-pressed={showCannedPicker}
             >

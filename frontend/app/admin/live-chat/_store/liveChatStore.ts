@@ -13,6 +13,8 @@ export interface ToastNotification {
   avatar?: string
   type: 'message' | 'system'
   timestamp: number
+  // Present only for clickable 'message' toasts — opens that conversation on click.
+  lineUserId?: string
 }
 
 // ──────────────────────────────────────────────

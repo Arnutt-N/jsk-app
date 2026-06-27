@@ -310,13 +310,19 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
   const handleNewMessage = useCallback((message: Message) => {
     if (message.direction === 'INCOMING') {
       playNotification();
-      // Fire toast if not viewing this conversation
+      // Fire toast if not viewing this conversation. Resolve the customer's
+      // display name from the live store snapshot (operator_name is wrong on an
+      // INCOMING message); carry lineUserId so the toast can open the room.
       if (message.line_user_id !== selectedIdRef.current) {
+        const customerName = getStore().conversations.find(
+          (c) => c.line_user_id === message.line_user_id,
+        )?.display_name;
         getStore().addNotification({
-          title: message.operator_name || 'New Message',
+          title: customerName || 'ข้อความใหม่',
           message: message.content?.substring(0, 100) || 'New message received',
           avatar: undefined,
           type: 'message',
+          lineUserId: message.line_user_id,
         });
       }
     }

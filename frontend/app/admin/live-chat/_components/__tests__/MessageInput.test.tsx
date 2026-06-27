@@ -36,7 +36,7 @@ describe('MessageInput accessibility', () => {
       expect(screen.getByRole('button', { name: 'แทรกสติกเกอร์' })).toBeInTheDocument()
       expect(screen.getByRole('button', { name: 'อัปโหลดรูปภาพ' })).toBeInTheDocument()
       expect(screen.getByRole('button', { name: 'แนบไฟล์' })).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: 'ข้อความด่วน' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'ข้อความด่วน (ค่าตั้งต้นระบบ)' })).toBeInTheDocument()
       expect(screen.getByRole('button', { name: 'ข้อความสำเร็จรูป' })).toBeInTheDocument()
       // soundEnabled=true → aria-label is "ปิดเสียงแจ้งเตือน"
       expect(screen.getByRole('button', { name: 'ปิดเสียงแจ้งเตือน' })).toBeInTheDocument()
@@ -66,7 +66,7 @@ describe('MessageInput accessibility', () => {
 
     it('quick replies button has aria-pressed', () => {
       render(<MessageInput {...defaultProps} />)
-      const quickBtn = screen.getByRole('button', { name: 'ข้อความด่วน' })
+      const quickBtn = screen.getByRole('button', { name: 'ข้อความด่วน (ค่าตั้งต้นระบบ)' })
       expect(quickBtn).toHaveAttribute('aria-pressed')
     })
 

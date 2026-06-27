@@ -29,6 +29,7 @@ export function LiveChatShell() {
     setShowTransferDialog,
     transferSession,
     setShowCustomerPanel,
+    selectConversation,
     currentUserId,
     onlineOperators,
   } = useLiveChatContext();
@@ -44,7 +45,7 @@ export function LiveChatShell() {
   return (
     <>
       {/* Toast notifications */}
-      <NotificationToast />
+      <NotificationToast onSelect={selectConversation} />
 
       {/* Connection lost — floating banner visible regardless of chat selection */}
       {!backendOnline && (

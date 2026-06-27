@@ -2,11 +2,12 @@
 
 import React from 'react';
 import Image from 'next/image';
-import { Bell, Clock, Copy, ExternalLink, RefreshCw, Star, Trash2, User, X } from 'lucide-react';
+import { Check, Clock, Copy, RefreshCw, User, X } from 'lucide-react';
 
 import type { CurrentChat } from '../_types';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLiveChatContext } from '../_context/LiveChatContext';
+import { useCustomerNotes } from '@/hooks/useCustomerNotes';
 import { logger } from '@/lib/logger';
 
 export function CustomerPanel({
@@ -19,6 +20,9 @@ export function CustomerPanel({
   const { token } = useAuth();
   const { fetchChatDetail, fetchConversations } = useLiveChatContext();
   const [refreshing, setRefreshing] = React.useState(false);
+  // Hooks must run unconditionally — call before the early return with a
+  // nullable id (the hook no-ops persistence when no conversation is selected).
+  const { notes, setNotes, saved } = useCustomerNotes(currentChat?.line_user_id ?? null);
   if (!currentChat) return null;
 
   const encodedLineUserId = encodeURIComponent(currentChat.line_user_id);
@@ -110,10 +114,6 @@ export function CustomerPanel({
             <RefreshCw className={`w-3 h-3 ${refreshing ? 'animate-spin' : ''}`} />
             {refreshing ? 'Refreshing...' : 'Refresh'}
           </button>
-          <span className="text-text-tertiary">·</span>
-          <button disabled className="text-xs text-brand-600 flex items-center gap-1 opacity-50 cursor-not-allowed">
-            View Profile <ExternalLink className="w-3 h-3" />
-          </button>
         </div>
 
         {/* Action icon row */}
@@ -124,20 +124,6 @@ export function CustomerPanel({
             aria-label="Copy LINE ID"
           >
             <Copy className="w-4 h-4" />
-          </button>
-          <button
-            disabled
-            className="w-9 h-9 rounded-full flex items-center justify-center bg-gray-50 text-text-tertiary border border-border-default opacity-50 cursor-not-allowed"
-            aria-label="Notifications"
-          >
-            <Bell className="w-4 h-4" />
-          </button>
-          <button
-            disabled
-            className="w-9 h-9 rounded-full flex items-center justify-center bg-gray-50 text-text-tertiary border border-border-default opacity-50 cursor-not-allowed"
-            aria-label="Mark as VIP"
-          >
-            <Star className="w-4 h-4" />
           </button>
         </div>
 
@@ -195,10 +181,25 @@ export function CustomerPanel({
 
         {/* Internal Notes */}
         <div className="bg-surface border border-border-default rounded-xl p-3 space-y-2">
-          <label htmlFor="customer-notes" className="text-2xs text-text-tertiary font-semibold uppercase tracking-wider">Internal Notes</label>
+          <div className="flex items-center justify-between gap-2">
+            <label htmlFor="customer-notes" className="text-2xs text-text-tertiary font-semibold uppercase tracking-wider thai-text">โน้ตภายใน</label>
+            <span role="status" aria-live="polite" aria-atomic="true" className="flex items-center gap-1 text-2xs text-text-tertiary thai-text">
+              {(notes.length > 0 || !saved) &&
+                (saved ? (
+                  <>
+                    <Check className="w-3 h-3 text-online" aria-hidden="true" />
+                    บันทึกแล้ว
+                  </>
+                ) : (
+                  'กำลังบันทึก…'
+                ))}
+            </span>
+          </div>
           <textarea
             id="customer-notes"
-            placeholder="Add notes about this customer..."
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="พิมพ์โน้ตเกี่ยวกับลูกค้า…"
             className="w-full text-xs bg-white border border-border-default rounded-lg px-3 py-2 text-text-primary placeholder:text-text-tertiary resize-none focus-ring"
             rows={3}
           />
@@ -222,13 +223,6 @@ export function CustomerPanel({
             </button>
           </div>
         </div>
-      </div>
-
-      {/* Footer */}
-      <div className="p-4 border-t border-border-default">
-        <button disabled className="w-full py-2.5 text-xs font-medium text-text-tertiary rounded-xl border border-border-default flex items-center justify-center gap-1.5 opacity-50 cursor-not-allowed">
-          <Trash2 className="w-4 h-4" />Delete Conversation
-        </button>
       </div>
     </aside>
   );

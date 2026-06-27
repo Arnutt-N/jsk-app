@@ -15,17 +15,23 @@ interface QuickRepliesProps {
 
 export function QuickReplies({ onSelect }: QuickRepliesProps) {
   return (
-    <div className="animate-scale-in flex gap-2 overflow-x-auto border-t border-border-default px-3 py-2 no-scrollbar">
-      {quickReplies.map((reply) => (
-        <button
-          key={reply.id}
-          type="button"
-          onClick={() => onSelect(reply.message)}
-          className="shrink-0 rounded-full border border-border-default bg-surface px-3 py-1.5 text-xs font-medium text-text-secondary transition-colors hover:border-brand-500 hover:text-brand-600"
-        >
-          {reply.label}
-        </button>
-      ))}
+    <div className="animate-scale-in border-t border-border-default px-3 py-2">
+      {/* M19: clarify this surface is a system preset (distinct from canned responses) */}
+      <p className="thai-text mb-1.5 text-xs font-medium text-text-tertiary">
+        ข้อความด่วน — ค่าตั้งต้นของระบบ
+      </p>
+      <div className="flex gap-2 overflow-x-auto no-scrollbar">
+        {quickReplies.map((reply) => (
+          <button
+            key={reply.id}
+            type="button"
+            onClick={() => onSelect(reply.message)}
+            className="shrink-0 rounded-full border border-border-default bg-surface px-3 py-1.5 text-xs font-medium text-text-secondary transition-colors hover:border-brand-500 hover:text-brand-600"
+          >
+            {reply.label}
+          </button>
+        ))}
+      </div>
     </div>
   )
 }
