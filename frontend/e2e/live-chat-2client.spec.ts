@@ -95,18 +95,20 @@ test.describe('/admin/live-chat 2-client (Phase 6)', () => {
     pageB = await ctxB.newPage()
 
     // Operator A = admin (ADMIN). Operator B = staff (AGENT, "Staff Test").
-    await Promise.all([
-      openLiveChatAs(
-        pageA,
-        process.env.E2E_ADMIN_USERNAME ?? 'admin',
-        process.env.E2E_ADMIN_PASSWORD ?? 'test1234',
-      ),
-      openLiveChatAs(
-        pageB,
-        process.env.E2E_STAFF_USERNAME ?? 'staff',
-        process.env.E2E_STAFF_PASSWORD ?? 'test1234',
-      ),
-    ])
+    // Log in SEQUENTIALLY, not in parallel: two simultaneous logins + first-hit
+    // route compiles overwhelm a cold dev server (esp. on the 9p/WSL box) and
+    // make the submit click hang. Sequential halves the concurrent load and is
+    // the difference between a flaky and a reliable beforeEach.
+    await openLiveChatAs(
+      pageA,
+      process.env.E2E_ADMIN_USERNAME ?? 'admin',
+      process.env.E2E_ADMIN_PASSWORD ?? 'test1234',
+    )
+    await openLiveChatAs(
+      pageB,
+      process.env.E2E_STAFF_USERNAME ?? 'staff',
+      process.env.E2E_STAFF_PASSWORD ?? 'test1234',
+    )
 
     // Both operators select (join the room of) the seeded WAITING conversation.
     // B MUST be joined before A claims so B receives the contention broadcast.
@@ -126,14 +128,20 @@ test.describe('/admin/live-chat 2-client (Phase 6)', () => {
     // hard-fail: this stays a durable acceptance spec that runs green on a
     // healthy stack instead of red on a broken local environment.
     // See backend/scripts/seed_live_chat_e2e.py and the WS auth path.
-    const claimReady = await sessionActions(pageA)
-      .getByRole('button', { name: /claim session/i })
+    // A live session surfaces SOME action (Claim when WAITING, Transfer/Done
+    // when ACTIVE, or the contention lock) — accept any of them, not only Claim,
+    // so the transfer test doesn't spuriously skip when a prior test already
+    // claimed the room (ACTIVE, no Claim button). Skip only when the group is
+    // empty (CLOSED/None = no live session, e.g. seed missing / WS down).
+    const sessionLive = await sessionActions(pageA)
+      .getByRole('button')
+      .first()
       .waitFor({ state: 'visible', timeout: 12_000 })
       .then(() => true)
       .catch(() => false)
     test.skip(
-      !claimReady,
-      'Live precondition unmet: WAITING session not surfaced or WebSocket not connected (check seed_live_chat_e2e.py + WS auth).',
+      !sessionLive,
+      'Live precondition unmet: session not surfaced or WebSocket not connected (check seed_live_chat_e2e.py + WS auth).',
     )
   })
 

@@ -31,7 +31,11 @@ export async function loginAs(page: Page, username: string, password: string): P
   // The login flow ends on /admin (or /admin/something). Be lenient
   // about exactly where we land -- different roles might redirect
   // elsewhere via PageAccessGuard, but admin stays on /admin/*.
-  await page.waitForURL(/\/admin(\/.*)?$/, { timeout: 15_000 })
+  // 45s (not 15s): the post-login full navigation triggers a first-hit route
+  // compile that can exceed 15s on a cold/loaded dev server (esp. WSL/9p with
+  // multiple browser contexts). A longer cap only changes how long we wait
+  // before failing -- on a warm server login still completes in ~1-2s.
+  await page.waitForURL(/\/admin(\/.*)?$/, { timeout: 45_000 })
 }
 
 /**

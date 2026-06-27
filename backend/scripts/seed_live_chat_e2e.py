@@ -66,8 +66,12 @@ async def seed_live_chat_e2e(*, apply: bool) -> int:
         return 0
 
     now = datetime.now(timezone.utc)
-    started_at = now - timedelta(minutes=5)  # past start -> waiting-age badge shows
-    last_activity_at = now - timedelta(minutes=4)
+    # Keep started_at well within WAITING_ABANDONMENT_MINUTES (10) so the
+    # session_cleanup background task does not auto-close this WAITING session
+    # mid-test (it closes unclaimed WAITING rows whose started_at is older than
+    # that threshold). 1 minute leaves ~9 min of headroom for a full e2e run.
+    started_at = now - timedelta(minutes=1)
+    last_activity_at = now
 
     async with AsyncSessionLocal() as db:
         # 1. Upsert the LINE customer (chat_mode=HUMAN, as a real handoff leaves it).
