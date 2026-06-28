@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 114 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 115 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-28 16:52 — claude_code — completed
+
+PR #117 opened (branch fix/livechat-followups-pr1-quickwins): PR1 follow-ups = 4 quick wins from PR #116 review — (#2) prune admin_display_names on last disconnect (slow leak + stale-name fix); (#3) memoize onConnectionChange via useCallback([]) reading wsStatusRef (status effect no longer re-fires every render); (#4) scope ACK-timeout to its own tempId so an old message timeout cannot clear `sending`/fail a newer in-flight send; (#5) transfer ValueError->HTTP mapping by constant equality vs TRANSFER_ERR_* instead of substring. +3 tests (2 ws-manager prune, 1 useMessageFlow stale-timeout). Validation GREEN: backend pytest 17/17, tsc 0, eslint 0, vitest useMessageFlow 8/8. Backend auto-deploys via Koyeb on main merge (NOT manual).
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260628-1652.json`
+- Summary: `project-log-md/claude_code/session-summary-20260628-1652.md`
+
+---
 
 ### 2026-06-28 15:40 — claude_code — completed
 

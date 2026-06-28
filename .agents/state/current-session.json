@@ -1,14 +1,21 @@
 {
-  "last_updated": "2026-06-28T15:40:00+07:00",
+  "last_updated": "2026-06-28T16:52:00+07:00",
   "platform": "claude_code",
-  "current_task": "Session COMPLETE: PR #116 (live-chat audit remediation Phases 1-8 — a11y/perf/multi-operator/provider refactor) MERGED to main via squash 07ec9d1, branch deleted. This session = pre-merge review via 3",
+  "current_task": "PR #117 opened (branch fix/livechat-followups-pr1-quickwins): PR1 follow-ups = 4 quick wins from PR #116 review — (#2) prune admin_display_names on last disconnect (slow leak + stale-name fix); (#3) m",
   "plan_status": "completed",
   "next_steps": [
-    "Deploy backend to prod — FastAPI deploys separately from Vercel; Phase 6 changed websocket_manager/admin_users/live_chat_service/ws_live_chat (Vercel only redeploys frontend)",
-    "Open follow-up PR for 6 pre-existing items in .claude/PRPs/reviews/pr-116-review.md (priority: broadcast_to_all double-delivery under Redis self-loopback before enabling Redis at scale)",
-    "Resolve conflicts + review chatbot PRs #112 and #111 (CONFLICTING, unreviewed, separate feature)"
+    "Review + merge PR #117 (CI Actions disabled — validation was local in WSL)",
+    "Open PR2 for the 2 deferred architectural items: Redis broadcast_to_all self-loopback double-delivery (websocket_manager.py:389, active even single-instance once REDIS_URL=Upstash) + JWT-in-WS-URL (ws_live_chat.py) — both need regression tests",
+    "Confirm whether Koyeb REDIS_URL points at Upstash; if yes the #1 double-delivery bug is already live"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-06-28T16:52:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "0b5768d",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-06-28T15:40:00+07:00",
       "platform": "claude_code",
@@ -140,13 +147,6 @@
       "platform": "claude_code",
       "branch": "docs/livechat-audit-remediation-prp",
       "head": "5b0bd3e",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-22T07:15:00+07:00",
-      "platform": "claude_code",
-      "branch": "docs/livechat-audit-remediation-prp",
-      "head": "9e4c098",
       "status": "completed"
     }
   ],

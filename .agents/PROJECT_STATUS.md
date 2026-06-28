@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-06-28 15:40 by Claude Code (Session COMPLETE: PR #116 live-chat audit remediation Phases 1-8 — a11y/perf/multi-operato)
+> **Last Updated:** 2026-06-28 16:52 by Claude Code (PR #117 opened branch fix/livechat-followups-pr1-quickwins: PR1 follow-ups = 4 quick wins )
 
 ## Thai Summary
 ฟีเจอร์ **Rich Menu Switching + การกำหนดเมนูรายบุคคล (R1/R2)** เสร็จสมบูรณ์และขึ้น production แล้ว — merge เข้า main ผ่าน PR #114 (merge commit `3a90f4d`), migrate ฐานข้อมูล Supabase PROD (richmenu alias + user_rich_menu_links แบบ additive) และ deploy frontend บน Vercel เรียบร้อย
@@ -54,6 +54,7 @@
 - [2026-06-21] R1/R2 Rich Menu (incl Task 6.2 per-user UI) merged to `main` via PR #114 (`3a90f4d`); Supabase PROD migrated; Vercel frontend deployed. Branch `feat/rich-menu-switching-r1` deleted. Working tree clean.
 
 ## Recent Completions
+- [2026-06-28 16:52] Claude Code: PR #117 opened (branch fix/livechat-followups-pr1-quickwins): PR1 follow-ups = 4 quick wins from PR #116 review — (#2) prune admin_display_names on last disconnect (slow leak + stale-name fix); (#3) memoize onConnectionChange via useCallbac (Claude Code)
 - [2026-06-28 15:40] Claude Code: Session COMPLETE: PR #116 (live-chat audit remediation Phases 1-8 — a11y/perf/multi-operator/provider refactor) MERGED to main via squash 07ec9d1, branch deleted. This session = pre-merge review via 3 parallel agents (fastapi/react/security (Claude Code)
 - [2026-06-28 15:12] Claude Code: Merged PR #116 (squash 07ec9d1) to main — live-chat audit remediation Phases 1-8 (a11y/perf/multi-operator/provider refactor). This session: pre-merge review via 3 parallel agents (fastapi/react/security) found 3 blockers per-phase reviews  (Claude Code)
 - [2026-06-28 14:56] Claude Code: Pre-merge review of PR #116 via 3 parallel agents (fastapi/react/security) + remediated 3 blockers in cbc3064: (1) /admin/users/workload leaked LINE-customer PII to AGENT after auth widened to get_current_staff -> added server-side filter U (Claude Code)
