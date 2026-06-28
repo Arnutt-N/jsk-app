@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-06-28 20:21 by Claude Code (Tasks 2+3 from prior handoff DONE.)
+> **Last Updated:** 2026-06-28 21:13 by Claude Code (PR #119 PR2 review polish, 3 LOW reviewed mergeable CLEAN; diff scope verified = exactly t)
 
 ## Thai Summary
 ฟีเจอร์ **Rich Menu Switching + การกำหนดเมนูรายบุคคล (R1/R2)** เสร็จสมบูรณ์และขึ้น production แล้ว — merge เข้า main ผ่าน PR #114 (merge commit `3a90f4d`), migrate ฐานข้อมูล Supabase PROD (richmenu alias + user_rich_menu_links แบบ additive) และ deploy frontend บน Vercel เรียบร้อย
@@ -54,6 +54,7 @@
 - [2026-06-21] R1/R2 Rich Menu (incl Task 6.2 per-user UI) merged to `main` via PR #114 (`3a90f4d`); Supabase PROD migrated; Vercel frontend deployed. Branch `feat/rich-menu-switching-r1` deleted. Working tree clean.
 
 ## Recent Completions
+- [2026-06-28 21:13] Claude Code: PR #119 (PR2 review polish, 3 LOW) reviewed (mergeable CLEAN; diff scope verified = exactly the 2 expected files, docs + 1-line server_id hardening, no behavior change) + MERGED to main (squash 3cc616e). ALL 3 session PRs now merged: #117 ( (Claude Code)
 - [2026-06-28 20:21] Claude Code: Tasks 2+3 from prior handoff DONE. (Task 3 / LOW polish) PR #119 opened = the 3 review-LOW items from #118: server_id full 128-bit uuid4().hex (vs hex[:12]) to avoid _origin-guard collision, Redis trust-boundary comment in _handle_remote_br (Claude Code)
 - [2026-06-28 18:39] Claude Code: PR #118 (PR2 architectural) REVIEWED by 2 independent agents (security-reviewer + fastapi-reviewer, both SHIP, 0 blockers) + MERGED to main (squash eaf39d9). Fix A (Redis broadcast self-loopback dedup via _origin stamp) + Fix B (JWT removed (Claude Code)
 - [2026-06-28 17:51] Claude Code: Fan-out (3 agents: reviewer/investigator/architect) → completed all 3 follow-up tasks. (1) PR #117 (PR1 quick wins) REVIEWED (code-reviewer: SHIP, 0 issues; found MESSAGE_ACK is dead code on backend) + MERGED to main (squash 58ea66a). (2) P (Claude Code)

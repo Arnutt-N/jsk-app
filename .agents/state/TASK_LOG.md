@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 118 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 119 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-28 21:13 — claude_code — completed
+
+PR #119 (PR2 review polish, 3 LOW) reviewed (mergeable CLEAN; diff scope verified = exactly the 2 expected files, docs + 1-line server_id hardening, no behavior change) + MERGED to main (squash 3cc616e). ALL 3 session PRs now merged: #117 (4 quick wins), #118 (Redis self-loopback dedup + JWT off WS URL, prod-verified via /api/v1/health pubsub_connected=true), #119 (3 review-LOW polish). All 6 PR #116 follow-ups + 3 review-LOW items landed; Koyeb auto-deploys to prod on main. Session complete.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260628-2113.json`
+- Summary: `project-log-md/claude_code/session-summary-20260628-2113.md`
+
+---
 
 ### 2026-06-28 20:21 — claude_code — completed
 

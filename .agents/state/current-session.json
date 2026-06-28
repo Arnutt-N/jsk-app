@@ -1,13 +1,20 @@
 {
-  "last_updated": "2026-06-28T20:21:00+07:00",
+  "last_updated": "2026-06-28T21:13:00+07:00",
   "platform": "claude_code",
-  "current_task": "Tasks 2+3 from prior handoff DONE. (Task 3 / LOW polish) PR #119 opened = the 3 review-LOW items from #118: server_id full 128-bit uuid4().hex (vs hex[:12]) to avoid _origin-guard collision, Redis tru",
+  "current_task": "PR #119 (PR2 review polish, 3 LOW) reviewed (mergeable CLEAN; diff scope verified = exactly the 2 expected files, docs + 1-line server_id hardening, no behavior change) + MERGED to main (squash 3cc616",
   "plan_status": "completed",
   "next_steps": [
-    "Review + merge PR #119 (PR2 polish, 3 LOW). PR #118 already merged (eaf39d9); all 6 pr-116 follow-ups + 3 polish are now landed/in-PR.",
-    "To get integration tests green in WSL: fix test DB host — set app/.env or DATABASE_URL to the WSL gateway IP (e.g. 172.26.160.1) instead of 127.0.0.1, OR run Postgres inside WSL, OR use WSL2 mirrored networking; also ensure skn_app_db is migrated (alembic upgrade head)."
+    "Optional: confirm #119 on prod after Koyeb redeploy (server_id now full 128-bit hex; no behavior change expected)",
+    "Optional: clear the 27 WSL integration-test ERRORs — fix test DB host (set app/.env or DATABASE_URL to WSL gateway IP 172.26.160.1 instead of 127.0.0.1, or run Postgres in WSL, or WSL2 mirrored networking) + alembic upgrade head against skn_app_db"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-06-28T21:13:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "3cc616e",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-06-28T20:21:00+07:00",
       "platform": "claude_code",
@@ -139,13 +146,6 @@
       "platform": "claude_code",
       "branch": "docs/livechat-audit-remediation-prp",
       "head": "f3fb456",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-27T00:40:00+07:00",
-      "platform": "claude_code",
-      "branch": "docs/livechat-audit-remediation-prp",
-      "head": "07367fe",
       "status": "completed"
     }
   ],
