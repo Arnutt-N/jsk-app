@@ -113,7 +113,6 @@ describe('useMessageFlow', () => {
   });
 
   it('fails the message and releases sending after the 10s ack timeout', async () => {
-    vi.useFakeTimers();
     const { view } = setup({ wsStatus: 'connected' });
 
     await act(async () => {
@@ -132,7 +131,6 @@ describe('useMessageFlow', () => {
   });
 
   it('B6.1 — a late ack does NOT resurrect a message the timeout already cleared', async () => {
-    vi.useFakeTimers();
     const { view } = setup({ wsStatus: 'connected' });
 
     await act(async () => {
