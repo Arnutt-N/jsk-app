@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 117 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 118 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-28 20:21 — claude_code — completed
+
+Tasks 2+3 from prior handoff DONE. (Task 3 / LOW polish) PR #119 opened = the 3 review-LOW items from #118: server_id full 128-bit uuid4().hex (vs hex[:12]) to avoid _origin-guard collision, Redis trust-boundary comment in _handle_remote_broadcast, test-3 over-suppression clarity note. Targeted pytest 42/42, no behavior change. (Task 2 / full pytest with DB) Attempted clearing the 27 DB-unavailable errors: DB IS reachable from WSL at the gateway IP 172.26.160.1:5432 (DB_TCP_OK), but app boot still fails because conftest sets ENV_FILE=app/.env whose DATABASE_URL overrides the inline env var with a host the WSL runner cannot reach -> the 27 errors are ENV-CONFIG, not code (full suite 485 passed, 27 boot-time ERRORs deterministic). NOTE: full WSL pytest took 19min on 9p.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260628-2021.json`
+- Summary: `project-log-md/claude_code/session-summary-20260628-2021.md`
+
+---
 
 ### 2026-06-28 18:39 — claude_code — completed
 

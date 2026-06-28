@@ -1,14 +1,20 @@
 {
-  "last_updated": "2026-06-28T18:39:00+07:00",
+  "last_updated": "2026-06-28T20:21:00+07:00",
   "platform": "claude_code",
-  "current_task": "PR #118 (PR2 architectural) REVIEWED by 2 independent agents (security-reviewer + fastapi-reviewer, both SHIP, 0 blockers) + MERGED to main (squash eaf39d9). Fix A (Redis broadcast self-loopback dedup",
+  "current_task": "Tasks 2+3 from prior handoff DONE. (Task 3 / LOW polish) PR #119 opened = the 3 review-LOW items from #118: server_id full 128-bit uuid4().hex (vs hex[:12]) to avoid _origin-guard collision, Redis tru",
   "plan_status": "completed",
   "next_steps": [
-    "Verify on prod after Koyeb redeploy: GET /api/v1/health -> connection_stats.pubsub_connected; the broadcast double-delivery bug (#1) should now be FIXED (operators should stop seeing duplicate presence/message frames)",
-    "Optional: run full backend pytest with Postgres UP (docker on Windows host) to clear the 27 DB-unavailable ERRORs and confirm app-boot integration tests are green",
-    "Optional 3 LOW polish items from #118 review (trust-boundary comment, 128-bit server_id) — bundle into a future chore PR if desired"
+    "Review + merge PR #119 (PR2 polish, 3 LOW). PR #118 already merged (eaf39d9); all 6 pr-116 follow-ups + 3 polish are now landed/in-PR.",
+    "To get integration tests green in WSL: fix test DB host — set app/.env or DATABASE_URL to the WSL gateway IP (e.g. 172.26.160.1) instead of 127.0.0.1, OR run Postgres inside WSL, OR use WSL2 mirrored networking; also ensure skn_app_db is migrated (alembic upgrade head)."
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-06-28T20:21:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "bc97083",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-06-28T18:39:00+07:00",
       "platform": "claude_code",
@@ -140,13 +146,6 @@
       "platform": "claude_code",
       "branch": "docs/livechat-audit-remediation-prp",
       "head": "07367fe",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-26T23:00:00+07:00",
-      "platform": "claude_code",
-      "branch": "docs/livechat-audit-remediation-prp",
-      "head": "3f269b8",
       "status": "completed"
     }
   ],
