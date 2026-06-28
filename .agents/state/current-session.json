@@ -1,13 +1,21 @@
 {
-  "last_updated": "2026-06-28T11:06:00+07:00",
+  "last_updated": "2026-06-28T14:56:00+07:00",
   "platform": "claude_code",
-  "current_task": "All 8 live-chat remediation phases DONE + pushed; PR #116 refreshed to cover Phases 1-8 (title+body). Phase 8 this session: 805-line LiveChatContext.tsx -> 395-line composition root + 6 hooks (useMedi",
+  "current_task": "Pre-merge review of PR #116 via 3 parallel agents (fastapi/react/security) + remediated 3 blockers in cbc3064: (1) /admin/users/workload leaked LINE-customer PII to AGENT after auth widened to get_cur",
   "plan_status": "completed",
   "next_steps": [
-    "Run manual 16-flow e2e + 2-client e2e on the WSL stack (claim/transfer/close/reconnect/typing/history/mobile/deep-link) before merging PR #116",
-    "Review + merge PR #116"
+    "Run manual 16-flow e2e + 2-client e2e on WSL stack before merging PR #116",
+    "Review + merge PR #116 (3 blockers closed; 6 pre-existing follow-ups tracked in pr-116-review.md)",
+    "Optional: open follow-up PR for broadcast_to_all double-delivery before enabling Redis at scale"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-06-28T14:56:00+07:00",
+      "platform": "claude_code",
+      "branch": "docs/livechat-audit-remediation-prp",
+      "head": "cbc3064",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-06-28T11:06:00+07:00",
       "platform": "claude_code",
@@ -139,13 +147,6 @@
       "platform": "claude_code",
       "branch": "chore/handoff-system-hardening",
       "head": "8b7f778",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-21T19:06:00Z",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "3a90f4d",
       "status": "completed"
     }
   ],

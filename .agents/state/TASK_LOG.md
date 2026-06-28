@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 111 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 112 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-28 14:56 — claude_code — completed
+
+Pre-merge review of PR #116 via 3 parallel agents (fastapi/react/security) + remediated 3 blockers in cbc3064: (1) /admin/users/workload leaked LINE-customer PII to AGENT after auth widened to get_current_staff -> added server-side filter User.role!=USER; (2) TransferDialog restore focus on close (WCAG 2.4.3) + moved role=dialog/aria-modal from backdrop to panel (WCAG 4.1.2); (3) seed_live_chat_e2e default-deny non-local DB (was apply-able to Supabase PROD). Added TransferDialog.a11y.test.tsx (3/3) + pr-116-review.md artifact + posted+cleaned review comment on PR #116. Validation: tsc 0, eslint 0, backend pytest 15/15, vitest 259 baseline + 3 new a11y green.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260628-1456.json`
+- Summary: `project-log-md/claude_code/session-summary-20260628-1456.md`
+
+---
 
 ### 2026-06-28 11:06 — claude_code — completed
 
