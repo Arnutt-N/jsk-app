@@ -23,6 +23,7 @@ import type {
 import { useLiveChatStore } from '../_store/liveChatStore';
 import type { Conversation, CurrentChat, Session } from '../_types';
 import { API_BASE } from '../_lib/constants';
+import { useMediaQuery } from '../_hooks/useMediaQuery';
 
 interface ClaimContender {
   operatorId: number;
@@ -183,7 +184,7 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
   const initializedRef = useRef<boolean>(false);
   const typingUsersRef = useRef<Set<string>>(new Set());
   const [wsStatus, setWsStatus] = React.useState<ConnectionState>('disconnected');
-  const [isMobileView, setIsMobileView] = React.useState(false);
+  const isMobileView = useMediaQuery('(max-width: 767px)');
   const [typingUsersCount, setTypingUsersCount] = React.useState(0);
   const [focusedMessageId, setFocusedMessageId] = React.useState<number | null>(null);
   // Multi-operator presence + claim contention (Phase 6).
@@ -198,15 +199,6 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
     (lineUserId: string): ClaimContender | undefined => claimContenders[lineUserId],
     [claimContenders],
   );
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const mediaQuery = window.matchMedia('(max-width: 767px)');
-    const update = () => setIsMobileView(mediaQuery.matches);
-    update();
-    mediaQuery.addEventListener('change', update);
-    return () => mediaQuery.removeEventListener('change', update);
-  }, []);
 
   useEffect(() => {
     selectedIdRef.current = selectedId;
