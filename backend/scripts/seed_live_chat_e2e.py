@@ -57,13 +57,26 @@ async def seed_live_chat_e2e(*, apply: bool) -> int:
     from app.models.message import Message, MessageDirection, SenderRole
     from app.models.user import ChatMode, User, UserRole
 
-    print_script_header("Seed e2e WAITING live-chat session", apply=apply)
+    _env_path, database_target = print_script_header(
+        "Seed e2e WAITING live-chat session", apply=apply
+    )
     print(f"LINE user : {SEED_LINE_USER_ID}")
     print(f"Display   : {SEED_DISPLAY_NAME}")
 
     if not apply:
         print_dry_run_hint()
         return 0
+
+    # Safety guard: this e2e seed must never run against a remote/production DB.
+    # The default env file (backend/.env) points at Supabase PROD, so `--apply`
+    # without ENV_FILE=app/.env would otherwise inject a fake WAITING session
+    # (and trigger live operator notifications) into production. Default-deny:
+    # refuse unless the resolved DB host is explicitly local.
+    LOCAL_DB_MARKERS = ("localhost", "127.0.0.1", "::1")
+    if not any(marker in database_target for marker in LOCAL_DB_MARKERS):
+        print(f"\nERROR: Refusing --apply against a non-local database: {database_target}")
+        print("Set ENV_FILE=app/.env to target the local Docker database.")
+        return 1
 
     now = datetime.now(timezone.utc)
     # Keep started_at well within WAITING_ABANDONMENT_MINUTES (10) so the

@@ -45,6 +45,9 @@ export function TransferDialog({ open, onClose, onTransfer, operators, loading }
 
   useEffect(() => {
     if (!open) return;
+    // Capture the trigger so focus can be restored when the dialog closes
+    // (WCAG 2.4.3 Focus Order) — mirrors MobileDrawer.
+    const previouslyFocused = document.activeElement as HTMLElement | null;
     firstFieldRef.current?.focus();
 
     const trapFocus = (event: KeyboardEvent) => {
@@ -67,7 +70,10 @@ export function TransferDialog({ open, onClose, onTransfer, operators, loading }
     };
 
     document.addEventListener('keydown', trapFocus);
-    return () => document.removeEventListener('keydown', trapFocus);
+    return () => {
+      document.removeEventListener('keydown', trapFocus);
+      previouslyFocused?.focus();
+    };
   }, [open, onClose]);
 
   const filtered = useMemo(() => {
@@ -93,13 +99,15 @@ export function TransferDialog({ open, onClose, onTransfer, operators, loading }
   if (!open) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Transfer session"
-    >
-      <div ref={dialogRef} className="bg-surface rounded-2xl shadow-2xl w-96 p-5 border border-border-default thai-text">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div
+        ref={dialogRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Transfer session"
+        className="bg-surface rounded-2xl shadow-2xl w-96 p-5 border border-border-default thai-text focus:outline-none"
+      >
         <h3 className="font-semibold text-text-primary text-sm mb-3 flex items-center gap-2 thai-no-break">
           <ArrowRightLeft className="w-4 h-4 text-warning" />Transfer Session
         </h3>
