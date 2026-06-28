@@ -53,7 +53,11 @@ class ConnectionManager:
         self.analytics_ws: Set[WebSocket] = set()
         self.analytics_subscribers: Dict[str, int] = {}
         self._pubsub_initialized = False
-        self.server_id = uuid.uuid4().hex[:12]
+        # Full 128-bit id (not truncated): the _origin loopback guard compares
+        # server_ids, so a collision would make one instance silently suppress
+        # another's broadcasts. 48 bits was unlikely to collide; 128 makes it
+        # negligible at zero cost.
+        self.server_id = uuid.uuid4().hex
 
     async def initialize(self):
         """Initialize Pub/Sub subscriptions for cross-server communication."""
@@ -85,6 +89,12 @@ class ConnectionManager:
         Skip our OWN loopback: if _origin is this server, the direct
         _broadcast_local in broadcast_to_all already delivered this message, so
         rebroadcasting here would double-deliver it to every local admin.
+
+        Trust boundary: _origin is only as trustworthy as Redis itself. A
+        compromised Redis node could spoof _origin to suppress a legitimate
+        cross-instance broadcast, but Redis is an internal-only component — an
+        attacker with Redis write access can already do far worse (forge
+        presence, inject messages), so this is out of scope here.
         """
         if data.get("_origin") == self.server_id:
             return
