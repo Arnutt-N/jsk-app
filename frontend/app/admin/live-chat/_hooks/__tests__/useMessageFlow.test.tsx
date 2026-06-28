@@ -152,6 +152,50 @@ describe('useMessageFlow', () => {
     expect(store().failedMessages.has(tempId)).toBe(false);
   });
 
+  it("a stale message's ack-timeout does not release sending for a newer in-flight send", async () => {
+    const { view } = setup({ wsStatus: 'connected' });
+
+    // Send A at t=0 (its 10s timeout is scheduled for t=10000).
+    await act(async () => {
+      await view.result.current.sendMessage('msg-A');
+    });
+    const tempA = store().messages[0].temp_id!;
+
+    // A's server echo arrives (message_sent) → pending cleared AND sending
+    // released. handleMessageAck alone does NOT release sending — only the
+    // message_sent / failure / timeout paths do.
+    act(() => {
+      view.result.current.handleMessageSent(
+        baseMessage({ id: 50, temp_id: tempA, content: 'msg-A' }),
+      );
+    });
+    expect(store().sending).toBe(false);
+
+    // Advance 100ms so B gets a distinct temp id (Date.now() under fake timers).
+    await act(async () => {
+      vi.advanceTimersByTime(100);
+    });
+
+    // Send B at t=100 → in-flight (sending true), still pending.
+    await act(async () => {
+      await view.result.current.sendMessage('msg-B');
+    });
+    const tempB = store().messages[store().messages.length - 1].temp_id!;
+    expect(tempB).not.toBe(tempA);
+    expect(store().sending).toBe(true);
+
+    // Advance to t=10000 so ONLY A's timeout fires (B's is at t=10100). Before
+    // the fix this cleared B's `sending` flag; now A's timeout is a no-op
+    // because A is no longer pending.
+    await act(async () => {
+      vi.advanceTimersByTime(9900);
+    });
+
+    expect(store().sending).toBe(true);
+    expect(store().pendingMessages.has(tempB)).toBe(true);
+    expect(store().failedMessages.has(tempB)).toBe(false);
+  });
+
   it('B6.2 — an inbound message with the same temp_id replaces the optimistic bubble (no duplicate)', async () => {
     const { view } = setup({ selectedId: 'U1', wsStatus: 'connected' });
 

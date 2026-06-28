@@ -135,14 +135,17 @@ export function useMessageFlow({
     if (wsStatusRef.current === 'connected') {
       wsSendMessageRef.current(text, tempId);
       // Fallback: fail the optimistic message if the WS ack never arrives.
+      // Guard everything on THIS tempId still being pending — otherwise an
+      // earlier message's timeout would clear the global `sending` flag (or
+      // fail) a newer in-flight send that has already replaced it.
       setTimeout(() => {
         const store = getStore();
         if (store.pendingMessages.has(tempId)) {
           store.removePending(tempId);
           store.setFailed(tempId, 'Message acknowledgment timed out');
-        }
-        if (store.sending) {
-          store.setSending(false);
+          if (store.sending) {
+            store.setSending(false);
+          }
         }
       }, ACK_TIMEOUT_MS);
       return;
