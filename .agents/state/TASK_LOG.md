@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 115 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 116 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-28 17:51 — claude_code — completed
+
+Fan-out (3 agents: reviewer/investigator/architect) → completed all 3 follow-up tasks. (1) PR #117 (PR1 quick wins) REVIEWED (code-reviewer: SHIP, 0 issues; found MESSAGE_ACK is dead code on backend) + MERGED to main (squash 58ea66a). (2) PR #118 OPENED = PR2 architectural: Fix A Redis broadcast_to_all/broadcast_to_room self-loopback double-delivery → stamp _origin=server_id in pubsub envelope + early-return in _handle_remote_broadcast/_handle_remote_room_message when origin==self; Fix B JWT removed from WS URL query param (backend-only, frontend already sends token in auth msg) → removed Query(None)+query_token fallback. +5 tests. Validation: targeted pytest 42/42, full suite 485 passed (27 ERRORs = pre-existing DB-unavailable app-boot integration tests, Postgres not running in WSL, unrelated). (3) Redis status: LIKELY ACTIVE in prod — deploy docs set REDIS_URL=Upstash on Koyeb + pubsub inits at startup, so #1 double-delivery active even single-instance. All 6 pr-116-review follow-ups now closed (4 in #117, 2 in #118).
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260628-1751.json`
+- Summary: `project-log-md/claude_code/session-summary-20260628-1751.md`
+
+---
 
 ### 2026-06-28 16:52 — claude_code — completed
 

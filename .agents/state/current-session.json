@@ -1,14 +1,21 @@
 {
-  "last_updated": "2026-06-28T16:52:00+07:00",
+  "last_updated": "2026-06-28T17:51:00+07:00",
   "platform": "claude_code",
-  "current_task": "PR #117 opened (branch fix/livechat-followups-pr1-quickwins): PR1 follow-ups = 4 quick wins from PR #116 review — (#2) prune admin_display_names on last disconnect (slow leak + stale-name fix); (#3) m",
+  "current_task": "Fan-out (3 agents: reviewer/investigator/architect) → completed all 3 follow-up tasks. (1) PR #117 (PR1 quick wins) REVIEWED (code-reviewer: SHIP, 0 issues; found MESSAGE_ACK is dead code on backend) ",
   "plan_status": "completed",
   "next_steps": [
-    "Review + merge PR #117 (CI Actions disabled — validation was local in WSL)",
-    "Open PR2 for the 2 deferred architectural items: Redis broadcast_to_all self-loopback double-delivery (websocket_manager.py:389, active even single-instance once REDIS_URL=Upstash) + JWT-in-WS-URL (ws_live_chat.py) — both need regression tests",
-    "Confirm whether Koyeb REDIS_URL points at Upstash; if yes the #1 double-delivery bug is already live"
+    "Review + merge PR #118 (PR2); CI Actions disabled so validation was local in WSL",
+    "Verify Redis self-loopback bug WAS active in prod: GET /api/v1/health -> connection_stats.pubsub_connected (true=was active) OR check Koyeb env REDIS_URL — #118 fixes it once merged+auto-deployed via Koyeb",
+    "Optional: run full backend pytest with Postgres UP (docker on Windows host) to clear the 27 DB-unavailable ERRORs and confirm integration tests green"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-06-28T17:51:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "58ea66a",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-06-28T16:52:00+07:00",
       "platform": "claude_code",
@@ -140,13 +147,6 @@
       "platform": "claude_code",
       "branch": "docs/livechat-audit-remediation-prp",
       "head": "e1823ad",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-22T07:27:00+07:00",
-      "platform": "claude_code",
-      "branch": "docs/livechat-audit-remediation-prp",
-      "head": "5b0bd3e",
       "status": "completed"
     }
   ],
