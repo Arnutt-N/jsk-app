@@ -6,7 +6,11 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Any, List, Optional
 from app.api import deps
-from app.services.live_chat_service import live_chat_service
+from app.services.live_chat_service import (
+    live_chat_service,
+    TRANSFER_ERR_NO_ACTIVE_SESSION,
+    TRANSFER_ERR_NOT_CURRENT_OPERATOR,
+)
 from app.schemas.live_chat import (
     ConversationList, ConversationDetail,
     SendMessageRequest, ModeToggleRequest
@@ -314,9 +318,12 @@ async def transfer_conversation(
         )
     except ValueError as e:
         detail = str(e)
-        if "No active session found" in detail:
+        # Exact equality against the service-owned error constants (not a
+        # substring match) so a wording change to one constant cannot silently
+        # re-route the status code or let an unrelated message slip through.
+        if detail == TRANSFER_ERR_NO_ACTIVE_SESSION:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=detail)
-        if "Only the current operator" in detail:
+        if detail == TRANSFER_ERR_NOT_CURRENT_OPERATOR:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=detail)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=detail)
 

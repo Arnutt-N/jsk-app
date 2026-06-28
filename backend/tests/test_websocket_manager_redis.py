@@ -110,6 +110,40 @@ async def test_disconnect_one_tab_keeps_remaining_room_membership():
 
 
 @pytest.mark.asyncio
+async def test_disconnect_prunes_cached_display_name_on_last_connection():
+    manager = ConnectionManager()
+    ws = FakeWebSocket()
+
+    await manager.register(ws, "5")
+    # The real cache is populated from the DB at register time, which isn't
+    # available in this unit test, so seed it directly to exercise the prune.
+    manager.admin_display_names["5"] = "Alice"
+
+    await manager.disconnect(ws)
+
+    assert "5" not in manager.admin_display_names
+
+
+@pytest.mark.asyncio
+async def test_disconnect_keeps_cached_display_name_while_another_tab_open():
+    manager = ConnectionManager()
+    ws1 = FakeWebSocket()
+    ws2 = FakeWebSocket()
+
+    await manager.register(ws1, "5")
+    await manager.register(ws2, "5")
+    manager.admin_display_names["5"] = "Alice"
+
+    await manager.disconnect(ws1)
+    # One tab is still connected — the cache must survive.
+    assert manager.admin_display_names.get("5") == "Alice"
+
+    await manager.disconnect(ws2)
+    # Last connection gone — now it is pruned.
+    assert "5" not in manager.admin_display_names
+
+
+@pytest.mark.asyncio
 async def test_is_admin_in_room_global_falls_back_to_local_room_state():
     manager = ConnectionManager()
     ws = FakeWebSocket()

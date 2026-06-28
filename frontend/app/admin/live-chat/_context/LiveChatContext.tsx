@@ -172,6 +172,25 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
   }, [fetchConversations]);
 
   const adminId = user?.id || '1';
+
+  // Stable identity so useLiveChatSocket's status effect only fires on an
+  // actual connectionState change, not on every provider re-render. Reads the
+  // previous status from wsStatusRef so it needs no reactive deps (getStore is
+  // module-level, setWsStatus and wsStatusRef are stable).
+  const handleConnectionChange = useCallback((status: ConnectionState) => {
+    const wasOffline = wsStatusRef.current !== 'connected';
+    setWsStatus(status);
+    if (status === 'connected') {
+      getStore().setBackendOnline(true);
+      if (wasOffline) {
+        getStore().addNotification({
+          title: 'Connected',
+          message: 'WebSocket connection restored',
+          type: 'system',
+        });
+      }
+    }
+  }, []);
   const {
     joinRoom,
     leaveRoom,
@@ -267,20 +286,7 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
       });
     },
     onConversationUpdate: handleConversationUpdate,
-    onConnectionChange: (status) => {
-      const wasOffline = wsStatus !== 'connected';
-      setWsStatus(status);
-      if (status === 'connected') {
-        getStore().setBackendOnline(true);
-        if (wasOffline) {
-          getStore().addNotification({
-            title: 'Connected',
-            message: 'WebSocket connection restored',
-            type: 'system',
-          });
-        }
-      }
-    },
+    onConnectionChange: handleConnectionChange,
   });
 
   // Bridge the socket's sendMessage into useMessageFlow, which is composed

@@ -146,6 +146,11 @@ class ConnectionManager:
                 # Clean up admin metadata to prevent memory leak
                 if admin_id in self.admin_metadata:
                     del self.admin_metadata[admin_id]
+                # Drop the cached display_name too — otherwise it leaks for
+                # every operator that ever connects and goes stale after a
+                # rename (the cache early-returns while the key is present, so
+                # a reconnect would keep serving the old name).
+                self.admin_display_names.pop(str(admin_id), None)
                 await self._redis_unregister_presence(admin_id)
             else:
                 await self._redis_register_presence(admin_id)
