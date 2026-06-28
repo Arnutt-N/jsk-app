@@ -167,7 +167,7 @@ When มีลูกค้าหลายคนรอในคิวพร้อ
 | 5 | React/Perf Hardening | M10, M11b, M12, M13, L8, L9 | pending | with 2 | 1 | [plan](../plans/phase-5-react-perf-hardening.plan.md) |
 | 6 | Operator UX (Multi-operator, Must) | H2, M15, M16, M17 + backend (presence broadcast, display_name, roster, transfer 4xx) | pending | - | 2, 3, 5 | [plan](../plans/phase-6-operator-ux-multi-operator.plan.md) |
 | 7 | Operator UX (Could) | M18, M19, M20, L10 | pending | - | 6 | [plan](../plans/phase-7-operator-ux-enhancements.plan.md) |
-| 8 | Provider Refactor | แตก LiveChatProvider ~800 บรรทัดเป็น custom hooks | pending | - | 6 | [plan](../plans/phase-8-provider-refactor.plan.md) |
+| 8 | Provider Refactor | แตก LiveChatProvider ~800 บรรทัดเป็น custom hooks | done ✅ (2026-06-28) | - | 6 | [plan](../plans/completed/phase-8-provider-refactor.plan.md) · [report](../reports/phase-8-provider-refactor-report.md) |
 
 ### File Ownership & Branch Strategy (แก้ MAJOR กลุ่ม 3)
 
