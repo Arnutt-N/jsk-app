@@ -306,3 +306,22 @@ class TestWebSocketAuthHelper:
         assert admin_id is None
         mock_send.assert_awaited_once()
 
+
+
+@pytest.mark.asyncio
+async def test_handle_auth_rejects_when_payload_has_no_token():
+    """No token in the auth payload -> rejected. The query-param fallback is gone."""
+    from app.api.v1.endpoints.ws_live_chat import handle_auth
+    websocket = SimpleNamespace()
+    with patch("app.api.v1.endpoints.ws_live_chat.ws_manager.send_personal", new=AsyncMock()) as mock_send:
+        admin_id = await handle_auth(websocket, {})
+    assert admin_id is None
+    mock_send.assert_awaited()
+
+
+def test_websocket_endpoint_does_not_accept_token_query_param():
+    """The JWT must not be accepted as a URL query parameter (logs/history leak)."""
+    import inspect
+    from app.api.v1.endpoints.ws_live_chat import websocket_endpoint
+    sig = inspect.signature(websocket_endpoint)
+    assert "token" not in sig.parameters

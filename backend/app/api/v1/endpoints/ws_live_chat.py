@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, Query
+from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from typing import Optional
 from datetime import datetime, timezone
 import logging
@@ -99,21 +99,22 @@ async def authenticate_ws_user(websocket: WebSocket, token: Optional[str]) -> Op
         return None
 
 
-async def handle_auth(websocket: WebSocket, payload: dict, query_token: Optional[str] = None) -> Optional[str]:
+async def handle_auth(websocket: WebSocket, payload: dict) -> Optional[str]:
     """
     Authenticate WebSocket connection using an access token.
 
-    Token can be provided via:
-    1. Auth message payload: {"token": "<jwt>"}
-    2. Query parameter: ?token=<jwt>
+    Token must be provided in the auth message payload:
+        {"type": "auth", "payload": {"token": "<jwt>"}}
+
+    The token is deliberately NOT accepted as a URL query parameter — that would
+    leak the JWT into server/proxy access logs and browser history.
     """
-    # Get token from payload or fallback to query param
     try:
         auth_data = AuthPayload(**payload) if payload.get('token') else None
-        token = auth_data.token if auth_data else query_token
+        token = auth_data.token if auth_data else None
     except ValidationError as e:
         logger.warning(f"Auth payload validation failed: {e}")
-        token = query_token  # Fallback to query param
+        token = None
 
     return await authenticate_ws_user(websocket, token)
 
@@ -121,12 +122,13 @@ async def handle_auth(websocket: WebSocket, payload: dict, query_token: Optional
 @router.websocket("/ws/live-chat")
 async def websocket_endpoint(
     websocket: WebSocket,
-    token: Optional[str] = Query(None)
 ):
     """
     WebSocket endpoint for live chat real-time communication.
 
-    Connect: ws://host/api/v1/ws/live-chat?token=<jwt>
+    Connect: ws://host/api/v1/ws/live-chat
+    (send {"type": "auth", "payload": {"token": "<jwt>"}} as the first message;
+     the token is NOT accepted as a URL query parameter)
 
     Flow:
     1. Client connects
@@ -165,7 +167,7 @@ async def websocket_endpoint(
 
             # === AUTH (must be first) ===
             if msg_type == WSEventType.AUTH.value:
-                admin_id = await handle_auth(websocket, payload, token)  # Pass query token
+                admin_id = await handle_auth(websocket, payload)
                 if admin_id:
                     await ws_manager.register(websocket, admin_id)
                     ws_health_monitor.record_connection(admin_id)
