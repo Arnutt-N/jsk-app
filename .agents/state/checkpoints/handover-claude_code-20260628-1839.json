@@ -1,0 +1,18 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-06-28T18:39:00+07:00",
+  "branch": "main",
+  "head_commit": "eaf39d9",
+  "status": "completed",
+  "work_summary": "PR #118 (PR2 architectural) REVIEWED by 2 independent agents (security-reviewer + fastapi-reviewer, both SHIP, 0 blockers) + MERGED to main (squash eaf39d9). Fix A (Redis broadcast self-loopback dedup via _origin stamp) + Fix B (JWT removed from WS URL query param) now on main → Koyeb auto-deploys to prod. Reviewers confirmed: cross-instance delivery correct (no missed/double single+multi), backward-compat across rolling deploy, _origin never leaks to clients, no auth bypass, frontend already sends token in auth message (no client used ?token=). ALL 6 PR #116 follow-ups now CLOSED + merged (4 in #117, 2 in #118). 3 LOW optional follow-ups noted (non-blocking): trust-boundary comment in _handle_remote_broadcast, server_id full 128-bit hex vs hex[:12], PR-note that loopback-test-3 is over-suppression guard not fail-before.",
+  "priority_actions": [
+    "Verify on prod after Koyeb redeploy: GET /api/v1/health -> connection_stats.pubsub_connected; the broadcast double-delivery bug (#1) should now be FIXED (operators should stop seeing duplicate presence/message frames)",
+    "Optional: run full backend pytest with Postgres UP (docker on Windows host) to clear the 27 DB-unavailable ERRORs and confirm app-boot integration tests are green",
+    "Optional 3 LOW polish items from #118 review (trust-boundary comment, 128-bit server_id) — bundle into a future chore PR if desired"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/claude_code/session-summary-20260628-1839.md",
+  "cross_platform_read": []
+}

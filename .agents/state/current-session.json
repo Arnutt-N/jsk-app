@@ -1,14 +1,21 @@
 {
-  "last_updated": "2026-06-28T17:51:00+07:00",
+  "last_updated": "2026-06-28T18:39:00+07:00",
   "platform": "claude_code",
-  "current_task": "Fan-out (3 agents: reviewer/investigator/architect) → completed all 3 follow-up tasks. (1) PR #117 (PR1 quick wins) REVIEWED (code-reviewer: SHIP, 0 issues; found MESSAGE_ACK is dead code on backend) ",
+  "current_task": "PR #118 (PR2 architectural) REVIEWED by 2 independent agents (security-reviewer + fastapi-reviewer, both SHIP, 0 blockers) + MERGED to main (squash eaf39d9). Fix A (Redis broadcast self-loopback dedup",
   "plan_status": "completed",
   "next_steps": [
-    "Review + merge PR #118 (PR2); CI Actions disabled so validation was local in WSL",
-    "Verify Redis self-loopback bug WAS active in prod: GET /api/v1/health -> connection_stats.pubsub_connected (true=was active) OR check Koyeb env REDIS_URL — #118 fixes it once merged+auto-deployed via Koyeb",
-    "Optional: run full backend pytest with Postgres UP (docker on Windows host) to clear the 27 DB-unavailable ERRORs and confirm integration tests green"
+    "Verify on prod after Koyeb redeploy: GET /api/v1/health -> connection_stats.pubsub_connected; the broadcast double-delivery bug (#1) should now be FIXED (operators should stop seeing duplicate presence/message frames)",
+    "Optional: run full backend pytest with Postgres UP (docker on Windows host) to clear the 27 DB-unavailable ERRORs and confirm app-boot integration tests are green",
+    "Optional 3 LOW polish items from #118 review (trust-boundary comment, 128-bit server_id) — bundle into a future chore PR if desired"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-06-28T18:39:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "eaf39d9",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-06-28T17:51:00+07:00",
       "platform": "claude_code",
@@ -140,13 +147,6 @@
       "platform": "claude_code",
       "branch": "docs/livechat-audit-remediation-prp",
       "head": "3f269b8",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-24T22:14:00+07:00",
-      "platform": "claude_code",
-      "branch": "docs/livechat-audit-remediation-prp",
-      "head": "e1823ad",
       "status": "completed"
     }
   ],

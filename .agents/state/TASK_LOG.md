@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 116 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 117 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-28 18:39 — claude_code — completed
+
+PR #118 (PR2 architectural) REVIEWED by 2 independent agents (security-reviewer + fastapi-reviewer, both SHIP, 0 blockers) + MERGED to main (squash eaf39d9). Fix A (Redis broadcast self-loopback dedup via _origin stamp) + Fix B (JWT removed from WS URL query param) now on main → Koyeb auto-deploys to prod. Reviewers confirmed: cross-instance delivery correct (no missed/double single+multi), backward-compat across rolling deploy, _origin never leaks to clients, no auth bypass, frontend already sends token in auth message (no client used ?token=). ALL 6 PR #116 follow-ups now CLOSED + merged (4 in #117, 2 in #118). 3 LOW optional follow-ups noted (non-blocking): trust-boundary comment in _handle_remote_broadcast, server_id full 128-bit hex vs hex[:12], PR-note that loopback-test-3 is over-suppression guard not fail-before.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260628-1839.json`
+- Summary: `project-log-md/claude_code/session-summary-20260628-1839.md`
+
+---
 
 ### 2026-06-28 17:51 — claude_code — completed
 

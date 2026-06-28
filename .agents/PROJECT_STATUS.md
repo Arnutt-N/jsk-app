@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-06-28 17:51 by Claude Code (Fan-out 3 agents: reviewer/investigator/architect → completed all 3 follow-up tasks.)
+> **Last Updated:** 2026-06-28 18:39 by Claude Code (PR #118 PR2 architectural REVIEWED by 2 independent agents security-reviewer + fastapi-rev)
 
 ## Thai Summary
 ฟีเจอร์ **Rich Menu Switching + การกำหนดเมนูรายบุคคล (R1/R2)** เสร็จสมบูรณ์และขึ้น production แล้ว — merge เข้า main ผ่าน PR #114 (merge commit `3a90f4d`), migrate ฐานข้อมูล Supabase PROD (richmenu alias + user_rich_menu_links แบบ additive) และ deploy frontend บน Vercel เรียบร้อย
@@ -54,6 +54,7 @@
 - [2026-06-21] R1/R2 Rich Menu (incl Task 6.2 per-user UI) merged to `main` via PR #114 (`3a90f4d`); Supabase PROD migrated; Vercel frontend deployed. Branch `feat/rich-menu-switching-r1` deleted. Working tree clean.
 
 ## Recent Completions
+- [2026-06-28 18:39] Claude Code: PR #118 (PR2 architectural) REVIEWED by 2 independent agents (security-reviewer + fastapi-reviewer, both SHIP, 0 blockers) + MERGED to main (squash eaf39d9). Fix A (Redis broadcast self-loopback dedup via _origin stamp) + Fix B (JWT removed (Claude Code)
 - [2026-06-28 17:51] Claude Code: Fan-out (3 agents: reviewer/investigator/architect) → completed all 3 follow-up tasks. (1) PR #117 (PR1 quick wins) REVIEWED (code-reviewer: SHIP, 0 issues; found MESSAGE_ACK is dead code on backend) + MERGED to main (squash 58ea66a). (2) P (Claude Code)
 - [2026-06-28 16:52] Claude Code: PR #117 opened (branch fix/livechat-followups-pr1-quickwins): PR1 follow-ups = 4 quick wins from PR #116 review — (#2) prune admin_display_names on last disconnect (slow leak + stale-name fix); (#3) memoize onConnectionChange via useCallbac (Claude Code)
 - [2026-06-28 15:40] Claude Code: Session COMPLETE: PR #116 (live-chat audit remediation Phases 1-8 — a11y/perf/multi-operator/provider refactor) MERGED to main via squash 07ec9d1, branch deleted. This session = pre-merge review via 3 parallel agents (fastapi/react/security (Claude Code)
