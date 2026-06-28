@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 119 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 120 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-28 22:17 — claude_code — completed
+
+Final 2 optional tasks DONE — no code change needed. (Task 1) PR #119 verified on prod: /api/v1/health/websocket = uptime 3s, healthy, pubsub_connected=true -> server_id 128-bit deployed, no behavior change. (Task 2) Investigated the 27 WSL integration-test ERRORs: root cause was NOT a wrong test DB host. This WSL2 is in MIRRORED networking mode so conftest default 127.0.0.1:5432 IS correct (asyncpg probe: 127.0.0.1 OK + 31 tables migrated; gateway 172.26.160.1 actually TIMES OUT). The 27 errors only happened because the DB was not up/migrated when the full suite first ran (timing). Re-ran the 4 erroring files (test_websocket/test_session_claim/test_multi_operator/test_reconnection) with the default host against the up+migrated DB -> 27 PASSED. Full suite effectively 485 unit + 27 integration = 512 green with DB up; NO config fix required. Earlier session assumption "WSL 127.0.0.1 cannot see docker DB" was WRONG (mirrored mode); memory project_wsl_docker_split already said localhost:5432 works.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260628-2217.json`
+- Summary: `project-log-md/claude_code/session-summary-20260628-2217.md`
+
+---
 
 ### 2026-06-28 21:13 — claude_code — completed
 
