@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 112 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 113 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-28 15:12 — claude_code — completed
+
+Merged PR #116 (squash 07ec9d1) to main — live-chat audit remediation Phases 1-8 (a11y/perf/multi-operator/provider refactor). This session: pre-merge review via 3 parallel agents (fastapi/react/security) found 3 blockers per-phase reviews missed, fixed in cbc3064 (workload PII filter User.role!=USER, seed_live_chat_e2e prod-guard, TransferDialog focus-restore+ARIA-on-panel) + TransferDialog.a11y.test 3/3 + pr-116-review.md + posted review comment. Validation green: tsc 0, eslint 0, backend pytest 15/15, vitest 259+3. Branch deleted.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260628-1512.json`
+- Summary: `project-log-md/claude_code/session-summary-20260628-1512.md`
+
+---
 
 ### 2026-06-28 14:56 — claude_code — completed
 
