@@ -20,10 +20,17 @@ import type {
   PresencePayload,
   SessionTransferredPayload,
 } from '@/lib/websocket/types';
+import { readErrorMessage } from '@/lib/api-error';
 import { useLiveChatStore } from '../_store/liveChatStore';
-import type { Conversation, CurrentChat, Session } from '../_types';
+import type { Conversation, CurrentChat } from '../_types';
 import { API_BASE } from '../_lib/constants';
 import { useMediaQuery } from '../_hooks/useMediaQuery';
+import {
+  mergeConversationUpdate,
+  reorderConversationsToTop,
+  resolveOperatorName,
+  removeKey,
+} from '../_hooks/liveChatApi';
 
 interface ClaimContender {
   operatorId: number;
@@ -71,94 +78,6 @@ const LiveChatContext = createContext<LiveChatContextValue | undefined>(undefine
 
 // Helper to get current store state without subscribing
 const getStore = () => useLiveChatStore.getState();
-
-/**
- * Move (or insert) the updated conversation to the top of the list in a single
- * pass, preserving the relative order of the remaining conversations. A
- * not-present id is simply prepended (matching the old "new conversation"
- * branch). Pure + immutable: returns a new array, never mutates the input.
- */
-export function reorderConversationsToTop<T extends { line_user_id: string }>(list: T[], updated: T): T[] {
-  const next: T[] = [updated];
-  for (let i = 0; i < list.length; i++) {
-    if (list[i].line_user_id !== updated.line_user_id) next.push(list[i]);
-  }
-  return next;
-}
-
-const mergeSession = (existing: Session | undefined, incoming?: Session): Session | undefined => {
-  if (!incoming) return existing;
-  return {
-    id: incoming.id ?? existing?.id ?? 0,
-    status: incoming.status ?? existing?.status ?? 'WAITING',
-    started_at: incoming.started_at ?? existing?.started_at,
-    operator_id: incoming.operator_id ?? existing?.operator_id,
-  };
-};
-
-/**
- * Resolve an operator's human-readable name from the presence list, normalizing
- * the string presence id against the numeric operator id. Falls back to the
- * `Operator #id` convention shared with the backend payload.
- */
-export const resolveOperatorName = (
-  operators: PresencePayload['operators'],
-  operatorId: number,
-): string => {
-  const match = operators.find((op) => Number(op.id) === operatorId);
-  return match?.display_name || match?.name || `Operator #${operatorId}`;
-};
-
-/**
- * Immutably drop a key from a record. Returns the same reference when the key is
- * absent so React can bail out of a no-op state update.
- */
-export const removeKey = <V,>(record: Record<string, V>, key: string): Record<string, V> => {
-  if (!(key in record)) return record;
-  const next = { ...record };
-  delete next[key];
-  return next;
-};
-
-const mergeConversationUpdate = (
-  existing: CurrentChat | null,
-  data: ConversationUpdatePayload,
-  unreadCount: number,
-): CurrentChat => ({
-  line_user_id: data.line_user_id,
-  display_name: data.display_name ?? existing?.display_name ?? '',
-  picture_url: data.picture_url ?? existing?.picture_url ?? '',
-  friend_status: existing?.friend_status ?? 'ACTIVE',
-  chat_mode: data.chat_mode ?? existing?.chat_mode ?? 'BOT',
-  session: mergeSession(existing?.session, data.session),
-  last_message: data.last_message ?? existing?.last_message,
-  unread_count: unreadCount,
-  tags: data.tags ?? existing?.tags,
-  messages: data.messages ?? existing?.messages,
-});
-
-const readErrorMessage = async (response: Response, fallbackMessage: string): Promise<string> => {
-  const contentType = response.headers.get('content-type') || '';
-  if (contentType.includes('application/json')) {
-    try {
-      const payload = await response.clone().json();
-      if (typeof payload?.detail === 'string' && payload.detail.trim()) return payload.detail;
-      if (typeof payload?.message === 'string' && payload.message.trim()) return payload.message;
-      if (typeof payload?.error === 'string' && payload.error.trim()) return payload.error;
-    } catch {
-      // Fall through to text parsing and the default fallback.
-    }
-  }
-
-  try {
-    const text = (await response.text()).trim();
-    if (text) return text;
-  } catch {
-    // Ignore body parsing errors and use the fallback message.
-  }
-
-  return fallbackMessage;
-};
 
 export function LiveChatProvider({ children }: { children: React.ReactNode }) {
   // ── Zustand store ──

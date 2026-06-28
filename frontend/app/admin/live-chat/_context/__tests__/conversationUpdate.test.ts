@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import { reorderConversationsToTop } from '../LiveChatContext';
+import { reorderConversationsToTop } from '../../_hooks/liveChatApi';
 
 /**
  * Unit tests for the move-to-top helper extracted from handleConversationUpdate
