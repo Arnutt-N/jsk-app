@@ -1,14 +1,20 @@
 {
-  "last_updated": "2026-06-28T05:42:00+07:00",
+  "last_updated": "2026-06-28T10:42:00+07:00",
   "platform": "claude_code",
-  "current_task": "Phase 8 plan REFRESHED via 3 ecc reviewers (architect/react/code-reviewer) before implementing — verdict NEEDS-REFRESH-THEN-GO; added a REFRESH addendum to phase-8-provider-refactor.plan.md (commit c4",
+  "current_task": "Phase 8 provider refactor DONE — split 805-line LiveChatContext.tsx into a 395-line composition root + 6 hooks (useMediaQuery/liveChatApi/useMessageFlow/useChatRoom/useConversationSync/useLiveChatActi",
   "plan_status": "completed",
   "next_steps": [
-    "Implement Phase 8 in a FRESH session via ecc:prp-implement — sequential Task 0-7, validate per task, one-hook-per-commit; plan + REFRESH addendum ready in .claude/PRPs/plans/phase-8-provider-refactor.plan.md",
-    "Open PR for Phases 1-7 (branch docs/livechat-audit-remediation-prp unmerged, no PR)",
-    "After P8: ToastNotification discriminated union (P7 ts review MEDIUM, deferred, no runtime bug)"
+    "Manual 16-flow e2e on the WSL stack (claim/transfer/close/reconnect/typing/history/mobile/deep-link)",
+    "Open PR for docs/livechat-audit-remediation-prp covering Phases 1-8"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-06-28T10:42:00+07:00",
+      "platform": "claude_code",
+      "branch": "docs/livechat-audit-remediation-prp",
+      "head": "f96ba59",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-06-28T05:42:00+07:00",
       "platform": "claude_code",
@@ -140,13 +146,6 @@
       "platform": "claude_code",
       "branch": "feat/rich-menu-switching-r1",
       "head": "7075a25",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-21T17:33:00Z",
-      "platform": "claude_code",
-      "branch": "feat/rich-menu-switching-r1",
-      "head": "2ce0857",
       "status": "completed"
     }
   ],

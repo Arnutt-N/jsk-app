@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 109 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 110 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-28 10:42 — claude_code — completed
+
+Phase 8 provider refactor DONE — split 805-line LiveChatContext.tsx into a 395-line composition root + 6 hooks (useMediaQuery/liveChatApi/useMessageFlow/useChatRoom/useConversationSync/useLiveChatActions); 34-key contract preserved byte-for-byte; 0 consumer-component edits; sequential implement (Task 0-7, one-hook/commit) + 2 parallel ecc review rounds (7 agents, all SHIP); vitest 259/259, tsc/eslint 0, next build green. All 8 live-chat remediation phases now implemented on docs/livechat-audit-remediation-prp (unmerged).
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260628-1042.json`
+- Summary: `project-log-md/claude_code/session-summary-20260628-1042.md`
+
+---
 
 ### 2026-06-28 05:42 — claude_code — completed
 
