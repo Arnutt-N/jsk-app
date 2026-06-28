@@ -8,27 +8,20 @@ import React, {
   useMemo,
   useRef,
 } from 'react';
-import { useSearchParams } from 'next/navigation';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useLiveChatSocket } from '@/hooks/useLiveChatSocket';
 import { useNotificationSound } from '@/hooks/useNotificationSound';
 import type {
   ConnectionState,
-  ConversationUpdatePayload,
   PresencePayload,
   SessionTransferredPayload,
 } from '@/lib/websocket/types';
 import { useLiveChatStore } from '../_store/liveChatStore';
-import type { Conversation, CurrentChat } from '../_types';
-import { API_BASE } from '../_lib/constants';
+import type { Conversation } from '../_types';
+import { resolveOperatorName, removeKey } from '../_hooks/liveChatApi';
 import { useMediaQuery } from '../_hooks/useMediaQuery';
-import {
-  mergeConversationUpdate,
-  reorderConversationsToTop,
-  resolveOperatorName,
-  removeKey,
-} from '../_hooks/liveChatApi';
+import { useConversationSync } from '../_hooks/useConversationSync';
 import { useMessageFlow } from '../_hooks/useMessageFlow';
 import { useChatRoom } from '../_hooks/useChatRoom';
 
@@ -87,23 +80,19 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
   // (selectedConversation, isHumanMode) and effects. All other UI fields
   // (inputText, sending, pickers, etc.) are read directly from the store by
   // the components that need them, so the provider does not re-render on them.
-  const conversations = store((s) => s.conversations);
   const selectedId = store((s) => s.selectedId);
   const currentChat = store((s) => s.currentChat);
 
   const { user, token } = useAuth();
-  const searchParams = useSearchParams();
   const { playNotification, setEnabled } = useNotificationSound();
 
   const selectedIdRef = useRef<string | null>(null);
   const wsStatusRef = useRef<ConnectionState>('disconnected');
   const wsSendMessageRef = useRef<(text: string, tempId?: string) => void>(() => {});
-  const initializedRef = useRef<boolean>(false);
   const typingUsersRef = useRef<Set<string>>(new Set());
   const [wsStatus, setWsStatus] = React.useState<ConnectionState>('disconnected');
   const isMobileView = useMediaQuery('(max-width: 767px)');
   const [typingUsersCount, setTypingUsersCount] = React.useState(0);
-  const [focusedMessageId, setFocusedMessageId] = React.useState<number | null>(null);
   // Multi-operator presence + claim contention (Phase 6).
   const [onlineOperators, setOnlineOperators] = React.useState<PresencePayload['operators']>([]);
   const [claimContenders, setClaimContenders] = React.useState<Record<string, ClaimContender>>({});
@@ -159,47 +148,18 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
     setEnabled(value);
   }, [setEnabled]);
 
-  // ── API methods ──
-  const fetchConversations = useCallback(async () => {
-    const currentFilter = getStore().filterStatus;
-    try {
-      const res = await fetch(`${API_BASE}/admin/live-chat/conversations${currentFilter ? `?status=${currentFilter}` : ''}`);
-      if (res.ok) {
-        const data = await res.json();
-        getStore().setConversations(data.conversations || data || []);
-        getStore().setBackendOnline(true);
-      } else {
-        getStore().setBackendOnline(false);
-      }
-    } catch {
-      getStore().setBackendOnline(false);
-    } finally {
-      getStore().setLoading(false);
-    }
-  }, []);
-
-  const fetchChatDetail = useCallback(async (id: string, includeMessages = true) => {
-    try {
-      const res = await fetch(`${API_BASE}/admin/live-chat/conversations/${id}`);
-      if (!res.ok) return;
-      const data = (await res.json()) as CurrentChat;
-      if (selectedIdRef.current !== id) return;
-      getStore().setCurrentChat(data);
-      if (includeMessages) {
-        const nextMessages = data.messages || [];
-        getStore().setMessages(nextMessages);
-        getStore().setHasMoreHistory(nextMessages.length >= 50);
-      }
-      getStore().setBackendOnline(true);
-    } catch {
-      getStore().setBackendOnline(false);
-    }
-  }, []);
-
-  const refreshConversationState = useCallback(async (lineUserId: string, includeMessages = false) => {
-    await fetchChatDetail(lineUserId, includeMessages);
-    await fetchConversations();
-  }, [fetchChatDetail, fetchConversations]);
+  // ── Conversation sync (list + detail + selection + polling) ──
+  const {
+    fetchConversations,
+    fetchChatDetail,
+    refreshConversationState,
+    handleConversationUpdate,
+    selectConversation,
+    jumpToMessage,
+    clearFocusedMessage,
+    focusedMessageId,
+    selectedConversation,
+  } = useConversationSync({ selectedIdRef, wsStatusRef });
 
   const {
     sendMessage,
@@ -219,38 +179,6 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
     fetchChatDetail,
     fetchConversations,
   });
-
-  const handleConversationUpdate = useCallback((data: ConversationUpdatePayload) => {
-    const currentSelectedId = selectedIdRef.current;
-    const isSelected = currentSelectedId === data.line_user_id;
-    const list = [...getStore().conversations];
-    const idx = list.findIndex((c) => c.line_user_id === data.line_user_id);
-    let unread = 0;
-    if (typeof data.unread_count === 'number') {
-      unread = data.unread_count;
-    } else if (!isSelected) {
-      unread = idx === -1 ? 1 : (list[idx]?.unread_count || 0) + 1;
-    }
-    const existingConversation = idx >= 0 ? list[idx] : null;
-    const baseChat = currentSelectedId === data.line_user_id
-      ? getStore().currentChat
-      : existingConversation
-        ? ({ ...existingConversation, messages: undefined } as CurrentChat)
-        : null;
-    const updated = mergeConversationUpdate(
-      baseChat,
-      data,
-      unread,
-    );
-    getStore().setConversations(reorderConversationsToTop(getStore().conversations, updated));
-    if (isSelected) {
-      const currentChat = mergeConversationUpdate(getStore().currentChat, data, unread);
-      getStore().setCurrentChat(currentChat);
-      if (data.messages) {
-        getStore().setMessages(data.messages);
-      }
-    }
-  }, []);
 
   const handleSessionTransferred = useCallback((payload: SessionTransferredPayload) => {
     const chat = getStore().currentChat;
@@ -398,50 +326,6 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
     wsTransferSession,
     wsConnected,
   });
-
-  const selectConversation = useCallback((id: string | null) => {
-    getStore().selectChat(id);
-    if (id) {
-      window.history.replaceState(null, '', `/admin/live-chat?chat=${id}`);
-      const next = getStore().conversations.map((c) => (
-        c.line_user_id === id ? { ...c, unread_count: 0 } : c
-      ));
-      getStore().setConversations(next);
-    } else {
-      window.history.replaceState(null, '', '/admin/live-chat');
-      getStore().setCurrentChat(null);
-      getStore().setMessages([]);
-    }
-  }, []);
-
-  const jumpToMessage = useCallback((lineUserId: string, messageId: number) => {
-    setFocusedMessageId(messageId);
-    selectConversation(lineUserId);
-  }, [selectConversation]);
-
-  const clearFocusedMessage = useCallback(() => {
-    setFocusedMessageId(null);
-  }, []);
-
-  useEffect(() => {
-    if (!initializedRef.current) {
-      const chatId = searchParams.get('chat');
-      if (chatId) getStore().selectChat(chatId);
-      initializedRef.current = true;
-    }
-  }, [searchParams]);
-
-  useEffect(() => {
-    fetchConversations();
-    const interval = setInterval(() => {
-      if (wsStatusRef.current !== 'connected') fetchConversations();
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [fetchConversations]);
-
-  const selectedConversation = useMemo(() => (
-    conversations.find((c) => c.line_user_id === selectedId) || null
-  ), [conversations, selectedId]);
 
   const isHumanMode = currentChat?.chat_mode === 'HUMAN';
 
