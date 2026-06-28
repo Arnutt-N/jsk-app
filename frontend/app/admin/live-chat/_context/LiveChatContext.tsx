@@ -16,7 +16,6 @@ import { useNotificationSound } from '@/hooks/useNotificationSound';
 import type {
   ConnectionState,
   ConversationUpdatePayload,
-  Message,
   PresencePayload,
   SessionTransferredPayload,
 } from '@/lib/websocket/types';
@@ -31,6 +30,7 @@ import {
   resolveOperatorName,
   removeKey,
 } from '../_hooks/liveChatApi';
+import { useMessageFlow } from '../_hooks/useMessageFlow';
 
 interface ClaimContender {
   operatorId: number;
@@ -90,15 +90,14 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
   const conversations = store((s) => s.conversations);
   const selectedId = store((s) => s.selectedId);
   const currentChat = store((s) => s.currentChat);
-  const messages = store((s) => s.messages);
 
   const { user, token } = useAuth();
   const searchParams = useSearchParams();
   const { playNotification, setEnabled } = useNotificationSound();
 
   const selectedIdRef = useRef<string | null>(null);
-  const messagesRef = useRef<Message[]>([]);
   const wsStatusRef = useRef<ConnectionState>('disconnected');
+  const wsSendMessageRef = useRef<(text: string, tempId?: string) => void>(() => {});
   const firstLoadRef = useRef<boolean>(true);
   const initializedRef = useRef<boolean>(false);
   const typingUsersRef = useRef<Set<string>>(new Set());
@@ -121,8 +120,7 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     selectedIdRef.current = selectedId;
-    messagesRef.current = messages;
-  }, [selectedId, messages]);
+  }, [selectedId]);
 
   useEffect(() => {
     wsStatusRef.current = wsStatus;
@@ -204,56 +202,24 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
     await fetchConversations();
   }, [fetchChatDetail, fetchConversations]);
 
-  const fetchMessagesPage = useCallback(async (id: string, beforeId?: number) => {
-    const query = new URLSearchParams();
-    query.set('limit', '50');
-    if (beforeId) query.set('before_id', String(beforeId));
-    const res = await fetch(`${API_BASE}/admin/live-chat/conversations/${id}/messages?${query.toString()}`);
-    if (!res.ok) throw new Error('failed to load messages');
-    return res.json() as Promise<{ messages: Message[]; has_more: boolean }>;
-  }, []);
-
-  const handleMessageAck = useCallback((tempId: string) => {
-    getStore().removePending(tempId);
-    getStore().clearFailed(tempId);
-  }, []);
-
-  const handleNewMessage = useCallback((message: Message) => {
-    if (message.direction === 'INCOMING') {
-      playNotification();
-      // Fire toast if not viewing this conversation. Resolve the customer's
-      // display name from the live store snapshot (operator_name is wrong on an
-      // INCOMING message); carry lineUserId so the toast can open the room.
-      if (message.line_user_id !== selectedIdRef.current) {
-        const customerName = getStore().conversations.find(
-          (c) => c.line_user_id === message.line_user_id,
-        )?.display_name;
-        getStore().addNotification({
-          title: customerName || 'ข้อความใหม่',
-          message: message.content?.substring(0, 100) || 'New message received',
-          avatar: undefined,
-          type: 'message',
-          lineUserId: message.line_user_id,
-        });
-      }
-    }
-    if (message.line_user_id !== selectedIdRef.current) return;
-    const currentMessages = messagesRef.current;
-    const exists = currentMessages.some((m) => m.id === message.id || (message.temp_id && m.temp_id === message.temp_id));
-    if (exists) {
-      const next = currentMessages.map((m) => ((m.temp_id && m.temp_id === message.temp_id) ? message : m));
-      getStore().setMessages(next);
-      return;
-    }
-    getStore().addMessage(message);
-  }, [playNotification]);
-
-  const handleMessageSent = useCallback((message: Message) => {
-    handleNewMessage(message);
-    if (message.temp_id) handleMessageAck(message.temp_id);
-    getStore().setSending(false);
-    getStore().setInputText('');
-  }, [handleMessageAck, handleNewMessage]);
+  const {
+    sendMessage,
+    sendMedia,
+    loadOlderMessages,
+    handleNewMessage,
+    handleMessageSent,
+    handleMessageAck,
+    handleMessageFailed,
+    fetchMessagesPage,
+  } = useMessageFlow({
+    selectedIdRef,
+    wsStatusRef,
+    wsSendMessageRef,
+    playNotification,
+    userDisplayName: user?.display_name,
+    fetchChatDetail,
+    fetchConversations,
+  });
 
   const handleConversationUpdate = useCallback((data: ConversationUpdatePayload) => {
     const currentSelectedId = selectedIdRef.current;
@@ -317,11 +283,7 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
     onNewMessage: handleNewMessage,
     onMessageSent: handleMessageSent,
     onMessageAck: (tempId) => handleMessageAck(tempId),
-    onMessageFailed: (tempId, error) => {
-      getStore().removePending(tempId);
-      getStore().setFailed(tempId, error);
-      getStore().setSending(false);
-    },
+    onMessageFailed: handleMessageFailed,
     onTyping: (_lineUserId, admin, isTyping) => {
       const next = new Set(typingUsersRef.current);
       if (isTyping) next.add(admin);
@@ -415,6 +377,13 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
     },
   });
 
+  // Bridge the socket's sendMessage into useMessageFlow, which is composed
+  // before the socket exists (it supplies the socket's message handlers).
+  // Pure ref-sync; sendMessage reads `.current` at call time, after mount.
+  useEffect(() => {
+    wsSendMessageRef.current = wsSendMessage;
+  }, [wsSendMessage]);
+
   const selectConversation = useCallback((id: string | null) => {
     getStore().selectChat(id);
     if (id) {
@@ -481,79 +450,6 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
     }, 3000);
     return () => clearInterval(interval);
   }, [fetchChatDetail, selectedId]);
-
-  const sendMessage = useCallback(async (text: string) => {
-    const s = getStore();
-    if (!s.selectedId || !text.trim() || s.sending) return;
-    s.setSending(true);
-    const tempId = `temp-${Date.now()}`;
-    const optimistic: Message = {
-      id: 0,
-      line_user_id: s.selectedId,
-      direction: 'OUTGOING',
-      content: text,
-      message_type: 'text',
-      sender_role: 'ADMIN',
-      operator_name: user?.display_name || 'Admin',
-      created_at: new Date().toISOString(),
-      temp_id: tempId,
-    };
-    s.addMessage(optimistic);
-    s.addPending(tempId);
-
-    if (wsStatusRef.current === 'connected') {
-      wsSendMessage(text, tempId);
-      // Fallback: fail the optimistic message if the WS ack never arrives.
-      setTimeout(() => {
-        const store = getStore();
-        if (store.pendingMessages.has(tempId)) {
-          store.removePending(tempId);
-          store.setFailed(tempId, 'Message acknowledgment timed out');
-        }
-        if (store.sending) {
-          store.setSending(false);
-        }
-      }, 10000);
-      return;
-    }
-
-    try {
-      const res = await fetch(`${API_BASE}/admin/live-chat/conversations/${s.selectedId}/messages`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text }),
-      });
-      if (!res.ok) throw new Error('send failed');
-      await Promise.all([fetchChatDetail(s.selectedId, true), fetchConversations()]);
-      handleMessageAck(tempId);
-      getStore().setInputText('');
-    } catch {
-      getStore().setFailed(tempId, 'Failed to send');
-      getStore().removePending(tempId);
-    } finally {
-      getStore().setSending(false);
-    }
-  }, [fetchChatDetail, fetchConversations, handleMessageAck, user?.display_name, wsSendMessage]);
-
-  const sendMedia = useCallback(async (file: File) => {
-    const s = getStore();
-    if (!s.selectedId || s.sending) return;
-    s.setSending(true);
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      const res = await fetch(`${API_BASE}/admin/live-chat/conversations/${s.selectedId}/media`, {
-        method: 'POST',
-        body: formData,
-      });
-      if (!res.ok) throw new Error('media send failed');
-      await Promise.all([fetchChatDetail(s.selectedId, true), fetchConversations()]);
-    } catch {
-      getStore().setBackendOnline(false);
-    } finally {
-      getStore().setSending(false);
-    }
-  }, [fetchChatDetail, fetchConversations]);
 
   const claimSession = useCallback(async () => {
     const s = getStore();
@@ -658,25 +554,6 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
     });
     if (res.ok) await fetchChatDetail(s.selectedId, false);
   }, [fetchChatDetail]);
-
-  const loadOlderMessages = useCallback(async () => {
-    const s = getStore();
-    if (!s.selectedId || s.isLoadingHistory || !s.hasMoreHistory) return;
-    const current = messagesRef.current;
-    const oldest = current[0];
-    if (!oldest?.id) {
-      s.setHasMoreHistory(false);
-      return;
-    }
-    s.setIsLoadingHistory(true);
-    try {
-      const page = await fetchMessagesPage(s.selectedId, oldest.id);
-      getStore().prependMessages(page.messages || []);
-      getStore().setHasMoreHistory(page.has_more);
-    } finally {
-      getStore().setIsLoadingHistory(false);
-    }
-  }, [fetchMessagesPage]);
 
   const selectedConversation = useMemo(() => (
     conversations.find((c) => c.line_user_id === selectedId) || null
