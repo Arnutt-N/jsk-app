@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 113 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 114 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-28 15:40 — claude_code — completed
+
+Session COMPLETE: PR #116 (live-chat audit remediation Phases 1-8 — a11y/perf/multi-operator/provider refactor) MERGED to main via squash 07ec9d1, branch deleted. This session = pre-merge review via 3 parallel agents (fastapi/react/security) which caught 3 cross-phase blockers per-phase reviews missed, fixed in cbc3064 BEFORE merge: (1) /admin/users/workload leaked LINE-customer PII to AGENT after Phase-6 widened auth get_current_admin->get_current_staff but kept select(User) unfiltered -> added User.role!=USER; (2) seed_live_chat_e2e --apply could write Supabase PROD -> default-deny non-local DB host; (3) TransferDialog focus-restore-on-close + role=dialog moved backdrop->panel (WCAG 2.4.3/4.1.2). +TransferDialog.a11y.test 3/3 + pr-116-review.md + posted review comment. Validation GREEN x2: tsc 0, eslint 0, backend pytest 15/15, frontend vitest 259+3 confirmed by 2 independent full runs (both exit 0). Working tree clean on main.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260628-1540.json`
+- Summary: `project-log-md/claude_code/session-summary-20260628-1540.md`
+
+---
 
 ### 2026-06-28 15:12 — claude_code — completed
 
