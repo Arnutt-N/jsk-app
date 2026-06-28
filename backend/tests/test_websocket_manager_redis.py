@@ -304,3 +304,67 @@ async def test_mark_operator_offline_aggregates_cross_day_availability():
         for key in touched_keys:
             assert fake.zsets[key].get(admin_id, 0.0) >= 0.0
         assert await fake.get(manager._operator_online_key(admin_id)) is None
+
+
+@pytest.mark.asyncio
+async def test_broadcast_to_all_no_double_delivery_on_self_loopback():
+    """With pubsub on, the publish loops back to THIS process. Local admins must
+    still receive the broadcast exactly once, not twice."""
+    manager = ConnectionManager()
+    manager._pubsub_initialized = True
+    ws1, ws2 = FakeWebSocket(), FakeWebSocket()
+    await manager.register(ws1, "1")
+    await manager.register(ws2, "2")
+
+    captured = {}
+
+    async def loopback_publish(_channel, message):
+        captured.update(message)
+        # Simulate Redis delivering the published message back to this process.
+        await manager._handle_remote_broadcast(dict(message))
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr("app.core.websocket_manager.pubsub_manager.publish", loopback_publish)
+        await manager.broadcast_to_all({"type": "test_event", "payload": {}})
+
+    # Before the fix these were 2 (direct local + loopback rebroadcast).
+    assert ws1.send_json.await_count == 1
+    assert ws2.send_json.await_count == 1
+    assert captured.get("_origin") == manager.server_id
+
+
+@pytest.mark.asyncio
+async def test_broadcast_to_room_no_double_delivery_on_self_loopback():
+    manager = ConnectionManager()
+    manager._pubsub_initialized = True
+    ws = FakeWebSocket()
+    room_id = "conversation:UABC"
+    await manager.register(ws, "3")
+    await manager.join_room(ws, room_id)
+
+    async def loopback_publish(_channel, message):
+        await manager._handle_remote_room_message(dict(message))
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr("app.core.websocket_manager.pubsub_manager.publish", loopback_publish)
+        await manager.broadcast_to_room(room_id, {"type": "new_message"})
+
+    # Before the fix this was 2 (direct room-local + loopback rebroadcast).
+    assert ws.send_json.await_count == 1
+
+
+@pytest.mark.asyncio
+async def test_remote_broadcast_from_other_server_still_delivers():
+    """The origin guard must suppress only OUR OWN loopback, never a genuine
+    broadcast that originated on a different server instance."""
+    manager = ConnectionManager()
+    ws = FakeWebSocket()
+    await manager.register(ws, "5")
+
+    await manager._handle_remote_broadcast({
+        "type": "presence_update",
+        "_origin": "a-different-server-id",
+        "_exclude_admin": None,
+    })
+
+    ws.send_json.assert_awaited_once()

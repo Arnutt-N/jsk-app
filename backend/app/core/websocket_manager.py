@@ -81,7 +81,13 @@ class ConnectionManager:
         here (mirrors _handle_remote_room_message) — otherwise an excluded admin
         would still receive the message via the pubsub round-trip even though the
         direct local broadcast skipped it.
+
+        Skip our OWN loopback: if _origin is this server, the direct
+        _broadcast_local in broadcast_to_all already delivered this message, so
+        rebroadcasting here would double-deliver it to every local admin.
         """
+        if data.get("_origin") == self.server_id:
+            return
         exclude_admin = data.get("_exclude_admin")
         # Strip internal routing fields before delivering to clients
         message = {k: v for k, v in data.items() if not k.startswith("_")}
@@ -89,6 +95,10 @@ class ConnectionManager:
 
     async def _handle_remote_room_message(self, data: dict):
         """Handle room message from other servers via Pub/Sub."""
+        # Skip our OWN loopback (see _handle_remote_broadcast): the direct
+        # _broadcast_room_local in broadcast_to_room already delivered it here.
+        if data.get("_origin") == self.server_id:
+            return
         room_id = data.get("_room_id")
         exclude_admin = data.get("_exclude_admin")
         if room_id:
@@ -362,6 +372,7 @@ class ConnectionManager:
                 **data,
                 "_room_id": room_id,
                 "_exclude_admin": derived_exclude_admin,
+                "_origin": self.server_id,
             }
             channel = f"{self.ROOM_CHANNEL_PREFIX}{room_id}"
             await pubsub_manager.publish(channel, message)
@@ -400,7 +411,7 @@ class ConnectionManager:
         if self._pubsub_initialized:
             await pubsub_manager.publish(
                 self.BROADCAST_CHANNEL,
-                {**data, "_exclude_admin": exclude_admin},
+                {**data, "_exclude_admin": exclude_admin, "_origin": self.server_id},
             )
 
         # Broadcast locally
