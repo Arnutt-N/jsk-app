@@ -1,13 +1,20 @@
 {
-  "last_updated": "2026-06-28T10:42:00+07:00",
+  "last_updated": "2026-06-28T11:06:00+07:00",
   "platform": "claude_code",
-  "current_task": "Phase 8 provider refactor DONE — split 805-line LiveChatContext.tsx into a 395-line composition root + 6 hooks (useMediaQuery/liveChatApi/useMessageFlow/useChatRoom/useConversationSync/useLiveChatActi",
+  "current_task": "All 8 live-chat remediation phases DONE + pushed; PR #116 refreshed to cover Phases 1-8 (title+body). Phase 8 this session: 805-line LiveChatContext.tsx -> 395-line composition root + 6 hooks (useMedi",
   "plan_status": "completed",
   "next_steps": [
-    "Manual 16-flow e2e on the WSL stack (claim/transfer/close/reconnect/typing/history/mobile/deep-link)",
-    "Open PR for docs/livechat-audit-remediation-prp covering Phases 1-8"
+    "Run manual 16-flow e2e + 2-client e2e on the WSL stack (claim/transfer/close/reconnect/typing/history/mobile/deep-link) before merging PR #116",
+    "Review + merge PR #116"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-06-28T11:06:00+07:00",
+      "platform": "claude_code",
+      "branch": "docs/livechat-audit-remediation-prp",
+      "head": "3713a0d",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-06-28T10:42:00+07:00",
       "platform": "claude_code",
@@ -139,13 +146,6 @@
       "platform": "claude_code",
       "branch": "main",
       "head": "3a90f4d",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-21T18:22:00Z",
-      "platform": "claude_code",
-      "branch": "feat/rich-menu-switching-r1",
-      "head": "7075a25",
       "status": "completed"
     }
   ],

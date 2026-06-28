@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-06-28 10:42 by Claude Code (Phase 8 provider refactor DONE — split 805-line LiveChatContext.tsx into a 395-line compos)
+> **Last Updated:** 2026-06-28 11:06 by Claude Code (All 8 live-chat remediation phases DONE + pushed; PR #116 refreshed to cover Phases 1-8 ti)
 
 ## Thai Summary
 ฟีเจอร์ **Rich Menu Switching + การกำหนดเมนูรายบุคคล (R1/R2)** เสร็จสมบูรณ์และขึ้น production แล้ว — merge เข้า main ผ่าน PR #114 (merge commit `3a90f4d`), migrate ฐานข้อมูล Supabase PROD (richmenu alias + user_rich_menu_links แบบ additive) และ deploy frontend บน Vercel เรียบร้อย
@@ -54,6 +54,7 @@
 - [2026-06-21] R1/R2 Rich Menu (incl Task 6.2 per-user UI) merged to `main` via PR #114 (`3a90f4d`); Supabase PROD migrated; Vercel frontend deployed. Branch `feat/rich-menu-switching-r1` deleted. Working tree clean.
 
 ## Recent Completions
+- [2026-06-28 11:06] Claude Code: All 8 live-chat remediation phases DONE + pushed; PR #116 refreshed to cover Phases 1-8 (title+body). Phase 8 this session: 805-line LiveChatContext.tsx -> 395-line composition root + 6 hooks (useMediaQuery/liveChatApi/useMessageFlow/useCha (Claude Code)
 - [2026-06-28 10:42] Claude Code: Phase 8 provider refactor DONE — split 805-line LiveChatContext.tsx into a 395-line composition root + 6 hooks (useMediaQuery/liveChatApi/useMessageFlow/useChatRoom/useConversationSync/useLiveChatActions); 34-key contract preserved byte-for (Claude Code)
 - [2026-06-28 05:42] Claude Code: Phase 8 plan REFRESHED via 3 ecc reviewers (architect/react/code-reviewer) before implementing — verdict NEEDS-REFRESH-THEN-GO; added a REFRESH addendum to phase-8-provider-refactor.plan.md (commit c400ad8). KEY DRIFT caught (plan written a (Claude Code)
 - [2026-06-28 00:48] Claude Code: Phase 7 operator UX (M18/M19/M20/L10) implemented via 5 parallel file-owned agents + 3-expertise review (react/a11y/ts); committed a91f23f. M18 hide manual mode toggle during session + Thai session-aware label; M19 quick-replies(preset) vs  (Claude Code)
