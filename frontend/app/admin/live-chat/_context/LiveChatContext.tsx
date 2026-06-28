@@ -19,7 +19,6 @@ import type {
   PresencePayload,
   SessionTransferredPayload,
 } from '@/lib/websocket/types';
-import { readErrorMessage } from '@/lib/api-error';
 import { useLiveChatStore } from '../_store/liveChatStore';
 import type { Conversation, CurrentChat } from '../_types';
 import { API_BASE } from '../_lib/constants';
@@ -31,6 +30,7 @@ import {
   removeKey,
 } from '../_hooks/liveChatApi';
 import { useMessageFlow } from '../_hooks/useMessageFlow';
+import { useChatRoom } from '../_hooks/useChatRoom';
 
 interface ClaimContender {
   operatorId: number;
@@ -98,7 +98,6 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
   const selectedIdRef = useRef<string | null>(null);
   const wsStatusRef = useRef<ConnectionState>('disconnected');
   const wsSendMessageRef = useRef<(text: string, tempId?: string) => void>(() => {});
-  const firstLoadRef = useRef<boolean>(true);
   const initializedRef = useRef<boolean>(false);
   const typingUsersRef = useRef<Set<string>>(new Set());
   const [wsStatus, setWsStatus] = React.useState<ConnectionState>('disconnected');
@@ -384,6 +383,22 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
     wsSendMessageRef.current = wsSendMessage;
   }, [wsSendMessage]);
 
+  const { claimSession, closeSession, transferSession, toggleMode } = useChatRoom({
+    selectedId,
+    wsStatus,
+    selectedIdRef,
+    wsStatusRef,
+    fetchChatDetail,
+    refreshConversationState,
+    fetchMessagesPage,
+    joinRoom,
+    leaveRoom,
+    wsClaimSession,
+    wsCloseSession,
+    wsTransferSession,
+    wsConnected,
+  });
+
   const selectConversation = useCallback((id: string | null) => {
     getStore().selectChat(id);
     if (id) {
@@ -423,137 +438,6 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
     }, 5000);
     return () => clearInterval(interval);
   }, [fetchConversations]);
-
-  useEffect(() => {
-    if (!selectedId) return;
-    getStore().setMessages([]);
-    firstLoadRef.current = true;
-    fetchChatDetail(selectedId, false).then(async () => {
-      const page = await fetchMessagesPage(selectedId);
-      if (selectedIdRef.current !== selectedId) return;
-      getStore().setMessages(page.messages || []);
-      getStore().setHasMoreHistory(page.has_more);
-    }).catch(() => undefined);
-  }, [fetchChatDetail, fetchMessagesPage, selectedId]);
-
-  useEffect(() => {
-    if (!selectedId || wsStatus !== 'connected') return;
-    joinRoom(selectedId);
-    return () => leaveRoom();
-  }, [joinRoom, leaveRoom, selectedId, wsStatus]);
-
-  useEffect(() => {
-    if (!selectedId) return;
-    const interval = setInterval(() => {
-      if (wsStatusRef.current === 'connected') return;
-      fetchChatDetail(selectedId, false);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [fetchChatDetail, selectedId]);
-
-  const claimSession = useCallback(async () => {
-    const s = getStore();
-    if (!s.selectedId || s.claiming) return;
-    s.setClaiming(true);
-    try {
-      if (wsStatusRef.current === 'connected') {
-        wsClaimSession();
-      } else {
-        const res = await fetch(`${API_BASE}/admin/live-chat/conversations/${s.selectedId}/claim`, { method: 'POST' });
-        if (!res.ok) {
-          throw new Error(await readErrorMessage(res, 'Failed to claim session'));
-        }
-        await refreshConversationState(s.selectedId, false);
-      }
-    } catch (error) {
-      getStore().addNotification({
-        title: 'Claim unavailable',
-        message: error instanceof Error && error.message ? error.message : 'Failed to claim session.',
-        type: 'system',
-      });
-    } finally {
-      getStore().setClaiming(false);
-    }
-  }, [refreshConversationState, wsClaimSession]);
-
-  const closeSession = useCallback(async () => {
-    const s = getStore();
-    if (!s.selectedId) return;
-    if (wsStatusRef.current === 'connected') {
-      wsCloseSession();
-      return;
-    }
-    try {
-      const res = await fetch(`${API_BASE}/admin/live-chat/conversations/${s.selectedId}/close`, { method: 'POST' });
-      if (!res.ok) {
-        throw new Error(await readErrorMessage(res, 'Failed to close session'));
-      }
-      await refreshConversationState(s.selectedId, false);
-    } catch (error) {
-      getStore().addNotification({
-        title: 'Close unavailable',
-        message: error instanceof Error && error.message ? error.message : 'Failed to close session.',
-        type: 'system',
-      });
-    }
-  }, [refreshConversationState, wsCloseSession]);
-
-  const transferSession = useCallback(async (toOperatorId: number, reason?: string) => {
-    const s = getStore();
-    if (!s.selectedId) return;
-    const lineUserId = s.selectedId;
-    const canUseSocket = wsConnected && wsStatusRef.current === 'connected';
-
-    if (canUseSocket) {
-      const dispatched = wsTransferSession(toOperatorId, reason);
-      if (dispatched) {
-        return;
-      }
-    }
-
-    try {
-      const res = await fetch(`${API_BASE}/admin/live-chat/conversations/${encodeURIComponent(lineUserId)}/transfer`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to_operator_id: toOperatorId,
-          reason,
-        }),
-      });
-
-      if (!res.ok) {
-        throw new Error(await readErrorMessage(res, 'Failed to transfer session'));
-      }
-
-      await refreshConversationState(lineUserId, false);
-      getStore().addNotification({
-        title: 'Session Transferred',
-        message: `Session transferred to operator #${toOperatorId}.`,
-        type: 'system',
-      });
-    } catch (error) {
-      getStore().addNotification({
-        title: 'Transfer unavailable',
-        message: error instanceof Error && error.message
-          ? error.message
-          : canUseSocket
-            ? 'Transfer could not be completed. Please try again.'
-            : 'Transfer requires an active WebSocket connection or a reachable backend endpoint.',
-        type: 'system',
-      });
-    }
-  }, [refreshConversationState, wsConnected, wsTransferSession]);
-
-  const toggleMode = useCallback(async (mode: 'BOT' | 'HUMAN') => {
-    const s = getStore();
-    if (!s.selectedId) return;
-    const res = await fetch(`${API_BASE}/admin/live-chat/conversations/${s.selectedId}/mode`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mode }),
-    });
-    if (res.ok) await fetchChatDetail(s.selectedId, false);
-  }, [fetchChatDetail]);
 
   const selectedConversation = useMemo(() => (
     conversations.find((c) => c.line_user_id === selectedId) || null
