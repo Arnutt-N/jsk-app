@@ -356,7 +356,12 @@ async def test_broadcast_to_room_no_double_delivery_on_self_loopback():
 @pytest.mark.asyncio
 async def test_remote_broadcast_from_other_server_still_delivers():
     """The origin guard must suppress only OUR OWN loopback, never a genuine
-    broadcast that originated on a different server instance."""
+    broadcast that originated on a different server instance.
+
+    Over-suppression guard: passes on BOTH pre- and post-fix code — it protects
+    cross-instance reach, unlike the two tests above which fail on the pre-fix
+    double delivery.
+    """
     manager = ConnectionManager()
     ws = FakeWebSocket()
     await manager.register(ws, "5")
