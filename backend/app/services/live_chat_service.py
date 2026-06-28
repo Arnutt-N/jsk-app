@@ -22,6 +22,15 @@ from linebot.v3.messaging import TextMessage
 
 logger = logging.getLogger(__name__)
 
+# transfer_session ValueError messages — kept as constants so the HTTP-status
+# mapping in admin_live_chat.transfer_conversation (substring match) and the
+# WS handler stay aligned with the text raised here. Tests assert against these.
+TRANSFER_ERR_NO_ACTIVE_SESSION = "No active session found"
+TRANSFER_ERR_NOT_CURRENT_OPERATOR = "Only the current operator can transfer the session"
+TRANSFER_ERR_TRANSFER_TO_SELF = "Cannot transfer to yourself"
+TRANSFER_ERR_INVALID_TARGET = "Invalid target operator"
+
+
 class LiveChatService:
     async def get_unread_count(self, line_user_id: str, admin_id: Union[int, str], db: AsyncSession) -> int:
         """Compute unread incoming messages for one admin and conversation."""
@@ -372,18 +381,18 @@ class LiveChatService:
         """Transfer session to another operator."""
         session = await self.get_active_session(line_user_id, db)
         if not session or session.status != SessionStatus.ACTIVE:
-            raise ValueError("No active session found")
+            raise ValueError(TRANSFER_ERR_NO_ACTIVE_SESSION)
 
         if session.operator_id != from_operator_id:
-            raise ValueError("Only the current operator can transfer the session")
+            raise ValueError(TRANSFER_ERR_NOT_CURRENT_OPERATOR)
 
         if from_operator_id == to_operator_id:
-            raise ValueError("Cannot transfer to yourself")
+            raise ValueError(TRANSFER_ERR_TRANSFER_TO_SELF)
 
         # Verify target operator exists and has appropriate role
         to_operator = await db.get(User, to_operator_id)
         if not to_operator or to_operator.role not in [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.AGENT]:
-            raise ValueError("Invalid target operator")
+            raise ValueError(TRANSFER_ERR_INVALID_TARGET)
 
         session.operator_id = to_operator_id
         session.transfer_count = (session.transfer_count or 0) + 1

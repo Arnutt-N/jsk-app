@@ -2,10 +2,10 @@
 
 import React, { useMemo } from 'react';
 import Link from 'next/link';
-import { Home, Inbox, MessageSquarePlus, Search } from 'lucide-react';
+import { ArrowDownWideNarrow, Home, Inbox, MessageSquarePlus, Search } from 'lucide-react';
 
 import { useLiveChatStore } from '../_store/liveChatStore';
-import { useConversations } from '../_hooks/useConversations';
+import { useConversationStats } from '../_hooks/useConversationStats';
 import { useLiveChatContext } from '../_context/LiveChatContext';
 import { ConversationItem } from './ConversationItem';
 import { CreateChatSheet } from './CreateChatSheet';
@@ -27,15 +27,28 @@ export function ConversationList() {
   const searchQuery = useLiveChatStore((s) => s.searchQuery);
   const filterStatus = useLiveChatStore((s) => s.filterStatus);
   const loading = useLiveChatStore((s) => s.loading);
-  const activeActionMenu = useLiveChatStore((s) => s.activeActionMenu);
   const setSearchQuery = useLiveChatStore((s) => s.setSearchQuery);
   const setFilterStatus = useLiveChatStore((s) => s.setFilterStatus);
   const setActiveActionMenu = useLiveChatStore((s) => s.setActiveActionMenu);
+  const markRead = useLiveChatStore((s) => s.markRead);
 
   // API methods from Context
   const { formatTime, selectConversation, jumpToMessage, fetchConversations } = useLiveChatContext();
 
-  const { filtered, waitingCount, activeCount } = useConversations(conversations, searchQuery);
+  // M15: sort by longest-waiting (queue triage) vs. the default recent order.
+  const [sortBy, setSortBy] = React.useState<'recent' | 'longest-waiting'>('recent');
+
+  const { filtered, waitingCount, activeCount, closedCount } = useConversationStats(conversations, searchQuery, sortBy);
+
+  // Stable handlers so ConversationItem's React.memo can skip re-renders.
+  const handleSelect = React.useCallback((id: string) => {
+    selectConversation(id);
+    setActiveActionMenu(null);
+  }, [selectConversation, setActiveActionMenu]);
+
+  const handleMenuToggle = React.useCallback((id: string) => {
+    setActiveActionMenu(useLiveChatStore.getState().activeActionMenu === id ? null : id);
+  }, [setActiveActionMenu]);
 
   // Apply filter chip selection to the search-filtered list
   const filteredConversations = useMemo(() => {
@@ -51,7 +64,6 @@ export function ConversationList() {
   const [searchResults, setSearchResults] = React.useState<SearchMessageResult[]>([]);
   const [searching, setSearching] = React.useState(false);
   const [showCreateChat, setShowCreateChat] = React.useState(false);
-  const closedCount = conversations.filter((c) => !c.session || c.session.status === 'CLOSED').length;
 
   React.useEffect(() => {
     const q = searchQuery.trim();
@@ -97,7 +109,7 @@ export function ConversationList() {
         <h1 className="flex-1 text-center text-white font-bold text-base tracking-wide">Live Chat</h1>
         <button
           onClick={() => setShowCreateChat(true)}
-          className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all flex-shrink-0 cursor-pointer"
+          className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors flex-shrink-0 cursor-pointer"
           aria-label="เริ่มแชทใหม่"
           title="เริ่มแชทใหม่"
         >
@@ -114,7 +126,7 @@ export function ConversationList() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search conversations..."
-            className="w-full pl-10 pr-3 py-2 bg-white/5 border border-white/10 text-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500/40 placeholder:text-sidebar-text-muted transition-all thai-no-break"
+            className="w-full pl-10 pr-3 py-2 bg-white/5 border border-white/10 text-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500/40 placeholder:text-sidebar-text-muted transition-colors thai-no-break"
             aria-label="Search conversations"
           />
         </div>
@@ -122,7 +134,7 @@ export function ConversationList() {
           {filterButtons.map((btn) => (
             <button
               key={btn.key ?? 'all'}
-              className={`flex-1 py-1.5 px-2 text-[11px] font-semibold rounded-lg transition-all ${
+              className={`flex-1 py-1.5 px-2 text-[11px] font-semibold rounded-lg transition-colors ${
                 filterStatus === btn.key
                   ? 'gradient-active text-white shadow-lg shadow-brand-900/30'
                   : 'bg-white/5 text-sidebar-text-muted hover:text-white'
@@ -139,6 +151,20 @@ export function ConversationList() {
               </span>
             </button>
           ))}
+          <button
+            type="button"
+            onClick={() => setSortBy((s) => (s === 'longest-waiting' ? 'recent' : 'longest-waiting'))}
+            aria-pressed={sortBy === 'longest-waiting'}
+            title={sortBy === 'longest-waiting' ? 'เรียงตามรอนานสุด (กดเพื่อกลับสู่ล่าสุด)' : 'เรียงตามรอนานสุด'}
+            aria-label="สลับการเรียงลำดับตามเวลารอคิว"
+            className={`flex-shrink-0 py-1.5 px-2 rounded-lg transition-colors ${
+              sortBy === 'longest-waiting'
+                ? 'gradient-active text-white shadow-lg shadow-brand-900/30'
+                : 'bg-white/5 text-sidebar-text-muted hover:text-white'
+            }`}
+          >
+            <ArrowDownWideNarrow className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
@@ -181,7 +207,7 @@ export function ConversationList() {
                   <button
                     key={result.id}
                     onClick={() => jumpToMessage(result.line_user_id, result.id)}
-                    className="w-full text-left p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-all"
+                    className="w-full text-left p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
                   >
                     <div className="text-[11px] text-white font-medium truncate">
                       {result.display_name || result.line_user_id}
@@ -221,11 +247,9 @@ export function ConversationList() {
                   conversation={conversation}
                   selected={selectedId === conversation.line_user_id}
                   formattedTime={conversation.last_message?.created_at ? formatTime(conversation.last_message.created_at) : undefined}
-                  onClick={() => {
-                    selectConversation(conversation.line_user_id);
-                    setActiveActionMenu(null);
-                  }}
-                  onMenuClick={() => setActiveActionMenu(activeActionMenu === conversation.line_user_id ? null : conversation.line_user_id)}
+                  onSelect={handleSelect}
+                  onMenuToggle={handleMenuToggle}
+                  onMarkRead={() => markRead(conversation.line_user_id)}
                 />
             ))}
           </div>
@@ -235,19 +259,19 @@ export function ConversationList() {
       {/* Summary bar */}
       <div className="px-3 py-2.5 border-t border-white/10 bg-black/20">
         <div className="flex items-center justify-between gap-2 text-[11px]">
-          <span className="flex items-center gap-1.5 text-green-400 font-medium">
+          <span className="flex items-center gap-1.5 text-online font-medium">
             <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-50" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-400" />
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-online opacity-50" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-online" />
             </span>
             {activeCount} active
           </span>
-          <span className="flex items-center gap-1.5 text-amber-400 font-medium">
-            <span className="h-2 w-2 rounded-full bg-amber-400" />
+          <span className="flex items-center gap-1.5 text-away font-medium">
+            <span className="h-2 w-2 rounded-full bg-away" />
             {waitingCount} waiting
           </span>
           <span className="flex items-center gap-1.5 text-sidebar-text-muted font-medium">
-            <span className="h-2 w-2 rounded-full bg-white/20" />
+            <span className="h-2 w-2 rounded-full bg-offline" />
             {closedCount} offline
           </span>
         </div>

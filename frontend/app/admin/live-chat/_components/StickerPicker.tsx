@@ -20,10 +20,10 @@ const MOCK_STICKERS = [
 
 export function StickerPicker({ onSelect }: StickerPickerProps) {
   return (
-    <div className="w-full h-64 flex flex-col bg-white border border-border-default rounded-lg shadow-xl overflow-hidden animate-scale-in">
+    <div className="w-full h-64 flex flex-col bg-surface border border-border-default rounded-lg shadow-xl overflow-hidden animate-scale-in">
       {/* Header / Tabs */}
-      <div className="flex items-center px-2 py-2 bg-gray-50 border-b border-border-default gap-2 overflow-x-auto no-scrollbar">
-        <button className="p-1.5 rounded bg-white shadow-sm border border-border-default">
+      <div className="flex items-center px-2 py-2 bg-muted border-b border-border-default gap-2 overflow-x-auto no-scrollbar">
+        <button className="p-1.5 rounded bg-surface shadow-sm border border-border-default">
           <Smile className="w-4 h-4 text-brand-600" />
         </button>
         <span className="text-xs text-text-tertiary">More packs coming soon...</span>
@@ -36,10 +36,10 @@ export function StickerPicker({ onSelect }: StickerPickerProps) {
             <button
               key={s.id}
               onClick={() => onSelect(s.pkg, s.id)}
-              className="aspect-square flex items-center justify-center p-2 rounded-lg hover:bg-gray-50 border border-transparent hover:border-border-default transition-all"
+              className="aspect-square flex items-center justify-center p-2 rounded-lg hover:bg-muted border border-transparent hover:border-border-default transition-all"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={s.url} alt={`Sticker ${s.id}`} className="w-full h-full object-contain" />
+              <img src={s.url} alt={`Sticker ${s.id}`} className="w-full h-full object-contain" loading="lazy" width={64} height={64} />
             </button>
           ))}
         </div>

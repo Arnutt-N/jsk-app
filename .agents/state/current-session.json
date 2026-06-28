@@ -1,13 +1,140 @@
 {
-  "last_updated": "2026-06-21T21:57:00+07:00",
+  "last_updated": "2026-06-28T14:56:00+07:00",
   "platform": "claude_code",
-  "current_task": "Reviewed + merged PR #115 (handoff-system hardening) to main via merge commit 33729fd. code-reviewer verdict APPROVE (0 CRITICAL / 0 HIGH); fixed the 1 MEDIUM it caught — archive-checkpoints.cjs date ",
+  "current_task": "Pre-merge review of PR #116 via 3 parallel agents (fastapi/react/security) + remediated 3 blockers in cbc3064: (1) /admin/users/workload leaked LINE-customer PII to AGENT after auth widened to get_cur",
   "plan_status": "completed",
   "next_steps": [
-    "Carry-over from PR #114: verify backend prod has the Task 6.2 code (Vercel deployed frontend only); smoke test rich-menu assign (single+bulk) on /admin/friends",
-    "When checkpoints age past ~6 months, run: node .agents/scripts/archive-checkpoints.cjs --months 6 --apply"
+    "Run manual 16-flow e2e + 2-client e2e on WSL stack before merging PR #116",
+    "Review + merge PR #116 (3 blockers closed; 6 pre-existing follow-ups tracked in pr-116-review.md)",
+    "Optional: open follow-up PR for broadcast_to_all double-delivery before enabling Redis at scale"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-06-28T14:56:00+07:00",
+      "platform": "claude_code",
+      "branch": "docs/livechat-audit-remediation-prp",
+      "head": "cbc3064",
+      "status": "completed"
+    },
+    {
+      "timestamp": "2026-06-28T11:06:00+07:00",
+      "platform": "claude_code",
+      "branch": "docs/livechat-audit-remediation-prp",
+      "head": "3713a0d",
+      "status": "completed"
+    },
+    {
+      "timestamp": "2026-06-28T10:42:00+07:00",
+      "platform": "claude_code",
+      "branch": "docs/livechat-audit-remediation-prp",
+      "head": "f96ba59",
+      "status": "completed"
+    },
+    {
+      "timestamp": "2026-06-28T05:42:00+07:00",
+      "platform": "claude_code",
+      "branch": "docs/livechat-audit-remediation-prp",
+      "head": "c400ad8",
+      "status": "completed"
+    },
+    {
+      "timestamp": "2026-06-28T00:48:00+07:00",
+      "platform": "claude_code",
+      "branch": "docs/livechat-audit-remediation-prp",
+      "head": "a91f23f",
+      "status": "completed"
+    },
+    {
+      "timestamp": "2026-06-27T21:59:00+07:00",
+      "platform": "claude_code",
+      "branch": "docs/livechat-audit-remediation-prp",
+      "head": "d99a59d",
+      "status": "completed"
+    },
+    {
+      "timestamp": "2026-06-27T19:49:00+07:00",
+      "platform": "claude_code",
+      "branch": "docs/livechat-audit-remediation-prp",
+      "head": "393b22c",
+      "status": "completed"
+    },
+    {
+      "timestamp": "2026-06-27T17:48:00+07:00",
+      "platform": "claude_code",
+      "branch": "docs/livechat-audit-remediation-prp",
+      "head": "9361fba",
+      "status": "completed"
+    },
+    {
+      "timestamp": "2026-06-27T16:29:00+07:00",
+      "platform": "claude_code",
+      "branch": "docs/livechat-audit-remediation-prp",
+      "head": "5ef9ff7",
+      "status": "completed"
+    },
+    {
+      "timestamp": "2026-06-27T10:50:00+07:00",
+      "platform": "claude_code",
+      "branch": "docs/livechat-audit-remediation-prp",
+      "head": "12abb86",
+      "status": "completed"
+    },
+    {
+      "timestamp": "2026-06-27T09:53:00+07:00",
+      "platform": "claude_code",
+      "branch": "docs/livechat-audit-remediation-prp",
+      "head": "031d67b",
+      "status": "completed"
+    },
+    {
+      "timestamp": "2026-06-27T06:42:00+07:00",
+      "platform": "claude_code",
+      "branch": "docs/livechat-audit-remediation-prp",
+      "head": "66ba8fc",
+      "status": "completed"
+    },
+    {
+      "timestamp": "2026-06-27T05:27:00+07:00",
+      "platform": "claude_code",
+      "branch": "docs/livechat-audit-remediation-prp",
+      "head": "f3fb456",
+      "status": "completed"
+    },
+    {
+      "timestamp": "2026-06-27T00:40:00+07:00",
+      "platform": "claude_code",
+      "branch": "docs/livechat-audit-remediation-prp",
+      "head": "07367fe",
+      "status": "completed"
+    },
+    {
+      "timestamp": "2026-06-26T23:00:00+07:00",
+      "platform": "claude_code",
+      "branch": "docs/livechat-audit-remediation-prp",
+      "head": "3f269b8",
+      "status": "completed"
+    },
+    {
+      "timestamp": "2026-06-24T22:14:00+07:00",
+      "platform": "claude_code",
+      "branch": "docs/livechat-audit-remediation-prp",
+      "head": "e1823ad",
+      "status": "completed"
+    },
+    {
+      "timestamp": "2026-06-22T07:27:00+07:00",
+      "platform": "claude_code",
+      "branch": "docs/livechat-audit-remediation-prp",
+      "head": "5b0bd3e",
+      "status": "completed"
+    },
+    {
+      "timestamp": "2026-06-22T07:15:00+07:00",
+      "platform": "claude_code",
+      "branch": "docs/livechat-audit-remediation-prp",
+      "head": "9e4c098",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-06-21T21:57:00+07:00",
       "platform": "claude_code",
@@ -20,132 +147,6 @@
       "platform": "claude_code",
       "branch": "chore/handoff-system-hardening",
       "head": "8b7f778",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-21T19:06:00Z",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "3a90f4d",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-21T18:22:00Z",
-      "platform": "claude_code",
-      "branch": "feat/rich-menu-switching-r1",
-      "head": "7075a25",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-21T17:33:00Z",
-      "platform": "claude_code",
-      "branch": "feat/rich-menu-switching-r1",
-      "head": "2ce0857",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-21T16:15:00Z",
-      "platform": "claude_code",
-      "branch": "feat/rich-menu-switching-r1",
-      "head": "8ed4196",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-21T10:56:00Z",
-      "platform": "claude_code",
-      "branch": "feat/rich-menu-switching-r1",
-      "head": "3360bbb",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-21T10:09:00Z",
-      "platform": "claude_code",
-      "branch": "feat/rich-menu-switching-r1",
-      "head": "044b779",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-21T07:41:00Z",
-      "platform": "claude_code",
-      "branch": "feat/rich-menu-switching-r1",
-      "head": "c203aac",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-21T01:37:00Z",
-      "platform": "claude_code",
-      "branch": "feat/rich-menu-switching-r1",
-      "head": "3c90957",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-20T23:43:00Z",
-      "platform": "claude_code",
-      "branch": "feat/rich-menu-switching-r1",
-      "head": "d40907c",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-20T23:08:00Z",
-      "platform": "claude_code",
-      "branch": "feat/rich-menu-switching-r1",
-      "head": "43205ea",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-20T22:36:00Z",
-      "platform": "claude_code",
-      "branch": "feat/rich-menu-switching-r1",
-      "head": "e622941",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-20T21:36:00Z",
-      "platform": "claude_code",
-      "branch": "feat/rich-menu-switching-r1",
-      "head": "a48a130",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-20T19:44:00Z",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "e255a9d",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-20T18:57:00Z",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "8c51155",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-20T18:41:00Z",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "a8cf662",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-20T17:38:00Z",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "d998a73",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-20T10:37:00Z",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "d400368",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-20T08:12:00Z",
-      "platform": "claude_code",
-      "branch": "feat/reply-object-send-template-textv2",
-      "head": "87e3ef1",
       "status": "completed"
     }
   ],

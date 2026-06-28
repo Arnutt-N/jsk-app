@@ -26,8 +26,15 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
   const onErrorRef = useRef(onError);
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected');
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
-  const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
-  const effectiveToken = isDevMode ? undefined : token;
+  // Always send the real JWT to the WebSocket. Dev mode previously forced the
+  // token to undefined, assuming a backend dev-bypass — but authenticate_ws_user
+  // (ws_live_chat.py) has NO bypass and always requires a valid access token, so
+  // stripping it made every dev-mode WS handshake fail with auth_failed (the live
+  // socket silently stayed disconnected). Real logins — including the e2e — carry
+  // a token; pure dev_bypass sessions have none and simply won't open a socket,
+  // which is acceptable. effectiveToken stays in the effect deps below so the
+  // client reconnects once AuthContext hydrates the token from localStorage.
+  const effectiveToken = token;
 
   useEffect(() => {
     onConnectRef.current = onConnect;

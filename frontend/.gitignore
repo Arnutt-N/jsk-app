@@ -2,5 +2,6 @@
 
 # Playwright artifacts (E2E test runner outputs)
 /playwright-report/
+/playwright-report-2client/
 /test-results/
 /playwright/.cache/

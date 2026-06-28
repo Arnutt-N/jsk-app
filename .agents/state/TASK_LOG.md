@@ -1,8 +1,170 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 94 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 112 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-28 14:56 — claude_code — completed
+
+Pre-merge review of PR #116 via 3 parallel agents (fastapi/react/security) + remediated 3 blockers in cbc3064: (1) /admin/users/workload leaked LINE-customer PII to AGENT after auth widened to get_current_staff -> added server-side filter User.role!=USER; (2) TransferDialog restore focus on close (WCAG 2.4.3) + moved role=dialog/aria-modal from backdrop to panel (WCAG 4.1.2); (3) seed_live_chat_e2e default-deny non-local DB (was apply-able to Supabase PROD). Added TransferDialog.a11y.test.tsx (3/3) + pr-116-review.md artifact + posted+cleaned review comment on PR #116. Validation: tsc 0, eslint 0, backend pytest 15/15, vitest 259 baseline + 3 new a11y green.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260628-1456.json`
+- Summary: `project-log-md/claude_code/session-summary-20260628-1456.md`
+
+---
+
+### 2026-06-28 11:06 — claude_code — completed
+
+All 8 live-chat remediation phases DONE + pushed; PR #116 refreshed to cover Phases 1-8 (title+body). Phase 8 this session: 805-line LiveChatContext.tsx -> 395-line composition root + 6 hooks (useMediaQuery/liveChatApi/useMessageFlow/useChatRoom/useConversationSync/useLiveChatActions); 34-key contract preserved byte-for-byte; 0 consumer-component edits (git-diff verified); sequential implement (Task 0-7) + 2 parallel ecc review rounds (7 agents, all SHIP); vitest 259/259, tsc/eslint 0, next build green. Branch docs/livechat-audit-remediation-prp pushed, PR #116 OPEN.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260628-1106.json`
+- Summary: `project-log-md/claude_code/session-summary-20260628-1106.md`
+
+---
+
+### 2026-06-28 10:42 — claude_code — completed
+
+Phase 8 provider refactor DONE — split 805-line LiveChatContext.tsx into a 395-line composition root + 6 hooks (useMediaQuery/liveChatApi/useMessageFlow/useChatRoom/useConversationSync/useLiveChatActions); 34-key contract preserved byte-for-byte; 0 consumer-component edits; sequential implement (Task 0-7, one-hook/commit) + 2 parallel ecc review rounds (7 agents, all SHIP); vitest 259/259, tsc/eslint 0, next build green. All 8 live-chat remediation phases now implemented on docs/livechat-audit-remediation-prp (unmerged).
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260628-1042.json`
+- Summary: `project-log-md/claude_code/session-summary-20260628-1042.md`
+
+---
+
+### 2026-06-28 05:42 — claude_code — completed
+
+Phase 8 plan REFRESHED via 3 ecc reviewers (architect/react/code-reviewer) before implementing — verdict NEEDS-REFRESH-THEN-GO; added a REFRESH addendum to phase-8-provider-refactor.plan.md (commit c400ad8). KEY DRIFT caught (plan written at 803 lines, file now 874 after P1/5/6/7): (1) contract=34 keys NOT 31 — M3 removed dead 'state', P6 added currentUserId/onlineOperators/claimContenders/getClaimContender; errata B7's '~30' is ALSO stale → use 34, capture live, assert by member+type; (2) presence+claim-contention = 5th responsibility the plan ignores → KEEP IN PROVIDER (socket-coupled: onPresenceUpdate/onError + contender logic in onSessionClaimed/Closed/Transferred via resolveOperatorName/removeKey); (3) API_BASE already in _lib/constants (import not move); (4) value already useMemo'd w/ 34 deps (P1 H3 done); (5) 3 P6 pure helpers reorderConversationsToTop/resolveOperatorName/removeKey → liveChatApi.ts, BUT reorderConversationsToTop is imported by conversationUpdate.test.ts (re-export or update import); (6) export ClaimContender interface; (7) keep new wsStatusRef sync effect in provider; (8) split combined selectedIdRef+messagesRef effect; (9) cross-apply errata B6 (3 ack-timeout race tests) + B7; (10) branch note stale (continue on this branch). Architecture (4-hook split + socket-in-provider seam) still SOUND — only content/count/scope refresh needed. Phase 7 also shipped+pushed THIS session (a91f23f + handoff 7072410). Implement Phase 8 DEFERRED to a FRESH session per user decision (high-blast-radius refactor needs context headroom; vitest on 9p is slow; sequential 8-task NOT parallel).
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260628-0542.json`
+- Summary: `project-log-md/claude_code/session-summary-20260628-0542.md`
+
+---
+
+### 2026-06-28 00:48 — claude_code — completed
+
+Phase 7 operator UX (M18/M19/M20/L10) implemented via 5 parallel file-owned agents + 3-expertise review (react/a11y/ts); committed a91f23f. M18 hide manual mode toggle during session + Thai session-aware label; M19 quick-replies(preset) vs canned distinct Thai labels + component-level mutual-exclusion (no store edit); M20 useCustomerNotes localStorage-per-line_user_id hook (debounced+saved indicator, uses adjust-state-during-render not useEffect to satisfy React-Compiler eslint) + removed N/A stats & disabled VIP/Bell/ViewProfile/Delete false-affordances; L10 toast shows customer display_name + clickable->selectConversation + Thai SessionActions labels. Orchestrator closed 2 cross-file leaks agents could not see: (1) MessageInput.test.tsx asserted old aria-labels -> fixed; (2) NotificationToast aria-live region was gated behind early-return null -> a11y HIGH, made live region pre-exist (WCAG 4.1.3). Also added role=status on mode label + saved indicator, Thai-ized header aria-labels, defensive onSelect guard. Validation: tsc 0, eslint 0, vitest live-chat+hooks 62/62.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260628-0048.json`
+- Summary: `project-log-md/claude_code/session-summary-20260628-0048.md`
+
+---
+
+### 2026-06-27 21:59 — claude_code — completed
+
+Hardened the 2-client live-chat e2e (Phase 6 acceptance) to a RELIABLE single-run pass on the WSL/9p box via 3 file-owned agents (commit d99a59d). Replaced networkidle (never settles w/ open WS + REST poll) with a deterministic role=listbox 'Conversation list' readiness wait; added per-test reseed to WAITING via E2E_SEED_CMD (retry-safe: the 2 tests + each retry no longer inherit claimed state); new PERMANENT e2e-2client.config.ts (serial, 1 worker, 240s timeout, retries, trace:on); testIgnore the heavy spec from the smoke config; login readiness waits in auth.ts. Debugged across 3 runs: cold 2/2 green (4.5m), then a 120s-timeout overrun in beforeEach/afterEach, then 2/2 green (2.7m) after bumping test timeout 120->240s -- root cause was NOT flaky logic but a marginal timeout (heavy beforeEach = reseed + 2 sequential cold logins ~90s). Also fixed 3 env blockers: venv_linux/bin/python symlink broken on 9p/drvfs (repointed to /usr/bin/python3.13), frontend was dead leaving an svchost port-3000 relay (restarted in WSL), stale seed session auto-closed by session_cleanup (reseeded fresh). Validated: tsc 0, eslint 0, e2e 2/2.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260627-2159.json`
+- Summary: `project-log-md/claude_code/session-summary-20260627-2159.md`
+
+---
+
+### 2026-06-27 19:49 — claude_code — completed
+
+Fixed the 2 env blockers from the Phase 6 2-client e2e — BOTH were real bugs (commit 393b22c). (1) WS auth_failed = real bug in frontend/hooks/useWebSocket.ts: 'effectiveToken = isDevMode ? undefined : token' forced the WS token to undefined in dev mode assuming a backend dev-bypass, but authenticate_ws_user (ws_live_chat.py) has NO bypass and always jwt.decodes a real access token -> dev-mode live-chat WS handshake failed 100% (REST worked via dev_bypass, masking it; WS tests mocked authenticate_ws_user so never caught). Fixed: always send the real token (deps already include effectiveToken so it reconnects when AuthContext hydrates). (2) Seed session went CLOSED: session_cleanup task (WAITING_ABANDONMENT_MINUTES=10) auto-closes unclaimed WAITING older than 10min; seed started_at=-5min + long stack-up exceeded it -> fixed seed to now-1min. Plus e2e robustness: sequential 2-op login (Promise.all overwhelmed cold dev server), loginAs waitForURL 15s->45s, skip-guard accepts any session affordance not just Claim. LIVE VALIDATION 5 runs on WSL/9p: every assertion passed live >=1x - claim contention GREEN (B sees 'X กำลังรับเรื่อง' lock over WS after A claims = M16 fix works end-to-end) + transfer picker GREEN (lists online AGENT = WS presence + workload auth relax). 9p box too slow to land BOTH 2-context tests green in ONE run (each flakes on a different timing spot: login/claim-render/WS-broadcast); spec has retries:1. tsc 0. Commits this session: 5ef9ff7 P6 impl, 9361fba P6 acceptance, 393b22c e2e blockers.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260627-1949.json`
+- Summary: `project-log-md/claude_code/session-summary-20260627-1949.md`
+
+---
+
+### 2026-06-27 17:48 — claude_code — completed
+
+Live-Chat Phase 6 ACCEPTANCE follow-up (commit 9361fba): (1) CONFIRMED auth relax /admin/users/workload get_current_admin->get_current_staff so AGENT/DIRECTOR/HEAD operators load transfer-picker offline roster (+test_workload_allows_non_admin_staff_agent). (2) M16 BUGFIX caught by the 2-client acceptance test: claim-contention lock was UNREACHABLE - onSessionClaimed flips room to ACTIVE AND sets contender in the same broadcast, but SessionActions gated the lock on status==WAITING, so B saw owner Transfer/Done instead of the lock; fix = claimedByOther now takes precedence over status-derived actions. Unit test missed it (asserted context state, not SessionActions render). (3) New e2e frontend/e2e/live-chat-2client.spec.ts (2 browser contexts admin A + AGENT B) for claim contention + transfer picker + generic loginAs() helper; skip-guarded on live precondition. (4) seed_live_chat_e2e.py idempotent WAITING session. Validation: backend pytest green (workload+WS regression), tsc 0, eslint 0. LIVE 2-client run NOT green on WSL/9p - surfaced 2 ENV blockers: (a) WS handshake auth_failed in browser (REST auth works, backend logs auth_failed) so claim broadcast never reaches B; (b) seeded WAITING session observed CLOSED + chat_mode BOT shortly after seeding (cleanup task or bot flow). Spec+seed committed ready to run once env fixed.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260627-1748.json`
+- Summary: `project-log-md/claude_code/session-summary-20260627-1748.md`
+
+---
+
+### 2026-06-27 16:29 — claude_code — completed
+
+Implemented Live-Chat Phase 6 (operator UX multi-operator + scoped backend) via 6 parallel file-owned agents in 2 barriered stages (commit 5ef9ff7). H2 searchable operator-picker TransferDialog (presence online + /admin/users/workload offline) + useOperatorRoster + presence_update finally wired into LiveChatContext; M16 claim-contention UI (claimContenders state, disabled lock 'X กำลังรับเรื่อง', room-name toast); M17 ownership banner + composer gate + take-over=transferSession(self); M15 waiting-time badge (amber 5m/red 15m) + longest-waiting sort in useConversationStats (errata B1). Backend scoped: BE-2 display_name enrich (cached at register), BE-1 broadcast presence_update on register/disconnect (exclude self), BE-4 transfer ValueError->404/403/400 constants+test. Orchestrator root-caused+fixed 16 WS pytest regressions from the new broadcast: send_to_admin list() snapshot (Set-changed-size race) + broadcast_to_all carries _exclude_admin through Redis pubsub loopback (mirrors broadcast_to_room). Closed MessageInput.test.tsx fixture leak (new required currentUserId). Validation WSL ALL GREEN: tsc 0, eslint 0, vitest 234/234, next build OK, pytest 504/504.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260627-1629.json`
+- Summary: `project-log-md/claude_code/session-summary-20260627-1629.md`
+
+---
+
+### 2026-06-27 10:50 — claude_code — completed
+
+Implemented Live-Chat Phase 5 (React/Perf Hardening) via 6 parallel file-owned agents (commit 12abb86): M10 component-level ErrorBoundary per panel (ConversationList/ChatArea/CustomerPanel) inside provider + new PanelErrorFallback (one panel crash no longer white-screens page/drops WS); M11b AbortController in analytics fetch (no stale overwrite); M12/L9.7 new useConversationStats single-pass useMemo hook replacing useConversations (3x filter) + pure computeConversationStats; M13 ConversationItem prop rename onClick->onSelect(id)/onMenuClick->onMenuToggle(id) + stable useCallback so React.memo skips (store.getState() for toggle); L8 table key fix; L9.1 rAF scroll throttle; L9.2 preformat timestamp (MessageBubble formattedTime prop); L9.3 parallel REST fallback; L9.4 single-pass reorderConversationsToTop helper; L9.5 sticker lazy+size; L9.6 drop onConnectionChange double-fire; L9.8 shared API_BASE in _lib/constants.ts. Orchestrator caught+fixed cross-file leak: ConversationItem.a11y.test.tsx (Phase 2) still used old props -> renamed. New tests useConversationStats(9)+conversationUpdate(4). Validation WSL: tsc 0, eslint 0 (React-Compiler rules clean first try), vitest 216/216, next build OK.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260627-1050.json`
+- Summary: `project-log-md/claude_code/session-summary-20260627-1050.md`
+
+---
+
+### 2026-06-27 09:53 — claude_code — completed
+
+Implemented Live-Chat Phase 4 (Motion & Polish) via 1 foundation + 7 parallel file-owned agents (commit 031d67b): W4 new useReducedMotion hook (useSyncExternalStore, SSR-safe) gating ChatArea scrollIntoView + TypingIndicator anim; M2/M11a toast+dropdown exit via AnimatePresence (motion/react); L6 toast layout reorder; L7 MessageBubble isNew entrance gate (state-during-render baseline, no virtualize/room-switch replay); M21 tabular-nums/focus-ring/inset-outline/break-words + typing-bounce keyframe; L1 transition-all->specific (4 files + .hover-lift); L11 send icon centering; globals.css --duration-toast token + keyframe token mapping. Fixed 5 React-Compiler eslint errors (refs-in-render -> state-during-render in ChatArea; set-state-in-effect -> useSyncExternalStore in hook). Validation WSL: tsc 0, eslint 0, vitest 203/203, next build OK, 0 transition-all in L1 scope.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260627-0953.json`
+- Summary: `project-log-md/claude_code/session-summary-20260627-0953.md`
+
+---
+
+### 2026-06-27 06:42 — claude_code — completed
+
+Implemented Live-Chat Phase 3 (Design System Unify) via 5 parallel file-owned agents: M1/L4 analytics page rebuilt on design tokens + ds-* utils + Recharts via var(--color-*); M6 CustomerPanel hierarchy (removed 3 dead N/A stat tiles + unused imports, Notes/Export bordered surface, metadata bg-muted); L2 new live-chat-avatar.ts getAvatarFallbackUrl helper (brand blue 3b82f6, replaced indigo 6366f1 at 3 sites); L3 new --text-2xs token in globals.css @theme (errata S1) + micro-fonts swapped in CustomerPanel/ConversationItem; L5 emoji/sticker bg-surface/bg-muted tokens + larger cells. New test live-chat-avatar.test.ts (4). Validation green: tsc 0, eslint 0, vitest 198/198, e2e smoke green; token gate 0 slate/0 indigo/0 microfont in 6 scope files. Committed 66ba8fc.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260627-0642.json`
+- Summary: `project-log-md/claude_code/session-summary-20260627-0642.md`
+
+---
+
+### 2026-06-27 05:27 — claude_code — completed
+
+Implemented Live-Chat Phase 2 (A11y Compliance WCAG 2.2 AA) via 5 parallel file-owned agents: H5 new MobileDrawer (role=dialog + focus trap/Escape/restore) wired into LiveChatShell mobile branch; M7 sr-only/option-aria-label presence status (ConversationItem/ChatHeader/CustomerPanel); M8 CreateChatSheet htmlFor/id labels + role=alert + aria-required; M9 CustomerPanel Notes label; W1 .focus-ring sweep; W2 status-pill text contrast (emerald/amber-700 +dark); W3 separated live regions (messages role=log from P1 + connection/typing role=status, no nesting); M21 break-words + focus-visible kebab. Added 3 test files (14 cases). Validation green: tsc 0, eslint 0, vitest 194/194, live-chat e2e smoke green. Committed f3fb456 on docs/livechat-audit-remediation-prp.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260627-0527.json`
+- Summary: `project-log-md/claude_code/session-summary-20260627-0527.md`
+
+---
+
+### 2026-06-27 00:40 — claude_code — completed
+
+Implemented Live-Chat Phase 1 (Quick Wins) via 5 parallel file-owned agents: H1 composer a11y (aria-label/pressed/expanded + aria-hidden SVGs), M4/W5 hit-areas >=24px, H3 memoize Context value, M3 delete dead ChatState (value now 30 keys no state), H4/W3 role=log live region + store liveMessage, M5 status design tokens, M14 kebab markRead + disable dead items. Added 3 test files (19 cases). Validation green: tsc 0, eslint 0, vitest 180/180, live-chat e2e smoke green. Committed 07367fe on docs/livechat-audit-remediation-prp.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260627-0040.json`
+- Summary: `project-log-md/claude_code/session-summary-20260627-0040.md`
+
+---
+
+### 2026-06-26 23:00 — claude_code — completed
+
+Cleared the WSL Playwright system-deps blocker (libnspr4/libnss3/libasound2t64/xvfb + dpkg --configure -a repair); re-bootstrapped the local e2e stack (docker db/redis on Windows host + backend run.py --no-reload + next dev) against the LOCAL docker DB via ENV_FILE=app/.env; seeded admin and validated the live-chat smoke spec GREEN (2 passed, 2 skipped, 0 failed). Found and fixed one wrong test assumption (test 2 asserted a textarea composer is always present, but ChatArea renders an empty-state when no conversation is selected) committed as 3f269b8 on docs/livechat-audit-remediation-prp.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260626-2300.json`
+- Summary: `project-log-md/claude_code/session-summary-20260626-2300.md`
+
+---
+
+### 2026-06-24 22:14 — claude_code — completed
+
+Live-chat remediation — closed 7 plan-review BLOCKERs at document level (commit e1823ad, pushed). Created .claude/PRPs/plans/PLAN-REVIEW-FIXES.md (authoritative errata: B1-B7 + 2 snippet corrections, verified vs live source), expanded PRD File-Ownership table (useConversationStats/ConversationItem/ConversationList/MessageBubble owner-chains P1->P3->P4->P5->P6 + W3 messages-only), and added frontend/e2e/live-chat-smoke.spec.ts regression baseline (B3). Planning fully done; ready for implementation. Branch docs/livechat-audit-remediation-prp.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260624-2214.json`
+- Summary: `project-log-md/claude_code/session-summary-20260624-2214.md`
+
+---
+
+### 2026-06-22 07:27 — claude_code — completed
+
+Live-chat console remediation — planning complete (no source changes), branch PUSHED to origin. 5 fan-out workflows: multi-expert audit (37 findings 5H/21M/11L) -> PRD v2 (BLOCKERs B1 backend-dep + B2 WCAG resolved) -> 6-expert PRD review -> 8 /prp-plan plans -> 12-expert plan review (snippet faithfulness 99%, 7 cross-phase BLOCKERs). Branch docs/livechat-audit-remediation-prp pushed to origin (commits 9e4c098 + 5b0bd3e), unmerged, no PR yet. CI Actions disabled — validate locally.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260622-0727.json`
+- Summary: `project-log-md/claude_code/session-summary-20260622-0727.md`
+
+---
+
+### 2026-06-22 07:15 — claude_code — completed
+
+Live-chat console remediation — planning complete (no source changes). Ran 5 fan-out workflows: multi-expert audit (37 findings: 5H/21M/11L) -> PRD v2 (post-review, BLOCKERs B1 backend-dep + B2 WCAG resolved) -> 6-expert PRD review -> 8 /prp-plan implementation plans -> 12-expert plan review (snippet faithfulness 99%, 7 cross-phase BLOCKERs found). Committed 12 artifacts (PRD + 8 plans + 3 reviews) to branch docs/livechat-audit-remediation-prp (commit 9e4c098, NOT pushed).
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260622-0715.json`
+- Summary: `project-log-md/claude_code/session-summary-20260622-0715.md`
+
+---
 
 ### 2026-06-21 21:57 — claude_code — completed
 

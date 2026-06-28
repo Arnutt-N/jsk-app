@@ -2,11 +2,12 @@
 
 import React from 'react';
 import Image from 'next/image';
-import { Bell, Calendar, Clock, Copy, ExternalLink, MessageSquare, RefreshCw, Star, Trash2, User, X } from 'lucide-react';
+import { Check, Clock, Copy, RefreshCw, User, X } from 'lucide-react';
 
 import type { CurrentChat } from '../_types';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLiveChatContext } from '../_context/LiveChatContext';
+import { useCustomerNotes } from '@/hooks/useCustomerNotes';
 import { logger } from '@/lib/logger';
 
 export function CustomerPanel({
@@ -19,6 +20,9 @@ export function CustomerPanel({
   const { token } = useAuth();
   const { fetchChatDetail, fetchConversations } = useLiveChatContext();
   const [refreshing, setRefreshing] = React.useState(false);
+  // Hooks must run unconditionally — call before the early return with a
+  // nullable id (the hook no-ops persistence when no conversation is selected).
+  const { notes, setNotes, saved } = useCustomerNotes(currentChat?.line_user_id ?? null);
   if (!currentChat) return null;
 
   const encodedLineUserId = encodeURIComponent(currentChat.line_user_id);
@@ -81,8 +85,8 @@ export function CustomerPanel({
     <aside className="w-72 bg-surface border-l border-border-default flex flex-col flex-shrink-0 z-20 thai-text">
       {/* Header */}
       <div className="h-20 px-4 border-b border-border-default flex items-center justify-between">
-        <span className="font-bold text-text-primary text-xs tracking-widest uppercase">Customer Info</span>
-        <button onClick={onClose} className="p-1.5 text-text-tertiary hover:text-text-primary rounded-lg hover:bg-gray-100 transition-colors" aria-label="Close customer panel">
+        <span id="customer-panel-title" className="font-bold text-text-primary text-xs tracking-widest uppercase">Customer Info</span>
+        <button onClick={onClose} className="p-1.5 text-text-tertiary hover:text-text-primary rounded-lg hover:bg-gray-100 transition-colors focus-ring" aria-label="Close customer panel">
           <X className="w-4 h-4" />
         </button>
       </div>
@@ -97,21 +101,18 @@ export function CustomerPanel({
               {currentChat.display_name?.charAt(0)?.toUpperCase() || '?'}
             </div>
           )}
-          <div className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-surface ${isActive ? 'bg-online' : isWaiting ? 'bg-away' : 'bg-offline'}`} />
+          <div aria-hidden="true" className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-surface ${isActive ? 'bg-online' : isWaiting ? 'bg-away' : 'bg-offline'}`} />
+          <span className="sr-only">{isActive ? 'ออนไลน์' : isWaiting ? 'กำลังรอ' : 'ออฟไลน์'}</span>
         </div>
-        <p className="font-semibold text-text-primary text-sm mt-3 thai-no-break">{currentChat.display_name}</p>
+        <p className="font-semibold text-text-primary text-sm mt-3 thai-no-break break-words">{currentChat.display_name}</p>
         <div className="flex items-center justify-center gap-2 mt-1.5">
           <button
             onClick={refreshProfile}
             disabled={refreshing}
-            className="text-xs text-text-tertiary hover:text-brand-600 flex items-center gap-1 disabled:opacity-60 transition-colors"
+            className="text-xs text-text-tertiary hover:text-brand-600 flex items-center gap-1 disabled:opacity-60 transition-colors focus-ring"
           >
             <RefreshCw className={`w-3 h-3 ${refreshing ? 'animate-spin' : ''}`} />
             {refreshing ? 'Refreshing...' : 'Refresh'}
-          </button>
-          <span className="text-text-tertiary">·</span>
-          <button disabled className="text-xs text-brand-600 flex items-center gap-1 opacity-50 cursor-not-allowed">
-            View Profile <ExternalLink className="w-3 h-3" />
           </button>
         </div>
 
@@ -119,24 +120,10 @@ export function CustomerPanel({
         <div className="flex items-center justify-center gap-3 mt-4">
           <button
             onClick={copyLineId}
-            className="w-9 h-9 rounded-full flex items-center justify-center bg-gray-50 hover:bg-brand-50 text-text-tertiary hover:text-brand-600 border border-border-default transition-all"
+            className="w-9 h-9 rounded-full flex items-center justify-center bg-gray-50 hover:bg-brand-50 text-text-tertiary hover:text-brand-600 border border-border-default transition-all focus-ring"
             aria-label="Copy LINE ID"
           >
             <Copy className="w-4 h-4" />
-          </button>
-          <button
-            disabled
-            className="w-9 h-9 rounded-full flex items-center justify-center bg-gray-50 text-text-tertiary border border-border-default opacity-50 cursor-not-allowed"
-            aria-label="Notifications"
-          >
-            <Bell className="w-4 h-4" />
-          </button>
-          <button
-            disabled
-            className="w-9 h-9 rounded-full flex items-center justify-center bg-gray-50 text-text-tertiary border border-border-default opacity-50 cursor-not-allowed"
-            aria-label="Mark as VIP"
-          >
-            <Star className="w-4 h-4" />
           </button>
         </div>
 
@@ -146,7 +133,7 @@ export function CustomerPanel({
             {currentChat.tags.map((tag) => (
               <span
                 key={tag.id}
-                className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium text-white thai-no-break"
+                className="inline-flex items-center rounded-full px-2 py-0.5 text-2xs font-medium text-white thai-no-break"
                 style={{ backgroundColor: tag.color }}
               >
                 {tag.name}
@@ -154,53 +141,34 @@ export function CustomerPanel({
             ))}
           </div>
         )}
-
-        {/* Stats grid */}
-        <div className="grid grid-cols-3 gap-2 mt-4">
-          <div className="bg-gray-50 rounded-xl p-2.5">
-            <MessageSquare className="w-3.5 h-3.5 text-text-tertiary mx-auto mb-1" />
-            <div className="text-sm font-bold text-text-primary">N/A</div>
-            <div className="text-[10px] text-text-tertiary">Chats</div>
-          </div>
-          <div className="bg-gray-50 rounded-xl p-2.5">
-            <Star className="w-3.5 h-3.5 text-text-tertiary mx-auto mb-1" />
-            <div className="text-sm font-bold text-text-primary">N/A</div>
-            <div className="text-[10px] text-text-tertiary">Rating</div>
-          </div>
-          <div className="bg-gray-50 rounded-xl p-2.5">
-            <Calendar className="w-3.5 h-3.5 text-text-tertiary mx-auto mb-1" />
-            <div className="text-sm font-bold text-text-primary">N/A</div>
-            <div className="text-[10px] text-text-tertiary">Joined</div>
-          </div>
-        </div>
       </div>
 
       {/* Details section */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
         {/* LINE ID */}
-        <div className="bg-gray-50 rounded-xl p-3">
-          <p className="text-[10px] text-text-tertiary font-semibold mb-1.5 uppercase tracking-wider">LINE ID</p>
+        <div className="bg-muted rounded-xl p-3">
+          <p className="text-2xs text-text-tertiary font-semibold mb-1.5 uppercase tracking-wider">LINE ID</p>
           <div className="flex items-center gap-2">
-            <p className="text-xs text-text-secondary font-mono truncate flex-1">{currentChat.line_user_id}</p>
-            <button onClick={copyLineId} className="p-1 text-text-tertiary hover:text-brand-600 rounded transition-colors" aria-label="Copy LINE ID">
+            <p className="text-xs text-text-secondary font-mono truncate break-words flex-1">{currentChat.line_user_id}</p>
+            <button onClick={copyLineId} className="p-1 text-text-tertiary hover:text-brand-600 rounded transition-colors focus-ring" aria-label="Copy LINE ID">
               <Copy className="w-3 h-3" />
             </button>
           </div>
         </div>
 
         {/* Session Status */}
-        <div className="bg-gray-50 rounded-xl p-3 flex justify-between items-center">
+        <div className="bg-muted rounded-xl p-3 flex justify-between items-center">
           <span className="text-xs text-text-tertiary">Session</span>
-          <span className={`px-2 py-1 rounded-lg text-[10px] font-semibold ${
-            isActive ? 'bg-online/15 text-online' : isWaiting ? 'bg-away/15 text-away' : 'bg-gray-100 text-text-tertiary'
+          <span className={`px-2 py-1 rounded-lg text-2xs font-semibold ${
+            isActive ? 'bg-online/15 text-emerald-700 dark:text-emerald-400' : isWaiting ? 'bg-away/15 text-amber-700 dark:text-amber-400' : 'bg-gray-100 text-text-secondary'
           }`}>
             {currentChat.session?.status || 'None'}
           </span>
         </div>
 
         {/* Activity */}
-        <div className="bg-gray-50 rounded-xl p-3 space-y-2">
-          <p className="text-[10px] text-text-tertiary font-semibold uppercase tracking-wider">Activity</p>
+        <div className="bg-muted rounded-xl p-3 space-y-2">
+          <p className="text-2xs text-text-tertiary font-semibold uppercase tracking-wider">Activity</p>
           <div className="flex items-center gap-2 text-xs text-text-secondary">
             <Clock className="w-3.5 h-3.5 text-text-tertiary" />
             <span>Last active: {currentChat.session?.started_at ? new Date(currentChat.session.started_at).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A'}</span>
@@ -212,40 +180,49 @@ export function CustomerPanel({
         </div>
 
         {/* Internal Notes */}
-        <div className="bg-gray-50 rounded-xl p-3 space-y-2">
-          <p className="text-[10px] text-text-tertiary font-semibold uppercase tracking-wider">Internal Notes</p>
+        <div className="bg-surface border border-border-default rounded-xl p-3 space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <label htmlFor="customer-notes" className="text-2xs text-text-tertiary font-semibold uppercase tracking-wider thai-text">โน้ตภายใน</label>
+            <span role="status" aria-live="polite" aria-atomic="true" className="flex items-center gap-1 text-2xs text-text-tertiary thai-text">
+              {(notes.length > 0 || !saved) &&
+                (saved ? (
+                  <>
+                    <Check className="w-3 h-3 text-online" aria-hidden="true" />
+                    บันทึกแล้ว
+                  </>
+                ) : (
+                  'กำลังบันทึก…'
+                ))}
+            </span>
+          </div>
           <textarea
-            placeholder="Add notes about this customer..."
-            className="w-full text-xs bg-white border border-border-default rounded-lg px-3 py-2 text-text-primary placeholder:text-text-tertiary outline-none focus:ring-2 focus:ring-brand-500/40 resize-none"
+            id="customer-notes"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="พิมพ์โน้ตเกี่ยวกับลูกค้า…"
+            className="w-full text-xs bg-white border border-border-default rounded-lg px-3 py-2 text-text-primary placeholder:text-text-tertiary resize-none focus-ring"
             rows={3}
           />
         </div>
 
         {/* Export */}
-        <div className="bg-gray-50 rounded-xl p-3 space-y-2">
-          <p className="text-[10px] text-text-tertiary font-semibold uppercase tracking-wider">Export</p>
+        <div className="bg-surface border border-border-default rounded-xl p-3 space-y-2">
+          <p className="text-2xs text-text-tertiary font-semibold uppercase tracking-wider">Export</p>
           <div className="flex gap-2">
             <button
               onClick={() => downloadExport(exportCsvUrl, `${currentChat.line_user_id}.csv`)}
-              className="flex-1 text-center text-xs px-2 py-2 rounded-lg border border-border-default bg-white hover:bg-gray-50 text-text-secondary transition-colors"
+              className="flex-1 text-center text-xs px-2 py-2 rounded-lg border border-border-default bg-white hover:bg-gray-50 text-text-secondary transition-colors focus-ring"
             >
               CSV
             </button>
             <button
               onClick={() => downloadExport(exportPdfUrl, `${currentChat.line_user_id}.pdf`)}
-              className="flex-1 text-center text-xs px-2 py-2 rounded-lg border border-border-default bg-white hover:bg-gray-50 text-text-secondary transition-colors"
+              className="flex-1 text-center text-xs px-2 py-2 rounded-lg border border-border-default bg-white hover:bg-gray-50 text-text-secondary transition-colors focus-ring"
             >
               PDF
             </button>
           </div>
         </div>
-      </div>
-
-      {/* Footer */}
-      <div className="p-4 border-t border-border-default">
-        <button disabled className="w-full py-2.5 text-xs font-medium text-text-tertiary rounded-xl border border-border-default flex items-center justify-center gap-1.5 opacity-50 cursor-not-allowed">
-          <Trash2 className="w-4 h-4" />Delete Conversation
-        </button>
       </div>
     </aside>
   );

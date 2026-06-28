@@ -13,6 +13,8 @@ export interface ToastNotification {
   avatar?: string
   type: 'message' | 'system'
   timestamp: number
+  // Present only for clickable 'message' toasts — opens that conversation on click.
+  lineUserId?: string
 }
 
 // ──────────────────────────────────────────────
@@ -47,6 +49,7 @@ interface LiveChatState {
   showQuickReplies: boolean
   inputExpanded: boolean
   notifications: ToastNotification[]
+  liveMessage: string
 }
 
 interface LiveChatActions {
@@ -76,6 +79,7 @@ interface LiveChatActions {
   clearFailed: (tempId: string) => void
   setHasMoreHistory: (hasMore: boolean) => void
   setIsLoadingHistory: (loading: boolean) => void
+  markRead: (lineUserId: string) => void
 
   // UI extension actions
   toggleEmojiPicker: () => void
@@ -115,6 +119,7 @@ const initialState: LiveChatState = {
   showQuickReplies: false,
   inputExpanded: false,
   notifications: [],
+  liveMessage: '',
 }
 
 export const useLiveChatStore = create<LiveChatStore>()(
@@ -127,7 +132,12 @@ export const useLiveChatStore = create<LiveChatStore>()(
       selectChat: (id) => set({ selectedId: id }),
       setCurrentChat: (chat) => set({ currentChat: chat }),
       setMessages: (messages) => set({ messages }),
-      addMessage: (message) => set((s) => ({ messages: [...s.messages, message] })),
+      addMessage: (message) => set((s) => ({
+        messages: [...s.messages, message],
+        liveMessage: message.direction === 'INCOMING'
+          ? `ข้อความใหม่จาก ${message.operator_name || s.currentChat?.display_name || 'ผู้ใช้'}`
+          : s.liveMessage,
+      })),
       prependMessages: (messages) => set((s) => ({ messages: [...messages, ...s.messages] })),
       setLoading: (loading) => set({ loading }),
       setBackendOnline: (online) => set({ backendOnline: online }),
@@ -167,6 +177,10 @@ export const useLiveChatStore = create<LiveChatStore>()(
       }),
       setHasMoreHistory: (hasMore) => set({ hasMoreHistory: hasMore }),
       setIsLoadingHistory: (loading) => set({ isLoadingHistory: loading }),
+      markRead: (lineUserId) => set((s) => ({
+        conversations: s.conversations.map((c) =>
+          c.line_user_id === lineUserId ? { ...c, unread_count: 0 } : c),
+      })),
 
       // UI extension actions
       toggleEmojiPicker: () => set((s) => ({

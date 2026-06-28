@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { AlertTriangle, Bell, MessageSquare, RefreshCw, Wifi, WifiOff } from 'lucide-react';
 
 import { ProfileDropdown } from './ProfileDropdown';
@@ -12,6 +12,7 @@ import { ChatHeader } from './ChatHeader';
 import { MessageBubble } from './MessageBubble';
 import { MessageInput } from './MessageInput';
 import { TypingIndicator } from './TypingIndicator';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 
 function getSenderLabel(message: Message, displayName?: string) {
   if (message.direction === 'INCOMING') return displayName || 'User';
@@ -39,6 +40,7 @@ export function ChatArea() {
   const failedMessages = useLiveChatStore((s) => s.failedMessages);
   const hasMoreHistory = useLiveChatStore((s) => s.hasMoreHistory);
   const isLoadingHistory = useLiveChatStore((s) => s.isLoadingHistory);
+  const liveMessage = useLiveChatStore((s) => s.liveMessage);
 
   // API methods and non-store state from Context
   const {
@@ -48,10 +50,14 @@ export function ChatArea() {
     focusedMessageId,
     clearFocusedMessage,
     isHumanMode,
+    currentUserId,
+    onlineOperators,
+    getClaimContender,
     sendMessage,
     sendMedia,
     claimSession,
     closeSession,
+    transferSession,
     toggleMode,
     setInputText,
     setShowTransferDialog,
@@ -64,11 +70,61 @@ export function ChatArea() {
     selectConversation,
   } = useLiveChatContext();
 
+  const reduced = useReducedMotion();
+
+  // M17: resolve the session owner's display name for the composer ownership
+  // banner. Prefer the live presence list, fall back to the claim contender
+  // (covers owners not currently in presence), then the shared `Operator #id`
+  // convention used by the backend payload. Plain derived value — the React
+  // Compiler memoizes it; a manual useMemo here cannot preserve its deps.
+  const sessionOwnerId = currentChat?.session?.operator_id;
+  const sessionOwnerName = ((): string | undefined => {
+    if (!sessionOwnerId) return undefined;
+    const fromPresence = onlineOperators.find((op) => Number(op.id) === sessionOwnerId);
+    const presenceName = fromPresence?.display_name || fromPresence?.name;
+    if (presenceName) return presenceName;
+    const lineUserId = currentChat?.line_user_id;
+    const contender = lineUserId ? getClaimContender(lineUserId) : undefined;
+    if (contender?.operatorId === sessionOwnerId) return contender.name;
+    return `Operator #${sessionOwnerId}`;
+  })();
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const historySentinelRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = React.useState(0);
   const [viewportHeight, setViewportHeight] = React.useState(0);
+
+  // L9.1: throttle scroll-driven setState with requestAnimationFrame so the
+  // virtualization recompute runs at most once per frame instead of on every
+  // scroll event. Read scrollTop synchronously BEFORE the rAF callback because
+  // React nullifies e.currentTarget after the handler returns.
+  const scrollRafRef = useRef<number | null>(null);
+  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const top = e.currentTarget.scrollTop;
+    if (scrollRafRef.current != null) return;
+    scrollRafRef.current = requestAnimationFrame(() => {
+      scrollRafRef.current = null;
+      setScrollTop(top);
+    });
+  }, []);
+  useEffect(() => () => {
+    if (scrollRafRef.current != null) cancelAnimationFrame(scrollRafRef.current);
+  }, []);
+
+  // L7: baseline count of messages that already existed when this conversation
+  // was opened. Anything appended after the baseline (absolute idx >= baseline)
+  // is treated as "new" and gets the entrance animation. The baseline is captured
+  // during render via the React-sanctioned "adjust state when a prop changes"
+  // pattern (https://react.dev/learn/you-might-not-need-an-effect) — re-captured
+  // synchronously whenever selectedId changes, so existing/historical messages
+  // never animate and the entrance does not replay when switching rooms.
+  const [prevSelectedId, setPrevSelectedId] = React.useState<string | null>(selectedId);
+  const [baselineCount, setBaselineCount] = React.useState(messages.length);
+  if (selectedId !== prevSelectedId) {
+    setPrevSelectedId(selectedId);
+    setBaselineCount(messages.length);
+  }
 
   // Helper to check if user is near bottom of scroll container
   const isNearBottom = () => {
@@ -80,9 +136,9 @@ export function ChatArea() {
   // Only auto-scroll if near bottom (not when user scrolled up to read older messages)
   useEffect(() => {
     if (isNearBottom()) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      messagesEndRef.current?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth' });
     }
-  }, [messages.length]);
+  }, [messages.length, reduced]);
 
   useEffect(() => {
     const container = messagesContainerRef.current;
@@ -107,11 +163,11 @@ export function ChatArea() {
     );
     const timer = window.setTimeout(() => {
       const target = document.getElementById(`message-${focusedMessageId}`);
-      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (target) target.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' });
       clearFocusedMessage();
     }, 40);
     return () => window.clearTimeout(timer);
-  }, [clearFocusedMessage, focusedMessageId, messages]);
+  }, [clearFocusedMessage, focusedMessageId, messages, reduced]);
 
   useEffect(() => {
     if (!historySentinelRef.current || !selectedId) return;
@@ -175,20 +231,21 @@ export function ChatArea() {
             <div
               className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border ${
                 wsStatus === 'connected'
-                  ? 'bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400 border-green-200 dark:border-green-500/20'
+                  ? 'bg-online/10 text-online border-online/20'
                   : wsStatus === 'disconnected'
-                    ? 'bg-red-50 dark:bg-red-500/10 text-red-500 dark:text-red-400 border-red-200 dark:border-red-500/20'
-                    : 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-500/20'
+                    ? 'bg-danger/10 text-danger border-danger/20'
+                    : 'bg-away/10 text-away border-away/20'
               }`}
+              role="status"
               aria-live="polite"
             >
               <span className="relative flex h-2 w-2">
                 {wsStatus === 'connected' && (
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-50" />
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-online opacity-50" />
                 )}
                 <span className={`relative inline-flex rounded-full h-2 w-2 ${
-                  wsStatus === 'connected' ? 'bg-green-500' :
-                  wsStatus === 'disconnected' ? 'bg-red-500' : 'bg-amber-500'
+                  wsStatus === 'connected' ? 'bg-online' :
+                  wsStatus === 'disconnected' ? 'bg-danger' : 'bg-away'
                 }`} />
               </span>
               {connectionStatus.label}
@@ -229,11 +286,11 @@ export function ChatArea() {
             )}
             <div className="flex gap-6 justify-center mt-6">
               <div>
-                <div className="text-2xl font-bold text-text-primary">{waitingCount}</div>
+                <div className="text-2xl font-bold text-text-primary tabular-nums">{waitingCount}</div>
                 <div className="text-xs text-text-tertiary">Waiting</div>
               </div>
               <div>
-                <div className="text-2xl font-bold text-text-primary">{activeCount}</div>
+                <div className="text-2xl font-bold text-text-primary tabular-nums">{activeCount}</div>
                 <div className="text-xs text-text-tertiary">Active</div>
               </div>
             </div>
@@ -260,8 +317,7 @@ export function ChatArea() {
       <div
         ref={messagesContainerRef}
         className="flex-1 overflow-y-auto p-4 space-y-2 bg-bg custom-scrollbar"
-        aria-live="polite"
-        onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
+        onScroll={handleScroll}
       >
         <div ref={historySentinelRef} />
         {virtualEnabled && <div aria-hidden style={{ height: `${visibleWindow.topPadding}px` }} />}
@@ -288,6 +344,7 @@ export function ChatArea() {
           const showAvatar = !next || next.direction !== message.direction || next.sender_role !== message.sender_role;
           const pending = !!(message.temp_id && pendingMessages.has(message.temp_id));
           const failed = !!(message.temp_id && failedMessages.has(message.temp_id));
+          const formattedTime = new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
           return (
             <MessageBubble
               key={message.id || message.temp_id}
@@ -295,21 +352,24 @@ export function ChatArea() {
               elementId={message.id ? `message-${message.id}` : undefined}
               isPending={pending}
               isFailed={failed}
+              formattedTime={formattedTime}
               senderLabel={getSenderLabel(message, currentChat?.display_name)}
               showSender={showSender}
               showAvatar={showAvatar}
               incomingAvatar={currentChat?.picture_url}
+              isNew={idx >= baselineCount}
               onRetry={retryMessage}
             />
           );
         })}
         {virtualEnabled && <div aria-hidden style={{ height: `${visibleWindow.bottomPadding}px` }} />}
         <TypingIndicator visible={typingUsersCount > 0} />
+        <div role="status" aria-live="polite" className="sr-only">{typingUsersCount > 0 ? 'กำลังพิมพ์' : ''}</div>
         <div ref={messagesEndRef} />
       </div>
       {/* Inline connection warning — above message input */}
       {wsStatus !== 'connected' && (
-        <div className="px-4 py-2.5 bg-amber-50 dark:bg-amber-500/10 border-t border-amber-200 dark:border-amber-500/20 flex items-center gap-2.5 thai-text">
+        <div role="status" aria-live="polite" className="px-4 py-2.5 bg-amber-50 dark:bg-amber-500/10 border-t border-amber-200 dark:border-amber-500/20 flex items-center gap-2.5 thai-text">
           <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
           <span className="text-sm text-amber-700 dark:text-amber-300 flex-1">
             {wsStatus === 'reconnecting'
@@ -327,12 +387,19 @@ export function ChatArea() {
           )}
         </div>
       )}
+      <div role="log" aria-live="polite" aria-relevant="additions" className="sr-only">
+        {liveMessage}
+      </div>
       <MessageInput
         inputText={inputText}
         sending={sending}
         isHumanMode={isHumanMode}
         showCannedPicker={showCannedPicker}
         soundEnabled={soundEnabled}
+        sessionOwnerId={sessionOwnerId}
+        sessionOwnerName={sessionOwnerName}
+        currentUserId={currentUserId}
+        onTakeOver={() => transferSession(currentUserId)}
         onInputChange={setInputText}
         onSend={() => sendMessage(inputText)}
         onSendFile={sendMedia}

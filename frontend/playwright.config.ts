@@ -21,6 +21,9 @@ import { defineConfig, devices } from '@playwright/test'
  */
 export default defineConfig({
   testDir: './e2e',
+  // The heavy 2-client multi-operator acceptance spec runs via its own
+  // `e2e-2client.config.ts` (serial, generous timeouts); keep it out of smoke.
+  testIgnore: '**/live-chat-2client.spec.ts',
   // Catch hangs early -- the slowest screens render in <5s on cold start.
   timeout: 30_000,
   expect: { timeout: 5_000 },

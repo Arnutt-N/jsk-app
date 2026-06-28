@@ -1,16 +1,16 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Cross-Platform Session Index (generated)
 
-> **Last generated**: 2026-06-21 21:57 (from newest checkpoint)
+> **Last generated**: 2026-06-28 14:56 (from newest checkpoint)
 
 ## Quick Stats
 
 | Metric | Value |
 |--------|-------|
-| Handoff checkpoints (active) | 94 |
-| Session summaries on disk | 179 |
+| Handoff checkpoints (active) | 112 |
+| Session summaries on disk | 197 |
 | Platforms | 8 (antigravity, claude_code, cline, codex, gemini_cli, kilo_code, kimi_code, open_code) |
-| Most recent | 2026-06-21 21:57 — claude_code |
+| Most recent | 2026-06-28 14:56 — claude_code |
 
 > Regenerate after any handoff: `node .agents/scripts/gen-handoff-views.cjs`
 
@@ -23,31 +23,31 @@
 | 2026-04-04 12:04 | completed | `handover-antigravity-20260404-1204.json` |
 | 2026-02-15 03:20 | completed | `handover-antigravity-20260215-0320.json` |
 
-## claude_code (59)
+## claude_code (77)
 
 | When | Status | Checkpoint |
 |------|--------|------------|
+| 2026-06-28 14:56 | completed | `handover-claude_code-20260628-1456.json` |
+| 2026-06-28 11:06 | completed | `handover-claude_code-20260628-1106.json` |
+| 2026-06-28 10:42 | completed | `handover-claude_code-20260628-1042.json` |
+| 2026-06-28 05:42 | completed | `handover-claude_code-20260628-0542.json` |
+| 2026-06-28 00:48 | completed | `handover-claude_code-20260628-0048.json` |
+| 2026-06-27 21:59 | completed | `handover-claude_code-20260627-2159.json` |
+| 2026-06-27 19:49 | completed | `handover-claude_code-20260627-1949.json` |
+| 2026-06-27 17:48 | completed | `handover-claude_code-20260627-1748.json` |
+| 2026-06-27 16:29 | completed | `handover-claude_code-20260627-1629.json` |
+| 2026-06-27 10:50 | completed | `handover-claude_code-20260627-1050.json` |
+| 2026-06-27 09:53 | completed | `handover-claude_code-20260627-0953.json` |
+| 2026-06-27 06:42 | completed | `handover-claude_code-20260627-0642.json` |
+| 2026-06-27 05:27 | completed | `handover-claude_code-20260627-0527.json` |
+| 2026-06-27 00:40 | completed | `handover-claude_code-20260627-0040.json` |
+| 2026-06-26 23:00 | completed | `handover-claude_code-20260626-2300.json` |
+| 2026-06-24 22:14 | completed | `handover-claude_code-20260624-2214.json` |
+| 2026-06-22 07:27 | completed | `handover-claude_code-20260622-0727.json` |
+| 2026-06-22 07:15 | completed | `handover-claude_code-20260622-0715.json` |
 | 2026-06-21 21:57 | completed | `handover-claude_code-20260621-2157.json` |
 | 2026-06-21 20:21 | completed | `handover-claude_code-20260621-2021.json` |
-| 2026-06-21 19:06 | completed | `handover-claude_code-20260621-1906.json` |
-| 2026-06-21 18:22 | completed | `handover-claude_code-20260621-1822.json` |
-| 2026-06-21 17:33 | completed | `handover-claude_code-20260621-1733.json` |
-| 2026-06-21 16:15 | completed | `handover-claude_code-20260621-1615.json` |
-| 2026-06-21 10:56 | completed | `handover-claude_code-20260621-1056.json` |
-| 2026-06-21 10:09 | completed | `handover-claude_code-20260621-1009.json` |
-| 2026-06-21 07:41 | completed | `handover-claude_code-20260621-0741.json` |
-| 2026-06-21 01:37 | completed | `handover-claude_code-20260621-0137.json` |
-| 2026-06-20 23:43 | completed | `handover-claude_code-20260620-2343.json` |
-| 2026-06-20 23:08 | completed | `handover-claude_code-20260620-2308.json` |
-| 2026-06-20 22:36 | completed | `handover-claude_code-20260620-2236.json` |
-| 2026-06-20 21:36 | completed | `handover-claude_code-20260620-2136.json` |
-| 2026-06-20 19:44 | completed | `handover-claude_code-20260620-1944.json` |
-| 2026-06-20 18:57 | completed | `handover-claude_code-20260620-1857.json` |
-| 2026-06-20 18:41 | completed | `handover-claude_code-20260620-1841.json` |
-| 2026-06-20 17:38 | completed | `handover-claude_code-20260620-1738.json` |
-| 2026-06-20 10:37 | completed | `handover-claude_code-20260620-1037.json` |
-| 2026-06-20 08:12 | completed | `handover-claude_code-20260620-0812.json` |
-| … | | +39 older |
+| … | | +57 older |
 
 ## cline (1)
 

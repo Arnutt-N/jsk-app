@@ -6,7 +6,7 @@ from sqlalchemy import select, func, or_, and_
 from typing import List, Optional
 
 from app.db.session import get_db
-from app.api.deps import get_current_admin, require_permission
+from app.api.deps import get_current_admin, get_current_staff, require_permission
 from app.core.permissions import KEY_MANAGE_USERS
 from app.models.user import User, UserRole
 from app.models.service_request import ServiceRequest, RequestStatus
@@ -217,10 +217,18 @@ async def list_user_workload(
     role: Optional[UserRole] = None,
     search: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin),
+    # Staff gate (AGENT/DIRECTOR/HEAD + admins), NOT admin-only: live-chat
+    # operators need the operator roster to populate the transfer picker.
+    # This endpoint is read-only and exposes no admin-only privilege beyond
+    # the auth gate, so widening to staff does not escalate access.
+    current_admin: User = Depends(get_current_staff),
 ):
     """List users with their current workload statistics (used by assignment UI)."""
-    query = select(User)
+    # Staff/assignees only — never return LINE customers (UserRole.USER) through
+    # this endpoint. It is reachable by AGENT-level staff (transfer picker), and
+    # customers are never operators or service-request assignees, so excluding
+    # them server-side closes a broken-access-control gap regardless of caller.
+    query = select(User).where(User.role != UserRole.USER)
 
     if role:
         query = query.where(User.role == role)

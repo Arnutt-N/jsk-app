@@ -1,0 +1,18 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-06-26T23:00:00+07:00",
+  "branch": "docs/livechat-audit-remediation-prp",
+  "head_commit": "3f269b8",
+  "status": "completed",
+  "work_summary": "Cleared the WSL Playwright system-deps blocker (libnspr4/libnss3/libasound2t64/xvfb + dpkg --configure -a repair); re-bootstrapped the local e2e stack (docker db/redis on Windows host + backend run.py --no-reload + next dev) against the LOCAL docker DB via ENV_FILE=app/.env; seeded admin and validated the live-chat smoke spec GREEN (2 passed, 2 skipped, 0 failed). Found and fixed one wrong test assumption (test 2 asserted a textarea composer is always present, but ChatArea renders an empty-state when no conversation is selected) committed as 3f269b8 on docs/livechat-audit-remediation-prp.",
+  "priority_actions": [
+    "Implement Phase 1 Quick Wins via /ecc:prp-implement .claude/PRPs/plans/phase-1-quick-wins.plan.md (read plans/PLAN-REVIEW-FIXES.md errata first)",
+    "During Phase 1 H1, un-skip the Send-accessible-name e2e test and re-run the live-chat smoke spec",
+    "To re-run e2e on this 9p/WSL box use a local playwright override config (navTimeout 90s, retries 2) placed under frontend/; full recipe is in memory project_livechat_remediation"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/claude_code/session-summary-20260626-2300.md",
+  "cross_platform_read": []
+}
