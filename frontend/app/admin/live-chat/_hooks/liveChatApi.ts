@@ -79,3 +79,20 @@ export const mergeConversationUpdate = (
   tags: data.tags ?? existing?.tags,
   messages: data.messages ?? existing?.messages,
 });
+
+/**
+ * Relative-time label for a message timestamp: 'now', '5m', '3h', 'Yesterday',
+ * or a th-TH short date. Pure presentation util (extracted from the provider so
+ * it stays a thin composition root). Module-level → stable identity.
+ */
+export function formatTime(value: string): string {
+  const d = new Date(value);
+  const now = new Date();
+  const mins = Math.floor((now.getTime() - d.getTime()) / 60000);
+  if (mins < 1) return 'now';
+  if (mins < 60) return `${mins}m`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h`;
+  if (hours < 48) return 'Yesterday';
+  return d.toLocaleDateString('th-TH', { month: 'short', day: 'numeric' });
+}

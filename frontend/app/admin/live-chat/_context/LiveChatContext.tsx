@@ -19,8 +19,9 @@ import type {
 } from '@/lib/websocket/types';
 import { useLiveChatStore } from '../_store/liveChatStore';
 import type { Conversation } from '../_types';
-import { resolveOperatorName, removeKey } from '../_hooks/liveChatApi';
+import { resolveOperatorName, removeKey, formatTime } from '../_hooks/liveChatApi';
 import { useMediaQuery } from '../_hooks/useMediaQuery';
+import { useLiveChatActions } from '../_hooks/useLiveChatActions';
 import { useConversationSync } from '../_hooks/useConversationSync';
 import { useMessageFlow } from '../_hooks/useMessageFlow';
 import { useChatRoom } from '../_hooks/useChatRoom';
@@ -114,39 +115,17 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
     wsStatusRef.current = wsStatus;
   }, [wsStatus]);
 
-  // ── Simple state setters (delegate to store) ──
-  const setSearchQuery = useCallback((value: string) => {
-    getStore().setSearchQuery(value);
-  }, []);
-
-  const setFilterStatus = useCallback((value: string | null) => {
-    getStore().setFilterStatus(value);
-  }, []);
-
-  const setInputText = useCallback((value: string) => {
-    getStore().setInputText(value);
-  }, []);
-
-  const setShowCustomerPanel = useCallback((value: boolean) => {
-    getStore().setShowCustomerPanel(value);
-  }, []);
-
-  const setActiveActionMenu = useCallback((value: string | null) => {
-    getStore().setActiveActionMenu(value);
-  }, []);
-
-  const setShowTransferDialog = useCallback((value: boolean) => {
-    getStore().setShowTransferDialog(value);
-  }, []);
-
-  const setShowCannedPicker = useCallback((value: boolean) => {
-    getStore().setShowCannedPicker(value);
-  }, []);
-
-  const setSoundEnabled = useCallback((value: boolean) => {
-    getStore().setSoundEnabled(value);
-    setEnabled(value);
-  }, [setEnabled]);
+  // ── Stable store-delegating setters (exposed on the context value) ──
+  const {
+    setSearchQuery,
+    setFilterStatus,
+    setInputText,
+    setShowCustomerPanel,
+    setActiveActionMenu,
+    setShowTransferDialog,
+    setShowCannedPicker,
+    setSoundEnabled,
+  } = useLiveChatActions(setEnabled);
 
   // ── Conversation sync (list + detail + selection + polling) ──
   const {
@@ -329,18 +308,6 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
 
   const isHumanMode = currentChat?.chat_mode === 'HUMAN';
 
-  const formatTime = useCallback((value: string) => {
-    const d = new Date(value);
-    const now = new Date();
-    const mins = Math.floor((now.getTime() - d.getTime()) / 60000);
-    if (mins < 1) return 'now';
-    if (mins < 60) return `${mins}m`;
-    const hours = Math.floor(mins / 60);
-    if (hours < 24) return `${hours}h`;
-    if (hours < 48) return 'Yesterday';
-    return d.toLocaleDateString('th-TH', { month: 'short', day: 'numeric' });
-  }, []);
-
   // Memoize the context value so consumers only re-render when one of the
   // exposed derived values or callbacks actually changes identity. Without
   // this, a fresh object literal each render forces every consumer to
@@ -414,7 +381,6 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
     reconnect,
     retryMessage,
     startTyping,
-    formatTime,
   ]);
 
   return <LiveChatContext.Provider value={value}>{children}</LiveChatContext.Provider>;
