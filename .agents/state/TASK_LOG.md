@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 120 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 121 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-06-29 07:23 — claude_code — completed
+
+Fan-out review (7 experts + adversarial verify, 44 findings: 2 blocking, 35 non-blocking, 7 refuted) then merged PR #111 (matchtype enum re-chained migration, fixed revision-id collision) + PR #112 (reply-object type editors + LINE preview; fixed 422-toast, 3 a11y HIGH, added integration test)
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260629-0723.json`
+- Summary: `project-log-md/claude_code/session-summary-20260629-0723.md`
+
+---
 
 ### 2026-06-28 22:17 — claude_code — completed
 

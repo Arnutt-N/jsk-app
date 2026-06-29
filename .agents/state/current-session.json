@@ -1,12 +1,21 @@
 {
-  "last_updated": "2026-06-28T22:17:00+07:00",
+  "last_updated": "2026-06-29T07:23:00+07:00",
   "platform": "claude_code",
-  "current_task": "Final 2 optional tasks DONE — no code change needed. (Task 1) PR #119 verified on prod: /api/v1/health/websocket = uptime 3s, healthy, pubsub_connected=true -> server_id 128-bit deployed, no behavior ",
+  "current_task": "Fan-out review (7 experts + adversarial verify, 44 findings: 2 blocking, 35 non-blocking, 7 refuted) then merged PR #111 (matchtype enum re-chained migration, fixed revision-id collision) + PR #112 (r",
   "plan_status": "completed",
   "next_steps": [
-    "Nothing required — all session work complete (5 PRs merged this session: #117 #118 #119 + their handoffs). If a future full-suite run shows the 27 DB errors, just ensure docker db+redis are up and migrated first; the conftest host (127.0.0.1) is already correct."
+    "Apply #111 migration to Supabase PROD: db_target.py alembic --target remote upgrade head",
+    "Open follow-up issue: webhook STARTS_WITH/REGEX matching + tests",
+    "Open follow-up: #112 deferred test-coverage/a11y-medium items"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-06-29T07:23:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "dc52cb8",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-06-28T22:17:00+07:00",
       "platform": "claude_code",
@@ -138,13 +147,6 @@
       "platform": "claude_code",
       "branch": "docs/livechat-audit-remediation-prp",
       "head": "031d67b",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-27T06:42:00+07:00",
-      "platform": "claude_code",
-      "branch": "docs/livechat-audit-remediation-prp",
-      "head": "66ba8fc",
       "status": "completed"
     }
   ],
