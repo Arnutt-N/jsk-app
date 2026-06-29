@@ -24,6 +24,7 @@ import type {
   FlexSpacing,
   FlexSize,
 } from '@/lib/line/message-types';
+import { isSafeImageUrl } from '@/lib/line/url';
 
 const MAX_DEPTH = 20;
 
@@ -36,21 +37,6 @@ const TEXT_SIZE_PX: Record<string, number> = {
   xxs: 11, xs: 13, sm: 14, md: 16, lg: 19, xl: 22, xxl: 29,
   '3xl': 35, '4xl': 47, '5xl': 70,
 };
-
-/**
- * Only allow http(s) image URLs in the preview. Payloads are admin-supplied
- * JSON, so block `javascript:` / `data:` URIs as defense-in-depth even though
- * the page is authenticated.
- */
-function isSafeImageUrl(url: string | undefined): url is string {
-  if (!url) return false;
-  try {
-    const protocol = new URL(url, 'https://line.invalid').protocol;
-    return protocol === 'http:' || protocol === 'https:';
-  } catch {
-    return false;
-  }
-}
 
 function spacingToPx(value: FlexSpacing | undefined, fallback = 0): number {
   if (value == null) return fallback;

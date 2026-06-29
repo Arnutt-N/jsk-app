@@ -11,7 +11,7 @@ interface ModalProps {
   title?: string;
   description?: string;
   children: React.ReactNode;
-  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl';
   showCloseButton?: boolean;
   closeOnBackdropClick?: boolean;
 }
@@ -74,6 +74,9 @@ export const Modal: React.FC<ModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
+      // Capture the element that had focus before the modal opened so we can
+      // restore it on close (WCAG 2.4.3). Mirrors MobileDrawer/TransferDialog.
+      const previouslyFocused = document.activeElement as HTMLElement | null;
       window.addEventListener('keydown', handleKeyDown);
       const timer = setTimeout(() => {
         const firstFocusable = modalRef.current?.querySelector<HTMLElement>(
@@ -84,6 +87,7 @@ export const Modal: React.FC<ModalProps> = ({
       return () => {
         window.removeEventListener('keydown', handleKeyDown);
         clearTimeout(timer);
+        previouslyFocused?.focus();
       };
     }
     return () => window.removeEventListener('keydown', handleKeyDown);
@@ -95,6 +99,8 @@ export const Modal: React.FC<ModalProps> = ({
     lg: 'max-w-lg',
     xl: 'max-w-xl',
     '2xl': 'max-w-2xl',
+    '3xl': 'max-w-3xl',
+    '4xl': 'max-w-4xl',
   };
 
   if (typeof document === 'undefined' || !isOpen) return null;

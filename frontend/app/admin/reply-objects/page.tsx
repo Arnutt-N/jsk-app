@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Package, Trash2, SquarePen, ChevronDown } from 'lucide-react';
 import PageHeader from '@/app/admin/components/PageHeader';
 import { Button } from '@/components/ui/Button';
@@ -11,6 +11,12 @@ import { StaggerContainer, StaggerItem } from '@/components/ui/PageTransition';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/Toast';
 import { logger } from '@/lib/logger';
+import type { QuickReply } from '@/lib/line/message-types';
+import { TemplateEditor } from './_components/editors/TemplateEditor';
+import { TextV2Editor } from './_components/editors/TextV2Editor';
+import { QuickReplyEditor } from './_components/QuickReplyEditor';
+import { MessagePreview } from './_components/preview/MessagePreview';
+import { safeParsePayload, defaultPayloadForType } from './_components/payload-utils';
 
 interface ReplyObject {
     id: number;
@@ -24,13 +30,36 @@ interface ReplyObject {
     created_at: string;
 }
 
-const OBJECT_TYPES = ['text', 'flex', 'image', 'sticker', 'video', 'audio', 'location', 'imagemap'];
+const OBJECT_TYPES = [
+    'text', 'text_v2', 'flex', 'template',
+    'image', 'sticker', 'video', 'audio', 'location', 'imagemap',
+];
+
+// Types that have a dedicated structured editor (vs. the raw JSON textarea).
+const STRUCTURED_TYPES = new Set(['template', 'text_v2']);
+
+/**
+ * FastAPI validation errors (422) return `detail` as an ARRAY of error objects,
+ * not a string. Normalize any shape into a single string so the toast never
+ * receives an object/array (which throws "Objects are not valid as a React child").
+ */
+function formatErrorDetail(detail: unknown): string {
+    if (typeof detail === 'string') return detail;
+    if (Array.isArray(detail)) {
+        const msgs = detail
+            .map((d) => (d && typeof d === 'object' && 'msg' in d ? String((d as { msg: unknown }).msg) : ''))
+            .filter(Boolean);
+        if (msgs.length > 0) return msgs.join('; ');
+    }
+    return 'Error saving';
+}
 
 export default function ReplyObjectsPage() {
     const [objects, setObjects] = useState<ReplyObject[]>([]);
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
+    const [rawMode, setRawMode] = useState(false);
     const [formData, setFormData] = useState({
         object_id: '',
         name: '',
@@ -43,6 +72,31 @@ export default function ReplyObjectsPage() {
     const [confirmDelete, setConfirmDelete] = useState<{open: boolean; objectId: string | null}>({open: false, objectId: null});
     const { toast } = useToast();
     const API_BASE = '/api/v1';
+
+    // Parsed payload — single source of truth stays the JSON string in formData.
+    const parsedPayload = useMemo(() => safeParsePayload(formData.payload), [formData.payload]);
+
+    const updatePayload = useCallback((next: Record<string, unknown>) => {
+        setFormData(prev => ({ ...prev, payload: JSON.stringify(next, null, 2) }));
+    }, []);
+
+    const handleTypeChange = (newType: string) => {
+        setFormData(prev => {
+            const prevPayload = safeParsePayload(prev.payload);
+            const next = defaultPayloadForType(newType);
+            // Carry the quick-reply modifier across a type switch.
+            if (prevPayload.quickReply) next.quickReply = prevPayload.quickReply;
+            return { ...prev, object_type: newType, payload: JSON.stringify(next, null, 2) };
+        });
+        setRawMode(false);
+    };
+
+    const handleQuickReplyChange = (qr: QuickReply | undefined) => {
+        const next: Record<string, unknown> = { ...parsedPayload };
+        if (qr && Array.isArray(qr.items) && qr.items.length > 0) next.quickReply = qr;
+        else delete next.quickReply;
+        updatePayload(next);
+    };
 
     const fetchObjects = useCallback(async () => {
         try {
@@ -84,8 +138,8 @@ export default function ReplyObjectsPage() {
                 await fetchObjects();
                 resetForm();
             } else {
-                const error = await res.json();
-                toast({ title: 'ผิดพลาด', description: error.detail || 'Error saving', variant: 'error' });
+                const error = await res.json().catch(() => ({} as { detail?: unknown }));
+                toast({ title: 'ผิดพลาด', description: formatErrorDetail(error.detail), variant: 'error' });
             }
         } catch {
             toast({ title: 'ผิดพลาด', description: 'Invalid JSON payload', variant: 'error' });
@@ -98,10 +152,11 @@ export default function ReplyObjectsPage() {
             name: obj.name,
             category: obj.category || '',
             object_type: obj.object_type,
-            payload: JSON.stringify(obj.payload, null, 2),
+            payload: obj.payload ? JSON.stringify(obj.payload, null, 2) : '{}',
             alt_text: obj.alt_text || ''
         });
         setEditingId(obj.object_id);
+        setRawMode(false);
         setShowForm(true);
     };
 
@@ -117,8 +172,12 @@ export default function ReplyObjectsPage() {
     const resetForm = () => {
         setFormData({ object_id: '', name: '', category: '', object_type: 'flex', payload: '{}', alt_text: '' });
         setEditingId(null);
+        setRawMode(false);
         setShowForm(false);
     };
+
+    const isStructured = STRUCTURED_TYPES.has(formData.object_type);
+    const showStructuredEditor = isStructured && !rawMode;
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500 thai-text">
@@ -206,13 +265,14 @@ export default function ReplyObjectsPage() {
                 isOpen={showForm}
                 onClose={resetForm}
                 title={editingId ? 'Edit Object' : 'New Template'}
-                maxWidth="2xl"
+                maxWidth="4xl"
             >
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-1">Universal ID *</label>
+                            <label htmlFor="ro-field-object-id" className="text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-1">Universal ID *</label>
                             <input
+                                id="ro-field-object-id"
                                 type="text"
                                 value={formData.object_id}
                                 onChange={(e) => setFormData({ ...formData, object_id: e.target.value })}
@@ -223,8 +283,9 @@ export default function ReplyObjectsPage() {
                             />
                         </div>
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-1">Internal Name *</label>
+                            <label htmlFor="ro-field-name" className="text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-1">Internal Name *</label>
                             <input
+                                id="ro-field-name"
                                 type="text"
                                 value={formData.name}
                                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -237,11 +298,12 @@ export default function ReplyObjectsPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-1">Message Protocol *</label>
+                            <label htmlFor="ro-field-object-type" className="text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-1">Message Protocol *</label>
                             <div className="relative">
                                 <select
+                                    id="ro-field-object-type"
                                     value={formData.object_type}
-                                    onChange={(e) => setFormData({ ...formData, object_type: e.target.value })}
+                                    onChange={(e) => handleTypeChange(e.target.value)}
                                     className="w-full px-4 py-3 bg-bg border border-border-default rounded-xl text-text-primary font-bold appearance-none focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:bg-surface transition-all cursor-pointer"
                                 >
                                     {OBJECT_TYPES.map(t => (
@@ -254,8 +316,9 @@ export default function ReplyObjectsPage() {
                             </div>
                         </div>
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-1">Grouping Category</label>
+                            <label htmlFor="ro-field-category" className="text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-1">Grouping Category</label>
                             <input
+                                id="ro-field-category"
                                 type="text"
                                 value={formData.category}
                                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
@@ -266,8 +329,9 @@ export default function ReplyObjectsPage() {
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-1">Alt Text (Mobile/Tablet accessibility)</label>
+                        <label htmlFor="ro-field-alt-text" className="text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-1">Alt Text (Mobile/Tablet accessibility)</label>
                         <input
+                            id="ro-field-alt-text"
                             type="text"
                             value={formData.alt_text}
                             onChange={(e) => setFormData({ ...formData, alt_text: e.target.value })}
@@ -276,16 +340,55 @@ export default function ReplyObjectsPage() {
                         />
                     </div>
 
-                    <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-1">JSON Payload *</label>
-                        <textarea
-                            value={formData.payload}
-                            onChange={(e) => setFormData({ ...formData, payload: e.target.value })}
-                            rows={10}
-                            className="w-full px-6 py-4 bg-gray-900 border border-gray-800 rounded-xl text-green-400 font-mono text-xs focus:outline-none focus:border-brand-500/50 transition-all overscroll-contain"
-                            placeholder="{ ... }"
-                            required
-                        />
+                    {/* Content editor (left) + live preview (right) */}
+                    <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-6">
+                        <div className="space-y-4 min-w-0">
+                            <div className="flex items-center justify-between">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-1">Content</label>
+                                {isStructured && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setRawMode(m => !m)}
+                                        className="text-xs font-bold text-brand-600 hover:text-brand-500 transition-colors"
+                                    >
+                                        {rawMode ? '↩ ใช้ตัวแก้ไขฟอร์ม' : '</> แก้แบบ JSON'}
+                                    </button>
+                                )}
+                            </div>
+
+                            {showStructuredEditor && formData.object_type === 'template' && (
+                                <TemplateEditor payload={parsedPayload} onChange={updatePayload} />
+                            )}
+                            {showStructuredEditor && formData.object_type === 'text_v2' && (
+                                <TextV2Editor payload={parsedPayload} onChange={updatePayload} />
+                            )}
+                            {!showStructuredEditor && (
+                                <textarea
+                                    value={formData.payload}
+                                    onChange={(e) => setFormData({ ...formData, payload: e.target.value })}
+                                    rows={12}
+                                    className="w-full px-6 py-4 bg-gray-900 border border-gray-800 rounded-xl text-green-400 font-mono text-xs focus:outline-none focus:border-brand-500/50 transition-all overscroll-contain"
+                                    placeholder="{ ... }"
+                                    required
+                                />
+                            )}
+
+                            <QuickReplyEditor
+                                value={parsedPayload.quickReply as QuickReply | undefined}
+                                onChange={handleQuickReplyChange}
+                            />
+                        </div>
+
+                        <div className="lg:sticky lg:top-0 h-fit space-y-2">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-1">Live Preview</label>
+                            <div className="rounded-xl border border-border-default bg-[#8aa6c8] dark:bg-[#39414d] p-4 overflow-x-auto">
+                                <MessagePreview
+                                    objectType={formData.object_type}
+                                    payload={parsedPayload}
+                                    altText={formData.alt_text}
+                                />
+                            </div>
+                        </div>
                     </div>
 
                     <div className="flex gap-3 pt-2">
