@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import DateTime, String, and_, column, desc, func, select, update, values
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import aliased
 from app.models.user import User, ChatMode, UserRole
 from app.models.chat_session import ChatSession, SessionStatus, ClosedBy
@@ -131,6 +132,36 @@ class LiveChatService:
 
         return counts
 
+    async def _add_open_session(self, user: User, db: AsyncSession) -> tuple[ChatSession, bool]:
+        """Insert a new WAITING session under a SAVEPOINT.
+
+        The partial unique index uq_chat_sessions_open_per_user rejects a second
+        open session per user. Losing that race must not poison the caller's
+        transaction (the webhook flow still holds the flushed-but-uncommitted
+        INCOMING message), so the insert runs in a nested transaction: on
+        IntegrityError only the savepoint rolls back and the concurrent winner's
+        session is fetched and reused. Returns (session, created).
+        """
+        session = ChatSession(
+            line_user_id=user.line_user_id,
+            status=SessionStatus.WAITING,
+            started_at=datetime.now(timezone.utc),
+            last_activity_at=datetime.now(timezone.utc),
+        )
+        try:
+            async with db.begin_nested():
+                db.add(session)
+                await db.flush()
+        except IntegrityError:
+            existing = await self.get_active_session(user.line_user_id, db)
+            if existing is None:
+                raise
+            logger.info(
+                f"Concurrent handoff race for {user.line_user_id}: reusing open session {existing.id}"
+            )
+            return existing, False
+        return session, True
+
     async def initiate_handoff(
         self,
         user: User,
@@ -145,6 +176,15 @@ class LiveChatService:
         Checks business hours first. If after hours, sends after-hours message
         and creates an offline ticket for follow-up.
         """
+        existing_session = await self.get_active_session(user.line_user_id, db)
+        if existing_session:
+            user.chat_mode = ChatMode.HUMAN
+            if commit:
+                await db.commit()
+            else:
+                await db.flush()
+            return existing_session
+
         # 1. Check business hours
         if not await business_hours_service.is_within_business_hours(db):
             next_open = await business_hours_service.get_next_open_time(db)
@@ -157,37 +197,37 @@ class LiveChatService:
             )
             
             await line_service.reply_text(reply_token, after_hours_msg)
-            
+
             # Create offline session (still in WAITING but user notified it's after hours)
             # This allows the user to leave a message that will be handled next business day
-            session = ChatSession(
-                line_user_id=user.line_user_id,
-                status=SessionStatus.WAITING,
-                started_at=datetime.now(timezone.utc),
-                last_activity_at=datetime.now(timezone.utc)
-            )
-            db.add(session)
+            session, created = await self._add_open_session(user, db)
+            # chat_mode is set after the savepoint: a savepoint rollback would
+            # discard a chat_mode change flushed inside it
             user.chat_mode = ChatMode.HUMAN
             if commit:
                 await db.commit()
             else:
                 await db.flush()
-            
-            logger.info(f"After-hours handoff for user {user.line_user_id}, next open: {next_open}")
+
+            if created:
+                logger.info(f"After-hours handoff for user {user.line_user_id}, next open: {next_open}")
             return session
         
-        # 2. Update user mode
+        # 2. Create chat session (savepoint-guarded against the open-session race)
+        session, created = await self._add_open_session(user, db)
+
+        # 3. Update user mode — after the savepoint so a rollback there cannot
+        #    discard a flushed chat_mode change
         user.chat_mode = ChatMode.HUMAN
 
-        # 3. Create chat session
-        session = ChatSession(
-            line_user_id=user.line_user_id,
-            status=SessionStatus.WAITING,
-            started_at=datetime.now(timezone.utc),
-            last_activity_at=datetime.now(timezone.utc)
-        )
-        db.add(session)
-        await db.flush()  # Flush to get session ID
+        if not created:
+            # A concurrent handoff won the race and already sent its own
+            # greeting and notifications — just adopt its session.
+            if commit:
+                await db.commit()
+            else:
+                await db.flush()
+            return session
 
         # 4. Send auto-greeting with queue position
         greeting = "เจ้าหน้าที่จะติดต่อกลับในไม่ช้า กรุณารอสักครู่"

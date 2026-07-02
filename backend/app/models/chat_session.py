@@ -1,5 +1,5 @@
 from enum import Enum
-from sqlalchemy import Boolean, Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Index, Integer, String
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.db.base import Base
@@ -39,3 +39,15 @@ class ChatSession(Base):
 
     operator = relationship("User", back_populates="chat_sessions", foreign_keys=[operator_id])
     csat_responses = relationship("CsatResponse", back_populates="session")
+
+    __table_args__ = (
+        Index(
+            "uq_chat_sessions_one_open_per_line_user",
+            "line_user_id",
+            unique=True,
+            postgresql_where=status.in_([
+                SessionStatus.WAITING.value,
+                SessionStatus.ACTIVE.value,
+            ]),
+        ),
+    )

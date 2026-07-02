@@ -26,7 +26,7 @@ interface UseMessageFlowParams {
    * injected via a ref the provider populates post-socket. `sendMessage` reads
    * `.current` at call-time (user action), well after mount — never null.
    */
-  wsSendMessageRef: RefObject<(text: string, tempId?: string) => void>;
+  wsSendMessageRef: RefObject<(text: string, tempId?: string) => boolean>;
   playNotification: () => void;
   userDisplayName?: string;
   fetchChatDetail: (id: string, includeMessages?: boolean) => Promise<void>;
@@ -133,22 +133,28 @@ export function useMessageFlow({
     s.addPending(tempId);
 
     if (wsStatusRef.current === 'connected') {
-      wsSendMessageRef.current(text, tempId);
-      // Fallback: fail the optimistic message if the WS ack never arrives.
-      // Guard everything on THIS tempId still being pending — otherwise an
-      // earlier message's timeout would clear the global `sending` flag (or
-      // fail) a newer in-flight send that has already replaced it.
-      setTimeout(() => {
-        const store = getStore();
-        if (store.pendingMessages.has(tempId)) {
-          store.removePending(tempId);
-          store.setFailed(tempId, 'Message acknowledgment timed out');
-          if (store.sending) {
-            store.setSending(false);
+      const dispatched = wsSendMessageRef.current(text, tempId);
+      if (!dispatched) {
+        // Fall through to the HTTP fallback below. The message stays pending
+        // (spinner visible) until the fetch resolves — ack and catch both
+        // clean it up.
+      } else {
+        // Fallback: fail the optimistic message if the WS ack never arrives.
+        // Guard everything on THIS tempId still being pending — otherwise an
+        // earlier message's timeout would clear the global `sending` flag (or
+        // fail) a newer in-flight send that has already replaced it.
+        setTimeout(() => {
+          const store = getStore();
+          if (store.pendingMessages.has(tempId)) {
+            store.removePending(tempId);
+            store.setFailed(tempId, 'Message acknowledgment timed out');
+            if (store.sending) {
+              store.setSending(false);
+            }
           }
-        }
-      }, ACK_TIMEOUT_MS);
-      return;
+        }, ACK_TIMEOUT_MS);
+        return;
+      }
     }
 
     try {

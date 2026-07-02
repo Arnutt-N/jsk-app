@@ -8,6 +8,7 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import datetime, timezone
 from fastapi import HTTPException
+from sqlalchemy.exc import IntegrityError
 
 from app.services.live_chat_service import LiveChatService
 from app.models.chat_session import SessionStatus, ClosedBy
@@ -76,6 +77,69 @@ class TestClaimSession:
             with pytest.raises(HTTPException) as exc:
                 await live_chat_service.claim_session("Utest", 1, mock_db)
             assert exc.value.status_code == 409
+
+
+class TestInitiateHandoff:
+    """Test handoff session creation guards"""
+
+    @pytest.mark.asyncio
+    async def test_initiate_handoff_reuses_existing_open_session(self, live_chat_service):
+        mock_user = MagicMock()
+        mock_user.line_user_id = "Utest"
+        mock_user.chat_mode = "BOT"
+        mock_session = MagicMock()
+        mock_db = AsyncMock()
+
+        with patch.object(live_chat_service, 'get_active_session', new_callable=AsyncMock) as mock_get, \
+             patch('app.services.live_chat_service.business_hours_service.is_within_business_hours', new_callable=AsyncMock) as mock_hours, \
+             patch('app.services.live_chat_service.line_service.reply_text', new_callable=AsyncMock) as mock_reply:
+            mock_get.return_value = mock_session
+
+            result = await live_chat_service.initiate_handoff(
+                mock_user,
+                "reply-token",
+                mock_db,
+            )
+
+        assert result == mock_session
+        assert mock_user.chat_mode == "HUMAN"
+        mock_db.commit.assert_awaited_once()
+        mock_hours.assert_not_awaited()
+        mock_reply.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_initiate_handoff_race_adopts_winner_session(self, live_chat_service):
+        """Losing the open-session unique-index race must not poison the caller's
+        transaction: the savepoint rolls back, the winner's session is adopted,
+        and no duplicate greeting is sent."""
+        mock_user = MagicMock()
+        mock_user.line_user_id = "Utest"
+        mock_user.chat_mode = "BOT"
+        winner_session = MagicMock()
+
+        mock_db = AsyncMock()
+        # Real AsyncSession.begin_nested() is a sync call returning an async CM
+        mock_db.begin_nested = MagicMock()
+        mock_db.flush.side_effect = IntegrityError("stmt", {}, Exception("duplicate"))
+
+        with patch.object(live_chat_service, 'get_active_session', new_callable=AsyncMock) as mock_get, \
+             patch('app.services.live_chat_service.business_hours_service.is_within_business_hours', new_callable=AsyncMock) as mock_hours, \
+             patch('app.services.live_chat_service.line_service.reply_text', new_callable=AsyncMock) as mock_reply:
+            mock_hours.return_value = True
+            # First call: pre-check sees no open session; second call: re-fetch
+            # after the IntegrityError finds the concurrent winner's session.
+            mock_get.side_effect = [None, winner_session]
+
+            result = await live_chat_service.initiate_handoff(
+                mock_user,
+                "reply-token",
+                mock_db,
+            )
+
+        assert result == winner_session
+        assert mock_user.chat_mode == "HUMAN"
+        mock_db.commit.assert_awaited_once()
+        mock_reply.assert_not_awaited()
 
 
 class TestCloseSession:

@@ -27,6 +27,7 @@ class WSEventType(str, Enum):
     AUTH_ERROR = "auth_error"
     NEW_MESSAGE = "new_message"
     MESSAGE_SENT = "message_sent"
+    MESSAGE_FAILED = "message_failed"
     TYPING_INDICATOR = "typing_indicator"
     SESSION_CLAIMED = "session_claimed"
     SESSION_CLOSED = "session_closed"

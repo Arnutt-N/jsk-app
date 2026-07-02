@@ -31,13 +31,13 @@ import { loginAsAdmin } from './utils/auth'
 
 const LIVE_CHAT = '/admin/live-chat'
 
+test.setTimeout(120_000)
+
 /** Open the live-chat console as an authenticated admin. */
 async function gotoLiveChat(page: Page): Promise<void> {
   await loginAsAdmin(page)
-  await page.goto(LIVE_CHAT)
-  // Force-dynamic page + WebSocket bootstrap — wait for network to settle
-  // rather than a fixed timeout (the repo's testing rules ban flaky waits).
-  await page.waitForLoadState('networkidle')
+  await page.goto(LIVE_CHAT, { waitUntil: 'domcontentloaded', timeout: 90_000 })
+  await expect(page.getByRole('listbox')).toBeVisible({ timeout: 45_000 })
 }
 
 /**

@@ -72,8 +72,8 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
     };
   }, [adminId, effectiveToken, url]);
 
-  const send = useCallback((type: MessageType, payload: unknown) => {
-    return clientRef.current?.send(type, payload) ?? false;
+  const send = useCallback((type: MessageType, payload: unknown, options?: { queue?: boolean }) => {
+    return clientRef.current?.send(type, payload, options) ?? false;
   }, []);
 
   const reconnect = useCallback(() => {

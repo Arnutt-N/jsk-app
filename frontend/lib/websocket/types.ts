@@ -55,7 +55,7 @@ export interface UseWebSocketOptions {
 }
 
 export interface UseWebSocketReturn {
-  send: (type: MessageType, payload: unknown) => boolean;
+  send: (type: MessageType, payload: unknown, options?: { queue?: boolean }) => boolean;
   connectionState: ConnectionState;
   isConnected: boolean;
   isReconnecting: boolean;

@@ -245,4 +245,20 @@ describe('LiveChatContext claim contention (M16 / B5)', () => {
     // Assert
     expect(latest().getClaimContender('U777')).toEqual({ operatorId: 9, name: 'Operator #9' });
   });
+
+  it('surfaces non-claim WebSocket errors as notifications', async () => {
+    await mount();
+
+    await act(async () => {
+      socketCapture.options?.onError?.('Only the current operator can transfer the session');
+    });
+    await flush();
+
+    const notification = useLiveChatStore.getState().notifications.at(-1);
+    expect(notification).toMatchObject({
+      title: 'Live chat error',
+      message: 'Only the current operator can transfer the session',
+      type: 'system',
+    });
+  });
 });

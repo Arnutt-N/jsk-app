@@ -22,7 +22,7 @@ import { expect, type Page } from '@playwright/test'
  * contexts log in back-to-back against a cold WSL/9p dev server.
  */
 export async function loginAs(page: Page, username: string, password: string): Promise<void> {
-  await page.goto('/login')
+  await page.goto('/login', { timeout: 60_000 })
 
   // The login form is a basic <input>/<input>/<button>. We target by
   // input name attribute since the page uses native form elements --
@@ -54,7 +54,7 @@ export async function loginAs(page: Page, username: string, password: string): P
   // button has mounted on a first-hit /login compile. (click() also auto-waits
   // for actionability; this just gives a clearer failure if it never appears.)
   await submitButton.waitFor({ state: 'visible' })
-  await submitButton.click()
+  await submitButton.click({ timeout: 45_000 })
 
   // The login flow ends on /admin (or /admin/something). Be lenient
   // about exactly where we land -- different roles might redirect

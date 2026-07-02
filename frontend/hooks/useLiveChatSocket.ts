@@ -41,7 +41,7 @@ interface UseLiveChatSocketReturn {
   isConnected: boolean;
   joinRoom: (lineUserId: string) => void;
   leaveRoom: () => void;
-  sendMessage: (text: string, tempId?: string) => void;
+  sendMessage: (text: string, tempId?: string) => boolean;
   retryMessage: (tempId: string) => void;
   startTyping: (lineUserId: string) => void;
   stopTyping: (lineUserId: string) => void;
@@ -190,21 +190,27 @@ export function useLiveChatSocket(options: UseLiveChatSocketOptions): UseLiveCha
   const sendMessage = useCallback((text: string, tempId?: string) => {
     if (!currentRoom.current) {
       console.warn('Cannot send message: not in a room');
-      return;
+      return false;
     }
     // Store message for potential retry
     if (tempId) {
       pendingMessages.current.set(tempId, { text, retries: 0 });
     }
-    send(MessageType.SEND_MESSAGE, { text, temp_id: tempId });
+    return send(MessageType.SEND_MESSAGE, { text, temp_id: tempId }, { queue: false });
   }, [send]);
 
   const retryMessage = useCallback((tempId: string) => {
     const pending = pendingMessages.current.get(tempId);
-    if (pending && pending.retries < 3) {
-      pendingMessages.current.set(tempId, { text: pending.text, retries: pending.retries + 1 });
-      send(MessageType.SEND_MESSAGE, { text: pending.text, temp_id: tempId });
+    if (!pending || pending.retries >= 3) {
+      return false;
     }
+    const dispatched = send(MessageType.SEND_MESSAGE, { text: pending.text, temp_id: tempId }, { queue: false });
+    // Only consume a retry attempt when the frame actually left the socket —
+    // a failed dispatch keeps the message failed and retryable.
+    if (dispatched) {
+      pendingMessages.current.set(tempId, { text: pending.text, retries: pending.retries + 1 });
+    }
+    return dispatched;
   }, [send]);
 
   const startTyping = useCallback((lineUserId: string) => {
@@ -240,7 +246,7 @@ export function useLiveChatSocket(options: UseLiveChatSocketOptions): UseLiveCha
       console.warn('Cannot transfer session: not in a room');
       return false;
     }
-    return send(MessageType.TRANSFER_SESSION, { to_operator_id: toOperatorId, reason });
+    return send(MessageType.TRANSFER_SESSION, { to_operator_id: toOperatorId, reason }, { queue: false });
   }, [send]);
 
   // Cleanup on unmount

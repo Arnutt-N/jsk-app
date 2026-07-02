@@ -1,0 +1,18 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-07-02T23:55:00+07:00",
+  "branch": "main",
+  "head_commit": "5c4a7f1",
+  "status": "completed",
+  "work_summary": "Validated + hardened CodeX live-chat fix before commit: stacked WSL dev env, e2e green (2-client 2/2 single run, smoke 3 passed/1 skip), 3-agent review (fastapi/react/security) found 2 CRITICALs in unmodified middle-layer useWebSocket.ts (options param not forwarded so queue:false never reached WebSocketClient -> double-send; sendRaw swallowed errors -> false success). Fixed 9 findings: savepoint-guarded initiate_handoff race (+test), shared sanitize_message_text for initial_message, honest WS retryable after commit, direct frame write in client.send, retryMessage quota only on real dispatch, rate-limit toast filter, pending kept during HTTP fallback, Thai aria-label e2e selectors. Validation: WSL pytest 517, vitest 289/289, tsc/eslint 0.",
+  "priority_actions": [
+    "Apply migration v2w3x4y5z6a7 to Supabase PROD via db_target --target remote upgrade head — FIRST close duplicate open sessions (migration guard raises RuntimeError on dirty data)",
+    "Deferred follow-ups: debounce typing_start keystroke spam; map WS error text to Thai; frontend consume message_failed.retryable flag",
+    "WSL dev servers left running (stop: wsl pkill -f run.py / pkill -f next)"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/claude_code/session-summary-20260702-2355.md",
+  "cross_platform_read": []
+}

@@ -126,7 +126,7 @@ function waitingConversationRow(page: Page): Locator {
 
 /** The Session-actions control group inside the selected conversation's header. */
 function sessionActions(page: Page): Locator {
-  return page.getByRole('group', { name: /session actions/i })
+  return page.getByRole('group', { name: 'การจัดการสาย' })
 }
 
 /** Fail loudly (not skip) if the required seed conversation is absent. */
@@ -207,7 +207,7 @@ test.describe('/admin/live-chat 2-client (Phase 6)', () => {
     // On a HEALTHY stack with the reseed in place the session is WAITING, the
     // Claim button surfaces, and the tests RUN and ASSERT (they do not skip).
     const sessionLive = await sessionActions(pageA)
-      .getByRole('button')
+      .locator('button')
       .first()
       .waitFor({ state: 'visible', timeout: WS_TIMEOUT })
       .then(() => true)
@@ -226,17 +226,17 @@ test.describe('/admin/live-chat 2-client (Phase 6)', () => {
 
   test('claim contention: operator B sees a disabled lock after operator A claims', async () => {
     // Operator A claims the WAITING session. Claim button accessible name is
-    // "Claim session" (SessionActions aria-label, stable even while "Claiming...").
+    // "รับสาย" (SessionActions aria-label, stable even while claiming).
     // Assert the (right) Claim button is visible before clicking so we click a
     // stable, settled element rather than racing the room's first render.
-    const claimBtn = sessionActions(pageA).getByRole('button', { name: /claim session/i })
+    const claimBtn = sessionActions(pageA).getByRole('button', { name: 'รับสาย' })
     await expect(claimBtn).toBeVisible({ timeout: WS_TIMEOUT })
     await claimBtn.click()
 
     // Over the WebSocket, operator B's header swaps the Claim button for a
     // DISABLED lock. Its accessible name is "<name> กำลังรับเรื่อง" (aria-label);
     // match on the Thai phrase so the leading operator name is irrelevant.
-    const lock = pageB.getByRole('button', { name: /กำลังรับเรื่อง/ })
+    const lock = sessionActions(pageB).getByRole('button', { name: /กำลังรับเรื่อง/ })
     await expect(lock).toBeVisible({ timeout: WS_TIMEOUT })
     await expect(lock).toBeDisabled({ timeout: WS_TIMEOUT })
   })
@@ -250,13 +250,14 @@ test.describe('/admin/live-chat 2-client (Phase 6)', () => {
     const actions = sessionActions(pageA)
     await expect(actions).toBeVisible({ timeout: WS_TIMEOUT })
 
-    const claimBtn = actions.getByRole('button', { name: /claim session/i })
+    const claimBtn = actions.getByRole('button', { name: 'รับสาย' })
     if (await claimBtn.isVisible().catch(() => false)) {
       await claimBtn.click()
     }
 
-    // Open the Transfer dialog from the chat header (aria-label "Transfer session").
-    const transferBtn = actions.getByRole('button', { name: /transfer session/i })
+    // Open the Transfer dialog from the chat header once the WAITING claim
+    // action is replaced by the ACTIVE transfer + close actions.
+    const transferBtn = actions.getByRole('button', { name: 'โอนสาย' })
     await expect(transferBtn).toBeVisible({ timeout: WS_TIMEOUT })
     await transferBtn.click()
 

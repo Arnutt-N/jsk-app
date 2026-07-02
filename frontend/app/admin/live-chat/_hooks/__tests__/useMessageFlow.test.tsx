@@ -40,12 +40,12 @@ const baseMessage = (over: Partial<Message>): Message => ({
 function setup(opts: {
   selectedId?: string | null;
   wsStatus?: ConnectionState;
-  wsSend?: (text: string, tempId?: string) => void;
+  wsSend?: (text: string, tempId?: string) => boolean;
   fetchChatDetail?: ReturnType<typeof vi.fn>;
   fetchConversations?: ReturnType<typeof vi.fn>;
   playNotification?: ReturnType<typeof vi.fn>;
 } = {}) {
-  const wsSend = opts.wsSend ?? vi.fn();
+  const wsSend = opts.wsSend ?? vi.fn(() => true);
   const fetchChatDetail = opts.fetchChatDetail ?? vi.fn().mockResolvedValue(undefined);
   const fetchConversations = opts.fetchConversations ?? vi.fn().mockResolvedValue(undefined);
   const playNotification = opts.playNotification ?? vi.fn();
@@ -233,6 +233,35 @@ describe('useMessageFlow', () => {
     expect(store().pendingMessages.size).toBe(0);
     expect(store().sending).toBe(false);
     expect(store().inputText).toBe('');
+  });
+
+  it('falls back to HTTP when a connected socket cannot dispatch the message', async () => {
+    const fetchChatDetail = vi.fn().mockResolvedValue(undefined);
+    const fetchConversations = vi.fn().mockResolvedValue(undefined);
+    global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) }) as unknown as typeof fetch;
+    const wsSend = vi.fn(() => false);
+
+    const { view } = setup({
+      wsStatus: 'connected',
+      wsSend,
+      fetchChatDetail,
+      fetchConversations,
+    });
+
+    await act(async () => {
+      await view.result.current.sendMessage('socket-raced');
+    });
+
+    expect(wsSend).toHaveBeenCalledTimes(1);
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/admin/live-chat/conversations/U1/messages'),
+      expect.objectContaining({ method: 'POST' }),
+    );
+    expect(fetchChatDetail).toHaveBeenCalledTimes(1);
+    expect(fetchConversations).toHaveBeenCalledTimes(1);
+    expect(store().pendingMessages.size).toBe(0);
+    expect(store().failedMessages.size).toBe(0);
+    expect(store().sending).toBe(false);
   });
 
   it('is a no-op when nothing is selected', async () => {

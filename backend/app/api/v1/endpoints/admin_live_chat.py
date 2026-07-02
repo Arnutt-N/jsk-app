@@ -1,8 +1,9 @@
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query, UploadFile, File, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Any, List, Optional
 from app.api import deps
@@ -13,7 +14,8 @@ from app.services.live_chat_service import (
 )
 from app.schemas.live_chat import (
     ConversationList, ConversationDetail,
-    SendMessageRequest, ModeToggleRequest
+    SendMessageRequest, ModeToggleRequest,
+    sanitize_message_text,
 )
 from app.models.chat_session import ChatSession, ClosedBy, SessionStatus
 from app.models.message import Message, MessageDirection
@@ -447,8 +449,13 @@ async def search_messages(
 
 class CreateSessionRequest(BaseModel):
     line_user_id: str
-    initial_message: Optional[str] = None
+    initial_message: Optional[str] = Field(None, max_length=5000)
     reason: Optional[str] = None
+
+    @field_validator("initial_message", mode="before")
+    @classmethod
+    def sanitize_initial_message(cls, value: Optional[str]) -> Optional[str]:
+        return sanitize_message_text(value)
 
 
 @router.post("/conversations", status_code=status.HTTP_201_CREATED)
@@ -491,7 +498,14 @@ async def create_conversation(
         last_activity_at=now,
     )
     db.add(session)
-    await db.flush()
+    try:
+        await db.flush()
+    except IntegrityError as exc:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="User already has an active session",
+        ) from exc
 
     # 5. If initial_message is provided, create Message and send via LINE
     if data.initial_message:

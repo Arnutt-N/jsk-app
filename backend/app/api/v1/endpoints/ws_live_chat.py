@@ -119,6 +119,33 @@ async def handle_auth(websocket: WebSocket, payload: dict) -> Optional[str]:
     return await authenticate_ws_user(websocket, token)
 
 
+async def send_message_failed(
+    websocket: WebSocket,
+    temp_id: Optional[str],
+    error: str,
+    timestamp: str,
+    retryable: bool = False,
+) -> None:
+    """Notify the sender that an optimistic message failed."""
+    if not temp_id:
+        await ws_manager.send_personal(websocket, {
+            "type": WSEventType.ERROR.value,
+            "payload": {"message": error},
+            "timestamp": timestamp,
+        })
+        return
+
+    await ws_manager.send_personal(websocket, {
+        "type": WSEventType.MESSAGE_FAILED.value,
+        "payload": {
+            "temp_id": temp_id,
+            "error": error,
+            "retryable": retryable,
+        },
+        "timestamp": timestamp,
+    })
+
+
 @router.websocket("/ws/live-chat")
 async def websocket_endpoint(
     websocket: WebSocket,
@@ -342,39 +369,41 @@ async def websocket_endpoint(
                     continue
 
                 # Validate and sanitize message
+                temp_id = payload.get("temp_id") if isinstance(payload, dict) else None
                 try:
                     msg_payload = SendMessagePayload(**payload)
                     text = msg_payload.text
                     temp_id = msg_payload.temp_id
                 except ValidationError as e:
                     error_msg = str(e.errors()[0]['msg']) if e.errors() else "Invalid message"
-                    await ws_manager.send_personal(websocket, {
-                        "type": WSEventType.ERROR.value,
-                        "payload": {
-                            "message": error_msg,
-                            "code": WSErrorCode.VALIDATION_ERROR.value
-                        },
-                        "timestamp": timestamp
-                    })
+                    await send_message_failed(
+                        websocket,
+                        temp_id if isinstance(temp_id, str) else None,
+                        error_msg,
+                        timestamp,
+                    )
                     continue
 
                 if not text:
-                    await ws_manager.send_personal(websocket, {
-                        "type": WSEventType.ERROR.value,
-                        "payload": {"message": "Message text required"},
-                        "timestamp": timestamp
-                    })
+                    await send_message_failed(
+                        websocket,
+                        temp_id,
+                        "Message text required",
+                        timestamp,
+                    )
                     continue
 
                 # Extract line_user_id from room_id
                 line_user_id = current_room.replace("conversation:", "")
 
                 async with AsyncSessionLocal() as db:
+                    committed = False
                     try:
                         await live_chat_service.send_message(
                             line_user_id, text, admin_id_int, db
                         )
                         await db.commit()
+                        committed = True
                         # Get the sent message
                         messages = await live_chat_service.get_recent_messages(line_user_id, 1, db)
                         if messages:
@@ -407,14 +436,34 @@ async def websocket_endpoint(
                                 "timestamp": timestamp
                             }, exclude_websocket=websocket)
                     except HTTPException as e:
-                        await ws_manager.send_personal(websocket, {
-                            "type": WSEventType.ERROR.value,
-                            "payload": {
-                                "message": str(e.detail),
-                                "code": WSErrorCode.VALIDATION_ERROR.value
-                            },
-                            "timestamp": timestamp
-                        })
+                        await send_message_failed(
+                            websocket,
+                            temp_id,
+                            str(e.detail),
+                            timestamp,
+                        )
+                    except Exception as e:
+                        logger.error("Error sending live-chat message: %s", e)
+                        if committed:
+                            # The message already reached LINE and the DB —
+                            # only the confirm/broadcast step failed. Claiming
+                            # a retryable failure here would invite the
+                            # operator to send the customer a duplicate.
+                            await send_message_failed(
+                                websocket,
+                                temp_id,
+                                "Message sent but confirmation failed — refresh instead of resending",
+                                timestamp,
+                                retryable=False,
+                            )
+                        else:
+                            await send_message_failed(
+                                websocket,
+                                temp_id,
+                                "Failed to send message",
+                                timestamp,
+                                retryable=True,
+                            )
                 continue
 
             # === TYPING START ===
@@ -677,4 +726,3 @@ async def websocket_endpoint(
         # connection was authenticated.
         if admin_id:
             await ws_manager.broadcast_presence()
-

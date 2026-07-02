@@ -1,14 +1,21 @@
 {
-  "last_updated": "2026-06-29T07:23:00+07:00",
+  "last_updated": "2026-07-02T23:55:00+07:00",
   "platform": "claude_code",
-  "current_task": "Fan-out review (7 experts + adversarial verify, 44 findings: 2 blocking, 35 non-blocking, 7 refuted) then merged PR #111 (matchtype enum re-chained migration, fixed revision-id collision) + PR #112 (r",
+  "current_task": "Validated + hardened CodeX live-chat fix before commit: stacked WSL dev env, e2e green (2-client 2/2 single run, smoke 3 passed/1 skip), 3-agent review (fastapi/react/security) found 2 CRITICALs in un",
   "plan_status": "completed",
   "next_steps": [
-    "Apply #111 migration to Supabase PROD: db_target.py alembic --target remote upgrade head",
-    "Open follow-up issue: webhook STARTS_WITH/REGEX matching + tests",
-    "Open follow-up: #112 deferred test-coverage/a11y-medium items"
+    "Apply migration v2w3x4y5z6a7 to Supabase PROD via db_target --target remote upgrade head — FIRST close duplicate open sessions (migration guard raises RuntimeError on dirty data)",
+    "Deferred follow-ups: debounce typing_start keystroke spam; map WS error text to Thai; frontend consume message_failed.retryable flag",
+    "WSL dev servers left running (stop: wsl pkill -f run.py / pkill -f next)"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-07-02T23:55:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "5c4a7f1",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-06-29T07:23:00+07:00",
       "platform": "claude_code",
@@ -140,13 +147,6 @@
       "platform": "claude_code",
       "branch": "docs/livechat-audit-remediation-prp",
       "head": "12abb86",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-27T09:53:00+07:00",
-      "platform": "claude_code",
-      "branch": "docs/livechat-audit-remediation-prp",
-      "head": "031d67b",
       "status": "completed"
     }
   ],

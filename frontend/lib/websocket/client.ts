@@ -186,23 +186,44 @@ export class WebSocketClient {
     }
   }
 
-  send(type: MessageType, payload: unknown): boolean {
+  send(type: MessageType, payload: unknown, options: { queue?: boolean } = {}): boolean {
+    const shouldQueue = options.queue ?? true;
     // Capture WebSocket reference to avoid race condition
     const ws = this.ws;
     if (this.state === 'connected' && ws?.readyState === WebSocket.OPEN) {
+      // Write the frame directly instead of via sendRaw(): sendRaw swallows
+      // its own errors and unconditionally enqueues, which would make this
+      // method report success (and queue) even when the caller opted out.
       try {
-        this.sendRaw(type, payload);
+        ws.send(JSON.stringify(this.buildFrame(type, payload)));
         return true;
       } catch (error) {
-        console.error('Failed to send WebSocket message, queueing:', error);
-        this.messageQueue.enqueue(type, payload);
+        console.error(
+          shouldQueue
+            ? 'Failed to send WebSocket message, queueing:'
+            : 'Failed to send WebSocket message:',
+          error,
+        );
+        if (shouldQueue) {
+          this.messageQueue.enqueue(type, payload);
+        }
         return false;
       }
     } else {
-      // Queue message if not connected
-      this.messageQueue.enqueue(type, payload);
+      // Queue message if not connected, unless the caller has a safer fallback.
+      if (shouldQueue) {
+        this.messageQueue.enqueue(type, payload);
+      }
       return false;
     }
+  }
+
+  private buildFrame(type: MessageType, payload: unknown): WebSocketMessage {
+    return {
+      type,
+      payload,
+      timestamp: new Date().toISOString()
+    };
   }
 
   private sendRaw(type: MessageType, payload: unknown): void {
@@ -210,14 +231,8 @@ export class WebSocketClient {
       return;
     }
 
-    const message: WebSocketMessage = {
-      type,
-      payload,
-      timestamp: new Date().toISOString()
-    };
-
     try {
-      this.ws.send(JSON.stringify(message));
+      this.ws.send(JSON.stringify(this.buildFrame(type, payload)));
     } catch (error) {
       console.error('Failed to send WebSocket message:', error);
       // Queue for retry

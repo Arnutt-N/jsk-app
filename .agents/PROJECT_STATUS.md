@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-06-29 07:23 by Claude Code (Fan-out review 7 experts + adversarial verify, 44 findings: 2 blocking, 35 non-blocking, 7)
+> **Last Updated:** 2026-07-02 23:55 by Claude Code (Validated + hardened CodeX live-chat fix before commit: stacked WSL dev env, e2e green 2-c)
 
 ## Thai Summary
 ฟีเจอร์ **Rich Menu Switching + การกำหนดเมนูรายบุคคล (R1/R2)** เสร็จสมบูรณ์และขึ้น production แล้ว — merge เข้า main ผ่าน PR #114 (merge commit `3a90f4d`), migrate ฐานข้อมูล Supabase PROD (richmenu alias + user_rich_menu_links แบบ additive) และ deploy frontend บน Vercel เรียบร้อย
@@ -54,6 +54,7 @@
 - [2026-06-21] R1/R2 Rich Menu (incl Task 6.2 per-user UI) merged to `main` via PR #114 (`3a90f4d`); Supabase PROD migrated; Vercel frontend deployed. Branch `feat/rich-menu-switching-r1` deleted. Working tree clean.
 
 ## Recent Completions
+- [2026-07-02 23:55] Claude Code: Validated + hardened CodeX live-chat fix before commit: stacked WSL dev env, e2e green (2-client 2/2 single run, smoke 3 passed/1 skip), 3-agent review (fastapi/react/security) found 2 CRITICALs in unmodified middle-layer useWebSocket.ts (o (Claude Code)
 - [2026-06-29 07:23] Claude Code: Fan-out review (7 experts + adversarial verify, 44 findings: 2 blocking, 35 non-blocking, 7 refuted) then merged PR #111 (matchtype enum re-chained migration, fixed revision-id collision) + PR #112 (reply-object type editors + LINE preview; (Claude Code)
 - [2026-06-28 22:17] Claude Code: Final 2 optional tasks DONE — no code change needed. (Task 1) PR #119 verified on prod: /api/v1/health/websocket = uptime 3s, healthy, pubsub_connected=true -> server_id 128-bit deployed, no behavior change. (Task 2) Investigated the 27 WSL (Claude Code)
 - [2026-06-28 21:13] Claude Code: PR #119 (PR2 review polish, 3 LOW) reviewed (mergeable CLEAN; diff scope verified = exactly the 2 expected files, docs + 1-line server_id hardening, no behavior change) + MERGED to main (squash 3cc616e). ALL 3 session PRs now merged: #117 ( (Claude Code)

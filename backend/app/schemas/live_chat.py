@@ -1,7 +1,11 @@
-from pydantic import BaseModel, Field
+import re
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional, Any
+from typing import Any, List, Optional
+
+import bleach
+from pydantic import BaseModel, Field, field_validator
+
 from .chat_session import ChatSessionResponse, SessionStatus
 from .message import MessageResponse
 
@@ -38,10 +42,27 @@ class ConversationList(BaseModel):
 class ConversationDetail(ConversationSummary):
     messages: List[MessageResponse]
 
+def sanitize_message_text(value: Optional[str]) -> Optional[str]:
+    """Strip HTML and collapse whitespace.
+
+    Shared by every outbound-text entry point (WS send, REST send, REST
+    create-conversation) so their sanitization cannot drift apart.
+    """
+    if value is None or not isinstance(value, str):
+        return value
+    cleaned = bleach.clean(value, tags=[], strip=True)
+    return re.sub(r"\s+", " ", cleaned).strip()
+
+
 class SendMessageRequest(BaseModel):
-    text: Optional[str] = None
+    text: Optional[str] = Field(None, max_length=5000)
     reply_object_id: Optional[int] = None
     media_id: Optional[str] = None
+
+    @field_validator("text", mode="before")
+    @classmethod
+    def sanitize_text(cls, value: Optional[str]) -> Optional[str]:
+        return sanitize_message_text(value)
 
 class ModeToggleRequest(BaseModel):
     mode: ChatMode

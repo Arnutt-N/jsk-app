@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 121 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 122 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-02 23:55 — claude_code — completed
+
+Validated + hardened CodeX live-chat fix before commit: stacked WSL dev env, e2e green (2-client 2/2 single run, smoke 3 passed/1 skip), 3-agent review (fastapi/react/security) found 2 CRITICALs in unmodified middle-layer useWebSocket.ts (options param not forwarded so queue:false never reached WebSocketClient -> double-send; sendRaw swallowed errors -> false success). Fixed 9 findings: savepoint-guarded initiate_handoff race (+test), shared sanitize_message_text for initial_message, honest WS retryable after commit, direct frame write in client.send, retryMessage quota only on real dispatch, rate-limit toast filter, pending kept during HTTP fallback, Thai aria-label e2e selectors. Validation: WSL pytest 517, vitest 289/289, tsc/eslint 0.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260702-2355.json`
+- Summary: `project-log-md/claude_code/session-summary-20260702-2355.md`
+
+---
 
 ### 2026-06-29 07:23 — claude_code — completed
 

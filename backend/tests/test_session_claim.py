@@ -5,12 +5,15 @@ Tests for session claim workflow:
 - Claim without joining room first (error)
 - SESSION_CLAIMED broadcast to all operators
 """
-import pytest
-from types import SimpleNamespace
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, patch
-from pydantic import BaseModel
+from types import SimpleNamespace
 from typing import Optional
+from unittest.mock import AsyncMock, Mock, patch
+
+import pytest
+from pydantic import BaseModel
+from sqlalchemy.exc import IntegrityError
+
 from app.api import deps
 from app.main import app
 from app.models.chat_session import SessionStatus, ClosedBy
@@ -277,6 +280,89 @@ def test_send_message_rest_broadcasts_message_and_conversation_update(test_clien
         app.dependency_overrides.clear()
 
 
+def test_send_message_rest_rejects_blank_after_sanitization(test_client):
+    mock_db = AsyncMock()
+    fake_user = SimpleNamespace(id=7)
+
+    async def _override_get_db():
+        yield mock_db
+
+    async def _override_get_current_staff():
+        return fake_user
+
+    app.dependency_overrides[deps.get_db] = _override_get_db
+    app.dependency_overrides[deps.get_current_staff] = _override_get_current_staff
+
+    try:
+        with patch(
+            "app.api.v1.endpoints.admin_live_chat.live_chat_service.send_message",
+            new=AsyncMock(),
+        ) as mock_send:
+            response = test_client.post(
+                "/api/v1/admin/live-chat/conversations/Uabcdef0123456789abcdef0123456789/messages",
+                json={"text": "   <b>   </b>   "},
+            )
+
+        assert response.status_code == 400
+        assert response.json()["detail"] == "Message text is required"
+        mock_send.assert_not_awaited()
+        mock_db.commit.assert_not_awaited()
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_send_message_rest_sanitizes_text_like_websocket(test_client):
+    mock_db = AsyncMock()
+    fake_user = SimpleNamespace(id=7)
+
+    message = SimpleNamespace(
+        id=11,
+        line_user_id="Uabcdef0123456789abcdef0123456789",
+        direction="OUTGOING",
+        content="hello world",
+        message_type="text",
+        payload=None,
+        sender_role="ADMIN",
+        operator_name="Admin",
+        created_at=datetime(2026, 3, 18, 0, 0, 0, tzinfo=timezone.utc),
+    )
+
+    async def _override_get_db():
+        yield mock_db
+
+    async def _override_get_current_staff():
+        return fake_user
+
+    app.dependency_overrides[deps.get_db] = _override_get_db
+    app.dependency_overrides[deps.get_current_staff] = _override_get_current_staff
+
+    try:
+        with patch(
+            "app.api.v1.endpoints.admin_live_chat.live_chat_service.send_message",
+            new=AsyncMock(return_value={"success": True}),
+        ) as mock_send, patch(
+            "app.api.v1.endpoints.admin_live_chat.live_chat_service.get_recent_messages",
+            new=AsyncMock(return_value=[message]),
+        ), patch(
+            "app.api.v1.endpoints.admin_live_chat._broadcast_conversation_update",
+            new=AsyncMock(),
+        ):
+            response = test_client.post(
+                "/api/v1/admin/live-chat/conversations/Uabcdef0123456789abcdef0123456789/messages",
+                json={"text": " <b>hello</b>\n\nworld "},
+            )
+
+        assert response.status_code == 200
+        mock_send.assert_awaited_once_with(
+            "Uabcdef0123456789abcdef0123456789",
+            "hello world",
+            7,
+            mock_db,
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+
 def test_claim_conversation_rest_broadcasts_session_claimed(test_client):
     mock_db = AsyncMock()
     fake_user = SimpleNamespace(id=7)
@@ -366,5 +452,48 @@ def test_close_conversation_rest_broadcasts_session_closed(test_client):
         assert payload["payload"]["line_user_id"] == "Uabcdef0123456789abcdef0123456789"
         assert payload["payload"]["session_id"] == 42
         mock_analytics.assert_awaited_once()
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_create_conversation_returns_409_on_open_session_race(test_client):
+    mock_db = AsyncMock()
+    mock_db.add = Mock()
+    fake_user = SimpleNamespace(id=7)
+    line_user = SimpleNamespace(line_user_id="Uabcdef0123456789abcdef0123456789")
+
+    query_result = SimpleNamespace(scalar_one_or_none=lambda: line_user)
+    mock_db.execute.return_value = query_result
+    mock_db.flush.side_effect = IntegrityError("insert", {}, Exception("duplicate"))
+
+    async def _override_get_db():
+        yield mock_db
+
+    async def _override_get_current_staff():
+        return fake_user
+
+    app.dependency_overrides[deps.get_db] = _override_get_db
+    app.dependency_overrides[deps.get_current_staff] = _override_get_current_staff
+
+    try:
+        with patch(
+            "app.api.v1.endpoints.admin_live_chat.live_chat_service.get_active_session",
+            new=AsyncMock(return_value=None),
+        ), patch(
+            "app.api.v1.endpoints.admin_live_chat.line_service.push_messages",
+            new=AsyncMock(),
+        ) as mock_push:
+            response = test_client.post(
+                "/api/v1/admin/live-chat/conversations",
+                json={
+                    "line_user_id": "Uabcdef0123456789abcdef0123456789",
+                    "initial_message": "hello",
+                },
+            )
+
+        assert response.status_code == 409
+        assert response.json()["detail"] == "User already has an active session"
+        mock_db.rollback.assert_awaited_once()
+        mock_push.assert_not_awaited()
     finally:
         app.dependency_overrides.clear()

@@ -89,7 +89,7 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
 
   const selectedIdRef = useRef<string | null>(null);
   const wsStatusRef = useRef<ConnectionState>('disconnected');
-  const wsSendMessageRef = useRef<(text: string, tempId?: string) => void>(() => {});
+  const wsSendMessageRef = useRef<(text: string, tempId?: string) => boolean>(() => false);
   const typingUsersRef = useRef<Set<string>>(new Set());
   const [wsStatus, setWsStatus] = React.useState<ConnectionState>('disconnected');
   const isMobileView = useMediaQuery('(max-width: 767px)');
@@ -272,7 +272,21 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
         normalized.includes('already claimed') ||
         normalized.includes('session_not_found') ||
         normalized.includes('session not found');
-      if (!isClaimConflict) return;
+      if (!isClaimConflict) {
+        // Rate-limit errors arrive once per throttled frame (typing_start is
+        // fired per keystroke), so surfacing each one as a toast floods the
+        // screen while the operator types. Log-only until typing is debounced.
+        if (normalized.includes('rate limit')) {
+          console.warn('Live chat WS rate limit hit:', message);
+          return;
+        }
+        getStore().addNotification({
+          title: 'Live chat error',
+          message: message || 'The live chat action could not be completed.',
+          type: 'system',
+        });
+        return;
+      }
       // A claim lost the race on the backend — reset the local in-flight state
       // and surface an in-context toast that names the room when we know it.
       getStore().setClaiming(false);

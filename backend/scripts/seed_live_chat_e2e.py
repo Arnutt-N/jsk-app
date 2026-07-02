@@ -18,7 +18,7 @@ import argparse
 import asyncio
 import re
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
@@ -79,11 +79,9 @@ async def seed_live_chat_e2e(*, apply: bool) -> int:
         return 1
 
     now = datetime.now(timezone.utc)
-    # Keep started_at well within WAITING_ABANDONMENT_MINUTES (10) so the
-    # session_cleanup background task does not auto-close this WAITING session
-    # mid-test (it closes unclaimed WAITING rows whose started_at is older than
-    # that threshold). 1 minute leaves ~9 min of headroom for a full e2e run.
-    started_at = now - timedelta(minutes=1)
+    # Keep started_at fresh so the session_cleanup background task does not
+    # auto-close this WAITING session mid-test on slow WSL/9p runs.
+    started_at = now
     last_activity_at = now
 
     async with AsyncSessionLocal() as db:
