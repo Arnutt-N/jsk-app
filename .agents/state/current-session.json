@@ -1,13 +1,20 @@
 {
-  "last_updated": "2026-07-03T00:01:00+07:00",
+  "last_updated": "2026-07-03T01:43:00+07:00",
   "platform": "claude_code",
-  "current_task": "Follow-up to ba16647 (live-chat hardening, see previous checkpoint): committed the leftover untracked doc .claude/docs/skill-collections-comparison.md as 4932cbe (docs) to leave the tree fully clean; ",
+  "current_task": "Applied migration v2w3x4y5z6a7 (uq_chat_sessions_one_open_per_line_user partial unique index) to Supabase PROD via db_target remote upgrade head. Pre-checked: PROD had 0 open sessions / 0 duplicates s",
   "plan_status": "completed",
   "next_steps": [
-    "Apply migration v2w3x4y5z6a7 to Supabase PROD (close duplicate open sessions first)",
-    "Deferred: debounce typing_start; Thai WS error mapping; consume message_failed.retryable"
+    "Deferred follow-ups: debounce typing_start; Thai WS error mapping; frontend consume message_failed.retryable",
+    "WSL dev servers still running (stop: wsl pkill -f run.py / pkill -f next)"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-07-03T01:43:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "c6c608f",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-07-03T00:01:00+07:00",
       "platform": "claude_code",
@@ -139,13 +146,6 @@
       "platform": "claude_code",
       "branch": "docs/livechat-audit-remediation-prp",
       "head": "9361fba",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-27T16:29:00+07:00",
-      "platform": "claude_code",
-      "branch": "docs/livechat-audit-remediation-prp",
-      "head": "5ef9ff7",
       "status": "completed"
     }
   ],

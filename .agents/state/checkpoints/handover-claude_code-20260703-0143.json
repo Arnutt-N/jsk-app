@@ -1,0 +1,17 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-07-03T01:43:00+07:00",
+  "branch": "main",
+  "head_commit": "c6c608f",
+  "status": "completed",
+  "work_summary": "Applied migration v2w3x4y5z6a7 (uq_chat_sessions_one_open_per_line_user partial unique index) to Supabase PROD via db_target remote upgrade head. Pre-checked: PROD had 0 open sessions / 0 duplicates so no cleanup was needed; verified alembic_version=v2w3x4y5z6a7 and the index exists in pg_indexes. PROD schema now enforces one open chat session per LINE user end-to-end with the deployed backend savepoint logic.",
+  "priority_actions": [
+    "Deferred follow-ups: debounce typing_start; Thai WS error mapping; frontend consume message_failed.retryable",
+    "WSL dev servers still running (stop: wsl pkill -f run.py / pkill -f next)"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/claude_code/session-summary-20260703-0143.md",
+  "cross_platform_read": []
+}

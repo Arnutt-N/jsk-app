@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 123 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 124 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-03 01:43 — claude_code — completed
+
+Applied migration v2w3x4y5z6a7 (uq_chat_sessions_one_open_per_line_user partial unique index) to Supabase PROD via db_target remote upgrade head. Pre-checked: PROD had 0 open sessions / 0 duplicates so no cleanup was needed; verified alembic_version=v2w3x4y5z6a7 and the index exists in pg_indexes. PROD schema now enforces one open chat session per LINE user end-to-end with the deployed backend savepoint logic.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260703-0143.json`
+- Summary: `project-log-md/claude_code/session-summary-20260703-0143.md`
+
+---
 
 ### 2026-07-03 00:01 — claude_code — completed
 
