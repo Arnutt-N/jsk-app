@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 122 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 123 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-03 00:01 — claude_code — completed
+
+Follow-up to ba16647 (live-chat hardening, see previous checkpoint): committed the leftover untracked doc .claude/docs/skill-collections-comparison.md as 4932cbe (docs) to leave the tree fully clean; both commits pushed to main.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260703-0001.json`
+- Summary: `project-log-md/claude_code/session-summary-20260703-0001.md`
+
+---
 
 ### 2026-07-02 23:55 — claude_code — completed
 

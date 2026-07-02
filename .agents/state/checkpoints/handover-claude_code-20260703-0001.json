@@ -1,0 +1,17 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-07-03T00:01:00+07:00",
+  "branch": "main",
+  "head_commit": "4932cbe",
+  "status": "completed",
+  "work_summary": "Follow-up to ba16647 (live-chat hardening, see previous checkpoint): committed the leftover untracked doc .claude/docs/skill-collections-comparison.md as 4932cbe (docs) to leave the tree fully clean; both commits pushed to main.",
+  "priority_actions": [
+    "Apply migration v2w3x4y5z6a7 to Supabase PROD (close duplicate open sessions first)",
+    "Deferred: debounce typing_start; Thai WS error mapping; consume message_failed.retryable"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/claude_code/session-summary-20260703-0001.md",
+  "cross_platform_read": []
+}

@@ -1,14 +1,20 @@
 {
-  "last_updated": "2026-07-02T23:55:00+07:00",
+  "last_updated": "2026-07-03T00:01:00+07:00",
   "platform": "claude_code",
-  "current_task": "Validated + hardened CodeX live-chat fix before commit: stacked WSL dev env, e2e green (2-client 2/2 single run, smoke 3 passed/1 skip), 3-agent review (fastapi/react/security) found 2 CRITICALs in un",
+  "current_task": "Follow-up to ba16647 (live-chat hardening, see previous checkpoint): committed the leftover untracked doc .claude/docs/skill-collections-comparison.md as 4932cbe (docs) to leave the tree fully clean; ",
   "plan_status": "completed",
   "next_steps": [
-    "Apply migration v2w3x4y5z6a7 to Supabase PROD via db_target --target remote upgrade head — FIRST close duplicate open sessions (migration guard raises RuntimeError on dirty data)",
-    "Deferred follow-ups: debounce typing_start keystroke spam; map WS error text to Thai; frontend consume message_failed.retryable flag",
-    "WSL dev servers left running (stop: wsl pkill -f run.py / pkill -f next)"
+    "Apply migration v2w3x4y5z6a7 to Supabase PROD (close duplicate open sessions first)",
+    "Deferred: debounce typing_start; Thai WS error mapping; consume message_failed.retryable"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-07-03T00:01:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "4932cbe",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-07-02T23:55:00+07:00",
       "platform": "claude_code",
@@ -140,13 +146,6 @@
       "platform": "claude_code",
       "branch": "docs/livechat-audit-remediation-prp",
       "head": "5ef9ff7",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-27T10:50:00+07:00",
-      "platform": "claude_code",
-      "branch": "docs/livechat-audit-remediation-prp",
-      "head": "12abb86",
       "status": "completed"
     }
   ],
