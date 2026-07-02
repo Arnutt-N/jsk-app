@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 124 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 125 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-03 04:04 — claude_code — completed
+
+Shipped the 3 deferred live-chat follow-ups from the review round (commit 1e5cf5d): (1) typing_start throttled to one frame per room per 3s window so normal typing no longer trips the 30/60s WS rate limit (auto-stop timer still refreshes per keystroke); (2) backend WS error strings mapped to Thai for operator toasts + failed-message labels via new _lib/wsErrorMessages.ts, raw text kept in console, rate-limit errors log-only (+regression test); (3) message_failed.retryable consumed end-to-end: socket -> useMessageFlow -> new nonRetryableMessages store set -> MessageBubble drops the retry button (Thai no-retry tooltip) when the backend confirmed delivery, preventing duplicate sends to customers. Validation WSL: tsc 0, eslint 0, vitest 291/291.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260703-0404.json`
+- Summary: `project-log-md/claude_code/session-summary-20260703-0404.md`
+
+---
 
 ### 2026-07-03 01:43 — claude_code — completed
 

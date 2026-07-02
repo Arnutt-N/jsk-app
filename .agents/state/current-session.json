@@ -1,13 +1,20 @@
 {
-  "last_updated": "2026-07-03T01:43:00+07:00",
+  "last_updated": "2026-07-03T04:04:00+07:00",
   "platform": "claude_code",
-  "current_task": "Applied migration v2w3x4y5z6a7 (uq_chat_sessions_one_open_per_line_user partial unique index) to Supabase PROD via db_target remote upgrade head. Pre-checked: PROD had 0 open sessions / 0 duplicates s",
+  "current_task": "Shipped the 3 deferred live-chat follow-ups from the review round (commit 1e5cf5d): (1) typing_start throttled to one frame per room per 3s window so normal typing no longer trips the 30/60s WS rate l",
   "plan_status": "completed",
   "next_steps": [
-    "Deferred follow-ups: debounce typing_start; Thai WS error mapping; frontend consume message_failed.retryable",
-    "WSL dev servers still running (stop: wsl pkill -f run.py / pkill -f next)"
+    "All planned live-chat work is done - no open follow-ups",
+    "WSL dev servers were stopped mid-session; restart per memory recipe if e2e is needed"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-07-03T04:04:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "1e5cf5d",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-07-03T01:43:00+07:00",
       "platform": "claude_code",
@@ -139,13 +146,6 @@
       "platform": "claude_code",
       "branch": "docs/livechat-audit-remediation-prp",
       "head": "393b22c",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-27T17:48:00+07:00",
-      "platform": "claude_code",
-      "branch": "docs/livechat-audit-remediation-prp",
-      "head": "9361fba",
       "status": "completed"
     }
   ],
