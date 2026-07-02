@@ -138,6 +138,80 @@ async def handle_unfollow_event(event: UnfollowEvent, db: AsyncSession):
     await friend_service.handle_unfollow(line_user_id, db, commit=False)
 
 
+# REGEX intent guards: patterns are admin-authored, but a runaway pattern must
+# not stall webhook processing (Python's `re` has no timeout). Bounding both the
+# pattern and the probed text keeps worst-case backtracking small.
+MAX_REGEX_PATTERN_LENGTH = 256
+MAX_REGEX_TEXT_LENGTH = 1000
+
+
+def _intent_keyword_stmt(*filters):
+    return (
+        select(IntentKeyword)
+        .options(
+            selectinload(IntentKeyword.category).selectinload(
+                IntentCategory.responses.and_(IntentResponse.is_active == True)
+            )
+        )
+        .filter(*filters)
+    )
+
+
+async def find_intent_keyword(text: str, db: AsyncSession) -> IntentKeyword | None:
+    """Match an IntentKeyword against the user's text.
+
+    Priority: EXACT > STARTS_WITH > CONTAINS > REGEX — most specific first, so
+    a broad CONTAINS/REGEX rule cannot shadow a precise one. All comparisons
+    are case-insensitive. REGEX is evaluated in Python (not SQL) so an invalid
+    pattern degrades to a logged skip instead of failing the whole query.
+    """
+    # 1. EXACT — case-insensitive equality (no wildcard semantics)
+    stmt = _intent_keyword_stmt(
+        func.lower(IntentKeyword.keyword) == text.lower(),
+        IntentKeyword.match_type == MatchType.EXACT,
+    ).limit(1)
+    match = (await db.execute(stmt)).scalars().first()
+    if match:
+        return match
+
+    # 2. STARTS_WITH — user text begins with the keyword
+    stmt = _intent_keyword_stmt(
+        literal(text).ilike(func.concat(IntentKeyword.keyword, '%')),
+        IntentKeyword.match_type == MatchType.STARTS_WITH,
+    ).limit(1)
+    match = (await db.execute(stmt)).scalars().first()
+    if match:
+        return match
+
+    # 3. CONTAINS — keyword appears anywhere in the user text
+    stmt = _intent_keyword_stmt(
+        literal(text).ilike(func.concat('%', IntentKeyword.keyword, '%')),
+        IntentKeyword.match_type == MatchType.CONTAINS,
+    ).limit(1)
+    match = (await db.execute(stmt)).scalars().first()
+    if match:
+        return match
+
+    # 4. REGEX — evaluate each stored pattern in Python
+    stmt = _intent_keyword_stmt(IntentKeyword.match_type == MatchType.REGEX)
+    regex_keywords = (await db.execute(stmt)).scalars().all()
+    probe = text[:MAX_REGEX_TEXT_LENGTH]
+    for kw in regex_keywords:
+        pattern = kw.keyword or ""
+        if len(pattern) > MAX_REGEX_PATTERN_LENGTH:
+            logger.warning(
+                f"Skipping REGEX intent keyword {kw.id}: pattern longer than "
+                f"{MAX_REGEX_PATTERN_LENGTH} chars"
+            )
+            continue
+        try:
+            if re.search(pattern, probe, re.IGNORECASE):
+                return kw
+        except re.error as exc:
+            logger.warning(f"Skipping invalid REGEX intent keyword {kw.id}: {exc}")
+    return None
+
+
 async def handle_message_event(event: MessageEvent, db: AsyncSession):
     # Check for LINE Verify dummy token
     if event.reply_token == "00000000000000000000000000000000":
@@ -270,65 +344,31 @@ async def handle_message_event(event: MessageEvent, db: AsyncSession):
         # -------------------------------------
 
         # 3. Find Intent (Hierarchical)
-        # We look for keywords, get the category, and then get all active responses
-        # Match EXACT first
-        stmt = select(IntentKeyword).options(
-            selectinload(IntentKeyword.category).selectinload(IntentCategory.responses.and_(IntentResponse.is_active == True))
-        ).filter(
-            IntentKeyword.keyword == text,
-            IntentKeyword.match_type == MatchType.EXACT
-        )
-        result = await db.execute(stmt)
-        keyword_match = result.scalars().first()
-        
+        # IntentKeyword first (EXACT > STARTS_WITH > CONTAINS > REGEX inside
+        # find_intent_keyword), then legacy AutoReply (exact, then contains)
+        # for backward compatibility during migration. Before #120 the
+        # IntentKeyword CONTAINS result was fetched but never used to build a
+        # response — only legacy rules actually replied on the non-EXACT path.
+        keyword_match = await find_intent_keyword(text, db)
+
         if not keyword_match:
-            # Fallback to legacy AutoReply for backward compatibility during migration
             stmt = select(AutoReply).filter(AutoReply.keyword == text, AutoReply.is_active == True)
             result = await db.execute(stmt)
             rule = result.scalars().first()
-            
+
             if not rule:
-                # Try contains: User text must CONTAIN the keyword (e.g. "Price please" contains "Price")
-                # Syntax: 'User Text' ILIKE '%' + AutoReply.keyword + '%'
+                # Legacy contains: 'User Text' ILIKE '%' + AutoReply.keyword + '%'
                 stmt = select(AutoReply).filter(
-                    select(1).where(
-                        literal(text).ilike(func.concat('%', AutoReply.keyword, '%'))
-                    ).exists(),
-                    AutoReply.is_active == True
-                ).limit(1)
-                
-                # Note: The above SQL logic can be complex in pure string form depending on DB.
-                # Simpler robust approach for small tables:
-                # But since we use IntentKeyword mostly now, let's fix IntentKeyword logic first.
-                pass 
-            
-            # RE-CHECK IntentKeyword with Correct Logic
-            # User Text: "ขอราคาหน่อยครับ" (Long)
-            # DB Keyword: "ราคา" (Short)
-            # Logic: "ขอราคาหน่อยครับ" LIKE "%" + "ราคา" + "%"
-            
-            stmt = select(IntentKeyword).options(
-                selectinload(IntentKeyword.category).selectinload(IntentCategory.responses.and_(IntentResponse.is_active == True))
-            ).filter(
-                literal(text).ilike(func.concat('%', IntentKeyword.keyword, '%')),
-                IntentKeyword.match_type == MatchType.CONTAINS
-            ).limit(1)
-            result = await db.execute(stmt)
-            keyword_match = result.scalars().first()
-            
-            if not keyword_match and not rule:
-                 # Last resort: Legacy Contains
-                 stmt = select(AutoReply).filter(
                     literal(text).ilike(func.concat('%', AutoReply.keyword, '%')),
                     AutoReply.is_active == True
-                 ).limit(1)
-                 result = await db.execute(stmt)
-                 rule = result.scalars().first()
+                ).limit(1)
+                result = await db.execute(stmt)
+                rule = result.scalars().first()
 
             if not rule:
                 logger.info(f"No auto-reply or intent found for: {text}")
                 return
-            
+
             # Pack rule into a pseudo-responses list for the logic below
             responses = [{
                 "reply_type": rule.reply_type,
