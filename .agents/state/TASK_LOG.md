@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 126 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 127 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-03 06:56 — claude_code — completed
+
+Wrote consolidated session handoff rollup (project-log-md/claude_code/session-summary-20260703-0655-claude-code-handoff.md): all DONE tasks (CodeX continuation, 3-agent review + 9 fixes, e2e green, PROD migration v2w3x4y5z6a7, 3 deferred follow-ups, issue #120 fixed+closed) and PENDING priorities (Supabase keepalive/Actions re-enable, #120 prod verify, #121, pr-116 live-chat debt, stop detached WSL servers) with agent name, timestamps, env notes, and suggested skills.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260703-0656.json`
+- Summary: `project-log-md/claude_code/session-summary-20260703-0656.md`
+
+---
 
 ### 2026-07-03 06:21 — claude_code — completed
 

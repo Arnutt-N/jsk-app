@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-07-03 06:21 by Claude Code (Fixed issue #120: implemented STARTS_WITH + REGEX intent matching at runtime in the LINE w)
+> **Last Updated:** 2026-07-03 06:56 by Claude Code (Wrote consolidated session handoff rollup project-log-md/claude_code/session-summary-20260)
 
 ## Thai Summary
 ฟีเจอร์ **Rich Menu Switching + การกำหนดเมนูรายบุคคล (R1/R2)** เสร็จสมบูรณ์และขึ้น production แล้ว — merge เข้า main ผ่าน PR #114 (merge commit `3a90f4d`), migrate ฐานข้อมูล Supabase PROD (richmenu alias + user_rich_menu_links แบบ additive) และ deploy frontend บน Vercel เรียบร้อย
@@ -54,6 +54,7 @@
 - [2026-06-21] R1/R2 Rich Menu (incl Task 6.2 per-user UI) merged to `main` via PR #114 (`3a90f4d`); Supabase PROD migrated; Vercel frontend deployed. Branch `feat/rich-menu-switching-r1` deleted. Working tree clean.
 
 ## Recent Completions
+- [2026-07-03 06:56] Claude Code: Wrote consolidated session handoff rollup (project-log-md/claude_code/session-summary-20260703-0655-claude-code-handoff.md): all DONE tasks (CodeX continuation, 3-agent review + 9 fixes, e2e green, PROD migration v2w3x4y5z6a7, 3 deferred fo (Claude Code)
 - [2026-07-03 06:21] Claude Code: Fixed issue #120: implemented STARTS_WITH + REGEX intent matching at runtime in the LINE webhook via a new find_intent_keyword() helper (priority EXACT > STARTS_WITH > CONTAINS > REGEX, case-insensitive; REGEX evaluated in Python with ReDoS (Claude Code)
 - [2026-07-03 04:04] Claude Code: Shipped the 3 deferred live-chat follow-ups from the review round (commit 1e5cf5d): (1) typing_start throttled to one frame per room per 3s window so normal typing no longer trips the 30/60s WS rate limit (auto-stop timer still refreshes pe (Claude Code)
 - [2026-07-03 01:43] Claude Code: Applied migration v2w3x4y5z6a7 (uq_chat_sessions_one_open_per_line_user partial unique index) to Supabase PROD via db_target remote upgrade head. Pre-checked: PROD had 0 open sessions / 0 duplicates so no cleanup was needed; verified alembi (Claude Code)
