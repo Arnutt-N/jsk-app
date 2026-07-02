@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 125 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 126 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-03 06:21 — claude_code — completed
+
+Fixed issue #120: implemented STARTS_WITH + REGEX intent matching at runtime in the LINE webhook via a new find_intent_keyword() helper (priority EXACT > STARTS_WITH > CONTAINS > REGEX, case-insensitive; REGEX evaluated in Python with ReDoS guards: 256-char pattern cap, 1000-char probe cap, invalid patterns logged+skipped). Also fixed a latent bug the old control flow hid: the IntentKeyword CONTAINS match was fetched but never used to build a response - only legacy AutoReply rules replied on the non-EXACT path. 8 new unit tests; WSL pytest 525 passed. Push to main auto-deploys the backend (Koyeb).
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260703-0621.json`
+- Summary: `project-log-md/claude_code/session-summary-20260703-0621.md`
+
+---
 
 ### 2026-07-03 04:04 — claude_code — completed
 
