@@ -256,9 +256,21 @@ describe('LiveChatContext claim contention (M16 / B5)', () => {
 
     const notification = useLiveChatStore.getState().notifications.at(-1);
     expect(notification).toMatchObject({
-      title: 'Live chat error',
-      message: 'Only the current operator can transfer the session',
+      title: 'ไลฟ์แชทขัดข้อง',
+      message: 'เฉพาะเจ้าหน้าที่ที่ถือสายอยู่เท่านั้นที่โอนสายได้',
       type: 'system',
     });
+  });
+
+  it('drops rate-limit WebSocket errors without a notification', async () => {
+    await mount();
+    const before = useLiveChatStore.getState().notifications.length;
+
+    await act(async () => {
+      socketCapture.options?.onError?.('Rate limit exceeded. Try again in 60 seconds.');
+    });
+    await flush();
+
+    expect(useLiveChatStore.getState().notifications.length).toBe(before);
   });
 });

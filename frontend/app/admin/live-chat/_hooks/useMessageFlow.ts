@@ -6,6 +6,7 @@ import type { RefObject } from 'react';
 import type { ConnectionState, Message } from '@/lib/websocket/types';
 import { useLiveChatStore } from '../_store/liveChatStore';
 import { API_BASE } from '../_lib/constants';
+import { mapWsErrorToThai } from '../_lib/wsErrorMessages';
 
 /**
  * Fail the optimistic message if the WS ack never arrives. Load-bearing magic
@@ -98,9 +99,13 @@ export function useMessageFlow({
     getStore().setInputText('');
   }, [handleMessageAck, handleNewMessage]);
 
-  const handleMessageFailed = useCallback((tempId: string, error: string) => {
+  const handleMessageFailed = useCallback((tempId: string, error: string, retryable?: boolean) => {
     getStore().removePending(tempId);
-    getStore().setFailed(tempId, error);
+    // Operators see Thai; the raw backend text goes to the console. A
+    // retryable=false failure means the message already reached LINE — the UI
+    // must not offer a retry that would duplicate it for the customer.
+    console.warn('Live chat message failed:', error);
+    getStore().setFailed(tempId, mapWsErrorToThai(error), retryable);
     getStore().setSending(false);
   }, []);
 
@@ -147,7 +152,7 @@ export function useMessageFlow({
           const store = getStore();
           if (store.pendingMessages.has(tempId)) {
             store.removePending(tempId);
-            store.setFailed(tempId, 'Message acknowledgment timed out');
+            store.setFailed(tempId, 'หมดเวลารอการยืนยันข้อความ');
             if (store.sending) {
               store.setSending(false);
             }
@@ -168,7 +173,7 @@ export function useMessageFlow({
       handleMessageAck(tempId);
       getStore().setInputText('');
     } catch {
-      getStore().setFailed(tempId, 'Failed to send');
+      getStore().setFailed(tempId, 'ส่งข้อความไม่สำเร็จ');
       getStore().removePending(tempId);
     } finally {
       getStore().setSending(false);

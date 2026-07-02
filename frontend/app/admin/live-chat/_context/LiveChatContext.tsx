@@ -20,6 +20,7 @@ import type {
 import { useLiveChatStore } from '../_store/liveChatStore';
 import type { Conversation } from '../_types';
 import { resolveOperatorName, removeKey, formatTime } from '../_hooks/liveChatApi';
+import { mapWsErrorToThai } from '../_lib/wsErrorMessages';
 import { useMediaQuery } from '../_hooks/useMediaQuery';
 import { useLiveChatActions } from '../_hooks/useLiveChatActions';
 import { useConversationSync } from '../_hooks/useConversationSync';
@@ -273,16 +274,18 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
         normalized.includes('session_not_found') ||
         normalized.includes('session not found');
       if (!isClaimConflict) {
-        // Rate-limit errors arrive once per throttled frame (typing_start is
-        // fired per keystroke), so surfacing each one as a toast floods the
-        // screen while the operator types. Log-only until typing is debounced.
+        // Rate-limit errors are log-only: typing_start is throttled now, but a
+        // burst of queued frames after a reconnect can still trip the limiter,
+        // and a toast per frame would flood the screen.
         if (normalized.includes('rate limit')) {
           console.warn('Live chat WS rate limit hit:', message);
           return;
         }
+        // Operators see Thai; keep the raw backend text in the console.
+        console.warn('Live chat WS error:', message);
         getStore().addNotification({
-          title: 'Live chat error',
-          message: message || 'The live chat action could not be completed.',
+          title: 'ไลฟ์แชทขัดข้อง',
+          message: mapWsErrorToThai(message),
           type: 'system',
         });
         return;

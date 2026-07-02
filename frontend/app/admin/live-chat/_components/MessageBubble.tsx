@@ -145,12 +145,20 @@ export const MessageBubble = memo(function MessageBubble({
             <div className="flex items-center gap-1">
               {isPending && <RefreshCw className="w-3 h-3 text-text-tertiary animate-spin" />}
               {isFailed && (
-                <button
-                  onClick={() => message.temp_id && onRetry?.(message.temp_id)}
-                  title="Retry"
-                >
-                  <AlertCircle className="w-3 h-3 text-danger" />
-                </button>
+                onRetry ? (
+                  <button
+                    onClick={() => message.temp_id && onRetry(message.temp_id)}
+                    title="ส่งอีกครั้ง"
+                  >
+                    <AlertCircle className="w-3 h-3 text-danger" />
+                  </button>
+                ) : (
+                  // Non-retryable failure: the message may already have reached
+                  // the customer, so no retry affordance is offered.
+                  <span title="ไม่สามารถส่งซ้ำได้ — ข้อความอาจถูกส่งถึงลูกค้าแล้ว">
+                    <AlertCircle className="w-3 h-3 text-danger" />
+                  </span>
+                )
               )}
               {!isPending && !isFailed && (
                 <span className={message.id ? "text-brand-600" : "text-text-tertiary"}>

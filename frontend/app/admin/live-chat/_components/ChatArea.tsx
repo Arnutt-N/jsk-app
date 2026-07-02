@@ -38,6 +38,7 @@ export function ChatArea() {
   const soundEnabled = useLiveChatStore((s) => s.soundEnabled);
   const pendingMessages = useLiveChatStore((s) => s.pendingMessages);
   const failedMessages = useLiveChatStore((s) => s.failedMessages);
+  const nonRetryableMessages = useLiveChatStore((s) => s.nonRetryableMessages);
   const hasMoreHistory = useLiveChatStore((s) => s.hasMoreHistory);
   const isLoadingHistory = useLiveChatStore((s) => s.isLoadingHistory);
   const liveMessage = useLiveChatStore((s) => s.liveMessage);
@@ -358,7 +359,7 @@ export function ChatArea() {
               showAvatar={showAvatar}
               incomingAvatar={currentChat?.picture_url}
               isNew={idx >= baselineCount}
-              onRetry={retryMessage}
+              onRetry={message.temp_id && nonRetryableMessages.has(message.temp_id) ? undefined : retryMessage}
             />
           );
         })}

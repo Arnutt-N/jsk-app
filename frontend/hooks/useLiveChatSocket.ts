@@ -23,7 +23,7 @@ interface UseLiveChatSocketOptions {
   onNewMessage?: (message: Message) => void;
   onMessageSent?: (message: Message) => void;
   onMessageAck?: (tempId: string, messageId: number) => void;
-  onMessageFailed?: (tempId: string, error: string) => void;
+  onMessageFailed?: (tempId: string, error: string, retryable?: boolean) => void;
   onTyping?: (lineUserId: string, adminId: string, isTyping: boolean) => void;
   onSessionClaimed?: (lineUserId: string, operatorId: number) => void;
   onSessionClosed?: (lineUserId: string) => void;
@@ -42,7 +42,7 @@ interface UseLiveChatSocketReturn {
   joinRoom: (lineUserId: string) => void;
   leaveRoom: () => void;
   sendMessage: (text: string, tempId?: string) => boolean;
-  retryMessage: (tempId: string) => void;
+  retryMessage: (tempId: string) => boolean;
   startTyping: (lineUserId: string) => void;
   stopTyping: (lineUserId: string) => void;
   claimSession: () => void;
@@ -79,6 +79,9 @@ export function useLiveChatSocket(options: UseLiveChatSocketOptions): UseLiveCha
   const currentRoom = useRef<string | null>(null);
   const typingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingMessages = useRef<Map<string, PendingMessage>>(new Map());
+  // Throttle state for typing_start: the composer calls startTyping on every
+  // keystroke, but the WS rate limiter allows 30 messages/60s per admin.
+  const lastTypingSent = useRef<{ room: string | null; at: number }>({ room: null, at: 0 });
 
   // Determine WebSocket URL
   const wsUrl = useMemo(() => {
@@ -103,7 +106,7 @@ export function useLiveChatSocket(options: UseLiveChatSocketOptions): UseLiveCha
         break;
       case MessageType.MESSAGE_FAILED:
         const failedPayload = data.payload as MessageFailedPayload;
-        onMessageFailed?.(failedPayload.temp_id, failedPayload.error);
+        onMessageFailed?.(failedPayload.temp_id, failedPayload.error, failedPayload.retryable);
         break;
       case MessageType.TYPING_INDICATOR:
         const typingPayload = data.payload as TypingIndicatorPayload;
@@ -214,14 +217,24 @@ export function useLiveChatSocket(options: UseLiveChatSocketOptions): UseLiveCha
   }, [send]);
 
   const startTyping = useCallback((lineUserId: string) => {
-    send(MessageType.TYPING_START, { line_user_id: lineUserId });
+    // Throttle: one typing_start per room per 3s window. The indicator on the
+    // other side stays visible until typing_stop, so re-sending per keystroke
+    // only burns the WS rate limit (30 msg/60s) during normal typing.
+    const now = Date.now();
+    const last = lastTypingSent.current;
+    if (last.room !== lineUserId || now - last.at >= 3000) {
+      send(MessageType.TYPING_START, { line_user_id: lineUserId });
+      lastTypingSent.current = { room: lineUserId, at: now };
+    }
 
-    // Auto-stop typing after 3 seconds
+    // Auto-stop typing after 3 seconds — refreshed on every keystroke so the
+    // indicator survives continuous typing.
     if (typingTimeout.current) {
       clearTimeout(typingTimeout.current);
     }
     typingTimeout.current = setTimeout(() => {
       send(MessageType.TYPING_STOP, { line_user_id: lineUserId });
+      lastTypingSent.current = { room: null, at: 0 };
     }, 3000);
   }, [send]);
 
@@ -230,6 +243,7 @@ export function useLiveChatSocket(options: UseLiveChatSocketOptions): UseLiveCha
       clearTimeout(typingTimeout.current);
       typingTimeout.current = null;
     }
+    lastTypingSent.current = { room: null, at: 0 };
     send(MessageType.TYPING_STOP, { line_user_id: lineUserId });
   }, [send]);
 

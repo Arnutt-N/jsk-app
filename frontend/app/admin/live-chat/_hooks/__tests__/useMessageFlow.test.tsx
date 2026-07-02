@@ -61,6 +61,7 @@ function setup(opts: {
     inputText: '',
     pendingMessages: new Set(),
     failedMessages: new Map(),
+    nonRetryableMessages: new Set(),
     hasMoreHistory: true,
     isLoadingHistory: false,
   });
@@ -126,8 +127,36 @@ describe('useMessageFlow', () => {
     });
 
     expect(store().pendingMessages.has(tempId)).toBe(false);
-    expect(store().failedMessages.get(tempId)).toBe('Message acknowledgment timed out');
+    expect(store().failedMessages.get(tempId)).toBe('หมดเวลารอการยืนยันข้อความ');
     expect(store().sending).toBe(false);
+  });
+
+  it('marks a retryable=false failure as non-retryable in the store', async () => {
+    const { view } = setup({ wsStatus: 'connected' });
+
+    await act(async () => {
+      await view.result.current.sendMessage('post-commit-fail');
+    });
+    const tempId = store().messages[0].temp_id!;
+
+    act(() => {
+      view.result.current.handleMessageFailed(
+        tempId,
+        'Message sent but confirmation failed — refresh instead of resending',
+        false,
+      );
+    });
+
+    expect(store().failedMessages.get(tempId)).toBe(
+      'ข้อความถูกส่งถึงลูกค้าแล้ว แต่การยืนยันล้มเหลว — กรุณารีเฟรชหน้า อย่ากดส่งซ้ำ',
+    );
+    expect(store().nonRetryableMessages.has(tempId)).toBe(true);
+
+    // A later retryable failure for the same id clears the non-retryable mark.
+    act(() => {
+      view.result.current.handleMessageFailed(tempId, 'Failed to send message', true);
+    });
+    expect(store().nonRetryableMessages.has(tempId)).toBe(false);
   });
 
   it('B6.1 — a late ack does NOT resurrect a message the timeout already cleared', async () => {

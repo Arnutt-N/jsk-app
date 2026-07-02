@@ -40,6 +40,9 @@ interface LiveChatState {
   soundEnabled: boolean
   pendingMessages: Set<string>
   failedMessages: Map<string, string>
+  // temp_ids whose failure must NOT be retried (e.g. the backend confirmed the
+  // message already reached LINE — a resend would duplicate it for the customer)
+  nonRetryableMessages: Set<string>
   hasMoreHistory: boolean
   isLoadingHistory: boolean
 
@@ -75,7 +78,7 @@ interface LiveChatActions {
   setSoundEnabled: (enabled: boolean) => void
   addPending: (tempId: string) => void
   removePending: (tempId: string) => void
-  setFailed: (tempId: string, error: string) => void
+  setFailed: (tempId: string, error: string, retryable?: boolean) => void
   clearFailed: (tempId: string) => void
   setHasMoreHistory: (hasMore: boolean) => void
   setIsLoadingHistory: (loading: boolean) => void
@@ -112,6 +115,7 @@ const initialState: LiveChatState = {
   soundEnabled: true,
   pendingMessages: new Set(),
   failedMessages: new Map(),
+  nonRetryableMessages: new Set(),
   hasMoreHistory: true,
   isLoadingHistory: false,
   showEmojiPicker: false,
@@ -165,15 +169,23 @@ export const useLiveChatStore = create<LiveChatStore>()(
         next.delete(tempId)
         return { pendingMessages: next }
       }),
-      setFailed: (tempId, error) => set((s) => {
+      setFailed: (tempId, error, retryable = true) => set((s) => {
         const next = new Map(s.failedMessages)
         next.set(tempId, error)
-        return { failedMessages: next }
+        const nextNonRetryable = new Set(s.nonRetryableMessages)
+        if (retryable) {
+          nextNonRetryable.delete(tempId)
+        } else {
+          nextNonRetryable.add(tempId)
+        }
+        return { failedMessages: next, nonRetryableMessages: nextNonRetryable }
       }),
       clearFailed: (tempId) => set((s) => {
         const next = new Map(s.failedMessages)
         next.delete(tempId)
-        return { failedMessages: next }
+        const nextNonRetryable = new Set(s.nonRetryableMessages)
+        nextNonRetryable.delete(tempId)
+        return { failedMessages: next, nonRetryableMessages: nextNonRetryable }
       }),
       setHasMoreHistory: (hasMore) => set({ hasMoreHistory: hasMore }),
       setIsLoadingHistory: (loading) => set({ isLoadingHistory: loading }),
