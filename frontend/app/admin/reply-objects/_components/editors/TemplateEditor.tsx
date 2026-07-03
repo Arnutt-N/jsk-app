@@ -20,7 +20,7 @@ import type {
   ImageCarouselColumn,
   LineAction,
 } from '@/lib/line/message-types';
-import { FIELD_CLS, LABEL_CLS, makeEmptyAction } from '../payload-utils';
+import { FIELD_CLS, LABEL_CLS, makeEmptyAction, withNewKey, getItemKey, ensureEditorKeys } from '../payload-utils';
 import { ActionEditor } from './ActionEditor';
 
 const SUBTYPES: { value: TemplateSubtype; label: string }[] = [
@@ -59,11 +59,13 @@ function defaultForSubtype(subtype: TemplateSubtype): TemplateContent {
 }
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
+  // Wrapping <label> gives an implicit label/control association (a11y-4,
+  // WCAG 1.3.1) without threading ids into every child input.
   return (
-    <div className="space-y-1.5">
-      <label className={LABEL_CLS}>{label}</label>
+    <label className="block space-y-1.5">
+      <span className={LABEL_CLS}>{label}</span>
       {children}
-    </div>
+    </label>
   );
 }
 
@@ -81,7 +83,7 @@ function ActionList({
   const update = (i: number, a: LineAction) => onChange(actions.map((x, idx) => (idx === i ? a : x)));
   const remove = (i: number) => onChange(actions.filter((_, idx) => idx !== i));
   const add = () => {
-    if (actions.length < max) onChange([...actions, makeEmptyAction()]);
+    if (actions.length < max) onChange([...actions, withNewKey(makeEmptyAction())]);
   };
   return (
     <div className="space-y-2">
@@ -100,10 +102,11 @@ function ActionList({
       </div>
       {actions.map((a, i) => (
         <ActionEditor
-          key={i}
+          key={getItemKey(a, i)}
           action={a}
           onChange={(na) => update(i, na)}
           onRemove={actions.length > 1 ? () => remove(i) : undefined}
+          removeLabel={`ลบปุ่มที่ ${i + 1}`}
         />
       ))}
       {actions.length === 0 && <p className="text-xs text-red-500">ต้องมีอย่างน้อย 1 ปุ่ม</p>}
@@ -196,7 +199,7 @@ function CarouselForm({
     setColumns(columns.map((x, idx) => (idx === i ? c : x)));
   const addCol = () => {
     if (columns.length < MAX_COLUMNS)
-      setColumns([...columns, { title: '', text: '', actions: [makeEmptyAction()] }]);
+      setColumns([...columns, withNewKey({ title: '', text: '', actions: [withNewKey(makeEmptyAction())] })]);
   };
   const removeCol = (i: number) => setColumns(columns.filter((_, idx) => idx !== i));
   return (
@@ -217,14 +220,14 @@ function CarouselForm({
       {columns.map((col, i) => {
         const actions = Array.isArray(col.actions) ? col.actions : [];
         return (
-          <div key={i} className="rounded-xl border border-border-default p-3 space-y-2 bg-bg/50">
+          <div key={getItemKey(col, i)} className="rounded-xl border border-border-default p-3 space-y-2 bg-bg/50">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-text-tertiary">การ์ด #{i + 1}</span>
               {columns.length > 1 && (
                 <button
                   type="button"
                   onClick={() => removeCol(i)}
-                  aria-label="ลบการ์ด"
+                  aria-label={`ลบการ์ดที่ ${i + 1}`}
                   className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -233,12 +236,14 @@ function CarouselForm({
             </div>
             <input
               className={FIELD_CLS}
+              aria-label={`รูปการ์ดที่ ${i + 1} (thumbnailImageUrl)`}
               placeholder="รูป (thumbnailImageUrl)"
               value={col.thumbnailImageUrl ?? ''}
               onChange={(e) => updateCol(i, { ...col, thumbnailImageUrl: e.target.value })}
             />
             <input
               className={FIELD_CLS}
+              aria-label={`หัวข้อการ์ดที่ ${i + 1} (title)`}
               placeholder="หัวข้อ (title)"
               value={col.title ?? ''}
               onChange={(e) => updateCol(i, { ...col, title: e.target.value })}
@@ -246,6 +251,7 @@ function CarouselForm({
             <textarea
               className={`${FIELD_CLS} font-normal`}
               rows={2}
+              aria-label={`ข้อความการ์ดที่ ${i + 1} (text)`}
               placeholder="ข้อความ (text)"
               value={col.text ?? ''}
               onChange={(e) => updateCol(i, { ...col, text: e.target.value })}
@@ -275,7 +281,7 @@ function ImageCarouselForm({
     setColumns(columns.map((x, idx) => (idx === i ? c : x)));
   const addCol = () => {
     if (columns.length < MAX_COLUMNS)
-      setColumns([...columns, { imageUrl: '', action: makeEmptyAction('uri') }]);
+      setColumns([...columns, withNewKey({ imageUrl: '', action: makeEmptyAction('uri') })]);
   };
   const removeCol = (i: number) => setColumns(columns.filter((_, idx) => idx !== i));
   return (
@@ -294,14 +300,14 @@ function ImageCarouselForm({
         </button>
       </div>
       {columns.map((col, i) => (
-        <div key={i} className="rounded-xl border border-border-default p-3 space-y-2 bg-bg/50">
+        <div key={getItemKey(col, i)} className="rounded-xl border border-border-default p-3 space-y-2 bg-bg/50">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-text-tertiary">รูป #{i + 1}</span>
             {columns.length > 1 && (
               <button
                 type="button"
                 onClick={() => removeCol(i)}
-                aria-label="ลบรูป"
+                aria-label={`ลบรูปที่ ${i + 1}`}
                 className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10"
               >
                 <Trash2 className="w-4 h-4" />
@@ -310,6 +316,7 @@ function ImageCarouselForm({
           </div>
           <input
             className={FIELD_CLS}
+            aria-label={`imageUrl รูปที่ ${i + 1}`}
             placeholder="imageUrl (https://...)"
             value={col.imageUrl ?? ''}
             onChange={(e) => updateCol(i, { ...col, imageUrl: e.target.value })}
@@ -330,7 +337,9 @@ export function TemplateEditor({ payload, onChange }: TemplateEditorProps) {
 
   const setTemplate = (next: TemplateContent) => onChange({ ...payload, template: next });
   const changeSubtype = (next: TemplateSubtype) => {
-    if (next !== subtype) setTemplate(defaultForSubtype(next));
+    // Seed items get internal `_key`s here (event handler, so key generation
+    // is safe) — keeps every creation path consistent with add/addCol.
+    if (next !== subtype) onChange(ensureEditorKeys({ ...payload, template: defaultForSubtype(next) }));
   };
 
   return (

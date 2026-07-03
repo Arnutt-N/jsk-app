@@ -6,7 +6,7 @@
  */
 import { Plus } from 'lucide-react';
 import type { QuickReply, QuickReplyItem } from '@/lib/line/message-types';
-import { FIELD_CLS, LABEL_CLS, makeEmptyAction } from './payload-utils';
+import { FIELD_CLS, LABEL_CLS, makeEmptyAction, withNewKey, getItemKey } from './payload-utils';
 import { ActionEditor } from './editors/ActionEditor';
 
 const MAX_QUICK_REPLY_ITEMS = 13;
@@ -17,7 +17,8 @@ export interface QuickReplyEditorProps {
 }
 
 function newItem(): QuickReplyItem {
-  return { type: 'action', action: makeEmptyAction() };
+  // Tagged with an internal `_key` (stable React key); stripped before save.
+  return withNewKey({ type: 'action', action: makeEmptyAction() });
 }
 
 export function QuickReplyEditor({ value, onChange }: QuickReplyEditorProps) {
@@ -64,14 +65,16 @@ export function QuickReplyEditor({ value, onChange }: QuickReplyEditorProps) {
           </div>
 
           {items.map((item, i) => (
-            <div key={i} className="space-y-2">
+            <div key={getItemKey(item, i)} className="space-y-2">
               <ActionEditor
                 action={item.action ?? makeEmptyAction()}
                 onChange={(a) => updateItem(i, { action: a })}
                 onRemove={items.length > 1 ? () => removeItem(i) : undefined}
+                removeLabel={`ลบปุ่มลัดที่ ${i + 1}`}
               />
               <input
                 className={FIELD_CLS}
+                aria-label={`imageUrl ไอคอนปุ่มลัดที่ ${i + 1} (ไม่บังคับ)`}
                 placeholder="imageUrl ไอคอนปุ่ม (ไม่บังคับ)"
                 value={item.imageUrl ?? ''}
                 onChange={(e) => updateItem(i, { imageUrl: e.target.value })}

@@ -16,7 +16,14 @@ import { TemplateEditor } from './_components/editors/TemplateEditor';
 import { TextV2Editor } from './_components/editors/TextV2Editor';
 import { QuickReplyEditor } from './_components/QuickReplyEditor';
 import { MessagePreview } from './_components/preview/MessagePreview';
-import { safeParsePayload, defaultPayloadForType } from './_components/payload-utils';
+import {
+    safeParsePayload,
+    defaultPayloadForType,
+    ensureEditorKeys,
+    stripEditorKeys,
+    findInvalidActionUri,
+    URI_SCHEME_ERROR_TH,
+} from './_components/payload-utils';
 
 interface ReplyObject {
     id: number;
@@ -43,7 +50,7 @@ const STRUCTURED_TYPES = new Set(['template', 'text_v2']);
  * not a string. Normalize any shape into a single string so the toast never
  * receives an object/array (which throws "Objects are not valid as a React child").
  */
-function formatErrorDetail(detail: unknown): string {
+function formatErrorDetail(detail: unknown, fallback = 'Error saving'): string {
     if (typeof detail === 'string') return detail;
     if (Array.isArray(detail)) {
         const msgs = detail
@@ -51,7 +58,7 @@ function formatErrorDetail(detail: unknown): string {
             .filter(Boolean);
         if (msgs.length > 0) return msgs.join('; ');
     }
-    return 'Error saving';
+    return fallback;
 }
 
 export default function ReplyObjectsPage() {
@@ -86,9 +93,22 @@ export default function ReplyObjectsPage() {
             const next = defaultPayloadForType(newType);
             // Carry the quick-reply modifier across a type switch.
             if (prevPayload.quickReply) next.quickReply = prevPayload.quickReply;
-            return { ...prev, object_type: newType, payload: JSON.stringify(next, null, 2) };
+            // Tag editor list items with stable internal keys (react-2).
+            return { ...prev, object_type: newType, payload: JSON.stringify(ensureEditorKeys(next), null, 2) };
         });
         setRawMode(false);
+    };
+
+    // Entering raw mode strips internal `_key` tags so the JSON matches the
+    // exact LINE payload shape; returning to the form re-tags list items so
+    // React keys stay stable (react-2).
+    const handleToggleRawMode = () => {
+        setFormData(prev => {
+            const parsed = safeParsePayload(prev.payload);
+            const next = rawMode ? ensureEditorKeys(parsed) : stripEditorKeys(parsed);
+            return { ...prev, payload: JSON.stringify(next, null, 2) };
+        });
+        setRawMode(m => !m);
     };
 
     const handleQuickReplyChange = (qr: QuickReply | undefined) => {
@@ -119,9 +139,21 @@ export default function ReplyObjectsPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
+            const parsed: unknown = JSON.parse(formData.payload);
+
+            // sec-1: defense-in-depth — block uri actions outside the scheme
+            // allowlist (https/http/tel/mailto/line) before they reach the API.
+            const invalidUri = findInvalidActionUri(parsed);
+            if (invalidUri) {
+                toast({ title: 'ผิดพลาด', description: `${URI_SCHEME_ERROR_TH} (${invalidUri})`, variant: 'error' });
+                return;
+            }
+
             const payload = {
                 ...formData,
-                payload: JSON.parse(formData.payload)
+                // Strip internal editor keys so the saved LINE payload shape
+                // never changes (react-2 backward-compatibility guarantee).
+                payload: stripEditorKeys(parsed)
             };
 
             const url = editingId
@@ -147,12 +179,22 @@ export default function ReplyObjectsPage() {
     };
 
     const handleEdit = (obj: ReplyObject) => {
+        // Loaded payloads predate internal keys — tag list items once at load
+        // time so editor React keys are stable (react-2); stripped on save.
+        // Non-object payloads (legacy/edge shapes) pass through untouched.
+        const isPlainObject =
+            obj.payload !== null && typeof obj.payload === 'object' && !Array.isArray(obj.payload);
+        const payloadString = isPlainObject
+            ? JSON.stringify(ensureEditorKeys(obj.payload as Record<string, unknown>), null, 2)
+            : obj.payload
+                ? JSON.stringify(obj.payload, null, 2)
+                : '{}';
         setFormData({
             object_id: obj.object_id,
             name: obj.name,
             category: obj.category || '',
             object_type: obj.object_type,
-            payload: obj.payload ? JSON.stringify(obj.payload, null, 2) : '{}',
+            payload: payloadString,
             alt_text: obj.alt_text || ''
         });
         setEditingId(obj.object_id);
@@ -161,12 +203,25 @@ export default function ReplyObjectsPage() {
     };
 
     const handleDelete = async (objectId: string) => {
-
-        const res = await fetch(`${API_BASE}/admin/reply-objects/${objectId}`, {
-            method: 'DELETE'
-        });
-
-        if (res.ok) fetchObjects();
+        // ts-4: await + explicit error handling; refresh the list only on success.
+        try {
+            const res = await fetch(`${API_BASE}/admin/reply-objects/${objectId}`, {
+                method: 'DELETE'
+            });
+            if (res.ok) {
+                await fetchObjects();
+            } else {
+                const error = await res.json().catch(() => ({} as { detail?: unknown }));
+                toast({
+                    title: 'ผิดพลาด',
+                    description: formatErrorDetail(error.detail, 'ลบไม่สำเร็จ กรุณาลองใหม่อีกครั้ง'),
+                    variant: 'error'
+                });
+            }
+        } catch (error) {
+            logger.error('Error deleting reply object:', error);
+            toast({ title: 'ผิดพลาด', description: 'ลบไม่สำเร็จ กรุณาลองใหม่อีกครั้ง', variant: 'error' });
+        }
     };
 
     const resetForm = () => {
@@ -253,7 +308,7 @@ export default function ReplyObjectsPage() {
             <ConfirmDialog
                 isOpen={confirmDelete.open}
                 onClose={() => setConfirmDelete({open: false, objectId: null})}
-                onConfirm={() => { handleDelete(confirmDelete.objectId!); setConfirmDelete({open: false, objectId: null}); }}
+                onConfirm={() => { void handleDelete(confirmDelete.objectId!); setConfirmDelete({open: false, objectId: null}); }}
                 title="ยืนยันการลบ"
                 description={`ต้องการลบ ${confirmDelete.objectId} หรือไม่?`}
                 confirmText="ลบ"
@@ -348,7 +403,7 @@ export default function ReplyObjectsPage() {
                                 {isStructured && (
                                     <button
                                         type="button"
-                                        onClick={() => setRawMode(m => !m)}
+                                        onClick={handleToggleRawMode}
                                         className="text-xs font-bold text-brand-600 hover:text-brand-500 transition-colors"
                                     >
                                         {rawMode ? '↩ ใช้ตัวแก้ไขฟอร์ม' : '</> แก้แบบ JSON'}

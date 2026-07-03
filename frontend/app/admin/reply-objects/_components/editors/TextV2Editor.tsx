@@ -4,6 +4,7 @@
  * The backend only requires a non-empty `text`. This adds a couple of quick
  * emoji inserts and surfaces LINE's substitution-variable concept as a hint.
  */
+import { useId } from 'react';
 import { FIELD_CLS, LABEL_CLS } from '../payload-utils';
 
 const QUICK_EMOJIS = ['😊', '👍', '🙏', '✅', '🎉', '📌'];
@@ -16,17 +17,22 @@ export interface TextV2EditorProps {
 export function TextV2Editor({ payload, onChange }: TextV2EditorProps) {
   const text = typeof payload.text === 'string' ? payload.text : '';
   const setText = (next: string) => onChange({ ...payload, text: next });
+  const hintId = useId();
 
   return (
     <div className="space-y-2">
-      <label className={LABEL_CLS}>ข้อความ (text) *</label>
-      <textarea
-        className={`${FIELD_CLS} font-normal`}
-        rows={6}
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder="พิมพ์ข้อความที่จะส่งให้ผู้ใช้..."
-      />
+      {/* Wrapping <label> associates the heading with the textarea (a11y-4). */}
+      <label className="block space-y-2">
+        <span className={LABEL_CLS}>ข้อความ (text) *</span>
+        <textarea
+          className={`${FIELD_CLS} font-normal`}
+          rows={6}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="พิมพ์ข้อความที่จะส่งให้ผู้ใช้..."
+          aria-describedby={hintId}
+        />
+      </label>
       <div className="flex items-center justify-between">
         <div className="flex gap-1">
           {QUICK_EMOJIS.map((emoji) => (
@@ -43,7 +49,7 @@ export function TextV2Editor({ payload, onChange }: TextV2EditorProps) {
         </div>
         <span className="text-xs text-text-tertiary">{text.length} ตัวอักษร</span>
       </div>
-      <p className="text-xs text-text-tertiary">
+      <p id={hintId} className="text-xs text-text-tertiary">
         รองรับอีโมจิ และตัวแปรแทนค่า (substitution) ของ LINE
       </p>
     </div>

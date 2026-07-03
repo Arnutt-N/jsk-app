@@ -58,6 +58,17 @@ function asRecord(value: unknown): Record<string, unknown> {
     : {};
 }
 
+/**
+ * Narrow an untyped payload to a FlexContainer via its discriminant (ts-1 —
+ * replaces the old `as unknown as FlexContainer` double-cast). Anything else
+ * degrades to the renderer's "invalid flex" placeholder via `null`.
+ */
+function isFlexContainer(value: unknown): value is FlexContainer {
+  if (value === null || typeof value !== 'object') return false;
+  const type = (value as { type?: unknown }).type;
+  return type === 'bubble' || type === 'carousel';
+}
+
 function pickImageUrl(payload: Record<string, unknown>): string | undefined {
   for (const key of ['previewImageUrl', 'originalContentUrl', 'url']) {
     const v = payload[key];
@@ -69,7 +80,7 @@ function pickImageUrl(payload: Record<string, unknown>): string | undefined {
 function renderBody(objectType: string, payload: Record<string, unknown>): ReactNode {
   switch (objectType) {
     case 'flex':
-      return <LineFlexRenderer container={payload as unknown as FlexContainer} />;
+      return <LineFlexRenderer container={isFlexContainer(payload) ? payload : null} />;
     case 'template':
       return (
         <LineTemplateRenderer
