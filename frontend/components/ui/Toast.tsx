@@ -84,7 +84,7 @@ function ToastViewport({ toasts, onDismiss }: { toasts: ToastItem[]; onDismiss: 
     setMounted(true);
   }, []);
 
-  if (!mounted || toasts.length === 0) return null;
+  if (!mounted) return null;
 
   return createPortal(
     <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2" role="region" aria-live="polite">
@@ -126,4 +126,3 @@ function ToastViewport({ toasts, onDismiss }: { toasts: ToastItem[]; onDismiss: 
     document.body
   );
 }
-

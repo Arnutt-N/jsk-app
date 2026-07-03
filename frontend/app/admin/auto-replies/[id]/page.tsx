@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronLeft, Plus, Edit2, Trash2, X, Key, MessageSquare } from 'lucide-react';
@@ -45,11 +45,14 @@ export default function CategoryDetailPage() {
     const params = useParams();
     const searchParams = useSearchParams();
     const mode = searchParams.get('mode'); // 'edit' or undefined (view)
+    const created = searchParams.get('created') === '1';
 
     const [category, setCategory] = useState<IntentCategory | null>(null);
     const [loading, setLoading] = useState(true);
     const [isEditing, setIsEditing] = useState(mode === 'edit');
+    const [showCreatedBanner, setShowCreatedBanner] = useState(created);
     const [payloadError, setPayloadError] = useState<string | null>(null);
+    const createdBannerRef = useRef<HTMLDivElement>(null);
 
     // Forms
     const [showKeywordForm, setShowKeywordForm] = useState(false);
@@ -96,6 +99,12 @@ export default function CategoryDetailPage() {
         }, 0);
         return () => window.clearTimeout(timer);
     }, [fetchCategoryDetail]);
+
+    useEffect(() => {
+        if (category && showCreatedBanner) {
+            createdBannerRef.current?.focus();
+        }
+    }, [category, showCreatedBanner]);
 
     // Category Update
     const handleCategoryUpdate = async (e: React.FormEvent) => {
@@ -227,6 +236,29 @@ export default function CategoryDetailPage() {
                 )}
             </PageHeader>
 
+            {showCreatedBanner && (
+                <div
+                    ref={createdBannerRef}
+                    role="status"
+                    tabIndex={-1}
+                    className="rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning-text outline-none focus-visible:ring-2 focus-visible:ring-warning/40"
+                >
+                    <div className="flex items-start justify-between gap-3">
+                        <p className="leading-6">
+                            สร้างหมวดหมู่แล้ว - เพิ่มคีย์เวิร์ดและข้อความตอบกลับเพื่อเปิดใช้งาน
+                        </p>
+                        <button
+                            type="button"
+                            onClick={() => setShowCreatedBanner(false)}
+                            className="rounded-lg p-1 text-warning-text/70 hover:bg-warning/10 hover:text-warning-text focus-ring"
+                            aria-label="ปิดข้อความแนะนำ"
+                        >
+                            <X className="h-4 w-4" />
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* Main Content Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
@@ -337,6 +369,13 @@ export default function CategoryDetailPage() {
                                         <MessageSquare className="w-6 h-6" />
                                     </div>
                                     <p className="text-text-tertiary text-sm">No responses configured</p>
+                                    <button
+                                        type="button"
+                                        onClick={() => { resetResponseForm(); setShowResponseForm(true); }}
+                                        className="text-primary text-sm font-medium mt-2 hover:underline"
+                                    >
+                                        Add one now
+                                    </button>
                                 </div>
                             ) : (
                                 category.responses.map((resp, index) => (
