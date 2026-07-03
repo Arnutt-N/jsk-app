@@ -194,8 +194,8 @@ describe('ReplyObjectsPage — integration: save → reload round-trip', () => {
     const arg = toastMock.mock.calls[toastMock.mock.calls.length - 1][0] as { description: string };
     expect(arg.description).toContain('ลิงก์ไม่ปลอดภัยหรือไม่รองรับ');
 
-    const postCall = fetchMock.mock.calls.find(
-      ([, opts]) => (opts as RequestInit | undefined)?.method === 'POST',
+    const postCall = (fetchMock.mock.calls as unknown[][]).find(
+      (call) => (call[1] as RequestInit | undefined)?.method === 'POST',
     );
     expect(postCall).toBeUndefined();
   });

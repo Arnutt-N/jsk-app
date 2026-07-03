@@ -43,12 +43,21 @@ export function TransferDialog({ open, onClose, onTransfer, operators, loading }
     }
   }
 
+  // Focus capture/restore keyed on `open` ONLY — a dependency on onClose
+  // identity would re-run the cleanup (and steal focus mid-typing) every time
+  // the parent re-renders with an inline callback, e.g. on each live-chat
+  // WS update. Same fix as Modal.tsx.
   useEffect(() => {
     if (!open) return;
     // Capture the trigger so focus can be restored when the dialog closes
     // (WCAG 2.4.3 Focus Order) — mirrors MobileDrawer.
     const previouslyFocused = document.activeElement as HTMLElement | null;
     firstFieldRef.current?.focus();
+    return () => previouslyFocused?.focus();
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
 
     const trapFocus = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -70,10 +79,7 @@ export function TransferDialog({ open, onClose, onTransfer, operators, loading }
     };
 
     document.addEventListener('keydown', trapFocus);
-    return () => {
-      document.removeEventListener('keydown', trapFocus);
-      previouslyFocused?.focus();
-    };
+    return () => document.removeEventListener('keydown', trapFocus);
   }, [open, onClose]);
 
   const filtered = useMemo(() => {

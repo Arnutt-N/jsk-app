@@ -13,11 +13,18 @@ interface MobileDrawerProps {
 export function MobileDrawer({ open, onClose, titleId, children }: MobileDrawerProps) {
   const drawerRef = useRef<HTMLDivElement>(null);
 
+  // Focus capture/restore keyed on `open` ONLY — depending on onClose identity
+  // would re-run the cleanup and steal focus whenever the parent re-renders
+  // with an inline callback (e.g. on live-chat WS updates). Same fix as Modal.
   useEffect(() => {
     if (!open) return;
-
     const previouslyFocused = document.activeElement as HTMLElement | null;
     drawerRef.current?.focus();
+    return () => previouslyFocused?.focus();
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
 
     const FOCUSABLE_SELECTOR =
       'a[href], button:not([disabled]), textarea, input:not([disabled]), select, [tabindex]:not([tabindex="-1"])';
@@ -45,10 +52,7 @@ export function MobileDrawer({ open, onClose, titleId, children }: MobileDrawerP
     };
 
     document.addEventListener('keydown', trapFocus);
-    return () => {
-      document.removeEventListener('keydown', trapFocus);
-      previouslyFocused?.focus();
-    };
+    return () => document.removeEventListener('keydown', trapFocus);
   }, [open, onClose]);
 
   if (!open) return null;

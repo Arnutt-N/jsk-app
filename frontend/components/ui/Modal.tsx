@@ -75,26 +75,36 @@ export const Modal: React.FC<ModalProps> = ({
     }
   }, [onClose]);
 
+  // Keydown listener only — re-running this effect (e.g. when a parent passes
+  // an inline onClose whose identity changes every render) has no side effect
+  // beyond re-attaching the listener.
   useEffect(() => {
-    if (isOpen) {
-      // Capture the element that had focus before the modal opened so we can
-      // restore it on close (WCAG 2.4.3). Mirrors MobileDrawer/TransferDialog.
-      const previouslyFocused = document.activeElement as HTMLElement | null;
-      window.addEventListener('keydown', handleKeyDown);
-      const timer = setTimeout(() => {
-        const firstFocusable = modalRef.current?.querySelector<HTMLElement>(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        );
-        firstFocusable?.focus();
-      }, 50);
-      return () => {
-        window.removeEventListener('keydown', handleKeyDown);
-        clearTimeout(timer);
-        previouslyFocused?.focus();
-      };
-    }
+    if (!isOpen) return;
+    window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, handleKeyDown]);
+
+  // Focus capture/restore keyed on isOpen ONLY. This must never depend on
+  // callback identity: typing in a controlled input re-renders the parent,
+  // recreates inline callbacks, and a cleanup here would then yank focus out
+  // of the input after every keystroke (the "type one character, click the
+  // field again" bug on the create-category modal).
+  useEffect(() => {
+    if (!isOpen) return;
+    // Capture the element that had focus before the modal opened so we can
+    // restore it on close (WCAG 2.4.3). Mirrors MobileDrawer/TransferDialog.
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const timer = setTimeout(() => {
+      const firstFocusable = modalRef.current?.querySelector<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      firstFocusable?.focus();
+    }, 50);
+    return () => {
+      clearTimeout(timer);
+      previouslyFocused?.focus();
+    };
+  }, [isOpen]);
 
   const maxWidthClasses = {
     sm: 'max-w-sm',
