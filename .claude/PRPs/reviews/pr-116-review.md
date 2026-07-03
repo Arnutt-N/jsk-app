@@ -68,3 +68,15 @@ None.
 
 ## Remediation Commit
 3 blockers (HIGH ×3 + MEDIUM seed guard) fixed in this branch + 1 new regression test. Follow-up items tracked above for a separate PR.
+
+## Follow-up Status (verified 2026-07-03, post ba16647 + 1e5cf5d)
+All 6 deferred items re-verified against current main — **every one is already fixed**; no further work needed:
+
+| Item | Status | Where |
+|---|---|---|
+| `broadcast_to_all` double-delivery under Redis self-loopback | FIXED | `websocket_manager.py` — `_handle_remote_broadcast`/`_handle_remote_room_message` early-return on `_origin == self.server_id`; `broadcast_to_all` carries `_origin` + `_exclude_admin` in the envelope |
+| `admin_display_names` never pruned on disconnect | FIXED | `websocket_manager.py:disconnect()` — pops the cache when the admin's last connection closes |
+| `onConnectionChange` not memoized | FIXED | `LiveChatContext.tsx` — `handleConnectionChange` wrapped in `useCallback([])` |
+| ACK timeout releases global `sending` without per-message tracking | FIXED | `useMessageFlow.ts` — timeout guards on `pendingMessages.has(tempId)` before failing/clearing |
+| Transfer error substring match | FIXED | `admin_live_chat.py` — exact equality against `TRANSFER_ERR_*` service constants |
+| JWT in WS URL query param | FIXED | `ws_live_chat.py` — token deliberately NOT accepted via query param; auth via first WS message `{"type":"auth","payload":{"token":…}}`; no `Query(` remains in the file |
