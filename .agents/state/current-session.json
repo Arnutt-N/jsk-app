@@ -1,14 +1,20 @@
 {
-  "last_updated": "2026-07-03T12:02:00+07:00",
+  "last_updated": "2026-07-03T13:50:00+07:00",
   "platform": "claude_code",
-  "current_task": "Tasks 1-5 done: Actions re-enabled + keepalive green (run 28632529122); #120 verified vs real PG16 6/6 in WSL (rollback, no data); pr-116 all 6 deferred items verified ALREADY FIXED (table in pr-116-r",
+  "current_task": "Fixed 2 user-reported prod bugs. (1) Modal focus-steal: focus effect keyed on onClose identity re-ran every keystroke and stole focus from inputs (create-category modal, live since PR #112) - split in",
   "plan_status": "completed",
   "next_steps": [
-    "Human step: test #120 on prod LINE OA (create STARTS_WITH+REGEX intents in admin, message the OA)",
-    "Docker Desktop broken: com.docker.service needs elevated start (UAC) before any docker-db work",
-    "CD workflow left disabled on purpose (would auto-migrate PROD on push)"
+    "User: re-test on LINE OA - message the prod OA 'ทดสอบ120 ...' (STARTS_WITH) and 'เรื่องที่42' (REGEX kw '^เรื่องที่\\d+'), expect a reply now; delete test category 'ทดสอบ' (cat#101) after",
+    "CD now stays ENABLED - pushes to main auto-deploy backend again (public repo = free Actions)"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-07-03T13:50:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "733c09f",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-07-03T12:02:00+07:00",
       "platform": "claude_code",
@@ -140,13 +146,6 @@
       "platform": "claude_code",
       "branch": "docs/livechat-audit-remediation-prp",
       "head": "f96ba59",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-28T05:42:00+07:00",
-      "platform": "claude_code",
-      "branch": "docs/livechat-audit-remediation-prp",
-      "head": "c400ad8",
       "status": "completed"
     }
   ],

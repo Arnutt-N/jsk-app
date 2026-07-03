@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 128 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 129 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-03 13:50 — claude_code — completed
+
+Fixed 2 user-reported prod bugs. (1) Modal focus-steal: focus effect keyed on onClose identity re-ran every keystroke and stole focus from inputs (create-category modal, live since PR #112) - split into open-keyed focus effect + separate keydown effect in Modal/TransferDialog/MobileDrawer + regression test (733c09f, vitest 93/93, tsc 0, Vercel auto-deploys). (2) Bot silent on STARTS_WITH/REGEX: root-caused via read-only prod DB (data CORRECT - intents active w/ 2 responses each, enum has STARTS_WITH) = prod backend lacked #120 code; Koyeb deploy had drifted behind main while cd.yml was disabled. Re-enabled CD + dispatched backend deploy run 28643492923 (all jobs success incl Koyeb build + smoke) -> #120 now live.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260703-1350.json`
+- Summary: `project-log-md/claude_code/session-summary-20260703-1350.md`
+
+---
 
 ### 2026-07-03 12:02 — claude_code — completed
 

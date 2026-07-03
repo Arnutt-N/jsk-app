@@ -1,0 +1,17 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-07-03T13:50:00+07:00",
+  "branch": "main",
+  "head_commit": "733c09f",
+  "status": "completed",
+  "work_summary": "Fixed 2 user-reported prod bugs. (1) Modal focus-steal: focus effect keyed on onClose identity re-ran every keystroke and stole focus from inputs (create-category modal, live since PR #112) - split into open-keyed focus effect + separate keydown effect in Modal/TransferDialog/MobileDrawer + regression test (733c09f, vitest 93/93, tsc 0, Vercel auto-deploys). (2) Bot silent on STARTS_WITH/REGEX: root-caused via read-only prod DB (data CORRECT - intents active w/ 2 responses each, enum has STARTS_WITH) = prod backend lacked #120 code; Koyeb deploy had drifted behind main while cd.yml was disabled. Re-enabled CD + dispatched backend deploy run 28643492923 (all jobs success incl Koyeb build + smoke) -> #120 now live.",
+  "priority_actions": [
+    "User: re-test on LINE OA - message the prod OA 'ทดสอบ120 ...' (STARTS_WITH) and 'เรื่องที่42' (REGEX kw '^เรื่องที่\\d+'), expect a reply now; delete test category 'ทดสอบ' (cat#101) after",
+    "CD now stays ENABLED - pushes to main auto-deploy backend again (public repo = free Actions)"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/claude_code/session-summary-20260703-1350.md",
+  "cross_platform_read": []
+}
