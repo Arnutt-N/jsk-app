@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-07-03 13:50 by Claude Code (Fixed 2 user-reported prod bugs.)
+> **Last Updated:** 2026-07-03 15:24 by Claude Code (Session shipped 2 prod bug fixes + designed a 3rd feature.)
 
 ## Thai Summary
 ฟีเจอร์ **Rich Menu Switching + การกำหนดเมนูรายบุคคล (R1/R2)** เสร็จสมบูรณ์และขึ้น production แล้ว — merge เข้า main ผ่าน PR #114 (merge commit `3a90f4d`), migrate ฐานข้อมูล Supabase PROD (richmenu alias + user_rich_menu_links แบบ additive) และ deploy frontend บน Vercel เรียบร้อย
@@ -54,6 +54,7 @@
 - [2026-06-21] R1/R2 Rich Menu (incl Task 6.2 per-user UI) merged to `main` via PR #114 (`3a90f4d`); Supabase PROD migrated; Vercel frontend deployed. Branch `feat/rich-menu-switching-r1` deleted. Working tree clean.
 
 ## Recent Completions
+- [2026-07-03 15:24] Claude Code: Session shipped 2 prod bug fixes + designed a 3rd feature. (1) Modal focus-steal FIXED+deployed (733c09f, Vercel). (2) Bot silent on STARTS_WITH/REGEX = stale Koyeb backend lacked #120; re-enabled CD + deployed backend (run 28643492923 succ (Claude Code)
 - [2026-07-03 13:50] Claude Code: Fixed 2 user-reported prod bugs. (1) Modal focus-steal: focus effect keyed on onClose identity re-ran every keystroke and stole focus from inputs (create-category modal, live since PR #112) - split into open-keyed focus effect + separate ke (Claude Code)
 - [2026-07-03 12:02] Claude Code: Tasks 1-5 done: Actions re-enabled + keepalive green (run 28632529122); #120 verified vs real PG16 6/6 in WSL (rollback, no data); pr-116 all 6 deferred items verified ALREADY FIXED (table in pr-116-review.md); #121 shipped 4bbcd9a (a11y/se (Claude Code)
 - [2026-07-03 06:56] Claude Code: Wrote consolidated session handoff rollup (project-log-md/claude_code/session-summary-20260703-0655-claude-code-handoff.md): all DONE tasks (CodeX continuation, 3-agent review + 9 fixes, e2e green, PROD migration v2w3x4y5z6a7, 3 deferred fo (Claude Code)

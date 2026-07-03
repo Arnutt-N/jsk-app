@@ -1,13 +1,21 @@
 {
-  "last_updated": "2026-07-03T13:50:00+07:00",
+  "last_updated": "2026-07-03T15:24:00+07:00",
   "platform": "claude_code",
-  "current_task": "Fixed 2 user-reported prod bugs. (1) Modal focus-steal: focus effect keyed on onClose identity re-ran every keystroke and stole focus from inputs (create-category modal, live since PR #112) - split in",
+  "current_task": "Session shipped 2 prod bug fixes + designed a 3rd feature. (1) Modal focus-steal FIXED+deployed (733c09f, Vercel). (2) Bot silent on STARTS_WITH/REGEX = stale Koyeb backend lacked #120; re-enabled CD ",
   "plan_status": "completed",
   "next_steps": [
-    "User: re-test on LINE OA - message the prod OA 'ทดสอบ120 ...' (STARTS_WITH) and 'เรื่องที่42' (REGEX kw '^เรื่องที่\\d+'), expect a reply now; delete test category 'ทดสอบ' (cat#101) after",
-    "CD now stays ENABLED - pushes to main auto-deploy backend again (public repo = free Actions)"
+    "IMPLEMENT the create-category UX per docs/superpowers/specs/2026-07-03-create-category-flow-design.md (frontend-only, 3 files: auto-replies/page.tsx + [id]/page.tsx + Toast.tsx + vitest). Spec has full changeList + 7 test cases + Rejected list. Validate tsc/eslint/vitest in WSL, then code-review before commit.",
+    "User still has open items to confirm if raised: badge is a heuristic (response_count counts inactive), toggle gate is frontend-only/bypassable — both deferred to issue #122",
+    "Delete prod test category 'ทดสอบ' (cat#101) once done testing"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-07-03T15:24:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "4559669",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-07-03T13:50:00+07:00",
       "platform": "claude_code",
@@ -139,13 +147,6 @@
       "platform": "claude_code",
       "branch": "docs/livechat-audit-remediation-prp",
       "head": "3713a0d",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-28T10:42:00+07:00",
-      "platform": "claude_code",
-      "branch": "docs/livechat-audit-remediation-prp",
-      "head": "f96ba59",
       "status": "completed"
     }
   ],
