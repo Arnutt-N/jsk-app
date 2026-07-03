@@ -1,0 +1,18 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-07-03T12:02:00+07:00",
+  "branch": "main",
+  "head_commit": "a50cf80",
+  "status": "completed",
+  "work_summary": "Tasks 1-5 done: Actions re-enabled + keepalive green (run 28632529122); #120 verified vs real PG16 6/6 in WSL (rollback, no data); pr-116 all 6 deferred items verified ALREADY FIXED (table in pr-116-review.md); #121 shipped 4bbcd9a (a11y/security/ts + 53 tests, vitest 344/344, build green, react-review 0 HIGH); WSL temp postgres stopped+disabled",
+  "priority_actions": [
+    "Human step: test #120 on prod LINE OA (create STARTS_WITH+REGEX intents in admin, message the OA)",
+    "Docker Desktop broken: com.docker.service needs elevated start (UAC) before any docker-db work",
+    "CD workflow left disabled on purpose (would auto-migrate PROD on push)"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/claude_code/session-summary-20260703-1202.md",
+  "cross_platform_read": []
+}

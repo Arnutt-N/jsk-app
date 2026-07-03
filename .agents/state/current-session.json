@@ -1,12 +1,21 @@
 {
-  "last_updated": "2026-07-03T06:56:00+07:00",
+  "last_updated": "2026-07-03T12:02:00+07:00",
   "platform": "claude_code",
-  "current_task": "Wrote consolidated session handoff rollup (project-log-md/claude_code/session-summary-20260703-0655-claude-code-handoff.md): all DONE tasks (CodeX continuation, 3-agent review + 9 fixes, e2e green, PR",
+  "current_task": "Tasks 1-5 done: Actions re-enabled + keepalive green (run 28632529122); #120 verified vs real PG16 6/6 in WSL (rollback, no data); pr-116 all 6 deferred items verified ALREADY FIXED (table in pr-116-r",
   "plan_status": "completed",
   "next_steps": [
-    "Next agent: read session-summary-20260703-0655-claude-code-handoff.md first"
+    "Human step: test #120 on prod LINE OA (create STARTS_WITH+REGEX intents in admin, message the OA)",
+    "Docker Desktop broken: com.docker.service needs elevated start (UAC) before any docker-db work",
+    "CD workflow left disabled on purpose (would auto-migrate PROD on push)"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-07-03T12:02:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "a50cf80",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-07-03T06:56:00+07:00",
       "platform": "claude_code",
@@ -138,13 +147,6 @@
       "platform": "claude_code",
       "branch": "docs/livechat-audit-remediation-prp",
       "head": "c400ad8",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-28T00:48:00+07:00",
-      "platform": "claude_code",
-      "branch": "docs/livechat-audit-remediation-prp",
-      "head": "a91f23f",
       "status": "completed"
     }
   ],

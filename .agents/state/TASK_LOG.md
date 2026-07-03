@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 127 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 128 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-03 12:02 — claude_code — completed
+
+Tasks 1-5 done: Actions re-enabled + keepalive green (run 28632529122); #120 verified vs real PG16 6/6 in WSL (rollback, no data); pr-116 all 6 deferred items verified ALREADY FIXED (table in pr-116-review.md); #121 shipped 4bbcd9a (a11y/security/ts + 53 tests, vitest 344/344, build green, react-review 0 HIGH); WSL temp postgres stopped+disabled
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260703-1202.json`
+- Summary: `project-log-md/claude_code/session-summary-20260703-1202.md`
+
+---
 
 ### 2026-07-03 06:56 — claude_code — completed
 
