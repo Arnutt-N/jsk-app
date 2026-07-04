@@ -16,6 +16,7 @@ import {
   SessionTransferredPayload,
   WebSocketMessage
 } from '@/lib/websocket/types';
+import { getLiveChatWsUrl } from '@/lib/websocket/wsUrl';
 
 interface UseLiveChatSocketOptions {
   adminId: string; // Required - must be provided from auth context
@@ -84,11 +85,7 @@ export function useLiveChatSocket(options: UseLiveChatSocketOptions): UseLiveCha
   const lastTypingSent = useRef<{ room: string | null; at: number }>({ room: null, at: 0 });
 
   // Determine WebSocket URL
-  const wsUrl = useMemo(() => {
-    if (typeof window === 'undefined') return '';
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    return `${protocol}//${window.location.host}/api/v1/ws/live-chat`;
-  }, []);
+  const wsUrl = useMemo(() => getLiveChatWsUrl(), []);
 
   const handleMessage = useCallback((data: WebSocketMessage) => {
     switch (data.type) {

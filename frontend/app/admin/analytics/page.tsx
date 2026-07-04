@@ -33,6 +33,7 @@ import { StaggerContainer, StaggerItem } from "@/components/ui/PageTransition";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { MessageType, WebSocketMessage } from "@/lib/websocket/types";
+import { getLiveChatWsUrl } from "@/lib/websocket/wsUrl";
 import { logger } from '@/lib/logger';
 import { readErrorMessage } from '@/lib/api-error';
 
@@ -164,11 +165,7 @@ export default function AnalyticsPage() {
     }
   }, [authHeaders, days, selectedOperator]);
 
-  const wsUrl = useMemo(() => {
-    if (typeof window === "undefined") return "";
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    return `${protocol}//${window.location.host}/api/v1/ws/live-chat`;
-  }, []);
+  const wsUrl = useMemo(() => getLiveChatWsUrl(), []);
 
   const handleWebSocketMessage = useCallback((message: WebSocketMessage) => {
     if (message.type === MessageType.ANALYTICS_UPDATE) {
