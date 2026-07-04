@@ -1,0 +1,18 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-07-05T03:01:00+07:00",
+  "branch": "main",
+  "head_commit": "db976f3",
+  "status": "completed",
+  "work_summary": "Fixed 4 live-chat UI bugs via diagnosing-bugs loop (Playwright probe vs live WSL stack): (1) layout shift/dead-space root cause = CustomerPanel 806px>650px viewport gave overflow-hidden shell a hidden scroll range + scrollIntoView scrolled ancestors -> h-full min-h-0 panel + container-scoped scrollTo; (2) Tailwind v4 removed button pointer cursor -> global base rule + explicit classes; (3) send button aligned to input top (items-start); (4) permanent regression spec e2e/live-chat-layout.spec.ts (red pre-fix, green post-fix). vitest 360/360 + targeted 77/77, tsc/eslint 0, react-reviewer no CRIT/HIGH, both MEDIUMs fixed (single scroll owner, cursor sweep via global rule). Commit db976f3",
+  "priority_actions": [
+    "ALERT: 72 tracked files under .claude/skills/skn-* were deleted from disk DURING this session by an unknown process (not committed; recover with: git restore .claude/skills) — ask user intent",
+    "Verify 4 fixes on prod after Vercel deploy of db976f3 (layout stable, cursors, send alignment)",
+    "Local dev stack left running in WSL (backend :8000, frontend :3000, seeded admin/E2eAdmin123! local only)"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/claude_code/session-summary-20260705-0301.md",
+  "cross_platform_read": []
+}

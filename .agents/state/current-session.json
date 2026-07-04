@@ -1,13 +1,21 @@
 {
-  "last_updated": "2026-07-05T00:30:00+07:00",
+  "last_updated": "2026-07-05T03:01:00+07:00",
   "platform": "claude_code",
-  "current_task": "Fixed prod live-chat cannot-connect: Vercel rewrite strips WS upgrade headers (WS via Vercel=404, direct Koyeb=101) -> new lib/websocket/wsUrl.ts derives wss URL from NEXT_PUBLIC_API_URL with same-hos",
+  "current_task": "Fixed 4 live-chat UI bugs via diagnosing-bugs loop (Playwright probe vs live WSL stack): (1) layout shift/dead-space root cause = CustomerPanel 806px>650px viewport gave overflow-hidden shell a hidden",
   "plan_status": "completed",
   "next_steps": [
-    "Verify on prod after Vercel deploy: open jsk-app.vercel.app/admin/live-chat -> amber banner gone, WS connects (check DevTools WS tab points to conservative-lusa-...koyeb.app)",
-    "Optional LOW from review: normalize uppercase scheme casing in buildLiveChatWsUrl (cosmetic only)"
+    "ALERT: 72 tracked files under .claude/skills/skn-* were deleted from disk DURING this session by an unknown process (not committed; recover with: git restore .claude/skills) — ask user intent",
+    "Verify 4 fixes on prod after Vercel deploy of db976f3 (layout stable, cursors, send alignment)",
+    "Local dev stack left running in WSL (backend :8000, frontend :3000, seeded admin/E2eAdmin123! local only)"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-07-05T03:01:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "db976f3",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-07-05T00:30:00+07:00",
       "platform": "claude_code",
@@ -139,13 +147,6 @@
       "platform": "claude_code",
       "branch": "main",
       "head": "0b5768d",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-28T15:40:00+07:00",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "ab25ec7",
       "status": "completed"
     }
   ],

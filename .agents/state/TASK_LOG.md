@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 133 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 134 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-05 03:01 — claude_code — completed
+
+Fixed 4 live-chat UI bugs via diagnosing-bugs loop (Playwright probe vs live WSL stack): (1) layout shift/dead-space root cause = CustomerPanel 806px>650px viewport gave overflow-hidden shell a hidden scroll range + scrollIntoView scrolled ancestors -> h-full min-h-0 panel + container-scoped scrollTo; (2) Tailwind v4 removed button pointer cursor -> global base rule + explicit classes; (3) send button aligned to input top (items-start); (4) permanent regression spec e2e/live-chat-layout.spec.ts (red pre-fix, green post-fix). vitest 360/360 + targeted 77/77, tsc/eslint 0, react-reviewer no CRIT/HIGH, both MEDIUMs fixed (single scroll owner, cursor sweep via global rule). Commit db976f3
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260705-0301.json`
+- Summary: `project-log-md/claude_code/session-summary-20260705-0301.md`
+
+---
 
 ### 2026-07-05 00:30 — claude_code — completed
 
