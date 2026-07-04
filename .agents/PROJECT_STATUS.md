@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-07-04 23:27 by Claude Code (Setup Matt Pocock skills config: added '## Agent skills' block to CLAUDE.md + created docs)
+> **Last Updated:** 2026-07-05 00:30 by Claude Code (Fixed prod live-chat cannot-connect: Vercel rewrite strips WS upgrade headers WS via Verce)
 
 ## Thai Summary
 ฟีเจอร์ **Rich Menu Switching + การกำหนดเมนูรายบุคคล (R1/R2)** เสร็จสมบูรณ์และขึ้น production แล้ว — merge เข้า main ผ่าน PR #114 (merge commit `3a90f4d`), migrate ฐานข้อมูล Supabase PROD (richmenu alias + user_rich_menu_links แบบ additive) และ deploy frontend บน Vercel เรียบร้อย
@@ -54,6 +54,7 @@
 - [2026-06-21] R1/R2 Rich Menu (incl Task 6.2 per-user UI) merged to `main` via PR #114 (`3a90f4d`); Supabase PROD migrated; Vercel frontend deployed. Branch `feat/rich-menu-switching-r1` deleted. Working tree clean.
 
 ## Recent Completions
+- [2026-07-05 00:30] Claude Code: Fixed prod live-chat cannot-connect: Vercel rewrite strips WS upgrade headers (WS via Vercel=404, direct Koyeb=101) -> new lib/websocket/wsUrl.ts derives wss URL from NEXT_PUBLIC_API_URL with same-host fallback; both call sites (useLiveChat (Claude Code)
 - [2026-07-04 23:27] Claude Code: Setup Matt Pocock skills config: added '## Agent skills' block to CLAUDE.md + created docs/agents/{issue-tracker,triage-labels,domain}.md (local-markdown issue tracker under .scratch/, default 5 triage labels, single-context domain docs) (Claude Code)
 - [2026-07-04 22:51] Claude Code: 2026-07-04 session: fixed the broken GLOBAL statusLine (out-of-repo ~/.claude/statusline-command.sh) - Git Bash on Windows ships no jq, so every field read empty and only the git-branch fallback rendered (user saw just "branch" + the built- (Claude Code)
 - [2026-07-03 15:24] Claude Code: Session shipped 2 prod bug fixes + designed a 3rd feature. (1) Modal focus-steal FIXED+deployed (733c09f, Vercel). (2) Bot silent on STARTS_WITH/REGEX = stale Koyeb backend lacked #120; re-enabled CD + deployed backend (run 28643492923 succ (Claude Code)

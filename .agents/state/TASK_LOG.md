@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 132 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 133 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-05 00:30 — claude_code — completed
+
+Fixed prod live-chat cannot-connect: Vercel rewrite strips WS upgrade headers (WS via Vercel=404, direct Koyeb=101) -> new lib/websocket/wsUrl.ts derives wss URL from NEXT_PUBLIC_API_URL with same-host fallback; both call sites (useLiveChatSocket, analytics) migrated; TDD 7 new tests, vitest 360/360, tsc+eslint clean, review APPROVE (commit 17abe62)
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260705-0030.json`
+- Summary: `project-log-md/claude_code/session-summary-20260705-0030.md`
+
+---
 
 ### 2026-07-04 23:27 — claude_code — completed
 

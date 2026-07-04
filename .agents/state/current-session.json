@@ -1,13 +1,20 @@
 {
-  "last_updated": "2026-07-04T23:27:00+07:00",
+  "last_updated": "2026-07-05T00:30:00+07:00",
   "platform": "claude_code",
-  "current_task": "Setup Matt Pocock skills config: added '## Agent skills' block to CLAUDE.md + created docs/agents/{issue-tracker,triage-labels,domain}.md (local-markdown issue tracker under .scratch/, default 5 triag",
+  "current_task": "Fixed prod live-chat cannot-connect: Vercel rewrite strips WS upgrade headers (WS via Vercel=404, direct Koyeb=101) -> new lib/websocket/wsUrl.ts derives wss URL from NEXT_PUBLIC_API_URL with same-hos",
   "plan_status": "completed",
   "next_steps": [
-    "Commit the setup-matt-pocock-skills config (CLAUDE.md + docs/agents/*.md)",
-    "Create CONTEXT.md / docs/adr/ lazily when real domain terms or decisions get resolved"
+    "Verify on prod after Vercel deploy: open jsk-app.vercel.app/admin/live-chat -> amber banner gone, WS connects (check DevTools WS tab points to conservative-lusa-...koyeb.app)",
+    "Optional LOW from review: normalize uppercase scheme casing in buildLiveChatWsUrl (cosmetic only)"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-07-05T00:30:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "17abe62",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-07-04T23:27:00+07:00",
       "platform": "claude_code",
@@ -139,13 +146,6 @@
       "platform": "claude_code",
       "branch": "main",
       "head": "ab25ec7",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-28T15:12:00+07:00",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "07ec9d1",
       "status": "completed"
     }
   ],

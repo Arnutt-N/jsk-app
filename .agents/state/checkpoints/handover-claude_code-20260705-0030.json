@@ -1,0 +1,17 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-07-05T00:30:00+07:00",
+  "branch": "main",
+  "head_commit": "17abe62",
+  "status": "completed",
+  "work_summary": "Fixed prod live-chat cannot-connect: Vercel rewrite strips WS upgrade headers (WS via Vercel=404, direct Koyeb=101) -> new lib/websocket/wsUrl.ts derives wss URL from NEXT_PUBLIC_API_URL with same-host fallback; both call sites (useLiveChatSocket, analytics) migrated; TDD 7 new tests, vitest 360/360, tsc+eslint clean, review APPROVE (commit 17abe62)",
+  "priority_actions": [
+    "Verify on prod after Vercel deploy: open jsk-app.vercel.app/admin/live-chat -> amber banner gone, WS connects (check DevTools WS tab points to conservative-lusa-...koyeb.app)",
+    "Optional LOW from review: normalize uppercase scheme casing in buildLiveChatWsUrl (cosmetic only)"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/claude_code/session-summary-20260705-0030.md",
+  "cross_platform_read": []
+}
