@@ -256,6 +256,15 @@
     @apply border-gray-200;
   }
 
+  /* Tailwind v4 removed the default pointer cursor on buttons — restore it
+     app-wide so every clickable button gets the hand cursor without
+     per-component classes. Utility classes (e.g. cursor-not-allowed) and
+     the :disabled state still win. */
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+
   /* Force-remove scrollbar arrow buttons globally (Chrome/Edge/Safari) */
   *::-webkit-scrollbar-button,
   *::-webkit-scrollbar-button:single-button,

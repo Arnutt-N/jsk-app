@@ -267,7 +267,7 @@ export function MessageInput({
             e.preventDefault();
             onSend();
           }}
-          className="relative flex items-end gap-2"
+          className="relative flex items-start gap-2"
         >
           <input
             ref={fileInputRef}

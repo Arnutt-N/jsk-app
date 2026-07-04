@@ -82,7 +82,7 @@ export function CustomerPanel({
   };
 
   return (
-    <aside className="w-72 bg-surface border-l border-border-default flex flex-col flex-shrink-0 z-20 thai-text">
+    <aside className="w-72 h-full min-h-0 bg-surface border-l border-border-default flex flex-col flex-shrink-0 z-20 thai-text">
       {/* Header */}
       <div className="h-20 px-4 border-b border-border-default flex items-center justify-between">
         <span id="customer-panel-title" className="font-bold text-text-primary text-xs tracking-widest uppercase">Customer Info</span>

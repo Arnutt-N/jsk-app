@@ -134,7 +134,7 @@ export function ConversationList() {
           {filterButtons.map((btn) => (
             <button
               key={btn.key ?? 'all'}
-              className={`flex-1 py-1.5 px-2 text-[11px] font-semibold rounded-lg transition-colors ${
+              className={`flex-1 py-1.5 px-2 text-[11px] font-semibold rounded-lg transition-colors cursor-pointer ${
                 filterStatus === btn.key
                   ? 'gradient-active text-white shadow-lg shadow-brand-900/30'
                   : 'bg-white/5 text-sidebar-text-muted hover:text-white'

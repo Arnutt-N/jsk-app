@@ -90,7 +90,6 @@ export function ChatArea() {
     return `Operator #${sessionOwnerId}`;
   })();
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const historySentinelRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = React.useState(0);
@@ -134,10 +133,13 @@ export function ChatArea() {
     return scrollHeight - scrollTop - clientHeight < 100;
   };
 
-  // Only auto-scroll if near bottom (not when user scrolled up to read older messages)
+  // Only auto-scroll if near bottom (not when user scrolled up to read older messages).
+  // Scroll the messages container directly — scrollIntoView also scrolls overflow-hidden
+  // ancestors (the shell), shifting the whole 3-column layout upward.
   useEffect(() => {
     if (isNearBottom()) {
-      messagesEndRef.current?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth' });
+      const container = messagesContainerRef.current;
+      container?.scrollTo({ top: container.scrollHeight, behavior: reduced ? 'auto' : 'smooth' });
     }
   }, [messages.length, reduced]);
 
@@ -366,7 +368,6 @@ export function ChatArea() {
         {virtualEnabled && <div aria-hidden style={{ height: `${visibleWindow.bottomPadding}px` }} />}
         <TypingIndicator visible={typingUsersCount > 0} />
         <div role="status" aria-live="polite" className="sr-only">{typingUsersCount > 0 ? 'กำลังพิมพ์' : ''}</div>
-        <div ref={messagesEndRef} />
       </div>
       {/* Inline connection warning — above message input */}
       {wsStatus !== 'connected' && (
