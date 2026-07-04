@@ -323,3 +323,22 @@ Feature work follows PRP (Planning-Review-Polish) structure:
 - `plans/` — Implementation plans with phases and tasks
 - `reports/` — Completion reports with validation evidence
 - `reviews/` — Code review artifacts (local reviews before commit, PR reviews)
+
+## Agent skills
+
+### Issue tracker
+
+Issues and PRDs live as markdown files under `.scratch/<feature-slug>/` in this
+repo (local-markdown tracker; external PRs are not a triage surface). See
+`docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Five canonical triage roles using the default label strings (`needs-triage`,
+`needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See
+`docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context — one `CONTEXT.md` + `docs/adr/` at the repo root. See
+`docs/agents/domain.md`.

@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 131 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 132 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-04 23:27 — claude_code — completed
+
+Setup Matt Pocock skills config: added '## Agent skills' block to CLAUDE.md + created docs/agents/{issue-tracker,triage-labels,domain}.md (local-markdown issue tracker under .scratch/, default 5 triage labels, single-context domain docs)
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260704-2327.json`
+- Summary: `project-log-md/claude_code/session-summary-20260704-2327.md`
+
+---
 
 ### 2026-07-04 22:51 — claude_code — completed
 

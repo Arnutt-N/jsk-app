@@ -1,0 +1,17 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-07-04T23:27:00+07:00",
+  "branch": "main",
+  "head_commit": "5ea5e25",
+  "status": "completed",
+  "work_summary": "Setup Matt Pocock skills config: added '## Agent skills' block to CLAUDE.md + created docs/agents/{issue-tracker,triage-labels,domain}.md (local-markdown issue tracker under .scratch/, default 5 triage labels, single-context domain docs)",
+  "priority_actions": [
+    "Commit the setup-matt-pocock-skills config (CLAUDE.md + docs/agents/*.md)",
+    "Create CONTEXT.md / docs/adr/ lazily when real domain terms or decisions get resolved"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/claude_code/session-summary-20260704-2327.md",
+  "cross_platform_read": []
+}
