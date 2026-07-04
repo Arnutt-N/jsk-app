@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 130 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 131 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-04 22:51 — claude_code — completed
+
+2026-07-04 session: fixed the broken GLOBAL statusLine (out-of-repo ~/.claude/statusline-command.sh) - Git Bash on Windows ships no jq, so every field read empty and only the git-branch fallback rendered (user saw just "branch" + the built-in "bypass permissions" indicator). Replaced the six jq calls with a single node JSON parser using a 0x1f delimiter (settings.json left untouched, still bash-invoked); sample-JSON runs now render Model | dir | branch | Ctx% | rate limit again, with graceful degrade on partial JSON. That fix touched NO repo code. This handoff also CLOSES the Stop-hook gap: commit ce5a414 (prior Jul-3 session, already on origin/main) implemented the create-category UX per docs/superpowers/specs/2026-07-03-create-category-flow-design.md - the queued priority_action #1 from the 15:24 handoff. It adds a create-and-configure flow (list page POSTs then routes to the new detail page with created=1, shows an error toast if the id is missing, adds a loading skeleton) plus a dismissable focus-managed just-created banner on the detail page that guides keyword/response entry; +194 vitest lines and a minor Toast tweak (4 files, +472/-125). Build/tests were NOT re-run this session - relying on CI since it is pushed.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260704-2251.json`
+- Summary: `project-log-md/claude_code/session-summary-20260704-2251.md`
+
+---
 
 ### 2026-07-03 15:24 — claude_code — completed
 

@@ -1,0 +1,19 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-07-04T22:51:00+07:00",
+  "branch": "main",
+  "head_commit": "ce5a414",
+  "status": "completed",
+  "work_summary": "2026-07-04 session: fixed the broken GLOBAL statusLine (out-of-repo ~/.claude/statusline-command.sh) - Git Bash on Windows ships no jq, so every field read empty and only the git-branch fallback rendered (user saw just \"branch\" + the built-in \"bypass permissions\" indicator). Replaced the six jq calls with a single node JSON parser using a 0x1f delimiter (settings.json left untouched, still bash-invoked); sample-JSON runs now render Model | dir | branch | Ctx% | rate limit again, with graceful degrade on partial JSON. That fix touched NO repo code. This handoff also CLOSES the Stop-hook gap: commit ce5a414 (prior Jul-3 session, already on origin/main) implemented the create-category UX per docs/superpowers/specs/2026-07-03-create-category-flow-design.md - the queued priority_action #1 from the 15:24 handoff. It adds a create-and-configure flow (list page POSTs then routes to the new detail page with created=1, shows an error toast if the id is missing, adds a loading skeleton) plus a dismissable focus-managed just-created banner on the detail page that guides keyword/response entry; +194 vitest lines and a minor Toast tweak (4 files, +472/-125). Build/tests were NOT re-run this session - relying on CI since it is pushed.",
+  "priority_actions": [
+    "Confirm CI is green for ce5a414 on origin/main (Actions re-enabled 2026-07-03). If red, run tsc/eslint/vitest in WSL and fix.",
+    "Manual end-to-end test: create a category in admin -> confirm redirect to the detail page with the just-created banner -> add a keyword+response -> confirm the LINE bot replies.",
+    "Backend follow-up issue #122 is still OPEN (webhook silent-swallow on create). Badge is a heuristic (response_count counts inactive) and the toggle gate is frontend-only/bypassable - both deferred to #122.",
+    "Delete the prod test category named ทดสอบ (cat#101) once testing is done."
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/claude_code/session-summary-20260704-2251.md",
+  "cross_platform_read": []
+}

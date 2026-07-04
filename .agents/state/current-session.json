@@ -1,14 +1,22 @@
 {
-  "last_updated": "2026-07-03T15:24:00+07:00",
+  "last_updated": "2026-07-04T22:51:00+07:00",
   "platform": "claude_code",
-  "current_task": "Session shipped 2 prod bug fixes + designed a 3rd feature. (1) Modal focus-steal FIXED+deployed (733c09f, Vercel). (2) Bot silent on STARTS_WITH/REGEX = stale Koyeb backend lacked #120; re-enabled CD ",
+  "current_task": "2026-07-04 session: fixed the broken GLOBAL statusLine (out-of-repo ~/.claude/statusline-command.sh) - Git Bash on Windows ships no jq, so every field read empty and only the git-branch fallback rende",
   "plan_status": "completed",
   "next_steps": [
-    "IMPLEMENT the create-category UX per docs/superpowers/specs/2026-07-03-create-category-flow-design.md (frontend-only, 3 files: auto-replies/page.tsx + [id]/page.tsx + Toast.tsx + vitest). Spec has full changeList + 7 test cases + Rejected list. Validate tsc/eslint/vitest in WSL, then code-review before commit.",
-    "User still has open items to confirm if raised: badge is a heuristic (response_count counts inactive), toggle gate is frontend-only/bypassable — both deferred to issue #122",
-    "Delete prod test category 'ทดสอบ' (cat#101) once done testing"
+    "Confirm CI is green for ce5a414 on origin/main (Actions re-enabled 2026-07-03). If red, run tsc/eslint/vitest in WSL and fix.",
+    "Manual end-to-end test: create a category in admin -> confirm redirect to the detail page with the just-created banner -> add a keyword+response -> confirm the LINE bot replies.",
+    "Backend follow-up issue #122 is still OPEN (webhook silent-swallow on create). Badge is a heuristic (response_count counts inactive) and the toggle gate is frontend-only/bypassable - both deferred to #122.",
+    "Delete the prod test category named ทดสอบ (cat#101) once testing is done."
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-07-04T22:51:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "ce5a414",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-07-03T15:24:00+07:00",
       "platform": "claude_code",
@@ -140,13 +148,6 @@
       "platform": "claude_code",
       "branch": "docs/livechat-audit-remediation-prp",
       "head": "cbc3064",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-28T11:06:00+07:00",
-      "platform": "claude_code",
-      "branch": "docs/livechat-audit-remediation-prp",
-      "head": "3713a0d",
       "status": "completed"
     }
   ],
