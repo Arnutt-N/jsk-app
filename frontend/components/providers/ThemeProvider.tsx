@@ -60,11 +60,13 @@ export function ThemeProvider({
   }, [resolvedTheme]);
 
   const toggleTheme = () => {
-    setTheme((prev) => {
-      const newTheme = prev === 'light' ? 'dark' : 'light';
-      localStorage.setItem(storageKey, newTheme);
-      return newTheme;
-    });
+    // Flip from the LIVE resolved theme, not the raw preference: when theme is
+    // 'system' the old `prev === 'light' ? 'dark' : 'light'` always returned
+    // 'light', so the toggle was a no-op on light-OS machines and the icon
+    // state could disagree with the actual applied theme.
+    const newTheme = resolvedTheme === 'dark' ? 'light' : 'dark';
+    localStorage.setItem(storageKey, newTheme);
+    setTheme(newTheme);
   };
 
   const value = {

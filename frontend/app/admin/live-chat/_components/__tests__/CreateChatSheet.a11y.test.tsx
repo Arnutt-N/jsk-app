@@ -90,3 +90,34 @@ describe('CreateChatSheet — M8 label/input association (WCAG 2.2 AA)', () => {
     expect(input.tagName.toLowerCase()).toBe('input');
   });
 });
+
+describe('CreateChatSheet — submit button renders icon + label in a single flex row', () => {
+  // Tailwind preflight sets svg { display: block }, so an icon passed as a
+  // plain child of Button lands in a non-flex <span> and pushes the Thai
+  // label onto a second line.  The icon must go through leftIcon so it sits
+  // in the flex-row content wrapper next to the label.
+
+  it('button keeps flex centering and nowrap base classes', () => {
+    render(<CreateChatSheet {...baseProps} />);
+    const button = screen.getByRole('button', { name: /เริ่มแชท/ });
+    expect(button.className).toContain('inline-flex');
+    expect(button.className).toContain('items-center');
+    expect(button.className).toContain('whitespace-nowrap');
+  });
+
+  it('icon and label share the same flex-row wrapper', () => {
+    render(<CreateChatSheet {...baseProps} />);
+    const button = screen.getByRole('button', { name: /เริ่มแชท/ });
+    const icon = button.querySelector('svg');
+    expect(icon).not.toBeNull();
+
+    // Button wraps its content in <span class="relative flex items-center gap-2">.
+    const label = screen.getByText('เริ่มแชท');
+    const flexRow = label.parentElement as HTMLElement;
+    expect(flexRow.className).toContain('flex');
+    expect(flexRow.className).toContain('items-center');
+
+    // The icon must live inside that same flex row (single row, not stacked).
+    expect(flexRow.contains(icon)).toBe(true);
+  });
+});

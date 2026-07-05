@@ -5,7 +5,9 @@ import { cn } from '@/lib/utils';
 import { cva, type VariantProps } from 'class-variance-authority';
 
 const avatarVariants = cva(
-  'relative inline-flex items-center justify-center overflow-hidden',
+  // align-top removes the inline baseline gap below the avatar so the status
+  // dot (absolute bottom-0) sits on the circle instead of below it.
+  'relative inline-flex items-center justify-center overflow-hidden align-top',
   {
     variants: {
       size: {
@@ -63,17 +65,17 @@ const Avatar = React.forwardRef<HTMLDivElement, AvatarProps>(
         {status && (
           <span
             className={cn(
-              'absolute bottom-0 right-0 block rounded-full ring-2 ring-white',
+              'absolute bottom-0 right-0 block rounded-full ring-2 ring-surface',
               size === 'xs' && 'w-2 h-2',
               size === 'sm' && 'w-2.5 h-2.5',
               size === 'md' && 'w-3 h-3',
               size === 'lg' && 'w-3.5 h-3.5',
               size === 'xl' && 'w-4 h-4',
               size === '2xl' && 'w-5 h-5',
-              status === 'online' && 'bg-green-500',
-              status === 'offline' && 'bg-gray-400',
-              status === 'busy' && 'bg-red-500',
-              status === 'away' && 'bg-amber-500'
+              status === 'online' && 'bg-online',
+              status === 'offline' && 'bg-offline',
+              status === 'busy' && 'bg-busy',
+              status === 'away' && 'bg-away'
             )}
           />
         )}

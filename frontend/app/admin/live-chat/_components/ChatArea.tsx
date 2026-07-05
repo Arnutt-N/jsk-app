@@ -227,7 +227,7 @@ export function ChatArea() {
     const activeCount = conversations.filter((c) => c.session?.status === 'ACTIVE').length;
     return (
       <div className="flex-1 flex flex-col">
-        <header className="h-20 px-5 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-border-default flex items-center justify-between">
+        <header className="h-20 px-5 bg-surface/80 backdrop-blur-sm border-b border-border-default flex items-center justify-between">
           <span className="font-semibold text-text-primary text-sm">Live Chat Console</span>
           <div className="flex items-center gap-2.5">
             {/* Connection status pill */}
@@ -256,19 +256,19 @@ export function ChatArea() {
 
             {/* Notification bell — waiting conversations */}
             <button
-              className="relative p-2 rounded-xl text-text-tertiary hover:text-brand-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all cursor-pointer"
+              className="relative p-2 rounded-xl text-text-tertiary hover:text-brand-600 hover:bg-muted transition-all cursor-pointer"
               aria-label={`${waitingCount} conversations waiting`}
               title={`${waitingCount} รอรับเรื่อง`}
             >
               <Bell className="w-5 h-5" />
               {waitingCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-danger text-white text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-white dark:ring-gray-900 animate-pulse">
+                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-danger text-white text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-surface animate-pulse">
                   {waitingCount}
                 </span>
               )}
             </button>
 
-            <div className="w-px h-8 bg-gray-200 dark:bg-gray-700" />
+            <div className="w-px h-8 bg-border-default" />
             <ProfileDropdown />
           </div>
         </header>

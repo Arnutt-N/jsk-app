@@ -116,15 +116,15 @@ export const CannedResponsePicker: React.FC<CannedResponsePickerProps> = ({
   return (
     <div
       ref={dialogRef}
-      className="absolute bottom-full left-0 right-0 mb-2 bg-white rounded-2xl shadow-xl border border-slate-100/60 z-50 max-h-80 flex flex-col"
+      className="absolute bottom-full left-0 right-0 mb-2 bg-surface rounded-2xl shadow-xl border border-border-default z-50 max-h-80 flex flex-col"
       role="dialog"
       aria-modal="true"
       aria-label="Canned responses"
     >
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-100">
-        <MessageSquareText className="w-4 h-4 text-slate-400" />
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-border-subtle">
+        <MessageSquareText className="w-4 h-4 text-text-tertiary" />
         <div className="relative flex-1">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-tertiary" />
           <input
             ref={searchRef}
             type="text"
@@ -144,12 +144,12 @@ export const CannedResponsePicker: React.FC<CannedResponsePickerProps> = ({
               }
             }}
             placeholder="Search canned responses..."
-            className="w-full pl-7 pr-2 py-1 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40 transition-all"
+            className="w-full pl-7 pr-2 py-1 text-sm bg-surface text-text-primary border border-border-default rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40 transition-all"
             aria-label="Search canned responses"
           />
         </div>
-        <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded" aria-label="Close canned responses">
-          <X className="w-4 h-4 text-slate-400" />
+        <button onClick={onClose} className="p-1 hover:bg-muted rounded" aria-label="Close canned responses">
+          <X className="w-4 h-4 text-text-tertiary" />
         </button>
       </div>
 
@@ -160,14 +160,14 @@ export const CannedResponsePicker: React.FC<CannedResponsePickerProps> = ({
         aria-activedescendant={activeOptionId}
       >
         {loading && (
-          <div className="text-center py-4 text-sm text-slate-400">Loading...</div>
+          <div className="text-center py-4 text-sm text-text-tertiary">Loading...</div>
         )}
         {!loading && filtered.length === 0 && (
-          <div className="text-center py-4 text-sm text-slate-400">No responses found</div>
+          <div className="text-center py-4 text-sm text-text-tertiary">No responses found</div>
         )}
         {Object.entries(grouped).map(([category, items]) => (
           <div key={category}>
-            <div className="px-3 py-1 text-xs font-medium text-slate-400 uppercase tracking-wider">
+            <div className="px-3 py-1 text-xs font-medium text-text-tertiary uppercase tracking-wider">
               {category}
             </div>
             {items.map(r => {
@@ -189,8 +189,8 @@ export const CannedResponsePicker: React.FC<CannedResponsePickerProps> = ({
                   {r.shortcut}
                 </span>
                 <div className="min-w-0">
-                  <div className="text-sm font-medium text-slate-700 truncate">{r.title}</div>
-                  <div className="text-xs text-slate-400 truncate">{r.content}</div>
+                  <div className="text-sm font-medium text-text-secondary truncate">{r.title}</div>
+                  <div className="text-xs text-text-tertiary truncate">{r.content}</div>
                 </div>
               </button>
             )})}

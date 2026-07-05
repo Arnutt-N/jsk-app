@@ -2,10 +2,11 @@
 
 import React, { memo } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Archive, Bot, CheckCheck, Clock, Eye, MoreVertical, Pin, ShieldAlert, Star, Trash2, User, VolumeX } from 'lucide-react';
+import { Bot, CheckCheck, Clock, Eye, MoreVertical, Star, User } from 'lucide-react';
 
 import type { Conversation } from '../_types';
 import { getAvatarFallbackUrl } from '@/lib/constants/live-chat-avatar';
+import { PRESENCE_DOT_CLASS, PRESENCE_LABEL, getSessionPresence } from '@/lib/constants/live-chat-presence';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { formatWaiting, getWaitingSeconds, getWaitingTier } from '@/lib/waiting-time';
 
@@ -50,7 +51,7 @@ export const ConversationItem = memo(function ConversationItem({
   const handleSelect = React.useCallback(() => onSelect(conversation.line_user_id), [onSelect, conversation.line_user_id]);
   const handleMenuToggle = React.useCallback(() => onMenuToggle(conversation.line_user_id), [onMenuToggle, conversation.line_user_id]);
   const isWaiting = conversation.session?.status === 'WAITING';
-  const isActive = conversation.session?.status === 'ACTIVE';
+  const presence = getSessionPresence(conversation.session?.status);
   const isVip = conversation.tags?.some((t) => t.name.toUpperCase() === 'VIP');
   const isBot = conversation.chat_mode === 'BOT';
 
@@ -77,7 +78,7 @@ export const ConversationItem = memo(function ConversationItem({
     return () => document.removeEventListener('mousedown', handleClick);
   }, [menuOpen]);
 
-  const statusLabel = isActive ? 'ออนไลน์' : isWaiting ? 'กำลังรอ' : 'ออฟไลน์';
+  const statusLabel = PRESENCE_LABEL[presence];
 
   return (
     <div
@@ -102,9 +103,7 @@ export const ConversationItem = memo(function ConversationItem({
         />
         <div
           aria-hidden
-          className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-sidebar-bg ${
-            isActive ? 'bg-online' : isWaiting ? 'bg-away' : 'bg-offline'
-          }`}
+          className={`absolute bottom-0 right-0 h-3 w-3 rounded-full ring-2 ring-sidebar-bg ${PRESENCE_DOT_CLASS[presence]}`}
         />
       </div>
 
@@ -212,52 +211,6 @@ export const ConversationItem = memo(function ConversationItem({
               >
                 <CheckCheck className="w-3.5 h-3.5 text-text-tertiary" />
                 ทำเครื่องหมายว่าอ่านแล้ว
-              </button>
-              <button
-                disabled
-                aria-disabled="true"
-                className="flex items-center gap-2.5 px-3 py-2 text-xs text-text-secondary w-full text-left opacity-50 cursor-not-allowed"
-              >
-                <Pin className="w-3.5 h-3.5 text-text-tertiary" />
-                ปักหมุด
-                <span className="ml-auto text-2xs text-text-tertiary">เร็ว ๆ นี้</span>
-              </button>
-              <button
-                disabled
-                aria-disabled="true"
-                className="flex items-center gap-2.5 px-3 py-2 text-xs text-text-secondary w-full text-left opacity-50 cursor-not-allowed"
-              >
-                <VolumeX className="w-3.5 h-3.5 text-text-tertiary" />
-                ปิดเสียงแจ้งเตือน
-                <span className="ml-auto text-2xs text-text-tertiary">เร็ว ๆ นี้</span>
-              </button>
-              <button
-                disabled
-                aria-disabled="true"
-                className="flex items-center gap-2.5 px-3 py-2 text-xs text-text-secondary w-full text-left opacity-50 cursor-not-allowed"
-              >
-                <Archive className="w-3.5 h-3.5 text-text-tertiary" />
-                ซ่อนสนทนา
-                <span className="ml-auto text-2xs text-text-tertiary">เร็ว ๆ นี้</span>
-              </button>
-              <div className="border-t border-border-default my-1" />
-              <button
-                disabled
-                aria-disabled="true"
-                className="flex items-center gap-2.5 px-3 py-2 text-xs text-text-secondary w-full text-left opacity-50 cursor-not-allowed"
-              >
-                <ShieldAlert className="w-3.5 h-3.5 text-text-tertiary" />
-                ทำเครื่องหมายว่าสแปม
-                <span className="ml-auto text-2xs text-text-tertiary">เร็ว ๆ นี้</span>
-              </button>
-              <button
-                disabled
-                aria-disabled="true"
-                className="flex items-center gap-2.5 px-3 py-2 text-xs text-danger w-full text-left opacity-50 cursor-not-allowed"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                ลบ
-                <span className="ml-auto text-2xs text-text-tertiary">เร็ว ๆ นี้</span>
               </button>
             </motion.div>
           )}

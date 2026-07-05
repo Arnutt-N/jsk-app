@@ -277,17 +277,21 @@ export function CreateChatSheet({ isOpen, onClose, onCreated }: CreateChatSheetP
           )}
 
           {/* ปุ่มส่ง */}
+          {/* ส่ง icon ผ่าน leftIcon (ไม่ใช่ child) — Tailwind preflight ทำให้ svg
+              เป็น display:block ซึ่งดันข้อความตกบรรทัดเมื่ออยู่ใน span ธรรมดา */}
           <Button
             variant="primary"
             onClick={handleSubmit}
             disabled={!selectedUser || submitting}
-            className="w-full gap-2"
+            className="w-full"
+            leftIcon={
+              submitting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Send className="w-4 h-4" />
+              )
+            }
           >
-            {submitting ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Send className="w-4 h-4" />
-            )}
             {submitting ? 'กำลังสร้าง...' : 'เริ่มแชท'}
           </Button>
         </div>

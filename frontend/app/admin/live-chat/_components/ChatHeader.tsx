@@ -10,6 +10,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
+import { PRESENCE_DOT_CLASS, PRESENCE_LABEL, getSessionPresence } from '@/lib/constants/live-chat-presence';
 import type { CurrentChat } from '../_types';
 import { useLiveChatContext } from '../_context/LiveChatContext';
 import { SessionActions } from './SessionActions';
@@ -42,7 +43,6 @@ export function ChatHeader({
 }: ChatHeaderProps) {
   const { currentUserId, getClaimContender } = useLiveChatContext();
   const isBot = currentChat?.chat_mode === 'BOT';
-  const isActive = currentChat?.session?.status === 'ACTIVE';
   const isVip = currentChat?.tags?.some((tag) => tag.name.toUpperCase() === 'VIP');
 
   // M18: drive chat mode from the session lifecycle. While a session exists, mode
@@ -59,8 +59,11 @@ export function ChatHeader({
   const claimedByOther =
     contender && contender.operatorId !== currentUserId ? { name: contender.name } : undefined;
 
-  const statusColor = isActive ? 'bg-online' : currentChat ? 'bg-away' : 'bg-offline';
-  const statusLabel = isActive ? 'ออนไลน์' : currentChat ? 'กำลังรอ' : 'ออฟไลน์';
+  // Shared presence mapping (same semantics as ConversationItem/CustomerPanel):
+  // ACTIVE → online, WAITING → away, no session → offline.
+  const presence = getSessionPresence(currentChat?.session?.status);
+  const statusColor = PRESENCE_DOT_CLASS[presence];
+  const statusLabel = PRESENCE_LABEL[presence];
   const displayName = currentChat?.display_name || 'Unknown User';
   const fallback = displayName.charAt(0) || 'U';
 
@@ -75,7 +78,7 @@ export function ChatHeader({
       : 'โหมดเจ้าหน้าที่';
 
   return (
-    <header className="h-20 border-b border-border-default bg-white/80 backdrop-blur-sm px-5 thai-text">
+    <header className="h-20 border-b border-border-default bg-surface/80 backdrop-blur-sm px-5 thai-text">
       <div className="flex h-full items-center justify-between">
         {/* Left: back + avatar + name + mode label */}
         <div className="flex items-center gap-3">
@@ -99,11 +102,11 @@ export function ChatHeader({
               src={currentChat?.picture_url}
               alt={displayName}
               fallback={fallback}
-              className="border-2 border-white ring-2 ring-brand-500/20"
+              className="border-2 border-surface ring-2 ring-brand-500/20"
             />
             <span
               aria-hidden
-              className={`absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-white ${statusColor}`}
+              className={`absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full ring-2 ring-surface ${statusColor}`}
             />
             <span className="sr-only">{statusLabel}</span>
           </button>

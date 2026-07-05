@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { ConversationItem } from '../ConversationItem';
 import type { Conversation } from '../../_types';
@@ -126,5 +126,44 @@ describe('ConversationItem a11y', () => {
 
     const option = screen.getByRole('option');
     expect(option).toHaveAccessibleName(/ออฟไลน์/);
+  });
+});
+
+describe('ConversationItem actions menu', () => {
+  function openMenu(onMarkRead = vi.fn()) {
+    render(
+      <ConversationItem
+        optionId="conv-menu"
+        conversation={waitingConversation}
+        selected={false}
+        onSelect={vi.fn()}
+        onMenuToggle={vi.fn()}
+        onMarkRead={onMarkRead}
+      />,
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: /Open actions for ทดสอบ ผู้ใช้/ }),
+    );
+    return onMarkRead;
+  }
+
+  it('shows only the two wired actions', () => {
+    openMenu();
+    expect(screen.getByText('ดูประวัติแชท')).toBeInTheDocument();
+    expect(screen.getByText('ทำเครื่องหมายว่าอ่านแล้ว')).toBeInTheDocument();
+  });
+
+  it('no longer renders the removed placeholder items', () => {
+    openMenu();
+    for (const label of ['ปักหมุด', 'ปิดเสียงแจ้งเตือน', 'ซ่อนสนทนา', 'ทำเครื่องหมายว่าสแปม', 'ลบ']) {
+      expect(screen.queryByText(label)).not.toBeInTheDocument();
+    }
+    expect(screen.queryByText('เร็ว ๆ นี้')).not.toBeInTheDocument();
+  });
+
+  it('mark-as-read menu item calls onMarkRead', () => {
+    const onMarkRead = openMenu();
+    fireEvent.click(screen.getByText('ทำเครื่องหมายว่าอ่านแล้ว'));
+    expect(onMarkRead).toHaveBeenCalledTimes(1);
   });
 });

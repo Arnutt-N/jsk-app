@@ -1,7 +1,7 @@
 'use client';
 
 import React, { memo } from 'react';
-import { AlertCircle, Check, CheckCheck, FileText, RefreshCw } from 'lucide-react';
+import { AlertCircle, Check, CheckCheck, FileText, LayoutTemplate, MapPin, RefreshCw } from 'lucide-react';
 
 import type { Message } from '@/lib/websocket/types';
 
@@ -20,7 +20,6 @@ interface MessageBubbleProps {
 }
 
 function getMessageText(message: Message): React.ReactNode {
-  if (message.message_type === 'flex') return 'Rich Content';
   try {
     if (message.content.startsWith('{') || message.content.startsWith('[')) {
       const parsed = JSON.parse(message.content);
@@ -56,6 +55,59 @@ function renderMessageContent(message: Message): React.ReactNode {
       <div className="text-xs">
         Sticker {packageId && stickerId ? `${packageId}/${stickerId}` : ''}
       </div>
+    );
+  }
+
+  if (message.message_type === 'video') {
+    const url = typeof payload.url === 'string' ? payload.url : '';
+    if (url) {
+      return (
+        <video controls src={url} className="max-h-48 max-w-full rounded-lg outline outline-1 -outline-offset-1 outline-black/5" />
+      );
+    }
+    return <span>{message.content || '[Video]'}</span>;
+  }
+
+  if (message.message_type === 'audio') {
+    const url = typeof payload.url === 'string' ? payload.url : '';
+    if (url) {
+      return (
+        <audio controls src={url} className="max-w-full" />
+      );
+    }
+    return <span>{message.content || '[Audio]'}</span>;
+  }
+
+  if (message.message_type === 'location') {
+    const lat = typeof payload.lat === 'number' ? payload.lat : null;
+    const lng = typeof payload.lng === 'number' ? payload.lng : null;
+    const label = message.content || '[Location]';
+    if (lat !== null && lng !== null) {
+      return (
+        <a
+          href={`https://www.google.com/maps?q=${lat},${lng}`}
+          target="_blank"
+          rel="noreferrer"
+          className="flex items-center gap-1.5 underline underline-offset-2"
+        >
+          <MapPin className="w-4 h-4 shrink-0" aria-hidden />
+          {label}
+        </a>
+      );
+    }
+    return <span>{label}</span>;
+  }
+
+  if (
+    message.message_type === 'flex' ||
+    message.message_type === 'template' ||
+    message.message_type === 'imagemap'
+  ) {
+    return (
+      <span className="flex items-center gap-1.5">
+        <LayoutTemplate className="w-4 h-4 shrink-0 opacity-70" aria-hidden />
+        {message.content || 'Rich Content'}
+      </span>
     );
   }
 
@@ -102,7 +154,7 @@ export const MessageBubble = memo(function MessageBubble({
   return (
     <div
       id={elementId}
-      className={`flex items-end gap-2 px-4 ${incoming ? 'justify-start' : 'justify-end flex-row-reverse'} ${isNew ? (incoming ? 'msg-in' : 'msg-out') : ''}`}
+      className={`flex items-end gap-2 px-4 ${incoming ? 'justify-start' : 'justify-end'} ${isNew ? (incoming ? 'msg-in' : 'msg-out') : ''}`}
     >
       {/* Avatar (Outside Bubble) */}
       {!isAdmin && (

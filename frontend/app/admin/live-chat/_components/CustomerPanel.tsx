@@ -8,6 +8,7 @@ import type { CurrentChat } from '../_types';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLiveChatContext } from '../_context/LiveChatContext';
 import { useCustomerNotes } from '@/hooks/useCustomerNotes';
+import { PRESENCE_DOT_CLASS, PRESENCE_LABEL, getSessionPresence } from '@/lib/constants/live-chat-presence';
 import { logger } from '@/lib/logger';
 
 export function CustomerPanel({
@@ -30,6 +31,7 @@ export function CustomerPanel({
   const exportPdfUrl = `/api/v1/admin/export/conversations/${encodedLineUserId}/pdf`;
   const isActive = currentChat.session?.status === 'ACTIVE';
   const isWaiting = currentChat.session?.status === 'WAITING';
+  const presence = getSessionPresence(currentChat.session?.status);
 
   const downloadExport = async (url: string, fallbackName: string) => {
     try {
@@ -86,7 +88,7 @@ export function CustomerPanel({
       {/* Header */}
       <div className="h-20 px-4 border-b border-border-default flex items-center justify-between">
         <span id="customer-panel-title" className="font-bold text-text-primary text-xs tracking-widest uppercase">Customer Info</span>
-        <button onClick={onClose} className="p-1.5 text-text-tertiary hover:text-text-primary rounded-lg hover:bg-gray-100 transition-colors focus-ring" aria-label="Close customer panel">
+        <button onClick={onClose} className="p-1.5 text-text-tertiary hover:text-text-primary rounded-lg hover:bg-muted transition-colors focus-ring" aria-label="Close customer panel">
           <X className="w-4 h-4" />
         </button>
       </div>
@@ -101,8 +103,10 @@ export function CustomerPanel({
               {currentChat.display_name?.charAt(0)?.toUpperCase() || '?'}
             </div>
           )}
-          <div aria-hidden="true" className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-surface ${isActive ? 'bg-online' : isWaiting ? 'bg-away' : 'bg-offline'}`} />
-          <span className="sr-only">{isActive ? 'ออนไลน์' : isWaiting ? 'กำลังรอ' : 'ออฟไลน์'}</span>
+          {/* bottom-1/right-1 keeps the dot on the circumference of the larger
+              80px avatar (bottom-0/right-0 lands outside a circle this big). */}
+          <div aria-hidden="true" className={`absolute bottom-1 right-1 h-3.5 w-3.5 rounded-full ring-2 ring-surface ${PRESENCE_DOT_CLASS[presence]}`} />
+          <span className="sr-only">{PRESENCE_LABEL[presence]}</span>
         </div>
         <p className="font-semibold text-text-primary text-sm mt-3 thai-no-break break-words">{currentChat.display_name}</p>
         <div className="flex items-center justify-center gap-2 mt-1.5">
@@ -120,7 +124,7 @@ export function CustomerPanel({
         <div className="flex items-center justify-center gap-3 mt-4">
           <button
             onClick={copyLineId}
-            className="w-9 h-9 rounded-full flex items-center justify-center bg-gray-50 hover:bg-brand-50 text-text-tertiary hover:text-brand-600 border border-border-default transition-all focus-ring"
+            className="w-9 h-9 rounded-full flex items-center justify-center bg-muted hover:bg-brand-50 text-text-tertiary hover:text-brand-600 border border-border-default transition-all focus-ring"
             aria-label="Copy LINE ID"
           >
             <Copy className="w-4 h-4" />
@@ -160,7 +164,7 @@ export function CustomerPanel({
         <div className="bg-muted rounded-xl p-3 flex justify-between items-center">
           <span className="text-xs text-text-tertiary">Session</span>
           <span className={`px-2 py-1 rounded-lg text-2xs font-semibold ${
-            isActive ? 'bg-online/15 text-emerald-700 dark:text-emerald-400' : isWaiting ? 'bg-away/15 text-amber-700 dark:text-amber-400' : 'bg-gray-100 text-text-secondary'
+            isActive ? 'bg-online/15 text-emerald-700 dark:text-emerald-400' : isWaiting ? 'bg-away/15 text-amber-700 dark:text-amber-400' : 'bg-muted text-text-secondary'
           }`}>
             {currentChat.session?.status || 'None'}
           </span>
@@ -200,7 +204,7 @@ export function CustomerPanel({
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="พิมพ์โน้ตเกี่ยวกับลูกค้า…"
-            className="w-full text-xs bg-white border border-border-default rounded-lg px-3 py-2 text-text-primary placeholder:text-text-tertiary resize-none focus-ring"
+            className="w-full text-xs bg-bg border border-border-default rounded-lg px-3 py-2 text-text-primary placeholder:text-text-tertiary resize-none focus-ring"
             rows={3}
           />
         </div>
@@ -211,13 +215,13 @@ export function CustomerPanel({
           <div className="flex gap-2">
             <button
               onClick={() => downloadExport(exportCsvUrl, `${currentChat.line_user_id}.csv`)}
-              className="flex-1 text-center text-xs px-2 py-2 rounded-lg border border-border-default bg-white hover:bg-gray-50 text-text-secondary transition-colors focus-ring"
+              className="flex-1 text-center text-xs px-2 py-2 rounded-lg border border-border-default bg-surface hover:bg-muted text-text-secondary transition-colors focus-ring"
             >
               CSV
             </button>
             <button
               onClick={() => downloadExport(exportPdfUrl, `${currentChat.line_user_id}.pdf`)}
-              className="flex-1 text-center text-xs px-2 py-2 rounded-lg border border-border-default bg-white hover:bg-gray-50 text-text-secondary transition-colors focus-ring"
+              className="flex-1 text-center text-xs px-2 py-2 rounded-lg border border-border-default bg-surface hover:bg-muted text-text-secondary transition-colors focus-ring"
             >
               PDF
             </button>

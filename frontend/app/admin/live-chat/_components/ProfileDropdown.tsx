@@ -7,16 +7,22 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/components/providers';
 import { Avatar } from '@/components/ui/Avatar';
 import { getRoleLabel } from '@/lib/constants/roles';
+import { getConnectionPresence } from '@/lib/constants/live-chat-presence';
+import { useLiveChatContext } from '../_context/LiveChatContext';
 
 export function ProfileDropdown() {
   const { user, logout } = useAuth();
   const { resolvedTheme, toggleTheme } = useTheme();
+  const { wsStatus } = useLiveChatContext();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   const displayName = user?.display_name || user?.username || 'Admin';
   const initials = displayName.substring(0, 2).toUpperCase();
   const isDark = resolvedTheme === 'dark';
+  // The dot reflects the operator's own live connection: connected → online,
+  // connecting/reconnecting → away, disconnected → offline (shared mapping).
+  const presence = getConnectionPresence(wsStatus);
 
   // Close on click outside
   useEffect(() => {
@@ -52,7 +58,7 @@ export function ProfileDropdown() {
         aria-expanded={open}
         aria-haspopup="menu"
       >
-        <Avatar size="sm" fallback={initials} status="online" />
+        <Avatar size="sm" fallback={initials} status={presence} />
       </button>
 
       {/* Dropdown panel */}
@@ -63,7 +69,7 @@ export function ProfileDropdown() {
         >
           {/* User info + Theme toggle */}
           <div className="px-4 pt-4 pb-3 flex items-center gap-3">
-            <Avatar size="md" fallback={initials} status="online" />
+            <Avatar size="md" fallback={initials} status={presence} />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-bold text-text-primary truncate">{displayName}</p>
               <p className="text-xs text-text-tertiary truncate">{user?.role ? getRoleLabel(user.role) : 'Admin'}</p>

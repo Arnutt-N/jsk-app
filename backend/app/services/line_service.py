@@ -7,7 +7,13 @@ from linebot.v3.messaging import (
     ImageMessage,
     FlexMessage,
     FlexContainer,
-    ShowLoadingAnimationRequest
+    ShowLoadingAnimationRequest,
+    VideoMessage,
+    AudioMessage,
+    StickerMessage,
+    LocationMessage,
+    TemplateMessage,
+    ImagemapMessage,
 )
 from linebot.v3.messaging.exceptions import ApiException
 import mimetypes
@@ -24,6 +30,50 @@ from sqlalchemy import select
 from app.models.message import Message, MessageDirection
 
 logger = logging.getLogger(__name__)
+
+
+def describe_line_message(message) -> Tuple[str, str, Optional[dict]]:
+    """Map a LINE SDK send-message object to a (message_type, content, payload)
+    triple for the messages table, so the admin panel renders the real reply
+    the customer received instead of a summary string."""
+    if isinstance(message, TextMessage):
+        return "text", message.text, None
+    if isinstance(message, ImageMessage):
+        return "image", "[Image]", {
+            "url": message.original_content_url,
+            "preview_url": message.preview_image_url,
+        }
+    if isinstance(message, VideoMessage):
+        return "video", "[Video]", {
+            "url": message.original_content_url,
+            "preview_url": message.preview_image_url,
+        }
+    if isinstance(message, AudioMessage):
+        return "audio", "[Audio]", {
+            "url": message.original_content_url,
+            "duration": message.duration,
+        }
+    if isinstance(message, StickerMessage):
+        return "sticker", "[Sticker]", {
+            "package_id": str(message.package_id),
+            "sticker_id": str(message.sticker_id),
+        }
+    if isinstance(message, LocationMessage):
+        content = message.title or message.address or "[Location]"
+        return "location", content, {
+            "lat": message.latitude,
+            "lng": message.longitude,
+            "address": message.address,
+        }
+    if isinstance(message, FlexMessage):
+        return "flex", message.alt_text or "Rich Content", None
+    if isinstance(message, TemplateMessage):
+        return "template", message.alt_text or "[Template]", None
+    if isinstance(message, ImagemapMessage):
+        return "imagemap", message.alt_text or "[Imagemap]", None
+    alt = getattr(message, "alt_text", None) or getattr(message, "text", None)
+    return "text", alt or f"[{type(message).__name__}]", None
+
 
 class LineService:
     def __init__(self):

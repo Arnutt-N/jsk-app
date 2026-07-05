@@ -786,6 +786,11 @@
   --color-border-default: hsl(217 19% 27%);
   --color-border-hover: hsl(215 14% 34%);
 
+  /* Muted surface must darken too — without this override, bg-muted /
+     hover:bg-muted chips render near-white on dark surfaces. */
+  --color-muted: hsl(215 28% 17%);
+  --color-muted-foreground: hsl(216 12% 84%);
+
   /* Primary aliases — lighten for dark mode so the legacy `text-primary`
      usages stay readable on dark surfaces. */
   --color-primary: hsl(213 94% 68%);          /* = brand-400 */

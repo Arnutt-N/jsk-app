@@ -125,8 +125,8 @@ components/
 └── admin/                  # Admin-specific (ChatModeToggle, TypingIndicator)
 
 hooks/
-├── useTheme.ts             # Theme persistence in localStorage
 └── useGuardedUpdate.ts     # Prevents concurrent form submissions
+                            # (theme state: components/providers/ThemeProvider.tsx)
 
 lib/
 └── constants/

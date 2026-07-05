@@ -10,7 +10,7 @@ from linebot.v3.webhooks import (
 from linebot.v3.messaging import TextMessage, FlexMessage
 import re
 from app.core.line_client import parser
-from app.services.line_service import line_service
+from app.services.line_service import line_service, describe_line_message
 from app.services.friend_service import friend_service
 from app.services.response_parser import parse_response
 from app.core.config import settings
@@ -437,15 +437,21 @@ async def handle_message_event(event: MessageEvent, db: AsyncSession):
             try:
                 await line_service.reply_messages(event.reply_token, all_messages)
                 
-                # 5. Save Bot Reply (Outgoing)
-                await line_service.save_message(
-                    db=db,
-                    line_user_id=line_user_id,
-                    direction=MessageDirection.OUTGOING,
-                    message_type="multi",
-                    content=f"Sent {len(all_messages)} messages for intent '{cat_name}'",
-                    commit=False,
-                )
+                # 5. Save each bot reply with its real type/content so the
+                # admin panel shows what the customer actually received
+                # (was: a single "Sent N messages for intent" summary row).
+                for sent_message in all_messages:
+                    m_type, m_content, m_payload = describe_line_message(sent_message)
+                    await line_service.save_message(
+                        db=db,
+                        line_user_id=line_user_id,
+                        direction=MessageDirection.OUTGOING,
+                        message_type=m_type,
+                        content=m_content,
+                        payload=m_payload,
+                        sender_role="BOT",
+                        commit=False,
+                    )
             except Exception as e:
                 logger.error(f"Failed to send all messages: {e}")
                 await line_service.reply_text(event.reply_token, "ขออภัย เกิดข้อผิดพลาดในการส่งข้อมูล")

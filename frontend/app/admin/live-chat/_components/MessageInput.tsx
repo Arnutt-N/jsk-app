@@ -165,14 +165,18 @@ export function MessageInput({
         </div>
       )}
 
+      {/* Canned responses popup — root ของมันเป็น absolute bottom-full left-0 right-0
+          จึงต้อง position กับ footer (relative) โดยตรงเพื่อให้กว้างเต็มช่องพิมพ์;
+          ถ้าวางใน popups container ด้านล่าง (shrink-to-fit, ไม่มี width) จะถูกบีบเหลือ ~0px */}
+      <CannedResponsePicker
+        isOpen={showCannedPicker}
+        onClose={onCloseCanned}
+        onSelect={onSelectCanned}
+        inputText={inputText}
+      />
+
       {/* Popups Container (Absolute positioning) */}
       <div className="absolute bottom-full left-0 mb-2 px-2 flex flex-col gap-2 z-20">
-        <CannedResponsePicker
-          isOpen={showCannedPicker}
-          onClose={onCloseCanned}
-          onSelect={onSelectCanned}
-          inputText={inputText}
-        />
         {showEmojiPicker && <EmojiPicker onSelect={handleEmojiSelect} />}
         {showStickerPicker && <StickerPicker onSelect={(pkg, id) => { onInputChange(`[sticker:${pkg}:${id}]`); closeAllPickers(); }} />}
       </div>
