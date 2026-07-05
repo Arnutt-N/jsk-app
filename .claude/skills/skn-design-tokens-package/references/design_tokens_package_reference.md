@@ -286,7 +286,7 @@ All values are HSL format: `H S% L%`
 | Feature | Package (`@skn/design-tokens`) | Main Project (`frontend/`) |
 |---|---|---|
 | `SidebarItem.icon` type | `React.ReactNode` (rendered JSX) | `ComponentType` (unrendered) |
-| `useTheme` localStorage key | `'skn-design-tokens-theme'` | `'jsk-admin-theme'` |
+| `useTheme` localStorage key | `'skn-design-tokens-theme'` | `'theme'` (via `components/providers/ThemeProvider`; old `hooks/useTheme.ts`/`'jsk-admin-theme'` removed) |
 | `useTheme` dark mode | applies `.dark` to `documentElement` | applies `.dark` class |
 | Sidebar collapse trigger | `useSidebar().toggleSidebar()` | `isCollapsed` state in `layout.tsx` |
 | Active item style | configured via `SidebarConfig.style` | hardcoded `.gradient-active` CSS class |

@@ -60,9 +60,10 @@ design tokens, and CSS animation classes for use across SKN applications.
    <SidebarItem icon={LayoutDashboard} label="Dashboard" />
    ```
 
-3. **`useTheme` localStorage key is `'skn-design-tokens-theme'` — NOT `'jsk-admin-theme'`** —
-   The main project's `useTheme` hook uses key `'jsk-admin-theme'`.
-   This package's `useTheme` uses key `'skn-design-tokens-theme'`.
+3. **`useTheme` localStorage key is `'skn-design-tokens-theme'` — separate from the main app** —
+   The main project's theme now lives in `components/providers/ThemeProvider.tsx`
+   (localStorage key `'theme'`; the old `hooks/useTheme.ts` with key `'jsk-admin-theme'`
+   was removed). This package's `useTheme` uses key `'skn-design-tokens-theme'`.
    They are completely separate — importing from different files.
 
 4. **Build required before use** —

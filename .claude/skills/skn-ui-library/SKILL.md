@@ -203,12 +203,16 @@ so they can be used correctly without re-reading the source files.
     // Never: <BarChart data={...} /> directly in a server component
     ```
 
-14. **`useTheme` — localStorage key is `jsk-admin-theme`** — Use this hook for the dark
-    mode toggle. `mounted` is always `true` (not a real SSR guard — verify before using):
+14. **`useTheme` — from `@/components/providers/ThemeProvider` (NOT a `hooks/` file)** —
+    the standalone `hooks/useTheme.ts` was removed; theme state now lives entirely in
+    `ThemeProvider`. localStorage key is `theme` (default), values `'light' | 'dark' | 'system'`.
     ```ts
-    const { theme, toggleTheme } = useTheme()
-    // theme: 'light' | 'dark'
-    // Reads/writes localStorage key: 'jsk-admin-theme'
+    import { useTheme } from '@/components/providers/ThemeProvider'
+    const { theme, resolvedTheme, setTheme, toggleTheme } = useTheme()
+    // theme: 'light' | 'dark' | 'system' (the raw preference)
+    // resolvedTheme: 'light' | 'dark'    (what is actually applied — use THIS for UI state)
+    // toggleTheme() flips from resolvedTheme, so it works even when theme === 'system'.
+    // Applies via <html> class: root.classList.add(resolvedTheme). Must be inside <ThemeProvider>.
     ```
 
 15. **`useSessionTimeout` — 30-min timeout, 5-min warning** — Pass an `onLogout` callback.
@@ -303,7 +307,6 @@ frontend/app/admin/components/
 └── DashboardCharts.tsx  — Actual Recharts chart components (client only)
 
 frontend/hooks/
-├── useTheme.ts              — Dark/light mode toggle (localStorage: jsk-admin-theme)
 ├── useSessionTimeout.ts     — 30-min inactivity logout with 5-min warning
 ├── useNotificationSound.ts  — Web Audio API beep (localStorage: livechat_sound_enabled)
 ├── useWebSocket.ts          — Generic WebSocket hook (used by analytics)

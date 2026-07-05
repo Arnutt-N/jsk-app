@@ -94,6 +94,31 @@ via Zustand selectors and call operations via `useLiveChatContext()`.
 11. **Thai text classes** — Containers with Thai text need `className="thai-text"`. Use
     `thai-no-break` on badges and short strings to prevent mid-word breaks.
 
+12. **Bubble sides are fixed by direction** — In `MessageBubble.tsx` the customer
+    (`INCOMING`) bubble sits LEFT (`justify-start`, avatar shown) and BOTH bot and
+    operator (`OUTGOING`, any `sender_role`) sit RIGHT (`justify-end`, no avatar).
+    Do NOT use `flex-row-reverse` — outgoing already justifies right. Bot vs operator
+    differ only by bubble color (bot = subtle surface, operator = gradient-active).
+
+13. **Presence dots use the shared helper** — status dots on the conversation list,
+    chat header, customer panel, and profile dropdown all come from
+    `lib/constants/live-chat-presence.ts` (`getSessionPresence()` for session-based
+    surfaces, `getConnectionPresence()` for the operator's own wsStatus dot;
+    `PRESENCE_DOT_CLASS` / `PRESENCE_LABEL`). Mapping: green=`bg-online` (ACTIVE/
+    connected), amber=`bg-away` (WAITING/connecting), gray=`bg-offline` (none/
+    disconnected). Position the dot on the avatar rim: wrapper `relative`, dot
+    `absolute bottom-0 right-0 ring-2 ring-<surface>`. Never hardcode a dot color.
+
+14. **Bot replies now store real per-message content** — the webhook saves each LINE
+    send-object via `describe_line_message()` (backend `line_service.py`) with its true
+    `message_type`/`content`/`payload` (was one `"Sent N messages for intent"` summary
+    row). So `MessageBubble` renders actual text/image/video/audio/sticker/location/flex.
+
+15. **CannedResponsePicker is a direct child of the input `<footer>`** — it is anchored
+    `absolute bottom-full left-0 right-0` to span the full composer width. Do NOT nest it
+    inside the emoji/sticker popups container (that box collapses to ~16px and squeezes
+    the picker). It is theme-token styled (`bg-surface`, not `bg-white`).
+
 ---
 
 ## Context7 Docs

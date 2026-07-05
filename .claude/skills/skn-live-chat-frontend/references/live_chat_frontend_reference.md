@@ -181,7 +181,14 @@ interface LiveChatContextValue {
 | `POST` | `/admin/live-chat/conversations/{id}/close` | REST fallback close |
 | `POST` | `/admin/live-chat/conversations/{id}/mode` | Toggle BOT/HUMAN |
 
-WS endpoint: `ws://host/api/v1/ws/live-chat` (auto-upgrades to `wss://` on HTTPS)
+WS endpoint: `ws(s)://<backend-host>/api/v1/ws/live-chat`. Build the URL with the
+shared helper `getLiveChatWsUrl()` from `lib/websocket/wsUrl.ts` — do NOT rebuild it
+inline from `window.location.host`. On production the frontend is on Vercel, whose
+rewrite proxy strips the WebSocket upgrade headers, so the socket MUST connect
+directly to the backend host derived from `NEXT_PUBLIC_API_URL` (absolute → e.g.
+`wss://xxx.koyeb.app/api/v1/ws/live-chat`); it falls back to `window.location.host`
+only when the env var is unset/relative (local dev via Next rewrites). Auth (JWT) is
+sent in the first `auth` WS message, never in the URL.
 
 ---
 

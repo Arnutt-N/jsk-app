@@ -239,15 +239,22 @@ saved = await line_service.save_message(
     sender_role="USER",
 )
 
-# Save outgoing bot reply
-await line_service.save_message(
-    db=db,
-    line_user_id=line_user_id,
-    direction=MessageDirection.OUTGOING,
-    message_type="multi",
-    content=f"Sent {len(messages)} messages for intent '{intent_name}'",
-    sender_role="BOT",
-)
+# Save outgoing bot reply — one row per LINE message with its REAL type/content.
+# describe_line_message() (line_service.py) maps each SDK send-object to
+# (message_type, content, payload): text/image/video/audio/sticker/location/flex/
+# template/imagemap. (Was a single message_type="multi" row with content
+# f"Sent N messages for intent '{name}'" — that summary string is gone.)
+for sent_message in messages:
+    m_type, m_content, m_payload = describe_line_message(sent_message)
+    await line_service.save_message(
+        db=db,
+        line_user_id=line_user_id,
+        direction=MessageDirection.OUTGOING,
+        message_type=m_type,
+        content=m_content,
+        payload=m_payload,
+        sender_role="BOT",
+    )
 
 # Save operator (live chat) message
 await line_service.save_message(

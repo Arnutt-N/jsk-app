@@ -86,6 +86,17 @@ Design system governance, semantic tokens, and visual standards for the JSK Admi
    className="border-border-default"
    className="text-brand-600"
    ```
+   **Dark-mode token gotcha:** every semantic token that must differ in dark mode
+   needs an explicit override in the `.dark { ... }` block of `globals.css`.
+   `--color-muted` was once missing there, so `bg-muted` rendered near-white in dark
+   mode. If a `bg-*`/`text-*` token looks wrong in dark mode, check for a missing
+   `.dark` override before touching component classNames. Class-based dark mode is
+   enabled by `@custom-variant dark (&:where(.dark, .dark *))` at the top of
+   `globals.css` — without it, every `dark:` utility silently no-ops.
+
+   **Cursor:** Tailwind v4 removed the default `cursor: pointer` on `<button>`.
+   `globals.css` restores it globally via `@layer base { button:not(:disabled) { cursor: pointer } }`.
+   Do NOT add per-button `cursor-pointer` classes — the base rule already covers them.
 
 3. **Sidebar gradient is blue→indigo (NOT brand purple)** —
    The admin sidebar uses HR-IMS visual alignment:

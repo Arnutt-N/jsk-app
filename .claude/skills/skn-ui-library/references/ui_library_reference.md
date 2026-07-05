@@ -18,7 +18,7 @@ Sources:
 - `frontend/app/admin/components/PageHeader.tsx`
 - `frontend/app/admin/components/StatsCard.tsx`
 - `frontend/app/admin/components/ChartsWrapper.tsx`
-- `frontend/hooks/useTheme.ts`
+- `frontend/components/providers/ThemeProvider.tsx` (exports `useTheme`)
 - `frontend/hooks/useSessionTimeout.ts`
 - `frontend/hooks/useNotificationSound.ts`
 
@@ -625,15 +625,18 @@ const MyChart = dynamic(() => import('./_components/MyChart'), {
 ## useTheme
 
 ```ts
-// frontend/hooks/useTheme.ts
-const { theme, toggleTheme, mounted } = useTheme()
+// frontend/components/providers/ThemeProvider.tsx  (hooks/useTheme.ts was removed)
+import { useTheme } from '@/components/providers/ThemeProvider'
+const { theme, resolvedTheme, setTheme, toggleTheme } = useTheme()
 // Returns:
-// theme: 'light' | 'dark'
-// toggleTheme: () => void  — toggles + persists to localStorage
-// mounted: true (always — not a real SSR guard)
+// theme: 'light' | 'dark' | 'system'  — the raw stored preference
+// resolvedTheme: 'light' | 'dark'      — the applied theme (use for UI/icon state)
+// setTheme: (t) => void                — set explicit preference, persists
+// toggleTheme: () => void              — flips from resolvedTheme (works even when theme==='system')
 
-// localStorage key: 'jsk-admin-theme'
-// Applies: document.documentElement.classList.toggle('dark', theme === 'dark')
+// localStorage key: 'theme' (default; ThemeProvider storageKey prop)
+// Applies: root.classList.add(resolvedTheme) on <html>
+// Must be rendered inside <ThemeProvider> (throws otherwise).
 ```
 
 ---
@@ -711,7 +714,7 @@ const { playNotification, setEnabled, isEnabled } = useNotificationSound()
 
 | ID | Gap | Component | Severity | Fix |
 |---|---|---|---|---|
-| GAP-1 | `useTheme` `mounted` always returns `true` — not a real SSR hydration guard | useTheme | Low | Use `useEffect` to set mounted after first render if needed |
+| GAP-1 | RESOLVED — `useTheme` moved to `components/providers/ThemeProvider` (no more `mounted`; SSR-safe via `useSyncExternalStore` for the prefers-color-scheme query) | ThemeProvider | — | n/a |
 | GAP-2 | `Modal` `createPortal` guard checks `typeof document === 'undefined'` but Next.js 'use client' components may still SSR — safe in practice | Modal | Low | Ensure Modal is only rendered in client components |
 | GAP-3 | `useNotificationSound` creates a new `AudioContext` on every call — browsers limit AudioContext count | useNotificationSound | Low | Cache AudioContext in a ref |
 | GAP-4 | `Toast` / `useToast` component is exported but not used anywhere in the admin pages — admin uses Zustand notification store instead | Toast | Low | Consolidate to one notification system |

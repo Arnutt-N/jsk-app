@@ -402,8 +402,8 @@ frontend/
 │       ├── NotificationToast.tsx            ← Toast via Zustand addNotification
 │       └── ChatModeToggle.tsx               ← Toggle with icon switch pattern
 ├── hooks/
-│   ├── useTheme.ts                          ← localStorage persistence, dark/light toggle
 │   └── useLiveChatSocket.ts                 ← WebSocket hook pattern reference
+│   (theme: components/providers/ThemeProvider.tsx — exports useTheme, key 'theme')
 ├── _store/
 │   └── liveChatStore.ts                     ← Zustand store: state + actions + devtools + selectors
 └── lib/

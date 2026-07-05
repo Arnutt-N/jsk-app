@@ -50,7 +50,10 @@ Step 4 — Build messages (max 5, LINE limit)
 
 Step 5 — Send & save
     └── line_service.reply_messages(event.reply_token, all_messages)
-            └── save_message(OUTGOING, "multi", content=f"Sent {N} messages for intent '{name}'")
+            └── for each sent msg: describe_line_message(msg) → (type, content, payload)
+                    └── save_message(OUTGOING, type, content, payload, sender_role="BOT")
+                (one row per LINE message with its REAL content — no more the old
+                 single "Sent N messages for intent" summary row)
 ```
 
 ---
