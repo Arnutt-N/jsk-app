@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 135 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 136 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-05 18:46 — claude_code — completed
+
+Synced skn-* skill docs with this session's live-chat code changes (commit aca5e1c, pushed). Fixed stale references that would misdirect future work: skn-ui-library (useTheme moved hooks/useTheme.ts DELETED -> components/providers/ThemeProvider, key 'theme', resolvedTheme/toggleTheme), skn-live-chat-frontend (WS URL via lib/websocket/wsUrl.ts direct-to-backend + new rules: fixed bubble sides, presence-dot helper lib/constants/live-chat-presence.ts, real per-type bot-reply, footer-anchored canned picker), skn-design-system (dark --color-muted gotcha, @custom-variant dark, global button cursor Tailwind v4), skn-line-service-ops + skn-webhook-handler (describe_line_message per-msg save vs old 'Sent N messages' summary), skn-design-tokens-package + skn-admin-component (main-project useTheme refs). 10 files, 6 skills. e2e layout spec PASSED this session (foreground run). Full session: 4 prod commits db976f3/6b10af0/a2eaeee/aca5e1c; vitest 383/383, pytest 533, tsc/eslint 0.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260705-1846.json`
+- Summary: `project-log-md/claude_code/session-summary-20260705-1846.md`
+
+---
 
 ### 2026-07-05 16:58 — claude_code — completed
 

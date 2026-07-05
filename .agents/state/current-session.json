@@ -1,14 +1,20 @@
 {
-  "last_updated": "2026-07-05T16:58:00+07:00",
+  "last_updated": "2026-07-05T18:46:00+07:00",
   "platform": "claude_code",
-  "current_task": "Fixed 7 live-chat UI/UX bugs (diagnosing-bugs + 2 parallel agents): bubble sides (user L/admin+bot R), unified presence dots (new lib/constants/live-chat-presence.ts), theme toggle from resolvedTheme ",
+  "current_task": "Synced skn-* skill docs with this session's live-chat code changes (commit aca5e1c, pushed). Fixed stale references that would misdirect future work: skn-ui-library (useTheme moved hooks/useTheme.ts D",
   "plan_status": "completed",
   "next_steps": [
-    "RE-RUN e2e layout spec (frontend/e2e/live-chat-layout.spec.ts) once local stack is up — this session it failed ONLY because Docker (redis+postgres) died -> backend down -> login timeout (env, NOT code; backend.log showed redis:6379 connection refused). Bring up: docker compose up -d db redis; restart backend; reseed admin (ENV_FILE=app/.env ADMIN_DEFAULT_PASSWORD=E2eAdmin123! seed_admin.py --apply); npx playwright test e2e/live-chat-layout.spec.ts",
-    "DECIDE: 72 files under .claude/skills/skn-* still show as deleted-on-disk (NOT committed, present in git HEAD) — recover with 'git restore .claude/skills' or confirm intentional removal",
-    "Verify all 7 fixes visually on prod after Vercel deploy of 6b10af0"
+    "Verify all UI fixes visually on prod after Vercel deploy of aca5e1c/6b10af0 (bubble sides, presence dots, dark theme, bot reply content, modal button, canned picker, kebab menu)",
+    "LESSON for next session: this machine kills background Bash tasks repeatedly (~7 kills) — run short test/e2e commands in FOREGROUND (run_in_background:false), not detached; heavy vitest survives better via detached log on /mnt/d"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-07-05T18:46:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "aca5e1c",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-07-05T16:58:00+07:00",
       "platform": "claude_code",
@@ -140,13 +146,6 @@
       "platform": "claude_code",
       "branch": "main",
       "head": "eaf39d9",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-28T17:51:00+07:00",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "58ea66a",
       "status": "completed"
     }
   ],
