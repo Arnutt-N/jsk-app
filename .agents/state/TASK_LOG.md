@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 140 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 141 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-06 01:13 — claude_code — completed
+
+Reviewed + MERGED PR #125 (fix issue #122: webhook silently swallows messages for inactive/incomplete intent categories) to main via squash cc5589d; branch deleted, #122 auto-closed. Pre-merge review by 2 parallel agents (ecc:fastapi-reviewer + ecc:code-reviewer) both APPROVE, 0 CRITICAL/HIGH/MEDIUM; both independently flagged the same LOW (no test for keyword_match.category is None) which was closed with an added defensive test (f5b132c) before merge. Fix: extracted resolve_reply_responses() + _find_autoreply_rule() so a matched intent whose category is inactive OR has zero active responses now falls through to legacy AutoReply instead of dead-ending (2 early returns removed); keyword_match=None on the AutoReply path. TDD RED-first, 8 fall-through tests, full backend suite 540 passed, CI all green (Backend Pytest/Frontend/Playwright/Encoding/Vercel). Backend auto-deploys to Koyeb via cd.yml on this main merge.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260706-0113.json`
+- Summary: `project-log-md/claude_code/session-summary-20260706-0113.md`
+
+---
 
 ### 2026-07-06 00:33 — claude_code — completed
 

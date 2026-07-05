@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-07-06 00:33 by Claude Code (Fixed issue #122 webhook silently swallows messages for inactive/incomplete intent categor)
+> **Last Updated:** 2026-07-06 01:13 by Claude Code (Reviewed + MERGED PR #125 fix issue #122: webhook silently swallows messages for inactive/)
 
 ## Thai Summary
 ฟีเจอร์ **Rich Menu Switching + การกำหนดเมนูรายบุคคล (R1/R2)** เสร็จสมบูรณ์และขึ้น production แล้ว — merge เข้า main ผ่าน PR #114 (merge commit `3a90f4d`), migrate ฐานข้อมูล Supabase PROD (richmenu alias + user_rich_menu_links แบบ additive) และ deploy frontend บน Vercel เรียบร้อย
@@ -54,6 +54,7 @@
 - [2026-06-21] R1/R2 Rich Menu (incl Task 6.2 per-user UI) merged to `main` via PR #114 (`3a90f4d`); Supabase PROD migrated; Vercel frontend deployed. Branch `feat/rich-menu-switching-r1` deleted. Working tree clean.
 
 ## Recent Completions
+- [2026-07-06 01:13] Claude Code: Reviewed + MERGED PR #125 (fix issue #122: webhook silently swallows messages for inactive/incomplete intent categories) to main via squash cc5589d; branch deleted, #122 auto-closed. Pre-merge review by 2 parallel agents (ecc:fastapi-review (Claude Code)
 - [2026-07-06 00:33] Claude Code: Fixed issue #122 (webhook silently swallows messages for inactive/incomplete intent categories) via TDD RED-first. Root cause verified in webhook.py: find_intent_keyword matches keywords with no is_active filter, and two downstream branches (Claude Code)
 - [2026-07-05 23:34] Claude Code: Tech-debt pass C on live-chat hooks. SHIPPED #1: toggleMode (useChatRoom.ts) was the only room action without try/catch — network error / non-ok response failed silently. Added try/catch + system notification mirroring claim/close/transfer, (Claude Code)
 - [2026-07-05 21:18] Claude Code: Fixed the long-standing CI-red (auto-replies focus test, red since ce5a414) at its root: a timing race in the SHARED components/ui/Modal.tsx. The open-focus effect's 50ms setTimeout focused the first focusable element (Close button); when t (Claude Code)

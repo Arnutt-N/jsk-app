@@ -1,13 +1,20 @@
 {
-  "last_updated": "2026-07-06T00:33:00+07:00",
+  "last_updated": "2026-07-06T01:13:00+07:00",
   "platform": "claude_code",
-  "current_task": "Fixed issue #122 (webhook silently swallows messages for inactive/incomplete intent categories) via TDD RED-first. Root cause verified in webhook.py: find_intent_keyword matches keywords with no is_ac",
+  "current_task": "Reviewed + MERGED PR #125 (fix issue #122: webhook silently swallows messages for inactive/incomplete intent categories) to main via squash cc5589d; branch deleted, #122 auto-closed. Pre-merge review ",
   "plan_status": "completed",
   "next_steps": [
-    "Review + merge PR #125 (CI should be green; backend auto-deploys to Koyeb via cd.yml on main merge; frontend unaffected)",
-    "Deferred follow-ups (NOT in #125, per Core-only scope): add active_response_count to GET /admin/intents/categories for exact readiness badge + guard PUT /categories/{id} so is_active cannot be set true while incomplete (frontend gate is API-bypassable) — open a separate PR only if a concrete need appears"
+    "Verify #122 fix live on Koyeb prod after cd.yml deploy completes (backend-only change; send a LINE message that hits an inactive/incomplete category and confirm a legacy AutoReply now responds instead of silence)",
+    "Deferred follow-ups (Core-only scope, NOT done): active_response_count on GET /admin/intents/categories for exact readiness badge + guard PUT /categories/{id} against is_active=true while incomplete (API-bypassable frontend gate) — open a separate PR only if a concrete need appears"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-07-06T01:13:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "cc5589d",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-07-06T00:33:00+07:00",
       "platform": "claude_code",
@@ -139,13 +146,6 @@
       "platform": "claude_code",
       "branch": "main",
       "head": "5c4a7f1",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-29T07:23:00+07:00",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "dc52cb8",
       "status": "completed"
     }
   ],
