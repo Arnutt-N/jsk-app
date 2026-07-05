@@ -1,13 +1,21 @@
 {
-  "last_updated": "2026-07-05T18:46:00+07:00",
+  "last_updated": "2026-07-05T19:29:00+07:00",
   "platform": "claude_code",
-  "current_task": "Synced skn-* skill docs with this session's live-chat code changes (commit aca5e1c, pushed). Fixed stale references that would misdirect future work: skn-ui-library (useTheme moved hooks/useTheme.ts D",
+  "current_task": "Diagnosed the long-standing CI-red (auto-replies focus test, red since ce5a414 2026-07-03) via systematic-debugging Phase 1 — ROOT CAUSE FOUND, no code changed yet. It is a timing RACE in the SHARED f",
   "plan_status": "completed",
   "next_steps": [
-    "Verify all UI fixes visually on prod after Vercel deploy of aca5e1c/6b10af0 (bubble sides, presence dots, dark theme, bot reply content, modal button, canned picker, kebab menu)",
-    "LESSON for next session: this machine kills background Bash tasks repeatedly (~7 kills) — run short test/e2e commands in FOREGROUND (run_in_background:false), not detached; heavy vitest survives better via detached log on /mnt/d"
+    "IMPLEMENT the fix in a FRESH session (this session hit ~$579): in Modal.tsx setTimeout callback, guard with 'if (modalRef.current?.contains(document.activeElement)) return;' before focusing firstFocusable — never override focus already inside the modal. Helps every Modal.",
+    "TDD: branch off main; write RED regression test at the Modal seam (vitest + fake timers: render Modal open, focus an inner input, advance timers 60ms, assert inner input still has focus / not stolen to first button); apply guard; watch GREEN",
+    "Validate FOREGROUND not background (this machine kills bg Bash tasks ~7x this session — see memory project_wsl_devserver_9p_watch); then open PR and confirm CI goes green"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-07-05T19:29:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "03fd108",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-07-05T18:46:00+07:00",
       "platform": "claude_code",
@@ -139,13 +147,6 @@
       "platform": "claude_code",
       "branch": "main",
       "head": "bc97083",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-28T18:39:00+07:00",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "eaf39d9",
       "status": "completed"
     }
   ],

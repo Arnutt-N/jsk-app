@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 136 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 137 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-05 19:29 — claude_code — completed
+
+Diagnosed the long-standing CI-red (auto-replies focus test, red since ce5a414 2026-07-03) via systematic-debugging Phase 1 — ROOT CAUSE FOUND, no code changed yet. It is a timing RACE in the SHARED frontend/components/ui/Modal.tsx (lines ~92-107): the initial-focus effect does setTimeout(() => firstFocusable.focus(), 50) where firstFocusable = the 'Close modal' button (first in DOM before the form). Test frontend/app/admin/auto-replies/__tests__/page.test.tsx:144 opens modal then submits; POST->400 handler calls nameInputRef.focus() synchronously (page.tsx:127). LOCAL passes (50ms timer fires before submit, imperative focus wins); CI fails (slower -> 50ms timer fires AFTER imperative focus, steals focus back to Close button). Full root cause + exact fix saved in memory project_ci_red_autoreplies_focus.md.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260705-1929.json`
+- Summary: `project-log-md/claude_code/session-summary-20260705-1929.md`
+
+---
 
 ### 2026-07-05 18:46 — claude_code — completed
 

@@ -1,0 +1,18 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-07-05T19:29:00+07:00",
+  "branch": "main",
+  "head_commit": "03fd108",
+  "status": "completed",
+  "work_summary": "Diagnosed the long-standing CI-red (auto-replies focus test, red since ce5a414 2026-07-03) via systematic-debugging Phase 1 — ROOT CAUSE FOUND, no code changed yet. It is a timing RACE in the SHARED frontend/components/ui/Modal.tsx (lines ~92-107): the initial-focus effect does setTimeout(() => firstFocusable.focus(), 50) where firstFocusable = the 'Close modal' button (first in DOM before the form). Test frontend/app/admin/auto-replies/__tests__/page.test.tsx:144 opens modal then submits; POST->400 handler calls nameInputRef.focus() synchronously (page.tsx:127). LOCAL passes (50ms timer fires before submit, imperative focus wins); CI fails (slower -> 50ms timer fires AFTER imperative focus, steals focus back to Close button). Full root cause + exact fix saved in memory project_ci_red_autoreplies_focus.md.",
+  "priority_actions": [
+    "IMPLEMENT the fix in a FRESH session (this session hit ~$579): in Modal.tsx setTimeout callback, guard with 'if (modalRef.current?.contains(document.activeElement)) return;' before focusing firstFocusable — never override focus already inside the modal. Helps every Modal.",
+    "TDD: branch off main; write RED regression test at the Modal seam (vitest + fake timers: render Modal open, focus an inner input, advance timers 60ms, assert inner input still has focus / not stolen to first button); apply guard; watch GREEN",
+    "Validate FOREGROUND not background (this machine kills bg Bash tasks ~7x this session — see memory project_wsl_devserver_9p_watch); then open PR and confirm CI goes green"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/claude_code/session-summary-20260705-1929.md",
+  "cross_platform_read": []
+}
