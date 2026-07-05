@@ -1,13 +1,20 @@
 {
-  "last_updated": "2026-07-05T21:18:00+07:00",
+  "last_updated": "2026-07-05T23:34:00+07:00",
   "platform": "claude_code",
-  "current_task": "Fixed the long-standing CI-red (auto-replies focus test, red since ce5a414) at its root: a timing race in the SHARED components/ui/Modal.tsx. The open-focus effect's 50ms setTimeout focused the first ",
+  "current_task": "Tech-debt pass C on live-chat hooks. SHIPPED #1: toggleMode (useChatRoom.ts) was the only room action without try/catch — network error / non-ok response failed silently. Added try/catch + system noti",
   "plan_status": "completed",
   "next_steps": [
-    "git push -u origin fix/modal-focus-race-ci then open PR",
-    "Confirm CI goes green on the PR, then merge to main to clear the CI-red baseline"
+    "Open PR for #1 (toggleMode fix)",
+    "Decide #3/#4: recommend SKIP per YAGNI — rationale in this summary; only implement if a concrete need appears"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-07-05T23:34:00+07:00",
+      "platform": "claude_code",
+      "branch": "chore/live-chat-hardening-c",
+      "head": "0925f07",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-07-05T21:18:00+07:00",
       "platform": "claude_code",
@@ -139,13 +146,6 @@
       "platform": "claude_code",
       "branch": "main",
       "head": "ef87548",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-28T21:13:00+07:00",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "3cc616e",
       "status": "completed"
     }
   ],

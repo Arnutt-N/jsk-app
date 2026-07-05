@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 138 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 139 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-05 23:34 — claude_code — completed
+
+Tech-debt pass C on live-chat hooks. SHIPPED #1: toggleMode (useChatRoom.ts) was the only room action without try/catch — network error / non-ok response failed silently. Added try/catch + system notification mirroring claim/close/transfer, with RED-first hook test (useChatRoom.test.tsx, 2 cases). Verified: vitest 386/386, tsc 0, eslint 0. Commit 0925f07 on branch chore/live-chat-hardening-c. REVERTED #2 (Toast discriminated union): implemented but it broke tsc at zustand set()+spread (discriminant widens on spread; would need DistributiveOmit helper + cast) — net complexity for cosmetic type-safety, reverted per KISS. ASSESSED+DEFERRED #3 (res.json zod validation = over-engineering; data is from our own backend) and #4 (AbortController = no value; polling writes to zustand store, not component state, so no setState-after-unmount bug exists).
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260705-2334.json`
+- Summary: `project-log-md/claude_code/session-summary-20260705-2334.md`
+
+---
 
 ### 2026-07-05 21:18 — claude_code — completed
 
