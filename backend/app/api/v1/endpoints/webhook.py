@@ -212,6 +212,62 @@ async def find_intent_keyword(text: str, db: AsyncSession) -> IntentKeyword | No
     return None
 
 
+async def _find_autoreply_rule(text: str, db: AsyncSession):
+    """Legacy AutoReply lookup: active exact keyword, then active contains."""
+    stmt = select(AutoReply).filter(
+        AutoReply.keyword == text, AutoReply.is_active == True
+    )
+    rule = (await db.execute(stmt)).scalars().first()
+    if rule:
+        return rule
+    # Contains: 'User Text' ILIKE '%' + AutoReply.keyword + '%'
+    stmt = select(AutoReply).filter(
+        literal(text).ilike(func.concat('%', AutoReply.keyword, '%')),
+        AutoReply.is_active == True,
+    ).limit(1)
+    return (await db.execute(stmt)).scalars().first()
+
+
+async def resolve_reply_responses(text: str, db: AsyncSession):
+    """Resolve which responses answer ``text`` (issue #122).
+
+    Tries an IntentKeyword match first, using its category's responses only when
+    the category is active AND has >=1 active response. Otherwise — no keyword, an
+    inactive category, or a category with no active responses — falls through to
+    legacy AutoReply (exact -> contains) so a matched-but-unserviceable intent
+    never dead-ends the message (before this fix both branches returned early and
+    the bot silently swallowed the user's message).
+
+    Returns ``(responses, category_name, keyword_match)``. ``keyword_match`` is
+    None whenever the answer comes from AutoReply, so the caller labels the reply
+    from the rule rather than the dead intent. Returns ``([], "", None)`` when
+    nothing can answer — the bot stays silent, which is the correct default.
+    """
+    keyword_match = await find_intent_keyword(text, db)
+    if keyword_match:
+        category = keyword_match.category
+        if category and category.is_active and category.responses:
+            return list(category.responses), category.name, keyword_match
+        logger.info(
+            "Intent keyword '%s' matched but its category is unavailable "
+            "(inactive or no active responses) — falling through to AutoReply.",
+            keyword_match.keyword,
+        )
+
+    rule = await _find_autoreply_rule(text, db)
+    if not rule:
+        logger.info(f"No auto-reply or intent found for: {text}")
+        return [], "", None
+
+    responses = [{
+        "reply_type": rule.reply_type,
+        "text_content": rule.text_content,
+        "payload": rule.payload,
+        "keyword": rule.keyword,
+    }]
+    return responses, "Legacy", None
+
+
 async def handle_message_event(event: MessageEvent, db: AsyncSession):
     # Check for LINE Verify dummy token
     if event.reply_token == "00000000000000000000000000000000":
@@ -343,51 +399,15 @@ async def handle_message_event(event: MessageEvent, db: AsyncSession):
             return
         # -------------------------------------
 
-        # 3. Find Intent (Hierarchical)
-        # IntentKeyword first (EXACT > STARTS_WITH > CONTAINS > REGEX inside
-        # find_intent_keyword), then legacy AutoReply (exact, then contains)
-        # for backward compatibility during migration. Before #120 the
-        # IntentKeyword CONTAINS result was fetched but never used to build a
-        # response — only legacy rules actually replied on the non-EXACT path.
-        keyword_match = await find_intent_keyword(text, db)
-
-        if not keyword_match:
-            stmt = select(AutoReply).filter(AutoReply.keyword == text, AutoReply.is_active == True)
-            result = await db.execute(stmt)
-            rule = result.scalars().first()
-
-            if not rule:
-                # Legacy contains: 'User Text' ILIKE '%' + AutoReply.keyword + '%'
-                stmt = select(AutoReply).filter(
-                    literal(text).ilike(func.concat('%', AutoReply.keyword, '%')),
-                    AutoReply.is_active == True
-                ).limit(1)
-                result = await db.execute(stmt)
-                rule = result.scalars().first()
-
-            if not rule:
-                logger.info(f"No auto-reply or intent found for: {text}")
-                return
-
-            # Pack rule into a pseudo-responses list for the logic below
-            responses = [{
-                "reply_type": rule.reply_type,
-                "text_content": rule.text_content,
-                "payload": rule.payload,
-                "keyword": rule.keyword
-            }]
-            cat_name = "Legacy"
-        else:
-            category = keyword_match.category
-            if not category or not category.is_active:
-                logger.info(f"Category '{category.name if category else 'N/A'}' is inactive.")
-                return
-            
-            responses = category.responses
-            cat_name = category.name
+        # 3. Resolve which responses answer this text. IntentKeyword first
+        # (EXACT > STARTS_WITH > CONTAINS > REGEX inside find_intent_keyword),
+        # then legacy AutoReply (exact, then contains) for backward
+        # compatibility. A matched intent whose category is inactive or has no
+        # active responses falls through to AutoReply instead of dead-ending the
+        # message (#122).
+        responses, cat_name, keyword_match = await resolve_reply_responses(text, db)
 
         if not responses:
-            logger.info(f"No active responses found for category: {cat_name}")
             return
 
         # 4. Build and send all responses

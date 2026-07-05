@@ -1,13 +1,20 @@
 {
-  "last_updated": "2026-07-05T23:34:00+07:00",
+  "last_updated": "2026-07-06T00:33:00+07:00",
   "platform": "claude_code",
-  "current_task": "Tech-debt pass C on live-chat hooks. SHIPPED #1: toggleMode (useChatRoom.ts) was the only room action without try/catch — network error / non-ok response failed silently. Added try/catch + system noti",
+  "current_task": "Fixed issue #122 (webhook silently swallows messages for inactive/incomplete intent categories) via TDD RED-first. Root cause verified in webhook.py: find_intent_keyword matches keywords with no is_ac",
   "plan_status": "completed",
   "next_steps": [
-    "Open PR for #1 (toggleMode fix)",
-    "Decide #3/#4: recommend SKIP per YAGNI — rationale in this summary; only implement if a concrete need appears"
+    "Review + merge PR #125 (CI should be green; backend auto-deploys to Koyeb via cd.yml on main merge; frontend unaffected)",
+    "Deferred follow-ups (NOT in #125, per Core-only scope): add active_response_count to GET /admin/intents/categories for exact readiness badge + guard PUT /categories/{id} so is_active cannot be set true while incomplete (frontend gate is API-bypassable) — open a separate PR only if a concrete need appears"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-07-06T00:33:00+07:00",
+      "platform": "claude_code",
+      "branch": "fix/122-webhook-silent-swallow",
+      "head": "0da0638",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-07-05T23:34:00+07:00",
       "platform": "claude_code",
@@ -139,13 +146,6 @@
       "platform": "claude_code",
       "branch": "main",
       "head": "dc52cb8",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-28T22:17:00+07:00",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "ef87548",
       "status": "completed"
     }
   ],
