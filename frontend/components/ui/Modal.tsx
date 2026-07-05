@@ -95,6 +95,12 @@ export const Modal: React.FC<ModalProps> = ({
     // restore it on close (WCAG 2.4.3). Mirrors MobileDrawer/TransferDialog.
     const previouslyFocused = document.activeElement as HTMLElement | null;
     const timer = setTimeout(() => {
+      // Never override focus that already lives inside the modal. On slower
+      // machines an imperative focus (e.g. a form error handler focusing an
+      // invalid field) can land before this deferred timer fires; without this
+      // guard the timer would yank focus back to the first focusable element
+      // (the Close button) — the CI-red auto-replies create-category race.
+      if (modalRef.current?.contains(document.activeElement)) return;
       const firstFocusable = modalRef.current?.querySelector<HTMLElement>(
         'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
       );
