@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 141 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 142 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-06 06:19 — claude_code — completed
+
+Verified #122 fix LIVE on Koyeb prod (CD run 28750206784 success: Deploy Backend + Smoke Check Backend green, headSha cc5589d; keepalive green). Then brainstormed issue-#122 follow-up (category readiness badge + PUT is_active guard) via superpowers:brainstorming: explored endpoint/model/webhook/frontend, locked serviceable def = is_active AND active_response_count>0 (from webhook.py:249), user approved design (scope Backend+Frontend, guard PUT-only, dot 3-color). Committed PRD spec 789022f on branch feat/category-readiness-guard (NOT merged, awaiting user spec-review before writing-plans).
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260706-0619.json`
+- Summary: `project-log-md/claude_code/session-summary-20260706-0619.md`
+
+---
 
 ### 2026-07-06 01:13 — claude_code — completed
 
