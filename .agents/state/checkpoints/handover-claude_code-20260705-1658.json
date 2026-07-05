@@ -1,0 +1,18 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-07-05T16:58:00+07:00",
+  "branch": "main",
+  "head_commit": "6b10af0",
+  "status": "completed",
+  "work_summary": "Fixed 7 live-chat UI/UX bugs (diagnosing-bugs + 2 parallel agents): bubble sides (user L/admin+bot R), unified presence dots (new lib/constants/live-chat-presence.ts), theme toggle from resolvedTheme + dark navbar semantic tokens + .dark --color-muted + @custom-variant dark + removed dead hooks/useTheme.ts, bot replies now real per-type content via new describe_line_message() (was 'Sent N messages for intent'), create-chat modal button wrap (Button leftIcon; Tailwind v4 svg display:block), canned picker un-squeezed to footer full-width, kebab menu removed 5 no-op items. Validated vitest 383/383, pytest 533, tsc 0, eslint 0. Committed 6b10af0.",
+  "priority_actions": [
+    "RE-RUN e2e layout spec (frontend/e2e/live-chat-layout.spec.ts) once local stack is up — this session it failed ONLY because Docker (redis+postgres) died -> backend down -> login timeout (env, NOT code; backend.log showed redis:6379 connection refused). Bring up: docker compose up -d db redis; restart backend; reseed admin (ENV_FILE=app/.env ADMIN_DEFAULT_PASSWORD=E2eAdmin123! seed_admin.py --apply); npx playwright test e2e/live-chat-layout.spec.ts",
+    "DECIDE: 72 files under .claude/skills/skn-* still show as deleted-on-disk (NOT committed, present in git HEAD) — recover with 'git restore .claude/skills' or confirm intentional removal",
+    "Verify all 7 fixes visually on prod after Vercel deploy of 6b10af0"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/claude_code/session-summary-20260705-1658.md",
+  "cross_platform_read": []
+}
