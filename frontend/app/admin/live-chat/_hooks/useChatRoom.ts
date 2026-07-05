@@ -174,12 +174,23 @@ export function useChatRoom({
   const toggleMode = useCallback(async (mode: 'BOT' | 'HUMAN') => {
     const s = getStore();
     if (!s.selectedId) return;
-    const res = await fetch(`${API_BASE}/admin/live-chat/conversations/${s.selectedId}/mode`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mode }),
-    });
-    if (res.ok) await fetchChatDetail(s.selectedId, false);
+    try {
+      const res = await fetch(`${API_BASE}/admin/live-chat/conversations/${s.selectedId}/mode`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode }),
+      });
+      if (!res.ok) {
+        throw new Error(await readErrorMessage(res, 'Failed to switch mode'));
+      }
+      await fetchChatDetail(s.selectedId, false);
+    } catch (error) {
+      getStore().addNotification({
+        title: 'Mode switch failed',
+        message: error instanceof Error && error.message ? error.message : 'Failed to switch chat mode.',
+        type: 'system',
+      });
+    }
   }, [fetchChatDetail]);
 
   return { claimSession, closeSession, transferSession, toggleMode };
