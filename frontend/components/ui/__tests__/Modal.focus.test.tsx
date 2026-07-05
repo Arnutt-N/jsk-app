@@ -75,3 +75,42 @@ describe('Modal focus stability across re-renders', () => {
     trigger.remove();
   });
 });
+
+/**
+ * Regression (CI-red since ce5a414): the open-time auto-focus must NOT steal
+ * focus away from an element that was focused inside the modal before the 50ms
+ * timer fired. The auto-replies create-category flow focuses the name input
+ * synchronously on a 400 response (page.tsx: nameInputRef.focus()); on slower
+ * CI machines the modal's deferred focus timer fires AFTER that imperative
+ * focus and yanks focus back to the first focusable element (the Close button),
+ * failing `expect(getByLabelText('ชื่อ Category')).toHaveFocus()`. Locally the
+ * timer fires first so imperative focus wins — hence "passes local, red in CI".
+ */
+describe('Modal open-focus does not steal focus already inside the modal (CI race)', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('keeps focus on an inner input focused before the deferred open-focus timer fires', () => {
+    render(
+      <Modal isOpen onClose={() => {}} title="เพิ่ม Category ใหม่">
+        <input data-testid="name" aria-label="ชื่อ Category" />
+      </Modal>
+    );
+
+    // Simulate the error handler focusing the name input synchronously, BEFORE
+    // the modal's 50ms open-focus timer has fired.
+    const name = screen.getByTestId('name') as HTMLInputElement;
+    name.focus();
+    expect(document.activeElement).toBe(name);
+
+    // On slow CI the deferred timer fires only now — it must not pull focus
+    // back to the first focusable element (the Close button).
+    vi.advanceTimersByTime(60);
+
+    expect(document.activeElement).toBe(name);
+  });
+});
