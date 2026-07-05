@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-07-05 19:29 by Claude Code (Diagnosed the long-standing CI-red auto-replies focus test, red since ce5a414 2026-07-03 v)
+> **Last Updated:** 2026-07-05 21:18 by Claude Code (Fixed the long-standing CI-red auto-replies focus test, red since ce5a414 at its root: a t)
 
 ## Thai Summary
 ฟีเจอร์ **Rich Menu Switching + การกำหนดเมนูรายบุคคล (R1/R2)** เสร็จสมบูรณ์และขึ้น production แล้ว — merge เข้า main ผ่าน PR #114 (merge commit `3a90f4d`), migrate ฐานข้อมูล Supabase PROD (richmenu alias + user_rich_menu_links แบบ additive) และ deploy frontend บน Vercel เรียบร้อย
@@ -54,6 +54,7 @@
 - [2026-06-21] R1/R2 Rich Menu (incl Task 6.2 per-user UI) merged to `main` via PR #114 (`3a90f4d`); Supabase PROD migrated; Vercel frontend deployed. Branch `feat/rich-menu-switching-r1` deleted. Working tree clean.
 
 ## Recent Completions
+- [2026-07-05 21:18] Claude Code: Fixed the long-standing CI-red (auto-replies focus test, red since ce5a414) at its root: a timing race in the SHARED components/ui/Modal.tsx. The open-focus effect's 50ms setTimeout focused the first focusable element (Close button); when t (Claude Code)
 - [2026-07-05 19:29] Claude Code: Diagnosed the long-standing CI-red (auto-replies focus test, red since ce5a414 2026-07-03) via systematic-debugging Phase 1 — ROOT CAUSE FOUND, no code changed yet. It is a timing RACE in the SHARED frontend/components/ui/Modal.tsx (lines ~ (Claude Code)
 - [2026-07-05 18:46] Claude Code: Synced skn-* skill docs with this session's live-chat code changes (commit aca5e1c, pushed). Fixed stale references that would misdirect future work: skn-ui-library (useTheme moved hooks/useTheme.ts DELETED -> components/providers/ThemeProv (Claude Code)
 - [2026-07-05 16:58] Claude Code: Fixed 7 live-chat UI/UX bugs (diagnosing-bugs + 2 parallel agents): bubble sides (user L/admin+bot R), unified presence dots (new lib/constants/live-chat-presence.ts), theme toggle from resolvedTheme + dark navbar semantic tokens + .dark -- (Claude Code)

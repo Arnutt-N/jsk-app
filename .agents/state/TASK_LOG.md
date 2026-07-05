@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 137 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 138 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-05 21:18 — claude_code — completed
+
+Fixed the long-standing CI-red (auto-replies focus test, red since ce5a414) at its root: a timing race in the SHARED components/ui/Modal.tsx. The open-focus effect's 50ms setTimeout focused the first focusable element (Close button); when the auto-replies 400 handler imperatively focused the name input first, the deferred timer fired afterwards on slow CI and stole focus back. FIX: guard the deferred focus with 'if (modalRef.current?.contains(document.activeElement)) return' so it never overrides focus already inside the modal — helps every Modal. TDD: RED regression test at the Modal seam (fake timers) then guard. Full suite GREEN: vitest 384/384, tsc 0, eslint 0. Branch fix/modal-focus-race-ci, commit ee227f9.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260705-2118.json`
+- Summary: `project-log-md/claude_code/session-summary-20260705-2118.md`
+
+---
 
 ### 2026-07-05 19:29 — claude_code — completed
 

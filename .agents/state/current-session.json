@@ -1,14 +1,20 @@
 {
-  "last_updated": "2026-07-05T19:29:00+07:00",
+  "last_updated": "2026-07-05T21:18:00+07:00",
   "platform": "claude_code",
-  "current_task": "Diagnosed the long-standing CI-red (auto-replies focus test, red since ce5a414 2026-07-03) via systematic-debugging Phase 1 — ROOT CAUSE FOUND, no code changed yet. It is a timing RACE in the SHARED f",
+  "current_task": "Fixed the long-standing CI-red (auto-replies focus test, red since ce5a414) at its root: a timing race in the SHARED components/ui/Modal.tsx. The open-focus effect's 50ms setTimeout focused the first ",
   "plan_status": "completed",
   "next_steps": [
-    "IMPLEMENT the fix in a FRESH session (this session hit ~$579): in Modal.tsx setTimeout callback, guard with 'if (modalRef.current?.contains(document.activeElement)) return;' before focusing firstFocusable — never override focus already inside the modal. Helps every Modal.",
-    "TDD: branch off main; write RED regression test at the Modal seam (vitest + fake timers: render Modal open, focus an inner input, advance timers 60ms, assert inner input still has focus / not stolen to first button); apply guard; watch GREEN",
-    "Validate FOREGROUND not background (this machine kills bg Bash tasks ~7x this session — see memory project_wsl_devserver_9p_watch); then open PR and confirm CI goes green"
+    "git push -u origin fix/modal-focus-race-ci then open PR",
+    "Confirm CI goes green on the PR, then merge to main to clear the CI-red baseline"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-07-05T21:18:00+07:00",
+      "platform": "claude_code",
+      "branch": "fix/modal-focus-race-ci",
+      "head": "ee227f9",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-07-05T19:29:00+07:00",
       "platform": "claude_code",
@@ -140,13 +146,6 @@
       "platform": "claude_code",
       "branch": "main",
       "head": "3cc616e",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-06-28T20:21:00+07:00",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "bc97083",
       "status": "completed"
     }
   ],
