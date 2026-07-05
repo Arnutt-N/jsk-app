@@ -101,6 +101,26 @@ async def test_active_category_with_responses_uses_intent():
 
 
 @pytest.mark.asyncio
+async def test_keyword_match_with_no_category_falls_through():
+    """Defensive: a keyword whose category is None (e.g. an orphaned row) must
+    not raise on the ``category.is_active`` access — it is treated as
+    unserviceable and falls through to AutoReply like Bug A."""
+    kw = MagicMock()
+    kw.keyword = "ราคา"
+    kw.category = None
+    rule = _autoreply(keyword="ราคา", text="ราคาเริ่มต้น 100 บาท")
+    db = AsyncMock()
+    db.execute.side_effect = [_result(first=rule)]
+
+    with _patch_find(kw):
+        responses, cat_name, keyword_match = await resolve_reply_responses("ราคา", db)
+
+    assert keyword_match is None
+    assert cat_name == "Legacy"
+    assert len(responses) == 1
+
+
+@pytest.mark.asyncio
 async def test_no_keyword_match_uses_autoreply():
     """No intent keyword → legacy AutoReply path (existing behavior preserved)."""
     rule = _autoreply(keyword="สวัสดี", text="สวัสดีครับ")
