@@ -124,3 +124,62 @@ def test_get_categories_exposes_active_response_count():
     assert body["response_count"] == 3
     assert body["active_response_count"] == 2
     assert body["keyword_count"] == 2
+
+
+# --- PUT is_active guard ----------------------------------------------------
+def test_put_activate_without_active_response_returns_400():
+    db = _FakeDB(execute_results=[[_cat(is_active=False)]], scalar_results=[0])
+    _override_db_and_admin(db)
+    client = TestClient(app)
+    try:
+        resp = client.put(f"{CATEGORIES_URL}/1", json={"is_active": True})
+    finally:
+        client.close()
+        _clear()
+
+    assert resp.status_code == 400
+    assert "active response" in resp.json()["detail"]
+    assert db.committed is False
+
+
+def test_put_activate_with_active_response_ok():
+    db = _FakeDB(execute_results=[[_cat(is_active=False)]], scalar_results=[1])
+    _override_db_and_admin(db)
+    client = TestClient(app)
+    try:
+        resp = client.put(f"{CATEGORIES_URL}/1", json={"is_active": True})
+    finally:
+        client.close()
+        _clear()
+
+    assert resp.status_code == 200
+    assert db.committed is True
+
+
+def test_put_name_only_not_blocked_when_incomplete():
+    # active-but-incomplete category; editing name (no is_active) must NOT be blocked.
+    db = _FakeDB(execute_results=[[_cat(is_active=True)]], scalar_results=[])
+    _override_db_and_admin(db)
+    client = TestClient(app)
+    try:
+        resp = client.put(f"{CATEGORIES_URL}/1", json={"name": "ราคาใหม่"})
+    finally:
+        client.close()
+        _clear()
+
+    assert resp.status_code == 200
+    assert db.committed is True
+
+
+def test_put_deactivate_always_ok():
+    db = _FakeDB(execute_results=[[_cat(is_active=True)]], scalar_results=[])
+    _override_db_and_admin(db)
+    client = TestClient(app)
+    try:
+        resp = client.put(f"{CATEGORIES_URL}/1", json={"is_active": False})
+    finally:
+        client.close()
+        _clear()
+
+    assert resp.status_code == 200
+    assert db.committed is True

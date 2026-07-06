@@ -97,10 +97,27 @@ async def update_category(cat_id: int, data: IntentCategoryUpdate, db: AsyncSess
     cat = result.scalars().first()
     if not cat:
         raise HTTPException(status_code=404, detail="Category not found")
-    
-    for field, value in data.model_dump(exclude_unset=True).items():
+
+    payload = data.model_dump(exclude_unset=True)
+
+    # Guard (#122 follow-up): ห้ามเปิดใช้งานหมวดที่ยังไม่มี active response.
+    # เกณฑ์ serviceable ตรงกับ webhook.py:249 (is_active AND >=1 active response).
+    if payload.get("is_active") is True:
+        active_count = await db.scalar(
+            select(func.count(IntentResponse.id)).where(
+                IntentResponse.category_id == cat_id,
+                IntentResponse.is_active == True,
+            )
+        )
+        if not active_count:
+            raise HTTPException(
+                status_code=400,
+                detail="ไม่สามารถเปิดใช้งานหมวดนี้ได้ เพราะยังไม่มีการตอบกลับที่เปิดใช้งาน (active response) — กรุณาเพิ่มอย่างน้อย 1 รายการก่อน",
+            )
+
+    for field, value in payload.items():
         setattr(cat, field, value)
-    
+
     await db.commit()
     await db.refresh(cat)
     return cat
