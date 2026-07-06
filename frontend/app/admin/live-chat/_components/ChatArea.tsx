@@ -16,8 +16,8 @@ import { useReducedMotion } from '@/hooks/useReducedMotion';
 
 function getSenderLabel(message: Message, displayName?: string) {
   if (message.direction === 'INCOMING') return displayName || 'User';
-  if (message.sender_role === 'BOT') return 'Bot';
-  return message.operator_name || 'Admin';
+  if (message.sender_role === 'BOT') return 'บอท';
+  return message.operator_name || 'เจ้าหน้าที่';
 }
 
 const VIRTUALIZATION_THRESHOLD = 200;

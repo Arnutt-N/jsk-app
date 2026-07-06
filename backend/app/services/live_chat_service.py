@@ -409,6 +409,91 @@ class LiveChatService:
             )
         return session
 
+    async def ensure_operator_session(
+        self,
+        line_user_id: str,
+        operator_id: int,
+        db: AsyncSession,
+    ) -> ChatSession:
+        """Guarantee an ACTIVE session owned by ``operator_id`` (auto-takeover).
+
+        Used when an operator switches a conversation to HUMAN via the header
+        toggle: there is no customer-initiated WAITING session to claim, so the
+        operator would otherwise be unable to send (send requires an ACTIVE
+        session they own — see ``_require_active_session_owner``) and the
+        "รับสาย" button never appears (it only shows for WAITING sessions).
+
+        - ACTIVE owned by this operator  -> return as-is (idempotent)
+        - ACTIVE owned by someone else    -> 409 (never steal an active handoff)
+        - WAITING                         -> claim it (WAITING -> ACTIVE)
+        - no open session                 -> create one directly as ACTIVE
+
+        Respects the partial-unique "one open session per line_user_id" index;
+        a lost create race is reconciled by re-reading the winning session.
+        """
+        session = await self.get_active_session(line_user_id, db)
+        if session and session.status == SessionStatus.ACTIVE:
+            if session.operator_id == operator_id:
+                return session
+            owner = await db.get(User, session.operator_id) if session.operator_id else None
+            owner_name = owner.display_name if owner and owner.display_name else "เจ้าหน้าที่อีกคน"
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"{owner_name} กำลังรับเรื่องนี้อยู่ — โอนสายหรือให้ปิดสายก่อน",
+            )
+        if session and session.status == SessionStatus.WAITING:
+            return await self.claim_session(line_user_id, operator_id, db)
+
+        now = datetime.now(timezone.utc)
+        new_session = ChatSession(
+            line_user_id=line_user_id,
+            operator_id=operator_id,
+            status=SessionStatus.ACTIVE,
+            started_at=now,
+            claimed_at=now,
+            last_activity_at=now,
+        )
+        try:
+            async with db.begin_nested():
+                db.add(new_session)
+                await db.flush()
+        except IntegrityError:
+            existing = await self.get_active_session(line_user_id, db)
+            if existing is None:
+                raise
+            if existing.status == SessionStatus.WAITING:
+                return await self.claim_session(line_user_id, operator_id, db)
+            if existing.operator_id != operator_id:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="เจ้าหน้าที่อีกคนกำลังรับเรื่องนี้อยู่",
+                )
+            return existing
+        return new_session
+
+    async def release_operator_session(
+        self,
+        line_user_id: str,
+        operator_id: int,
+        db: AsyncSession,
+    ) -> Optional[ChatSession]:
+        """Close this operator's ACTIVE session when toggling back to BOT.
+
+        Keeps session state consistent with ``chat_mode`` — a lingering ACTIVE
+        session would misreport the conversation as operator-handled and block a
+        future customer handoff (the one-open-session index). No-op when there
+        is no active session, or when another operator owns it (their handoff is
+        left untouched rather than erroring the toggle).
+        """
+        session = await self.get_active_session(line_user_id, db)
+        if not session or session.status != SessionStatus.ACTIVE:
+            return None
+        if session.operator_id != operator_id:
+            return None
+        return await self.close_session(
+            line_user_id, ClosedBy.OPERATOR, db, operator_id=operator_id
+        )
+
     @audit_action("transfer_session", "chat_session")
     async def transfer_session(
         self,

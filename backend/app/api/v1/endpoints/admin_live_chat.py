@@ -364,14 +364,31 @@ async def toggle_mode(
     line_user_id: str,
     request: ModeToggleRequest,
     db: AsyncSession = Depends(deps.get_db),
-    _current_user: User = Depends(deps.get_current_staff),
+    current_user: User = Depends(deps.get_current_staff),
 ) -> Any:
-    """Toggle chat mode: BOT | HUMAN"""
+    """Toggle chat mode: BOT | HUMAN.
+
+    Switching to HUMAN auto-takes over the conversation — it creates/claims an
+    ACTIVE session owned by this operator so they can reply immediately.
+    Switching to BOT releases that session. Without this the header toggle only
+    flips ``chat_mode`` and leaves no ACTIVE session, so every operator send is
+    rejected by ``_require_active_session_owner`` (bug: "ส่งข้อความไม่สำเร็จ").
+    """
     success = await live_chat_service.set_chat_mode(
         line_user_id, request.mode, db
     )
     if not success:
         raise HTTPException(status_code=404, detail="User not found")
+
+    if request.mode == ChatMode.HUMAN:
+        await live_chat_service.ensure_operator_session(
+            line_user_id, current_user.id, db
+        )
+    else:
+        await live_chat_service.release_operator_session(
+            line_user_id, current_user.id, db
+        )
+
     await db.commit()
     return {"success": True, "mode": request.mode}
 

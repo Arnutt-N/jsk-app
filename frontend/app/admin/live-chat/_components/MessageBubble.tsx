@@ -169,9 +169,12 @@ export const MessageBubble = memo(function MessageBubble({
       )}
 
       <div className={`flex flex-col max-w-[65%] gap-0.5 ${isAdmin ? 'items-end' : 'items-start'}`}>
-        {/* Sender Name (Top) */}
-        {showSender && !isAdmin && (
-          <span className="px-1 text-[10px] font-medium text-text-tertiary">
+        {/* Sender label (top): who sent this — the customer's name, "บอท", or the
+            operator's name. Shown once per consecutive same-sender group
+            (showSender). Operator names use the brand accent so a human reply is
+            visually distinct from the bot and the customer. */}
+        {showSender && (
+          <span className={`px-1 text-[10px] font-medium thai-no-break ${isAdmin && !isBot ? 'text-brand-600' : 'text-text-tertiary'}`}>
             {senderLabel}
           </span>
         )}
