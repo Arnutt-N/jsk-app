@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-07-06 14:49 by Claude Code (Merged PR #126 category readiness badge + PUT is_active guard, #122 follow-up to main via )
+> **Last Updated:** 2026-07-06 21:43 by Claude Code (Recovered missing backend CD deploy for d7fadc5 category readiness badge + PUT is_active g)
 
 ## Thai Summary
 ฟีเจอร์ **Rich Menu Switching + การกำหนดเมนูรายบุคคล (R1/R2)** เสร็จสมบูรณ์และขึ้น production แล้ว — merge เข้า main ผ่าน PR #114 (merge commit `3a90f4d`), migrate ฐานข้อมูล Supabase PROD (richmenu alias + user_rich_menu_links แบบ additive) และ deploy frontend บน Vercel เรียบร้อย
@@ -54,6 +54,7 @@
 - [2026-06-21] R1/R2 Rich Menu (incl Task 6.2 per-user UI) merged to `main` via PR #114 (`3a90f4d`); Supabase PROD migrated; Vercel frontend deployed. Branch `feat/rich-menu-switching-r1` deleted. Working tree clean.
 
 ## Recent Completions
+- [2026-07-06 21:43] Claude Code: Recovered missing backend CD deploy for d7fadc5 (category readiness badge + PUT is_active guard, #122 follow-up). Root cause: d7fadc5 CI was cancelled by the ed88dd8 handoff push (CI concurrency), so cd.yml (workflow_run, needs CI success + (Claude Code)
 - [2026-07-06 14:49] Claude Code: Merged PR #126 (category readiness badge + PUT is_active guard, #122 follow-up) to main via squash d7fadc5; branch feat/category-readiness-guard deleted. CI all green pre-merge (backend pytest 58s, frontend lint/build, playwright smoke, enc (Claude Code)
 - [2026-07-06 10:21] Claude Code: Implemented #122 follow-up (category readiness badge + PUT is_active guard) via superpowers brainstorm->spec->plan->execute(TDD). 3 code commits on feat/category-readiness-guard: eaeb20e (active_response_count GET field + _response_counts F (Claude Code)
 - [2026-07-06 06:19] Claude Code: Verified #122 fix LIVE on Koyeb prod (CD run 28750206784 success: Deploy Backend + Smoke Check Backend green, headSha cc5589d; keepalive green). Then brainstormed issue-#122 follow-up (category readiness badge + PUT is_active guard) via sup (Claude Code)

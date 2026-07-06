@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 144 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 145 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-06 21:43 — claude_code — completed
+
+Recovered missing backend CD deploy for d7fadc5 (category readiness badge + PUT is_active guard, #122 follow-up). Root cause: d7fadc5 CI was cancelled by the ed88dd8 handoff push (CI concurrency), so cd.yml (workflow_run, needs CI success + cd-scope artifact) never produced a CD run; the only CD run was ed88dd8 which skipped all deploy jobs (diff = .agents/ only). Manually dispatched cd.yml target=backend backend_skip_build=false -> Deploy Backend (Koyeb) 1m18s + Smoke Check Backend green (run 28799830568). Backend now live on prod. Frontend already live via Vercel native git. Also committing 2 pre-existing prior-session docs (skill-collections-comparison.md edit + fix-plugin-ssh-blocked doc).
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260706-2143.json`
+- Summary: `project-log-md/claude_code/session-summary-20260706-2143.md`
+
+---
 
 ### 2026-07-06 14:49 — claude_code — completed
 

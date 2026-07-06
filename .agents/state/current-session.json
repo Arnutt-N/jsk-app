@@ -1,13 +1,20 @@
 {
-  "last_updated": "2026-07-06T14:49:00+07:00",
+  "last_updated": "2026-07-06T21:43:00+07:00",
   "platform": "claude_code",
-  "current_task": "Merged PR #126 (category readiness badge + PUT is_active guard, #122 follow-up) to main via squash d7fadc5; branch feat/category-readiness-guard deleted. CI all green pre-merge (backend pytest 58s, fr",
+  "current_task": "Recovered missing backend CD deploy for d7fadc5 (category readiness badge + PUT is_active guard, #122 follow-up). Root cause: d7fadc5 CI was cancelled by the ed88dd8 handoff push (CI concurrency), so ",
   "plan_status": "completed",
   "next_steps": [
-    "Verify CD deploy of d7fadc5 on Koyeb backend (check cd.yml run success + smoke); Vercel frontend auto",
-    "Prior-session pending: manual LINE behavioral test of #122 (send msg hitting inactive/incomplete category -> expect AutoReply not silence)"
+    "Manual LINE behavioral test of #122: send a LINE message hitting an inactive/incomplete intent category -> expect AutoReply fallback, not silence",
+    "Prevent recurrence: after a squash-merge that touches backend, wait for the merge-commit CI to finish before pushing the handoff commit, OR always dispatch backend deploy manually (gh workflow run cd.yml -f target=backend)"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-07-06T21:43:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "ed88dd8",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-07-06T14:49:00+07:00",
       "platform": "claude_code",
@@ -139,13 +146,6 @@
       "platform": "claude_code",
       "branch": "main",
       "head": "884e5b3",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-03T04:04:00+07:00",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "1e5cf5d",
       "status": "completed"
     }
   ],
