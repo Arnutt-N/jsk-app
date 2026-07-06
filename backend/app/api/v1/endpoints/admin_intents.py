@@ -16,6 +16,22 @@ from app.schemas.intent import (
 
 router = APIRouter()
 
+
+async def _response_counts(db: AsyncSession, category_id: int) -> tuple[int, int]:
+    """คืน (total, active) จำนวน IntentResponse ของ category ใน query เดียว.
+
+    ใช้ Postgres FILTER clause นับ 'ทั้งหมด' กับ 'active' พร้อมกัน (ไม่เพิ่ม
+    round-trip). active = is_active == True — ตรงเกณฑ์ serviceable ใน webhook.py:249.
+    """
+    row = (await db.execute(
+        select(
+            func.count(IntentResponse.id),
+            func.count(IntentResponse.id).filter(IntentResponse.is_active == True),
+        ).where(IntentResponse.category_id == category_id)
+    )).one()
+    return int(row[0]), int(row[1])
+
+
 # --- Categories ---
 @router.get("/categories", response_model=List[IntentCategoryResponse])
 async def list_categories(
@@ -34,7 +50,7 @@ async def list_categories(
     out = []
     for cat in categories:
         k_count = await db.scalar(select(func.count(IntentKeyword.id)).filter(IntentKeyword.category_id == cat.id))
-        r_count = await db.scalar(select(func.count(IntentResponse.id)).filter(IntentResponse.category_id == cat.id))
+        r_total, r_active = await _response_counts(db, cat.id)
         
         # Fetch first 5 keywords for preview
         kw_stmt = select(IntentKeyword.keyword).filter(IntentKeyword.category_id == cat.id).limit(5)
@@ -43,7 +59,8 @@ async def list_categories(
         
         resp = IntentCategoryResponse.model_validate(cat)
         resp.keyword_count = k_count
-        resp.response_count = r_count
+        resp.response_count = r_total
+        resp.active_response_count = r_active
         resp.keywords_preview = keywords_preview
         out.append(resp)
         

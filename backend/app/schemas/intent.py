@@ -71,6 +71,7 @@ class IntentCategoryResponse(IntentCategoryBase):
     # Quick stats
     keyword_count: int = 0
     response_count: int = 0
+    active_response_count: int = 0  # responses ที่ is_active == True (serviceable def, webhook.py:249)
     keywords_preview: List[str] = []  # First 5 keywords for preview
 
     model_config = ConfigDict(from_attributes=True, use_enum_values=True)
