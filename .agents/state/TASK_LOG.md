@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 143 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 144 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-06 14:49 — claude_code — completed
+
+Merged PR #126 (category readiness badge + PUT is_active guard, #122 follow-up) to main via squash d7fadc5; branch feat/category-readiness-guard deleted. CI all green pre-merge (backend pytest 58s, frontend lint/build, playwright smoke, encoding, vercel preview). Implemented via superpowers brainstorm->spec->plan->execute(TDD): active_response_count GET field (FILTER count) + PUT is_active=true->400 guard when 0 active response + frontend 3-color readiness dot + StatsCard active sum. serviceable def locked to webhook.py:249. Tests: backend 22 + frontend 4 + tsc/eslint green. Merge triggers CD: Koyeb backend + Vercel frontend (no migration).
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260706-1449.json`
+- Summary: `project-log-md/claude_code/session-summary-20260706-1449.md`
+
+---
 
 ### 2026-07-06 10:21 — claude_code — completed
 
