@@ -45,6 +45,53 @@ describe('MessageBubble row alignment', () => {
   });
 });
 
+describe('MessageBubble sender attribution', () => {
+  test('shows the operator name on outgoing operator messages when grouped', () => {
+    const { getByText } = render(
+      <MessageBubble
+        message={makeMessage({ direction: 'OUTGOING', sender_role: 'ADMIN', operator_name: 'สมชาย' })}
+        isPending={false}
+        isFailed={false}
+        formattedTime="10:00"
+        senderLabel="สมชาย"
+        showSender={true}
+        showAvatar={false}
+      />
+    );
+    expect(getByText('สมชาย')).toBeTruthy();
+  });
+
+  test('shows the bot label on outgoing bot messages when grouped', () => {
+    const { getByText } = render(
+      <MessageBubble
+        message={makeMessage({ direction: 'OUTGOING', sender_role: 'BOT' })}
+        isPending={false}
+        isFailed={false}
+        formattedTime="10:00"
+        senderLabel="บอท"
+        showSender={true}
+        showAvatar={false}
+      />
+    );
+    expect(getByText('บอท')).toBeTruthy();
+  });
+
+  test('hides the sender label for follow-up messages in the same group', () => {
+    const { queryByText } = render(
+      <MessageBubble
+        message={makeMessage({ direction: 'OUTGOING', sender_role: 'ADMIN', operator_name: 'สมชาย' })}
+        isPending={false}
+        isFailed={false}
+        formattedTime="10:00"
+        senderLabel="สมชาย"
+        showSender={false}
+        showAvatar={false}
+      />
+    );
+    expect(queryByText('สมชาย')).toBeNull();
+  });
+});
+
 describe('MessageBubble content types', () => {
   test('renders a video player for video messages', () => {
     const { container } = renderBubble({
