@@ -1,15 +1,22 @@
 {
-  "last_updated": "2026-07-06T23:43:00+07:00",
+  "last_updated": "2026-07-06T23:55:00+07:00",
   "platform": "claude_code",
-  "current_task": "Live-chat testing follow-ups. Root-caused + fixed via PR #127 (branch fix/livechat-operator-takeover, 2 commits): (1) OPERATOR SEND BUG — toggling a conversation to HUMAN via header toggle only set us",
+  "current_task": "Merged PR #127 (squash 1a08916): live-chat operator send via session auto-takeover + message sender attribution. Backend (live_chat_service ensure/release_operator_session + toggle_mode) -> Koyeb; fro",
   "plan_status": "completed",
   "next_steps": [
-    "Merge PR #127, then verify CD: backend Koyeb via cd.yml + frontend Vercel; if merge-commit CI gets cancelled by a follow-up push, dispatch backend deploy manually (gh workflow run cd.yml -f target=backend)",
-    "Manual test: toggle a room to โหมดเจ้าหน้าที่ -> พิมพ์ส่ง -> customer receives in LINE + เห็นปุ่มโอนสาย/ปิดสาย; check bubbles show บอท / operator name",
-    "Item 3 (pending): build admin page /admin/canned-responses (create/edit/delete) — backend CRUD ALREADY exists (/admin/canned-responses list/create/update/delete, model canned_response.py); frontend has ONLY the picker (components/admin/CannedResponsePicker.tsx, fetches the API, empty because no data + no management UI). Optionally seed sample rows. Picker opens on typing '/'.",
-    "Item 4 (pending): presence dot on ProfileDropdown stuck gray — wire to getConnectionPresence(wsStatus) per lib/constants/live-chat-presence.ts (green=online, amber=connecting, gray=offline) and reduce dot size slightly"
+    "Verify backend CD deploy of 1a08916 on Koyeb (cd.yml run success + Smoke Check Backend); frontend auto via Vercel",
+    "Manual test: toggle a room to โหมดเจ้าหน้าที่ -> send -> customer receives in LINE + Transfer/Close buttons appear; bubbles show บอท / operator name",
+    "Item 3 (fresh session): build /admin/canned-responses admin page (backend CRUD already exists, only picker on frontend, empty table)",
+    "Item 4 (fresh session): ProfileDropdown presence dot stuck gray -> wire to getConnectionPresence(wsStatus) + shrink"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-07-06T23:55:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "1a08916",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-07-06T23:43:00+07:00",
       "platform": "claude_code",
@@ -141,13 +148,6 @@
       "platform": "claude_code",
       "branch": "main",
       "head": "a50cf80",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-03T06:56:00+07:00",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "9a923d0",
       "status": "completed"
     }
   ],

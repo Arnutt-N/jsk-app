@@ -1,0 +1,21 @@
+# Session Summary — claude_code — 2026-07-06T23:55:00+07:00
+
+**Branch**: `main`  **HEAD**: `1a08916`
+**Checkpoint**: `.agents/state/checkpoints/handover-claude_code-20260706-2355.json`
+
+## Objective
+Merged PR #127 (squash 1a08916): live-chat operator send via session auto-takeover + message sender attribution. Backend (live_chat_service ensure/release_operator_session + toggle_mode) -> Koyeb; frontend (MessageBubble outgoing label + Thai getSenderLabel) -> Vercel. CI all green pre-merge (backend pytest, frontend lint/build, playwright, encoding, vercel). Dispatched backend deploy manually to guard against merge-commit CI being cancelled (lesson from d7fadc5 earlier this session). Items 3-4 (canned-responses admin page; presence dot) still pending -> fresh session (this one hit ~41 from context bloat).
+
+## Completed
+- Merged PR #127 (squash 1a08916): live-chat operator send via session auto-takeover + message sender attribution. Backend (live_chat_service ensure/release_operator_session + toggle_mode) -> Koyeb; frontend (MessageBubble outgoing label + Thai getSenderLabel) -> Vercel. CI all green pre-merge (backend pytest, frontend lint/build, playwright, encoding, vercel). Dispatched backend deploy manually to guard against merge-commit CI being cancelled (lesson from d7fadc5 earlier this session). Items 3-4 (canned-responses admin page; presence dot) still pending -> fresh session (this one hit ~41 from context bloat).
+
+## Next Steps
+- Verify backend CD deploy of 1a08916 on Koyeb (cd.yml run success + Smoke Check Backend); frontend auto via Vercel
+- Manual test: toggle a room to โหมดเจ้าหน้าที่ -> send -> customer receives in LINE + Transfer/Close buttons appear; bubbles show บอท / operator name
+- Item 3 (fresh session): build /admin/canned-responses admin page (backend CRUD already exists, only picker on frontend, empty table)
+- Item 4 (fresh session): ProfileDropdown presence dot stuck gray -> wire to getConnectionPresence(wsStatus) + shrink
+
+## Blockers
+- _none_
+
+> Fill in detail above, then commit. TASK_LOG.md + SESSION_INDEX.md are generated.

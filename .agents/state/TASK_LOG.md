@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 146 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 147 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-06 23:55 — claude_code — completed
+
+Merged PR #127 (squash 1a08916): live-chat operator send via session auto-takeover + message sender attribution. Backend (live_chat_service ensure/release_operator_session + toggle_mode) -> Koyeb; frontend (MessageBubble outgoing label + Thai getSenderLabel) -> Vercel. CI all green pre-merge (backend pytest, frontend lint/build, playwright, encoding, vercel). Dispatched backend deploy manually to guard against merge-commit CI being cancelled (lesson from d7fadc5 earlier this session). Items 3-4 (canned-responses admin page; presence dot) still pending -> fresh session (this one hit ~41 from context bloat).
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260706-2355.json`
+- Summary: `project-log-md/claude_code/session-summary-20260706-2355.md`
+
+---
 
 ### 2026-07-06 23:43 — claude_code — completed
 
