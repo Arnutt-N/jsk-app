@@ -9,6 +9,7 @@ import StatsCard from '../components/StatsCard';
 import { StaggerContainer, StaggerItem } from '@/components/ui/PageTransition';
 import PageHeader from '../components/PageHeader';
 import { logger } from '@/lib/logger';
+import { getCategoryReadiness, readinessDotClass, readinessLabel } from '@/lib/chatbot-readiness';
 
 interface ReplyObjectSummary {
     id: number;
@@ -22,6 +23,7 @@ interface IntentCategorySummary {
     name: string;
     is_active: boolean;
     response_count: number;
+    active_response_count: number;
     keyword_count: number;
 }
 
@@ -115,7 +117,7 @@ export default function ChatbotDashboard() {
                 <StaggerItem>
                     <StatsCard
                         title="Active Responses"
-                        value={intentCategories.reduce((acc: number, curr) => acc + curr.response_count, 0)}
+                        value={intentCategories.reduce((acc: number, curr) => acc + curr.active_response_count, 0)}
                         icon={<MessageSquare className="w-6 h-6" />}
                         color="success"
                         description="Total Keywords Configured"
@@ -184,7 +186,16 @@ export default function ChatbotDashboard() {
                                             </p>
                                         </div>
                                     </div>
-                                    <span className={`w-2 h-2 rounded-full ${category.is_active ? 'bg-success' : 'bg-border-hover'}`} />
+                                    {(() => {
+                                        const readiness = getCategoryReadiness(category);
+                                        return (
+                                            <span
+                                                className={`w-2 h-2 rounded-full ${readinessDotClass(readiness)}`}
+                                                title={readinessLabel(readiness)}
+                                                aria-label={readinessLabel(readiness)}
+                                            />
+                                        );
+                                    })()}
                                 </div>
                             </Link>
                         ))}
