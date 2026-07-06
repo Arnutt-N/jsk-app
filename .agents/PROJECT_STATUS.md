@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-07-06 21:43 by Claude Code (Recovered missing backend CD deploy for d7fadc5 category readiness badge + PUT is_active g)
+> **Last Updated:** 2026-07-06 23:43 by Claude Code (Live-chat testing follow-ups.)
 
 ## Thai Summary
 ฟีเจอร์ **Rich Menu Switching + การกำหนดเมนูรายบุคคล (R1/R2)** เสร็จสมบูรณ์และขึ้น production แล้ว — merge เข้า main ผ่าน PR #114 (merge commit `3a90f4d`), migrate ฐานข้อมูล Supabase PROD (richmenu alias + user_rich_menu_links แบบ additive) และ deploy frontend บน Vercel เรียบร้อย
@@ -54,6 +54,7 @@
 - [2026-06-21] R1/R2 Rich Menu (incl Task 6.2 per-user UI) merged to `main` via PR #114 (`3a90f4d`); Supabase PROD migrated; Vercel frontend deployed. Branch `feat/rich-menu-switching-r1` deleted. Working tree clean.
 
 ## Recent Completions
+- [2026-07-06 23:43] Claude Code: Live-chat testing follow-ups. Root-caused + fixed via PR #127 (branch fix/livechat-operator-takeover, 2 commits): (1) OPERATOR SEND BUG — toggling a conversation to HUMAN via header toggle only set user.chat_mode and never created/claimed a (Claude Code)
 - [2026-07-06 21:43] Claude Code: Recovered missing backend CD deploy for d7fadc5 (category readiness badge + PUT is_active guard, #122 follow-up). Root cause: d7fadc5 CI was cancelled by the ed88dd8 handoff push (CI concurrency), so cd.yml (workflow_run, needs CI success + (Claude Code)
 - [2026-07-06 14:49] Claude Code: Merged PR #126 (category readiness badge + PUT is_active guard, #122 follow-up) to main via squash d7fadc5; branch feat/category-readiness-guard deleted. CI all green pre-merge (backend pytest 58s, frontend lint/build, playwright smoke, enc (Claude Code)
 - [2026-07-06 10:21] Claude Code: Implemented #122 follow-up (category readiness badge + PUT is_active guard) via superpowers brainstorm->spec->plan->execute(TDD). 3 code commits on feat/category-readiness-guard: eaeb20e (active_response_count GET field + _response_counts F (Claude Code)

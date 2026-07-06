@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 145 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 146 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-06 23:43 — claude_code — completed
+
+Live-chat testing follow-ups. Root-caused + fixed via PR #127 (branch fix/livechat-operator-takeover, 2 commits): (1) OPERATOR SEND BUG — toggling a conversation to HUMAN via header toggle only set user.chat_mode and never created/claimed an ACTIVE session, so operator sends were rejected 404 by _require_active_session_owner ('ส่งข้อความไม่สำเร็จ') and the 'รับสาย' button never showed (only appears for WAITING). Fix: toggle_mode now auto-takes-over on HUMAN (ensure_operator_session: use own ACTIVE / claim WAITING / create ACTIVE / 409 if another owns) and releases on BOT (release_operator_session). +10 tests, full backend pytest 557 green. (2) ATTRIBUTION — MessageBubble never rendered senderLabel for outgoing; data (sender_role+operator_name) already existed. Now shows customer name / บอท / operator name (operator = brand accent); getSenderLabel localised to Thai. +3 render tests, tsc/eslint green. PR #127 covers both (backend Koyeb + frontend Vercel, no migration).
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260706-2343.json`
+- Summary: `project-log-md/claude_code/session-summary-20260706-2343.md`
+
+---
 
 ### 2026-07-06 21:43 — claude_code — completed
 
