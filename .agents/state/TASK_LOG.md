@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 142 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 143 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-06 10:21 — claude_code — completed
+
+Implemented #122 follow-up (category readiness badge + PUT is_active guard) via superpowers brainstorm->spec->plan->execute(TDD). 3 code commits on feat/category-readiness-guard: eaeb20e (active_response_count GET field + _response_counts FILTER-clause helper), guard PUT is_active=true->400 when 0 active response (payload-explicit only; POST/deactivate/name-edit unaffected), frontend 3-color readiness dot + StatsCard active sum via lib/chatbot-readiness.ts. Tests GREEN: backend 22 passed (6 new + webhook no-regression), frontend vitest 4 + tsc + eslint clean. Pushed + opened PR #126. serviceable def (is_active AND active_response_count>0) locked to webhook.py:249 across badge/guard/webhook.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260706-1021.json`
+- Summary: `project-log-md/claude_code/session-summary-20260706-1021.md`
+
+---
 
 ### 2026-07-06 06:19 — claude_code — completed
 
