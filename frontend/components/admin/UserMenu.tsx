@@ -50,6 +50,12 @@ export function UserMenu({ className, locale, onToggleLocale }: UserMenuProps) {
 
   const isAdmin = role === 'SUPER_ADMIN' || role === 'ADMIN';
 
+  // The navbar renders on every admin page, where there is NO live WebSocket to
+  // read (only the live-chat page runs a socket). So the dot honestly reflects
+  // auth state — green while signed in, gray otherwise — instead of a fake,
+  // always-on green. The live-chat ProfileDropdown keeps the real socket dot.
+  const presence: 'online' | 'offline' = user ? 'online' : 'offline';
+
   // Close on click outside
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -87,7 +93,8 @@ export function UserMenu({ className, locale, onToggleLocale }: UserMenuProps) {
         <Avatar
           size="sm"
           fallback={initials}
-          status="online"
+          status={presence}
+          statusClassName="w-2 h-2"
           className="ring-2 ring-brand-500/20 ring-offset-1 ring-offset-white dark:ring-offset-gray-800"
         />
       </button>
@@ -100,7 +107,7 @@ export function UserMenu({ className, locale, onToggleLocale }: UserMenuProps) {
         >
           {/* User info + Theme toggle */}
           <div className="px-4 pt-4 pb-3 flex items-center gap-3">
-            <Avatar size="md" fallback={initials} status="online" />
+            <Avatar size="md" fallback={initials} status={presence} statusClassName="w-2 h-2" />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-bold text-text-primary truncate">{displayName}</p>
               <p className="text-xs text-text-tertiary truncate">{role ? getRoleLabel(role) : 'Administrator'}</p>

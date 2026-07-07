@@ -58,7 +58,7 @@ export function ProfileDropdown() {
         aria-expanded={open}
         aria-haspopup="menu"
       >
-        <Avatar size="sm" fallback={initials} status={presence} />
+        <Avatar size="sm" fallback={initials} status={presence} statusClassName="w-2 h-2" />
       </button>
 
       {/* Dropdown panel */}
@@ -69,7 +69,7 @@ export function ProfileDropdown() {
         >
           {/* User info + Theme toggle */}
           <div className="px-4 pt-4 pb-3 flex items-center gap-3">
-            <Avatar size="md" fallback={initials} status={presence} />
+            <Avatar size="md" fallback={initials} status={presence} statusClassName="w-2 h-2" />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-bold text-text-primary truncate">{displayName}</p>
               <p className="text-xs text-text-tertiary truncate">{user?.role ? getRoleLabel(user.role) : 'Admin'}</p>
