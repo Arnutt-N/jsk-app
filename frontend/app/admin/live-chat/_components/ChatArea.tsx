@@ -155,9 +155,15 @@ export function ChatArea() {
     if (!selectedId) return;
     const container = messagesContainerRef.current;
     if (!container) return;
-    // Scroll to bottom immediately when conversation changes
-    container.scrollTo({ top: container.scrollHeight, behavior: 'auto' });
-  }, [selectedId]);
+
+    // Wait for messages to render before scrolling
+    const timer = setTimeout(() => {
+      container.scrollTo({ top: container.scrollHeight, behavior: 'auto' });
+      console.log('[ChatArea] Auto-scrolled to bottom for selectedId:', selectedId, 'scrollHeight:', container.scrollHeight);
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [selectedId, messages.length]);
 
   useEffect(() => {
     const container = messagesContainerRef.current;
@@ -352,6 +358,17 @@ export function ChatArea() {
           </span>
           <div className="flex-1 h-px bg-border-default" />
         </div>
+
+        {(() => {
+          const unreadCount = currentChat?.unread_count || 0;
+          console.log('[ChatArea] Rendering messages:', {
+            selectedId,
+            messagesLength: messages.length,
+            unreadCount,
+            firstUnreadIdx: unreadCount > 0 ? messages.length - unreadCount : -1,
+          });
+          return null;
+        })()}
 
         {messages
           .slice(visibleWindow.startIndex, visibleWindow.endIndex)

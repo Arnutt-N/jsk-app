@@ -103,9 +103,16 @@ export function computeConversationStats(
     }
   }
 
-  // 'recent' preserves the existing order exactly (same array reference).
+  // 'recent' sorts by most-recent last_message first (instead of preserving API order).
   // 'longest-waiting' returns a non-mutating sorted copy.
-  const sorted = sortBy === 'longest-waiting' ? [...filtered].sort(compareLongestWaiting) : filtered;
+  const sorted =
+    sortBy === 'longest-waiting'
+      ? [...filtered].sort(compareLongestWaiting)
+      : [...filtered].sort((a, b) => {
+          const timeA = toTimeMs(a.last_message?.created_at);
+          const timeB = toTimeMs(b.last_message?.created_at);
+          return timeB - timeA; // most recent first
+        });
 
   return { filtered: sorted, waitingCount, activeCount, closedCount };
 }
