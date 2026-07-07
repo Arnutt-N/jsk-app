@@ -10,7 +10,7 @@ import { isNavItemVisible } from '@/lib/nav-access';
 import {
   Menu, Search, LogOut, ChevronLeft, ChevronRight, X,
   LayoutDashboard, FileText, Bot, MessageCircle,
-  Reply, MessageSquareReply, PanelTop, Users,
+  Reply, MessageSquareReply, MessageSquareText, PanelTop, Users,
   UserCog, BarChart3, Megaphone, FolderOpen,
   Settings, Palette, Shield, History, Scaling,
 } from 'lucide-react';
@@ -173,6 +173,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
         { name: 'Broadcast', href: '/admin/chatbot/broadcast', icon: Megaphone, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
         { name: 'Auto-Replies', href: '/admin/auto-replies', icon: Reply, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
         { name: 'Reply Objects', href: '/admin/reply-objects', icon: MessageSquareReply, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
+        { name: 'Canned Responses', href: '/admin/canned-responses', icon: MessageSquareText, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
         { name: 'Rich Menus', href: '/admin/rich-menus', icon: PanelTop, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
         { name: 'Friend Histories', href: '/admin/friends', icon: Users, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
       ]

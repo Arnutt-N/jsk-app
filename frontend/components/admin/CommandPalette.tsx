@@ -17,7 +17,7 @@ import { useRouter } from 'next/navigation';
 import { Command } from 'cmdk';
 import {
   LayoutDashboard, FileText, Bot, MessageCircle, History, Megaphone,
-  Reply, MessageSquareReply, PanelTop, Users, UserCog, FolderOpen,
+  Reply, MessageSquareReply, MessageSquareText, PanelTop, Users, UserCog, FolderOpen,
   BarChart3, Shield, Settings, Palette, Plus, BarChart, LogOut, Moon,
   Keyboard,
   type LucideIcon,
@@ -51,6 +51,7 @@ const PAGES: Omit<CommandItem, 'id' | 'group' | 'icon' | 'thaiLabel' | 'label'>[
   { href: '/admin/chatbot/broadcast', keywords: ['broadcast', 'ส่งข้อความ', 'ประกาศ'] },
   { href: '/admin/auto-replies', keywords: ['auto', 'reply', 'ตอบกลับอัตโนมัติ'] },
   { href: '/admin/reply-objects', keywords: ['object', 'template', 'เทมเพลต'] },
+  { href: '/admin/canned-responses', keywords: ['canned', 'response', 'snippet', 'ข้อความสำเร็จรูป', 'ชอร์ตคัต'] },
   { href: '/admin/rich-menus', keywords: ['rich menu', 'เมนู', 'ริชเมนู'] },
   { href: '/admin/friends', keywords: ['friends', 'เพื่อน', 'line'] },
   { href: '/admin/users', keywords: ['users', 'staff', 'ผู้ใช้', 'เจ้าหน้าที่'] },
@@ -70,6 +71,7 @@ const PAGE_META: Record<string, { label: string; icon: LucideIcon; thaiLabel: st
   '/admin/chatbot/broadcast': { label: 'Broadcast', thaiLabel: 'ส่งข้อความแบบกลุ่ม', icon: Megaphone },
   '/admin/auto-replies': { label: 'Auto-Replies', thaiLabel: 'ตอบกลับอัตโนมัติ', icon: Reply },
   '/admin/reply-objects': { label: 'Reply Objects', thaiLabel: 'เทมเพลตข้อความ', icon: MessageSquareReply },
+  '/admin/canned-responses': { label: 'Canned Responses', thaiLabel: 'ข้อความสำเร็จรูป', icon: MessageSquareText },
   '/admin/rich-menus': { label: 'Rich Menus', thaiLabel: 'ริชเมนู', icon: PanelTop },
   '/admin/friends': { label: 'Friend Histories', thaiLabel: 'ประวัติเพื่อน LINE', icon: Users },
   '/admin/users': { label: 'User Management', thaiLabel: 'จัดการผู้ใช้', icon: UserCog },
