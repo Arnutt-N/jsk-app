@@ -12,6 +12,7 @@ from app.core.pubsub_manager import pubsub_manager
 from app.core.redis_client import redis_client
 from app.core.websocket_manager import ws_manager
 from app.services.business_hours_service import business_hours_service
+from app.services.canned_response_service import canned_response_service
 from app.services.credential_service import credential_service
 from app.tasks import (
     start_broadcast_scheduler,
@@ -76,6 +77,21 @@ async def _initialize_business_hours() -> None:
         ) from None
 
 
+async def _initialize_canned_responses() -> None:
+    """Seed the default canned responses when the table is empty.
+
+    Non-critical: operators can author their own, so a failure here must
+    never block startup (unlike business hours). Degrades gracefully.
+    """
+    from app.db.session import AsyncSessionLocal
+
+    try:
+        async with AsyncSessionLocal() as db:
+            await canned_response_service.initialize_defaults(db)
+    except Exception as exc:  # noqa: BLE001 -- intentional graceful degrade
+        logger.warning("Could not seed default canned responses at startup: %s", exc)
+
+
 async def _initialize_permission_policy() -> None:
     """Warm the permission_settings cache on startup.
 
@@ -119,6 +135,9 @@ async def lifespan(_: FastAPI):
 
     # Initialize default business hours
     await _initialize_business_hours()
+
+    # Seed default canned responses if the table is empty (non-blocking)
+    await _initialize_canned_responses()
 
     # Warm the permission policy cache (degrades gracefully on failure)
     await _initialize_permission_policy()

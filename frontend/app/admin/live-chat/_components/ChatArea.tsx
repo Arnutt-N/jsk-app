@@ -20,7 +20,13 @@ function getSenderLabel(message: Message, displayName?: string) {
   return message.operator_name || 'เจ้าหน้าที่';
 }
 
-const VIRTUALIZATION_THRESHOLD = 200;
+// Hand-rolled virtualization uses a FIXED row-height estimate, which fights
+// variable-height chat bubbles and makes the scroll position drift → jitter
+// loop → freeze on long conversations. The non-virtual path (render all) is
+// proven smooth, and chats page in 50 at a time so realistic threads rarely
+// approach this. Keep the windowing only as a safety net for pathological
+// (multi-thousand message) threads. See issue: "freeze on very long chats".
+const VIRTUALIZATION_THRESHOLD = 1500;
 const VIRTUAL_ESTIMATED_ROW_HEIGHT = 88;
 const VIRTUAL_OVERSCAN = 12;
 
@@ -343,8 +349,11 @@ export function ChatArea() {
           const idx = visibleWindow.startIndex + visibleIdx;
           const prev = messages[idx - 1];
           const next = messages[idx + 1];
-          const showSender = !prev || prev.direction !== message.direction || prev.sender_role !== message.sender_role;
-          const showAvatar = !next || next.direction !== message.direction || next.sender_role !== message.sender_role;
+          // Group by sender: also break the group when the operator changes, so
+          // two admins replying back-to-back (both OUTGOING/ADMIN) each show their
+          // OWN name label instead of the second being folded under the first.
+          const showSender = !prev || prev.direction !== message.direction || prev.sender_role !== message.sender_role || prev.operator_name !== message.operator_name;
+          const showAvatar = !next || next.direction !== message.direction || next.sender_role !== message.sender_role || next.operator_name !== message.operator_name;
           const pending = !!(message.temp_id && pendingMessages.has(message.temp_id));
           const failed = !!(message.temp_id && failedMessages.has(message.temp_id));
           const formattedTime = new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });

@@ -103,7 +103,7 @@ export const ConversationItem = memo(function ConversationItem({
         />
         <div
           aria-hidden
-          className={`absolute bottom-0 right-0 h-3 w-3 rounded-full ring-2 ring-sidebar-bg ${PRESENCE_DOT_CLASS[presence]}`}
+          className={`absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full ring-2 ring-sidebar-bg ${PRESENCE_DOT_CLASS[presence]}`}
         />
       </div>
 

@@ -105,7 +105,7 @@ export function CustomerPanel({
           )}
           {/* bottom-1/right-1 keeps the dot on the circumference of the larger
               80px avatar (bottom-0/right-0 lands outside a circle this big). */}
-          <div aria-hidden="true" className={`absolute bottom-1 right-1 h-3.5 w-3.5 rounded-full ring-2 ring-surface ${PRESENCE_DOT_CLASS[presence]}`} />
+          <div aria-hidden="true" className={`absolute bottom-1 right-1 h-3 w-3 rounded-full ring-2 ring-surface ${PRESENCE_DOT_CLASS[presence]}`} />
           <span className="sr-only">{PRESENCE_LABEL[presence]}</span>
         </div>
         <p className="font-semibold text-text-primary text-sm mt-3 thai-no-break break-words">{currentChat.display_name}</p>

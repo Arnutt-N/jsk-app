@@ -106,7 +106,7 @@ export function ChatHeader({
             />
             <span
               aria-hidden
-              className={`absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full ring-2 ring-surface ${statusColor}`}
+              className={`absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full ring-2 ring-surface ${statusColor}`}
             />
             <span className="sr-only">{statusLabel}</span>
           </button>
