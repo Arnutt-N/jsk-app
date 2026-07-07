@@ -96,7 +96,11 @@ function SidebarUserInfo({ isCollapsed }: { isCollapsed: boolean }) {
         className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-colors cursor-pointer group"
         onClick={() => logout?.()}
       >
-        <Avatar size="sm" fallback={initials} />
+        {/* Operator presence: green status dot when signed in (active),
+            mirroring the navbar UserMenu + live-chat surfaces. Avatar keeps its
+            normal size; only the status dot is shrunk (statusClassName) so the
+            indicator reads as a subtle accent, not a badge. */}
+        <Avatar size="sm" fallback={initials} status="online" statusClassName="w-2 h-2" />
         {!isCollapsed && (
           <>
             <div className="flex-1 min-w-0">

@@ -37,10 +37,16 @@ interface AvatarProps
   alt?: string;
   fallback?: string;
   status?: 'online' | 'offline' | 'busy' | 'away';
+  /**
+   * Override for the status dot's own classes (size, ring, etc.). Merged last
+   * via tailwind-merge so callers can shrink/grow the dot INDEPENDENTLY of the
+   * avatar size — e.g. a small status dot on a normal-size avatar.
+   */
+  statusClassName?: string;
 }
 
 const Avatar = React.forwardRef<HTMLDivElement, AvatarProps>(
-  ({ className, size, shape, src, alt, fallback, status, ...props }, ref) => {
+  ({ className, size, shape, src, alt, fallback, status, statusClassName, ...props }, ref) => {
     const [imageError, setImageError] = React.useState(false);
 
     return (
@@ -75,7 +81,10 @@ const Avatar = React.forwardRef<HTMLDivElement, AvatarProps>(
               status === 'online' && 'bg-online',
               status === 'offline' && 'bg-offline',
               status === 'busy' && 'bg-busy',
-              status === 'away' && 'bg-away'
+              status === 'away' && 'bg-away',
+              // Caller override wins (tailwind-merge) — lets a single surface
+              // shrink the dot without touching the size-based defaults above.
+              statusClassName
             )}
           />
         )}
