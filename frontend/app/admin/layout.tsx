@@ -96,11 +96,11 @@ function SidebarUserInfo({ isCollapsed }: { isCollapsed: boolean }) {
         className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-colors cursor-pointer group"
         onClick={() => logout?.()}
       >
-        {/* Operator presence: green status dot when signed in (active),
-            mirroring the navbar UserMenu + live-chat surfaces. Avatar keeps its
-            normal size; only the status dot is shrunk (statusClassName) so the
-            indicator reads as a subtle accent, not a badge. */}
-        <Avatar size="sm" fallback={initials} status="online" statusClassName="w-2 h-2" />
+        {/* No presence dot: the sidebar shows on every admin page where there
+            is no live socket, so a dot here would be a fake always-on indicator
+            (it was hardcoded "online"). Plain avatar instead — the real
+            socket-backed dot lives only on the live-chat ProfileDropdown. */}
+        <Avatar size="sm" fallback={initials} />
         {!isCollapsed && (
           <>
             <div className="flex-1 min-w-0">
