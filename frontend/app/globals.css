@@ -562,6 +562,31 @@
     color: hsl(213 93% 78%);
   }
   
+  /* Live Chat Status Colors */
+  .bg-online {
+    background-color: var(--color-online);
+  }
+
+  .bg-away {
+    background-color: var(--color-away);
+  }
+
+  .bg-offline {
+    background-color: var(--color-offline);
+  }
+
+  .text-online {
+    color: var(--color-online);
+  }
+
+  .text-away {
+    color: var(--color-away);
+  }
+
+  .text-offline {
+    color: var(--color-offline);
+  }
+
   /* Focus Ring */
   .focus-ring {
     @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/50 focus-visible:ring-offset-2;

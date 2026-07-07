@@ -12,6 +12,7 @@ import { ChatHeader } from './ChatHeader';
 import { MessageBubble } from './MessageBubble';
 import { MessageInput } from './MessageInput';
 import { TypingIndicator } from './TypingIndicator';
+import { UnreadDivider } from './UnreadDivider';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 
 function getSenderLabel(message: Message, displayName?: string) {
@@ -148,6 +149,15 @@ export function ChatArea() {
       container?.scrollTo({ top: container.scrollHeight, behavior: reduced ? 'auto' : 'smooth' });
     }
   }, [messages.length, reduced]);
+
+  // Auto-scroll to bottom when opening a new conversation
+  useEffect(() => {
+    if (!selectedId) return;
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    // Scroll to bottom immediately when conversation changes
+    container.scrollTo({ top: container.scrollHeight, behavior: 'auto' });
+  }, [selectedId]);
 
   useEffect(() => {
     const container = messagesContainerRef.current;
@@ -357,21 +367,28 @@ export function ChatArea() {
           const pending = !!(message.temp_id && pendingMessages.has(message.temp_id));
           const failed = !!(message.temp_id && failedMessages.has(message.temp_id));
           const formattedTime = new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+          // Insert unread divider before the first unread message
+          const unreadCount = currentChat?.unread_count || 0;
+          const isFirstUnread = unreadCount > 0 && idx === messages.length - unreadCount;
+
           return (
-            <MessageBubble
-              key={message.id || message.temp_id}
-              message={message}
-              elementId={message.id ? `message-${message.id}` : undefined}
-              isPending={pending}
-              isFailed={failed}
-              formattedTime={formattedTime}
-              senderLabel={getSenderLabel(message, currentChat?.display_name)}
-              showSender={showSender}
-              showAvatar={showAvatar}
-              incomingAvatar={currentChat?.picture_url}
-              isNew={idx >= baselineCount}
-              onRetry={message.temp_id && nonRetryableMessages.has(message.temp_id) ? undefined : retryMessage}
-            />
+            <React.Fragment key={message.id || message.temp_id}>
+              {isFirstUnread && <UnreadDivider count={unreadCount} />}
+              <MessageBubble
+                message={message}
+                elementId={message.id ? `message-${message.id}` : undefined}
+                isPending={pending}
+                isFailed={failed}
+                formattedTime={formattedTime}
+                senderLabel={getSenderLabel(message, currentChat?.display_name)}
+                showSender={showSender}
+                showAvatar={showAvatar}
+                incomingAvatar={currentChat?.picture_url}
+                isNew={idx >= baselineCount}
+                onRetry={message.temp_id && nonRetryableMessages.has(message.temp_id) ? undefined : retryMessage}
+              />
+            </React.Fragment>
           );
         })}
         {virtualEnabled && <div aria-hidden style={{ height: `${visibleWindow.bottomPadding}px` }} />}
