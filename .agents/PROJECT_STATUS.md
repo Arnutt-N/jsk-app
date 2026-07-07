@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-07-07 10:38 by Claude Code (Shipped Item 3 canned-responses admin page a46643e + Item 4 honest navbar presence dot + s)
+> **Last Updated:** 2026-07-07 13:30 by Claude Code (Remote-control bug session: 6 issues from LIVE PROD testing.)
 
 ## Thai Summary
 ฟีเจอร์ **Rich Menu Switching + การกำหนดเมนูรายบุคคล (R1/R2)** เสร็จสมบูรณ์และขึ้น production แล้ว — merge เข้า main ผ่าน PR #114 (merge commit `3a90f4d`), migrate ฐานข้อมูล Supabase PROD (richmenu alias + user_rich_menu_links แบบ additive) และ deploy frontend บน Vercel เรียบร้อย
@@ -54,6 +54,7 @@
 - [2026-06-21] R1/R2 Rich Menu (incl Task 6.2 per-user UI) merged to `main` via PR #114 (`3a90f4d`); Supabase PROD migrated; Vercel frontend deployed. Branch `feat/rich-menu-switching-r1` deleted. Working tree clean.
 
 ## Recent Completions
+- [2026-07-07 13:30] Claude Code: Remote-control bug session: 6 issues from LIVE PROD testing. FIXED #1a (a2083f9): removed fake operator presence dot from navbar UserMenu + sidebar SidebarUserInfo (sidebar was hardcoded status=online, no socket to back it). tsc clean. Inve (Claude Code)
 - [2026-07-07 10:38] Claude Code: Shipped Item 3 (canned-responses admin page a46643e) + Item 4 (honest navbar presence dot + shrink dots 7b25017). Item 3: new /admin/canned-responses CRUD page (list/create/edit/soft-delete) over existing backend API; mirrors auto-replies t (Claude Code)
 - [2026-07-07 09:23] Claude Code: Fixed sidebar presence dot + renamed live-chat session buttons สาย→แชท (committed 17001a8 on main). (1) SidebarUserInfo avatar back to size=sm; only the status dot shrinks via a new Avatar statusClassName override (w-2 h-2) — prior pass wro (Claude Code)
 - [2026-07-06 23:55] Claude Code: Merged PR #127 (squash 1a08916): live-chat operator send via session auto-takeover + message sender attribution. Backend (live_chat_service ensure/release_operator_session + toggle_mode) -> Koyeb; frontend (MessageBubble outgoing label + Th (Claude Code)

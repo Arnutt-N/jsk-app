@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 149 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 150 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-07 13:30 — claude_code — completed
+
+Remote-control bug session: 6 issues from LIVE PROD testing. FIXED #1a (a2083f9): removed fake operator presence dot from navbar UserMenu + sidebar SidebarUserInfo (sidebar was hardcoded status=online, no socket to back it). tsc clean. Investigated ALL 6 root causes via code-read (see next steps). AWAITING prod URL from user to reproduce #2/#3 + screenshot #4. Session cost went critical (~130 usd) so checkpointing findings.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260707-1330.json`
+- Summary: `project-log-md/claude_code/session-summary-20260707-1330.md`
+
+---
 
 ### 2026-07-07 10:38 — claude_code — completed
 
