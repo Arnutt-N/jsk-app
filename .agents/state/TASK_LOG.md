@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 148 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 149 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-07 10:38 — claude_code — completed
+
+Shipped Item 3 (canned-responses admin page a46643e) + Item 4 (honest navbar presence dot + shrink dots 7b25017). Item 3: new /admin/canned-responses CRUD page (list/create/edit/soft-delete) over existing backend API; mirrors auto-replies table + reply-objects modal; sidebar + Cmd+K nav; 5 vitest. Item 4: navbar UserMenu dot was fake always-green with NO global socket to read -> made honest (green when signed in, gray otherwise) + shrank dots via Avatar statusClassName; live-chat ProfileDropdown already wired to real wsStatus, only shrank its dots. All verified tsc0/eslint0; canned vitest 5/5. Earlier this session: 17001a8 (sidebar dot + buttons สาย->แชท) already pushed.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260707-1038.json`
+- Summary: `project-log-md/claude_code/session-summary-20260707-1038.md`
+
+---
 
 ### 2026-07-07 09:23 — claude_code — completed
 

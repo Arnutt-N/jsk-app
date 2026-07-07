@@ -1,14 +1,21 @@
 {
-  "last_updated": "2026-07-07T09:23:00+07:00",
+  "last_updated": "2026-07-07T10:38:00+07:00",
   "platform": "claude_code",
-  "current_task": "Fixed sidebar presence dot + renamed live-chat session buttons สาย→แชท (committed 17001a8 on main). (1) SidebarUserInfo avatar back to size=sm; only the status dot shrinks via a new Avatar statusClass",
+  "current_task": "Shipped Item 3 (canned-responses admin page a46643e) + Item 4 (honest navbar presence dot + shrink dots 7b25017). Item 3: new /admin/canned-responses CRUD page (list/create/edit/soft-delete) over exis",
   "plan_status": "completed",
   "next_steps": [
-    "Push main (17001a8) -> Vercel auto-deploys frontend; visually verify sidebar status dot is smaller + buttons read แชท",
-    "Item 3: build /admin/canned-responses admin page (backend CRUD exists; frontend picker only, table empty)",
-    "Item 4: navbar ProfileDropdown presence dot stuck gray -> wire to getConnectionPresence(wsStatus) — separate surface from the sidebar dot just fixed"
+    "Push main (a46643e + 7b25017 + this handoff) -> Vercel auto-deploys frontend; verify canned-responses page loads + create/edit/delete works + presence dots are smaller",
+    "DEFERRED (optional, bigger): global ConnectionStatusProvider at admin root so the navbar dot reflects the live socket on EVERY page (needs shared socket + dedup with live-chat socket)",
+    "If the live-chat ProfileDropdown ever shows GRAY in real use, that is a real WS-not-connecting bug to debug separately (wiring is already correct)"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-07-07T10:38:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "7b25017",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-07-07T09:23:00+07:00",
       "platform": "claude_code",
@@ -140,13 +147,6 @@
       "platform": "claude_code",
       "branch": "main",
       "head": "4559669",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-03T13:50:00+07:00",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "733c09f",
       "status": "completed"
     }
   ],
