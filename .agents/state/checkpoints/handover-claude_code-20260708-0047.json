@@ -1,0 +1,18 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-07-08T00:47:00+07:00",
+  "branch": "main",
+  "head_commit": "3899f86",
+  "status": "completed",
+  "work_summary": "fix(live-chat): status colors + auto-scroll + unread divider (3899f86)",
+  "priority_actions": [
+    "Manual test บน WSL stack: เปิดห้องแชท verify auto-scroll + unread divider แสดง",
+    "Verify สี legend ตรง ConversationList ตรงกับจุดใน items",
+    "Optional: ใช้ StatusLegend component แทน summary bar ถ้าต้องการ legend แยก"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/claude_code/session-summary-20260708-0047.md",
+  "cross_platform_read": []
+}

@@ -1,15 +1,21 @@
 {
-  "last_updated": "2026-07-07T14:35:00+07:00",
+  "last_updated": "2026-07-08T00:47:00+07:00",
   "platform": "claude_code",
-  "current_task": "Reproduced 6 live-chat/canned bugs on LIVE prod (jsk-app.vercel.app, admin login) via MCP browser, then fixed 5. Pushed a2083f9 (navbar/sidebar fake dots removed) + 0789ad2 (batch). FINDINGS: #2 canne",
+  "current_task": "fix(live-chat): status colors + auto-scroll + unread divider (3899f86)",
   "plan_status": "completed",
   "next_steps": [
-    "#2 REQUIRES backend redeploy to Koyeb prod (Vercel only deploys frontend). Seed is idempotent (only when canned_responses table empty). Dispatch: gh workflow run cd.yml -f environment=production -f target=backend -f backend_skip_build=false. User asked whether to dispatch — awaiting answer. Do NOT auto-deploy (CD can migrate PROD).",
-    "#6 NOT STARTED (big job, deferred to fresh session): user wants 6 REAL working dropdown items on ConversationItem (the 5 removed in 6b10af0 were all disabled 'coming soon' placeholders). Features: 1 Pin conversation, 2 Delete/hide, 3 Mute notifications, 4 Spam/Archive, 5 Follow-up flag, 6 PREVIEW incoming messages (modal, view ~10 msgs WITHOUT marking read / clearing unread badge). Needs DB fields + backend endpoints + frontend UI.",
-    "AFTER Vercel deploys: user to verify #3/#4/#5 on prod live-chat, ESPECIALLY #4 dot size (prior shrink was 'not enough' -> if still too big, reduce CustomerPanel/ChatHeader/ConversationItem dots another step). MCP browser tab still open (group 862674545, tabs 495762513 canned + 495762673 live-chat), admin logged in.",
-    "Decisions locked: navbar dot REMOVED, customer dot=session status, #6=implement all 6 real, reproduce=MCP browser on prod."
+    "Manual test บน WSL stack: เปิดห้องแชท verify auto-scroll + unread divider แสดง",
+    "Verify สี legend ตรง ConversationList ตรงกับจุดใน items",
+    "Optional: ใช้ StatusLegend component แทน summary bar ถ้าต้องการ legend แยก"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-07-08T00:47:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "3899f86",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-07-07T14:35:00+07:00",
       "platform": "claude_code",
@@ -141,13 +147,6 @@
       "platform": "claude_code",
       "branch": "main",
       "head": "17abe62",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-04T23:27:00+07:00",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "5ea5e25",
       "status": "completed"
     }
   ],

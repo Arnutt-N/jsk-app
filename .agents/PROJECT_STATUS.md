@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-07-07 14:35 by Claude Code (Reproduced 6 live-chat/canned bugs on LIVE prod jsk-app.vercel.app, admin login via MCP br)
+> **Last Updated:** 2026-07-08 00:47 by Claude Code (fixlive-chat: status colors + auto-scroll + unread divider 3899f86)
 
 ## Thai Summary
 ฟีเจอร์ **Rich Menu Switching + การกำหนดเมนูรายบุคคล (R1/R2)** เสร็จสมบูรณ์และขึ้น production แล้ว — merge เข้า main ผ่าน PR #114 (merge commit `3a90f4d`), migrate ฐานข้อมูล Supabase PROD (richmenu alias + user_rich_menu_links แบบ additive) และ deploy frontend บน Vercel เรียบร้อย
@@ -54,6 +54,7 @@
 - [2026-06-21] R1/R2 Rich Menu (incl Task 6.2 per-user UI) merged to `main` via PR #114 (`3a90f4d`); Supabase PROD migrated; Vercel frontend deployed. Branch `feat/rich-menu-switching-r1` deleted. Working tree clean.
 
 ## Recent Completions
+- [2026-07-08 00:47] Claude Code: fix(live-chat): status colors + auto-scroll + unread divider (3899f86) (Claude Code)
 - [2026-07-07 14:35] Claude Code: Reproduced 6 live-chat/canned bugs on LIVE prod (jsk-app.vercel.app, admin login) via MCP browser, then fixed 5. Pushed a2083f9 (navbar/sidebar fake dots removed) + 0789ad2 (batch). FINDINGS: #2 canned-empty was NOT a bug (GET returns 200,  (Claude Code)
 - [2026-07-07 13:30] Claude Code: Remote-control bug session: 6 issues from LIVE PROD testing. FIXED #1a (a2083f9): removed fake operator presence dot from navbar UserMenu + sidebar SidebarUserInfo (sidebar was hardcoded status=online, no socket to back it). tsc clean. Inve (Claude Code)
 - [2026-07-07 10:38] Claude Code: Shipped Item 3 (canned-responses admin page a46643e) + Item 4 (honest navbar presence dot + shrink dots 7b25017). Item 3: new /admin/canned-responses CRUD page (list/create/edit/soft-delete) over existing backend API; mirrors auto-replies t (Claude Code)
