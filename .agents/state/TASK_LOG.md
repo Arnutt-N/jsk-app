@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 150 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 151 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-07 14:35 — claude_code — completed
+
+Reproduced 6 live-chat/canned bugs on LIVE prod (jsk-app.vercel.app, admin login) via MCP browser, then fixed 5. Pushed a2083f9 (navbar/sidebar fake dots removed) + 0789ad2 (batch). FINDINGS: #2 canned-empty was NOT a bug (GET returns 200, table just empty) -> added startup seed. #3 freeze = hand-rolled virtualization (fixed 88px row estimate vs variable bubbles) -> raised threshold 200->1500. #5 admin-name-wrong = showSender didn't check operator_name -> two admins back-to-back folded under first name; fixed. #4 shrank dots. #1 navbar/sidebar dots removed, customer dot=session status kept. tsc clean, pushed.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260707-1435.json`
+- Summary: `project-log-md/claude_code/session-summary-20260707-1435.md`
+
+---
 
 ### 2026-07-07 13:30 — claude_code — completed
 

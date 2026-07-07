@@ -1,19 +1,22 @@
 {
-  "last_updated": "2026-07-07T13:30:00+07:00",
+  "last_updated": "2026-07-07T14:35:00+07:00",
   "platform": "claude_code",
-  "current_task": "Remote-control bug session: 6 issues from LIVE PROD testing. FIXED #1a (a2083f9): removed fake operator presence dot from navbar UserMenu + sidebar SidebarUserInfo (sidebar was hardcoded status=online",
+  "current_task": "Reproduced 6 live-chat/canned bugs on LIVE prod (jsk-app.vercel.app, admin login) via MCP browser, then fixed 5. Pushed a2083f9 (navbar/sidebar fake dots removed) + 0789ad2 (batch). FINDINGS: #2 canne",
   "plan_status": "completed",
   "next_steps": [
-    "AWAITING: user will paste prod frontend URL (Vercel) so I navigate an MCP tab (shares Chrome login cookie) to see real network/console. tabs_context has an MCP tab ready (group 862674545).",
-    "#2 canned-responses EMPTY on prod: endpoint is OLD (added commit b547623, registered in api.py long ago) so NOT a missing-deploy. It uses get_current_admin (ADMIN/SUPER_ADMIN ONLY) vs live-chat get_current_staff (all roles incl AGENT/HEAD/DIRECTOR). Frontend GET /api/v1/admin/canned-responses (relative, cookie auth) expects data.items; backend returns {items:[],total} correctly. Reproduce to confirm 403(role) vs 200-empty(no seed rows) vs 500(missing table/migration).",
-    "#3 FREEZE on selecting a user: frontend code is fine (useChatRoom effect setMessages([]) then fetchChatDetail+fetchMessagesPage, all null-guarded, no render loop; ChatHeader guards currentChat?). Likely backend GET /conversations/{id}/messages error/hang on prod. Reproduce console+network. ALSO user wants an unread-divider (best-practice 'unread messages' / 'previous session' separator) in ChatArea.",
-    "#4 shrink status dots: DO NOT guess size again - user said prior shrink was 'still too big'. Get a real screenshot first, then calibrate. Dots today: CustomerPanel h-3.5 w-3.5 ring-2 (80px avatar), ChatHeader h-3.5 (lg 48px), ConversationItem h-3 (40px), ProfileDropdown w-2 (sm 32px). navbar/sidebar dots already removed.",
-    "#5 operator name on bubble: backend is 100pct CORRECT (live_chat_service.send_message sets operator_name=operator.display_name; saved via line_service.save_message; broadcast on both WS ws_live_chat.py and REST; MessageResponse serializes it). Root cause = OLD messages rows with null operator_name OR the operator has no display_name (fallback Admin). Frontend getSenderLabel in ChatArea returns operator_name || เจ้าหน้าที่. Fix = data backfill + smarter fallback; confirm via reproduce which case it is.",
-    "#1 customer dot: user chose 'customer dot = chat SESSION status' (current getSessionPresence logic is already correct: ACTIVE=green WAITING=amber none=gray). When reproducing, check if a session is stuck ACTIVE in DB while not really active (that would be why it showed green). Consider session-centric labels (กำลังสนทนา/รอคิว/ไม่มีเซสชัน) instead of PRESENCE_LABEL ออนไลน์ which reads like customer-online.",
-    "#6 sidebar conversation dropdown (BIG): the 5 items removed in 6b10af0 (Pin/Mute/Archive/Spam/Delete) were ALL disabled 'coming soon' placeholders. User wants 6 REAL working features: 1 Pin conversation, 2 Delete/hide, 3 Mute notifications, 4 Spam/Archive, 5 Follow-up flag, 6 PREVIEW incoming messages (modal, view ~10 msgs WITHOUT marking read / clearing unread badge). Needs DB fields + backend endpoints + frontend. Do AFTER bugs 1-5.",
-    "Decisions locked: navbar dot=REMOVED(done). customer dot=session status. reproduce=user opens prod browser for me. #6=implement all 6 real."
+    "#2 REQUIRES backend redeploy to Koyeb prod (Vercel only deploys frontend). Seed is idempotent (only when canned_responses table empty). Dispatch: gh workflow run cd.yml -f environment=production -f target=backend -f backend_skip_build=false. User asked whether to dispatch — awaiting answer. Do NOT auto-deploy (CD can migrate PROD).",
+    "#6 NOT STARTED (big job, deferred to fresh session): user wants 6 REAL working dropdown items on ConversationItem (the 5 removed in 6b10af0 were all disabled 'coming soon' placeholders). Features: 1 Pin conversation, 2 Delete/hide, 3 Mute notifications, 4 Spam/Archive, 5 Follow-up flag, 6 PREVIEW incoming messages (modal, view ~10 msgs WITHOUT marking read / clearing unread badge). Needs DB fields + backend endpoints + frontend UI.",
+    "AFTER Vercel deploys: user to verify #3/#4/#5 on prod live-chat, ESPECIALLY #4 dot size (prior shrink was 'not enough' -> if still too big, reduce CustomerPanel/ChatHeader/ConversationItem dots another step). MCP browser tab still open (group 862674545, tabs 495762513 canned + 495762673 live-chat), admin logged in.",
+    "Decisions locked: navbar dot REMOVED, customer dot=session status, #6=implement all 6 real, reproduce=MCP browser on prod."
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-07-07T14:35:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "0789ad2",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-07-07T13:30:00+07:00",
       "platform": "claude_code",
@@ -145,13 +148,6 @@
       "platform": "claude_code",
       "branch": "main",
       "head": "5ea5e25",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-04T22:51:00+07:00",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "ce5a414",
       "status": "completed"
     }
   ],
