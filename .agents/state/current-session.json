@@ -1,15 +1,21 @@
 {
-  "last_updated": "2026-07-06T23:55:00+07:00",
+  "last_updated": "2026-07-07T09:23:00+07:00",
   "platform": "claude_code",
-  "current_task": "Merged PR #127 (squash 1a08916): live-chat operator send via session auto-takeover + message sender attribution. Backend (live_chat_service ensure/release_operator_session + toggle_mode) -> Koyeb; fro",
+  "current_task": "Fixed sidebar presence dot + renamed live-chat session buttons สาย→แชท (committed 17001a8 on main). (1) SidebarUserInfo avatar back to size=sm; only the status dot shrinks via a new Avatar statusClass",
   "plan_status": "completed",
   "next_steps": [
-    "Verify backend CD deploy of 1a08916 on Koyeb (cd.yml run success + Smoke Check Backend); frontend auto via Vercel",
-    "Manual test: toggle a room to โหมดเจ้าหน้าที่ -> send -> customer receives in LINE + Transfer/Close buttons appear; bubbles show บอท / operator name",
-    "Item 3 (fresh session): build /admin/canned-responses admin page (backend CRUD already exists, only picker on frontend, empty table)",
-    "Item 4 (fresh session): ProfileDropdown presence dot stuck gray -> wire to getConnectionPresence(wsStatus) + shrink"
+    "Push main (17001a8) -> Vercel auto-deploys frontend; visually verify sidebar status dot is smaller + buttons read แชท",
+    "Item 3: build /admin/canned-responses admin page (backend CRUD exists; frontend picker only, table empty)",
+    "Item 4: navbar ProfileDropdown presence dot stuck gray -> wire to getConnectionPresence(wsStatus) — separate surface from the sidebar dot just fixed"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-07-07T09:23:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "17001a8",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-07-06T23:55:00+07:00",
       "platform": "claude_code",
@@ -141,13 +147,6 @@
       "platform": "claude_code",
       "branch": "main",
       "head": "733c09f",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-03T12:02:00+07:00",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "a50cf80",
       "status": "completed"
     }
   ],

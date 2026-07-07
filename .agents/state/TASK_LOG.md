@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 147 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 148 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-07 09:23 — claude_code — completed
+
+Fixed sidebar presence dot + renamed live-chat session buttons สาย→แชท (committed 17001a8 on main). (1) SidebarUserInfo avatar back to size=sm; only the status dot shrinks via a new Avatar statusClassName override (w-2 h-2) — prior pass wrongly shrank the whole avatar. (2) SessionActions labels รับ/โอน/ปิดสาย → รับ/โอน/ปิดแชท + group aria-label การจัดการแชท; tests updated. Verified tsc 0, eslint 0, vitest 12/12.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260707-0923.json`
+- Summary: `project-log-md/claude_code/session-summary-20260707-0923.md`
+
+---
 
 ### 2026-07-06 23:55 — claude_code — completed
 

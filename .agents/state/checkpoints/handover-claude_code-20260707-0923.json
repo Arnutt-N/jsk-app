@@ -1,0 +1,18 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-07-07T09:23:00+07:00",
+  "branch": "main",
+  "head_commit": "17001a8",
+  "status": "completed",
+  "work_summary": "Fixed sidebar presence dot + renamed live-chat session buttons สาย→แชท (committed 17001a8 on main). (1) SidebarUserInfo avatar back to size=sm; only the status dot shrinks via a new Avatar statusClassName override (w-2 h-2) — prior pass wrongly shrank the whole avatar. (2) SessionActions labels รับ/โอน/ปิดสาย → รับ/โอน/ปิดแชท + group aria-label การจัดการแชท; tests updated. Verified tsc 0, eslint 0, vitest 12/12.",
+  "priority_actions": [
+    "Push main (17001a8) -> Vercel auto-deploys frontend; visually verify sidebar status dot is smaller + buttons read แชท",
+    "Item 3: build /admin/canned-responses admin page (backend CRUD exists; frontend picker only, table empty)",
+    "Item 4: navbar ProfileDropdown presence dot stuck gray -> wire to getConnectionPresence(wsStatus) — separate surface from the sidebar dot just fixed"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/claude_code/session-summary-20260707-0923.md",
+  "cross_platform_read": []
+}
