@@ -7,22 +7,23 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/components/providers';
 import { Avatar } from '@/components/ui/Avatar';
 import { getRoleLabel } from '@/lib/constants/roles';
-import { getConnectionPresence } from '@/lib/constants/live-chat-presence';
-import { useLiveChatContext } from '../_context/LiveChatContext';
+import { getSessionPresence } from '@/lib/constants/live-chat-presence';
+import { useLiveChatStore } from '../_store/liveChatStore';
 
 export function ProfileDropdown() {
   const { user, logout } = useAuth();
   const { resolvedTheme, toggleTheme } = useTheme();
-  const { wsStatus } = useLiveChatContext();
+  const currentChat = useLiveChatStore((s) => s.currentChat);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   const displayName = user?.display_name || user?.username || 'Admin';
   const initials = displayName.substring(0, 2).toUpperCase();
   const isDark = resolvedTheme === 'dark';
-  // The dot reflects the operator's own live connection: connected → online,
-  // connecting/reconnecting → away, disconnected → offline (shared mapping).
-  const presence = getConnectionPresence(wsStatus);
+  // The dot reflects the selected conversation's session status (same semantics
+  // as ConversationItem/ChatHeader/CustomerPanel): ACTIVE → online, WAITING → away,
+  // no session → offline. When no conversation is selected, defaults to offline.
+  const presence = getSessionPresence(currentChat?.session?.status);
 
   // Close on click outside
   useEffect(() => {
