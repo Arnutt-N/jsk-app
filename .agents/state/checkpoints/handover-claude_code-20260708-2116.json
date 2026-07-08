@@ -1,0 +1,19 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-07-08T21:16:00+07:00",
+  "branch": "main",
+  "head_commit": "d8ed435",
+  "status": "completed",
+  "work_summary": "fix(live-chat): systematic-debugging root cause — remove messages.length dep + double rAF (d8ed435)",
+  "priority_actions": [
+    "Push to deploy to production",
+    "Manual test on Vercel: verify auto-scroll works for users with many messages",
+    "Check console logs confirm single scroll event (not multiple)",
+    "Verify unread divider shows when unread_count > 0"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/claude_code/session-summary-20260708-2116.md",
+  "cross_platform_read": []
+}
