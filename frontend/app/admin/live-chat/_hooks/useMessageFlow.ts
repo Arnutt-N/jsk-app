@@ -153,7 +153,8 @@ export function useMessageFlow({
           if (store.pendingMessages.has(tempId)) {
             store.removePending(tempId);
             store.setFailed(tempId, 'หมดเวลารอการยืนยันข้อความ');
-            if (store.sending) {
+            // Only clear sending flag if NO other messages are pending
+            if (store.sending && store.pendingMessages.size === 0) {
               store.setSending(false);
             }
           }

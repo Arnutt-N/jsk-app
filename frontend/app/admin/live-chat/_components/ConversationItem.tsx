@@ -61,7 +61,10 @@ export const ConversationItem = memo(function ConversationItem({
   // itself is unused (the real value is computed fresh during render).
   const [, refreshWaiting] = React.useState(0);
   React.useEffect(() => {
-    if (!waitingStartedAt) return;
+    if (!waitingStartedAt) {
+      // Return undefined instead of early return to ensure cleanup always runs
+      return undefined;
+    }
     const id = setInterval(() => refreshWaiting((n) => n + 1), WAITING_REFRESH_MS);
     return () => clearInterval(id);
   }, [waitingStartedAt]);
