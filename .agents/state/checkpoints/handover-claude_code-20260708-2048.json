@@ -1,0 +1,18 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-07-08T20:48:00+07:00",
+  "branch": "main",
+  "head_commit": "cac74f8",
+  "status": "completed",
+  "work_summary": "fix(live-chat): force recent sorting + add debug logs for auto-scroll/unread",
+  "priority_actions": [
+    "Test บน WSL stack: verify conversation sorting (recent first)",
+    "Check auto-scroll works when opening chat rooms",
+    "Verify unread divider shows (check console logs for unread_count)"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/claude_code/session-summary-20260708-2048.md",
+  "cross_platform_read": []
+}
