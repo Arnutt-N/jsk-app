@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-07-08 22:48 by Claude Code (fixlive-chat: ProfileDropdown session presence for consistent status colors 39fefde)
+> **Last Updated:** 2026-07-08 23:00 by Claude Code (Audit complete: found 4 HIGH + 2 MEDIUM bugs in live-chat)
 
 ## Thai Summary
 ฟีเจอร์ **Rich Menu Switching + การกำหนดเมนูรายบุคคล (R1/R2)** เสร็จสมบูรณ์และขึ้น production แล้ว — merge เข้า main ผ่าน PR #114 (merge commit `3a90f4d`), migrate ฐานข้อมูล Supabase PROD (richmenu alias + user_rich_menu_links แบบ additive) และ deploy frontend บน Vercel เรียบร้อย
@@ -54,6 +54,7 @@
 - [2026-06-21] R1/R2 Rich Menu (incl Task 6.2 per-user UI) merged to `main` via PR #114 (`3a90f4d`); Supabase PROD migrated; Vercel frontend deployed. Branch `feat/rich-menu-switching-r1` deleted. Working tree clean.
 
 ## Recent Completions
+- [2026-07-08 23:00] Claude Code: Audit complete: found 4 HIGH + 2 MEDIUM bugs in live-chat (Claude Code)
 - [2026-07-08 22:48] Claude Code: fix(live-chat): ProfileDropdown session presence for consistent status colors (39fefde) (Claude Code)
 - [2026-07-08 21:16] Claude Code: fix(live-chat): systematic-debugging root cause — remove messages.length dep + double rAF (d8ed435) (Claude Code)
 - [2026-07-08 20:48] Claude Code: fix(live-chat): force recent sorting + add debug logs for auto-scroll/unread (Claude Code)

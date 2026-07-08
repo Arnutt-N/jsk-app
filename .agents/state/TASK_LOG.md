@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 155 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 156 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-08 23:00 — claude_code — completed
+
+Audit complete: found 4 HIGH + 2 MEDIUM bugs in live-chat
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260708-2300.json`
+- Summary: `project-log-md/claude_code/session-summary-20260708-2300.md`
+
+---
 
 ### 2026-07-08 22:48 — claude_code — completed
 
