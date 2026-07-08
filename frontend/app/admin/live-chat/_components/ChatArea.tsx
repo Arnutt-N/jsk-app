@@ -156,14 +156,23 @@ export function ChatArea() {
     const container = messagesContainerRef.current;
     if (!container) return;
 
-    // Wait for messages to render before scrolling
-    const timer = setTimeout(() => {
-      container.scrollTo({ top: container.scrollHeight, behavior: 'auto' });
-      console.log('[ChatArea] Auto-scrolled to bottom for selectedId:', selectedId, 'scrollHeight:', container.scrollHeight);
-    }, 100);
+    // Use double rAF to wait for layout/paint to complete
+    // (more reliable than setTimeout for variable-height messages)
+    const rafId1 = requestAnimationFrame(() => {
+      const rafId2 = requestAnimationFrame(() => {
+        container.scrollTo({ top: container.scrollHeight, behavior: 'auto' });
+        console.log('[ChatArea] Auto-scrolled to bottom for selectedId:', selectedId, 'scrollHeight:', container.scrollHeight);
+      });
+      // Store second rAF ID for cleanup
+      (rafId1 as any).rafId2 = rafId2;
+    });
 
-    return () => clearTimeout(timer);
-  }, [selectedId, messages.length]);
+    return () => {
+      cancelAnimationFrame(rafId1);
+      const rafId2 = (rafId1 as any).rafId2;
+      if (rafId2) cancelAnimationFrame(rafId2);
+    };
+  }, [selectedId]);
 
   useEffect(() => {
     const container = messagesContainerRef.current;
