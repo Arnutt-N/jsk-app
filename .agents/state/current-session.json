@@ -1,14 +1,22 @@
 {
-  "last_updated": "2026-07-08T00:47:00+07:00",
+  "last_updated": "2026-07-09T20:39:00+07:00",
   "platform": "claude_code",
-  "current_task": "fix(live-chat): status colors + auto-scroll + unread divider (3899f86)",
+  "current_task": "Fixed remaining 4 audit bugs (4a0e1eb): HIGH #3 a11y virtualization + #4 rAF cleanup, MEDIUM #5 ownership race + #6 auto-scroll race. All 6 audit bugs now resolved. TypeScript/ESLint/vitest pass.",
   "plan_status": "completed",
   "next_steps": [
-    "Manual test บน WSL stack: เปิดห้องแชท verify auto-scroll + unread divider แสดง",
-    "Verify สี legend ตรง ConversationList ตรงกับจุดใน items",
-    "Optional: ใช้ StatusLegend component แทน summary bar ถ้าต้องการ legend แยก"
+    "URGENT: Manual test auto-scroll (d8ed435) for both แชทเยอะ + แชทน้อย",
+    "URGENT: Manual test status colors (39fefde) verify dots match across 4 จุด",
+    "Manual test new fixes: a11y ปุ่มโหลดข้อความทั้งหมด, ownership lock หลัง claim, auto-scroll atomic snapshot",
+    "Optional: push already done — consider opening PR if not on main"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-07-09T20:39:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "4a0e1eb",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-07-08T00:47:00+07:00",
       "platform": "claude_code",
@@ -140,13 +148,6 @@
       "platform": "claude_code",
       "branch": "main",
       "head": "db976f3",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-05T00:30:00+07:00",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "17abe62",
       "status": "completed"
     }
   ],

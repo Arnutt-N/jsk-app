@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 157 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 158 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-09 20:39 — claude_code — completed
+
+Fixed remaining 4 audit bugs (4a0e1eb): HIGH #3 a11y virtualization + #4 rAF cleanup, MEDIUM #5 ownership race + #6 auto-scroll race. All 6 audit bugs now resolved. TypeScript/ESLint/vitest pass.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260709-2039.json`
+- Summary: `project-log-md/claude_code/session-summary-20260709-2039.md`
+
+---
 
 ### 2026-07-08 23:09 — claude_code — completed
 
