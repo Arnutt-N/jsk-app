@@ -12,6 +12,9 @@ export interface ToastNotification {
   message: string
   avatar?: string
   type: 'message' | 'system'
+  // L9.4: Visual variant for system toasts. 'success' shows a green icon
+  // (e.g. WebSocket restored), 'warning' shows amber (default for system).
+  variant?: 'success' | 'warning'
   timestamp: number
   // Present only for clickable 'message' toasts — opens that conversation on click.
   lineUserId?: string

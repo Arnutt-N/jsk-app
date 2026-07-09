@@ -144,9 +144,6 @@ export function ChatArea() {
     setBaselineCount(messages.length);
     // L9.2 (bug #3): Reset "load all" when switching conversations
     setForceAllMessages(false);
-    // L9.3 (auto-scroll fix): Mark that we need to scroll to bottom once
-    // messages load for this new conversation
-    pendingScrollToBottomRef.current = true;
   }
 
   // Only auto-scroll if near bottom (not when user scrolled up to read older messages).
@@ -186,8 +183,11 @@ export function ChatArea() {
   // prevents the inner rAF callback from executing after cleanup, and
   // cancelAnimationFrame is called on both IDs (0 is a safe no-op if the inner
   // rAF hasn't been scheduled yet).
+  // L9.3 (auto-scroll fix): Set pendingScrollToBottomRef here (in effect, not
+  // render body) so the messages-loaded effect knows to force-scroll.
   useEffect(() => {
     if (!selectedId) return;
+    pendingScrollToBottomRef.current = true;
     const container = messagesContainerRef.current;
     if (!container) return;
 
@@ -324,17 +324,9 @@ export function ChatArea() {
               {connectionStatus.label}
             </div>
 
-            {/* Notification bell — waiting conversations.
-                L9.4: Bell color reflects WebSocket connection state:
-                green (connected) / amber (connecting) / red (disconnected) */}
+            {/* Notification bell — waiting conversations */}
             <button
-              className={`relative p-2 rounded-xl transition-all cursor-pointer ${
-                wsStatus === 'connected'
-                  ? 'text-online hover:bg-online/10'
-                  : wsStatus === 'disconnected'
-                    ? 'text-danger hover:bg-danger/10'
-                    : 'text-away hover:bg-away/10'
-              }`}
+              className="relative p-2 rounded-xl text-text-tertiary hover:text-brand-600 hover:bg-muted transition-all cursor-pointer"
               aria-label={`${waitingCount} conversations waiting`}
               title={`${waitingCount} รอรับเรื่อง`}
             >

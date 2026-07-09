@@ -188,6 +188,7 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
           title: 'เชื่อมต่อแล้ว',
           message: 'การเชื่อมต่อ WebSocket กู้คืนสำเร็จ',
           type: 'system',
+          variant: 'success',
         });
       }
     }

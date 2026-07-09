@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef } from 'react'
 import Image from 'next/image'
-import { X, MessageSquare, Bell } from 'lucide-react'
+import { X, MessageSquare, Bell, CheckCircle2 } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { cn } from '@/lib/utils'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
@@ -80,9 +80,17 @@ export function NotificationToast({ onSelect }: NotificationToastProps) {
             ) : (
               <div className={cn(
                 "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
-                toast.type === 'system' ? "bg-warning/15 text-warning" : "bg-brand-500/15 text-brand-500"
+                toast.type === 'system'
+                  ? toast.variant === 'success'
+                    ? "bg-online/15 text-online"
+                    : "bg-warning/15 text-warning"
+                  : "bg-brand-500/15 text-brand-500"
               )}>
-                {toast.type === 'system' ? <Bell className="h-5 w-5" /> : <MessageSquare className="h-5 w-5" />}
+                {toast.type === 'system'
+                  ? toast.variant === 'success'
+                    ? <CheckCircle2 className="h-5 w-5" />
+                    : <Bell className="h-5 w-5" />
+                  : <MessageSquare className="h-5 w-5" />}
               </div>
             )}
             <div className="min-w-0 flex-1 pr-6">
