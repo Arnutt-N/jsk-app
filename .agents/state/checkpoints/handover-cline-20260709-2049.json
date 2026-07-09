@@ -1,0 +1,19 @@
+{
+  "handoff_version": "2.0",
+  "platform": "cline",
+  "agent": "cline",
+  "timestamp": "2026-07-09T20:49:00+07:00",
+  "branch": "main",
+  "head_commit": "e179d64",
+  "status": "completed",
+  "work_summary": "Cross-platform handoff FROM Claude Code TO Cline (GLM-5.2): All 6 live-chat audit bugs fixed (4a0e1eb), pushed to origin/main. Manual test pending.",
+  "priority_actions": [
+    "URGENT: Manual test auto-scroll (d8ed435) for both แชทเยอะ + แชทน้อย",
+    "URGENT: Manual test status colors (39fefde) verify dots match across 4 จุด",
+    "Manual test new fixes (4a0e1eb): a11y ปุ่มโหลดข้อความทั้งหมด, ownership lock หลัง claim, auto-scroll atomic snapshot",
+    "Read claude_code/session-summary-20260709-2039.md for full audit context"
+  ],
+  "context_for_next_agent": "PLATFORM META — AI CLI IDE: Cline | Provider: Zhipu AI | Model: GLM-4.5 (aka GLM-5.2). This is a cross-platform handoff: the actual code work was done by Claude Code (Anthropic, Claude Sonnet 4) in the previous session. Cline/GLM-5.2 is the PICKUP agent. Read claude_code/session-summary-20260709-2039.md for the full audit report and fix details. All 6 bugs are already fixed and pushed — your primary task is MANUAL TESTING on production, not code changes.",
+  "session_summary": "project-log-md/cline/session-summary-20260709-2049.md",
+  "cross_platform_read": []
+}

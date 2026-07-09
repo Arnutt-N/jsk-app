@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 158 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 159 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-09 20:49 — cline — completed
+
+Cross-platform handoff FROM Claude Code TO Cline (GLM-5.2): All 6 live-chat audit bugs fixed (4a0e1eb), pushed to origin/main. Manual test pending.
+
+- Checkpoint: `.agents/state/checkpoints/handover-cline-20260709-2049.json`
+- Summary: `project-log-md/cline/session-summary-20260709-2049.md`
+
+---
 
 ### 2026-07-09 20:39 — claude_code — completed
 

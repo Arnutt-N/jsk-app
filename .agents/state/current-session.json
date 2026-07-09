@@ -1,15 +1,22 @@
 {
-  "last_updated": "2026-07-09T20:39:00+07:00",
-  "platform": "claude_code",
-  "current_task": "Fixed remaining 4 audit bugs (4a0e1eb): HIGH #3 a11y virtualization + #4 rAF cleanup, MEDIUM #5 ownership race + #6 auto-scroll race. All 6 audit bugs now resolved. TypeScript/ESLint/vitest pass.",
+  "last_updated": "2026-07-09T20:49:00+07:00",
+  "platform": "cline",
+  "current_task": "Cross-platform handoff FROM Claude Code TO Cline (GLM-5.2): All 6 live-chat audit bugs fixed (4a0e1eb), pushed to origin/main. Manual test pending.",
   "plan_status": "completed",
   "next_steps": [
     "URGENT: Manual test auto-scroll (d8ed435) for both แชทเยอะ + แชทน้อย",
     "URGENT: Manual test status colors (39fefde) verify dots match across 4 จุด",
-    "Manual test new fixes: a11y ปุ่มโหลดข้อความทั้งหมด, ownership lock หลัง claim, auto-scroll atomic snapshot",
-    "Optional: push already done — consider opening PR if not on main"
+    "Manual test new fixes (4a0e1eb): a11y ปุ่มโหลดข้อความทั้งหมด, ownership lock หลัง claim, auto-scroll atomic snapshot",
+    "Read claude_code/session-summary-20260709-2039.md for full audit context"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-07-09T20:49:00+07:00",
+      "platform": "cline",
+      "branch": "main",
+      "head": "e179d64",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-07-09T20:39:00+07:00",
       "platform": "claude_code",
@@ -141,13 +148,6 @@
       "platform": "claude_code",
       "branch": "main",
       "head": "6b10af0",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-05T03:01:00+07:00",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "db976f3",
       "status": "completed"
     }
   ],

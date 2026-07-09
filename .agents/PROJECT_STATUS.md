@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-07-09 20:39 by Claude Code (Fixed remaining 4 audit bugs 4a0e1eb: HIGH #3 a11y virtualization + #4 rAF cleanup, MEDIUM)
+> **Last Updated:** 2026-07-09 20:49 by Cline (Cross-platform handoff FROM Claude Code TO Cline GLM-5.2: All 6 live-chat audit bugs fixed)
 
 ## Thai Summary
 ฟีเจอร์ **Rich Menu Switching + การกำหนดเมนูรายบุคคล (R1/R2)** เสร็จสมบูรณ์และขึ้น production แล้ว — merge เข้า main ผ่าน PR #114 (merge commit `3a90f4d`), migrate ฐานข้อมูล Supabase PROD (richmenu alias + user_rich_menu_links แบบ additive) และ deploy frontend บน Vercel เรียบร้อย
@@ -54,6 +54,7 @@
 - [2026-06-21] R1/R2 Rich Menu (incl Task 6.2 per-user UI) merged to `main` via PR #114 (`3a90f4d`); Supabase PROD migrated; Vercel frontend deployed. Branch `feat/rich-menu-switching-r1` deleted. Working tree clean.
 
 ## Recent Completions
+- [2026-07-09 20:49] Cline: Cross-platform handoff FROM Claude Code TO Cline (GLM-5.2): All 6 live-chat audit bugs fixed (4a0e1eb), pushed to origin/main. Manual test pending. (Cline)
 - [2026-07-09 20:39] Claude Code: Fixed remaining 4 audit bugs (4a0e1eb): HIGH #3 a11y virtualization + #4 rAF cleanup, MEDIUM #5 ownership race + #6 auto-scroll race. All 6 audit bugs now resolved. TypeScript/ESLint/vitest pass. (Claude Code)
 - [2026-07-08 23:09] Claude Code: Fixed 2 CRITICAL bugs (memory leak + ACK race) — 4 bugs remain, manual test pending (Claude Code)
 - [2026-07-08 23:00] Claude Code: Audit complete: found 4 HIGH + 2 MEDIUM bugs in live-chat (Claude Code)
