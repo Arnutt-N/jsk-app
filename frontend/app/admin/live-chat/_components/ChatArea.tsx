@@ -101,6 +101,10 @@ export function ChatArea() {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = React.useState(0);
   const [viewportHeight, setViewportHeight] = React.useState(0);
+  // L9.2 (bug #3): Allow screen-reader users to disable virtualization so all
+  // messages are in the DOM and readable. Virtualization removes off-screen
+  // messages from the DOM, violating WCAG 2.1 AA (1.3.2, 4.1.2, 2.4.3).
+  const [forceAllMessages, setForceAllMessages] = React.useState(false);
 
   // L9.1: throttle scroll-driven setState with requestAnimationFrame so the
   // virtualization recompute runs at most once per frame instead of on every
@@ -131,46 +135,58 @@ export function ChatArea() {
   if (selectedId !== prevSelectedId) {
     setPrevSelectedId(selectedId);
     setBaselineCount(messages.length);
+    // L9.2 (bug #3): Reset "load all" when switching conversations
+    setForceAllMessages(false);
   }
-
-  // Helper to check if user is near bottom of scroll container
-  const isNearBottom = () => {
-    if (!messagesContainerRef.current) return true;
-    const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
-    return scrollHeight - scrollTop - clientHeight < 100;
-  };
 
   // Only auto-scroll if near bottom (not when user scrolled up to read older messages).
   // Scroll the messages container directly — scrollIntoView also scrolls overflow-hidden
   // ancestors (the shell), shifting the whole 3-column layout upward.
+  // L9.2 (bug #6): Atomic snapshot — read scrollHeight once and use the same
+  // value for both the near-bottom check and the scroll target. Previously
+  // isNearBottom() and scrollTo() each read scrollHeight independently, so a
+  // DOM change between reads (new message rendered) could cause the check to
+  // pass but the scroll to target the wrong position.
   useEffect(() => {
-    if (isNearBottom()) {
-      const container = messagesContainerRef.current;
-      container?.scrollTo({ top: container.scrollHeight, behavior: reduced ? 'auto' : 'smooth' });
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    const { scrollTop, scrollHeight, clientHeight } = container;
+    const nearBottom = scrollHeight - scrollTop - clientHeight < 100;
+    if (nearBottom) {
+      container.scrollTo({ top: scrollHeight, behavior: reduced ? 'auto' : 'smooth' });
     }
   }, [messages.length, reduced]);
 
-  // Auto-scroll to bottom when opening a new conversation
+  // Auto-scroll to bottom when opening a new conversation.
+  // L9.2 (bug #4): Use a cancelled flag + separate rAF ID variables instead of
+  // the type-unsafe (rafId1 as any).rafId2 = rafId2 mutation. The cancelled flag
+  // prevents the inner rAF callback from executing after cleanup, and
+  // cancelAnimationFrame is called on both IDs (0 is a safe no-op if the inner
+  // rAF hasn't been scheduled yet).
   useEffect(() => {
     if (!selectedId) return;
     const container = messagesContainerRef.current;
     if (!container) return;
 
+    let cancelled = false;
+    let rafId1 = 0;
+    let rafId2 = 0;
+
     // Use double rAF to wait for layout/paint to complete
     // (more reliable than setTimeout for variable-height messages)
-    const rafId1 = requestAnimationFrame(() => {
-      const rafId2 = requestAnimationFrame(() => {
+    rafId1 = requestAnimationFrame(() => {
+      if (cancelled) return;
+      rafId2 = requestAnimationFrame(() => {
+        if (cancelled) return;
         container.scrollTo({ top: container.scrollHeight, behavior: 'auto' });
         console.log('[ChatArea] Auto-scrolled to bottom for selectedId:', selectedId, 'scrollHeight:', container.scrollHeight);
       });
-      // Store second rAF ID for cleanup
-      (rafId1 as any).rafId2 = rafId2;
     });
 
     return () => {
+      cancelled = true;
       cancelAnimationFrame(rafId1);
-      const rafId2 = (rafId1 as any).rafId2;
-      if (rafId2) cancelAnimationFrame(rafId2);
+      cancelAnimationFrame(rafId2);
     };
   }, [selectedId]);
 
@@ -235,7 +251,7 @@ export function ChatArea() {
     }
   }, [wsStatus]);
 
-  const virtualEnabled = messages.length > VIRTUALIZATION_THRESHOLD;
+  const virtualEnabled = !forceAllMessages && messages.length > VIRTUALIZATION_THRESHOLD;
   const visibleWindow = useMemo(() => {
     const total = messages.length;
     if (!virtualEnabled || total === 0) {
@@ -352,9 +368,29 @@ export function ChatArea() {
         ref={messagesContainerRef}
         className="flex-1 overflow-y-auto p-4 space-y-2 bg-bg custom-scrollbar"
         onScroll={handleScroll}
+        role="log"
+        aria-label="ประวัติการแชท"
       >
         <div ref={historySentinelRef} />
-        {virtualEnabled && <div aria-hidden style={{ height: `${visibleWindow.topPadding}px` }} />}
+        {virtualEnabled && (
+          <>
+            <div aria-hidden style={{ height: `${visibleWindow.topPadding}px` }} />
+            {/* L9.2 (bug #3): Screen-reader announcement of hidden messages */}
+            <div className="sr-only" role="status">
+              กำลังแสดงข้อความที่ {visibleWindow.startIndex + 1} ถึง {visibleWindow.endIndex} จากทั้งหมด {messages.length} ข้อความ
+            </div>
+            <div className="text-center py-2">
+              <button
+                type="button"
+                onClick={() => setForceAllMessages(true)}
+                className="text-xs text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 underline cursor-pointer thai-text"
+                aria-label={`โหลดข้อความทั้งหมด ${messages.length} ข้อความ`}
+              >
+                โหลดข้อความทั้งหมด ({messages.length} ข้อความ)
+              </button>
+            </div>
+          </>
+        )}
         {isLoadingHistory && <div className="text-center text-xs text-text-tertiary py-2">Loading older messages...</div>}
 
         {/* Date separator */}

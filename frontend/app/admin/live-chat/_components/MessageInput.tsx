@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Bot,
   ImageIcon,
@@ -83,7 +83,57 @@ export function MessageInput({
   // M17: ownership gate. A session with no owner (waiting) is open to anyone;
   // once an operator owns it, only that operator may type. Backend already
   // enforces this (_require_active_session_owner) — this is the UX affordance.
+  //
+  // L9.2 (bug #5): Ownership check race. After claimSession completes, the
+  // backend takes 100-500ms to propagate session.operator_id. During that
+  // window isOwner is true (no owner) so the input enables, but sends fail
+  // silently because the backend hasn't confirmed ownership yet. Fix: track
+  // the session being claimed and keep the input disabled until the backend
+  // confirms (sessionOwnerId === currentUserId) or a 2s safety timeout fires.
+  const claiming = useLiveChatStore((s) => s.claiming);
+  const selectedId = useLiveChatStore((s) => s.selectedId);
+
+  // Track the session the current user just claimed, to bridge the gap
+  // between claim completion and backend propagation. Uses the React-sanctioned
+  // "adjust state during render" pattern (not effects) to avoid cascading
+  // renders — see https://react.dev/learn/you-might-not-need-an-effect
+  const [prevClaiming, setPrevClaiming] = useState(false);
+  const [pendingClaimSession, setPendingClaimSession] = useState<string | null>(null);
+
+  // Detect claim start → record which session is being claimed
+  if (claiming && !prevClaiming && selectedId) {
+    setPrevClaiming(true);
+    setPendingClaimSession(selectedId);
+  }
+  // Detect claim end → update tracker (pendingClaimSession stays set until
+  // the backend confirms or the safety timeout fires)
+  if (!claiming && prevClaiming) {
+    setPrevClaiming(false);
+  }
+  // Clear once the backend confirms ownership
+  if (sessionOwnerId === currentUserId && pendingClaimSession !== null) {
+    setPendingClaimSession(null);
+  }
+  // Clear when switching away from the claimed session
+  if (pendingClaimSession && pendingClaimSession !== selectedId) {
+    setPendingClaimSession(null);
+  }
+
+  // Safety fallback: if the backend never confirms (claim failed, WS dropped),
+  // clear after 2s so the input isn't permanently locked. setState is inside
+  // setTimeout (async), so it doesn't trigger the set-state-in-effect rule.
+  useEffect(() => {
+    if (pendingClaimSession && !claiming) {
+      const timer = setTimeout(() => setPendingClaimSession(null), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [pendingClaimSession, claiming]);
+
+  const isClaimPending = pendingClaimSession === selectedId;
   const isOwner = !sessionOwnerId || sessionOwnerId === currentUserId;
+  // Keep input disabled while claiming OR during the post-claim propagation
+  // window (isClaimPending) to prevent "type but can't send" UX confusion.
+  const inputLocked = !isOwner || claiming || isClaimPending;
   const showOwnershipBanner = isHumanMode && !isOwner;
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -185,7 +235,7 @@ export function MessageInput({
       {showQuickReplies && <QuickReplies onSelect={handleQuickReplySelect} />}
 
       {/* Toolbar & Input */}
-      <div className={`p-3 space-y-3 ${!isHumanMode || !isOwner ? 'opacity-60 pointer-events-none grayscale' : ''}`}>
+      <div className={`p-3 space-y-3 ${!isHumanMode || inputLocked ? 'opacity-60 pointer-events-none grayscale' : ''}`}>
 
         {/* Top Toolbar */}
         <div className="flex items-center justify-between">
@@ -293,7 +343,7 @@ export function MessageInput({
                 onTyping();
               }}
               onKeyDown={handleKeyDown}
-              disabled={!isHumanMode || sending || !isOwner}
+              disabled={!isHumanMode || sending || inputLocked}
               placeholder="Type a message..."
               rows={inputExpanded ? 4 : 1}
               className="w-full bg-bg border border-border-default rounded-xl px-4 py-3 text-sm text-text-primary placeholder:text-text-tertiary outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 focus:bg-surface resize-none transition-colors shadow-sm thai-no-break custom-scrollbar"
@@ -313,9 +363,9 @@ export function MessageInput({
 
           <button
             type="submit"
-            disabled={!inputText.trim() || sending || !isHumanMode || !isOwner}
+            disabled={!inputText.trim() || sending || !isHumanMode || inputLocked}
             aria-label="ส่งข้อความ"
-            className={`p-3 rounded-xl shadow-sm transition-[background-color,box-shadow,transform] flex-shrink-0 ${inputText.trim() && isHumanMode && isOwner
+            className={`p-3 rounded-xl shadow-sm transition-[background-color,box-shadow,transform] flex-shrink-0 ${inputText.trim() && isHumanMode && !inputLocked
                 ? 'bg-brand-600 text-white hover:bg-brand-700 hover:shadow active:scale-95'
                 : 'bg-muted text-text-tertiary cursor-not-allowed'
               }`}
