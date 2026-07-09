@@ -14,8 +14,11 @@ source of truth (the checkpoint JSON) plus generated views.
 
 ```bash
 node .agents/scripts/handoff-new.cjs <platform> "<work summary>" ["<next step>" ...]
+# with optional platform metadata:
+node .agents/scripts/handoff-new.cjs <platform> "<work summary>" --model "GLM-4.5" --provider "Zhipu AI" ["<next step>" ...]
 # example:
 node .agents/scripts/handoff-new.cjs claude_code "Merged PR #114: rich-menu R1/R2" "Smoke test on prod"
+node .agents/scripts/handoff-new.cjs cline "Manual test pass" --model "GLM-4.5" --provider "Zhipu AI" "Commit results"
 ```
 
 That single command does **everything**:
@@ -58,6 +61,8 @@ The generator normalizes variants (e.g. `codeX` → `codex`).
   "handoff_version": "2.0",
   "platform": "claude_code",       // canonical name
   "agent": "claude_code",          // or $AGENT_NAME
+  "model": "Claude Sonnet 4",      // OPTIONAL — AI model name (e.g. "GLM-4.5", "GPT-4o")
+  "provider": "Anthropic",         // OPTIONAL — AI provider (e.g. "Zhipu AI", "OpenAI")
   "timestamp": "2026-06-21T19:06:00+07:00",  // local wall-clock WITH real UTC offset — never "Z"
   "branch": "main",
   "head_commit": "3a90f4d",
@@ -73,6 +78,15 @@ The generator normalizes variants (e.g. `codeX` → `codex`).
 **Required keys** (enforced by `validate_handoff_state.py`):
 `handoff_version`, `platform`, `agent`, `timestamp`, `status`, `work_summary`,
 `priority_actions`, `context_for_next_agent`.
+
+**Optional keys** (validator warns if missing, does not fail):
+`model` — the AI model name (e.g. "GLM-4.5", "Claude Sonnet 4", "GPT-4o").
+`provider` — the AI provider/company (e.g. "Zhipu AI", "Anthropic", "OpenAI").
+
+Pass them via `--model` and `--provider` flags:
+```bash
+node .agents/scripts/handoff-new.cjs cline "Work done" --model "GLM-4.5" --provider "Zhipu AI" "Next step"
+```
 
 `cross_platform_read` is **optional** — fill it only when work from another platform
 actually informed this session. Don't ceremonially pad it.

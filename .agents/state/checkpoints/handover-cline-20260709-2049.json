@@ -13,7 +13,9 @@
     "Manual test new fixes (4a0e1eb): a11y ปุ่มโหลดข้อความทั้งหมด, ownership lock หลัง claim, auto-scroll atomic snapshot",
     "Read claude_code/session-summary-20260709-2039.md for full audit context"
   ],
-  "context_for_next_agent": "PLATFORM META — AI CLI IDE: Cline | Provider: Zhipu AI | Model: GLM-4.5 (aka GLM-5.2). This is a cross-platform handoff: the actual code work was done by Claude Code (Anthropic, Claude Sonnet 4) in the previous session. Cline/GLM-5.2 is the PICKUP agent. Read claude_code/session-summary-20260709-2039.md for the full audit report and fix details. All 6 bugs are already fixed and pushed — your primary task is MANUAL TESTING on production, not code changes.",
+  "context_for_next_agent": "Cross-platform handoff: Claude Code (Anthropic, Claude Sonnet 4) did the code work. Cline/GLM-4.5 is the pickup agent. Read claude_code/session-summary-20260709-2039.md for full audit context. All 6 bugs fixed and pushed. Primary task: MANUAL TESTING on production.",
+  "model": "GLM-4.5",
+  "provider": "Zhipu AI",
   "session_summary": "project-log-md/cline/session-summary-20260709-2049.md",
   "cross_platform_read": []
 }

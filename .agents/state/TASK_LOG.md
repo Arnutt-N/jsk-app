@@ -4,7 +4,7 @@
 > Source of truth: `.agents/state/checkpoints/*.json` — 159 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
 
-### 2026-07-09 20:49 — cline — completed
+### 2026-07-09 20:49 — cline (GLM-4.5 / Zhipu AI) — completed
 
 Cross-platform handoff FROM Claude Code TO Cline (GLM-5.2): All 6 live-chat audit bugs fixed (4a0e1eb), pushed to origin/main. Manual test pending.
 
@@ -989,6 +989,7 @@ Fixed stale database connections causing login failures and slow loads after idl
 Re-investigated the login-after-idle issue after it reproduced on both mobile and desktop Chrome.; Refactored the login page to submit credentials from live form/DOM refs instead of React-controlled state.; Updated AuthContext login handling to distinguish 401 from network/5xx failures and retry transient failures automatically.; Verified targeted frontend lint in WSL, then shipped the fix as PR #26, merged it to main, synced local main, and deleted the feature branch.
 
 - Checkpoint: `.agents/state/checkpoints/handover-codeX-20260407-0029.json`
+- Summary: `project-log-md/codex/session-summary-20260407-0029.md`
 
 ---
 
@@ -997,6 +998,7 @@ Re-investigated the login-after-idle issue after it reproduced on both mobile an
 Fixed the analytics operator performance regression by falling back safely when query rows do not expose operator_name.; Enabled 7 formerly skipped WebSocket/DB-backed tests in the normal backend suite/CI path by defaulting tests to safe local services and removing hardcoded skips.; Stabilized backend test execution with a shared session-scoped TestClient and hardened Redis/PubSub teardown against loop-shutdown issues.; Verified the full backend suite on WSL + Python 3.13: 217 passed.
 
 - Checkpoint: `.agents/state/checkpoints/handover-codeX-20260406-2244.json`
+- Summary: `project-log-md/codex/session-summary-20260406-2244.md`
 
 ---
 
@@ -1005,6 +1007,7 @@ Fixed the analytics operator performance regression by falling back safely when 
 Audited all 5 local branches not merged into main, concluded none should be merged directly, and prepared a formal handoff for Claude Code with branch cleanup recommendations.
 
 - Checkpoint: `.agents/state/checkpoints/handover-codeX-20260406-0156.json`
+- Summary: `project-log-md/codex/session-summary-20260406-0156.md`
 
 ---
 
@@ -1048,6 +1051,7 @@ Redesigned the login page to align with the new landing page aesthetic (glassmor
 Merged the landing page redesign into main after implementing the refreshed public-facing layout, fixing responsive-navigation/public-link review findings, and completing targeted frontend verification.
 
 - Checkpoint: `.agents/state/checkpoints/handover-codeX-20260330-0819.json`
+- Summary: `project-log-md/codex/session-summary-20260330-0819.md`
 
 ---
 
@@ -1065,6 +1069,7 @@ Three major deliverables: (1) Admin fullstack enhancement — 8 features (manual
 Merged PR #7 and PR #8 into main, confirmed main CI success and CD failure caused by missing BACKEND_REMOTE_ENV_FILE, opened PR #9 to turn that backend CD hard failure into warning-plus-skip behavior, and captured the remaining merge-readiness issue on Koyeb CLI install ordering.
 
 - Checkpoint: `.agents/state/checkpoints/handover-codeX-20260329-1825.json`
+- Summary: `project-log-md/codex/session-summary-20260329-1825.md`
 
 ---
 
@@ -1100,6 +1105,7 @@ Fixed GitHub Actions CI pipeline: resolved Alembic duplicate revision ID and mul
 Confirmed the new /admin/files page depended on media list/delete routes that were missing from the checked-in backend.; Added secure admin media list/delete endpoints plus response schemas while preserving public media upload/download behavior.; Aligned frontend /admin/files list/delete calls with /api/v1/admin/media and kept upload/download on /api/v1/media.; Added focused backend media endpoint tests and verified pytest, targeted lint, and full frontend build.
 
 - Checkpoint: `.agents/state/checkpoints/handover-codeX-20260315-1718.json`
+- Summary: `project-log-md/codex/session-summary-20260315-1718.md`
 
 ---
 
@@ -1108,6 +1114,7 @@ Confirmed the new /admin/files page depended on media list/delete routes that we
 Audited admin workflow and identified missing auth propagation, dead sidebar links, hidden settings flow, and AGENT role mismatch.; Added centralized auth fetch interceptor plus role-aware page and menu guards on the frontend.; Aligned backend live-chat REST access so AGENT can use staff endpoints while analytics remain admin-only.; Pushed implementation to origin/feat/ui-workflow-audit.
 
 - Checkpoint: `.agents/state/checkpoints/handover-codeX-20260315-1542.json`
+- Summary: `project-log-md/codex/session-summary-20260315-1542.md`
 
 ---
 
@@ -1152,6 +1159,7 @@ Audited CodeX scope creep (4 commits), ran 4-agent research team, remediated dea
 Executed universal handoff workflow and synchronized all required shared-state artifacts; Published release context already in place (branch and v1.5.0 tag) and aligned session metadata; Updated TASK_LOG and SESSION_INDEX with new CodeX handoff task/session references
 
 - Checkpoint: `.agents/state/checkpoints/handover-codeX-20260215-1848.json`
+- Summary: `project-log-md/codex/session-summary-20260215-1848.md`
 
 ---
 
@@ -1160,6 +1168,7 @@ Executed universal handoff workflow and synchronized all required shared-state a
 Executed migration implementation waves through component/library additions and live-chat UX micro-pattern updates; Added 10 missing UI primitives and exported them via the shared ui index; Applied token and docs deliverables for migration parity, scope boundaries, and cookbook guidance; Resolved baseline frontend blockers in ChatHeader and requests page so full lint/typecheck/build gates pass; Validated frontend gates successfully in WSL (lint, tsc --noEmit, and next build)
 
 - Checkpoint: `.agents/state/checkpoints/handover-codeX-20260215-1822.json`
+- Summary: `project-log-md/codex/session-summary-20260215-1822.md`
 
 ---
 
@@ -1222,6 +1231,7 @@ _(no work_summary field)_
 _(unparseable checkpoint JSON)_
 
 - Checkpoint: `.agents/state/checkpoints/handover-codeX-20260214-1251.json`
+- Summary: `project-log-md/codex/session-summary-20260214-1251.md`
 
 ---
 
@@ -1266,6 +1276,7 @@ _(no work_summary field)_
 {"title":"Frontend Design System Unification + Stability Fixes","description":"Completed merged design-system rollout, extracted reusable admin patterns, normalized Thai readability/focus styles, fixed toast hydration mismatch, and validated frontend gates.","files_analyzed":["frontend/app/globals.css","frontend/app/admin/requests/page.tsx","frontend/app/admin/rich-menus/page.tsx","frontend/app/admin/live-chat/_components/*","frontend/components/ui/Toast.tsx"],"files_modified":["frontend/app/glo
 
 - Checkpoint: `.agents/state/checkpoints/handover-codex-20260212-0845.json`
+- Summary: `project-log-md/codex/session-summary-20260212-0845.md`
 
 ---
 
@@ -1292,6 +1303,7 @@ _(no work_summary field)_
 {"title":"State reconciliation and cross-platform handoff hardening","description":"Reconciled stale drift across PROJECT_STATUS/task/current-session and enforced a mandatory 5-artifact handoff gate in workflows/templates/skills.","files_analyzed":[".agents/PROJECT_STATUS.md",".agents/state/current-session.json",".agents/state/task.md",".agents/workflows/pickup-from-any.md",".agents/workflows/handoff-to-any.md",".agents/AGENT_PROMPT_TEMPLATE.md"],"files_modified":[".agents/PROJECT_STATUS.md",".a
 
 - Checkpoint: `.agents/state/checkpoints/handover-codeX-20260210-2115.json`
+- Summary: `project-log-md/codex/session-summary-20260210-2115.md`
 
 ---
 
@@ -1309,6 +1321,7 @@ _(no work_summary field)_
 {"title":"Phase 4.4/4.6 completion and end-to-end validation","description":"Completed export/profile-refresh work, passed full backend regression, and continued frontend build-gate fixes. Frontend build still has remaining TypeScript/lint issues.","files_analyzed":["PRPs/claude_code/live-chat-improvement.plan.md","backend/app/api/v1/endpoints/admin_export.py","backend/app/api/v1/endpoints/admin_live_chat.py","backend/tests/test_admin_analytics_export_endpoints.py","frontend/app/admin/live-chat/
 
 - Checkpoint: `.agents/state/checkpoints/handover-codeX-20260210-0649.json`
+- Summary: `project-log-md/codex/session-summary-20260210-0649.md`
 
 ---
 
@@ -1335,6 +1348,7 @@ _(no work_summary field)_
 {"title":"Live Chat Improvement Completion and Phase 4.1 Redis Hardening","description":"Completed frontend lint/build stabilization, backend websocket Redis state hardening, and full validation passes for backend and frontend.","files_analyzed":["backend/app/core/websocket_manager.py","backend/app/api/v1/endpoints/ws_live_chat.py","frontend/contexts/AuthContext.tsx","frontend/app/admin/live-chat/_components/ChatArea.tsx","frontend/app/admin/analytics/page.tsx","PRPs/claude_code/live-chat-improv
 
 - Checkpoint: `.agents/state/checkpoints/handover-codeX-20260209-0027.json`
+- Summary: `project-log-md/codex/session-summary-20260209-0027.md`
 
 ---
 
@@ -1352,6 +1366,7 @@ _(no work_summary field)_
 {"title":"Phase 3 processing continuation and MCP Context7 stabilization","description":"Continued Phase 3 work with tags completion and media processing baseline+, updated webhook and line service for persisted incoming media URLs, refined frontend media rendering, and prepared standardized handoff artifacts.","files_analyzed":["PRPs/claude_code/live-chat-improvement.plan.md","backend/app/api/v1/endpoints/webhook.py","backend/app/services/line_service.py","frontend/app/admin/live-chat/_componen
 
 - Checkpoint: `.agents/state/checkpoints/handover-codeX-20260208-0300.json`
+- Summary: `project-log-md/codex/session-summary-20260208-0300.md`
 
 ---
 
@@ -1360,6 +1375,7 @@ _(no work_summary field)_
 {"title":"Live Chat Phase 2-3 progression + MCP Context7 fix","description":"Completed Phase 3.1 tags, added Phase 3.2 media baseline for webhook/chat UI, improved accessibility and environment documentation, and fixed Context7 MCP startup command on Windows.","files_analyzed":["PRPs/claude_code/live-chat-improvement.plan.md","backend/app/api/v1/endpoints/webhook.py","backend/app/services/live_chat_service.py","frontend/app/admin/live-chat/_components/MessageBubble.tsx",".mcp.json"],"files_modif
 
 - Checkpoint: `.agents/state/checkpoints/handover-codeX-20260208-0247.json`
+- Summary: `project-log-md/codex/session-summary-20260208-0247.md`
 
 ---
 

@@ -101,6 +101,8 @@ function main() {
       when: fmtWhen(pn.date, pn.time),
       status: statusOf(j),
       summary: summaryOf(j),
+      model: j && typeof j.model === 'string' ? j.model : '',
+      provider: j && typeof j.provider === 'string' ? j.provider : '',
     });
   }
   entries.sort((a, b) => b.sortKey.localeCompare(a.sortKey));
@@ -121,7 +123,10 @@ function main() {
   ];
   for (const e of entries) {
     const sm = findSummary(summaries, e.platform, e.date, e.time);
-    log.push(`### ${e.when} — ${e.platform} — ${e.status}`, '', e.summary, '');
+    // Include model/provider in the heading when available
+    const meta = [e.model, e.provider].filter(Boolean).join(' / ');
+    const heading = meta ? `${e.when} — ${e.platform} (${meta}) — ${e.status}` : `${e.when} — ${e.platform} — ${e.status}`;
+    log.push(`### ${heading}`, '', e.summary, '');
     log.push(`- Checkpoint: \`.agents/state/checkpoints/${e.file}\``);
     if (sm) log.push(`- Summary: \`project-log-md/${sm}\``);
     log.push('', '---', '');
@@ -150,11 +155,11 @@ function main() {
   ];
   for (const p of platforms) {
     const rows = entries.filter((e) => e.platform === p);
-    idx.push(`## ${p} (${rows.length})`, '', '| When | Status | Checkpoint |', '|------|--------|------------|');
+    idx.push(`## ${p} (${rows.length})`, '', '| When | Status | Model | Provider | Checkpoint |', '|------|--------|-------|----------|------------|');
     for (const e of rows.slice(0, 20)) {
-      idx.push(`| ${e.when} | ${e.status} | \`${e.file}\` |`);
+      idx.push(`| ${e.when} | ${e.status} | ${e.model || '—'} | ${e.provider || '—'} | \`${e.file}\` |`);
     }
-    if (rows.length > 20) idx.push(`| … | | +${rows.length - 20} older |`);
+    if (rows.length > 20) idx.push(`| … | | | | +${rows.length - 20} older |`);
     idx.push('');
   }
   fs.writeFileSync(path.join(ROOT, '.agents', 'state', 'SESSION_INDEX.md'), idx.join('\n'));

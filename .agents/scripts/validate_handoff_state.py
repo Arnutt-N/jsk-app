@@ -4,7 +4,7 @@ Validate cross-platform handoff state consistency for SknApp.
 
 Usage:
   python .agents/scripts/validate_handoff_state.py
-  python .agents/scripts/validate_handoff_state.py --platform codeX
+  python .agents/scripts/validate_handoff_state.py --platform codex
 """
 
 from __future__ import annotations
@@ -142,6 +142,13 @@ def main() -> int:
         for k in required_handover_keys:
             if k not in ho:
                 errors.append(f"Handover missing key '{k}' in {latest_handover.name}")
+
+        # Optional platform metadata — warn (not error) if missing.
+        # Recommended for cross-platform traceability but not required.
+        if "model" not in ho:
+            warnings.append(f"Handover missing optional 'model' key in {latest_handover.name}")
+        if "provider" not in ho:
+            warnings.append(f"Handover missing optional 'provider' key in {latest_handover.name}")
 
         ts = ho.get("timestamp")
         if not isinstance(ts, str):

@@ -6,8 +6,10 @@
  *
  * Usage:
  *   node .agents/scripts/handoff-new.cjs <platform> "<work summary>" ["<next step>" ...]
+ *   node .agents/scripts/handoff-new.cjs <platform> "<work summary>" --model "GLM-4.5" --provider "Zhipu AI" ["<next step>" ...]
  * Example:
  *   node .agents/scripts/handoff-new.cjs claude_code "Merged PR #105: fix X" "Deploy to prod" "Re-test on mobile"
+ *   node .agents/scripts/handoff-new.cjs cline "Manual test pass" --model "GLM-4.5" --provider "Zhipu AI" "Commit results"
  *
  * Creates:
  *   - .agents/state/checkpoints/handover-<platform>-<YYYYMMDD-HHMM>.json   (source of truth)
@@ -40,11 +42,31 @@ const displayName = (p) =>
 
 function main() {
   const ROOT = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim();
-  const [, , platformArg, summaryArg, ...nextSteps] = process.argv;
+  // Parse optional --model and --provider flags from argv, then remove them
+  // so the remaining positional args (platform, summary, nextSteps) stay stable.
+  const rawArgs = process.argv.slice(2);
+  let model = '';
+  let provider = '';
+  const positional = [];
+  for (let i = 0; i < rawArgs.length; i++) {
+    const a = rawArgs[i];
+    if (a === '--model' && i + 1 < rawArgs.length) {
+      model = rawArgs[++i];
+    } else if (a.startsWith('--model=')) {
+      model = a.slice('--model='.length);
+    } else if (a === '--provider' && i + 1 < rawArgs.length) {
+      provider = rawArgs[++i];
+    } else if (a.startsWith('--provider=')) {
+      provider = a.slice('--provider='.length);
+    } else {
+      positional.push(a);
+    }
+  }
+  const [platformArg, summaryArg, ...nextSteps] = positional;
 
   if (!platformArg || !summaryArg) {
     process.stderr.write(
-      'Usage: node .agents/scripts/handoff-new.cjs <platform> "<work summary>" ["<next step>" ...]\n'
+      'Usage: node .agents/scripts/handoff-new.cjs <platform> "<work summary>" [--model "Model"] [--provider "Provider"] ["<next step>" ...]\n'
     );
     process.exit(1);
   }
@@ -88,14 +110,34 @@ function main() {
     session_summary: `project-log-md/${platform}/session-summary-${ts}.md`,
     cross_platform_read: [],
   };
+  // Optional platform metadata (AI CLI IDE model + provider) — only written
+  // when the caller passes --model / --provider. Not required by the validator
+  // but recommended for cross-platform traceability.
+  if (model) checkpoint.model = model;
+  if (provider) checkpoint.provider = provider;
   fs.writeFileSync(ckPath, JSON.stringify(checkpoint, null, 2) + '\n');
 
   if (!fs.existsSync(sumDir)) fs.mkdirSync(sumDir, { recursive: true });
   const sum = [
-    `# Session Summary — ${platform} — ${iso}`,
+    `# Session Summary — ${platform}${model ? ` (${model})` : ''} — ${iso}`,
     '',
     `**Branch**: \`${branch || 'main'}\`  **HEAD**: \`${head}\``,
     `**Checkpoint**: \`.agents/state/checkpoints/handover-${platform}-${ts}.json\``,
+  ];
+  // Platform Meta table (only if model or provider is specified)
+  if (model || provider) {
+    sum.push(
+      '',
+      '> **Platform Meta**',
+      '> | Field | Value |',
+      '> |-------|-------|',
+      `> | AI CLI IDE | ${displayName(platform)} |`,
+      ...(provider ? [`> | Provider | ${provider} |`] : []),
+      ...(model ? [`> | Model | ${model} |`] : []),
+      '>',
+    );
+  }
+  sum.push(
     '',
     '## Objective',
     summaryArg,
@@ -111,8 +153,8 @@ function main() {
     '',
     '> Fill in detail above, then commit. TASK_LOG.md + SESSION_INDEX.md are generated.',
     '',
-  ].join('\n');
-  fs.writeFileSync(sumPath, sum);
+  );
+  fs.writeFileSync(sumPath, sum.join('\n'));
 
   // Keep current-session.json in sync (validator requires last_updated >= newest checkpoint).
   const csPath = path.join(ROOT, '.agents', 'state', 'current-session.json');
@@ -131,6 +173,9 @@ function main() {
         next_steps: nextSteps,
         handoff_history: history.slice(0, 20),
         cross_platform_context: cs.cross_platform_context || {},
+        // Track model/provider for the current platform (optional, for traceability)
+        ...(model ? { model } : {}),
+        ...(provider ? { provider } : {}),
       },
       null,
       2
