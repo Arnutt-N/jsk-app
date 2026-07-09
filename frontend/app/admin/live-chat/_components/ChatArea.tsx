@@ -106,6 +106,12 @@ export function ChatArea() {
   // messages from the DOM, violating WCAG 2.1 AA (1.3.2, 4.1.2, 2.4.3).
   const [forceAllMessages, setForceAllMessages] = React.useState(false);
 
+  // L9.3 (auto-scroll fix): Track "pending scroll to bottom" — set true when
+  // selectedId changes, consumed when messages actually load (0 → N). The old
+  // code only used double rAF on selectedId change, but messages are fetched
+  // async so they're still [] when the rAF fires. This ref bridges the gap.
+  const pendingScrollToBottomRef = useRef(false);
+
   // L9.1: throttle scroll-driven setState with requestAnimationFrame so the
   // virtualization recompute runs at most once per frame instead of on every
   // scroll event. Read scrollTop synchronously BEFORE the rAF callback because
@@ -137,6 +143,9 @@ export function ChatArea() {
     setBaselineCount(messages.length);
     // L9.2 (bug #3): Reset "load all" when switching conversations
     setForceAllMessages(false);
+    // L9.3 (auto-scroll fix): Mark that we need to scroll to bottom once
+    // messages load for this new conversation
+    pendingScrollToBottomRef.current = true;
   }
 
   // Only auto-scroll if near bottom (not when user scrolled up to read older messages).
@@ -147,9 +156,22 @@ export function ChatArea() {
   // isNearBottom() and scrollTo() each read scrollHeight independently, so a
   // DOM change between reads (new message rendered) could cause the check to
   // pass but the scroll to target the wrong position.
+  // L9.3 (auto-scroll fix): If pendingScrollToBottom is set (new conversation
+  // opened), force scroll to bottom regardless of near-bottom check, because
+  // messages just loaded from 0 → N and the user is at scrollTop=0.
   useEffect(() => {
     const container = messagesContainerRef.current;
     if (!container) return;
+    if (pendingScrollToBottomRef.current && messages.length > 0) {
+      // Messages just loaded for a new conversation — force scroll to bottom
+      pendingScrollToBottomRef.current = false;
+      // Use rAF to ensure DOM has painted the new messages before scrolling
+      requestAnimationFrame(() => {
+        container.scrollTo({ top: container.scrollHeight, behavior: 'auto' });
+        console.log('[ChatArea] Auto-scrolled to bottom (initial load), scrollHeight:', container.scrollHeight);
+      });
+      return;
+    }
     const { scrollTop, scrollHeight, clientHeight } = container;
     const nearBottom = scrollHeight - scrollTop - clientHeight < 100;
     if (nearBottom) {

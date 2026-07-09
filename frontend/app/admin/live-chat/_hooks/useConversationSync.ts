@@ -42,7 +42,20 @@ export function useConversationSync({ selectedIdRef, wsStatusRef }: UseConversat
       const res = await fetch(`${API_BASE}/admin/live-chat/conversations${currentFilter ? `?status=${currentFilter}` : ''}`);
       if (res.ok) {
         const data = await res.json();
-        getStore().setConversations(data.conversations || data || []);
+        const fetched = data.conversations || data || [];
+        // L9.3 (unread fix): The backend may still return unread_count > 0 for
+        // the currently-open conversation (mark_conversation_read is async and
+        // the 5s polling may race ahead of it). Override to 0 locally so the
+        // sidebar badge disappears immediately when the user is viewing it.
+        const currentSelectedId = selectedIdRef.current;
+        if (currentSelectedId) {
+          const adjusted = fetched.map((c: { line_user_id: string; unread_count?: number }) =>
+            c.line_user_id === currentSelectedId ? { ...c, unread_count: 0 } : c
+          );
+          getStore().setConversations(adjusted);
+        } else {
+          getStore().setConversations(fetched);
+        }
         getStore().setBackendOnline(true);
       } else {
         getStore().setBackendOnline(false);
@@ -52,7 +65,7 @@ export function useConversationSync({ selectedIdRef, wsStatusRef }: UseConversat
     } finally {
       getStore().setLoading(false);
     }
-  }, []);
+  }, [selectedIdRef]);
 
   const fetchChatDetail = useCallback(async (id: string, includeMessages = true) => {
     try {
@@ -87,6 +100,13 @@ export function useConversationSync({ selectedIdRef, wsStatusRef }: UseConversat
       unread = data.unread_count;
     } else if (!isSelected) {
       unread = idx === -1 ? 1 : (list[idx]?.unread_count || 0) + 1;
+    }
+    // L9.3 (unread fix): If this conversation is currently selected (user is
+    // viewing it), force unread=0 regardless of what the backend says. The
+    // user is reading the messages in real-time, so they should not see a
+    // red badge for a room they have open.
+    if (isSelected) {
+      unread = 0;
     }
     const existingConversation = idx >= 0 ? list[idx] : null;
     const baseChat = currentSelectedId === data.line_user_id
