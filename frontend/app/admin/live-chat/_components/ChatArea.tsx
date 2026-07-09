@@ -48,6 +48,7 @@ export function ChatArea() {
   const nonRetryableMessages = useLiveChatStore((s) => s.nonRetryableMessages);
   const hasMoreHistory = useLiveChatStore((s) => s.hasMoreHistory);
   const isLoadingHistory = useLiveChatStore((s) => s.isLoadingHistory);
+  const initialUnreadCount = useLiveChatStore((s) => s.initialUnreadCount);
   const liveMessage = useLiveChatStore((s) => s.liveMessage);
 
   // API methods and non-store state from Context
@@ -323,9 +324,17 @@ export function ChatArea() {
               {connectionStatus.label}
             </div>
 
-            {/* Notification bell — waiting conversations */}
+            {/* Notification bell — waiting conversations.
+                L9.4: Bell color reflects WebSocket connection state:
+                green (connected) / amber (connecting) / red (disconnected) */}
             <button
-              className="relative p-2 rounded-xl text-text-tertiary hover:text-brand-600 hover:bg-muted transition-all cursor-pointer"
+              className={`relative p-2 rounded-xl transition-all cursor-pointer ${
+                wsStatus === 'connected'
+                  ? 'text-online hover:bg-online/10'
+                  : wsStatus === 'disconnected'
+                    ? 'text-danger hover:bg-danger/10'
+                    : 'text-away hover:bg-away/10'
+              }`}
               aria-label={`${waitingCount} conversations waiting`}
               title={`${waitingCount} รอรับเรื่อง`}
             >
@@ -427,7 +436,10 @@ export function ChatArea() {
         </div>
 
         {(() => {
-          const unreadCount = currentChat?.unread_count || 0;
+          // L9.4 (unread divider): Use initialUnreadCount (captured at open
+          // time) instead of currentChat?.unread_count (which is 0 because
+          // selectConversation clears it immediately).
+          const unreadCount = initialUnreadCount;
           console.log('[ChatArea] Rendering messages:', {
             selectedId,
             messagesLength: messages.length,
@@ -452,8 +464,10 @@ export function ChatArea() {
           const failed = !!(message.temp_id && failedMessages.has(message.temp_id));
           const formattedTime = new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-          // Insert unread divider before the first unread message
-          const unreadCount = currentChat?.unread_count || 0;
+          // L9.4 (unread divider): Use initialUnreadCount (captured at open
+          // time) instead of currentChat?.unread_count (which is 0 because
+          // selectConversation clears it immediately).
+          const unreadCount = initialUnreadCount;
           const isFirstUnread = unreadCount > 0 && idx === messages.length - unreadCount;
 
           return (

@@ -45,6 +45,10 @@ interface LiveChatState {
   nonRetryableMessages: Set<string>
   hasMoreHistory: boolean
   isLoadingHistory: boolean
+  // L9.4 (unread divider): Captures the unread count at the moment a
+  // conversation is opened, BEFORE it's cleared to 0. Used by ChatArea to
+  // render the UnreadDivider at the correct position. Reset on switch.
+  initialUnreadCount: number
 
   // UI extensions (new features)
   showEmojiPicker: boolean
@@ -118,6 +122,7 @@ const initialState: LiveChatState = {
   nonRetryableMessages: new Set(),
   hasMoreHistory: true,
   isLoadingHistory: false,
+  initialUnreadCount: 0,
   showEmojiPicker: false,
   showStickerPicker: false,
   showQuickReplies: false,

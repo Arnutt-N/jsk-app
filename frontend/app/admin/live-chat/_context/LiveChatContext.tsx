@@ -185,8 +185,8 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
       getStore().setBackendOnline(true);
       if (wasOffline) {
         getStore().addNotification({
-          title: 'Connected',
-          message: 'WebSocket connection restored',
+          title: 'เชื่อมต่อแล้ว',
+          message: 'การเชื่อมต่อ WebSocket กู้คืนสำเร็จ',
           type: 'system',
         });
       }
