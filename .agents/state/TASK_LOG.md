@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 159 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 160 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-12 00:54 — claude_code — completed
+
+5-agent review: P0-P3 remediation plan (GPT-5.6 Sol)
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260712-0054.json`
+- Summary: `project-log-md/claude_code/session-summary-20260712-0054.md`
+
+---
 
 ### 2026-07-09 20:49 — cline (GLM-4.5 / Zhipu AI) — completed
 
