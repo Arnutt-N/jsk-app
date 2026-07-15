@@ -17,6 +17,10 @@ router = APIRouter()
 
 async def verify_liff_token(id_token: str) -> str:
     """Verify a LIFF ID token with LINE and return the LINE user ID (sub)."""
+    if not settings.LINE_LOGIN_CHANNEL_ID.strip():
+        logger.error("LINE_LOGIN_CHANNEL_ID is not configured; cannot verify LIFF ID token")
+        raise HTTPException(status_code=503, detail="LIFF verification unavailable: server misconfiguration")
+
     async with httpx.AsyncClient() as client:
         resp = await client.post(
             "https://api.line.me/oauth2/v2.1/verify",
