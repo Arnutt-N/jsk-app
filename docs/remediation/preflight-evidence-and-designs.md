@@ -309,6 +309,21 @@ documented in `docs/remediation/migration-controls.md` — this section adds
 the *implementation* shape referenced by that gate, it does not change the
 gate itself.
 
+### 5.1 P1.1a addendum (2026-07-16)
+
+PR #1 (backend dual-mode foundation, above) implemented — see
+`.claude/PRPs/prds/p1.1a-cookie-backend-foundation.prd.md` and
+`.claude/PRPs/plans/p1.1a-cookie-backend-foundation.plan.md` for the full
+spec, test matrix, and scope decisions. Two new tables
+(`auth_sessions`, `ws_tickets`, migration `w3x4y5z6a7b8`), cookie issuance +
+mode-aware `get_current_user`, CSRF double-submit, `/auth/logout`,
+`/auth/migrate-session`, `/auth/ws-ticket`, WebSocket ticket auth + Origin
+validation, and explicit CORS method/header lists all landed behind the
+`bearer` default (no behavior change at that default; test 1 of the FR8
+matrix in `backend/tests/test_cookie_auth.py` proves byte-compatibility).
+PR #2 (frontend migration) and PR #3 (Bearer removal + `SameSite=Strict`)
+remain, per the 3-PR design recorded above.
+
 ## 6. Durable Webhook Inbox Recovery (P1.5, phase 1 only)
 
 Current state, verified in `backend/app/api/v1/endpoints/webhook.py`:
