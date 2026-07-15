@@ -1,5 +1,5 @@
 import os
-from typing import List, Union
+from typing import List, Literal, Union
 from pydantic import AnyHttpUrl, PostgresDsn, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from app.core.env import resolve_env_file
@@ -8,6 +8,11 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "JskApp"
     API_V1_STR: str = "/api/v1"
     ENVIRONMENT: str = "development"
+
+    # Temporary migration controls. Keep compatibility defaults until the
+    # corresponding rollout gates in docs/remediation/migration-controls.md pass.
+    LIFF_STRICT_MODE: bool = False
+    COOKIE_AUTH_MODE: Literal["bearer", "dual", "cookie"] = "bearer"
 
     # Explicit opt-in for dev auth bypass — must set DEV_AUTH_BYPASS=true in .env
     # Safe by default: missing env var = bypass disabled
