@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 164 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 165 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-16 04:42 — claude_code (Claude Fable 5 / Anthropic) — in_progress
+
+Model-orchestration workflow (Fable5 plan/review, Sonnet5 implement/fix/ship, Opus4.8 PR review) established + applied to PR 2A Cookie Backend Foundation (P1.1a). Steps 1-3 of 6 done: Fable 5 wrote PRD+plan; Sonnet 5 implemented on branch feat/p1.1a-cookie-backend-foundation (13 commits, 20 files, 2 new tables auth_sessions+ws_tickets, dual-mode HttpOnly cookie auth behind COOKIE_AUTH_MODE, refresh rotation+reuse detection, CSRF double-submit, migrate-session, ws-ticket, CORS hardening; 634 backend tests pass, frontend untouched); Fable 5 round-1 review APPROVED with 1 MEDIUM fix (F1: expired refresh token falsely flagged as reuse) + 6 non-blocking notes, saved to .claude/PRPs/reviews/pr-2a-cookie-backend-review-round1.md. Branch NOT pushed, no PR yet.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260716-0442.json`
+- Summary: `project-log-md/claude_code/session-summary-20260716-0442.md`
+
+---
 
 ### 2026-07-15 23:35 — claude_code (Claude Sonnet 5 / Anthropic) — completed
 
