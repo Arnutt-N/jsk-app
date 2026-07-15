@@ -1,16 +1,19 @@
 {
-  "last_updated": "2026-07-16T04:42:00+07:00",
-  "platform": "claude_code",
-  "current_task": "Model-orchestration workflow (Fable5 plan/review, Sonnet5 implement/fix/ship, Opus4.8 PR review) established + applied to PR 2A Cookie Backend Foundation (P1.1a). Steps 1-3 of 6 done: Fable 5 wrote PR",
+  "last_updated": "2026-07-16T06:52:00+07:00",
+  "platform": "cline",
+  "current_task": "Completed steps 4-6 of the 6-step model-orchestration workflow for PR 2A Cookie Backend Foundation (P1.1a) — all on Cline. Step 4: applied F1 fix (auth_session_service.py: expired-but-active refresh r",
   "plan_status": "completed",
   "next_steps": [
-    "--status",
-    "in_progress",
-    "Step 4: Sonnet 5 applies F1 fix (auth_session_service.py: expired-active row => INVALID not REUSE_DETECTED, +test), re-runs full suite, commits, pushes branch, opens PR to main with grep proofs + test count + N1/N3 caveats in body",
-    "Step 5: Opus 4.8 reviews the PR (independent, combined-diff)",
-    "Step 6: Sonnet 5 applies Opus findings, waits for green CI, squash-merges"
+    "PR 2B (frontend adopts cookie auth) — MUST single-flight refresh to avoid strict-rotation race revoking family (N3). PR 2C: redact ValidationError logging in ws_live_chat.py:171 (NEW-1). P1.6: move auth_sessions/ws_tickets retention cleanup to scheduler job or index expires_at (NEW-2). Separate: confirm with team whether DIRECTOR/HEAD should use live-chat WebSocket (NEW-3, pre-existing)."
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-07-16T06:52:00+07:00",
+      "platform": "cline",
+      "branch": "main",
+      "head": "ad5c276",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-07-16T04:42:00+07:00",
       "platform": "claude_code",
@@ -142,13 +145,6 @@
       "platform": "claude_code",
       "branch": "feat/category-readiness-guard",
       "head": "789022f",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-06T01:13:00+07:00",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "cc5589d",
       "status": "completed"
     }
   ],
