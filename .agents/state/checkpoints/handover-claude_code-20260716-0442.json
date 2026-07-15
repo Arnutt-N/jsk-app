@@ -1,0 +1,20 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "model": "Claude Fable 5",
+  "provider": "Anthropic",
+  "timestamp": "2026-07-16T04:42:00+07:00",
+  "branch": "feat/p1.1a-cookie-backend-foundation",
+  "head_commit": "a967a91",
+  "status": "in_progress",
+  "work_summary": "Model-orchestration workflow (Fable5 plan/review, Sonnet5 implement/fix/ship, Opus4.8 PR review) established + applied to PR 2A Cookie Backend Foundation (P1.1a). Steps 1-3 of 6 done: Fable 5 wrote PRD+plan; Sonnet 5 implemented on branch feat/p1.1a-cookie-backend-foundation (13 commits, 20 files, 2 new tables auth_sessions+ws_tickets, dual-mode HttpOnly cookie auth behind COOKIE_AUTH_MODE, refresh rotation+reuse detection, CSRF double-submit, migrate-session, ws-ticket, CORS hardening; 634 backend tests pass, frontend untouched); Fable 5 round-1 review APPROVED with 1 MEDIUM fix (F1: expired refresh token falsely flagged as reuse) + 6 non-blocking notes, saved to .claude/PRPs/reviews/pr-2a-cookie-backend-review-round1.md. Branch NOT pushed, no PR yet.",
+  "priority_actions": [
+    "Step 4: Sonnet 5 applies F1 fix (auth_session_service.py: expired-active row => INVALID not REUSE_DETECTED, +test), re-runs full suite, commits, pushes branch, opens PR to main with grep proofs + test count + N1/N3 caveats in body",
+    "Step 5: Opus 4.8 reviews the PR (independent, combined-diff)",
+    "Step 6: Sonnet 5 applies Opus findings, waits for green CI, squash-merges"
+  ],
+  "context_for_next_agent": "Mid-workflow handoff (6-step model-orchestration rule in memory feedback_model_orchestration_workflow). Steps 1-3 done, step 4 next. Feature branch feat/p1.1a-cookie-backend-foundation has 13 commits, NOT pushed. Full review with the F1 fix location + 6 notes (N1-N6) is at .claude/PRPs/reviews/pr-2a-cookie-backend-review-round1.md — read it before resuming step 4. Session default model is Fable 5; spawn Sonnet subagents for steps 4/6 and an Opus subagent for step 5 per the rule. Backend cmds run in WSL (wsl -d Ubuntu, venv_linux, ENV_FILE=app/.env for db_target local); Docker db/redis on Windows host.",
+  "session_summary": "project-log-md/claude_code/session-summary-20260716-0442.md",
+  "cross_platform_read": []
+}

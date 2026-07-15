@@ -39,6 +39,39 @@ production. The three LIFF pages (`service-request`, `request-v2`,
 before then would break any client still on an older deployed build, which is
 why the default stays `false` here.
 
+### COOKIE_AUTH_MODE wiring status (P1.1a, PR 2A)
+
+The flag is now wired, not just declared. `bearer` (default) is the exact
+legacy code path — `POST /auth/login`/`POST /auth/refresh` never set a
+cookie and never write an `auth_sessions` row; `deps.py::get_current_user`
+reads the `Authorization` header only, byte-identical to pre-P1.1a
+behavior. `dual` additionally sets `access_token`/`refresh_token`/
+`csrf_token` cookies on login/refresh (HttpOnly, `SameSite=Lax`, `Secure`
+iff `is_production_like`) while still returning both tokens in the response
+body, so an already-deployed frontend keeps working unchanged; the access
+cookie is tried first by `get_current_user`, falling back to the Bearer
+header only when no cookie is present. `cookie` omits both tokens from the
+body and rejects any refresh token that isn't backed by a live
+`auth_sessions` row. New endpoints exist in every mode: `POST /auth/logout`
+(clears cookies, revokes the session family), `POST /auth/migrate-session`
+(Bearer-only; exchanges a Bearer access token for a cookie session; 409 in
+`bearer` mode), and `POST /auth/ws-ticket` (mints a single-use, 60s ticket
+for the live-chat WebSocket in place of a long-lived JWT). Refresh-token
+rotation with reuse detection (mark-used-and-issue-successor; revoke the
+whole session family on reuse) only applies to cookie-carried, session-backed
+refresh tokens — a legacy header-carried refresh token in `dual` mode stays
+on the old stateless path (no `auth_sessions` row), by design (see
+`.claude/PRPs/plans/p1.1a-cookie-backend-foundation.plan.md` Task 6 GOTCHA).
+CSRF double-submit (`x-csrf-token` header vs. `csrf_token` cookie, compared
+with `secrets.compare_digest`) is enforced only for state-changing requests
+whose auth was satisfied by the access cookie; Bearer-authenticated requests
+are exempt. This PR (2A) ships the backend foundation only, dark behind the
+`bearer` default — no production behavior changes until the flag is
+flipped, and the frontend migration (PR 2B, switching `AuthContext`/
+`authFetch`/the WebSocket client to cookies) and the Bearer-removal/
+`SameSite=Strict` hardening (PR 2C) are separate, later PRs per the
+bearer → dual → cookie flip checklist above.
+
 ## P0.1 production startup guards
 
 `backend/app/core/config.py` enforces fail-closed guards via

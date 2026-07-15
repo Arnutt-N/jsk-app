@@ -1,5 +1,5 @@
 from enum import Enum
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from typing import Optional, Any, List
 from datetime import datetime
 import bleach
@@ -68,8 +68,11 @@ class WSMessage(BaseModel):
 
 
 class AuthPayload(BaseModel):
-    """Authentication payload - requires JWT token"""
-    token: str = Field(..., min_length=10, max_length=2000, description="JWT access token")
+    """Authentication payload - either a JWT access token (existing) or a
+    single-use ws-ticket (P1.1a FR6, minted via POST /auth/ws-ticket). At
+    least one of the two must be present."""
+    token: Optional[str] = Field(None, min_length=10, max_length=2000, description="JWT access token")
+    ticket: Optional[str] = Field(None, min_length=10, max_length=200, description="Single-use WS auth ticket")
 
     @field_validator('token', mode='before')
     @classmethod
@@ -78,6 +81,20 @@ class AuthPayload(BaseModel):
         if isinstance(v, str):
             return v.strip()
         return v
+
+    @field_validator('ticket', mode='before')
+    @classmethod
+    def clean_ticket(cls, v: str) -> str:
+        """Strip whitespace from ticket"""
+        if isinstance(v, str):
+            return v.strip()
+        return v
+
+    @model_validator(mode='after')
+    def _require_token_or_ticket(self) -> "AuthPayload":
+        if not self.token and not self.ticket:
+            raise ValueError("token or ticket is required")
+        return self
 
 
 class JoinRoomPayload(BaseModel):

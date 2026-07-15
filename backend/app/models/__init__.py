@@ -19,3 +19,5 @@ from .broadcast import Broadcast
 from .permission_setting import PermissionSetting
 from .rich_menu_alias import RichMenuAlias
 from .user_rich_menu_link import UserRichMenuLink
+from .auth_session import AuthSession
+from .ws_ticket import WsTicket

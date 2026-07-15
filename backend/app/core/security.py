@@ -20,6 +20,11 @@ def _utcnow() -> datetime:
 
 BCRYPT_ROUNDS = 10
 
+# P1.1a: refresh-token lifetime, extracted from the previous inline
+# `timedelta(days=7)` so auth_session_service.py can compute a matching
+# `auth_sessions.expires_at` without duplicating the literal.
+REFRESH_TOKEN_EXPIRE_DAYS = 7
+
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a plain password against a hashed password."""
@@ -92,25 +97,41 @@ def create_access_token(
     return encoded_jwt
 
 
-def create_refresh_token(subject: Union[str, int]) -> str:
+def create_refresh_token(
+    subject: Union[str, int],
+    jti: Optional[str] = None,
+    family: Optional[str] = None,
+) -> str:
     """
     Create a JWT refresh token with longer expiration.
-    
+
     Args:
         subject: User ID
-    
+        jti: Optional unique token id (uuid4 string). When provided, the
+            claim is included so the token can be matched to a server-side
+            `auth_sessions` row (P1.1a — cookie/dual mode session-backed
+            refresh tokens). Omitted by every existing `bearer`-mode caller,
+            so those tokens are byte-identical to before this change.
+        family: Optional session family id (uuid4 string), included as the
+            `family` claim alongside `jti`. Only meaningful when `jti` is
+            also provided.
+
     Returns:
         Encoded JWT refresh token
     """
-    expire = _utcnow() + timedelta(days=7)  # 7 days for refresh token
-    
+    expire = _utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+
     to_encode = {
         "exp": expire,
         "sub": str(subject),
         "iat": _utcnow(),
         "type": "refresh"
     }
-    
+    if jti is not None:
+        to_encode["jti"] = jti
+    if family is not None:
+        to_encode["family"] = family
+
     encoded_jwt = jwt.encode(
         to_encode,
         settings.SECRET_KEY,

@@ -1,9 +1,11 @@
 import logging
+import secrets
 from typing import AsyncGenerator, Optional
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from app.db.session import AsyncSessionLocal
 from app.core.config import settings
+from app.core.cookie_auth import ACCESS_COOKIE, CSRF_COOKIE
 from app.core.security import verify_token
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,25 +13,62 @@ from sqlalchemy.ext.asyncio import AsyncSession
 security = HTTPBearer(auto_error=False)
 logger = logging.getLogger(__name__)
 
+# Methods that mutate state -- CSRF is only enforced on these when the
+# request was authenticated via cookie (bearer-authenticated requests are
+# exempt: headers aren't CSRF-able the way ambient cookies are).
+_CSRF_PROTECTED_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
+
 async def get_db() -> AsyncGenerator:
     async with AsyncSessionLocal() as session:
         yield session
 
 
 async def get_current_user(
+    request: Request,
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Get current user from JWT token or dev mode.
-    
-    In development mode, returns a mock admin user if no token provided.
-    In production, requires a valid JWT token.
+    Get current user from JWT token (cookie and/or Bearer, mode-aware) or dev mode.
+
+    COOKIE_AUTH_MODE controls credential resolution (P1.1a FR2):
+      - bearer (default): Authorization header only -- byte-identical to the
+        pre-P1.1a behavior; an access_token cookie, if present, is ignored.
+      - dual: access_token cookie first, falling back to the Authorization
+        header only when no cookie is present.
+      - cookie: access_token cookie only; the Authorization header is never
+        consulted.
+
+    Presence-based, not validity-based: once a source is selected because it
+    is PRESENT, an invalid/expired token from that source 401s -- it never
+    silently falls back to the other source.
+
+    In development mode (DEV_AUTH_BYPASS=true), returns a mock admin user
+    when NEITHER source produced a token. In production, requires a valid
+    JWT token.
     """
     from app.models.user import User, UserRole
-    
-    # Dev auth bypass: ONLY when explicitly opted-in via DEV_AUTH_BYPASS=true
-    if not credentials or not credentials.credentials:
+
+    token: Optional[str] = None
+    token_source: Optional[str] = None
+
+    if settings.COOKIE_AUTH_MODE in ("dual", "cookie"):
+        cookie_token = request.cookies.get(ACCESS_COOKIE)
+        if cookie_token:
+            token, token_source = cookie_token, "cookie"
+
+    if token is None and settings.COOKIE_AUTH_MODE != "cookie":
+        if credentials and credentials.credentials:
+            token, token_source = credentials.credentials, "bearer"
+
+    # Exposed so endpoints (e.g. GET /auth/me) can tell whether THIS request
+    # was actually authenticated via cookie, without re-deriving the same
+    # mode-aware resolution logic.
+    request.state.auth_token_source = token_source
+
+    # Dev auth bypass: ONLY when explicitly opted-in via DEV_AUTH_BYPASS=true,
+    # and ONLY when neither cookie nor header produced a candidate token.
+    if not token:
         if settings.DEV_AUTH_BYPASS:
             logger.warning("DEV AUTH BYPASS: No token provided, returning mock admin")
             result = await db.execute(select(User).where(User.id == 1))
@@ -50,8 +89,6 @@ async def get_current_user(
             detail="Not authenticated",
             headers={"WWW-Authenticate": "Bearer"}
         )
-
-    token = credentials.credentials
 
     payload = verify_token(token)
     if not payload:
@@ -102,6 +139,18 @@ async def get_current_user(
             detail="Not authenticated",
             headers={"WWW-Authenticate": "Bearer"}
         )
+
+    # CSRF double-submit enforcement (P1.1a FR3): only for cookie-sourced
+    # auth on state-changing methods. Bearer-authenticated requests are
+    # exempt. Implemented once, here, rather than per-endpoint.
+    if token_source == "cookie" and request.method in _CSRF_PROTECTED_METHODS:
+        header_csrf = request.headers.get("x-csrf-token")
+        cookie_csrf = request.cookies.get(CSRF_COOKIE)
+        if not header_csrf or not cookie_csrf or not secrets.compare_digest(header_csrf, cookie_csrf):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="CSRF token missing or invalid",
+            )
 
     return user
 
