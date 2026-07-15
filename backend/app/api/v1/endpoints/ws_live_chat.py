@@ -12,6 +12,7 @@ from app.db.session import AsyncSessionLocal
 from app.core.websocket_manager import ws_manager
 from app.core.rate_limiter import ws_rate_limiter
 from app.core.websocket_health import ws_health_monitor
+from app.services.auth_session_service import claim_ws_ticket
 from app.services.live_chat_service import live_chat_service
 from app.services.analytics_service import analytics_service
 from app.schemas.ws_events import (
@@ -27,6 +28,25 @@ from app.models.user import User, UserRole
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+
+async def _load_and_authorize_ws_user(user_id: int) -> Optional[User]:
+    """Shared user-load + role-check for both WS auth paths (JWT and ticket).
+
+    Extracted so `authenticate_ws_ticket` doesn't duplicate the lookup/role
+    logic that previously lived inline in `authenticate_ws_user` (P1.1a Task
+    8 note: mirror lines 64-75, don't copy-paste them)."""
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(select(User).where(User.id == user_id))
+        user = result.scalar_one_or_none()
+
+    if not user or not getattr(user, "is_active", True):
+        return None
+
+    if user.role not in {UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.AGENT}:
+        return None
+
+    return user
 
 
 async def authenticate_ws_user(websocket: WebSocket, token: Optional[str]) -> Optional[str]:
@@ -61,15 +81,9 @@ async def authenticate_ws_user(websocket: WebSocket, token: Optional[str]) -> Op
         except (TypeError, ValueError) as exc:
             raise JWTError("Invalid subject claim") from exc
 
-        async with AsyncSessionLocal() as db:
-            result = await db.execute(select(User).where(User.id == user_id_int))
-            user = result.scalar_one_or_none()
-
-        if not user or not getattr(user, "is_active", True):
-            raise JWTError("User not found")
-
-        if user.role not in {UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.AGENT}:
-            raise JWTError("Insufficient permissions")
+        user = await _load_and_authorize_ws_user(user_id_int)
+        if user is None:
+            raise JWTError("User not found or insufficient permissions")
 
         logger.info(f"WebSocket auth successful for admin {user.id}")
         return str(user.id)
@@ -99,23 +113,68 @@ async def authenticate_ws_user(websocket: WebSocket, token: Optional[str]) -> Op
         return None
 
 
+async def authenticate_ws_ticket(websocket: WebSocket, ticket: str) -> Optional[str]:
+    """Authenticate a WebSocket connection using a single-use ws-ticket
+    (P1.1a FR6). Tickets are minted via `POST /auth/ws-ticket` and consumed
+    atomically -- claiming the same ticket twice always fails the second
+    time, regardless of whether authorization then succeeds or fails."""
+    async with AsyncSessionLocal() as db:
+        user_id = await claim_ws_ticket(db, ticket)
+        # Single-use depends on the `used_at` write persisting even if the
+        # subsequent role check below fails.
+        await db.commit()
+
+    if user_id is None:
+        await ws_manager.send_personal(websocket, {
+            "type": WSEventType.AUTH_ERROR.value,
+            "payload": {
+                "message": "Invalid or expired ticket.",
+                "code": WSErrorCode.AUTH_INVALID_TOKEN.value
+            },
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        })
+        return None
+
+    user = await _load_and_authorize_ws_user(user_id)
+    if user is None:
+        await ws_manager.send_personal(websocket, {
+            "type": WSEventType.AUTH_ERROR.value,
+            "payload": {
+                "message": "Invalid token or insufficient permissions",
+                "code": WSErrorCode.AUTH_INVALID_TOKEN.value
+            },
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        })
+        return None
+
+    logger.info(f"WebSocket auth successful for admin {user.id} (ticket)")
+    return str(user.id)
+
+
 async def handle_auth(websocket: WebSocket, payload: dict) -> Optional[str]:
     """
-    Authenticate WebSocket connection using an access token.
+    Authenticate WebSocket connection using an access token OR a single-use
+    ws-ticket (P1.1a FR6).
 
-    Token must be provided in the auth message payload:
-        {"type": "auth", "payload": {"token": "<jwt>"}}
+    Token path (unchanged, stays available until PR 2C):
+        {"type": "auth", "payload": {"token": "<jwt access token>"}}
+    Ticket path (minted via `POST /auth/ws-ticket`):
+        {"type": "auth", "payload": {"ticket": "<raw ticket>"}}
 
-    The token is deliberately NOT accepted as a URL query parameter — that would
-    leak the JWT into server/proxy access logs and browser history.
+    Neither value is accepted as a URL query parameter — that would leak the
+    credential into server/proxy access logs and browser history.
     """
+    has_credential = bool(payload.get('token') or payload.get('ticket'))
     try:
-        auth_data = AuthPayload(**payload) if payload.get('token') else None
-        token = auth_data.token if auth_data else None
+        auth_data = AuthPayload(**payload) if has_credential else None
     except ValidationError as e:
         logger.warning(f"Auth payload validation failed: {e}")
-        token = None
+        auth_data = None
 
+    if auth_data is not None and auth_data.ticket:
+        return await authenticate_ws_ticket(websocket, auth_data.ticket)
+
+    token = auth_data.token if auth_data else None
     return await authenticate_ws_user(websocket, token)
 
 
@@ -176,6 +235,21 @@ async def websocket_endpoint(
       - ping: {"type": "ping"}
     """
     import time
+
+    # Origin validation (P1.1a FR6), BEFORE accept: when the Origin header is
+    # present and BACKEND_CORS_ORIGINS is non-empty, reject handshakes from
+    # origins outside that allowlist. `websocket.close()` before `accept()`
+    # rejects the handshake at the HTTP level (403) rather than accepting
+    # then immediately disconnecting. Absent Origin (non-browser clients,
+    # server-to-server, tests) or an empty allowlist both pass -- there is
+    # nothing to compare against, and rejecting would break every existing
+    # test/tool that doesn't set an Origin header.
+    origin = websocket.headers.get("origin")
+    allowed_origins = {str(o).rstrip("/") for o in settings.BACKEND_CORS_ORIGINS}
+    if origin and allowed_origins and origin.rstrip("/") not in allowed_origins:
+        await websocket.close(code=1008)  # policy violation
+        return
+
     connection_id = await ws_manager.connect(websocket)
     admin_id: Optional[str] = None
     current_room: Optional[str] = None
