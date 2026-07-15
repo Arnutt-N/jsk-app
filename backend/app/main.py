@@ -169,14 +169,23 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Set all CORS enabled origins
-# For local development, allow all origins
+# Set all CORS enabled origins.
+#
+# P1.1a FR5: allow_credentials=True together with wildcard methods/headers is
+# the exact forbidden combination the remediation plan flags -- a
+# credentialed CORS response with `*` methods/headers lets any origin in
+# BACKEND_CORS_ORIGINS (env-controlled) probe with arbitrary verbs/headers.
+# Explicit lists close that regardless of what origins are configured.
+# Wildcard origins ("*") are already rejected by the pydantic
+# List[AnyHttpUrl] type on BACKEND_CORS_ORIGINS -- "*" fails URL validation,
+# so that half of FR5 is satisfied by the type system, not a runtime guard
+# (see test_cookie_auth.py FR8 test 10 / PR body deviation note).
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[str(origin).rstrip("/") for origin in settings.BACKEND_CORS_ORIGINS],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["authorization", "content-type", "x-csrf-token", "x-liff-id-token"],
 )
 
 @app.get("/")
