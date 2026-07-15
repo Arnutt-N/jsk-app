@@ -153,9 +153,13 @@ export function useMessageFlow({
           if (store.pendingMessages.has(tempId)) {
             store.removePending(tempId);
             store.setFailed(tempId, 'หมดเวลารอการยืนยันข้อความ');
-            // Only clear sending flag if NO other messages are pending
-            if (store.sending && store.pendingMessages.size === 0) {
-              store.setSending(false);
+            // Only clear sending flag if NO other messages are pending.
+            // Re-read the store: removePending replaced pendingMessages with
+            // a new Set, so the `store` snapshot above still contains this
+            // message and would keep `sending` stuck at true forever.
+            const fresh = getStore();
+            if (fresh.sending && fresh.pendingMessages.size === 0) {
+              fresh.setSending(false);
             }
           }
         }, ACK_TIMEOUT_MS);

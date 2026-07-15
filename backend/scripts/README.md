@@ -16,6 +16,7 @@
 - `check_requests.py [--limit N]` - inspect recent service requests without modifying data
 - `test_webhook_logic.py [texts...]` - probe keyword-matching behavior against the DB
 - `test_liff_api.py [--apply]` - preview or submit a sample LIFF service-request payload; defaults to dry-run
+- `collect_preflight_db_evidence.py [--target local|remote] [--limit N] [--json] [--output PATH]` - read-only Phase 0 evidence collector (sizes/rows/alembic/pg_stat_statements aggregates; redacts URLs, query text, and data)
 
 ## Supported Data Utilities
 
