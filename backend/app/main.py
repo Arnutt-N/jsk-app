@@ -159,8 +159,8 @@ app = FastAPI(
     title=settings.PROJECT_NAME,
     description="Backend API for JskApp - Community Justice Services. Supports LINE OA integration and LIFF applications.",
     version="1.0.0",
-    openapi_url=f"{settings.API_V1_STR}/openapi.json" if settings.ENVIRONMENT != "production" else None,
-    docs_url=f"{settings.API_V1_STR}/docs" if settings.ENVIRONMENT != "production" else None,
+    openapi_url=f"{settings.API_V1_STR}/openapi.json" if not settings.is_production_like else None,
+    docs_url=f"{settings.API_V1_STR}/docs" if not settings.is_production_like else None,
     openapi_tags=tags_metadata,
     contact={
         "name": "JskApp Support Team",

@@ -4,6 +4,31 @@ from pydantic import AnyHttpUrl, PostgresDsn, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from app.core.env import resolve_env_file
 
+# Production guard thresholds — see docs/remediation/migration-controls.md
+# ("P0.1 production startup guards") for the enforced-control table.
+_MIN_SECRET_KEY_LENGTH = 32
+# Recognized non-production environment names. Anything NOT in this allowlist
+# (production, prod, staging, typos, blank-ish variants) is treated as
+# production-like so the guards fail closed instead of silently skipping.
+_NON_PRODUCTION_ENVIRONMENTS = frozenset(
+    {
+        "development",
+        "dev",
+        "test",
+        "testing",
+        "local",
+    }
+)
+_PLACEHOLDER_SECRET_KEYS = frozenset(
+    {
+        "change_this_to_a_secure_random_string",
+        "changeme",
+        "change_this",
+        "secret",
+        "secret_key",
+    }
+)
+
 class Settings(BaseSettings):
     PROJECT_NAME: str = "JskApp"
     API_V1_STR: str = "/api/v1"
@@ -66,4 +91,71 @@ class Settings(BaseSettings):
         extra="ignore"
     )
 
-settings = Settings(_env_file=resolve_env_file())
+    @property
+    def is_production_like(self) -> bool:
+        """True unless ENVIRONMENT is a recognized non-production name.
+
+        Deliberately fail-closed: only `development`, `dev`, `test`,
+        `testing`, and `local` are treated as non-production. Unknown
+        environment names (`prod`, `staging`, misspellings of `production`,
+        etc.) are treated as production on purpose so the startup guards,
+        the docs/OpenAPI gate, and the encryption-key fallback denial all
+        apply rather than silently switching off.
+        """
+        return self.ENVIRONMENT.strip().lower() not in _NON_PRODUCTION_ENVIRONMENTS
+
+    def enforce_production_guards(self) -> "Settings":
+        """Fail closed on unsafe production configuration combinations.
+
+        Only runs when ENVIRONMENT is production-like (see is_production_like
+        — production, staging, and unknown names all enforce); recognized
+        development/test defaults remain untouched. Collects every violation
+        so operators can fix them all at once, and never echoes the
+        configured value into the error.
+
+        Deliberately NOT a pydantic validator: a ``ValueError`` raised inside a
+        ``model_validator`` gets wrapped in ``ValidationError``, whose string
+        representation appends a truncated repr of the entire input dict
+        (``input_value={...}``) — leaking fragments of SECRET_KEY, the
+        DATABASE_URL password, or other secrets into startup logs. Raising a
+        plain ``RuntimeError`` from an explicit method keeps the message limited
+        to the violation list. Guards are enforced on the module singleton path
+        below; any future direct ``Settings()`` construction in app code must
+        call this method itself.
+        """
+        if not self.is_production_like:
+            return self
+
+        violations: List[str] = []
+
+        if self.DEV_AUTH_BYPASS:
+            violations.append(
+                "DEV_AUTH_BYPASS must be disabled in production — remove it from the environment."
+            )
+
+        secret_key = self.SECRET_KEY.strip()
+        if len(secret_key) < _MIN_SECRET_KEY_LENGTH or secret_key.lower() in _PLACEHOLDER_SECRET_KEYS:
+            violations.append(
+                "SECRET_KEY is too weak for production — set a random value of at "
+                "least 32 characters (e.g. openssl rand -hex 32)."
+            )
+
+        if not self.LINE_LOGIN_CHANNEL_ID.strip():
+            violations.append(
+                "LINE_LOGIN_CHANNEL_ID must be set in production for LIFF token verification."
+            )
+
+        if not self.ENCRYPTION_KEY.strip():
+            violations.append(
+                "ENCRYPTION_KEY must be set in production — generate a Fernet key."
+            )
+
+        if violations:
+            raise RuntimeError(
+                "Unsafe production configuration:\n"
+                + "\n".join(f"- {v}" for v in violations)
+            )
+
+        return self
+
+settings = Settings(_env_file=resolve_env_file()).enforce_production_guards()

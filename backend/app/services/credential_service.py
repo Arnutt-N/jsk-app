@@ -19,9 +19,13 @@ class CredentialService:
         self.cipher: Optional[Fernet] = None
 
     def _allows_fallback_key(self) -> bool:
-        """Allow the insecure fallback for development-only configurations."""
-        environment = str(getattr(settings, "ENVIRONMENT", "development") or "development")
-        return environment.strip().lower() != "production"
+        """Allow the insecure fallback for development-only configurations.
+
+        Uses settings.is_production_like so prod/staging/unknown environment
+        names all deny the fallback (fail-closed), matching the P0.1 startup
+        guards.
+        """
+        return not settings.is_production_like
 
     def validate_configuration(self) -> None:
         """Validate encryption settings before serving traffic."""
