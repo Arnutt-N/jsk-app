@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 from app.db.session import get_db
 from app.api.deps import get_current_admin, require_permission
+from app.core.audit import create_audit_log
 from app.core.permissions import (
     can_assign,
     can_self_assign,
@@ -178,13 +179,16 @@ async def update_permissions(
                 detail=f"ห้ามถอด SUPER_ADMIN ออกจากสิทธิ์ '{rule.key}'",
             )
 
-    # Apply -- one upsert per rule.
+    # Apply -- one upsert per rule. Track old->new role transitions for the
+    # audit row (role NAMES only -- no secrets are ever involved here).
+    changes = []
     for rule in body.updates:
         existing = await db.execute(
             select(PermissionSetting).where(PermissionSetting.key == rule.key)
         )
         row = existing.scalar_one_or_none()
         if row is None:
+            prior_roles = None
             row = PermissionSetting(
                 key=rule.key,
                 allowed_roles=rule.allowed_roles,
@@ -193,10 +197,25 @@ async def update_permissions(
             )
             db.add(row)
         else:
+            prior_roles = list(row.allowed_roles or [])
             row.allowed_roles = rule.allowed_roles
             if rule.description is not None:
                 row.description = rule.description
             row.updated_by_id = int(current_admin.id) if current_admin.id is not None else None
+
+        new_roles = list(rule.allowed_roles)
+        if prior_roles is None or sorted(prior_roles) != sorted(new_roles):
+            changes.append({"key": rule.key, "from": prior_roles, "to": new_roles})
+
+    if changes:
+        await create_audit_log(
+            db=db,
+            admin_id=current_admin.id,
+            action="update_permissions",
+            resource_type="permission_matrix",
+            resource_id=None,
+            details={"changes": changes},
+        )
 
     await db.commit()
 
@@ -234,28 +253,66 @@ class ValidateLineTokenRequest(BaseModel):
 
 @router.post("/line/validate")
 @router.post("/line/validate/")
-async def validate_line_token(request: ValidateLineTokenRequest, current_admin: User = Depends(require_permission(KEY_EDIT_SYSTEM_SETTINGS))):
+async def validate_line_token(
+    request: ValidateLineTokenRequest,
+    db: AsyncSession = Depends(get_db),
+    current_admin: User = Depends(require_permission(KEY_EDIT_SYSTEM_SETTINGS)),
+):
     import httpx
     url = "https://api.line.me/v2/bot/info"
     headers = {"Authorization": f"Bearer {request.channel_access_token}"}
-    
+
+    async def _audit(result: str) -> None:
+        # No DB mutation happens here -- the audit row IS the mutation for
+        # this test/verify endpoint. NEVER log the token itself.
+        await create_audit_log(
+            db=db,
+            admin_id=current_admin.id,
+            action="validate_line_token",
+            resource_type="credential",
+            resource_id=None,
+            details={"result": result},
+        )
+        await db.commit()
+
     async with httpx.AsyncClient() as client:
         try:
             response = await client.get(url, headers=headers)
         except Exception as e:
+            await _audit("fail")
             raise HTTPException(status_code=500, detail=f"Connection failed: {str(e)}")
-        
+
     if response.status_code == 200:
+        await _audit("ok")
         return {"status": "valid", "data": response.json()}
     elif response.status_code == 401:
+        await _audit("fail")
         raise HTTPException(status_code=400, detail="Invalid Channel Access Token")
     else:
+        await _audit("fail")
         raise HTTPException(status_code=400, detail=f"Validation failed: {response.text}")
 
 @router.get("", response_model=List[SystemSettingResponse])
 async def list_settings(db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_admin)):
     result = await db.execute(select(SystemSetting))
     return result.scalars().all()
+
+
+# system_settings can hold values that are NOT secrets (e.g. HANDOFF_KEYWORDS)
+# as well as values that ARE (e.g. LINE_CHANNEL_ACCESS_TOKEN -- used as a
+# fallback source by rich_menu_service.py). Since any key can theoretically
+# carry a secret, log the value only when the key name doesn't match one of
+# these markers; otherwise log key + a boolean "value_changed" flag. This
+# rule intentionally errs on the side of over-redacting (a key merely
+# containing "KEY" gets redacted even if benign) per FR2 -- see
+# p0.3-audit-coverage.prd.md.
+_SECRET_SETTING_KEY_MARKERS = ("TOKEN", "SECRET", "PASSWORD", "KEY", "CREDENTIAL")
+
+
+def _is_secret_setting_key(key: str) -> bool:
+    upper = key.upper()
+    return any(marker in upper for marker in _SECRET_SETTING_KEY_MARKERS)
+
 
 @router.post("", response_model=SystemSettingResponse)
 async def update_setting(
@@ -264,9 +321,24 @@ async def update_setting(
     current_admin: User = Depends(require_permission(KEY_EDIT_SYSTEM_SETTINGS))
 ):
     setting = await SettingsService.set_setting(
-        db, 
-        setting_data.key, 
-        setting_data.value, 
+        db,
+        setting_data.key,
+        setting_data.value,
         setting_data.description
     )
+
+    if _is_secret_setting_key(setting_data.key):
+        details = {"key": setting_data.key, "value_changed": True}
+    else:
+        details = {"key": setting_data.key, "value": setting_data.value}
+
+    await create_audit_log(
+        db=db,
+        admin_id=current_admin.id,
+        action="update_system_setting",
+        resource_type="system_setting",
+        resource_id=str(setting.id),
+        details=details,
+    )
+    await db.commit()
     return setting

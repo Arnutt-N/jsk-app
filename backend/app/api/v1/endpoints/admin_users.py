@@ -7,6 +7,7 @@ from typing import List, Optional
 
 from app.db.session import get_db
 from app.api.deps import get_current_admin, get_current_staff, require_permission
+from app.core.audit import create_audit_log
 from app.core.permissions import KEY_MANAGE_USERS
 from app.models.user import User, UserRole
 from app.models.service_request import ServiceRequest, RequestStatus
@@ -351,6 +352,19 @@ async def create_user(
         is_active=True,
     )
     db.add(user)
+    await db.flush()  # assign user.id before the audit row references it
+
+    await create_audit_log(
+        db=db,
+        admin_id=current_admin.id,
+        action="create_user",
+        resource_type="user",
+        resource_id=str(user.id),
+        details={
+            "username": user.username,
+            "role": user.role.value if hasattr(user.role, "value") else str(user.role),
+        },
+    )
     await db.commit()
     await db.refresh(user)
 
@@ -394,6 +408,12 @@ async def update_user(
         # Also check permission for the user's current role
         _check_role_permission(current_admin, user.role)
 
+    # Snapshot prior values for the audit diff -- captured before mutation.
+    prior_display_name = user.display_name
+    prior_email = user.email
+    prior_role = user.role
+    prior_is_active = user.is_active
+
     # Apply updates
     if body.display_name is not None:
         user.display_name = body.display_name
@@ -426,6 +446,36 @@ async def update_user(
                 detail="Only SUPER_ADMIN can change passwords via this endpoint",
             )
         user.hashed_password = get_password_hash(body.password)
+
+    # Field NAMES only (+ role/is_active old->new) -- never the password.
+    changed_fields = []
+    if body.display_name is not None and user.display_name != prior_display_name:
+        changed_fields.append("display_name")
+    if body.email is not None and user.email != prior_email:
+        changed_fields.append("email")
+    if body.password is not None:
+        changed_fields.append("password")
+
+    audit_details = {"changed_fields": changed_fields}
+    role_changed = body.role is not None and user.role != prior_role
+    is_active_changed = body.is_active is not None and user.is_active != prior_is_active
+    if role_changed:
+        audit_details["role"] = {
+            "old": prior_role.value if hasattr(prior_role, "value") else str(prior_role),
+            "new": user.role.value if hasattr(user.role, "value") else str(user.role),
+        }
+    if is_active_changed:
+        audit_details["is_active"] = {"old": prior_is_active, "new": user.is_active}
+
+    if changed_fields or role_changed or is_active_changed:
+        await create_audit_log(
+            db=db,
+            admin_id=current_admin.id,
+            action="update_user",
+            resource_type="user",
+            resource_id=str(user.id),
+            details=audit_details,
+        )
 
     await db.commit()
     await db.refresh(user)
@@ -482,11 +532,24 @@ async def delete_user(
                 detail="Cannot delete the last active SUPER_ADMIN",
             )
 
+    # Capture before mutation -- the row (or its identity) may be gone/reset
+    # by the time the response is built.
+    username = user.username
+    role_value = user.role.value if hasattr(user.role, "value") else str(user.role)
+
     if hard:
         await db.delete(user)
     else:
         user.is_active = False
 
+    await create_audit_log(
+        db=db,
+        admin_id=current_admin.id,
+        action="delete_user",
+        resource_type="user",
+        resource_id=str(user_id),
+        details={"username": username, "role": role_value, "hard": hard},
+    )
     await db.commit()
     return {"detail": "User deleted successfully", "hard": hard}
 
@@ -511,6 +574,15 @@ async def reset_password(
         raise HTTPException(status_code=404, detail="User not found")
 
     user.hashed_password = get_password_hash(body.new_password)
+
+    await create_audit_log(
+        db=db,
+        admin_id=current_admin.id,
+        action="reset_password",
+        resource_type="user",
+        resource_id=str(user_id),
+        details={"username": user.username},
+    )
     await db.commit()
 
     return {"detail": "Password reset successfully"}

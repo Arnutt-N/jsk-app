@@ -14,6 +14,7 @@ import logging
 
 from app.api import deps
 from app.api.deps import get_current_admin, require_permission
+from app.core.audit import create_audit_log
 from app.core.permissions import KEY_EDIT_SYSTEM_SETTINGS
 from app.db.session import get_db
 from app.models.user import User
@@ -89,14 +90,49 @@ async def _get_or_none(provider: str, db: AsyncSession) -> Optional[Credential]:
     return result.scalar_one_or_none()
 
 
+async def _finish_integration_test(
+    db: AsyncSession,
+    admin_id: Optional[int],
+    provider_label: str,
+    credential_id: Optional[int],
+    result: "TestResult",
+) -> "TestResult":
+    """Write the audit row for a connection-test endpoint and commit it.
+
+    These endpoints perform no other DB mutation, so per PRD FR1 the audit
+    row IS the mutation -- always write it (success or failure), never the
+    decrypted secret used to run the test.
+    """
+    await create_audit_log(
+        db=db,
+        admin_id=admin_id,
+        action="test_integration",
+        resource_type="integration",
+        resource_id=str(credential_id) if credential_id is not None else None,
+        details={"provider": provider_label, "result": "ok" if result.success else "fail"},
+    )
+    await db.commit()
+    return result
+
+
 async def _upsert_credential(
     provider: str,
     name: str,
     creds_dict: dict,
     metadata: Optional[dict],
     db: AsyncSession,
+    admin_id: Optional[int],
+    action: str,
+    audit_details: Optional[Dict[str, Any]] = None,
 ) -> Credential:
-    """Create or update the default credential for a given provider."""
+    """Create or update the default credential for a given provider.
+
+    Writes the audit row on this SAME session, before the commit below, so
+    the audit entry and the credential write share one transaction (a
+    rollback drops both). This helper lives in this endpoint file, so it
+    stays in scope for the shared-transaction pattern (unlike
+    credential_service.py, a separate service module).
+    """
     existing = await _get_or_none(provider, db)
     encrypted = credential_service.encrypt_credentials(creds_dict)
 
@@ -105,19 +141,27 @@ async def _upsert_credential(
         existing.metadata_json = metadata
         existing.is_active = True
         existing.is_default = True
-        await db.commit()
-        await db.refresh(existing)
-        return existing
+        obj = existing
+    else:
+        obj = Credential(
+            name=name,
+            provider=provider,
+            credentials=encrypted,
+            metadata_json=metadata,
+            is_active=True,
+            is_default=True,
+        )
+        db.add(obj)
+        await db.flush()  # assign obj.id so the audit row can reference it
 
-    obj = Credential(
-        name=name,
-        provider=provider,
-        credentials=encrypted,
-        metadata_json=metadata,
-        is_active=True,
-        is_default=True,
+    await create_audit_log(
+        db=db,
+        admin_id=admin_id,
+        action=action,
+        resource_type="integration",
+        resource_id=str(obj.id),
+        details=audit_details or {},
     )
-    db.add(obj)
     await db.commit()
     await db.refresh(obj)
     return obj
@@ -160,6 +204,9 @@ async def save_telegram_config(
         creds_dict={"bot_token": body.bot_token, "chat_id": body.chat_id},
         metadata={"admin_chat_id": body.chat_id},
         db=db,
+        admin_id=current_admin.id,
+        action="update_telegram_config",
+        audit_details={"enabled": True, "fields": ["bot_token", "chat_id"]},
     )
     return TelegramConfigOut(
         bot_token_masked=_mask(body.bot_token),
@@ -176,7 +223,10 @@ async def test_telegram(
 ) -> Any:
     cred = await _get_or_none(Provider.TELEGRAM, db)
     if not cred:
-        return TestResult(success=False, message="Telegram not configured")
+        return await _finish_integration_test(
+            db, current_admin.id, "telegram", None,
+            TestResult(success=False, message="Telegram not configured"),
+        )
 
     try:
         decrypted = credential_service.decrypt_credentials(cred.credentials)
@@ -187,7 +237,10 @@ async def test_telegram(
             # Verify bot
             me_resp = await client.get(f"https://api.telegram.org/bot{bot_token}/getMe")
             if me_resp.status_code != 200:
-                return TestResult(success=False, message=f"Invalid bot token: {me_resp.text}")
+                return await _finish_integration_test(
+                    db, current_admin.id, "telegram", cred.id,
+                    TestResult(success=False, message=f"Invalid bot token: {me_resp.text}"),
+                )
 
             bot_info = me_resp.json().get("result", {})
 
@@ -200,20 +253,29 @@ async def test_telegram(
                 },
             )
             if send_resp.status_code != 200:
-                return TestResult(
-                    success=False,
-                    message=f"Bot verified but failed to send message to chat {chat_id}: {send_resp.text}",
-                    data={"bot": bot_info},
+                return await _finish_integration_test(
+                    db, current_admin.id, "telegram", cred.id,
+                    TestResult(
+                        success=False,
+                        message=f"Bot verified but failed to send message to chat {chat_id}: {send_resp.text}",
+                        data={"bot": bot_info},
+                    ),
                 )
 
-            return TestResult(
-                success=True,
-                message="Connected and test message sent!",
-                data={"bot": bot_info},
+            return await _finish_integration_test(
+                db, current_admin.id, "telegram", cred.id,
+                TestResult(
+                    success=True,
+                    message="Connected and test message sent!",
+                    data={"bot": bot_info},
+                ),
             )
     except Exception as exc:
         logger.error("Integration test failed for Telegram: %s", exc, exc_info=True)
-        return TestResult(success=False, message=str(exc))
+        return await _finish_integration_test(
+            db, current_admin.id, "telegram", cred.id if cred else None,
+            TestResult(success=False, message=str(exc)),
+        )
 
 
 # ── n8n ─────────────────────────────────────────────────────────────
@@ -257,6 +319,12 @@ async def save_n8n_config(
         creds_dict=creds_dict,
         metadata=None,
         db=db,
+        admin_id=current_admin.id,
+        action="update_n8n_config",
+        audit_details={
+            "enabled": True,
+            "fields": ["webhook_url"] + (["api_key"] if body.api_key else []),
+        },
     )
     return N8nConfigOut(
         webhook_url=body.webhook_url,
@@ -273,7 +341,10 @@ async def test_n8n(
 ) -> Any:
     cred = await _get_or_none(Provider.N8N, db)
     if not cred:
-        return TestResult(success=False, message="n8n not configured")
+        return await _finish_integration_test(
+            db, current_admin.id, "n8n", None,
+            TestResult(success=False, message="n8n not configured"),
+        )
 
     try:
         decrypted = credential_service.decrypt_credentials(cred.credentials)
@@ -291,18 +362,27 @@ async def test_n8n(
                 headers=headers,
             )
             if resp.status_code < 400:
-                return TestResult(
-                    success=True,
-                    message=f"Webhook responded with status {resp.status_code}",
-                    data={"status_code": resp.status_code},
+                return await _finish_integration_test(
+                    db, current_admin.id, "n8n", cred.id,
+                    TestResult(
+                        success=True,
+                        message=f"Webhook responded with status {resp.status_code}",
+                        data={"status_code": resp.status_code},
+                    ),
                 )
-            return TestResult(
-                success=False,
-                message=f"Webhook returned {resp.status_code}: {resp.text[:200]}",
+            return await _finish_integration_test(
+                db, current_admin.id, "n8n", cred.id,
+                TestResult(
+                    success=False,
+                    message=f"Webhook returned {resp.status_code}: {resp.text[:200]}",
+                ),
             )
     except Exception as exc:
         logger.error("Integration test failed for n8n: %s", exc, exc_info=True)
-        return TestResult(success=False, message=str(exc))
+        return await _finish_integration_test(
+            db, current_admin.id, "n8n", cred.id if cred else None,
+            TestResult(success=False, message=str(exc)),
+        )
 
 
 # ── Custom Integrations ─────────────────────────────────────────────
@@ -361,6 +441,16 @@ async def create_integration(
         is_default=False,
     )
     db.add(obj)
+    await db.flush()  # assign obj.id before the audit row references it
+
+    await create_audit_log(
+        db=db,
+        admin_id=current_admin.id,
+        action="create_integration",
+        resource_type="integration",
+        resource_id=str(obj.id),
+        details={"name": obj.name, "integration_type": body.integration_type},
+    )
     await db.commit()
     await db.refresh(obj)
 
@@ -406,8 +496,30 @@ async def update_integration(
     elif existing_creds.get("headers"):
         creds_dict["headers"] = existing_creds["headers"]
 
+    # Changed field NAMES only -- never log api_key/headers values.
+    changed_fields = []
+    if obj.name != body.name:
+        changed_fields.append("name")
+    if existing_creds.get("integration_type") != body.integration_type:
+        changed_fields.append("integration_type")
+    if existing_creds.get("url") != body.url:
+        changed_fields.append("url")
+    if body.api_key and body.api_key != existing_creds.get("api_key"):
+        changed_fields.append("api_key")
+    if body.headers and body.headers != existing_creds.get("headers"):
+        changed_fields.append("headers")
+
     obj.name = body.name
     obj.credentials = credential_service.encrypt_credentials(creds_dict)
+
+    await create_audit_log(
+        db=db,
+        admin_id=current_admin.id,
+        action="update_integration",
+        resource_type="integration",
+        resource_id=str(integration_id),
+        details={"changed_fields": changed_fields},
+    )
     await db.commit()
     await db.refresh(obj)
 
@@ -431,7 +543,22 @@ async def delete_integration(
     obj = await db.get(Credential, integration_id)
     if not obj or obj.provider != Provider.CUSTOM:
         raise HTTPException(status_code=404, detail="Integration not found")
+
+    name = obj.name
+    try:
+        integration_type = credential_service.decrypt_credentials(obj.credentials).get("integration_type", "webhook")
+    except Exception:
+        integration_type = "unknown"
+
     await db.delete(obj)
+    await create_audit_log(
+        db=db,
+        admin_id=current_admin.id,
+        action="delete_integration",
+        resource_type="integration",
+        resource_id=str(integration_id),
+        details={"name": name, "integration_type": integration_type},
+    )
     await db.commit()
     return {"success": True}
 
@@ -469,18 +596,27 @@ async def test_integration(
                 resp = await client.get(url, headers=headers)
 
             if resp.status_code < 400:
-                return TestResult(
-                    success=True,
-                    message=f"Connection successful (HTTP {resp.status_code})",
-                    data={"status_code": resp.status_code},
+                return await _finish_integration_test(
+                    db, current_admin.id, "custom", obj.id,
+                    TestResult(
+                        success=True,
+                        message=f"Connection successful (HTTP {resp.status_code})",
+                        data={"status_code": resp.status_code},
+                    ),
                 )
-            return TestResult(
-                success=False,
-                message=f"HTTP {resp.status_code}: {resp.text[:200]}",
+            return await _finish_integration_test(
+                db, current_admin.id, "custom", obj.id,
+                TestResult(
+                    success=False,
+                    message=f"HTTP {resp.status_code}: {resp.text[:200]}",
+                ),
             )
     except Exception as exc:
         logger.error("Integration test failed for custom integration %d: %s", integration_id, exc, exc_info=True)
-        return TestResult(success=False, message=str(exc))
+        return await _finish_integration_test(
+            db, current_admin.id, "custom", obj.id,
+            TestResult(success=False, message=str(exc)),
+        )
 
 
 # ── Overview (all providers) ────────────────────────────────────────

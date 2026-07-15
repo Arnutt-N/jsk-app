@@ -94,6 +94,19 @@ def audit_action(action: str, resource_type: str):
     return decorator
 
 
+def changed_field_names(payload: dict) -> list:
+    """Return the sorted field NAMES present in a partial-update payload.
+
+    FR2 (redaction) helper: several privileged-mutation endpoints (credential
+    update, integration update, system-setting update) must record WHICH
+    fields changed without ever recording the values themselves (values may
+    be secrets: tokens, passwords, encrypted blobs). Callers pass the
+    `exclude_unset=True` dict of a Pydantic partial-update model; this
+    returns just the keys, sorted for stable/deterministic audit details.
+    """
+    return sorted(payload.keys())
+
+
 async def create_audit_log(
     db: AsyncSession,
     admin_id: Optional[int],

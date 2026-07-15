@@ -3,14 +3,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Any, List
 from app.api import deps
 from app.api.deps import get_current_admin, require_permission
+from app.core.audit import create_audit_log, changed_field_names
 from app.core.permissions import KEY_EDIT_SYSTEM_SETTINGS
 from app.models.user import User
 from app.services.credential_service import credential_service
-from app.models.credential import Provider
+from app.models.credential import Credential, Provider
 from app.schemas.credential import (
     CredentialCreate, CredentialUpdate,
     CredentialResponse, CredentialListResponse
 )
+
+
+def _provider_value(provider: Any) -> str:
+    """Coerce a Credential.provider (enum or plain str) to a plain string."""
+    return provider.value if hasattr(provider, "value") else str(provider)
 
 router = APIRouter()
 
@@ -41,7 +47,24 @@ async def create_credential(
     current_admin: User = Depends(require_permission(KEY_EDIT_SYSTEM_SETTINGS))
 ) -> Any:
     """Create new credential"""
+    # NOTE: credential_service.create_credential() commits internally (it is
+    # a shared service, out of this PRD's touch scope), so the audit row
+    # below is a second, immediately-following commit rather than a single
+    # shared transaction with the credential insert. Not-found/validation
+    # failures never reach this line, so "zero audit rows on failure" still
+    # holds; see p0.3-audit-coverage.prd.md for the accepted deviation.
     credential = await credential_service.create_credential(request, db)
+
+    await create_audit_log(
+        db=db,
+        admin_id=current_admin.id,
+        action="create_credential",
+        resource_type="credential",
+        resource_id=str(credential.id),
+        details={"provider": _provider_value(credential.provider), "name": credential.name},
+    )
+    await db.commit()
+
     response = CredentialResponse.model_validate(credential)
     response.credentials_masked = credential_service.mask_credentials(credential.credentials)
     return response
@@ -93,9 +116,22 @@ async def update_credential(
     current_admin: User = Depends(require_permission(KEY_EDIT_SYSTEM_SETTINGS))
 ) -> Any:
     """Update credential"""
+    # Field NAMES only -- request.credentials may contain secret values.
+    changed_fields = changed_field_names(request.model_dump(exclude_unset=True))
+
     credential = await credential_service.update_credential(id, request, db)
     if not credential:
         raise HTTPException(status_code=404, detail="Credential not found")
+
+    await create_audit_log(
+        db=db,
+        admin_id=current_admin.id,
+        action="update_credential",
+        resource_type="credential",
+        resource_id=str(id),
+        details={"changed_fields": changed_fields},
+    )
+    await db.commit()
 
     response = CredentialResponse.model_validate(credential)
     response.credentials_masked = credential_service.mask_credentials(credential.credentials)
@@ -109,9 +145,26 @@ async def delete_credential(
     current_admin: User = Depends(require_permission(KEY_EDIT_SYSTEM_SETTINGS))
 ) -> Any:
     """Delete credential"""
+    # Capture provider/name BEFORE delete -- the row is gone afterwards.
+    existing = await db.get(Credential, id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Credential not found")
+    provider = _provider_value(existing.provider)
+    name = existing.name
+
     success = await credential_service.delete_credential(id, db)
     if not success:
         raise HTTPException(status_code=404, detail="Credential not found")
+
+    await create_audit_log(
+        db=db,
+        admin_id=current_admin.id,
+        action="delete_credential",
+        resource_type="credential",
+        resource_id=str(id),
+        details={"provider": provider, "name": name},
+    )
+    await db.commit()
     return {"success": True}
 
 
@@ -122,7 +175,24 @@ async def verify_credential(
     current_admin: User = Depends(get_current_admin)
 ) -> Any:
     """Test connection for credential"""
-    return await credential_service.verify_credential(id, db)
+    # No DB mutation happens here -- the audit row IS the mutation for this
+    # test/verify endpoint (PRD FR1 notes).
+    existing = await db.get(Credential, id)
+    result = await credential_service.verify_credential(id, db)
+
+    await create_audit_log(
+        db=db,
+        admin_id=current_admin.id,
+        action="verify_credential",
+        resource_type="credential",
+        resource_id=str(id),
+        details={
+            "provider": _provider_value(existing.provider) if existing else None,
+            "result": "ok" if result.get("success") else "fail",
+        },
+    )
+    await db.commit()
+    return result
 
 
 @router.post("/{id}/set-default", response_model=CredentialResponse)
@@ -135,6 +205,16 @@ async def set_default_credential(
     credential = await credential_service.set_default(id, db)
     if not credential:
         raise HTTPException(status_code=404, detail="Credential not found")
+
+    await create_audit_log(
+        db=db,
+        admin_id=current_admin.id,
+        action="set_default_credential",
+        resource_type="credential",
+        resource_id=str(id),
+        details={"provider": _provider_value(credential.provider)},
+    )
+    await db.commit()
 
     response = CredentialResponse.model_validate(credential)
     response.credentials_masked = credential_service.mask_credentials(credential.credentials)

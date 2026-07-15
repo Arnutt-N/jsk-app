@@ -7,12 +7,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
 from app.api.deps import get_current_admin, require_permission
+from app.core.audit import create_audit_log
 from app.core.permissions import KEY_MANAGE_BROADCAST
 from app.models.broadcast import BroadcastStatus, BroadcastType
 from app.models.user import User
 from app.services.broadcast_service import broadcast_service
 
 router = APIRouter()
+
+
+def _status_value(status_: BroadcastStatus) -> str:
+    return status_.value if hasattr(status_, "value") else str(status_)
 
 
 # ------------------------------------------------------------------ #
@@ -110,6 +115,10 @@ async def create_broadcast(
     db: AsyncSession = Depends(get_db),
     current_admin: User = Depends(require_permission(KEY_MANAGE_BROADCAST)),
 ):
+    # NOTE: broadcast_service commits internally (shared service, out of this
+    # PRD's touch scope) -- the audit row below is a second, immediately-
+    # following commit rather than one shared transaction. See
+    # p0.3-audit-coverage.prd.md for the accepted deviation.
     broadcast = await broadcast_service.create_broadcast(
         db,
         title=payload.title,
@@ -119,6 +128,17 @@ async def create_broadcast(
         target_filter=payload.target_filter,
         created_by=current_admin.id,
     )
+
+    await create_audit_log(
+        db=db,
+        admin_id=current_admin.id,
+        action="create_broadcast",
+        resource_type="broadcast",
+        resource_id=str(broadcast.id),
+        details={"title": broadcast.title, "status": _status_value(broadcast.status)},
+    )
+    await db.commit()
+
     return BroadcastResponse.model_validate(broadcast)
 
 
@@ -179,6 +199,19 @@ async def send_broadcast(
         broadcast = await broadcast_service.send_broadcast(db, broadcast)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+    # Record the resulting status transition regardless of outcome (helps
+    # troubleshoot failed sends), then still surface the 502 to the caller.
+    await create_audit_log(
+        db=db,
+        admin_id=current_admin.id,
+        action="send_broadcast",
+        resource_type="broadcast",
+        resource_id=str(broadcast.id),
+        details={"title": broadcast.title, "status": _status_value(broadcast.status)},
+    )
+    await db.commit()
+
     if broadcast.status == BroadcastStatus.FAILED:
         raise HTTPException(
             status_code=502,
@@ -201,6 +234,21 @@ async def schedule_broadcast(
         broadcast = await broadcast_service.schedule_broadcast(db, broadcast, payload.scheduled_at)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+    await create_audit_log(
+        db=db,
+        admin_id=current_admin.id,
+        action="schedule_broadcast",
+        resource_type="broadcast",
+        resource_id=str(broadcast.id),
+        details={
+            "title": broadcast.title,
+            "status": _status_value(broadcast.status),
+            "scheduled_at": broadcast.scheduled_at.isoformat() if broadcast.scheduled_at else None,
+        },
+    )
+    await db.commit()
+
     return BroadcastResponse.model_validate(broadcast)
 
 
@@ -217,4 +265,15 @@ async def cancel_broadcast(
         broadcast = await broadcast_service.cancel_broadcast(db, broadcast)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+    await create_audit_log(
+        db=db,
+        admin_id=current_admin.id,
+        action="cancel_broadcast",
+        resource_type="broadcast",
+        resource_id=str(broadcast.id),
+        details={"title": broadcast.title, "status": _status_value(broadcast.status)},
+    )
+    await db.commit()
+
     return BroadcastResponse.model_validate(broadcast)
