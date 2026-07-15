@@ -198,6 +198,80 @@ CRUD, media/settings writes, and request status/assignment changes have
 **zero** audit trail today. This is a survey only, per the PRD's non-goals —
 no fix is included in this PR.
 
+### 4.1 P0.3 remediation — addendum (2026-07-15)
+
+Implemented per `.claude/PRPs/prds/p0.3-audit-coverage.prd.md`: every route
+in that PRD's FR1 coverage matrix now calls `create_audit_log()` directly
+(no `@audit_action` — that decorator remains service-layer-only, unchanged).
+Updated coverage for the 6 files in scope:
+
+| File | Mutating routes | Audit coverage (after P0.3) |
+| --- | --- | --- |
+| `admin_users.py` | 4 | **all 4**: `create_user`, `update_user`, `delete_user`, `reset_password` |
+| `admin_broadcast.py` | 6 | **4 of 6** (lifecycle only, per PRD scope): `create_broadcast`, `schedule_broadcast`, `cancel_broadcast`, `send_broadcast`. `update_broadcast`/`delete_broadcast` intentionally left unaudited — not named in the PRD's FR1 matrix (draft-only edits/deletes; lower risk than the lifecycle transitions) |
+| `admin_credentials.py` | 5 | **all 5**: `create_credential`, `update_credential`, `delete_credential`, `verify_credential`, `set_default_credential` |
+| `admin_integrations.py` | 8 | **all 8**: `update_telegram_config`, `update_n8n_config`, `create_integration`, `update_integration`, `delete_integration`, and `test_integration` for all 3 test routes (telegram/n8n/custom) |
+| `media.py` | 9 | **2 of 9** (per PRD scope): `delete_media`, `bulk_delete_media`. Upload, public-link create/revoke, bulk-public, and metadata-patch routes stay out of scope — not in the PRD's Work list |
+| `settings.py` | 4 | **all 4**: `update_permissions`, `update_system_setting`, `validate_line_token`, plus the pre-existing (unrelated) permission-matrix read paths unaffected |
+
+Design decisions the PRD left to the implementer:
+
+- **`system_setting` value-logging rule** (`settings.py::_is_secret_setting_key`):
+  any setting key can theoretically hold a secret — confirmed by
+  `rich_menu_service.py` reading `LINE_CHANNEL_ACCESS_TOKEN` back out of
+  `system_settings` as a fallback source (the LINE settings page POSTs
+  both `LINE_CHANNEL_ACCESS_TOKEN` and `LINE_CHANNEL_SECRET` to this
+  endpoint), alongside genuinely non-secret keys like `HANDOFF_KEYWORDS`.
+  The rule is **fail-closed** (PR review finding O1 — the original
+  substring denylist of TOKEN/SECRET/PASSWORD/KEY/CREDENTIAL failed OPEN
+  for keys like `webhook_url`, `authorization`, `bearer`, `dsn`,
+  `connection_string`): every value is redacted to
+  `{"key": ..., "value_changed": true}` unless the key is on the explicit
+  `_NON_SECRET_SETTING_KEYS` allowlist (currently only `HANDOFF_KEYWORDS`,
+  surveyed from every `SettingsService`/`SystemSetting` call site). Same
+  philosophy as P0.1's environment allowlist. Keys are added to the
+  allowlist only when their values are safe to show any audit-log viewer.
+- **Transaction-sharing deviation**: `credential_service.py`,
+  `broadcast_service.py`, and `SettingsService.set_setting()` commit
+  internally (they're shared services, out of this PRD's touch scope). For
+  routes that delegate to them (`admin_credentials.py`'s 5 routes,
+  `admin_broadcast.py`'s 4 lifecycle routes, `settings.py`'s
+  `update_system_setting`), the audit row is written and committed in a
+  second, immediately-following transaction rather than one shared
+  transaction with the mutation. Not-found/validation failures never reach
+  the audit call in these paths, so "zero audit rows on failure" still
+  holds. True single-transaction sharing (audit + mutation in one
+  `db.commit()`) is used everywhere the endpoint owns its own commit:
+  `admin_users.py` (all 4 routes), `media.py` (both routes), and
+  `admin_integrations.py`'s custom-integration CRUD + refactored
+  `_upsert_credential()` helper (in-file, so it stays in scope).
+- Test/verify endpoints with no natural DB mutation (`verify_credential`,
+  `validate_line_token`, the 3 `test_integration` routes) write the audit
+  row as the mutation itself, for both success and failure outcomes, and
+  never log the decrypted secret used to run the test.
+
+**Still deferred** (explicit non-goals, unchanged from the original survey):
+`admin_intents.py`, `admin_auto_replies.py`, `admin_canned_responses.py`,
+`admin_reply_objects.py`, `admin_tags.py`, `rich_menus.py`, and
+`admin_requests.py`'s remaining unaudited routes stay unaudited — outside
+P0.3's 6-file scope; follow-up work. `auth.py` login/refresh auditing
+remains deferred to the P1.1 cookie-auth rebuild.
+
+**Notable finding (unrelated to this PRD, not fixed here):** while writing
+FR3 tests, `admin_credentials.py`'s `CredentialResponse.model_validate(...)`
+was found to fail unconditionally against a bare `Credential` ORM instance —
+`credential.metadata` resolves to SQLAlchemy's `Base.metadata` registry
+(name collision; the JSONB column is mapped under the Python attribute
+`metadata_json`), and `credentials_masked` has no default so pydantic
+reports it "required" even though the endpoint code only assigns it
+*after* the `model_validate()` call. This reproduces on unmodified code and
+affects `create_credential`, `update_credential`, `set_default_credential`,
+`get_credential`, and `list_credentials` — every route returning
+`CredentialResponse`. No existing test exercised this file before P0.3, so
+it went uncaught. Flagged for a separate follow-up ticket; out of scope for
+audit-coverage work (and would require touching the response schema, not
+just adding audit calls).
+
 ## 5. Cookie / CSRF / Refresh Design (P1.1)
 
 No implementation exists yet (confirmed in §2: zero cookie/CSRF code in the

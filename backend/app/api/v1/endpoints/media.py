@@ -10,6 +10,7 @@ from sqlalchemy import select, func as sa_func
 from app.db.session import AsyncSessionLocal
 from app.models.media_file import MediaFile, FileCategory, detect_category
 from app.api.deps import get_db, get_current_admin, require_permission
+from app.core.audit import create_audit_log
 from app.core.permissions import KEY_MANAGE_FILES
 from app.core.config import settings
 from app.models.user import User
@@ -234,7 +235,19 @@ async def delete_media(
     if not media:
         raise HTTPException(status_code=404, detail="Media not found")
 
+    filename = media.filename
+    category_value = getattr(media, "category", None)
+    category = category_value.value if category_value else "OTHER"
+
     await db.delete(media)
+    await create_audit_log(
+        db=db,
+        admin_id=_admin.id,
+        action="delete_media",
+        resource_type="media_file",
+        resource_id=str(media_id),
+        details={"filename": filename, "category": category},
+    )
     await db.commit()
     return {"ok": True}
 
@@ -360,6 +373,7 @@ async def bulk_delete_media(
         raise HTTPException(status_code=400, detail="No IDs provided")
 
     deleted = 0
+    deleted_ids = []
     for mid in ids:
         try:
             uid = uuid.UUID(mid)
@@ -370,6 +384,17 @@ async def bulk_delete_media(
         if media:
             await db.delete(media)
             deleted += 1
+            deleted_ids.append(str(uid))
+
+    if deleted:
+        await create_audit_log(
+            db=db,
+            admin_id=_admin.id,
+            action="bulk_delete_media",
+            resource_type="media_file",
+            resource_id="bulk",
+            details={"ids": deleted_ids, "count": deleted},
+        )
 
     await db.commit()
     return {"ok": True, "deleted": deleted}
