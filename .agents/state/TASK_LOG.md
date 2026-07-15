@@ -1,8 +1,26 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 161 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 163 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-15 07:36 — claude_code (Claude Sonnet 5 / Anthropic) — completed
+
+Reviewed, verified, and committed P0-P3 remediation PR 0A (migration controls: LIFF_STRICT_MODE, COOKIE_AUTH_MODE) at 31632ee. Diagnosed the pytest hang as tests/conftest.py eagerly importing app.main which needs Docker Postgres/Redis (currently unreachable) -- not a bug in PR 0A; verified all 7 settings tests pass when isolated from conftest.py. PR 0B (evidence collector + preflight docs) remains uncommitted and unverified pending Docker Desktop restart.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260715-0736.json`
+- Summary: `project-log-md/claude_code/session-summary-20260715-0736.md`
+
+---
+
+### 2026-07-12 12:34 — codex — completed
+
+Phase 0 P0-P3 remediation: PR 0A controls/tests/docs and PR 0B evidence/designs in progress
+
+- Checkpoint: `.agents/state/checkpoints/handover-codex-20260712-1234.json`
+- Summary: `project-log-md/codex/session-summary-20260712-1234.md`
+
+---
 
 ### 2026-07-12 10:12 — claude_code — completed
 

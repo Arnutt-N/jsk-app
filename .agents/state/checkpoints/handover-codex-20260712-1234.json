@@ -1,0 +1,18 @@
+{
+  "handoff_version": "2.0",
+  "platform": "codex",
+  "agent": "codex",
+  "timestamp": "2026-07-12T12:34:00+07:00",
+  "branch": "main",
+  "head_commit": "67853e8",
+  "status": "completed",
+  "work_summary": "Phase 0 P0-P3 remediation: PR 0A controls/tests/docs and PR 0B evidence/designs in progress",
+  "priority_actions": [
+    "Restore Docker/WSL backend and run repository-policy verification",
+    "Collect remaining operational evidence and second growth sample",
+    "Resolve named owners and Phase 0 decisions before Phase 1"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/codex/session-summary-20260712-1234.md",
+  "cross_platform_read": []
+}

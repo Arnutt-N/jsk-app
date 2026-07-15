@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-07-12 10:12 by Claude Code (อ่านแผน remediation P0-P3 ฉบับปรับปรุง 2026-07-12-improved-p0-p3-remediation-execution-pla)
+> **Last Updated:** 2026-07-15 07:36 by Claude Code (Reviewed, verified, and committed P0-P3 remediation PR 0A migration controls: LIFF_STRICT_)
 
 ## Thai Summary
 ฟีเจอร์ **Rich Menu Switching + การกำหนดเมนูรายบุคคล (R1/R2)** เสร็จสมบูรณ์และขึ้น production แล้ว — merge เข้า main ผ่าน PR #114 (merge commit `3a90f4d`), migrate ฐานข้อมูล Supabase PROD (richmenu alias + user_rich_menu_links แบบ additive) และ deploy frontend บน Vercel เรียบร้อย
@@ -54,6 +54,8 @@
 - [2026-06-21] R1/R2 Rich Menu (incl Task 6.2 per-user UI) merged to `main` via PR #114 (`3a90f4d`); Supabase PROD migrated; Vercel frontend deployed. Branch `feat/rich-menu-switching-r1` deleted. Working tree clean.
 
 ## Recent Completions
+- [2026-07-15 07:36] Claude Code: Reviewed, verified, and committed P0-P3 remediation PR 0A (migration controls: LIFF_STRICT_MODE, COOKIE_AUTH_MODE) at 31632ee. Diagnosed the pytest hang as tests/conftest.py eagerly importing app.main which needs Docker Postgres/Redis (curr (Claude Code)
+- [2026-07-12 12:34] Codex: Phase 0 P0-P3 remediation: PR 0A controls/tests/docs and PR 0B evidence/designs in progress (Codex)
 - [2026-07-12 10:12] Claude Code: อ่านแผน remediation P0-P3 ฉบับปรับปรุง (2026-07-12-improved-p0-p3-remediation-execution-plan.md) (Claude Code)
 - [2026-07-12 00:54] Claude Code: 5-agent review: P0-P3 remediation plan (GPT-5.6 Sol) (Claude Code)
 - [2026-07-09 20:49] Cline: Cross-platform handoff FROM Claude Code TO Cline (GLM-5.2): All 6 live-chat audit bugs fixed (4a0e1eb), pushed to origin/main. Manual test pending. (Cline)
