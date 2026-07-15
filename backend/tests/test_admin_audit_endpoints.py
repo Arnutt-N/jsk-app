@@ -322,6 +322,11 @@ async def test_create_credential_writes_one_audit_row():
     # FR2: provider/name only -- never the secret value.
     assert sentinel not in json.dumps(log.details)
     assert log.details == {"provider": "LINE", "name": "LINE Prod"}
+    # Persistence: 2 commits under the documented sequential-commit deviation
+    # (credential_service commits the mutation, the endpoint commits the
+    # audit row). A forgotten `await db.commit()` after the audit call would
+    # drop this to 1 and fail here.
+    assert db.commit_calls == 2
 
 
 # ── 1b. admin_credentials.py -- redaction (update_credential) ─────────────
@@ -352,6 +357,9 @@ async def test_update_credential_redacts_secret_value():
     # Field NAMES only -- the sentinel value must never appear.
     assert log.details == {"changed_fields": ["credentials"]}
     assert sentinel not in json.dumps(log.details)
+    # Persistence: sequential-commit deviation -- mutation commit (service)
+    # + audit commit (endpoint).
+    assert db.commit_calls == 2
 
 
 # ── 2. Failure case -> zero audit rows (update non-existent credential) ───
@@ -369,6 +377,7 @@ async def test_update_missing_credential_404_writes_no_audit_row():
 
     assert exc.value.status_code == 404
     assert db.audit_rows() == []
+    assert db.commit_calls == 0  # nothing persisted on the failure path
 
 
 # ── 1c. admin_integrations.py -- success (create_integration) ─────────────
@@ -397,6 +406,8 @@ async def test_create_integration_writes_one_audit_row():
     assert log.resource_type == "integration"
     assert log.details == {"name": "Ops Webhook", "integration_type": "webhook"}
     assert sentinel not in json.dumps(log.details)
+    # Persistence: endpoint owns its commit -- audit + mutation share it.
+    assert db.commit_calls == 1
 
 
 # ── 1d. settings.py -- success (update_permissions) ────────────────────────
@@ -441,6 +452,8 @@ async def test_update_permissions_writes_one_audit_row_with_role_transition():
                 }
             ]
         }
+        # Persistence: single shared commit covering matrix rows + audit row.
+        assert db.commit_calls == 1
     finally:
         invalidate_cache()
 
@@ -470,6 +483,8 @@ async def test_create_user_writes_one_audit_row():
     assert log.resource_type == "user"
     assert log.resource_id == str(response.id)
     assert log.details == {"username": "new_agent", "role": "AGENT"}
+    # Persistence: single shared commit covering user row + audit row.
+    assert db.commit_calls == 1
 
 
 # ── 1e (redaction). admin_users.py -- reset_password ───────────────────────
@@ -497,6 +512,8 @@ async def test_reset_password_redacts_new_password_value():
     assert log.resource_id == "55"
     assert log.details == {"username": "agent_y"}
     assert sentinel not in json.dumps(log.details)
+    # Persistence: single shared commit covering password change + audit row.
+    assert db.commit_calls == 1
 
 
 # ── 4. Transaction sharing: failing final commit -> nothing durably lands ─
@@ -553,6 +570,8 @@ async def test_delete_media_writes_one_audit_row():
     assert log.resource_type == "media_file"
     assert log.resource_id == str(media_file.id)
     assert log.details == {"filename": "report.pdf", "category": "DOCUMENT"}
+    # Persistence: single shared commit covering delete + audit row.
+    assert db.commit_calls == 1
 
 
 # ── 1g. media.py -- bulk_delete_media ───────────────────────────────────────
@@ -576,6 +595,8 @@ async def test_bulk_delete_media_writes_one_audit_row_with_count():
     assert log.resource_id == "bulk"
     assert log.details["count"] == 2
     assert len(log.details["ids"]) == 2
+    # Persistence: single shared commit covering deletes + audit row.
+    assert db.commit_calls == 1
 
 
 # ── 1h. admin_broadcast.py -- success (create_broadcast) ───────────────────
@@ -597,3 +618,96 @@ async def test_create_broadcast_writes_one_audit_row():
     assert log.resource_type == "broadcast"
     assert log.resource_id == str(response.id)
     assert log.details == {"title": "Weekly Update", "status": "draft"}
+    # Persistence: 2 commits under the documented sequential-commit deviation
+    # (broadcast_service commits the mutation, the endpoint commits the
+    # audit row).
+    assert db.commit_calls == 2
+
+
+# ── 1i. settings.py -- update_system_setting fail-closed value redaction ───
+#
+# Review finding O1: a substring denylist (TOKEN/SECRET/...) fails OPEN --
+# keys like "webhook_url" or "authorization" would get their values logged
+# in full. The rule is now an explicit allowlist (_NON_SECRET_SETTING_KEYS):
+# every value is redacted to {"key", "value_changed": true} unless the key
+# is known non-secret.
+
+
+async def _post_setting(db, admin, key, value):
+    from app.schemas.rich_menu import SystemSettingBase
+
+    return await settings_endpoints.update_setting(
+        setting_data=SystemSettingBase(key=key, value=value, description=None),
+        db=db,
+        current_admin=admin,
+    )
+
+
+@pytest.mark.asyncio
+async def test_update_setting_webhook_url_value_is_redacted():
+    """Keys that dodge the old substring denylist must still be redacted."""
+    db = _RecordingDB(execute_result=None)  # no existing row -> insert path
+    admin = _super_admin(6)
+    sentinel = "https://user:s3cr3t-SENTINEL@host/hook"
+
+    await _post_setting(db, admin, "webhook_url", sentinel)
+
+    rows = db.audit_rows()
+    assert len(rows) == 1
+    log = rows[0]
+    assert log.action == "update_system_setting"
+    assert log.resource_type == "system_setting"
+    assert log.details == {"key": "webhook_url", "value_changed": True}
+    assert sentinel not in json.dumps(log.details)
+    # Persistence: sequential-commit deviation -- SettingsService commits
+    # the setting, the endpoint commits the audit row.
+    assert db.commit_calls == 2
+
+
+@pytest.mark.asyncio
+async def test_update_setting_authorization_value_is_redacted():
+    db = _RecordingDB(execute_result=None)
+    admin = _super_admin(6)
+    sentinel = "Bearer SENTINEL_BEARER_VALUE_42"
+
+    await _post_setting(db, admin, "authorization", sentinel)
+
+    rows = db.audit_rows()
+    assert len(rows) == 1
+    assert rows[0].details == {"key": "authorization", "value_changed": True}
+    assert sentinel not in json.dumps(rows[0].details)
+
+
+@pytest.mark.asyncio
+async def test_update_setting_allowlisted_key_logs_value():
+    """HANDOFF_KEYWORDS is on the explicit non-secret allowlist -- its value
+    is display/behavior config already shown verbatim in the admin UI, so
+    the audit row keeps it for reviewability."""
+    db = _RecordingDB(execute_result=None)
+    admin = _super_admin(6)
+
+    await _post_setting(db, admin, "HANDOFF_KEYWORDS", "ติดต่อเจ้าหน้าที่,คุยกับคน")
+
+    rows = db.audit_rows()
+    assert len(rows) == 1
+    assert rows[0].details == {
+        "key": "HANDOFF_KEYWORDS",
+        "value": "ติดต่อเจ้าหน้าที่,คุยกับคน",
+    }
+    assert db.commit_calls == 2
+
+
+@pytest.mark.asyncio
+async def test_update_setting_line_token_value_is_redacted():
+    """The one secret key PROVEN to flow through this endpoint (the LINE
+    settings page POSTs it) never lands in details."""
+    db = _RecordingDB(execute_result=None)
+    admin = _super_admin(6)
+    sentinel = "SENTINEL_LINE_CHANNEL_TOKEN_XYZ"
+
+    await _post_setting(db, admin, "LINE_CHANNEL_ACCESS_TOKEN", sentinel)
+
+    rows = db.audit_rows()
+    assert len(rows) == 1
+    assert rows[0].details == {"key": "LINE_CHANNEL_ACCESS_TOKEN", "value_changed": True}
+    assert sentinel not in json.dumps(rows[0].details)

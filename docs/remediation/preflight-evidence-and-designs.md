@@ -219,12 +219,18 @@ Design decisions the PRD left to the implementer:
 - **`system_setting` value-logging rule** (`settings.py::_is_secret_setting_key`):
   any setting key can theoretically hold a secret — confirmed by
   `rich_menu_service.py` reading `LINE_CHANNEL_ACCESS_TOKEN` back out of
-  `system_settings` as a fallback source, alongside genuinely non-secret
-  keys like `HANDOFF_KEYWORDS`. The rule: if the key name contains `TOKEN`,
-  `SECRET`, `PASSWORD`, `KEY`, or `CREDENTIAL` (case-insensitive), log
-  `{"key": ..., "value_changed": true}`; otherwise log `{"key": ..., "value": ...}`.
-  Intentionally over-redacts (e.g. a benign key containing "KEY" still gets
-  redacted) — erring toward FR2 over convenience.
+  `system_settings` as a fallback source (the LINE settings page POSTs
+  both `LINE_CHANNEL_ACCESS_TOKEN` and `LINE_CHANNEL_SECRET` to this
+  endpoint), alongside genuinely non-secret keys like `HANDOFF_KEYWORDS`.
+  The rule is **fail-closed** (PR review finding O1 — the original
+  substring denylist of TOKEN/SECRET/PASSWORD/KEY/CREDENTIAL failed OPEN
+  for keys like `webhook_url`, `authorization`, `bearer`, `dsn`,
+  `connection_string`): every value is redacted to
+  `{"key": ..., "value_changed": true}` unless the key is on the explicit
+  `_NON_SECRET_SETTING_KEYS` allowlist (currently only `HANDOFF_KEYWORDS`,
+  surveyed from every `SettingsService`/`SystemSetting` call site). Same
+  philosophy as P0.1's environment allowlist. Keys are added to the
+  allowlist only when their values are safe to show any audit-log viewer.
 - **Transaction-sharing deviation**: `credential_service.py`,
   `broadcast_service.py`, and `SettingsService.set_setting()` commit
   internally (they're shared services, out of this PRD's touch scope). For

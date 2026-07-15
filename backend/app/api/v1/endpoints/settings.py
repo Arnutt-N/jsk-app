@@ -298,20 +298,31 @@ async def list_settings(db: AsyncSession = Depends(get_db), current_admin: User 
     return result.scalars().all()
 
 
-# system_settings can hold values that are NOT secrets (e.g. HANDOFF_KEYWORDS)
-# as well as values that ARE (e.g. LINE_CHANNEL_ACCESS_TOKEN -- used as a
-# fallback source by rich_menu_service.py). Since any key can theoretically
-# carry a secret, log the value only when the key name doesn't match one of
-# these markers; otherwise log key + a boolean "value_changed" flag. This
-# rule intentionally errs on the side of over-redacting (a key merely
-# containing "KEY" gets redacted even if benign) per FR2 -- see
-# p0.3-audit-coverage.prd.md.
-_SECRET_SETTING_KEY_MARKERS = ("TOKEN", "SECRET", "PASSWORD", "KEY", "CREDENTIAL")
+# FAIL-CLOSED value redaction for update_system_setting audit rows (FR2).
+#
+# update_setting accepts arbitrary keys, and system_settings demonstrably
+# holds secrets: the LINE settings page POSTs LINE_CHANNEL_ACCESS_TOKEN and
+# LINE_CHANNEL_SECRET here, and rich_menu_service.py reads the token back
+# out as a fallback source. A substring denylist (TOKEN/SECRET/...) fails
+# OPEN -- keys like "webhook_url", "authorization", "bearer", "dsn", or
+# "connection_string" would sail past it and get their values logged in
+# full. So instead, mirroring P0.1's environment-allowlist philosophy:
+# redact EVERY value ({"key": ..., "value_changed": true}) unless the key
+# is on this explicit allowlist of known non-secret settings.
+#
+# Allowlist contents -- surveyed from every SettingsService/SystemSetting
+# call site in the codebase (handoff_service.py, rich_menu_service.py,
+# frontend/app/admin/settings/line/page.tsx):
+#   HANDOFF_KEYWORDS -- operator-handoff trigger words (display/behavior
+#                       config; shown verbatim in the admin UI already).
+# Add a key here ONLY if its value is safe to display to any audit-log
+# viewer; when in doubt, leave it off -- the audit row still records that
+# the key changed.
+_NON_SECRET_SETTING_KEYS = frozenset({"HANDOFF_KEYWORDS"})
 
 
 def _is_secret_setting_key(key: str) -> bool:
-    upper = key.upper()
-    return any(marker in upper for marker in _SECRET_SETTING_KEY_MARKERS)
+    return key not in _NON_SECRET_SETTING_KEYS
 
 
 @router.post("", response_model=SystemSettingResponse)
