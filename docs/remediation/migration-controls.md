@@ -23,7 +23,14 @@ configuration and requires separate approval under the remediation execution pla
 
 `backend/app/core/config.py` enforces fail-closed guards via
 `Settings.enforce_production_guards()`, called on the module-level settings
-singleton, that run only when `ENVIRONMENT` is `production`. Every violation is
+singleton, that run whenever `ENVIRONMENT` is production-like. Environment
+matching itself fails closed (`Settings.is_production_like`): only the
+recognized non-production names `development`, `dev`, `test`, `testing`, and
+`local` skip the guards — `production`, `prod`, `staging` (by design, per the
+remediation plan's "P0.1 → staging" rollout), and any unknown or misspelled
+value all enforce. The same property gates the Swagger/OpenAPI endpoints in
+`app/main.py` and denies the insecure development encryption-key fallback in
+`credential_service`. Every violation is
 collected into a single `RuntimeError` (never echoing the configured value) so
 operators can fix all of them at once instead of discovering them one restart
 at a time. The guards are deliberately a plain method rather than a pydantic
@@ -38,9 +45,11 @@ startup logs.
 | `LINE_LOGIN_CHANNEL_ID` | Must be set (non-blank) | Settings fail to load at startup. Independently, `verify_liff_token()` in `app/api/v1/endpoints/liff.py` also checks this before making any outbound call and returns HTTP 503 ("LIFF verification unavailable: server misconfiguration") if it drifts to blank after startup, so LIFF verification never silently posts an empty `client_id` to LINE. |
 | `ENCRYPTION_KEY` | Must be set to a valid Fernet key | Settings fail to load; independently, `credential_service.validate_configuration()` (already called from the `app/main.py` lifespan) raises `RuntimeError` if the key is missing or invalid, so encrypted credential storage never falls back to the development-only insecure key in production. |
 
-These checks are inactive outside production — development and test defaults
-(`ENVIRONMENT=development`, short `SECRET_KEY`, blank `LINE_LOGIN_CHANNEL_ID`,
-etc.) continue to load exactly as before.
+These checks are inactive only for the recognized non-production names —
+development and test defaults (`ENVIRONMENT=development`, short `SECRET_KEY`,
+blank `LINE_LOGIN_CHANNEL_ID`, etc.) continue to load exactly as before.
+Any other `ENVIRONMENT` value (including `staging` and typos) enforces the
+guards.
 
 ### Pre-deploy operator checklist (Koyeb)
 

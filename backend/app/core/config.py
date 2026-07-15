@@ -7,6 +7,18 @@ from app.core.env import resolve_env_file
 # Production guard thresholds — see docs/remediation/migration-controls.md
 # ("P0.1 production startup guards") for the enforced-control table.
 _MIN_SECRET_KEY_LENGTH = 32
+# Recognized non-production environment names. Anything NOT in this allowlist
+# (production, prod, staging, typos, blank-ish variants) is treated as
+# production-like so the guards fail closed instead of silently skipping.
+_NON_PRODUCTION_ENVIRONMENTS = frozenset(
+    {
+        "development",
+        "dev",
+        "test",
+        "testing",
+        "local",
+    }
+)
 _PLACEHOLDER_SECRET_KEYS = frozenset(
     {
         "change_this_to_a_secure_random_string",
@@ -79,12 +91,27 @@ class Settings(BaseSettings):
         extra="ignore"
     )
 
+    @property
+    def is_production_like(self) -> bool:
+        """True unless ENVIRONMENT is a recognized non-production name.
+
+        Deliberately fail-closed: only `development`, `dev`, `test`,
+        `testing`, and `local` are treated as non-production. Unknown
+        environment names (`prod`, `staging`, misspellings of `production`,
+        etc.) are treated as production on purpose so the startup guards,
+        the docs/OpenAPI gate, and the encryption-key fallback denial all
+        apply rather than silently switching off.
+        """
+        return self.ENVIRONMENT.strip().lower() not in _NON_PRODUCTION_ENVIRONMENTS
+
     def enforce_production_guards(self) -> "Settings":
         """Fail closed on unsafe production configuration combinations.
 
-        Only runs when ENVIRONMENT is production; development/test defaults
-        remain untouched. Collects every violation so operators can fix them
-        all at once, and never echoes the configured value into the error.
+        Only runs when ENVIRONMENT is production-like (see is_production_like
+        — production, staging, and unknown names all enforce); recognized
+        development/test defaults remain untouched. Collects every violation
+        so operators can fix them all at once, and never echoes the
+        configured value into the error.
 
         Deliberately NOT a pydantic validator: a ``ValueError`` raised inside a
         ``model_validator`` gets wrapped in ``ValidationError``, whose string
@@ -96,7 +123,7 @@ class Settings(BaseSettings):
         below; any future direct ``Settings()`` construction in app code must
         call this method itself.
         """
-        if self.ENVIRONMENT.strip().lower() != "production":
+        if not self.is_production_like:
             return self
 
         violations: List[str] = []

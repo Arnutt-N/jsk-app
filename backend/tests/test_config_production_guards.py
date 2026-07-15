@@ -51,6 +51,31 @@ def test_development_defaults_pass_guards_even_though_unsafe_for_production() ->
     assert settings.LINE_LOGIN_CHANNEL_ID == ""
 
 
+@pytest.mark.parametrize(
+    "environment",
+    ["production", "prod", "PROD", "staging", "Production", "qa-typo"],
+)
+def test_production_like_and_unknown_environments_enforce_guards(environment: str) -> None:
+    """Environment matching fails closed: anything outside the recognized
+    non-production allowlist enforces the guards."""
+    settings = build_settings(ENVIRONMENT=environment, DEV_AUTH_BYPASS=True)
+
+    assert settings.is_production_like is True
+    with pytest.raises(RuntimeError, match="DEV_AUTH_BYPASS"):
+        settings.enforce_production_guards()
+
+
+@pytest.mark.parametrize(
+    "environment",
+    ["development", "dev", "test", "testing", "local"],
+)
+def test_recognized_non_production_environments_skip_guards(environment: str) -> None:
+    settings = build_settings(ENVIRONMENT=environment, DEV_AUTH_BYPASS=True)
+
+    assert settings.is_production_like is False
+    assert settings.enforce_production_guards() is settings
+
+
 def test_production_rejects_dev_auth_bypass() -> None:
     settings = build_settings(ENVIRONMENT="production", DEV_AUTH_BYPASS=True)
 
