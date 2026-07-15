@@ -79,6 +79,7 @@ export default function LiffServiceRequestV2() {
     const [showConfirm, setShowConfirm] = useState(false)
     const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
     const [profile, setProfile] = useState<LiffProfile | null>(null)
+    const [idToken, setIdToken] = useState<string | null>(null)
     const [isInLineApp, setIsInLineApp] = useState(false)
     const [showLeaveConfirm, setShowLeaveConfirm] = useState(false)
     const { toast } = useToast()
@@ -141,6 +142,11 @@ export default function LiffServiceRequestV2() {
                 if (liff.isLoggedIn()) {
                     const userProfile = await liff.getProfile()
                     setProfile(userProfile)
+                    try {
+                        setIdToken(liff.getIDToken())
+                    } catch (tokenErr) {
+                        logger.error('LIFF getIDToken Error:', tokenErr)
+                    }
                 } else {
                     // Not logged in - trigger login
                     liff.login()
@@ -377,7 +383,10 @@ export default function LiffServiceRequestV2() {
             // Post to backend
             const res = await fetch('/api/v1/liff/service-requests', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(idToken ? { 'x-liff-id-token': idToken } : {})
+                },
                 body: JSON.stringify(payload)
             })
 
@@ -391,6 +400,9 @@ export default function LiffServiceRequestV2() {
             }
 
             if (!res.ok) {
+                if (res.status === 401) {
+                    throw new Error('เซสชัน LINE หมดอายุ กรุณาปิดหน้าต่างนี้แล้วเปิดฟอร์มใหม่จากเมนู LINE')
+                }
                 throw new Error(data.detail || JSON.stringify(data))
             }
 

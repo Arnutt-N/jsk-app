@@ -19,6 +19,26 @@ Thresholds that are not numerical in this document must be made numerical in the
 implementation PR before a production mode change. A mode change is production
 configuration and requires separate approval under the remediation execution plan.
 
+### LIFF_STRICT_MODE wiring status (P0.2)
+
+The flag is now wired, not just declared: `create_service_request` in
+`backend/app/api/v1/endpoints/liff.py` reads `settings.LIFF_STRICT_MODE` on
+every request. When an `x-liff-id-token` header is present, the token is
+always verified and the verified `sub` is used as the owning `line_user_id`
+regardless of the flag (a mismatching body `line_user_id` is logged as a
+masked warning and ignored). When the header is absent: `LIFF_STRICT_MODE=true`
+rejects the request with `401 "LIFF ID token required"` and performs no
+database write; `LIFF_STRICT_MODE=false` (default) keeps the pre-existing
+unverified fallback (`details.source = "LIFF-unverified"`) and logs a
+`LIFF_token_missing_transition_mode` warning. That log line — never the token
+or full user IDs — is the token-presence signal this document's enable
+threshold refers to: aggregate its rate against total submissions to measure
+the "100% for 3-5 consecutive days" gate above before flipping the flag in
+production. The three LIFF pages (`service-request`, `request-v2`,
+`service-request-single`) send the header as of this PR; enabling the flag
+before then would break any client still on an older deployed build, which is
+why the default stays `false` here.
+
 ## P0.1 production startup guards
 
 `backend/app/core/config.py` enforces fail-closed guards via

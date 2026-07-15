@@ -60,6 +60,7 @@ export default function LiffServiceRequestSingle() {
     const [showConfirm, setShowConfirm] = useState(false)
     const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
     const [profile, setProfile] = useState<LiffProfile | null>(null)
+    const [idToken, setIdToken] = useState<string | null>(null)
 
     // Location Data State
     const [provinces, setProvinces] = useState<Province[]>([])
@@ -108,6 +109,11 @@ export default function LiffServiceRequestSingle() {
                     if (window.liff.isLoggedIn()) {
                         const userProfile = await window.liff.getProfile()
                         setProfile(userProfile)
+                        try {
+                            setIdToken(window.liff.getIDToken())
+                        } catch (tokenErr) {
+                            logger.error('LIFF getIDToken Error:', tokenErr)
+                        }
                     }
                 }
             } catch (err: unknown) {
@@ -281,7 +287,10 @@ export default function LiffServiceRequestSingle() {
 
             const res = await fetch('/api/v1/liff/service-requests', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(idToken ? { 'x-liff-id-token': idToken } : {})
+                },
                 body: JSON.stringify(payload)
             })
 
@@ -294,6 +303,9 @@ export default function LiffServiceRequestSingle() {
             }
 
             if (!res.ok) {
+                if (res.status === 401) {
+                    throw new Error('เซสชัน LINE หมดอายุ กรุณาปิดหน้าต่างนี้แล้วเปิดฟอร์มใหม่จากเมนู LINE')
+                }
                 throw new Error(data.detail || 'Failed to submit')
             }
 

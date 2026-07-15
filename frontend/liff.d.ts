@@ -23,6 +23,7 @@ declare global {
             getFriendship: () => Promise<{ friendFlag: boolean }>;
             sendMessages: (messages: unknown[]) => Promise<void>;
             closeWindow: () => void;
+            getIDToken: () => string | null;
         };
     }
 }

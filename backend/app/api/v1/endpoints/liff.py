@@ -58,9 +58,18 @@ async def create_service_request(
     # Determine the verified LINE user ID and request source
     if x_liff_id_token:
         verified_line_user_id = await verify_liff_token(x_liff_id_token)
+        if request.line_user_id and request.line_user_id != verified_line_user_id:
+            logger.warning(
+                "LIFF body line_user_id mismatch with verified token sub %s…; using verified identity",
+                verified_line_user_id[:6],
+            )
         line_user_id = verified_line_user_id
         source_details = {"source": "LIFF v2"}
+    elif settings.LIFF_STRICT_MODE:
+        logger.warning("LIFF_token_missing_strict_mode_reject")
+        raise HTTPException(status_code=401, detail="LIFF ID token required")
     else:
+        logger.warning("LIFF_token_missing_transition_mode")
         line_user_id = request.line_user_id
         source_details = {"source": "LIFF-unverified"}
 
