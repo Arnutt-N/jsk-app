@@ -162,10 +162,18 @@ async def rotate_refresh_session(
             user_id=user_id,
         )
 
-    # No active row claimed. Look up by hash: found (rotated/revoked, or an
-    # active-but-expired row) means this exact refresh token was already
-    # consumed or has expired -- presenting it again is reuse. Not found at
-    # all means the token/hash never existed (or the DB row was cleaned up).
+    # No active, unexpired row was claimed. Look the hash up to tell apart
+    # three cases:
+    #   (a) no row at all              -> the token/hash never existed (or its
+    #                                     row was already cleaned up) -> INVALID;
+    #   (b) an active-but-expired row  -> an ordinary past-TTL expiry, NOT
+    #                                     reuse -> INVALID (do NOT revoke the
+    #                                     family or raise the alert-on-any
+    #                                     `refresh_reuse_detected` signal for a
+    #                                     benign expiry -- see F1);
+    #   (c) a rotated/revoked row      -> this exact token was already consumed
+    #                                     -> presenting it again is reuse ->
+    #                                     REUSE_DETECTED (revoke the family).
     existing = (
         await db.execute(select(AuthSession).where(AuthSession.token_hash == token_hash))
     ).scalar_one_or_none()
@@ -173,6 +181,17 @@ async def rotate_refresh_session(
     if existing is None:
         return RotationResult(outcome=RotationOutcome.INVALID)
 
+    # F1: an active row that has simply passed its refresh TTL is an ordinary
+    # expiry, not token reuse. Returning INVALID (not REUSE_DETECTED) avoids
+    # revoking the family and -- critically -- avoids emitting a spurious
+    # `refresh_reuse_detected` audit row for a benign expiry, which would
+    # pollute the alert-on-any reuse metric defined in the PRD (FR7).
+    if existing.status == STATUS_ACTIVE and existing.expires_at <= now:
+        return RotationResult(outcome=RotationOutcome.INVALID)
+
+    # status in (ROTATED, REVOKED): this exact refresh token was already
+    # consumed -> presenting it again is reuse. Revoke every active row in
+    # the family so a stolen-but-rotated token cannot spawn a successor.
     await db.execute(
         update(AuthSession)
         .where(

@@ -52,7 +52,7 @@ from http.cookies import SimpleCookie
 
 import pytest
 from pydantic import ValidationError
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
@@ -400,6 +400,68 @@ async def test_case4_rotation_issues_new_jti_reuse_401s_and_revokes_family(
         assert res_after_revoke.status_code == 401
     finally:
         await _delete_user_and_sessions(user_id)
+
+
+@pytest.mark.asyncio
+async def test_case4_expired_active_refresh_is_invalid_not_reuse(
+    test_client, monkeypatch
+):
+    """F1: a refresh cookie whose server-side row is `active` but past its
+    TTL is an ordinary expiry, NOT reuse -- the refresh must 401 with outcome
+    INVALID, write NO `refresh_reuse_detected` audit row, and NOT revoke the
+    family (no false positive on the alert-on-any reuse metric).
+
+    The refresh JWT itself still carries a valid (future) `exp`, so the
+    request reaches `rotate_refresh_session`; only the DB row's `expires_at`
+    is back-dated to simulate the TTL having elapsed (see review F1). The
+    real-world trigger is the tiny divergence between the DB `expires_at`
+    (written first) and the JWT `exp` (written a moment later) -- both equal
+    `now + REFRESH_TOKEN_EXPIRE_DAYS`, so the DB row expires slightly before
+    the JWT, opening a window where this code path runs for a benign expiry.
+    """
+    monkeypatch.setattr(settings, "COOKIE_AUTH_MODE", "cookie")
+    username = f"cookie-t4exp-{uuid.uuid4().hex[:10]}"
+    user_id = await _create_admin_user(username)
+    try:
+        res = _login(test_client, username)
+        assert res.status_code == 200
+        old_cookies = dict(res.cookies)
+        assert await _count_auth_sessions(user_id) == 1
+
+        # Back-date the single active session row past its TTL. The JWT in
+        # the cookie is still valid (exp ~now+7d), so the refresh handler's
+        # verify_token() passes and the request reaches rotate_refresh_session,
+        # where the atomic claim (expires_at > now) now misses.
+        engine = _fresh_engine()
+        Session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+        try:
+            async with Session() as session:
+                past = datetime.now(timezone.utc) - timedelta(minutes=5)
+                await session.execute(
+                    update(AuthSession)
+                    .where(
+                        AuthSession.user_id == user_id,
+                        AuthSession.status == STATUS_ACTIVE,
+                    )
+                    .values(expires_at=past)
+                )
+                await session.commit()
+        finally:
+            await engine.dispose()
+
+        _clear(test_client)
+        res_expired = test_client.post("/api/v1/auth/refresh", cookies=old_cookies)
+        assert res_expired.status_code == 401
+
+        # No false reuse alert, and the family was NOT revoked (the expired
+        # row stays `active`; nothing was flipped to `revoked`).
+        assert await _count_audit_rows(user_id, "refresh_reuse_detected") == 0
+        statuses_after = await _auth_session_statuses(user_id)
+        assert STATUS_REVOKED not in statuses_after
+        assert statuses_after.count(STATUS_ACTIVE) == 1
+    finally:
+        await _delete_user_and_sessions(user_id)
+
 
 
 # --- FR8 test 5: legacy no-jti refresh via header -----------------------------
