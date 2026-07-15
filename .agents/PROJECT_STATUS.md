@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-07-15 07:36 by Claude Code (Reviewed, verified, and committed P0-P3 remediation PR 0A migration controls: LIFF_STRICT_)
+> **Last Updated:** 2026-07-15 23:35 by Claude Code (git pull synced main to ea736cf 5 PRs: #128-132, Phase 0 remediation.)
 
 ## Thai Summary
 ฟีเจอร์ **Rich Menu Switching + การกำหนดเมนูรายบุคคล (R1/R2)** เสร็จสมบูรณ์และขึ้น production แล้ว — merge เข้า main ผ่าน PR #114 (merge commit `3a90f4d`), migrate ฐานข้อมูล Supabase PROD (richmenu alias + user_rich_menu_links แบบ additive) และ deploy frontend บน Vercel เรียบร้อย
@@ -54,6 +54,7 @@
 - [2026-06-21] R1/R2 Rich Menu (incl Task 6.2 per-user UI) merged to `main` via PR #114 (`3a90f4d`); Supabase PROD migrated; Vercel frontend deployed. Branch `feat/rich-menu-switching-r1` deleted. Working tree clean.
 
 ## Recent Completions
+- [2026-07-15 23:35] Claude Code: git pull synced main to ea736cf (5 PRs: #128-132, Phase 0 remediation). Resolved local/remote duplicate-work conflict via git stash -u: dropped 3 superseded draft files (collect_preflight_db_evidence.py, preflight-evidence-and-designs.md, R (Claude Code)
 - [2026-07-15 07:36] Claude Code: Reviewed, verified, and committed P0-P3 remediation PR 0A (migration controls: LIFF_STRICT_MODE, COOKIE_AUTH_MODE) at 31632ee. Diagnosed the pytest hang as tests/conftest.py eagerly importing app.main which needs Docker Postgres/Redis (curr (Claude Code)
 - [2026-07-12 12:34] Codex: Phase 0 P0-P3 remediation: PR 0A controls/tests/docs and PR 0B evidence/designs in progress (Codex)
 - [2026-07-12 10:12] Claude Code: อ่านแผน remediation P0-P3 ฉบับปรับปรุง (2026-07-12-improved-p0-p3-remediation-execution-plan.md) (Claude Code)

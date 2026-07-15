@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 163 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 164 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-15 23:35 — claude_code (Claude Sonnet 5 / Anthropic) — completed
+
+git pull synced main to ea736cf (5 PRs: #128-132, Phase 0 remediation). Resolved local/remote duplicate-work conflict via git stash -u: dropped 3 superseded draft files (collect_preflight_db_evidence.py, preflight-evidence-and-designs.md, README.md edit) that PR #128 already replaced with a more complete version; restored unrelated pre-existing untracked files (.clinerules, PRPs/codeX plan doc) and re-applied 2 intentional PRPs/codeX deletions; deleted stale eslint_check.txt scratch output (its ChatArea.tsx ref-during-render issue was already fixed via L9.3).
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260715-2335.json`
+- Summary: `project-log-md/claude_code/session-summary-20260715-2335.md`
+
+---
 
 ### 2026-07-15 07:36 — claude_code (Claude Sonnet 5 / Anthropic) — completed
 

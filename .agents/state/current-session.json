@@ -1,14 +1,20 @@
 {
-  "last_updated": "2026-07-15T07:36:00+07:00",
+  "last_updated": "2026-07-15T23:35:00+07:00",
   "platform": "claude_code",
-  "current_task": "Reviewed, verified, and committed P0-P3 remediation PR 0A (migration controls: LIFF_STRICT_MODE, COOKIE_AUTH_MODE) at 31632ee. Diagnosed the pytest hang as tests/conftest.py eagerly importing app.main",
+  "current_task": "git pull synced main to ea736cf (5 PRs: #128-132, Phase 0 remediation). Resolved local/remote duplicate-work conflict via git stash -u: dropped 3 superseded draft files (collect_preflight_db_evidence.",
   "plan_status": "completed",
   "next_steps": [
-    "Restart Docker Desktop (elevated) to restore Postgres/Redis/WSL",
-    "Review and verify PR 0B (collect_preflight_db_evidence.py, preflight-evidence-and-designs.md) once Docker is reachable, then commit",
-    "Run full backend pytest suite through WSL per repo policy once WSL is restored"
+    "Review restored PRPs/codeX/2026-07-12-improved-p0-p3-remediation-execution-plan.md for relevance",
+    "Confirm .clinerules should stay committed to the repo (Cline-equivalent of CLAUDE.md)"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-07-15T23:35:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "ea736cf",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-07-15T07:36:00+07:00",
       "platform": "claude_code",
@@ -141,13 +147,6 @@
       "branch": "fix/122-webhook-silent-swallow",
       "head": "0da0638",
       "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-05T23:34:00+07:00",
-      "platform": "claude_code",
-      "branch": "chore/live-chat-hardening-c",
-      "head": "0925f07",
-      "status": "completed"
     }
   ],
   "cross_platform_context": {
@@ -157,7 +156,5 @@
       "antigravity/session-summary-20260602-0032.md"
     ],
     "key_insights": "Handoff system redesigned to single-source-of-truth (checkpoints) + generated views (TASK_LOG/SESSION_INDEX via gen-handoff-views.cjs). Use handoff-new.cjs to create handoffs. Stop hook enforces it. Do NOT hand-edit the generated files."
-  },
-  "model": "Claude Sonnet 5",
-  "provider": "Anthropic"
+  }
 }
