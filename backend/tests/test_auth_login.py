@@ -2,7 +2,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
-from fastapi import HTTPException
+from fastapi import HTTPException, Response
 
 from app.api.v1.endpoints.auth import _ADMIN_AUTH_ROLES, login
 from app.core.security import verify_password
@@ -54,7 +54,10 @@ async def test_login_returns_401_for_invalid_stored_hash() -> None:
     )
 
     with pytest.raises(HTTPException) as exc_info:
-        await login(LoginRequest(username="admin", password="admin1234"), db)
+        # P1.1a added a `response: Response` parameter (for cookie
+        # issuance in dual/cookie mode) between payload and db -- this
+        # white-box call now needs a real Response instance to match.
+        await login(LoginRequest(username="admin", password="admin1234"), Response(), db)
 
     assert exc_info.value.status_code == 401
     assert exc_info.value.detail == "Invalid username or password"
