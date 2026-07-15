@@ -99,7 +99,7 @@ async def get_credential(
     current_admin: User = Depends(get_current_admin)
 ) -> Any:
     """Get single credential (secrets masked)"""
-    credential = await db.get(credential_service.Credential, id)
+    credential = await db.get(Credential, id)
     if not credential:
         raise HTTPException(status_code=404, detail="Credential not found")
 

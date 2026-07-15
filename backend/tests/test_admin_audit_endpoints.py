@@ -11,6 +11,7 @@ appears in the projection even when no filter was applied; only the WHERE
 clause renders the comparison operator.
 """
 import json
+from datetime import datetime, timezone
 from types import SimpleNamespace
 from uuid import uuid4
 
@@ -286,6 +287,23 @@ def _super_admin(admin_id: int = 1):
 @pytest.mark.asyncio
 async def test_create_credential_writes_one_audit_row():
     db = _RecordingDB()
+    # _RecordingDB._apply_column_defaults() only emulates Python-side
+    # `Column(default=...)` values; created_at/updated_at use
+    # `server_default=func.now()` (a real-DB-only default), so the fake
+    # never populates them. CredentialResponse now requires real datetime
+    # values (unrelated to this PRD's metadata/credentials_masked fix), so
+    # stamp them here the way a real INSERT + refresh would.
+    _orig_refresh = db.refresh
+
+    async def _refresh_with_timestamps(obj):
+        await _orig_refresh(obj)
+        now = datetime.now(timezone.utc)
+        if getattr(obj, "created_at", None) is None:
+            obj.created_at = now
+        if getattr(obj, "updated_at", None) is None:
+            obj.updated_at = now
+
+    db.refresh = _refresh_with_timestamps
     admin = _super_admin(7)
     sentinel = "SENTINEL_CHANNEL_TOKEN_ABC123"
 
@@ -297,20 +315,17 @@ async def test_create_credential_writes_one_audit_row():
         is_default=False,
     )
 
-    # NOTE (pre-existing, unrelated bug -- discovered while writing this
-    # test, NOT introduced by P0.3): CredentialResponse.model_validate(...)
-    # always fails against a bare Credential ORM instance --
-    # `credential.metadata` resolves to SQLAlchemy's Base.metadata registry
-    # (name collision with the JSONB column, which is mapped under the
-    # Python attribute `metadata_json`), and `credentials_masked` has no
-    # default so it's "required" but never present on the ORM object before
-    # that line runs. This reproduces identically on unmodified code (see
-    # PRD report) and affects every admin_credentials.py route that returns
-    # CredentialResponse. It happens to fire in this endpoint AFTER the
-    # audit row is committed, so it does not affect FR1/FR2 here; flagged
-    # separately as a pre-existing bug worth its own follow-up.
-    with pytest.raises(Exception):
-        await admin_credentials.create_credential(request=payload, db=db, current_admin=admin)
+    # CredentialResponse.model_validate(...) previously always failed
+    # against a bare Credential ORM instance (see
+    # .claude/PRPs/prds/fix-credential-response.prd.md, FIXED as of this
+    # PR) -- `credential.metadata` resolved to SQLAlchemy's Base.metadata
+    # registry instead of the JSONB column (mapped under `metadata_json`),
+    # and `credentials_masked` had no default. Now that the schema aliases
+    # `metadata` -> `metadata_json` for ORM validation and defaults
+    # `credentials_masked`, the endpoint returns cleanly end-to-end.
+    response = await admin_credentials.create_credential(request=payload, db=db, current_admin=admin)
+    assert response.credentials_masked  # populated by the endpoint after validation
+    assert response.name == "LINE Prod"
 
     rows = db.audit_rows()
     assert len(rows) == 1
@@ -334,20 +349,27 @@ async def test_create_credential_writes_one_audit_row():
 
 @pytest.mark.asyncio
 async def test_update_credential_redacts_secret_value():
+    # created_at/updated_at use server_default=func.now() (real-DB-only),
+    # which _RecordingDB's fake refresh() doesn't emulate; set them here so
+    # CredentialResponse's required datetime fields validate, same as a
+    # real row already persisted at id=5 would have.
+    _now = datetime.now(timezone.utc)
     existing = Credential(
         id=5, name="LINE Prod", provider=Provider.LINE.value,
         credentials="placeholder-encrypted-blob", is_active=True, is_default=False,
+        created_at=_now, updated_at=_now,
     )
     db = _RecordingDB(get_registry={5: existing})
     admin = _super_admin(7)
     sentinel = "SENTINEL_ROTATED_TOKEN_XYZ"
 
     payload = CredentialUpdate(credentials={"channel_access_token": sentinel})
-    # Same pre-existing CredentialResponse.model_validate(...) bug noted in
-    # test_create_credential_writes_one_audit_row above -- fires after the
-    # audit row is committed, so it doesn't affect what this test proves.
-    with pytest.raises(Exception):
-        await admin_credentials.update_credential(id=5, request=payload, db=db, current_admin=admin)
+    # Same CredentialResponse.model_validate(...) bug noted in
+    # test_create_credential_writes_one_audit_row above -- now FIXED (see
+    # .claude/PRPs/prds/fix-credential-response.prd.md), so this asserts
+    # clean success end-to-end instead of tolerating the ValidationError.
+    response = await admin_credentials.update_credential(id=5, request=payload, db=db, current_admin=admin)
+    assert response.credentials_masked  # populated by the endpoint after validation
 
     rows = db.audit_rows()
     assert len(rows) == 1

@@ -257,20 +257,25 @@ Design decisions the PRD left to the implementer:
 P0.3's 6-file scope; follow-up work. `auth.py` login/refresh auditing
 remains deferred to the P1.1 cookie-auth rebuild.
 
-**Notable finding (unrelated to this PRD, not fixed here):** while writing
-FR3 tests, `admin_credentials.py`'s `CredentialResponse.model_validate(...)`
-was found to fail unconditionally against a bare `Credential` ORM instance —
-`credential.metadata` resolves to SQLAlchemy's `Base.metadata` registry
-(name collision; the JSONB column is mapped under the Python attribute
-`metadata_json`), and `credentials_masked` has no default so pydantic
-reports it "required" even though the endpoint code only assigns it
-*after* the `model_validate()` call. This reproduces on unmodified code and
-affects `create_credential`, `update_credential`, `set_default_credential`,
-`get_credential`, and `list_credentials` — every route returning
-`CredentialResponse`. No existing test exercised this file before P0.3, so
-it went uncaught. Flagged for a separate follow-up ticket; out of scope for
-audit-coverage work (and would require touching the response schema, not
-just adding audit calls).
+**Notable finding — FIXED** (`.claude/PRPs/prds/fix-credential-response.prd.md`):
+while writing FR3 tests, `admin_credentials.py`'s
+`CredentialResponse.model_validate(...)` was found to fail unconditionally
+against a bare `Credential` ORM instance — `credential.metadata` resolves to
+SQLAlchemy's `Base.metadata` registry (name collision; the JSONB column is
+mapped under the Python attribute `metadata_json`), and `credentials_masked`
+has no default so pydantic reports it "required" even though the endpoint
+code only assigns it *after* the `model_validate()` call. This reproduced on
+unmodified code and affected `create_credential`, `update_credential`,
+`set_default_credential`, `get_credential`, and `list_credentials` — every
+route returning `CredentialResponse`. No existing test exercised this file
+before P0.3, so it went uncaught. Fixed in `backend/app/schemas/credential.py`
+(`metadata` now uses `AliasChoices("metadata_json", "metadata")` for
+validation with `serialization_alias="metadata"`, and `credentials_masked`
+defaults to `""`) plus tests in `backend/tests/test_credential_schema.py`
+and updated assertions in the two P0.3 audit tests
+(`test_create_credential_writes_one_audit_row`,
+`test_update_credential_redacts_secret_value`) that previously tolerated the
+`ValidationError`.
 
 ## 5. Cookie / CSRF / Refresh Design (P1.1)
 
