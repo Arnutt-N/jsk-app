@@ -16,9 +16,11 @@ Windows dev machine, which is currently blocked by a broken Docker/WSL install. 
 PR 0A (migration controls, `31632ee`) made it into git.
 
 Additionally, the 2026-07-15 session discovered that `backend/tests/conftest.py` does
-`from app.main import app` unconditionally at module import time, which blocks on
-Postgres/Redis with no connect timeout. When the DB is down, **every** test in
-`backend/tests/` hangs — including pure-config tests like
+`from app.main import app` unconditionally at module import time. The import itself
+does not connect to the DB; the hang occurs when `TestClient(app)` enters its context
+and runs the app's lifespan startup (DB init/Redis connect) with no connect timeout.
+With the app imported eagerly and the session-scoped client fixture in play, when the
+DB is down **every** test in `backend/tests/` hangs — including pure-config tests like
 `test_config_migration_controls.py` that never touch the DB. This directly caused a
 multi-hour diagnosis on 2026-07-15 and undermines the Phase 0 gate ("run targeted P0
 tests") whenever infra is degraded.

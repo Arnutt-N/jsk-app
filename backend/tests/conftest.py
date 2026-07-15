@@ -81,11 +81,13 @@ def _fail_fast_if_services_down() -> None:
 def app():
     """Lazily import the FastAPI app, failing fast if DB/Redis are down.
 
-    Importing `app.main` at module level (the old behavior) blocks on
-    Postgres/Redis with no connect timeout, which hangs every test in this
-    directory when infra is degraded — even DB-independent tests that never
-    request this fixture. Importing lazily here means tests that don't
-    request `app`/`test_client` are unaffected by service availability.
+    The import of `app.main` itself does not connect to Postgres/Redis; the
+    hang happened when `TestClient(app)` entered its context and ran the app's
+    lifespan startup (DB init/Redis connect) with no connect timeout. Keeping
+    the import here (instead of module level) means tests that never request
+    `app`/`test_client` don't pay the import cost, and the reachability probe
+    below turns the would-be lifespan hang into a fast, clearly-worded failure
+    before `TestClient` ever enters startup.
     """
     _fail_fast_if_services_down()
 

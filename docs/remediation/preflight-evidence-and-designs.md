@@ -323,7 +323,7 @@ Fresh local run (`backend/scripts/collect_preflight_db_evidence.py --target loca
 # Pre-Flight DB Evidence
 
 - Target        : local
-- Collected (UTC): 2026-07-15T05:53:10Z (re-run for this doc)
+- Collected (UTC): 2026-07-15T06:30:44Z (re-run for this doc)
 
 ## Schema & Server
 - Current schema : public
@@ -338,26 +338,26 @@ Fresh local run (`backend/scripts/collect_preflight_db_evidence.py --target loca
 ## Top 20 Tables by Size (public schema)
 | Table | Total Size | Estimated Rows |
 | --- | --- | --- |
-| chat_sessions | 64 kB | -1 |
-| service_requests | 64 kB | -1 |
-| canned_responses | 64 kB | -1 |
-| business_hours | 56 kB | -1 |
-| audit_logs | 56 kB | -1 |
-| users | 48 kB | -1 |
-| messages | 48 kB | -1 |
-| user_rich_menu_links | 40 kB | -1 |
-| rich_menu_aliases | 40 kB | -1 |
-| request_comments | 40 kB | -1 |
-| intent_categories | 40 kB | -1 |
-| csat_responses | 32 kB | -1 |
-| organizations | 32 kB | -1 |
-| bookings | 32 kB | -1 |
-| auto_replies | 32 kB | -1 |
-| reply_objects | 32 kB | -1 |
-| rich_menus | 32 kB | -1 |
-| system_settings | 32 kB | -1 |
-| intent_keywords | 32 kB | -1 |
-| tags | 32 kB | -1 |
+| chat_sessions | 64 kB | unknown |
+| service_requests | 64 kB | unknown |
+| canned_responses | 64 kB | unknown |
+| business_hours | 56 kB | unknown |
+| audit_logs | 56 kB | unknown |
+| users | 48 kB | unknown |
+| messages | 48 kB | unknown |
+| user_rich_menu_links | 40 kB | unknown |
+| rich_menu_aliases | 40 kB | unknown |
+| request_comments | 40 kB | unknown |
+| intent_categories | 40 kB | unknown |
+| csat_responses | 32 kB | unknown |
+| organizations | 32 kB | unknown |
+| bookings | 32 kB | unknown |
+| auto_replies | 32 kB | unknown |
+| reply_objects | 32 kB | unknown |
+| rich_menus | 32 kB | unknown |
+| system_settings | 32 kB | unknown |
+| intent_keywords | 32 kB | unknown |
+| tags | 32 kB | unknown |
 
 ## Slow Statements (pg_stat_statements)
 - skipped: pg_stat_statements not installed
@@ -369,11 +369,12 @@ Fresh local run (`backend/scripts/collect_preflight_db_evidence.py --target loca
 - sub_districts (declared in ORM metadata, not found on live schema)
 ```
 
-Estimated rows show `-1` because this local database has never had `ANALYZE`
-run against it — `reltuples` defaults to `-1` until Postgres computes
-statistics. This is expected on a freshly migrated sandbox DB, not a
-collector bug; a second sample after `ANALYZE` (or organic usage) is one of
-the open items in §9.
+Estimated rows show `unknown` (`null` in the JSON output) because this local
+database has never had `ANALYZE` run against it — `reltuples` stays at `-1`
+until Postgres computes statistics, and the collector renders that sentinel
+as unknown rather than a literal `-1`. This is expected on a freshly migrated
+sandbox DB, not a collector bug; a second sample after `ANALYZE` (or organic
+usage) is one of the open items in §9.
 
 `pg_stat_statements` is not installed locally (`SELECT extname FROM
 pg_extension` returns only `plpgsql`), so the collector's extension-absent
@@ -389,5 +390,5 @@ this run, not simulated.
 | Advisory-lock ID registration | No constants module/registry exists. The review's `999001`/`999002` are proposed, not reserved. Must be formally registered before P1.6 implementation to avoid collision. | Backend owner |
 | Webhook/Redis incident evidence | No documented data-loss incident, Redis-unavailability rate, or webhook volume measurement exists yet in this repo — required before starting outbox (phase 2) work per §6. | Backend/ops owner |
 | Second table-size sample for growth rate | Only one local sample exists (2026-07-15, this doc) and one lost remote sample (2026-07-12, numbers unrecoverable). A second dated sample — ideally after `ANALYZE` and some real usage — is needed to compute any growth rate. | Backend owner (re-run `collect_preflight_db_evidence.py` periodically) |
-| Remote (Supabase) re-collection | This PR's collector supports `--target remote` but was not run against remote — no `backend/.env`/prod credentials in this sandbox. Must be run from a machine holding those credentials. | Whoever holds `backend/.env` |
+| Remote (Supabase) re-collection | This PR's collector supports `--target remote` but was not run against remote — no `backend/.env`/prod credentials in this sandbox. Must be run from a machine holding those credentials. Caveat: check the `DATABASE_URL` query-string format first — the collector translates SQLAlchemy-style `?ssl=require` to asyncpg's `?sslmode=require` automatically, but other non-libpq params in the URL may still need adjusting for asyncpg. | Whoever holds `backend/.env` |
 | `public.broadcasts` schema-ownership gap | Confirmed still missing from *local* too (§8), in addition to the previously-known remote gap. Explicitly deferred to PR 2F per the PRD non-goals — flagging here so it isn't lost again. | PR 2F owner |

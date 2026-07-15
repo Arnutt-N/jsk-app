@@ -15,6 +15,7 @@ import json
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import asyncpg
 
@@ -32,9 +33,32 @@ class UsageError(Exception):
     """Raised for configuration/usage problems (maps to exit code 2)."""
 
 
+_SSLMODE_VALUES = {"disable", "allow", "prefer", "require", "verify-ca", "verify-full"}
+
+
 def to_asyncpg_dsn(database_url: str) -> str:
-    """Convert a SQLAlchemy-style DATABASE_URL into a plain asyncpg DSN."""
-    return database_url.replace("postgresql+asyncpg://", "postgresql://", 1)
+    """Convert a SQLAlchemy-style DATABASE_URL into a plain asyncpg DSN.
+
+    asyncpg treats unknown DSN query parameters as server settings, so the
+    SQLAlchemy-style ``?ssl=require`` fails at connect time
+    (CantChangeRuntimeParamError). Translate ``ssl=<sslmode>`` to
+    ``sslmode=<sslmode>``, drop an unmappable ``ssl`` value, and preserve all
+    other query parameters unchanged.
+    """
+    dsn = database_url.replace("postgresql+asyncpg://", "postgresql://", 1)
+    parts = urlsplit(dsn)
+    if not parts.query:
+        return dsn
+
+    translated: list[tuple[str, str]] = []
+    for key, value in parse_qsl(parts.query, keep_blank_values=True):
+        if key == "ssl":
+            if value in _SSLMODE_VALUES:
+                translated.append(("sslmode", value))
+            # else: drop a bare/unmappable ssl param asyncpg cannot accept
+        else:
+            translated.append((key, value))
+    return urlunsplit(parts._replace(query=urlencode(translated)))
 
 
 def get_orm_table_names(target: str) -> set[str]:
@@ -97,7 +121,9 @@ async def fetch_top_tables(conn: asyncpg.Connection, limit: int) -> list[dict[st
             "table_name": row["table_name"],
             "total_size": row["total_size"],
             "total_bytes": row["total_bytes"],
-            "estimated_rows": row["estimated_rows"],
+            # reltuples is -1 until ANALYZE/VACUUM has computed statistics;
+            # report that as unknown (null in JSON) rather than a literal -1.
+            "estimated_rows": row["estimated_rows"] if row["estimated_rows"] >= 0 else None,
         }
         for row in rows
     ]
@@ -154,8 +180,8 @@ async def collect_evidence(target: str, limit: int) -> dict[str, object]:
         )
     except Exception as exc:  # noqa: BLE001 - redact, never surface DSN/stack
         raise ConnectionError(
-            f"cannot connect to target '{target}' database within "
-            f"{CONNECT_TIMEOUT_SECONDS}s"
+            f"cannot connect to target '{target}' database "
+            f"(connect failed or exceeded {CONNECT_TIMEOUT_SECONDS}s budget)"
         ) from exc
 
     try:
@@ -239,8 +265,10 @@ def render_markdown(evidence: dict[str, object]) -> str:
         lines.append("| Table | Total Size | Estimated Rows |")
         lines.append("| --- | --- | --- |")
         for row in top_tables:
+            estimated = row["estimated_rows"]
+            rendered_rows = "unknown" if estimated is None else estimated
             lines.append(
-                f"| {row['table_name']} | {row['total_size']} | {row['estimated_rows']} |"
+                f"| {row['table_name']} | {row['total_size']} | {rendered_rows} |"
             )
     else:
         lines.append("- no tables found in `public` schema")
