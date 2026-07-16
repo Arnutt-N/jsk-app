@@ -31,7 +31,7 @@ class AuthSession(Base):
     family_id = Column(String(36), nullable=False, index=True)
     token_hash = Column(String(64), nullable=False, unique=True, index=True)
     status = Column(String(16), nullable=False, default=STATUS_ACTIVE)
-    expires_at = Column(DateTime(timezone=True), nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False, index=True)
     # DB column is timestamptz (see audit_log.py's tz-aware comment for why:
     # asyncpg rejects naive-vs-aware bind mismatches on comparison queries).
     created_at = Column(
