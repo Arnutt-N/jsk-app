@@ -1,16 +1,16 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Cross-Platform Session Index (generated)
 
-> **Last generated**: 2026-07-16 06:52 (from newest checkpoint)
+> **Last generated**: 2026-07-16 07:51 (from newest checkpoint)
 
 ## Quick Stats
 
 | Metric | Value |
 |--------|-------|
-| Handoff checkpoints (active) | 166 |
-| Session summaries on disk | 253 |
+| Handoff checkpoints (active) | 167 |
+| Session summaries on disk | 254 |
 | Platforms | 8 (antigravity, claude_code, cline, codex, gemini_cli, kilo_code, kimi_code, open_code) |
-| Most recent | 2026-07-16 06:52 — cline |
+| Most recent | 2026-07-16 07:51 — cline |
 
 > Regenerate after any handoff: `node .agents/scripts/gen-handoff-views.cjs`
 
@@ -49,10 +49,11 @@
 | 2026-07-06 14:49 | completed | — | — | `handover-claude_code-20260706-1449.json` |
 | … | | | | +108 older |
 
-## cline (3)
+## cline (4)
 
 | When | Status | Model | Provider | Checkpoint |
 |------|--------|-------|----------|------------|
+| 2026-07-16 07:51 | completed | — | — | `handover-cline-20260716-0751.json` |
 | 2026-07-16 06:52 | completed | — | — | `handover-cline-20260716-0652.json` |
 | 2026-07-09 20:49 | completed | GLM-4.5 | Zhipu AI | `handover-cline-20260709-2049.json` |
 | 2026-02-15 03:25 | completed | — | — | `handover-cline-20260215-0325.json` |

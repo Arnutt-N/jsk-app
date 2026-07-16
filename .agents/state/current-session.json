@@ -1,12 +1,19 @@
 {
-  "last_updated": "2026-07-16T06:52:00+07:00",
+  "last_updated": "2026-07-16T07:51:00+07:00",
   "platform": "cline",
-  "current_task": "Completed steps 4-6 of the 6-step model-orchestration workflow for PR 2A Cookie Backend Foundation (P1.1a) — all on Cline. Step 4: applied F1 fix (auth_session_service.py: expired-but-active refresh r",
+  "current_task": "Closed the two cheap round-2 review findings from PR #133 as PR #134 (merged). NEW-1: redacted ValidationError input_value from the WS auth log in ws_live_chat.py handle_auth — now logs only [{loc,typ",
   "plan_status": "completed",
   "next_steps": [
-    "PR 2B (frontend adopts cookie auth) — MUST single-flight refresh to avoid strict-rotation race revoking family (N3). PR 2C: redact ValidationError logging in ws_live_chat.py:171 (NEW-1). P1.6: move auth_sessions/ws_tickets retention cleanup to scheduler job or index expires_at (NEW-2). Separate: confirm with team whether DIRECTOR/HEAD should use live-chat WebSocket (NEW-3, pre-existing)."
+    "PR 2B (P1.1b Frontend Auth Migration) is the next roadmap item — MUST single-flight refresh to avoid the strict-rotation race revoking the family (round-1 N3, reaffirmed round-2). It needs a PRD + plan first (model-orchestration step 1). NEW-3 remains: confirm with the team whether DIRECTOR/HEAD should use the live-chat WebSocket; if yes, widen _load_and_authorize_ws_user role set in a follow-up. P1.6 (PR 2H): the real retention scheduler job can later replace the per-mint cleanup (NEW-2 index is the interim fix)."
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-07-16T07:51:00+07:00",
+      "platform": "cline",
+      "branch": "main",
+      "head": "721a5f7",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-07-16T06:52:00+07:00",
       "platform": "cline",
@@ -138,13 +145,6 @@
       "platform": "claude_code",
       "branch": "feat/category-readiness-guard",
       "head": "c2c458b",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-06T06:19:00+07:00",
-      "platform": "claude_code",
-      "branch": "feat/category-readiness-guard",
-      "head": "789022f",
       "status": "completed"
     }
   ],

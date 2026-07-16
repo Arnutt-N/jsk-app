@@ -1,0 +1,16 @@
+{
+  "handoff_version": "2.0",
+  "platform": "cline",
+  "agent": "cline",
+  "timestamp": "2026-07-16T07:51:00+07:00",
+  "branch": "main",
+  "head_commit": "721a5f7",
+  "status": "completed",
+  "work_summary": "Closed the two cheap round-2 review findings from PR #133 as PR #134 (merged). NEW-1: redacted ValidationError input_value from the WS auth log in ws_live_chat.py handle_auth — now logs only [{loc,type}] per error instead of the raw exception, so a malformed/oversized token or ticket can't be written to the warning log (Pydantic V2 ValidationError.__str__ renders input_value). New test test_handle_auth_redacts_validation_error_input_value asserts a unique sentinel never reaches the log while loc/type do. NEW-2: indexed expires_at on auth_sessions + ws_tickets (ORM index=True + new Alembic migration x9y0z1a2b3c4, additive/idempotent/reversible, down_revision w3x4y5z6a7b8) so the opportunistic retention DELETEs in mint_ws_ticket use an index scan instead of a sequential scan as the tables grow. Verified in the local DB: upgrade creates ix_auth_sessions_expires_at + ix_ws_tickets_expires_at; downgrade -1 drops them; re-upgrade is a no-op. New test test_auth_session_and_ws_ticket_expires_at_are_indexed guards the ORM flags. Tests: test_ws_security.py + test_cookie_auth.py = 41 passed (incl. 2 new); full suite excluding the 3 websocket files that hang on Windows TestClient = 583 passed 0 failed. Commits 7d2dc68 (NEW-1) + ea78283 (NEW-2); squash-merged as PR #134 (merge commit 721a5f7); branch auto-deleted; local main synced. NEW-3 (INFO, pre-existing WS role allowlist narrower than login — DIRECTOR/HEAD can login but not use live-chat WS) intentionally left for a separate team decision.",
+  "priority_actions": [
+    "PR 2B (P1.1b Frontend Auth Migration) is the next roadmap item — MUST single-flight refresh to avoid the strict-rotation race revoking the family (round-1 N3, reaffirmed round-2). It needs a PRD + plan first (model-orchestration step 1). NEW-3 remains: confirm with the team whether DIRECTOR/HEAD should use the live-chat WebSocket; if yes, widen _load_and_authorize_ws_user role set in a follow-up. P1.6 (PR 2H): the real retention scheduler job can later replace the per-mint cleanup (NEW-2 index is the interim fix)."
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/cline/session-summary-20260716-0751.md",
+  "cross_platform_read": []
+}
