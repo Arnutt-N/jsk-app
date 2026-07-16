@@ -32,7 +32,8 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ replace: hoisted.replace }),
 }));
 
-function TestConsumer({ snapshot }: { snapshot: { current: ReturnType<typeof useAuth> | null } }) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function TestConsumer({ snapshot }: { snapshot: { current: any } }) {
   const auth = useAuth();
   snapshot.current = auth;
   return null;
@@ -78,7 +79,7 @@ describe('AuthContext — cookie mode', () => {
       jsonResponse(200, { ...ME_USER, csrf_token: 'csrf-1' }),
     );
     global.fetch = fetchMock;
-    const snapshot = { current: null };
+    const snapshot = { current: null as any };
     render(
       <AuthProvider>
         <TestConsumer snapshot={snapshot} />
@@ -98,7 +99,7 @@ describe('AuthContext — cookie mode', () => {
 
   it('bootstraps from GET /auth/me: 401 → unauthenticated', async () => {
     global.fetch = vi.fn().mockResolvedValue(jsonResponse(401));
-    const snapshot = { current: null };
+    const snapshot = { current: null as any };
     render(
       <AuthProvider>
         <TestConsumer snapshot={snapshot} />
@@ -117,7 +118,7 @@ describe('AuthContext — cookie mode', () => {
       .mockResolvedValueOnce(jsonResponse(200, { csrf_token: 'csrf-mig' }))
       .mockResolvedValueOnce(jsonResponse(200, { ...ME_USER, csrf_token: 'csrf-1' }));
     global.fetch = fetchMock;
-    const snapshot = { current: null };
+    const snapshot = { current: null as any };
     render(
       <AuthProvider>
         <TestConsumer snapshot={snapshot} />
@@ -140,7 +141,7 @@ describe('AuthContext — cookie mode', () => {
       .fn()
       .mockResolvedValueOnce(jsonResponse(401))
       .mockResolvedValueOnce(jsonResponse(401));
-    const snapshot = { current: null };
+    const snapshot = { current: null as any };
     render(
       <AuthProvider>
         <TestConsumer snapshot={snapshot} />
@@ -157,7 +158,7 @@ describe('AuthContext — cookie mode', () => {
       jsonResponse(200, { ...ME_USER, csrf_token: 'csrf-1' }),
     );
     global.fetch = fetchMock;
-    const snapshot = { current: null };
+    const snapshot = { current: null as any };
     render(
       <AuthProvider>
         <TestConsumer snapshot={snapshot} />
