@@ -5,3 +5,12 @@
 /playwright-report-2client/
 /test-results/
 /playwright/.cache/
+
+# Next.js build output
+/.next/
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Env files
+.env*.local
