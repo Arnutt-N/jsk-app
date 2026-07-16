@@ -12,7 +12,7 @@ import {
   LayoutDashboard, FileText, Bot, MessageCircle,
   Reply, MessageSquareReply, MessageSquareText, PanelTop, Users,
   UserCog, BarChart3, Megaphone, FolderOpen,
-  Settings, Palette, Shield, History, Scaling,
+  Settings, Palette, Shield, History, Scaling, Activity,
 } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
@@ -186,6 +186,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
         { name: 'Image Resize', href: '/admin/image-resize', icon: Scaling, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
         { name: 'Reports', href: '/admin/reports', icon: BarChart3, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
         { name: 'Audit Log', href: '/admin/audit', icon: Shield, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
+        { name: 'Health Check', href: '/admin/health', icon: Activity, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
         { name: 'Settings', href: '/admin/settings', icon: Settings, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
         { name: 'Design System', href: '/admin/design-system', icon: Palette, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
       ]
