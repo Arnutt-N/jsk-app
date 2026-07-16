@@ -325,3 +325,50 @@ def test_websocket_endpoint_does_not_accept_token_query_param():
     from app.api.v1.endpoints.ws_live_chat import websocket_endpoint
     sig = inspect.signature(websocket_endpoint)
     assert "token" not in sig.parameters
+
+
+@pytest.mark.asyncio
+async def test_handle_auth_redacts_validation_error_input_value(caplog):
+    """NEW-1 (round-2 review): a malformed/oversized token or ticket must NOT be
+    written to the warning log. Pydantic V2's ValidationError.__str__ renders the
+    failing `input_value=...`, so we log only each error's `type` and `loc` instead
+    of the raw exception. This test submits an oversized ticket (well over the
+    200-char max_length) whose raw value is a unique sentinel, then asserts the
+    sentinel never appears in any captured log record while the `loc`/`type` do.
+    """
+    import logging
+    from app.api.v1.endpoints.ws_live_chat import handle_auth
+
+    sentinel = "LEAK-SENTINEL-" + "x" * 400  # > max_length=200 -> validation error
+    websocket = SimpleNamespace()
+
+    with patch("app.api.v1.endpoints.ws_live_chat.ws_manager.send_personal", new=AsyncMock()):
+        with caplog.at_level(logging.WARNING, logger="app.api.v1.endpoints.ws_live_chat"):
+            admin_id = await handle_auth(websocket, {"ticket": sentinel})
+
+    assert admin_id is None  # malformed payload rejected
+
+    # The raw credential fragment must never reach the log.
+    logged = " ".join(r.message for r in caplog.records)
+    assert sentinel not in logged
+    assert "LEAK-SENTINEL" not in logged
+
+    # But the redacted diagnostic (loc + type) must be present so the failure is
+    # still debuggable.
+    assert "ticket" in logged  # loc points at the offending field
+    assert "too_long" in logged or "string_too_long" in logged  # Pydantic V2 error type
+
+
+def test_auth_session_and_ws_ticket_expires_at_are_indexed():
+    """NEW-2 (round-2 review): `expires_at` must be indexed on both
+    `auth_sessions` and `ws_tickets` so the opportunistic retention DELETEs in
+    `mint_ws_ticket` use an index scan instead of a sequential scan as the tables
+    grow. Guards the ORM-side flag; the migration
+    `x9y0z1a2b3c4_index_expires_at_on_auth_sessions_and_ws_tickets` adds the DB
+    indexes to match."""
+    from app.models.auth_session import AuthSession
+    from app.models.ws_ticket import WsTicket
+
+    assert AuthSession.expires_at.index is True
+    assert WsTicket.expires_at.index is True
+
