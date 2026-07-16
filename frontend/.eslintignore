@@ -1,0 +1,13 @@
+# Build output (ESLint should not lint generated files)
+.next/
+out/
+dist/
+build/
+
+# Dependencies
+node_modules/
+
+# Misc
+*.min.js
+*.min.css
+.DS_Store
