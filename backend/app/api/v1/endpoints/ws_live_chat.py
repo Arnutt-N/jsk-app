@@ -168,7 +168,16 @@ async def handle_auth(websocket: WebSocket, payload: dict) -> Optional[str]:
     try:
         auth_data = AuthPayload(**payload) if has_credential else None
     except ValidationError as e:
-        logger.warning(f"Auth payload validation failed: {e}")
+        # NEW-1 (round-2 review): log only the error type + field location, never
+        # the raw exception -- Pydantic V2's ValidationError.__str__ renders the
+        # failing `input_value=...`, which would write a submitted (malformed/
+        # oversized) token/ticket fragment into the warning log. The `loc`/`type`
+        # pair is enough to diagnose a bad payload without leaking a credential.
+        redacted = [
+            {"loc": ".".join(str(p) for p in err["loc"]), "type": err["type"]}
+            for err in e.errors()
+        ]
+        logger.warning(f"Auth payload validation failed: {redacted}")
         auth_data = None
 
     if auth_data is not None and auth_data.ticket:
