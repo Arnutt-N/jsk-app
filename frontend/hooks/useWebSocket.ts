@@ -13,6 +13,13 @@ import {
 // single-use ticket (minted via POST /auth/ws-ticket) instead of a long-lived JWT.
 const COOKIE_AUTH = process.env.NEXT_PUBLIC_COOKIE_AUTH === 'true';
 
+// Cross-origin gate (P1.1b / PR 2B). External frontends (different origin) cannot
+// use SameSite=Lax cookies, so they mint a ticket via Bearer <REDACTED> (no cookies)
+// and pass it through the WS URL via `?ticket=<raw>` query param. The server
+// authenticates the handshake directly from the URL and the client skips the
+// first-frame auth message entirely. Mutually exclusive with COOKIE_AUTH.
+const CROSS_ORIGIN_WS = process.env.NEXT_PUBLIC_CROSS_ORIGIN_WS === 'true';
+
 export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
   const {
     url,
@@ -59,6 +66,27 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
     }
   }, []);
 
+  // Cross-origin ticket minter (P1.1b / PR 2B): mints a fresh single-use WS
+  // ticket via Bearer <REDACTED> (no cookies). SameSite=Lax blocks cookie auth on
+  // cross-origin handshakes; the minted ticket flows through `?ticket=<raw>`
+  // URL query param, where the server authenticates the handshake directly.
+  const queryTicketMinter = useCallback(async (): Promise<string | null> => {
+    if (!CROSS_ORIGIN_WS || !effectiveToken) return null;
+    try {
+      const res = await fetch('/api/v1/auth/ws-ticket', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${effectiveToken}`,
+        },
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      return (data.ticket as string) ?? null;
+    } catch {
+      return null;
+    }
+  }, [effectiveToken]);
+
   useEffect(() => {
     onConnectRef.current = onConnect;
     onDisconnectRef.current = onDisconnect;
@@ -70,8 +98,13 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
     const client = new WebSocketClient({
       url,
       adminId,
-      token: COOKIE_AUTH ? undefined : effectiveToken,
+      // Cross-origin mode (C) skips the first-frame auth — the ticket travels
+      // via `?ticket=<raw>` URL query param. Cookie mode (B) mints via
+      // `credentials: include`. Default (A) sends a long-lived JWT in the
+      // auth frame. Only one path is active at a time.
+      token: CROSS_ORIGIN_WS || COOKIE_AUTH ? undefined : effectiveToken,
       ticketMinter: COOKIE_AUTH ? ticketMinter : undefined,
+      queryTicketMinter: CROSS_ORIGIN_WS ? queryTicketMinter : undefined,
       onStateChange: (state) => {
         setConnectionState(state);
         if (client) {
@@ -94,7 +127,7 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
       client.disconnect();
       clientRef.current = null;
     };
-  }, [adminId, effectiveToken, url, ticketMinter]);
+  }, [adminId, effectiveToken, url, ticketMinter, queryTicketMinter]);
 
   const send = useCallback((type: MessageType, payload: unknown, options?: { queue?: boolean }) => {
     return clientRef.current?.send(type, payload, options) ?? false;

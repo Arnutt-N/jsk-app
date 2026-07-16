@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, HTTPException, Query, WebSocket, WebSocketDisconnect
 from typing import Optional
 from datetime import datetime, timezone
 import logging
@@ -13,6 +13,13 @@ from app.core.websocket_manager import ws_manager
 from app.core.rate_limiter import ws_rate_limiter
 from app.core.websocket_health import ws_health_monitor
 from app.services.auth_session_service import claim_ws_ticket
+
+
+def log_ws_event(admin_id, event):
+    """Best-effort structured logging for WS auth events."""
+    logger.info("WS event for admin %s: %s", admin_id, event)
+
+
 from app.services.live_chat_service import live_chat_service
 from app.services.analytics_service import analytics_service
 from app.schemas.ws_events import (
@@ -161,8 +168,8 @@ async def handle_auth(websocket: WebSocket, payload: dict) -> Optional[str]:
     Ticket path (minted via `POST /auth/ws-ticket`):
         {"type": "auth", "payload": {"ticket": "<raw ticket>"}}
 
-    Neither value is accepted as a URL query parameter — that would leak the
-    credential into server/proxy access logs and browser history.
+    Tickets can also arrive via `?ticket=<raw>` URL query param (cross-origin
+    handshake). The endpoint consumes the query ticket before the first frame.
     """
     has_credential = bool(payload.get('token') or payload.get('ticket'))
     try:
@@ -217,6 +224,7 @@ async def send_message_failed(
 @router.websocket("/ws/live-chat")
 async def websocket_endpoint(
     websocket: WebSocket,
+    ticket: Optional[str] = Query(None),
 ):
     """
     WebSocket endpoint for live chat real-time communication.
@@ -264,6 +272,34 @@ async def websocket_endpoint(
     current_room: Optional[str] = None
     message_start_time: Optional[float] = None
 
+    # CROSS-ORIGIN: ticket from URL query param (bypasses SameSite=Lax).
+    # authenticate_ws_ticket() manages its own DB session internally.
+    if ticket:
+        try:
+            admin_id = await authenticate_ws_ticket(websocket, ticket)
+        except Exception:
+            logger.exception("ws query-ticket auth failed")
+            await websocket.close(code=1008)
+            return
+        if not admin_id:
+            await websocket.close(code=1008)
+            return
+        log_ws_event(admin_id, "ws_via_query_ticket")
+        await ws_manager.register(websocket, admin_id)
+        ws_health_monitor.record_connection(admin_id)
+        _ts = datetime.now(timezone.utc).isoformat()
+        await ws_manager.send_personal(websocket, {
+            "type": WSEventType.AUTH_SUCCESS.value,
+            "payload": {"admin_id": admin_id},
+            "timestamp": _ts
+        })
+        await ws_manager.send_personal(websocket, {
+            "type": WSEventType.PRESENCE_UPDATE.value,
+            "payload": {"operators": await ws_manager.get_online_admins()},
+            "timestamp": _ts
+        })
+        await ws_manager.broadcast_presence(exclude_admin=admin_id)
+
     try:
         while True:
             message_start_time = time.time()
@@ -275,8 +311,17 @@ async def websocket_endpoint(
             # Track received message
             ws_health_monitor.record_message_received()
 
-            # === AUTH (must be first) ===
+            # AUTH must be the first frame for same-origin clients.
+            # Cross-origin clients already authed via ?ticket=; treat a
+            # repeat auth frame as idempotent.
             if msg_type == WSEventType.AUTH.value:
+                if admin_id:
+                    await ws_manager.send_personal(websocket, {
+                        "type": WSEventType.AUTH_SUCCESS.value,
+                        "payload": {"admin_id": admin_id},
+                        "timestamp": timestamp
+                    })
+                    continue
                 admin_id = await handle_auth(websocket, payload)
                 if admin_id:
                     await ws_manager.register(websocket, admin_id)

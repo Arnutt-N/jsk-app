@@ -14,6 +14,8 @@ export class WebSocketClient {
   private token?: string;
   private ticket?: string;
   private ticketMinter?: () => Promise<string | null>;
+  private queryTicket?: string;
+  private queryTicketMinter?: () => Promise<string | null>;
   private state: ConnectionState = 'disconnected';
   private reconnectAttempt = 0;
   private reconnectStrategy = new ExponentialBackoffStrategy();
@@ -37,6 +39,8 @@ export class WebSocketClient {
     this.token = options.token;
     this.ticket = options.ticket;
     this.ticketMinter = options.ticketMinter;
+    this.queryTicket = options.queryTicket;
+    this.queryTicketMinter = options.queryTicketMinter;
     this.onMessage = options.onMessage;
     this.onConnect = options.onConnect;
     this.onDisconnect = options.onDisconnect;
@@ -64,8 +68,41 @@ export class WebSocketClient {
     this.intentionalDisconnect = false;
     this.setState('connecting');
 
+    // Fire-and-forget: mint a fresh cross-origin ticket if a minter is
+    // provided, then open the socket. Keeps connect() sync so callers
+    // (useWebSocket useEffect, client.reconnect()) stay unchanged.
+    void this._openWithTicket();
+  }
+
+  private async _openWithTicket(): Promise<void> {
+    // Cross-origin mode (P1.1b / PR 2B): mint a fresh single-use ticket
+    // via Bearer <REDACTED> (no cookies). SameSite=Lax blocks cookie auth on
+    // cross-origin handshakes, so external frontends pass the ticket via
+    // `?ticket=<raw>` URL query param — server authenticates the handshake
+    // directly from the URL, and the client skips the first-frame auth.
+    let url = this.url;
+    if (this.queryTicketMinter) {
+      try {
+        const ticket = await this.queryTicketMinter();
+        if (!ticket) {
+          this.intentionalDisconnect = true;
+          this.setState('disconnected');
+          this.onError?.(new Error('Failed to mint WebSocket cross-origin ticket'));
+          return;
+        }
+        this.queryTicket = ticket;
+      } catch (error) {
+        this.handleError(error as Error);
+        return;
+      }
+    }
+    if (this.queryTicket) {
+      const separator = url.includes('?') ? '&' : '?';
+      url = `${url}${separator}ticket=${encodeURIComponent(this.queryTicket)}`;
+    }
+
     try {
-      this.ws = new WebSocket(this.url);
+      this.ws = new WebSocket(url);
 
       this.ws.onopen = () => this.handleOpen();
       this.ws.onmessage = (event) => this.handleMessage(event);
@@ -77,6 +114,21 @@ export class WebSocketClient {
   }
 
   private async handleOpen(): Promise<void> {
+    // Cross-origin (query-ticket) mode: the server already authenticated the
+    // handshake via `?ticket=<raw>` URL param. Skip the first-frame auth and
+    // jump directly to the connected state — the server pushes AUTH_SUCCESS
+    // + PRESENCE_UPDATE on its own.
+    if (this.queryTicket) {
+      this.queryTicket = undefined;
+      this.setState('connected');
+      this.reconnectAttempt = 0;
+      this.reconnectStrategy.reset();
+      this.startHeartbeat();
+      this.onConnect?.();
+      this.processQueue();
+      return;
+    }
+
     this.setState('authenticating');
     // Auth message — ticketMinter (P1.1b cookie mode) fetches a fresh
     // single-use ticket on every connect/reconnect. Falls back to a static

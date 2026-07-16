@@ -52,6 +52,21 @@ export interface UseWebSocketOptions {
    * fetch a fresh single-use ticket. Takes precedence over `ticket`/`token`.
    * Returns the ticket string, or null on failure (client stays disconnected). */
   ticketMinter?: () => Promise<string | null>;
+  /**
+   * Pre-minted single-use ticket consumed via the WS URL query param
+   * (`?ticket=<raw>`). Forces the client to skip the first-frame auth
+   * message -- the server authenticates the handshake directly from the URL.
+   * Use this for cross-origin connections where SameSite=Lax blocks cookie auth.
+   */
+  queryTicket?: string;
+  /**
+   * Cross-origin ticket minter: called on every connect/reconnect to fetch a
+   * fresh single-use ticket via Bearer <REDACTED> (no cookies). The minted
+   * ticket is passed to the server via `?ticket=<raw>` URL query param,
+   * bypassing the cookie/SameSite=Lax limitation. Use this for external
+   * (cross-origin) frontends that hold a JWT access token.
+   */
+  queryTicketMinter?: () => Promise<string | null>;
   onMessage?: (message: WebSocketMessage) => void;
   onConnect?: () => void;
   onDisconnect?: () => void;
