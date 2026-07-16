@@ -9,6 +9,10 @@ import {
   UseWebSocketReturn
 } from '@/lib/websocket/types';
 
+// Cookie-auth mode gate (P1.1b / PR 2B). When true, the WS authenticates with a
+// single-use ticket (minted via POST /auth/ws-ticket) instead of a long-lived JWT.
+const COOKIE_AUTH = process.env.NEXT_PUBLIC_COOKIE_AUTH === 'true';
+
 export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
   const {
     url,
@@ -36,6 +40,25 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
   // client reconnects once AuthContext hydrates the token from localStorage.
   const effectiveToken = token;
 
+  // Cookie mode (P1.1b): mint a fresh single-use WS ticket on every connect.
+  // The client calls this in handleOpen, so reconnects get a new ticket (the
+  // old one is single-use and would be rejected). Returns null on failure —
+  // the client stays disconnected (same as today when no token is available).
+  const ticketMinter = useCallback(async (): Promise<string | null> => {
+    if (!COOKIE_AUTH) return null;
+    try {
+      const res = await fetch('/api/v1/auth/ws-ticket', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      return (data.ticket as string) ?? null;
+    } catch {
+      return null;
+    }
+  }, []);
+
   useEffect(() => {
     onConnectRef.current = onConnect;
     onDisconnectRef.current = onDisconnect;
@@ -47,7 +70,8 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
     const client = new WebSocketClient({
       url,
       adminId,
-      token: effectiveToken,
+      token: COOKIE_AUTH ? undefined : effectiveToken,
+      ticketMinter: COOKIE_AUTH ? ticketMinter : undefined,
       onStateChange: (state) => {
         setConnectionState(state);
         if (client) {
@@ -70,7 +94,7 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
       client.disconnect();
       clientRef.current = null;
     };
-  }, [adminId, effectiveToken, url]);
+  }, [adminId, effectiveToken, url, ticketMinter]);
 
   const send = useCallback((type: MessageType, payload: unknown, options?: { queue?: boolean }) => {
     return clientRef.current?.send(type, payload, options) ?? false;

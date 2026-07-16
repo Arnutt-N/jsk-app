@@ -45,6 +45,13 @@ export interface UseWebSocketOptions {
   url: string;
   adminId?: string;
   token?: string;
+  /** Single-use WS auth ticket (P1.1b cookie mode). When set, the client sends
+   * `ticket` (not `token`) in the auth message — see backend AuthPayload. */
+  ticket?: string;
+  /** Cookie-mode ticket minter (P1.1b): called on every connect/reconnect to
+   * fetch a fresh single-use ticket. Takes precedence over `ticket`/`token`.
+   * Returns the ticket string, or null on failure (client stays disconnected). */
+  ticketMinter?: () => Promise<string | null>;
   onMessage?: (message: WebSocketMessage) => void;
   onConnect?: () => void;
   onDisconnect?: () => void;
