@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-07-16 07:51 by Cline (Closed the two cheap round-2 review findings from PR #133 as PR #134 merged.)
+> **Last Updated:** 2026-07-17 06:46 by Cline (Created and merged PR #136: Admin Health Check Dashboard.)
 
 ## Thai Summary
 ฟีเจอร์ **Rich Menu Switching + การกำหนดเมนูรายบุคคล (R1/R2)** เสร็จสมบูรณ์และขึ้น production แล้ว — merge เข้า main ผ่าน PR #114 (merge commit `3a90f4d`), migrate ฐานข้อมูล Supabase PROD (richmenu alias + user_rich_menu_links แบบ additive) และ deploy frontend บน Vercel เรียบร้อย
@@ -54,6 +54,7 @@
 - [2026-06-21] R1/R2 Rich Menu (incl Task 6.2 per-user UI) merged to `main` via PR #114 (`3a90f4d`); Supabase PROD migrated; Vercel frontend deployed. Branch `feat/rich-menu-switching-r1` deleted. Working tree clean.
 
 ## Recent Completions
+- [2026-07-17 06:46] Cline: Created and merged PR #136: Admin Health Check Dashboard. New page /admin/health shows real-time status of Database, Redis, and WebSocket services via GET /api/v1/health/detailed (endpoint already existed in backend). Auto-refreshes every 3 (Cline)
 - [2026-07-16 07:51] Cline: Closed the two cheap round-2 review findings from PR #133 as PR #134 (merged). NEW-1: redacted ValidationError input_value from the WS auth log in ws_live_chat.py handle_auth — now logs only [{loc,type}] per error instead of the raw excepti (Cline)
 - [2026-07-16 06:52] Cline: Completed steps 4-6 of the 6-step model-orchestration workflow for PR 2A Cookie Backend Foundation (P1.1a) — all on Cline. Step 4: applied F1 fix (auth_session_service.py: expired-but-active refresh row now returns INVALID not REUSE_DETECTE (Cline)
 - [2026-07-16 04:42] Claude Code: Model-orchestration workflow (Fable5 plan/review, Sonnet5 implement/fix/ship, Opus4.8 PR review) established + applied to PR 2A Cookie Backend Foundation (P1.1a). Steps 1-3 of 6 done: Fable 5 wrote PRD+plan; Sonnet 5 implemented on branch f (Claude Code)

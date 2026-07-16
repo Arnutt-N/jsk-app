@@ -1,12 +1,22 @@
 {
-  "last_updated": "2026-07-16T07:51:00+07:00",
+  "last_updated": "2026-07-17T06:46:00+07:00",
   "platform": "cline",
-  "current_task": "Closed the two cheap round-2 review findings from PR #133 as PR #134 (merged). NEW-1: redacted ValidationError input_value from the WS auth log in ws_live_chat.py handle_auth — now logs only [{loc,typ",
+  "current_task": "Created and merged PR #136: Admin Health Check Dashboard. New page /admin/health shows real-time status of Database, Redis, and WebSocket services via GET /api/v1/health/detailed (endpoint already exi",
   "plan_status": "completed",
   "next_steps": [
-    "PR 2B (P1.1b Frontend Auth Migration) is the next roadmap item — MUST single-flight refresh to avoid the strict-rotation race revoking the family (round-1 N3, reaffirmed round-2). It needs a PRD + plan first (model-orchestration step 1). NEW-3 remains: confirm with the team whether DIRECTOR/HEAD should use the live-chat WebSocket; if yes, widen _load_and_authorize_ws_user role set in a follow-up. P1.6 (PR 2H): the real retention scheduler job can later replace the per-mint cleanup (NEW-2 index is the interim fix)."
+    "Production Rollout per PRD (deploy main: flip COOKIE_AUTH_MODE=dual on backend, then NEXT_PUBLIC_COOKIE_AUTH=true on frontend, observe 3-5 days)",
+    "PR 2C — Cookie-Only Hardening (after production stabilizes: switch backend COOKIE_AUTH_MODE=cookie, remove NEXT_PUBLIC_COOKIE_AUTH flag, SameSite=Strict + __Host- prefix)",
+    "NEW-3 carry-over: confirm with team whether DIRECTOR/HEAD should use live-chat WebSocket; if yes, widen _load_and_authorize_ws_user role set",
+    "Follow-up: verify Health Check dashboard works after deploy — menu may need hard refresh / .next cache clear if not visible"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-07-17T06:46:00+07:00",
+      "platform": "cline",
+      "branch": "main",
+      "head": "8de7161",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-07-16T07:51:00+07:00",
       "platform": "cline",
@@ -138,13 +148,6 @@
       "platform": "claude_code",
       "branch": "main",
       "head": "d7fadc5",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-06T10:21:00+07:00",
-      "platform": "claude_code",
-      "branch": "feat/category-readiness-guard",
-      "head": "c2c458b",
       "status": "completed"
     }
   ],
