@@ -1,8 +1,16 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { installAdminAuthFetchInterceptor, syncAdminAuthToken, setAuthRefreshHandler } from '@/lib/authFetch';
+import { setCsrfToken, clearCsrfToken } from '@/lib/csrfStore';
+
+// Cookie-auth mode gate (P1.1b / PR 2B). When true, the provider uses HttpOnly
+// cookies + CSRF + server bootstrap instead of Bearer+localStorage.
+const COOKIE_AUTH = process.env.NEXT_PUBLIC_COOKIE_AUTH === 'true';
+
+// Multi-tab logout/expiry sync channel (cookie mode only).
+const AUTH_CHANNEL_NAME = 'jsk:auth';
 
 interface User {
   id: string;
@@ -32,6 +40,22 @@ const MOCK_ADMIN: User = {
   role: 'ADMIN',
   display_name: 'Administrator'
 };
+
+// Cookie-mode auth state machine — `isAuthenticated` is derived from this,
+// NOT from token presence (eliminates the "stale localStorage token looks
+// authenticated" class of bugs). Bearer mode keeps its existing logic.
+type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated';
+
+// Legacy localStorage keys (cleared during one-time Bearer→cookie migration).
+const LEGACY_TOKEN_KEY = 'auth_token';
+const LEGACY_REFRESH_KEY = 'auth_refresh_token';
+const LEGACY_USER_KEY = 'auth_user';
+
+function clearLegacyAuthStorage(): void {
+  localStorage.removeItem(LEGACY_TOKEN_KEY);
+  localStorage.removeItem(LEGACY_REFRESH_KEY);
+  localStorage.removeItem(LEGACY_USER_KEY);
+}
 
 type AuthErrorCode =
   | 'INVALID_CREDENTIALS'
@@ -115,7 +139,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [tokenState, setTokenState] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  // Cookie-mode state machine (ignored in bearer mode — see isAuthenticated below).
+  const [status, setStatus] = useState<AuthStatus>(COOKIE_AUTH ? 'loading' : 'authenticated');
   const router = useRouter();
+  // BroadcastChannel for cross-tab logout/expiry sync (cookie mode only).
+  const bcRef = useRef<BroadcastChannel | null>(null);
 
   // Wrap setToken so the window-global mirror used by the fetch
   // interceptor is updated SYNCHRONOUSLY, before React schedules the
@@ -135,8 +163,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     installAdminAuthFetchInterceptor();
   }, []);
 
-  // เริ่มต้น auth state จาก localStorage เมื่อ component mount
+  // Bearer mode: restore auth state from localStorage on mount.
+  // (Cookie mode uses the dedicated effect below — P1.1b / PR 2B.)
   useEffect(() => {
+    if (COOKIE_AUTH) return;
     const initAuth = () => {
       try {
         // Dev bypass ต้องมี dev_bypass flag ใน localStorage เสมอ
@@ -174,6 +204,86 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     initAuth();
   }, [router]);
+  // Cookie mode (P1.1b / PR 2B): one-time Bearer→cookie migration, then
+  // bootstrap auth from GET /auth/me (HttpOnly cookies carry the session).
+  useEffect(() => {
+    if (!COOKIE_AUTH) return;
+
+    let cancelled = false;
+
+    const initCookieAuth = async () => {
+      try {
+        // One-time migration: if a legacy Bearer token is in localStorage,
+        // exchange it for a cookie session before bootstrapping (FR4).
+        const legacyToken = localStorage.getItem(LEGACY_TOKEN_KEY);
+        if (legacyToken) {
+          try {
+            const migrateRes = await fetch('/api/v1/auth/migrate-session', {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${legacyToken}` },
+            });
+            if (migrateRes.ok) {
+              const migrateData = await migrateRes.json();
+              if (migrateData.csrf_token) setCsrfToken(migrateData.csrf_token);
+            }
+            // Whether success or failure, clear legacy storage (one-time).
+            clearLegacyAuthStorage();
+          } catch {
+            clearLegacyAuthStorage();
+          }
+        }
+
+        // Bootstrap: GET /auth/me — cookies (set by login/refresh/migrate)
+        // carry auth. 200 → authenticated; 401 → unauthenticated (FR3).
+        const meRes = await fetch('/api/v1/auth/me', { credentials: 'include' });
+        if (cancelled) return;
+
+        if (meRes.ok) {
+          const meData = await meRes.json();
+          if (meData.csrf_token) setCsrfToken(meData.csrf_token);
+          // Strip csrf_token — it's a response-only field, not part of User.
+          const { csrf_token: _csrf, ...userFields } = meData;
+          setUser(userFields);
+          setStatus('authenticated');
+        } else {
+          setStatus('unauthenticated');
+        }
+      } catch (error) {
+        console.error('Cookie auth initialization error:', error);
+        setStatus('unauthenticated');
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    };
+
+    initCookieAuth();
+
+    return () => { cancelled = true; };
+  }, []);
+
+  // Multi-tab logout/expiry sync via BroadcastChannel (cookie mode only, FR8).
+  useEffect(() => {
+    if (!COOKIE_AUTH) return;
+    if (typeof BroadcastChannel === 'undefined') return;
+
+    const bc = new BroadcastChannel(AUTH_CHANNEL_NAME);
+    bcRef.current = bc;
+    bc.onmessage = (event: MessageEvent) => {
+      if (event.data?.type === 'logout' || event.data?.type === 'expired') {
+        clearCsrfToken();
+        setUser(null);
+        setStatus('unauthenticated');
+        router.replace('/login');
+      }
+    };
+
+    return () => {
+      bc.close();
+      bcRef.current = null;
+    };
+  }, [router]);
+
+
 
   const login = useCallback(async (username: string, password: string) => {
     setIsLoading(true);
@@ -185,6 +295,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const response = await fetch('/api/v1/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            ...(COOKIE_AUTH ? { credentials: 'include' as const } : {}),
             body: JSON.stringify({ username, password })
           });
 
@@ -213,15 +324,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
           const data = await response.json();
 
-          setToken(data.access_token);
-          setUser(data.user);
-
-          // Current auth flow stores tokens in localStorage; moving to httpOnly cookies requires coordinated backend changes.
-          localStorage.setItem('auth_token', data.access_token);
-          if (data.refresh_token) {
-            localStorage.setItem('auth_refresh_token', data.refresh_token);
+          if (COOKIE_AUTH) {
+            // Cookie mode (P1.1b): cookies carry the session; CSRF from body.
+            setUser(data.user);
+            if (data.csrf_token) setCsrfToken(data.csrf_token);
+            setStatus('authenticated');
+          } else {
+            setToken(data.access_token);
+            setUser(data.user);
+            // Current auth flow stores tokens in localStorage; moving to httpOnly cookies requires coordinated backend changes.
+            localStorage.setItem('auth_token', data.access_token);
+            if (data.refresh_token) {
+              localStorage.setItem('auth_refresh_token', data.refresh_token);
+            }
+            localStorage.setItem('auth_user', JSON.stringify(data.user));
           }
-          localStorage.setItem('auth_user', JSON.stringify(data.user));
           return;
         } catch (error) {
           if (isAuthRequestError(error)) {
@@ -258,6 +375,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const logout = useCallback(() => {
+    if (COOKIE_AUTH) {
+      // Cookie mode (P1.1b): POST /auth/logout clears cookies + revokes family.
+      // Fire-and-forget — clear local state regardless of the response (FR6).
+      fetch('/api/v1/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
+      clearCsrfToken();
+      setUser(null);
+      setStatus('unauthenticated');
+      // Broadcast to other tabs so they also log out (FR8).
+      bcRef.current?.postMessage({ type: 'logout' });
+      router.replace('/login');
+      return;
+    }
+
     setUser(null);
     setToken(null);
     localStorage.removeItem('auth_token');
@@ -279,6 +409,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const refreshAccessToken = useCallback(async (): Promise<string | null> => {
     if (isLocalhostDevBypass()) {
       return null;
+    }
+
+    // Cookie mode (P1.1b / PR 2B): POST /auth/refresh with credentials — the
+    // refresh cookie (scoped to /api/v1/auth) is sent automatically. NO
+    // Authorization header. Single-flight is guaranteed by the interceptor's
+    // `inflightRefresh` (runRefresh) — concurrent 401s share ONE call, avoiding
+    // the strict-rotation race that would revoke the family (round-2 N3).
+    if (COOKIE_AUTH) {
+      try {
+        const response = await fetch('/api/v1/auth/refresh', {
+          method: 'POST',
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          return null;
+        }
+
+        const data = await response.json();
+        if (data.csrf_token) setCsrfToken(data.csrf_token);
+        // Return a truthy sentinel — the interceptor only needs to know refresh
+        // succeeded to retry; cookies carry the new access token.
+        return 'cookie-refreshed';
+      } catch (error) {
+        console.error('Cookie token refresh error:', error);
+        return null;
+      }
     }
 
     try {
@@ -334,8 +491,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value: AuthContextType = {
     user,
     token,
-    isAuthenticated: !!user && (isLocalhostDevBypass() || !!token),
-    isLoading,
+    isAuthenticated: COOKIE_AUTH
+      ? status === 'authenticated'
+      : (!!user && (isLocalhostDevBypass() || !!token)),
+    isLoading: COOKIE_AUTH ? status === 'loading' : isLoading,
     login,
     logout,
     refreshToken

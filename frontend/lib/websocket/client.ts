@@ -12,6 +12,8 @@ export class WebSocketClient {
   private url: string;
   private adminId: string;
   private token?: string;
+  private ticket?: string;
+  private ticketMinter?: () => Promise<string | null>;
   private state: ConnectionState = 'disconnected';
   private reconnectAttempt = 0;
   private reconnectStrategy = new ExponentialBackoffStrategy();
@@ -33,6 +35,8 @@ export class WebSocketClient {
     this.url = options.url;
     this.adminId = options.adminId || '1';
     this.token = options.token;
+    this.ticket = options.ticket;
+    this.ticketMinter = options.ticketMinter;
     this.onMessage = options.onMessage;
     this.onConnect = options.onConnect;
     this.onDisconnect = options.onDisconnect;
@@ -72,10 +76,36 @@ export class WebSocketClient {
     }
   }
 
-  private handleOpen(): void {
+  private async handleOpen(): Promise<void> {
     this.setState('authenticating');
-    // Send auth message
-    this.sendRaw(MessageType.AUTH, { admin_id: this.adminId, token: this.token });
+    // Auth message — ticketMinter (P1.1b cookie mode) fetches a fresh
+    // single-use ticket on every connect/reconnect. Falls back to a static
+    // ticket, then to the legacy JWT token.
+    const authPayload: Record<string, unknown> = { admin_id: this.adminId };
+    if (this.ticketMinter) {
+      try {
+        const ticket = await this.ticketMinter();
+        if (!ticket) {
+          this.intentionalDisconnect = true;
+          this.setState('disconnected');
+          this.onError?.(new Error('Failed to mint WebSocket auth ticket'));
+          this.ws?.close();
+          return;
+        }
+        authPayload.ticket = ticket;
+      } catch (error) {
+        this.intentionalDisconnect = true;
+        this.setState('disconnected');
+        this.onError?.(error instanceof Error ? error : new Error('Ticket mint failed'));
+        this.ws?.close();
+        return;
+      }
+    } else if (this.ticket) {
+      authPayload.ticket = this.ticket;
+    } else {
+      authPayload.token = this.token;
+    }
+    this.sendRaw(MessageType.AUTH, authPayload);
   }
 
   private handleMessage(event: MessageEvent): void {
