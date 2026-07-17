@@ -74,6 +74,17 @@ class Settings(BaseSettings):
     WS_RATE_LIMIT_WINDOW: int = 60     # Window in seconds
     WS_MAX_MESSAGE_LENGTH: int = 5000  # Max message content length
 
+    # HTTP Rate Limiting (public-facing REST endpoints)
+    # Only enable TRUST_PROXY_HEADERS when behind a reverse proxy that sets
+    # X-Forwarded-For — otherwise clients can spoof it to dodge the limits.
+    TRUST_PROXY_HEADERS: bool = False
+    LIFF_SUBMIT_RATE_LIMIT: int = 5        # Service-request submissions per window
+    LIFF_SUBMIT_RATE_WINDOW: int = 300     # seconds
+    MEDIA_UPLOAD_RATE_LIMIT: int = 20      # Uploads per window
+    MEDIA_UPLOAD_RATE_WINDOW: int = 60     # seconds
+    PUBLIC_FILE_RATE_LIMIT: int = 120      # Public file fetches per window
+    PUBLIC_FILE_RATE_WINDOW: int = 60      # seconds
+
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
 
