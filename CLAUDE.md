@@ -98,7 +98,7 @@ models/                     # SQLAlchemy async models
 
 services/
 ├── line_service.py         # LINE Messaging API wrapper
-├── live_chat_service.py    # Chat handoff logic (initiate, claim, close)
+├── live_chat_service/      # Chat handoff package (handoff, sessions, messaging, conversations, unread, analytics)
 ├── telegram_service.py     # Telegram notifications for handoffs
 ├── flex_messages.py        # Flex message template builders
 └── rich_menu_service.py    # Rich menu management
