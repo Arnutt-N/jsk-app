@@ -1,15 +1,24 @@
 {
-  "last_updated": "2026-07-17T06:46:00+07:00",
-  "platform": "cline",
-  "current_task": "Created and merged PR #136: Admin Health Check Dashboard. New page /admin/health shows real-time status of Database, Redis, and WebSocket services via GET /api/v1/health/detailed (endpoint already exi",
+  "last_updated": "2026-07-17T17:54:00+07:00",
+  "platform": "claude_code",
+  "current_task": "Merged PR #137 (backend hardening, 4 commits) + PR #138 (frontend lint fix); CI on main green again. PR #137: (1) HTTP rate limiting via new app/core/http_rate_limit.py dependency factory on SlidingWi",
   "plan_status": "completed",
   "next_steps": [
-    "Production Rollout per PRD (deploy main: flip COOKIE_AUTH_MODE=dual on backend, then NEXT_PUBLIC_COOKIE_AUTH=true on frontend, observe 3-5 days)",
-    "PR 2C — Cookie-Only Hardening (after production stabilizes: switch backend COOKIE_AUTH_MODE=cookie, remove NEXT_PUBLIC_COOKIE_AUTH flag, SameSite=Strict + __Host- prefix)",
-    "NEW-3 carry-over: confirm with team whether DIRECTOR/HEAD should use live-chat WebSocket; if yes, widen _load_and_authorize_ws_user role set",
-    "Follow-up: verify Health Check dashboard works after deploy — menu may need hard refresh / .next cache clear if not visible"
+    "Enable HEALTH_ALERT_TELEGRAM_ENABLED=true in production once deployed (reuses SLA-alert Telegram channel)",
+    "Set TRUST_PROXY_HEADERS=true when deploying behind a reverse proxy or all clients share one rate-limit bucket",
+    "Consider Redis-backed rate-limit buckets if backend moves to multiple workers (current limiters are in-process)",
+    "Consider branch protection with required checks on main — auto-merge merged PR #137 before CI finished",
+    "Update .claude/skills (skn-live-chat-ops etc.) still referencing single-file live_chat_service.py paths",
+    "Carry-over from previous handoff: production rollout per PRD (COOKIE_AUTH_MODE=dual), PR 2C cookie-only hardening, NEW-3 DIRECTOR/HEAD ws role decision"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-07-17T17:54:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "dba1beb",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-07-17T06:46:00+07:00",
       "platform": "cline",
@@ -142,13 +151,6 @@
       "branch": "main",
       "head": "ed88dd8",
       "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-06T14:49:00+07:00",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "d7fadc5",
-      "status": "completed"
     }
   ],
   "cross_platform_context": {
@@ -158,5 +160,7 @@
       "antigravity/session-summary-20260602-0032.md"
     ],
     "key_insights": "Handoff system redesigned to single-source-of-truth (checkpoints) + generated views (TASK_LOG/SESSION_INDEX via gen-handoff-views.cjs). Use handoff-new.cjs to create handoffs. Stop hook enforces it. Do NOT hand-edit the generated files."
-  }
+  },
+  "model": "Fable 5",
+  "provider": "Anthropic"
 }

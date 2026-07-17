@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 168 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 169 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-17 17:54 — claude_code (Fable 5 / Anthropic) — completed
+
+Merged PR #137 (backend hardening, 4 commits) + PR #138 (frontend lint fix); CI on main green again. PR #137: (1) HTTP rate limiting via new app/core/http_rate_limit.py dependency factory on SlidingWindowLimiter — LIFF submission 5/5min, media uploads 20/min, public files 120/min, 429+Retry-After, X-Forwarded-For honoured only with TRUST_PROXY_HEADERS=true; (2) health watchdog background task (app/tasks/health_watchdog.py) probing DB/Redis every 60s, Telegram alerts on DOWN/RECOVERED with 15-min cooldown, gated by HEALTH_ALERT_TELEGRAM_ENABLED (default off); (3) split 981-line live_chat_service.py into package of 6 mixins (handoff/sessions/messaging/conversations/unread/analytics) under same import path, zero test edits — sla_service late-bound via _deps.py so existing namespace patches still work; (4) fixed pre-existing pytest hang: test_websocket.py + test_websocket_manager_redis.py in one session left cross-event-loop Redis IO pending, Windows proactor close() span forever — autouse fixture nulls redis_client._redis in that file. Full backend suite 657 passed. PR #138: fixed 6 ESLint errors in AuthContext.cookie.test.tsx that had CI red for 5+ pushes (react-hooks/immutability render-time snapshot mutation -> useEffect capture with snapshotRef; 5x null-as-any -> typed makeSnapshot() on ReturnType<typeof useAuth>); fixed latent race the effect capture exposed (unauthenticated tests now wait isLoading=false before asserting). vitest 415/415, tsc clean, CI on main success.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260717-1754.json`
+- Summary: `project-log-md/claude_code/session-summary-20260717-1754.md`
+
+---
 
 ### 2026-07-17 06:46 — cline — completed
 
