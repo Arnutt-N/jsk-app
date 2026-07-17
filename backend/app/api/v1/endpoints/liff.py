@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.http_rate_limit import http_rate_limit
 from app.db.session import get_db
 from app.models.service_request import ServiceRequest
 from app.schemas.service_request_liff import ServiceRequestCreate, ServiceRequestResponse
@@ -45,7 +46,16 @@ async def verify_liff_token(id_token: str) -> str:
     status_code=201,
     summary="Create Service Request (LIFF)",
     description="Submit a new service request form from the LIFF application. Accepts personal details, location, and issue topics.",
-    response_description="The created service request with ID and status."
+    response_description="The created service request with ID and status.",
+    dependencies=[
+        Depends(
+            http_rate_limit(
+                "liff-submit",
+                max_events=settings.LIFF_SUBMIT_RATE_LIMIT,
+                window_seconds=settings.LIFF_SUBMIT_RATE_WINDOW,
+            )
+        )
+    ],
 )
 async def create_service_request(
     request: ServiceRequestCreate,

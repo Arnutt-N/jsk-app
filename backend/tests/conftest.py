@@ -103,6 +103,19 @@ def test_client(app):
         yield client
 
 
+@pytest.fixture(autouse=True)
+def _reset_http_rate_limits():
+    """Clear HTTP rate-limit buckets between tests.
+
+    TestClient sends every request from the same client address, so without
+    this, one test's requests exhaust the sliding window for the next.
+    """
+    from app.core.http_rate_limit import reset_all_http_limiters
+
+    reset_all_http_limiters()
+    yield
+
+
 def drain_auth_responses(websocket):
     """Helper to drain auth_success and presence_update after auth"""
     websocket.receive_json()  # auth_success

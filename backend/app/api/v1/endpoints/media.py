@@ -11,6 +11,7 @@ from app.db.session import AsyncSessionLocal
 from app.models.media_file import MediaFile, FileCategory, detect_category
 from app.api.deps import get_db, get_current_admin, require_permission
 from app.core.audit import create_audit_log
+from app.core.http_rate_limit import http_rate_limit
 from app.core.permissions import KEY_MANAGE_FILES
 from app.core.config import settings
 from app.models.user import User
@@ -18,6 +19,18 @@ from app.models.user import User
 router = APIRouter()
 
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
+
+# Shared limiter dependencies — one bucket per scope across the routes below.
+_upload_rate_limit = http_rate_limit(
+    "media-upload",
+    max_events=settings.MEDIA_UPLOAD_RATE_LIMIT,
+    window_seconds=settings.MEDIA_UPLOAD_RATE_WINDOW,
+)
+_public_file_rate_limit = http_rate_limit(
+    "public-file",
+    max_events=settings.PUBLIC_FILE_RATE_LIMIT,
+    window_seconds=settings.PUBLIC_FILE_RATE_WINDOW,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -53,7 +66,7 @@ def _serialise(media: MediaFile) -> dict:
 # ===================================================================
 # Public file access (NO auth)
 # ===================================================================
-@router.get("/public/files/{public_token}")
+@router.get("/public/files/{public_token}", dependencies=[Depends(_public_file_rate_limit)])
 async def get_public_file(public_token: str):
     """Serve a file publicly via its unique public token (no auth required)."""
     async with AsyncSessionLocal() as db:
@@ -84,7 +97,7 @@ async def get_public_file(public_token: str):
 # NOTE: No auth — used by <img src>, <video src>, <audio src> in frontend.
 # UUIDs are unguessable; admin endpoints handle metadata/deletion separately.
 # Non-public files require a valid token query parameter.
-@router.get("/media/{media_id}")
+@router.get("/media/{media_id}", dependencies=[Depends(_public_file_rate_limit)])
 async def get_media(
     media_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
@@ -180,7 +193,7 @@ async def list_media(
     }
 
 
-@router.post("/admin/media")
+@router.post("/admin/media", dependencies=[Depends(_upload_rate_limit)])
 async def upload_media(
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
@@ -213,7 +226,7 @@ async def upload_media(
     return _serialise(media)
 
 
-@router.post("/admin/media/upload")
+@router.post("/admin/media/upload", dependencies=[Depends(_upload_rate_limit)])
 async def upload_media_alt(
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
@@ -430,7 +443,7 @@ async def bulk_create_public_links(
 
 
 # Legacy upload — requires auth, 10MB limit
-@router.post("/media")
+@router.post("/media", dependencies=[Depends(_upload_rate_limit)])
 async def upload_media_legacy(
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
