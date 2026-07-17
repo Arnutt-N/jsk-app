@@ -91,6 +91,12 @@ class Settings(BaseSettings):
     # Webhook Deduplication (seconds)
     WEBHOOK_EVENT_TTL: int = 300  # 5 minutes
 
+    # Health watchdog (background monitoring + alerting)
+    HEALTH_WATCHDOG_ENABLED: bool = True
+    HEALTH_CHECK_INTERVAL_SECONDS: int = 60
+    HEALTH_ALERT_COOLDOWN_SECONDS: int = 900
+    HEALTH_ALERT_TELEGRAM_ENABLED: bool = False
+
     # SLA thresholds
     SLA_MAX_FRT_SECONDS: int = 120
     SLA_MAX_RESOLUTION_SECONDS: int = 1800

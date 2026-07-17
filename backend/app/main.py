@@ -17,8 +17,10 @@ from app.services.credential_service import credential_service
 from app.tasks import (
     start_broadcast_scheduler,
     start_cleanup_task,
+    start_health_watchdog,
     stop_broadcast_scheduler,
     stop_cleanup_task,
+    stop_health_watchdog,
 )
 
 logger = logging.getLogger(__name__)
@@ -145,6 +147,7 @@ async def lifespan(_: FastAPI):
     # Start background tasks
     await start_cleanup_task()
     await start_broadcast_scheduler()
+    await start_health_watchdog()
     logger.info("Background tasks started.")
 
     try:
@@ -152,6 +155,7 @@ async def lifespan(_: FastAPI):
     finally:
         await stop_cleanup_task()
         await stop_broadcast_scheduler()
+        await stop_health_watchdog()
         await pubsub_manager.disconnect()
         await redis_client.disconnect()
 
