@@ -32,10 +32,21 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ replace: hoisted.replace }),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function TestConsumer({ snapshot }: { snapshot: { current: any } }) {
+type AuthValue = ReturnType<typeof useAuth>;
+type AuthSnapshot = { current: AuthValue | null };
+
+function makeSnapshot(): AuthSnapshot {
+  return { current: null };
+}
+
+function TestConsumer({ snapshot: snapshotRef }: { snapshot: AuthSnapshot }) {
   const auth = useAuth();
-  snapshot.current = auth;
+  // Capture in an effect (react-hooks/immutability forbids render-time
+  // mutation; ref-style names are the rule's sanctioned mutable escape).
+  // Tests read the snapshot via waitFor, so post-render capture works.
+  React.useEffect(() => {
+    snapshotRef.current = auth;
+  });
   return null;
 }
 
@@ -79,7 +90,7 @@ describe('AuthContext — cookie mode', () => {
       jsonResponse(200, { ...ME_USER, csrf_token: 'csrf-1' }),
     );
     global.fetch = fetchMock;
-    const snapshot = { current: null as any };
+    const snapshot = makeSnapshot();
     render(
       <AuthProvider>
         <TestConsumer snapshot={snapshot} />
@@ -99,16 +110,19 @@ describe('AuthContext — cookie mode', () => {
 
   it('bootstraps from GET /auth/me: 401 → unauthenticated', async () => {
     global.fetch = vi.fn().mockResolvedValue(jsonResponse(401));
-    const snapshot = { current: null as any };
+    const snapshot = makeSnapshot();
     render(
       <AuthProvider>
         <TestConsumer snapshot={snapshot} />
       </AuthProvider>,
     );
+    // Wait for bootstrap to finish (isLoading false) before asserting the
+    // outcome — isAuthenticated is false in the initial state too, so waiting
+    // on it directly passes before /auth/me resolves.
     await waitFor(() => {
-      expect(snapshot.current?.isAuthenticated).toBe(false);
+      expect(snapshot.current?.isLoading).toBe(false);
     });
-    expect(snapshot.current?.isLoading).toBe(false);
+    expect(snapshot.current?.isAuthenticated).toBe(false);
   });
 
   it('migrates legacy Bearer token then bootstraps (FR4)', async () => {
@@ -118,7 +132,7 @@ describe('AuthContext — cookie mode', () => {
       .mockResolvedValueOnce(jsonResponse(200, { csrf_token: 'csrf-mig' }))
       .mockResolvedValueOnce(jsonResponse(200, { ...ME_USER, csrf_token: 'csrf-1' }));
     global.fetch = fetchMock;
-    const snapshot = { current: null as any };
+    const snapshot = makeSnapshot();
     render(
       <AuthProvider>
         <TestConsumer snapshot={snapshot} />
@@ -141,15 +155,16 @@ describe('AuthContext — cookie mode', () => {
       .fn()
       .mockResolvedValueOnce(jsonResponse(401))
       .mockResolvedValueOnce(jsonResponse(401));
-    const snapshot = { current: null as any };
+    const snapshot = makeSnapshot();
     render(
       <AuthProvider>
         <TestConsumer snapshot={snapshot} />
       </AuthProvider>,
     );
     await waitFor(() => {
-      expect(snapshot.current?.isAuthenticated).toBe(false);
+      expect(snapshot.current?.isLoading).toBe(false);
     });
+    expect(snapshot.current?.isAuthenticated).toBe(false);
     expect(localStorage.getItem('auth_token')).toBeNull();
   });
 
@@ -158,7 +173,7 @@ describe('AuthContext — cookie mode', () => {
       jsonResponse(200, { ...ME_USER, csrf_token: 'csrf-1' }),
     );
     global.fetch = fetchMock;
-    const snapshot = { current: null as any };
+    const snapshot = makeSnapshot();
     render(
       <AuthProvider>
         <TestConsumer snapshot={snapshot} />
