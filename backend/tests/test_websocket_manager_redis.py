@@ -6,6 +6,22 @@ from app.core.redis_client import redis_client
 from app.core.websocket_manager import ConnectionManager
 
 
+@pytest.fixture(autouse=True)
+def _isolate_from_real_redis(monkeypatch):
+    """Keep these unit tests off the live Redis connection.
+
+    When the session-scoped TestClient (conftest) has already run in the same
+    pytest session (e.g. test_websocket.py runs first), redis_client._redis is
+    a real connection bound to the TestClient portal's event loop. Tests here
+    run on their own pytest-asyncio loops, so touching that connection issues
+    cross-loop IO whose pending overlapped reads make the portal loop's
+    close() spin forever in proactor _poll at session teardown — the whole
+    run then hangs after the last test. Tests that need Redis behaviour patch
+    in their own FakeRedis explicitly.
+    """
+    monkeypatch.setattr(redis_client, "_redis", None)
+
+
 class FakeWebSocket:
     def __init__(self):
         self.send_json = AsyncMock()
