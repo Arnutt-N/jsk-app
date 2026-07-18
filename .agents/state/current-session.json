@@ -1,16 +1,22 @@
 {
-  "last_updated": "2026-07-18T15:46:00+07:00",
+  "last_updated": "2026-07-18T18:14:00+07:00",
   "platform": "claude_code",
-  "current_task": "Prod ops: enabled HEALTH_ALERT_TELEGRAM_ENABLED=true on Koyeb via local Koyeb CLI (services update --env) which also deployed latest main 0134e8c - FIRST prod deploy of PR #137 (HTTP rate limiting, he",
+  "current_task": "Closed handoff items 1+2. ITEM 1 (prior): HEALTH_ALERT_TELEGRAM_ENABLED=true on Koyeb. ITEM 2 (this session): TRUST_PROXY_HEADERS=true on Koyeb (deploy 0588c241, sha 9c2589f). BEFORE flipping it, foun",
   "plan_status": "completed",
   "next_steps": [
-    "Fix broadcasts drift: hand-written additive migration to create broadcasts table on PROD (docs/remediation s8) - scheduler errors every 15s until fixed",
-    "Handoff item 2: set TRUST_PROXY_HEADERS=true on Koyeb (all clients currently share one rate-limit bucket) - verify Koyeb strips client-supplied X-Forwarded-For first",
-    "Handoff item 3: consider Redis-backed rate-limit buckets - prod ALREADY runs 2 workers so in-process limits are doubled",
-    "Decide whether SLA_ALERT_TELEGRAM_ENABLED=false on prod is intentional",
-    "Carry-over: branch protection with required checks on main; update skn-* skills referencing single-file live_chat_service.py; COOKIE_AUTH_MODE=dual rollout per PRD; PR 2C cookie-only hardening; NEW-3 DIRECTOR/HEAD ws role decision"
+    "Item 3 now JUSTIFIED (2 workers confirmed): move rate-limit buckets to Redis - in-process limits are literally doubled on prod. Health watchdog may also send duplicate Telegram alerts (one per worker).",
+    "Fix LIFF validation gap: empty-body POST {} returns 201 and writes junk row - tighten ServiceRequestCreate to require key fields OR set LIFF_STRICT_MODE=true.",
+    "Still open: broadcasts-table drift on PROD (scheduler errors every 15s); decide if SLA_ALERT_TELEGRAM_ENABLED=false is intentional; branch protection on main; update skn-* skills referencing single-file live_chat_service.py; COOKIE_AUTH_MODE=dual rollout; PR 2C cookie-only hardening; NEW-3 DIRECTOR/HEAD ws role.",
+    "Human-only verify: watch Telegram operator chat for [HEALTH] DOWN/RECOVERED on next real outage."
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-07-18T18:14:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "9c2589f",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-07-18T15:46:00+07:00",
       "platform": "claude_code",
@@ -142,13 +148,6 @@
       "platform": "claude_code",
       "branch": "main",
       "head": "1a08916",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-06T23:43:00+07:00",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "37cd298",
       "status": "completed"
     }
   ],

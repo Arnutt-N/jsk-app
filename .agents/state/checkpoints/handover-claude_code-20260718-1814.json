@@ -1,0 +1,21 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-07-18T18:14:00+07:00",
+  "branch": "main",
+  "head_commit": "9c2589f",
+  "status": "completed",
+  "work_summary": "Closed handoff items 1+2. ITEM 1 (prior): HEALTH_ALERT_TELEGRAM_ENABLED=true on Koyeb. ITEM 2 (this session): TRUST_PROXY_HEADERS=true on Koyeb (deploy 0588c241, sha 9c2589f). BEFORE flipping it, found+fixed a spoofing hole via PR #139 (squash-merged 9c2589f, CI all green): Koyeb public domain is behind Cloudflare which APPENDS real IP to client X-Forwarded-For, so old _client_key took the leftmost spoofable entry = full rate-limit bypass by rotating the header. New order CF-Connecting-IP then rightmost XFF then socket; 14 rate-limit tests pass. VERIFIED LIVE on prod: 16 POST to LIFF service-requests with rotating fake XFF returned 10x201+6x429 = still bucketed by real IP (spoof did NOT create new buckets), and the 10+6 split proves exactly 2 uvicorn workers (2x5 allowed + 2x3 blocked, limit 5/300s). SIDE FINDING: LIFF_STRICT_MODE=false lets empty-body POST {} create a junk service_request (requester_name 'None None', all content NULL, source LIFF) - my test made 10 (ids 31-40 in PROD), deleted all 10, remaining recent rows 0.",
+  "priority_actions": [
+    "Item 3 now JUSTIFIED (2 workers confirmed): move rate-limit buckets to Redis - in-process limits are literally doubled on prod. Health watchdog may also send duplicate Telegram alerts (one per worker).",
+    "Fix LIFF validation gap: empty-body POST {} returns 201 and writes junk row - tighten ServiceRequestCreate to require key fields OR set LIFF_STRICT_MODE=true.",
+    "Still open: broadcasts-table drift on PROD (scheduler errors every 15s); decide if SLA_ALERT_TELEGRAM_ENABLED=false is intentional; branch protection on main; update skn-* skills referencing single-file live_chat_service.py; COOKIE_AUTH_MODE=dual rollout; PR 2C cookie-only hardening; NEW-3 DIRECTOR/HEAD ws role.",
+    "Human-only verify: watch Telegram operator chat for [HEALTH] DOWN/RECOVERED on next real outage."
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/claude_code/session-summary-20260718-1814.md",
+  "cross_platform_read": [],
+  "model": "Fable 5",
+  "provider": "Anthropic"
+}

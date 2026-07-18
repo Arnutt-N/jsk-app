@@ -1,10 +1,19 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 170 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 171 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
 
-### 2026-07-18 15:46 — claude_code — completed
+### 2026-07-18 18:14 — claude_code — completed
+
+Closed handoff items 1+2. ITEM 1 (prior): HEALTH_ALERT_TELEGRAM_ENABLED=true on Koyeb. ITEM 2 (this session): TRUST_PROXY_HEADERS=true on Koyeb (deploy 0588c241, sha 9c2589f). BEFORE flipping it, found+fixed a spoofing hole via PR #139 (squash-merged 9c2589f, CI all green): Koyeb public domain is behind Cloudflare which APPENDS real IP to client X-Forwarded-For, so old _client_key took the leftmost spoofable entry = full rate-limit bypass by rotating the header. New order CF-Connecting-IP then rightmost XFF then socket; 14 rate-limit tests pass. VERIFIED LIVE on prod: 16 POST to LIFF service-requests with rotating fake XFF returned 10x201+6x429 = still bucketed by real IP (spoof did NOT create new buckets), and the 10+6 split proves exactly 2 uvicorn workers (2x5 allowed + 2x3 blocked, limit 5/300s). SIDE FINDING: LIFF_STRICT_MODE=false lets empty-body POST {} create a junk service_request (requester_name 'None None', all content NULL, source LIFF) - my test made 10 (ids 31-40 in PROD), deleted all 10, remaining recent rows 0.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260718-1814.json`
+- Summary: `project-log-md/claude_code/session-summary-20260718-1814.md`
+
+---
+
+### 2026-07-18 15:46 — claude_code (Fable 5 / Anthropic) — completed
 
 Prod ops: enabled HEALTH_ALERT_TELEGRAM_ENABLED=true on Koyeb via local Koyeb CLI (services update --env) which also deployed latest main 0134e8c - FIRST prod deploy of PR #137 (HTTP rate limiting, health watchdog, live_chat_service package split). Pre-checks: PROD DB already at alembic head x9y0z1a2b3c4 (cookie-auth tables applied earlier), COOKIE_AUTH_MODE unset on Koyeb so bearer default preserved. Verified: new deployment 13497ee2 HEALTHY, built from exact sha 0134e8c skip_build=false, env key present in deployment definition, /health 200 database+redis true. FOUND pre-existing prod bug: broadcasts table MISSING on PROD (known ORM drift docs/remediation preflight-evidence-and-designs.md s8) - broadcast scheduler logs UndefinedTableError every ~15s per worker, visible in old AND new deployments. Prod runs 2 uvicorn workers (in-process rate limits effectively x2, watchdog may duplicate alerts). SLA_ALERT_TELEGRAM_ENABLED=false on prod.
 
