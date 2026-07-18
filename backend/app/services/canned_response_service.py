@@ -6,51 +6,71 @@ from app.models.canned_response import CannedResponse
 
 logger = logging.getLogger(__name__)
 
+
+def _normalize_shortcut(shortcut: str) -> str:
+    """Normalise a canned-response shortcut: strip surrounding whitespace and
+    any number of leading ``/`` characters so the stored value never contains
+    the trigger prefix. The live-chat composer re-adds the ``/`` at display
+    time, so storing it here would produce ``//greeting`` in the admin table.
+
+    Examples
+    --------
+    >>> _normalize_shortcut("/greeting")
+    'greeting'
+    >>> _normalize_shortcut("//thanks")
+    'thanks'
+    >>> _normalize_shortcut("  /wait  ")
+    'wait'
+    >>> _normalize_shortcut("/  greeting  ")
+    'greeting'
+    """
+    return shortcut.strip().lstrip("/").strip()
+
 DEFAULT_TEMPLATES = [
     {
-        "shortcut": "/greeting",
+        "shortcut": "greeting",
         "title": "ทักทาย",
         "content": "สวัสดีค่ะ ยินดีให้บริการค่ะ มีอะไรให้ช่วยเหลือคะ?",
         "category": "greeting"
     },
     {
-        "shortcut": "/closing",
+        "shortcut": "closing",
         "title": "ปิดการสนทนา",
         "content": "ขอบคุณที่ใช้บริการค่ะ หากมีข้อสงสัยเพิ่มเติมสามารถติดต่อได้ตลอดเวลาค่ะ",
         "category": "closing"
     },
     {
-        "shortcut": "/wait",
+        "shortcut": "wait",
         "title": "รอสักครู่",
         "content": "รบกวนรอสักครู่นะคะ กำลังตรวจสอบข้อมูลให้ค่ะ",
         "category": "info"
     },
     {
-        "shortcut": "/transfer",
+        "shortcut": "transfer",
         "title": "ส่งต่อเจ้าหน้าที่",
         "content": "กรุณารอสักครู่นะคะ จะติดต่อเจ้าหน้าที่ที่เกี่ยวข้องมาช่วยเหลือค่ะ",
         "category": "escalation"
     },
     {
-        "shortcut": "/hours",
+        "shortcut": "hours",
         "title": "เวลาทำการ",
         "content": "เวลาทำการของเรา: จันทร์-ศุกร์ 08:00-17:00 น. ค่ะ",
         "category": "info"
     },
     {
-        "shortcut": "/contact",
+        "shortcut": "contact",
         "title": "ช่องทางติดต่อ",
         "content": "สามารถติดต่อเราได้ที่:\nโทร: 02-xxx-xxxx\nอีเมล: support@example.com\nเว็บไซต์: www.example.com",
         "category": "info"
     },
     {
-        "shortcut": "/thanks",
+        "shortcut": "thanks",
         "title": "ขอบคุณ",
         "content": "ขอบคุณมากค่ะ",
         "category": "closing"
     },
     {
-        "shortcut": "/sorry",
+        "shortcut": "sorry",
         "title": "ขออภัย",
         "content": "ขออภัยในความไม่สะดวกค่ะ ทางเราจะรีบดำเนินการแก้ไขให้เร็วที่สุดค่ะ",
         "category": "info"
@@ -81,6 +101,8 @@ class CannedResponseService:
         return result.scalar_one_or_none()
 
     async def create(self, data: dict, db: AsyncSession) -> CannedResponse:
+        if "shortcut" in data and isinstance(data["shortcut"], str):
+            data = {**data, "shortcut": _normalize_shortcut(data["shortcut"])}
         response = CannedResponse(**data)
         db.add(response)
         await db.commit()
@@ -91,6 +113,8 @@ class CannedResponseService:
         response = await self.get_by_id(id, db)
         if not response:
             return None
+        if "shortcut" in data and isinstance(data["shortcut"], str):
+            data = {**data, "shortcut": _normalize_shortcut(data["shortcut"])}
         for key, value in data.items():
             if hasattr(response, key):
                 setattr(response, key, value)
