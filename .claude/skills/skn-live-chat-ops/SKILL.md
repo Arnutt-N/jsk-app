@@ -91,12 +91,13 @@ websocket_manager.py (ws_manager singleton)
     ├── broadcast_to_room(room, data) ← all admins watching a conversation
     └── broadcast_to_all(data)        ← all connected admins
     ▼
-live_chat_service.py (live_chat_service singleton)
+live_chat_service/ package (live_chat_service singleton facade)
     │  Handles DB state changes: session lifecycle, messages, CSAT, SLA
-    ├── claim_session(line_user_id, operator_id, db)
-    ├── close_session(line_user_id, closed_by, db)
-    ├── transfer_session(line_user_id, from_id, to_id, reason, db)
-    └── send_message(line_user_id, text, operator_id, db)
+    │  Split into per-concern mixins in PR #137; import path/API unchanged.
+    ├── claim_session(line_user_id, operator_id, db)          ← sessions.py
+    ├── close_session(line_user_id, closed_by, db)            ← sessions.py
+    ├── transfer_session(line_user_id, from_id, to_id, reason, db) ← sessions.py
+    └── send_message(line_user_id, text, operator_id, db)     ← messaging.py
 ```
 
 Key files:
@@ -105,7 +106,9 @@ backend/app/
 ├── api/v1/endpoints/ws_live_chat.py    ← elif dispatch loop — ADD NEW HANDLERS HERE
 ├── schemas/ws_events.py                ← WSEventType, WSErrorCode, payload schemas — ADD ENUM VALUES HERE
 ├── core/websocket_manager.py           ← ConnectionManager singleton: ws_manager
-└── services/live_chat_service.py       ← All session/message DB logic
+└── services/live_chat_service/         ← package: all session/message DB logic
+                                          (handoff/sessions/messaging/conversations/
+                                          unread/analytics mixins; same facade)
 ```
 
 ---

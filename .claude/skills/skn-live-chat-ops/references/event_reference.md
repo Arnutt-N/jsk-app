@@ -1,6 +1,6 @@
 # Live Chat WS — Event & API Reference
 
-Extracted from `backend/app/schemas/ws_events.py`, `ws_live_chat.py`, `websocket_manager.py`, and `live_chat_service.py`.
+Extracted from `backend/app/schemas/ws_events.py`, `ws_live_chat.py`, `websocket_manager.py`, and the `live_chat_service/` package (facade unchanged; split into mixins in PR #137).
 
 ---
 
