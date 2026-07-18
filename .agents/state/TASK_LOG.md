@@ -1,10 +1,19 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 172 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 173 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
 
-### 2026-07-18 19:59 — claude_code — completed
+### 2026-07-18 20:21 — claude_code — completed
+
+Fixed broadcasts-table PROD drift (handoff item A). PR #141 (squash-merged 27262f6, all CI green) adds hand-written migration y0z1a2b3c4d5 creating the broadcasts table + broadcaststatus/broadcasttype enums that the ORM model always declared but no migration ever created (docs/remediation preflight-evidence-and-designs.md s8). Applied to PROD via db_target.py alembic --target remote upgrade head; PROD head now y0z1a2b3c4d5. VERIFIED FIXED: last UndefinedTableError in Koyeb logs at 13:17:04 UTC (= migration apply time), logs then flowed to 13:20:20+ UTC with ZERO new broadcasts errors across 13+ scheduler cycles - no redeploy needed, the migration alone fixed the running code. Enum gotcha: SQLAlchemy Enum(PyEnumClass) stores MEMBER NAMES uppercase (SCHEDULED not scheduled); migration uses postgresql.ENUM with uppercase labels + create_type=False + explicit .create(checkfirst=True), idempotent (no-ops if table exists). Verified local first: upgrade creates table+enums, ORM insert applies defaults + scheduler query returns rows, downgrade/upgrade cycle clean.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260718-2021.json`
+- Summary: `project-log-md/claude_code/session-summary-20260718-2021.md`
+
+---
+
+### 2026-07-18 19:59 — claude_code (Fable 5 / Anthropic) — completed
 
 Closed handoff item 3: HTTP rate-limit buckets now Redis-backed (shared across workers). PR #140 (squash-merged 835c261, all CI green incl Backend Pytest on Linux) added redis_client.fixed_window_allow (SET key 0 EX window NX to anchor TTL once, then atomic INCR; returns None when Redis down) + incr(); http_rate_limit dependency tries Redis first then falls back to in-process SlidingWindowLimiter on None (degrades to per-worker, not fail-open/closed); conftest flushes Redis ratelimit:* keys between tests via a throwaway SYNC client (async redis_client is bound to TestClient portal loop). Deployed to Koyeb (deployment f0ac0aa4, sha 835c261; note a manual redeploy 712d0065 collided with CD-triggered f0ac0aa4 from the merge - both same sha, harmless). VERIFIED LIVE on prod: 16 rotating-XFF POSTs to LIFF service-requests now return 5x201+11x429 (was 10x201+6x429 pre-fix) = single shared bucket across both workers. Cleaned 5 junk rows (ids 41-45) the test created. Local: 26 rate-limit+liff tests pass, full suite 609 passed/1 skipped excluding 3 websocket files (pre-existing Windows-proactor hang, green on Linux CI). All 3 original prod-hardening handoff items (1 health-alert flag, 2 TRUST_PROXY+spoof fix, 3 Redis rate limit) now DONE.
 

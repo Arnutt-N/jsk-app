@@ -1,16 +1,23 @@
 {
-  "last_updated": "2026-07-18T19:59:00+07:00",
+  "last_updated": "2026-07-18T20:21:00+07:00",
   "platform": "claude_code",
-  "current_task": "Closed handoff item 3: HTTP rate-limit buckets now Redis-backed (shared across workers). PR #140 (squash-merged 835c261, all CI green incl Backend Pytest on Linux) added redis_client.fixed_window_allo",
+  "current_task": "Fixed broadcasts-table PROD drift (handoff item A). PR #141 (squash-merged 27262f6, all CI green) adds hand-written migration y0z1a2b3c4d5 creating the broadcasts table + broadcaststatus/broadcasttype",
   "plan_status": "completed",
   "next_steps": [
-    "HIGH: fix broadcasts-table drift on PROD - scheduler logs UndefinedTableError every ~15s; needs a hand-written additive migration to create the broadcasts table (docs/remediation preflight-evidence-and-designs.md s8). Same drift affects districts/provinces/sub_districts.",
-    "MED: LIFF empty-body POST {} returns 201 and writes a junk service_request (requester_name 'None None', all content NULL) when LIFF_STRICT_MODE=false - tighten ServiceRequestCreate to require key fields OR enable LIFF_STRICT_MODE.",
-    "Follow-up: apply Redis backing to WS/auth in-process limiters in rate_limiter.py if they need cross-worker enforcement; health watchdog runs per-worker so may send duplicate Telegram alerts (2 workers).",
-    "Decisions needed from user: is SLA_ALERT_TELEGRAM_ENABLED=false on prod intentional; branch protection + required checks on main (auto-merge shipped PR #137 before CI finished).",
-    "Carry-over: update skn-* skills referencing single-file live_chat_service.py; COOKIE_AUTH_MODE=dual rollout per PRD; PR 2C cookie-only hardening; NEW-3 DIRECTOR/HEAD ws role. Human-only: watch Telegram for [HEALTH] DOWN/RECOVERED on next real outage."
+    "HIGH-ish: remaining s8 drift districts/provinces/sub_districts still unfixed - same pattern (ORM declares, no migration). Check if any runtime path errors on them like broadcasts did.",
+    "MED: LIFF empty-body POST {} returns 201 + junk row when LIFF_STRICT_MODE=false - tighten ServiceRequestCreate or enable strict mode.",
+    "Follow-up: apply Redis backing to WS/auth in-process limiters (rate_limiter.py) if cross-worker enforcement needed; health watchdog runs per-worker (2 workers) so may send duplicate Telegram alerts.",
+    "Decisions for user: is SLA_ALERT_TELEGRAM_ENABLED=false on prod intentional; add branch protection + required checks on main.",
+    "Carry-over: update skn-* skills referencing single-file live_chat_service.py; COOKIE_AUTH_MODE=dual rollout; PR 2C cookie-only hardening; NEW-3 DIRECTOR/HEAD ws role. Human-only: watch Telegram for [HEALTH] DOWN/RECOVERED on next real outage."
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-07-18T20:21:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "27262f6",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-07-18T19:59:00+07:00",
       "platform": "claude_code",
@@ -142,13 +149,6 @@
       "platform": "claude_code",
       "branch": "main",
       "head": "7b25017",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-07T09:23:00+07:00",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "17001a8",
       "status": "completed"
     }
   ],

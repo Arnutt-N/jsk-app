@@ -1,0 +1,22 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-07-18T20:21:00+07:00",
+  "branch": "main",
+  "head_commit": "27262f6",
+  "status": "completed",
+  "work_summary": "Fixed broadcasts-table PROD drift (handoff item A). PR #141 (squash-merged 27262f6, all CI green) adds hand-written migration y0z1a2b3c4d5 creating the broadcasts table + broadcaststatus/broadcasttype enums that the ORM model always declared but no migration ever created (docs/remediation preflight-evidence-and-designs.md s8). Applied to PROD via db_target.py alembic --target remote upgrade head; PROD head now y0z1a2b3c4d5. VERIFIED FIXED: last UndefinedTableError in Koyeb logs at 13:17:04 UTC (= migration apply time), logs then flowed to 13:20:20+ UTC with ZERO new broadcasts errors across 13+ scheduler cycles - no redeploy needed, the migration alone fixed the running code. Enum gotcha: SQLAlchemy Enum(PyEnumClass) stores MEMBER NAMES uppercase (SCHEDULED not scheduled); migration uses postgresql.ENUM with uppercase labels + create_type=False + explicit .create(checkfirst=True), idempotent (no-ops if table exists). Verified local first: upgrade creates table+enums, ORM insert applies defaults + scheduler query returns rows, downgrade/upgrade cycle clean.",
+  "priority_actions": [
+    "HIGH-ish: remaining s8 drift districts/provinces/sub_districts still unfixed - same pattern (ORM declares, no migration). Check if any runtime path errors on them like broadcasts did.",
+    "MED: LIFF empty-body POST {} returns 201 + junk row when LIFF_STRICT_MODE=false - tighten ServiceRequestCreate or enable strict mode.",
+    "Follow-up: apply Redis backing to WS/auth in-process limiters (rate_limiter.py) if cross-worker enforcement needed; health watchdog runs per-worker (2 workers) so may send duplicate Telegram alerts.",
+    "Decisions for user: is SLA_ALERT_TELEGRAM_ENABLED=false on prod intentional; add branch protection + required checks on main.",
+    "Carry-over: update skn-* skills referencing single-file live_chat_service.py; COOKIE_AUTH_MODE=dual rollout; PR 2C cookie-only hardening; NEW-3 DIRECTOR/HEAD ws role. Human-only: watch Telegram for [HEALTH] DOWN/RECOVERED on next real outage."
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/claude_code/session-summary-20260718-2021.md",
+  "cross_platform_read": [],
+  "model": "Fable 5",
+  "provider": "Anthropic"
+}
