@@ -178,7 +178,7 @@ result = await db.execute(select(latest).where(subq.c.rn == 1))
 
 ## Step 3: Fix get_queue_position() — Python-level N+1
 
-**File:** `backend/app/services/live_chat_service.py`
+**File:** `backend/app/services/live_chat_service/handoff.py`
 
 Current code loads all WAITING sessions into Python then iterates — O(N) memory:
 
@@ -304,7 +304,7 @@ def downgrade() -> None:
 
 ## Step 6: Cursor Pagination vs Offset
 
-**File:** `backend/app/services/live_chat_service.py` — `get_messages_paginated()`
+**File:** `backend/app/services/live_chat_service/conversations.py` — `get_messages_paginated()`
 
 The project already uses cursor-based pagination correctly:
 

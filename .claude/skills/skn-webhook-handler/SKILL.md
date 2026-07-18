@@ -129,7 +129,7 @@ Non-text message path (image / sticker / file / video / audio):
 | `backend/app/services/friend_service.py` | `get_or_create_user()`, `refresh_profile()`, follow/unfollow |
 | `backend/app/services/handoff_service.py` | `check_handoff_keywords()`, HANDOFF_KEYWORDS list |
 | `backend/app/services/response_parser.py` | `parse_response()` — resolves `$object_id` references |
-| `backend/app/services/live_chat_service.py` | `initiate_handoff()`, `get_unread_count()` |
+| `backend/app/services/live_chat_service/` (package) | `initiate_handoff()` (handoff.py), `get_unread_count()` (unread.py) — same `live_chat_service` import/facade |
 | `backend/app/services/csat_service.py` | `record_response()`, `get_thank_you_message()` |
 | `backend/app/utils/url_utils.py` | `resolve_payload_urls()`, `strip_flex_body()` |
 | `backend/app/services/flex_messages.py` | `build_request_status_list()` (service request Flex) |

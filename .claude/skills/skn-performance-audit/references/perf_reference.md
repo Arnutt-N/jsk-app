@@ -1,6 +1,9 @@
 # Performance Audit — Reference
 
-Extracted from `backend/app/db/session.py`, `backend/app/services/live_chat_service.py`,
+Extracted from `backend/app/db/session.py`, the
+`backend/app/services/live_chat_service/` package (split into handoff /
+sessions / messaging / conversations / unread / analytics mixins in PR #137;
+the `live_chat_service` import path and public API are unchanged),
 `backend/app/services/analytics_service.py`, `backend/app/models/chat_session.py`,
 and `backend/app/api/v1/endpoints/admin_live_chat.py`.
 
@@ -36,7 +39,7 @@ AsyncSessionLocal = sessionmaker(
 
 ### 1. `live_chat_service.get_conversations()` — Partial N+1
 
-**File:** `backend/app/services/live_chat_service.py:398`
+**File:** `backend/app/services/live_chat_service/conversations.py` — `get_conversations()`
 
 **Good:** Uses `row_number()` window functions for latest session and latest message per user
 (no N+1 for those). Uses batch `IN` query for tags.
@@ -63,7 +66,7 @@ read_keys = [ConnectionManager.build_read_key(admin_id_str, uid) for uid in user
 
 ### 2. `live_chat_service.get_queue_position()` — Python-level scan
 
-**File:** `backend/app/services/live_chat_service.py:334`
+**File:** `backend/app/services/live_chat_service/handoff.py` — `get_queue_position()`
 
 ```python
 # ❌ Loads all WAITING sessions into Python
@@ -337,7 +340,7 @@ ORDER BY pg_total_relation_size(relid) DESC;
 | File | Performance relevance |
 |---|---|
 | `backend/app/db/session.py` | `echo=True/False`, engine pool settings |
-| `backend/app/services/live_chat_service.py` | `get_conversations()`, `get_queue_position()`, pagination |
+| `backend/app/services/live_chat_service/` (package) | `get_conversations()` + pagination (conversations.py), `get_queue_position()` (handoff.py) |
 | `backend/app/services/analytics_service.py` | `get_live_kpis()` — multiple sequential queries |
 | `backend/app/api/v1/endpoints/webhook.py` | Intent matching — `selectinload` usage |
 | `backend/app/models/*.py` | `index=True` declarations |
