@@ -1,10 +1,19 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 171 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 172 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
 
-### 2026-07-18 18:14 — claude_code — completed
+### 2026-07-18 19:59 — claude_code — completed
+
+Closed handoff item 3: HTTP rate-limit buckets now Redis-backed (shared across workers). PR #140 (squash-merged 835c261, all CI green incl Backend Pytest on Linux) added redis_client.fixed_window_allow (SET key 0 EX window NX to anchor TTL once, then atomic INCR; returns None when Redis down) + incr(); http_rate_limit dependency tries Redis first then falls back to in-process SlidingWindowLimiter on None (degrades to per-worker, not fail-open/closed); conftest flushes Redis ratelimit:* keys between tests via a throwaway SYNC client (async redis_client is bound to TestClient portal loop). Deployed to Koyeb (deployment f0ac0aa4, sha 835c261; note a manual redeploy 712d0065 collided with CD-triggered f0ac0aa4 from the merge - both same sha, harmless). VERIFIED LIVE on prod: 16 rotating-XFF POSTs to LIFF service-requests now return 5x201+11x429 (was 10x201+6x429 pre-fix) = single shared bucket across both workers. Cleaned 5 junk rows (ids 41-45) the test created. Local: 26 rate-limit+liff tests pass, full suite 609 passed/1 skipped excluding 3 websocket files (pre-existing Windows-proactor hang, green on Linux CI). All 3 original prod-hardening handoff items (1 health-alert flag, 2 TRUST_PROXY+spoof fix, 3 Redis rate limit) now DONE.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260718-1959.json`
+- Summary: `project-log-md/claude_code/session-summary-20260718-1959.md`
+
+---
+
+### 2026-07-18 18:14 — claude_code (Fable 5 / Anthropic) — completed
 
 Closed handoff items 1+2. ITEM 1 (prior): HEALTH_ALERT_TELEGRAM_ENABLED=true on Koyeb. ITEM 2 (this session): TRUST_PROXY_HEADERS=true on Koyeb (deploy 0588c241, sha 9c2589f). BEFORE flipping it, found+fixed a spoofing hole via PR #139 (squash-merged 9c2589f, CI all green): Koyeb public domain is behind Cloudflare which APPENDS real IP to client X-Forwarded-For, so old _client_key took the leftmost spoofable entry = full rate-limit bypass by rotating the header. New order CF-Connecting-IP then rightmost XFF then socket; 14 rate-limit tests pass. VERIFIED LIVE on prod: 16 POST to LIFF service-requests with rotating fake XFF returned 10x201+6x429 = still bucketed by real IP (spoof did NOT create new buckets), and the 10+6 split proves exactly 2 uvicorn workers (2x5 allowed + 2x3 blocked, limit 5/300s). SIDE FINDING: LIFF_STRICT_MODE=false lets empty-body POST {} create a junk service_request (requester_name 'None None', all content NULL, source LIFF) - my test made 10 (ids 31-40 in PROD), deleted all 10, remaining recent rows 0.
 

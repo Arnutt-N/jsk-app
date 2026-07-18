@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-07-18 18:14 by Claude Code (Closed handoff items 1+2.)
+> **Last Updated:** 2026-07-18 19:59 by Claude Code (Closed handoff item 3: HTTP rate-limit buckets now Redis-backed shared across workers.)
 
 ## Thai Summary
 ฟีเจอร์ **Rich Menu Switching + การกำหนดเมนูรายบุคคล (R1/R2)** เสร็จสมบูรณ์และขึ้น production แล้ว — merge เข้า main ผ่าน PR #114 (merge commit `3a90f4d`), migrate ฐานข้อมูล Supabase PROD (richmenu alias + user_rich_menu_links แบบ additive) และ deploy frontend บน Vercel เรียบร้อย
@@ -54,6 +54,7 @@
 - [2026-06-21] R1/R2 Rich Menu (incl Task 6.2 per-user UI) merged to `main` via PR #114 (`3a90f4d`); Supabase PROD migrated; Vercel frontend deployed. Branch `feat/rich-menu-switching-r1` deleted. Working tree clean.
 
 ## Recent Completions
+- [2026-07-18 19:59] Claude Code: Closed handoff item 3: HTTP rate-limit buckets now Redis-backed (shared across workers). PR #140 (squash-merged 835c261, all CI green incl Backend Pytest on Linux) added redis_client.fixed_window_allow (SET key 0 EX window NX to anchor TTL  (Claude Code)
 - [2026-07-18 18:14] Claude Code: Closed handoff items 1+2. ITEM 1 (prior): HEALTH_ALERT_TELEGRAM_ENABLED=true on Koyeb. ITEM 2 (this session): TRUST_PROXY_HEADERS=true on Koyeb (deploy 0588c241, sha 9c2589f). BEFORE flipping it, found+fixed a spoofing hole via PR #139 (squ (Claude Code)
 - [2026-07-18 15:46] Claude Code: Prod ops: enabled HEALTH_ALERT_TELEGRAM_ENABLED=true on Koyeb via local Koyeb CLI (services update --env) which also deployed latest main 0134e8c - FIRST prod deploy of PR #137 (HTTP rate limiting, health watchdog, live_chat_service package (Claude Code)
 - [2026-07-17 17:54] Claude Code: Merged PR #137 (backend hardening, 4 commits) + PR #138 (frontend lint fix); CI on main green again. PR #137: (1) HTTP rate limiting via new app/core/http_rate_limit.py dependency factory on SlidingWindowLimiter — LIFF submission 5/5min, me (Claude Code)

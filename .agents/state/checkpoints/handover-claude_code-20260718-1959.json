@@ -1,0 +1,22 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-07-18T19:59:00+07:00",
+  "branch": "main",
+  "head_commit": "835c261",
+  "status": "completed",
+  "work_summary": "Closed handoff item 3: HTTP rate-limit buckets now Redis-backed (shared across workers). PR #140 (squash-merged 835c261, all CI green incl Backend Pytest on Linux) added redis_client.fixed_window_allow (SET key 0 EX window NX to anchor TTL once, then atomic INCR; returns None when Redis down) + incr(); http_rate_limit dependency tries Redis first then falls back to in-process SlidingWindowLimiter on None (degrades to per-worker, not fail-open/closed); conftest flushes Redis ratelimit:* keys between tests via a throwaway SYNC client (async redis_client is bound to TestClient portal loop). Deployed to Koyeb (deployment f0ac0aa4, sha 835c261; note a manual redeploy 712d0065 collided with CD-triggered f0ac0aa4 from the merge - both same sha, harmless). VERIFIED LIVE on prod: 16 rotating-XFF POSTs to LIFF service-requests now return 5x201+11x429 (was 10x201+6x429 pre-fix) = single shared bucket across both workers. Cleaned 5 junk rows (ids 41-45) the test created. Local: 26 rate-limit+liff tests pass, full suite 609 passed/1 skipped excluding 3 websocket files (pre-existing Windows-proactor hang, green on Linux CI). All 3 original prod-hardening handoff items (1 health-alert flag, 2 TRUST_PROXY+spoof fix, 3 Redis rate limit) now DONE.",
+  "priority_actions": [
+    "HIGH: fix broadcasts-table drift on PROD - scheduler logs UndefinedTableError every ~15s; needs a hand-written additive migration to create the broadcasts table (docs/remediation preflight-evidence-and-designs.md s8). Same drift affects districts/provinces/sub_districts.",
+    "MED: LIFF empty-body POST {} returns 201 and writes a junk service_request (requester_name 'None None', all content NULL) when LIFF_STRICT_MODE=false - tighten ServiceRequestCreate to require key fields OR enable LIFF_STRICT_MODE.",
+    "Follow-up: apply Redis backing to WS/auth in-process limiters in rate_limiter.py if they need cross-worker enforcement; health watchdog runs per-worker so may send duplicate Telegram alerts (2 workers).",
+    "Decisions needed from user: is SLA_ALERT_TELEGRAM_ENABLED=false on prod intentional; branch protection + required checks on main (auto-merge shipped PR #137 before CI finished).",
+    "Carry-over: update skn-* skills referencing single-file live_chat_service.py; COOKIE_AUTH_MODE=dual rollout per PRD; PR 2C cookie-only hardening; NEW-3 DIRECTOR/HEAD ws role. Human-only: watch Telegram for [HEALTH] DOWN/RECOVERED on next real outage."
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/claude_code/session-summary-20260718-1959.md",
+  "cross_platform_read": [],
+  "model": "Fable 5",
+  "provider": "Anthropic"
+}

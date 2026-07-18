@@ -1,16 +1,16 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Cross-Platform Session Index (generated)
 
-> **Last generated**: 2026-07-18 18:14 (from newest checkpoint)
+> **Last generated**: 2026-07-18 19:59 (from newest checkpoint)
 
 ## Quick Stats
 
 | Metric | Value |
 |--------|-------|
-| Handoff checkpoints (active) | 171 |
-| Session summaries on disk | 258 |
+| Handoff checkpoints (active) | 172 |
+| Session summaries on disk | 259 |
 | Platforms | 8 (antigravity, claude_code, cline, codex, gemini_cli, kilo_code, kimi_code, open_code) |
-| Most recent | 2026-07-18 18:14 — claude_code |
+| Most recent | 2026-07-18 19:59 — claude_code |
 
 > Regenerate after any handoff: `node .agents/scripts/gen-handoff-views.cjs`
 
@@ -23,11 +23,12 @@
 | 2026-04-04 12:04 | completed | — | — | `handover-antigravity-20260404-1204.json` |
 | 2026-02-15 03:20 | completed | — | — | `handover-antigravity-20260215-0320.json` |
 
-## claude_code (131)
+## claude_code (132)
 
 | When | Status | Model | Provider | Checkpoint |
 |------|--------|-------|----------|------------|
-| 2026-07-18 18:14 | completed | — | — | `handover-claude_code-20260718-1814.json` |
+| 2026-07-18 19:59 | completed | — | — | `handover-claude_code-20260718-1959.json` |
+| 2026-07-18 18:14 | completed | Fable 5 | Anthropic | `handover-claude_code-20260718-1814.json` |
 | 2026-07-18 15:46 | completed | Fable 5 | Anthropic | `handover-claude_code-20260718-1546.json` |
 | 2026-07-17 17:54 | completed | Fable 5 | Anthropic | `handover-claude_code-20260717-1754.json` |
 | 2026-07-16 04:42 | in_progress | Claude Fable 5 | Anthropic | `handover-claude_code-20260716-0442.json` |
@@ -46,8 +47,7 @@
 | 2026-07-07 13:30 | completed | — | — | `handover-claude_code-20260707-1330.json` |
 | 2026-07-07 10:38 | completed | — | — | `handover-claude_code-20260707-1038.json` |
 | 2026-07-07 09:23 | completed | — | — | `handover-claude_code-20260707-0923.json` |
-| 2026-07-06 23:55 | completed | — | — | `handover-claude_code-20260706-2355.json` |
-| … | | | | +111 older |
+| … | | | | +112 older |
 
 ## cline (5)
 
