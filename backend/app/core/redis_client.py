@@ -114,7 +114,42 @@ class RedisClient:
             await self._redis.delete(key)
         except Exception as e:
             logger.error(f"Redis delete error: {e}")
-    
+
+    async def incr(self, key: str) -> Optional[int]:
+        """Atomically increment `key` and return the new value (None if down)."""
+        if not self._redis:
+            return None
+        try:
+            return int(await self._redis.incr(key))
+        except Exception as e:
+            logger.error(f"Redis incr error: {e}")
+            return None
+
+    async def fixed_window_allow(
+        self, key: str, max_events: int, window_seconds: int
+    ) -> Optional[bool]:
+        """Shared-across-workers fixed-window rate check.
+
+        Anchors the window with `SET key 0 EX window NX` (creates the counter
+        with its TTL exactly once, at the first request of the window — a plain
+        EXPIRE on every call would keep extending the window under sustained
+        traffic), then `INCR`s atomically so every worker counts into the same
+        bucket. Returns:
+          * True  — under the limit (this event allowed)
+          * False — limit reached (reject)
+          * None  — Redis unavailable/errored; caller should fall back to the
+                    in-process limiter rather than fail open or closed.
+        """
+        if not self._redis:
+            return None
+        try:
+            await self._redis.set(key, 0, ex=window_seconds, nx=True)
+            count = int(await self._redis.incr(key))
+            return count <= max_events
+        except Exception as e:
+            logger.error(f"Redis rate-limit error: {e}")
+            return None
+
     @property
     def is_connected(self) -> bool:
         """Check if Redis is connected."""

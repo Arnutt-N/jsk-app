@@ -103,16 +103,42 @@ def test_client(app):
         yield client
 
 
+def _flush_redis_rate_limit_keys() -> None:
+    """Best-effort delete of Redis `ratelimit:*` keys via a throwaway SYNC client.
+
+    The HTTP limiter now backs its buckets with Redis (shared across workers),
+    so the in-process reset alone no longer isolates tests that hit a
+    rate-limited route through the session TestClient (e.g. test_liff_token
+    posts 7×, limit 5/300s). We cannot reuse `redis_client._redis` here — it is
+    an async client bound to the TestClient portal's event loop — so we open a
+    short-lived synchronous connection instead. Silently ignored if Redis is
+    down (the limiter falls back to in-process, which the reset above covers).
+    """
+    try:
+        import redis as _redis_sync
+
+        client = _redis_sync.from_url(os.environ["REDIS_URL"])
+        try:
+            keys = list(client.scan_iter("ratelimit:*"))
+            if keys:
+                client.delete(*keys)
+        finally:
+            client.close()
+    except Exception:
+        pass
+
+
 @pytest.fixture(autouse=True)
 def _reset_http_rate_limits():
-    """Clear HTTP rate-limit buckets between tests.
+    """Clear HTTP rate-limit buckets between tests (in-process + Redis).
 
     TestClient sends every request from the same client address, so without
-    this, one test's requests exhaust the sliding window for the next.
+    this, one test's requests exhaust the window for the next.
     """
     from app.core.http_rate_limit import reset_all_http_limiters
 
     reset_all_http_limiters()
+    _flush_redis_rate_limit_keys()
     yield
 
 
