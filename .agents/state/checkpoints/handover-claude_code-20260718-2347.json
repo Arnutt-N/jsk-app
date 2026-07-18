@@ -1,0 +1,22 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-07-18T23:47:00+07:00",
+  "branch": "main",
+  "head_commit": "df0413f",
+  "status": "completed",
+  "work_summary": "SESSION ROLLUP 2026-07-18: shipped 8 prod-hardening items, all deployed to Koyeb + verified as far as safe. (1) HEALTH_ALERT_TELEGRAM_ENABLED=true. (2) TRUST_PROXY_HEADERS=true + PR #139 leftmost-XFF spoof fix (Koyeb is behind Cloudflare which APPENDS real IP; key on CF-Connecting-IP then rightmost XFF). (3) PR #140 Redis-backed HTTP rate limits via redis_client.fixed_window_allow + in-process fallback (verified live 5x201+11x429 = one shared bucket across the 2 prod workers). (A) PR #141 broadcasts table migration y0z1a2b3c4d5 - scheduler UndefinedTableError stopped. (B) PR #142 geography tables adoption migration z1a2b3c4d5e6 (tables already existed+seeded; idempotent no-op, PROD endpoint stays 200). (C) PR #143 LIFF empty-body validation - ServiceRequestCreate now requires content (topic or description); POST {} -> 422; requester NAME not required (anonymous drug tips); anonymous stores NULL not 'None None'. (D) PR #144 cross-worker: auth_rate_limiter Redis-backed + redis_client.claim_once dedups health watchdog Telegram alerts across workers. (F part1) PR #145 skn-* skill docs point at the live_chat_service package not the old single file. PROD alembic head now z1a2b3c4d5e6. Cleaned all LIFF junk rows (ids 31-46). Full backend suite 624 passed/1 skipped locally (3 websocket files excluded = pre-existing Windows proactor hang, green on Linux CI).",
+  "priority_actions": [
+    "GROUP 1 - user decisions (each ~1 command once decided): set LIFF_STRICT_MODE=true on prod? (forces a LIFF token on every submission). SLA_ALERT_TELEGRAM_ENABLED is false on prod - intentional or turn on? Add branch protection + required checks on main (auto-merge shipped PR #137 before CI finished - root cause of that gap).",
+    "GROUP 2 - large multi-step, needs a FRESH session with an empty context window: COOKIE_AUTH_MODE=dual production rollout per PRD (tables dark-shipped on PROD via w3x4y5z6a7b8/x9y0z1a2b3c4; flag currently bearer). Then PR 2C cookie-only hardening. Then NEW-3 DIRECTOR/HEAD ws role decision+impl.",
+    "GROUP 3 - low-priority cleanup (no runtime impact): harmonise ORM model vs live-schema FK nullability - model says districts.province_id/sub_districts.district_id nullable=False but live PROD has them NULLABLE (last scrap of s8; either ALTER live columns after confirming no NULL FK rows, or relax the model).",
+    "HUMAN-ONLY verify: watch Telegram operator chat for [HEALTH] DOWN/RECOVERED (now single, deduped across workers) on the next real outage - cannot be safely induced from here.",
+    "RECOMMENDATION: high-value hardening work is DONE; start a fresh session for Group 2, answer Group 1 inline anytime. Deploy recipe + all gotchas are in memory project_deploy_architecture + project_prod_migration_state."
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/claude_code/session-summary-20260718-2347.md",
+  "cross_platform_read": [],
+  "model": "Fable 5",
+  "provider": "Anthropic"
+}
