@@ -10,6 +10,7 @@ Telegram delivery reuses telegram_service (same channel as SLA breaches) and
 is gated by HEALTH_ALERT_TELEGRAM_ENABLED; the watchdog always logs.
 """
 import asyncio
+import hashlib
 import logging
 import time
 from dataclasses import dataclass, field
@@ -91,6 +92,19 @@ class HealthWatchdog:
 
         if not settings.HEALTH_ALERT_TELEGRAM_ENABLED:
             return
+
+        # Cross-worker de-duplication: every worker runs its own watchdog loop
+        # and independently reaches this point on the same transition, so
+        # without this the operator chat gets one Telegram per worker. The
+        # first worker to claim a shared key (TTL = cooldown) sends; the rest
+        # skip. If Redis is down (claim_once -> None) we still send rather than
+        # risk dropping the alert entirely.
+        dedup_key = f"healthalert:{hashlib.md5(message.encode('utf-8')).hexdigest()}"
+        claimed = await redis_client.claim_once(dedup_key, self.alert_cooldown_seconds)
+        if claimed is False:
+            logger.info("Health alert already sent by another worker; skipping")
+            return
+
         try:
             async with AsyncSessionLocal() as db:
                 await telegram_service.send_alert_message(text=message, db=db)

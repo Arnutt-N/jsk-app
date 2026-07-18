@@ -17,6 +17,7 @@ from app.core.cookie_auth import (
     set_auth_cookies,
 )
 from app.core.rate_limiter import SlidingWindowLimiter
+from app.core.redis_client import redis_client
 from app.core.security import (
     create_access_token,
     create_refresh_token,
@@ -53,13 +54,33 @@ _ADMIN_AUTH_ROLES = [
     UserRole.AGENT,
 ]
 
-# Shared by /migrate-session and /ws-ticket. In-memory, per-process --
-# acceptable per PRD FR4/FR6 (this is not a distributed rate limiter; a
-# horizontally-scaled deployment gets independent per-instance limits, which
-# is a bounded-abuse tradeoff, not a security hole). Endpoints key their
-# bucket with a per-route prefix so the two routes never share a bucket for
-# the same user.
-auth_rate_limiter = SlidingWindowLimiter(max_events=5, window_seconds=60)
+# Shared by /migrate-session and /ws-ticket. Backed by Redis (shared across
+# workers) via a fixed-window counter, so the limit holds for the whole
+# deployment rather than per instance; when Redis is unavailable it falls back
+# to this in-process SlidingWindowLimiter (still limits, but per worker).
+# Endpoints key their bucket with a per-route prefix so the two routes never
+# share a bucket for the same user.
+AUTH_RATE_LIMIT = 5
+AUTH_RATE_WINDOW = 60
+auth_rate_limiter = SlidingWindowLimiter(
+    max_events=AUTH_RATE_LIMIT, window_seconds=AUTH_RATE_WINDOW
+)
+
+
+async def _auth_rate_limit_exceeded(key: str) -> bool:
+    """True when `key` has exhausted its window and the request should 429.
+
+    Tries the shared Redis bucket first; on Redis unavailability degrades to
+    the in-process limiter above rather than failing open.
+    """
+    allowed = await redis_client.fixed_window_allow(
+        f"ratelimit:auth:{key}",
+        max_events=AUTH_RATE_LIMIT,
+        window_seconds=AUTH_RATE_WINDOW,
+    )
+    if allowed is None:
+        allowed = auth_rate_limiter.is_allowed(key)
+    return not allowed
 
 # Bearer-only credential extraction for /migrate-session -- deliberately NOT
 # the mode-aware get_current_user dependency, so a cookie can never satisfy
@@ -433,7 +454,7 @@ async def migrate_session(
             detail="Cookie auth mode is not enabled",
         )
 
-    if not auth_rate_limiter.is_allowed(f"migrate:{user.id}"):
+    if await _auth_rate_limit_exceeded(f"migrate:{user.id}"):
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail="Too many session-migration attempts, try again later",
@@ -477,7 +498,7 @@ async def issue_ws_ticket(
     Any auth mode/credential type accepted (delegates to the mode-aware
     get_current_user). Rate-limited like migrate-session.
     """
-    if not auth_rate_limiter.is_allowed(f"ws-ticket:{current_user.id}"):
+    if await _auth_rate_limit_exceeded(f"ws-ticket:{current_user.id}"):
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail="Too many ticket requests, try again later",
