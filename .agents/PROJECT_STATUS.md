@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-07-17 17:54 by Claude Code (Merged PR #137 backend hardening, 4 commits + PR #138 frontend lint fix; CI on main green )
+> **Last Updated:** 2026-07-18 15:46 by Claude Code (Prod ops: enabled HEALTH_ALERT_TELEGRAM_ENABLED=true on Koyeb via local Koyeb CLI services)
 
 ## Thai Summary
 ฟีเจอร์ **Rich Menu Switching + การกำหนดเมนูรายบุคคล (R1/R2)** เสร็จสมบูรณ์และขึ้น production แล้ว — merge เข้า main ผ่าน PR #114 (merge commit `3a90f4d`), migrate ฐานข้อมูล Supabase PROD (richmenu alias + user_rich_menu_links แบบ additive) และ deploy frontend บน Vercel เรียบร้อย
@@ -54,6 +54,7 @@
 - [2026-06-21] R1/R2 Rich Menu (incl Task 6.2 per-user UI) merged to `main` via PR #114 (`3a90f4d`); Supabase PROD migrated; Vercel frontend deployed. Branch `feat/rich-menu-switching-r1` deleted. Working tree clean.
 
 ## Recent Completions
+- [2026-07-18 15:46] Claude Code: Prod ops: enabled HEALTH_ALERT_TELEGRAM_ENABLED=true on Koyeb via local Koyeb CLI (services update --env) which also deployed latest main 0134e8c - FIRST prod deploy of PR #137 (HTTP rate limiting, health watchdog, live_chat_service package (Claude Code)
 - [2026-07-17 17:54] Claude Code: Merged PR #137 (backend hardening, 4 commits) + PR #138 (frontend lint fix); CI on main green again. PR #137: (1) HTTP rate limiting via new app/core/http_rate_limit.py dependency factory on SlidingWindowLimiter — LIFF submission 5/5min, me (Claude Code)
 - [2026-07-17 06:46] Cline: Created and merged PR #136: Admin Health Check Dashboard. New page /admin/health shows real-time status of Database, Redis, and WebSocket services via GET /api/v1/health/detailed (endpoint already existed in backend). Auto-refreshes every 3 (Cline)
 - [2026-07-16 07:51] Cline: Closed the two cheap round-2 review findings from PR #133 as PR #134 (merged). NEW-1: redacted ValidationError input_value from the WS auth log in ws_live_chat.py handle_auth — now logs only [{loc,type}] per error instead of the raw excepti (Cline)

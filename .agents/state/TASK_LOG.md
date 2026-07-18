@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 169 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 170 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-18 15:46 — claude_code — completed
+
+Prod ops: enabled HEALTH_ALERT_TELEGRAM_ENABLED=true on Koyeb via local Koyeb CLI (services update --env) which also deployed latest main 0134e8c - FIRST prod deploy of PR #137 (HTTP rate limiting, health watchdog, live_chat_service package split). Pre-checks: PROD DB already at alembic head x9y0z1a2b3c4 (cookie-auth tables applied earlier), COOKIE_AUTH_MODE unset on Koyeb so bearer default preserved. Verified: new deployment 13497ee2 HEALTHY, built from exact sha 0134e8c skip_build=false, env key present in deployment definition, /health 200 database+redis true. FOUND pre-existing prod bug: broadcasts table MISSING on PROD (known ORM drift docs/remediation preflight-evidence-and-designs.md s8) - broadcast scheduler logs UndefinedTableError every ~15s per worker, visible in old AND new deployments. Prod runs 2 uvicorn workers (in-process rate limits effectively x2, watchdog may duplicate alerts). SLA_ALERT_TELEGRAM_ENABLED=false on prod.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260718-1546.json`
+- Summary: `project-log-md/claude_code/session-summary-20260718-1546.md`
+
+---
 
 ### 2026-07-17 17:54 — claude_code (Fable 5 / Anthropic) — completed
 

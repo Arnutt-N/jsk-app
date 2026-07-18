@@ -1,0 +1,22 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-07-18T15:46:00+07:00",
+  "branch": "main",
+  "head_commit": "0134e8c",
+  "status": "completed",
+  "work_summary": "Prod ops: enabled HEALTH_ALERT_TELEGRAM_ENABLED=true on Koyeb via local Koyeb CLI (services update --env) which also deployed latest main 0134e8c - FIRST prod deploy of PR #137 (HTTP rate limiting, health watchdog, live_chat_service package split). Pre-checks: PROD DB already at alembic head x9y0z1a2b3c4 (cookie-auth tables applied earlier), COOKIE_AUTH_MODE unset on Koyeb so bearer default preserved. Verified: new deployment 13497ee2 HEALTHY, built from exact sha 0134e8c skip_build=false, env key present in deployment definition, /health 200 database+redis true. FOUND pre-existing prod bug: broadcasts table MISSING on PROD (known ORM drift docs/remediation preflight-evidence-and-designs.md s8) - broadcast scheduler logs UndefinedTableError every ~15s per worker, visible in old AND new deployments. Prod runs 2 uvicorn workers (in-process rate limits effectively x2, watchdog may duplicate alerts). SLA_ALERT_TELEGRAM_ENABLED=false on prod.",
+  "priority_actions": [
+    "Fix broadcasts drift: hand-written additive migration to create broadcasts table on PROD (docs/remediation s8) - scheduler errors every 15s until fixed",
+    "Handoff item 2: set TRUST_PROXY_HEADERS=true on Koyeb (all clients currently share one rate-limit bucket) - verify Koyeb strips client-supplied X-Forwarded-For first",
+    "Handoff item 3: consider Redis-backed rate-limit buckets - prod ALREADY runs 2 workers so in-process limits are doubled",
+    "Decide whether SLA_ALERT_TELEGRAM_ENABLED=false on prod is intentional",
+    "Carry-over: branch protection with required checks on main; update skn-* skills referencing single-file live_chat_service.py; COOKIE_AUTH_MODE=dual rollout per PRD; PR 2C cookie-only hardening; NEW-3 DIRECTOR/HEAD ws role decision"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/claude_code/session-summary-20260718-1546.md",
+  "cross_platform_read": [],
+  "model": "Fable 5",
+  "provider": "Anthropic"
+}
