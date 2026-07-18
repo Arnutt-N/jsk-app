@@ -32,15 +32,25 @@ def reset_all_http_limiters() -> None:
 def _client_key(request: Request) -> str:
     """Resolve the client identity used as the rate-limit bucket key.
 
-    X-Forwarded-For is client-controlled, so it is only honoured when the
+    Proxy headers are client-influenced, so they are only honoured when the
     deployment explicitly declares it sits behind a trusted reverse proxy
-    (TRUST_PROXY_HEADERS) — otherwise a caller could rotate the header to
-    dodge the limit. Without a proxy, the direct socket address is correct.
+    (TRUST_PROXY_HEADERS). Preference order:
+
+    1. CF-Connecting-IP — Cloudflare (which fronts the Koyeb public domain)
+       always overwrites this header, so a caller cannot spoof it.
+    2. Rightmost X-Forwarded-For entry — appended by the trusted edge.
+       Never the leftmost: appending proxies (Cloudflare, Envoy) keep any
+       client-supplied entries on the left, so the leftmost value is
+       attacker-controlled and could be rotated to dodge the limits.
+    3. Direct socket address (also the no-proxy default).
     """
     if settings.TRUST_PROXY_HEADERS:
+        cf_ip = request.headers.get("cf-connecting-ip")
+        if cf_ip:
+            return cf_ip.strip()
         forwarded = request.headers.get("x-forwarded-for")
         if forwarded:
-            return forwarded.split(",")[0].strip()
+            return forwarded.rsplit(",", 1)[-1].strip()
     return request.client.host if request.client else "unknown"
 
 

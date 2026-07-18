@@ -58,18 +58,35 @@ def test_clients_have_isolated_buckets():
     assert not limiter.is_allowed(f"test-isolated:{hrl._client_key(request_a)}")
 
 
-def test_forwarded_for_ignored_by_default(monkeypatch):
+def test_proxy_headers_ignored_by_default(monkeypatch):
     from app.core.config import settings
 
     monkeypatch.setattr(settings, "TRUST_PROXY_HEADERS", False)
     request = SimpleNamespace(
-        headers={"x-forwarded-for": "1.2.3.4, 5.6.7.8"},
+        headers={
+            "cf-connecting-ip": "1.2.3.4",
+            "x-forwarded-for": "1.2.3.4, 5.6.7.8",
+        },
         client=SimpleNamespace(host="10.0.0.9"),
     )
     assert hrl._client_key(request) == "10.0.0.9"
 
 
-def test_forwarded_for_used_when_proxy_trusted(monkeypatch):
+def test_cf_connecting_ip_preferred_when_proxy_trusted(monkeypatch):
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "TRUST_PROXY_HEADERS", True)
+    request = SimpleNamespace(
+        headers={
+            "cf-connecting-ip": "203.0.113.7",
+            "x-forwarded-for": "1.2.3.4, 5.6.7.8",
+        },
+        client=SimpleNamespace(host="10.0.0.9"),
+    )
+    assert hrl._client_key(request) == "203.0.113.7"
+
+
+def test_forwarded_for_rightmost_used_when_proxy_trusted(monkeypatch):
     from app.core.config import settings
 
     monkeypatch.setattr(settings, "TRUST_PROXY_HEADERS", True)
@@ -77,7 +94,24 @@ def test_forwarded_for_used_when_proxy_trusted(monkeypatch):
         headers={"x-forwarded-for": "1.2.3.4, 5.6.7.8"},
         client=SimpleNamespace(host="10.0.0.9"),
     )
-    assert hrl._client_key(request) == "1.2.3.4"
+    assert hrl._client_key(request) == "5.6.7.8"
+
+
+def test_spoofed_leftmost_forwarded_entries_do_not_change_key(monkeypatch):
+    # An appending proxy keeps client-supplied entries on the left; rotating
+    # them must not rotate the bucket key.
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "TRUST_PROXY_HEADERS", True)
+    real_ip = "198.51.100.20"
+    keys = set()
+    for spoofed in ("6.6.6.1", "6.6.6.2", "6.6.6.3"):
+        request = SimpleNamespace(
+            headers={"x-forwarded-for": f"{spoofed}, {real_ip}"},
+            client=SimpleNamespace(host="10.0.0.9"),
+        )
+        keys.add(hrl._client_key(request))
+    assert keys == {real_ip}
 
 
 def test_missing_client_falls_back_to_unknown():
