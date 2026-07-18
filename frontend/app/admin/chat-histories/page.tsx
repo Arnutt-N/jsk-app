@@ -194,7 +194,12 @@ export default function ChatHistoriesPage() {
         <div className="space-y-6 animate-in fade-in duration-500 thai-text">
             {/* Header */}
             <PageHeader title="ประวัติแชท" subtitle="ประวัติการสนทนาทั้งหมด">
-                <Button variant="outline" size="sm" onClick={() => fetchConversations()}>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fetchConversations()}
+                    aria-label="รีเฟรช"
+                >
                     <RefreshCw className="w-4 h-4" />
                 </Button>
             </PageHeader>

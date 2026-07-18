@@ -112,9 +112,14 @@ export default function AuditLogPage() {
           />
           <span className="text-sm text-text-tertiary">days</span>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchLogs} disabled={loading}>
-          <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-          Refresh
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={fetchLogs}
+          disabled={loading}
+          leftIcon={<RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />}
+        >
+          รีเฟรช
         </Button>
       </PageHeader>
 

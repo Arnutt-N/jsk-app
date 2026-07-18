@@ -236,9 +236,14 @@ export default function AnalyticsPage() {
               Clear Operator Filter
             </Button>
           )}
-          <Button variant="outline" size="sm" onClick={fetchData} disabled={loading}>
-            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-            Refresh
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={fetchData}
+            disabled={loading}
+            leftIcon={<RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />}
+          >
+            รีเฟรช
           </Button>
         </div>
       </PageHeader>
