@@ -1,10 +1,19 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 178 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 179 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
 
-### 2026-07-18 23:47 — claude_code — completed
+### 2026-07-19 04:12 — claude_code — completed
+
+Fixed Button icon+text wrap bug (PR #146 merged to main): content wrapper and children span changed from flex to inline-flex with whitespace-nowrap, preventing refresh buttons from wrapping text to a new line. CI all green (Backend Pytest, Frontend Lint and Build, Playwright Smoke).
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260719-0412.json`
+- Summary: `project-log-md/claude_code/session-summary-20260719-0412.md`
+
+---
+
+### 2026-07-18 23:47 — claude_code (Fable 5 / Anthropic) — completed
 
 SESSION ROLLUP 2026-07-18: shipped 8 prod-hardening items, all deployed to Koyeb + verified as far as safe. (1) HEALTH_ALERT_TELEGRAM_ENABLED=true. (2) TRUST_PROXY_HEADERS=true + PR #139 leftmost-XFF spoof fix (Koyeb is behind Cloudflare which APPENDS real IP; key on CF-Connecting-IP then rightmost XFF). (3) PR #140 Redis-backed HTTP rate limits via redis_client.fixed_window_allow + in-process fallback (verified live 5x201+11x429 = one shared bucket across the 2 prod workers). (A) PR #141 broadcasts table migration y0z1a2b3c4d5 - scheduler UndefinedTableError stopped. (B) PR #142 geography tables adoption migration z1a2b3c4d5e6 (tables already existed+seeded; idempotent no-op, PROD endpoint stays 200). (C) PR #143 LIFF empty-body validation - ServiceRequestCreate now requires content (topic or description); POST {} -> 422; requester NAME not required (anonymous drug tips); anonymous stores NULL not 'None None'. (D) PR #144 cross-worker: auth_rate_limiter Redis-backed + redis_client.claim_once dedups health watchdog Telegram alerts across workers. (F part1) PR #145 skn-* skill docs point at the live_chat_service package not the old single file. PROD alembic head now z1a2b3c4d5e6. Cleaned all LIFF junk rows (ids 31-46). Full backend suite 624 passed/1 skipped locally (3 websocket files excluded = pre-existing Windows proactor hang, green on Linux CI).
 

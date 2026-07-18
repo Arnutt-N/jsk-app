@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-07-18 23:47 by Claude Code (SESSION ROLLUP 2026-07-18: shipped 8 prod-hardening items, all deployed to Koyeb + verifie)
+> **Last Updated:** 2026-07-19 04:12 by Claude Code (Fixed Button icon+text wrap bug PR #146 merged to main: content wrapper and children span )
 
 ## Thai Summary
 ฟีเจอร์ **Rich Menu Switching + การกำหนดเมนูรายบุคคล (R1/R2)** เสร็จสมบูรณ์และขึ้น production แล้ว — merge เข้า main ผ่าน PR #114 (merge commit `3a90f4d`), migrate ฐานข้อมูล Supabase PROD (richmenu alias + user_rich_menu_links แบบ additive) และ deploy frontend บน Vercel เรียบร้อย
@@ -54,6 +54,7 @@
 - [2026-06-21] R1/R2 Rich Menu (incl Task 6.2 per-user UI) merged to `main` via PR #114 (`3a90f4d`); Supabase PROD migrated; Vercel frontend deployed. Branch `feat/rich-menu-switching-r1` deleted. Working tree clean.
 
 ## Recent Completions
+- [2026-07-19 04:12] Claude Code: Fixed Button icon+text wrap bug (PR #146 merged to main): content wrapper and children span changed from flex to inline-flex with whitespace-nowrap, preventing refresh buttons from wrapping text to a new line. CI all green (Backend Pytest,  (Claude Code)
 - [2026-07-18 23:47] Claude Code: SESSION ROLLUP 2026-07-18: shipped 8 prod-hardening items, all deployed to Koyeb + verified as far as safe. (1) HEALTH_ALERT_TELEGRAM_ENABLED=true. (2) TRUST_PROXY_HEADERS=true + PR #139 leftmost-XFF spoof fix (Koyeb is behind Cloudflare wh (Claude Code)
 - [2026-07-18 22:26] Claude Code: Updated skn-* skills to point at the live_chat_service package (handoff item F, part 1 of the carry-over bucket). PR #145 (squash-merged dc6d8b8, all CI green, docs-only). PR #137 split backend/app/services/live_chat_service.py into a packa (Claude Code)
 - [2026-07-18 22:05] Claude Code: Made auth limiter + health alerts cross-worker aware (handoff item D). PR #144 (squash-merged d2bd301, all CI green) deployed to Koyeb (95fe5ab5). (1) auth_rate_limiter (POST /auth/migrate-session + /auth/ws-ticket, 5/60s keyed by user id)  (Claude Code)
