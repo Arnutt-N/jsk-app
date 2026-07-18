@@ -1,0 +1,20 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-07-18T22:05:00+07:00",
+  "branch": "main",
+  "head_commit": "d2bd301",
+  "status": "completed",
+  "work_summary": "Made auth limiter + health alerts cross-worker aware (handoff item D). PR #144 (squash-merged d2bd301, all CI green) deployed to Koyeb (95fe5ab5). (1) auth_rate_limiter (POST /auth/migrate-session + /auth/ws-ticket, 5/60s keyed by user id) now Redis-backed via fixed_window_allow with in-process SlidingWindowLimiter fallback - was per-worker so a user got 10/60s across the 2 prod workers. WS message limiter LEFT in-process on purpose (per-connection, hot path, no cross-worker benefit). (2) Added redis_client.claim_once(key, ttl) - SET NX EX tri-state (True=claimed/act, False=already-claimed/skip, None=redis-down/act-anyway); health watchdog now claims a shared key (TTL=cooldown, keyed by alert text) before sending Telegram so exactly one worker sends per transition - was one duplicate alert per worker. Redis-down still sends (never drop an alert). TDD: 6 new tests (watchdog two-workers-send-once + redis-down-still-sends; auth shared-bucket/blocks-after-limit/fallback/key-isolation). Full suite 624 passed/1 skipped locally (3 websocket files excluded, green on Linux CI). Verified live as far as safe: /health 200 with new code, both auth endpoints 401 unauth (intact, limiter sits after get_current_user). GOTCHA: auth router mounts under /auth so paths are /api/v1/auth/ws-ticket etc. Full live rate-limit test skipped deliberately (needs login -> audit noise + risks locking a real admin 60s; mechanism already prod-proven via item-3 fixed_window_allow + unit tests). Watchdog dedup not live-testable (needs real outage).",
+  "priority_actions": [
+    "Last s8 follow-up (no runtime impact): harmonise ORM model vs live schema FK nullability - model says districts.province_id/sub_districts.district_id nullable=False but live PROD has them NULLABLE.",
+    "Decisions for user (blocking nothing, but close them): set LIFF_STRICT_MODE=true on prod? is SLA_ALERT_TELEGRAM_ENABLED=false intentional? add branch protection + required checks on main.",
+    "Carry-over: update skn-* skills referencing single-file live_chat_service.py; COOKIE_AUTH_MODE=dual rollout per PRD; PR 2C cookie-only hardening; NEW-3 DIRECTOR/HEAD ws role. Human-only: watch Telegram for [HEALTH] DOWN/RECOVERED (now single, not duplicated) on next real outage."
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/claude_code/session-summary-20260718-2205.md",
+  "cross_platform_read": [],
+  "model": "Fable 5",
+  "provider": "Anthropic"
+}

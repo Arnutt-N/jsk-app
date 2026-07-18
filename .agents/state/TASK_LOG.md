@@ -1,10 +1,19 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 175 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 176 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
 
-### 2026-07-18 21:28 — claude_code — completed
+### 2026-07-18 22:05 — claude_code — completed
+
+Made auth limiter + health alerts cross-worker aware (handoff item D). PR #144 (squash-merged d2bd301, all CI green) deployed to Koyeb (95fe5ab5). (1) auth_rate_limiter (POST /auth/migrate-session + /auth/ws-ticket, 5/60s keyed by user id) now Redis-backed via fixed_window_allow with in-process SlidingWindowLimiter fallback - was per-worker so a user got 10/60s across the 2 prod workers. WS message limiter LEFT in-process on purpose (per-connection, hot path, no cross-worker benefit). (2) Added redis_client.claim_once(key, ttl) - SET NX EX tri-state (True=claimed/act, False=already-claimed/skip, None=redis-down/act-anyway); health watchdog now claims a shared key (TTL=cooldown, keyed by alert text) before sending Telegram so exactly one worker sends per transition - was one duplicate alert per worker. Redis-down still sends (never drop an alert). TDD: 6 new tests (watchdog two-workers-send-once + redis-down-still-sends; auth shared-bucket/blocks-after-limit/fallback/key-isolation). Full suite 624 passed/1 skipped locally (3 websocket files excluded, green on Linux CI). Verified live as far as safe: /health 200 with new code, both auth endpoints 401 unauth (intact, limiter sits after get_current_user). GOTCHA: auth router mounts under /auth so paths are /api/v1/auth/ws-ticket etc. Full live rate-limit test skipped deliberately (needs login -> audit noise + risks locking a real admin 60s; mechanism already prod-proven via item-3 fixed_window_allow + unit tests). Watchdog dedup not live-testable (needs real outage).
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260718-2205.json`
+- Summary: `project-log-md/claude_code/session-summary-20260718-2205.md`
+
+---
+
+### 2026-07-18 21:28 — claude_code (Fable 5 / Anthropic) — completed
 
 Fixed LIFF empty-body validation gap (handoff item C). PR #143 (squash-merged 0b41c33, all CI green) adds a server-side model_validator to ServiceRequestCreate: a submission must carry content - a topic (topic_category or legacy service_type) OR a description - else 422. Previously every field was Optional so a bare POST {} wrote a junk row (requester_name 'None None', all content NULL). Requester NAME deliberately NOT required: drug-report tips (แจ้งเบาะแสยาเสพติด) are legitimately anonymous - existing test_prd_e_drug_reporting cases (content, no name) proved requiring a name would break that flow, so the validator is content-only. Also fixed the endpoint full_name f-string to guard parts with 'or ' and store requester_name=full_name or None so anonymous rows are NULL not the literal None None. TDD 9 new schema tests; full suite 618 passed/1 skipped locally (3 websocket files excluded, green on Linux CI). Deployed to Koyeb (deployment 109405b3, sha 0b41c33). VERIFIED LIVE on prod: POST {} returns 422 with the correct message; anonymous {topic,description} returns 201 with requester_name:null (full_name fix confirmed). Cleaned the verify row (id 46); all session junk rows 31-46 gone, 0 recent remaining. GOTCHA: curl on Git Bash mangles inline -d Thai UTF-8 (got 400 error parsing the body); use --data-binary @file.json for Thai.
 
