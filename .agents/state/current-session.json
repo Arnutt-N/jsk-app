@@ -1,16 +1,36 @@
 {
-  "last_updated": "2026-07-18T23:47:00+07:00",
-  "platform": "claude_code",
-  "current_task": "SESSION ROLLUP 2026-07-18: shipped 8 prod-hardening items, all deployed to Koyeb + verified as far as safe. (1) HEALTH_ALERT_TELEGRAM_ENABLED=true. (2) TRUST_PROXY_HEADERS=true + PR #139 leftmost-XFF ",
+  "last_updated": "2026-07-19T04:20:00+07:00",
+  "platform": "kilo_code",
+  "current_task": "Fixed Button icon+text wrap bug (PR #146 merged to main): content wrapper and children span changed from flex to inline-flex with whitespace-nowrap, preventing refresh buttons from wrapping text to a ",
   "plan_status": "completed",
   "next_steps": [
-    "GROUP 1 - user decisions (each ~1 command once decided): set LIFF_STRICT_MODE=true on prod? (forces a LIFF token on every submission). SLA_ALERT_TELEGRAM_ENABLED is false on prod - intentional or turn on? Add branch protection + required checks on main (auto-merge shipped PR #137 before CI finished - root cause of that gap).",
-    "GROUP 2 - large multi-step, needs a FRESH session with an empty context window: COOKIE_AUTH_MODE=dual production rollout per PRD (tables dark-shipped on PROD via w3x4y5z6a7b8/x9y0z1a2b3c4; flag currently bearer). Then PR 2C cookie-only hardening. Then NEW-3 DIRECTOR/HEAD ws role decision+impl.",
-    "GROUP 3 - low-priority cleanup (no runtime impact): harmonise ORM model vs live-schema FK nullability - model says districts.province_id/sub_districts.district_id nullable=False but live PROD has them NULLABLE (last scrap of s8; either ALTER live columns after confirming no NULL FK rows, or relax the model).",
-    "HUMAN-ONLY verify: watch Telegram operator chat for [HEALTH] DOWN/RECOVERED (now single, deduped across workers) on the next real outage - cannot be safely induced from here.",
-    "RECOMMENDATION: high-value hardening work is DONE; start a fresh session for Group 2, answer Group 1 inline anytime. Deploy recipe + all gotchas are in memory project_deploy_architecture + project_prod_migration_state."
+    "Group 1 user decisions: LIFF_STRICT_MODE prod flag / SLA_ALERT_TELEGRAM_ENABLED / branch protection on main",
+    "Group 2 (fresh session): COOKIE_AUTH_MODE=dual prod rollout / PR 2C cookie hardening / NEW-3 DIRECTOR-HEAD ws role",
+    "Group 3 low-priority cleanup: FK nullability districts.province_id + sub_districts.district_id (SET NOT NULL or relax model)",
+    "Human-only: watch Telegram operator chat on next real outage to verify cross-worker health-alert dedup"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-07-19T04:20:00+07:00",
+      "platform": "kilo_code",
+      "branch": "main",
+      "head": "56511cf",
+      "status": "completed"
+    },
+    {
+      "timestamp": "2026-07-19T04:15:00+07:00",
+      "platform": "kilo_code",
+      "branch": "main",
+      "head": "7fa76d6",
+      "status": "completed"
+    },
+    {
+      "timestamp": "2026-07-19T04:12:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "3c11763",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-07-18T23:47:00+07:00",
       "platform": "claude_code",
@@ -128,27 +148,6 @@
       "platform": "codex",
       "branch": "main",
       "head": "67853e8",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-12T10:12:00+07:00",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "cab7e29",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-12T00:54:00+07:00",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "833cf89",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-09T20:49:00+07:00",
-      "platform": "cline",
-      "branch": "main",
-      "head": "e179d64",
       "status": "completed"
     }
   ],

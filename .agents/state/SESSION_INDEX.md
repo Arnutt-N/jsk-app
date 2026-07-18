@@ -1,16 +1,16 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Cross-Platform Session Index (generated)
 
-> **Last generated**: 2026-07-18 23:47 (from newest checkpoint)
+> **Last generated**: 2026-07-19 04:20 (from newest checkpoint)
 
 ## Quick Stats
 
 | Metric | Value |
 |--------|-------|
-| Handoff checkpoints (active) | 178 |
-| Session summaries on disk | 265 |
+| Handoff checkpoints (active) | 179 |
+| Session summaries on disk | 266 |
 | Platforms | 8 (antigravity, claude_code, cline, codex, gemini_cli, kilo_code, kimi_code, open_code) |
-| Most recent | 2026-07-18 23:47 — claude_code |
+| Most recent | 2026-07-19 04:20 — kilo_code |
 
 > Regenerate after any handoff: `node .agents/scripts/gen-handoff-views.cjs`
 
@@ -27,7 +27,7 @@
 
 | When | Status | Model | Provider | Checkpoint |
 |------|--------|-------|----------|------------|
-| 2026-07-18 23:47 | completed | — | — | `handover-claude_code-20260718-2347.json` |
+| 2026-07-18 23:47 | completed | Fable 5 | Anthropic | `handover-claude_code-20260718-2347.json` |
 | 2026-07-18 22:26 | completed | Fable 5 | Anthropic | `handover-claude_code-20260718-2226.json` |
 | 2026-07-18 22:05 | completed | Fable 5 | Anthropic | `handover-claude_code-20260718-2205.json` |
 | 2026-07-18 21:28 | completed | Fable 5 | Anthropic | `handover-claude_code-20260718-2128.json` |
@@ -87,10 +87,11 @@
 |------|--------|-------|----------|------------|
 | 2026-04-03 12:00 | completed | — | — | `handover-gemini_cli-20260403-1200.json` |
 
-## kilo_code (1)
+## kilo_code (2)
 
 | When | Status | Model | Provider | Checkpoint |
 |------|--------|-------|----------|------------|
+| 2026-07-19 04:20 | completed | — | — | `handover-kilo_code-20260719-0420.json` |
 | 2026-02-15 03:20 | completed | — | — | `handover-kilo_code-20260215-0320.json` |
 
 ## kimi_code (11)
