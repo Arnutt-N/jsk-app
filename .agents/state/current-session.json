@@ -1,14 +1,22 @@
 {
-  "last_updated": "2026-07-18T22:05:00+07:00",
+  "last_updated": "2026-07-18T22:26:00+07:00",
   "platform": "claude_code",
-  "current_task": "Made auth limiter + health alerts cross-worker aware (handoff item D). PR #144 (squash-merged d2bd301, all CI green) deployed to Koyeb (95fe5ab5). (1) auth_rate_limiter (POST /auth/migrate-session + /",
+  "current_task": "Updated skn-* skills to point at the live_chat_service package (handoff item F, part 1 of the carry-over bucket). PR #145 (squash-merged dc6d8b8, all CI green, docs-only). PR #137 split backend/app/se",
   "plan_status": "completed",
   "next_steps": [
+    "F remaining (NOT done - large/decision-heavy, deferred to a fresh session): COOKIE_AUTH_MODE=dual production rollout per PRD (multi-step auth change); PR 2C cookie-only hardening (follows dual rollout); NEW-3 DIRECTOR/HEAD ws role decision.",
     "Last s8 follow-up (no runtime impact): harmonise ORM model vs live schema FK nullability - model says districts.province_id/sub_districts.district_id nullable=False but live PROD has them NULLABLE.",
-    "Decisions for user (blocking nothing, but close them): set LIFF_STRICT_MODE=true on prod? is SLA_ALERT_TELEGRAM_ENABLED=false intentional? add branch protection + required checks on main.",
-    "Carry-over: update skn-* skills referencing single-file live_chat_service.py; COOKIE_AUTH_MODE=dual rollout per PRD; PR 2C cookie-only hardening; NEW-3 DIRECTOR/HEAD ws role. Human-only: watch Telegram for [HEALTH] DOWN/RECOVERED (now single, not duplicated) on next real outage."
+    "Decisions for user (E): set LIFF_STRICT_MODE=true on prod? is SLA_ALERT_TELEGRAM_ENABLED=false intentional? add branch protection + required checks on main (auto-merge shipped PR #137 before CI finished).",
+    "Human-only: watch Telegram for [HEALTH] DOWN/RECOVERED (now single, deduped) on next real outage."
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-07-18T22:26:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "dc6d8b8",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-07-18T22:05:00+07:00",
       "platform": "claude_code",
@@ -140,13 +148,6 @@
       "platform": "claude_code",
       "branch": "main",
       "head": "4a0e1eb",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-08T00:47:00+07:00",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "3899f86",
       "status": "completed"
     }
   ],

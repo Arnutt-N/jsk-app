@@ -1,0 +1,21 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-07-18T22:26:00+07:00",
+  "branch": "main",
+  "head_commit": "dc6d8b8",
+  "status": "completed",
+  "work_summary": "Updated skn-* skills to point at the live_chat_service package (handoff item F, part 1 of the carry-over bucket). PR #145 (squash-merged dc6d8b8, all CI green, docs-only). PR #137 split backend/app/services/live_chat_service.py into a package (handoff/sessions/messaging/conversations/unread/analytics mixins; import path + facade unchanged) but several skill docs still cited the old single file with stale :line numbers. Fixed the stale SERVICE-file references to the right modules: skn-performance-audit (get_conversations+pagination->conversations.py, get_queue_position->handoff.py, dropped rotted :398/:334); skn-webhook-handler (initiate_handoff->handoff.py, get_unread_count->unread.py); skn-live-chat-ops (claim/close/transfer->sessions.py, send_message->messaging.py, tree+facade note). Left skn-devtools tests/test_live_chat_service.py refs alone (that test file still exists; split was zero-test-edits). No code/runtime change, no deploy needed.",
+  "priority_actions": [
+    "F remaining (NOT done - large/decision-heavy, deferred to a fresh session): COOKIE_AUTH_MODE=dual production rollout per PRD (multi-step auth change); PR 2C cookie-only hardening (follows dual rollout); NEW-3 DIRECTOR/HEAD ws role decision.",
+    "Last s8 follow-up (no runtime impact): harmonise ORM model vs live schema FK nullability - model says districts.province_id/sub_districts.district_id nullable=False but live PROD has them NULLABLE.",
+    "Decisions for user (E): set LIFF_STRICT_MODE=true on prod? is SLA_ALERT_TELEGRAM_ENABLED=false intentional? add branch protection + required checks on main (auto-merge shipped PR #137 before CI finished).",
+    "Human-only: watch Telegram for [HEALTH] DOWN/RECOVERED (now single, deduped) on next real outage."
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/claude_code/session-summary-20260718-2226.md",
+  "cross_platform_read": [],
+  "model": "Fable 5",
+  "provider": "Anthropic"
+}

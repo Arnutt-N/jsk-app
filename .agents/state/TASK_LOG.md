@@ -1,10 +1,19 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 176 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 177 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
 
-### 2026-07-18 22:05 — claude_code — completed
+### 2026-07-18 22:26 — claude_code — completed
+
+Updated skn-* skills to point at the live_chat_service package (handoff item F, part 1 of the carry-over bucket). PR #145 (squash-merged dc6d8b8, all CI green, docs-only). PR #137 split backend/app/services/live_chat_service.py into a package (handoff/sessions/messaging/conversations/unread/analytics mixins; import path + facade unchanged) but several skill docs still cited the old single file with stale :line numbers. Fixed the stale SERVICE-file references to the right modules: skn-performance-audit (get_conversations+pagination->conversations.py, get_queue_position->handoff.py, dropped rotted :398/:334); skn-webhook-handler (initiate_handoff->handoff.py, get_unread_count->unread.py); skn-live-chat-ops (claim/close/transfer->sessions.py, send_message->messaging.py, tree+facade note). Left skn-devtools tests/test_live_chat_service.py refs alone (that test file still exists; split was zero-test-edits). No code/runtime change, no deploy needed.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260718-2226.json`
+- Summary: `project-log-md/claude_code/session-summary-20260718-2226.md`
+
+---
+
+### 2026-07-18 22:05 — claude_code (Fable 5 / Anthropic) — completed
 
 Made auth limiter + health alerts cross-worker aware (handoff item D). PR #144 (squash-merged d2bd301, all CI green) deployed to Koyeb (95fe5ab5). (1) auth_rate_limiter (POST /auth/migrate-session + /auth/ws-ticket, 5/60s keyed by user id) now Redis-backed via fixed_window_allow with in-process SlidingWindowLimiter fallback - was per-worker so a user got 10/60s across the 2 prod workers. WS message limiter LEFT in-process on purpose (per-connection, hot path, no cross-worker benefit). (2) Added redis_client.claim_once(key, ttl) - SET NX EX tri-state (True=claimed/act, False=already-claimed/skip, None=redis-down/act-anyway); health watchdog now claims a shared key (TTL=cooldown, keyed by alert text) before sending Telegram so exactly one worker sends per transition - was one duplicate alert per worker. Redis-down still sends (never drop an alert). TDD: 6 new tests (watchdog two-workers-send-once + redis-down-still-sends; auth shared-bucket/blocks-after-limit/fallback/key-isolation). Full suite 624 passed/1 skipped locally (3 websocket files excluded, green on Linux CI). Verified live as far as safe: /health 200 with new code, both auth endpoints 401 unauth (intact, limiter sits after get_current_user). GOTCHA: auth router mounts under /auth so paths are /api/v1/auth/ws-ticket etc. Full live rate-limit test skipped deliberately (needs login -> audit noise + risks locking a real admin 60s; mechanism already prod-proven via item-3 fixed_window_allow + unit tests). Watchdog dedup not live-testable (needs real outage).
 
