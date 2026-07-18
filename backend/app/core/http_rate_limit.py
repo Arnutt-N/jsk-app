@@ -1,12 +1,13 @@
-"""HTTP rate limiting as a FastAPI dependency, built on SlidingWindowLimiter.
+"""HTTP rate limiting as a FastAPI dependency.
 
-Complements the existing WebSocket/auth limiters (see rate_limiter.py) by
-covering plain REST endpoints — primarily the public-facing surfaces: LIFF
-form submission, media uploads, and public file serving.
+Covers plain REST endpoints — primarily the public-facing surfaces: LIFF form
+submission, media uploads, and public file serving.
 
-Like the other limiters this is in-process (per worker), not distributed;
-acceptable for the current single-worker deployment. If the backend moves
-to multiple workers, back the buckets with Redis.
+Buckets are backed by Redis (shared across workers) via a fixed-window counter,
+so the limit is enforced per client across the whole deployment rather than
+per worker. When Redis is unavailable the dependency falls back to an
+in-process SlidingWindowLimiter (still limits, but per worker) so it neither
+fails open nor rejects everything.
 """
 import logging
 
@@ -14,6 +15,7 @@ from fastapi import HTTPException, Request
 
 from app.core.config import settings
 from app.core.rate_limiter import SlidingWindowLimiter
+from app.core.redis_client import redis_client
 
 logger = logging.getLogger(__name__)
 
@@ -60,19 +62,33 @@ def http_rate_limit(scope: str, max_events: int, window_seconds: int):
     Each call creates its own limiter, so scopes never share buckets. Attach
     with `dependencies=[Depends(http_rate_limit(...))]` on the route.
     Rejects with 429 + Retry-After when the window is exhausted.
+
+    The bucket is shared across workers via Redis; if Redis is down the
+    per-worker `limiter` below takes over so the endpoint still has a limit.
     """
     limiter = SlidingWindowLimiter(max_events=max_events, window_seconds=window_seconds)
     _limiters.append(limiter)
 
+    def _reject() -> HTTPException:
+        return HTTPException(
+            status_code=429,
+            detail="Too many requests, please try again later",
+            headers={"Retry-After": str(window_seconds)},
+        )
+
     async def dependency(request: Request) -> None:
-        key = f"{scope}:{_client_key(request)}"
-        if not limiter.is_allowed(key):
+        key = f"ratelimit:{scope}:{_client_key(request)}"
+
+        allowed = await redis_client.fixed_window_allow(
+            key, max_events=max_events, window_seconds=window_seconds
+        )
+        if allowed is None:
+            # Redis unavailable — degrade to the in-process limiter.
+            allowed = limiter.is_allowed(key)
+
+        if not allowed:
             logger.warning("HTTP rate limit exceeded for %s", key)
-            raise HTTPException(
-                status_code=429,
-                detail="Too many requests, please try again later",
-                headers={"Retry-After": str(window_seconds)},
-            )
+            raise _reject()
 
     # Introspection hooks: let tests find the limiter and verify route wiring.
     dependency.limiter = limiter
