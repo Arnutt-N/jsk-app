@@ -1,16 +1,16 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Cross-Platform Session Index (generated)
 
-> **Last generated**: 2026-07-18 20:21 (from newest checkpoint)
+> **Last generated**: 2026-07-18 20:49 (from newest checkpoint)
 
 ## Quick Stats
 
 | Metric | Value |
 |--------|-------|
-| Handoff checkpoints (active) | 173 |
-| Session summaries on disk | 260 |
+| Handoff checkpoints (active) | 174 |
+| Session summaries on disk | 261 |
 | Platforms | 8 (antigravity, claude_code, cline, codex, gemini_cli, kilo_code, kimi_code, open_code) |
-| Most recent | 2026-07-18 20:21 — claude_code |
+| Most recent | 2026-07-18 20:49 — claude_code |
 
 > Regenerate after any handoff: `node .agents/scripts/gen-handoff-views.cjs`
 
@@ -23,11 +23,12 @@
 | 2026-04-04 12:04 | completed | — | — | `handover-antigravity-20260404-1204.json` |
 | 2026-02-15 03:20 | completed | — | — | `handover-antigravity-20260215-0320.json` |
 
-## claude_code (133)
+## claude_code (134)
 
 | When | Status | Model | Provider | Checkpoint |
 |------|--------|-------|----------|------------|
-| 2026-07-18 20:21 | completed | — | — | `handover-claude_code-20260718-2021.json` |
+| 2026-07-18 20:49 | completed | — | — | `handover-claude_code-20260718-2049.json` |
+| 2026-07-18 20:21 | completed | Fable 5 | Anthropic | `handover-claude_code-20260718-2021.json` |
 | 2026-07-18 19:59 | completed | Fable 5 | Anthropic | `handover-claude_code-20260718-1959.json` |
 | 2026-07-18 18:14 | completed | Fable 5 | Anthropic | `handover-claude_code-20260718-1814.json` |
 | 2026-07-18 15:46 | completed | Fable 5 | Anthropic | `handover-claude_code-20260718-1546.json` |
@@ -46,8 +47,7 @@
 | 2026-07-08 00:47 | completed | — | — | `handover-claude_code-20260708-0047.json` |
 | 2026-07-07 14:35 | completed | — | — | `handover-claude_code-20260707-1435.json` |
 | 2026-07-07 13:30 | completed | — | — | `handover-claude_code-20260707-1330.json` |
-| 2026-07-07 10:38 | completed | — | — | `handover-claude_code-20260707-1038.json` |
-| … | | | | +113 older |
+| … | | | | +114 older |
 
 ## cline (5)
 

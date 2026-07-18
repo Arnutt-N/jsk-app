@@ -1,0 +1,22 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-07-18T20:49:00+07:00",
+  "branch": "main",
+  "head_commit": "cff7465",
+  "status": "completed",
+  "work_summary": "Fixed remaining s8 geography drift (handoff item B). PR #142 (squash-merged cff7465, all CI green) adds adoption migration z1a2b3c4d5e6 for provinces/districts/sub_districts. KEY: unlike broadcasts these tables ALREADY EXISTED + fully seeded on both local and PROD (provinces=77, districts=928, sub_districts=7436; /api/v1/locations/* already returned 200 with data) - the s8 doc dated 2026-07-15 was STALE, there was NO runtime error. So this is an idempotent adoption migration: upgrade() no-ops on existing DBs (guarded by table-existence) and records the revision; a fresh DB gets the schema so LIFF address dropdowns work. Seed data (8k+ rows) NOT in migration. Migration mirrors LIVE schema not the model where they differ (live districts.province_id/sub_districts.district_id are NULLABLE, model says nullable=False). downgrade() deliberate no-op (seeded reference data). Applied to PROD via db_target --target remote upgrade head; PROD head now z1a2b3c4d5e6. VERIFIED true no-op: endpoint still 200 with 77 provinces, row counts unchanged (77/928/7436). Also fresh-DB test: full migration chain on empty throwaway DB creates all 3 geo tables + broadcasts correctly. All 4 s8 tables now schema-tracked.",
+  "priority_actions": [
+    "ONLY s8 follow-up left (no runtime impact): harmonise ORM model vs live schema on FK nullability - model declares districts.province_id/sub_districts.district_id nullable=False but live PROD has them NULLABLE. Either alter live columns to NOT NULL (after confirming no NULL FK rows) or relax the model.",
+    "MED: LIFF empty-body POST {} returns 201 + junk row when LIFF_STRICT_MODE=false - tighten ServiceRequestCreate or enable strict mode.",
+    "Follow-up: Redis-back WS/auth in-process limiters (rate_limiter.py) if cross-worker enforcement needed; health watchdog per-worker may duplicate Telegram alerts (2 workers).",
+    "Decisions for user: is SLA_ALERT_TELEGRAM_ENABLED=false on prod intentional; add branch protection + required checks on main.",
+    "Carry-over: update skn-* skills referencing single-file live_chat_service.py; COOKIE_AUTH_MODE=dual rollout; PR 2C cookie-only hardening; NEW-3 DIRECTOR/HEAD ws role. Human-only: watch Telegram for [HEALTH] DOWN/RECOVERED on next real outage."
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/claude_code/session-summary-20260718-2049.md",
+  "cross_platform_read": [],
+  "model": "Fable 5",
+  "provider": "Anthropic"
+}

@@ -1,16 +1,23 @@
 {
-  "last_updated": "2026-07-18T20:21:00+07:00",
+  "last_updated": "2026-07-18T20:49:00+07:00",
   "platform": "claude_code",
-  "current_task": "Fixed broadcasts-table PROD drift (handoff item A). PR #141 (squash-merged 27262f6, all CI green) adds hand-written migration y0z1a2b3c4d5 creating the broadcasts table + broadcaststatus/broadcasttype",
+  "current_task": "Fixed remaining s8 geography drift (handoff item B). PR #142 (squash-merged cff7465, all CI green) adds adoption migration z1a2b3c4d5e6 for provinces/districts/sub_districts. KEY: unlike broadcasts th",
   "plan_status": "completed",
   "next_steps": [
-    "HIGH-ish: remaining s8 drift districts/provinces/sub_districts still unfixed - same pattern (ORM declares, no migration). Check if any runtime path errors on them like broadcasts did.",
+    "ONLY s8 follow-up left (no runtime impact): harmonise ORM model vs live schema on FK nullability - model declares districts.province_id/sub_districts.district_id nullable=False but live PROD has them NULLABLE. Either alter live columns to NOT NULL (after confirming no NULL FK rows) or relax the model.",
     "MED: LIFF empty-body POST {} returns 201 + junk row when LIFF_STRICT_MODE=false - tighten ServiceRequestCreate or enable strict mode.",
-    "Follow-up: apply Redis backing to WS/auth in-process limiters (rate_limiter.py) if cross-worker enforcement needed; health watchdog runs per-worker (2 workers) so may send duplicate Telegram alerts.",
+    "Follow-up: Redis-back WS/auth in-process limiters (rate_limiter.py) if cross-worker enforcement needed; health watchdog per-worker may duplicate Telegram alerts (2 workers).",
     "Decisions for user: is SLA_ALERT_TELEGRAM_ENABLED=false on prod intentional; add branch protection + required checks on main.",
     "Carry-over: update skn-* skills referencing single-file live_chat_service.py; COOKIE_AUTH_MODE=dual rollout; PR 2C cookie-only hardening; NEW-3 DIRECTOR/HEAD ws role. Human-only: watch Telegram for [HEALTH] DOWN/RECOVERED on next real outage."
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-07-18T20:49:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "cff7465",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-07-18T20:21:00+07:00",
       "platform": "claude_code",
@@ -142,13 +149,6 @@
       "platform": "claude_code",
       "branch": "main",
       "head": "a2083f9",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-07T10:38:00+07:00",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "7b25017",
       "status": "completed"
     }
   ],

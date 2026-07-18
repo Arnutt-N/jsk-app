@@ -1,10 +1,19 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 173 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 174 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
 
-### 2026-07-18 20:21 — claude_code — completed
+### 2026-07-18 20:49 — claude_code — completed
+
+Fixed remaining s8 geography drift (handoff item B). PR #142 (squash-merged cff7465, all CI green) adds adoption migration z1a2b3c4d5e6 for provinces/districts/sub_districts. KEY: unlike broadcasts these tables ALREADY EXISTED + fully seeded on both local and PROD (provinces=77, districts=928, sub_districts=7436; /api/v1/locations/* already returned 200 with data) - the s8 doc dated 2026-07-15 was STALE, there was NO runtime error. So this is an idempotent adoption migration: upgrade() no-ops on existing DBs (guarded by table-existence) and records the revision; a fresh DB gets the schema so LIFF address dropdowns work. Seed data (8k+ rows) NOT in migration. Migration mirrors LIVE schema not the model where they differ (live districts.province_id/sub_districts.district_id are NULLABLE, model says nullable=False). downgrade() deliberate no-op (seeded reference data). Applied to PROD via db_target --target remote upgrade head; PROD head now z1a2b3c4d5e6. VERIFIED true no-op: endpoint still 200 with 77 provinces, row counts unchanged (77/928/7436). Also fresh-DB test: full migration chain on empty throwaway DB creates all 3 geo tables + broadcasts correctly. All 4 s8 tables now schema-tracked.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260718-2049.json`
+- Summary: `project-log-md/claude_code/session-summary-20260718-2049.md`
+
+---
+
+### 2026-07-18 20:21 — claude_code (Fable 5 / Anthropic) — completed
 
 Fixed broadcasts-table PROD drift (handoff item A). PR #141 (squash-merged 27262f6, all CI green) adds hand-written migration y0z1a2b3c4d5 creating the broadcasts table + broadcaststatus/broadcasttype enums that the ORM model always declared but no migration ever created (docs/remediation preflight-evidence-and-designs.md s8). Applied to PROD via db_target.py alembic --target remote upgrade head; PROD head now y0z1a2b3c4d5. VERIFIED FIXED: last UndefinedTableError in Koyeb logs at 13:17:04 UTC (= migration apply time), logs then flowed to 13:20:20+ UTC with ZERO new broadcasts errors across 13+ scheduler cycles - no redeploy needed, the migration alone fixed the running code. Enum gotcha: SQLAlchemy Enum(PyEnumClass) stores MEMBER NAMES uppercase (SCHEDULED not scheduled); migration uses postgresql.ENUM with uppercase labels + create_type=False + explicit .create(checkfirst=True), idempotent (no-ops if table exists). Verified local first: upgrade creates table+enums, ORM insert applies defaults + scheduler query returns rows, downgrade/upgrade cycle clean.
 
