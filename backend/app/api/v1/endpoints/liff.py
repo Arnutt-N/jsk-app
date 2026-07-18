@@ -87,8 +87,10 @@ async def create_service_request(
     # Note: Our Pydantic has 'name', 'phone', 'service_type'
     # But our DB Model has 'requester_name', 'phone_number', 'category'
 
-    # Construct full name
-    full_name = f"{request.prefix or ''}{request.firstname} {request.lastname}".strip()
+    # Construct full name. Guard each part with `or ''` so an anonymous
+    # submission (no prefix/firstname/lastname) yields "" — not the literal
+    # "None None" — and is stored as NULL rather than junk text.
+    full_name = f"{request.prefix or ''}{request.firstname or ''} {request.lastname or ''}".strip()
     if request.name and not full_name:
         full_name = request.name # Fallback
 
@@ -103,7 +105,7 @@ async def create_service_request(
         prefix=request.prefix,
         firstname=request.firstname,
         lastname=request.lastname,
-        requester_name=full_name,
+        requester_name=full_name or None,
         phone_number=request.phone_number,
         email=request.email,
         

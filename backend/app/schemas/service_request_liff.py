@@ -1,6 +1,11 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, model_validator
 from typing import Optional
 from datetime import datetime
+
+
+def _blank(value: Optional[str]) -> bool:
+    """True when a string field is missing or only whitespace."""
+    return value is None or not value.strip()
 
 class ServiceRequestCreate(BaseModel):
     # Personal Info
@@ -30,6 +35,30 @@ class ServiceRequestCreate(BaseModel):
     # Legacy mapping support (optional)
     name: Optional[str] = None # Will be constructed from first+last if needed
     service_type: Optional[str] = None # Will be mapped to topic_category
+
+    @model_validator(mode="after")
+    def _require_content(self) -> "ServiceRequestCreate":
+        """Reject junk submissions (e.g. an empty body).
+
+        A bare `POST {}` used to write a row with requester_name='None None'
+        and every content field NULL. A real request must at least say what it
+        is about, so we require some content — a topic (topic_category or the
+        legacy service_type) or a description.
+
+        The requester name is deliberately NOT required: drug-reporting tips
+        ("แจ้งเบาะแสยาเสพติด") are legitimately submitted anonymously, so a
+        submission with content but no name is valid.
+        """
+        has_content = (
+            not _blank(self.topic_category)
+            or not _blank(self.service_type)
+            or not _blank(self.description)
+        )
+        if not has_content:
+            raise ValueError(
+                "A service request requires a topic or a description."
+            )
+        return self
 
     model_config = ConfigDict(
         json_schema_extra={
