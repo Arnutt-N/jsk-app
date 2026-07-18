@@ -68,12 +68,28 @@ def test_multiple_components_alert_independently():
     assert "RECOVERED" in alerts[0]
 
 
+class _FakeRedis:
+    """Minimal shared fake for SET NX EX (the claim_once primitive)."""
+
+    def __init__(self):
+        self.kv: dict[str, str] = {}
+
+    async def set(self, key, value, ex=None, nx=False):
+        if nx and key in self.kv:
+            return None
+        self.kv[key] = value
+        return True
+
+
 @pytest.mark.asyncio
 async def test_run_once_sends_alerts_via_telegram(monkeypatch):
     from app.core.config import settings
+    from app.core.redis_client import redis_client
     from app.tasks import health_watchdog as hw
 
     monkeypatch.setattr(settings, "HEALTH_ALERT_TELEGRAM_ENABLED", True)
+    # Redis down -> claim_once returns None -> send anyway (deterministic).
+    monkeypatch.setattr(redis_client, "_redis", None)
 
     wd = make_watchdog()
     wd.check_components = AsyncMock(return_value={"database": False, "redis": True})
@@ -102,3 +118,47 @@ async def test_run_once_skips_telegram_when_disabled(monkeypatch):
     await wd.run_once()
 
     send_mock.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_two_workers_send_alert_only_once(monkeypatch):
+    """Simulate two worker processes sharing one Redis: the same DOWN
+    transition must reach the operator chat exactly once, not per worker."""
+    from app.core.config import settings
+    from app.core.redis_client import redis_client
+    from app.tasks import health_watchdog as hw
+
+    monkeypatch.setattr(settings, "HEALTH_ALERT_TELEGRAM_ENABLED", True)
+    monkeypatch.setattr(redis_client, "_redis", _FakeRedis())
+
+    send_mock = AsyncMock(return_value=True)
+    monkeypatch.setattr(hw.telegram_service, "send_alert_message", send_mock)
+
+    # Two independent watchdogs (their own per-process state machines).
+    down = {"database": False, "redis": True}
+    for _ in range(2):
+        wd = make_watchdog()
+        wd.check_components = AsyncMock(return_value=down)
+        await wd.run_once()
+
+    send_mock.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_alert_sent_when_redis_unavailable(monkeypatch):
+    """Redis down must not swallow the alert (claim_once -> None -> send)."""
+    from app.core.config import settings
+    from app.core.redis_client import redis_client
+    from app.tasks import health_watchdog as hw
+
+    monkeypatch.setattr(settings, "HEALTH_ALERT_TELEGRAM_ENABLED", True)
+    monkeypatch.setattr(redis_client, "_redis", None)
+
+    send_mock = AsyncMock(return_value=True)
+    monkeypatch.setattr(hw.telegram_service, "send_alert_message", send_mock)
+
+    wd = make_watchdog()
+    wd.check_components = AsyncMock(return_value={"database": False, "redis": True})
+    await wd.run_once()
+
+    send_mock.assert_awaited_once()

@@ -150,6 +150,26 @@ class RedisClient:
             logger.error(f"Redis rate-limit error: {e}")
             return None
 
+    async def claim_once(self, key: str, ttl_seconds: int) -> Optional[bool]:
+        """Cross-worker single-winner claim over a shared key (SET NX EX).
+
+        For side effects that are safe to run but should fire only once across
+        workers (e.g. a health-alert Telegram message). Returns:
+          * True  — this caller claimed the key; it should perform the action
+          * False — the key is already held by another worker; skip
+          * None  — Redis unavailable; caller decides (usually still act,
+                    accepting a possible duplicate — never silently drop an
+                    alert just because Redis is down).
+        """
+        if not self._redis:
+            return None
+        try:
+            result = await self._redis.set(key, "1", ex=ttl_seconds, nx=True)
+            return bool(result)
+        except Exception as e:
+            logger.error(f"Redis claim_once error: {e}")
+            return None
+
     @property
     def is_connected(self) -> bool:
         """Check if Redis is connected."""
