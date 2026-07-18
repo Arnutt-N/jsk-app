@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-07-18 20:49 by Claude Code (Fixed remaining s8 geography drift handoff item B.)
+> **Last Updated:** 2026-07-18 21:28 by Claude Code (Fixed LIFF empty-body validation gap handoff item C.)
 
 ## Thai Summary
 ฟีเจอร์ **Rich Menu Switching + การกำหนดเมนูรายบุคคล (R1/R2)** เสร็จสมบูรณ์และขึ้น production แล้ว — merge เข้า main ผ่าน PR #114 (merge commit `3a90f4d`), migrate ฐานข้อมูล Supabase PROD (richmenu alias + user_rich_menu_links แบบ additive) และ deploy frontend บน Vercel เรียบร้อย
@@ -54,6 +54,7 @@
 - [2026-06-21] R1/R2 Rich Menu (incl Task 6.2 per-user UI) merged to `main` via PR #114 (`3a90f4d`); Supabase PROD migrated; Vercel frontend deployed. Branch `feat/rich-menu-switching-r1` deleted. Working tree clean.
 
 ## Recent Completions
+- [2026-07-18 21:28] Claude Code: Fixed LIFF empty-body validation gap (handoff item C). PR #143 (squash-merged 0b41c33, all CI green) adds a server-side model_validator to ServiceRequestCreate: a submission must carry content - a topic (topic_category or legacy service_typ (Claude Code)
 - [2026-07-18 20:49] Claude Code: Fixed remaining s8 geography drift (handoff item B). PR #142 (squash-merged cff7465, all CI green) adds adoption migration z1a2b3c4d5e6 for provinces/districts/sub_districts. KEY: unlike broadcasts these tables ALREADY EXISTED + fully seede (Claude Code)
 - [2026-07-18 20:21] Claude Code: Fixed broadcasts-table PROD drift (handoff item A). PR #141 (squash-merged 27262f6, all CI green) adds hand-written migration y0z1a2b3c4d5 creating the broadcasts table + broadcaststatus/broadcasttype enums that the ORM model always declare (Claude Code)
 - [2026-07-18 19:59] Claude Code: Closed handoff item 3: HTTP rate-limit buckets now Redis-backed (shared across workers). PR #140 (squash-merged 835c261, all CI green incl Backend Pytest on Linux) added redis_client.fixed_window_allow (SET key 0 EX window NX to anchor TTL  (Claude Code)

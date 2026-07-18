@@ -1,16 +1,23 @@
 {
-  "last_updated": "2026-07-18T20:49:00+07:00",
+  "last_updated": "2026-07-18T21:28:00+07:00",
   "platform": "claude_code",
-  "current_task": "Fixed remaining s8 geography drift (handoff item B). PR #142 (squash-merged cff7465, all CI green) adds adoption migration z1a2b3c4d5e6 for provinces/districts/sub_districts. KEY: unlike broadcasts th",
+  "current_task": "Fixed LIFF empty-body validation gap (handoff item C). PR #143 (squash-merged 0b41c33, all CI green) adds a server-side model_validator to ServiceRequestCreate: a submission must carry content - a top",
   "plan_status": "completed",
   "next_steps": [
-    "ONLY s8 follow-up left (no runtime impact): harmonise ORM model vs live schema on FK nullability - model declares districts.province_id/sub_districts.district_id nullable=False but live PROD has them NULLABLE. Either alter live columns to NOT NULL (after confirming no NULL FK rows) or relax the model.",
-    "MED: LIFF empty-body POST {} returns 201 + junk row when LIFF_STRICT_MODE=false - tighten ServiceRequestCreate or enable strict mode.",
+    "Separate DECISION for user: also set LIFF_STRICT_MODE=true on prod? It requires a LIFF token on every submission (orthogonal to this data-integrity fix which already blocks empty bodies).",
+    "Last s8 follow-up (no runtime impact): harmonise ORM model vs live schema FK nullability - model says districts.province_id/sub_districts.district_id nullable=False but live PROD has them NULLABLE.",
     "Follow-up: Redis-back WS/auth in-process limiters (rate_limiter.py) if cross-worker enforcement needed; health watchdog per-worker may duplicate Telegram alerts (2 workers).",
     "Decisions for user: is SLA_ALERT_TELEGRAM_ENABLED=false on prod intentional; add branch protection + required checks on main.",
     "Carry-over: update skn-* skills referencing single-file live_chat_service.py; COOKIE_AUTH_MODE=dual rollout; PR 2C cookie-only hardening; NEW-3 DIRECTOR/HEAD ws role. Human-only: watch Telegram for [HEALTH] DOWN/RECOVERED on next real outage."
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-07-18T21:28:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "0b41c33",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-07-18T20:49:00+07:00",
       "platform": "claude_code",
@@ -142,13 +149,6 @@
       "platform": "claude_code",
       "branch": "main",
       "head": "0789ad2",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-07T13:30:00+07:00",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "a2083f9",
       "status": "completed"
     }
   ],

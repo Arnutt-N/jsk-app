@@ -1,0 +1,22 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-07-18T21:28:00+07:00",
+  "branch": "main",
+  "head_commit": "0b41c33",
+  "status": "completed",
+  "work_summary": "Fixed LIFF empty-body validation gap (handoff item C). PR #143 (squash-merged 0b41c33, all CI green) adds a server-side model_validator to ServiceRequestCreate: a submission must carry content - a topic (topic_category or legacy service_type) OR a description - else 422. Previously every field was Optional so a bare POST {} wrote a junk row (requester_name 'None None', all content NULL). Requester NAME deliberately NOT required: drug-report tips (แจ้งเบาะแสยาเสพติด) are legitimately anonymous - existing test_prd_e_drug_reporting cases (content, no name) proved requiring a name would break that flow, so the validator is content-only. Also fixed the endpoint full_name f-string to guard parts with 'or ' and store requester_name=full_name or None so anonymous rows are NULL not the literal None None. TDD 9 new schema tests; full suite 618 passed/1 skipped locally (3 websocket files excluded, green on Linux CI). Deployed to Koyeb (deployment 109405b3, sha 0b41c33). VERIFIED LIVE on prod: POST {} returns 422 with the correct message; anonymous {topic,description} returns 201 with requester_name:null (full_name fix confirmed). Cleaned the verify row (id 46); all session junk rows 31-46 gone, 0 recent remaining. GOTCHA: curl on Git Bash mangles inline -d Thai UTF-8 (got 400 error parsing the body); use --data-binary @file.json for Thai.",
+  "priority_actions": [
+    "Separate DECISION for user: also set LIFF_STRICT_MODE=true on prod? It requires a LIFF token on every submission (orthogonal to this data-integrity fix which already blocks empty bodies).",
+    "Last s8 follow-up (no runtime impact): harmonise ORM model vs live schema FK nullability - model says districts.province_id/sub_districts.district_id nullable=False but live PROD has them NULLABLE.",
+    "Follow-up: Redis-back WS/auth in-process limiters (rate_limiter.py) if cross-worker enforcement needed; health watchdog per-worker may duplicate Telegram alerts (2 workers).",
+    "Decisions for user: is SLA_ALERT_TELEGRAM_ENABLED=false on prod intentional; add branch protection + required checks on main.",
+    "Carry-over: update skn-* skills referencing single-file live_chat_service.py; COOKIE_AUTH_MODE=dual rollout; PR 2C cookie-only hardening; NEW-3 DIRECTOR/HEAD ws role. Human-only: watch Telegram for [HEALTH] DOWN/RECOVERED on next real outage."
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/claude_code/session-summary-20260718-2128.md",
+  "cross_platform_read": [],
+  "model": "Fable 5",
+  "provider": "Anthropic"
+}

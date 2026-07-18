@@ -1,10 +1,19 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 174 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 175 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
 
-### 2026-07-18 20:49 — claude_code — completed
+### 2026-07-18 21:28 — claude_code — completed
+
+Fixed LIFF empty-body validation gap (handoff item C). PR #143 (squash-merged 0b41c33, all CI green) adds a server-side model_validator to ServiceRequestCreate: a submission must carry content - a topic (topic_category or legacy service_type) OR a description - else 422. Previously every field was Optional so a bare POST {} wrote a junk row (requester_name 'None None', all content NULL). Requester NAME deliberately NOT required: drug-report tips (แจ้งเบาะแสยาเสพติด) are legitimately anonymous - existing test_prd_e_drug_reporting cases (content, no name) proved requiring a name would break that flow, so the validator is content-only. Also fixed the endpoint full_name f-string to guard parts with 'or ' and store requester_name=full_name or None so anonymous rows are NULL not the literal None None. TDD 9 new schema tests; full suite 618 passed/1 skipped locally (3 websocket files excluded, green on Linux CI). Deployed to Koyeb (deployment 109405b3, sha 0b41c33). VERIFIED LIVE on prod: POST {} returns 422 with the correct message; anonymous {topic,description} returns 201 with requester_name:null (full_name fix confirmed). Cleaned the verify row (id 46); all session junk rows 31-46 gone, 0 recent remaining. GOTCHA: curl on Git Bash mangles inline -d Thai UTF-8 (got 400 error parsing the body); use --data-binary @file.json for Thai.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260718-2128.json`
+- Summary: `project-log-md/claude_code/session-summary-20260718-2128.md`
+
+---
+
+### 2026-07-18 20:49 — claude_code (Fable 5 / Anthropic) — completed
 
 Fixed remaining s8 geography drift (handoff item B). PR #142 (squash-merged cff7465, all CI green) adds adoption migration z1a2b3c4d5e6 for provinces/districts/sub_districts. KEY: unlike broadcasts these tables ALREADY EXISTED + fully seeded on both local and PROD (provinces=77, districts=928, sub_districts=7436; /api/v1/locations/* already returned 200 with data) - the s8 doc dated 2026-07-15 was STALE, there was NO runtime error. So this is an idempotent adoption migration: upgrade() no-ops on existing DBs (guarded by table-existence) and records the revision; a fresh DB gets the schema so LIFF address dropdowns work. Seed data (8k+ rows) NOT in migration. Migration mirrors LIVE schema not the model where they differ (live districts.province_id/sub_districts.district_id are NULLABLE, model says nullable=False). downgrade() deliberate no-op (seeded reference data). Applied to PROD via db_target --target remote upgrade head; PROD head now z1a2b3c4d5e6. VERIFIED true no-op: endpoint still 200 with 77 provinces, row counts unchanged (77/928/7436). Also fresh-DB test: full migration chain on empty throwaway DB creates all 3 geo tables + broadcasts correctly. All 4 s8 tables now schema-tracked.
 
