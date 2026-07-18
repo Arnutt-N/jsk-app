@@ -244,7 +244,12 @@ export default function AdminRequestList() {
                         <Plus className="w-4 h-4 mr-1" /> สร้างคำร้อง
                     </Link>
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => fetchRequests()}>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fetchRequests()}
+                    aria-label="รีเฟรช"
+                >
                     <RefreshCw className="w-4 h-4" />
                 </Button>
             </PageHeader>

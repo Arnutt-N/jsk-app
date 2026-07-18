@@ -104,7 +104,7 @@ export default function SettingsOverviewPage() {
                     leftIcon={<RefreshCw className="w-4 h-4" />}
                     onClick={fetchOverview}
                 >
-                    Refresh
+                    รีเฟรช
                 </Button>
             </PageHeader>
 
