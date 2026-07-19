@@ -8,14 +8,17 @@ class Province(Base):
     id = Column(Integer, primary_key=True, index=True) # Matches PROVINCE_ID
     name_th = Column(String, nullable=False, index=True)
     name_en = Column(String, nullable=True)
-    
+
     districts = relationship("District", back_populates="province")
 
 class District(Base):
     __tablename__ = "districts"
 
     id = Column(Integer, primary_key=True, index=True) # Matches DISTRICT_ID
-    province_id = Column(Integer, ForeignKey("provinces.id"), nullable=False, index=True)
+    # Nullable on the live PROD schema (see migration z1a2b3c4d5e6); the ORM
+    # previously declared nullable=False, which diverged from the source of
+    # truth and would have broken any fresh insert that omits the parent id.
+    province_id = Column(Integer, ForeignKey("provinces.id"), nullable=True, index=True)
     name_th = Column(String, nullable=False, index=True)
     name_en = Column(String, nullable=True)
     code = Column(String, nullable=True) # Matches DISTRICT_CODE
@@ -27,7 +30,9 @@ class SubDistrict(Base):
     __tablename__ = "sub_districts"
 
     id = Column(Integer, primary_key=True, index=True) # Matches SUB_DISTRICT_ID
-    district_id = Column(Integer, ForeignKey("districts.id"), nullable=False, index=True)
+    # Nullable on the live PROD schema (see migration z1a2b3c4d5e6); relaxed
+    # from nullable=False for the same reason as districts.province_id above.
+    district_id = Column(Integer, ForeignKey("districts.id"), nullable=True, index=True)
     name_th = Column(String, nullable=False, index=True)
     name_en = Column(String, nullable=True)
     postal_code = Column(String, nullable=True)
