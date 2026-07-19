@@ -60,6 +60,14 @@ KEY_VIEW_AUDIT_LOG = "view_audit_log"
 KEY_EDIT_SYSTEM_SETTINGS = "edit_settings"
 KEY_IMAGE_RESIZE = "image_resize"
 
+# P1.2a -- configurable auth gates (deps.py). Replace the three
+# hardcoded role allowlists in get_current_admin/manager/staff with
+# DB-configurable permission keys via the existing matrix UI. DEFAULT
+# values mirror today's hardcoded sets so the PR ships dark.
+KEY_ACCESS_ADMIN_ENDPOINTS = "access_admin_endpoints"
+KEY_ACCESS_MANAGER_ENDPOINTS = "access_manager_endpoints"
+KEY_ACCESS_STAFF_ENDPOINTS = "access_staff_endpoints"
+
 # Hardcoded fallback used when the DB row is missing OR the cache hasn't
 # loaded yet. Mirrors the migration seed values.
 DEFAULT_POLICY: dict[str, frozenset[UserRole]] = {
@@ -106,6 +114,26 @@ DEFAULT_POLICY: dict[str, frozenset[UserRole]] = {
     KEY_VIEW_AUDIT_LOG: frozenset({UserRole.SUPER_ADMIN, UserRole.ADMIN}),
     KEY_EDIT_SYSTEM_SETTINGS: frozenset({UserRole.SUPER_ADMIN, UserRole.ADMIN}),
     KEY_IMAGE_RESIZE: frozenset({UserRole.SUPER_ADMIN, UserRole.ADMIN}),
+    # --- P1.2a: Configurable auth gates (deps.py) ---
+    # Mirror the hardcoded role sets in get_current_admin/manager/staff
+    # so the PR ships dark (zero behavior change). SUPER_ADMIN stays in
+    # every set by default; the lockout safeguard in settings.py
+    # prevents removing SUPER_ADMIN only from access_admin_endpoints
+    # (the settings-UI gate).
+    KEY_ACCESS_ADMIN_ENDPOINTS: frozenset({UserRole.SUPER_ADMIN, UserRole.ADMIN}),
+    KEY_ACCESS_MANAGER_ENDPOINTS: frozenset({
+        UserRole.SUPER_ADMIN,
+        UserRole.ADMIN,
+        UserRole.DIRECTOR,
+        UserRole.HEAD,
+    }),
+    KEY_ACCESS_STAFF_ENDPOINTS: frozenset({
+        UserRole.SUPER_ADMIN,
+        UserRole.ADMIN,
+        UserRole.AGENT,
+        UserRole.DIRECTOR,
+        UserRole.HEAD,
+    }),
 }
 
 # Legacy aliases kept for any code that still references them.
@@ -188,6 +216,10 @@ _SEED_DESCRIPTIONS: dict[str, str] = {
     KEY_VIEW_AUDIT_LOG: "ดู Audit Log",
     KEY_EDIT_SYSTEM_SETTINGS: "แก้ไขการตั้งค่าระบบ (credentials/integrations)",
     KEY_IMAGE_RESIZE: "ใช้เครื่องมือ Image Resize",
+    # --- P1.2a: Configurable auth gates (deps.py) ---
+    KEY_ACCESS_ADMIN_ENDPOINTS: "เข้าใช้งาน admin endpoints (gate เข้า settings UI)",
+    KEY_ACCESS_MANAGER_ENDPOINTS: "เข้าใช้งาน manager-level endpoints (request workflow)",
+    KEY_ACCESS_STAFF_ENDPOINTS: "เข้าใช้งาน staff-level endpoints (live-chat HTTP)",
 }
 
 
@@ -393,6 +425,12 @@ PERMISSION_REGISTRY: tuple[PermissionMeta, ...] = (
     PermissionMeta(KEY_MANAGE_USERS, "system", LEVEL_MANAGE, _SEED_DESCRIPTIONS[KEY_MANAGE_USERS]),
     PermissionMeta(KEY_MANAGE_FILES, "system", LEVEL_MANAGE, _SEED_DESCRIPTIONS[KEY_MANAGE_FILES]),
     PermissionMeta(KEY_EDIT_SETTINGS, "system", LEVEL_MANAGE, _SEED_DESCRIPTIONS[KEY_EDIT_SETTINGS]),
+    # P1.2a: Configurable auth gates (deps.py). admin/manager gates are
+    # MANAGE-level (escalation-sensitive); staff is VIEW-level (front-line
+    # access surface). Grouped under "system" alongside other access keys.
+    PermissionMeta(KEY_ACCESS_ADMIN_ENDPOINTS, "system", LEVEL_MANAGE, _SEED_DESCRIPTIONS[KEY_ACCESS_ADMIN_ENDPOINTS]),
+    PermissionMeta(KEY_ACCESS_MANAGER_ENDPOINTS, "system", LEVEL_MANAGE, _SEED_DESCRIPTIONS[KEY_ACCESS_MANAGER_ENDPOINTS]),
+    PermissionMeta(KEY_ACCESS_STAFF_ENDPOINTS, "system", LEVEL_VIEW, _SEED_DESCRIPTIONS[KEY_ACCESS_STAFF_ENDPOINTS]),
 )
 
 # Every key (existing + new) must appear in the registry exactly once.

@@ -178,3 +178,78 @@ def test_patch_permissions_rejects_removing_super_admin():
 
     assert response.status_code == 400
     assert fake_db.committed is False
+
+
+# ---------------------------------------------------------------------------
+# P1.2a — SUPER_ADMIN lockout safeguard for the 3 access-gate keys.
+# access_admin_endpoints IS locked (gate to settings UI); access_manager
+# and access_staff are NOT locked (recoverable via the matrix endpoint
+# which SUPER_ADMIN still reaches through access_admin_endpoints). The
+# existing lockout guard (settings.py:176-180) rejects removing
+# SUPER_ADMIN from ANY key, so all 3 will 400 -- but the design intent is
+# that only access_admin_endpoints NEEDS the lock to prevent lockout.
+# ---------------------------------------------------------------------------
+
+
+def _patch_permissions_payload(key: str, allowed_roles: list[str]) -> dict:
+    return {"updates": [{"key": key, "allowed_roles": allowed_roles}]}
+
+
+def _patch_permissions_attempt(key: str, allowed_roles: list[str]) -> tuple:
+    """Run a PATCH /permissions attempt as SUPER_ADMIN. Returns (status, committed)."""
+    fake_db = _FakeDB()
+    invalidate_cache()
+
+    async def _override_get_db():
+        yield fake_db
+
+    async def _override_get_current_admin():
+        return _make_user(UserRole.SUPER_ADMIN)
+
+    app.dependency_overrides[session_get_db] = _override_get_db
+    app.dependency_overrides[deps.get_current_admin] = _override_get_current_admin
+
+    client = TestClient(app)
+    try:
+        response = client.patch(
+            "/api/v1/admin/settings/permissions",
+            json=_patch_permissions_payload(key, allowed_roles),
+        )
+    finally:
+        client.close()
+        app.dependency_overrides.clear()
+        invalidate_cache()
+
+    return response.status_code, fake_db.committed
+
+
+def test_lockout_rejects_removing_super_admin_from_access_admin_endpoints():
+    """access_admin_endpoints is the settings-UI gate. Removing SUPER_ADMIN
+    would lock SUPER_ADMIN out of /permissions (the only recovery endpoint)
+    -- the existing guard rejects the flip with 400."""
+    status, committed = _patch_permissions_attempt(
+        "access_admin_endpoints", ["ADMIN"]
+    )
+    assert status == 400
+    assert committed is False
+
+
+def test_lockout_also_rejects_removing_super_admin_from_access_manager():
+    """The lockout guard fires for EVERY key (settings.py:176-180), not just
+    access_admin_endpoints. Removing SUPER_ADMIN from access_manager also
+    400s -- even though access_manager is not the settings-UI gate. This
+    is the existing guard's blanket behavior; documenting it here."""
+    status, committed = _patch_permissions_attempt(
+        "access_manager_endpoints", ["ADMIN", "DIRECTOR", "HEAD"]
+    )
+    assert status == 400
+    assert committed is False
+
+
+def test_lockout_also_rejects_removing_super_admin_from_access_staff():
+    """Same blanket guard for access_staff_endpoints."""
+    status, committed = _patch_permissions_attempt(
+        "access_staff_endpoints", ["ADMIN", "AGENT", "DIRECTOR", "HEAD"]
+    )
+    assert status == 400
+    assert committed is False
