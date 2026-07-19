@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-07-19 04:20 by Kilo Code (Fixed Button icon+text wrap bug PR #146 merged to main: content wrapper and children span )
+> **Last Updated:** 2026-07-19 08:21 by Kilo Code (Shipped 3 follow-up fixes PRs #147, #148, #149 all merged to main, CI green.)
 
 ## Thai Summary
 ฟีเจอร์ **Rich Menu Switching + การกำหนดเมนูรายบุคคล (R1/R2)** เสร็จสมบูรณ์และขึ้น production แล้ว — merge เข้า main ผ่าน PR #114 (merge commit `3a90f4d`), migrate ฐานข้อมูล Supabase PROD (richmenu alias + user_rich_menu_links แบบ additive) และ deploy frontend บน Vercel เรียบร้อย
@@ -54,6 +54,7 @@
 - [2026-06-21] R1/R2 Rich Menu (incl Task 6.2 per-user UI) merged to `main` via PR #114 (`3a90f4d`); Supabase PROD migrated; Vercel frontend deployed. Branch `feat/rich-menu-switching-r1` deleted. Working tree clean.
 
 ## Recent Completions
+- [2026-07-19 08:21] Kilo Code: Shipped 3 follow-up fixes (PRs #147, #148, #149 all merged to main, CI green). PR #147: unified refresh buttons to Thai label + leftIcon spacing across 6 admin pages. PR #148: fixed canned-responses double-slash bug (//greeting -> /greeting (Kilo Code)
 - [2026-07-19 04:20] Kilo Code: Fixed Button icon+text wrap bug (PR #146 merged to main): content wrapper and children span changed from flex to inline-flex with whitespace-nowrap, preventing refresh buttons from wrapping text to a new line. CI all green (Backend Pytest,  (Kilo Code)
 - [2026-07-19 04:15] Kilo Code: Fixed Button icon+text wrap bug (PR #146 merged to main): content wrapper and children span changed from flex to inline-flex with whitespace-nowrap, preventing refresh buttons from wrapping text to a new line. CI all green (Backend Pytest,  (Kilo Code)
 - [2026-07-19 04:12] Claude Code: Fixed Button icon+text wrap bug (PR #146 merged to main): content wrapper and children span changed from flex to inline-flex with whitespace-nowrap, preventing refresh buttons from wrapping text to a new line. CI all green (Backend Pytest,  (Claude Code)

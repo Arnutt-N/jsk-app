@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 179 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 180 active handoffs, 8 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-19 08:21 — kilo_code — completed
+
+Shipped 3 follow-up fixes (PRs #147, #148, #149 all merged to main, CI green). PR #147: unified refresh buttons to Thai label + leftIcon spacing across 6 admin pages. PR #148: fixed canned-responses double-slash bug (//greeting -> /greeting) via 3 coordinated changes (seed data, service normalize, migration a2b3c4d5e6f7) - migration auto-applied to PROD and verified (8 seed shortcuts all stripped). PR #149: relaxed geography FK nullability (districts.province_id + sub_districts.district_id nullable=False -> True) to match live PROD schema, closing Group 3 - zero risk, no migration, no downtime. Backend suite 672 passed / 1 skipped.
+
+- Checkpoint: `.agents/state/checkpoints/handover-kilo_code-20260719-0821.json`
+- Summary: `project-log-md/kilo_code/session-summary-20260719-0821.md`
+
+---
 
 ### 2026-07-19 04:20 — kilo_code — completed
 

@@ -1,15 +1,21 @@
 {
-  "last_updated": "2026-07-19T04:20:00+07:00",
+  "last_updated": "2026-07-19T08:21:00+07:00",
   "platform": "kilo_code",
-  "current_task": "Fixed Button icon+text wrap bug (PR #146 merged to main): content wrapper and children span changed from flex to inline-flex with whitespace-nowrap, preventing refresh buttons from wrapping text to a ",
+  "current_task": "Shipped 3 follow-up fixes (PRs #147, #148, #149 all merged to main, CI green). PR #147: unified refresh buttons to Thai label + leftIcon spacing across 6 admin pages. PR #148: fixed canned-responses d",
   "plan_status": "completed",
   "next_steps": [
-    "Group 1 user decisions: LIFF_STRICT_MODE prod flag / SLA_ALERT_TELEGRAM_ENABLED / branch protection on main",
-    "Group 2 (fresh session): COOKIE_AUTH_MODE=dual prod rollout / PR 2C cookie hardening / NEW-3 DIRECTOR-HEAD ws role",
-    "Group 3 low-priority cleanup: FK nullability districts.province_id + sub_districts.district_id (SET NOT NULL or relax model)",
+    "Group 1 user decisions (need user input, not agent): LIFF_STRICT_MODE prod flag / SLA_ALERT_TELEGRAM_ENABLED / branch protection + required checks on main (root cause of PR #137 auto-merge gap)",
+    "Group 2 (FRESH session - large, needs clean context window): COOKIE_AUTH_MODE=dual prod rollout per PRD (tables dark-shipped w3x4y5z6a7b8 + x9y0z1a2b3c4, flag still bearer) / PR 2C cookie-only hardening (after dual rollout) / NEW-3 DIRECTOR-HEAD ws role (decision + implementation)",
     "Human-only: watch Telegram operator chat on next real outage to verify cross-worker health-alert dedup"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-07-19T08:21:00+07:00",
+      "platform": "kilo_code",
+      "branch": "main",
+      "head": "0f69af1",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-07-19T04:20:00+07:00",
       "platform": "kilo_code",
@@ -141,13 +147,6 @@
       "platform": "claude_code",
       "branch": "main",
       "head": "31632ee",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-12T12:34:00+07:00",
-      "platform": "codex",
-      "branch": "main",
-      "head": "67853e8",
       "status": "completed"
     }
   ],
