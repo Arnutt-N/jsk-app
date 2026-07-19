@@ -25,8 +25,13 @@ from app.core.permissions import (
     KEY_VIEW_AUDIT_LOG,
     KEY_EDIT_SYSTEM_SETTINGS,
     KEY_IMAGE_RESIZE,
+    KEY_ACCESS_ADMIN_ENDPOINTS,
+    KEY_ACCESS_MANAGER_ENDPOINTS,
+    KEY_ACCESS_STAFF_ENDPOINTS,
+    can,
     ALL_PERMISSION_KEYS,
     DEFAULT_POLICY,
+    PERMISSION_REGISTRY,
 )
 from app.models.user import UserRole
 
@@ -170,3 +175,114 @@ def test_keys_for_level_manage_superset_of_view():
     view_keys = keys_for_level("system", 1)
     manage_keys = keys_for_level("system", 3)
     assert set(view_keys).issubset(set(manage_keys))
+
+
+# ---------------------------------------------------------------------------
+# P1.2a -- configurable auth gates (deps.py).
+# Three new keys replace the hardcoded role allowlists in
+# get_current_admin/manager/staff. DEFAULT_POLICY mirrors the pre-P1.2a
+# sets so the PR ships dark (zero behavior change).
+# ---------------------------------------------------------------------------
+
+
+def test_access_admin_endpoints_default_mirrors_hardcoded():
+    """DEFAULT_POLICY for access_admin_endpoints = {SUPER_ADMIN, ADMIN}.
+
+    Mirrors the pre-P1.2a hardcoded check in get_current_admin.
+    """
+    assert DEFAULT_POLICY[KEY_ACCESS_ADMIN_ENDPOINTS] == frozenset(
+        {UserRole.SUPER_ADMIN, UserRole.ADMIN}
+    )
+
+
+def test_access_manager_endpoints_default_mirrors_hardcoded():
+    """DEFAULT_POLICY for access_manager_endpoints = {SUPER_ADMIN, ADMIN,
+    DIRECTOR, HEAD}. Mirrors the pre-P1.2a hardcoded check in
+    get_current_manager."""
+    assert DEFAULT_POLICY[KEY_ACCESS_MANAGER_ENDPOINTS] == frozenset(
+        {
+            UserRole.SUPER_ADMIN,
+            UserRole.ADMIN,
+            UserRole.DIRECTOR,
+            UserRole.HEAD,
+        }
+    )
+
+
+def test_access_staff_endpoints_default_mirrors_hardcoded():
+    """DEFAULT_POLICY for access_staff_endpoints = {SUPER_ADMIN, ADMIN,
+    AGENT, DIRECTOR, HEAD}. Mirrors the pre-P1.2a hardcoded check in
+    get_current_staff."""
+    assert DEFAULT_POLICY[KEY_ACCESS_STAFF_ENDPOINTS] == frozenset(
+        {
+            UserRole.SUPER_ADMIN,
+            UserRole.ADMIN,
+            UserRole.AGENT,
+            UserRole.DIRECTOR,
+            UserRole.HEAD,
+        }
+    )
+
+
+@pytest.mark.parametrize(
+    "key,role,expected",
+    [
+        # access_admin_endpoints: ADMIN/SUPER_ADMIN only (DIRECTOR/HEAD/AGENT excluded)
+        (KEY_ACCESS_ADMIN_ENDPOINTS, UserRole.SUPER_ADMIN, True),
+        (KEY_ACCESS_ADMIN_ENDPOINTS, UserRole.ADMIN, True),
+        (KEY_ACCESS_ADMIN_ENDPOINTS, UserRole.DIRECTOR, False),
+        (KEY_ACCESS_ADMIN_ENDPOINTS, UserRole.HEAD, False),
+        (KEY_ACCESS_ADMIN_ENDPOINTS, UserRole.AGENT, False),
+        (KEY_ACCESS_ADMIN_ENDPOINTS, UserRole.USER, False),
+        # access_manager_endpoints: SUPER_ADMIN/ADMIN/DIRECTOR/HEAD (AGENT excluded)
+        (KEY_ACCESS_MANAGER_ENDPOINTS, UserRole.SUPER_ADMIN, True),
+        (KEY_ACCESS_MANAGER_ENDPOINTS, UserRole.ADMIN, True),
+        (KEY_ACCESS_MANAGER_ENDPOINTS, UserRole.DIRECTOR, True),
+        (KEY_ACCESS_MANAGER_ENDPOINTS, UserRole.HEAD, True),
+        (KEY_ACCESS_MANAGER_ENDPOINTS, UserRole.AGENT, False),
+        (KEY_ACCESS_MANAGER_ENDPOINTS, UserRole.USER, False),
+        # access_staff_endpoints: all internal roles (USER excluded)
+        (KEY_ACCESS_STAFF_ENDPOINTS, UserRole.SUPER_ADMIN, True),
+        (KEY_ACCESS_STAFF_ENDPOINTS, UserRole.ADMIN, True),
+        (KEY_ACCESS_STAFF_ENDPOINTS, UserRole.DIRECTOR, True),
+        (KEY_ACCESS_STAFF_ENDPOINTS, UserRole.HEAD, True),
+        (KEY_ACCESS_STAFF_ENDPOINTS, UserRole.AGENT, True),
+        (KEY_ACCESS_STAFF_ENDPOINTS, UserRole.USER, False),
+    ],
+)
+def test_access_gates_can_helper_default_policy(key, role, expected):
+    """can() reads DEFAULT_POLICY (no DB row) -> mirrors today's behavior."""
+    assert can(role, key) is expected
+
+
+def test_registry_includes_three_access_gate_keys():
+    """PERMISSION_REGISTRY must list the 3 new keys with module=system."""
+    registry_keys = {m.key for m in PERMISSION_REGISTRY}
+    assert KEY_ACCESS_ADMIN_ENDPOINTS in registry_keys
+    assert KEY_ACCESS_MANAGER_ENDPOINTS in registry_keys
+    assert KEY_ACCESS_STAFF_ENDPOINTS in registry_keys
+
+
+def test_registry_access_gate_metadata_module_and_level():
+    """The 3 new keys land in the 'system' module.
+
+    Levels: access_admin/manager = LEVEL_MANAGE (escalation-sensitive);
+    access_staff = LEVEL_VIEW (front-line access surface)."""
+    meta_by_key = {m.key: m for m in PERMISSION_REGISTRY}
+
+    admin_meta = meta_by_key[KEY_ACCESS_ADMIN_ENDPOINTS]
+    assert admin_meta.module == "system"
+    assert admin_meta.level == 3  # LEVEL_MANAGE
+
+    manager_meta = meta_by_key[KEY_ACCESS_MANAGER_ENDPOINTS]
+    assert manager_meta.module == "system"
+    assert manager_meta.level == 3  # LEVEL_MANAGE
+
+    staff_meta = meta_by_key[KEY_ACCESS_STAFF_ENDPOINTS]
+    assert staff_meta.module == "system"
+    assert staff_meta.level == 1  # LEVEL_VIEW
+
+
+def test_all_permission_keys_count_is_19():
+    """P1.2a brings the registry from 16 to 19 keys."""
+    assert len(ALL_PERMISSION_KEYS) == 19

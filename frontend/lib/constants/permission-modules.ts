@@ -11,7 +11,8 @@
  * page prefers the live registry served by GET /permissions and falls back
  * to this constant only when the API omits it; an integrity test
  * (permission-modules.test.ts) asserts the key set, module grouping, and
- * level tags here stay aligned with the backend's 16 keys.
+ * level tags here stay aligned with the backend's 19 keys (16 original +
+ * 3 P1.2a access-gate keys).
  */
 
 export const MODULE = {
@@ -115,6 +116,12 @@ export const PERMISSION_REGISTRY: readonly PermissionKeyMeta[] = [
   { key: 'manage_users', label: 'จัดการผู้ใช้ (สร้าง/แก้/ลบ/รีเซ็ตรหัสผ่าน)', module: 'system', level: 3 },
   { key: 'manage_files', label: 'จัดการไฟล์ (อัปโหลด/ลบ/ลิงก์สาธารณะ)', module: 'system', level: 3 },
   { key: 'edit_permission_settings', label: 'แก้ไขการตั้งค่าสิทธิ์', module: 'system', level: 3 },
+  // P1.2a: Configurable auth gates (deps.py). admin/manager gates are
+  // manage-level (escalation-sensitive); staff is view-level (front-line
+  // access surface). Grouped under 'system'.
+  { key: 'access_admin_endpoints', label: 'เข้าใช้งาน admin endpoints (gate เข้า settings UI)', module: 'system', level: 3 },
+  { key: 'access_manager_endpoints', label: 'เข้าใช้งาน manager-level endpoints (request workflow)', module: 'system', level: 3 },
+  { key: 'access_staff_endpoints', label: 'เข้าใช้งาน staff-level endpoints (live-chat HTTP)', module: 'system', level: 1 },
 ]
 
 /** Every key the frontend expects the backend to define (drift guard). */

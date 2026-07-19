@@ -130,6 +130,7 @@ async def get_item(id: int, db: AsyncSession = Depends(get_db), admin: User = De
 - **LINE SDK lazy init**: `@property` with `if self._api is None` guard (needs async event loop)
 - **DB sessions**: `AsyncSessionLocal` factory; always `async with` or `Depends(get_db)`
 - **Auth**: JWT tokens; `DEV_AUTH_BYPASS=true` for local dev; `get_current_admin` dependency
+- **Auth gates (P1.2a)**: `get_current_admin`/`manager`/`staff` are DB-configurable via `access_admin/manager/staff_endpoints` permission keys (`/admin/settings/permissions`); matrix endpoints (`GET/PATCH /permissions`, `GET /permissions/me`) stay on hardcoded `get_current_admin` to prevent SUPER_ADMIN lockout
 - **WebSocket**: `ws_manager` singleton; auth -> join_room -> message flow
 - **Circuit breaker**: LINE API calls wrapped in `_call_with_circuit()` for fault tolerance
 

@@ -6,6 +6,12 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from app.db.session import AsyncSessionLocal
 from app.core.config import settings
 from app.core.cookie_auth import ACCESS_COOKIE, CSRF_COOKIE
+from app.core.permissions import (
+    can,
+    KEY_ACCESS_ADMIN_ENDPOINTS,
+    KEY_ACCESS_MANAGER_ENDPOINTS,
+    KEY_ACCESS_STAFF_ENDPOINTS,
+)
 from app.core.security import verify_token
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -159,11 +165,26 @@ async def get_current_admin(
     current_user = Depends(get_current_user)
 ):
     """
-    Verify current user is an admin or super_admin.
+    Verify current user has access to admin-level endpoints.
+
+    Gate is now DB-configurable via the `access_admin_endpoints`
+    permission key (P1.2a). DEFAULT_POLICY = {SUPER_ADMIN, ADMIN}
+    mirrors the pre-P1.2a hardcoded set, so the PR ships dark.
+
+    Matrix endpoints (settings.py:121,139,232 — GET/PATCH /permissions,
+    GET /permissions/me) still use this gate intentionally. They are NOT
+    converted to `can()` because that would create a self-referential
+    lockout: if SUPER_ADMIN removed themselves from
+    `access_admin_endpoints`, they'd lose access to `PATCH /permissions`
+    — the only endpoint that can re-add them. The existing SUPER_ADMIN
+    lockout safeguard (settings.py:176-180) rejects removing SUPER_ADMIN
+    from any key, but keeping the matrix endpoint on this gate (which
+    reads DEFAULT_POLICY including SUPER_ADMIN) is the second defense
+    layer against direct-DB lockout.
     """
     from app.models.user import UserRole
-    
-    if current_user.role not in [UserRole.ADMIN, UserRole.SUPER_ADMIN]:
+
+    if not can(current_user.role, KEY_ACCESS_ADMIN_ENDPOINTS):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Insufficient permissions"
@@ -175,23 +196,20 @@ async def get_current_manager(
     current_user = Depends(get_current_user)
 ):
     """
-    Verify current user is a manager-level role for request workflow.
+    Verify current user has access to manager-level endpoints
+    (request workflow: stats, detail, assign, comments).
 
-    Allows SUPER_ADMIN, ADMIN, DIRECTOR, HEAD -- the roles that
-    DEFAULT_POLICY grants assign/self-assign rights. Used by request
-    workflow endpoints so DIRECTOR/HEAD can pass the outer gate and reach
-    the inner can_assign/can_self_assign checks. Sensitive operations
-    (revert, edit-details, delete) remain guarded by can_* helpers or by
-    get_current_admin, so widening this gate does NOT escalate privilege.
+    Gate is now DB-configurable via the `access_manager_endpoints`
+    permission key (P1.2a). DEFAULT_POLICY = {SUPER_ADMIN, ADMIN,
+    DIRECTOR, HEAD} mirrors the pre-P1.2a hardcoded set. SUPER_ADMIN
+    is NOT locked into this key (unlike access_admin_endpoints) —
+    removing SUPER_ADMIN here just loses access to request workflow,
+    recoverable via the matrix endpoint (still reachable through
+    access_admin_endpoints).
     """
     from app.models.user import UserRole
 
-    if current_user.role not in [
-        UserRole.SUPER_ADMIN,
-        UserRole.ADMIN,
-        UserRole.DIRECTOR,
-        UserRole.HEAD,
-    ]:
+    if not can(current_user.role, KEY_ACCESS_MANAGER_ENDPOINTS):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Insufficient permissions"
@@ -203,22 +221,19 @@ async def get_current_staff(
     current_user = Depends(get_current_user)
 ):
     """
-    Verify current user is an internal staff member.
+    Verify current user has access to staff-level endpoints
+    (live-chat HTTP endpoints in admin_live_chat.py).
 
-    Allows every internal role -- ADMIN, SUPER_ADMIN, DIRECTOR, HEAD,
-    AGENT -- but not the public USER role. DIRECTOR/HEAD added so the two
-    mid-tier supervisor roles can reach staff-level surfaces (e.g. live
-    chat) alongside front-line AGENTs.
+    Gate is now DB-configurable via the `access_staff_endpoints`
+    permission key (P1.2a). DEFAULT_POLICY = {SUPER_ADMIN, ADMIN, AGENT,
+    DIRECTOR, HEAD} mirrors the pre-P1.2a hardcoded set. This is the
+    HTTP gate (page load); NEW-3's `access_live_chat` is the WebSocket
+    gate — different layers, not redundant. SUPER_ADMIN is NOT locked
+    into this key (recoverable via the matrix endpoint).
     """
     from app.models.user import UserRole
 
-    if current_user.role not in [
-        UserRole.ADMIN,
-        UserRole.SUPER_ADMIN,
-        UserRole.AGENT,
-        UserRole.DIRECTOR,
-        UserRole.HEAD,
-    ]:
+    if not can(current_user.role, KEY_ACCESS_STAFF_ENDPOINTS):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Insufficient permissions"
