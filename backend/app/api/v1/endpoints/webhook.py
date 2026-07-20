@@ -316,6 +316,7 @@ async def handle_message_event(event: MessageEvent, db: AsyncSession):
             content=text,
             payload={"line_message_id": line_message_id} if line_message_id else None,
             commit=False,
+            user_id=user.id,
         )
 
         # Broadcast to WebSocket clients in room (for operators viewing this conversation)
@@ -471,6 +472,7 @@ async def handle_message_event(event: MessageEvent, db: AsyncSession):
                         payload=m_payload,
                         sender_role="BOT",
                         commit=False,
+                        user_id=user.id,
                     )
             except Exception as e:
                 logger.error(f"Failed to send all messages: {e}")
@@ -492,6 +494,7 @@ async def handle_message_event(event: MessageEvent, db: AsyncSession):
             payload=payload,
             sender_role="USER",
             commit=False,
+            user_id=user.id,
         )
 
         room_id = ws_manager.get_room_id(line_user_id)
@@ -631,12 +634,16 @@ async def handle_csat_response(line_user_id: str, data: str, reply_token: str, d
             return
 
         from app.services.csat_service import csat_service
+        from app.services.user_identity_service import resolve_by_line_id
+
+        resolved_user = await resolve_by_line_id(db, line_user_id)
         response = await csat_service.record_response(
             session_id=session_id,
             line_user_id=line_user_id,
             score=score,
             feedback=None,
-            db=db
+            db=db,
+            user_id=resolved_user.id if resolved_user else None,
         )
 
         thank_you = csat_service.get_thank_you_message(score)

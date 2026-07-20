@@ -29,6 +29,7 @@ class HandoffMixin:
         """
         session = ChatSession(
             line_user_id=user.line_user_id,
+            user_id=user.id,
             status=SessionStatus.WAITING,
             started_at=datetime.now(timezone.utc),
             last_activity_at=datetime.now(timezone.utc),

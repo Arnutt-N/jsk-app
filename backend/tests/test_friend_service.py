@@ -80,6 +80,7 @@ async def test_handle_follow_new_user_creates_follow_event():
 async def test_handle_follow_returning_user_creates_refollow_event():
     service = FriendService()
     existing = SimpleNamespace(
+        id=1,
         line_user_id="U123",
         friend_status="UNFOLLOWED",
         is_active=False,
@@ -106,6 +107,7 @@ async def test_handle_follow_returning_user_creates_refollow_event():
 async def test_handle_follow_blocked_user_creates_refollow_event():
     service = FriendService()
     existing = SimpleNamespace(
+        id=2,
         line_user_id="U456",
         friend_status="BLOCKED",
         is_active=False,
@@ -129,6 +131,7 @@ async def test_handle_follow_blocked_user_creates_refollow_event():
 async def test_handle_follow_sets_friend_since_only_if_missing():
     service = FriendService()
     existing = SimpleNamespace(
+        id=3,
         line_user_id="U789",
         friend_status="ACTIVE",
         is_active=True,
@@ -149,6 +152,7 @@ async def test_handle_follow_sets_friend_since_only_if_missing():
 async def test_handle_unfollow_sets_unfollowed_status():
     service = FriendService()
     existing = SimpleNamespace(
+        id=4,
         line_user_id="U123",
         friend_status="ACTIVE",
     )

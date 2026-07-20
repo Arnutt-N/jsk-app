@@ -247,6 +247,7 @@ class LineService:
         sender_role: str = None,
         operator_name: str = None,
         commit: bool = True,
+        user_id: int = None,
     ):
         """
         Save a message to the database.
@@ -260,9 +261,11 @@ class LineService:
             payload: Full JSON payload for complex messages
             sender_role: USER, BOT, or ADMIN
             operator_name: Display name of admin operator (for live chat)
+            user_id: Internal user ID (dual-write pseudonymization)
         """
         message = Message(
             line_user_id=line_user_id,
+            user_id=user_id,
             direction=direction,
             message_type=message_type,
             content=content,
@@ -418,4 +421,18 @@ class LineService:
 
 # Singleton instance
 line_service = LineService()
+
+
+async def resolve_raw_for_push(db: AsyncSession, user) -> str:
+    """Resolve the raw LINE user ID for outbound push.
+
+    Prefers decrypting line_user_id_encrypted; falls back to plaintext column.
+    PR B will switch push callers to use this instead of user.line_user_id directly.
+    """
+    from app.services.user_identity_service import decrypt_line_id_for_user
+
+    decrypted = await decrypt_line_id_for_user(db, user.id)
+    if decrypted:
+        return decrypted
+    return user.line_user_id
 

@@ -100,7 +100,8 @@ class CsatService:
         line_user_id: str,
         score: int,
         feedback: Optional[str],
-        db: AsyncSession
+        db: AsyncSession,
+        user_id: Optional[int] = None,
     ) -> CsatResponse:
         """Record CSAT response. Prevents duplicates."""
         existing = await db.scalar(
@@ -112,6 +113,7 @@ class CsatService:
         response = CsatResponse(
             session_id=session_id,
             line_user_id=line_user_id,
+            user_id=user_id,
             score=score,
             feedback=feedback,
         )

@@ -81,6 +81,14 @@ class CredentialService:
         decrypted = self._get_cipher().decrypt(encrypted.encode())
         return json.loads(decrypted.decode())
 
+    def encrypt_line_id(self, raw: str) -> str:
+        """Encrypt a raw LINE user ID to a Fernet token string."""
+        return self._get_cipher().encrypt(raw.encode()).decode()
+
+    def decrypt_line_id(self, token: str) -> str:
+        """Decrypt a Fernet token back to the raw LINE user ID."""
+        return self._get_cipher().decrypt(token.encode()).decode()
+
     async def get_default_credential(
         self,
         provider: Provider,

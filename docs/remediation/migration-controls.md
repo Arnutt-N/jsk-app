@@ -9,11 +9,13 @@ record. Unknown values prevent application settings from loading.
 | --- | --- | --- | --- | --- |
 | `LIFF_STRICT_MODE` | Backend security owner, with LIFF frontend owner approval | Set `true` only after every inventoried LIFF client sends an ID token, token-presence is 100% for 3-5 consecutive days, staging smoke tests pass, and invalid/expired/forged-token tests pass. | Set `false`, restart the backend, and confirm fallback-use and verification-failure metrics recover. Investigate the client before retrying. | Remove the flag and unverified identity fallback after strict mode is stable for an agreed observation window and fallback use remains zero. |
 | `COOKIE_AUTH_MODE` | Authentication owner, with frontend owner approval | `bearer` -> `dual` after cookie/CSRF/refresh/WebSocket tests pass. `dual` -> `cookie` only after clients no longer depend on Bearer/local-storage credentials and login, refresh, CSRF, migration, and WebSocket signals meet the PR 2A-2C acceptance thresholds. | Move one step back (`cookie` -> `dual` or `dual` -> `bearer`), restart the backend, and verify login/refresh and WebSocket recovery. | Remove the mode flag, Bearer fallback, and legacy token storage in PR 2C after the cookie-only observation window passes. |
+| `LINE_ID_STORAGE_MODE` | Backend security owner | `plaintext` -> `dual` after backfill script completes 100% and hash-lookup hit rate is verified for 3-5 days. `dual` -> `pseudonym` only after all reads are migrated off the plaintext column and zero queries reference `line_user_id` directly. | Move one step back (`pseudonym` -> `dual` or `dual` -> `plaintext`), restart the backend. Plaintext column is never dropped until contract phase. | Remove the mode flag and plaintext `line_user_id` column in PR C (contract) after the pseudonym-only observation window passes. |
 
 ## Allowed values and compatibility defaults
 
 - `LIFF_STRICT_MODE=false|true`; default: `false`.
 - `COOKIE_AUTH_MODE=bearer|dual|cookie`; default: `bearer`.
+- `LINE_ID_STORAGE_MODE=plaintext|dual|pseudonym`; default: `plaintext`.
 
 Thresholds that are not numerical in this document must be made numerical in the
 implementation PR before a production mode change. A mode change is production
@@ -72,6 +74,34 @@ flipped, and the frontend migration (PR 2B, switching `AuthContext`/
 `SameSite=Strict` hardening (PR 2C) are separate, later PRs per the
 bearer → dual → cookie flip checklist above.
 
+### LINE_ID_STORAGE_MODE wiring status (PR A — Expand phase)
+
+The flag is now wired, not just declared. `plaintext` (default) is the exact
+legacy code path — all reads and writes use the `line_user_id` column
+directly, byte-identical to pre-pseudonymization behavior. However, the
+expand phase adds surrogate columns (`line_user_id_hash`,
+`line_user_id_encrypted`, `line_key_version` on `users`; `user_id` FK on six
+child tables) and dual-writes them on every webhook ingress path, so the data
+is populated even though no read uses it yet.
+
+`dual` (PR B) switches reads to prefer the HMAC hash lookup
+(`resolve_by_line_id`) with plaintext fallback, and the backfill script
+populates surrogate fields for all pre-existing rows. `pseudonym` (PR C)
+removes the plaintext fallback and the `line_user_id` column is dropped.
+
+Production guard: `LINE_ID_STORAGE_MODE != "plaintext"` requires
+`LINE_ID_HMAC_KEY` to be set (non-blank); the dev fallback key is only
+available in non-production environments. The HMAC key must be a
+cryptographically random string (minimum 32 bytes recommended). Changing the
+HMAC key invalidates all existing hashes and requires a full re-backfill.
+
+This PR (A) ships dark behind the `plaintext` default — no production
+behavior changes until the flag is flipped. The migration follows the
+Expand → Migrate → Contract pattern:
+- **PR A (Expand)**: additive columns + dual-write, flag = `plaintext`.
+- **PR B (Migrate)**: backfill + cutover reads, flag = `dual`.
+- **PR C (Contract)**: drop plaintext column, flag = `pseudonym`.
+
 ## P0.1 production startup guards
 
 `backend/app/core/config.py` enforces fail-closed guards via
@@ -97,6 +127,7 @@ startup logs.
 | `SECRET_KEY` | At least 32 characters and not a known placeholder (`change_this_to_a_secure_random_string`, `changeme`, `change_this`, `secret`, `secret_key`, empty) | Settings fail to load — a weak/placeholder key would let anyone forge JWTs. |
 | `LINE_LOGIN_CHANNEL_ID` | Must be set (non-blank) | Settings fail to load at startup. Independently, `verify_liff_token()` in `app/api/v1/endpoints/liff.py` also checks this before making any outbound call and returns HTTP 503 ("LIFF verification unavailable: server misconfiguration") if it drifts to blank after startup, so LIFF verification never silently posts an empty `client_id` to LINE. |
 | `ENCRYPTION_KEY` | Must be set to a valid Fernet key | Settings fail to load; independently, `credential_service.validate_configuration()` (already called from the `app/main.py` lifespan) raises `RuntimeError` if the key is missing or invalid, so encrypted credential storage never falls back to the development-only insecure key in production. |
+| `LINE_ID_HMAC_KEY` | Must be set (non-blank) when `LINE_ID_STORAGE_MODE != "plaintext"` | Settings fail to load — the HMAC key is required for hash-based identity resolution; the dev fallback key is never available in production-like environments. |
 
 These checks are inactive only for the recognized non-production names —
 development and test defaults (`ENVIRONMENT=development`, short `SECRET_KEY`,
@@ -112,6 +143,7 @@ Before deploying to Koyeb prod, confirm in the Koyeb service environment:
 - [ ] `LINE_LOGIN_CHANNEL_ID` is set to the real LINE Login channel ID.
 - [ ] `ENCRYPTION_KEY` is set to a real Fernet key (`python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`).
 - [ ] `DEV_AUTH_BYPASS` is absent or `false`.
+- [ ] `LINE_ID_HMAC_KEY` is set if `LINE_ID_STORAGE_MODE` is not `plaintext` (generate: `python -c "import secrets; print(secrets.token_hex(32))"`).
 
 A weak/missing value that previously started silently now fails startup — this
 is the intent of P0.1, but it must not be a surprise outage: verify the values

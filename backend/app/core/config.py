@@ -38,6 +38,7 @@ class Settings(BaseSettings):
     # corresponding rollout gates in docs/remediation/migration-controls.md pass.
     LIFF_STRICT_MODE: bool = False
     COOKIE_AUTH_MODE: Literal["bearer", "dual", "cookie"] = "bearer"
+    LINE_ID_STORAGE_MODE: Literal["plaintext", "dual", "pseudonym"] = "plaintext"
 
     # Explicit opt-in for dev auth bypass — must set DEV_AUTH_BYPASS=true in .env
     # Safe by default: missing env var = bypass disabled
@@ -55,6 +56,7 @@ class Settings(BaseSettings):
     # Security
     SECRET_KEY: str
     ENCRYPTION_KEY: str = ""
+    LINE_ID_HMAC_KEY: str = ""
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
@@ -165,6 +167,11 @@ class Settings(BaseSettings):
         if not self.ENCRYPTION_KEY.strip():
             violations.append(
                 "ENCRYPTION_KEY must be set in production — generate a Fernet key."
+            )
+
+        if self.LINE_ID_STORAGE_MODE != "plaintext" and not self.LINE_ID_HMAC_KEY.strip():
+            violations.append(
+                "LINE_ID_HMAC_KEY must be set when LINE_ID_STORAGE_MODE is not plaintext."
             )
 
         if violations:

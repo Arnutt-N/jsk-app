@@ -46,6 +46,7 @@ class ServiceRequest(Base):
     
     # LINE Integration
     line_user_id = Column(String, index=True, nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=True)
     
     # Detailed form fields matching User Request
     requester_name = Column(String, nullable=True) # Keep for backward compatibility or full name
