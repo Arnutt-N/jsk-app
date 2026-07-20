@@ -11,8 +11,8 @@
  * page prefers the live registry served by GET /permissions and falls back
  * to this constant only when the API omits it; an integrity test
  * (permission-modules.test.ts) asserts the key set, module grouping, and
- * level tags here stay aligned with the backend's 19 keys (16 original +
- * 3 P1.2a access-gate keys).
+ * level tags here stay aligned with the backend's 20 keys (16 original +
+ * 3 P1.2a access-gate keys + 1 NEW-3 live-chat WS gate key).
  */
 
 export const MODULE = {
@@ -122,6 +122,9 @@ export const PERMISSION_REGISTRY: readonly PermissionKeyMeta[] = [
   { key: 'access_admin_endpoints', label: 'เข้าใช้งาน admin endpoints (gate เข้า settings UI)', module: 'system', level: 3 },
   { key: 'access_manager_endpoints', label: 'เข้าใช้งาน manager-level endpoints (request workflow)', module: 'system', level: 3 },
   { key: 'access_staff_endpoints', label: 'เข้าใช้งาน staff-level endpoints (live-chat HTTP)', module: 'system', level: 1 },
+  // NEW-3: Live-chat WebSocket gate. VIEW-level (access gate, not edit);
+  // grouped under 'system' alongside the other access keys.
+  { key: 'access_live_chat', label: 'เข้าใช้ Live Chat (WebSocket)', module: 'system', level: 1 },
 ]
 
 /** Every key the frontend expects the backend to define (drift guard). */

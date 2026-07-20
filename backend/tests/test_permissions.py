@@ -28,6 +28,7 @@ from app.core.permissions import (
     KEY_ACCESS_ADMIN_ENDPOINTS,
     KEY_ACCESS_MANAGER_ENDPOINTS,
     KEY_ACCESS_STAFF_ENDPOINTS,
+    KEY_ACCESS_LIVE_CHAT,
     can,
     ALL_PERMISSION_KEYS,
     DEFAULT_POLICY,
@@ -283,6 +284,61 @@ def test_registry_access_gate_metadata_module_and_level():
     assert staff_meta.level == 1  # LEVEL_VIEW
 
 
-def test_all_permission_keys_count_is_19():
-    """P1.2a brings the registry from 16 to 19 keys."""
-    assert len(ALL_PERMISSION_KEYS) == 19
+def test_all_permission_keys_count_is_20():
+    """P1.2a brought the registry from 16 to 19; NEW-3 adds access_live_chat -> 20."""
+    assert len(ALL_PERMISSION_KEYS) == 20
+
+
+# ---------------------------------------------------------------------------
+# NEW-3 -- configurable live-chat WebSocket gate.
+# Replaces the hardcoded {ADMIN, SUPER_ADMIN, AGENT} set in
+# ws_live_chat.py:53 (WS auth) + sessions.py:236 (transfer target).
+# DEFAULT_POLICY preserves today's set (ships dark); SUPER_ADMIN opts
+# DIRECTOR/HEAD in via the permission matrix.
+# ---------------------------------------------------------------------------
+
+
+def test_access_live_chat_default_mirrors_hardcoded():
+    """DEFAULT_POLICY for access_live_chat = {SUPER_ADMIN, ADMIN, AGENT}.
+
+    Mirrors the pre-NEW-3 hardcoded set in ws_live_chat.py:53 and
+    sessions.py:236 (transfer target).
+    """
+    assert DEFAULT_POLICY[KEY_ACCESS_LIVE_CHAT] == frozenset(
+        {UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.AGENT}
+    )
+
+
+@pytest.mark.parametrize(
+    "role,expected",
+    [
+        (UserRole.SUPER_ADMIN, True),
+        (UserRole.ADMIN, True),
+        (UserRole.AGENT, True),
+        (UserRole.DIRECTOR, False),  # default excludes (NEW-3 ships dark)
+        (UserRole.HEAD, False),      # default excludes
+        (UserRole.USER, False),
+        (None, False),
+    ],
+)
+def test_access_live_chat_can_helper_default_policy(role, expected):
+    """can() reads DEFAULT_POLICY (no DB row) -> mirrors today's behavior."""
+    assert can(role, KEY_ACCESS_LIVE_CHAT) is expected
+
+
+def test_registry_includes_access_live_chat_key():
+    """PERMISSION_REGISTRY must list access_live_chat with module=system."""
+    registry_keys = {m.key for m in PERMISSION_REGISTRY}
+    assert KEY_ACCESS_LIVE_CHAT in registry_keys
+
+
+def test_registry_access_live_chat_metadata_module_and_level():
+    """access_live_chat lands in the 'system' module at LEVEL_VIEW.
+
+    Level=VIEW because it is an access gate (not an edit/manage action);
+    grouped under 'system' alongside the other access keys.
+    """
+    meta_by_key = {m.key: m for m in PERMISSION_REGISTRY}
+    live_chat_meta = meta_by_key[KEY_ACCESS_LIVE_CHAT]
+    assert live_chat_meta.module == "system"
+    assert live_chat_meta.level == 1  # LEVEL_VIEW

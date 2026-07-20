@@ -68,6 +68,13 @@ KEY_ACCESS_ADMIN_ENDPOINTS = "access_admin_endpoints"
 KEY_ACCESS_MANAGER_ENDPOINTS = "access_manager_endpoints"
 KEY_ACCESS_STAFF_ENDPOINTS = "access_staff_endpoints"
 
+# NEW-3 -- configurable live-chat WebSocket gate. Replaces the hardcoded
+# {ADMIN, SUPER_ADMIN, AGENT} set in ws_live_chat.py:53 (WS auth) +
+# sessions.py:236 (transfer target). DEFAULT preserves today's set;
+# SUPER_ADMIN opts DIRECTOR/HEAD in via the matrix UI. This is the WS
+# gate; access_staff_endpoints is the HTTP gate -- different layers.
+KEY_ACCESS_LIVE_CHAT = "access_live_chat"
+
 # Hardcoded fallback used when the DB row is missing OR the cache hasn't
 # loaded yet. Mirrors the migration seed values.
 DEFAULT_POLICY: dict[str, frozenset[UserRole]] = {
@@ -134,6 +141,12 @@ DEFAULT_POLICY: dict[str, frozenset[UserRole]] = {
         UserRole.DIRECTOR,
         UserRole.HEAD,
     }),
+    # --- NEW-3: Live-chat WebSocket gate ---
+    # Mirrors the pre-NEW-3 hardcoded set in ws_live_chat.py:53 and
+    # sessions.py:236 so the PR ships dark. SUPER_ADMIN opts DIRECTOR/
+    # HEAD in via the matrix UI; under DEFAULT_POLICY they stay out
+    # (today's behavior).
+    KEY_ACCESS_LIVE_CHAT: frozenset({UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.AGENT}),
 }
 
 # Legacy aliases kept for any code that still references them.
@@ -220,6 +233,8 @@ _SEED_DESCRIPTIONS: dict[str, str] = {
     KEY_ACCESS_ADMIN_ENDPOINTS: "เข้าใช้งาน admin endpoints (gate เข้า settings UI)",
     KEY_ACCESS_MANAGER_ENDPOINTS: "เข้าใช้งาน manager-level endpoints (request workflow)",
     KEY_ACCESS_STAFF_ENDPOINTS: "เข้าใช้งาน staff-level endpoints (live-chat HTTP)",
+    # --- NEW-3: Live-chat WebSocket gate ---
+    KEY_ACCESS_LIVE_CHAT: "เข้าใช้ Live Chat (WebSocket)",
 }
 
 
@@ -431,6 +446,9 @@ PERMISSION_REGISTRY: tuple[PermissionMeta, ...] = (
     PermissionMeta(KEY_ACCESS_ADMIN_ENDPOINTS, "system", LEVEL_MANAGE, _SEED_DESCRIPTIONS[KEY_ACCESS_ADMIN_ENDPOINTS]),
     PermissionMeta(KEY_ACCESS_MANAGER_ENDPOINTS, "system", LEVEL_MANAGE, _SEED_DESCRIPTIONS[KEY_ACCESS_MANAGER_ENDPOINTS]),
     PermissionMeta(KEY_ACCESS_STAFF_ENDPOINTS, "system", LEVEL_VIEW, _SEED_DESCRIPTIONS[KEY_ACCESS_STAFF_ENDPOINTS]),
+    # NEW-3: Live-chat WebSocket gate. VIEW-level (access gate, not edit);
+    # grouped under "system" alongside the other access keys.
+    PermissionMeta(KEY_ACCESS_LIVE_CHAT, "system", LEVEL_VIEW, _SEED_DESCRIPTIONS[KEY_ACCESS_LIVE_CHAT]),
 )
 
 # Every key (existing + new) must appear in the registry exactly once.
