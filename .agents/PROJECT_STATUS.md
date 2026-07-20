@@ -51,9 +51,11 @@
 - [x] Merged PR #78 to `main` branch.
 
 ## Latest Pickup Status
+- [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 - [2026-06-21] R1/R2 Rich Menu (incl Task 6.2 per-user UI) merged to `main` via PR #114 (`3a90f4d`); Supabase PROD migrated; Vercel frontend deployed. Branch `feat/rich-menu-switching-r1` deleted. Working tree clean.
 
 ## Recent Completions
+- [2026-07-20 23:50] Qoder: Merged PR #152 (P1.1b dual-prep frontend page cleanup, squash 6fb5aa9, CI green, Vercel deployed dark). Removed all manual `Authorization: Bearer` injections across ~22 admin pages + live-chat components so the global authFetch interceptor owns auth uniformly in both bearer and cookie modes; fixed friends/[lineUserId] cross-origin outlier to same-origin proxy; settings/permissions gate changed token→isAuthenticated. Ships dark (NEXT_PUBLIC_COOKIE_AUTH=false). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision). (Qoder)
 - [2026-07-19 08:21] Kilo Code: Shipped 3 follow-up fixes (PRs #147, #148, #149 all merged to main, CI green). PR #147: unified refresh buttons to Thai label + leftIcon spacing across 6 admin pages. PR #148: fixed canned-responses double-slash bug (//greeting -> /greeting (Kilo Code)
 - [2026-07-19 04:20] Kilo Code: Fixed Button icon+text wrap bug (PR #146 merged to main): content wrapper and children span changed from flex to inline-flex with whitespace-nowrap, preventing refresh buttons from wrapping text to a new line. CI all green (Backend Pytest,  (Kilo Code)
 - [2026-07-19 04:15] Kilo Code: Fixed Button icon+text wrap bug (PR #146 merged to main): content wrapper and children span changed from flex to inline-flex with whitespace-nowrap, preventing refresh buttons from wrapping text to a new line. CI all green (Backend Pytest,  (Kilo Code)
@@ -182,6 +184,14 @@
 - [2026-05-25 01:00] Claude Code: Implemented PRD E — Drug Reporting. PR #61 merged to main. (Claude Code)
 
 ## Backlog (Future)
+- [ ] **COOKIE_AUTH_MODE=dual production rollout** (P1.1b cookie auth — unblocked, ships dark; deferred 2026-07-20 by user)
+  - Prereq DONE: PR #152 (frontend page cleanup — all admin pages route auth through global `authFetch` interceptor) merged `6fb5aa9`
+  - Step 1 (backend): `koyeb service update conservative-lusa/jsk-app --env COOKIE_AUTH_MODE=dual` (upsert single var, triggers redeploy ~2-5min)
+  - Verify backend: login admin panel → DevTools → Application → Cookies → see `access_token` / `refresh_token` / `csrf_token`
+  - Step 2 (frontend): set `NEXT_PUBLIC_COOKIE_AUTH=true` on Vercel + redeploy (build-time flag)
+  - ORDER MATTERS: backend dual FIRST, then frontend flag (frontend cookie mode + backend still bearer = broken login)
+  - Rollback: backend env → `bearer`, OR frontend redeploy with flag `false`
+  - Note: Koyeb CLI needs token; security policy blocks the agent from running authed commands — user runs the flip manually
 - [ ] Enable `SLA_ALERT_TELEGRAM_ENABLED=true` on Koyeb (low risk, needs TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID already set)
 - [ ] Enable `LIFF_STRICT_MODE=true` on prod (wait until error rate is monitored — may reject expired LINE tokens)
 - [ ] Monitor production deployment via Vercel
