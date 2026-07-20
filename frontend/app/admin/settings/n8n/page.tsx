@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
     ArrowLeft,
@@ -38,12 +37,6 @@ interface TestResult {
 export default function N8nSettingsPage() {
     const router = useRouter();
     const { toast } = useToast();
-    const { token } = useAuth();
-    const authHeaders = useMemo(() => {
-        const h: Record<string, string> = {};
-        if (token) h.Authorization = `Bearer ${token}`;
-        return h;
-    }, [token]);
     const [config, setConfig] = useState<N8nConfig | null>(null);
     const [form, setForm] = useState({ webhook_url: '', api_key: '' });
     const [isEditing, setIsEditing] = useState(false);
@@ -59,7 +52,7 @@ export default function N8nSettingsPage() {
     const fetchConfig = useCallback(async () => {
         setError(null);
         try {
-            const res = await fetch(`${API_BASE}/admin/settings/n8n`, { headers: authHeaders });
+            const res = await fetch(`${API_BASE}/admin/settings/n8n`);
             if (res.ok) {
                 const data: N8nConfig = await res.json();
                 setConfig(data);
@@ -75,7 +68,7 @@ export default function N8nSettingsPage() {
         } finally {
             setLoading(false);
         }
-    }, [API_BASE, authHeaders]);
+    }, [API_BASE]);
 
     useEffect(() => {
         fetchConfig();
@@ -89,7 +82,7 @@ export default function N8nSettingsPage() {
 
             const res = await fetch(`${API_BASE}/admin/settings/n8n`, {
                 method: 'PUT',
-                headers: { ...authHeaders, 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
             });
             if (res.ok) {
@@ -113,7 +106,7 @@ export default function N8nSettingsPage() {
         setProcessing('TEST');
         setTestResult(null);
         try {
-            const res = await fetch(`${API_BASE}/admin/settings/n8n/test`, { method: 'POST', headers: authHeaders });
+            const res = await fetch(`${API_BASE}/admin/settings/n8n/test`, { method: 'POST' });
             const data: TestResult = await res.json();
             setTestResult(data);
             setShowTestModal(true);

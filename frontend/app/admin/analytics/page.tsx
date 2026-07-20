@@ -122,19 +122,14 @@ export default function AnalyticsPage() {
   const [days, setDays] = useState(7);
   const [selectedOperator, setSelectedOperator] = useState<number | null>(null);
 
-  const authHeaders = useMemo<HeadersInit>(
-    () => (token ? { Authorization: `Bearer ${token}` } : ({} as HeadersInit)),
-    [token]
-  );
-
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const opQuery = selectedOperator ? `&operator_id=${selectedOperator}` : "";
       const [kpisRes, opsRes, dashRes] = await Promise.all([
-        fetch("/api/v1/admin/analytics/live-kpis", { headers: authHeaders }),
-        fetch(`/api/v1/admin/analytics/operator-performance?days=${days}${opQuery}`, { headers: authHeaders }),
-        fetch(`/api/v1/admin/analytics/dashboard?days=${days}`, { headers: authHeaders }),
+        fetch("/api/v1/admin/analytics/live-kpis"),
+        fetch(`/api/v1/admin/analytics/operator-performance?days=${days}${opQuery}`),
+        fetch(`/api/v1/admin/analytics/dashboard?days=${days}`),
       ]);
 
       if (kpisRes.ok) {
@@ -163,7 +158,7 @@ export default function AnalyticsPage() {
     } finally {
       setLoading(false);
     }
-  }, [authHeaders, days, selectedOperator]);
+  }, [days, selectedOperator]);
 
   const wsUrl = useMemo(() => getLiveChatWsUrl(), []);
 

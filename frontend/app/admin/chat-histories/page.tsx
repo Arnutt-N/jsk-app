@@ -1,6 +1,6 @@
 'use client';
-// Client Component required: useAuth() reads JWT from localStorage for API calls.
-// To convert to RSC, auth must migrate to httpOnly cookies.
+// Client Component required: interactive search, pagination, and polling state.
+// Auth is handled globally by the authFetch interceptor (bearer or cookie mode).
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
@@ -20,7 +20,6 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import PageHeader from '@/app/admin/components/PageHeader';
-import { useAuth } from '@/contexts/AuthContext';
 import { logger } from '@/lib/logger';
 
 /* ---------- Types ---------- */
@@ -87,7 +86,6 @@ function truncate(text: string, max: number): string {
 /* ---------- Component ---------- */
 
 export default function ChatHistoriesPage() {
-    const { token } = useAuth();
     const router = useRouter();
 
     const [conversations, setConversations] = useState<ConversationSummary[]>([]);
@@ -99,11 +97,6 @@ export default function ChatHistoriesPage() {
     const [page, setPage] = useState(0);
 
     const API_BASE = '/api/v1';
-
-    const authHeaders = useMemo(() => {
-        if (!token) return {} as Record<string, string>;
-        return { Authorization: `Bearer ${token}` };
-    }, [token]);
 
     /* ---- Debounce search ---- */
     useEffect(() => {
@@ -119,9 +112,7 @@ export default function ChatHistoriesPage() {
         setLoading(true);
         setFetchError(null);
         try {
-            const res = await fetch(`${API_BASE}/admin/live-chat/conversations`, {
-                headers: authHeaders,
-            });
+            const res = await fetch(`${API_BASE}/admin/live-chat/conversations`);
             if (!res.ok) throw new Error('Failed to fetch conversations');
             const data: ConversationsResponse = await res.json();
             setConversations(data.conversations);
@@ -132,7 +123,7 @@ export default function ChatHistoriesPage() {
         } finally {
             setLoading(false);
         }
-    }, [API_BASE, authHeaders]);
+    }, [API_BASE]);
 
     /* ---- Fetch search results ---- */
     const fetchSearchResults = useCallback(async (q: string) => {
@@ -142,7 +133,6 @@ export default function ChatHistoriesPage() {
             const params = new URLSearchParams({ q, limit: '50' });
             const res = await fetch(
                 `${API_BASE}/admin/live-chat/messages/search?${params.toString()}`,
-                { headers: authHeaders },
             );
             if (!res.ok) throw new Error('Search failed');
             const data = await res.json();
@@ -154,7 +144,7 @@ export default function ChatHistoriesPage() {
         } finally {
             setLoading(false);
         }
-    }, [API_BASE, authHeaders]);
+    }, [API_BASE]);
 
     /* ---- Effect: fetch or search ---- */
     useEffect(() => {

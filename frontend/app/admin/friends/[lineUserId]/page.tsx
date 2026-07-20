@@ -1,8 +1,6 @@
 'use client';
-// Client Component required: useAuth() reads JWT from localStorage for API calls.
-// To convert to RSC, auth must migrate to httpOnly cookies.
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { ArrowLeft, UserCheck, UserX, RefreshCw, ShieldBan } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -10,7 +8,6 @@ import { Card, CardContent } from '@/components/ui/Card';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Badge } from '@/components/ui/Badge';
 import { Timeline, type TimelineItem } from '@/components/ui/Timeline';
-import { useAuth } from '@/contexts/AuthContext';
 
 // ข้อมูลเพื่อนจาก API
 interface FriendInfo {
@@ -144,7 +141,6 @@ function mapEventToTimelineItem(
 }
 
 export default function FriendTimelinePage() {
-    const { token } = useAuth();
     const params = useParams();
     const lineUserId = params.lineUserId as string;
 
@@ -153,11 +149,7 @@ export default function FriendTimelinePage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
-    const authHeaders = useMemo(() => {
-        if (!token) return {} as Record<string, string>;
-        return { Authorization: `Bearer ${token}` };
-    }, [token]);
+    const API_BASE = '/api/v1';
 
     // ดึงข้อมูลเพื่อนและ events พร้อมกัน
     const fetchData = useCallback(async () => {
@@ -165,8 +157,8 @@ export default function FriendTimelinePage() {
         setError(null);
         try {
             const [friendsRes, eventsRes] = await Promise.all([
-                fetch(`${API_BASE}/admin/friends`, { headers: authHeaders }),
-                fetch(`${API_BASE}/admin/friends/${lineUserId}/events`, { headers: authHeaders }),
+                fetch(`${API_BASE}/admin/friends`),
+                fetch(`${API_BASE}/admin/friends/${lineUserId}/events`),
             ]);
 
             if (!friendsRes.ok) {
@@ -191,7 +183,7 @@ export default function FriendTimelinePage() {
         } finally {
             setLoading(false);
         }
-    }, [API_BASE, authHeaders, lineUserId]);
+    }, [API_BASE, lineUserId]);
 
     useEffect(() => {
         fetchData();

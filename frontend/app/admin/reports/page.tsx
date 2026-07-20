@@ -9,7 +9,6 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import PageHeader from '@/app/admin/components/PageHeader';
 import CalendarPickerTH from '@/components/ui/CalendarPickerTH';
 import { isoToYMD } from '@/lib/utils';
-import { useAuth } from '@/contexts/AuthContext';
 import {
   ResponsiveContainer,
   LineChart,
@@ -215,16 +214,15 @@ function StatCard({
   );
 }
 
-function downloadPDF(reportType: string, startDate: string, endDate: string, token: string | null) {
+function downloadPDF(reportType: string, startDate: string, endDate: string) {
   const params = new URLSearchParams({
     report_type: reportType,
     start_date: startDate,
     end_date: endDate,
   });
   const url = `/api/v1/admin/reports/export/pdf?${params}`;
-  const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
 
-  fetch(url, { headers })
+  fetch(url)
     .then((res) => {
       if (!res.ok) throw new Error('PDF export failed');
       return res.blob();
@@ -245,17 +243,14 @@ function ExportButton({
   type,
   startDate,
   endDate,
-  token,
 }: {
   type: string;
   startDate: string;
   endDate: string;
-  token: string | null;
 }) {
   const handleExport = async () => {
     const params = new URLSearchParams({ type, start_date: startDate, end_date: endDate });
-    const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
-    const res = await fetch(`/api/v1/admin/reports/export?${params}`, { headers });
+    const res = await fetch(`/api/v1/admin/reports/export?${params}`);
     if (!res.ok) return;
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
@@ -274,7 +269,7 @@ function ExportButton({
       <Button
         variant="outline"
         size="sm"
-        onClick={() => downloadPDF(type, startDate, endDate, token)}
+        onClick={() => downloadPDF(type, startDate, endDate)}
         className="gap-1.5"
       >
         <FileText className="w-4 h-4" />
@@ -289,7 +284,6 @@ function ExportButton({
 // ---------------------------------------------------------------------------
 
 export default function ReportsPage() {
-  const { token } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   const [datePreset, setDatePreset] = useState<DatePreset>('30d');
   const [customStart, setCustomStart] = useState('');
@@ -303,11 +297,6 @@ export default function ReportsPage() {
   const [msgReport, setMsgReport] = useState<MessagesReport | null>(null);
   const [opsReport, setOpsReport] = useState<OperatorsReport | null>(null);
   const [folReport, setFolReport] = useState<FollowersReport | null>(null);
-
-  const authHeaders = useMemo(
-    () => (token ? { Authorization: `Bearer ${token}` } : ({} as Record<string, string>)),
-    [token],
-  );
 
   const { start: startDate, end: endDate } = useMemo(() => {
     if (datePreset === 'custom' && customStart && customEnd) {
@@ -323,27 +312,27 @@ export default function ReportsPage() {
       try {
         switch (tab) {
           case 'overview': {
-            const res = await fetch(`/api/v1/admin/reports/overview`, { headers: authHeaders });
+            const res = await fetch(`/api/v1/admin/reports/overview`);
             if (res.ok) setOverview(await res.json());
             break;
           }
           case 'requests': {
-            const res = await fetch(`/api/v1/admin/reports/service-requests?${qs}`, { headers: authHeaders });
+            const res = await fetch(`/api/v1/admin/reports/service-requests?${qs}`);
             if (res.ok) setSrReport(await res.json());
             break;
           }
           case 'messages': {
-            const res = await fetch(`/api/v1/admin/reports/messages?${qs}`, { headers: authHeaders });
+            const res = await fetch(`/api/v1/admin/reports/messages?${qs}`);
             if (res.ok) setMsgReport(await res.json());
             break;
           }
           case 'operators': {
-            const res = await fetch(`/api/v1/admin/reports/operators?start_date=${startDate}&end_date=${endDate}`, { headers: authHeaders });
+            const res = await fetch(`/api/v1/admin/reports/operators?start_date=${startDate}&end_date=${endDate}`);
             if (res.ok) setOpsReport(await res.json());
             break;
           }
           case 'followers': {
-            const res = await fetch(`/api/v1/admin/reports/followers?${qs}`, { headers: authHeaders });
+            const res = await fetch(`/api/v1/admin/reports/followers?${qs}`);
             if (res.ok) setFolReport(await res.json());
             break;
           }
@@ -354,7 +343,7 @@ export default function ReportsPage() {
         setLoading(false);
       }
     },
-    [authHeaders, startDate, endDate, period],
+    [startDate, endDate, period],
   );
 
   useEffect(() => {
@@ -543,7 +532,7 @@ export default function ReportsPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           {renderPeriodSelector()}
-          <ExportButton type="service-requests" startDate={startDate} endDate={endDate} token={token} />
+          <ExportButton type="service-requests" startDate={startDate} endDate={endDate} />
         </div>
 
         {/* Avg resolution */}
@@ -673,7 +662,7 @@ export default function ReportsPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           {renderPeriodSelector()}
-          <ExportButton type="messages" startDate={startDate} endDate={endDate} token={token} />
+          <ExportButton type="messages" startDate={startDate} endDate={endDate} />
         </div>
 
         <StaggerContainer className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -740,7 +729,7 @@ export default function ReportsPage() {
     return (
       <div className="space-y-6">
         <div className="flex justify-end">
-          <ExportButton type="operators" startDate={startDate} endDate={endDate} token={token} />
+          <ExportButton type="operators" startDate={startDate} endDate={endDate} />
         </div>
 
         {/* Summary cards */}
@@ -830,7 +819,7 @@ export default function ReportsPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           {renderPeriodSelector()}
-          <ExportButton type="followers" startDate={startDate} endDate={endDate} token={token} />
+          <ExportButton type="followers" startDate={startDate} endDate={endDate} />
         </div>
 
         <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

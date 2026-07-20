@@ -1,8 +1,8 @@
 'use client';
-// Client Component required: useAuth() reads JWT from localStorage for API calls.
-// To convert to RSC, auth must migrate to httpOnly cookies.
+// Client Component required: interactive chat scroll, pagination, and export actions.
+// Auth is handled globally by the authFetch interceptor (bearer or cookie mode).
 
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -16,7 +16,6 @@ import {
     Download,
 } from 'lucide-react';
 import PageHeader from '@/app/admin/components/PageHeader';
-import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/Toast';
 import { logger } from '@/lib/logger';
 
@@ -80,7 +79,6 @@ function senderLabel(role: string | null, operatorName: string | null): string {
 export default function ChatHistoryDetailPage() {
     const params = useParams();
     const router = useRouter();
-    const { token } = useAuth();
     const { toast } = useToast();
 
     const lineUserId = params.lineUserId as string;
@@ -97,11 +95,6 @@ export default function ChatHistoryDetailPage() {
 
     const API_BASE = '/api/v1';
 
-    const authHeaders = useMemo(() => {
-        if (!token) return {} as Record<string, string>;
-        return { Authorization: `Bearer ${token}` };
-    }, [token]);
-
     /* ---- Initial load: conversation detail (header info) + first page of messages ---- */
     const fetchInitial = useCallback(async () => {
         setLoading(true);
@@ -110,7 +103,6 @@ export default function ChatHistoryDetailPage() {
             // โหลด conversation detail เพื่อดึง display_name, chat_mode
             const detailRes = await fetch(
                 `${API_BASE}/admin/live-chat/conversations/${lineUserId}`,
-                { headers: authHeaders },
             );
             if (!detailRes.ok) throw new Error('Failed to fetch conversation');
             const detail: ConversationDetail = await detailRes.json();
@@ -120,7 +112,6 @@ export default function ChatHistoryDetailPage() {
             // โหลดข้อความแบบ paginated
             const msgRes = await fetch(
                 `${API_BASE}/admin/live-chat/conversations/${lineUserId}/messages?limit=50`,
-                { headers: authHeaders },
             );
             if (!msgRes.ok) throw new Error('Failed to fetch messages');
             const msgData: PaginatedMessages = await msgRes.json();
@@ -133,7 +124,7 @@ export default function ChatHistoryDetailPage() {
         } finally {
             setLoading(false);
         }
-    }, [API_BASE, authHeaders, lineUserId]);
+    }, [API_BASE, lineUserId]);
 
     useEffect(() => {
         void fetchInitial();
@@ -154,7 +145,6 @@ export default function ChatHistoryDetailPage() {
             const oldestId = messages[0].id;
             const res = await fetch(
                 `${API_BASE}/admin/live-chat/conversations/${lineUserId}/messages?before_id=${oldestId}&limit=50`,
-                { headers: authHeaders },
             );
             if (!res.ok) throw new Error('Failed to load older messages');
             const data: PaginatedMessages = await res.json();
@@ -166,7 +156,7 @@ export default function ChatHistoryDetailPage() {
         } finally {
             setLoadingMore(false);
         }
-    }, [API_BASE, authHeaders, lineUserId, messages, hasMore, loadingMore]);
+    }, [API_BASE, lineUserId, messages, hasMore, loadingMore]);
 
     /* ---- Export: download simple text file ---- */
     const handleExport = useCallback(() => {
@@ -191,7 +181,6 @@ export default function ChatHistoryDetailPage() {
         try {
             const res = await fetch(
                 `${API_BASE}/admin/export/conversations/${lineUserId}/csv`,
-                { headers: authHeaders },
             );
             if (!res.ok) {
                 let msg = 'ดาวน์โหลด CSV ล้มเหลว';
@@ -212,7 +201,7 @@ export default function ChatHistoryDetailPage() {
             logger.error('[chat-detail] export CSV error', err, { lineUserId });
             toast({ title: 'เกิดข้อผิดพลาด กรุณาลองใหม่', variant: 'error' });
         }
-    }, [API_BASE, authHeaders, lineUserId, toast]);
+    }, [API_BASE, lineUserId, toast]);
 
     /* ---- Render message content by type ---- */
     const renderMessageContent = (msg: MessageItem) => {

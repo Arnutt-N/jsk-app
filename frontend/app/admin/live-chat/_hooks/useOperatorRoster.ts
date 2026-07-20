@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { useAuth } from '@/contexts/AuthContext';
 import type { PresencePayload } from '@/lib/websocket/types';
 import type { OperatorOption } from '../_types';
 import { API_BASE } from '../_lib/constants';
@@ -44,7 +43,6 @@ export function useOperatorRoster(
   currentUserId: number,
   enabled = false,
 ): OperatorRosterResult {
-  const { token } = useAuth();
   const [workload, setWorkload] = useState<WorkloadEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,7 +53,6 @@ export function useOperatorRoster(
       setError(null);
       try {
         const res = await fetch(`${API_BASE}/admin/users/workload`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
           signal,
         });
         if (!res.ok) throw new Error(`${ROSTER_LOAD_ERROR} (${res.status})`);
@@ -69,7 +66,7 @@ export function useOperatorRoster(
         setLoading(false);
       }
     },
-    [token],
+    [],
   );
 
   // Lazy: (re)fetch the offline roster each time the picker is enabled (opened).

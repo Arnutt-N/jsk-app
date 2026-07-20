@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
     ArrowLeft,
     ChevronLeft,
@@ -18,7 +18,6 @@ import Image from 'next/image';
 import type { SelectOption } from '@/components/ui/Select';
 import { Select } from '@/components/ui/Select';
 import { Input } from '@/components/ui/Input';
-import { useAuth } from '@/contexts/AuthContext';
 import PageHeader from '../../components/PageHeader';
 import { logger } from '@/lib/logger';
 
@@ -95,7 +94,6 @@ function formatThaiDate(dateStr: string): string {
 const perPage = 20;
 
 export default function FriendHistoryPage() {
-    const { token } = useAuth();
     const [events, setEvents] = useState<FriendEvent[]>([]);
     const [stats, setStats] = useState<FriendStats | null>(null);
     const [loading, setLoading] = useState(true);
@@ -106,10 +104,6 @@ export default function FriendHistoryPage() {
     const [searchFilter, setSearchFilter] = useState('');
 
     const API_BASE = '/api/v1';
-    const authHeaders = useMemo(() => {
-        if (!token) return {} as Record<string, string>;
-        return { Authorization: `Bearer ${token}` };
-    }, [token]);
 
     const eventTypeOptions: SelectOption[] = [
         { value: '', label: 'ทุกประเภท' },
@@ -121,7 +115,7 @@ export default function FriendHistoryPage() {
 
     const fetchStats = useCallback(async () => {
         try {
-            const res = await fetch(`${API_BASE}/admin/friends/stats`, { headers: authHeaders });
+            const res = await fetch(`${API_BASE}/admin/friends/stats`);
             if (res.ok) {
                 const data = await res.json();
                 setStats(data);
@@ -129,7 +123,7 @@ export default function FriendHistoryPage() {
         } catch (error) {
             logger.error('Failed to fetch stats:', error);
         }
-    }, [API_BASE, authHeaders]);
+    }, [API_BASE]);
 
     const fetchEvents = useCallback(async () => {
         setLoading(true);
@@ -141,9 +135,7 @@ export default function FriendHistoryPage() {
             if (eventTypeFilter) params.set('event_type', eventTypeFilter);
             if (searchFilter) params.set('line_user_id', searchFilter);
 
-            const res = await fetch(`${API_BASE}/admin/friends/history?${params.toString()}`, {
-                headers: authHeaders,
-            });
+            const res = await fetch(`${API_BASE}/admin/friends/history?${params.toString()}`);
             if (res.ok) {
                 const data = await res.json();
                 setEvents(data.events);
@@ -155,7 +147,7 @@ export default function FriendHistoryPage() {
         } finally {
             setLoading(false);
         }
-    }, [API_BASE, authHeaders, page, perPage, eventTypeFilter, searchFilter]);
+    }, [API_BASE, page, perPage, eventTypeFilter, searchFilter]);
 
     useEffect(() => {
         fetchStats();

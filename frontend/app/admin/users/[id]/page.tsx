@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
@@ -68,11 +68,13 @@ function passwordStrength(pw: string): { level: number; label: string; color: st
     return { level: 4, label: 'แข็งแรง', color: 'bg-green-500' };
 }
 
+const JSON_HEADERS = { 'Content-Type': 'application/json' };
+
 export default function UserDetailPage() {
     const params = useParams();
     const router = useRouter();
     const userId = params.id as string;
-    const { token, user: currentUser } = useAuth();
+    const { user: currentUser } = useAuth();
 
     const [userData, setUserData] = useState<UserRecord | null>(null);
     const [loading, setLoading] = useState(true);
@@ -99,18 +101,13 @@ export default function UserDetailPage() {
     const [alert, setAlert] = useState<{ type: 'success' | 'error'; title: string; message: string } | null>(null);
 
     const API_BASE = '/api/v1';
-    const authHeaders = useMemo(() => {
-        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-        if (token) headers.Authorization = `Bearer ${token}`;
-        return headers;
-    }, [token]);
 
     const isSelf = currentUser?.id === userId;
 
     const fetchUser = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await fetch(`${API_BASE}/admin/users/${userId}`, { headers: authHeaders });
+            const res = await fetch(`${API_BASE}/admin/users/${userId}`, { headers: JSON_HEADERS });
             if (res.ok) {
                 const data: UserRecord = await res.json();
                 setUserData(data);
@@ -129,7 +126,7 @@ export default function UserDetailPage() {
         } finally {
             setLoading(false);
         }
-    }, [API_BASE, authHeaders, userId]);
+    }, [API_BASE, userId]);
 
     useEffect(() => { fetchUser(); }, [fetchUser]);
 
@@ -151,7 +148,7 @@ export default function UserDetailPage() {
 
             const res = await fetch(`${API_BASE}/admin/users/${userId}`, {
                 method: 'PUT',
-                headers: authHeaders,
+                headers: JSON_HEADERS,
                 body: JSON.stringify(payload),
             });
             if (res.ok) {
@@ -180,7 +177,7 @@ export default function UserDetailPage() {
         try {
             const res = await fetch(`${API_BASE}/admin/users/${userId}`, {
                 method: 'PUT',
-                headers: authHeaders,
+                headers: JSON_HEADERS,
                 body: JSON.stringify({ password: newPassword }),
             });
             if (res.ok) {
@@ -209,7 +206,7 @@ export default function UserDetailPage() {
         try {
             const res = await fetch(`${API_BASE}/admin/users/${userId}/reset-password`, {
                 method: 'POST',
-                headers: authHeaders,
+                headers: JSON_HEADERS,
                 body: JSON.stringify({ new_password: resetPw }),
             });
             if (res.ok) {

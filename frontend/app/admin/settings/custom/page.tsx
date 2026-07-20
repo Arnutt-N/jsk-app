@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
     ArrowLeft,
@@ -53,12 +52,6 @@ const emptyForm = {
 export default function CustomIntegrationsPage() {
     const router = useRouter();
     const { toast } = useToast();
-    const { token } = useAuth();
-    const authHeaders = useMemo(() => {
-        const h: Record<string, string> = {};
-        if (token) h.Authorization = `Bearer ${token}`;
-        return h;
-    }, [token]);
     const [integrations, setIntegrations] = useState<Integration[]>([]);
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
@@ -74,7 +67,7 @@ export default function CustomIntegrationsPage() {
 
     const fetchIntegrations = useCallback(async () => {
         try {
-            const res = await fetch(`${API_BASE}/admin/settings/integrations`, { headers: authHeaders });
+            const res = await fetch(`${API_BASE}/admin/settings/integrations`);
             if (res.ok) {
                 setIntegrations(await res.json());
             } else {
@@ -87,7 +80,7 @@ export default function CustomIntegrationsPage() {
         } finally {
             setLoading(false);
         }
-    }, [API_BASE, authHeaders]);
+    }, [API_BASE]);
 
     useEffect(() => {
         fetchIntegrations();
@@ -140,7 +133,7 @@ export default function CustomIntegrationsPage() {
 
             const res = await fetch(url, {
                 method: isUpdate ? 'PUT' : 'POST',
-                headers: { ...authHeaders, 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
             });
 
@@ -165,7 +158,6 @@ export default function CustomIntegrationsPage() {
         try {
             const res = await fetch(`${API_BASE}/admin/settings/integrations/${deleteId}`, {
                 method: 'DELETE',
-                headers: authHeaders,
             });
             if (!res.ok) throw new Error('Delete failed');
             await fetchIntegrations();
@@ -185,7 +177,6 @@ export default function CustomIntegrationsPage() {
         try {
             const res = await fetch(`${API_BASE}/admin/settings/integrations/${id}/test`, {
                 method: 'POST',
-                headers: authHeaders,
             });
             const data: TestResult = await res.json();
             setTestResult(data);

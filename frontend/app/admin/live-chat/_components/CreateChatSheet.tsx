@@ -13,7 +13,6 @@ import {
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
-import { useAuth } from '@/contexts/AuthContext';
 import { logger } from '@/lib/logger';
 import { getAvatarFallbackUrl } from '@/lib/constants/live-chat-avatar';
 
@@ -38,8 +37,6 @@ interface SearchResult {
 // ---------------------------------------------------------------------------
 
 export function CreateChatSheet({ isOpen, onClose, onCreated }: CreateChatSheetProps) {
-  const { token } = useAuth();
-
   // ค้นหาผู้ใช้ LINE
   const [userQuery, setUserQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -67,15 +64,13 @@ export function CreateChatSheet({ isOpen, onClose, onCreated }: CreateChatSheetP
   // ค้นหาผู้ใช้ LINE
   const handleSearch = useCallback(async () => {
     const q = userQuery.trim();
-    if (!q || !token) return;
+    if (!q) return;
 
     setSearching(true);
     setError(null);
     try {
       const params = new URLSearchParams({ q, limit: '10' });
-      const res = await fetch(`/api/v1/admin/friends?${params}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch(`/api/v1/admin/friends?${params}`);
       if (!res.ok) {
         setError('ค้นหาผู้ใช้ไม่สำเร็จ');
         return;
@@ -96,11 +91,11 @@ export function CreateChatSheet({ isOpen, onClose, onCreated }: CreateChatSheetP
     } finally {
       setSearching(false);
     }
-  }, [userQuery, token]);
+  }, [userQuery]);
 
   // ส่งคำขอสร้างแชทใหม่
   const handleSubmit = useCallback(async () => {
-    if (!selectedUser || !token) return;
+    if (!selectedUser) return;
 
     setSubmitting(true);
     setError(null);
@@ -119,7 +114,6 @@ export function CreateChatSheet({ isOpen, onClose, onCreated }: CreateChatSheetP
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(body),
       });
@@ -140,7 +134,7 @@ export function CreateChatSheet({ isOpen, onClose, onCreated }: CreateChatSheetP
     } finally {
       setSubmitting(false);
     }
-  }, [selectedUser, token, initialMessage, reason, resetForm, onCreated]);
+  }, [selectedUser, initialMessage, reason, resetForm, onCreated]);
 
   const handleClose = useCallback(() => {
     resetForm();

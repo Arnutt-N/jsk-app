@@ -5,7 +5,6 @@ import Image from 'next/image';
 import { Check, Clock, Copy, RefreshCw, User, X } from 'lucide-react';
 
 import type { CurrentChat } from '../_types';
-import { useAuth } from '@/contexts/AuthContext';
 import { useLiveChatContext } from '../_context/LiveChatContext';
 import { useCustomerNotes } from '@/hooks/useCustomerNotes';
 import { PRESENCE_DOT_CLASS, PRESENCE_LABEL, getSessionPresence } from '@/lib/constants/live-chat-presence';
@@ -18,7 +17,6 @@ export function CustomerPanel({
   currentChat: CurrentChat | null;
   onClose: () => void;
 }) {
-  const { token } = useAuth();
   const { fetchChatDetail, fetchConversations } = useLiveChatContext();
   const [refreshing, setRefreshing] = React.useState(false);
   // Hooks must run unconditionally — call before the early return with a
@@ -35,9 +33,7 @@ export function CustomerPanel({
 
   const downloadExport = async (url: string, fallbackName: string) => {
     try {
-      const response = await fetch(url, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
+      const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`Export failed: ${response.status}`);
       }
@@ -63,7 +59,6 @@ export function CustomerPanel({
     try {
       const response = await fetch(`/api/v1/admin/live-chat/conversations/${encodedLineUserId}/refresh-profile`, {
         method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (!response.ok) {
         throw new Error(`Refresh failed: ${response.status}`);

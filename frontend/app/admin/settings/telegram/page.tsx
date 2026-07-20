@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
     ArrowLeft,
@@ -38,12 +37,6 @@ interface TestResult {
 export default function TelegramSettingsPage() {
     const router = useRouter();
     const { toast } = useToast();
-    const { token } = useAuth();
-    const authHeaders = useMemo(() => {
-        const h: Record<string, string> = {};
-        if (token) h.Authorization = `Bearer ${token}`;
-        return h;
-    }, [token]);
     const [config, setConfig] = useState<TelegramConfig | null>(null);
     const [form, setForm] = useState({ bot_token: '', chat_id: '' });
     const [isEditing, setIsEditing] = useState(false);
@@ -59,7 +52,7 @@ export default function TelegramSettingsPage() {
     const fetchConfig = useCallback(async () => {
         setError(null);
         try {
-            const res = await fetch(`${API_BASE}/admin/settings/telegram`, { headers: authHeaders });
+            const res = await fetch(`${API_BASE}/admin/settings/telegram`);
             if (res.ok) {
                 const data: TelegramConfig = await res.json();
                 setConfig(data);
@@ -75,7 +68,7 @@ export default function TelegramSettingsPage() {
         } finally {
             setLoading(false);
         }
-    }, [API_BASE, authHeaders]);
+    }, [API_BASE]);
 
     useEffect(() => {
         fetchConfig();
@@ -86,7 +79,7 @@ export default function TelegramSettingsPage() {
         try {
             const res = await fetch(`${API_BASE}/admin/settings/telegram`, {
                 method: 'PUT',
-                headers: { ...authHeaders, 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(form),
             });
             if (res.ok) {
@@ -112,7 +105,6 @@ export default function TelegramSettingsPage() {
         try {
             const res = await fetch(`${API_BASE}/admin/settings/telegram/test`, {
                 method: 'POST',
-                headers: authHeaders,
             });
             const data: TestResult = await res.json();
             setTestResult(data);

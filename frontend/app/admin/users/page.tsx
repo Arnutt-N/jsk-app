@@ -90,10 +90,12 @@ const CREATE_ROLE_OPTIONS: SelectOption[] = [
 
 const PER_PAGE = 20;
 
+const JSON_HEADERS = { 'Content-Type': 'application/json' };
+
 /* ── Component ─────────────────────────────────────────────────────── */
 
 export default function UsersPage() {
-    const { token, user: currentUser } = useAuth();
+    const { user: currentUser } = useAuth();
 
     const [users, setUsers] = useState<UserRecord[]>([]);
     const [stats, setStats] = useState<UserStats | null>(null);
@@ -133,11 +135,6 @@ export default function UsersPage() {
     const [alert, setAlert] = useState<{ type: 'success' | 'error'; title: string; message: string } | null>(null);
 
     const API_BASE = '/api/v1';
-    const authHeaders = useMemo(() => {
-        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-        if (token) headers.Authorization = `Bearer ${token}`;
-        return headers;
-    }, [token]);
 
     /* ── Fetch ──────────────────────────────────────────────────────── */
 
@@ -151,7 +148,7 @@ export default function UsersPage() {
             if (statusFilter) params.set('is_active', statusFilter);
             if (search) params.set('search', search);
 
-            const res = await fetch(`${API_BASE}/admin/users?${params}`, { headers: authHeaders });
+            const res = await fetch(`${API_BASE}/admin/users?${params}`, { headers: JSON_HEADERS });
             if (res.ok) {
                 const data: UserListResponse = await res.json();
                 setUsers(data.users);
@@ -167,11 +164,11 @@ export default function UsersPage() {
         } finally {
             setLoading(false);
         }
-    }, [API_BASE, authHeaders, page, roleFilter, statusFilter, search]);
+    }, [API_BASE, page, roleFilter, statusFilter, search]);
 
     const fetchStats = useCallback(async () => {
         try {
-            const res = await fetch(`${API_BASE}/admin/users/stats`, { headers: authHeaders });
+            const res = await fetch(`${API_BASE}/admin/users/stats`, { headers: JSON_HEADERS });
             if (res.ok) {
                 setStats(await res.json());
             } else {
@@ -180,7 +177,7 @@ export default function UsersPage() {
         } catch (e) {
             logger.error('Failed to fetch stats', e);
         }
-    }, [API_BASE, authHeaders]);
+    }, [API_BASE]);
 
     useEffect(() => { fetchStats(); }, [fetchStats]);
     useEffect(() => { fetchUsers(); }, [fetchUsers]);
@@ -204,7 +201,7 @@ export default function UsersPage() {
         try {
             const res = await fetch(`${API_BASE}/admin/users`, {
                 method: 'POST',
-                headers: authHeaders,
+                headers: JSON_HEADERS,
                 body: JSON.stringify(createForm),
             });
             if (res.ok) {
@@ -240,7 +237,7 @@ export default function UsersPage() {
 
             const res = await fetch(`${API_BASE}/admin/users/${editUser.id}`, {
                 method: 'PUT',
-                headers: authHeaders,
+                headers: JSON_HEADERS,
                 body: JSON.stringify(payload),
             });
             if (res.ok) {
@@ -267,7 +264,7 @@ export default function UsersPage() {
         try {
             const res = await fetch(`${API_BASE}/admin/users/${deleteUser.id}`, {
                 method: 'DELETE',
-                headers: authHeaders,
+                headers: JSON_HEADERS,
             });
             if (res.ok) {
                 setDeleteUser(null);
@@ -300,7 +297,7 @@ export default function UsersPage() {
         try {
             const res = await fetch(`${API_BASE}/admin/users/${resetUser.id}/reset-password`, {
                 method: 'POST',
-                headers: authHeaders,
+                headers: JSON_HEADERS,
                 body: JSON.stringify({ new_password: resetPassword }),
             });
             if (res.ok) {
