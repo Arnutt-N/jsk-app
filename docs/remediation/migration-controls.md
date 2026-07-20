@@ -74,7 +74,7 @@ flipped, and the frontend migration (PR 2B, switching `AuthContext`/
 `SameSite=Strict` hardening (PR 2C) are separate, later PRs per the
 bearer → dual → cookie flip checklist above.
 
-### LINE_ID_STORAGE_MODE wiring status (PR A — Expand phase)
+### LINE_ID_STORAGE_MODE wiring status (PR A + PR B)
 
 The flag is now wired, not just declared. `plaintext` (default) is the exact
 legacy code path — all reads and writes use the `line_user_id` column
@@ -84,10 +84,18 @@ expand phase adds surrogate columns (`line_user_id_hash`,
 child tables) and dual-writes them on every webhook ingress path, so the data
 is populated even though no read uses it yet.
 
-`dual` (PR B) switches reads to prefer the HMAC hash lookup
-(`resolve_by_line_id`) with plaintext fallback, and the backfill script
-populates surrogate fields for all pre-existing rows. `pseudonym` (PR C)
-removes the plaintext fallback and the `line_user_id` column is dropped.
+`dual` (PR B) activates mode-aware reads: `resolve_by_line_id` prefers the
+HMAC hash lookup with plaintext fallback for stragglers, and `child_filter`
+enables queries to use the `user_id` FK when available. The backfill script
+(`scripts/backfill_line_id_pseudonym.py`, idempotent + batched) populates
+surrogate fields for all pre-existing rows. Run the backfill BEFORE flipping
+to `dual`; the script prints a validation summary (remaining NULL counts must
+be 0).
+
+`pseudonym` removes the plaintext fallback in `resolve_by_line_id` (hash
+miss → None, no legacy lookup) and `child_filter` prefers `user_id` FK
+exclusively when a resolved user_id is available. The `line_user_id` column
+is dropped in PR C.
 
 Production guard: `LINE_ID_STORAGE_MODE != "plaintext"` requires
 `LINE_ID_HMAC_KEY` to be set (non-blank); the dev fallback key is only
@@ -95,12 +103,18 @@ available in non-production environments. The HMAC key must be a
 cryptographically random string (minimum 32 bytes recommended). Changing the
 HMAC key invalidates all existing hashes and requires a full re-backfill.
 
-This PR (A) ships dark behind the `plaintext` default — no production
-behavior changes until the flag is flipped. The migration follows the
-Expand → Migrate → Contract pattern:
+The migration follows the Expand → Migrate → Contract pattern:
 - **PR A (Expand)**: additive columns + dual-write, flag = `plaintext`.
-- **PR B (Migrate)**: backfill + cutover reads, flag = `dual`.
+- **PR B (Migrate)**: backfill + mode-aware reads, flag = `dual`.
 - **PR C (Contract)**: drop plaintext column, flag = `pseudonym`.
+
+#### PR B flip checklist (plaintext → dual)
+
+1. Run backfill: `python scripts/backfill_line_id_pseudonym.py --apply`
+2. Verify: script prints 0 remaining NULLs across all 7 tables.
+3. Set `LINE_ID_STORAGE_MODE=dual` + `LINE_ID_HMAC_KEY=<secret>` on Koyeb.
+4. Observe 3-5 days: hash-lookup hit rate, zero `resolve_by_line_id` fallback warnings.
+5. Rollback: set flag back to `plaintext`, restart. Dual-write continues populating both paths.
 
 ## P0.1 production startup guards
 

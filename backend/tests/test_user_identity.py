@@ -306,3 +306,98 @@ async def test_resolve_raw_for_push_falls_back_to_plaintext():
     result = await resolve_raw_for_push(mock_db, user)
 
     assert result == "Uplain"
+
+
+# ── 9. Mode-aware: pseudonym skips plaintext fallback ─────────────
+
+
+@pytest.mark.asyncio
+async def test_pseudonym_mode_skips_plaintext_fallback():
+    """In pseudonym mode, resolve_by_line_id returns None on hash miss (no fallback)."""
+    mock_db = AsyncMock()
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = None  # hash miss
+    mock_db.execute.return_value = mock_result
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr("app.services.user_identity_service.settings.LINE_ID_HMAC_KEY", "test-key")
+        mp.setattr("app.services.user_identity_service.settings.LINE_ID_STORAGE_MODE", "pseudonym")
+        resolved = await resolve_by_line_id(mock_db, "Ughost")
+
+    assert resolved is None
+    # Only 1 execute call (hash lookup) — no plaintext fallback
+    assert mock_db.execute.await_count == 1
+
+
+@pytest.mark.asyncio
+async def test_dual_mode_uses_plaintext_fallback():
+    """In dual mode, resolve_by_line_id still falls back to plaintext on hash miss."""
+    legacy_user = SimpleNamespace(
+        id=50,
+        line_user_id="Udual",
+        line_user_id_hash=None,
+        line_user_id_encrypted=None,
+        line_key_version=None,
+    )
+
+    mock_db = AsyncMock()
+    call_count = [0]
+
+    async def fake_execute(stmt):
+        call_count[0] += 1
+        result = MagicMock()
+        if call_count[0] == 1:
+            result.scalar_one_or_none.return_value = None  # hash miss
+        else:
+            result.scalar_one_or_none.return_value = legacy_user  # plaintext hit
+        return result
+
+    mock_db.execute = fake_execute
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr("app.services.user_identity_service.settings.LINE_ID_HMAC_KEY", "test-key")
+        mp.setattr("app.services.user_identity_service.settings.LINE_ID_STORAGE_MODE", "dual")
+        mp.setattr(
+            "app.services.user_identity_service.credential_service.encrypt_line_id",
+            lambda raw: f"enc:{raw}",
+        )
+        resolved = await resolve_by_line_id(mock_db, "Udual")
+
+    assert resolved is legacy_user
+    assert call_count[0] == 2  # hash miss + plaintext fallback
+
+
+# ── 10. child_filter mode-awareness ───────────────────────────────
+
+
+def test_child_filter_plaintext_uses_line_user_id():
+    from app.services.user_identity_service import child_filter
+    from app.models.message import Message
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr("app.services.user_identity_service.settings.LINE_ID_STORAGE_MODE", "plaintext")
+        clause = child_filter(Message, "Uabc", user_id=42)
+
+    assert str(clause) == str(Message.line_user_id == "Uabc")
+
+
+def test_child_filter_pseudonym_uses_user_id():
+    from app.services.user_identity_service import child_filter
+    from app.models.message import Message
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr("app.services.user_identity_service.settings.LINE_ID_STORAGE_MODE", "pseudonym")
+        clause = child_filter(Message, "Uabc", user_id=42)
+
+    assert str(clause) == str(Message.user_id == 42)
+
+
+def test_child_filter_pseudonym_without_user_id_falls_back():
+    from app.services.user_identity_service import child_filter
+    from app.models.message import Message
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr("app.services.user_identity_service.settings.LINE_ID_STORAGE_MODE", "pseudonym")
+        clause = child_filter(Message, "Uabc", user_id=None)
+
+    assert str(clause) == str(Message.line_user_id == "Uabc")

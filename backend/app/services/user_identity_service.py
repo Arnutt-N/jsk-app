@@ -64,12 +64,16 @@ async def resolve_by_line_id(db: AsyncSession, raw: str) -> Optional[User]:
 
     Returns None if the user does not exist at all (caller should create).
     Lazily populates surrogate fields on legacy users found by plaintext.
+    In pseudonym mode, the plaintext fallback is skipped (column is dropped).
     """
     h = line_id_hash(raw)
     result = await db.execute(select(User).where(User.line_user_id_hash == h))
     user = result.scalar_one_or_none()
     if user:
         return user
+
+    if settings.LINE_ID_STORAGE_MODE == "pseudonym":
+        return None
 
     result = await db.execute(select(User).where(User.line_user_id == raw))
     user = result.scalar_one_or_none()
@@ -84,6 +88,17 @@ async def resolve_by_line_id(db: AsyncSession, raw: str) -> Optional[User]:
             result = await db.execute(select(User).where(User.line_user_id_hash == h))
             user = result.scalar_one_or_none()
     return user
+
+
+def child_filter(model, line_user_id: str, user_id: Optional[int] = None):
+    """Return the appropriate WHERE clause for child-table queries based on mode.
+
+    In pseudonym mode with a resolved user_id, filters by FK (integer index).
+    Otherwise falls back to the line_user_id string column.
+    """
+    if settings.LINE_ID_STORAGE_MODE == "pseudonym" and user_id is not None:
+        return model.user_id == user_id
+    return model.line_user_id == line_user_id
 
 
 async def decrypt_line_id_for_user(db: AsyncSession, user_id: int) -> Optional[str]:
