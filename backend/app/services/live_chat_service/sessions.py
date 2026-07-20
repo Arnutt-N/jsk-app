@@ -9,6 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.audit import audit_action
+from app.core.permissions import can, KEY_ACCESS_LIVE_CHAT
 from app.models.chat_session import ChatSession, ClosedBy, SessionStatus
 from app.models.user import ChatMode, User, UserRole
 
@@ -231,9 +232,13 @@ class SessionLifecycleMixin:
         if from_operator_id == to_operator_id:
             raise ValueError(TRANSFER_ERR_TRANSFER_TO_SELF)
 
-        # Verify target operator exists and has appropriate role
+        # Verify target operator exists and has access_live_chat permission
+        # (NEW-3: role check is DB-configurable via the permission matrix;
+        # DEFAULT_POLICY = {SUPER_ADMIN, ADMIN, AGENT} preserves today's
+        # behavior). Same key as the WS auth gate -- a transfer target must
+        # be able to use live-chat, not just be a staff member.
         to_operator = await db.get(User, to_operator_id)
-        if not to_operator or to_operator.role not in [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.AGENT]:
+        if not to_operator or not can(to_operator.role, KEY_ACCESS_LIVE_CHAT):
             raise ValueError(TRANSFER_ERR_INVALID_TARGET)
 
         session.operator_id = to_operator_id

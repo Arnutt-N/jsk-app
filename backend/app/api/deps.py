@@ -230,6 +230,17 @@ async def get_current_staff(
     HTTP gate (page load); NEW-3's `access_live_chat` is the WebSocket
     gate — different layers, not redundant. SUPER_ADMIN is NOT locked
     into this key (recoverable via the matrix endpoint).
+
+    TWO-GATE DESIGN (do NOT tighten this gate):
+    This HTTP gate is permissive (lets DIRECTOR/HEAD LOAD the live-chat
+    page) so supervisors can discover the feature and ask SUPER_ADMIN for
+    WS access. The WS gate (ws_live_chat.py:_load_and_authorize_ws_user
+    + sessions.py:transfer_session) checks `can(role, KEY_ACCESS_LIVE_CHAT)`
+    — the real access control. Under DEFAULT_POLICY (DIRECTOR/HEAD not in
+    access_live_chat) a DIRECTOR can load the page but the WS connection
+    is rejected. This is intentional. Tightening this HTTP gate to match
+    the WS gate would hide the page from supervisors and break the
+    discoverability path.
     """
     from app.models.user import UserRole
 

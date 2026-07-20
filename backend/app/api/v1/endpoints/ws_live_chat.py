@@ -8,6 +8,7 @@ from pydantic import ValidationError
 from sqlalchemy import select
 
 from app.core.config import settings
+from app.core.permissions import can, KEY_ACCESS_LIVE_CHAT
 from app.db.session import AsyncSessionLocal
 from app.core.websocket_manager import ws_manager
 from app.core.rate_limiter import ws_rate_limiter
@@ -42,7 +43,19 @@ async def _load_and_authorize_ws_user(user_id: int) -> Optional[User]:
 
     Extracted so `authenticate_ws_ticket` doesn't duplicate the lookup/role
     logic that previously lived inline in `authenticate_ws_user` (P1.1a Task
-    8 note: mirror lines 64-75, don't copy-paste them)."""
+    8 note: mirror lines 64-75, don't copy-paste them).
+
+    NEW-3: the role check is now DB-configurable via `KEY_ACCESS_LIVE_CHAT`
+    (permission matrix at /admin/settings/permissions). DEFAULT_POLICY =
+    {SUPER_ADMIN, ADMIN, AGENT} preserves the pre-NEW-3 hardcoded set so
+    the PR ships dark. SUPER_ADMIN opts DIRECTOR/HEAD in via the matrix UI;
+    the change takes effect on the next WS connection (cache invalidation
+    is immediate via PATCH /permissions invalidate-and-reload).
+
+    This is the WS gate; the HTTP gate (deps.py:get_current_staff) is
+    permissive so DIRECTOR/HEAD can LOAD the live-chat page to discover
+    the feature. Two-gate design — do NOT tighten get_current_staff.
+    """
     async with AsyncSessionLocal() as db:
         result = await db.execute(select(User).where(User.id == user_id))
         user = result.scalar_one_or_none()
@@ -50,7 +63,7 @@ async def _load_and_authorize_ws_user(user_id: int) -> Optional[User]:
     if not user or not getattr(user, "is_active", True):
         return None
 
-    if user.role not in {UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.AGENT}:
+    if not can(user.role, KEY_ACCESS_LIVE_CHAT):
         return None
 
     return user

@@ -268,6 +268,90 @@ class TestTransferSession:
 
         assert "Only the current operator" in str(exc.value)
 
+    # -------------------------------------------------------------------
+    # NEW-3: transfer target gate respects KEY_ACCESS_LIVE_CHAT
+    # (DB-configurable). DEFAULT_POLICY = {SUPER_ADMIN, ADMIN, AGENT}.
+    # -------------------------------------------------------------------
+
+    @pytest.mark.asyncio
+    async def test_transfer_session_rejects_director_target_under_default(self, live_chat_service):
+        """DIRECTOR target rejected under DEFAULT_POLICY (not in access_live_chat)."""
+        from app.core.permissions import invalidate_cache
+
+        invalidate_cache()  # ensure DEFAULT_POLICY applies
+        mock_session = MagicMock()
+        mock_session.id = 99
+        mock_session.status = SessionStatus.ACTIVE
+        mock_session.operator_id = 1
+        mock_session.transfer_count = 0
+        mock_session.transfer_reason = None
+
+        mock_target = MagicMock()
+        mock_target.role = UserRole.DIRECTOR  # not in DEFAULT_POLICY
+
+        mock_db = AsyncMock()
+        mock_db.get.return_value = mock_target
+
+        try:
+            with patch.object(live_chat_service, 'get_active_session', new_callable=AsyncMock) as mock_get:
+                mock_get.return_value = mock_session
+                with pytest.raises(ValueError) as exc:
+                    await live_chat_service.transfer_session(
+                        "Utest",
+                        from_operator_id=1,
+                        to_operator_id=7,
+                        reason="handoff",
+                        db=mock_db,
+                    )
+            # TRANSFER_ERR_INVALID_TARGET raised by the can() check
+            from app.services.live_chat_service import TRANSFER_ERR_INVALID_TARGET
+            assert str(exc.value) == TRANSFER_ERR_INVALID_TARGET
+        finally:
+            invalidate_cache()
+
+    @pytest.mark.asyncio
+    async def test_transfer_session_accepts_director_target_when_db_grants(self, live_chat_service):
+        """After a DB grant, DIRECTOR target passes the transfer gate."""
+        from app.core import permissions as perms_module
+        from app.core.permissions import KEY_ACCESS_LIVE_CHAT, invalidate_cache
+
+        try:
+            invalidate_cache()
+            perms_module._policy_cache = {
+                **perms_module.DEFAULT_POLICY,
+                KEY_ACCESS_LIVE_CHAT: frozenset({
+                    UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.AGENT, UserRole.DIRECTOR,
+                }),
+            }
+
+            mock_session = MagicMock()
+            mock_session.id = 99
+            mock_session.status = SessionStatus.ACTIVE
+            mock_session.operator_id = 1
+            mock_session.transfer_count = 0
+            mock_session.transfer_reason = None
+
+            mock_target = MagicMock()
+            mock_target.role = UserRole.DIRECTOR  # now granted via DB
+
+            mock_db = AsyncMock()
+            mock_db.get.return_value = mock_target
+
+            with patch.object(live_chat_service, 'get_active_session', new_callable=AsyncMock) as mock_get:
+                mock_get.return_value = mock_session
+                result = await live_chat_service.transfer_session(
+                    "Utest",
+                    from_operator_id=1,
+                    to_operator_id=7,
+                    reason="handoff to supervisor",
+                    db=mock_db,
+                )
+
+            assert result == mock_session
+            assert mock_session.operator_id == 7
+        finally:
+            invalidate_cache()  # restore DEFAULT_POLICY for later tests
+
 
 class TestSendMessageOwnership:
     """Test outbound message ownership checks"""

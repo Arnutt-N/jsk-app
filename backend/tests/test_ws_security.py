@@ -306,6 +306,72 @@ class TestWebSocketAuthHelper:
         assert admin_id is None
         mock_send.assert_awaited_once()
 
+    # -------------------------------------------------------------------
+    # NEW-3: WS auth gate respects KEY_ACCESS_LIVE_CHAT (DB-configurable).
+    # -------------------------------------------------------------------
+
+    @pytest.mark.asyncio
+    async def test_ws_auth_rejects_director_under_default_policy(self):
+        """DIRECTOR is not in DEFAULT_POLICY[access_live_chat] -> rejected.
+
+        Ships-dark: today's hardcoded set was {ADMIN, SUPER_ADMIN, AGENT};
+        DEFAULT_POLICY mirrors it so DIRECTOR is rejected on deploy.
+        """
+        from app.api.v1.endpoints.ws_live_chat import _load_and_authorize_ws_user
+        from app.core.permissions import invalidate_cache
+
+        invalidate_cache()  # ensure DEFAULT_POLICY applies
+        user = SimpleNamespace(id=42, role=UserRole.DIRECTOR, is_active=True)
+        mock_db = AsyncMock()
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = user
+        mock_db.execute.return_value = mock_result
+        async_session = AsyncMock()
+        async_session.__aenter__.return_value = mock_db
+        async_session.__aexit__.return_value = None
+
+        with patch("app.api.v1.endpoints.ws_live_chat.AsyncSessionLocal", return_value=async_session):
+            result = await _load_and_authorize_ws_user(42)
+
+        assert result is None  # DIRECTOR rejected under DEFAULT_POLICY
+
+    @pytest.mark.asyncio
+    async def test_ws_auth_accepts_director_when_db_grants(self):
+        """After a DB grant (cache injected), DIRECTOR passes the WS gate."""
+        from app.api.v1.endpoints.ws_live_chat import _load_and_authorize_ws_user
+        from app.core import permissions as perms_module
+        from app.core.permissions import (
+            KEY_ACCESS_LIVE_CHAT,
+            invalidate_cache,
+        )
+
+        try:
+            # Inject a DB-style policy entry granting DIRECTOR.
+            invalidate_cache()
+            perms_module._policy_cache = {
+                **perms_module.DEFAULT_POLICY,
+                KEY_ACCESS_LIVE_CHAT: frozenset({
+                    UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.AGENT, UserRole.DIRECTOR,
+                }),
+            }
+
+            user = SimpleNamespace(id=42, role=UserRole.DIRECTOR, is_active=True)
+            mock_db = AsyncMock()
+            mock_result = MagicMock()
+            mock_result.scalar_one_or_none.return_value = user
+            mock_db.execute.return_value = mock_result
+            async_session = AsyncMock()
+            async_session.__aenter__.return_value = mock_db
+            async_session.__aexit__.return_value = None
+
+            with patch("app.api.v1.endpoints.ws_live_chat.AsyncSessionLocal", return_value=async_session):
+                result = await _load_and_authorize_ws_user(42)
+
+            assert result is not None
+            assert result.id == 42
+        finally:
+            invalidate_cache()  # restore DEFAULT_POLICY for later tests
+
 
 
 @pytest.mark.asyncio
