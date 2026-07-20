@@ -2,7 +2,6 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/Toast';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -51,12 +50,6 @@ const TYPE_OPTIONS: { type: MessageType; label: string; desc: string; icon: Reac
 export default function BroadcastCreatePage() {
     const { toast } = useToast();
     const router = useRouter();
-    const { token } = useAuth();
-    const authHeaders = useMemo(() => {
-        const h: Record<string, string> = {};
-        if (token) h.Authorization = `Bearer ${token}`;
-        return h;
-    }, [token]);
     const API_BASE = '/api/v1';
 
     const [step, setStep] = useState(0);
@@ -134,7 +127,7 @@ export default function BroadcastCreatePage() {
             };
             const res = await fetch(`${API_BASE}/admin/broadcasts`, {
                 method: 'POST',
-                headers: { ...authHeaders, 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body),
             });
             if (!res.ok) throw new Error('Failed to save');
@@ -159,13 +152,13 @@ export default function BroadcastCreatePage() {
             };
             const createRes = await fetch(`${API_BASE}/admin/broadcasts`, {
                 method: 'POST',
-                headers: { ...authHeaders, 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body),
             });
             if (!createRes.ok) throw new Error('Failed to create');
             const created = await createRes.json();
 
-            const sendRes = await fetch(`${API_BASE}/admin/broadcasts/${created.id}/send`, { method: 'POST', headers: authHeaders });
+            const sendRes = await fetch(`${API_BASE}/admin/broadcasts/${created.id}/send`, { method: 'POST' });
             if (!sendRes.ok) {
                 const err = await sendRes.json();
                 throw new Error(err.detail || 'Failed to send');
@@ -192,7 +185,7 @@ export default function BroadcastCreatePage() {
             };
             const createRes = await fetch(`${API_BASE}/admin/broadcasts`, {
                 method: 'POST',
-                headers: { ...authHeaders, 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body),
             });
             if (!createRes.ok) throw new Error('Failed to create');
@@ -200,7 +193,7 @@ export default function BroadcastCreatePage() {
 
             const schedRes = await fetch(`${API_BASE}/admin/broadcasts/${created.id}/schedule`, {
                 method: 'POST',
-                headers: { ...authHeaders, 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ scheduled_at: scheduledAt.toISOString() }),
             });
             if (!schedRes.ok) {

@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -51,13 +50,6 @@ const providerMeta: Record<string, { icon: React.ElementType; href: string; desc
 };
 
 export default function SettingsOverviewPage() {
-    const { token } = useAuth();
-    const authHeaders = useMemo(() => {
-        const h: Record<string, string> = {};
-        if (token) h.Authorization = `Bearer ${token}`;
-        return h;
-    }, [token]);
-
     const [statuses, setStatuses] = useState<ProviderStatus[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -68,7 +60,7 @@ export default function SettingsOverviewPage() {
         setLoading(true);
         setError(null);
         try {
-            const res = await fetch(`${API_BASE}/admin/settings/overview`, { headers: authHeaders });
+            const res = await fetch(`${API_BASE}/admin/settings/overview`);
             if (res.ok) {
                 setStatuses(await res.json());
             } else {
@@ -80,7 +72,7 @@ export default function SettingsOverviewPage() {
         } finally {
             setLoading(false);
         }
-    }, [API_BASE, authHeaders]);
+    }, [API_BASE]);
 
     useEffect(() => {
         fetchOverview();

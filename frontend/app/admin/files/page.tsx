@@ -1,13 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Upload, Download, Trash2, Link2, LinkIcon, Search,
   FileText, Image as ImageIcon, Video, Music, File as FileIcon,
   Grid3X3, List, Copy, Check, Eye, ExternalLink,
   ChevronLeft, ChevronRight, AlertTriangle,
 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
 import {
   Button, Card, Badge, Input, Modal,
   Tabs, TabsList, TabsTrigger, TabsContent,
@@ -106,7 +105,6 @@ function isAudioMime(mime: string) {
 // Component
 // ---------------------------------------------------------------------------
 export default function FilesPage() {
-  const { token } = useAuth();
   const { toast } = useToast();
 
   // Data state
@@ -151,12 +149,6 @@ export default function FilesPage() {
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const headers = useMemo(() => {
-    const h: Record<string, string> = {};
-    if (token) h['Authorization'] = `Bearer ${token}`;
-    return h;
-  }, [token]);
-
   // -----------------------------------------------------------------------
   // Data fetching
   // -----------------------------------------------------------------------
@@ -169,7 +161,7 @@ export default function FilesPage() {
       params.set('page', String(page));
       params.set('page_size', '24');
 
-      const res = await fetch(`${API_BASE}/admin/media?${params}`, { headers });
+      const res = await fetch(`${API_BASE}/admin/media?${params}`);
       if (res.ok) {
         const data = await res.json();
         setFiles(data.items || []);
@@ -186,11 +178,11 @@ export default function FilesPage() {
     } finally {
       setLoading(false);
     }
-  }, [category, search, page, headers, toast]);
+  }, [category, search, page, toast]);
 
   const fetchStats = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/admin/media/stats`, { headers });
+      const res = await fetch(`${API_BASE}/admin/media/stats`);
       if (res.ok) {
         setStats(await res.json());
       } else {
@@ -201,7 +193,7 @@ export default function FilesPage() {
     } catch (err) {
       logger.error('Failed to fetch media stats:', err);
     }
-  }, [headers]);
+  }, []);
 
   useEffect(() => { fetchFiles(); }, [fetchFiles]);
   useEffect(() => { fetchStats(); }, [fetchStats]);
@@ -223,7 +215,6 @@ export default function FilesPage() {
       try {
         const res = await fetch(`${API_BASE}/admin/media`, {
           method: 'POST',
-          headers,
           body: form,
         });
         if (res.ok) {
@@ -245,7 +236,7 @@ export default function FilesPage() {
     } else if (failCount > 0) {
       toast({ title: `อัปโหลดล้มเหลว ${failCount} ไฟล์ กรุณาตรวจสอบขนาดหรือประเภทไฟล์`, variant: 'error' });
     }
-  }, [headers, fetchFiles, fetchStats, toast]);
+  }, [fetchFiles, fetchStats, toast]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -258,7 +249,7 @@ export default function FilesPage() {
   // -----------------------------------------------------------------------
   const downloadFile = useCallback(async (file: MediaFile) => {
     try {
-      const res = await fetch(`${API_BASE}/admin/media/${file.id}/download`, { headers });
+      const res = await fetch(`${API_BASE}/admin/media/${file.id}/download`);
       if (res.ok) {
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
@@ -276,12 +267,12 @@ export default function FilesPage() {
       logger.error('downloadFile error', err, { fileId: file.id });
       toast({ title: 'เกิดข้อผิดพลาด กรุณาลองใหม่', variant: 'error' });
     }
-  }, [headers, toast]);
+  }, [toast]);
 
   const createPublicLink = useCallback(async (file: MediaFile) => {
     try {
       const res = await fetch(`${API_BASE}/admin/media/${file.id}/public`, {
-        method: 'POST', headers,
+        method: 'POST',
       });
       if (res.ok) {
         const updated = await res.json() as MediaFile;
@@ -297,12 +288,12 @@ export default function FilesPage() {
       logger.error('createPublicLink error', err, { fileId: file.id });
       toast({ title: 'เกิดข้อผิดพลาด กรุณาลองใหม่', variant: 'error' });
     }
-  }, [headers, toast]);
+  }, [toast]);
 
   const revokePublicLink = useCallback(async (file: MediaFile) => {
     try {
       const res = await fetch(`${API_BASE}/admin/media/${file.id}/public`, {
-        method: 'DELETE', headers,
+        method: 'DELETE',
       });
       if (res.ok) {
         const updated = await res.json() as MediaFile;
@@ -319,19 +310,19 @@ export default function FilesPage() {
       logger.error('revokePublicLink error', err, { fileId: file.id });
       toast({ title: 'เกิดข้อผิดพลาด กรุณาลองใหม่', variant: 'error' });
     }
-  }, [headers, toast, fetchStats]);
+  }, [toast, fetchStats]);
 
   const deleteFiles = useCallback(async (ids: string[]) => {
     try {
       let res: Response;
       if (ids.length === 1) {
         res = await fetch(`${API_BASE}/admin/media/${ids[0]}`, {
-          method: 'DELETE', headers,
+          method: 'DELETE',
         });
       } else {
         res = await fetch(`${API_BASE}/admin/media/bulk-delete`, {
           method: 'POST',
-          headers: { ...headers, 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ids }),
         });
       }
@@ -350,13 +341,13 @@ export default function FilesPage() {
       toast({ title: 'เกิดข้อผิดพลาด กรุณาลองใหม่', variant: 'error' });
     }
     setDeleteConfirm({ ids: [], show: false });
-  }, [headers, toast, fetchFiles, fetchStats]);
+  }, [toast, fetchFiles, fetchStats]);
 
   const bulkCreatePublic = useCallback(async () => {
     try {
       const res = await fetch(`${API_BASE}/admin/media/bulk-public`, {
         method: 'POST',
-        headers: { ...headers, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ids: Array.from(selected) }),
       });
       if (res.ok) {
@@ -372,7 +363,7 @@ export default function FilesPage() {
       logger.error('bulkCreatePublic error', err);
       toast({ title: 'เกิดข้อผิดพลาด กรุณาลองใหม่', variant: 'error' });
     }
-  }, [headers, selected, toast, fetchFiles]);
+  }, [selected, toast, fetchFiles]);
 
   const copyToClipboard = useCallback((text: string) => {
     navigator.clipboard.writeText(text);

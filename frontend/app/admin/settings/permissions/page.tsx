@@ -135,11 +135,10 @@ function LevelSelect({
 export default function PermissionSettingsPage() {
   const me = usePermissions()
   const canEdit = me?.can_edit_permissions ?? false
-  // The auth token lives in AuthContext state and is mirrored into a window
-  // global by `syncAdminAuthToken(token)` so the global fetch interceptor can
-  // attach it. Gate the load() effect on `token` becoming truthy to avoid a
-  // 401 race (observed in CI E2E).
-  const { token } = useAuth()
+  // Gate the load() effect on the session being ready to avoid a 401 race
+  // (observed in CI E2E). `isAuthenticated` works in both auth modes — in
+  // cookie mode `token` is always null, so token-presence can't gate here.
+  const { isAuthenticated } = useAuth()
 
   // The matrix structure (module grouping, labels, level tags). Prefer the
   // live registry served by GET /permissions; fall back to the static mirror.
@@ -177,13 +176,13 @@ export default function PermissionSettingsPage() {
   }, [resetRules])
 
   useEffect(() => {
-    if (!token) return
+    if (!isAuthenticated) return
     // Mount-time fetch sets multiple pieces of local state; the React 19 lint
     // rule warns against setState in an effect, but a one-shot fetch on mount
     // is the canonical exception (same pattern as PR #38).
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void load()
-  }, [load, token])
+  }, [load, isAuthenticated])
 
   const grouped = useMemo(() => groupByModule(registry), [registry])
 

@@ -1,6 +1,4 @@
 'use client';
-// Client Component required: useAuth() reads JWT from localStorage for API calls.
-// To convert to RSC, auth must migrate to httpOnly cookies.
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -14,7 +12,6 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Textarea } from '@/components/ui/Textarea';
-import { useAuth } from '@/contexts/AuthContext';
 import PageHeader from '@/app/admin/components/PageHeader';
 import { TOPIC_OPTIONS, TOPIC_CATEGORY_OPTIONS } from '@/lib/constants/categories';
 import { AGENCIES } from '@/lib/constants/agencies';
@@ -106,7 +103,6 @@ const STEP_FIELDS: Record<number, (keyof RequestFormValues)[]> = {
 
 export default function CreateRequestPage() {
     const router = useRouter();
-    const { token } = useAuth();
 
     const [step, setStep] = useState(0);
     const [submitting, setSubmitting] = useState(false);
@@ -192,9 +188,6 @@ export default function CreateRequestPage() {
             const headers: Record<string, string> = {
                 'Content-Type': 'application/json',
             };
-            if (token) {
-                headers['Authorization'] = `Bearer ${token}`;
-            }
 
             const { created_at, source_other, ...rest } = data;
             const payload = {

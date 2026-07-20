@@ -1,6 +1,6 @@
 'use client';
-// Client Component required: useAuth() reads JWT from localStorage for API calls.
-// To convert to RSC, auth must migrate to httpOnly cookies.
+// Client Component required: interactive table with selection, filters, and modals.
+// Auth is handled globally by the authFetch interceptor (bearer or cookie mode).
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { History, RefreshCw, Tag, User } from 'lucide-react';
@@ -19,7 +19,6 @@ import {
     RichMenuAssignModal,
     type AssignableRichMenu,
 } from '@/components/admin/RichMenuAssignModal';
-import { useAuth } from '@/contexts/AuthContext';
 import PageHeader from '../components/PageHeader';
 import { logger } from '@/lib/logger';
 import { readErrorMessage } from '@/lib/api-error';
@@ -40,9 +39,9 @@ interface Friend {
 
 const API_BASE = '/api/v1';
 const COLUMN_COUNT = 8;
+const JSON_HEADERS = { 'Content-Type': 'application/json' };
 
 export default function FriendsPage() {
-    const { token } = useAuth();
     const router = useRouter();
     const { toast } = useToast();
     const [friends, setFriends] = useState<Friend[]>([]);
@@ -66,19 +65,6 @@ export default function FriendsPage() {
         { value: 'UNFOLLOWED', label: 'Unfollowed' },
     ];
 
-    // Manual auth headers (NOT the global authFetch interceptor) — this page
-    // already established the useAuth() token pattern; the assignment calls reuse it.
-    const authHeaders = useMemo(() => {
-        if (!token) {
-            return {} as Record<string, string>;
-        }
-        return { Authorization: `Bearer ${token}` };
-    }, [token]);
-    const jsonHeaders = useMemo(
-        () => ({ ...authHeaders, 'Content-Type': 'application/json' }),
-        [authHeaders],
-    );
-
     // Only synced menus are assignable (backend rejects unsynced with 409).
     const assignableMenus = useMemo(
         () => richMenus.filter((m) => !!m.line_rich_menu_id),
@@ -89,7 +75,7 @@ export default function FriendsPage() {
         setLoading(true);
         try {
             const query = statusFilter ? `?status=${statusFilter}` : '';
-            const res = await fetch(`${API_BASE}/admin/friends${query}`, { headers: authHeaders });
+            const res = await fetch(`${API_BASE}/admin/friends${query}`);
             if (res.ok) {
                 const data = await res.json();
                 setFriends(data.friends);
@@ -101,11 +87,11 @@ export default function FriendsPage() {
         } finally {
             setLoading(false);
         }
-    }, [authHeaders, statusFilter]);
+    }, [statusFilter]);
 
     const fetchRichMenus = useCallback(async () => {
         try {
-            const res = await fetch(`${API_BASE}/admin/rich-menus`, { headers: authHeaders });
+            const res = await fetch(`${API_BASE}/admin/rich-menus`);
             if (res.ok) {
                 const data = await res.json();
                 setRichMenus(Array.isArray(data) ? data : []);
@@ -115,7 +101,7 @@ export default function FriendsPage() {
         } catch (error) {
             logger.error('fetchRichMenus error', error);
         }
-    }, [authHeaders]);
+    }, []);
 
     useEffect(() => {
         fetchFriends();
@@ -198,7 +184,7 @@ export default function FriendsPage() {
             if (assignModal.mode === 'single' && assignModal.friend) {
                 const res = await fetch(
                     `${API_BASE}/admin/rich-menus/${richMenuId}/users/${assignModal.friend.line_user_id}`,
-                    { method: 'POST', headers: authHeaders },
+                    { method: 'POST' },
                 );
                 if (!res.ok) throw new Error(await readErrorMessage(res, 'กำหนด Rich Menu ไม่สำเร็จ'));
                 toast({ title: 'สำเร็จ', description: 'กำหนด Rich Menu เรียบร้อย', variant: 'success' });
@@ -206,7 +192,7 @@ export default function FriendsPage() {
                 const ids = Array.from(selectedIds);
                 const res = await fetch(`${API_BASE}/admin/rich-menus/users/bulk-link`, {
                     method: 'POST',
-                    headers: jsonHeaders,
+                    headers: JSON_HEADERS,
                     body: JSON.stringify({ rich_menu_id: richMenuId, user_ids: ids }),
                 });
                 if (!res.ok)
@@ -239,7 +225,7 @@ export default function FriendsPage() {
         try {
             const res = await fetch(
                 `${API_BASE}/admin/rich-menus/${friend.rich_menu_id}/users/${friend.line_user_id}`,
-                { method: 'DELETE', headers: authHeaders },
+                { method: 'DELETE' },
             );
             if (!res.ok) throw new Error(await readErrorMessage(res, 'ยกเลิกการกำหนดไม่สำเร็จ'));
             toast({ title: 'สำเร็จ', description: 'ยกเลิกการกำหนด Rich Menu เรียบร้อย', variant: 'success' });
@@ -263,7 +249,7 @@ export default function FriendsPage() {
             const ids = Array.from(selectedIds);
             const res = await fetch(`${API_BASE}/admin/rich-menus/users/bulk-unlink`, {
                 method: 'POST',
-                headers: jsonHeaders,
+                headers: JSON_HEADERS,
                 body: JSON.stringify({ user_ids: ids }),
             });
             if (!res.ok)
