@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Enum
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Enum, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import enum
@@ -41,6 +41,9 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     line_user_id = Column(String, unique=True, index=True, nullable=True) # For LINE users
+    line_user_id_hash = Column(String(64), unique=True, index=True, nullable=True)
+    line_user_id_encrypted = Column(Text, nullable=True)
+    line_key_version = Column(Integer, nullable=False, default=1, server_default="1")
     username = Column(String, unique=True, index=True, nullable=True)     # For Admins
     email = Column(String, unique=True, index=True, nullable=True)
     hashed_password = Column(String, nullable=True)

@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc, func, case
+from sqlalchemy.exc import IntegrityError
 from app.models.friend_event import FriendEvent, FriendEventType, EventSource
 from app.models.user import User
 from datetime import datetime, timezone
@@ -11,39 +12,48 @@ logger = logging.getLogger(__name__)
 
 class FriendService:
     async def get_or_create_user(self, line_user_id: str, db: AsyncSession, commit: bool = True) -> User:
-        """Get existing user or create new one from LINE profile"""
-        result = await db.execute(select(User).where(User.line_user_id == line_user_id))
-        user = result.scalar_one_or_none()
+        """Get existing user or create new one from LINE profile.
 
-        if not user:
-            # Try to fetch profile from LINE
-            from app.core.line_client import get_line_bot_api
-            try:
-                profile = await get_line_bot_api().get_profile(line_user_id)
-                user = User(
-                    line_user_id=line_user_id,
-                    display_name=profile.display_name,
-                    picture_url=profile.picture_url,
-                    friend_status="ACTIVE",
-                    friend_since=datetime.now(timezone.utc),
-                    profile_updated_at=datetime.now(timezone.utc),
-                )
-            except Exception as e:
-                # Fallback if profile fetch fails
-                logger.warning("Failed to fetch LINE profile for %s: %s", line_user_id, e)
-                user = User(
-                    line_user_id=line_user_id,
-                    display_name="LINE User",
-                    friend_status="ACTIVE",
-                    friend_since=datetime.now(timezone.utc),
-                )
+        Resolution order: HMAC hash lookup → legacy plaintext fallback → create.
+        Populates pseudonymization surrogate (hash + encrypted) on every path.
+        """
+        from app.services.user_identity_service import resolve_by_line_id, populate_surrogate
 
-            db.add(user)
+        user = await resolve_by_line_id(db, line_user_id)
+        if user:
+            return user
+
+        from app.core.line_client import get_line_bot_api
+        try:
+            profile = await get_line_bot_api().get_profile(line_user_id)
+            user = User(
+                line_user_id=line_user_id,
+                display_name=profile.display_name,
+                picture_url=profile.picture_url,
+                friend_status="ACTIVE",
+                friend_since=datetime.now(timezone.utc),
+                profile_updated_at=datetime.now(timezone.utc),
+            )
+        except Exception as e:
+            logger.warning("Failed to fetch LINE profile for %s: %s", line_user_id, e)
+            user = User(
+                line_user_id=line_user_id,
+                display_name="LINE User",
+                friend_status="ACTIVE",
+                friend_since=datetime.now(timezone.utc),
+            )
+
+        populate_surrogate(user, line_user_id)
+        db.add(user)
+        try:
             if commit:
                 await db.commit()
                 await db.refresh(user)
             else:
                 await db.flush()
+        except IntegrityError:
+            await db.rollback()
+            user = await resolve_by_line_id(db, line_user_id)
 
         return user
 
@@ -120,6 +130,7 @@ class FriendService:
 
         event = FriendEvent(
             line_user_id=line_user_id,
+            user_id=user.id if user else None,
             event_type=event_type.value,
             source=EventSource.WEBHOOK.value,
             refollow_count=refollow_count,
@@ -141,6 +152,7 @@ class FriendService:
 
         event = FriendEvent(
             line_user_id=line_user_id,
+            user_id=user.id if user else None,
             event_type=FriendEventType.UNFOLLOW.value,
             source=EventSource.WEBHOOK.value,
         )

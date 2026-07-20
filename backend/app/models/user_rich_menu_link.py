@@ -16,6 +16,7 @@ class UserRichMenuLink(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     line_user_id = Column(String(50), unique=True, index=True, nullable=False)  # U + 32 hex
+    user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=True)
     rich_menu_id = Column(
         Integer,
         ForeignKey("rich_menus.id", ondelete="RESTRICT"),

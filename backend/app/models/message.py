@@ -23,6 +23,7 @@ class Message(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     line_user_id = Column(String, index=True, nullable=True)  # Can be null if system broadcast
+    user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=True)
     direction = Column(Enum(MessageDirection), nullable=False)
     message_type = Column(String, nullable=False)  # text, image, sticker, location, flex
     content = Column(Text, nullable=True)  # Text content or JSON string
