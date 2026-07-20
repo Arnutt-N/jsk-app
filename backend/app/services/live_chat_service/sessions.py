@@ -249,11 +249,13 @@ class SessionLifecycleMixin:
         logger.info(f"Session {session.id} transferred from operator {from_operator_id} to {to_operator_id}")
         return session
 
-    async def get_active_session(self, line_user_id: str, db: AsyncSession, lock: bool = False):
+    async def get_active_session(self, line_user_id: str, db: AsyncSession, lock: bool = False, user_id: int = None):
         """Get active session for user"""
+        from app.services.user_identity_service import child_filter
+
         stmt = (
             select(ChatSession)
-            .where(ChatSession.line_user_id == line_user_id)
+            .where(child_filter(ChatSession, line_user_id, user_id))
             .where(ChatSession.status.in_([SessionStatus.WAITING, SessionStatus.ACTIVE]))
             .order_by(desc(ChatSession.started_at))
             .limit(1)
