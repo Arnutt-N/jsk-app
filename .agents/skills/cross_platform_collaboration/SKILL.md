@@ -62,6 +62,7 @@ checkpoint exists. See `handoff-to-any.md` for the full contract and checkpoint 
 | **Gemini** | `gemini` | Google Gemini Code Assistant |
 | **Kimi Code** | `kimi_code` | Long-context, versatile writing |
 | **Kilo Code** | `kilo_code` | Internal Custom Platform |
+| **Qoder** | `qoder` | Autonomous terminal agent (qodercli), multi-tool orchestration |
 | **Other/New** | `[custom-code]` | Use any custom platform code |
 
 ## Core Principle
@@ -108,6 +109,7 @@ All output directories share the same agent-specific subdirectory structure:
 ├── kilo_code/      # Kilo Code sessions
 ├── kimi_code/      # Kimi Code sessions
 ├── open_code/      # Open Code sessions
+├── qoder/          # Qoder sessions
 ├── qwen/           # Qwen (Alibaba) sessions
 ├── other/          # Other platforms
 └── archive/        # Archived/legacy files
@@ -382,6 +384,17 @@ Fix live chat navigation and sidebar overlap issues
 2. Update state files (JSON/MD)
 3. Create handover checkpoint
 4. Document context
+```
+
+### Qoder (`qoder`)
+**Strengths:** Autonomous terminal agent, multi-tool orchestration, subagent parallelism, workflow scripting
+**Best for:** Complex multi-step tasks, codebase exploration, parallel agent work, CI/CD integration
+```markdown
+# Handoff FROM Qoder
+1. Run: node .agents/scripts/handoff-new.cjs qoder "<summary>" ["<next step>" ...]
+2. Flesh out the generated session-summary .md
+3. git add + commit the artifacts
+4. Push to remote
 ```
 
 ### Any Custom Platform (`[custom-code]`)

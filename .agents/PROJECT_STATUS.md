@@ -182,5 +182,7 @@
 - [2026-05-25 01:00] Claude Code: Implemented PRD E — Drug Reporting. PR #61 merged to main. (Claude Code)
 
 ## Backlog (Future)
+- [ ] Enable `SLA_ALERT_TELEGRAM_ENABLED=true` on Koyeb (low risk, needs TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID already set)
+- [ ] Enable `LIFF_STRICT_MODE=true` on prod (wait until error rate is monitored — may reject expired LINE tokens)
 - [ ] Monitor production deployment via Vercel
 - [ ] Address any post-merge feedback or minor UI polish

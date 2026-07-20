@@ -24,7 +24,7 @@ node .agents/scripts/handoff-new.cjs claude_code "Merged PR #114: rich-menu R1/R
 ```
 
 Canonical platforms: `claude_code`, `codex`, `kimi_code`, `antigravity`, `gemini_cli`,
-`cline`, `kilo_code`, `open_code`, `qwen`.
+`cline`, `kilo_code`, `open_code`, `qwen`, `qoder`.
 
 ## What it does for you (don't do these by hand)
 
