@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 180 active handoffs, 8 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 181 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-22 01:08 — qoder — completed
+
+Rich menu deep dive + codebase bug sweep: PR #155 (identity race, search injection, pagination, pseudonym compat) + PR #156 (path traversal, publish null guard, sync error clarity, user_id FK, frontend bounds type). Both merged to main.
+
+- Checkpoint: `.agents/state/checkpoints/handover-qoder-20260722-0108.json`
+- Summary: `project-log-md/qoder/session-summary-20260722-0108.md`
+
+---
 
 ### 2026-07-19 08:21 — kilo_code — completed
 

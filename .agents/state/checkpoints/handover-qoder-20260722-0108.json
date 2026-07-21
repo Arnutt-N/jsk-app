@@ -1,0 +1,14 @@
+{
+  "handoff_version": "2.0",
+  "platform": "qoder",
+  "agent": "qoder",
+  "timestamp": "2026-07-22T01:08:00+07:00",
+  "branch": "main",
+  "head_commit": "7449655",
+  "status": "completed",
+  "work_summary": "Rich menu deep dive + codebase bug sweep: PR #155 (identity race, search injection, pagination, pseudonym compat) + PR #156 (path traversal, publish null guard, sync error clarity, user_id FK, frontend bounds type). Both merged to main.",
+  "priority_actions": [],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/qoder/session-summary-20260722-0108.md",
+  "cross_platform_read": []
+}

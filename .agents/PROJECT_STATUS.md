@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-07-19 08:21 by Kilo Code (Shipped 3 follow-up fixes PRs #147, #148, #149 all merged to main, CI green.)
+> **Last Updated:** 2026-07-22 01:08 by Qoder (Rich menu deep dive + codebase bug sweep: PR #155 identity race, search injection, paginat)
 
 ## Thai Summary
 ฟีเจอร์ **Rich Menu Switching + การกำหนดเมนูรายบุคคล (R1/R2)** เสร็จสมบูรณ์และขึ้น production แล้ว — merge เข้า main ผ่าน PR #114 (merge commit `3a90f4d`), migrate ฐานข้อมูล Supabase PROD (richmenu alias + user_rich_menu_links แบบ additive) และ deploy frontend บน Vercel เรียบร้อย
@@ -51,10 +51,13 @@
 - [x] Merged PR #78 to `main` branch.
 
 ## Latest Pickup Status
+- [2026-07-21] Rich Menu deep dive bug fix (PR #156 merged to main, `7449655`). Fixed 5 bugs: (1) path traversal in image upload, (2) publish null guard on line_rich_menu_id, (3) sync endpoint no longer masks success with image-upload failure, (4) user_id FK populated in user_rich_menu_links (pseudonym forward-compat), (5) frontend bounds type corrected. Also earlier this session: full codebase bug sweep PR #155 merged (`f06ac61`) — identity race, search injection, pagination, pseudonym compat. PR C (contract phase) still gated until ~July 24-26.
 - [2026-07-21] LINE ID Pseudonymization PR A (#153) + PR B (#154) merged to `main`. Prod rollout COMPLETE: `LINE_ID_STORAGE_MODE=dual` + `LINE_ID_HMAC_KEY` set on Koyeb, backfill ran (0 NULL hashes), `/api/v1/health` healthy. Next: observe 3-5 days → PR C (contract, drop plaintext column). Handoff: `project-log-md/qoder/2026-07-21-line-id-pseudonymization-handoff.md`. COOKIE_AUTH_MODE=dual still deferred (Backlog).
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-07-22 01:08] Qoder: Rich menu deep dive + codebase bug sweep: PR #155 (identity race, search injection, pagination, pseudonym compat) + PR #156 (path traversal, publish null guard, sync error clarity, user_id FK, frontend bounds type). Both merged to main. (Qoder)
+- [2026-07-21 14:00] Qoder: Rich Menu deep dive + full codebase bug sweep. PR #155 (f06ac61): identity race condition savepoint fix, search ILIKE injection, pagination true-count, pseudonym forward-compat in webhook, dedup catch narrowed. PR #156 (7449655): path traversal in rich menu upload, publish null guard, sync error clarity, user_id FK in user_rich_menu_links, frontend bounds type. (Qoder)
 - [2026-07-21 06:30] Qoder: LINE ID Pseudonymization full rollout. PR A (#153, expand: HMAC hash + Fernet encrypted columns + user_id FK on 7 tables + dual-write webhook path) + PR B (#154, migrate: backfill script + mode-aware reads + child_filter). Prod deployed: LINE_ID_STORAGE_MODE=dual + LINE_ID_HMAC_KEY on Koyeb, backfill complete (0 NULL hashes), health OK. 16 unit tests. Handoff doc: project-log-md/qoder/2026-07-21-line-id-pseudonymization-handoff.md. Next: PR C (contract) after 3-5 day observation. (Qoder)
 - [2026-07-20 23:50] Qoder: Merged PR #152 (P1.1b dual-prep frontend page cleanup, squash 6fb5aa9, CI green, Vercel deployed dark). Removed all manual `Authorization: Bearer` injections across ~22 admin pages + live-chat components so the global authFetch interceptor owns auth uniformly in both bearer and cookie modes; fixed friends/[lineUserId] cross-origin outlier to same-origin proxy; settings/permissions gate changed token→isAuthenticated. Ships dark (NEXT_PUBLIC_COOKIE_AUTH=false). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision). (Qoder)
 - [2026-07-19 08:21] Kilo Code: Shipped 3 follow-up fixes (PRs #147, #148, #149 all merged to main, CI green). PR #147: unified refresh buttons to Thai label + leftIcon spacing across 6 admin pages. PR #148: fixed canned-responses double-slash bug (//greeting -> /greeting (Kilo Code)
