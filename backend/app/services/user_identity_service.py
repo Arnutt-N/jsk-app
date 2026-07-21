@@ -78,13 +78,14 @@ async def resolve_by_line_id(db: AsyncSession, raw: str) -> Optional[User]:
     result = await db.execute(select(User).where(User.line_user_id == raw))
     user = result.scalar_one_or_none()
     if user:
-        user.line_user_id_hash = h
-        user.line_user_id_encrypted = _encrypt_line_id(raw)
-        user.line_key_version = CURRENT_LINE_KEY_VERSION
         try:
-            await db.flush()
+            async with db.begin_nested():
+                user.line_user_id_hash = h
+                user.line_user_id_encrypted = _encrypt_line_id(raw)
+                user.line_key_version = CURRENT_LINE_KEY_VERSION
+                await db.flush()
         except IntegrityError:
-            await db.rollback()
+            await db.expire(user)
             result = await db.execute(select(User).where(User.line_user_id_hash == h))
             user = result.scalar_one_or_none()
     return user

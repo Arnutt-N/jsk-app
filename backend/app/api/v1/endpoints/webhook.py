@@ -104,12 +104,18 @@ async def process_webhook_events(events):
                 await db.commit()
 
                 if cache_key:
-                    await redis_client.setex(
-                        cache_key,
-                        settings.WEBHOOK_EVENT_TTL,
-                        "1"
-                    )
-                    logger.debug(f"Marked event {event_id} as processed")
+                    try:
+                        await redis_client.setex(
+                            cache_key,
+                            settings.WEBHOOK_EVENT_TTL,
+                            "1"
+                        )
+                        logger.debug(f"Marked event {event_id} as processed")
+                    except (ConnectionError, TimeoutError, OSError) as redis_err:
+                        logger.warning(
+                            "Failed to set dedup marker for event %s (will allow redelivery): %s",
+                            event_id, redis_err,
+                        )
             except Exception as e:
                 await db.rollback()
                 event_id = getattr(event, 'webhook_event_id', 'unknown')
@@ -657,10 +663,14 @@ async def handle_csat_response(line_user_id: str, data: str, reply_token: str, d
 async def handle_check_status(line_user_id: str, reply_token: str, db: AsyncSession):
     """Fetch latest 5 requests and reply with Flex Message or ask for Phone"""
     try:
-        # Fetch requests
+        from app.services.user_identity_service import resolve_by_line_id, child_filter
+
+        resolved_user = await resolve_by_line_id(db, line_user_id)
+        user_id = resolved_user.id if resolved_user else None
+
         stmt = (
             select(ServiceRequest)
-            .where(ServiceRequest.line_user_id == line_user_id)
+            .where(child_filter(ServiceRequest, line_user_id, user_id))
             .order_by(ServiceRequest.created_at.desc())
             .limit(5)
         )
@@ -691,6 +701,11 @@ async def handle_check_status(line_user_id: str, reply_token: str, db: AsyncSess
 async def handle_bind_phone(phone_number: str, line_user_id: str, reply_token: str, db: AsyncSession):
     """Search by phone, bind LINE ID, and show status"""
     try:
+        from app.services.user_identity_service import resolve_by_line_id
+
+        resolved_user = await resolve_by_line_id(db, line_user_id)
+        user_id = resolved_user.id if resolved_user else None
+
         # 1. Search for requests with this phone number
         # Optional: We could check if they already have a line_user_id to prevent stealing, 
         # but per requirement "Option B", we allow binding.
@@ -717,6 +732,8 @@ async def handle_bind_phone(phone_number: str, line_user_id: str, reply_token: s
 
         for req in bindable:
             req.line_user_id = line_user_id
+            if user_id is not None:
+                req.user_id = user_id
         await db.flush()
 
         if already_bound_to_others > 0:
