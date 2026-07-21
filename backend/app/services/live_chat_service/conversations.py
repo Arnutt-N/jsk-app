@@ -58,6 +58,7 @@ class ConversationsMixin:
         db: AsyncSession,
         admin_id: Optional[int] = None,
         include_archived: bool = False,
+        limit: int = 200,
     ):
         """Get all conversations for inbox with optimized queries (No N+1)"""
         # 1. Latest session per user subquery
@@ -124,7 +125,7 @@ class ConversationsMixin:
         elif status == "BOT":
             query = query.where(User.chat_mode == ChatMode.BOT)
 
-        query = query.order_by(desc(User.last_message_at))
+        query = query.order_by(desc(User.last_message_at)).limit(limit)
 
         result = await db.execute(query)
         rows = result.all()
@@ -177,9 +178,13 @@ class ConversationsMixin:
         waiting_count = await db.scalar(select(func.count(ChatSession.id)).where(ChatSession.status == SessionStatus.WAITING))
         active_count = await db.scalar(select(func.count(ChatSession.id)).where(ChatSession.status == SessionStatus.ACTIVE))
 
+        total_users = await db.scalar(
+            select(func.count(User.id)).where(User.line_user_id.is_not(None))
+        ) or 0
+
         return {
             "conversations": conversations,
-            "total": len(conversations),
+            "total": total_users,
             "waiting_count": waiting_count or 0,
             "active_count": active_count or 0
         }
@@ -196,13 +201,14 @@ class ConversationsMixin:
         if not q:
             return []
 
+        escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
         safe_limit = max(1, min(limit, 100))
         stmt = (
             select(Message, User.display_name)
             .join(User, User.line_user_id == Message.line_user_id, isouter=True)
             .where(
                 Message.content.is_not(None),
-                Message.content.ilike(f"%{q}%"),
+                Message.content.ilike(f"%{escaped}%", escape="\\"),
             )
         )
         if line_user_id:

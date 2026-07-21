@@ -54,6 +54,11 @@ class FriendService:
         except IntegrityError:
             await db.rollback()
             user = await resolve_by_line_id(db, line_user_id)
+            if user is None:
+                raise RuntimeError(
+                    f"Race condition: user creation for {line_user_id} conflicted "
+                    "but re-resolution found no user. Retry the request."
+                ) from None
 
         return user
 
@@ -65,9 +70,14 @@ class FriendService:
         stale_after_hours: int = 24,
         commit: bool = True,
     ) -> Optional[User]:
-        """Refresh LINE profile for a user when stale or forced."""
-        result = await db.execute(select(User).where(User.line_user_id == line_user_id))
-        user = result.scalar_one_or_none()
+        """Refresh LINE profile for a user when stale or forced.
+
+        Also backfills identity surrogates (hash/encrypted) on legacy users
+        found via plaintext fallback — a write side-effect of resolve_by_line_id.
+        """
+        from app.services.user_identity_service import resolve_by_line_id
+
+        user = await resolve_by_line_id(db, line_user_id)
         if not user:
             return None
 
