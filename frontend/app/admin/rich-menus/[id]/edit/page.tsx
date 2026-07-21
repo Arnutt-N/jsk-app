@@ -9,7 +9,7 @@ import { useToast } from '@/components/ui/Toast';
 import { logger } from '@/lib/logger';
 
 interface RichMenuArea {
-    bounds: { x: number; y: number; w: number; h: number };
+    bounds: { x: number; y: number; width: number; height: number };
     action: {
         type: string;
         label: string;

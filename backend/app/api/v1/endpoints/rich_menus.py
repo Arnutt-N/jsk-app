@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Path
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List, Optional
+from typing import Dict, List, Optional
 import json
 import logging
 import os
@@ -181,29 +181,33 @@ async def delete_rich_menu_alias(
 # so FastAPI does not try to cast "users" to int (which would 422).
 
 
-async def _ensure_known_line_user(db: AsyncSession, line_user_id: str) -> None:
-    """IDOR guard: the line_user_id must belong to a known user (404 otherwise)."""
-    result = await db.execute(select(User).where(User.line_user_id == line_user_id))
-    if not result.scalar_one_or_none():
+async def _ensure_known_line_user(db: AsyncSession, line_user_id: str) -> int:
+    """IDOR guard: the line_user_id must belong to a known user (404 otherwise).
+    Returns the user's integer id for FK population."""
+    result = await db.execute(select(User.id).where(User.line_user_id == line_user_id))
+    user_id = result.scalar_one_or_none()
+    if user_id is None:
         raise HTTPException(status_code=404, detail="Unknown LINE user")
+    return user_id
 
 
-async def _ensure_known_line_users(db: AsyncSession, line_user_ids: List[str]) -> None:
-    """IDOR guard for bulk: every line_user_id must be known (404 lists missing)."""
+async def _ensure_known_line_users(db: AsyncSession, line_user_ids: List[str]) -> Dict[str, int]:
+    """IDOR guard for bulk: every line_user_id must be known (404 lists missing).
+    Returns {line_user_id: user.id} mapping for FK population."""
     result = await db.execute(
-        select(User.line_user_id).where(User.line_user_id.in_(line_user_ids))
+        select(User.line_user_id, User.id).where(User.line_user_id.in_(line_user_ids))
     )
-    found = set(result.scalars().all())
-    missing = [u for u in line_user_ids if u not in found]
+    uid_map = {row.line_user_id: row.id for row in result.all()}
+    missing = [u for u in line_user_ids if u not in uid_map]
     if missing:
-        # Don't reflect the ids back (avoids a membership-enumeration oracle);
-        # log them server-side for operators instead.
         logger.warning("Bulk rich-menu op referenced %d unknown LINE user(s)", len(missing))
         raise HTTPException(status_code=404, detail=f"{len(missing)} LINE user(s) not found")
+    return uid_map
 
 
 async def _upsert_user_links(
-    db: AsyncSession, line_user_ids: List[str], rich_menu_id: int
+    db: AsyncSession, line_user_ids: List[str], rich_menu_id: int,
+    uid_map: Optional[Dict[str, int]] = None,
 ) -> None:
     """Cache per-user assignments locally. line_user_id is unique (one menu/user),
     so re-linking updates the existing row instead of inserting a duplicate."""
@@ -219,10 +223,13 @@ async def _upsert_user_links(
             row.sync_status = "SYNCED"
             row.last_synced_at = now
             row.last_sync_error = None
+            if uid_map and uid in uid_map:
+                row.user_id = uid_map[uid]
         else:
             db.add(
                 UserRichMenuLink(
                     line_user_id=uid,
+                    user_id=uid_map.get(uid) if uid_map else None,
                     rich_menu_id=rich_menu_id,
                     sync_status="SYNCED",
                     last_synced_at=now,
@@ -262,14 +269,14 @@ async def bulk_link_users(
     if not rich_menu.line_rich_menu_id:
         raise HTTPException(status_code=409, detail="Rich menu must be synced to LINE before linking")
 
-    await _ensure_known_line_users(db, data.user_ids)
+    uid_map = await _ensure_known_line_users(db, data.user_ids)
 
     try:
         await RichMenuService.bulk_link(db, rich_menu.line_rich_menu_id, data.user_ids)
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"LINE bulk link failed: {str(e)}")
 
-    await _upsert_user_links(db, data.user_ids, rich_menu.id)
+    await _upsert_user_links(db, data.user_ids, rich_menu.id, uid_map)
     await db.commit()
     return {"message": "Linked", "rich_menu_id": rich_menu.id, "count": len(data.user_ids)}
 
@@ -309,14 +316,14 @@ async def link_user_to_rich_menu(
     if not rich_menu.line_rich_menu_id:
         raise HTTPException(status_code=409, detail="Rich menu must be synced to LINE before linking")
 
-    await _ensure_known_line_user(db, user_id)
+    uid = await _ensure_known_line_user(db, user_id)
 
     try:
         await RichMenuService.link_to_user(db, user_id, rich_menu.line_rich_menu_id)
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"LINE link failed: {str(e)}")
 
-    await _upsert_user_links(db, [user_id], rich_menu.id)
+    await _upsert_user_links(db, [user_id], rich_menu.id, {user_id: uid})
     await db.commit()
     return {"message": "Linked", "line_user_id": user_id, "rich_menu_id": rich_menu.id}
 
@@ -465,8 +472,14 @@ async def upload_rich_menu_image(
     if not rich_menu:
         raise HTTPException(status_code=404, detail="Rich Menu not found")
         
-    # Save local file
-    file_path = os.path.join(UPLOAD_DIR, f"{id}_{file.filename}")
+    # Save local file — sanitize filename to prevent path traversal (file.filename
+    # is user-controlled; e.g. "../../etc/cron.d/evil").
+    safe_name = os.path.basename(file.filename or "image.png").replace("..", "")
+    if not safe_name or safe_name.startswith("."):
+        safe_name = "image.png"
+    file_path = os.path.join(UPLOAD_DIR, f"{id}_{safe_name}")
+    if not os.path.realpath(file_path).startswith(os.path.realpath(UPLOAD_DIR)):
+        raise HTTPException(status_code=400, detail="Invalid filename")
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
     
@@ -503,15 +516,15 @@ async def sync_rich_menu(id: int, db: AsyncSession = Depends(get_db), current_ad
         raise HTTPException(status_code=404, detail="Rich Menu not found")
 
     try:
-        # Use idempotent sync
         sync_result = await RichMenuService.sync_with_idempotency(db, id)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Sync failed: {str(e)}")
 
-        # If sync was successful and we have a local image, upload it
-        if sync_result.get("success") and rich_menu.image_path and os.path.exists(rich_menu.image_path):
+    if sync_result.get("success") and rich_menu.image_path and os.path.exists(rich_menu.image_path):
+        try:
             with open(rich_menu.image_path, "rb") as f:
                 img_bytes = f.read()
 
-            # Simple content type detection based on extension
             ext = os.path.splitext(rich_menu.image_path)[1].lower()
             content_type = "image/png" if ext == ".png" else "image/jpeg"
 
@@ -521,10 +534,11 @@ async def sync_rich_menu(id: int, db: AsyncSession = Depends(get_db), current_ad
                 img_bytes,
                 content_type
             )
+        except Exception as e:
+            sync_result["image_upload_error"] = str(e)
+            logger.warning("Sync succeeded but image upload failed for menu %s", id, exc_info=e)
 
-        return sync_result
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Sync failed: {str(e)}")
+    return sync_result
 
 @router.get("/{id}/sync-status")
 async def get_sync_status(id: int, db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_admin)):
@@ -540,7 +554,9 @@ async def publish_rich_menu(id: int, db: AsyncSession = Depends(get_db), current
     rich_menu = result.scalar_one_or_none()
     if not rich_menu:
         raise HTTPException(status_code=404, detail="Rich Menu not found")
-        
+    if not rich_menu.line_rich_menu_id:
+        raise HTTPException(status_code=409, detail="Rich menu must be synced to LINE before publishing")
+
     try:
         await RichMenuService.set_default_on_line(db, rich_menu.line_rich_menu_id)
         rich_menu.status = RichMenuStatus.PUBLISHED
