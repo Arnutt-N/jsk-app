@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Path
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Path, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Dict, List, Optional
 import json
 import logging
 import os
 import shutil
+import httpx
 from app.db.session import get_db
 from app.api.deps import get_current_admin, require_permission
 from app.core.permissions import KEY_MANAGE_RICH_MENUS
@@ -19,13 +20,15 @@ from app.schemas.rich_menu import (
     RichMenuAliasResponse,
     BulkLinkRequest,
     BulkUnlinkRequest,
+    RichMenuInsightSummaryResponse,
+    RichMenuInsightDailyResponse,
 )
 from app.models.rich_menu_alias import RichMenuAlias
 from app.models.user_rich_menu_link import UserRichMenuLink
 from app.services.rich_menu_service import RichMenuService
 from sqlalchemy import select, delete, func
 from sqlalchemy.exc import IntegrityError
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -394,6 +397,92 @@ async def get_rich_menu_dependencies(
     if not rich_menu:
         raise HTTPException(status_code=404, detail="Rich Menu not found")
     return await _rich_menu_dependencies(db, id)
+
+
+# ── Rich Menu Insights (LINE Insight API) ──────────────────────────────────────
+
+INSIGHT_DATE_FMT = "%Y%m%d"
+DAILY_MAX_RANGE_DAYS = 99
+SUMMARY_MAX_RANGE_DAYS = 396
+LOOKBACK_MAX_YEARS = 3
+
+
+def _validate_insight_dates(from_str: str, to_str: str, max_range: int) -> None:
+    try:
+        from_d = datetime.strptime(from_str, INSIGHT_DATE_FMT).date()
+        to_d = datetime.strptime(to_str, INSIGHT_DATE_FMT).date()
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Invalid date format. Use yyyyMMdd.")
+
+    if from_d > to_d:
+        raise HTTPException(status_code=422, detail="'from' must be <= 'to'.")
+    if (to_d - from_d).days > max_range:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Date range exceeds maximum of {max_range} days.",
+        )
+    earliest = date.today() - timedelta(days=365 * LOOKBACK_MAX_YEARS)
+    if from_d < earliest:
+        raise HTTPException(
+            status_code=422,
+            detail="'from' cannot be more than 3 years in the past.",
+        )
+
+
+@router.get("/{id}/insights/summary", response_model=RichMenuInsightSummaryResponse)
+async def get_rich_menu_insight_summary(
+    id: int,
+    from_date: str = Query(..., alias="from", pattern=r"^\d{8}$"),
+    to_date: str = Query(..., alias="to", pattern=r"^\d{8}$"),
+    db: AsyncSession = Depends(get_db),
+    current_admin: User = Depends(get_current_admin),
+):
+    result = await db.execute(select(RichMenu).where(RichMenu.id == id))
+    rich_menu = result.scalar_one_or_none()
+    if not rich_menu:
+        raise HTTPException(status_code=404, detail="Rich Menu not found")
+    if not rich_menu.line_rich_menu_id:
+        raise HTTPException(status_code=409, detail="Rich menu must be synced to LINE first.")
+
+    _validate_insight_dates(from_date, to_date, SUMMARY_MAX_RANGE_DAYS)
+
+    try:
+        data = await RichMenuService.get_insight_summary(
+            db, rich_menu.line_rich_menu_id, from_date, to_date
+        )
+    except httpx.HTTPStatusError as e:
+        logger.error("LINE insight summary API error: %s", e.response.status_code)
+        raise HTTPException(status_code=502, detail=f"LINE API error: {e.response.status_code}")
+
+    return data
+
+
+@router.get("/{id}/insights/daily", response_model=RichMenuInsightDailyResponse)
+async def get_rich_menu_insight_daily(
+    id: int,
+    from_date: str = Query(..., alias="from", pattern=r"^\d{8}$"),
+    to_date: str = Query(..., alias="to", pattern=r"^\d{8}$"),
+    db: AsyncSession = Depends(get_db),
+    current_admin: User = Depends(get_current_admin),
+):
+    result = await db.execute(select(RichMenu).where(RichMenu.id == id))
+    rich_menu = result.scalar_one_or_none()
+    if not rich_menu:
+        raise HTTPException(status_code=404, detail="Rich Menu not found")
+    if not rich_menu.line_rich_menu_id:
+        raise HTTPException(status_code=409, detail="Rich menu must be synced to LINE first.")
+
+    _validate_insight_dates(from_date, to_date, DAILY_MAX_RANGE_DAYS)
+
+    try:
+        data = await RichMenuService.get_insight_daily(
+            db, rich_menu.line_rich_menu_id, from_date, to_date
+        )
+    except httpx.HTTPStatusError as e:
+        logger.error("LINE insight daily API error: %s", e.response.status_code)
+        raise HTTPException(status_code=502, detail=f"LINE API error: {e.response.status_code}")
+
+    return data
 
 
 @router.get("/{id}", response_model=RichMenuResponse)

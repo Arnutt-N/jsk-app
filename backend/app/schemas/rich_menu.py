@@ -114,3 +114,60 @@ class RichMenuResponse(BaseModel):
     user_link_count: int = 0
 
     model_config = ConfigDict(from_attributes=True)
+
+
+# ── Rich Menu Insight Schemas ──────────────────────────────────────────────────
+
+
+class InsightMetric(BaseModel):
+    count: int = 0
+    unique_users: int = Field(0, alias="uniqueUsers")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class InsightClickBound(BaseModel):
+    bound: str
+    count: int = 0
+    unique_users: int = Field(0, alias="uniqueUsers")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class RichMenuInsightSummaryResponse(BaseModel):
+    rich_menu_id: str = Field(alias="richMenuId")
+    metrics_from: Optional[str] = Field(None, alias="metricsFrom")
+    metrics_to: Optional[str] = Field(None, alias="metricsTo")
+    impression: Optional[InsightMetric] = None
+    clicks: Optional[List[InsightClickBound]] = None
+    privacy_restricted: bool = False
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class InsightDailyMetricPoint(BaseModel):
+    date: str
+    count: int = 0
+    unique_users: int = Field(0, alias="uniqueUsers")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class InsightDailyImpression(BaseModel):
+    metrics: List[InsightDailyMetricPoint] = []
+
+
+class InsightDailyClick(BaseModel):
+    bound: str
+    metrics: List[InsightDailyMetricPoint] = []
+
+
+class RichMenuInsightDailyResponse(BaseModel):
+    rich_menu_id: str = Field(alias="richMenuId")
+    metrics_from: Optional[str] = Field(None, alias="metricsFrom")
+    metrics_to: Optional[str] = Field(None, alias="metricsTo")
+    impression: Optional[InsightDailyImpression] = None
+    clicks: Optional[List[InsightDailyClick]] = None
+    privacy_restricted: bool = False
+
+    model_config = ConfigDict(populate_by_name=True)

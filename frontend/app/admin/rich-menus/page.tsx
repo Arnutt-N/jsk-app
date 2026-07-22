@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Plus, SquarePen, Trash2, Link2, Users } from 'lucide-react';
+import { Plus, SquarePen, Trash2, Link2, Users, BarChart3 } from 'lucide-react';
 import { AdminTableHead, type AdminTableHeadColumn } from '@/components/admin/AdminTableHead';
 import PageHeader from '@/app/admin/components/PageHeader';
 import { Button } from '@/components/ui/Button';
@@ -222,6 +222,15 @@ export default function RichMenuListPage() {
 
                                             {/* Icons Actions: Edit then Delete */}
                                             <div className="flex items-center gap-1 border-l border-border-default pl-4">
+                                                {menu.line_rich_menu_id && (
+                                                    <Link href={`/admin/rich-menus/${menu.id}/insights`}>
+                                                        <ActionIconButton
+                                                            icon={<BarChart3 className="w-4 h-4" />}
+                                                            label="สถิติ"
+                                                            variant="default"
+                                                        />
+                                                    </Link>
+                                                )}
                                                 <Link href={`/admin/rich-menus/${menu.id}/edit`}>
                                                     <ActionIconButton
                                                         icon={<SquarePen className="w-4 h-4" />}

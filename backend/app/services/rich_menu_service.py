@@ -2,11 +2,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import List, Dict, Any, Optional
 import httpx
+import json
+import logging
 from datetime import datetime, timezone
 from app.models.rich_menu import RichMenu, RichMenuStatus
 from app.models.user_rich_menu_link import UserRichMenuLink
 from app.services.settings_service import SettingsService
+from app.core.redis_client import redis_client
 import os
+
+logger = logging.getLogger(__name__)
+
+INSIGHT_CACHE_TTL = 1800
 
 class RichMenuService:
     API_BASE = "https://api.line.me/v2/bot"
@@ -382,3 +389,57 @@ class RichMenuService:
             "last_sync_error": rich_menu.last_sync_error,
             "line_rich_menu_id": rich_menu.line_rich_menu_id
         }
+
+    @staticmethod
+    async def get_insight_summary(
+        db: AsyncSession,
+        line_rich_menu_id: str,
+        from_date: str,
+        to_date: str,
+    ) -> Dict[str, Any]:
+        cache_key = f"insight:summary:{line_rich_menu_id}:{from_date}:{to_date}"
+        cached = await redis_client.get(cache_key)
+        if cached:
+            return json.loads(cached)
+
+        headers = await RichMenuService.get_client_headers(db)
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{RichMenuService.API_BASE}/insight/richmenu/{line_rich_menu_id}/summary",
+                headers=headers,
+                params={"from": from_date, "to": to_date},
+            )
+            response.raise_for_status()
+            data = response.json()
+
+        data["privacy_restricted"] = "impression" not in data
+
+        await redis_client.setex(cache_key, INSIGHT_CACHE_TTL, json.dumps(data))
+        return data
+
+    @staticmethod
+    async def get_insight_daily(
+        db: AsyncSession,
+        line_rich_menu_id: str,
+        from_date: str,
+        to_date: str,
+    ) -> Dict[str, Any]:
+        cache_key = f"insight:daily:{line_rich_menu_id}:{from_date}:{to_date}"
+        cached = await redis_client.get(cache_key)
+        if cached:
+            return json.loads(cached)
+
+        headers = await RichMenuService.get_client_headers(db)
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{RichMenuService.API_BASE}/insight/richmenu/{line_rich_menu_id}/daily",
+                headers=headers,
+                params={"from": from_date, "to": to_date},
+            )
+            response.raise_for_status()
+            data = response.json()
+
+        data["privacy_restricted"] = "impression" not in data
+
+        await redis_client.setex(cache_key, INSIGHT_CACHE_TTL, json.dumps(data))
+        return data
