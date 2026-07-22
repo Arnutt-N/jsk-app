@@ -13,6 +13,16 @@ from app.api.deps import get_db, get_current_admin, require_permission
 from app.core.audit import create_audit_log
 from app.core.http_rate_limit import http_rate_limit
 from app.core.permissions import KEY_MANAGE_FILES
+from typing import List
+from pydantic import Field
+
+
+def _safe_filename(filename: str) -> str:
+    return filename.replace('"', '').replace('\r', '').replace('\n', '').strip()
+
+
+class BulkIdsRequest(BaseModel):
+    ids: List[str] = Field(min_length=1, max_length=100)
 from app.core.config import settings
 from app.models.user import User
 
@@ -85,7 +95,7 @@ async def get_public_file(public_token: str):
             content=media.data,
             media_type=media.mime_type,
             headers={
-                "Content-Disposition": f'inline; filename="{media.filename}"',
+                "Content-Disposition": f'inline; filename="{_safe_filename(media.filename)}"',
                 "Cache-Control": "public, max-age=86400",
             },
         )
@@ -318,7 +328,7 @@ async def download_media(
         content=media.data,
         media_type=media.mime_type,
         headers={
-            "Content-Disposition": f'attachment; filename="{media.filename}"',
+            "Content-Disposition": f'attachment; filename="{_safe_filename(media.filename)}"',
         },
     )
 
@@ -376,14 +386,12 @@ async def revoke_public_link(
 
 @router.post("/admin/media/bulk-delete")
 async def bulk_delete_media(
-    body: dict,
+    body: BulkIdsRequest,
     db: AsyncSession = Depends(get_db),
     _admin=Depends(require_permission(KEY_MANAGE_FILES)),
 ):
     """Delete multiple media files. Body: {"ids": ["uuid", ...]}"""
-    ids = body.get("ids", [])
-    if not ids:
-        raise HTTPException(status_code=400, detail="No IDs provided")
+    ids = body.ids
 
     deleted = 0
     deleted_ids = []
@@ -415,14 +423,12 @@ async def bulk_delete_media(
 
 @router.post("/admin/media/bulk-public")
 async def bulk_create_public_links(
-    body: dict,
+    body: BulkIdsRequest,
     db: AsyncSession = Depends(get_db),
     _admin=Depends(require_permission(KEY_MANAGE_FILES)),
 ):
     """Create public links for multiple files. Body: {"ids": ["uuid", ...]}"""
-    ids = body.get("ids", [])
-    if not ids:
-        raise HTTPException(status_code=400, detail="No IDs provided")
+    ids = body.ids
 
     updated = 0
     for mid in ids:
