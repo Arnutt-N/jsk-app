@@ -1,9 +1,9 @@
-# Session Summary — Rich Menu Insight API Planning
+# Session Summary — Rich Menu Insight API (Implemented)
 
 **Agent:** Qoder  
 **Date:** 2026-07-22  
 **Session ID:** a7696351-5de9-4d0a-8fcf-1ee952a4d658  
-**Branch:** main (9b89d96)
+**Branch:** main (7920df0)
 
 ---
 
@@ -14,7 +14,7 @@
 | 1 | Rich menu deep dive — 5 bugs found & fixed | Done | PR #156 (7449655) |
 | 2 | Full codebase bug sweep — identity race, search injection, pagination, pseudonym compat | Done | PR #155 (f06ac61) |
 | 3 | Handoff checkpoint created & pushed | Done | 9b89d96 |
-| 4 | Rich Menu Insight API — research & implementation plan designed | Done | (plan only, not yet implemented) |
+| 4 | Rich Menu Insight API — fully implemented & pushed | Done | 7920df0 |
 
 ---
 
