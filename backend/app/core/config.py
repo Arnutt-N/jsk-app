@@ -34,10 +34,10 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     ENVIRONMENT: str = "development"
 
-    # Temporary migration controls. Keep compatibility defaults until the
-    # corresponding rollout gates in docs/remediation/migration-controls.md pass.
+    # Migration controls. COOKIE_AUTH_MODE defaults to "cookie" (PR 2C);
+    # set to "dual" or "bearer" for rollback without code changes.
     LIFF_STRICT_MODE: bool = False
-    COOKIE_AUTH_MODE: Literal["bearer", "dual", "cookie"] = "bearer"
+    COOKIE_AUTH_MODE: Literal["bearer", "dual", "cookie"] = "cookie"
     LINE_ID_STORAGE_MODE: Literal["plaintext", "dual", "pseudonym"] = "plaintext"
 
     # Explicit opt-in for dev auth bypass — must set DEV_AUTH_BYPASS=true in .env

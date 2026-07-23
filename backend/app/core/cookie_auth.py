@@ -1,11 +1,10 @@
-"""Cookie/CSRF constants and helpers for the P1.1a dual-mode auth foundation.
+"""Cookie/CSRF constants and helpers for the cookie-auth foundation.
 
 Centralizes cookie names, paths, and attributes so `set_auth_cookies` and
 `clear_auth_cookies` can never drift from each other — a mismatched `path`
 (or any other attribute) on `delete_cookie` silently no-ops in browsers,
 leaving the old cookie in place (see Starlette docs; this is PRD FR2/test 7's
-subject). SameSite is `Lax` here; `Strict` is deferred to PR 2C per the
-recorded design (`docs/remediation/preflight-evidence-and-designs.md` §5).
+subject). SameSite=Strict is enforced (PR 2C).
 """
 import secrets
 from typing import Optional
@@ -25,7 +24,7 @@ CSRF_COOKIE = "csrf_token"
 ACCESS_COOKIE_PATH = "/api/v1"
 REFRESH_COOKIE_PATH = "/api/v1/auth"
 
-COOKIE_SAMESITE = "lax"
+COOKIE_SAMESITE = "strict"
 
 _ACCESS_MAX_AGE_SECONDS = settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
 _REFRESH_MAX_AGE_SECONDS = REFRESH_TOKEN_EXPIRE_DAYS * 86400
