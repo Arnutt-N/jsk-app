@@ -36,7 +36,9 @@ class Settings(BaseSettings):
 
     # Migration controls. COOKIE_AUTH_MODE defaults to "cookie" (PR 2C);
     # set to "dual" or "bearer" for rollback without code changes.
-    LIFF_STRICT_MODE: bool = False
+    # LIFF_STRICT_MODE defaults to True — all LIFF clients send x-liff-id-token.
+    # Rollback: set LIFF_STRICT_MODE=false in env.
+    LIFF_STRICT_MODE: bool = True
     COOKIE_AUTH_MODE: Literal["bearer", "dual", "cookie"] = "cookie"
     LINE_ID_STORAGE_MODE: Literal["plaintext", "dual", "pseudonym"] = "plaintext"
 
