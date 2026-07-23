@@ -3,24 +3,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, waitFor, act } from '@testing-library/react';
 
 /**
- * Unit tests for the cookie-mode AuthContext (P1.1b / PR 2B).
+ * Unit tests for the cookie-mode AuthContext (PR 2C).
  * Covers FR3 (bootstrap), FR4 (migration), FR6 (logout).
  */
-
-// Set NEXT_PUBLIC_COOKIE_AUTH=true BEFORE the AuthContext module is imported,
-// so its module-level COOKIE_AUTH constant evaluates to true. vi.hoisted runs
-// before ESM imports are evaluated — avoids the heap OOM from vi.resetModules
-// + dynamic import per test.
-vi.hoisted(() => {
-  process.env.NEXT_PUBLIC_COOKIE_AUTH = 'true';
-});
 
 // Mock authFetch so the interceptor doesn't install in jsdom (avoids heap OOM
 // from the fetch-mock chain in the interceptor). The interceptor's cookie-mode
 // behavior is covered by authFetch.cookie.test.ts.
 vi.mock('@/lib/authFetch', () => ({
   installAdminAuthFetchInterceptor: vi.fn(),
-  syncAdminAuthToken: vi.fn(),
   setAuthRefreshHandler: vi.fn(),
 }));
 

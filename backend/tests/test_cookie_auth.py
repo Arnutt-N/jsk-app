@@ -277,7 +277,7 @@ async def test_case2_dual_mode_cookies_and_body_tokens_cookie_wins(test_client, 
         assert set(attrs) == {ACCESS_COOKIE, REFRESH_COOKIE, CSRF_COOKIE}
         for name, a in attrs.items():
             assert a["httponly"] is True
-            assert a["samesite"] == "lax"
+            assert a["samesite"] == "strict"
         assert attrs[ACCESS_COOKIE]["path"] == "/api/v1"
         assert attrs[REFRESH_COOKIE]["path"] == "/api/v1/auth"
         assert attrs[CSRF_COOKIE]["path"] == "/api/v1"

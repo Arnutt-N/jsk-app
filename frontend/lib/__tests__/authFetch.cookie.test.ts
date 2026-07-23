@@ -1,11 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { installAdminAuthFetchInterceptor, setAuthRefreshHandler } from '../authFetch';
+import { setCsrfToken, clearCsrfToken } from '../csrfStore';
 
 /**
- * Unit tests for the cookie-mode fetch interceptor (P1.1b / PR 2B).
- *
- * Each test re-imports the module with NEXT_PUBLIC_COOKIE_AUTH=true so the
- * COOKIE_AUTH constant evaluates to true at module load. The existing
- * authFetch.test.ts covers the bearer (flag-off) path.
+ * Unit tests for the cookie-mode fetch interceptor (PR 2C).
+ * Cookie auth is now the unconditional path — no env flag needed.
  */
 
 const ADMIN_POST = '/api/v1/admin/requests';
@@ -18,44 +17,24 @@ function jsonResponse(status: number): Response {
   });
 }
 
-// Re-imported in beforeEach with the env stubbed true.
-let installAdminAuthFetchInterceptor: () => void;
-let setAuthRefreshHandler: (h: (() => Promise<string | null>) | null) => void;
-let syncAdminAuthToken: (t: string | null) => void;
-let setCsrfToken: (t: string | null) => void;
-let clearCsrfToken: () => void;
-
 describe('admin auth fetch interceptor — cookie mode', () => {
   const originalFetch = window.fetch;
   let nativeFetch: ReturnType<typeof vi.fn>;
 
-  beforeEach(async () => {
-    vi.resetModules();
-    vi.stubEnv('NEXT_PUBLIC_COOKIE_AUTH', 'true');
-    const authFetch = await import('../authFetch');
-    const csrfStore = await import('../csrfStore');
-    installAdminAuthFetchInterceptor = authFetch.installAdminAuthFetchInterceptor;
-    setAuthRefreshHandler = authFetch.setAuthRefreshHandler;
-    syncAdminAuthToken = authFetch.syncAdminAuthToken;
-    setCsrfToken = csrfStore.setCsrfToken;
-    clearCsrfToken = csrfStore.clearCsrfToken;
-
+  beforeEach(() => {
     nativeFetch = vi.fn();
     window.__JSK_ADMIN_AUTH_FETCH_INSTALLED__ = false;
     window.fetch = nativeFetch as unknown as typeof window.fetch;
     setAuthRefreshHandler(null);
-    syncAdminAuthToken(null);
     clearCsrfToken();
     installAdminAuthFetchInterceptor();
   });
 
   afterEach(() => {
     setAuthRefreshHandler(null);
-    syncAdminAuthToken(null);
     clearCsrfToken();
     window.__JSK_ADMIN_AUTH_FETCH_INSTALLED__ = false;
     window.fetch = originalFetch;
-    vi.unstubAllEnvs();
     vi.restoreAllMocks();
   });
 
