@@ -402,12 +402,12 @@ function LoginForm() {
                     </label>
                   </div>
 
-                  <Link
-                    href="#"
-                    className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                  <span
+                    className="text-xs text-gray-400 dark:text-gray-500 cursor-default"
+                    title="ติดต่อผู้ดูแลระบบเพื่อรีเซ็ตรหัสผ่าน"
                   >
-                    ลืมรหัสผ่าน?
-                  </Link>
+                    ลืมรหัสผ่าน? ติดต่อผู้ดูแลระบบ
+                  </span>
                 </div>
 
                 <Button

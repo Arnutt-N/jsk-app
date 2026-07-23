@@ -56,7 +56,7 @@ const Avatar = React.forwardRef<HTMLDivElement, AvatarProps>(
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={src}
-              alt={alt}
+              alt={alt ?? fallback ?? 'avatar'}
               className="w-full h-full object-cover"
               onError={() => setImageError(true)}
             />

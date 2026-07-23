@@ -1,0 +1,7 @@
+'use client';
+
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+
+export default function RequestsLoading() {
+  return <LoadingSpinner label="กำลังโหลดคำร้อง..." />;
+}
