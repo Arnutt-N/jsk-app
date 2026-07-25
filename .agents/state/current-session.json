@@ -1,10 +1,21 @@
 {
-  "last_updated": "2026-07-25T22:17:00+07:00",
+  "last_updated": "2026-07-25T22:57:00+07:00",
   "platform": "kilo_code",
-  "current_task": "Added PR C pseudonym-gate observability endpoint (PR #158). New GET /api/v1/health/pseudonym-gate (admin-only) reports line_id_plaintext_fallback_hit counter (in-memory + Redis-shared) so operators ca",
+  "current_task": "Merged PR #158 (squash 3d01958 to main): PR C pseudonym-gate observability endpoint GET /api/v1/health/pseudonym-gate (admin-only) reports line_id_plaintext_fallback_hit counter (in-memory + Redis-sha",
   "plan_status": "completed",
-  "next_steps": [],
+  "next_steps": [
+    "After Koyeb deploy: login admin -> open /api/v1/health/pseudonym-gate -> confirm gate_status pass + fallback_hit_count 0, repeat 3-5 days to clear PR C gate",
+    "Start PR C read-cutover phase (additive, ~50 query paths in 13 files: line_user_id -> user_id/hash via child_filter; reference patterns webhook.py:673, live_chat_service/sessions.py:254) — safe to start now in parallel",
+    "PR C destructive step (drop line_user_id on 7 tables, remove dual-write, flip LINE_ID_STORAGE_MODE=pseudonym) only after gate endpoint reports pass 3-5 days AND read-cutover complete"
+  ],
   "handoff_history": [
+    {
+      "timestamp": "2026-07-25T22:57:00+07:00",
+      "platform": "kilo_code",
+      "branch": "main",
+      "head": "3d01958",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-07-25T22:17:00+07:00",
       "platform": "kilo_code",
@@ -136,13 +147,6 @@
       "platform": "cline",
       "branch": "main",
       "head": "721a5f7",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-16T06:52:00+07:00",
-      "platform": "cline",
-      "branch": "main",
-      "head": "ad5c276",
       "status": "completed"
     }
   ],

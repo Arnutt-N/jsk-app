@@ -1,10 +1,15 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-07-25 22:17 by Kilo Code (Added PR C pseudonym-gate observability endpoint PR #158.)
+> **Last Updated:** 2026-07-25 22:57 by Kilo Code (Merged PR #158 squash 3d01958 to main: PR C pseudonym-gate observability endpoint GET /api)
 
 ## Thai Summary
 ฟีเจอร์ **Rich Menu Switching + การกำหนดเมนูรายบุคคล (R1/R2)** เสร็จสมบูรณ์และขึ้น production แล้ว — merge เข้า main ผ่าน PR #114 (merge commit `3a90f4d`), migrate ฐานข้อมูล Supabase PROD (richmenu alias + user_rich_menu_links แบบ additive) และ deploy frontend บน Vercel เรียบร้อย
 - ขั้นตอนถัดไป: ยืนยันว่า **backend prod** มีโค้ด Task 6.2 ครบ (Vercel deploy แค่ frontend), smoke test การกำหนด rich menu (เดี่ยว+กลุ่ม) บน /admin/friends ให้ครบ loop
+
+### PR C (LINE ID Pseudonymization contract phase) — gate endpoint ขึ้น main
+- **PR #158** (squash `3d01958`): เพิ่ม `GET /api/v1/health/pseudonym-gate` (admin-only) รายงาน counter `line_id_plaintext_fallback_hit` (in-memory + Redis-shared) เพื่อให้ verify gate (zero hits 3-5 วันใน `dual` mode) ได้จาก browser โดยไม่ต้องอ่าน Koyeb logs (control-plane API DNS-blocked ในเครื่อง dev)
+- ขั้นตอนถัดไป: หลัง Koyeb CD deploy → login admin → เปิด `/api/v1/health/pseudonym-gate` → ยืนยัน `gate_status: pass` + `fallback_hit_count: 0` ติดต่อ 3-5 วัน → เริ่ม PR C destructive step ได้
+- สามารถเริ่ม **PR C read-cutover phase** (additive, ไม่ drop column) ได้เลยในขนาน (~50 query paths ใน 13 ไฟล์)
 
 ## 🆕 NEW AGENT? START HERE
 1. **Entry Point:** `../START_HERE.md` - Friendly welcome and quick links
@@ -39,6 +44,13 @@
 - [x] Merged PR #114 (merge commit `3a90f4d`). Local CI green (pytest 499, lint, vitest 161, build, encoding).
 - [ ] **Open:** verify backend prod has Task 6.2 code (FastAPI deploys separately from Vercel frontend); smoke test on prod.
 
+### PR C — LINE ID Pseudonymization Gate Endpoint (Status: COMPLETE - Merged to main, awaiting CD deploy)
+- [x] PR #158 (squash `3d01958`): `GET /api/v1/health/pseudonym-gate` (admin-only) — in-memory + Redis-shared counter for `line_id_plaintext_fallback_hit` so operators verify the PR C gate (zero hits 3-5 days in `dual` mode) without Koyeb log access (api.koyeb.com DNS-blocked on dev machine).
+- [x] `app/core/pseudonym_gate.py` (counter) + hook in `resolve_by_line_id` + endpoint in health.py + 11 tests. Backend suite 753 passed. CI all green.
+- [ ] **Open:** confirm Koyeb CD deploy → verify `/api/v1/health/pseudonym-gate` returns `gate_status: pass` + `fallback_hit_count: 0` → repeat 3-5 days to clear gate.
+- [ ] **Open:** PR C read-cutover phase (additive, ~50 query paths in 13 files) — safe to start now in parallel.
+- [ ] **Open (gated):** PR C destructive step (drop `line_user_id` on 7 tables, remove dual-write, flip `LINE_ID_STORAGE_MODE=pseudonym`) — only after gate pass 3-5 days + read-cutover complete.
+
 ### UX & Error Handling Improvements (Status: COMPLETE - Merged to main)
 - [x] Added `useUndoableState` hook with undo/redo controls and keyboard shortcuts.
 - [x] Added `HelpSheet` component with bilingual search and keyboard shortcuts.
@@ -51,11 +63,13 @@
 - [x] Merged PR #78 to `main` branch.
 
 ## Latest Pickup Status
+- [2026-07-25] PR C pseudonym-gate observability endpoint PR #158 merged to `main` (squash `3d01958`). New `GET /api/v1/health/pseudonym-gate` (admin-only) reports `line_id_plaintext_fallback_hit` counter (in-memory + Redis-shared) so operators verify the PR C gate (zero hits 3-5 days in `dual` mode) from a browser — unblocks gate verification that was stuck because `api.koyeb.com` is DNS-blocked on the dev machine and Koyeb CLI not installed. `app/core/pseudonym_gate.py` (counter) + hook in `resolve_by_line_id` + 11 tests. Backend suite 753 passed, CI all green, CD will deploy to Koyeb automatically. Next: confirm deploy → check endpoint `gate_status: pass` 3-5 days → start PR C read-cutover (additive, safe in parallel) → PR C destructive step only after gate clears. Handoff: `project-log-md/kilo_code/session-summary-20260725-2257.md`.
 - [2026-07-21] Rich Menu deep dive bug fix (PR #156 merged to main, `7449655`). Fixed 5 bugs: (1) path traversal in image upload, (2) publish null guard on line_rich_menu_id, (3) sync endpoint no longer masks success with image-upload failure, (4) user_id FK populated in user_rich_menu_links (pseudonym forward-compat), (5) frontend bounds type corrected. Also earlier this session: full codebase bug sweep PR #155 merged (`f06ac61`) — identity race, search injection, pagination, pseudonym compat. PR C (contract phase) still gated until ~July 24-26.
 - [2026-07-21] LINE ID Pseudonymization PR A (#153) + PR B (#154) merged to `main`. Prod rollout COMPLETE: `LINE_ID_STORAGE_MODE=dual` + `LINE_ID_HMAC_KEY` set on Koyeb, backfill ran (0 NULL hashes), `/api/v1/health` healthy. Next: observe 3-5 days → PR C (contract, drop plaintext column). Handoff: `project-log-md/qoder/2026-07-21-line-id-pseudonymization-handoff.md`. COOKIE_AUTH_MODE=dual still deferred (Backlog).
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-07-25 22:57] Kilo Code: Merged PR #158 (squash 3d01958 to main): PR C pseudonym-gate observability endpoint GET /api/v1/health/pseudonym-gate (admin-only) reports line_id_plaintext_fallback_hit counter (in-memory + Redis-shared) so operators verify the PR C gate ( (Kilo Code)
 - [2026-07-25 22:17] Kilo Code: Added PR C pseudonym-gate observability endpoint (PR #158). New GET /api/v1/health/pseudonym-gate (admin-only) reports line_id_plaintext_fallback_hit counter (in-memory + Redis-shared) so operators can verify the PR C gate (zero hits 3-5 da (Kilo Code)
 - [2026-07-25 19:56] Qoder: Fixed login-redirect bug (unapplied alembic migration b3c4d5e6f7g8), all 752 backend + 409 frontend tests passing, committed test fixes + plaintext fallback logging for PR C gate (Qoder)
 - [2026-07-22 01:08] Qoder: Rich menu deep dive + codebase bug sweep: PR #155 (identity race, search injection, pagination, pseudonym compat) + PR #156 (path traversal, publish null guard, sync error clarity, user_id FK, frontend bounds type). Both merged to main. (Qoder)

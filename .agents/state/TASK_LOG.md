@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 183 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 184 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-25 22:57 — kilo_code — completed
+
+Merged PR #158 (squash 3d01958 to main): PR C pseudonym-gate observability endpoint GET /api/v1/health/pseudonym-gate (admin-only) reports line_id_plaintext_fallback_hit counter (in-memory + Redis-shared) so operators verify the PR C gate (zero hits 3-5 days in dual mode) without Koyeb log access. Branch feat/pseudonym-gate-endpoint deleted. CI all green (Backend Pytest, Frontend Lint/Build, Playwright Smoke, Encoding, Vercel). Backend suite 753 passed. CD will deploy to Koyeb automatically.
+
+- Checkpoint: `.agents/state/checkpoints/handover-kilo_code-20260725-2257.json`
+- Summary: `project-log-md/kilo_code/session-summary-20260725-2257.md`
+
+---
 
 ### 2026-07-25 22:17 — kilo_code — completed
 
