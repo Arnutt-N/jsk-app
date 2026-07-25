@@ -78,6 +78,12 @@ async def resolve_by_line_id(db: AsyncSession, raw: str) -> Optional[User]:
     result = await db.execute(select(User).where(User.line_user_id == raw))
     user = result.scalar_one_or_none()
     if user:
+        logger.warning(
+            "line_id_plaintext_fallback_hit raw=%s user_id=%s — populate_hash=%s",
+            raw,
+            user.id,
+            user.line_user_id_hash is None,
+        )
         try:
             async with db.begin_nested():
                 user.line_user_id_hash = h
