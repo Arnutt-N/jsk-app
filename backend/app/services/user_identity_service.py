@@ -17,6 +17,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.pseudonym_gate import record_fallback_hit
 from app.models.user import User
 from app.services.credential_service import credential_service
 
@@ -84,6 +85,7 @@ async def resolve_by_line_id(db: AsyncSession, raw: str) -> Optional[User]:
             user.id,
             user.line_user_id_hash is None,
         )
+        await record_fallback_hit(raw, user.id)
         try:
             async with db.begin_nested():
                 user.line_user_id_hash = h

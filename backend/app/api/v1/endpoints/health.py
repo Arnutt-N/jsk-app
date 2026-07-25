@@ -5,10 +5,12 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 
-from app.api.deps import get_db
+from app.api.deps import get_db, get_current_admin
 from app.core.websocket_health import ws_health_monitor
 from app.core.websocket_manager import ws_manager
 from app.core.redis_client import redis_client
+from app.core.pseudonym_gate import get_gate_status
+from app.models.user import User
 
 router = APIRouter()
 
@@ -45,8 +47,21 @@ async def health_check(db: AsyncSession = Depends(get_db)):
         checks["status"] = "healthy"
     elif checks["database"]:
         checks["status"] = "degraded"
-    
+
     return checks
+
+
+@router.get("/health/pseudonym-gate")
+async def pseudonym_gate_status(
+    _current_admin: User = Depends(get_current_admin),
+):
+    """PR C gate observability — admin-only.
+
+    Reports the `line_id_plaintext_fallback_hit` counter so operators can verify
+    the gate (zero hits for 3-5 consecutive days in dual mode) without reading
+    Koyeb logs directly. See `app/core/pseudonym_gate.py` for the counter design.
+    """
+    return await get_gate_status()
 
 
 @router.get("/health/websocket")
