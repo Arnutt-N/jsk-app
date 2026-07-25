@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-07-22 01:08 by Qoder (Rich menu deep dive + codebase bug sweep: PR #155 identity race, search injection, paginat)
+> **Last Updated:** 2026-07-25 19:56 by Qoder (Fixed login-redirect bug unapplied alembic migration b3c4d5e6f7g8, all 752 backend + 409 f)
 
 ## Thai Summary
 ฟีเจอร์ **Rich Menu Switching + การกำหนดเมนูรายบุคคล (R1/R2)** เสร็จสมบูรณ์และขึ้น production แล้ว — merge เข้า main ผ่าน PR #114 (merge commit `3a90f4d`), migrate ฐานข้อมูล Supabase PROD (richmenu alias + user_rich_menu_links แบบ additive) และ deploy frontend บน Vercel เรียบร้อย
@@ -56,6 +56,7 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-07-25 19:56] Qoder: Fixed login-redirect bug (unapplied alembic migration b3c4d5e6f7g8), all 752 backend + 409 frontend tests passing, committed test fixes + plaintext fallback logging for PR C gate (Qoder)
 - [2026-07-22 01:08] Qoder: Rich menu deep dive + codebase bug sweep: PR #155 (identity race, search injection, pagination, pseudonym compat) + PR #156 (path traversal, publish null guard, sync error clarity, user_id FK, frontend bounds type). Both merged to main. (Qoder)
 - [2026-07-21 14:00] Qoder: Rich Menu deep dive + full codebase bug sweep. PR #155 (f06ac61): identity race condition savepoint fix, search ILIKE injection, pagination true-count, pseudonym forward-compat in webhook, dedup catch narrowed. PR #156 (7449655): path traversal in rich menu upload, publish null guard, sync error clarity, user_id FK in user_rich_menu_links, frontend bounds type. (Qoder)
 - [2026-07-21 06:30] Qoder: LINE ID Pseudonymization full rollout. PR A (#153, expand: HMAC hash + Fernet encrypted columns + user_id FK on 7 tables + dual-write webhook path) + PR B (#154, migrate: backfill script + mode-aware reads + child_filter). Prod deployed: LINE_ID_STORAGE_MODE=dual + LINE_ID_HMAC_KEY on Koyeb, backfill complete (0 NULL hashes), health OK. 16 unit tests. Handoff doc: project-log-md/qoder/2026-07-21-line-id-pseudonymization-handoff.md. Next: PR C (contract) after 3-5 day observation. (Qoder)

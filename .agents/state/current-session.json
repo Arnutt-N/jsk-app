@@ -1,10 +1,19 @@
 {
-  "last_updated": "2026-07-22T01:08:00+07:00",
+  "last_updated": "2026-07-25T19:56:00+07:00",
   "platform": "qoder",
-  "current_task": "Rich menu deep dive + codebase bug sweep: PR #155 (identity race, search injection, pagination, pseudonym compat) + PR #156 (path traversal, publish null guard, sync error clarity, user_id FK, fronten",
+  "current_task": "Fixed login-redirect bug (unapplied alembic migration b3c4d5e6f7g8), all 752 backend + 409 frontend tests passing, committed test fixes + plaintext fallback logging for PR C gate",
   "plan_status": "completed",
-  "next_steps": [],
+  "next_steps": [
+    "Check Koyeb prod logs for line_id_plaintext_fallback_hit hits (3-5 day gate), then start PR C read-cutover phase (~50 query paths in 13 files) WITHOUT dropping plaintext column"
+  ],
   "handoff_history": [
+    {
+      "timestamp": "2026-07-25T19:56:00+07:00",
+      "platform": "qoder",
+      "branch": "main",
+      "head": "5862c2e",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-07-22T01:08:00+07:00",
       "platform": "qoder",
@@ -136,13 +145,6 @@
       "platform": "claude_code",
       "branch": "feat/p1.1a-cookie-backend-foundation",
       "head": "a967a91",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-15T23:35:00+07:00",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "ea736cf",
       "status": "completed"
     }
   ],

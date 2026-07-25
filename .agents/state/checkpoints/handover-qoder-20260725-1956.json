@@ -1,0 +1,16 @@
+{
+  "handoff_version": "2.0",
+  "platform": "qoder",
+  "agent": "qoder",
+  "timestamp": "2026-07-25T19:56:00+07:00",
+  "branch": "main",
+  "head_commit": "5862c2e",
+  "status": "completed",
+  "work_summary": "Fixed login-redirect bug (unapplied alembic migration b3c4d5e6f7g8), all 752 backend + 409 frontend tests passing, committed test fixes + plaintext fallback logging for PR C gate",
+  "priority_actions": [
+    "Check Koyeb prod logs for line_id_plaintext_fallback_hit hits (3-5 day gate), then start PR C read-cutover phase (~50 query paths in 13 files) WITHOUT dropping plaintext column"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/qoder/session-summary-20260725-1956.md",
+  "cross_platform_read": []
+}

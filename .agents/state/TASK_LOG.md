@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 181 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 182 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-25 19:56 — qoder — completed
+
+Fixed login-redirect bug (unapplied alembic migration b3c4d5e6f7g8), all 752 backend + 409 frontend tests passing, committed test fixes + plaintext fallback logging for PR C gate
+
+- Checkpoint: `.agents/state/checkpoints/handover-qoder-20260725-1956.json`
+- Summary: `project-log-md/qoder/session-summary-20260725-1956.md`
+
+---
 
 ### 2026-07-22 01:08 — qoder — completed
 
