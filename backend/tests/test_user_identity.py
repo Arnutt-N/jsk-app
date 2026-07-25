@@ -14,6 +14,18 @@ from app.services.user_identity_service import (
 )
 
 
+def _make_begin_nested_mock() -> MagicMock:
+    """Return a MagicMock for db.begin_nested that supports `async with`.
+
+    AsyncMock alone makes begin_nested() return a coroutine, but `async with`
+    requires a synchronous call returning an object with async __aenter__/__aexit__.
+    """
+    ctx = MagicMock()
+    ctx.__aenter__ = AsyncMock(return_value=None)
+    ctx.__aexit__ = AsyncMock(return_value=False)
+    return MagicMock(return_value=ctx)
+
+
 # ── 1. Resolve existing user by hash (idempotent) ─────────────────
 
 
@@ -108,6 +120,7 @@ async def test_legacy_fallback_populates_surrogate():
         return result
 
     mock_db.execute = fake_execute
+    mock_db.begin_nested = _make_begin_nested_mock()
 
     with pytest.MonkeyPatch.context() as mp:
         mp.setattr("app.services.user_identity_service.settings.LINE_ID_HMAC_KEY", "test-key")
@@ -253,8 +266,8 @@ async def test_concurrent_lazy_populate_race():
         return result
 
     mock_db.execute = fake_execute
+    mock_db.begin_nested = _make_begin_nested_mock()
     mock_db.flush = AsyncMock(side_effect=IntegrityError("stmt", "params", "orig"))
-    mock_db.rollback = AsyncMock()
 
     with pytest.MonkeyPatch.context() as mp:
         mp.setattr("app.services.user_identity_service.settings.LINE_ID_HMAC_KEY", "test-key")
@@ -265,7 +278,7 @@ async def test_concurrent_lazy_populate_race():
         resolved = await resolve_by_line_id(mock_db, "Ushared")
 
     assert resolved is winner
-    mock_db.rollback.assert_awaited_once()
+    mock_db.expire.assert_awaited_once()
 
 
 # ── 8. resolve_raw_for_push round-trip ────────────────────────────
@@ -353,6 +366,7 @@ async def test_dual_mode_uses_plaintext_fallback():
         return result
 
     mock_db.execute = fake_execute
+    mock_db.begin_nested = _make_begin_nested_mock()
 
     with pytest.MonkeyPatch.context() as mp:
         mp.setattr("app.services.user_identity_service.settings.LINE_ID_HMAC_KEY", "test-key")

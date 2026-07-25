@@ -29,6 +29,7 @@ from app.api.v1.endpoints import (
     media,
     settings as settings_endpoints,
 )
+from app.api.v1.endpoints.media import BulkIdsRequest
 from app.core.permissions import invalidate_cache
 from app.main import app
 from app.models.audit_log import AuditLog
@@ -606,7 +607,7 @@ async def test_bulk_delete_media_writes_one_audit_row_with_count():
     admin = _super_admin(2)
     ids = [str(uuid4()), str(uuid4())]
 
-    response = await media.bulk_delete_media(body={"ids": ids}, db=db, _admin=admin)
+    response = await media.bulk_delete_media(body=BulkIdsRequest(ids=ids), db=db, _admin=admin)
 
     assert response["deleted"] == 2
     rows = db.audit_rows()

@@ -14,11 +14,11 @@ def build_settings(**overrides: object) -> Settings:
     return Settings(_env_file=None, **BASE_SETTINGS, **overrides)
 
 
-def test_migration_controls_default_to_compatibility_modes() -> None:
+def test_migration_controls_default_to_hardened_modes() -> None:
     settings = build_settings()
 
-    assert settings.LIFF_STRICT_MODE is False
-    assert settings.COOKIE_AUTH_MODE == "bearer"
+    assert settings.LIFF_STRICT_MODE is True
+    assert settings.COOKIE_AUTH_MODE == "cookie"
 
 
 @pytest.mark.parametrize("mode", ["bearer", "dual", "cookie"])

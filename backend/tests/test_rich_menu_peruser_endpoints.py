@@ -248,7 +248,7 @@ def test_bulk_link_409_when_not_synced():
 
 def test_bulk_link_404_when_a_user_unknown_idor():
     # 1st query -> synced menu; 2nd query -> only USER_A exists (USER_B missing)
-    _override(role=UserRole.ADMIN, results=[_menu(), [USER_A]])
+    _override(role=UserRole.ADMIN, results=[_menu(), [_line_user()]])
     client = TestClient(app)
     try:
         resp = client.post(
