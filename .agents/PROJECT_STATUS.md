@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-07-25 19:56 by Qoder (Fixed login-redirect bug unapplied alembic migration b3c4d5e6f7g8, all 752 backend + 409 f)
+> **Last Updated:** 2026-07-25 22:17 by Kilo Code (Added PR C pseudonym-gate observability endpoint PR #158.)
 
 ## Thai Summary
 ฟีเจอร์ **Rich Menu Switching + การกำหนดเมนูรายบุคคล (R1/R2)** เสร็จสมบูรณ์และขึ้น production แล้ว — merge เข้า main ผ่าน PR #114 (merge commit `3a90f4d`), migrate ฐานข้อมูล Supabase PROD (richmenu alias + user_rich_menu_links แบบ additive) และ deploy frontend บน Vercel เรียบร้อย
@@ -56,6 +56,7 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-07-25 22:17] Kilo Code: Added PR C pseudonym-gate observability endpoint (PR #158). New GET /api/v1/health/pseudonym-gate (admin-only) reports line_id_plaintext_fallback_hit counter (in-memory + Redis-shared) so operators can verify the PR C gate (zero hits 3-5 da (Kilo Code)
 - [2026-07-25 19:56] Qoder: Fixed login-redirect bug (unapplied alembic migration b3c4d5e6f7g8), all 752 backend + 409 frontend tests passing, committed test fixes + plaintext fallback logging for PR C gate (Qoder)
 - [2026-07-22 01:08] Qoder: Rich menu deep dive + codebase bug sweep: PR #155 (identity race, search injection, pagination, pseudonym compat) + PR #156 (path traversal, publish null guard, sync error clarity, user_id FK, frontend bounds type). Both merged to main. (Qoder)
 - [2026-07-21 14:00] Qoder: Rich Menu deep dive + full codebase bug sweep. PR #155 (f06ac61): identity race condition savepoint fix, search ILIKE injection, pagination true-count, pseudonym forward-compat in webhook, dedup catch narrowed. PR #156 (7449655): path traversal in rich menu upload, publish null guard, sync error clarity, user_id FK in user_rich_menu_links, frontend bounds type. (Qoder)

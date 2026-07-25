@@ -1,12 +1,17 @@
 {
-  "last_updated": "2026-07-25T19:56:00+07:00",
-  "platform": "qoder",
-  "current_task": "Fixed login-redirect bug (unapplied alembic migration b3c4d5e6f7g8), all 752 backend + 409 frontend tests passing, committed test fixes + plaintext fallback logging for PR C gate",
+  "last_updated": "2026-07-25T22:17:00+07:00",
+  "platform": "kilo_code",
+  "current_task": "Added PR C pseudonym-gate observability endpoint (PR #158). New GET /api/v1/health/pseudonym-gate (admin-only) reports line_id_plaintext_fallback_hit counter (in-memory + Redis-shared) so operators ca",
   "plan_status": "completed",
-  "next_steps": [
-    "Check Koyeb prod logs for line_id_plaintext_fallback_hit hits (3-5 day gate), then start PR C read-cutover phase (~50 query paths in 13 files) WITHOUT dropping plaintext column"
-  ],
+  "next_steps": [],
   "handoff_history": [
+    {
+      "timestamp": "2026-07-25T22:17:00+07:00",
+      "platform": "kilo_code",
+      "branch": "feat/pseudonym-gate-endpoint",
+      "head": "4c83f4a",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-07-25T19:56:00+07:00",
       "platform": "qoder",
@@ -138,13 +143,6 @@
       "platform": "cline",
       "branch": "main",
       "head": "ad5c276",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-16T04:42:00+07:00",
-      "platform": "claude_code",
-      "branch": "feat/p1.1a-cookie-backend-foundation",
-      "head": "a967a91",
       "status": "completed"
     }
   ],
