@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-07-25 22:57 by Kilo Code (Merged PR #158 squash 3d01958 to main: PR C pseudonym-gate observability endpoint GET /api)
+> **Last Updated:** 2026-07-26 09:18 by Qoder (Verified PR C gate endpoint deployed on prod conservative-lusa-jsk-4p0-88fe8c20.koyeb.app )
 
 ## Thai Summary
 ฟีเจอร์ **Rich Menu Switching + การกำหนดเมนูรายบุคคล (R1/R2)** เสร็จสมบูรณ์และขึ้น production แล้ว — merge เข้า main ผ่าน PR #114 (merge commit `3a90f4d`), migrate ฐานข้อมูล Supabase PROD (richmenu alias + user_rich_menu_links แบบ additive) และ deploy frontend บน Vercel เรียบร้อย
@@ -69,6 +69,7 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-07-26 09:18] Qoder: Verified PR C gate endpoint deployed on prod (conservative-lusa-jsk-4p0-88fe8c20.koyeb.app returns 401 = live). Planned PR C read-cutover: ~50 query paths across 10 files, 8 phases, 4 new helpers in user_identity_service.py. Plan approved,  (Qoder)
 - [2026-07-25 22:57] Kilo Code: Merged PR #158 (squash 3d01958 to main): PR C pseudonym-gate observability endpoint GET /api/v1/health/pseudonym-gate (admin-only) reports line_id_plaintext_fallback_hit counter (in-memory + Redis-shared) so operators verify the PR C gate ( (Kilo Code)
 - [2026-07-25 22:17] Kilo Code: Added PR C pseudonym-gate observability endpoint (PR #158). New GET /api/v1/health/pseudonym-gate (admin-only) reports line_id_plaintext_fallback_hit counter (in-memory + Redis-shared) so operators can verify the PR C gate (zero hits 3-5 da (Kilo Code)
 - [2026-07-25 19:56] Qoder: Fixed login-redirect bug (unapplied alembic migration b3c4d5e6f7g8), all 752 backend + 409 frontend tests passing, committed test fixes + plaintext fallback logging for PR C gate (Qoder)

@@ -1,14 +1,21 @@
 {
-  "last_updated": "2026-07-25T22:57:00+07:00",
-  "platform": "kilo_code",
-  "current_task": "Merged PR #158 (squash 3d01958 to main): PR C pseudonym-gate observability endpoint GET /api/v1/health/pseudonym-gate (admin-only) reports line_id_plaintext_fallback_hit counter (in-memory + Redis-sha",
+  "last_updated": "2026-07-26T09:18:00+07:00",
+  "platform": "qoder",
+  "current_task": "Verified PR C gate endpoint deployed on prod (conservative-lusa-jsk-4p0-88fe8c20.koyeb.app returns 401 = live). Planned PR C read-cutover: ~50 query paths across 10 files, 8 phases, 4 new helpers in u",
   "plan_status": "completed",
   "next_steps": [
-    "After Koyeb deploy: login admin -> open /api/v1/health/pseudonym-gate -> confirm gate_status pass + fallback_hit_count 0, repeat 3-5 days to clear PR C gate",
-    "Start PR C read-cutover phase (additive, ~50 query paths in 13 files: line_user_id -> user_id/hash via child_filter; reference patterns webhook.py:673, live_chat_service/sessions.py:254) — safe to start now in parallel",
-    "PR C destructive step (drop line_user_id on 7 tables, remove dual-write, flip LINE_ID_STORAGE_MODE=pseudonym) only after gate endpoint reports pass 3-5 days AND read-cutover complete"
+    "Implement PR C read-cutover Phase 1-8 per approved plan (windy-brook-smew.md)",
+    "Verify gate endpoint returns gate_status:pass + fallback_hit_count:0 (admin login required)",
+    "PR C destructive step only after gate passes 3-5 days AND read-cutover complete"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-07-26T09:18:00+07:00",
+      "platform": "qoder",
+      "branch": "main",
+      "head": "ff2a75a",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-07-25T22:57:00+07:00",
       "platform": "kilo_code",
@@ -140,13 +147,6 @@
       "platform": "cline",
       "branch": "main",
       "head": "8de7161",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-16T07:51:00+07:00",
-      "platform": "cline",
-      "branch": "main",
-      "head": "721a5f7",
       "status": "completed"
     }
   ],

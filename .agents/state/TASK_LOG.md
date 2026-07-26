@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 184 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 185 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-26 09:18 — qoder — completed
+
+Verified PR C gate endpoint deployed on prod (conservative-lusa-jsk-4p0-88fe8c20.koyeb.app returns 401 = live). Planned PR C read-cutover: ~50 query paths across 10 files, 8 phases, 4 new helpers in user_identity_service.py. Plan approved, implementation not yet started.
+
+- Checkpoint: `.agents/state/checkpoints/handover-qoder-20260726-0918.json`
+- Summary: `project-log-md/qoder/session-summary-20260726-0918.md`
+
+---
 
 ### 2026-07-25 22:57 — kilo_code — completed
 
