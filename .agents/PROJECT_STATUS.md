@@ -215,14 +215,11 @@
 - [2026-05-25 01:00] Claude Code: Implemented PRD E — Drug Reporting. PR #61 merged to main. (Claude Code)
 
 ## Backlog (Future)
-- [ ] **COOKIE_AUTH_MODE=dual production rollout** (P1.1b cookie auth — unblocked, ships dark; deferred 2026-07-20 by user)
-  - Prereq DONE: PR #152 (frontend page cleanup — all admin pages route auth through global `authFetch` interceptor) merged `6fb5aa9`
-  - Step 1 (backend): `koyeb service update conservative-lusa/jsk-app --env COOKIE_AUTH_MODE=dual` (upsert single var, triggers redeploy ~2-5min)
-  - Verify backend: login admin panel → DevTools → Application → Cookies → see `access_token` / `refresh_token` / `csrf_token`
-  - Step 2 (frontend): set `NEXT_PUBLIC_COOKIE_AUTH=true` on Vercel + redeploy (build-time flag)
-  - ORDER MATTERS: backend dual FIRST, then frontend flag (frontend cookie mode + backend still bearer = broken login)
-  - Rollback: backend env → `bearer`, OR frontend redeploy with flag `false`
+- [ ] **COOKIE_AUTH_MODE production completion** (runbook: `docs/remediation/cookie-auth-rollout-runbook.md`)
+  - PR 2A/2B/2C merged: backend foundation + frontend cookie-only + hardening (default `cookie`, `SameSite=Strict`, `NEXT_PUBLIC_COOKIE_AUTH` flag removed)
+  - Remaining: verify effective mode on Koyeb (DevTools cookie/body check — env var overrides code default); if `bearer`/`dual`, advance stepwise to `cookie` via `koyeb service update conservative-lusa/jsk-app --env COOKIE_AUTH_MODE=<mode>`
   - Note: Koyeb CLI needs token; security policy blocks the agent from running authed commands — user runs the flip manually
+  - After cookie stable 3-5 days: cleanup PR removing the mode flag + backend Bearer fallback
 - [ ] Enable `SLA_ALERT_TELEGRAM_ENABLED=true` on Koyeb (low risk, needs TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID already set)
 - [ ] Enable `LIFF_STRICT_MODE=true` on prod (wait until error rate is monitored — may reject expired LINE tokens)
 - [ ] Monitor production deployment via Vercel
