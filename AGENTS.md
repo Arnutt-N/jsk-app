@@ -10,6 +10,26 @@
 
 ---
 
+## Mandatory Workflow for New Tasks / Phases
+
+> **RULE**: Every new task or new phase MUST follow this sequence. No direct implementation without a plan.
+
+1. **Reference skills** — `cat` / read `.claude/docs/skill-collections-20260712.md` and invoke the appropriate skill(s) for the work type (e.g., `superpowers:writing-plans`, `mattpocock:to-prd`, `addyosmani:spec-driven-development`, `ecc:prp-prd`, review skills, etc.)
+2. **Create PRD** — write a Product Requirements Document for the task
+3. **Create PRP plan** — write an implementation plan (PRP: Prompt-Ready Plan) with phases, files, and validation steps
+4. **Review PRD + PRP plan** — review both documents (self-review via review skill or user approval) before writing any code
+5. **Implement** — code per approved plan, run tests after each phase
+6. **Review implementation** — code review (skill-assisted or user)
+7. **Commit → Push → PR → Merge** — follow git workflow standards (see `git_workflow` skill)
+
+**Branch rule**: ALWAYS create a new branch before starting any new task/phase. Never implement directly on `main`.
+
+```bash
+git checkout -b feat/<descriptive-name>   # or fix/, chore/, refactor/
+```
+
+---
+
 ## Technology Stack
 
 | Layer | Stack |
