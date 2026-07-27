@@ -1,10 +1,10 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-07-26 09:18 by Qoder (Verified PR C gate endpoint deployed on prod conservative-lusa-jsk-4p0-88fe8c20.koyeb.app )
+> **Last Updated:** 2026-07-27 22:34 by Qoder (Full LINE user ID audit + display masking shipped: PR #159 merged squash a495674.)
 
 ## Thai Summary
-ฟีเจอร์ **Rich Menu Switching + การกำหนดเมนูรายบุคคล (R1/R2)** เสร็จสมบูรณ์และขึ้น production แล้ว — merge เข้า main ผ่าน PR #114 (merge commit `3a90f4d`), migrate ฐานข้อมูล Supabase PROD (richmenu alias + user_rich_menu_links แบบ additive) และ deploy frontend บน Vercel เรียบร้อย
-- ขั้นตอนถัดไป: ยืนยันว่า **backend prod** มีโค้ด Task 6.2 ครบ (Vercel deploy แค่ frontend), smoke test การกำหนด rich menu (เดี่ยว+กลุ่ม) บน /admin/friends ให้ครบ loop
+**LINE User ID Display Masking** เสร็จสมบูรณ์ — PR #159 merged (squash `a495674`): audit ทั้งระบบพบ 18 จุดที่ frontend แสดง raw LINE user ID → mask ทั้งหมดด้วย `maskLineUserId()` (U＊＊＊＊...last4) ใน 10 admin pages/components, ลบปุ่ม Copy LINE ID, sanitize ชื่อไฟล์ export — 413 tests ผ่าน, CI เขียว, Vercel deploy อัตโนมัติ
+- ขั้นตอนถัดไป: เริ่ม **PR C read-cutover phase** (~50 query paths ใน 10 ไฟล์, 8 phases — แผนอนุมัติแล้วที่ `~/.qoder/plans/windy-brook-smew.md`) + verify gate endpoint (`gate_status: pass` + `fallback_hit_count: 0`)
 
 ### PR C (LINE ID Pseudonymization contract phase) — gate endpoint ขึ้น main
 - **PR #158** (squash `3d01958`): เพิ่ม `GET /api/v1/health/pseudonym-gate` (admin-only) รายงาน counter `line_id_plaintext_fallback_hit` (in-memory + Redis-shared) เพื่อให้ verify gate (zero hits 3-5 วันใน `dual` mode) ได้จาก browser โดยไม่ต้องอ่าน Koyeb logs (control-plane API DNS-blocked ในเครื่อง dev)
@@ -36,6 +36,13 @@
 
 ## Active Milestones
 
+### LINE User ID Display Masking — PDPA Display Layer (Status: COMPLETE - Merged to main)
+- [x] Full-system audit: ~50 backend query sites + 18 frontend display points exposing raw `line_user_id` identified.
+- [x] PR #159 (squash `a495674`): `maskLineUserId()` helper (`frontend/lib/mask.ts` — U＊＊＊＊...last4, length-preserving) applied across 10 admin pages/components (live-chat, friends, users, chat-histories).
+- [x] Removed Copy LINE ID buttons (masked values have no copy use case); export filenames sanitized (no raw ID leak).
+- [x] PRD + PRP plan + 3 review rounds per mandatory workflow. 413 unit tests pass, lint + build green, CI all green.
+- [x] Merged to main; Vercel auto-deploys frontend.
+
 ### Rich Menu Switching & Per-User Assignment — R1/R2 (Status: COMPLETE - Merged to main, in PROD)
 - [x] Backend Phase 1–4, 7: schema validation fix (richMenuAliasId), RichMenuAlias + UserRichMenuLink models + migration `t0u1v2w3x4y5`, alias CRUD endpoints, per-user link/unlink/bulk service, delete-guard + dependencies endpoint.
 - [x] Frontend Phase 5–6.2: richmenuswitch switch-action UI (new+edit), alias management page `/admin/rich-menus/aliases`, per-user assignment UI on friends page (per-row modal + bulk toolbar), `user_link_count` badge, current-menu column.
@@ -63,12 +70,14 @@
 - [x] Merged PR #78 to `main` branch.
 
 ## Latest Pickup Status
+- [2026-07-27] LINE user ID display masking shipped: PR #159 merged to `main` (squash `a495674`). Full-system audit found 18 frontend display points showing raw `line_user_id`; all masked via `maskLineUserId()` (`frontend/lib/mask.ts`, U＊＊＊＊...last4) across 10 admin pages/components; Copy LINE ID buttons removed; export filenames sanitized. 413 tests pass, CI green, Vercel auto-deploys. Also added mandatory workflow rule to AGENTS.md (skills ref → PRD → PRP plan → review → implement → PR; always branch first). PRD: `.claude/PRPs/prds/line-userid-display-masking.prd.md`. Next: PR C read-cutover Phases 1-8 (approved plan `~/.qoder/plans/windy-brook-smew.md`, ~50 query paths, 10 files) + verify gate endpoint `gate_status: pass`. Handoff: `project-log-md/qoder/session-summary-20260727-2234.md`.
 - [2026-07-25] PR C pseudonym-gate observability endpoint PR #158 merged to `main` (squash `3d01958`). New `GET /api/v1/health/pseudonym-gate` (admin-only) reports `line_id_plaintext_fallback_hit` counter (in-memory + Redis-shared) so operators verify the PR C gate (zero hits 3-5 days in `dual` mode) from a browser — unblocks gate verification that was stuck because `api.koyeb.com` is DNS-blocked on the dev machine and Koyeb CLI not installed. `app/core/pseudonym_gate.py` (counter) + hook in `resolve_by_line_id` + 11 tests. Backend suite 753 passed, CI all green, CD will deploy to Koyeb automatically. Next: confirm deploy → check endpoint `gate_status: pass` 3-5 days → start PR C read-cutover (additive, safe in parallel) → PR C destructive step only after gate clears. Handoff: `project-log-md/kilo_code/session-summary-20260725-2257.md`.
 - [2026-07-21] Rich Menu deep dive bug fix (PR #156 merged to main, `7449655`). Fixed 5 bugs: (1) path traversal in image upload, (2) publish null guard on line_rich_menu_id, (3) sync endpoint no longer masks success with image-upload failure, (4) user_id FK populated in user_rich_menu_links (pseudonym forward-compat), (5) frontend bounds type corrected. Also earlier this session: full codebase bug sweep PR #155 merged (`f06ac61`) — identity race, search injection, pagination, pseudonym compat. PR C (contract phase) still gated until ~July 24-26.
 - [2026-07-21] LINE ID Pseudonymization PR A (#153) + PR B (#154) merged to `main`. Prod rollout COMPLETE: `LINE_ID_STORAGE_MODE=dual` + `LINE_ID_HMAC_KEY` set on Koyeb, backfill ran (0 NULL hashes), `/api/v1/health` healthy. Next: observe 3-5 days → PR C (contract, drop plaintext column). Handoff: `project-log-md/qoder/2026-07-21-line-id-pseudonymization-handoff.md`. COOKIE_AUTH_MODE=dual still deferred (Backlog).
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-07-27 22:34] Qoder: Full LINE user ID audit + display masking shipped: PR #159 merged (squash a495674). Audited ~50 backend query sites + 18 frontend display points exposing raw line_user_id. Implemented frontend-only masking via maskLineUserId() helper (U＊＊＊＊ (Qoder)
 - [2026-07-26 09:18] Qoder: Verified PR C gate endpoint deployed on prod (conservative-lusa-jsk-4p0-88fe8c20.koyeb.app returns 401 = live). Planned PR C read-cutover: ~50 query paths across 10 files, 8 phases, 4 new helpers in user_identity_service.py. Plan approved,  (Qoder)
 - [2026-07-25 22:57] Kilo Code: Merged PR #158 (squash 3d01958 to main): PR C pseudonym-gate observability endpoint GET /api/v1/health/pseudonym-gate (admin-only) reports line_id_plaintext_fallback_hit counter (in-memory + Redis-shared) so operators verify the PR C gate ( (Kilo Code)
 - [2026-07-25 22:17] Kilo Code: Added PR C pseudonym-gate observability endpoint (PR #158). New GET /api/v1/health/pseudonym-gate (admin-only) reports line_id_plaintext_fallback_hit counter (in-memory + Redis-shared) so operators can verify the PR C gate (zero hits 3-5 da (Kilo Code)

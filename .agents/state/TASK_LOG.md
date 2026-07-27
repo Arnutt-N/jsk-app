@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 185 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 186 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-27 22:34 — qoder — completed
+
+Full LINE user ID audit + display masking shipped: PR #159 merged (squash a495674). Audited ~50 backend query sites + 18 frontend display points exposing raw line_user_id. Implemented frontend-only masking via maskLineUserId() helper (U＊＊＊＊...last4) across 10 admin pages/components, removed Copy LINE ID buttons, sanitized export filenames. 413 tests pass, CI all green. Also added mandatory workflow rule to AGENTS.md (skills ref -> PRD -> PRP plan -> review -> implement -> PR).
+
+- Checkpoint: `.agents/state/checkpoints/handover-qoder-20260727-2234.json`
+- Summary: `project-log-md/qoder/session-summary-20260727-2234.md`
+
+---
 
 ### 2026-07-26 09:18 — qoder — completed
 
