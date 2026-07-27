@@ -9,6 +9,7 @@ import { useConversationStats } from '../_hooks/useConversationStats';
 import { useLiveChatContext } from '../_context/LiveChatContext';
 import { ConversationItem } from './ConversationItem';
 import { CreateChatSheet } from './CreateChatSheet';
+import { maskLineUserId } from '@/lib/mask';
 
 interface SearchMessageResult {
   id: number;
@@ -210,7 +211,7 @@ export function ConversationList() {
                     className="w-full text-left p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
                   >
                     <div className="text-[11px] text-white font-medium truncate">
-                      {result.display_name || result.line_user_id}
+                      {result.display_name || maskLineUserId(result.line_user_id)}
                     </div>
                     <div className="text-[11px] text-sidebar-text-muted truncate">{result.content}</div>
                   </button>

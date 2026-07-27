@@ -18,6 +18,7 @@ import { Modal } from '@/components/ui/Modal';
 import { ModalAlert } from '@/components/ui/ModalAlert';
 import { readErrorMessage } from '@/lib/api-error';
 import logger from '@/lib/logger';
+import { maskLineUserId } from '@/lib/mask';
 
 interface UserRecord {
     id: number;
@@ -292,7 +293,7 @@ export default function UserDetailPage() {
                             )}
                         </div>
                         {userData.line_user_id && (
-                            <p className="text-xs text-text-tertiary font-mono mt-1">LINE: {userData.line_user_id}</p>
+                            <p className="text-xs text-text-tertiary font-mono mt-1">LINE: {maskLineUserId(userData.line_user_id)}</p>
                         )}
                     </div>
                 </div>
@@ -440,7 +441,7 @@ export default function UserDetailPage() {
                     {userData.line_user_id && (
                         <div className="md:col-span-2">
                             <dt className="text-text-tertiary">LINE User ID</dt>
-                            <dd className="text-text-primary font-mono mt-0.5">{userData.line_user_id}</dd>
+                            <dd className="text-text-primary font-mono mt-0.5">{maskLineUserId(userData.line_user_id)}</dd>
                         </div>
                     )}
                 </dl>

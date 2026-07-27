@@ -21,6 +21,7 @@ import {
 import Image from 'next/image';
 import PageHeader from '@/app/admin/components/PageHeader';
 import { logger } from '@/lib/logger';
+import { maskLineUserId } from '@/lib/mask';
 
 /* ---------- Types ---------- */
 
@@ -254,7 +255,7 @@ export default function ChatHistoriesPage() {
                                 ) : (
                                     searchGrouped.map(([lineUserId, items]) => {
                                         const first = items[0];
-                                        const name = first.display_name || lineUserId.substring(0, 12);
+                                        const name = first.display_name || maskLineUserId(lineUserId);
                                         return (
                                             <tr
                                                 key={lineUserId}
@@ -273,7 +274,7 @@ export default function ChatHistoriesPage() {
                                                         </div>
                                                         <div>
                                                             <div className="text-sm font-bold text-text-secondary">{name}</div>
-                                                            <div className="text-[10px] text-text-tertiary font-mono">{lineUserId.substring(0, 8)}...</div>
+                                                            <div className="text-[10px] text-text-tertiary font-mono">{maskLineUserId(lineUserId)}</div>
                                                         </div>
                                                     </div>
                                                 </td>
@@ -308,7 +309,7 @@ export default function ChatHistoriesPage() {
                                     </tr>
                                 ) : (
                                     paginatedConversations.map((conv) => {
-                                        const name = conv.display_name || conv.line_user_id.substring(0, 12);
+                                        const name = conv.display_name || maskLineUserId(conv.line_user_id);
                                         return (
                                             <tr
                                                 key={conv.line_user_id}
@@ -332,7 +333,7 @@ export default function ChatHistoriesPage() {
                                                         <div>
                                                             <div className="text-sm font-bold text-text-secondary">{name}</div>
                                                             <div className="text-[10px] text-text-tertiary font-mono">
-                                                                {conv.line_user_id.substring(0, 8)}...
+                                                                {maskLineUserId(conv.line_user_id)}
                                                             </div>
                                                         </div>
                                                     </div>

@@ -22,6 +22,7 @@ import { StaggerContainer, StaggerItem } from '@/components/ui/PageTransition';
 import PageHeader from '../components/PageHeader';
 import { logger } from '@/lib/logger';
 import { readErrorMessage } from '@/lib/api-error';
+import { maskLineUserId } from '@/lib/mask';
 
 /* ── Types ─────────────────────────────────────────────────────────── */
 
@@ -496,7 +497,7 @@ export default function UsersPage() {
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <span className="text-sm text-text-secondary font-mono">
-                                                    {u.username || (u.line_user_id ? `LINE:${u.line_user_id.substring(0, 8)}...` : '-')}
+                                                    {u.username || (u.line_user_id ? `LINE:${maskLineUserId(u.line_user_id)}` : '-')}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">

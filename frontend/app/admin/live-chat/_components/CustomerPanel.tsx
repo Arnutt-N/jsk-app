@@ -2,13 +2,14 @@
 
 import React from 'react';
 import Image from 'next/image';
-import { Check, Clock, Copy, RefreshCw, User, X } from 'lucide-react';
+import { Check, Clock, RefreshCw, User, X } from 'lucide-react';
 
 import type { CurrentChat } from '../_types';
 import { useLiveChatContext } from '../_context/LiveChatContext';
 import { useCustomerNotes } from '@/hooks/useCustomerNotes';
 import { PRESENCE_DOT_CLASS, PRESENCE_LABEL, getSessionPresence } from '@/lib/constants/live-chat-presence';
 import { logger } from '@/lib/logger';
+import { maskLineUserId } from '@/lib/mask';
 
 export function CustomerPanel({
   currentChat,
@@ -74,10 +75,6 @@ export function CustomerPanel({
     }
   };
 
-  const copyLineId = () => {
-    navigator.clipboard.writeText(currentChat.line_user_id);
-  };
-
   return (
     <aside className="w-72 h-full min-h-0 bg-surface border-l border-border-default flex flex-col flex-shrink-0 z-20 thai-text">
       {/* Header */}
@@ -115,17 +112,6 @@ export function CustomerPanel({
           </button>
         </div>
 
-        {/* Action icon row */}
-        <div className="flex items-center justify-center gap-3 mt-4">
-          <button
-            onClick={copyLineId}
-            className="w-9 h-9 rounded-full flex items-center justify-center bg-muted hover:bg-brand-50 text-text-tertiary hover:text-brand-600 border border-border-default transition-all focus-ring"
-            aria-label="Copy LINE ID"
-          >
-            <Copy className="w-4 h-4" />
-          </button>
-        </div>
-
         {/* Tags */}
         {!!currentChat.tags?.length && (
           <div className="mt-3 flex items-center justify-center gap-1.5 flex-wrap">
@@ -147,12 +133,7 @@ export function CustomerPanel({
         {/* LINE ID */}
         <div className="bg-muted rounded-xl p-3">
           <p className="text-2xs text-text-tertiary font-semibold mb-1.5 uppercase tracking-wider">LINE ID</p>
-          <div className="flex items-center gap-2">
-            <p className="text-xs text-text-secondary font-mono truncate break-words flex-1">{currentChat.line_user_id}</p>
-            <button onClick={copyLineId} className="p-1 text-text-tertiary hover:text-brand-600 rounded transition-colors focus-ring" aria-label="Copy LINE ID">
-              <Copy className="w-3 h-3" />
-            </button>
-          </div>
+          <p className="text-xs text-text-secondary font-mono truncate break-words">{maskLineUserId(currentChat.line_user_id)}</p>
         </div>
 
         {/* Session Status */}
@@ -209,13 +190,13 @@ export function CustomerPanel({
           <p className="text-2xs text-text-tertiary font-semibold uppercase tracking-wider">Export</p>
           <div className="flex gap-2">
             <button
-              onClick={() => downloadExport(exportCsvUrl, `${currentChat.line_user_id}.csv`)}
+              onClick={() => downloadExport(exportCsvUrl, `${(currentChat.display_name || 'conversation').replace(/[^\w\u0E00-\u0E7F-]/g, '_')}.csv`)}
               className="flex-1 text-center text-xs px-2 py-2 rounded-lg border border-border-default bg-surface hover:bg-muted text-text-secondary transition-colors focus-ring"
             >
               CSV
             </button>
             <button
-              onClick={() => downloadExport(exportPdfUrl, `${currentChat.line_user_id}.pdf`)}
+              onClick={() => downloadExport(exportPdfUrl, `${(currentChat.display_name || 'conversation').replace(/[^\w\u0E00-\u0E7F-]/g, '_')}.pdf`)}
               className="flex-1 text-center text-xs px-2 py-2 rounded-lg border border-border-default bg-surface hover:bg-muted text-text-secondary transition-colors focus-ring"
             >
               PDF
