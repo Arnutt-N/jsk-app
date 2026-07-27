@@ -8,13 +8,13 @@ record. Unknown values prevent application settings from loading.
 | Control | Owner | Enable / advance threshold | Rollback | Removal PR |
 | --- | --- | --- | --- | --- |
 | `LIFF_STRICT_MODE` | Backend security owner, with LIFF frontend owner approval | Set `true` only after every inventoried LIFF client sends an ID token, token-presence is 100% for 3-5 consecutive days, staging smoke tests pass, and invalid/expired/forged-token tests pass. | Set `false`, restart the backend, and confirm fallback-use and verification-failure metrics recover. Investigate the client before retrying. | Remove the flag and unverified identity fallback after strict mode is stable for an agreed observation window and fallback use remains zero. |
-| `COOKIE_AUTH_MODE` | Authentication owner, with frontend owner approval | `bearer` -> `dual` after cookie/CSRF/refresh/WebSocket tests pass. `dual` -> `cookie` only after clients no longer depend on Bearer/local-storage credentials and login, refresh, CSRF, migration, and WebSocket signals meet the PR 2A-2C acceptance thresholds. | Move one step back (`cookie` -> `dual` or `dual` -> `bearer`), restart the backend, and verify login/refresh and WebSocket recovery. | Remove the mode flag, Bearer fallback, and legacy token storage in PR 2C after the cookie-only observation window passes. |
+| `COOKIE_AUTH_MODE` | Authentication owner, with frontend owner approval | `bearer` -> `dual` after cookie/CSRF/refresh/WebSocket tests pass. `dual` -> `cookie` only after clients no longer depend on Bearer/local-storage credentials and login, refresh, CSRF, migration, and WebSocket signals meet the PR 2A-2C acceptance thresholds. | Move one step back (`cookie` -> `dual` or `dual` -> `bearer`), restart the backend, and verify login/refresh and WebSocket recovery. | PR 2C merged (frontend Bearer path removed, default `cookie`); remove the mode flag and backend Bearer fallback in a cleanup PR after the cookie-only observation window passes. |
 | `LINE_ID_STORAGE_MODE` | Backend security owner | `plaintext` -> `dual` after backfill script completes 100% and hash-lookup hit rate is verified for 3-5 days. `dual` -> `pseudonym` only after all reads are migrated off the plaintext column and zero queries reference `line_user_id` directly. | Move one step back (`pseudonym` -> `dual` or `dual` -> `plaintext`), restart the backend. Plaintext column is never dropped until contract phase. | Remove the mode flag and plaintext `line_user_id` column in PR C (contract) after the pseudonym-only observation window passes. |
 
 ## Allowed values and compatibility defaults
 
 - `LIFF_STRICT_MODE=false|true`; default: `false`.
-- `COOKIE_AUTH_MODE=bearer|dual|cookie`; default: `bearer`.
+- `COOKIE_AUTH_MODE=bearer|dual|cookie`; default: `cookie` (changed from `bearer` in PR 2C).
 - `LINE_ID_STORAGE_MODE=plaintext|dual|pseudonym`; default: `plaintext`.
 
 Thresholds that are not numerical in this document must be made numerical in the
@@ -43,18 +43,22 @@ why the default stays `false` here.
 
 ### COOKIE_AUTH_MODE wiring status (P1.1a, PR 2A)
 
-The flag is now wired, not just declared. `bearer` (default) is the exact
+The flag is now wired, not just declared. `bearer` is the exact
 legacy code path — `POST /auth/login`/`POST /auth/refresh` never set a
 cookie and never write an `auth_sessions` row; `deps.py::get_current_user`
 reads the `Authorization` header only, byte-identical to pre-P1.1a
 behavior. `dual` additionally sets `access_token`/`refresh_token`/
-`csrf_token` cookies on login/refresh (HttpOnly, `SameSite=Lax`, `Secure`
-iff `is_production_like`) while still returning both tokens in the response
-body, so an already-deployed frontend keeps working unchanged; the access
-cookie is tried first by `get_current_user`, falling back to the Bearer
-header only when no cookie is present. `cookie` omits both tokens from the
-body and rejects any refresh token that isn't backed by a live
-`auth_sessions` row. New endpoints exist in every mode: `POST /auth/logout`
+`csrf_token` cookies on login/refresh (HttpOnly, `SameSite=Strict` since
+PR 2C — originally `Lax`, `Secure` iff `is_production_like`) while still
+returning both tokens in the response body, so an already-deployed
+frontend keeps working unchanged; the access cookie is tried first by
+`get_current_user`, falling back to the Bearer header only when no cookie
+is present. `cookie` omits both tokens from the body and rejects any
+refresh token that isn't backed by a live `auth_sessions` row; it is the
+code default since PR 2C (merged — frontend Bearer path removed, cookie
+auth unconditional, `NEXT_PUBLIC_COOKIE_AUTH` flag deleted). Production
+rollout verification/completion steps: `cookie-auth-rollout-runbook.md`.
+New endpoints exist in every mode: `POST /auth/logout`
 (clears cookies, revokes the session family), `POST /auth/migrate-session`
 (Bearer-only; exchanges a Bearer access token for a cookie session; 409 in
 `bearer` mode), and `POST /auth/ws-ticket` (mints a single-use, 60s ticket
@@ -67,12 +71,11 @@ on the old stateless path (no `auth_sessions` row), by design (see
 CSRF double-submit (`x-csrf-token` header vs. `csrf_token` cookie, compared
 with `secrets.compare_digest`) is enforced only for state-changing requests
 whose auth was satisfied by the access cookie; Bearer-authenticated requests
-are exempt. This PR (2A) ships the backend foundation only, dark behind the
-`bearer` default — no production behavior changes until the flag is
-flipped, and the frontend migration (PR 2B, switching `AuthContext`/
-`authFetch`/the WebSocket client to cookies) and the Bearer-removal/
-`SameSite=Strict` hardening (PR 2C) are separate, later PRs per the
-bearer → dual → cookie flip checklist above.
+are exempt. PR 2A shipped the backend foundation; PR 2B (frontend migration
+to cookies) and PR 2C (Bearer-path removal, `SameSite=Strict`, default
+`cookie`) have since merged — the only remaining step is removing the mode
+flag and backend Bearer fallback in a cleanup PR after the cookie-only
+observation window passes on production.
 
 ### LINE_ID_STORAGE_MODE wiring status (PR A + PR B)
 
