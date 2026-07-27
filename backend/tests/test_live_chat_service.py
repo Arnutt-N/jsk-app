@@ -454,8 +454,10 @@ class TestUnreadCount:
         mock_db = AsyncMock()
         mock_db.scalar.return_value = 3
 
-        with patch('app.services.live_chat_service.redis_client.get', new_callable=AsyncMock) as mock_get:
+        with patch('app.services.live_chat_service.redis_client.get', new_callable=AsyncMock) as mock_get, \
+             patch('app.services.live_chat_service.unread.resolve_by_line_id', new_callable=AsyncMock) as mock_resolve:
             mock_get.return_value = datetime.now(timezone.utc).isoformat()
+            mock_resolve.return_value = None
             count = await live_chat_service.get_unread_count("Utest", 1, mock_db)
             assert count == 3
             mock_db.scalar.assert_called_once()
@@ -465,8 +467,10 @@ class TestUnreadCount:
         mock_db = AsyncMock()
         mock_db.scalar.return_value = 5
 
-        with patch('app.services.live_chat_service.redis_client.get', new_callable=AsyncMock) as mock_get:
+        with patch('app.services.live_chat_service.redis_client.get', new_callable=AsyncMock) as mock_get, \
+             patch('app.services.live_chat_service.unread.resolve_by_line_id', new_callable=AsyncMock) as mock_resolve:
             mock_get.return_value = None
+            mock_resolve.return_value = None
             count = await live_chat_service.get_unread_count("Utest", 1, mock_db)
             assert count == 5
 

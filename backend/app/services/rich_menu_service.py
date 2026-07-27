@@ -8,7 +8,9 @@ from datetime import datetime, timezone
 from app.models.rich_menu import RichMenu, RichMenuStatus
 from app.models.user_rich_menu_link import UserRichMenuLink
 from app.services.settings_service import SettingsService
+from app.core.config import settings
 from app.core.redis_client import redis_client
+from app.services.user_identity_service import child_column, resolve_many_by_line_id
 import os
 
 logger = logging.getLogger(__name__)
@@ -41,17 +43,24 @@ class RichMenuService:
         """
         if not line_user_ids:
             return {}
-        result = await db.execute(
-            select(
-                UserRichMenuLink.line_user_id.label("line_user_id"),
-                RichMenu.id.label("rich_menu_id"),
-                RichMenu.name.label("rich_menu_name"),
-            )
-            .join(RichMenu, RichMenu.id == UserRichMenuLink.rich_menu_id)
-            .where(UserRichMenuLink.line_user_id.in_(line_user_ids))
-        )
+        owner_col = child_column(UserRichMenuLink)
+        query = select(
+            owner_col.label("owner_key"),
+            RichMenu.id.label("rich_menu_id"),
+            RichMenu.name.label("rich_menu_name"),
+        ).join(RichMenu, RichMenu.id == UserRichMenuLink.rich_menu_id)
+
+        id_to_user: Dict[str, int] = {}
+        if settings.LINE_ID_STORAGE_MODE == "pseudonym":
+            id_to_user = await resolve_many_by_line_id(db, line_user_ids)
+            query = query.where(owner_col.in_(list(id_to_user.values())))
+        else:
+            query = query.where(owner_col.in_(line_user_ids))
+
+        result = await db.execute(query)
+        user_to_id = {user_id: raw for raw, user_id in id_to_user.items()}
         return {
-            row.line_user_id: {
+            user_to_id.get(row.owner_key, row.owner_key): {
                 "rich_menu_id": row.rich_menu_id,
                 "rich_menu_name": row.rich_menu_name,
             }

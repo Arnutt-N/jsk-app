@@ -227,9 +227,12 @@ class LineService:
         line_message_id: str,
     ) -> Optional[Message]:
         """Return an already-persisted incoming LINE message by LINE message id."""
+        from app.services.user_identity_service import child_filter, resolve_by_line_id
+
+        user = await resolve_by_line_id(db, line_user_id)
         result = await db.execute(
             select(Message).where(
-                Message.line_user_id == line_user_id,
+                child_filter(Message, line_user_id, user.id if user else None),
                 Message.direction == MessageDirection.INCOMING,
                 Message.payload["line_message_id"].astext == line_message_id,
             )

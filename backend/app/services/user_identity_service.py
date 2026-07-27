@@ -110,6 +110,64 @@ def child_filter(model, line_user_id: str, user_id: Optional[int] = None):
     return model.line_user_id == line_user_id
 
 
+def child_column(model):
+    """Mode-aware column for partition_by/group_by/distinct on child tables."""
+    if settings.LINE_ID_STORAGE_MODE == "pseudonym":
+        return model.user_id
+    return model.line_user_id
+
+
+def child_join_condition(parent_model, child_model):
+    """Mode-aware JOIN condition between two identity-carrying models.
+
+    Handles ``User`` as the parent (child ``user_id`` FKs reference ``User.id``)
+    as well as child-to-child joins (both sides carry a ``user_id`` FK).
+    """
+    if settings.LINE_ID_STORAGE_MODE == "pseudonym":
+        parent_key = parent_model.id if parent_model is User else parent_model.user_id
+        return parent_key == child_model.user_id
+    return parent_model.line_user_id == child_model.line_user_id
+
+
+def user_identity_filter():
+    """Mode-aware 'is a LINE user' existence check on the User table."""
+    if settings.LINE_ID_STORAGE_MODE == "pseudonym":
+        return User.line_user_id_hash.isnot(None)
+    return User.line_user_id.isnot(None)
+
+
+async def resolve_many_by_line_id(
+    db: AsyncSession, line_user_ids: list[str]
+) -> dict[str, int]:
+    """Batch-map line_user_id -> user.id. Hash IN lookup, plaintext fallback for misses.
+
+    Records a gate fallback hit for each id resolved via the plaintext column.
+    Does not create users or backfill surrogates (see resolve_by_line_id).
+    """
+    if not line_user_ids:
+        return {}
+    unique_ids = list(dict.fromkeys(line_user_ids))
+    mapping: dict[str, int] = {}
+
+    hash_to_raw = {line_id_hash(raw): raw for raw in unique_ids}
+    result = await db.execute(
+        select(User).where(User.line_user_id_hash.in_(list(hash_to_raw.keys())))
+    )
+    for user in result.scalars().all():
+        raw = hash_to_raw.get(user.line_user_id_hash)
+        if raw is not None:
+            mapping[raw] = user.id
+
+    misses = [raw for raw in unique_ids if raw not in mapping]
+    if misses and settings.LINE_ID_STORAGE_MODE != "pseudonym":
+        result = await db.execute(select(User).where(User.line_user_id.in_(misses)))
+        for user in result.scalars().all():
+            if user.line_user_id in misses and user.line_user_id not in mapping:
+                mapping[user.line_user_id] = user.id
+                await record_fallback_hit(user.line_user_id, user.id)
+    return mapping
+
+
 async def decrypt_line_id_for_user(db: AsyncSession, user_id: int) -> Optional[str]:
     """Decrypt raw LINE ID from users.line_user_id_encrypted; fallback to plaintext column."""
     result = await db.execute(select(User).where(User.id == user_id))

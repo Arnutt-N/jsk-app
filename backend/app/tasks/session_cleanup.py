@@ -13,6 +13,7 @@ from app.models.chat_session import ChatSession, SessionStatus
 from app.models.user import ChatMode, User
 from app.services.line_service import line_service
 from app.services.analytics_service import analytics_service
+from app.services.user_identity_service import resolve_by_line_id
 from linebot.v3.messaging import TextMessage
 
 logger = logging.getLogger(__name__)
@@ -83,11 +84,13 @@ async def _close_inactive_session(session: ChatSession, db: AsyncSession):
     session.closed_at = datetime.now(timezone.utc)
     session.closed_by = "SYSTEM"
 
-    await db.execute(
-        update(User)
-        .where(User.line_user_id == session.line_user_id)
-        .values(chat_mode=ChatMode.BOT)
-    )
+    user = await resolve_by_line_id(db, session.line_user_id)
+    if user:
+        await db.execute(
+            update(User)
+            .where(User.id == user.id)
+            .values(chat_mode=ChatMode.BOT)
+        )
 
     await create_audit_log(
         db=db,
@@ -131,11 +134,13 @@ async def _mark_abandoned_waiting_session(session: ChatSession, db: AsyncSession
     session.closed_at = datetime.now(timezone.utc)
     session.closed_by = "SYSTEM_TIMEOUT"
 
-    await db.execute(
-        update(User)
-        .where(User.line_user_id == session.line_user_id)
-        .values(chat_mode=ChatMode.BOT)
-    )
+    user = await resolve_by_line_id(db, session.line_user_id)
+    if user:
+        await db.execute(
+            update(User)
+            .where(User.id == user.id)
+            .values(chat_mode=ChatMode.BOT)
+        )
 
     await create_audit_log(
         db=db,

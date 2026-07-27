@@ -11,6 +11,7 @@ from app.core.audit import audit_action
 from app.models.message import MessageDirection
 from app.models.user import ChatMode, User
 from app.services.line_service import line_service
+from app.services.user_identity_service import resolve_by_line_id
 
 from ._deps import get_sla_service
 
@@ -150,8 +151,7 @@ class MessagingMixin:
 
     async def set_chat_mode(self, line_user_id: str, mode: ChatMode, db: AsyncSession):
         """Toggle chat mode"""
-        result = await db.execute(select(User).where(User.line_user_id == line_user_id))
-        user = result.scalar_one_or_none()
+        user = await resolve_by_line_id(db, line_user_id)
         if user:
             user.chat_mode = mode
             await db.commit()

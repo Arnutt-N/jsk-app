@@ -18,6 +18,7 @@ from app.models.friend_event import FriendEvent, FriendEventType
 from app.models.message import Message, MessageDirection
 from app.models.service_request import RequestStatus, ServiceRequest
 from app.models.user import User
+from app.services.user_identity_service import user_identity_filter
 
 router = APIRouter()
 
@@ -208,7 +209,7 @@ async def report_overview(
     # --- followers ---
     total_followers = (await db.execute(
         select(func.count(User.id)).where(
-            User.line_user_id.isnot(None),
+            user_identity_filter(),
             User.friend_status == "ACTIVE",
         )
     )).scalar() or 0
@@ -539,7 +540,7 @@ async def report_followers(
 
     total_followers = (await db.execute(
         select(func.count(User.id)).where(
-            User.line_user_id.isnot(None),
+            user_identity_filter(),
             User.friend_status == "ACTIVE",
         )
     )).scalar() or 0
