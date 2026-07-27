@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 186 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 187 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-28 01:08 — qoder — completed
+
+PR C read-cutover merged (PR #160, squash 4ba338a): ~50 read paths now mode-aware via 4 new identity helpers; 771 tests green; CI all pass
+
+- Checkpoint: `.agents/state/checkpoints/handover-qoder-20260728-0108.json`
+- Summary: `project-log-md/qoder/session-summary-20260728-0108.md`
+
+---
 
 ### 2026-07-27 22:34 — qoder — completed
 

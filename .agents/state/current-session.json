@@ -1,14 +1,21 @@
 {
-  "last_updated": "2026-07-27T22:34:00+07:00",
+  "last_updated": "2026-07-28T01:08:00+07:00",
   "platform": "qoder",
-  "current_task": "Full LINE user ID audit + display masking shipped: PR #159 merged (squash a495674). Audited ~50 backend query sites + 18 frontend display points exposing raw line_user_id. Implemented frontend-only ma",
+  "current_task": "PR C read-cutover merged (PR #160, squash 4ba338a): ~50 read paths now mode-aware via 4 new identity helpers; 771 tests green; CI all pass",
   "plan_status": "completed",
   "next_steps": [
-    "Implement PR C read-cutover Phases 1-8 per approved plan (windy-brook-smew.md) on a new branch",
-    "Verify gate endpoint returns gate_status:pass + fallback_hit_count:0 (admin login required)",
-    "PR C destructive step only after gate passes 3-5 days AND read-cutover complete"
+    "Watch pseudonym-gate endpoint fallback_hit_count for 3-5 days (must stay 0)",
+    "Then plan destructive phase: drop plaintext columns + flip LINE_ID_STORAGE_MODE=pseudonym",
+    "Optional: smoke test inbox/friends/reports on staging in dual mode"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-07-28T01:08:00+07:00",
+      "platform": "qoder",
+      "branch": "main",
+      "head": "4ba338a",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-07-27T22:34:00+07:00",
       "platform": "qoder",
@@ -140,13 +147,6 @@
       "platform": "claude_code",
       "branch": "main",
       "head": "0134e8c",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-17T17:54:00+07:00",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "dba1beb",
       "status": "completed"
     }
   ],
