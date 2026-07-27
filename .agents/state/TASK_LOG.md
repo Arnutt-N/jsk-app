@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 187 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 188 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-28 03:49 — qoder — completed
+
+PR #161 merged (425bba6): COOKIE_AUTH_MODE production rollout runbook + migration-controls.md fixes (default cookie, SameSite=Strict, PR 2B/2C merged) + PROJECT_STATUS backlog update; smoke test confirmed deployed backend healthy (health 200, auth gates 401, routing intact)
+
+- Checkpoint: `.agents/state/checkpoints/handover-qoder-20260728-0349.json`
+- Summary: `project-log-md/qoder/session-summary-20260728-0349.md`
+
+---
 
 ### 2026-07-28 01:08 — qoder — completed
 

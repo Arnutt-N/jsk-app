@@ -1,14 +1,20 @@
 {
-  "last_updated": "2026-07-28T01:08:00+07:00",
+  "last_updated": "2026-07-28T03:49:00+07:00",
   "platform": "qoder",
-  "current_task": "PR C read-cutover merged (PR #160, squash 4ba338a): ~50 read paths now mode-aware via 4 new identity helpers; 771 tests green; CI all pass",
+  "current_task": "PR #161 merged (425bba6): COOKIE_AUTH_MODE production rollout runbook + migration-controls.md fixes (default cookie, SameSite=Strict, PR 2B/2C merged) + PROJECT_STATUS backlog update; smoke test confi",
   "plan_status": "completed",
   "next_steps": [
-    "Watch pseudonym-gate endpoint fallback_hit_count for 3-5 days (must stay 0)",
-    "Then plan destructive phase: drop plaintext columns + flip LINE_ID_STORAGE_MODE=pseudonym",
-    "Optional: smoke test inbox/friends/reports on staging in dual mode"
+    "User: verify effective COOKIE_AUTH_MODE on Koyeb prod + advance to cookie per runbook",
+    "Watch pseudonym-gate fallback_hit_count 3-5 days then plan destructive phase"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-07-28T03:49:00+07:00",
+      "platform": "qoder",
+      "branch": "main",
+      "head": "425bba6",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-07-28T01:08:00+07:00",
       "platform": "qoder",
@@ -140,13 +146,6 @@
       "platform": "claude_code",
       "branch": "main",
       "head": "9c2589f",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-18T15:46:00+07:00",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "0134e8c",
       "status": "completed"
     }
   ],

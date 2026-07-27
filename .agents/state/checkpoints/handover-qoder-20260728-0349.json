@@ -1,0 +1,17 @@
+{
+  "handoff_version": "2.0",
+  "platform": "qoder",
+  "agent": "qoder",
+  "timestamp": "2026-07-28T03:49:00+07:00",
+  "branch": "main",
+  "head_commit": "425bba6",
+  "status": "completed",
+  "work_summary": "PR #161 merged (425bba6): COOKIE_AUTH_MODE production rollout runbook + migration-controls.md fixes (default cookie, SameSite=Strict, PR 2B/2C merged) + PROJECT_STATUS backlog update; smoke test confirmed deployed backend healthy (health 200, auth gates 401, routing intact)",
+  "priority_actions": [
+    "User: verify effective COOKIE_AUTH_MODE on Koyeb prod + advance to cookie per runbook",
+    "Watch pseudonym-gate fallback_hit_count 3-5 days then plan destructive phase"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/qoder/session-summary-20260728-0349.md",
+  "cross_platform_read": []
+}
