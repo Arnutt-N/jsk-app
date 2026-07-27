@@ -12,6 +12,7 @@ from app.models.message import Message, MessageDirection
 from app.core.redis_client import redis_client
 from app.core.config import settings
 from app.db.session import AsyncSessionLocal
+from app.services.user_identity_service import child_column
 
 logger = logging.getLogger(__name__)
 
@@ -146,7 +147,7 @@ class AnalyticsService:
         closed_sessions = (
             select(
                 ChatSession.id.label("id"),
-                ChatSession.line_user_id.label("line_user_id"),
+                child_column(ChatSession).label("line_user_id"),
                 ChatSession.closed_at.label("closed_at"),
             )
             .where(
@@ -165,7 +166,7 @@ class AnalyticsService:
         reopened_exists = exists(
             select(ChatSession.id).where(
                 and_(
-                    ChatSession.line_user_id == closed_sessions.c.line_user_id,
+                    child_column(ChatSession) == closed_sessions.c.line_user_id,
                     ChatSession.started_at > closed_sessions.c.closed_at,
                     ChatSession.started_at < closed_sessions.c.closed_at + timedelta(hours=24),
                 )
@@ -190,7 +191,7 @@ class AnalyticsService:
         closed_sessions = (
             select(
                 ChatSession.id.label("id"),
-                ChatSession.line_user_id.label("line_user_id"),
+                child_column(ChatSession).label("line_user_id"),
                 ChatSession.closed_at.label("closed_at"),
             )
             .where(
@@ -206,7 +207,7 @@ class AnalyticsService:
         reopened_exists = exists(
             select(ChatSession.id).where(
                 and_(
-                    ChatSession.line_user_id == closed_sessions.c.line_user_id,
+                    child_column(ChatSession) == closed_sessions.c.line_user_id,
                     ChatSession.started_at > closed_sessions.c.closed_at,
                     ChatSession.started_at < closed_sessions.c.closed_at + timedelta(hours=24),
                 )
@@ -333,10 +334,10 @@ class AnalyticsService:
         cutoff = datetime.now(timezone.utc) - timedelta(days=safe_days)
 
         bot_entries = await db.scalar(
-            select(func.count(func.distinct(Message.line_user_id))).where(
+            select(func.count(func.distinct(child_column(Message)))).where(
                 Message.created_at >= cutoff,
                 Message.direction == MessageDirection.INCOMING,
-                Message.line_user_id.isnot(None),
+                child_column(Message).isnot(None),
             )
         )
         human_handoff = await db.scalar(

@@ -3,12 +3,19 @@ import logging
 from datetime import datetime
 from typing import Union
 
-from sqlalchemy import DateTime, String, column, func, select, values
+from sqlalchemy import DateTime, Integer, String, column, func, select, values
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.redis_client import redis_client
 from app.core.websocket_manager import ConnectionManager
 from app.models.message import Message, MessageDirection
+from app.services.user_identity_service import (
+    child_column,
+    child_filter,
+    resolve_by_line_id,
+    resolve_many_by_line_id,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -27,8 +34,9 @@ class UnreadCountsMixin:
             except ValueError:
                 read_at = None
 
+        user = await resolve_by_line_id(db, line_user_id)
         unread_stmt = select(func.count(Message.id)).where(
-            Message.line_user_id == line_user_id,
+            child_filter(Message, line_user_id, user.id if user else None),
             Message.direction == MessageDirection.INCOMING,
         )
         if read_at:
@@ -67,48 +75,77 @@ class UnreadCountsMixin:
             except ValueError:
                 ids_without_markers.append(line_user_id)
 
+        use_pseudonym = settings.LINE_ID_STORAGE_MODE == "pseudonym"
+        id_to_user: dict[str, int] = {}
+        user_to_id: dict[int, str] = {}
+        if use_pseudonym:
+            id_to_user = await resolve_many_by_line_id(
+                db,
+                ids_without_markers + [line_user_id for line_user_id, _ in ids_with_markers],
+            )
+            user_to_id = {user_id: line_user_id for line_user_id, user_id in id_to_user.items()}
+
+        msg_col = child_column(Message)
+
         if ids_without_markers:
+            if use_pseudonym:
+                owner_cond = msg_col.in_(
+                    [id_to_user[line_user_id] for line_user_id in ids_without_markers if line_user_id in id_to_user]
+                )
+            else:
+                owner_cond = msg_col.in_(ids_without_markers)
             result = await db.execute(
                 select(
-                    Message.line_user_id,
+                    msg_col,
                     func.count(Message.id).label("unread_count"),
                 )
                 .where(
-                    Message.line_user_id.in_(ids_without_markers),
+                    owner_cond,
                     Message.direction == MessageDirection.INCOMING,
                 )
-                .group_by(Message.line_user_id)
+                .group_by(msg_col)
             )
-            for line_user_id, unread_count in result.all():
-                counts[line_user_id] = int(unread_count)
+            for key, unread_count in result.all():
+                counts[user_to_id.get(key, key)] = int(unread_count)
 
         if ids_with_markers:
-            marker_values = (
-                values(
-                    column("line_user_id", String()),
-                    column("read_at", DateTime(timezone=True)),
-                    name="read_markers",
+            if use_pseudonym:
+                id_column = column("user_id", Integer())
+                marker_rows = [
+                    (id_to_user[line_user_id], read_at)
+                    for line_user_id, read_at in ids_with_markers
+                    if line_user_id in id_to_user
+                ]
+            else:
+                id_column = column("line_user_id", String())
+                marker_rows = ids_with_markers
+            if marker_rows:
+                marker_values = (
+                    values(
+                        id_column,
+                        column("read_at", DateTime(timezone=True)),
+                        name="read_markers",
+                    )
+                    .data(marker_rows)
+                    .alias("read_markers")
                 )
-                .data(ids_with_markers)
-                .alias("read_markers")
-            )
-            result = await db.execute(
-                select(
-                    Message.line_user_id,
-                    func.count(Message.id).label("unread_count"),
+                result = await db.execute(
+                    select(
+                        msg_col,
+                        func.count(Message.id).label("unread_count"),
+                    )
+                    .select_from(Message)
+                    .join(
+                        marker_values,
+                        msg_col == marker_values.c[id_column.name],
+                    )
+                    .where(
+                        Message.direction == MessageDirection.INCOMING,
+                        Message.created_at > marker_values.c.read_at,
+                    )
+                    .group_by(msg_col)
                 )
-                .select_from(Message)
-                .join(
-                    marker_values,
-                    Message.line_user_id == marker_values.c.line_user_id,
-                )
-                .where(
-                    Message.direction == MessageDirection.INCOMING,
-                    Message.created_at > marker_values.c.read_at,
-                )
-                .group_by(Message.line_user_id)
-            )
-            for line_user_id, unread_count in result.all():
-                counts[line_user_id] = int(unread_count)
+                for key, unread_count in result.all():
+                    counts[user_to_id.get(key, key)] = int(unread_count)
 
         return counts

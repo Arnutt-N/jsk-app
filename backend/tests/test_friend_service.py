@@ -1,7 +1,7 @@
 """Tests for friend profile refresh behavior."""
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -87,15 +87,18 @@ async def test_handle_follow_returning_user_creates_refollow_event():
         friend_since=datetime(2025, 1, 1, tzinfo=timezone.utc),
     )
     mock_db = AsyncMock()
-    # First call: find user; Second call: count refollows
-    user_result = MagicMock()
-    user_result.scalar_one_or_none.return_value = existing
+    # resolve_by_line_id handles the user lookup; only the refollow count hits db.execute
     refollow_result = MagicMock()
     refollow_result.scalar.return_value = 2  # already refollowed twice
-    mock_db.execute.side_effect = [user_result, refollow_result]
+    mock_db.execute.side_effect = [refollow_result]
     mock_db.add = MagicMock()
 
-    event = await service.handle_follow("U123", mock_db)
+    with patch(
+        "app.services.user_identity_service.resolve_by_line_id",
+        new_callable=AsyncMock,
+    ) as mock_resolve:
+        mock_resolve.return_value = existing
+        event = await service.handle_follow("U123", mock_db)
 
     assert event.event_type == "REFOLLOW"
     assert event.refollow_count == 3
@@ -114,14 +117,17 @@ async def test_handle_follow_blocked_user_creates_refollow_event():
         friend_since=datetime(2025, 6, 1, tzinfo=timezone.utc),
     )
     mock_db = AsyncMock()
-    user_result = MagicMock()
-    user_result.scalar_one_or_none.return_value = existing
     refollow_result = MagicMock()
     refollow_result.scalar.return_value = 0
-    mock_db.execute.side_effect = [user_result, refollow_result]
+    mock_db.execute.side_effect = [refollow_result]
     mock_db.add = MagicMock()
 
-    event = await service.handle_follow("U456", mock_db)
+    with patch(
+        "app.services.user_identity_service.resolve_by_line_id",
+        new_callable=AsyncMock,
+    ) as mock_resolve:
+        mock_resolve.return_value = existing
+        event = await service.handle_follow("U456", mock_db)
 
     assert event.event_type == "REFOLLOW"
     assert event.refollow_count == 1

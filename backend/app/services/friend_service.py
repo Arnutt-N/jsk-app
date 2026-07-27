@@ -111,10 +111,13 @@ class FriendService:
 
     async def _get_refollow_count(self, line_user_id: str, db: AsyncSession) -> int:
         """Count how many times a user has re-followed (REFOLLOW events)."""
+        from app.services.user_identity_service import child_filter, resolve_by_line_id
+
+        user = await resolve_by_line_id(db, line_user_id)
         result = await db.execute(
             select(func.count(FriendEvent.id))
             .where(
-                FriendEvent.line_user_id == line_user_id,
+                child_filter(FriendEvent, line_user_id, user.id if user else None),
                 FriendEvent.event_type == FriendEventType.REFOLLOW.value,
             )
         )
@@ -122,8 +125,9 @@ class FriendService:
 
     async def handle_follow(self, line_user_id: str, db: AsyncSession, commit: bool = True):
         """Handle follow event"""
-        result = await db.execute(select(User).where(User.line_user_id == line_user_id))
-        user = result.scalar_one_or_none()
+        from app.services.user_identity_service import resolve_by_line_id
+
+        user = await resolve_by_line_id(db, line_user_id)
 
         event_type = FriendEventType.FOLLOW
         refollow_count = 0
@@ -154,8 +158,9 @@ class FriendService:
 
     async def handle_unfollow(self, line_user_id: str, db: AsyncSession, commit: bool = True):
         """Handle unfollow event"""
-        result = await db.execute(select(User).where(User.line_user_id == line_user_id))
-        user = result.scalar_one_or_none()
+        from app.services.user_identity_service import resolve_by_line_id
+
+        user = await resolve_by_line_id(db, line_user_id)
 
         if user:
             user.friend_status = "UNFOLLOWED"
@@ -180,9 +185,12 @@ class FriendService:
         limit: int = 50
     ) -> List[FriendEvent]:
         """Get history for a specific user"""
+        from app.services.user_identity_service import child_filter, resolve_by_line_id
+
+        user = await resolve_by_line_id(db, line_user_id)
         result = await db.execute(
             select(FriendEvent)
-            .where(FriendEvent.line_user_id == line_user_id)
+            .where(child_filter(FriendEvent, line_user_id, user.id if user else None))
             .order_by(desc(FriendEvent.created_at))
             .limit(limit)
         )
@@ -197,17 +205,22 @@ class FriendService:
         per_page: int = 20,
     ) -> Tuple[List[Dict], int]:
         """Get paginated friend events with user info."""
+        from app.services.user_identity_service import child_join_condition
+
         query = (
             select(
                 FriendEvent,
                 User.display_name,
                 User.picture_url,
             )
-            .outerjoin(User, FriendEvent.line_user_id == User.line_user_id)
+            .outerjoin(User, child_join_condition(User, FriendEvent))
         )
 
         if line_user_id:
-            query = query.where(FriendEvent.line_user_id == line_user_id)
+            from app.services.user_identity_service import child_filter, resolve_by_line_id
+
+            user = await resolve_by_line_id(db, line_user_id)
+            query = query.where(child_filter(FriendEvent, line_user_id, user.id if user else None))
         if event_type:
             query = query.where(FriendEvent.event_type == event_type)
 
@@ -244,10 +257,12 @@ class FriendService:
 
     async def get_friend_stats(self, db: AsyncSession) -> Dict:
         """Get friend statistics summary."""
+        from app.services.user_identity_service import child_column, user_identity_filter
+
         # Total followers (ACTIVE status)
         total_followers_result = await db.execute(
             select(func.count(User.id)).where(
-                User.line_user_id.isnot(None),
+                user_identity_filter(),
                 User.friend_status == "ACTIVE",
             )
         )
@@ -256,7 +271,7 @@ class FriendService:
         # Total blocked
         total_blocked_result = await db.execute(
             select(func.count(User.id)).where(
-                User.line_user_id.isnot(None),
+                user_identity_filter(),
                 User.friend_status == "BLOCKED",
             )
         )
@@ -265,7 +280,7 @@ class FriendService:
         # Total unfollowed
         total_unfollowed_result = await db.execute(
             select(func.count(User.id)).where(
-                User.line_user_id.isnot(None),
+                user_identity_filter(),
                 User.friend_status == "UNFOLLOWED",
             )
         )
@@ -273,7 +288,7 @@ class FriendService:
 
         # Total unique users who re-followed
         total_refollows_result = await db.execute(
-            select(func.count(func.distinct(FriendEvent.line_user_id))).where(
+            select(func.count(func.distinct(child_column(FriendEvent)))).where(
                 FriendEvent.event_type == FriendEventType.REFOLLOW.value,
             )
         )
@@ -281,7 +296,7 @@ class FriendService:
 
         # All users who ever existed (had LINE ID)
         total_all_result = await db.execute(
-            select(func.count(User.id)).where(User.line_user_id.isnot(None))
+            select(func.count(User.id)).where(user_identity_filter())
         )
         total_all = total_all_result.scalar() or 0
 
@@ -294,7 +309,7 @@ class FriendService:
                 func.count().label("user_count"),
             )
             .where(FriendEvent.event_type == FriendEventType.REFOLLOW.value)
-            .group_by(FriendEvent.line_user_id)
+            .group_by(child_column(FriendEvent))
         )
         breakdown_sub = breakdown_query.subquery()
         breakdown_result = await db.execute(
@@ -322,18 +337,28 @@ class FriendService:
 
     async def get_user_refollow_counts(self, db: AsyncSession, line_user_ids: list[str] | None = None) -> Dict[str, int]:
         """Get max refollow count per user, optionally scoped to specific IDs."""
+        from app.core.config import settings
+        from app.services.user_identity_service import child_column, resolve_many_by_line_id
+
+        owner_col = child_column(FriendEvent)
         query = select(
-            FriendEvent.line_user_id,
+            owner_col,
             func.max(FriendEvent.refollow_count).label("max_refollow"),
         ).where(
             FriendEvent.event_type == FriendEventType.REFOLLOW.value
-        ).group_by(FriendEvent.line_user_id)
+        ).group_by(owner_col)
 
+        id_to_user: Dict[str, int] = {}
         if line_user_ids:
-            query = query.where(FriendEvent.line_user_id.in_(line_user_ids))
+            if settings.LINE_ID_STORAGE_MODE == "pseudonym":
+                id_to_user = await resolve_many_by_line_id(db, line_user_ids)
+                query = query.where(owner_col.in_(list(id_to_user.values())))
+            else:
+                query = query.where(owner_col.in_(line_user_ids))
 
         result = await db.execute(query)
-        return {row.line_user_id: row.max_refollow for row in result.all()}
+        user_to_id = {user_id: raw for raw, user_id in id_to_user.items()}
+        return {user_to_id.get(row[0], row[0]): row.max_refollow for row in result.all()}
 
     async def list_friends(
         self,
@@ -343,7 +368,9 @@ class FriendService:
         limit: int = 100
     ) -> List[User]:
         """List users who are friends"""
-        query = select(User).where(User.line_user_id != None)  # noqa: E711
+        from app.services.user_identity_service import user_identity_filter
+
+        query = select(User).where(user_identity_filter())
         if status:
             query = query.where(User.friend_status == status)
 

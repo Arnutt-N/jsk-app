@@ -10,6 +10,13 @@ from app.models.chat_session import ChatSession, SessionStatus
 from app.models.message import Message
 from app.models.tag import Tag, UserTag
 from app.models.user import ChatMode, User
+from app.services.user_identity_service import (
+    child_column,
+    child_filter,
+    child_join_condition,
+    resolve_by_line_id,
+    user_identity_filter,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -22,9 +29,10 @@ class ConversationsMixin:
         db: AsyncSession
     ):
         """Get recent messages for a user"""
+        user = await resolve_by_line_id(db, line_user_id)
         result = await db.execute(
             select(Message)
-            .where(Message.line_user_id == line_user_id)
+            .where(child_filter(Message, line_user_id, user.id if user else None))
             .order_by(desc(Message.created_at))
             .limit(limit)
         )
@@ -39,7 +47,8 @@ class ConversationsMixin:
     ) -> dict:
         """Load messages in reverse cursor order and return oldest->newest."""
         safe_limit = max(1, min(limit, 100))
-        query = select(Message).where(Message.line_user_id == line_user_id)
+        user = await resolve_by_line_id(db, line_user_id)
+        query = select(Message).where(child_filter(Message, line_user_id, user.id if user else None))
         if before_id is not None:
             query = query.where(Message.id < before_id)
         query = query.order_by(desc(Message.id)).limit(safe_limit + 1)
@@ -69,7 +78,7 @@ class ConversationsMixin:
             ChatSession,
             func.row_number()
             .over(
-                partition_by=ChatSession.line_user_id,
+                partition_by=child_column(ChatSession),
                 order_by=desc(ChatSession.started_at),
             )
             .label("rn"),
@@ -89,7 +98,7 @@ class ConversationsMixin:
                 Message,
                 func.row_number()
                 .over(
-                    partition_by=Message.line_user_id,
+                    partition_by=child_column(Message),
                     order_by=desc(Message.created_at),
                 )
                 .label("rn"),
@@ -104,18 +113,18 @@ class ConversationsMixin:
             .outerjoin(
                 latest_session,
                 and_(
-                    User.line_user_id == latest_session.line_user_id,
+                    child_join_condition(User, latest_session),
                     latest_session_subquery.c.rn == 1,
                 ),
             )
             .outerjoin(
                 latest_message,
                 and_(
-                    User.line_user_id == latest_message.line_user_id,
+                    child_join_condition(User, latest_message),
                     latest_message_subquery.c.rn == 1,
                 ),
             )
-            .where(User.line_user_id.is_not(None))
+            .where(user_identity_filter())
         )
 
         if status == "WAITING":
@@ -179,7 +188,7 @@ class ConversationsMixin:
         active_count = await db.scalar(select(func.count(ChatSession.id)).where(ChatSession.status == SessionStatus.ACTIVE))
 
         total_users = await db.scalar(
-            select(func.count(User.id)).where(User.line_user_id.is_not(None))
+            select(func.count(User.id)).where(user_identity_filter())
         ) or 0
 
         return {
@@ -205,14 +214,15 @@ class ConversationsMixin:
         safe_limit = max(1, min(limit, 100))
         stmt = (
             select(Message, User.display_name)
-            .join(User, User.line_user_id == Message.line_user_id, isouter=True)
+            .join(User, child_join_condition(User, Message), isouter=True)
             .where(
                 Message.content.is_not(None),
                 Message.content.ilike(f"%{escaped}%", escape="\\"),
             )
         )
         if line_user_id:
-            stmt = stmt.where(Message.line_user_id == line_user_id)
+            user = await resolve_by_line_id(db, line_user_id)
+            stmt = stmt.where(child_filter(Message, line_user_id, user.id if user else None))
         stmt = stmt.order_by(desc(Message.created_at)).limit(safe_limit)
 
         rows = (await db.execute(stmt)).all()
@@ -231,8 +241,7 @@ class ConversationsMixin:
 
     async def get_conversation_detail(self, line_user_id: str, db: AsyncSession):
         """Get full chat history with a user"""
-        result = await db.execute(select(User).where(User.line_user_id == line_user_id))
-        user = result.scalar_one_or_none()
+        user = await resolve_by_line_id(db, line_user_id)
         if not user:
             return None
 

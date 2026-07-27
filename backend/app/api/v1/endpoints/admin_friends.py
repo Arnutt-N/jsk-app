@@ -32,7 +32,8 @@ async def list_friends(
     # Get total count for pagination
     from sqlalchemy import func as sa_func
     from app.models.user import User as UserModel
-    count_query = select(sa_func.count(UserModel.id)).where(UserModel.line_user_id.isnot(None))
+    from app.services.user_identity_service import user_identity_filter
+    count_query = select(sa_func.count(UserModel.id)).where(user_identity_filter())
     if status:
         count_query = count_query.where(UserModel.friend_status == status)
     total_result = await db.execute(count_query)

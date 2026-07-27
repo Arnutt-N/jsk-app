@@ -415,3 +415,148 @@ def test_child_filter_pseudonym_without_user_id_falls_back():
         clause = child_filter(Message, "Uabc", user_id=None)
 
     assert str(clause) == str(Message.line_user_id == "Uabc")
+
+
+# ── 11. New mode-aware helpers (PR C read-cutover) ────────────────
+
+
+def test_child_column_mode_aware():
+    from app.services.user_identity_service import child_column
+    from app.models.message import Message
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr("app.services.user_identity_service.settings.LINE_ID_STORAGE_MODE", "dual")
+        assert child_column(Message) is Message.line_user_id
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr("app.services.user_identity_service.settings.LINE_ID_STORAGE_MODE", "pseudonym")
+        assert child_column(Message) is Message.user_id
+
+
+def test_child_join_condition_mode_aware():
+    from app.services.user_identity_service import child_join_condition
+    from app.models.message import Message
+    from app.models.chat_session import ChatSession
+    from app.models.user import User
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr("app.services.user_identity_service.settings.LINE_ID_STORAGE_MODE", "dual")
+        clause = child_join_condition(ChatSession, Message)
+        assert str(clause) == str(ChatSession.line_user_id == Message.line_user_id)
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr("app.services.user_identity_service.settings.LINE_ID_STORAGE_MODE", "pseudonym")
+        clause = child_join_condition(ChatSession, Message)
+        assert str(clause) == str(ChatSession.user_id == Message.user_id)
+
+
+def test_child_join_condition_user_as_parent():
+    from app.services.user_identity_service import child_join_condition
+    from app.models.message import Message
+    from app.models.user import User
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr("app.services.user_identity_service.settings.LINE_ID_STORAGE_MODE", "dual")
+        clause = child_join_condition(User, Message)
+        assert str(clause) == str(User.line_user_id == Message.line_user_id)
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr("app.services.user_identity_service.settings.LINE_ID_STORAGE_MODE", "pseudonym")
+        clause = child_join_condition(User, Message)
+        assert str(clause) == str(User.id == Message.user_id)
+
+
+def test_user_identity_filter_mode_aware():
+    from app.services.user_identity_service import user_identity_filter
+    from app.models.user import User
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr("app.services.user_identity_service.settings.LINE_ID_STORAGE_MODE", "dual")
+        clause = user_identity_filter()
+        assert str(clause) == str(User.line_user_id.isnot(None))
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr("app.services.user_identity_service.settings.LINE_ID_STORAGE_MODE", "pseudonym")
+        clause = user_identity_filter()
+        assert str(clause) == str(User.line_user_id_hash.isnot(None))
+
+
+@pytest.mark.asyncio
+async def test_resolve_many_empty_input():
+    from app.services.user_identity_service import resolve_many_by_line_id
+
+    mock_db = AsyncMock()
+    result = await resolve_many_by_line_id(mock_db, [])
+
+    assert result == {}
+    mock_db.execute.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_resolve_many_by_hash():
+    from app.services.user_identity_service import resolve_many_by_line_id
+
+    mock_db = AsyncMock()
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr("app.services.user_identity_service.settings.LINE_ID_HMAC_KEY", "test-key")
+        mp.setattr("app.services.user_identity_service.settings.LINE_ID_STORAGE_MODE", "dual")
+        u1 = SimpleNamespace(id=1, line_user_id="Uaaa", line_user_id_hash=line_id_hash("Uaaa"))
+        u2 = SimpleNamespace(id=2, line_user_id="Ubbb", line_user_id_hash=line_id_hash("Ubbb"))
+        mock_result = MagicMock()
+        mock_result.scalars.return_value.all.return_value = [u1, u2]
+        mock_db.execute.return_value = mock_result
+        result = await resolve_many_by_line_id(mock_db, ["Uaaa", "Ubbb"])
+
+    assert result == {"Uaaa": 1, "Ubbb": 2}
+    assert mock_db.execute.await_count == 1  # hash hit, no plaintext query
+
+
+@pytest.mark.asyncio
+async def test_resolve_many_plaintext_fallback_records_gate_hit():
+    from app.services.user_identity_service import resolve_many_by_line_id
+
+    mock_db = AsyncMock()
+    gate_mock = AsyncMock()
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr("app.services.user_identity_service.settings.LINE_ID_HMAC_KEY", "test-key")
+        mp.setattr("app.services.user_identity_service.settings.LINE_ID_STORAGE_MODE", "dual")
+        hashed = SimpleNamespace(id=1, line_user_id="Uaaa", line_user_id_hash=line_id_hash("Uaaa"))
+        legacy = SimpleNamespace(id=2, line_user_id="Ulegacy", line_user_id_hash=None)
+
+        call_count = [0]
+
+        async def fake_execute(stmt):
+            call_count[0] += 1
+            result = MagicMock()
+            if call_count[0] == 1:
+                result.scalars.return_value.all.return_value = [hashed]  # hash query
+            else:
+                result.scalars.return_value.all.return_value = [legacy]  # plaintext query
+            return result
+
+        mock_db.execute = fake_execute
+        mp.setattr("app.services.user_identity_service.record_fallback_hit", gate_mock)
+        result = await resolve_many_by_line_id(mock_db, ["Uaaa", "Ulegacy", "Uaaa"])
+
+    assert result == {"Uaaa": 1, "Ulegacy": 2}
+    gate_mock.assert_awaited_once_with("Ulegacy", 2)
+
+
+@pytest.mark.asyncio
+async def test_resolve_many_pseudonym_skips_plaintext():
+    from app.services.user_identity_service import resolve_many_by_line_id
+
+    mock_db = AsyncMock()
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.all.return_value = []
+    mock_db.execute.return_value = mock_result
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr("app.services.user_identity_service.settings.LINE_ID_HMAC_KEY", "test-key")
+        mp.setattr("app.services.user_identity_service.settings.LINE_ID_STORAGE_MODE", "pseudonym")
+        result = await resolve_many_by_line_id(mock_db, ["Ughost"])
+
+    assert result == {}
+    assert mock_db.execute.await_count == 1  # hash query only

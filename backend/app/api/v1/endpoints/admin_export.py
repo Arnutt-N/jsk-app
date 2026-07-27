@@ -13,6 +13,7 @@ from app.api.deps import require_permission
 from app.core.permissions import KEY_EXPORT_CHAT
 from app.models.message import Message
 from app.models.user import User
+from app.services.user_identity_service import child_filter, resolve_by_line_id
 
 router = APIRouter()
 
@@ -36,20 +37,20 @@ def _build_export_filename(display_name: str, messages: List[Message], extension
 
 
 async def _get_conversation_messages(line_user_id: str, db: AsyncSession) -> List[Message]:
+    user = await resolve_by_line_id(db, line_user_id)
     result = await db.execute(
         select(Message)
-        .where(Message.line_user_id == line_user_id)
+        .where(child_filter(Message, line_user_id, user.id if user else None))
         .order_by(Message.created_at.asc(), Message.id.asc())
     )
     return list(result.scalars().all())
 
 
 async def _get_display_name(line_user_id: str, db: AsyncSession) -> str:
-    result = await db.execute(
-        select(User.display_name).where(User.line_user_id == line_user_id).limit(1)
-    )
-    value = result.scalar_one_or_none()
-    return value or line_user_id
+    user = await resolve_by_line_id(db, line_user_id)
+    if user and user.display_name:
+        return user.display_name
+    return line_user_id
 
 
 @router.get("/conversations/{line_user_id}/csv")

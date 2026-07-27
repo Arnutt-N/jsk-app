@@ -12,6 +12,7 @@ from app.core.audit import audit_action
 from app.core.permissions import can, KEY_ACCESS_LIVE_CHAT
 from app.models.chat_session import ChatSession, ClosedBy, SessionStatus
 from app.models.user import ChatMode, User, UserRole
+from app.services.user_identity_service import resolve_by_line_id
 
 from ._deps import get_sla_service
 from .errors import (
@@ -90,8 +91,7 @@ class SessionLifecycleMixin:
         session.closed_by = closed_by
 
         # Return user to bot mode
-        result = await db.execute(select(User).where(User.line_user_id == line_user_id))
-        user = result.scalar_one_or_none()
+        user = await resolve_by_line_id(db, line_user_id)
         if user:
             user.chat_mode = ChatMode.BOT
 
