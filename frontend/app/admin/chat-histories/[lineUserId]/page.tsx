@@ -18,6 +18,7 @@ import {
 import PageHeader from '@/app/admin/components/PageHeader';
 import { useToast } from '@/components/ui/Toast';
 import { logger } from '@/lib/logger';
+import { maskLineUserId } from '@/lib/mask';
 
 /* ---------- Types ---------- */
 
@@ -106,7 +107,7 @@ export default function ChatHistoryDetailPage() {
             );
             if (!detailRes.ok) throw new Error('Failed to fetch conversation');
             const detail: ConversationDetail = await detailRes.json();
-            setDisplayName(detail.display_name || lineUserId.substring(0, 12));
+            setDisplayName(detail.display_name || maskLineUserId(lineUserId));
             setChatMode(detail.chat_mode);
 
             // โหลดข้อความแบบ paginated
@@ -171,10 +172,11 @@ export default function ChatHistoryDetailPage() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `chat-${lineUserId}-${new Date().toISOString().slice(0, 10)}.txt`;
+        const exportBase = (displayName || 'chat').replace(/[^\w\u0E00-\u0E7F-]/g, '_');
+        a.download = `chat-${exportBase}-${new Date().toISOString().slice(0, 10)}.txt`;
         a.click();
         URL.revokeObjectURL(url);
-    }, [messages, lineUserId]);
+    }, [messages, lineUserId, displayName]);
 
     /* ---- Export CSV: download from backend (UTF-8-SIG, opens cleanly in Excel) ---- */
     const handleExportCsv = useCallback(async () => {
@@ -194,14 +196,15 @@ export default function ChatHistoryDetailPage() {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `chat-${lineUserId}-${new Date().toISOString().slice(0, 10)}.csv`;
+            const exportBase = (displayName || 'chat').replace(/[^\w\u0E00-\u0E7F-]/g, '_');
+            a.download = `chat-${exportBase}-${new Date().toISOString().slice(0, 10)}.csv`;
             a.click();
             URL.revokeObjectURL(url);
         } catch (err: unknown) {
             logger.error('[chat-detail] export CSV error', err, { lineUserId });
             toast({ title: 'เกิดข้อผิดพลาด กรุณาลองใหม่', variant: 'error' });
         }
-    }, [API_BASE, lineUserId, toast]);
+    }, [API_BASE, lineUserId, toast, displayName]);
 
     /* ---- Render message content by type ---- */
     const renderMessageContent = (msg: MessageItem) => {
@@ -234,7 +237,7 @@ export default function ChatHistoryDetailPage() {
             {/* Header */}
             <PageHeader
                 title={displayName || 'ประวัติสนทนา'}
-                subtitle={lineUserId}
+                subtitle={maskLineUserId(lineUserId)}
             >
                 <Button
                     variant="outline"

@@ -22,6 +22,7 @@ import {
 import PageHeader from '../components/PageHeader';
 import { logger } from '@/lib/logger';
 import { readErrorMessage } from '@/lib/api-error';
+import { maskLineUserId } from '@/lib/mask';
 
 interface Friend {
     line_user_id: string;
@@ -392,7 +393,7 @@ export default function FriendsPage() {
                                             <Checkbox
                                                 checked={selectedIds.has(friend.line_user_id)}
                                                 onCheckedChange={() => toggleSelect(friend.line_user_id)}
-                                                aria-label={`เลือก ${friend.display_name || friend.line_user_id}`}
+                                                aria-label={`เลือก ${friend.display_name || maskLineUserId(friend.line_user_id)}`}
                                                 className="mx-auto"
                                             />
                                         </td>
@@ -417,7 +418,7 @@ export default function FriendsPage() {
                                                             </span>
                                                         )}
                                                     </div>
-                                                    <div className="text-xs text-text-secondary font-mono">{friend.line_user_id.substring(0, 8)}...</div>
+                                                    <div className="text-xs text-text-secondary font-mono">{maskLineUserId(friend.line_user_id)}</div>
                                                 </div>
                                             </div>
                                         </td>

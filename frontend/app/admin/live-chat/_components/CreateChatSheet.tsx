@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
 import { logger } from '@/lib/logger';
+import { maskLineUserId } from '@/lib/mask';
 import { getAvatarFallbackUrl } from '@/lib/constants/live-chat-avatar';
 
 // ---------------------------------------------------------------------------
@@ -80,7 +81,7 @@ export function CreateChatSheet({ isOpen, onClose, onCreated }: CreateChatSheetP
       const items: SearchResult[] = (data.items || data || []).map(
         (item: Record<string, unknown>) => ({
           line_user_id: item.line_user_id as string,
-          display_name: (item.display_name as string) || (item.line_user_id as string),
+          display_name: (item.display_name as string) || maskLineUserId(item.line_user_id as string),
           picture_url: item.picture_url as string | undefined,
         })
       );
@@ -200,7 +201,7 @@ export function CreateChatSheet({ isOpen, onClose, onCreated }: CreateChatSheetP
                       {user.display_name}
                     </p>
                     <p className="text-xs text-text-tertiary truncate">
-                      {user.line_user_id}
+                      {maskLineUserId(user.line_user_id)}
                     </p>
                   </div>
                 </button>
@@ -222,7 +223,7 @@ export function CreateChatSheet({ isOpen, onClose, onCreated }: CreateChatSheetP
                   {selectedUser.display_name}
                 </p>
                 <p className="text-xs text-text-secondary truncate">
-                  {selectedUser.line_user_id}
+                  {maskLineUserId(selectedUser.line_user_id)}
                 </p>
               </div>
               <button

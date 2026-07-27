@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/Card';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Badge } from '@/components/ui/Badge';
 import { Timeline, type TimelineItem } from '@/components/ui/Timeline';
+import { maskLineUserId } from '@/lib/mask';
 
 // ข้อมูลเพื่อนจาก API
 interface FriendInfo {
@@ -251,7 +252,7 @@ export default function FriendTimelinePage() {
                     {friendInfo?.display_name ?? 'ไม่ทราบชื่อ'}
                 </h1>
                 <p className="text-sm text-text-secondary font-mono mt-1">
-                    {lineUserId}
+                    {maskLineUserId(lineUserId)}
                 </p>
             </div>
 

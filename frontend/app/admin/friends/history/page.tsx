@@ -20,6 +20,7 @@ import { Select } from '@/components/ui/Select';
 import { Input } from '@/components/ui/Input';
 import PageHeader from '../../components/PageHeader';
 import { logger } from '@/lib/logger';
+import { maskLineUserId } from '@/lib/mask';
 
 interface FriendEvent {
     id: number;
@@ -297,7 +298,7 @@ export default function FriendHistoryPage() {
                                                 {event.display_name || 'LINE User'}
                                             </p>
                                             <p className="text-xs text-text-secondary font-mono truncate">
-                                                {event.line_user_id.substring(0, 12)}...
+                                                {maskLineUserId(event.line_user_id)}
                                             </p>
                                         </div>
                                     </div>
