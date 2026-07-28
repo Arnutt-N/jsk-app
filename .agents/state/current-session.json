@@ -1,13 +1,19 @@
 {
-  "last_updated": "2026-07-28T23:33:00+07:00",
+  "last_updated": "2026-07-29T00:18:00+07:00",
   "platform": "qoder",
-  "current_task": "Implemented /admin/image-resize (canvas resize/compress, LINE presets, Media Library upload) + fixed users Edit2→SquarePen icon + 9 OCR review fixes. Merged PR #167 (squash 77135d2), CI all green.",
+  "current_task": "Merged PR #168: live-chat sidebar sort fix (squash 57f60f7) — frontend guards reorder to real message events, WS send path broadcasts CONVERSATION_UPDATE, send_message bumps last_message_at",
   "plan_status": "completed",
   "next_steps": [
-    "Manual UI test image-resize on deployed env (dev server blocked locally by Turbopack 0xc0000142 spawn issue)",
-    "Consider centralizing LINE image dimension constants (currently inline in rich-menus/new and image-resize presets)"
+    "Manual smoke test on deploy: click user (no jump), admin send (list reorders), incoming message (unread badge + reorder)"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-07-29T00:18:00+07:00",
+      "platform": "qoder",
+      "branch": "main",
+      "head": "57f60f7",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-07-28T23:33:00+07:00",
       "platform": "qoder",
@@ -139,13 +145,6 @@
       "platform": "claude_code",
       "branch": "main",
       "head": "0b41c33",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-18T20:49:00+07:00",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "cff7465",
       "status": "completed"
     }
   ],

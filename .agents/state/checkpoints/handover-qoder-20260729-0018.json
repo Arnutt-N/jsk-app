@@ -1,0 +1,16 @@
+{
+  "handoff_version": "2.0",
+  "platform": "qoder",
+  "agent": "qoder",
+  "timestamp": "2026-07-29T00:18:00+07:00",
+  "branch": "main",
+  "head_commit": "57f60f7",
+  "status": "completed",
+  "work_summary": "Merged PR #168: live-chat sidebar sort fix (squash 57f60f7) — frontend guards reorder to real message events, WS send path broadcasts CONVERSATION_UPDATE, send_message bumps last_message_at",
+  "priority_actions": [
+    "Manual smoke test on deploy: click user (no jump), admin send (list reorders), incoming message (unread badge + reorder)"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/qoder/session-summary-20260729-0018.md",
+  "cross_platform_read": []
+}

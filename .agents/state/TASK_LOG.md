@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 191 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 192 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-29 00:18 — qoder — completed
+
+Merged PR #168: live-chat sidebar sort fix (squash 57f60f7) — frontend guards reorder to real message events, WS send path broadcasts CONVERSATION_UPDATE, send_message bumps last_message_at
+
+- Checkpoint: `.agents/state/checkpoints/handover-qoder-20260729-0018.json`
+- Summary: `project-log-md/qoder/session-summary-20260729-0018.md`
+
+---
 
 ### 2026-07-28 23:33 — qoder — completed
 
