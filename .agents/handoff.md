@@ -1,6 +1,6 @@
-# Handoff — 2026-07-28 (pseudonym prepare-indexes done, awaiting production rollout)
+# Handoff — 2026-07-28 (PR #163 merged, production rollout next)
 
-> **สถานะปัจจุบัน:** Migration `d5e6f7g8h9i0` (prepare unique indexes on `user_id`) สร้าง + apply local แล้ว — เหลือ production rollout (cookie auth + pseudonym flip)
+> **สถานะปัจจุบัน:** PR #163 merged — migration `d5e6f7g8h9i0` + preflight/rollback scripts อยู่ใน main แล้ว — เหลือ production rollout (cookie auth + pseudonym flip)
 
 ---
 
@@ -17,21 +17,21 @@
 | PR #160 | ✅ Merged | LINE ID read-cutover — mode-aware query paths |
 | PR #161 | ✅ Merged | COOKIE_AUTH_MODE production rollout runbook (docs) |
 | PR #162 (`bab8b8e`) | ✅ Merged + Deployed | Live-chat per-operator pin/mute/spam prefs + soft-delete conversation — production verified |
-| Migration `d5e6f7g8h9i0` | ✅ Created + Local applied | Prepare unique indexes on `user_id` FK (pseudonym mode prerequisite) |
+| PR #163 (`8e49b9c`) | ✅ Merged | Pseudonym prepare-indexes migration + preflight/rollback scripts |
 
-**Main branch:** `e6aec7a` (migration file ยังไม่ commit — อยู่ใน working tree)
+**Main branch:** `8e49b9c` (synced with origin/main)
 **Backend defaults:** `COOKIE_AUTH_MODE=cookie`, `LIFF_STRICT_MODE=True`
 **Alembic head:** `d5e6f7g8h9i0` (single head, chain verified)
 
 ---
 
-## ไฟล์ที่สร้างใน session นี้ (ยังไม่ commit)
+## ไฟล์ที่เพิ่มใน PR #163
 
 | ไฟล์ | หน้าที่ |
 |------|---------|
 | `backend/alembic/versions/d5e6f7g8h9i0_line_id_pseudonym_prepare_indexes.py` | Migration: สร้าง `uq_chat_sessions_one_open_per_user` + `uq_user_rich_menu_links_user_id` |
-| `backend/scripts/preflight_pseudonym_indexes.py` | Pre-flight validation (hash coverage, duplicates) — read-only |
-| `backend/scripts/rollback_pseudonym_indexes.py` | Rollback script: `DROP INDEX CONCURRENTLY` (dry-run default) |
+| `backend/scripts/preflight_pseudonym_indexes.py` | Pre-flight validation (hash coverage, duplicates) — read-only, exit 0 = safe |
+| `backend/scripts/rollback_pseudonym_indexes.py` | Rollback: `DROP INDEX CONCURRENTLY` (dry-run default, AUTOCOMMIT) |
 
 ---
 
@@ -96,6 +96,8 @@
 - PR #162 ไม่กระทบ security rollout — ใช้ `get_current_staff` (HTTP gate เดิม), migration เป็นตารางใหม่ไม่ conflict
 - Remaining direct `.line_user_id ==` sites (6 แห่ง): webhook.py:722/748, rich_menus.py:189/357, admin_reports.py:495, admin_live_chat.py:488 — ต้อง convert ก่อน contract migration
 - Scripts ใช้ `ENV_FILE=app/.env` สำหรับ local (production guard จะ block ถ้าใช้ `.env` root)
+- GitHub repo: `allow_auto_merge=false`, branch protection เปิดอยู่ — ต้องใช้ `gh pr merge --admin` หรือ merge บน GitHub UI
+- Docker Desktop ต้องเปิดก่อน run scripts (PostgreSQL container: `docker-compose up -d db`)
 
 **สร้างโดย:** Qoder Agent
 **วันที่:** 2026-07-28
