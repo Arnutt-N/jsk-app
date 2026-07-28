@@ -8,7 +8,7 @@ from app.main import app
 def mock_live_chat_auth():
     """Patch websocket auth for endpoint smoke tests in this file."""
     with patch(
-        "app.api.v1.endpoints.ws_live_chat.authenticate_ws_user",
+        "app.services.ws_session.auth.authenticate_ws_user",
         new=AsyncMock(return_value="1"),
     ):
         yield

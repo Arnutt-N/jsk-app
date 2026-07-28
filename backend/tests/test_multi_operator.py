@@ -14,7 +14,7 @@ from app.main import app
 @pytest.fixture(autouse=True)
 def mock_live_chat_auth():
     with patch(
-        "app.api.v1.endpoints.ws_live_chat.authenticate_ws_user",
+        "app.services.ws_session.auth.authenticate_ws_user",
         new=AsyncMock(return_value="1"),
     ):
         yield

@@ -16,7 +16,7 @@ from pydantic import ValidationError
 from app.core.config import settings
 from app.core.rate_limiter import WebSocketRateLimiter
 from app.schemas.ws_events import AuthPayload, SendMessagePayload, JoinRoomPayload
-from app.api.v1.endpoints.ws_live_chat import authenticate_ws_user
+from app.services.ws_session.auth import authenticate_ws_user
 from app.models.user import UserRole
 
 
@@ -264,9 +264,9 @@ class TestWebSocketAuthHelper:
         async_session.__aenter__.return_value = mock_db
         async_session.__aexit__.return_value = None
 
-        with patch("app.api.v1.endpoints.ws_live_chat.jwt.decode", return_value={"sub": "7", "type": "access"}), \
-             patch("app.api.v1.endpoints.ws_live_chat.AsyncSessionLocal", return_value=async_session), \
-             patch("app.api.v1.endpoints.ws_live_chat.ws_manager.send_personal", new=AsyncMock()) as mock_send:
+        with patch("app.services.ws_session.auth.jwt.decode", return_value={"sub": "7", "type": "access"}), \
+             patch("app.services.ws_session.auth.AsyncSessionLocal", return_value=async_session), \
+             patch("app.services.ws_session.ws_manager.send_personal", new=AsyncMock()) as mock_send:
             admin_id = await authenticate_ws_user(websocket, "valid-access-token")
 
         assert admin_id == "7"
@@ -276,8 +276,8 @@ class TestWebSocketAuthHelper:
     async def test_refresh_token_is_rejected(self):
         websocket = SimpleNamespace()
 
-        with patch("app.api.v1.endpoints.ws_live_chat.jwt.decode", return_value={"sub": "7", "type": "refresh"}), \
-             patch("app.api.v1.endpoints.ws_live_chat.ws_manager.send_personal", new=AsyncMock()) as mock_send:
+        with patch("app.services.ws_session.auth.jwt.decode", return_value={"sub": "7", "type": "refresh"}), \
+             patch("app.services.ws_session.ws_manager.send_personal", new=AsyncMock()) as mock_send:
             admin_id = await authenticate_ws_user(websocket, "refresh-token")
 
         assert admin_id is None
@@ -298,9 +298,9 @@ class TestWebSocketAuthHelper:
         async_session.__aenter__.return_value = mock_db
         async_session.__aexit__.return_value = None
 
-        with patch("app.api.v1.endpoints.ws_live_chat.jwt.decode", return_value={"sub": "11", "type": "access"}), \
-             patch("app.api.v1.endpoints.ws_live_chat.AsyncSessionLocal", return_value=async_session), \
-             patch("app.api.v1.endpoints.ws_live_chat.ws_manager.send_personal", new=AsyncMock()) as mock_send:
+        with patch("app.services.ws_session.auth.jwt.decode", return_value={"sub": "11", "type": "access"}), \
+             patch("app.services.ws_session.auth.AsyncSessionLocal", return_value=async_session), \
+             patch("app.services.ws_session.ws_manager.send_personal", new=AsyncMock()) as mock_send:
             admin_id = await authenticate_ws_user(websocket, "valid-access-token")
 
         assert admin_id is None
@@ -317,7 +317,7 @@ class TestWebSocketAuthHelper:
         Ships-dark: today's hardcoded set was {ADMIN, SUPER_ADMIN, AGENT};
         DEFAULT_POLICY mirrors it so DIRECTOR is rejected on deploy.
         """
-        from app.api.v1.endpoints.ws_live_chat import _load_and_authorize_ws_user
+        from app.services.ws_session.auth import _load_and_authorize_ws_user
         from app.core.permissions import invalidate_cache
 
         invalidate_cache()  # ensure DEFAULT_POLICY applies
@@ -330,7 +330,7 @@ class TestWebSocketAuthHelper:
         async_session.__aenter__.return_value = mock_db
         async_session.__aexit__.return_value = None
 
-        with patch("app.api.v1.endpoints.ws_live_chat.AsyncSessionLocal", return_value=async_session):
+        with patch("app.services.ws_session.auth.AsyncSessionLocal", return_value=async_session):
             result = await _load_and_authorize_ws_user(42)
 
         assert result is None  # DIRECTOR rejected under DEFAULT_POLICY
@@ -338,7 +338,7 @@ class TestWebSocketAuthHelper:
     @pytest.mark.asyncio
     async def test_ws_auth_accepts_director_when_db_grants(self):
         """After a DB grant (cache injected), DIRECTOR passes the WS gate."""
-        from app.api.v1.endpoints.ws_live_chat import _load_and_authorize_ws_user
+        from app.services.ws_session.auth import _load_and_authorize_ws_user
         from app.core import permissions as perms_module
         from app.core.permissions import (
             KEY_ACCESS_LIVE_CHAT,
@@ -364,7 +364,7 @@ class TestWebSocketAuthHelper:
             async_session.__aenter__.return_value = mock_db
             async_session.__aexit__.return_value = None
 
-            with patch("app.api.v1.endpoints.ws_live_chat.AsyncSessionLocal", return_value=async_session):
+            with patch("app.services.ws_session.auth.AsyncSessionLocal", return_value=async_session):
                 result = await _load_and_authorize_ws_user(42)
 
             assert result is not None
@@ -377,9 +377,9 @@ class TestWebSocketAuthHelper:
 @pytest.mark.asyncio
 async def test_handle_auth_rejects_when_payload_has_no_token():
     """No token in the auth payload -> rejected. The query-param fallback is gone."""
-    from app.api.v1.endpoints.ws_live_chat import handle_auth
+    from app.services.ws_session.auth import handle_auth
     websocket = SimpleNamespace()
-    with patch("app.api.v1.endpoints.ws_live_chat.ws_manager.send_personal", new=AsyncMock()) as mock_send:
+    with patch("app.services.ws_session.ws_manager.send_personal", new=AsyncMock()) as mock_send:
         admin_id = await handle_auth(websocket, {})
     assert admin_id is None
     mock_send.assert_awaited()
@@ -403,13 +403,13 @@ async def test_handle_auth_redacts_validation_error_input_value(caplog):
     sentinel never appears in any captured log record while the `loc`/`type` do.
     """
     import logging
-    from app.api.v1.endpoints.ws_live_chat import handle_auth
+    from app.services.ws_session.auth import handle_auth
 
     sentinel = "LEAK-SENTINEL-" + "x" * 400  # > max_length=200 -> validation error
     websocket = SimpleNamespace()
 
-    with patch("app.api.v1.endpoints.ws_live_chat.ws_manager.send_personal", new=AsyncMock()):
-        with caplog.at_level(logging.WARNING, logger="app.api.v1.endpoints.ws_live_chat"):
+    with patch("app.services.ws_session.ws_manager.send_personal", new=AsyncMock()):
+        with caplog.at_level(logging.WARNING, logger="app.services.ws_session.auth"):
             admin_id = await handle_auth(websocket, {"ticket": sentinel})
 
     assert admin_id is None  # malformed payload rejected
