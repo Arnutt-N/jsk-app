@@ -61,6 +61,14 @@ describe('admin auth fetch interceptor — cookie mode', () => {
     expect(new Headers(init.headers).get('X-CSRF-Token')).toBeNull();
   });
 
+  it('attaches X-CSRF-Token on non-admin API POST (ws-ticket)', async () => {
+    setCsrfToken('csrf-xyz');
+    nativeFetch.mockResolvedValueOnce(jsonResponse(200));
+    await window.fetch('/api/v1/auth/ws-ticket', { method: 'POST' });
+    const init = nativeFetch.mock.calls[0][1] as RequestInit;
+    expect(new Headers(init.headers).get('X-CSRF-Token')).toBe('csrf-xyz');
+  });
+
   it('does NOT inject an Authorization header', async () => {
     nativeFetch.mockResolvedValueOnce(jsonResponse(200));
     await window.fetch(ADMIN_GET);
