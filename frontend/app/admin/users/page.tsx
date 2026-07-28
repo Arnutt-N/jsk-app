@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import {
     Users, Shield, UserCog, User, UserPlus,
-    Search, Edit2, Trash2, Key,
+    Search, SquarePen, Trash2, Key,
     ToggleLeft, ToggleRight, ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -524,7 +524,7 @@ export default function UsersPage() {
                                             <td className="px-6 py-4 whitespace-nowrap text-right">
                                                 <div className="flex items-center justify-end gap-1">
                                                     <ActionIconButton
-                                                        icon={<Edit2 className="w-4 h-4" />}
+                                                        icon={<SquarePen className="w-4 h-4" />}
                                                         label="แก้ไข"
                                                         variant="default"
                                                         onClick={() => openEdit(u)}
