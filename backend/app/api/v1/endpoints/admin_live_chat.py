@@ -28,6 +28,7 @@ from app.schemas.message import MessagePage, MessageResponse
 from app.services.analytics_service import analytics_service
 from app.services.friend_service import friend_service
 from app.services.line_service import line_service
+from app.services.message_intake import notify_admins_message_sent
 from datetime import datetime, timezone
 
 router = APIRouter()
@@ -62,56 +63,18 @@ async def _broadcast_conversation_update(
     db: AsyncSession,
     message_payload: dict[str, Any],
 ) -> None:
-    room_id = ws_manager.get_room_id(line_user_id)
-    await ws_manager.broadcast_to_room(
-        room_id,
-        {
-            "type": WSEventType.NEW_MESSAGE.value,
-            "payload": message_payload,
-            "timestamp": _utcnow_isoformat(),
-        },
-    )
-
     detail = await live_chat_service.get_conversation_detail(line_user_id, db)
-    display_name = detail["display_name"] if detail else "LINE User"
-    picture_url = detail["picture_url"] if detail else None
-    chat_mode = detail["chat_mode"].value if detail and hasattr(detail["chat_mode"], "value") else (detail["chat_mode"] if detail else "BOT")
-
-    try:
-        read_marker = datetime.fromisoformat(message_payload["created_at"]) if isinstance(message_payload.get("created_at"), str) else _utcnow()
-    except ValueError:
-        read_marker = _utcnow()
-
-    for admin_id in ws_manager.get_connected_admin_ids():
-        if await ws_manager.is_admin_in_room_global(admin_id, room_id):
-            await ws_manager.mark_conversation_read(
-                admin_id,
-                line_user_id,
-                read_marker,
-            )
-            unread_count = 0
-        else:
-            unread_count = await live_chat_service.get_unread_count(
-                line_user_id=line_user_id,
-                admin_id=admin_id,
-                db=db,
-            )
-
-        await ws_manager.send_to_admin(admin_id, {
-            "type": WSEventType.CONVERSATION_UPDATE.value,
-            "payload": {
-                "line_user_id": line_user_id,
-                "display_name": display_name or "LINE User",
-                "picture_url": picture_url,
-                "chat_mode": chat_mode,
-                "last_message": {
-                    "content": message_payload.get("content") or "[Message]",
-                    "created_at": message_payload.get("created_at"),
-                },
-                "unread_count": unread_count,
-            },
-            "timestamp": _utcnow_isoformat(),
-        })
+    await notify_admins_message_sent(
+        line_user_id=line_user_id,
+        display_name=(detail["display_name"] if detail else None) or "LINE User",
+        picture_url=detail["picture_url"] if detail else None,
+        chat_mode=detail["chat_mode"].value if detail and hasattr(detail["chat_mode"], "value") else (detail["chat_mode"] if detail else "BOT"),
+        content=message_payload.get("content") or "[Message]",
+        created_at=message_payload.get("created_at") or _utcnow_isoformat(),
+        db=db,
+        broadcast_new_message=True,
+        new_message_payload=message_payload,
+    )
 
 @router.get("/conversations", response_model=ConversationList)
 async def list_conversations(
@@ -203,53 +166,18 @@ async def send_media(
     sent_message = result.get("message", {})
     created_at = sent_message.get("created_at") or _utcnow_isoformat()
 
-    room_id = ws_manager.get_room_id(line_user_id)
-    await ws_manager.broadcast_to_room(room_id, {
-        "type": WSEventType.NEW_MESSAGE.value,
-        "payload": sent_message,
-        "timestamp": _utcnow_isoformat(),
-    })
-
     detail = await live_chat_service.get_conversation_detail(line_user_id, db)
-    display_name = detail["display_name"] if detail else "LINE User"
-    picture_url = detail["picture_url"] if detail else None
-    chat_mode = detail["chat_mode"].value if detail and hasattr(detail["chat_mode"], "value") else (detail["chat_mode"] if detail else "BOT")
-
-    try:
-        read_marker = datetime.fromisoformat(created_at) if isinstance(created_at, str) else _utcnow()
-    except ValueError:
-        read_marker = _utcnow()
-
-    for admin_id in ws_manager.get_connected_admin_ids():
-        if await ws_manager.is_admin_in_room_global(admin_id, room_id):
-            await ws_manager.mark_conversation_read(
-                admin_id,
-                line_user_id,
-                read_marker,
-            )
-            unread_count = 0
-        else:
-            unread_count = await live_chat_service.get_unread_count(
-                line_user_id=line_user_id,
-                admin_id=admin_id,
-                db=db,
-            )
-
-        await ws_manager.send_to_admin(admin_id, {
-            "type": WSEventType.CONVERSATION_UPDATE.value,
-            "payload": {
-                "line_user_id": line_user_id,
-                "display_name": display_name or "LINE User",
-                "picture_url": picture_url,
-                "chat_mode": chat_mode,
-                "last_message": {
-                    "content": sent_message.get("content") or "[Media]",
-                    "created_at": created_at,
-                },
-                "unread_count": unread_count,
-            },
-            "timestamp": _utcnow_isoformat(),
-        })
+    await notify_admins_message_sent(
+        line_user_id=line_user_id,
+        display_name=(detail["display_name"] if detail else None) or "LINE User",
+        picture_url=detail["picture_url"] if detail else None,
+        chat_mode=detail["chat_mode"].value if detail and hasattr(detail["chat_mode"], "value") else (detail["chat_mode"] if detail else "BOT"),
+        content=sent_message.get("content") or "[Media]",
+        created_at=created_at,
+        db=db,
+        broadcast_new_message=True,
+        new_message_payload=sent_message,
+    )
 
     return result
 

@@ -20,13 +20,14 @@ from app.services.handoff_service import handoff_service
 from app.services.line_service import line_service
 from app.services.live_chat_service import live_chat_service
 
-from .broadcast import notify_admins_conversation_update
+from .broadcast import notify_admins_conversation_update, notify_admins_message_sent
 
 message_intake_service = None  # set after mixin classes are defined (Phase 4+)
 
 __all__ = [
     "message_intake_service",
     "notify_admins_conversation_update",
+    "notify_admins_message_sent",
     "line_service",
     "ws_manager",
     "live_chat_service",
