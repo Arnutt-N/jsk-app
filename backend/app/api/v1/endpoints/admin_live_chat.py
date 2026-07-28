@@ -15,6 +15,7 @@ from app.services.live_chat_service import (
 from app.schemas.live_chat import (
     ConversationList, ConversationDetail,
     SendMessageRequest, ModeToggleRequest,
+    ConversationPreferenceUpdate,
     sanitize_message_text,
 )
 from app.models.chat_session import ChatSession, ClosedBy, SessionStatus
@@ -629,4 +630,93 @@ async def archive_conversation(
         "is_archived": session.is_archived,
         "archived_at": session.archived_at.isoformat() if session.archived_at else None,
         "archived_by": session.archived_by,
+    }
+
+
+# ---------------------------------------------------------------------------
+# PATCH /conversations/{line_user_id}/preferences — per-operator pin/mute/spam
+# ---------------------------------------------------------------------------
+
+@router.patch("/conversations/{line_user_id}/preferences")
+async def update_conversation_preferences(
+    line_user_id: str,
+    payload: ConversationPreferenceUpdate,
+    db: AsyncSession = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_staff),
+) -> Any:
+    """Upsert the current operator's pin/mute/spam flags for a conversation."""
+    updates = payload.model_dump(exclude_none=True)
+    if not updates:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No preference fields provided",
+        )
+
+    pref = await live_chat_service.upsert_preference(
+        db, current_user.id, line_user_id, updates
+    )
+    if not pref:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+
+    return {
+        "success": True,
+        "line_user_id": line_user_id,
+        "is_pinned": pref.is_pinned,
+        "is_muted": pref.is_muted,
+        "is_spam": pref.is_spam,
+    }
+
+
+# ---------------------------------------------------------------------------
+# DELETE /conversations/{line_user_id} — soft-delete (close + archive)
+# ---------------------------------------------------------------------------
+
+@router.delete("/conversations/{line_user_id}")
+async def delete_conversation(
+    line_user_id: str,
+    db: AsyncSession = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_staff),
+) -> Any:
+    """Soft-delete a conversation: force-close any open session, then archive it.
+
+    Reversible — messages are never destroyed; the conversation is hidden from
+    the default inbox view (recoverable via include_archived).
+    """
+    result = await db.execute(
+        select(ChatSession)
+        .where(ChatSession.line_user_id == line_user_id)
+        .order_by(ChatSession.started_at.desc())
+        .limit(1)
+    )
+    session = result.scalar_one_or_none()
+
+    if not session:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No session found for this user",
+        )
+
+    now = datetime.now(timezone.utc)
+    if session.status in (SessionStatus.WAITING.value, SessionStatus.ACTIVE.value,
+                          SessionStatus.WAITING, SessionStatus.ACTIVE):
+        session.status = SessionStatus.CLOSED.value
+        session.closed_at = now
+        session.closed_by = ClosedBy.OPERATOR.value
+
+    session.is_archived = True
+    session.archived_at = now
+    session.archived_by = current_user.id
+
+    await db.commit()
+    await db.refresh(session)
+
+    return {
+        "success": True,
+        "session_id": session.id,
+        "line_user_id": line_user_id,
+        "status": session.status,
+        "is_archived": session.is_archived,
     }

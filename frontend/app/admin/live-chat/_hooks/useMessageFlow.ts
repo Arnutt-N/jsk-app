@@ -64,21 +64,26 @@ export function useMessageFlow({
 
   const handleNewMessage = useCallback((message: Message) => {
     if (message.direction === 'INCOMING') {
-      playNotification();
-      // Fire toast if not viewing this conversation. Resolve the customer's
-      // display name from the live store snapshot (operator_name is wrong on an
-      // INCOMING message); carry lineUserId so the toast can open the room.
-      if (message.line_user_id !== selectedIdRef.current) {
-        const customerName = getStore().conversations.find(
-          (c) => c.line_user_id === message.line_user_id,
-        )?.display_name;
-        getStore().addNotification({
-          title: customerName || 'ข้อความใหม่',
-          message: message.content?.substring(0, 100) || 'New message received',
-          avatar: undefined,
-          type: 'message',
-          lineUserId: message.line_user_id,
-        });
+      // Resolve the conversation once (for the mute flag + display name). A
+      // muted conversation gets neither the sound nor the toast.
+      const conversation = getStore().conversations.find(
+        (c) => c.line_user_id === message.line_user_id,
+      );
+      const isMuted = conversation?.is_muted === true;
+      if (!isMuted) {
+        playNotification();
+        // Fire toast if not viewing this conversation. Resolve the customer's
+        // display name from the live store snapshot (operator_name is wrong on an
+        // INCOMING message); carry lineUserId so the toast can open the room.
+        if (message.line_user_id !== selectedIdRef.current) {
+          getStore().addNotification({
+            title: conversation?.display_name || 'ข้อความใหม่',
+            message: message.content?.substring(0, 100) || 'New message received',
+            avatar: undefined,
+            type: 'message',
+            lineUserId: message.line_user_id,
+          });
+        }
       }
     }
     if (message.line_user_id !== selectedIdRef.current) return;

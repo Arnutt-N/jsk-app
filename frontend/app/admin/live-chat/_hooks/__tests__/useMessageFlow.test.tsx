@@ -57,6 +57,7 @@ function setup(opts: {
     conversations: [],
     currentChat: null,
     messages: [],
+    notifications: [],
     sending: false,
     inputText: '',
     pendingMessages: new Set(),
@@ -317,6 +318,38 @@ describe('useMessageFlow', () => {
     expect(playNotification).toHaveBeenCalledTimes(1);
     expect(store().notifications).toHaveLength(1);
     expect(store().notifications[0].lineUserId).toBe('U2');
+    expect(store().messages).toHaveLength(0); // different room → not appended
+  });
+
+  it('suppresses sound + toast for an INCOMING message from a muted conversation', async () => {
+    const { view, playNotification } = setup({ selectedId: 'U1', wsStatus: 'connected' });
+
+    // Seed a muted conversation for the sender. Also clear `notifications` —
+    // setup() does not reset it, so the previous test's toast would leak in.
+    useLiveChatStore.setState({
+      notifications: [],
+      conversations: [
+        {
+          line_user_id: 'U2',
+          display_name: 'Muted User',
+          picture_url: '',
+          friend_status: 'following',
+          chat_mode: 'HUMAN',
+          unread_count: 0,
+          tags: [],
+          is_muted: true,
+        },
+      ],
+    });
+
+    act(() => {
+      view.result.current.handleNewMessage(
+        baseMessage({ id: 8, line_user_id: 'U2', direction: 'INCOMING', content: 'muted msg' }),
+      );
+    });
+
+    expect(playNotification).not.toHaveBeenCalled();
+    expect(store().notifications).toHaveLength(0);
     expect(store().messages).toHaveLength(0); // different room → not appended
   });
 });

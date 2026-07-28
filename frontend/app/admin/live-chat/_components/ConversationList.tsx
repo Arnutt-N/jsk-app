@@ -9,6 +9,12 @@ import { useConversationStats } from '../_hooks/useConversationStats';
 import { useLiveChatContext } from '../_context/LiveChatContext';
 import { ConversationItem } from './ConversationItem';
 import { CreateChatSheet } from './CreateChatSheet';
+import {
+  archiveConversation,
+  deleteConversation,
+  updateConversationPreferences,
+} from '../_lib/conversationActions';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { maskLineUserId } from '@/lib/mask';
 
 interface SearchMessageResult {
@@ -50,6 +56,86 @@ export function ConversationList() {
   const handleMenuToggle = React.useCallback((id: string) => {
     setActiveActionMenu(useLiveChatStore.getState().activeActionMenu === id ? null : id);
   }, [setActiveActionMenu]);
+
+  // Preference toggles apply optimistically, then persist; on failure the flag
+  // is reverted and a warning toast is shown. Stable (getState) so memoized rows
+  // don't re-render.
+  const togglePreference = React.useCallback(
+    (id: string, field: 'is_pinned' | 'is_muted' | 'is_spam') => {
+      const store = useLiveChatStore.getState();
+      const current = store.conversations.find((c) => c.line_user_id === id);
+      const next = !(current?.[field] === true);
+      store.updateConversationFlags(id, { [field]: next });
+      updateConversationPreferences(id, { [field]: next }).catch(() => {
+        const s = useLiveChatStore.getState();
+        s.updateConversationFlags(id, { [field]: !next });
+        s.addNotification({
+          title: 'ไม่สำเร็จ',
+          message: 'บันทึกการตั้งค่าไม่สำเร็จ ลองอีกครั้ง',
+          type: 'system',
+          variant: 'warning',
+        });
+      });
+    },
+    [],
+  );
+
+  const handleTogglePin = React.useCallback((id: string) => togglePreference(id, 'is_pinned'), [togglePreference]);
+  const handleToggleMute = React.useCallback((id: string) => togglePreference(id, 'is_muted'), [togglePreference]);
+  const handleToggleSpam = React.useCallback((id: string) => togglePreference(id, 'is_spam'), [togglePreference]);
+
+  const handleArchive = React.useCallback((id: string) => {
+    archiveConversation(id)
+      .then(() => {
+        const s = useLiveChatStore.getState();
+        s.removeConversation(id);
+        s.addNotification({
+          title: 'ซ่อนสนทนาแล้ว',
+          message: 'สนทนาถูกซ่อนจากรายการ (กู้คืนได้)',
+          type: 'system',
+          variant: 'success',
+        });
+      })
+      .catch(() => {
+        useLiveChatStore.getState().addNotification({
+          title: 'ไม่สำเร็จ',
+          message: 'ปิด session ก่อนจึงจะซ่อนสนทนาได้',
+          type: 'system',
+          variant: 'warning',
+        });
+      });
+  }, []);
+
+  const [deleteTarget, setDeleteTarget] = React.useState<string | null>(null);
+  const [deleting, setDeleting] = React.useState(false);
+  const handleDeleteRequest = React.useCallback((id: string) => setDeleteTarget(id), []);
+  const handleDeleteConfirm = React.useCallback(() => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    deleteConversation(deleteTarget)
+      .then(() => {
+        const s = useLiveChatStore.getState();
+        s.removeConversation(deleteTarget);
+        s.addNotification({
+          title: 'ลบสนทนาแล้ว',
+          message: 'ปิดและซ่อนสนทนาแล้ว (ข้อความไม่ได้ถูกลบ)',
+          type: 'system',
+          variant: 'success',
+        });
+      })
+      .catch(() => {
+        useLiveChatStore.getState().addNotification({
+          title: 'ไม่สำเร็จ',
+          message: 'ไม่สามารถลบสนทนาได้ ลองอีกครั้ง',
+          type: 'system',
+          variant: 'warning',
+        });
+      })
+      .finally(() => {
+        setDeleting(false);
+        setDeleteTarget(null);
+      });
+  }, [deleteTarget]);
 
   // Apply filter chip selection to the search-filtered list
   const filteredConversations = useMemo(() => {
@@ -251,6 +337,11 @@ export function ConversationList() {
                   onSelect={handleSelect}
                   onMenuToggle={handleMenuToggle}
                   onMarkRead={() => markRead(conversation.line_user_id)}
+                  onTogglePin={handleTogglePin}
+                  onToggleMute={handleToggleMute}
+                  onToggleSpam={handleToggleSpam}
+                  onArchive={handleArchive}
+                  onDeleteRequest={handleDeleteRequest}
                 />
             ))}
           </div>
@@ -287,6 +378,24 @@ export function ConversationList() {
           setShowCreateChat(false);
           fetchConversations();
         }}
+      />
+
+      {/* Delete confirmation */}
+      <ConfirmDialog
+        isOpen={deleteTarget !== null}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDeleteConfirm}
+        title="ลบสนทนานี้?"
+        description={
+          <>
+            สนทนา <b>{conversations.find((c) => c.line_user_id === deleteTarget)?.display_name || ''}</b>{' '}
+            จะถูกปิดและซ่อนจากรายการ — ข้อความไม่ได้ถูกลบและกู้คืนได้
+          </>
+        }
+        confirmText="ลบ"
+        cancelText="ยกเลิก"
+        variant="danger"
+        isLoading={deleting}
       />
     </aside>
   );

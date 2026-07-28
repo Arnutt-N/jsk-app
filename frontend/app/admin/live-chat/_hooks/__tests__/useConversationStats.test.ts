@@ -99,4 +99,34 @@ describe('computeConversationStats', () => {
     expect(stats.activeCount).toBe(1);
     expect(stats.closedCount).toBe(2);
   });
+
+  it('ปักหมุดลอยขึ้นบนสุดในการเรียงแบบ recent', () => {
+    const pinned = makeConversation({
+      line_user_id: 'Upinned',
+      display_name: 'Pinned User',
+      session: { id: 9, status: 'CLOSED' },
+      last_message: { content: 'เก่ามาก', created_at: '2020-01-01T00:00:00.000Z' },
+      is_pinned: true,
+    });
+    const recent = makeConversation({
+      line_user_id: 'Urecent',
+      display_name: 'Recent User',
+      last_message: { content: 'ใหม่สุด', created_at: '2026-01-01T00:00:00.000Z' },
+    });
+    const stats = computeConversationStats([recent, pinned], '', 'recent');
+    expect(stats.filtered[0].line_user_id).toBe('Upinned');
+    expect(stats.filtered[1].line_user_id).toBe('Urecent');
+  });
+
+  it('ปักหมุดลอยขึ้นบนสุดในการเรียงแบบ longest-waiting (เหนือ WAITING)', () => {
+    const pinned = makeConversation({
+      line_user_id: 'Upinned',
+      display_name: 'Pinned User',
+      session: { id: 9, status: 'CLOSED' },
+      is_pinned: true,
+    });
+    const stats = computeConversationStats([waiting, pinned], '', 'longest-waiting');
+    expect(stats.filtered[0].line_user_id).toBe('Upinned');
+    expect(stats.filtered[1].line_user_id).toBe('Uwaiting');
+  });
 });

@@ -32,6 +32,7 @@ from .errors import (
 )
 from .handoff import HandoffMixin
 from .messaging import MessagingMixin
+from .preferences import PreferencesMixin
 from .sessions import SessionLifecycleMixin
 from .unread import UnreadCountsMixin
 
@@ -43,6 +44,7 @@ class LiveChatService(
     ConversationsMixin,
     MessagingMixin,
     AnalyticsMixin,
+    PreferencesMixin,
 ):
     """Facade composing the live chat capabilities from per-concern mixins."""
 

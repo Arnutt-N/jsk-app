@@ -164,10 +164,15 @@ class ConversationsMixin:
                 db=db,
             )
 
+        pref_map = {}
+        if admin_id and user_ids:
+            pref_map = await self.get_preferences_map(db, admin_id, user_ids)
+
         # 5. Conversations list construction
         conversations = []
         for user, session, last_msg in rows:
             unread_count = unread_counts.get(user.line_user_id, 0) if user.line_user_id else 0
+            pref = pref_map.get(user.id)
 
             conversations.append({
                 "line_user_id": user.line_user_id,
@@ -182,6 +187,9 @@ class ConversationsMixin:
                 } if last_msg else None,
                 "unread_count": unread_count,
                 "tags": tag_map.get(user.id, []),
+                "is_pinned": bool(pref.is_pinned) if pref else False,
+                "is_muted": bool(pref.is_muted) if pref else False,
+                "is_spam": bool(pref.is_spam) if pref else False,
             })
 
         waiting_count = await db.scalar(select(func.count(ChatSession.id)).where(ChatSession.status == SessionStatus.WAITING))

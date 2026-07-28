@@ -37,6 +37,10 @@ function toTimeMs(value?: string): number {
  * most-recent last message. Pure — never mutates its inputs.
  */
 function compareLongestWaiting(a: Conversation, b: Conversation): number {
+  // Pinned conversations always float to the top, ahead of any waiting group.
+  const pinDiff = Number(b.is_pinned === true) - Number(a.is_pinned === true);
+  if (pinDiff !== 0) return pinDiff;
+
   const rankA = waitingGroupRank(a);
   const rankB = waitingGroupRank(b);
   if (rankA !== rankB) return rankA - rankB;
@@ -109,6 +113,8 @@ export function computeConversationStats(
     sortBy === 'longest-waiting'
       ? [...filtered].sort(compareLongestWaiting)
       : [...filtered].sort((a, b) => {
+          const pinDiff = Number(b.is_pinned === true) - Number(a.is_pinned === true);
+          if (pinDiff !== 0) return pinDiff;
           const timeA = toTimeMs(a.last_message?.created_at);
           const timeB = toTimeMs(b.last_message?.created_at);
           return timeB - timeA; // most recent first

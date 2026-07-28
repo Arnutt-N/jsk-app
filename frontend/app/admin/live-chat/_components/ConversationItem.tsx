@@ -2,7 +2,22 @@
 
 import React, { memo } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Bot, CheckCheck, Clock, Eye, MoreVertical, Star, User } from 'lucide-react';
+import {
+  Archive,
+  Bot,
+  CheckCheck,
+  Clock,
+  Eye,
+  MoreVertical,
+  Pin,
+  PinOff,
+  ShieldAlert,
+  Star,
+  Trash2,
+  User,
+  Volume2,
+  VolumeX,
+} from 'lucide-react';
 
 import type { Conversation } from '../_types';
 import { getAvatarFallbackUrl } from '@/lib/constants/live-chat-avatar';
@@ -34,6 +49,11 @@ interface ConversationItemProps {
   onSelect: (lineUserId: string) => void;
   onMenuToggle: (lineUserId: string) => void;
   onMarkRead: () => void;
+  onTogglePin: (lineUserId: string) => void;
+  onToggleMute: (lineUserId: string) => void;
+  onToggleSpam: (lineUserId: string) => void;
+  onArchive: (lineUserId: string) => void;
+  onDeleteRequest: (lineUserId: string) => void;
 }
 
 export const ConversationItem = memo(function ConversationItem({
@@ -44,6 +64,11 @@ export const ConversationItem = memo(function ConversationItem({
   onSelect,
   onMenuToggle,
   onMarkRead,
+  onTogglePin,
+  onToggleMute,
+  onToggleSpam,
+  onArchive,
+  onDeleteRequest,
 }: ConversationItemProps) {
   const [menuOpen, setMenuOpen] = React.useState(false);
   const menuRef = React.useRef<HTMLDivElement>(null);
@@ -54,6 +79,11 @@ export const ConversationItem = memo(function ConversationItem({
   const presence = getSessionPresence(conversation.session?.status);
   const isVip = conversation.tags?.some((t) => t.name.toUpperCase() === 'VIP');
   const isBot = conversation.chat_mode === 'BOT';
+  const isPinned = conversation.is_pinned === true;
+  const isMuted = conversation.is_muted === true;
+  const isSpam = conversation.is_spam === true;
+  // Archive (hide) only makes sense once the session is closed.
+  const isClosed = !conversation.session || conversation.session.status === 'CLOSED';
 
   // Waiting-time badge (M15): only for WAITING sessions that carry a started_at.
   const waitingStartedAt = isWaiting ? conversation.session?.started_at : undefined;
@@ -117,6 +147,8 @@ export const ConversationItem = memo(function ConversationItem({
             <span className={`font-semibold truncate break-words text-sm ${selected ? 'text-white' : 'text-sidebar-fg'}`}>
               {conversation.display_name}
             </span>
+            {isPinned && <Pin className="w-3 h-3 text-brand-400 flex-shrink-0" aria-label="ปักหมุดแล้ว" />}
+            {isMuted && <VolumeX className="w-3 h-3 text-sidebar-text-muted flex-shrink-0" aria-label="ปิดเสียงแล้ว" />}
             {isVip && <Star className="w-3 h-3 text-yellow-400 fill-yellow-400 flex-shrink-0" />}
           </span>
           <span className={`text-2xs flex-shrink-0 thai-no-break ${selected ? 'text-white/80' : 'text-sidebar-text-muted'}`}>
@@ -139,6 +171,16 @@ export const ConversationItem = memo(function ConversationItem({
               {isBot ? <Bot className="w-2.5 h-2.5" /> : <User className="w-2.5 h-2.5" />}
               {isBot ? 'Bot' : 'Manual'}
             </span>
+            {/* Spam badge */}
+            {isSpam && (
+              <span
+                className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-2xs font-medium bg-danger/15 text-danger-text"
+                aria-label="ทำเครื่องหมายว่าเป็นสแปม"
+              >
+                <ShieldAlert className="w-2.5 h-2.5" />
+                สแปม
+              </span>
+            )}
             {/* Waiting-time badge (amber ≥5m, red ≥15m) */}
             {waitingStartedAt && waitingTier !== 'normal' && (
               <span
@@ -214,6 +256,49 @@ export const ConversationItem = memo(function ConversationItem({
               >
                 <CheckCheck className="w-3.5 h-3.5 text-text-tertiary" />
                 ทำเครื่องหมายว่าอ่านแล้ว
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onTogglePin(conversation.line_user_id); }}
+                className="flex items-center gap-2.5 px-3 py-2 text-xs text-text-secondary hover:bg-muted w-full text-left cursor-pointer focus-ring"
+              >
+                {isPinned ? <PinOff className="w-3.5 h-3.5 text-text-tertiary" /> : <Pin className="w-3.5 h-3.5 text-text-tertiary" />}
+                {isPinned ? 'ถอนหมุด' : 'ปักหมุด'}
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onToggleMute(conversation.line_user_id); }}
+                className="flex items-center gap-2.5 px-3 py-2 text-xs text-text-secondary hover:bg-muted w-full text-left cursor-pointer focus-ring"
+              >
+                {isMuted ? <Volume2 className="w-3.5 h-3.5 text-text-tertiary" /> : <VolumeX className="w-3.5 h-3.5 text-text-tertiary" />}
+                {isMuted ? 'เปิดเสียงแจ้งเตือน' : 'ปิดเสียงแจ้งเตือน'}
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onToggleSpam(conversation.line_user_id); }}
+                className="flex items-center gap-2.5 px-3 py-2 text-xs text-text-secondary hover:bg-muted w-full text-left cursor-pointer focus-ring"
+              >
+                <ShieldAlert className="w-3.5 h-3.5 text-text-tertiary" />
+                {isSpam ? 'ยกเลิกสแปม' : 'ทำเครื่องหมายว่าสแปม'}
+              </button>
+              <div className="border-t border-border-default my-1" />
+              <button
+                onClick={(e) => { e.stopPropagation(); if (isClosed) { setMenuOpen(false); onArchive(conversation.line_user_id); } }}
+                disabled={!isClosed}
+                aria-disabled={!isClosed}
+                title={isClosed ? undefined : 'ปิด session ก่อนจึงจะซ่อนได้'}
+                className={`flex items-center gap-2.5 px-3 py-2 text-xs w-full text-left focus-ring ${
+                  isClosed
+                    ? 'text-text-secondary hover:bg-muted cursor-pointer'
+                    : 'text-text-tertiary opacity-50 cursor-not-allowed'
+                }`}
+              >
+                <Archive className="w-3.5 h-3.5 text-text-tertiary" />
+                ซ่อนสนทนา
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onDeleteRequest(conversation.line_user_id); }}
+                className="flex items-center gap-2.5 px-3 py-2 text-xs text-danger hover:bg-danger/10 w-full text-left cursor-pointer focus-ring"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                ลบ
               </button>
             </motion.div>
           )}
