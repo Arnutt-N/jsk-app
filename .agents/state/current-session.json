@@ -1,12 +1,20 @@
 {
-  "last_updated": "2026-07-29T00:18:00+07:00",
+  "last_updated": "2026-07-29T04:56:00+07:00",
   "platform": "qoder",
-  "current_task": "Merged PR #168: live-chat sidebar sort fix (squash 57f60f7) — frontend guards reorder to real message events, WS send path broadcasts CONVERSATION_UPDATE, send_message bumps last_message_at",
+  "current_task": "Merged PR #169: extract webhook.py (768→123 lines) into deep message_intake module — 7 focused modules, deduplicated broadcast, testable without HTTP/LINE SDK. 780 tests green.",
   "plan_status": "completed",
   "next_steps": [
-    "Manual smoke test on deploy: click user (no jump), admin send (list reorders), incoming message (unread badge + reorder)"
+    "Architecture review identified 5 more candidates: unify broadcast across ws_live_chat/admin_live_chat, deepen WS session handler, reassemble frontend live-chat by responsibility, adopt apiFetch adapter, extract Report Query module",
+    "Next priority: Candidate 2 (unify conversation-broadcast) or Candidate 3 (deepen WS session handler)"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-07-29T04:56:00+07:00",
+      "platform": "qoder",
+      "branch": "main",
+      "head": "c86c788",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-07-29T00:18:00+07:00",
       "platform": "qoder",
@@ -138,13 +146,6 @@
       "platform": "claude_code",
       "branch": "main",
       "head": "d2bd301",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-18T21:28:00+07:00",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "0b41c33",
       "status": "completed"
     }
   ],

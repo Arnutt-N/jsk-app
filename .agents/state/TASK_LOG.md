@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 192 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 193 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-29 04:56 — qoder — completed
+
+Merged PR #169: extract webhook.py (768→123 lines) into deep message_intake module — 7 focused modules, deduplicated broadcast, testable without HTTP/LINE SDK. 780 tests green.
+
+- Checkpoint: `.agents/state/checkpoints/handover-qoder-20260729-0456.json`
+- Summary: `project-log-md/qoder/session-summary-20260729-0456.md`
+
+---
 
 ### 2026-07-29 00:18 — qoder — completed
 

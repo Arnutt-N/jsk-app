@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-07-29 00:18 by Qoder (Merged PR #168: live-chat sidebar sort fix squash 57f60f7 — frontend guards reorder to rea)
+> **Last Updated:** 2026-07-29 04:56 by Qoder (Merged PR #169: extract webhook.py 768→123 lines into deep message_intake module — 7 focus)
 
 ## Thai Summary
 **PR C read-cutover** เสร็จสมบูรณ์ — PR #160 merged (squash `4ba338a`): แปลง ~50 read-path queries ใน 13 ไฟล์จาก filter ด้วย `line_user_id` ตรงๆ เป็น mode-aware helpers (`resolve_by_line_id`, `child_filter`, `child_column`, `child_join_condition`, `user_identity_filter`, `resolve_many_by_line_id`) — ใช้ได้ทั้ง `dual` และ `pseudonym` mode, additive เท่านั้น (ไม่ drop column, ไม่เปลี่ยน API contract, prod ยังเป็น `dual`), 771 tests ผ่าน, CI เขียวทุก check
@@ -77,6 +77,7 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-07-29 04:56] Qoder: Merged PR #169: extract webhook.py (768→123 lines) into deep message_intake module — 7 focused modules, deduplicated broadcast, testable without HTTP/LINE SDK. 780 tests green. (Qoder)
 - [2026-07-29 00:18] Qoder: Merged PR #168: live-chat sidebar sort fix (squash 57f60f7) — frontend guards reorder to real message events, WS send path broadcasts CONVERSATION_UPDATE, send_message bumps last_message_at (Qoder)
 - [2026-07-28 23:33] Qoder: Implemented /admin/image-resize (canvas resize/compress, LINE presets, Media Library upload) + fixed users Edit2→SquarePen icon + 9 OCR review fixes. Merged PR #167 (squash 77135d2), CI all green. (Qoder)
 - [2026-07-28 11:01] Qoder: Post-deploy production verification for PR #162 (live-chat pin/mute/spam prefs + soft-delete). Confirmed CD run 30325930527 fully green: migration c4d5e6f7g8h9 applied to production, frontend (Vercel) + backend (Koyeb) deployed, both smoke  (Qoder)
