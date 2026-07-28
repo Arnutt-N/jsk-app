@@ -216,6 +216,7 @@ class TestWebhookDeduplication:
     async def test_redelivered_message_skips_bot_flow_when_message_already_exists(self, monkeypatch):
         """A redelivered LINE message should exit before re-running bot logic."""
         from app.api.v1.endpoints import webhook as webhook_module
+        from app.services import message_intake as mi_pkg
 
         existing_message = SimpleNamespace(id=99, created_at=datetime.now(timezone.utc))
         event = SimpleNamespace(
@@ -231,11 +232,11 @@ class TestWebhookDeduplication:
         save_message = AsyncMock()
         reply_messages = AsyncMock()
 
-        monkeypatch.setattr(webhook_module.line_service, "get_incoming_message_by_line_message_id", get_existing)
-        monkeypatch.setattr(webhook_module.friend_service, "get_or_create_user", get_or_create_user)
-        monkeypatch.setattr(webhook_module.friend_service, "refresh_profile", refresh_profile)
-        monkeypatch.setattr(webhook_module.line_service, "save_message", save_message)
-        monkeypatch.setattr(webhook_module.line_service, "reply_messages", reply_messages)
+        monkeypatch.setattr(mi_pkg.line_service, "get_incoming_message_by_line_message_id", get_existing)
+        monkeypatch.setattr(mi_pkg.friend_service, "get_or_create_user", get_or_create_user)
+        monkeypatch.setattr(mi_pkg.friend_service, "refresh_profile", refresh_profile)
+        monkeypatch.setattr(mi_pkg.line_service, "save_message", save_message)
+        monkeypatch.setattr(mi_pkg.line_service, "reply_messages", reply_messages)
 
         await webhook_module.handle_message_event(event, db)
 

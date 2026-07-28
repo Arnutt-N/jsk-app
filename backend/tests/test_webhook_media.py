@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from app.api.v1.endpoints.webhook import _extract_non_text_message
+from app.services.message_intake.media_extraction import extract_non_text_message as _extract_non_text_message
 
 
 class TestExtractNonTextMessage:
@@ -19,7 +19,7 @@ class TestExtractNonTextMessage:
         }
 
         with patch(
-            "app.api.v1.endpoints.webhook.line_service.persist_line_media",
+            "app.services.message_intake.line_service.persist_line_media",
             new=AsyncMock(return_value=media_payload),
         ) as mock_persist:
             message_type, content, payload = await _extract_non_text_message(message)
@@ -36,7 +36,7 @@ class TestExtractNonTextMessage:
         message = SimpleNamespace(type="image", id=None)
 
         with patch(
-            "app.api.v1.endpoints.webhook.line_service.persist_line_media",
+            "app.services.message_intake.line_service.persist_line_media",
             new=AsyncMock(),
         ) as mock_persist:
             message_type, content, payload = await _extract_non_text_message(message)
@@ -79,7 +79,7 @@ class TestExtractNonTextMessage:
         }
 
         with patch(
-            "app.api.v1.endpoints.webhook.line_service.persist_line_media",
+            "app.services.message_intake.line_service.persist_line_media",
             new=AsyncMock(return_value=media_payload),
         ) as mock_persist:
             message_type, content, payload = await _extract_non_text_message(message)
