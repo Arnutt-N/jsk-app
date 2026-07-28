@@ -1,13 +1,20 @@
 {
-  "last_updated": "2026-07-28T03:49:00+07:00",
+  "last_updated": "2026-07-28T10:32:00+07:00",
   "platform": "qoder",
-  "current_task": "PR #161 merged (425bba6): COOKIE_AUTH_MODE production rollout runbook + migration-controls.md fixes (default cookie, SameSite=Strict, PR 2B/2C merged) + PROJECT_STATUS backlog update; smoke test confi",
+  "current_task": "Merged PR #162 (squash bab8b8e): live-chat per-operator pin/mute/spam preferences + reversible soft-delete, restoring the 5 kebab actions as real functionality. Backend: operator_conversation_preferen",
   "plan_status": "completed",
   "next_steps": [
-    "User: verify effective COOKIE_AUTH_MODE on Koyeb prod + advance to cookie per runbook",
-    "Watch pseudonym-gate fallback_hit_count 3-5 days then plan destructive phase"
+    "Manual smoke test: pin/mute/spam/archive/delete a conversation in admin live-chat; verify per-operator isolation and that delete is reversible via unarchive",
+    "Run alembic migration c4d5e6f7g8h9 on production (upgrade head) when deploying"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-07-28T10:32:00+07:00",
+      "platform": "qoder",
+      "branch": "main",
+      "head": "67550ca",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-07-28T03:49:00+07:00",
       "platform": "qoder",
@@ -139,13 +146,6 @@
       "platform": "claude_code",
       "branch": "main",
       "head": "835c261",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-18T18:14:00+07:00",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "9c2589f",
       "status": "completed"
     }
   ],

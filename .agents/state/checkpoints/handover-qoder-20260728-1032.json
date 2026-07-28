@@ -1,0 +1,17 @@
+{
+  "handoff_version": "2.0",
+  "platform": "qoder",
+  "agent": "qoder",
+  "timestamp": "2026-07-28T10:32:00+07:00",
+  "branch": "main",
+  "head_commit": "67550ca",
+  "status": "completed",
+  "work_summary": "Merged PR #162 (squash bab8b8e): live-chat per-operator pin/mute/spam preferences + reversible soft-delete, restoring the 5 kebab actions as real functionality. Backend: operator_conversation_preferences table + migration c4d5e6f7g8h9, PATCH preferences + DELETE conversation endpoints, get_conversations enrichment. Frontend: pin-first sort, mute suppresses sound+toast, spam badge, optimistic toggles, archive/delete. 781 backend + 37 frontend tests pass, CI green.",
+  "priority_actions": [
+    "Manual smoke test: pin/mute/spam/archive/delete a conversation in admin live-chat; verify per-operator isolation and that delete is reversible via unarchive",
+    "Run alembic migration c4d5e6f7g8h9 on production (upgrade head) when deploying"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/qoder/session-summary-20260728-1032.md",
+  "cross_platform_read": []
+}

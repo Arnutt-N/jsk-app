@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 188 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 189 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-28 10:32 — qoder — completed
+
+Merged PR #162 (squash bab8b8e): live-chat per-operator pin/mute/spam preferences + reversible soft-delete, restoring the 5 kebab actions as real functionality. Backend: operator_conversation_preferences table + migration c4d5e6f7g8h9, PATCH preferences + DELETE conversation endpoints, get_conversations enrichment. Frontend: pin-first sort, mute suppresses sound+toast, spam badge, optimistic toggles, archive/delete. 781 backend + 37 frontend tests pass, CI green.
+
+- Checkpoint: `.agents/state/checkpoints/handover-qoder-20260728-1032.json`
+- Summary: `project-log-md/qoder/session-summary-20260728-1032.md`
+
+---
 
 ### 2026-07-28 03:49 — qoder — completed
 

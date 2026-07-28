@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-07-28 03:49 by Qoder (PR #161 merged 425bba6: COOKIE_AUTH_MODE production rollout runbook + migration-controls.m)
+> **Last Updated:** 2026-07-28 10:32 by Qoder (Merged PR #162 squash bab8b8e: live-chat per-operator pin/mute/spam preferences + reversib)
 
 ## Thai Summary
 **PR C read-cutover** เสร็จสมบูรณ์ — PR #160 merged (squash `4ba338a`): แปลง ~50 read-path queries ใน 13 ไฟล์จาก filter ด้วย `line_user_id` ตรงๆ เป็น mode-aware helpers (`resolve_by_line_id`, `child_filter`, `child_column`, `child_join_condition`, `user_identity_filter`, `resolve_many_by_line_id`) — ใช้ได้ทั้ง `dual` และ `pseudonym` mode, additive เท่านั้น (ไม่ drop column, ไม่เปลี่ยน API contract, prod ยังเป็น `dual`), 771 tests ผ่าน, CI เขียวทุก check
@@ -77,6 +77,7 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-07-28 10:32] Qoder: Merged PR #162 (squash bab8b8e): live-chat per-operator pin/mute/spam preferences + reversible soft-delete, restoring the 5 kebab actions as real functionality. Backend: operator_conversation_preferences table + migration c4d5e6f7g8h9, PATC (Qoder)
 - [2026-07-28 03:49] Qoder: PR #161 merged (425bba6): COOKIE_AUTH_MODE production rollout runbook + migration-controls.md fixes (default cookie, SameSite=Strict, PR 2B/2C merged) + PROJECT_STATUS backlog update; smoke test confirmed deployed backend healthy (health 20 (Qoder)
 - [2026-07-28 01:08] Qoder: PR C read-cutover merged (PR #160, squash 4ba338a): ~50 read paths now mode-aware via 4 new identity helpers; 771 tests green; CI all pass (Qoder)
 - [2026-07-27 22:34] Qoder: Full LINE user ID audit + display masking shipped: PR #159 merged (squash a495674). Audited ~50 backend query sites + 18 frontend display points exposing raw line_user_id. Implemented frontend-only masking via maskLineUserId() helper (U＊＊＊＊ (Qoder)
