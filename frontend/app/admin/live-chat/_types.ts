@@ -26,6 +26,9 @@ export interface Conversation {
   };
   unread_count: number;
   tags?: ConversationTag[];
+  is_pinned?: boolean;
+  is_muted?: boolean;
+  is_spam?: boolean;
 }
 
 export interface CurrentChat extends Conversation {

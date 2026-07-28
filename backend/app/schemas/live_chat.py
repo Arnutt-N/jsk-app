@@ -32,6 +32,9 @@ class ConversationSummary(BaseModel):
     last_message: Optional[LastMessage] = None
     unread_count: int = 0
     tags: List[TagSummary] = Field(default_factory=list)
+    is_pinned: bool = False
+    is_muted: bool = False
+    is_spam: bool = False
 
 class ConversationList(BaseModel):
     conversations: List[ConversationSummary]
@@ -66,3 +69,8 @@ class SendMessageRequest(BaseModel):
 
 class ModeToggleRequest(BaseModel):
     mode: ChatMode
+
+class ConversationPreferenceUpdate(BaseModel):
+    is_pinned: Optional[bool] = None
+    is_muted: Optional[bool] = None
+    is_spam: Optional[bool] = None

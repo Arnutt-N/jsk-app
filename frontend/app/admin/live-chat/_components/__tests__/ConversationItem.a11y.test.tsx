@@ -15,6 +15,19 @@ const waitingConversation: Conversation = {
   tags: [],
 };
 
+function actionProps() {
+  return {
+    onSelect: vi.fn(),
+    onMenuToggle: vi.fn(),
+    onMarkRead: vi.fn(),
+    onTogglePin: vi.fn(),
+    onToggleMute: vi.fn(),
+    onToggleSpam: vi.fn(),
+    onArchive: vi.fn(),
+    onDeleteRequest: vi.fn(),
+  };
+}
+
 describe('ConversationItem a11y', () => {
   it('role="option" has an accessible name containing the status label กำลังรอ', () => {
     render(
@@ -23,9 +36,7 @@ describe('ConversationItem a11y', () => {
         conversation={waitingConversation}
         selected={false}
         formattedTime="10:00"
-        onSelect={vi.fn()}
-        onMenuToggle={vi.fn()}
-        onMarkRead={vi.fn()}
+        {...actionProps()}
       />,
     );
 
@@ -39,9 +50,7 @@ describe('ConversationItem a11y', () => {
         optionId="conv-2"
         conversation={waitingConversation}
         selected={false}
-        onSelect={vi.fn()}
-        onMenuToggle={vi.fn()}
-        onMarkRead={vi.fn()}
+        {...actionProps()}
       />,
     );
 
@@ -60,9 +69,7 @@ describe('ConversationItem a11y', () => {
         optionId="conv-3"
         conversation={unreadConversation}
         selected={false}
-        onSelect={vi.fn()}
-        onMenuToggle={vi.fn()}
-        onMarkRead={vi.fn()}
+        {...actionProps()}
       />,
     );
 
@@ -76,9 +83,7 @@ describe('ConversationItem a11y', () => {
         optionId="conv-4"
         conversation={waitingConversation}
         selected={false}
-        onSelect={vi.fn()}
-        onMenuToggle={vi.fn()}
-        onMarkRead={vi.fn()}
+        {...actionProps()}
       />,
     );
 
@@ -97,9 +102,7 @@ describe('ConversationItem a11y', () => {
         optionId="conv-5"
         conversation={activeConversation}
         selected={false}
-        onSelect={vi.fn()}
-        onMenuToggle={vi.fn()}
-        onMarkRead={vi.fn()}
+        {...actionProps()}
       />,
     );
 
@@ -118,9 +121,7 @@ describe('ConversationItem a11y', () => {
         optionId="conv-6"
         conversation={offlineConversation}
         selected={false}
-        onSelect={vi.fn()}
-        onMenuToggle={vi.fn()}
-        onMarkRead={vi.fn()}
+        {...actionProps()}
       />,
     );
 
@@ -130,40 +131,82 @@ describe('ConversationItem a11y', () => {
 });
 
 describe('ConversationItem actions menu', () => {
-  function openMenu(onMarkRead = vi.fn()) {
+  function openMenu(conversation: Conversation = waitingConversation) {
+    const props = actionProps();
     render(
       <ConversationItem
         optionId="conv-menu"
-        conversation={waitingConversation}
+        conversation={conversation}
         selected={false}
-        onSelect={vi.fn()}
-        onMenuToggle={vi.fn()}
-        onMarkRead={onMarkRead}
+        {...props}
       />,
     );
     fireEvent.click(
       screen.getByRole('button', { name: /Open actions for ทดสอบ ผู้ใช้/ }),
     );
-    return onMarkRead;
+    return props;
   }
 
-  it('shows only the two wired actions', () => {
+  it('renders all wired actions without any coming-soon placeholder', () => {
     openMenu();
     expect(screen.getByText('ดูประวัติแชท')).toBeInTheDocument();
     expect(screen.getByText('ทำเครื่องหมายว่าอ่านแล้ว')).toBeInTheDocument();
-  });
-
-  it('no longer renders the removed placeholder items', () => {
-    openMenu();
-    for (const label of ['ปักหมุด', 'ปิดเสียงแจ้งเตือน', 'ซ่อนสนทนา', 'ทำเครื่องหมายว่าสแปม', 'ลบ']) {
-      expect(screen.queryByText(label)).not.toBeInTheDocument();
-    }
+    expect(screen.getByText('ปักหมุด')).toBeInTheDocument();
+    expect(screen.getByText('ปิดเสียงแจ้งเตือน')).toBeInTheDocument();
+    expect(screen.getByText('ทำเครื่องหมายว่าสแปม')).toBeInTheDocument();
+    expect(screen.getByText('ซ่อนสนทนา')).toBeInTheDocument();
+    expect(screen.getByText('ลบ')).toBeInTheDocument();
     expect(screen.queryByText('เร็ว ๆ นี้')).not.toBeInTheDocument();
   });
 
   it('mark-as-read menu item calls onMarkRead', () => {
-    const onMarkRead = openMenu();
+    const props = openMenu();
     fireEvent.click(screen.getByText('ทำเครื่องหมายว่าอ่านแล้ว'));
-    expect(onMarkRead).toHaveBeenCalledTimes(1);
+    expect(props.onMarkRead).toHaveBeenCalledTimes(1);
+  });
+
+  it('pin menu item calls onTogglePin with the line user id', () => {
+    const props = openMenu();
+    fireEvent.click(screen.getByText('ปักหมุด'));
+    expect(props.onTogglePin).toHaveBeenCalledWith('U123456789');
+  });
+
+  it('shows unpin label when already pinned', () => {
+    openMenu({ ...waitingConversation, is_pinned: true });
+    expect(screen.getByText('ถอนหมุด')).toBeInTheDocument();
+  });
+
+  it('mute menu item calls onToggleMute', () => {
+    const props = openMenu();
+    fireEvent.click(screen.getByText('ปิดเสียงแจ้งเตือน'));
+    expect(props.onToggleMute).toHaveBeenCalledWith('U123456789');
+  });
+
+  it('spam menu item calls onToggleSpam', () => {
+    const props = openMenu();
+    fireEvent.click(screen.getByText('ทำเครื่องหมายว่าสแปม'));
+    expect(props.onToggleSpam).toHaveBeenCalledWith('U123456789');
+  });
+
+  it('archive is disabled while the session is open', () => {
+    const props = openMenu();
+    const archiveBtn = screen.getByText('ซ่อนสนทนา').closest('button');
+    expect(archiveBtn).toBeDisabled();
+    fireEvent.click(screen.getByText('ซ่อนสนทนา'));
+    expect(props.onArchive).not.toHaveBeenCalled();
+  });
+
+  it('archive is enabled once the session is closed', () => {
+    const props = openMenu({ ...waitingConversation, session: { id: 1, status: 'CLOSED' } });
+    const archiveBtn = screen.getByText('ซ่อนสนทนา').closest('button');
+    expect(archiveBtn).toBeEnabled();
+    fireEvent.click(screen.getByText('ซ่อนสนทนา'));
+    expect(props.onArchive).toHaveBeenCalledWith('U123456789');
+  });
+
+  it('delete menu item requests deletion via onDeleteRequest', () => {
+    const props = openMenu();
+    fireEvent.click(screen.getByText('ลบ'));
+    expect(props.onDeleteRequest).toHaveBeenCalledWith('U123456789');
   });
 });

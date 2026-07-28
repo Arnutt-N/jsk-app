@@ -90,6 +90,11 @@ interface LiveChatActions {
   setHasMoreHistory: (hasMore: boolean) => void
   setIsLoadingHistory: (loading: boolean) => void
   markRead: (lineUserId: string) => void
+  updateConversationFlags: (
+    lineUserId: string,
+    patch: Partial<Pick<Conversation, 'is_pinned' | 'is_muted' | 'is_spam'>>,
+  ) => void
+  removeConversation: (lineUserId: string) => void
 
   // UI extension actions
   toggleEmojiPicker: () => void
@@ -200,6 +205,13 @@ export const useLiveChatStore = create<LiveChatStore>()(
       markRead: (lineUserId) => set((s) => ({
         conversations: s.conversations.map((c) =>
           c.line_user_id === lineUserId ? { ...c, unread_count: 0 } : c),
+      })),
+      updateConversationFlags: (lineUserId, patch) => set((s) => ({
+        conversations: s.conversations.map((c) =>
+          c.line_user_id === lineUserId ? { ...c, ...patch } : c),
+      })),
+      removeConversation: (lineUserId) => set((s) => ({
+        conversations: s.conversations.filter((c) => c.line_user_id !== lineUserId),
       })),
 
       // UI extension actions
