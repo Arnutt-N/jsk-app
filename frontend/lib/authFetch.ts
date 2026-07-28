@@ -70,8 +70,8 @@ function getRequestUrl(input: RequestInfo | URL): string {
   return input.toString();
 }
 
-function isAdminApiRequest(input: RequestInfo | URL): boolean {
-  return getRequestUrl(input).includes('/api/v1/admin/');
+function isApiRequest(input: RequestInfo | URL): boolean {
+  return getRequestUrl(input).includes('/api/v1/');
 }
 
 // Never refresh+retry the refresh call itself (guards against recursion).
@@ -97,8 +97,10 @@ function buildCookieHeaders(headersInit: HeadersInit | undefined): Headers {
 
 /**
  * Cookie-mode fetch handler. Sends `credentials: 'include'` (HttpOnly auth
- * cookies) + an `X-CSRF-Token` header on admin mutations. On a 401,
- * single-flight refreshes once (runRefresh) and retries once.
+ * cookies) + an `X-CSRF-Token` header on mutating API requests (the backend
+ * enforces CSRF on every cookie-sourced mutation, e.g. POST /auth/ws-ticket,
+ * not just admin endpoints). On a 401, single-flight refreshes once
+ * (runRefresh) and retries once.
  */
 async function handleCookieModeFetch(
   nativeFetch: typeof window.fetch,
@@ -107,7 +109,7 @@ async function handleCookieModeFetch(
 ): Promise<Response> {
   const canRetry = !isRefreshRequest(input);
   const needsCsrf =
-    isAdminApiRequest(input) && MUTATING_METHODS.has(getRequestMethod(input, init));
+    isApiRequest(input) && MUTATING_METHODS.has(getRequestMethod(input, init));
 
   const cookieRequestInit = (baseInit?: RequestInit): RequestInit => ({
     ...baseInit,
