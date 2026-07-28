@@ -7,7 +7,7 @@ probe-length cap, invalid patterns skipped instead of raised).
 import pytest
 from unittest.mock import AsyncMock, MagicMock
 
-from app.api.v1.endpoints.webhook import (
+from app.services.message_intake.intent_matching import (
     MAX_REGEX_PATTERN_LENGTH,
     find_intent_keyword,
 )

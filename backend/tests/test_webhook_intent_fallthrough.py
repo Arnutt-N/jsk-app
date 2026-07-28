@@ -12,7 +12,7 @@ AutoReply, so the caller labels the reply from the rule (not the dead intent).
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from app.api.v1.endpoints.webhook import resolve_reply_responses
+from app.services.message_intake.intent_matching import resolve_reply_responses
 
 
 def _result(first=None):
@@ -43,7 +43,7 @@ def _keyword_match(is_active=True, responses=None, cat_name="ราคา", keyw
 
 def _patch_find(return_value):
     return patch(
-        "app.api.v1.endpoints.webhook.find_intent_keyword",
+        "app.services.message_intake.intent_matching.find_intent_keyword",
         AsyncMock(return_value=return_value),
     )
 
