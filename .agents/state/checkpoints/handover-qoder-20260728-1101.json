@@ -1,0 +1,17 @@
+{
+  "handoff_version": "2.0",
+  "platform": "qoder",
+  "agent": "qoder",
+  "timestamp": "2026-07-28T11:01:00+07:00",
+  "branch": "main",
+  "head_commit": "06de3e2",
+  "status": "completed",
+  "work_summary": "Post-deploy production verification for PR #162 (live-chat pin/mute/spam prefs + soft-delete). Confirmed CD run 30325930527 fully green: migration c4d5e6f7g8h9 applied to production, frontend (Vercel) + backend (Koyeb) deployed, both smoke checks passed. Read-only verified production operator_conversation_preferences table structure (9 columns, PK, 2 FKs to users.id, UNIQUE(operator_id,user_id), 2 indexes, 0 rows). Confirmed CD smoke checks are generic availability curls only — no feature-specific validation. Reviewed Node.js 20 deprecation warnings: all GitHub first-party actions/* on floating major tags, forced onto Node 24, low risk, no action needed.",
+  "priority_actions": [
+    "Manual UI smoke test: pin/mute/spam/archive/delete a conversation in admin live-chat; verify per-operator isolation and that delete is reversible via unarchive",
+    "Optional low-priority tech debt: add a feature-specific smoke check to CD, and track the Node.js 20 actions migration"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/qoder/session-summary-20260728-1101.md",
+  "cross_platform_read": []
+}

@@ -1,13 +1,20 @@
 {
-  "last_updated": "2026-07-28T10:32:00+07:00",
+  "last_updated": "2026-07-28T11:01:00+07:00",
   "platform": "qoder",
-  "current_task": "Merged PR #162 (squash bab8b8e): live-chat per-operator pin/mute/spam preferences + reversible soft-delete, restoring the 5 kebab actions as real functionality. Backend: operator_conversation_preferen",
+  "current_task": "Post-deploy production verification for PR #162 (live-chat pin/mute/spam prefs + soft-delete). Confirmed CD run 30325930527 fully green: migration c4d5e6f7g8h9 applied to production, frontend (Vercel)",
   "plan_status": "completed",
   "next_steps": [
-    "Manual smoke test: pin/mute/spam/archive/delete a conversation in admin live-chat; verify per-operator isolation and that delete is reversible via unarchive",
-    "Run alembic migration c4d5e6f7g8h9 on production (upgrade head) when deploying"
+    "Manual UI smoke test: pin/mute/spam/archive/delete a conversation in admin live-chat; verify per-operator isolation and that delete is reversible via unarchive",
+    "Optional low-priority tech debt: add a feature-specific smoke check to CD, and track the Node.js 20 actions migration"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-07-28T11:01:00+07:00",
+      "platform": "qoder",
+      "branch": "main",
+      "head": "06de3e2",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-07-28T10:32:00+07:00",
       "platform": "qoder",
@@ -139,13 +146,6 @@
       "platform": "claude_code",
       "branch": "main",
       "head": "27262f6",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-18T19:59:00+07:00",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "835c261",
       "status": "completed"
     }
   ],

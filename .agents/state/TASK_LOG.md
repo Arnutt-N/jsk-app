@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 189 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 190 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-28 11:01 — qoder — completed
+
+Post-deploy production verification for PR #162 (live-chat pin/mute/spam prefs + soft-delete). Confirmed CD run 30325930527 fully green: migration c4d5e6f7g8h9 applied to production, frontend (Vercel) + backend (Koyeb) deployed, both smoke checks passed. Read-only verified production operator_conversation_preferences table structure (9 columns, PK, 2 FKs to users.id, UNIQUE(operator_id,user_id), 2 indexes, 0 rows). Confirmed CD smoke checks are generic availability curls only — no feature-specific validation. Reviewed Node.js 20 deprecation warnings: all GitHub first-party actions/* on floating major tags, forced onto Node 24, low risk, no action needed.
+
+- Checkpoint: `.agents/state/checkpoints/handover-qoder-20260728-1101.json`
+- Summary: `project-log-md/qoder/session-summary-20260728-1101.md`
+
+---
 
 ### 2026-07-28 10:32 — qoder — completed
 
