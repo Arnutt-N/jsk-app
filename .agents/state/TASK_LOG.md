@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 190 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 191 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-28 23:33 — qoder — completed
+
+Implemented /admin/image-resize (canvas resize/compress, LINE presets, Media Library upload) + fixed users Edit2→SquarePen icon + 9 OCR review fixes. Merged PR #167 (squash 77135d2), CI all green.
+
+- Checkpoint: `.agents/state/checkpoints/handover-qoder-20260728-2333.json`
+- Summary: `project-log-md/qoder/session-summary-20260728-2333.md`
+
+---
 
 ### 2026-07-28 11:01 — qoder — completed
 
