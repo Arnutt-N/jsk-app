@@ -237,22 +237,22 @@ def test_send_message_rest_broadcasts_message_and_conversation_update(test_clien
                 "chat_mode": "BOT",
             }),
         ) as mock_detail, patch(
-            "app.api.v1.endpoints.admin_live_chat.live_chat_service.get_unread_count",
+            "app.services.message_intake.live_chat_service.get_unread_count",
             new=AsyncMock(return_value=3),
         ) as mock_unread, patch(
-            "app.api.v1.endpoints.admin_live_chat.ws_manager.get_connected_admin_ids",
+            "app.services.message_intake.ws_manager.get_connected_admin_ids",
             return_value=["7", "8"],
         ), patch(
-            "app.api.v1.endpoints.admin_live_chat.ws_manager.is_admin_in_room_global",
+            "app.services.message_intake.ws_manager.is_admin_in_room_global",
             new=AsyncMock(side_effect=lambda admin_id, _room_id: admin_id == "7"),
         ) as mock_in_room, patch(
-            "app.api.v1.endpoints.admin_live_chat.ws_manager.mark_conversation_read",
+            "app.services.message_intake.ws_manager.mark_conversation_read",
             new=AsyncMock(),
         ) as mock_mark_read, patch(
-            "app.api.v1.endpoints.admin_live_chat.ws_manager.broadcast_to_room",
+            "app.services.message_intake.ws_manager.broadcast_to_room",
             new=AsyncMock(),
         ) as mock_room_broadcast, patch(
-            "app.api.v1.endpoints.admin_live_chat.ws_manager.send_to_admin",
+            "app.services.message_intake.ws_manager.send_to_admin",
             new=AsyncMock(),
         ) as mock_send_admin:
             response = test_client.post(

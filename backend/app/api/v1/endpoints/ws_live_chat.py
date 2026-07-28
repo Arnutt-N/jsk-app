@@ -24,6 +24,7 @@ def log_ws_event(admin_id, event):
 from app.services.live_chat_service import live_chat_service
 from app.services.analytics_service import analytics_service
 from app.services.user_identity_service import resolve_by_line_id
+from app.services.message_intake import notify_admins_message_sent
 from app.schemas.ws_events import (
     WSEventType,
     WSErrorCode,
@@ -582,33 +583,15 @@ async def websocket_endpoint(
                             # the conversation to the top, unread is per-admin.
                             try:
                                 chat_user = await resolve_by_line_id(db, line_user_id)
-                                for target_admin_id in ws_manager.get_connected_admin_ids():
-                                    if await ws_manager.is_admin_in_room_global(target_admin_id, current_room):
-                                        await ws_manager.mark_conversation_read(
-                                            target_admin_id, line_user_id, msg.created_at
-                                        )
-                                        unread_count = 0
-                                    else:
-                                        unread_count = await live_chat_service.get_unread_count(
-                                            line_user_id=line_user_id,
-                                            admin_id=target_admin_id,
-                                            db=db,
-                                        )
-                                    await ws_manager.send_to_admin(target_admin_id, {
-                                        "type": WSEventType.CONVERSATION_UPDATE.value,
-                                        "payload": {
-                                            "line_user_id": line_user_id,
-                                            "display_name": (chat_user.display_name if chat_user else None) or "LINE User",
-                                            "picture_url": chat_user.picture_url if chat_user else None,
-                                            "chat_mode": chat_user.chat_mode.value if chat_user and chat_user.chat_mode else "BOT",
-                                            "last_message": {
-                                                "content": msg_data.get("content") or "[Message]",
-                                                "created_at": msg_data["created_at"],
-                                            },
-                                            "unread_count": unread_count,
-                                        },
-                                        "timestamp": timestamp
-                                    })
+                                await notify_admins_message_sent(
+                                    line_user_id=line_user_id,
+                                    display_name=(chat_user.display_name if chat_user else None) or "LINE User",
+                                    picture_url=chat_user.picture_url if chat_user else None,
+                                    chat_mode=chat_user.chat_mode.value if chat_user and chat_user.chat_mode else "BOT",
+                                    content=msg_data.get("content") or "[Message]",
+                                    created_at=msg_data["created_at"],
+                                    db=db,
+                                )
                             except Exception as e:
                                 logger.warning("Post-send sidebar broadcast failed (non-fatal): %s", e)
                     except HTTPException as e:
