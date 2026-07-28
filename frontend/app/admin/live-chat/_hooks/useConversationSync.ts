@@ -119,7 +119,22 @@ export function useConversationSync({ selectedIdRef, wsStatusRef }: UseConversat
       data,
       unread,
     );
-    getStore().setConversations(reorderConversationsToTop(getStore().conversations, updated));
+    // Only reorder when the payload carries a new last_message (a real message
+    // event). Updates without one (e.g. the JOIN_ROOM state sync) must not
+    // change list position — otherwise clicking a user makes it jump.
+    if (data.last_message) {
+      getStore().setConversations(reorderConversationsToTop(getStore().conversations, updated));
+    } else {
+      const current = getStore().conversations;
+      const pos = current.findIndex((c) => c.line_user_id === updated.line_user_id);
+      if (pos >= 0) {
+        const next = [...current];
+        next[pos] = updated;
+        getStore().setConversations(next);
+      } else {
+        getStore().setConversations([updated, ...current]);
+      }
+    }
     if (isSelected) {
       const updatedChat = mergeConversationUpdate(getStore().currentChat, data, unread);
       getStore().setCurrentChat(updatedChat);
