@@ -49,6 +49,10 @@ class MessagingMixin:
             session.first_response_at = datetime.now(timezone.utc)
             await get_sla_service().check_frt_on_first_response(session, db)
 
+        user = await resolve_by_line_id(db, line_user_id)
+        if user:
+            user.last_message_at = datetime.now(timezone.utc)
+
         return {"success": True}
 
     @audit_action("send_media", "message")
