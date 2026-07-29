@@ -96,29 +96,32 @@ export default function AdminRequestList() {
     const fetchRequests = useCallback(async () => {
         setLoading(true);
         setFetchError(null);
-        const query = new URLSearchParams();
-        const isAwaitingAssignmentFilter = filter.status === 'AWAITING_ASSIGNMENT';
-        if (filter.status && !isAwaitingAssignmentFilter) {
-            query.append('status', filter.status);
-        } else if (isAwaitingAssignmentFilter) {
-            query.append('status', 'PENDING');
-        }
-        if (filter.category) query.append('category', filter.category);
-        if (debouncedSearch) query.append('search', debouncedSearch);
-
-        const result = await apiFetch<ServiceRequest[]>(`/admin/requests?${query.toString()}`);
-        if (result.ok) {
-            let data = result.data;
-            if (isAwaitingAssignmentFilter) {
-                data = data.filter((r) => !r.assigned_agent_id);
-            } else if (filter.status === 'PENDING') {
-                data = data.filter((r) => Boolean(r.assigned_agent_id));
+        try {
+            const query = new URLSearchParams();
+            const isAwaitingAssignmentFilter = filter.status === 'AWAITING_ASSIGNMENT';
+            if (filter.status && !isAwaitingAssignmentFilter) {
+                query.append('status', filter.status);
+            } else if (isAwaitingAssignmentFilter) {
+                query.append('status', 'PENDING');
             }
-            setRequests(data);
-        } else {
-            setFetchError(result.message);
+            if (filter.category) query.append('category', filter.category);
+            if (debouncedSearch) query.append('search', debouncedSearch);
+
+            const result = await apiFetch<ServiceRequest[]>(`/admin/requests?${query.toString()}`);
+            if (result.ok) {
+                let data = result.data;
+                if (isAwaitingAssignmentFilter) {
+                    data = data.filter((r) => !r.assigned_agent_id);
+                } else if (filter.status === 'PENDING') {
+                    data = data.filter((r) => Boolean(r.assigned_agent_id));
+                }
+                setRequests(data);
+            } else {
+                setFetchError(result.message);
+            }
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     }, [debouncedSearch, filter.category, filter.status]);
 
     useEffect(() => {

@@ -48,14 +48,17 @@ export default function TelegramSettingsPage() {
 
     const fetchConfig = useCallback(async () => {
         setError(null);
-        const result = await apiFetch<TelegramConfig>('/admin/settings/telegram');
-        if (result.ok) {
-            setConfig(result.data);
-            if (!result.data.is_connected) setIsEditing(true);
-        } else {
-            setError(result.message);
+        try {
+            const result = await apiFetch<TelegramConfig>('/admin/settings/telegram');
+            if (result.ok) {
+                setConfig(result.data);
+                if (!result.data.is_connected) setIsEditing(true);
+            } else {
+                setError(result.message);
+            }
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     }, []);
 
     useEffect(() => {

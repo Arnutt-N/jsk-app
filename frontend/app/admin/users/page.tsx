@@ -136,22 +136,25 @@ export default function UsersPage() {
 
     const fetchUsers = useCallback(async () => {
         setLoading(true);
-        const params = new URLSearchParams();
-        params.set('page', String(page));
-        params.set('per_page', String(PER_PAGE));
-        if (roleFilter) params.set('role', roleFilter);
-        if (statusFilter) params.set('is_active', statusFilter);
-        if (search) params.set('search', search);
+        try {
+            const params = new URLSearchParams();
+            params.set('page', String(page));
+            params.set('per_page', String(PER_PAGE));
+            if (roleFilter) params.set('role', roleFilter);
+            if (statusFilter) params.set('is_active', statusFilter);
+            if (search) params.set('search', search);
 
-        const result = await apiFetch<UserListResponse>(`/admin/users?${params}`);
-        if (result.ok) {
-            setUsers(result.data.users);
-            setTotalPages(result.data.total_pages);
-            setTotal(result.data.total);
-        } else {
-            setAlert({ type: 'error', title: 'ไม่สำเร็จ', message: result.message });
+            const result = await apiFetch<UserListResponse>(`/admin/users?${params}`);
+            if (result.ok) {
+                setUsers(result.data.users);
+                setTotalPages(result.data.total_pages);
+                setTotal(result.data.total);
+            } else {
+                setAlert({ type: 'error', title: 'ไม่สำเร็จ', message: result.message });
+            }
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     }, [page, roleFilter, statusFilter, search]);
 
     const fetchStats = useCallback(async () => {
@@ -161,11 +164,10 @@ export default function UsersPage() {
         }
     }, []);
 
-    useEffect(() => { fetchStats(); }, [fetchStats]);
+    useEffect(() => {
+        void (async () => { await fetchStats(); })();
+    }, [fetchStats]);
     useEffect(() => { fetchUsers(); }, [fetchUsers]);
-
-    // Reset page when filters change
-    useEffect(() => { setPage(1); }, [roleFilter, statusFilter, search]);
 
     /* ── Actions ────────────────────────────────────────────────────── */
 
@@ -366,20 +368,20 @@ export default function UsersPage() {
                         <Input
                             placeholder="ค้นหาชื่อ, ชื่อผู้ใช้, อีเมล..."
                             value={search}
-                            onChange={(e) => setSearch(e.target.value)}
+                            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                             leftIcon={<Search className="w-4 h-4" />}
                             variant="filled"
                         />
                     </div>
                     <Select
                         value={roleFilter}
-                        onChange={(e) => setRoleFilter(e.target.value)}
+                        onChange={(e) => { setRoleFilter(e.target.value); setPage(1); }}
                         variant="filled"
                         options={ROLE_OPTIONS}
                     />
                     <Select
                         value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
+                        onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
                         variant="filled"
                         options={STATUS_OPTIONS}
                     />

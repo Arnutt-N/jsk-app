@@ -142,8 +142,6 @@ export default function FilesPage() {
       return next;
     });
   }, []);
-  useEffect(() => { setBrokenIds(new Set()); }, [files]);
-
   // Drag and drop
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -153,21 +151,25 @@ export default function FilesPage() {
   // -----------------------------------------------------------------------
   const fetchFiles = useCallback(async () => {
     setLoading(true);
-    const params = new URLSearchParams();
-    if (category !== 'ALL') params.set('category', category);
-    if (search) params.set('search', search);
-    params.set('page', String(page));
-    params.set('page_size', '24');
+    try {
+      const params = new URLSearchParams();
+      if (category !== 'ALL') params.set('category', category);
+      if (search) params.set('search', search);
+      params.set('page', String(page));
+      params.set('page_size', '24');
 
-    const result = await apiFetch<{ items: MediaFile[]; total_pages: number; total: number }>(`/admin/media?${params}`);
-    if (result.ok) {
-      setFiles(result.data.items || []);
-      setTotalPages(result.data.total_pages || 1);
-      setTotalItems(result.data.total || 0);
-    } else {
-      toast({ title: result.message, variant: 'error' });
+      const result = await apiFetch<{ items: MediaFile[]; total_pages: number; total: number }>(`/admin/media?${params}`);
+      if (result.ok) {
+        setFiles(result.data.items || []);
+        setTotalPages(result.data.total_pages || 1);
+        setTotalItems(result.data.total || 0);
+        setBrokenIds(new Set());
+      } else {
+        toast({ title: result.message, variant: 'error' });
+      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [category, search, page, toast]);
 
   const fetchStats = useCallback(async () => {
@@ -178,10 +180,9 @@ export default function FilesPage() {
   }, []);
 
   useEffect(() => { fetchFiles(); }, [fetchFiles]);
-  useEffect(() => { fetchStats(); }, [fetchStats]);
-
-  // Reset page when filter changes
-  useEffect(() => { setPage(1); }, [category, search]);
+  useEffect(() => {
+    void (async () => { await fetchStats(); })();
+  }, [fetchStats]);
 
   // -----------------------------------------------------------------------
   // Upload
@@ -408,7 +409,7 @@ export default function FilesPage() {
           <Input
             placeholder="ค้นหาชื่อไฟล์..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             leftIcon={<Search className="w-4 h-4" />}
             className="max-w-xs"
           />
@@ -455,7 +456,7 @@ export default function FilesPage() {
       </div>
 
       {/* Category tabs */}
-      <Tabs defaultValue="ALL" value={category} onValueChange={(v) => setCategory(v as Category)}>
+      <Tabs defaultValue="ALL" value={category} onValueChange={(v) => { setCategory(v as Category); setPage(1); }}>
         <TabsList className="flex-wrap">
           {(['ALL', 'DOCUMENT', 'IMAGE', 'VIDEO', 'AUDIO', 'OTHER'] as const).map(cat => (
             <TabsTrigger key={cat} value={cat}>
