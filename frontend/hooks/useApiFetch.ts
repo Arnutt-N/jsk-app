@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { apiFetch, type ApiFetchOptions } from '@/lib/api-error'
 
 interface UseApiFetchState<T> {
@@ -16,7 +16,11 @@ export function useApiFetch<T = unknown>() {
     error: null,
   })
   const mountedRef = useRef(true)
-  mountedRef.current = true
+
+  useEffect(() => {
+    mountedRef.current = true
+    return () => { mountedRef.current = false }
+  }, [])
 
   const execute = useCallback(
     async (url: string, init?: ApiFetchOptions): Promise<T | null> => {
