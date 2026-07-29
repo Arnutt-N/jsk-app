@@ -42,7 +42,7 @@ import {
 } from '@/lib/constants/request-status';
 import { usePermissions } from '@/lib/permissions';
 import { useToast } from '@/components/ui/Toast';
-import { logger } from '@/lib/logger';
+import { apiFetch } from '@/lib/api-error';
 
 // Bridge between shared module (icons stored as string names) and the
 // lucide-react components actually rendered. Centralised so swapping an
@@ -93,46 +93,33 @@ export default function AdminRequestList() {
     const [debouncedSearch, setDebouncedSearch] = useState('');
 
 
-    const API_BASE = '/api/v1';
-
     const fetchRequests = useCallback(async () => {
         setLoading(true);
         setFetchError(null);
-        try {
-            const query = new URLSearchParams();
-            // The "AWAITING_ASSIGNMENT" pseudo-status maps to PENDING with
-            // no assignee. The backend doesn't expose that as an enum, so
-            // we fetch all PENDING and filter unassigned client-side below.
-            const isAwaitingAssignmentFilter = filter.status === 'AWAITING_ASSIGNMENT';
-            if (filter.status && !isAwaitingAssignmentFilter) {
-                query.append('status', filter.status);
-            } else if (isAwaitingAssignmentFilter) {
-                query.append('status', 'PENDING');
-            }
-            if (filter.category) query.append('category', filter.category);
-            if (debouncedSearch) query.append('search', debouncedSearch);
+        const query = new URLSearchParams();
+        const isAwaitingAssignmentFilter = filter.status === 'AWAITING_ASSIGNMENT';
+        if (filter.status && !isAwaitingAssignmentFilter) {
+            query.append('status', filter.status);
+        } else if (isAwaitingAssignmentFilter) {
+            query.append('status', 'PENDING');
+        }
+        if (filter.category) query.append('category', filter.category);
+        if (debouncedSearch) query.append('search', debouncedSearch);
 
-            const res = await fetch(`${API_BASE}/admin/requests?${query.toString()}`);
-            if (!res.ok) throw new Error('Failed to fetch requests');
-            let data: ServiceRequest[] = await res.json();
-
+        const result = await apiFetch<ServiceRequest[]>(`/admin/requests?${query.toString()}`);
+        if (result.ok) {
+            let data = result.data;
             if (isAwaitingAssignmentFilter) {
                 data = data.filter((r) => !r.assigned_agent_id);
             } else if (filter.status === 'PENDING') {
-                // The bare PENDING filter on the dropdown means "assigned but
-                // not yet acknowledged" -- exclude unassigned so each filter
-                // option shows a distinct subset.
                 data = data.filter((r) => Boolean(r.assigned_agent_id));
             }
-
             setRequests(data);
-        } catch (err: unknown) {
-            logger.error('[requests] โหลดข้อมูลคำร้องล้มเหลว:', err);
-            setFetchError('ไม่สามารถโหลดข้อมูลคำร้องได้ กรุณาลองใหม่');
-        } finally {
-            setLoading(false);
+        } else {
+            setFetchError(result.message);
         }
-    }, [API_BASE, debouncedSearch, filter.category, filter.status]);
+        setLoading(false);
+    }, [debouncedSearch, filter.category, filter.status]);
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -164,36 +151,17 @@ export default function AdminRequestList() {
 
     const confirmAssign = async (agentId: number) => {
         if (!assigningRequest) return;
-        try {
-            // Assigning a request only sets the assignee. Status stays at
-            // PENDING (now displayed as "รอรับเรื่อง") until the assignee
-            // clicks "รับเรื่อง" on the detail page, which advances it to
-            // ACKNOWLEDGED. This separation is what gives us a real
-            // "supervisor handed off but worker has not seen it yet" state.
-            const res = await fetch(`${API_BASE}/admin/requests/${assigningRequest.id}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ assigned_agent_id: agentId }),
-            });
-            if (!res.ok) {
-                const errBody = await res.json().catch(() => ({}));
-                throw new Error(errBody?.detail || 'Failed to assign agent');
-            }
-
+        const result = await apiFetch(`/admin/requests/${assigningRequest.id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ assigned_agent_id: agentId }),
+        });
+        if (result.ok) {
             fetchRequests();
             setAssignModalOpen(false);
             setAssigningRequest(null);
-            toast({
-                variant: 'success',
-                title: 'มอบหมายงานสำเร็จ',
-            });
-        } catch (err) {
-            logger.error(err);
-            toast({
-                variant: 'error',
-                title: 'มอบหมายงานไม่สำเร็จ',
-                description: err instanceof Error ? err.message : 'กรุณาลองใหม่อีกครั้ง',
-            });
+            toast({ variant: 'success', title: 'มอบหมายงานสำเร็จ' });
+        } else {
+            toast({ variant: 'error', title: 'มอบหมายงานไม่สำเร็จ', description: result.message });
         }
     };
 
@@ -209,29 +177,14 @@ export default function AdminRequestList() {
 
     const confirmDelete = async () => {
         if (!selectedRequest) return;
-
-        try {
-            const res = await fetch(`${API_BASE}/admin/requests/${selectedRequest.id}`, {
-                method: 'DELETE'
-            });
-
-            if (!res.ok) throw new Error('Failed to delete request');
-
-            // Remove from local state on success
+        const result = await apiFetch(`/admin/requests/${selectedRequest.id}`, { method: 'DELETE' });
+        if (result.ok) {
             setRequests(prev => prev.filter(r => r.id !== selectedRequest.id));
             setDeleteModalOpen(false);
             setSelectedRequest(null);
-            toast({
-                variant: 'success',
-                title: 'ลบคำร้องสำเร็จ',
-            });
-        } catch (err) {
-            logger.error(err);
-            toast({
-                variant: 'error',
-                title: 'ลบคำร้องไม่สำเร็จ',
-                description: 'กรุณาลองใหม่อีกครั้ง',
-            });
+            toast({ variant: 'success', title: 'ลบคำร้องสำเร็จ' });
+        } else {
+            toast({ variant: 'error', title: 'ลบคำร้องไม่สำเร็จ', description: result.message });
         }
     };
 

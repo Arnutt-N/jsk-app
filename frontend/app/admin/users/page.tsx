@@ -20,8 +20,7 @@ import { ActionIconButton } from '@/components/ui/ActionIconButton';
 import StatsCard from '../components/StatsCard';
 import { StaggerContainer, StaggerItem } from '@/components/ui/PageTransition';
 import PageHeader from '../components/PageHeader';
-import { logger } from '@/lib/logger';
-import { readErrorMessage } from '@/lib/api-error';
+import { apiFetch } from '@/lib/api-error';
 import { maskLineUserId } from '@/lib/mask';
 
 /* ── Types ─────────────────────────────────────────────────────────── */
@@ -91,8 +90,6 @@ const CREATE_ROLE_OPTIONS: SelectOption[] = [
 
 const PER_PAGE = 20;
 
-const JSON_HEADERS = { 'Content-Type': 'application/json' };
-
 /* ── Component ─────────────────────────────────────────────────────── */
 
 export default function UsersPage() {
@@ -135,50 +132,34 @@ export default function UsersPage() {
     // Alert
     const [alert, setAlert] = useState<{ type: 'success' | 'error'; title: string; message: string } | null>(null);
 
-    const API_BASE = '/api/v1';
-
     /* ── Fetch ──────────────────────────────────────────────────────── */
 
     const fetchUsers = useCallback(async () => {
         setLoading(true);
-        try {
-            const params = new URLSearchParams();
-            params.set('page', String(page));
-            params.set('per_page', String(PER_PAGE));
-            if (roleFilter) params.set('role', roleFilter);
-            if (statusFilter) params.set('is_active', statusFilter);
-            if (search) params.set('search', search);
+        const params = new URLSearchParams();
+        params.set('page', String(page));
+        params.set('per_page', String(PER_PAGE));
+        if (roleFilter) params.set('role', roleFilter);
+        if (statusFilter) params.set('is_active', statusFilter);
+        if (search) params.set('search', search);
 
-            const res = await fetch(`${API_BASE}/admin/users?${params}`, { headers: JSON_HEADERS });
-            if (res.ok) {
-                const data: UserListResponse = await res.json();
-                setUsers(data.users);
-                setTotalPages(data.total_pages);
-                setTotal(data.total);
-            } else {
-                const msg = await readErrorMessage(res, 'ไม่สามารถโหลดรายชื่อผู้ใช้ได้');
-                logger.error('fetchUsers failed', { status: res.status });
-                setAlert({ type: 'error', title: 'ไม่สำเร็จ', message: msg });
-            }
-        } catch (e) {
-            logger.error('Failed to fetch users', e);
-        } finally {
-            setLoading(false);
+        const result = await apiFetch<UserListResponse>(`/admin/users?${params}`);
+        if (result.ok) {
+            setUsers(result.data.users);
+            setTotalPages(result.data.total_pages);
+            setTotal(result.data.total);
+        } else {
+            setAlert({ type: 'error', title: 'ไม่สำเร็จ', message: result.message });
         }
-    }, [API_BASE, page, roleFilter, statusFilter, search]);
+        setLoading(false);
+    }, [page, roleFilter, statusFilter, search]);
 
     const fetchStats = useCallback(async () => {
-        try {
-            const res = await fetch(`${API_BASE}/admin/users/stats`, { headers: JSON_HEADERS });
-            if (res.ok) {
-                setStats(await res.json());
-            } else {
-                logger.error('fetchStats failed', { status: res.status });
-            }
-        } catch (e) {
-            logger.error('Failed to fetch stats', e);
+        const result = await apiFetch<UserStats>('/admin/users/stats');
+        if (result.ok) {
+            setStats(result.data);
         }
-    }, [API_BASE]);
+    }, []);
 
     useEffect(() => { fetchStats(); }, [fetchStats]);
     useEffect(() => { fetchUsers(); }, [fetchUsers]);
@@ -199,92 +180,62 @@ export default function UsersPage() {
             return;
         }
         setCreateLoading(true);
-        try {
-            const res = await fetch(`${API_BASE}/admin/users`, {
-                method: 'POST',
-                headers: JSON_HEADERS,
-                body: JSON.stringify(createForm),
-            });
-            if (res.ok) {
-                setShowCreate(false);
-                setCreateForm({ username: '', password: '', display_name: '', email: '', role: 'AGENT' });
-                setAlert({ type: 'success', title: 'สำเร็จ', message: 'สร้างผู้ใช้ใหม่เรียบร้อยแล้ว' });
-                fetchUsers();
-                fetchStats();
-            } else {
-                const msg = await readErrorMessage(res, 'เกิดข้อผิดพลาด');
-                logger.error('createUser failed', { status: res.status });
-                setCreateError(msg);
-            }
-        } catch (err) {
-            logger.error('createUser error', err);
-            setCreateError('เกิดข้อผิดพลาดในการเชื่อมต่อ');
-        } finally {
-            setCreateLoading(false);
+        const result = await apiFetch('/admin/users', {
+            method: 'POST',
+            body: JSON.stringify(createForm),
+        });
+        if (result.ok) {
+            setShowCreate(false);
+            setCreateForm({ username: '', password: '', display_name: '', email: '', role: 'AGENT' });
+            setAlert({ type: 'success', title: 'สำเร็จ', message: 'สร้างผู้ใช้ใหม่เรียบร้อยแล้ว' });
+            fetchUsers();
+            fetchStats();
+        } else {
+            setCreateError(result.message);
         }
+        setCreateLoading(false);
     };
 
     const handleEdit = async () => {
         if (!editUser) return;
         setEditError('');
         setEditLoading(true);
-        try {
-            const payload: Record<string, unknown> = {};
-            if (editForm.display_name !== (editUser.display_name || '')) payload.display_name = editForm.display_name;
-            if (editForm.email !== (editUser.email || '')) payload.email = editForm.email || null;
-            if (editForm.role !== editUser.role) payload.role = editForm.role;
-            if (editForm.is_active !== editUser.is_active) payload.is_active = editForm.is_active;
-            if (editForm.password) payload.password = editForm.password;
+        const payload: Record<string, unknown> = {};
+        if (editForm.display_name !== (editUser.display_name || '')) payload.display_name = editForm.display_name;
+        if (editForm.email !== (editUser.email || '')) payload.email = editForm.email || null;
+        if (editForm.role !== editUser.role) payload.role = editForm.role;
+        if (editForm.is_active !== editUser.is_active) payload.is_active = editForm.is_active;
+        if (editForm.password) payload.password = editForm.password;
 
-            const res = await fetch(`${API_BASE}/admin/users/${editUser.id}`, {
-                method: 'PUT',
-                headers: JSON_HEADERS,
-                body: JSON.stringify(payload),
-            });
-            if (res.ok) {
-                setEditUser(null);
-                setAlert({ type: 'success', title: 'สำเร็จ', message: 'อัปเดตข้อมูลผู้ใช้เรียบร้อยแล้ว' });
-                fetchUsers();
-                fetchStats();
-            } else {
-                const msg = await readErrorMessage(res, 'เกิดข้อผิดพลาด');
-                logger.error('editUser failed', { status: res.status });
-                setEditError(msg);
-            }
-        } catch (err) {
-            logger.error('editUser error', err);
-            setEditError('เกิดข้อผิดพลาดในการเชื่อมต่อ');
-        } finally {
-            setEditLoading(false);
+        const result = await apiFetch(`/admin/users/${editUser.id}`, {
+            method: 'PUT',
+            body: JSON.stringify(payload),
+        });
+        if (result.ok) {
+            setEditUser(null);
+            setAlert({ type: 'success', title: 'สำเร็จ', message: 'อัปเดตข้อมูลผู้ใช้เรียบร้อยแล้ว' });
+            fetchUsers();
+            fetchStats();
+        } else {
+            setEditError(result.message);
         }
+        setEditLoading(false);
     };
 
     const handleDelete = async () => {
         if (!deleteUser) return;
         setDeleteLoading(true);
-        try {
-            const res = await fetch(`${API_BASE}/admin/users/${deleteUser.id}`, {
-                method: 'DELETE',
-                headers: JSON_HEADERS,
-            });
-            if (res.ok) {
-                setDeleteUser(null);
-                setAlert({ type: 'success', title: 'สำเร็จ', message: 'ลบผู้ใช้เรียบร้อยแล้ว' });
-                fetchUsers();
-                fetchStats();
-            } else {
-                const msg = await readErrorMessage(res, 'ไม่สามารถลบผู้ใช้ได้');
-                logger.error('deleteUser failed', { status: res.status });
-                setDeleteUser(null);
-                setAlert({ type: 'error', title: 'ไม่สำเร็จ', message: msg });
-            }
-        } catch (err) {
-            logger.error('deleteUser error', err);
+        const result = await apiFetch(`/admin/users/${deleteUser.id}`, { method: 'DELETE' });
+        if (result.ok) {
             setDeleteUser(null);
-            setAlert({ type: 'error', title: 'ไม่สำเร็จ', message: 'เกิดข้อผิดพลาดในการเชื่อมต่อ' });
-        } finally {
-            setDeleteLoading(false);
+            setAlert({ type: 'success', title: 'สำเร็จ', message: 'ลบผู้ใช้เรียบร้อยแล้ว' });
+            fetchUsers();
+            fetchStats();
+        } else {
+            setDeleteUser(null);
+            setAlert({ type: 'error', title: 'ไม่สำเร็จ', message: result.message });
         }
+        setDeleteLoading(false);
     };
 
     const handleResetPassword = async () => {
@@ -295,27 +246,18 @@ export default function UsersPage() {
             return;
         }
         setResetLoading(true);
-        try {
-            const res = await fetch(`${API_BASE}/admin/users/${resetUser.id}/reset-password`, {
-                method: 'POST',
-                headers: JSON_HEADERS,
-                body: JSON.stringify({ new_password: resetPassword }),
-            });
-            if (res.ok) {
-                setResetUser(null);
-                setResetPassword('');
-                setAlert({ type: 'success', title: 'สำเร็จ', message: 'รีเซ็ตรหัสผ่านเรียบร้อยแล้ว' });
-            } else {
-                const msg = await readErrorMessage(res, 'เกิดข้อผิดพลาด');
-                logger.error('resetPassword failed', { status: res.status });
-                setResetError(msg);
-            }
-        } catch (err) {
-            logger.error('resetPassword error', err);
-            setResetError('เกิดข้อผิดพลาดในการเชื่อมต่อ');
-        } finally {
-            setResetLoading(false);
+        const result = await apiFetch(`/admin/users/${resetUser.id}/reset-password`, {
+            method: 'POST',
+            body: JSON.stringify({ new_password: resetPassword }),
+        });
+        if (result.ok) {
+            setResetUser(null);
+            setResetPassword('');
+            setAlert({ type: 'success', title: 'สำเร็จ', message: 'รีเซ็ตรหัสผ่านเรียบร้อยแล้ว' });
+        } else {
+            setResetError(result.message);
         }
+        setResetLoading(false);
     };
 
     const openEdit = (u: UserRecord) => {

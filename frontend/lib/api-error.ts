@@ -8,6 +8,7 @@
  */
 
 import logger from './logger'
+import { API_BASE } from './constants/api'
 
 // ── Error message extraction ─────────────────────────────────────────
 
@@ -108,29 +109,44 @@ type ApiFetchResult<T> =
  *     toast({ title: result.message, variant: 'error' })
  *   }
  */
+export interface ApiFetchOptions extends RequestInit {
+  /** Skip JSON parsing and return the raw Response (for blob downloads). */
+  raw?: boolean
+}
+
 export async function apiFetch<T = unknown>(
   url: string,
-  init?: RequestInit,
+  init?: ApiFetchOptions,
 ): Promise<ApiFetchResult<T>> {
+  const fullUrl = url.startsWith('http') || url.startsWith(`${API_BASE}/`) ? url : `${API_BASE}${url}`
+
+  const headers = new Headers(init?.headers)
+  if (typeof init?.body === 'string' && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json')
+  }
+
   try {
-    const res = await fetch(url, init)
+    const res = await fetch(fullUrl, { ...init, headers })
     if (!res.ok) {
       const message = await readErrorMessage(res, getHttpStatusMessage(res.status))
-      logger.error(`API ${res.status}: ${url}`, { status: res.status, url })
+      logger.error(`API ${res.status}: ${fullUrl}`, { status: res.status, url: fullUrl })
       return { ok: false, status: res.status, message }
+    }
+    if (init?.raw) {
+      return { ok: true, data: res as unknown as T }
     }
     const data = (await res.json()) as T
     return { ok: true, data }
   } catch (err) {
     if (isNetworkError(err)) {
-      logger.error('Network error', err, { url })
+      logger.error('Network error', err, { url: fullUrl })
       return {
         ok: false,
         status: 0,
         message: 'ไม่สามารถเชื่อมต่อ Backend ได้ — กรุณาตรวจสอบว่า Backend เปิดอยู่',
       }
     }
-    logger.error('Unexpected fetch error', err, { url })
+    logger.error('Unexpected fetch error', err, { url: fullUrl })
     return {
       ok: false,
       status: 0,
