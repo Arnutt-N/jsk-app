@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 193 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 194 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-30 06:09 — qoder — completed
+
+Merged PR #172 (report_service extraction, 780 backend tests green). Opened PR #173 apiFetch adapter: shared API_BASE constant, auto Content-Type, raw option for blobs, useApiFetch hook, migrated 5 admin pages (reports, telegram, files, requests, users); 441 unit tests + tsc + build green locally. Pushed react-hooks/refs lint fix cd3effb; CI lint still red from 9 pre-existing set-state-in-effect errors
+
+- Checkpoint: `.agents/state/checkpoints/handover-qoder-20260730-0609.json`
+- Summary: `project-log-md/qoder/session-summary-20260730-0609.md`
+
+---
 
 ### 2026-07-29 04:56 — qoder — completed
 

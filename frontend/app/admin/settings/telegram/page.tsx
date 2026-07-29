@@ -18,8 +18,7 @@ import { Badge } from '@/components/ui/Badge';
 import PageHeader from '@/app/admin/components/PageHeader';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { useToast } from '@/components/ui/Toast';
-import { logger } from '@/lib/logger';
-import { readErrorMessage } from '@/lib/api-error';
+import { apiFetch } from '@/lib/api-error';
 
 interface TelegramConfig {
     bot_token_masked: string;
@@ -47,28 +46,20 @@ export default function TelegramSettingsPage() {
     const [showSaveModal, setShowSaveModal] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const API_BASE = '/api/v1';
-
     const fetchConfig = useCallback(async () => {
         setError(null);
         try {
-            const res = await fetch(`${API_BASE}/admin/settings/telegram`);
-            if (res.ok) {
-                const data: TelegramConfig = await res.json();
-                setConfig(data);
-                if (!data.is_connected) setIsEditing(true);
+            const result = await apiFetch<TelegramConfig>('/admin/settings/telegram');
+            if (result.ok) {
+                setConfig(result.data);
+                if (!result.data.is_connected) setIsEditing(true);
             } else {
-                const msg = await readErrorMessage(res, 'ไม่สามารถโหลดข้อมูลได้');
-                logger.error('Failed to fetch Telegram config', { status: res.status });
-                setError(msg);
+                setError(result.message);
             }
-        } catch (err) {
-            logger.error('Failed to fetch Telegram config', err);
-            setError('ไม่สามารถโหลดข้อมูลได้');
         } finally {
             setLoading(false);
         }
-    }, [API_BASE]);
+    }, []);
 
     useEffect(() => {
         fetchConfig();
@@ -76,45 +67,34 @@ export default function TelegramSettingsPage() {
 
     const handleSave = async () => {
         setProcessing('SAVE');
-        try {
-            const res = await fetch(`${API_BASE}/admin/settings/telegram`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(form),
-            });
-            if (res.ok) {
-                await fetchConfig();
-                setIsEditing(false);
-                setForm({ bot_token: '', chat_id: '' });
-                setShowSaveModal(true);
-            } else {
-                const err = await res.json();
-                toast({ variant: 'error', title: 'บันทึกไม่สำเร็จ', description: err.detail || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล' });
-            }
-        } catch (err) {
-            logger.error('Failed to save Telegram config', err);
-            toast({ variant: 'error', title: 'เกิดข้อผิดพลาด', description: 'ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่อีกครั้ง' });
-        } finally {
-            setProcessing(null);
+        const result = await apiFetch('/admin/settings/telegram', {
+            method: 'PUT',
+            body: JSON.stringify(form),
+        });
+        if (result.ok) {
+            await fetchConfig();
+            setIsEditing(false);
+            setForm({ bot_token: '', chat_id: '' });
+            setShowSaveModal(true);
+        } else {
+            toast({ variant: 'error', title: 'บันทึกไม่สำเร็จ', description: result.message });
         }
+        setProcessing(null);
     };
 
     const handleTest = async () => {
         setProcessing('TEST');
         setTestResult(null);
-        try {
-            const res = await fetch(`${API_BASE}/admin/settings/telegram/test`, {
-                method: 'POST',
-            });
-            const data: TestResult = await res.json();
-            setTestResult(data);
-            setShowTestModal(true);
-        } catch (err) {
-            setTestResult({ success: false, message: String(err) });
-            setShowTestModal(true);
-        } finally {
-            setProcessing(null);
+        const result = await apiFetch<TestResult>('/admin/settings/telegram/test', {
+            method: 'POST',
+        });
+        if (result.ok) {
+            setTestResult(result.data);
+        } else {
+            setTestResult({ success: false, message: result.message });
         }
+        setShowTestModal(true);
+        setProcessing(null);
     };
 
     if (loading) return <LoadingSpinner label="Loading Telegram settings..." />;

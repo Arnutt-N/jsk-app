@@ -38,7 +38,7 @@ import {
   TrendingUp,
   Calendar,
 } from 'lucide-react';
-import { logger } from '@/lib/logger';
+import { apiFetch } from '@/lib/api-error';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -214,29 +214,20 @@ function StatCard({
   );
 }
 
-function downloadPDF(reportType: string, startDate: string, endDate: string) {
+async function downloadPDF(reportType: string, startDate: string, endDate: string) {
   const params = new URLSearchParams({
     report_type: reportType,
     start_date: startDate,
     end_date: endDate,
   });
-  const url = `/api/v1/admin/reports/export/pdf?${params}`;
-
-  fetch(url)
-    .then((res) => {
-      if (!res.ok) throw new Error('PDF export failed');
-      return res.blob();
-    })
-    .then((blob) => {
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = `report_${reportType}_${new Date().toISOString().slice(0, 10)}.pdf`;
-      link.click();
-      URL.revokeObjectURL(link.href);
-    })
-    .catch((err) => {
-      logger.error('PDF download error:', err);
-    });
+  const result = await apiFetch<Response>(`/admin/reports/export/pdf?${params}`, { raw: true });
+  if (!result.ok) return;
+  const blob = await result.data.blob();
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `report_${reportType}_${new Date().toISOString().slice(0, 10)}.pdf`;
+  link.click();
+  URL.revokeObjectURL(link.href);
 }
 
 function ExportButton({
@@ -250,9 +241,9 @@ function ExportButton({
 }) {
   const handleExport = async () => {
     const params = new URLSearchParams({ type, start_date: startDate, end_date: endDate });
-    const res = await fetch(`/api/v1/admin/reports/export?${params}`);
-    if (!res.ok) return;
-    const blob = await res.blob();
+    const result = await apiFetch<Response>(`/admin/reports/export?${params}`, { raw: true });
+    if (!result.ok) return;
+    const blob = await result.data.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -312,33 +303,31 @@ export default function ReportsPage() {
       try {
         switch (tab) {
           case 'overview': {
-            const res = await fetch(`/api/v1/admin/reports/overview`);
-            if (res.ok) setOverview(await res.json());
+            const res = await apiFetch<OverviewData>('/admin/reports/overview');
+            if (res.ok) setOverview(res.data);
             break;
           }
           case 'requests': {
-            const res = await fetch(`/api/v1/admin/reports/service-requests?${qs}`);
-            if (res.ok) setSrReport(await res.json());
+            const res = await apiFetch<ServiceRequestReport>(`/admin/reports/service-requests?${qs}`);
+            if (res.ok) setSrReport(res.data);
             break;
           }
           case 'messages': {
-            const res = await fetch(`/api/v1/admin/reports/messages?${qs}`);
-            if (res.ok) setMsgReport(await res.json());
+            const res = await apiFetch<MessagesReport>(`/admin/reports/messages?${qs}`);
+            if (res.ok) setMsgReport(res.data);
             break;
           }
           case 'operators': {
-            const res = await fetch(`/api/v1/admin/reports/operators?start_date=${startDate}&end_date=${endDate}`);
-            if (res.ok) setOpsReport(await res.json());
+            const res = await apiFetch<OperatorsReport>(`/admin/reports/operators?start_date=${startDate}&end_date=${endDate}`);
+            if (res.ok) setOpsReport(res.data);
             break;
           }
           case 'followers': {
-            const res = await fetch(`/api/v1/admin/reports/followers?${qs}`);
-            if (res.ok) setFolReport(await res.json());
+            const res = await apiFetch<FollowersReport>(`/admin/reports/followers?${qs}`);
+            if (res.ok) setFolReport(res.data);
             break;
           }
         }
-      } catch (err) {
-        logger.error('Failed to fetch report:', err);
       } finally {
         setLoading(false);
       }

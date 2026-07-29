@@ -1,13 +1,21 @@
 {
-  "last_updated": "2026-07-29T04:56:00+07:00",
+  "last_updated": "2026-07-30T06:09:00+07:00",
   "platform": "qoder",
-  "current_task": "Merged PR #169: extract webhook.py (768→123 lines) into deep message_intake module — 7 focused modules, deduplicated broadcast, testable without HTTP/LINE SDK. 780 tests green.",
+  "current_task": "Merged PR #172 (report_service extraction, 780 backend tests green). Opened PR #173 apiFetch adapter: shared API_BASE constant, auto Content-Type, raw option for blobs, useApiFetch hook, migrated 5 ad",
   "plan_status": "completed",
   "next_steps": [
-    "Architecture review identified 5 more candidates: unify broadcast across ws_live_chat/admin_live_chat, deepen WS session handler, reassemble frontend live-chat by responsibility, adopt apiFetch adapter, extract Report Query module",
-    "Next priority: Candidate 2 (unify conversation-broadcast) or Candidate 3 (deepen WS session handler)"
+    "Fix 9 react-hooks/set-state-in-effect lint errors blocking PR #173 CI",
+    "Merge PR #173 with --admin when all green",
+    "Start PR C: live-chat frontend reassembly (useVirtualScroll, useSessionEvents, Zustand consolidation)"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-07-30T06:09:00+07:00",
+      "platform": "qoder",
+      "branch": "feat/apifetch-adapter",
+      "head": "cd3effb",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-07-29T04:56:00+07:00",
       "platform": "qoder",
@@ -139,13 +147,6 @@
       "platform": "claude_code",
       "branch": "main",
       "head": "dc6d8b8",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-18T22:05:00+07:00",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "d2bd301",
       "status": "completed"
     }
   ],

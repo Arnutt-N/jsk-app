@@ -147,5 +147,70 @@ describe('api-error utilities', () => {
         message: 'เกิดข้อผิดพลาดที่ไม่คาดคิด กรุณาลองใหม่',
       })
     })
+
+    it('should prefix relative URLs with API_BASE', async () => {
+      const mockData = { ok: true }
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => mockData,
+      })
+
+      await apiFetch('/admin/users')
+      expect(global.fetch).toHaveBeenCalledWith(
+        '/api/v1/admin/users',
+        expect.anything(),
+      )
+    })
+
+    it('should not prefix absolute URLs', async () => {
+      const mockData = { ok: true }
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => mockData,
+      })
+
+      await apiFetch('https://example.com/api')
+      expect(global.fetch).toHaveBeenCalledWith(
+        'https://example.com/api',
+        expect.anything(),
+      )
+    })
+
+    it('should auto-set Content-Type for string bodies', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({}),
+      })
+
+      await apiFetch('/test', { method: 'POST', body: JSON.stringify({ a: 1 }) })
+      const [, init] = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0]
+      const headers = init.headers as Headers
+      expect(headers.get('Content-Type')).toBe('application/json')
+    })
+
+    it('should not set Content-Type for FormData bodies', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({}),
+      })
+
+      const form = new FormData()
+      form.append('file', 'x')
+      await apiFetch('/test', { method: 'POST', body: form })
+      const [, init] = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0]
+      const headers = init.headers as Headers
+      expect(headers.get('Content-Type')).toBeNull()
+    })
+
+    it('should return raw Response when raw option is set', async () => {
+      const mockResponse = { ok: true, blob: async () => new Blob() }
+      global.fetch = vi.fn().mockResolvedValue(mockResponse)
+
+      const result = await apiFetch<Response>('/test', { raw: true })
+      expect(result.ok).toBe(true)
+      if (result.ok) {
+        expect(result.data).toBe(mockResponse)
+      }
+    })
   })
 })
