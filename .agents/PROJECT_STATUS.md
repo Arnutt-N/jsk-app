@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-07-30 07:16 by Qoder (Fixed 9 react-hooks/set-state-in-effect lint errors try/finally fetchers + handler-based p)
+> **Last Updated:** 2026-07-30 08:33 by Qoder (Merged PR #174: live-chat frontend reassembly Phases 1-4 — store consolidation wsStatus/on)
 
 ## Thai Summary
 **PR C read-cutover** เสร็จสมบูรณ์ — PR #160 merged (squash `4ba338a`): แปลง ~50 read-path queries ใน 13 ไฟล์จาก filter ด้วย `line_user_id` ตรงๆ เป็น mode-aware helpers (`resolve_by_line_id`, `child_filter`, `child_column`, `child_join_condition`, `user_identity_filter`, `resolve_many_by_line_id`) — ใช้ได้ทั้ง `dual` และ `pseudonym` mode, additive เท่านั้น (ไม่ drop column, ไม่เปลี่ยน API contract, prod ยังเป็น `dual`), 771 tests ผ่าน, CI เขียวทุก check
@@ -78,6 +78,7 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-07-30 08:33] Qoder: Merged PR #174: live-chat frontend reassembly (Phases 1-4) — store consolidation (wsStatus/onlineOperators/claimContenders/typingUsersCount), extracted useSessionEvents + useVirtualScroll, ChatArea 534->352 lines, contract test 34 members u (Qoder)
 - [2026-07-30 07:16] Qoder: Fixed 9 react-hooks/set-state-in-effect lint errors (try/finally fetchers + handler-based page resets, commit 6bddb03), PR #173 apiFetch adapter merged to main (squash d1b47f7). Started PR C live-chat frontend reassembly: branch refactor/li (Qoder)
 - [2026-07-30 06:09] Qoder: Merged PR #172 (report_service extraction, 780 backend tests green). Opened PR #173 apiFetch adapter: shared API_BASE constant, auto Content-Type, raw option for blobs, useApiFetch hook, migrated 5 admin pages (reports, telegram, files, req (Qoder)
 - [2026-07-29 04:56] Qoder: Merged PR #169: extract webhook.py (768→123 lines) into deep message_intake module — 7 focused modules, deduplicated broadcast, testable without HTTP/LINE SDK. 780 tests green. (Qoder)

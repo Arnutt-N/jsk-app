@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 195 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 196 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-30 08:33 — qoder — completed
+
+Merged PR #174: live-chat frontend reassembly (Phases 1-4) — store consolidation (wsStatus/onlineOperators/claimContenders/typingUsersCount), extracted useSessionEvents + useVirtualScroll, ChatArea 534->352 lines, contract test 34 members unchanged, CI all green, squash-merged as cfa9ed0
+
+- Checkpoint: `.agents/state/checkpoints/handover-qoder-20260730-0833.json`
+- Summary: `project-log-md/qoder/session-summary-20260730-0833.md`
+
+---
 
 ### 2026-07-30 07:16 — qoder — completed
 
