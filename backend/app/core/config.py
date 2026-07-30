@@ -28,6 +28,17 @@ _PLACEHOLDER_SECRET_KEYS = frozenset(
         "secret_key",
     }
 )
+# Database hosts that count as the developer's own machine. `db` is the
+# docker-compose service name. Any other host is treated as remote so a
+# development-configured process cannot silently write to hosted data.
+_LOCAL_DATABASE_HOSTS = frozenset(
+    {
+        "localhost",
+        "127.0.0.1",
+        "::1",
+        "db",
+    }
+)
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "JskApp"
@@ -124,6 +135,25 @@ class Settings(BaseSettings):
         apply rather than silently switching off.
         """
         return self.ENVIRONMENT.strip().lower() not in _NON_PRODUCTION_ENVIRONMENTS
+
+    @property
+    def is_remote_database(self) -> bool:
+        """True when DATABASE_URL points somewhere other than this machine.
+
+        `ENVIRONMENT` and `DATABASE_URL` are configured independently, so a
+        development-configured process can be aimed at hosted data (an exported
+        `DATABASE_URL`, or the remote env file). Callers use this to deny
+        development fallbacks that would write values the production process
+        cannot read back — see `user_identity_service._get_hmac_key`.
+
+        `PostgresDsn` is a multi-host URL, so any non-local host in the list
+        makes the target remote.
+        """
+        hosts = [
+            (entry.get("host") or "").strip().strip("[]").lower()
+            for entry in self.DATABASE_URL.hosts()
+        ]
+        return any(host and host not in _LOCAL_DATABASE_HOSTS for host in hosts)
 
     def enforce_production_guards(self) -> "Settings":
         """Fail closed on unsafe production configuration combinations.
