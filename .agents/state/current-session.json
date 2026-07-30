@@ -1,13 +1,21 @@
 {
-  "last_updated": "2026-07-30T08:33:00+07:00",
+  "last_updated": "2026-07-30T09:01:00+07:00",
   "platform": "qoder",
-  "current_task": "Merged PR #174: live-chat frontend reassembly (Phases 1-4) — store consolidation (wsStatus/onlineOperators/claimContenders/typingUsersCount), extracted useSessionEvents + useVirtualScroll, ChatArea 53",
+  "current_task": "Post-merge cleanup for PR #174 (live-chat frontend reassembly): deleted merged branch refactor/live-chat-frontend locally + on origin, ran headless browser pass on /admin/live-chat (sidebar + ChatArea",
   "plan_status": "completed",
   "next_steps": [
-    "Optional manual browser pass on /admin/live-chat (local e2e smoke skipped — E2E_ADMIN_PASSWORD not set locally)",
-    "Delete merged branch refactor/live-chat-frontend if no longer needed"
+    "Check GET /api/v1/health/pseudonym-gate on prod — need gate_status: pass + fallback_hit_count: 0 for 3-5 consecutive days (PR #160 read-cutover deployed 2026-07-28, ~day 2)",
+    "After gate clears: plan PR C destructive phase (drop plaintext line_user_id on 7 tables + flip LINE_ID_STORAGE_MODE=pseudonym) with PRD + PRP per mandatory workflow",
+    "Quick wins available: SLA_ALERT_TELEGRAM_ENABLED=true on Koyeb; COOKIE_AUTH_MODE effective-mode check; rich-menu Task 6.2 prod smoke"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-07-30T09:01:00+07:00",
+      "platform": "qoder",
+      "branch": "main",
+      "head": "2314197",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-07-30T08:33:00+07:00",
       "platform": "qoder",
@@ -139,13 +147,6 @@
       "platform": "kilo_code",
       "branch": "main",
       "head": "7fa76d6",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-19T04:12:00+07:00",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "3c11763",
       "status": "completed"
     }
   ],
