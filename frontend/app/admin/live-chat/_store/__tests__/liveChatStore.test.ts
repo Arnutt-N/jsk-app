@@ -156,7 +156,8 @@ describe('liveChatStore', () => {
         U456: { operatorId: 9, name: 'Operator #9' },
       })
       useLiveChatStore.getState().setClaimContenders((prev) => {
-        const { U123: _removed, ...rest } = prev
+        const rest = { ...prev }
+        delete rest.U123
         return rest
       })
       expect(useLiveChatStore.getState().claimContenders).toEqual({

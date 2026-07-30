@@ -60,12 +60,13 @@ function Harness({
     clearFocusedMessage: () => {},
     reducedMotion: true,
   });
+  const { containerRef, sentinelRef } = value;
   React.useEffect(() => {
     onValue(value);
   });
   return (
-    <div ref={value.containerRef}>
-      <div ref={value.sentinelRef} />
+    <div ref={containerRef}>
+      <div ref={sentinelRef} />
     </div>
   );
 }
