@@ -517,6 +517,7 @@ async def test_resolve_many_plaintext_fallback_records_gate_hit():
     from app.services.user_identity_service import resolve_many_by_line_id
 
     mock_db = AsyncMock()
+    mock_db.begin_nested = _make_begin_nested_mock()
     gate_mock = AsyncMock()
 
     with pytest.MonkeyPatch.context() as mp:
@@ -560,3 +561,131 @@ async def test_resolve_many_pseudonym_skips_plaintext():
 
     assert result == {}
     assert mock_db.execute.await_count == 1  # hash query only
+
+
+# ── 9. HMAC key fallback denial on a remote database ──────────────
+
+
+def test_hmac_key_missing_on_remote_database_raises():
+    """A development process aimed at hosted data must not use the dev key."""
+    from app.core.config import Settings
+    from app.services.user_identity_service import _get_hmac_key
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr("app.services.user_identity_service.settings.LINE_ID_HMAC_KEY", "")
+        mp.setattr(
+            "app.services.user_identity_service.settings.ENVIRONMENT", "development"
+        )
+        mp.setattr(Settings, "is_remote_database", property(lambda self: True))
+        with pytest.raises(RuntimeError, match="LINE_ID_HMAC_KEY"):
+            _get_hmac_key()
+
+
+def test_hmac_key_missing_on_local_database_uses_dev_fallback():
+    from app.core.config import Settings
+    from app.services.user_identity_service import _DEV_HMAC_KEY, _get_hmac_key
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr("app.services.user_identity_service.settings.LINE_ID_HMAC_KEY", "")
+        mp.setattr(
+            "app.services.user_identity_service.settings.ENVIRONMENT", "development"
+        )
+        mp.setattr(Settings, "is_remote_database", property(lambda self: False))
+        assert _get_hmac_key() == _DEV_HMAC_KEY
+
+
+def test_configured_hmac_key_wins_on_remote_database():
+    from app.core.config import Settings
+    from app.services.user_identity_service import _get_hmac_key
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(
+            "app.services.user_identity_service.settings.LINE_ID_HMAC_KEY",
+            "configured-key",
+        )
+        mp.setattr(Settings, "is_remote_database", property(lambda self: True))
+        assert _get_hmac_key() == "configured-key"
+
+
+# ── 10. Batch resolver backfills surrogates on a plaintext hit ────
+
+
+@pytest.mark.asyncio
+async def test_resolve_many_plaintext_fallback_backfills_surrogates():
+    from app.services.user_identity_service import resolve_many_by_line_id
+
+    mock_db = AsyncMock()
+    mock_db.begin_nested = _make_begin_nested_mock()
+    legacy = SimpleNamespace(
+        id=7,
+        line_user_id="Ulegacy",
+        line_user_id_hash=None,
+        line_user_id_encrypted=None,
+        line_key_version=None,
+    )
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr("app.services.user_identity_service.settings.LINE_ID_HMAC_KEY", "test-key")
+        mp.setattr("app.services.user_identity_service.settings.LINE_ID_STORAGE_MODE", "dual")
+        mp.setattr("app.services.user_identity_service.record_fallback_hit", AsyncMock())
+
+        call_count = [0]
+
+        async def fake_execute(stmt):
+            call_count[0] += 1
+            result = MagicMock()
+            result.scalars.return_value.all.return_value = (
+                [] if call_count[0] == 1 else [legacy]
+            )
+            return result
+
+        mock_db.execute = fake_execute
+        result = await resolve_many_by_line_id(mock_db, ["Ulegacy"])
+
+        assert result == {"Ulegacy": 7}
+        assert legacy.line_user_id_hash == line_id_hash("Ulegacy")
+
+    assert legacy.line_user_id_encrypted is not None
+    assert legacy.line_key_version == CURRENT_LINE_KEY_VERSION
+    mock_db.flush.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_resolve_many_backfill_integrity_error_keeps_mapping():
+    """A conflicting row degrades to count-only instead of failing the batch."""
+    from app.services.user_identity_service import resolve_many_by_line_id
+
+    mock_db = AsyncMock()
+    ctx = MagicMock()
+    ctx.__aenter__ = AsyncMock(return_value=None)
+    ctx.__aexit__ = AsyncMock(return_value=False)
+    mock_db.begin_nested = MagicMock(return_value=ctx)
+    mock_db.flush = AsyncMock(side_effect=IntegrityError("stmt", {}, Exception("dup")))
+    legacy = SimpleNamespace(
+        id=7,
+        line_user_id="Ulegacy",
+        line_user_id_hash=None,
+        line_user_id_encrypted=None,
+        line_key_version=None,
+    )
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr("app.services.user_identity_service.settings.LINE_ID_HMAC_KEY", "test-key")
+        mp.setattr("app.services.user_identity_service.settings.LINE_ID_STORAGE_MODE", "dual")
+        mp.setattr("app.services.user_identity_service.record_fallback_hit", AsyncMock())
+
+        call_count = [0]
+
+        async def fake_execute(stmt):
+            call_count[0] += 1
+            result = MagicMock()
+            result.scalars.return_value.all.return_value = (
+                [] if call_count[0] == 1 else [legacy]
+            )
+            return result
+
+        mock_db.execute = fake_execute
+        result = await resolve_many_by_line_id(mock_db, ["Ulegacy"])
+
+    assert result == {"Ulegacy": 7}
+    mock_db.expire.assert_awaited_once_with(legacy)

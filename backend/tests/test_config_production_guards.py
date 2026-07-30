@@ -76,6 +76,50 @@ def test_recognized_non_production_environments_skip_guards(environment: str) ->
     assert settings.enforce_production_guards() is settings
 
 
+# --- is_remote_database (pseudonym gate hardening) ---------------------------
+
+
+@pytest.mark.parametrize(
+    "host",
+    ["localhost", "127.0.0.1", "::1", "db", "LOCALHOST"],
+)
+def test_local_database_hosts_are_not_remote(host: str) -> None:
+    bracketed = f"[{host}]" if ":" in host else host
+    settings = build_settings(
+        DATABASE_URL=f"postgresql+asyncpg://postgres:password@{bracketed}:5432/skn_app_db"
+    )
+
+    assert settings.is_remote_database is False
+
+
+@pytest.mark.parametrize(
+    "host",
+    [
+        "aws-1-eu-central-1.pooler.example.com",
+        "db.example-project.example.co",
+        "10.0.0.5",
+    ],
+)
+def test_hosted_database_hosts_are_remote(host: str) -> None:
+    settings = build_settings(
+        DATABASE_URL=f"postgresql+asyncpg://postgres:password@{host}:5432/postgres"
+    )
+
+    assert settings.is_remote_database is True
+
+
+def test_multi_host_url_with_any_hosted_host_is_remote() -> None:
+    """PostgresDsn is multi-host: one hosted entry is enough to count as remote."""
+    settings = build_settings(
+        DATABASE_URL=(
+            "postgresql+asyncpg://postgres:password@localhost:5432,"
+            "replica.example.com:5432/skn_app_db"
+        )
+    )
+
+    assert settings.is_remote_database is True
+
+
 def test_production_rejects_dev_auth_bypass() -> None:
     settings = build_settings(ENVIRONMENT="production", DEV_AUTH_BYPASS=True)
 

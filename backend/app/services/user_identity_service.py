@@ -32,9 +32,15 @@ def _get_hmac_key() -> str:
     key = settings.LINE_ID_HMAC_KEY
     if key:
         return key
-    if not settings.is_production_like:
-        return _DEV_HMAC_KEY
-    raise RuntimeError("LINE_ID_HMAC_KEY must be set in production")
+    if settings.is_production_like:
+        raise RuntimeError("LINE_ID_HMAC_KEY must be set in production")
+    if settings.is_remote_database:
+        raise RuntimeError(
+            "LINE_ID_HMAC_KEY must be set when DATABASE_URL points at a remote "
+            "database — the development fallback key would write hashes the "
+            "production process cannot resolve."
+        )
+    return _DEV_HMAC_KEY
 
 
 def line_id_hash(raw: str) -> str:
@@ -141,8 +147,9 @@ async def resolve_many_by_line_id(
 ) -> dict[str, int]:
     """Batch-map line_user_id -> user.id. Hash IN lookup, plaintext fallback for misses.
 
-    Records a gate fallback hit for each id resolved via the plaintext column.
-    Does not create users or backfill surrogates (see resolve_by_line_id).
+    Records a gate fallback hit for each id resolved via the plaintext column and
+    backfills that row's surrogates, so a stale hash converges to correct instead
+    of being re-counted on every read. Does not create users.
     """
     if not line_user_ids:
         return {}
@@ -163,8 +170,15 @@ async def resolve_many_by_line_id(
         result = await db.execute(select(User).where(User.line_user_id.in_(misses)))
         for user in result.scalars().all():
             if user.line_user_id in misses and user.line_user_id not in mapping:
-                mapping[user.line_user_id] = user.id
-                await record_fallback_hit(user.line_user_id, user.id)
+                raw = user.line_user_id
+                mapping[raw] = user.id
+                await record_fallback_hit(raw, user.id)
+                try:
+                    async with db.begin_nested():
+                        populate_surrogate(user, raw)
+                        await db.flush()
+                except IntegrityError:
+                    await db.expire(user)
     return mapping
 
 
