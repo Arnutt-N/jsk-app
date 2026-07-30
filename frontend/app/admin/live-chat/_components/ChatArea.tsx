@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useMemo } from 'react';
 import { AlertTriangle, Bell, MessageSquare, RefreshCw, Wifi, WifiOff } from 'lucide-react';
 
 import { ProfileDropdown } from './ProfileDropdown';
@@ -8,6 +8,7 @@ import { ProfileDropdown } from './ProfileDropdown';
 import type { Message } from '@/lib/websocket/types';
 import { useLiveChatStore } from '../_store/liveChatStore';
 import { useLiveChatContext } from '../_context/LiveChatContext';
+import { useVirtualScroll } from '../_hooks/useVirtualScroll';
 import { ChatHeader } from './ChatHeader';
 import { MessageBubble } from './MessageBubble';
 import { MessageInput } from './MessageInput';
@@ -20,16 +21,6 @@ function getSenderLabel(message: Message, displayName?: string) {
   if (message.sender_role === 'BOT') return 'บอท';
   return message.operator_name || 'เจ้าหน้าที่';
 }
-
-// Hand-rolled virtualization uses a FIXED row-height estimate, which fights
-// variable-height chat bubbles and makes the scroll position drift → jitter
-// loop → freeze on long conversations. The non-virtual path (render all) is
-// proven smooth, and chats page in 50 at a time so realistic threads rarely
-// approach this. Keep the windowing only as a safety net for pathological
-// (multi-thousand message) threads. See issue: "freeze on very long chats".
-const VIRTUALIZATION_THRESHOLD = 1500;
-const VIRTUAL_ESTIMATED_ROW_HEIGHT = 88;
-const VIRTUAL_OVERSCAN = 12;
 
 export function ChatArea() {
   // Read state from Zustand
@@ -98,167 +89,25 @@ export function ChatArea() {
     return `Operator #${sessionOwnerId}`;
   })();
 
-  const historySentinelRef = useRef<HTMLDivElement>(null);
-  const messagesContainerRef = useRef<HTMLDivElement>(null);
-  const [scrollTop, setScrollTop] = React.useState(0);
-  const [viewportHeight, setViewportHeight] = React.useState(0);
-  // L9.2 (bug #3): Allow screen-reader users to disable virtualization so all
-  // messages are in the DOM and readable. Virtualization removes off-screen
-  // messages from the DOM, violating WCAG 2.1 AA (1.3.2, 4.1.2, 2.4.3).
-  const [forceAllMessages, setForceAllMessages] = React.useState(false);
-
-  // L9.3 (auto-scroll fix): Track "pending scroll to bottom" — set true when
-  // selectedId changes, consumed when messages actually load (0 → N). The old
-  // code only used double rAF on selectedId change, but messages are fetched
-  // async so they're still [] when the rAF fires. This ref bridges the gap.
-  const pendingScrollToBottomRef = useRef(false);
-
-  // L9.1: throttle scroll-driven setState with requestAnimationFrame so the
-  // virtualization recompute runs at most once per frame instead of on every
-  // scroll event. Read scrollTop synchronously BEFORE the rAF callback because
-  // React nullifies e.currentTarget after the handler returns.
-  const scrollRafRef = useRef<number | null>(null);
-  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
-    const top = e.currentTarget.scrollTop;
-    if (scrollRafRef.current != null) return;
-    scrollRafRef.current = requestAnimationFrame(() => {
-      scrollRafRef.current = null;
-      setScrollTop(top);
-    });
-  }, []);
-  useEffect(() => () => {
-    if (scrollRafRef.current != null) cancelAnimationFrame(scrollRafRef.current);
-  }, []);
-
-  // L7: baseline count of messages that already existed when this conversation
-  // was opened. Anything appended after the baseline (absolute idx >= baseline)
-  // is treated as "new" and gets the entrance animation. The baseline is captured
-  // during render via the React-sanctioned "adjust state when a prop changes"
-  // pattern (https://react.dev/learn/you-might-not-need-an-effect) — re-captured
-  // synchronously whenever selectedId changes, so existing/historical messages
-  // never animate and the entrance does not replay when switching rooms.
-  const [prevSelectedId, setPrevSelectedId] = React.useState<string | null>(selectedId);
-  const [baselineCount, setBaselineCount] = React.useState(messages.length);
-  if (selectedId !== prevSelectedId) {
-    setPrevSelectedId(selectedId);
-    setBaselineCount(messages.length);
-    // L9.2 (bug #3): Reset "load all" when switching conversations
-    setForceAllMessages(false);
-  }
-
-  // Only auto-scroll if near bottom (not when user scrolled up to read older messages).
-  // Scroll the messages container directly — scrollIntoView also scrolls overflow-hidden
-  // ancestors (the shell), shifting the whole 3-column layout upward.
-  // L9.2 (bug #6): Atomic snapshot — read scrollHeight once and use the same
-  // value for both the near-bottom check and the scroll target. Previously
-  // isNearBottom() and scrollTo() each read scrollHeight independently, so a
-  // DOM change between reads (new message rendered) could cause the check to
-  // pass but the scroll to target the wrong position.
-  // L9.3 (auto-scroll fix): If pendingScrollToBottom is set (new conversation
-  // opened), force scroll to bottom regardless of near-bottom check, because
-  // messages just loaded from 0 → N and the user is at scrollTop=0.
-  useEffect(() => {
-    const container = messagesContainerRef.current;
-    if (!container) return;
-    if (pendingScrollToBottomRef.current && messages.length > 0) {
-      // Messages just loaded for a new conversation — force scroll to bottom
-      pendingScrollToBottomRef.current = false;
-      // Use rAF to ensure DOM has painted the new messages before scrolling
-      requestAnimationFrame(() => {
-        container.scrollTo({ top: container.scrollHeight, behavior: 'auto' });
-        console.log('[ChatArea] Auto-scrolled to bottom (initial load), scrollHeight:', container.scrollHeight);
-      });
-      return;
-    }
-    const { scrollTop, scrollHeight, clientHeight } = container;
-    const nearBottom = scrollHeight - scrollTop - clientHeight < 100;
-    if (nearBottom) {
-      container.scrollTo({ top: scrollHeight, behavior: reduced ? 'auto' : 'smooth' });
-    }
-  }, [messages.length, reduced]);
-
-  // Auto-scroll to bottom when opening a new conversation.
-  // L9.2 (bug #4): Use a cancelled flag + separate rAF ID variables instead of
-  // the type-unsafe (rafId1 as any).rafId2 = rafId2 mutation. The cancelled flag
-  // prevents the inner rAF callback from executing after cleanup, and
-  // cancelAnimationFrame is called on both IDs (0 is a safe no-op if the inner
-  // rAF hasn't been scheduled yet).
-  // L9.3 (auto-scroll fix): Set pendingScrollToBottomRef here (in effect, not
-  // render body) so the messages-loaded effect knows to force-scroll.
-  useEffect(() => {
-    if (!selectedId) return;
-    pendingScrollToBottomRef.current = true;
-    const container = messagesContainerRef.current;
-    if (!container) return;
-
-    let cancelled = false;
-    let rafId1 = 0;
-    let rafId2 = 0;
-
-    // Use double rAF to wait for layout/paint to complete
-    // (more reliable than setTimeout for variable-height messages)
-    rafId1 = requestAnimationFrame(() => {
-      if (cancelled) return;
-      rafId2 = requestAnimationFrame(() => {
-        if (cancelled) return;
-        container.scrollTo({ top: container.scrollHeight, behavior: 'auto' });
-        console.log('[ChatArea] Auto-scrolled to bottom for selectedId:', selectedId, 'scrollHeight:', container.scrollHeight);
-      });
-    });
-
-    return () => {
-      cancelled = true;
-      cancelAnimationFrame(rafId1);
-      cancelAnimationFrame(rafId2);
-    };
-  }, [selectedId]);
-
-  useEffect(() => {
-    const container = messagesContainerRef.current;
-    if (!container) return;
-    setViewportHeight(container.clientHeight);
-    const observer = new ResizeObserver(() => {
-      setViewportHeight(container.clientHeight);
-    });
-    observer.observe(container);
-    return () => observer.disconnect();
-  }, [selectedId]);
-
-  useEffect(() => {
-    if (!focusedMessageId) return;
-    const idx = messages.findIndex((m) => m.id === focusedMessageId);
-    if (idx < 0) return;
-    const container = messagesContainerRef.current;
-    if (!container) return;
-    container.scrollTop = Math.max(
-      0,
-      idx * VIRTUAL_ESTIMATED_ROW_HEIGHT - container.clientHeight / 2,
-    );
-    const timer = window.setTimeout(() => {
-      const target = document.getElementById(`message-${focusedMessageId}`);
-      if (target) target.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' });
-      clearFocusedMessage();
-    }, 40);
-    return () => window.clearTimeout(timer);
-  }, [clearFocusedMessage, focusedMessageId, messages, reduced]);
-
-  useEffect(() => {
-    if (!historySentinelRef.current || !selectedId) return;
-    const observer = new IntersectionObserver(async (entries) => {
-      if (!entries[0]?.isIntersecting) return;
-      if (!hasMoreHistory || isLoadingHistory) return;
-      const container = messagesContainerRef.current;
-      const prevHeight = container?.scrollHeight || 0;
-      await loadOlderMessages();
-      requestAnimationFrame(() => {
-        if (!container) return;
-        const delta = container.scrollHeight - prevHeight;
-        container.scrollTop += delta;
-      });
-    }, { root: messagesContainerRef.current, threshold: 0.1 });
-    observer.observe(historySentinelRef.current);
-    return () => observer.disconnect();
-  }, [loadOlderMessages, hasMoreHistory, isLoadingHistory, selectedId]);
+  // ── Scroll behavior + safety-net virtualization (verbatim extraction) ──
+  const {
+    containerRef: messagesContainerRef,
+    sentinelRef: historySentinelRef,
+    onScroll: handleScroll,
+    virtualEnabled,
+    visibleWindow,
+    setForceAllMessages,
+    baselineCount,
+  } = useVirtualScroll({
+    messages,
+    selectedId,
+    hasMoreHistory,
+    isLoadingHistory,
+    loadOlderMessages,
+    focusedMessageId,
+    clearFocusedMessage,
+    reducedMotion: reduced,
+  });
 
   const connectionStatus = useMemo(() => {
     switch (wsStatus) {
@@ -273,23 +122,6 @@ export function ChatArea() {
         return { icon: WifiOff, className: 'bg-offline/10 text-offline', label: 'Offline' };
     }
   }, [wsStatus]);
-
-  const virtualEnabled = !forceAllMessages && messages.length > VIRTUALIZATION_THRESHOLD;
-  const visibleWindow = useMemo(() => {
-    const total = messages.length;
-    if (!virtualEnabled || total === 0) {
-      return { startIndex: 0, endIndex: total, topPadding: 0, bottomPadding: 0 };
-    }
-    const start = Math.max(0, Math.floor(scrollTop / VIRTUAL_ESTIMATED_ROW_HEIGHT) - VIRTUAL_OVERSCAN);
-    const visibleCount = Math.ceil(viewportHeight / VIRTUAL_ESTIMATED_ROW_HEIGHT) + VIRTUAL_OVERSCAN * 2;
-    const end = Math.min(total, start + visibleCount);
-    return {
-      startIndex: start,
-      endIndex: end,
-      topPadding: start * VIRTUAL_ESTIMATED_ROW_HEIGHT,
-      bottomPadding: Math.max(0, (total - end) * VIRTUAL_ESTIMATED_ROW_HEIGHT),
-    };
-  }, [scrollTop, messages.length, viewportHeight, virtualEnabled]);
 
   // Empty state (no conversation selected)
   if (!selectedId) {
@@ -426,20 +258,6 @@ export function ChatArea() {
           </span>
           <div className="flex-1 h-px bg-border-default" />
         </div>
-
-        {(() => {
-          // L9.4 (unread divider): Use initialUnreadCount (captured at open
-          // time) instead of currentChat?.unread_count (which is 0 because
-          // selectConversation clears it immediately).
-          const unreadCount = initialUnreadCount;
-          console.log('[ChatArea] Rendering messages:', {
-            selectedId,
-            messagesLength: messages.length,
-            unreadCount,
-            firstUnreadIdx: unreadCount > 0 ? messages.length - unreadCount : -1,
-          });
-          return null;
-        })()}
 
         {messages
           .slice(visibleWindow.startIndex, visibleWindow.endIndex)
