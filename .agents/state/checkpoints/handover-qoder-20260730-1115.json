@@ -1,0 +1,18 @@
+{
+  "handoff_version": "2.0",
+  "platform": "qoder",
+  "agent": "qoder",
+  "timestamp": "2026-07-30T11:15:00+07:00",
+  "branch": "main",
+  "head_commit": "a34c080",
+  "status": "completed",
+  "work_summary": "PR #175 merged (a34c080): pseudonym gate hardening after prod incident — 6 users held dev-key hashes causing 176 fallback hits; repaired prod rows + Redis counter, added Settings.is_remote_database fail-loud guard and self-heal in resolve_many_by_line_id",
+  "priority_actions": [
+    "Re-read GET /api/v1/health/pseudonym-gate after Koyeb CD deploy to confirm pass/0 unaffected",
+    "Gate clock restarted 2026-07-30 — need pass + fallback_hit_count 0 through ~2026-08-04",
+    "Then write PRD + PRP for PR C destructive phase (drop line_user_id on 7 tables + flip LINE_ID_STORAGE_MODE=pseudonym)"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/qoder/session-summary-20260730-1115.md",
+  "cross_platform_read": []
+}

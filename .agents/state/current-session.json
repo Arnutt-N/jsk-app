@@ -1,14 +1,21 @@
 {
-  "last_updated": "2026-07-30T09:01:00+07:00",
+  "last_updated": "2026-07-30T11:15:00+07:00",
   "platform": "qoder",
-  "current_task": "Post-merge cleanup for PR #174 (live-chat frontend reassembly): deleted merged branch refactor/live-chat-frontend locally + on origin, ran headless browser pass on /admin/live-chat (sidebar + ChatArea",
+  "current_task": "PR #175 merged (a34c080): pseudonym gate hardening after prod incident — 6 users held dev-key hashes causing 176 fallback hits; repaired prod rows + Redis counter, added Settings.is_remote_database fa",
   "plan_status": "completed",
   "next_steps": [
-    "Check GET /api/v1/health/pseudonym-gate on prod — need gate_status: pass + fallback_hit_count: 0 for 3-5 consecutive days (PR #160 read-cutover deployed 2026-07-28, ~day 2)",
-    "After gate clears: plan PR C destructive phase (drop plaintext line_user_id on 7 tables + flip LINE_ID_STORAGE_MODE=pseudonym) with PRD + PRP per mandatory workflow",
-    "Quick wins available: SLA_ALERT_TELEGRAM_ENABLED=true on Koyeb; COOKIE_AUTH_MODE effective-mode check; rich-menu Task 6.2 prod smoke"
+    "Re-read GET /api/v1/health/pseudonym-gate after Koyeb CD deploy to confirm pass/0 unaffected",
+    "Gate clock restarted 2026-07-30 — need pass + fallback_hit_count 0 through ~2026-08-04",
+    "Then write PRD + PRP for PR C destructive phase (drop line_user_id on 7 tables + flip LINE_ID_STORAGE_MODE=pseudonym)"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-07-30T11:15:00+07:00",
+      "platform": "qoder",
+      "branch": "main",
+      "head": "a34c080",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-07-30T09:01:00+07:00",
       "platform": "qoder",
@@ -140,13 +147,6 @@
       "platform": "kilo_code",
       "branch": "main",
       "head": "56511cf",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-19T04:15:00+07:00",
-      "platform": "kilo_code",
-      "branch": "main",
-      "head": "7fa76d6",
       "status": "completed"
     }
   ],

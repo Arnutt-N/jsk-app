@@ -1,14 +1,17 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-07-30 09:01 by Qoder (Post-merge cleanup for PR #174 live-chat frontend reassembly: deleted merged branch refact)
+> **Last Updated:** 2026-07-30 11:15 by Qoder (PR #175 merged a34c080: pseudonym gate hardening after prod incident — 6 users held dev-ke)
 
 ## Thai Summary
-**PR C read-cutover** เสร็จสมบูรณ์ — PR #160 merged (squash `4ba338a`): แปลง ~50 read-path queries ใน 13 ไฟล์จาก filter ด้วย `line_user_id` ตรงๆ เป็น mode-aware helpers (`resolve_by_line_id`, `child_filter`, `child_column`, `child_join_condition`, `user_identity_filter`, `resolve_many_by_line_id`) — ใช้ได้ทั้ง `dual` และ `pseudonym` mode, additive เท่านั้น (ไม่ drop column, ไม่เปลี่ยน API contract, prod ยังเป็น `dual`), 771 tests ผ่าน, CI เขียวทุก check
-- ขั้นตอนถัดไป: เฝ้าดู `GET /api/v1/health/pseudonym-gate` — `gate_status: pass` + `fallback_hit_count: 0` ต่อเนื่อง 3-5 วัน → จากนั้นวางแผน **destructive phase** (drop plaintext columns + flip `LINE_ID_STORAGE_MODE=pseudonym`)
+**PR C gate เคยขึ้น fail และแก้แล้ว** — การอ่าน `GET /api/v1/health/pseudonym-gate` แบบ authenticated ครั้งแรก (30 ก.ค.) ได้ `gate_status: fail`, `fallback_hit_count: 176` สาเหตุ: 6 จาก 8 LINE users บน prod (`users.id` 1,5,6,7,8,9) มี `line_user_id_hash` ที่คำนวณด้วย **dev fallback HMAC key** เพราะ process ที่ตั้ง `ENVIRONMENT=development` แต่ชี้ remote DB เขียนลงไป (`_get_hmac_key` fallback เงียบ) และ `resolve_many_by_line_id` นับ hit แต่ไม่ซ่อม row จึงถูกนับซ้ำทุก admin poll — ซ่อม prod แล้ว (re-hash 6 rows + ล้าง Redis counter) ตอนนี้ gate อ่านได้ `pass` / `0`
+**PR #175 merged** (squash `a34c080`): hardening กันเกิดซ้ำ — `Settings.is_remote_database` + `_get_hmac_key` fail-loud เมื่อ dev key จะเขียนลง remote DB, `resolve_many_by_line_id` self-heal surrogate ด้วย savepoint ต่อ row, 794 tests ผ่าน, CI เขียวครบ
+- ขั้นตอนถัดไป: **นับ gate ใหม่ตั้งแต่ 30 ก.ค.** — ต้องได้ `gate_status: pass` + `fallback_hit_count: 0` ต่อเนื่องถึง ~4 ส.ค. → จากนั้นเขียน PRD + PRP ของ **destructive phase** (drop plaintext columns 7 ตาราง + flip `LINE_ID_STORAGE_MODE=pseudonym`)
+- วิธีอ่าน gate: ต้องใช้ admin session แบบ cookie — `fetch('/api/v1/health/pseudonym-gate', { credentials: 'include' })` จาก tab ที่ login แล้ว (curl ตรงไป Koyeb ได้ 401 เพราะ frontend ย้ายไป cookie auth แล้ว)
 
 ### PR C (LINE ID Pseudonymization contract phase) — gate endpoint ขึ้น main
-- **PR #158** (squash `3d01958`): เพิ่ม `GET /api/v1/health/pseudonym-gate` (admin-only) รายงาน counter `line_id_plaintext_fallback_hit` (in-memory + Redis-shared) เพื่อให้ verify gate (zero hits 3-5 วันใน `dual` mode) ได้จาก browser โดยไม่ต้องอ่าน Koyeb logs (control-plane API DNS-blocked ในเครื่อง dev)
-- ขั้นตอนถัดไป: หลัง Koyeb CD deploy → login admin → เปิด `/api/v1/health/pseudonym-gate` → ยืนยัน `gate_status: pass` + `fallback_hit_count: 0` ติดต่อ 3-5 วัน → เริ่ม PR C destructive step ได้
+- **PR #158** (squash `3d01958`): เพิ่ม `GET /api/v1/health/pseudonym-gate` (admin-only) รายงาน counter `line_id_plaintext_fallback_hit` (in-memory + Redis-shared) เพื่อให้ verify gate (zero hits 3-5 วันใน `dual` mode) ได้จาก browser โดยไม่ต้องอ่าน Koyeb logs
+- ขั้นตอนถัดไป: อ่าน gate ด้วย cookie session (ดู Thai Summary) → ยืนยัน `gate_status: pass` + `fallback_hit_count: 0` ติดต่อถึง ~4 ส.ค. → เริ่ม PR C destructive step ได้
+- หมายเหตุ: Koyeb control-plane API ใช้ได้จริงที่ `app.koyeb.com/v1` (ที่เคยบันทึกว่า DNS-blocked คือโดเมน `api.koyeb.com`) — ใช้อ่าน env var ของ deployment ได้
 - สามารถเริ่ม **PR C read-cutover phase** (additive, ไม่ drop column) ได้เลยในขนาน (~50 query paths ใน 13 ไฟล์)
 
 ## 🆕 NEW AGENT? START HERE
@@ -81,6 +84,7 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-07-30 11:15] Qoder: PR #175 merged (a34c080): pseudonym gate hardening after prod incident — 6 users held dev-key hashes causing 176 fallback hits; repaired prod rows + Redis counter, added Settings.is_remote_database fail-loud guard and self-heal in resolve_m (Qoder)
 - [2026-07-30 09:01] Qoder: Post-merge cleanup for PR #174 (live-chat frontend reassembly): deleted merged branch refactor/live-chat-frontend locally + on origin, ran headless browser pass on /admin/live-chat (sidebar + ChatArea + CustomerPanel render correctly post-r (Qoder)
 - [2026-07-30 08:33] Qoder: Merged PR #174: live-chat frontend reassembly (Phases 1-4) — store consolidation (wsStatus/onlineOperators/claimContenders/typingUsersCount), extracted useSessionEvents + useVirtualScroll, ChatArea 534->352 lines, contract test 34 members u (Qoder)
 - [2026-07-30 07:16] Qoder: Fixed 9 react-hooks/set-state-in-effect lint errors (try/finally fetchers + handler-based page resets, commit 6bddb03), PR #173 apiFetch adapter merged to main (squash d1b47f7). Started PR C live-chat frontend reassembly: branch refactor/li (Qoder)

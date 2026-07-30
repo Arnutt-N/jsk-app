@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 197 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 198 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-30 11:15 — qoder — completed
+
+PR #175 merged (a34c080): pseudonym gate hardening after prod incident — 6 users held dev-key hashes causing 176 fallback hits; repaired prod rows + Redis counter, added Settings.is_remote_database fail-loud guard and self-heal in resolve_many_by_line_id
+
+- Checkpoint: `.agents/state/checkpoints/handover-qoder-20260730-1115.json`
+- Summary: `project-log-md/qoder/session-summary-20260730-1115.md`
+
+---
 
 ### 2026-07-30 09:01 — qoder — completed
 
