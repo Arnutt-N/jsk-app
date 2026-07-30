@@ -1,14 +1,21 @@
 {
-  "last_updated": "2026-07-30T06:09:00+07:00",
+  "last_updated": "2026-07-30T07:16:00+07:00",
   "platform": "qoder",
-  "current_task": "Merged PR #172 (report_service extraction, 780 backend tests green). Opened PR #173 apiFetch adapter: shared API_BASE constant, auto Content-Type, raw option for blobs, useApiFetch hook, migrated 5 ad",
+  "current_task": "Fixed 9 react-hooks/set-state-in-effect lint errors (try/finally fetchers + handler-based page resets, commit 6bddb03), PR #173 apiFetch adapter merged to main (squash d1b47f7). Started PR C live-chat",
   "plan_status": "completed",
   "next_steps": [
-    "Fix 9 react-hooks/set-state-in-effect lint errors blocking PR #173 CI",
-    "Merge PR #173 with --admin when all green",
-    "Start PR C: live-chat frontend reassembly (useVirtualScroll, useSessionEvents, Zustand consolidation)"
+    "Review PRD + PRP plan (.claude/PRPs/prds/live-chat-frontend-reassembly.prd.md + plans/live-chat-frontend-reassembly.plan.md) — skill-assisted or user approval",
+    "Implement Phase 1: add wsStatus/onlineOperators/claimContenders/typingUsersCount to liveChatStore + tests",
+    "Phases 2-4 per plan: useSessionEvents extraction, useVirtualScroll extraction, full verification + PR"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-07-30T07:16:00+07:00",
+      "platform": "qoder",
+      "branch": "refactor/live-chat-frontend",
+      "head": "d1b47f7",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-07-30T06:09:00+07:00",
       "platform": "qoder",
@@ -140,13 +147,6 @@
       "platform": "claude_code",
       "branch": "main",
       "head": "df0413f",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-18T22:26:00+07:00",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "dc6d8b8",
       "status": "completed"
     }
   ],
