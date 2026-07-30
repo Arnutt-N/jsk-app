@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 194 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 195 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-07-30 07:16 — qoder — completed
+
+Fixed 9 react-hooks/set-state-in-effect lint errors (try/finally fetchers + handler-based page resets, commit 6bddb03), PR #173 apiFetch adapter merged to main (squash d1b47f7). Started PR C live-chat frontend reassembly: branch refactor/live-chat-frontend + PRD/PRP plan drafted (useVirtualScroll, useSessionEvents, Zustand consolidation), awaiting document review before implementation
+
+- Checkpoint: `.agents/state/checkpoints/handover-qoder-20260730-0716.json`
+- Summary: `project-log-md/qoder/session-summary-20260730-0716.md`
+
+---
 
 ### 2026-07-30 06:09 — qoder — completed
 

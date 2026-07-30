@@ -84,6 +84,10 @@ describe('LiveChatContext value memoization (H3 / B4)', () => {
       messages: [],
       inputText: '',
       showCannedPicker: false,
+      wsStatus: 'disconnected',
+      onlineOperators: [],
+      claimContenders: {},
+      typingUsersCount: 0,
     });
 
     // jsdom does not implement matchMedia; the provider reads it on mount.

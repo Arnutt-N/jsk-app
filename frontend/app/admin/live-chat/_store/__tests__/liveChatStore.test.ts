@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { useLiveChatStore } from '../liveChatStore'
 import type { Message } from '@/lib/websocket/types'
-import type { Conversation, CurrentChat } from '../../_types'
+import type { ClaimContender, Conversation, CurrentChat } from '../../_types'
 
 // ──────────────────────────────────────────────
 // Helpers
@@ -42,6 +42,10 @@ describe('liveChatStore', () => {
       conversations: [],
       messages: [],
       currentChat: null,
+      wsStatus: 'disconnected',
+      onlineOperators: [],
+      claimContenders: {},
+      typingUsersCount: 0,
     })
   })
 
@@ -98,6 +102,72 @@ describe('liveChatStore', () => {
 
       const { conversations } = useLiveChatStore.getState()
       expect(conversations[0].unread_count).toBe(4)
+    })
+  })
+
+  describe('WS session state', () => {
+    it('initializes with disconnected/empty defaults', () => {
+      const s = useLiveChatStore.getState()
+      expect(s.wsStatus).toBe('disconnected')
+      expect(s.onlineOperators).toEqual([])
+      expect(s.claimContenders).toEqual({})
+      expect(s.typingUsersCount).toBe(0)
+    })
+
+    it('setWsStatus updates the connection state', () => {
+      useLiveChatStore.getState().setWsStatus('connected')
+      expect(useLiveChatStore.getState().wsStatus).toBe('connected')
+    })
+
+    it('setOnlineOperators replaces the presence roster', () => {
+      const operators = [
+        { id: 1, status: 'online', active_chats: 2, display_name: 'Somchai' },
+        { id: 2, status: 'away', active_chats: 0, name: 'Op Two' },
+      ]
+      useLiveChatStore.getState().setOnlineOperators(operators)
+      expect(useLiveChatStore.getState().onlineOperators).toEqual(operators)
+    })
+
+    it('setClaimContenders accepts a direct value', () => {
+      const contenders: Record<string, ClaimContender> = {
+        U123: { operatorId: 7, name: 'Operator #7' },
+      }
+      useLiveChatStore.getState().setClaimContenders(contenders)
+      expect(useLiveChatStore.getState().claimContenders).toEqual(contenders)
+    })
+
+    it('setClaimContenders accepts an updater receiving previous state', () => {
+      useLiveChatStore.getState().setClaimContenders({
+        U123: { operatorId: 7, name: 'Operator #7' },
+      })
+      useLiveChatStore.getState().setClaimContenders((prev) => ({
+        ...prev,
+        U456: { operatorId: 9, name: 'Operator #9' },
+      }))
+      expect(useLiveChatStore.getState().claimContenders).toEqual({
+        U123: { operatorId: 7, name: 'Operator #7' },
+        U456: { operatorId: 9, name: 'Operator #9' },
+      })
+    })
+
+    it('setClaimContenders updater can remove a key', () => {
+      useLiveChatStore.getState().setClaimContenders({
+        U123: { operatorId: 7, name: 'Operator #7' },
+        U456: { operatorId: 9, name: 'Operator #9' },
+      })
+      useLiveChatStore.getState().setClaimContenders((prev) => {
+        const rest = { ...prev }
+        delete rest.U123
+        return rest
+      })
+      expect(useLiveChatStore.getState().claimContenders).toEqual({
+        U456: { operatorId: 9, name: 'Operator #9' },
+      })
+    })
+
+    it('setTypingUsersCount updates the derived count', () => {
+      useLiveChatStore.getState().setTypingUsersCount(3)
+      expect(useLiveChatStore.getState().typingUsersCount).toBe(3)
     })
   })
 })

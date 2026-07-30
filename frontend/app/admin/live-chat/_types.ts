@@ -1,4 +1,14 @@
-import type { Message } from '@/lib/websocket/types';
+import type { Message, PresencePayload } from '@/lib/websocket/types';
+
+export type OnlineOperator = PresencePayload['operators'][number];
+
+/**
+ * Claim-contention lock entry: which operator holds (or is racing for) a room.
+ */
+export interface ClaimContender {
+  operatorId: number;
+  name: string;
+}
 
 export interface Session {
   id: number;

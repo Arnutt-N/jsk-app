@@ -12,25 +12,16 @@ import React, {
 import { useAuth } from '@/contexts/AuthContext';
 import { useLiveChatSocket } from '@/hooks/useLiveChatSocket';
 import { useNotificationSound } from '@/hooks/useNotificationSound';
-import type {
-  ConnectionState,
-  PresencePayload,
-  SessionTransferredPayload,
-} from '@/lib/websocket/types';
+import type { ConnectionState, PresencePayload } from '@/lib/websocket/types';
 import { useLiveChatStore } from '../_store/liveChatStore';
-import type { Conversation } from '../_types';
-import { resolveOperatorName, removeKey, formatTime } from '../_hooks/liveChatApi';
-import { mapWsErrorToThai } from '../_lib/wsErrorMessages';
+import type { ClaimContender, Conversation } from '../_types';
+import { formatTime } from '../_hooks/liveChatApi';
 import { useMediaQuery } from '../_hooks/useMediaQuery';
 import { useLiveChatActions } from '../_hooks/useLiveChatActions';
 import { useConversationSync } from '../_hooks/useConversationSync';
 import { useMessageFlow } from '../_hooks/useMessageFlow';
 import { useChatRoom } from '../_hooks/useChatRoom';
-
-interface ClaimContender {
-  operatorId: number;
-  name: string;
-}
+import { useSessionEvents } from '../_hooks/useSessionEvents';
 
 interface LiveChatContextValue {
   wsStatus: ConnectionState;
@@ -71,19 +62,21 @@ interface LiveChatContextValue {
 
 const LiveChatContext = createContext<LiveChatContextValue | undefined>(undefined);
 
-// Helper to get current store state without subscribing
-const getStore = () => useLiveChatStore.getState();
-
 export function LiveChatProvider({ children }: { children: React.ReactNode }) {
   // ── Zustand store ──
   const store = useLiveChatStore;
 
   // Subscribe only to the store slices still consumed by derived values
-  // (selectedConversation, isHumanMode) and effects. All other UI fields
-  // (inputText, sending, pickers, etc.) are read directly from the store by
-  // the components that need them, so the provider does not re-render on them.
+  // (selectedConversation, isHumanMode) and effects, plus the WS session
+  // fields exposed on the context value. All other UI fields (inputText,
+  // sending, pickers, etc.) are read directly from the store by the
+  // components that need them, so the provider does not re-render on them.
   const selectedId = store((s) => s.selectedId);
   const currentChat = store((s) => s.currentChat);
+  const wsStatus = store((s) => s.wsStatus);
+  const typingUsersCount = store((s) => s.typingUsersCount);
+  const onlineOperators = store((s) => s.onlineOperators);
+  const claimContenders = store((s) => s.claimContenders);
 
   const { user, token } = useAuth();
   const { playNotification, setEnabled } = useNotificationSound();
@@ -91,13 +84,7 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
   const selectedIdRef = useRef<string | null>(null);
   const wsStatusRef = useRef<ConnectionState>('disconnected');
   const wsSendMessageRef = useRef<(text: string, tempId?: string) => boolean>(() => false);
-  const typingUsersRef = useRef<Set<string>>(new Set());
-  const [wsStatus, setWsStatus] = React.useState<ConnectionState>('disconnected');
   const isMobileView = useMediaQuery('(max-width: 767px)');
-  const [typingUsersCount, setTypingUsersCount] = React.useState(0);
-  // Multi-operator presence + claim contention (Phase 6).
-  const [onlineOperators, setOnlineOperators] = React.useState<PresencePayload['operators']>([]);
-  const [claimContenders, setClaimContenders] = React.useState<Record<string, ClaimContender>>({});
 
   // AuthContext stores `user.id` as a string; operator ids on sessions/presence
   // are numeric. Normalize once so every comparison stays numeric.
@@ -111,10 +98,6 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     selectedIdRef.current = selectedId;
   }, [selectedId]);
-
-  useEffect(() => {
-    wsStatusRef.current = wsStatus;
-  }, [wsStatus]);
 
   // ── Stable store-delegating setters (exposed on the context value) ──
   const {
@@ -160,39 +143,11 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
     fetchConversations,
   });
 
-  const handleSessionTransferred = useCallback((payload: SessionTransferredPayload) => {
-    const chat = getStore().currentChat;
-    if (chat?.line_user_id !== payload.line_user_id) return;
-    getStore().setCurrentChat({
-      ...chat,
-      session: chat.session
-        ? { ...chat.session, operator_id: payload.to_operator_id }
-        : undefined,
-    });
-    fetchConversations();
-  }, [fetchConversations]);
+  // ── WS session-event handlers (status, typing, claim/close/transfer,
+  // presence, errors) — write to the store, single source of truth ──
+  const sessionEvents = useSessionEvents({ fetchConversations, wsStatusRef, currentUserId });
 
   const adminId = user?.id || '1';
-
-  // Stable identity so useLiveChatSocket's status effect only fires on an
-  // actual connectionState change, not on every provider re-render. Reads the
-  // previous status from wsStatusRef so it needs no reactive deps (getStore is
-  // module-level, setWsStatus and wsStatusRef are stable).
-  const handleConnectionChange = useCallback((status: ConnectionState) => {
-    const wasOffline = wsStatusRef.current !== 'connected';
-    setWsStatus(status);
-    if (status === 'connected') {
-      getStore().setBackendOnline(true);
-      if (wasOffline) {
-        getStore().addNotification({
-          title: 'เชื่อมต่อแล้ว',
-          message: 'การเชื่อมต่อ WebSocket กู้คืนสำเร็จ',
-          type: 'system',
-          variant: 'success',
-        });
-      }
-    }
-  }, []);
   const {
     joinRoom,
     leaveRoom,
@@ -211,100 +166,14 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
     onMessageSent: handleMessageSent,
     onMessageAck: (tempId) => handleMessageAck(tempId),
     onMessageFailed: handleMessageFailed,
-    onTyping: (_lineUserId, admin, isTyping) => {
-      const next = new Set(typingUsersRef.current);
-      if (isTyping) next.add(admin);
-      else next.delete(admin);
-      typingUsersRef.current = next;
-      setTypingUsersCount(next.size);
-    },
-    onSessionClaimed: (lineUserId, operatorId) => {
-      const chat = getStore().currentChat;
-      if (chat?.line_user_id === lineUserId) {
-        getStore().setCurrentChat({
-          ...chat,
-          session: chat.session
-            ? { ...chat.session, status: 'ACTIVE', operator_id: operatorId }
-            : undefined,
-        });
-      }
-      const operatorName = resolveOperatorName(onlineOperators, operatorId);
-      // Reflect (or clear) the contention lock for this room. When I am the
-      // claimer the lock is mine — clear it so I am not shown a lock on my own
-      // room; otherwise record who took it so other operators see it disabled.
-      setClaimContenders((prev) =>
-        operatorId === currentUserId
-          ? removeKey(prev, lineUserId)
-          : { ...prev, [lineUserId]: { operatorId, name: operatorName } },
-      );
-      const roomName =
-        chat?.line_user_id === lineUserId
-          ? chat?.display_name
-          : getStore().conversations.find((c) => c.line_user_id === lineUserId)?.display_name;
-      getStore().addNotification({
-        title: 'Session Claimed',
-        message: roomName
-          ? `${operatorName} รับเรื่อง '${roomName}' ไปแล้ว`
-          : `${operatorName} รับเรื่องไปแล้ว`,
-        type: 'system',
-      });
-      fetchConversations();
-    },
-    onSessionClosed: (lineUserId) => {
-      const chat = getStore().currentChat;
-      if (chat?.line_user_id === lineUserId) {
-        getStore().setCurrentChat({ ...chat, chat_mode: 'BOT', session: undefined });
-      }
-      setClaimContenders((prev) => removeKey(prev, lineUserId));
-      fetchConversations();
-    },
-    onSessionTransferred: (payload: SessionTransferredPayload) => {
-      handleSessionTransferred(payload);
-      setClaimContenders((prev) => removeKey(prev, payload.line_user_id));
-      getStore().addNotification({
-        title: 'Session Transferred',
-        message: `Session transferred to operator #${payload.to_operator_id}`,
-        type: 'system',
-      });
-    },
-    onPresenceUpdate: (operators) => setOnlineOperators(operators),
-    onError: (message) => {
-      const normalized = (message || '').toLowerCase();
-      const isClaimConflict =
-        normalized.includes('already claimed') ||
-        normalized.includes('session_not_found') ||
-        normalized.includes('session not found');
-      if (!isClaimConflict) {
-        // Rate-limit errors are log-only: typing_start is throttled now, but a
-        // burst of queued frames after a reconnect can still trip the limiter,
-        // and a toast per frame would flood the screen.
-        if (normalized.includes('rate limit')) {
-          console.warn('Live chat WS rate limit hit:', message);
-          return;
-        }
-        // Operators see Thai; keep the raw backend text in the console.
-        console.warn('Live chat WS error:', message);
-        getStore().addNotification({
-          title: 'ไลฟ์แชทขัดข้อง',
-          message: mapWsErrorToThai(message),
-          type: 'system',
-        });
-        return;
-      }
-      // A claim lost the race on the backend — reset the local in-flight state
-      // and surface an in-context toast that names the room when we know it.
-      getStore().setClaiming(false);
-      const roomName = getStore().currentChat?.display_name;
-      getStore().addNotification({
-        title: 'Claim unavailable',
-        message: roomName
-          ? `ไม่สามารถรับเรื่อง '${roomName}' ได้ — มีผู้อื่นรับไปแล้ว`
-          : message || 'Session already claimed by another operator.',
-        type: 'system',
-      });
-    },
+    onTyping: sessionEvents.onTyping,
+    onSessionClaimed: sessionEvents.onSessionClaimed,
+    onSessionClosed: sessionEvents.onSessionClosed,
+    onSessionTransferred: sessionEvents.onSessionTransferred,
+    onPresenceUpdate: sessionEvents.onPresenceUpdate,
+    onError: sessionEvents.onError,
     onConversationUpdate: handleConversationUpdate,
-    onConnectionChange: handleConnectionChange,
+    onConnectionChange: sessionEvents.onConnectionChange,
   });
 
   // Bridge the socket's sendMessage into useMessageFlow, which is composed
