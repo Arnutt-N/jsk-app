@@ -164,6 +164,10 @@ describe('LiveChatContext public contract (Phase 8 / B7)', () => {
       currentChat: null,
       messages: [],
       inputText: '',
+      wsStatus: 'disconnected',
+      onlineOperators: [],
+      claimContenders: {},
+      typingUsersCount: 0,
     });
 
     window.matchMedia = vi.fn().mockImplementation((query: string) => ({

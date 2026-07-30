@@ -111,6 +111,10 @@ describe('LiveChatContext claim contention (M16 / B5)', () => {
       messages: [],
       inputText: '',
       claiming: false,
+      wsStatus: 'disconnected',
+      onlineOperators: [],
+      claimContenders: {},
+      typingUsersCount: 0,
     });
 
     window.matchMedia = vi.fn().mockImplementation((query: string) => ({
