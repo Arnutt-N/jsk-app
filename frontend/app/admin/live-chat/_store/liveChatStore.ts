@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
-import type { Message } from '@/lib/websocket/types'
-import type { Conversation, CurrentChat } from '../_types'
+import type { Message, ConnectionState } from '@/lib/websocket/types'
+import type { ClaimContender, Conversation, CurrentChat, OnlineOperator } from '../_types'
 
 // ──────────────────────────────────────────────
 // UI state for new features (not in current reducer)
@@ -53,6 +53,12 @@ interface LiveChatState {
   // render the UnreadDivider at the correct position. Reset on switch.
   initialUnreadCount: number
 
+  // WS session state (single source of truth — was Context-local useState)
+  wsStatus: ConnectionState
+  onlineOperators: OnlineOperator[]
+  claimContenders: Record<string, ClaimContender>
+  typingUsersCount: number
+
   // UI extensions (new features)
   showEmojiPicker: boolean
   showStickerPicker: boolean
@@ -96,6 +102,16 @@ interface LiveChatActions {
   ) => void
   removeConversation: (lineUserId: string) => void
 
+  // WS session actions
+  setWsStatus: (status: ConnectionState) => void
+  setOnlineOperators: (operators: OnlineOperator[]) => void
+  setClaimContenders: (
+    updater:
+      | Record<string, ClaimContender>
+      | ((prev: Record<string, ClaimContender>) => Record<string, ClaimContender>),
+  ) => void
+  setTypingUsersCount: (count: number) => void
+
   // UI extension actions
   toggleEmojiPicker: () => void
   toggleStickerPicker: () => void
@@ -131,6 +147,10 @@ const initialState: LiveChatState = {
   hasMoreHistory: true,
   isLoadingHistory: false,
   initialUnreadCount: 0,
+  wsStatus: 'disconnected',
+  onlineOperators: [],
+  claimContenders: {},
+  typingUsersCount: 0,
   showEmojiPicker: false,
   showStickerPicker: false,
   showQuickReplies: false,
@@ -213,6 +233,14 @@ export const useLiveChatStore = create<LiveChatStore>()(
       removeConversation: (lineUserId) => set((s) => ({
         conversations: s.conversations.filter((c) => c.line_user_id !== lineUserId),
       })),
+
+      // WS session actions
+      setWsStatus: (status) => set({ wsStatus: status }),
+      setOnlineOperators: (operators) => set({ onlineOperators: operators }),
+      setClaimContenders: (updater) => set((s) => ({
+        claimContenders: typeof updater === 'function' ? updater(s.claimContenders) : updater,
+      })),
+      setTypingUsersCount: (count) => set({ typingUsersCount: count }),
 
       // UI extension actions
       toggleEmojiPicker: () => set((s) => ({

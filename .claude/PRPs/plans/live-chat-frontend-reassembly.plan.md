@@ -1,6 +1,6 @@
 # Live-Chat Frontend Reassembly — PRP Implementation Plan
 
-> **Status:** DRAFT — awaiting review
+> **Status:** REVIEWED 2026-07-30 (4 amendments applied: F1 stale closure, F2 wsStatusRef ordering, F3 type exports, F4 useVirtualScroll API) — approved for implementation
 > **Branch:** `refactor/live-chat-frontend`
 > **PRD:** `.claude/PRPs/prds/live-chat-frontend-reassembly.prd.md`
 > **Master plan:** `~/.qoder/plans/pale-storm-wagtail.md` (PR C section, approved)
@@ -22,7 +22,7 @@ Surgical extraction, not a rewrite: move virtualization/scroll logic out of `Cha
 
 1. Add to store state: `wsStatus: ConnectionState` (init `'disconnected'`), `onlineOperators: OnlineOperator[]` (init `[]`), `claimContenders: Record<string, ClaimContender>` (init `{}`), `typingUsersCount: number` (init `0`).
 2. Add actions: `setWsStatus`, `setOnlineOperators`, `setClaimContenders` (accepts updater or value, matching existing store action style), `setTypingUsersCount`.
-3. Types: import/move `ConnectionState`, `ClaimContender`, `OnlineOperator` types from their current locations (`_types.ts` / context) — types only, no logic.
+3. Types (review F3): `ConnectionState` imports from `@/lib/websocket/types` (unchanged). `ClaimContender` is currently a PRIVATE interface in `LiveChatContext.tsx:30` — move it to `_types.ts` and export; context re-imports it. Alias `export type OnlineOperator = PresencePayload['operators'][number]` in `_types.ts` (context field type stays `PresencePayload['operators']`, i.e. `OnlineOperator[]`).
 4. Unit tests: extend `liveChatStore.test.ts` with the 4 new fields/actions.
 
 **Validation:** `vitest run app/admin/live-chat` green. No consumer changes yet (context still uses useState — switched in Phase 2).
@@ -35,7 +35,9 @@ Surgical extraction, not a rewrite: move virtualization/scroll logic out of `Cha
    - Move logic verbatim from LiveChatContext L163-173, L181-195, L214-305.
    - `typingUsersRef` (Set) lives inside the hook; it writes `typingUsersCount` to the store.
    - Handlers write `wsStatus`/`onlineOperators`/`claimContenders` via store actions instead of setState.
-   - Dependencies passed in (not imported) where they are context-owned: `toast`, `fetchConversations`, `selectedIdRef`, `wsStatusRef`, `currentUserId`, `getStore` non-subscribing helper, `mapWsErrorToThai`.
+   - **Review F1 (stale closure):** `onSessionClaimed` currently reads `onlineOperators` from closure (L231). After the move it must read presence at event time via `getStore().onlineOperators` — handlers READ from the store as well as write, so no handler recreates on presence churn and no stale roster is used for name resolution.
+   - **Review F2 (wsStatusRef ordering):** `handleConnectionChange` reads `wsStatusRef.current` BEFORE writing the new status (the `wasOffline` check, L182) and relies on the ref being synced AFTERWARDS by the `useEffect` at L115-117. The sync effect moves into `useSessionEvents` (it owns the status write); keep read-ref → write-store → effect-syncs-ref ordering. Alternative (equivalent): set `wsStatusRef.current = status` inline after the `wasOffline` read and drop the effect — either way the wasOffline semantics must be preserved.
+   - Dependencies passed in (not imported) where they are context-owned: `fetchConversations`, `selectedIdRef`, `wsStatusRef`, `currentUserId`, `playNotification` if needed. `getStore`/`mapWsErrorToThai`/`resolveOperatorName`/`removeKey` are module-level and can be imported directly by the hook.
 2. In `LiveChatContext.tsx`: delete the 4 useState + inline handlers; read `wsStatus`, `onlineOperators`, `claimContenders`, `typingUsersCount` from the store (subscribe only to what the provider itself needs for the context value); pass hook's handler bundle to `useLiveChatSocket`.
 3. Context value keeps the same 34 fields — values now sourced from store. `getClaimContender` stays a stable callback backed by store state.
 
@@ -43,12 +45,15 @@ Surgical extraction, not a rewrite: move virtualization/scroll logic out of `Cha
 
 **Gotcha:** memo test asserts provider re-render behavior — moving state to Zustand changes which subscriptions trigger renders; provider must subscribe narrowly (per-field selectors) to keep memoization semantics.
 
+**Test-setup note (review, minor):** contract + memo tests reset the singleton store in `beforeEach` — add the 4 new fields to those resets so cross-file leakage can't flip `wsStatus` etc. (counts as allowed mock/setup adjustment, not an expectation change).
+
 ## Phase 3 — Extract `useVirtualScroll` from ChatArea
 
 **Files:** NEW `_hooks/useVirtualScroll.ts`, `_components/ChatArea.tsx`
 
-1. Create `useVirtualScroll({ messages, selectedId, hasMoreHistory, isLoadingHistory, loadOlderMessages, focusedMessageId, clearFocusedMessage, reducedMotion })` returning:
-   - `{ containerRef, sentinelRef, virtualEnabled, visibleWindow: { startIndex, endIndex, topPadding, bottomPadding }, forceAllMessages, setForceAllMessages, scrollToBottom }`.
+1. Create `useVirtualScroll({ messages, selectedId, hasMoreHistory, isLoadingHistory, loadOlderMessages, focusedMessageId, clearFocusedMessage, reducedMotion })` returning (review F4 — API corrected to what ChatArea's render actually consumes):
+   - `{ containerRef, sentinelRef, onScroll, virtualEnabled, visibleWindow: { startIndex, endIndex, topPadding, bottomPadding }, forceAllMessages, setForceAllMessages, baselineCount }`.
+   - `onScroll` = the RAF-throttled scroll handler (L121-128); `baselineCount` = entrance-animation baseline used in render as `isNew={idx >= baselineCount}` (L478). NO `scrollToBottom` member — auto-scroll is effect-internal today and stays that way (verbatim move, no new API).
 2. Move verbatim: constants L30-32, scrollTop/viewportHeight state, RAF throttle L120-131, near-bottom auto-scroll L160-178 (+ `pendingScrollToBottomRef`), double-rAF on selection change L188-214, ResizeObserver L216-225, focused-message jump L227-243, IO history paging L245-261, window computation L277-292, render-time baseline adjust L140-147.
 3. Drop leftover `console.log` L169, L205, L435-440 (debug noise; behavior unchanged).
 4. ChatArea keeps: render slice + spacers, sr-only "load all" escape hatch, all JSX/composition. Target ≤ ~320 lines.

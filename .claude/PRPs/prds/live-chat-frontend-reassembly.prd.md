@@ -1,6 +1,6 @@
 # Live-Chat Frontend Reassembly (PR C — architecture-review candidate #4)
 
-> **Status:** DRAFT — awaiting review
+> **Status:** REVIEWED 2026-07-30 — verified against code (all line refs exact); approved with 4 minor plan amendments (see plan doc)
 > **Branch:** `refactor/live-chat-frontend`
 > **Predecessors:** PR A #172 (report_service), PR B #173 (apiFetch adapter) — both merged.
 
