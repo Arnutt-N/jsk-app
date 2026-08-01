@@ -47,24 +47,37 @@ export function ConversationList() {
 
   const { filtered, waitingCount, activeCount, closedCount } = useConversationStats(conversations, searchQuery, sortBy);
 
-  // Preserve sidebar scroll position across conversation selection. Something
-  // in the selection re-render pipeline (aria-activedescendant, focus, or
-  // layout recalc) scrolls the list container — saving/restoring scrollTop
-  // in useLayoutEffect (before paint) is a definitive guard.
+  // ── Sidebar scroll lock ──
+  // Clicking a conversation triggers a re-render pipeline that scrolls the
+  // list container (aria-activedescendant, focus, layout recalc, or WS
+  // conversation_update arriving mid-render). A single useLayoutEffect was
+  // not enough — something scrolls AFTER paint. Fix: lock the scroll
+  // position for a short window after every click. Any scroll attempt
+  // during the lock is immediately reverted via the onScroll handler.
   const listRef = React.useRef<HTMLDivElement>(null);
   const savedScrollTopRef = React.useRef<number | null>(null);
+  const scrollLockUntilRef = React.useRef(0);
 
+  // First-pass restore before paint (catches synchronous layout scrolls).
   React.useLayoutEffect(() => {
     if (savedScrollTopRef.current != null && listRef.current) {
       listRef.current.scrollTop = savedScrollTopRef.current;
-      savedScrollTopRef.current = null;
     }
   }, [selectedId]);
+
+  // Second-pass guard: revert any scroll that happens during the lock window
+  // (rAF callbacks, useEffect, WS-triggered re-renders, browser auto-scroll).
+  const handleListScroll = React.useCallback(() => {
+    if (Date.now() < scrollLockUntilRef.current && savedScrollTopRef.current != null && listRef.current) {
+      listRef.current.scrollTop = savedScrollTopRef.current;
+    }
+  }, []);
 
   // Stable handlers so ConversationItem's React.memo can skip re-renders.
   const handleSelect = React.useCallback((id: string) => {
     if (listRef.current) {
       savedScrollTopRef.current = listRef.current.scrollTop;
+      scrollLockUntilRef.current = Date.now() + 300;
     }
     selectConversation(id);
     setActiveActionMenu(null);
@@ -281,6 +294,7 @@ export function ConversationList() {
         aria-activedescendant={selectedConversation ? `conversation-option-${selectedConversation.line_user_id}` : undefined}
         tabIndex={0}
         onMouseDown={(e) => e.preventDefault()}
+        onScroll={handleListScroll}
         onKeyDown={(event) => {
           if (!filteredConversations.length) return;
           if (event.key === 'ArrowDown') {
