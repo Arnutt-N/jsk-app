@@ -78,6 +78,12 @@ export const mergeConversationUpdate = (
   unread_count: unreadCount,
   tags: data.tags ?? existing?.tags,
   messages: data.messages ?? existing?.messages,
+  // Preference flags are never carried by a state-sync payload, so they must be
+  // inherited. Dropping them silently un-pins / un-mutes the row — and because
+  // pinned rows sort first, an un-pinned row visibly jumps down the sidebar.
+  is_pinned: existing?.is_pinned,
+  is_muted: existing?.is_muted,
+  is_spam: existing?.is_spam,
 });
 
 /**

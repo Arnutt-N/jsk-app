@@ -47,41 +47,16 @@ export function ConversationList() {
 
   const { filtered, waitingCount, activeCount, closedCount } = useConversationStats(conversations, searchQuery, sortBy);
 
-  // ── Sidebar scroll lock ──
-  // Clicking a conversation triggers a re-render pipeline that scrolls the
-  // list container (aria-activedescendant, focus, layout recalc, or WS
-  // conversation_update arriving mid-render). A single useLayoutEffect was
-  // not enough — something scrolls AFTER paint. Fix: lock the scroll
-  // position for a short window after every click. Any scroll attempt
-  // during the lock is immediately reverted via the onScroll handler.
-  const listRef = React.useRef<HTMLDivElement>(null);
-  const savedScrollTopRef = React.useRef<number | null>(null);
-  const scrollLockUntilRef = React.useRef(0);
-
-  // First-pass restore before paint (catches synchronous layout scrolls).
-  // Only active during the lock window — keyboard navigation (ArrowDown/Up)
-  // bypasses handleSelect so the lock is never engaged and the browser's
-  // native aria-activedescendant scroll-into-view works unimpeded.
-  React.useLayoutEffect(() => {
-    if (Date.now() < scrollLockUntilRef.current && savedScrollTopRef.current != null && listRef.current) {
-      listRef.current.scrollTop = savedScrollTopRef.current;
-    }
-  }, [selectedId]);
-
-  // Guard: revert any scroll that happens during the lock window
-  // (rAF callbacks, useEffect, WS-triggered re-renders, browser auto-scroll).
-  const handleListScroll = React.useCallback(() => {
-    if (Date.now() < scrollLockUntilRef.current && savedScrollTopRef.current != null && listRef.current) {
-      listRef.current.scrollTop = savedScrollTopRef.current;
-    }
-  }, []);
+  // NOTE: this list used to carry a "scroll lock" (saved scrollTop + a 300ms
+  // onScroll revert) meant to stop the sidebar jumping on click. A browser
+  // diagnostic proved the container never scrolled at all — the clicked row was
+  // re-sorting to the bottom because a conversation_update state sync dropped
+  // its `last_message` (fixed in useConversationSync / mergeConversationUpdate).
+  // The lock was removed: it fought the user's own wheel scrolling for 300ms
+  // after every click.
 
   // Stable handlers so ConversationItem's React.memo can skip re-renders.
   const handleSelect = React.useCallback((id: string) => {
-    if (listRef.current) {
-      savedScrollTopRef.current = listRef.current.scrollTop;
-      scrollLockUntilRef.current = Date.now() + 300;
-    }
     selectConversation(id);
     setActiveActionMenu(null);
   }, [selectConversation, setActiveActionMenu]);
@@ -180,7 +155,6 @@ export function ConversationList() {
   }, [filtered, filterStatus]);
 
   const selectedIndex = filteredConversations.findIndex((c) => c.line_user_id === selectedId);
-  const selectedConversation = selectedIndex >= 0 ? filteredConversations[selectedIndex] : null;
 
   // Track whether the last selection came from keyboard navigation so we can
   // scroll-into-view only for keyboard, not mouse clicks.
@@ -303,13 +277,11 @@ export function ConversationList() {
 
       {/* Conversation list */}
       <div
-        ref={listRef}
         className="flex-1 overflow-y-auto custom-scrollbar px-2"
         role="listbox"
         aria-label="Conversation list"
         tabIndex={0}
         onMouseDown={(e) => e.preventDefault()}
-        onScroll={handleListScroll}
         onKeyDown={(event) => {
           if (!filteredConversations.length) return;
           if (event.key === 'ArrowDown') {

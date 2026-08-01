@@ -1,0 +1,117 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { renderHook, act } from '@testing-library/react';
+import type { RefObject } from 'react';
+
+import type { ConnectionState, ConversationUpdatePayload } from '@/lib/websocket/types';
+import type { Conversation } from '../../_types';
+import { useLiveChatStore } from '../../_store/liveChatStore';
+import { computeConversationStats } from '../useConversationStats';
+import { useConversationSync } from '../useConversationSync';
+
+/**
+ * Regression tests for the "clicking a conversation makes the row jump to the
+ * bottom of the sidebar" bug (#177–#181 chased this as a scroll problem; a
+ * browser diagnostic proved nothing ever scrolls).
+ *
+ * Real cause: selecting a room triggers `join_room`, and the backend answers
+ * with a CONVERSATION_UPDATE state sync that carries NO `last_message`
+ * (ws_session/handlers.py) — while `GET /conversations/{id}` omits it too
+ * (live_chat_service/conversations.py). `handleConversationUpdate` merges the
+ * selected room off `currentChat`, so both sides are undefined and the row
+ * loses its sort key. `computeConversationStats` sorts on
+ * `last_message.created_at` (missing → 0), so the row sinks to the bottom.
+ *
+ * The invariant under test: a partial state-sync update must never destroy the
+ * fields the sidebar sorts on (`last_message`, `is_pinned`).
+ */
+
+vi.mock('next/navigation', () => ({
+  useSearchParams: () => ({ get: () => null }),
+}));
+
+const ref = <T,>(value: T): RefObject<T> => ({ current: value });
+
+const conv = (id: string, over: Partial<Conversation> = {}): Conversation => ({
+  line_user_id: id,
+  display_name: `User ${id}`,
+  picture_url: '',
+  friend_status: 'ACTIVE',
+  chat_mode: 'BOT',
+  unread_count: 0,
+  ...over,
+});
+
+/** Payload shaped exactly like the JOIN_ROOM sync in ws_session/handlers.py. */
+const joinRoomSync = (id: string): ConversationUpdatePayload => ({
+  line_user_id: id,
+  display_name: `User ${id}`,
+  picture_url: '',
+  chat_mode: 'BOT',
+  session: undefined,
+  messages: [],
+});
+
+function setup(selectedId: string) {
+  return renderHook(() =>
+    useConversationSync({
+      selectedIdRef: ref<string | null>(selectedId),
+      wsStatusRef: ref<ConnectionState>('connected'),
+    }),
+  );
+}
+
+describe('useConversationSync — sidebar ordering is stable across a join-room sync', () => {
+  beforeEach(() => {
+    // The hook fetches the list on mount; keep it inert so we assert only the
+    // conversation_update transition.
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }));
+    useLiveChatStore.setState({
+      conversations: [
+        conv('U1', { last_message: { content: 'newest', created_at: '2026-08-01T10:00:00.000Z' } }),
+        conv('U2', { last_message: { content: 'older', created_at: '2026-08-01T09:00:00.000Z' } }),
+        conv('U3', { last_message: { content: 'oldest', created_at: '2026-08-01T08:00:00.000Z' } }),
+        conv('U4'), // never messaged — already sorts last
+      ],
+      selectedId: 'U1',
+      // Mirrors the real detail response, which carries no `last_message`.
+      currentChat: { ...conv('U1'), messages: [] },
+    });
+  });
+
+  it('keeps last_message on the selected room when the sync omits it', () => {
+    const { result } = setup('U1');
+
+    act(() => result.current.handleConversationUpdate(joinRoomSync('U1')));
+
+    const updated = useLiveChatStore.getState().conversations.find((c) => c.line_user_id === 'U1');
+    expect(updated?.last_message?.created_at).toBe('2026-08-01T10:00:00.000Z');
+  });
+
+  it('does not move the clicked row to the bottom of the sidebar', () => {
+    const { result } = setup('U1');
+
+    act(() => result.current.handleConversationUpdate(joinRoomSync('U1')));
+
+    const { filtered } = computeConversationStats(useLiveChatStore.getState().conversations, '', 'recent');
+    expect(filtered.map((c) => c.line_user_id)).toEqual(['U1', 'U2', 'U3', 'U4']);
+  });
+
+  it('keeps a pinned row pinned when the sync omits the flag', () => {
+    useLiveChatStore.setState({
+      conversations: [
+        conv('U2', { last_message: { content: 'older', created_at: '2026-08-01T09:00:00.000Z' } }),
+        conv('U3', { is_pinned: true, last_message: { content: 'pinned', created_at: '2026-08-01T08:00:00.000Z' } }),
+      ],
+      selectedId: 'U3',
+      currentChat: { ...conv('U3'), messages: [] },
+    });
+    const { result } = setup('U3');
+
+    act(() => result.current.handleConversationUpdate(joinRoomSync('U3')));
+
+    const updated = useLiveChatStore.getState().conversations.find((c) => c.line_user_id === 'U3');
+    expect(updated?.is_pinned).toBe(true);
+    const { filtered } = computeConversationStats(useLiveChatStore.getState().conversations, '', 'recent');
+    expect(filtered[0]?.line_user_id).toBe('U3');
+  });
+});
