@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 202 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 203 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-08-02 02:01 — claude_code — completed
+
+ศึกษา line-bot-mcp-server แล้วสร้าง PRD + Phase-1 plan สำหรับ Rich Menu image generator (Canvas ฝั่ง frontend)
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260802-0201.json`
+- Summary: `project-log-md/claude_code/session-summary-20260802-0201.md`
+
+---
 
 ### 2026-08-02 00:39 — claude_code — completed
 
