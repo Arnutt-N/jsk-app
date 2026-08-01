@@ -112,7 +112,12 @@ export function NotificationToast({ onSelect }: NotificationToastProps) {
             {isClickable ? (
               <button
                 type="button"
-                onClick={() => toast.lineUserId && onSelect?.(toast.lineUserId)}
+                onClick={() => {
+                  if (toast.lineUserId) {
+                    dismissToast(toast.id)
+                    onSelect?.(toast.lineUserId)
+                  }
+                }}
                 aria-label={`เปิดห้องสนทนากับ ${toast.title}`}
                 className="flex w-full items-start gap-3 rounded-xl p-4 text-left transition-colors cursor-pointer hover:bg-muted focus-ring thai-text"
               >

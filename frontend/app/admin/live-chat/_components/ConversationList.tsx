@@ -262,6 +262,7 @@ export function ConversationList() {
         aria-label="Conversation list"
         aria-activedescendant={selectedConversation ? `conversation-option-${selectedConversation.line_user_id}` : undefined}
         tabIndex={0}
+        onMouseDown={(e) => e.preventDefault()}
         onKeyDown={(event) => {
           if (!filteredConversations.length) return;
           if (event.key === 'ArrowDown') {

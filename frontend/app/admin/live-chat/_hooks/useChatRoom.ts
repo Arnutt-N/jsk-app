@@ -56,8 +56,16 @@ export function useChatRoom({
     fetchChatDetail(selectedId, false).then(async () => {
       const page = await fetchMessagesPage(selectedId);
       if (selectedIdRef.current !== selectedId) return;
-      getStore().setMessages(page.messages || []);
+      const msgs = page.messages || [];
+      getStore().setMessages(msgs);
       getStore().setHasMoreHistory(page.has_more);
+      const unreadCount = getStore().initialUnreadCount;
+      if (unreadCount > 0 && msgs.length > 0) {
+        const firstUnread = msgs[Math.max(0, msgs.length - unreadCount)];
+        getStore().setFirstUnreadMessageId(firstUnread?.id ?? null);
+      } else {
+        getStore().setFirstUnreadMessageId(null);
+      }
     }).catch(() => undefined);
   }, [fetchChatDetail, fetchMessagesPage, selectedId, selectedIdRef]);
 
@@ -82,16 +90,27 @@ export function useChatRoom({
     const s = getStore();
     if (!s.selectedId || s.claiming) return;
     s.setClaiming(true);
-    try {
-      if (wsStatusRef.current === 'connected') {
-        wsClaimSession();
-      } else {
-        const res = await fetch(`${API_BASE}/admin/live-chat/conversations/${s.selectedId}/claim`, { method: 'POST' });
-        if (!res.ok) {
-          throw new Error(await readErrorMessage(res, 'Failed to claim session'));
+
+    if (wsStatusRef.current === 'connected') {
+      wsClaimSession();
+      // Fallback: reset claiming if the WS confirmation never arrives.
+      // onSessionClaimed / onError reset it on the happy / conflict paths.
+      const claimTarget = s.selectedId;
+      setTimeout(() => {
+        const store = getStore();
+        if (store.claiming && store.selectedId === claimTarget) {
+          store.setClaiming(false);
         }
-        await refreshConversationState(s.selectedId, false);
+      }, 10000);
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/admin/live-chat/conversations/${s.selectedId}/claim`, { method: 'POST' });
+      if (!res.ok) {
+        throw new Error(await readErrorMessage(res, 'Failed to claim session'));
       }
+      await refreshConversationState(s.selectedId, false);
     } catch (error) {
       getStore().addNotification({
         title: 'Claim unavailable',

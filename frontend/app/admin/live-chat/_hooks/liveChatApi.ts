@@ -96,3 +96,25 @@ export function formatTime(value: string): string {
   if (hours < 48) return 'Yesterday';
   return d.toLocaleDateString('th-TH', { month: 'short', day: 'numeric' });
 }
+
+const NON_TEXT_PREVIEW: Record<string, string> = {
+  image: '[รูปภาพ]',
+  sticker: '[สติกเกอร์]',
+  video: '[วิดีโอ]',
+  audio: '[เสียง]',
+  location: '[ตำแหน่ง]',
+  file: '[ไฟล์]',
+  flex: '[Flex Message]',
+  template: '[Template]',
+  imagemap: '[Imagemap]',
+};
+
+/**
+ * Sidebar preview text for a message. Text messages use their content;
+ * non-text types (image, sticker, video, …) get a Thai bracket label so
+ * the conversation list never shows an empty or raw-URL preview.
+ */
+export function messagePreview(content: string, messageType: string): string {
+  if (messageType !== 'text') return NON_TEXT_PREVIEW[messageType] || `[${messageType}]`;
+  return content;
+}

@@ -7,6 +7,7 @@ import type { ConnectionState, Message } from '@/lib/websocket/types';
 import { useLiveChatStore } from '../_store/liveChatStore';
 import { API_BASE } from '../_lib/constants';
 import { mapWsErrorToThai } from '../_lib/wsErrorMessages';
+import { messagePreview } from './liveChatApi';
 
 /**
  * Fail the optimistic message if the WS ack never arrives. Load-bearing magic
@@ -63,6 +64,22 @@ export function useMessageFlow({
   }, []);
 
   const handleNewMessage = useCallback((message: Message) => {
+    // Immediately update the sidebar's last_message so the 'recent' sort
+    // reflects new activity without waiting for the conversation_update event.
+    const list = getStore().conversations;
+    const idx = list.findIndex((c) => c.line_user_id === message.line_user_id);
+    if (idx >= 0) {
+      const next = [...list];
+      next[idx] = {
+        ...next[idx],
+        last_message: {
+          content: messagePreview(message.content, message.message_type),
+          created_at: message.created_at,
+        },
+      };
+      getStore().setConversations(next);
+    }
+
     if (message.direction === 'INCOMING') {
       // Resolve the conversation once (for the mute flag + display name). A
       // muted conversation gets neither the sound nor the toast.
@@ -100,9 +117,11 @@ export function useMessageFlow({
   const handleMessageSent = useCallback((message: Message) => {
     handleNewMessage(message);
     if (message.temp_id) handleMessageAck(message.temp_id);
-    getStore().setSending(false);
-    getStore().setInputText('');
-  }, [handleMessageAck, handleNewMessage]);
+    if (message.line_user_id === selectedIdRef.current) {
+      getStore().setSending(false);
+      getStore().setInputText('');
+    }
+  }, [handleMessageAck, handleNewMessage, selectedIdRef]);
 
   const handleMessageFailed = useCallback((tempId: string, error: string, retryable?: boolean) => {
     getStore().removePending(tempId);
