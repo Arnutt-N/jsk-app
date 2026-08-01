@@ -59,8 +59,11 @@ export function ConversationList() {
   const scrollLockUntilRef = React.useRef(0);
 
   // First-pass restore before paint (catches synchronous layout scrolls).
+  // Only active during the lock window — keyboard navigation (ArrowDown/Up)
+  // bypasses handleSelect so the lock is never engaged and the browser's
+  // native aria-activedescendant scroll-into-view works unimpeded.
   React.useLayoutEffect(() => {
-    if (savedScrollTopRef.current != null && listRef.current) {
+    if (Date.now() < scrollLockUntilRef.current && savedScrollTopRef.current != null && listRef.current) {
       listRef.current.scrollTop = savedScrollTopRef.current;
     }
   }, [selectedId]);
