@@ -1,14 +1,22 @@
 {
-  "last_updated": "2026-08-01T20:26:00+07:00",
+  "last_updated": "2026-08-01T21:18:00+07:00",
   "platform": "claude_code",
-  "current_task": "Root-caused the live-chat sidebar 'row jumps down on click' bug that PRs #176-#181 failed to fix six times: it was never a scroll bug. A browser diagnostic recorded zero scroll events on the listbox a",
+  "current_task": "Code review round on the live-chat sidebar re-sort fix (superpowers:requesting-code-review). Reviewer returned no Critical and a 'With fixes' verdict. Acted on Important #2 (comment the deliberate las",
   "plan_status": "completed",
   "next_steps": [
-    "Awaiting user decision: commit + open PR for the fix (currently on branch, not pushed)",
-    "Deploy backend to Koyeb so get_conversation_detail returns last_message in prod",
-    "Verify on prod: click the top 3 conversations — rows must keep their position"
+    "Decide on the last review finding: onMouseDown preventDefault in ConversationList.tsx is now vestigial (its only reason, aria-activedescendant auto-scroll, was deleted in #180) and blocks pointer focus on the listbox, so arrow keys do nothing until the user Tabs in (WCAG 2.1.1)",
+    "Push branch + open PR once the user approves",
+    "Deploy backend to Koyeb for the get_conversation_detail last_message contract",
+    "Verify on prod: click the top 3 conversations - rows must keep their position; pinned rows must stay pinned"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-08-01T21:18:00+07:00",
+      "platform": "claude_code",
+      "branch": "fix/live-chat-sidebar-row-resort",
+      "head": "8befa17",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-08-01T20:26:00+07:00",
       "platform": "claude_code",
@@ -140,13 +148,6 @@
       "platform": "qoder",
       "branch": "main",
       "head": "7449655",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-19T08:21:00+07:00",
-      "platform": "kilo_code",
-      "branch": "main",
-      "head": "0f69af1",
       "status": "completed"
     }
   ],

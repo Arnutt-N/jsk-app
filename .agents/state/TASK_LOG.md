@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 199 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 200 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-08-01 21:18 — claude_code — completed
+
+Code review round on the live-chat sidebar re-sort fix (superpowers:requesting-code-review). Reviewer returned no Critical and a 'With fixes' verdict. Acted on Important #2 (comment the deliberate last_message omission inside handle_join_room, at the site that would break it) and #3 (assert the get_recent_messages oldest->newest ordering that messages[-1] depends on - it had been stubbed away), plus Minor #5/#7/#8/#9/#10/#11 (build_last_message helper shared by list+detail, NULL-content coalescing, corrected comment, extra test branches, hook unmount). Rejected the reviewer's Important #1: it claimed onSessionClaimed never updates the conversations list, but useSessionEvents.ts:105 calls fetchConversations() exactly like close/transfer, so a claimed room self-heals - verified in source before declining. vitest 462/462, pytest 799/799, tsc + eslint clean. 3 commits on branch fix/live-chat-sidebar-row-resort, not pushed.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260801-2118.json`
+- Summary: `project-log-md/claude_code/session-summary-20260801-2118.md`
+
+---
 
 ### 2026-08-01 20:26 — claude_code — completed
 
