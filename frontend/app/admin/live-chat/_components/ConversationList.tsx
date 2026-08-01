@@ -68,7 +68,7 @@ export function ConversationList() {
     }
   }, [selectedId]);
 
-  // Second-pass guard: revert any scroll that happens during the lock window
+  // Guard: revert any scroll that happens during the lock window
   // (rAF callbacks, useEffect, WS-triggered re-renders, browser auto-scroll).
   const handleListScroll = React.useCallback(() => {
     if (Date.now() < scrollLockUntilRef.current && savedScrollTopRef.current != null && listRef.current) {
@@ -294,7 +294,6 @@ export function ConversationList() {
         className="flex-1 overflow-y-auto custom-scrollbar px-2"
         role="listbox"
         aria-label="Conversation list"
-        aria-activedescendant={selectedConversation ? `conversation-option-${selectedConversation.line_user_id}` : undefined}
         tabIndex={0}
         onMouseDown={(e) => e.preventDefault()}
         onScroll={handleListScroll}
