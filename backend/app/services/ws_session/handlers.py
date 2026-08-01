@@ -68,6 +68,13 @@ async def handle_join_room(
     async with AsyncSessionLocal() as db:
         detail = await svc.get_conversation_detail(line_user_id, db)
         if detail:
+            # NOTE: this payload deliberately OMITS `last_message`, even though
+            # `detail` now carries it. The client treats the presence of that
+            # field as "this is a real message event -> move the conversation to
+            # the top of the list" (useConversationSync.handleConversationUpdate).
+            # A join is a state sync, not a message, so including it would hoist
+            # the clicked row above its tie group — a visible jump. Keep this an
+            # explicit whitelist; do not replace it with a spread of `detail`.
             await ws.send_personal(websocket, {
                 "type": WSEventType.CONVERSATION_UPDATE.value,
                 "payload": {

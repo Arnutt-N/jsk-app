@@ -109,11 +109,12 @@ export function useConversationSync({ selectedIdRef, wsStatusRef }: UseConversat
       unread = 0;
     }
     const existingConversation = idx >= 0 ? list[idx] : null;
-    // The list entry must always be merged onto the SIDEBAR row, never onto
-    // `currentChat`: the detail response (GET /conversations/{id}) and the
-    // JOIN_ROOM sync both omit `last_message`, so basing the selected room on
-    // `currentChat` stripped the very field the sidebar sorts on — the clicked
-    // row lost its timestamp and dropped to the bottom of the list.
+    // Prefer the SIDEBAR row as the merge base; fall back to `currentChat` only
+    // when the room is not in the list yet (e.g. a `?chat=` deep link).
+    // Basing the *selected* room on `currentChat` was the row-jump bug: the
+    // JOIN_ROOM sync omits `last_message`, and so did the detail response that
+    // fills `currentChat`, so the clicked row lost the very field the sidebar
+    // sorts on and dropped to the bottom of the list.
     const baseChat = existingConversation
       ? ({ ...existingConversation, messages: undefined } as CurrentChat)
       : currentSelectedId === data.line_user_id

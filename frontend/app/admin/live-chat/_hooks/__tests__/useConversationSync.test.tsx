@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import type { RefObject } from 'react';
 
@@ -51,13 +51,17 @@ const joinRoomSync = (id: string): ConversationUpdatePayload => ({
   messages: [],
 });
 
-function setup(selectedId: string) {
-  return renderHook(() =>
+type Mounted = ReturnType<typeof renderHook<ReturnType<typeof useConversationSync>, unknown>>;
+let mounted: Mounted | null = null;
+
+function setup(selectedId: string): Mounted {
+  mounted = renderHook(() =>
     useConversationSync({
       selectedIdRef: ref<string | null>(selectedId),
       wsStatusRef: ref<ConnectionState>('connected'),
     }),
   );
+  return mounted;
 }
 
 describe('useConversationSync — sidebar ordering is stable across a join-room sync', () => {
@@ -78,6 +82,14 @@ describe('useConversationSync — sidebar ordering is stable across a join-room 
     });
   });
 
+  afterEach(() => {
+    // The hook owns a 5s polling interval; unmounting clears it so it cannot
+    // outlive the test and fire against a torn-down store.
+    mounted?.unmount();
+    mounted = null;
+    vi.unstubAllGlobals();
+  });
+
   it('keeps last_message on the selected room when the sync omits it', () => {
     const { result } = setup('U1');
 
@@ -96,11 +108,16 @@ describe('useConversationSync — sidebar ordering is stable across a join-room 
     expect(filtered.map((c) => c.line_user_id)).toEqual(['U1', 'U2', 'U3', 'U4']);
   });
 
-  it('keeps a pinned row pinned when the sync omits the flag', () => {
+  it('keeps the per-operator preference flags when the sync omits them', () => {
     useLiveChatStore.setState({
       conversations: [
         conv('U2', { last_message: { content: 'older', created_at: '2026-08-01T09:00:00.000Z' } }),
-        conv('U3', { is_pinned: true, last_message: { content: 'pinned', created_at: '2026-08-01T08:00:00.000Z' } }),
+        conv('U3', {
+          is_pinned: true,
+          is_muted: true,
+          is_spam: true,
+          last_message: { content: 'pinned', created_at: '2026-08-01T08:00:00.000Z' },
+        }),
       ],
       selectedId: 'U3',
       currentChat: { ...conv('U3'), messages: [] },
@@ -110,8 +127,27 @@ describe('useConversationSync — sidebar ordering is stable across a join-room 
     act(() => result.current.handleConversationUpdate(joinRoomSync('U3')));
 
     const updated = useLiveChatStore.getState().conversations.find((c) => c.line_user_id === 'U3');
-    expect(updated?.is_pinned).toBe(true);
+    expect(updated).toMatchObject({ is_pinned: true, is_muted: true, is_spam: true });
+    // Pinned rows sort ahead of everything, so losing the flag was a jump too.
     const { filtered } = computeConversationStats(useLiveChatStore.getState().conversations, '', 'recent');
     expect(filtered[0]?.line_user_id).toBe('U3');
+  });
+
+  it('still updates currentChat for the selected room', () => {
+    const { result } = setup('U1');
+
+    act(() => result.current.handleConversationUpdate({ ...joinRoomSync('U1'), chat_mode: 'HUMAN' }));
+
+    expect(useLiveChatStore.getState().currentChat).toMatchObject({ line_user_id: 'U1', chat_mode: 'HUMAN' });
+  });
+
+  it('prepends a room that is not in the list yet (deep link)', () => {
+    useLiveChatStore.setState({ selectedId: 'U9', currentChat: { ...conv('U9'), messages: [] } });
+    const { result } = setup('U9');
+
+    act(() => result.current.handleConversationUpdate(joinRoomSync('U9')));
+
+    const ids = useLiveChatStore.getState().conversations.map((c) => c.line_user_id);
+    expect(ids).toContain('U9');
   });
 });
