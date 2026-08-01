@@ -1,15 +1,21 @@
 {
-  "last_updated": "2026-08-01T21:18:00+07:00",
+  "last_updated": "2026-08-01T21:38:00+07:00",
   "platform": "claude_code",
-  "current_task": "Code review round on the live-chat sidebar re-sort fix (superpowers:requesting-code-review). Reviewer returned no Critical and a 'With fixes' verdict. Acted on Important #2 (comment the deliberate las",
+  "current_task": "Shipped the live-chat sidebar row-jump fix as PR #182 (branch fix/live-chat-sidebar-row-resort, 5 commits, pushed). Final code change this round: removed the vestigial onMouseDown preventDefault from ",
   "plan_status": "completed",
   "next_steps": [
-    "Decide on the last review finding: onMouseDown preventDefault in ConversationList.tsx is now vestigial (its only reason, aria-activedescendant auto-scroll, was deleted in #180) and blocks pointer focus on the listbox, so arrow keys do nothing until the user Tabs in (WCAG 2.1.1)",
-    "Push branch + open PR once the user approves",
-    "Deploy backend to Koyeb for the get_conversation_detail last_message contract",
-    "Verify on prod: click the top 3 conversations - rows must keep their position; pinned rows must stay pinned"
+    "Wait for PR #182 checks (Backend Pytest, Frontend Lint and Build, Playwright Smoke) then squash-merge if green - user approved the merge",
+    "Deploy backend to Koyeb for the get_conversation_detail last_message contract (frontend half already fixes the bug via Vercel)",
+    "Verify on prod: click the top 3 conversations - rows keep position, pinned rows stay pinned, arrow keys work right after a click"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-08-01T21:38:00+07:00",
+      "platform": "claude_code",
+      "branch": "fix/live-chat-sidebar-row-resort",
+      "head": "44b5bba",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-08-01T21:18:00+07:00",
       "platform": "claude_code",
@@ -141,13 +147,6 @@
       "platform": "qoder",
       "branch": "main",
       "head": "5862c2e",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-22T01:08:00+07:00",
-      "platform": "qoder",
-      "branch": "main",
-      "head": "7449655",
       "status": "completed"
     }
   ],

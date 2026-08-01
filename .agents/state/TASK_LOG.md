@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 200 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 201 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-08-01 21:38 — claude_code — completed
+
+Shipped the live-chat sidebar row-jump fix as PR #182 (branch fix/live-chat-sidebar-row-resort, 5 commits, pushed). Final code change this round: removed the vestigial onMouseDown preventDefault from the conversation listbox (44b5bba) - #176 added it to block an aria-activedescendant auto-scroll that #180 later deleted, and by suppressing focus it left ArrowUp/ArrowDown dead after a click until the user tabbed in (WCAG 2.1.1). Guarded by a new Playwright assertion in live-chat-smoke.spec.ts because jsdom does not implement click-focuses-nearest-focusable-ancestor, which is why unit tests never caught it. PR body documents the full root-cause chain and the deploy-order safety. tsc + eslint clean, vitest 462/462, pytest 799/799.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260801-2138.json`
+- Summary: `project-log-md/claude_code/session-summary-20260801-2138.md`
+
+---
 
 ### 2026-08-01 21:18 — claude_code — completed
 
