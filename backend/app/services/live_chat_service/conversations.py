@@ -21,6 +21,21 @@ from app.services.user_identity_service import (
 logger = logging.getLogger(__name__)
 
 
+def build_last_message(message: Optional[Message]) -> Optional[dict]:
+    """Shared `last_message` shape for the conversation list and detail payloads.
+
+    Both endpoints feed the same admin sidebar row, which sorts on
+    `last_message.created_at`. They drifted once — detail omitted the field
+    entirely, so a client merging its row off that response lost its sort key
+    and the row dropped to the bottom of the list. One builder keeps them
+    honest. `content` is coalesced because `Message.content` is nullable while
+    the `LastMessage` schema requires a string.
+    """
+    if message is None:
+        return None
+    return {"content": message.content or "", "created_at": message.created_at}
+
+
 class ConversationsMixin:
     async def get_recent_messages(
         self,
@@ -181,10 +196,7 @@ class ConversationsMixin:
                 "friend_status": user.friend_status or "ACTIVE",
                 "chat_mode": user.chat_mode or "BOT",
                 "session": session,
-                "last_message": {
-                    "content": last_msg.content,
-                    "created_at": last_msg.created_at
-                } if last_msg else None,
+                "last_message": build_last_message(last_msg),
                 "unread_count": unread_count,
                 "tags": tag_map.get(user.id, []),
                 "is_pinned": bool(pref.is_pinned) if pref else False,
@@ -264,6 +276,13 @@ class ConversationsMixin:
 
         session = await self.get_active_session(line_user_id, db)
         messages = await self.get_recent_messages(line_user_id, 50, db)
+        # `ConversationDetail` inherits `last_message` from `ConversationSummary`,
+        # but this dict never populated it, so the field silently serialized to
+        # null. The sidebar sorts on that timestamp, so a client merging its list
+        # row off this response lost the row's sort key. `get_recent_messages`
+        # returns oldest->newest (see its ordering test), so the newest message
+        # is the last element.
+        last_msg = messages[-1] if messages else None
 
         return {
             "line_user_id": user.line_user_id,
@@ -273,6 +292,7 @@ class ConversationsMixin:
             "chat_mode": user.chat_mode or "BOT",
             "session": session,
             "messages": messages,
+            "last_message": build_last_message(last_msg),
             "unread_count": 0,
             "tags": [{"id": tag_id, "name": name, "color": color} for tag_id, name, color in user_tags],
         }

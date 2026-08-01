@@ -1,0 +1,19 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-08-01T21:18:00+07:00",
+  "branch": "fix/live-chat-sidebar-row-resort",
+  "head_commit": "8befa17",
+  "status": "completed",
+  "work_summary": "Code review round on the live-chat sidebar re-sort fix (superpowers:requesting-code-review). Reviewer returned no Critical and a 'With fixes' verdict. Acted on Important #2 (comment the deliberate last_message omission inside handle_join_room, at the site that would break it) and #3 (assert the get_recent_messages oldest->newest ordering that messages[-1] depends on - it had been stubbed away), plus Minor #5/#7/#8/#9/#10/#11 (build_last_message helper shared by list+detail, NULL-content coalescing, corrected comment, extra test branches, hook unmount). Rejected the reviewer's Important #1: it claimed onSessionClaimed never updates the conversations list, but useSessionEvents.ts:105 calls fetchConversations() exactly like close/transfer, so a claimed room self-heals - verified in source before declining. vitest 462/462, pytest 799/799, tsc + eslint clean. 3 commits on branch fix/live-chat-sidebar-row-resort, not pushed.",
+  "priority_actions": [
+    "Decide on the last review finding: onMouseDown preventDefault in ConversationList.tsx is now vestigial (its only reason, aria-activedescendant auto-scroll, was deleted in #180) and blocks pointer focus on the listbox, so arrow keys do nothing until the user Tabs in (WCAG 2.1.1)",
+    "Push branch + open PR once the user approves",
+    "Deploy backend to Koyeb for the get_conversation_detail last_message contract",
+    "Verify on prod: click the top 3 conversations - rows must keep their position; pinned rows must stay pinned"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/claude_code/session-summary-20260801-2118.md",
+  "cross_platform_read": []
+}

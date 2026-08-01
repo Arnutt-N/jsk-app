@@ -1,0 +1,18 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-08-01T21:38:00+07:00",
+  "branch": "fix/live-chat-sidebar-row-resort",
+  "head_commit": "44b5bba",
+  "status": "completed",
+  "work_summary": "Shipped the live-chat sidebar row-jump fix as PR #182 (branch fix/live-chat-sidebar-row-resort, 5 commits, pushed). Final code change this round: removed the vestigial onMouseDown preventDefault from the conversation listbox (44b5bba) - #176 added it to block an aria-activedescendant auto-scroll that #180 later deleted, and by suppressing focus it left ArrowUp/ArrowDown dead after a click until the user tabbed in (WCAG 2.1.1). Guarded by a new Playwright assertion in live-chat-smoke.spec.ts because jsdom does not implement click-focuses-nearest-focusable-ancestor, which is why unit tests never caught it. PR body documents the full root-cause chain and the deploy-order safety. tsc + eslint clean, vitest 462/462, pytest 799/799.",
+  "priority_actions": [
+    "Wait for PR #182 checks (Backend Pytest, Frontend Lint and Build, Playwright Smoke) then squash-merge if green - user approved the merge",
+    "Deploy backend to Koyeb for the get_conversation_detail last_message contract (frontend half already fixes the bug via Vercel)",
+    "Verify on prod: click the top 3 conversations - rows keep position, pinned rows stay pinned, arrow keys work right after a click"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/claude_code/session-summary-20260801-2138.md",
+  "cross_platform_read": []
+}

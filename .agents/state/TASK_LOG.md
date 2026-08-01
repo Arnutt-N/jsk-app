@@ -1,8 +1,35 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 198 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 201 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-08-01 21:38 — claude_code — completed
+
+Shipped the live-chat sidebar row-jump fix as PR #182 (branch fix/live-chat-sidebar-row-resort, 5 commits, pushed). Final code change this round: removed the vestigial onMouseDown preventDefault from the conversation listbox (44b5bba) - #176 added it to block an aria-activedescendant auto-scroll that #180 later deleted, and by suppressing focus it left ArrowUp/ArrowDown dead after a click until the user tabbed in (WCAG 2.1.1). Guarded by a new Playwright assertion in live-chat-smoke.spec.ts because jsdom does not implement click-focuses-nearest-focusable-ancestor, which is why unit tests never caught it. PR body documents the full root-cause chain and the deploy-order safety. tsc + eslint clean, vitest 462/462, pytest 799/799.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260801-2138.json`
+- Summary: `project-log-md/claude_code/session-summary-20260801-2138.md`
+
+---
+
+### 2026-08-01 21:18 — claude_code — completed
+
+Code review round on the live-chat sidebar re-sort fix (superpowers:requesting-code-review). Reviewer returned no Critical and a 'With fixes' verdict. Acted on Important #2 (comment the deliberate last_message omission inside handle_join_room, at the site that would break it) and #3 (assert the get_recent_messages oldest->newest ordering that messages[-1] depends on - it had been stubbed away), plus Minor #5/#7/#8/#9/#10/#11 (build_last_message helper shared by list+detail, NULL-content coalescing, corrected comment, extra test branches, hook unmount). Rejected the reviewer's Important #1: it claimed onSessionClaimed never updates the conversations list, but useSessionEvents.ts:105 calls fetchConversations() exactly like close/transfer, so a claimed room self-heals - verified in source before declining. vitest 462/462, pytest 799/799, tsc + eslint clean. 3 commits on branch fix/live-chat-sidebar-row-resort, not pushed.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260801-2118.json`
+- Summary: `project-log-md/claude_code/session-summary-20260801-2118.md`
+
+---
+
+### 2026-08-01 20:26 — claude_code — completed
+
+Root-caused the live-chat sidebar 'row jumps down on click' bug that PRs #176-#181 failed to fix six times: it was never a scroll bug. A browser diagnostic recorded zero scroll events on the listbox and every ancestor; the clicked row was re-sorting to the bottom because the join_room conversation_update sync carries no last_message and the merge based the selected room on currentChat (whose detail response omitted it too), so the sidebar sort key became 0. Fixed the merge base + preserved is_pinned/is_muted/is_spam, made get_conversation_detail return last_message, and removed the scroll-lock machinery. vitest 460/460, pytest 797/797, tsc + eslint clean.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260801-2026.json`
+- Summary: `project-log-md/claude_code/session-summary-20260801-2026.md`
+
+---
 
 ### 2026-07-30 11:15 — qoder — completed
 

@@ -84,6 +84,29 @@ test.describe('/admin/live-chat smoke', () => {
   })
 
   /**
+   * WCAG 2.1.1 guard. #176 added `onMouseDown preventDefault` to this listbox
+   * to block an `aria-activedescendant` auto-scroll; #180 then deleted the
+   * aria-activedescendant, leaving a preventDefault whose only remaining effect
+   * was to suppress focus — so clicking a row left the composite widget
+   * unfocused and the arrow keys dead until the user tabbed in. jsdom does not
+   * implement "click focuses the nearest focusable ancestor", so this behavior
+   * can only be pinned in a real browser.
+   */
+  test('arrow keys move the selection after clicking a conversation', async ({ page }) => {
+    await gotoLiveChat(page)
+    const options = page.getByRole('option')
+    test.skip((await options.count()) < 2, 'needs at least two seeded conversations')
+
+    await options.first().click()
+    await expect(options.first()).toHaveAttribute('aria-selected', 'true')
+    // The click must leave the listbox focused, or ArrowDown goes nowhere.
+    await expect(page.getByRole('listbox')).toBeFocused()
+
+    await page.keyboard.press('ArrowDown')
+    await expect(options.nth(1)).toHaveAttribute('aria-selected', 'true')
+  })
+
+  /**
    * Phase 1 / H1 acceptance guard. The Send button currently renders as an
    * icon-only <button> with no accessible name (the bug). This SHOULD fail
    * until H1 is implemented, so it is skipped now and must be un-skipped as
