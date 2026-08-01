@@ -181,6 +181,19 @@ export function ConversationList() {
 
   const selectedIndex = filteredConversations.findIndex((c) => c.line_user_id === selectedId);
   const selectedConversation = selectedIndex >= 0 ? filteredConversations[selectedIndex] : null;
+
+  // Track whether the last selection came from keyboard navigation so we can
+  // scroll-into-view only for keyboard, not mouse clicks.
+  const keyboardNavRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (!keyboardNavRef.current) return;
+    keyboardNavRef.current = false;
+    if (!selectedId) return;
+    const el = document.getElementById(`conversation-option-${selectedId}`);
+    el?.scrollIntoView({ block: 'nearest' });
+  }, [selectedId]);
+
   const [searchResults, setSearchResults] = React.useState<SearchMessageResult[]>([]);
   const [searching, setSearching] = React.useState(false);
   const [showCreateChat, setShowCreateChat] = React.useState(false);
@@ -302,10 +315,12 @@ export function ConversationList() {
           if (event.key === 'ArrowDown') {
             event.preventDefault();
             const next = Math.min((selectedIndex < 0 ? -1 : selectedIndex) + 1, filteredConversations.length - 1);
+            keyboardNavRef.current = true;
             selectConversation(filteredConversations[next].line_user_id);
           } else if (event.key === 'ArrowUp') {
             event.preventDefault();
             const next = Math.max((selectedIndex < 0 ? 0 : selectedIndex) - 1, 0);
+            keyboardNavRef.current = true;
             selectConversation(filteredConversations[next].line_user_id);
           } else if (event.key === 'Enter' && selectedIndex >= 0) {
             event.preventDefault();
