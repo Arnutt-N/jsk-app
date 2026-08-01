@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 201 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 202 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-08-02 00:39 — claude_code — completed
+
+Ran a Full Stocktake of all 282 installed skills (243 global + 39 project) via the skill-stocktake skill, using 12 subagent batches that read every SKILL.md. Headline finding: 17 of 39 project skn-* skills state things about this codebase that are factually FALSE - three of them wrongly claim endpoints have no auth (skn-liff-data on media.py, skn-operator-tools on admin_friends.py, skn-reply-auto on both reply endpoints), and several describe GAPs that were closed long ago (admin_friends/admin_credentials ARE registered, user CRUD endpoints DO exist, service-request fields ARE persisted, the handoff-keywords TODO is done). Also found skn-webhook-handler documenting a pre-refactor architecture, skn-devtools documenting a superseded scripts layout, and tailwind-design-system teaching Tailwind v3 on a v4 repo. Global side: 4 skills cite non-existent model IDs, 7 Retire candidates, 10 Merge candidates including a circular deprecation between autonomous-loops and continuous-agent-loop. Report saved to project-log-md/claude_code/skills/skill-stocktake-20260802.md; verdict cache at ~/.claude/skills/skill-stocktake/results.json. NOTE: skill-stocktake's own scripts cannot run on this host - they require jq, absent from both Git Bash and WSL. No skill files were modified: the skill mandates user confirmation before any retire/merge/edit.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260802-0039.json`
+- Summary: `project-log-md/claude_code/session-summary-20260802-0039.md`
+
+---
 
 ### 2026-08-01 21:38 — claude_code — completed
 

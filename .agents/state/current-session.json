@@ -1,14 +1,21 @@
 {
-  "last_updated": "2026-08-01T21:38:00+07:00",
+  "last_updated": "2026-08-02T00:39:00+07:00",
   "platform": "claude_code",
-  "current_task": "Shipped the live-chat sidebar row-jump fix as PR #182 (branch fix/live-chat-sidebar-row-resort, 5 commits, pushed). Final code change this round: removed the vestigial onMouseDown preventDefault from ",
+  "current_task": "Ran a Full Stocktake of all 282 installed skills (243 global + 39 project) via the skill-stocktake skill, using 12 subagent batches that read every SKILL.md. Headline finding: 17 of 39 project skn-* s",
   "plan_status": "completed",
   "next_steps": [
-    "Wait for PR #182 checks (Backend Pytest, Frontend Lint and Build, Playwright Smoke) then squash-merge if green - user approved the merge",
-    "Deploy backend to Koyeb for the get_conversation_detail last_message contract (frontend half already fixes the bug via Vercel)",
-    "Verify on prod: click the top 3 conversations - rows keep position, pinned rows stay pinned, arrow keys work right after a click"
+    "Awaiting user go-ahead on the fix order: (1) correct the 17 stale skn-* skills, starting with the three false no-auth claims, (2) make skill-stocktake work without jq, (3) fix 4 stale model IDs, (4) retire 7 + merge 10",
+    "Deploy backend to Koyeb for the get_conversation_detail last_message contract (PR #182 merged; frontend half already live on Vercel)",
+    "Verify the live-chat fix on prod: click the top 3 conversations - rows keep position, pinned rows stay pinned, arrow keys work right after a click"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-08-02T00:39:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "c4837e7",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-08-01T21:38:00+07:00",
       "platform": "claude_code",
@@ -140,13 +147,6 @@
       "platform": "kilo_code",
       "branch": "feat/pseudonym-gate-endpoint",
       "head": "4c83f4a",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-25T19:56:00+07:00",
-      "platform": "qoder",
-      "branch": "main",
-      "head": "5862c2e",
       "status": "completed"
     }
   ],
