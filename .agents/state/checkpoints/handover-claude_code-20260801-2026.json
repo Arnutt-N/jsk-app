@@ -1,0 +1,18 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-08-01T20:26:00+07:00",
+  "branch": "main",
+  "head_commit": "a19f21f",
+  "status": "completed",
+  "work_summary": "Root-caused the live-chat sidebar 'row jumps down on click' bug that PRs #176-#181 failed to fix six times: it was never a scroll bug. A browser diagnostic recorded zero scroll events on the listbox and every ancestor; the clicked row was re-sorting to the bottom because the join_room conversation_update sync carries no last_message and the merge based the selected room on currentChat (whose detail response omitted it too), so the sidebar sort key became 0. Fixed the merge base + preserved is_pinned/is_muted/is_spam, made get_conversation_detail return last_message, and removed the scroll-lock machinery. vitest 460/460, pytest 797/797, tsc + eslint clean.",
+  "priority_actions": [
+    "Awaiting user decision: commit + open PR for the fix (currently on branch, not pushed)",
+    "Deploy backend to Koyeb so get_conversation_detail returns last_message in prod",
+    "Verify on prod: click the top 3 conversations — rows must keep their position"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/claude_code/session-summary-20260801-2026.md",
+  "cross_platform_read": []
+}

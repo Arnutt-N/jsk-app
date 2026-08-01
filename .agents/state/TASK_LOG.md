@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 198 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 199 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-08-01 20:26 — claude_code — completed
+
+Root-caused the live-chat sidebar 'row jumps down on click' bug that PRs #176-#181 failed to fix six times: it was never a scroll bug. A browser diagnostic recorded zero scroll events on the listbox and every ancestor; the clicked row was re-sorting to the bottom because the join_room conversation_update sync carries no last_message and the merge based the selected room on currentChat (whose detail response omitted it too), so the sidebar sort key became 0. Fixed the merge base + preserved is_pinned/is_muted/is_spam, made get_conversation_detail return last_message, and removed the scroll-lock machinery. vitest 460/460, pytest 797/797, tsc + eslint clean.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260801-2026.json`
+- Summary: `project-log-md/claude_code/session-summary-20260801-2026.md`
+
+---
 
 ### 2026-07-30 11:15 — qoder — completed
 

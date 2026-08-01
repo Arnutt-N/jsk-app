@@ -1,14 +1,21 @@
 {
-  "last_updated": "2026-07-30T11:15:00+07:00",
-  "platform": "qoder",
-  "current_task": "PR #175 merged (a34c080): pseudonym gate hardening after prod incident — 6 users held dev-key hashes causing 176 fallback hits; repaired prod rows + Redis counter, added Settings.is_remote_database fa",
+  "last_updated": "2026-08-01T20:26:00+07:00",
+  "platform": "claude_code",
+  "current_task": "Root-caused the live-chat sidebar 'row jumps down on click' bug that PRs #176-#181 failed to fix six times: it was never a scroll bug. A browser diagnostic recorded zero scroll events on the listbox a",
   "plan_status": "completed",
   "next_steps": [
-    "Re-read GET /api/v1/health/pseudonym-gate after Koyeb CD deploy to confirm pass/0 unaffected",
-    "Gate clock restarted 2026-07-30 — need pass + fallback_hit_count 0 through ~2026-08-04",
-    "Then write PRD + PRP for PR C destructive phase (drop line_user_id on 7 tables + flip LINE_ID_STORAGE_MODE=pseudonym)"
+    "Awaiting user decision: commit + open PR for the fix (currently on branch, not pushed)",
+    "Deploy backend to Koyeb so get_conversation_detail returns last_message in prod",
+    "Verify on prod: click the top 3 conversations — rows must keep their position"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-08-01T20:26:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "a19f21f",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-07-30T11:15:00+07:00",
       "platform": "qoder",
@@ -140,13 +147,6 @@
       "platform": "kilo_code",
       "branch": "main",
       "head": "0f69af1",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-19T04:20:00+07:00",
-      "platform": "kilo_code",
-      "branch": "main",
-      "head": "56511cf",
       "status": "completed"
     }
   ],

@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-07-30 11:15 by Qoder (PR #175 merged a34c080: pseudonym gate hardening after prod incident — 6 users held dev-ke)
+> **Last Updated:** 2026-08-01 20:26 by Claude Code (Root-caused the live-chat sidebar 'row jumps down on click' bug that PRs #176-#181 failed )
 
 ## Thai Summary
 **PR C gate เคยขึ้น fail และแก้แล้ว** — การอ่าน `GET /api/v1/health/pseudonym-gate` แบบ authenticated ครั้งแรก (30 ก.ค.) ได้ `gate_status: fail`, `fallback_hit_count: 176` สาเหตุ: 6 จาก 8 LINE users บน prod (`users.id` 1,5,6,7,8,9) มี `line_user_id_hash` ที่คำนวณด้วย **dev fallback HMAC key** เพราะ process ที่ตั้ง `ENVIRONMENT=development` แต่ชี้ remote DB เขียนลงไป (`_get_hmac_key` fallback เงียบ) และ `resolve_many_by_line_id` นับ hit แต่ไม่ซ่อม row จึงถูกนับซ้ำทุก admin poll — ซ่อม prod แล้ว (re-hash 6 rows + ล้าง Redis counter) ตอนนี้ gate อ่านได้ `pass` / `0`
@@ -84,6 +84,7 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-08-01 20:26] Claude Code: Root-caused the live-chat sidebar 'row jumps down on click' bug that PRs #176-#181 failed to fix six times: it was never a scroll bug. A browser diagnostic recorded zero scroll events on the listbox and every ancestor; the clicked row was r (Claude Code)
 - [2026-07-30 11:15] Qoder: PR #175 merged (a34c080): pseudonym gate hardening after prod incident — 6 users held dev-key hashes causing 176 fallback hits; repaired prod rows + Redis counter, added Settings.is_remote_database fail-loud guard and self-heal in resolve_m (Qoder)
 - [2026-07-30 09:01] Qoder: Post-merge cleanup for PR #174 (live-chat frontend reassembly): deleted merged branch refactor/live-chat-frontend locally + on origin, ran headless browser pass on /admin/live-chat (sidebar + ChatArea + CustomerPanel render correctly post-r (Qoder)
 - [2026-07-30 08:33] Qoder: Merged PR #174: live-chat frontend reassembly (Phases 1-4) — store consolidation (wsStatus/onlineOperators/claimContenders/typingUsersCount), extracted useSessionEvents + useVirtualScroll, ChatArea 534->352 lines, contract test 34 members u (Qoder)
