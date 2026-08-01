@@ -47,8 +47,25 @@ export function ConversationList() {
 
   const { filtered, waitingCount, activeCount, closedCount } = useConversationStats(conversations, searchQuery, sortBy);
 
+  // Preserve sidebar scroll position across conversation selection. Something
+  // in the selection re-render pipeline (aria-activedescendant, focus, or
+  // layout recalc) scrolls the list container — saving/restoring scrollTop
+  // in useLayoutEffect (before paint) is a definitive guard.
+  const listRef = React.useRef<HTMLDivElement>(null);
+  const savedScrollTopRef = React.useRef<number | null>(null);
+
+  React.useLayoutEffect(() => {
+    if (savedScrollTopRef.current != null && listRef.current) {
+      listRef.current.scrollTop = savedScrollTopRef.current;
+      savedScrollTopRef.current = null;
+    }
+  }, [selectedId]);
+
   // Stable handlers so ConversationItem's React.memo can skip re-renders.
   const handleSelect = React.useCallback((id: string) => {
+    if (listRef.current) {
+      savedScrollTopRef.current = listRef.current.scrollTop;
+    }
     selectConversation(id);
     setActiveActionMenu(null);
   }, [selectConversation, setActiveActionMenu]);
@@ -257,6 +274,7 @@ export function ConversationList() {
 
       {/* Conversation list */}
       <div
+        ref={listRef}
         className="flex-1 overflow-y-auto custom-scrollbar px-2"
         role="listbox"
         aria-label="Conversation list"
