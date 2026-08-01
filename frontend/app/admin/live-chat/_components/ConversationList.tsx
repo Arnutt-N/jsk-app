@@ -48,12 +48,15 @@ export function ConversationList() {
   const { filtered, waitingCount, activeCount, closedCount } = useConversationStats(conversations, searchQuery, sortBy);
 
   // NOTE: this list used to carry a "scroll lock" (saved scrollTop + a 300ms
-  // onScroll revert) meant to stop the sidebar jumping on click. A browser
-  // diagnostic proved the container never scrolled at all — the clicked row was
-  // re-sorting to the bottom because a conversation_update state sync dropped
-  // its `last_message` (fixed in useConversationSync / mergeConversationUpdate).
-  // The lock was removed: it fought the user's own wheel scrolling for 300ms
-  // after every click.
+  // onScroll revert) and an `onMouseDown` preventDefault, both meant to stop the
+  // sidebar jumping on click. A browser diagnostic proved the container never
+  // scrolled at all — the clicked row was re-sorting to the bottom because a
+  // conversation_update state sync dropped its `last_message` (fixed in
+  // useConversationSync / mergeConversationUpdate). Both guards were removed:
+  // the lock fought the user's own wheel scrolling for 300ms after every click,
+  // and suppressing mousedown's default kept this composite widget from ever
+  // taking pointer focus, so ArrowUp/ArrowDown did nothing until the user
+  // tabbed in (WCAG 2.1.1).
 
   // Stable handlers so ConversationItem's React.memo can skip re-renders.
   const handleSelect = React.useCallback((id: string) => {
@@ -281,7 +284,6 @@ export function ConversationList() {
         role="listbox"
         aria-label="Conversation list"
         tabIndex={0}
-        onMouseDown={(e) => e.preventDefault()}
         onKeyDown={(event) => {
           if (!filteredConversations.length) return;
           if (event.key === 'ArrowDown') {
