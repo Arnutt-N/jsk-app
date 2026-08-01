@@ -99,6 +99,13 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
     selectedIdRef.current = selectedId;
   }, [selectedId]);
 
+  // Reset per-session transient state on unmount (navigation away).
+  useEffect(() => {
+    return () => {
+      useLiveChatStore.getState().resetTransient();
+    };
+  }, []);
+
   // ── Stable store-delegating setters (exposed on the context value) ──
   const {
     setSearchQuery,
@@ -145,7 +152,12 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
 
   // ── WS session-event handlers (status, typing, claim/close/transfer,
   // presence, errors) — write to the store, single source of truth ──
-  const sessionEvents = useSessionEvents({ fetchConversations, wsStatusRef, currentUserId });
+  const sessionEvents = useSessionEvents({ fetchConversations, wsStatusRef, selectedIdRef, currentUserId });
+
+  // Clear typing indicators when switching rooms.
+  useEffect(() => {
+    sessionEvents.clearTyping();
+  }, [selectedId, sessionEvents.clearTyping]);
 
   const adminId = user?.id || '1';
   const {

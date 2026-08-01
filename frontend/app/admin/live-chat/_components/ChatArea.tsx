@@ -40,6 +40,7 @@ export function ChatArea() {
   const hasMoreHistory = useLiveChatStore((s) => s.hasMoreHistory);
   const isLoadingHistory = useLiveChatStore((s) => s.isLoadingHistory);
   const initialUnreadCount = useLiveChatStore((s) => s.initialUnreadCount);
+  const firstUnreadMessageId = useLiveChatStore((s) => s.firstUnreadMessageId);
   const liveMessage = useLiveChatStore((s) => s.liveMessage);
 
   // API methods and non-store state from Context
@@ -274,15 +275,13 @@ export function ChatArea() {
           const failed = !!(message.temp_id && failedMessages.has(message.temp_id));
           const formattedTime = new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-          // L9.4 (unread divider): Use initialUnreadCount (captured at open
-          // time) instead of currentChat?.unread_count (which is 0 because
-          // selectConversation clears it immediately).
-          const unreadCount = initialUnreadCount;
-          const isFirstUnread = unreadCount > 0 && idx === messages.length - unreadCount;
+          // L9.4 (unread divider): Use a stable message ID (computed at load
+          // time) instead of an index offset that drifts on history prepend.
+          const isFirstUnread = message.id === firstUnreadMessageId;
 
           return (
             <React.Fragment key={message.id || message.temp_id}>
-              {isFirstUnread && <UnreadDivider count={unreadCount} />}
+              {isFirstUnread && <UnreadDivider count={initialUnreadCount} />}
               <MessageBubble
                 message={message}
                 elementId={message.id ? `message-${message.id}` : undefined}

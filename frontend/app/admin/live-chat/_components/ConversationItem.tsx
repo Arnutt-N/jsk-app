@@ -119,10 +119,10 @@ export const ConversationItem = memo(function ConversationItem({
       role="option"
       aria-selected={selected}
       aria-label={`${conversation.display_name}, ${statusLabel}${conversation.unread_count > 0 ? `, ${conversation.unread_count} ข้อความใหม่` : ''}`}
-      className={`group relative flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors thai-text ${
+      className={`group relative flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors thai-text border ${
         selected
-          ? 'gradient-active text-white shadow-lg shadow-brand-900/30'
-          : 'text-sidebar-text-muted hover:bg-white/5 border border-transparent'
+          ? 'gradient-active text-white shadow-lg shadow-brand-900/30 border-transparent'
+          : 'text-sidebar-text-muted hover:bg-white/5 border-transparent'
       }`}
       onClick={handleSelect}
     >

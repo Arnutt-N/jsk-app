@@ -18,6 +18,7 @@ const getStore = () => useLiveChatStore.getState();
 interface UseSessionEventsDeps {
   fetchConversations: () => Promise<void>;
   wsStatusRef: RefObject<ConnectionState>;
+  selectedIdRef: RefObject<string | null>;
   currentUserId: number;
 }
 
@@ -30,6 +31,7 @@ interface UseSessionEventsDeps {
 export function useSessionEvents({
   fetchConversations,
   wsStatusRef,
+  selectedIdRef,
   currentUserId,
 }: UseSessionEventsDeps) {
   const typingUsersRef = useRef<Set<string>>(new Set());
@@ -46,6 +48,8 @@ export function useSessionEvents({
     if (status === 'connected') {
       getStore().setBackendOnline(true);
       if (wasOffline) {
+        typingUsersRef.current = new Set();
+        getStore().setTypingUsersCount(0);
         getStore().addNotification({
           title: 'เชื่อมต่อแล้ว',
           message: 'การเชื่อมต่อ WebSocket กู้คืนสำเร็จ',
@@ -56,15 +60,17 @@ export function useSessionEvents({
     }
   }, [wsStatusRef]);
 
-  const onTyping = useCallback((_lineUserId: string, adminId: string, isTyping: boolean) => {
+  const onTyping = useCallback((lineUserId: string, adminId: string, isTyping: boolean) => {
+    if (lineUserId !== selectedIdRef.current) return;
     const next = new Set(typingUsersRef.current);
     if (isTyping) next.add(adminId);
     else next.delete(adminId);
     typingUsersRef.current = next;
     getStore().setTypingUsersCount(next.size);
-  }, []);
+  }, [selectedIdRef]);
 
   const onSessionClaimed = useCallback((lineUserId: string, operatorId: number) => {
+    getStore().setClaiming(false);
     const chat = getStore().currentChat;
     if (chat?.line_user_id === lineUserId) {
       getStore().setCurrentChat({
@@ -167,9 +173,15 @@ export function useSessionEvents({
     });
   }, []);
 
+  const clearTyping = useCallback(() => {
+    typingUsersRef.current = new Set();
+    getStore().setTypingUsersCount(0);
+  }, []);
+
   return {
     onConnectionChange,
     onTyping,
+    clearTyping,
     onSessionClaimed,
     onSessionClosed,
     onSessionTransferred,

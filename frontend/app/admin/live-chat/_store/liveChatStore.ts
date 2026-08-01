@@ -52,6 +52,9 @@ interface LiveChatState {
   // conversation is opened, BEFORE it's cleared to 0. Used by ChatArea to
   // render the UnreadDivider at the correct position. Reset on switch.
   initialUnreadCount: number
+  // Stable message ID for the unread divider — survives history prepend
+  // (index-based position drifts when older messages are loaded).
+  firstUnreadMessageId: number | null
 
   // WS session state (single source of truth — was Context-local useState)
   wsStatus: ConnectionState
@@ -95,6 +98,8 @@ interface LiveChatActions {
   clearFailed: (tempId: string) => void
   setHasMoreHistory: (hasMore: boolean) => void
   setIsLoadingHistory: (loading: boolean) => void
+  setInitialUnreadCount: (count: number) => void
+  setFirstUnreadMessageId: (id: number | null) => void
   markRead: (lineUserId: string) => void
   updateConversationFlags: (
     lineUserId: string,
@@ -120,6 +125,7 @@ interface LiveChatActions {
   closeAllPickers: () => void
   addNotification: (notification: Omit<ToastNotification, 'id' | 'timestamp'>) => void
   removeNotification: (id: string) => void
+  resetTransient: () => void
 }
 
 type LiveChatStore = LiveChatState & LiveChatActions
@@ -147,6 +153,7 @@ const initialState: LiveChatState = {
   hasMoreHistory: true,
   isLoadingHistory: false,
   initialUnreadCount: 0,
+  firstUnreadMessageId: null,
   wsStatus: 'disconnected',
   onlineOperators: [],
   claimContenders: {},
@@ -222,6 +229,8 @@ export const useLiveChatStore = create<LiveChatStore>()(
       }),
       setHasMoreHistory: (hasMore) => set({ hasMoreHistory: hasMore }),
       setIsLoadingHistory: (loading) => set({ isLoadingHistory: loading }),
+      setInitialUnreadCount: (count) => set({ initialUnreadCount: count }),
+      setFirstUnreadMessageId: (id) => set({ firstUnreadMessageId: id }),
       markRead: (lineUserId) => set((s) => ({
         conversations: s.conversations.map((c) =>
           c.line_user_id === lineUserId ? { ...c, unread_count: 0 } : c),
@@ -264,16 +273,43 @@ export const useLiveChatStore = create<LiveChatStore>()(
         showStickerPicker: false,
         showQuickReplies: false,
       }),
-      addNotification: (notification) => set((s) => ({
-        notifications: [...s.notifications, {
+      addNotification: (notification) => set((s) => {
+        const next = [...s.notifications, {
           ...notification,
           id: `toast-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
           timestamp: Date.now(),
-        }],
-      })),
+        }]
+        return { notifications: next.length > 5 ? next.slice(next.length - 5) : next }
+      }),
       removeNotification: (id) => set((s) => ({
         notifications: s.notifications.filter((n) => n.id !== id),
       })),
+      resetTransient: () => set({
+        selectedId: null,
+        currentChat: null,
+        messages: [],
+        inputText: '',
+        sending: false,
+        claiming: false,
+        activeActionMenu: null,
+        showTransferDialog: false,
+        showCannedPicker: false,
+        pendingMessages: new Set(),
+        failedMessages: new Map(),
+        nonRetryableMessages: new Set(),
+        hasMoreHistory: true,
+        isLoadingHistory: false,
+        initialUnreadCount: 0,
+        firstUnreadMessageId: null,
+        typingUsersCount: 0,
+        claimContenders: {},
+        showEmojiPicker: false,
+        showStickerPicker: false,
+        showQuickReplies: false,
+        inputExpanded: false,
+        notifications: [],
+        liveMessage: '',
+      }),
     }),
     { name: 'LiveChatStore' }
   )

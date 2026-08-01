@@ -146,13 +146,24 @@ export function useConversationSync({ selectedIdRef, wsStatusRef }: UseConversat
 
   const selectConversation = useCallback((id: string | null) => {
     getStore().selectChat(id);
+    // Reset per-conversation transient state on switch (single atomic update).
+    useLiveChatStore.setState({
+      sending: false,
+      inputText: '',
+      showEmojiPicker: false,
+      showStickerPicker: false,
+      showQuickReplies: false,
+      showTransferDialog: false,
+      activeActionMenu: null,
+      firstUnreadMessageId: null,
+    });
     if (id) {
       window.history.replaceState(null, '', `/admin/live-chat?chat=${id}`);
       // L9.4 (unread divider): Capture the unread count BEFORE clearing it,
       // so ChatArea can render the UnreadDivider at the correct position.
       const conv = getStore().conversations.find((c) => c.line_user_id === id);
       const unreadAtOpen = conv?.unread_count || 0;
-      getStore().initialUnreadCount = unreadAtOpen;
+      getStore().setInitialUnreadCount(unreadAtOpen);
       const next = getStore().conversations.map((c) => (
         c.line_user_id === id ? { ...c, unread_count: 0 } : c
       ));
@@ -161,7 +172,7 @@ export function useConversationSync({ selectedIdRef, wsStatusRef }: UseConversat
       window.history.replaceState(null, '', '/admin/live-chat');
       getStore().setCurrentChat(null);
       getStore().setMessages([]);
-      getStore().initialUnreadCount = 0;
+      getStore().setInitialUnreadCount(0);
     }
   }, []);
 
