@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-08-02 19:35 by Claude Code (REV 4: ส่ง PRD+plan ให้ Codex review read-only แล้วแก้บั๊กในสเปก 6 กลุ่ม — จุดใหญ่สุดคือ C)
+> **Last Updated:** 2026-08-02 19:49 by Claude Code (REV 5: ยกเลิก gate 'สร้าง < 1 เมนู/เดือน ให้หยุดโครงการ' เพราะวัดผิดแกน — rich menu เป็นโค)
 
 ## Thai Summary
 **PR C gate เคยขึ้น fail และแก้แล้ว** — การอ่าน `GET /api/v1/health/pseudonym-gate` แบบ authenticated ครั้งแรก (30 ก.ค.) ได้ `gate_status: fail`, `fallback_hit_count: 176` สาเหตุ: 6 จาก 8 LINE users บน prod (`users.id` 1,5,6,7,8,9) มี `line_user_id_hash` ที่คำนวณด้วย **dev fallback HMAC key** เพราะ process ที่ตั้ง `ENVIRONMENT=development` แต่ชี้ remote DB เขียนลงไป (`_get_hmac_key` fallback เงียบ) และ `resolve_many_by_line_id` นับ hit แต่ไม่ซ่อม row จึงถูกนับซ้ำทุก admin poll — ซ่อม prod แล้ว (re-hash 6 rows + ล้าง Redis counter) ตอนนี้ gate อ่านได้ `pass` / `0`
@@ -84,6 +84,7 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-08-02 19:49] Claude Code: REV 5: ยกเลิก gate 'สร้าง < 1 เมนู/เดือน ให้หยุดโครงการ' เพราะวัดผิดแกน — rich menu เป็นโครงสร้างพื้นฐานถาวร ไม่ใช่งานที่ทำซ้ำ; Phase 1 กลับเป็น APPROVED (Claude Code)
 - [2026-08-02 19:35] Claude Code: REV 4: ส่ง PRD+plan ให้ Codex review (read-only) แล้วแก้บั๊กในสเปก 6 กลุ่ม — จุดใหญ่สุดคือ CSS font variable ให้ค่าต่างกันระหว่าง dev กับ prod (Claude Code)
 - [2026-08-02 18:33] Claude Code: REV 3: ปิด DECISION-PENDING ครบ 4 ข้อ (font 96px/2 บรรทัด, contrast บล็อกปุ่ม, หน้ายืนยันก่อน publish, usability test 3 คน) — แผน Phase 1 พร้อม implement (Claude Code)
 - [2026-08-02 18:01] Claude Code: REV 2: รีวิว PRD+plan ด้วย 4 agent ขนาน แล้วแก้ข้อผิดพลาดเชิงข้อเท็จจริง (ฟอนต์ไทยไม่ถูกโหลด, ctx.font invalid, metric วัดจาก audit log ที่ไม่มี) (Claude Code)

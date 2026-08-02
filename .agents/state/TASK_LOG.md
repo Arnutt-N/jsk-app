@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 206 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 207 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-08-02 19:49 — claude_code — completed
+
+REV 5: ยกเลิก gate 'สร้าง < 1 เมนู/เดือน ให้หยุดโครงการ' เพราะวัดผิดแกน — rich menu เป็นโครงสร้างพื้นฐานถาวร ไม่ใช่งานที่ทำซ้ำ; Phase 1 กลับเป็น APPROVED
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260802-1949.json`
+- Summary: `project-log-md/claude_code/session-summary-20260802-1949.md`
+
+---
 
 ### 2026-08-02 19:35 — claude_code — completed
 

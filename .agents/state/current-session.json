@@ -1,13 +1,20 @@
 {
-  "last_updated": "2026-08-02T19:35:00+07:00",
+  "last_updated": "2026-08-02T19:49:00+07:00",
   "platform": "claude_code",
-  "current_task": "REV 4: ส่ง PRD+plan ให้ Codex review (read-only) แล้วแก้บั๊กในสเปก 6 กลุ่ม — จุดใหญ่สุดคือ CSS font variable ให้ค่าต่างกันระหว่าง dev กับ prod",
+  "current_task": "REV 5: ยกเลิก gate 'สร้าง < 1 เมนู/เดือน ให้หยุดโครงการ' เพราะวัดผิดแกน — rich menu เป็นโครงสร้างพื้นฐานถาวร ไม่ใช่งานที่ทำซ้ำ; Phase 1 กลับเป็น APPROVED",
   "plan_status": "completed",
   "next_steps": [
-    "เช็ค baseline ก่อนเขียนโค้ด: SELECT count(*), min(created_at), max(created_at) FROM rich_menus — ถ้า < 1 เมนู/เดือน ให้หยุดโครงการ",
-    "ถ้าผ่าน gate: implement Phase 1 ตาม plan REV 4 (Task 1-7, Task 7 บังคับ)"
+    "Implement Phase 1 ตาม plan REV 4 — ไม่มี gate ขวางแล้ว",
+    "ถามแอดมิน 3 คำถามเรื่องสถานะเมนูปัจจุบัน (ทำคู่ขนานได้ ใช้กำหนดขอบเขต Phase 2)"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-08-02T19:49:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "88c02eb",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-08-02T19:35:00+07:00",
       "platform": "claude_code",
@@ -139,13 +146,6 @@
       "platform": "qoder",
       "branch": "main",
       "head": "425bba6",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-28T01:08:00+07:00",
-      "platform": "qoder",
-      "branch": "main",
-      "head": "4ba338a",
       "status": "completed"
     }
   ],
