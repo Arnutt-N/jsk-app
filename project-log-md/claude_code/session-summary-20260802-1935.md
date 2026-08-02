@@ -129,7 +129,7 @@ a1ec424  PRD + plan (REV 1)
 2. ถ้าผ่าน gate: implement Phase 1 ตาม plan REV 4
    - Task 1-6 ใน `frontend/lib/rich-menu/` + **Task 7 (Playwright) บังคับ**
    - acceptance: `git diff` ต้องไม่แตะ `app/admin/rich-menus/new/` และ `backend/`
-3. ก่อนเข้า Phase 2 ยังต้องปิด: คู่มือ branding ของ สธก. + ภาษาที่ต้องรองรับ
+3. ก่อนเข้า Phase 2 ยังต้องปิด: มีข้อกำหนดเรื่องสีบังคับหรือไม่ + ภาษาที่ต้องรองรับ
 
 ## Blockers
 - **baseline gate** ยังไม่ได้เช็ค — บล็อกการ merge Phase 1 (แต่ไม่บล็อกการเริ่มเขียนในฐานะ spike)

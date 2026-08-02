@@ -76,7 +76,7 @@ a1ec424  PRD + plan (REV 1)
    - Task 7 (dev harness) ใช้ชื่อ `dev-preview/` ไม่ใช่ `_dev-preview/` (Next.js private folder)
      และต้องลบก่อน commit
 2. **ก่อนเข้า Phase 2** ยังต้องปิด: baseline การใช้งานจริง (`SELECT count(*), min(created_at),
-   max(created_at) FROM rich_menus;` + สัมภาษณ์แอดมิน), คู่มือ branding ของ สธก., ภาษาที่ต้องรองรับ
+   max(created_at) FROM rich_menus;` + สัมภาษณ์แอดมิน), มีข้อกำหนดเรื่องสีบังคับหรือไม่, ภาษาที่ต้องรองรับ
 
 ## Blockers
 - _none_ — decision ปิดครบแล้ว Phase 1 เริ่มได้ทันที

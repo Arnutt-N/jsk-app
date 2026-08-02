@@ -108,7 +108,7 @@ FROM rich_menus WHERE created_at > '<release_date>';
 จากนั้น: implement Phase 1 ตาม plan REV 2
 (acceptance บังคับ `git diff` ต้องไม่แตะ `app/admin/rich-menus/new/` และ `backend/`)
 
-ควรปิดก่อน Phase 2 ด้วย: baseline การใช้งานจริง, คู่มือ branding ของ สธก., ภาษาที่ต้องรองรับ
+ควรปิดก่อน Phase 2 ด้วย: baseline การใช้งานจริง, มีข้อกำหนดเรื่องสีบังคับหรือไม่, ภาษาที่ต้องรองรับ
 
 ## Blockers
 - _none_ ทางเทคนิค — แต่ 4 decision ข้างบนบล็อกการ implement อยู่
