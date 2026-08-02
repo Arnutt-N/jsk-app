@@ -7,20 +7,40 @@
 ## Problem Statement
 
 แอดมินสร้าง Rich Menu ใน jsk-app ไม่จบในระบบเดียว เพราะ `POST /admin/rich-menus/{id}/upload`
-(`backend/app/api/v1/endpoints/rich_menus.py:551`) บังคับให้ต้องมี **ไฟล์ภาพ 2500×1686 px ที่ทำมาก่อนแล้ว**
+(`backend/app/api/v1/endpoints/rich_menus.py:551-592`) **รับได้เฉพาะ `UploadFile` ที่ทำมาก่อนแล้ว**
 แอดมินที่ไม่ใช่ graphic designer จึงต้องออกไปทำภาพใน Canva/Photoshop แล้วกลับเข้ามาอัปโหลด
 ต้นทุนของการไม่แก้: ทุกครั้งที่ต้องการเปลี่ยนป้ายเมนูแม้แค่คำเดียว ต้องวนลูปข้ามเครื่องมืออีกรอบ
 
+> หมายเหตุความแม่นยำ: endpoint นี้ **ไม่ได้ตรวจขนาดภาพเลย** (มันแค่ sanitize ชื่อไฟล์แล้วเขียนลงดิสก์)
+> ข้อจำกัด 2500×1686 มาจากฝั่ง LINE และจากคำเตือนใน UI ไม่ใช่จากการ validate ใน backend
+
 ## Evidence
 
-- `POST /{id}/upload` รับ `UploadFile` เท่านั้น ไม่มี endpoint ใดสร้างภาพได้ (`rich_menus.py:551-592`)
-- **มีหน้า `/admin/image-resize` ทั้งหน้า** พร้อม `RESIZE_PRESETS` ที่มี `line-rich-large` (2500×1686)
-  และ `line-rich-compact` (2500×843) โดยเฉพาะ (`frontend/app/admin/image-resize/image-utils.ts:25-31`)
-  — การที่ทีมลงทุนสร้างเครื่องมือย่อรูปเฉพาะทางขนาดนี้ คือหลักฐานว่า "ขั้นตอนเตรียมภาพ" เป็นจุดเจ็บจริง
-- UI ปัจจุบันเตือนแอดมินเองว่า *"Ensure your image strictly matches the dimensions of the selected template"*
-  (`frontend/app/admin/rich-menus/new/page.tsx:596`) — เป็นการโยนภาระความถูกต้องของขนาดไปให้ผู้ใช้
-- **[สมมติฐาน — ยังไม่ได้ยืนยัน]** ยังไม่มีข้อมูลว่าแอดมินสร้าง Rich Menu บ่อยแค่ไหน หรือใช้เวลาต่อครั้งเท่าไร
-  ต้องยืนยันด้วยการสัมภาษณ์แอดมิน 2-3 คน หรือดู `audit` log ของ `/rich-menus` ย้อนหลัง
+### หลักฐานเชิงโครงสร้าง (ตรวจสอบได้)
+
+- `POST /{id}/upload` รับ `UploadFile` เท่านั้น และ **ไม่มี endpoint ใดใน `rich_menus.py` สร้างภาพได้**
+  (ตรวจครบทั้ง 21 `@router.*` decorator)
+- UI ปัจจุบันเตือนแอดมินเองว่า *"Ensure your image strictly matches the dimensions of the selected
+  template. Max size 1MB."* (`frontend/app/admin/rich-menus/new/page.tsx:596`)
+  — เป็นการโยนภาระความถูกต้องของขนาดไปให้ผู้ใช้
+
+### สัญญาณแวดล้อม (ไม่ใช่หลักฐานความเจ็บปวดของผู้ใช้)
+
+- มีหน้า `/admin/image-resize` พร้อม `RESIZE_PRESETS` ที่มี `line-rich-large` (2500×1686) และ
+  `line-rich-compact` (2500×843) (`frontend/app/admin/image-resize/image-utils.ts:25-31`)
+  **แต่ต้องระวังการตีความ**: หน้านี้เกิดจาก commit `79fae00` / PR #106 *"Phase 2 — Rename & Restructure"*
+  ซึ่งเป็นงานจัดระเบียบ sidebar — ไม่ได้เกิดจากคำร้องขอเรื่อง rich menu และ `RESIZE_PRESETS` มี **5 preset**
+  (รวม `line-flex-hero`, `og-image`, `square-1080`) คือเป็นเครื่องมือย่อรูปอเนกประสงค์
+  ที่บังเอิญมี rich menu อยู่ในลิสต์ ไม่ใช่เครื่องมือเฉพาะทาง
+
+### ⚠️ ช่องว่างของหลักฐาน (ต้องปิดก่อน Phase 2)
+
+**ยังไม่มีหลักฐานตรงว่ามีผู้ใช้เจ็บปวดจริง** — เมื่อถอดสัญญาณแวดล้อมข้างบนออก เอกสารนี้เหลือแค่
+การอ่านโค้ดว่าระบบ *ทำงานอย่างไร* ซึ่งไม่ได้บอกว่า *มีใครเดือดร้อน* ต้องปิดด้วย:
+1. สัมภาษณ์แอดมิน 2-3 คนที่ถือ `KEY_MANAGE_RICH_MENUS`
+2. `SELECT count(*), min(created_at), max(created_at) FROM rich_menus;` เพื่อได้อัตราการสร้างจริง
+
+Phase 1 (pure function) เดินต่อได้ระหว่างรอ เพราะไม่ขึ้นกับคำตอบเหล่านี้
 
 ## Proposed Solution
 
@@ -42,13 +62,14 @@
 เราเชื่อว่า **การสร้างภาพ Rich Menu ในหน้าเดียวกับที่ตั้งค่าเมนู** จะทำให้แอดมินที่ไม่มีทักษะกราฟิก
 สร้างและแก้ Rich Menu ได้เองจนจบ โดยไม่ต้องออกไปใช้เครื่องมือภายนอก
 
-เราจะรู้ว่าคิดถูกเมื่อ **Rich Menu ที่สร้างใหม่หลัง release ≥ 60% ใช้ภาพจาก generator (ไม่ใช่ไฟล์อัปโหลด)**
+เราจะรู้ว่าคิดถูกเมื่อ... `[DECISION-PENDING-4]` — เกณฑ์ "≥ 60% ภายใน 60 วัน" ของ REV 1 ถูกระงับไว้
+เพราะพิสูจน์ว่าผิดไม่ได้และไม่มี baseline (ดู Success Metrics)
 
 ## What We're NOT Building
 
 | ไม่ทำ | เหตุผล |
 |---|---|
-| MCP server ของ jsk-app | เพิ่ม attack surface ให้ระบบภาครัฐโดยยังไม่มี use case ที่ชัด — `credential.py` เป็น multi-tenant, การเปิด MCP ต้องทำ auth/audit ใหม่ทั้งชุด |
+| MCP server ของ jsk-app | เพิ่ม attack surface ให้ระบบภาครัฐโดยยังไม่มี use case ที่ชัด — `credential.py` เป็น multi-provider (LINE/TELEGRAM/n8n) ไม่ใช่ multi-tenant, การเปิด MCP ต้องทำ auth/audit ใหม่ทั้งชุด |
 | Flex message validator แบบเข้ม | `backend/app/schemas/reply_object_validation.py` มี validator อยู่แล้ว และ **จงใจ** ปล่อย Flex เป็น free JSON ("Flex stays free JSON by design") — การรัดให้แน่นอาจทำ reply object เดิมพัง |
 | Marp / Puppeteer / Playwright ฝั่ง backend | ต้นทุน image size + cold start บน Koyeb ไม่คุ้ม เมื่อ Canvas ทำงานเดียวกันได้ |
 | อัปโหลดไอคอน / รูปพื้นหลัง | เลื่อนไป v2 — ต้องออกแบบ asset library และระบบ layout ที่ยืดหยุ่นก่อน |
@@ -57,18 +78,35 @@
 
 ## Success Metrics
 
+> ⚠️ **แก้ REV 2**: metric ชุดเดิมวัดจาก "audit log ของ `/rich-menus`" ซึ่ง **ไม่มีอยู่จริง** —
+> `grep -i audit backend/app/api/v1/endpoints/rich_menus.py` ได้ 0 ครั้ง (แม้ `core/audit.py` และ
+> `models/audit_log.py` จะมีอยู่ก็ตาม) และการไปเพิ่ม audit ให้ endpoint นี้จะ **ขัดกับเสาหลัก
+> "ไม่แตะ backend" ของ PRD ฉบับนี้เอง** จึงเปลี่ยนมาวัดจากสิ่งที่มีอยู่แล้ว
+
 | Metric | Target | How Measured |
 |--------|--------|--------------|
-| **[Primary]** สัดส่วน Rich Menu ใหม่ที่ใช้ภาพจาก generator | ≥ 60% ภายใน 60 วันหลัง release | นับจาก `audit` log ของ `POST /rich-menus/{id}/upload` โดยเพิ่ม field แยกที่มาของภาพ — **ต้องออกแบบวิธีเก็บ (ดู Open Questions)** |
-| เวลาจาก "สร้าง draft" ถึง "อัปโหลดภาพสำเร็จ" | ลดลง ≥ 50% เทียบ baseline | เทียบ timestamp `RichMenu.created_at` กับ audit log ของ upload |
-| ภาพที่ generate ผ่านข้อจำกัด LINE | 100% (ขนาดถูก + ≤ 1 MB) | Unit test + assert ใน generator |
-| Rich menu ที่ต้องแก้ภาพซ้ำภายใน 7 วัน | ไม่เพิ่มขึ้นจาก baseline | audit log |
+| **[Primary]** สัดส่วน Rich Menu ใหม่ที่ใช้ภาพจาก generator | `[DECISION-PENDING-4]` | `RichMenu.image_path` ถูก persist อยู่แล้ว และ endpoint เขียนเป็น `{id}_{safe_name}` โดย sanitize แค่ `os.path.basename()` + `.replace("..","")` → prefix `generated_` รอดผ่าน จึงวัดได้ด้วย SQL ตรง ๆ **โดยไม่แตะ backend**:<br>`SELECT count(*) FILTER (WHERE image_path LIKE '%\_generated\_%') * 100.0 / count(*) FROM rich_menus WHERE created_at > '<release_date>';` |
+| **[Guardrail]** tap rate ของเมนูที่สร้างด้วย generator | ไม่ต่ำกว่าเมนูก่อนหน้าเกิน 20% ที่ 14 วันหลัง publish | `GET /admin/rich-menus/{id}/insights/daily` (`rich_menus.py:459`) ซึ่ง **มีอยู่แล้ว** — นี่คือตัวเดียวที่จับได้ว่า "แอดมินทำเมนูเองได้เร็วขึ้น แต่ได้เมนูที่คนกดน้อยลง" |
+| ภาพที่ generate ผ่านข้อจำกัด LINE | 100% (ขนาดถูก + ≤ 1 MB) | ~~metric~~ → **ย้ายเป็น acceptance criterion ของ Phase 1** เพราะเป็น 100% เสมอโดยนิยาม (เรา assert เอง) |
+
+### ❌ metric ที่ถอดออกเพราะวัดไม่ได้ด้วยข้อมูลที่มี
+
+- ~~เวลาจาก "สร้าง draft" ถึง "อัปโหลดภาพสำเร็จ"~~ — `RichMenu` มีแค่ `created_at` และ `updated_at`
+  (`onupdate=func.now()`) **ไม่มี `image_uploaded_at`** และ `updated_at` ถูกทับทุกครั้งที่แก้ชื่อ/config
+- ~~Rich menu ที่ต้องแก้ภาพซ้ำภายใน 7 วัน~~ — ต้องใช้ event history แต่ `image_path` เป็น current state
+  ที่ถูกเขียนทับ นับ "แก้ซ้ำ" ไม่ได้
+
+> **`[DECISION-PENDING-4]`** target "≥ 60% ภายใน 60 วัน" ของ REV 1 ตั้งขึ้นทั้งที่เอกสารยอมรับเองว่า
+> **ไม่มี baseline** และเนื่องจาก LINE OA มี default rich menu ได้ทีละหนึ่งอัน อัตราการสร้างจริงของ
+> หน่วยงานเดียวใน 60 วันน่าจะอยู่ที่ 1-5 อัน → "60%" = "2 ใน 3 อัน" ซึ่งเป็น anecdote ไม่ใช่ metric
+> และ hypothesis จะ **พิสูจน์ว่าผิดไม่ได้** (ผลต่ำอธิบายได้เสมอว่า "ยังไม่มีใครสร้างเมนูใหม่")
+> ทางเลือกที่เสนอ: usability test แบบมีผู้สังเกตการณ์กับแอดมินจริง 3 คน — วัดได้ใน 1 วัน มีทั้งขาชนะและขาแพ้
 
 ## Open Questions
 
-- [ ] **ยังไม่มี baseline** — ปัจจุบันแอดมินสร้าง Rich Menu กี่ครั้ง/เดือน ใช้เวลาเท่าไร? ต้องดู audit log ย้อนหลังก่อนตั้ง target จริง
-- [ ] **จะแยก "ภาพจาก generator" vs "ภาพอัปโหลด" ยังไง?** `POST /{id}/upload` ปัจจุบันรับแค่ไฟล์ ไม่รู้ที่มา → ถ้าจะวัด metric หลัก อาจต้องเพิ่ม form field `source` (แต่ = แตะ backend ซึ่งขัดกับข้อดีข้อ 2) **ทางเลือก:** ใช้ชื่อไฟล์เป็นตัวบอก (`generated_*.png`) ซึ่งไม่ต้องแก้ backend แต่ก็ปลอมได้ — ยอมรับได้สำหรับ metric ภายใน
-- [ ] **ฟอนต์ไทยบน Canvas** — จะ bundle ฟอนต์ (Noto Sans Thai / Sarabun) เข้า repo หรือใช้ `next/font`? ต้องยืนยันว่า `document.fonts.load()` ทำงานก่อน `ctx.fillText` ทุกครั้ง ไม่งั้นได้ฟอนต์ fallback ที่หน้าตาต่างกันในแต่ละเครื่อง
+- [ ] **ยังไม่มี baseline** — ปัจจุบันแอดมินสร้าง Rich Menu กี่ครั้ง/เดือน? **ดู audit log ไม่ได้** เพราะ `rich_menus.py` ไม่เขียน audit เลย → ใช้ `SELECT count(*), min(created_at), max(created_at) FROM rich_menus;` แทน **ถ้าอัตราจริง < 1 เมนู/เดือน ควรหยุด PRD นี้** เพราะ ROI ไม่คุ้ม 5 เฟส
+- [x] ~~จะแยก "ภาพจาก generator" vs "ภาพอัปโหลด" ยังไง?~~ **ปิดแล้ว** — `RichMenu.image_path` ถูก persist อยู่แล้วและ sanitizer ปล่อย prefix `generated_` ผ่าน → query ด้วย SQL ได้เลย ไม่ต้องแตะ backend (ดู Success Metrics)
+- [x] ~~ฟอนต์ไทยบน Canvas — จะ bundle เองหรือใช้ next/font?~~ **ปิดแล้ว** — `app/layout.tsx:6-13` โหลด `Noto_Sans_Thai` (`subsets:['thai','latin']`, weight 400/500/700) ผ่าน `next/font/google` อยู่แล้ว **แต่พบความเสี่ยงใหม่ที่หนักกว่า**: ฟอนต์ไทยเป็น `@font-face` คนละไฟล์กับ latin และ `document.fonts.load()` โดยไม่ส่ง text จะโหลดเฉพาะ latin → ดู Technical Risks และ plan Task 2
 - [ ] มีคู่มือ branding ของ สธก. (สำนักงานยุติธรรมชุมชน) ที่กำหนดชุดสีบังคับหรือไม่? ถ้ามีควรทำเป็น preset
 - [ ] ต้องรองรับภาษาอังกฤษ/ภาษาอื่นใน rich menu ด้วยไหม หรือไทยอย่างเดียว
 
@@ -102,7 +140,7 @@
 
 | Priority | Capability | Rationale |
 |----------|------------|-----------|
-| **Must** | Render Canvas จาก `PRESET_TEMPLATES[].areas[].bounds` ที่ขนาดจริง (2500×1686 / 2500×843) | คือแก่นของฟีเจอร์ และเป็นสิ่งที่รับประกันว่าภาพตรงกับพื้นที่กด |
+| **Must** | Render Canvas จาก `PRESET_TEMPLATES[].items[].areas[].bounds` ที่ขนาดจริง (2500×1686 / 2500×843) | คือแก่นของฟีเจอร์ และเป็นสิ่งที่รับประกันว่าภาพตรงกับพื้นที่กด |
 | **Must** | รองรับข้อความไทยถูกต้อง (ฟอนต์ + สระ/วรรณยุกต์ + ตัดคำ) | ผู้ใช้เป็นหน่วยงานไทย ถ้าออกมาเป็น ▯▯▯ = ฟีเจอร์ใช้ไม่ได้เลย |
 | **Must** | เลือกสีพื้นและสีตัวอักษรได้ | ตามที่ตัดสินใจไว้ — ทำให้เข้ากับ branding ได้โดยยังคุมความซับซ้อน |
 | **Must** | Export เป็น PNG ≤ 1 MB และเสียบเข้า `FormData` เดิมของ `new/page.tsx` | LINE จำกัด 1 MB และ UI ปัจจุบันก็ประกาศไว้แล้ว |
@@ -160,17 +198,21 @@ sync → publish (เดิม ไม่แก้)
   จึงเป็นไปไม่ได้ที่ภาพกับพื้นที่กดจะไม่ตรงกัน (ต่างจาก LINE MCP ที่แยกกันอยู่คนละไฟล์)
 - **จุดเชื่อมมีจุดเดียว**: `new/page.tsx:329-337` (`FormData.append` + POST `/upload`)
   → **ไม่มีการเปลี่ยนแปลงฝั่ง backend, ไม่มี migration, ไม่ต้อง deploy Koyeb**
-- **แยก logic ออกจาก React** — วาง pure function ที่ `lib/rich-menu/render.ts` เพื่อให้ unit test
-  ด้วย vitest ได้โดยไม่ต้อง mount component (ตามแนวเดียวกับ `image-utils.ts` ที่มี test แยก)
+- **แยก logic ออกจาก React** — วาง pure function ที่ `lib/rich-menu/text-layout.ts` เพื่อให้ unit test
+  ด้วย vitest ได้โดยไม่ต้อง mount component **ราคาที่ต้องจ่าย**: ความเสี่ยงเรื่องฟอนต์ทั้งหมดถูกย้ายไป
+  กองใน `render.ts` ซึ่งไม่มี unit test เลย → ต้องมี runtime guard ไม่ใช่แค่เทสต์เพิ่ม (ดู plan Task 4)
 
 **Technical Risks**
 
 | Risk | Likelihood | Mitigation |
 |------|------------|------------|
-| **ฟอนต์ไทยไม่ถูกโหลดก่อนวาด** → Canvas fallback เป็นฟอนต์ระบบ ภาพต่างกันในแต่ละเครื่อง (นี่คือบั๊กเดียวกับที่ LINE MCP มี แต่ของเขาหนักกว่าเพราะ Docker ไม่มีฟอนต์ไทยเลย) | **H** | `await document.fonts.load('700 80px "Noto Sans Thai"')` ก่อนวาดทุกครั้ง + มี integration test ที่ assert ว่าฟอนต์พร้อม + bundle ฟอนต์ผ่าน `next/font` แทนพึ่งฟอนต์ระบบ |
-| **ตัดคำไทยผิด** — Thai ไม่มีช่องว่าง `text.split(' ')` ใช้ไม่ได้เลย ป้ายยาวจะล้นกรอบ | **H** | ใช้ `Intl.Segmenter('th', { granularity: 'word' })` + fallback เป็นการตัดตามอักขระถ้าเบราว์เซอร์ไม่รองรับ + auto-shrink ขนาดฟอนต์เมื่อยังล้น |
-| **สระบน/ล่างและวรรณยุกต์ถูกตัด** (เช่น ปุ๊, ญ์) เพราะคำนวณความสูงบรรทัดจาก font-size ตรง ๆ | **M** | ใช้ `TextMetrics.actualBoundingBoxAscent/Descent` แทนการเดาจาก font-size + snapshot test ด้วยคำที่มีสระบน-ล่างครบ |
-| ภาพเกิน 1 MB (2500×1686 PNG สีทึบมักเล็ก แต่ถ้ามีสีไล่/ข้อความเยอะอาจโต) | **L** | assert ขนาดหลัง `toBlob` ถ้าเกินให้ลด quality หรือแจ้งเตือน — logic เดียวกับที่ `image-utils.ts` ทำอยู่ |
+| **ฟอนต์ไทยไม่ถูกโหลดก่อนวาด** → Canvas fallback เป็นฟอนต์ระบบ ภาพต่างกันในแต่ละเครื่อง (บั๊กเดียวกับที่ LINE MCP มี แต่ของเขาหนักกว่าเพราะ Docker ไม่มีฟอนต์ไทยเลย) | **H** | ฟอนต์ไทยเป็น `@font-face` **คนละไฟล์กับ latin** (`unicode-range: U+0E01-0E5B`) และ `document.fonts.load(font)` มี default text = `" "` → โหลดเฉพาะ latin **ต้องส่งข้อความไทยเป็น arg ที่ 2 เสมอ** + `assertThaiFontActive()` guard 3 ชั้นก่อนวาด (round-trip `ctx.font` + `fonts.check` + width probe) |
+| **`ctx.font` invalid แล้วถูกเมินเงียบ ๆ** — spec บอกว่า "must be ignored" → คงค่า default `10px sans-serif` ทั้งที่ layout คำนวณบน 96px | **M** | ค่า `--font-noto-thai` เป็น font stack ที่มี quote (`'Noto Sans Thai', 'Noto Sans Thai Fallback', system-ui, sans-serif`) — **ห้ามลอก quote** assign ตรง ๆ ได้ + round-trip guard |
+| **ตัดคำไทยผิด** — Thai ไม่มีช่องว่าง `text.split(' ')` ใช้ไม่ได้เลย ป้ายยาวจะล้นกรอบ | **H** | `Intl.Segmenter('th', {granularity:'word'})` + **`toBreakableUnits()`** กันสระหน้า (เ แ โ ใ ไ) ค้างท้ายบรรทัด และกัน "ๆ"/"." ขึ้นต้นบรรทัด (Segmenter ให้ UAX#29 ไม่ใช่ UAX#14) + fallback เป็น regex cluster (ไม่ใช่ตัดทีละ code point) + auto-shrink |
+| **ผลตัดคำต่างกันข้ามเบราว์เซอร์** — ICU4C (Chrome) / ICU-Apple (Safari) / ICU4X (Firefox 125+) → PNG จากป้ายเดียวกันขึ้นบรรทัดไม่เหมือนกัน | **H** | รองรับ `\n` ที่แอดมินพิมพ์เองเป็น break hint ที่ deterministic + เทสต์ assert invariant ไม่ใช่ผลลัพธ์เป๊ะ |
+| **สระบน/ล่างและวรรณยุกต์ถูกตัดหรือชนกัน** (เช่น ปุ๊, ญ์, ฟื้น) | **M** | ใช้ **`fontBoundingBoxAscent/Descent`** (ค่าคงที่ระดับฟอนต์) — **ห้ามใช้ `actualBoundingBox*`** ซึ่งผูกกับสตริง จะทำให้แต่ละช่องลอยไม่เท่ากันตามว่าคำนั้นมีวรรณยุกต์หรือไม่ ซึ่งดูพังกว่าเอียงเท่ากันทั้งกริด + line height ต้อง ≥ 1.51 em ตาม metrics ของฟอนต์เอง (ไม่ใช่ 1.35) + `ctx.clip()` ต่อช่อง |
+| **ฟอนต์ย่อจนอ่านไม่ออก** — auto-shrink ไม่มีพื้นล่างที่สมเหตุผล | **M** | `[DECISION-PENDING-1]` — `MIN_FONT_SIZE_PX=28` บนภาพ 2500px = **4.4 CSS px** บนจอมือถือ 390pt (REV 1 คำนวณผิดหน่วยเป็น 12px) ที่ขนาดนั้นไทยแยก ข/ช, ผ/ฝ และวรรณยุกต์ ่/้/๊/๋ ไม่ออก |
+| ภาพเกิน 1 MB (2500×1686 PNG สีทึบมักเล็ก แต่ถ้ามีสีไล่/ข้อความเยอะอาจโต) | **L** | assert ขนาดหลัง `toBlob` แล้ว throw พร้อมขนาดจริง — **ไม่มี precedent ให้ลอก**: `image-utils.ts` ไม่มีการเช็คขนาดหลัง toBlob เลย ตัวที่ใกล้ที่สุดคือ `use-image-resize.ts:196-199` ซึ่งเทียบกับ 10 MB แล้ว toast + หยุด ไม่ลด quality |
 | Canvas ขนาด 2500×1686 หนักบนเครื่องสเปกต่ำ | **L** | render preview ที่ scale เล็ก (เช่น 1/4) แล้ว render ขนาดเต็มเฉพาะตอนกดยืนยัน |
 | ทำ regression ให้ flow อัปโหลดเดิมพัง | **M** | toggle แยกโหมดชัดเจน + คงเส้นทางเดิมไว้ทั้งหมด + E2E test ครอบทั้ง 2 โหมด |
 
@@ -197,7 +239,7 @@ sync → publish (เดิม ไม่แก้)
 
 **Phase 1: Render core + ฟอนต์ไทย**
 - **Goal**: ได้ pure function ที่รับ `{ areas, labels, colors }` แล้วคืน `Blob` ที่ถูกต้อง
-- **Scope**: `frontend/lib/rich-menu/render.ts` + การโหลดฟอนต์ไทย + ตัดคำด้วย `Intl.Segmenter` +
+- **Scope**: `frontend/lib/rich-menu/{types,text-layout,fonts,render}.ts` + การโหลดฟอนต์ไทย + ตัดคำด้วย `Intl.Segmenter` +
   auto-shrink + unit test (รวมเคสคำไทยที่มีสระบน-ล่าง, ป้ายยาวเกิน, ป้ายว่าง)
 - **Success signal**: `npx vitest run` ผ่าน และเปิดไฟล์ PNG ที่ได้แล้วอ่านข้อความไทยออกครบทุกตัว
 - **หมายเหตุ**: นี่คือเฟสที่มีความเสี่ยงสูงสุดทั้งหมด ทำก่อนเพื่อให้รู้เร็วว่าติดตรงไหน
@@ -241,7 +283,7 @@ Phase 1 **ต้องทำเดี่ยวและทำก่อนเส�
 | Decision | Choice | Alternatives | Rationale |
 |----------|--------|--------------|-----------|
 | ที่ render ภาพ | Canvas ฝั่งเบราว์เซอร์ | Python+Playwright ฝั่ง backend (ตาม LINE MCP), Pillow | ไม่ต้องเพิ่ม Chromium ~400MB ใน Docker ของ Koyeb, ไม่มี cold start, ใช้ฟอนต์ไทยของเบราว์เซอร์ได้, ไม่ต้อง deploy backend |
-| แหล่ง layout | `PRESET_TEMPLATES[].areas[].bounds` ที่มีอยู่ | เขียน template ใหม่แบบ Marp/HTML | พิกัดเดียวกับที่ส่งให้ LINE → ภาพกับพื้นที่กดตรงกันโดยโครงสร้าง ไม่ต้อง sync 2 ที่แบบ `richmenuBounds()` ของ LINE MCP |
+| แหล่ง layout | `PRESET_TEMPLATES[].items[].areas[].bounds` ที่มีอยู่ | เขียน template ใหม่แบบ Marp/HTML | พิกัดเดียวกับที่ส่งให้ LINE → ภาพกับพื้นที่กดตรงกันโดยโครงสร้าง ไม่ต้อง sync 2 ที่แบบ `richmenuBounds()` ของ LINE MCP |
 | ขอบเขต v1 | ข้อความ + สีพื้น + สีตัวอักษร | แค่ข้อความ (แบบ LINE MCP), หรือเพิ่มไอคอน/รูปพื้นหลัง | แค่ข้อความอย่างเดียวจะถูกบ่นเรื่อง branding ทันที ส่วนไอคอน/รูปพื้นหลังต้องมี asset library ก่อน |
 | จุดเชื่อมกับ backend | ไม่แตะ backend ใช้ `/upload` เดิม | เพิ่ม endpoint `/generate` | ลดความเสี่ยง deploy และทำให้ rollback ง่าย (แค่ซ่อน toggle) |
 | ขอบเขต PRD | Rich Menu image generator เท่านั้น | รวม Flex validator และ MCP server | Flex validator แทบไม่เหลืองาน (มี `reply_object_validation.py` แล้ว) ส่วน MCP เพิ่มความเสี่ยงด้านความปลอดภัยโดยไม่มี use case |
@@ -273,7 +315,7 @@ Phase 1 **ต้องทำเดี่ยวและทำก่อนเส�
   (Large 2500×1686 จำนวน 7 แบบ, Compact 2500×843 จำนวน 4 แบบ) พร้อม `bounds` ครบทุก area
 - `frontend/app/admin/rich-menus/new/page.tsx:329-337` — จุดเชื่อมเดียวที่ต้องแตะ (`FormData` → `/upload`)
 - `frontend/app/admin/image-resize/image-utils.ts:92-154` — ต้นแบบ Canvas + `toBlob` + จัดการ quality
-  ที่มี unit test แยกอยู่แล้วใน `__tests__/image-utils.test.ts` → ใช้เป็นแบบของ Phase 1
+  ใช้เป็นแบบของ Phase 1 — **หมายเหตุ**: `resizeImage` เองไม่มี unit test ชุดเทสต์ครอบเฉพาะ helper บริสุทธิ์ ซึ่งยิ่งยืนยันว่าต้องแยก pure logic ออกมา
 - `backend/app/api/v1/endpoints/rich_menus.py:551-592` — `/upload` รับ `UploadFile`, sanitize filename,
   อัปโหลดเข้า LINE ถ้ามี `line_rich_menu_id` แล้ว → **ไม่ต้องแก้อะไร**
 - `backend/app/api/v1/endpoints/rich_menus.py:50-60` — `resolve_rich_menu_size()` map `template_type`
@@ -284,5 +326,36 @@ Phase 1 **ต้องทำเดี่ยวและทำก่อนเส�
 
 ---
 
-*Generated: 2026-08-02*
-*Status: DRAFT - needs validation (ดู Open Questions — โดยเฉพาะ baseline และวิธีวัด metric หลัก)*
+## Changelog
+
+**REV 2 (2026-08-02)** — แก้หลังรีวิวด้วย 4 agent ขนาน โดยผู้เขียนตรวจยืนยันข้อเท็จจริงเองทุกข้อแล้ว
+
+| # | REV 1 เขียนว่า | ความจริงที่ตรวจแล้ว |
+|---|---|---|
+| 1 | Metric วัดจาก "audit log ของ `/rich-menus`" (3 ใน 4 ตัว) | **`rich_menus.py` ไม่เขียน audit เลย** (grep = 0) และการเพิ่มจะขัดกับเสาหลัก "ไม่แตะ backend" ของ PRD เอง → เปลี่ยนไปวัดจาก `image_path LIKE '%\_generated\_%'` ด้วย SQL |
+| 2 | metric "เวลา draft→upload" และ "แก้ภาพซ้ำใน 7 วัน" | วัดไม่ได้ — ไม่มี `image_uploaded_at`, `updated_at` ถูกทับ, `image_path` เป็น current state ไม่ใช่ event history → **ถอดออก** |
+| 3 | (ไม่มี guardrail metric) | เพิ่ม tap rate จาก `GET /{id}/insights/daily` ซึ่งมีอยู่แล้ว — ตัวเดียวที่จับได้ว่า "เร็วขึ้นแต่เมนูแย่ลง" |
+| 4 | หน้า `/admin/image-resize` = **หลักฐาน** ว่าขั้นเตรียมภาพเจ็บจริง | มาจาก PR #106 *"Phase 2 — Rename & Restructure"* (งานจัดระเบียบ sidebar) และมี 5 preset ไม่ใช่เครื่องมือเฉพาะทาง → ลดชั้นเป็น "สัญญาณแวดล้อม" และยอมรับว่า **ยังไม่มีหลักฐานตรง** |
+| 5 | `rich_menus.py:551` "บังคับให้ต้องมีไฟล์ 2500×1686" | endpoint **ไม่ validate ขนาดเลย** ข้อจำกัดมาจาก LINE และคำเตือนใน UI |
+| 6 | `PRESET_TEMPLATES[].areas[].bounds` | path ไม่มีจริง — ต้องเป็น `PRESET_TEMPLATES[].items[].areas[].bounds` |
+| 7 | pure function อยู่ที่ `lib/rich-menu/render.ts` | ขัดกับ plan — ชั้น pure คือ `text-layout.ts` ส่วน `render.ts` เป็นชั้นที่เทสต์ไม่ได้ |
+| 8 | "assert ขนาดหลัง toBlob — logic เดียวกับที่ `image-utils.ts` ทำอยู่" | `image-utils.ts` ไม่มี logic นั้น; ตัวใกล้เคียงคือ `use-image-resize.ts:196-199` ที่เทียบกับ 10 MB แล้ว toast + หยุด |
+| 9 | `credential.py` เป็น multi-tenant | เป็น multi-**provider** (LINE/TELEGRAM/n8n) ไม่มี tenant column |
+| 10 | ความเสี่ยงฟอนต์ = "โหลดก่อนวาดก็พอ" | ฟอนต์ไทยเป็น `@font-face` **คนละไฟล์กับ latin** และ `document.fonts.load()` มี default text `" "` → โหลดไม่ถูกไฟล์; ต้องมี `assertThaiFontActive()` guard |
+| 11 | แก้สระเบี้ยวด้วย `actualBoundingBox*` | ผูกกับสตริง → แต่ละช่องลอยไม่เท่ากัน **แย่กว่าเดิม** ต้องใช้ `fontBoundingBox*` |
+| 12 | `MIN_FONT_SIZE_PX=28` "≈12px บนมือถือ" | คำนวณผิดหน่วย จริงคือ **4.4 CSS px** → `[DECISION-PENDING-1]` |
+
+### ⏸ ยังไม่ตัดสินใจ — ห้าม implement จนกว่าจะปิด
+
+| ID | เรื่อง | ทำไมต้องให้คนตัดสิน |
+|---|---|---|
+| `[DECISION-PENDING-1]` | `MIN_FONT_SIZE_PX` 28 → 96 และ `MAX_LINES` 3 → 2 | ป้ายยาวจะถูกตัดด้วย "…" เร็วขึ้นมาก = เปลี่ยนพฤติกรรมฟีเจอร์ |
+| `[DECISION-PENDING-2]` | contrast guard: Should → Must และ "เตือน" → "บล็อกปุ่ม" | ถ้าให้เลือกสีเองได้ (Must) แต่ guard เป็น Should ที่ตัดได้ = สร้างเครื่องมือผลิตเมนูอ่านไม่ออกได้เร็วขึ้น |
+| `[DECISION-PENDING-3]` | publish confirmation / approval gate ใน v1 | ทุก endpoint ป้องด้วย `KEY_MANAGE_RICH_MENUS` ตัวเดียว → คนเดียวสร้าง→sync→publish ถึงประชาชนได้ครบวงจร ปัจจุบันมี friction ธรรมชาติ (ต้องรอคนทำกราฟิก) ที่ฟีเจอร์นี้กำลังจะลบทิ้ง |
+| `[DECISION-PENDING-4]` | ยืนยันหรือทิ้ง target "≥60% ใน 60 วัน" | พิสูจน์ว่าผิดไม่ได้ + ตัวหารน่าจะ 1-5 เมนู |
+
+---
+
+*Generated: 2026-08-02 (REV 2)*
+*Status: DRAFT — Phase 1 อนุมัติให้เดินได้ (pure function ไม่ขึ้นกับ open questions)*
+*⛔ Gate ก่อนเข้า Phase 2: ต้องปิด `[DECISION-PENDING-1..4]` + baseline + คู่มือ branding + ภาษาที่ต้องรองรับ*
