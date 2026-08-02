@@ -1,9 +1,10 @@
 # Plan: Rich Menu Image Generator — Phase 1 (Render core + ฟอนต์ไทย)
 
-> **REV 2 (2026-08-02)** — แก้หลังรีวิวด้วย 4 agent ขนาน จุดที่แก้สำคัญที่สุดคือ **สมมติฐานเรื่องชื่อฟอนต์
-> ใน REV 1 ผิดข้อเท็จจริง** และ `ensureFontsReady` แบบเดิมจะไม่โหลดฟอนต์ไทยเลย ดู "Changelog" ท้ายไฟล์
+> **REV 3 (2026-08-02)** — ปิด `[DECISION-PENDING]` ครบทุกข้อแล้ว **แผนนี้พร้อม implement**
+> ค่าที่ตัดสินใจแล้ว: `MIN_FONT_SIZE_PX = 96`, `MAX_LINES = 2` (ดู Changelog)
 >
-> ⚠️ มี **4 จุดที่ยังรอการตัดสินใจ** ทำเครื่องหมาย `[DECISION-PENDING]` ห้าม implement จุดนั้นจนกว่าจะปิด
+> REV 2 แก้หลังรีวิวด้วย 4 agent ขนาน จุดที่แก้สำคัญที่สุดคือ **สมมติฐานเรื่องชื่อฟอนต์ใน REV 1
+> ผิดข้อเท็จจริง** และ `ensureFontsReady` แบบเดิมจะไม่โหลดฟอนต์ไทยเลย
 
 ## Summary
 
@@ -344,8 +345,9 @@ import { logger } from '@/lib/logger';
 - **ACTION**: ตรรกะจัดวางข้อความไทยแบบ pure ทั้งหมด
 - **IMPLEMENT**:
   ```typescript
-  export const MIN_FONT_SIZE_PX = 28;        // [DECISION-PENDING-1] ดูหมายเหตุ
-  export const MAX_LINES = 3;                // [DECISION-PENDING-1]
+  /** 96px บนภาพ 2500px ≈ 15 CSS px บนจอมือถือ 390pt — ขั้นต่ำที่อ่านไทยออก */
+  export const MIN_FONT_SIZE_PX = 96;
+  export const MAX_LINES = 2;
   export const FONT_STEP_PX = 2;
   export const THAI_LINE_HEIGHT_RATIO = 1.55;
   export const AREA_PADDING_RATIO = 0.12;
@@ -469,12 +471,18 @@ import { logger } from '@/lib/logger';
   8. **`NFC` ไม่แก้กรณีพิมพ์สลับลำดับ** (วรรณยุกต์มาก่อนสระบน) เพราะสระบนไทย U+0E34-0E37 มี ccc = 0
      จึงไม่มี canonical ordering → ถ้าจะเตือนต้อง validate เอง `/[่-๋][ิ-ื]/` (เลื่อนไป Phase 3 ที่มี UI)
 
-  > **[DECISION-PENDING-1]** `MIN_FONT_SIZE_PX = 28` และ `MAX_LINES = 3` เป็นค่าจาก REV 1 ที่ตั้งบน
-  > **การคำนวณหน่วยที่ผิด** — REV 1 อ้างว่า 28px บนภาพ 2500px จะเหลือ ~12px บนมือถือ ซึ่งเป็นการนับ
-  > device px บนจอ 3× ขนาดที่ *ตาเห็น* จริงคือ `28 × (390/2500) ≈ 4.4 CSS px` ซึ่งอ่านไทยไม่ออกแน่นอน
-  > (สิ่งที่แยก ข/ช, ด/ค, ผ/ฝ คือ "หัว" เล็ก ๆ และวรรณยุกต์ ่/้/๊/๋ ต่างกันแค่จำนวนขีด)
-  > ค่าที่เสนอคือ `MIN_FONT_SIZE_PX = 96` (≈ 15 CSS px) และ `MAX_LINES = 2`
-  > **แต่การเปลี่ยนนี้ทำให้ป้ายยาวถูกตัดด้วย "…" เร็วขึ้นมาก = เปลี่ยนพฤติกรรมฟีเจอร์** จึงรอการตัดสินใจ
+  9. **`MIN_FONT_SIZE_PX = 96` และ `MAX_LINES = 2` ตัดสินใจแล้ว ห้ามลดลง**
+     ภาพกว้าง 2500px ถูกย่อบนจอมือถือ 390pt ≈ **6.4 เท่า** → `96 × (390/2500) ≈ 15 CSS px`
+     ซึ่งเป็นขั้นต่ำที่อ่านไทยออก (ค่าเดิม 28px = **4.4 CSS px** — ที่ขนาดนั้นสิ่งที่แยก ข/ช, ด/ค, ผ/ฝ
+     คือ "หัว" เล็ก ๆ และวรรณยุกต์ ่/้/๊/๋ ต่างกันแค่จำนวนขีด จะกลายเป็นจุดเดียวกันหมด
+     → "มีตัวหนังสือแต่อ่านไม่ออก" ซึ่งแย่กว่าถูกตัดด้วย "…")
+
+  > **ตรวจแล้วว่าไม่บีบเกินไป**: ช่อง large 6 ปุ่ม = 833×843, padding `0.12 × 833 ≈ 100` → availH ≈ 643
+  > ส่วน 2 บรรทัดที่ 96px ใช้ `1 × 150 + 102 + 43 ≈ 295` → เหลือที่อีกมาก
+  >
+  > **ผลข้างเคียงที่ยอมรับแล้ว**: ป้ายยาวจะถูกตัดด้วย "…" เร็วขึ้นมาก
+  > **การแก้ที่ต้นเหตุอยู่ใน Phase 3** — เตือนแอดมินตั้งแต่ตอนพิมพ์ว่าป้ายจะถูกตัด เพื่อให้เขาย่อป้ายเอง
+  > แทนที่ระบบจะย่อฟอนต์เงียบ ๆ แล้วไปเห็นตอนขึ้น LINE แล้ว (ป้ายในเมนู LINE ควรสั้นโดยธรรมชาติอยู่แล้ว)
 
 - **VALIDATE**: unit test ทั้งหมดใน Task 5 ผ่าน
 
@@ -713,7 +721,7 @@ cd frontend && npm run build                       # EXPECT: build สำเร�
 - [ ] `npm run build` สำเร็จ
 - [ ] Manual validation ผ่านครบ **โดยเฉพาะข้อยืนยันว่าเป็น Noto Sans Thai จริง**
 - [ ] **`git diff` ต้องไม่มีไฟล์ใน `app/admin/rich-menus/new/` หรือ `backend/` เลย**
-- [ ] `[DECISION-PENDING-1]` ถูกปิดก่อน merge
+- [ ] ค่า `MIN_FONT_SIZE_PX = 96` และ `MAX_LINES = 2` ไม่ถูกลดลงระหว่าง implement
 
 ## Completion Checklist
 
@@ -795,4 +803,13 @@ Phase 1 คัดลอกรูปทรง `TemplateBounds`/`TemplateArea` ม
 | 18 | "ไม่ลง `canvas`" เพราะ Chromium 400MB บน Koyeb | เหตุผลนั้นใช้กับ server-side rendering `canvas` เป็น devDependency ไม่กระทบ production เหตุผลจริงคือ native build (node-gyp + Cairo) เปราะบน WSL/Windows |
 | 19 | Estimated Files: 6 | 7 (6 CREATE + harness) |
 | 20 | (ไม่มี) | เพิ่ม `normalizeLabel` จัดการ ZWSP/NBSP ที่แอดมินวางจาก CMS + รองรับ `\n` เป็น break hint |
-| 21 | `MIN_FONT_SIZE_PX = 28` "≈12px บนมือถือ" | คำนวณผิดหน่วย — จริงคือ `28 × 390/2500 ≈ 4.4 CSS px` → ทำเครื่องหมาย `[DECISION-PENDING-1]` |
+| 21 | `MIN_FONT_SIZE_PX = 28` "≈12px บนมือถือ" | คำนวณผิดหน่วย — จริงคือ `28 × 390/2500 ≈ 4.4 CSS px` → ทำเครื่องหมาย `[DECISION-PENDING-1]` (ปิดแล้วใน REV 3) |
+
+**REV 3 (2026-08-02)** — เจ้าของงานตัดสิน `[DECISION-PENDING]` ครบทั้ง 4 ข้อ **แผนนี้พร้อม implement**
+
+| ข้อ | ตัดสินใจ | ผลต่อ Phase 1 |
+|---|---|---|
+| 1 | `MIN_FONT_SIZE_PX = 96`, `MAX_LINES = 2` + เพิ่มคำเตือนตอนพิมพ์ใน Phase 3 | **แก้ค่าคงที่ใน `text-layout.ts`** — ป้ายยาวถูกตัด "…" เร็วขึ้น แลกกับทุกป้ายอ่านออกจริงบนมือถือ |
+| 2 | contrast guard เป็น **Must** + เตือน **และ** บล็อกปุ่มบันทึก | ไม่กระทบ Phase 1 (เป็นงาน Phase 2/3) |
+| 3 | สำนักงานไม่มีระเบียบบังคับอนุมัติ → ใส่ **หน้ายืนยันก่อน publish** (frontend ล้วน) | ไม่กระทบ Phase 1 (เป็นงาน Phase 4) |
+| 4 | เปลี่ยนเกณฑ์วัดผลเป็น **usability test กับแอดมินจริง 3 คน** | ไม่กระทบ Phase 1 |
