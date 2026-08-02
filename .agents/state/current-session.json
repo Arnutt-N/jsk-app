@@ -1,13 +1,20 @@
 {
-  "last_updated": "2026-08-02T02:01:00+07:00",
+  "last_updated": "2026-08-02T18:01:00+07:00",
   "platform": "claude_code",
-  "current_task": "ศึกษา line-bot-mcp-server แล้วสร้าง PRD + Phase-1 plan สำหรับ Rich Menu image generator (Canvas ฝั่ง frontend)",
+  "current_task": "REV 2: รีวิว PRD+plan ด้วย 4 agent ขนาน แล้วแก้ข้อผิดพลาดเชิงข้อเท็จจริง (ฟอนต์ไทยไม่ถูกโหลด, ctx.font invalid, metric วัดจาก audit log ที่ไม่มี)",
   "plan_status": "completed",
   "next_steps": [
-    "Implement Phase 1 ตาม .claude/PRPs/plans/rich-menu-image-generator-phase1.plan.md",
-    "หา baseline การใช้งาน Rich Menu จาก audit log เพื่อยืนยัน metric ใน PRD"
+    "ปิด [DECISION-PENDING-1..4] ก่อนเริ่ม implement",
+    "Implement Phase 1 ตาม plan REV 2"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-08-02T18:01:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "81b4a17",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-08-02T02:01:00+07:00",
       "platform": "claude_code",
@@ -139,13 +146,6 @@
       "platform": "qoder",
       "branch": "main",
       "head": "ff2a75a",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-25T22:57:00+07:00",
-      "platform": "kilo_code",
-      "branch": "main",
-      "head": "3d01958",
       "status": "completed"
     }
   ],

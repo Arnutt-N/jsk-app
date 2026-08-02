@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 203 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 204 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-08-02 18:01 — claude_code — completed
+
+REV 2: รีวิว PRD+plan ด้วย 4 agent ขนาน แล้วแก้ข้อผิดพลาดเชิงข้อเท็จจริง (ฟอนต์ไทยไม่ถูกโหลด, ctx.font invalid, metric วัดจาก audit log ที่ไม่มี)
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260802-1801.json`
+- Summary: `project-log-md/claude_code/session-summary-20260802-1801.md`
+
+---
 
 ### 2026-08-02 02:01 — claude_code — completed
 

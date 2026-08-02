@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-08-02 02:01 by Claude Code (ศึกษา line-bot-mcp-server แล้วสร้าง PRD + Phase-1 plan สำหรับ Rich Menu image generator Ca)
+> **Last Updated:** 2026-08-02 18:01 by Claude Code (REV 2: รีวิว PRD+plan ด้วย 4 agent ขนาน แล้วแก้ข้อผิดพลาดเชิงข้อเท็จจริง ฟอนต์ไทยไม่ถูกโหล)
 
 ## Thai Summary
 **PR C gate เคยขึ้น fail และแก้แล้ว** — การอ่าน `GET /api/v1/health/pseudonym-gate` แบบ authenticated ครั้งแรก (30 ก.ค.) ได้ `gate_status: fail`, `fallback_hit_count: 176` สาเหตุ: 6 จาก 8 LINE users บน prod (`users.id` 1,5,6,7,8,9) มี `line_user_id_hash` ที่คำนวณด้วย **dev fallback HMAC key** เพราะ process ที่ตั้ง `ENVIRONMENT=development` แต่ชี้ remote DB เขียนลงไป (`_get_hmac_key` fallback เงียบ) และ `resolve_many_by_line_id` นับ hit แต่ไม่ซ่อม row จึงถูกนับซ้ำทุก admin poll — ซ่อม prod แล้ว (re-hash 6 rows + ล้าง Redis counter) ตอนนี้ gate อ่านได้ `pass` / `0`
@@ -84,6 +84,7 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-08-02 18:01] Claude Code: REV 2: รีวิว PRD+plan ด้วย 4 agent ขนาน แล้วแก้ข้อผิดพลาดเชิงข้อเท็จจริง (ฟอนต์ไทยไม่ถูกโหลด, ctx.font invalid, metric วัดจาก audit log ที่ไม่มี) (Claude Code)
 - [2026-08-02 02:01] Claude Code: ศึกษา line-bot-mcp-server แล้วสร้าง PRD + Phase-1 plan สำหรับ Rich Menu image generator (Canvas ฝั่ง frontend) (Claude Code)
 - [2026-08-02 00:39] Claude Code: Ran a Full Stocktake of all 282 installed skills (243 global + 39 project) via the skill-stocktake skill, using 12 subagent batches that read every SKILL.md. Headline finding: 17 of 39 project skn-* skills state things about this codebase t (Claude Code)
 - [2026-08-01 21:38] Claude Code: Shipped the live-chat sidebar row-jump fix as PR #182 (branch fix/live-chat-sidebar-row-resort, 5 commits, pushed). Final code change this round: removed the vestigial onMouseDown preventDefault from the conversation listbox (44b5bba) - #17 (Claude Code)
