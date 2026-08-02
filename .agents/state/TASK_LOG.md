@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 207 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 208 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-08-02 20:10 — claude_code — completed
+
+ลบชื่อหน่วยงาน/ตัวย่อที่กุขึ้นมาเอง ('สธก.', 'สำนักงานยุติธรรมชุมชน', 'คู่มือ branding') ออกจาก PRD + session summary 4 ไฟล์ — repo ไม่เคยระบุชื่อหน่วยงานเจ้าของระบบเลย
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260802-2010.json`
+- Summary: `project-log-md/claude_code/session-summary-20260802-2010.md`
+
+---
 
 ### 2026-08-02 19:49 — claude_code — completed
 
