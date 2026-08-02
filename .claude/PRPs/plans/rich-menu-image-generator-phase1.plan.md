@@ -1,10 +1,11 @@
 # Plan: Rich Menu Image Generator — Phase 1 (Render core + ฟอนต์ไทย)
 
-> **REV 3 (2026-08-02)** — ปิด `[DECISION-PENDING]` ครบทุกข้อแล้ว **แผนนี้พร้อม implement**
-> ค่าที่ตัดสินใจแล้ว: `MIN_FONT_SIZE_PX = 96`, `MAX_LINES = 2` (ดู Changelog)
+> **REV 4 (2026-08-02)** — แก้ตามรีวิวของ Codex (verdict เดิม NEEDS REWORK / 4/10)
+> ปิดบั๊กในสเปก 6 จุดที่ทำให้ implement ตามไม่ได้จริง และ **Task 7 เปลี่ยนจาก optional
+> เป็นบังคับและเก็บถาวร** ดู Changelog ท้ายไฟล์
 >
-> REV 2 แก้หลังรีวิวด้วย 4 agent ขนาน จุดที่แก้สำคัญที่สุดคือ **สมมติฐานเรื่องชื่อฟอนต์ใน REV 1
-> ผิดข้อเท็จจริง** และ `ensureFontsReady` แบบเดิมจะไม่โหลดฟอนต์ไทยเลย
+> REV 3 ปิด `[DECISION-PENDING]` ครบ (`MIN_FONT_SIZE_PX = 96`, `MAX_LINES = 2`)
+> REV 2 แก้หลังรีวิวด้วย 4 agent ขนาน — สมมติฐานเรื่องชื่อฟอนต์ใน REV 1 ผิดข้อเท็จจริง
 
 ## Summary
 
@@ -14,9 +15,9 @@
 เฟสนี้ไม่มี UI ยังไม่ต่อกับหน้าใด ๆ
 
 **คำเตือนสำคัญเรื่องรูปทรงของเฟสนี้**: การแยก pure logic ออกมาทำให้ตรรกะเทสต์ได้จริง
-แต่มัน **ย้ายความเสี่ยงเรื่องฟอนต์ทั้งหมดไปกองอยู่ใน `render.ts` ซึ่งไม่มี unit test เลย**
+แต่มัน **ย้ายความเสี่ยงเรื่องฟอนต์ทั้งหมดไปกองอยู่ใน `render.ts` ซึ่ง unit test เข้าไม่ถึง**
 ถ้าฟอนต์ไทยไม่ถูกโหลด เทสต์ทุกเคสจะยังเขียว แต่ภาพที่ได้ใช้ฟอนต์ผิด — **ด้วยเหตุนี้ Task 4
-จึงบังคับให้มี runtime guard (`assertThaiFontActive`) ไม่ใช่แค่ตรวจด้วยตา**
+จึงบังคับให้มี runtime guard (`ensureFontsReady` + `assertCanvasFontApplied`) ไม่ใช่แค่ตรวจด้วยตา**
 
 ## User Story
 
@@ -37,7 +38,7 @@ So that **ฉันเผยแพร่เมนูใหม่ได้เอ�
 - **Complexity**: Medium
 - **Source PRD**: `.claude/PRPs/prds/rich-menu-image-generator.prd.md`
 - **PRD Phase**: Phase 1 — Render core + ฟอนต์ไทย
-- **Estimated Files**: 7 (6 CREATE + 1 optional dev harness ที่ต้องลบก่อน commit)
+- **Estimated Files**: 8 (6 ใน `lib/rich-menu/` + harness page + Playwright spec — **ทั้งหมดเก็บถาวร**)
 
 ---
 
@@ -209,7 +210,8 @@ import { logger } from '@/lib/logger';
 | `frontend/lib/rich-menu/render.ts` | CREATE | วาด canvas + `toBlob` — บางที่สุดเท่าที่ทำได้ |
 | `frontend/lib/rich-menu/__tests__/text-layout.test.ts` | CREATE | Unit test + invariants + Thai fixtures |
 | `frontend/lib/rich-menu/__tests__/fonts.test.ts` | CREATE | Unit test ของการ parse CSS var |
-| `frontend/app/admin/rich-menus/dev-preview/page.tsx` | CREATE (ชั่วคราว) | Dev harness — **ต้องลบก่อน commit** |
+| `frontend/app/admin/rich-menus/dev-preview/page.tsx` | CREATE | Harness ที่ Playwright test ขับ — **เก็บถาวร ไม่ลบ** |
+| `frontend/e2e/rich-menu-render.spec.ts` | CREATE | Playwright smoke test — ชั้นเดียวที่ตรวจ `render.ts` ได้จริง |
 
 ## NOT Building
 
@@ -276,9 +278,11 @@ import { logger } from '@/lib/logger';
   ```typescript
   export const THAI_FONT_CSS_VAR = '--font-noto-thai';
 
-  /** ต้องตรงกับ layout.tsx — ใช้เมื่ออ่าน CSS var ไม่ได้ */
-  export const FALLBACK_FONT_STACK =
-    `'Noto Sans Thai', 'Noto Sans Thai Fallback', system-ui, sans-serif`;
+  /** ชื่อ family ที่เสถียรข้าม build — ใช้ยืนยันว่าฟอนต์ไทยโหลดจริง */
+  export const THAI_FONT_CANONICAL_FAMILY = '"Noto Sans Thai"';
+
+  /** ใช้เมื่ออ่าน CSS var ไม่ได้ — เอาเฉพาะส่วนที่ dev กับ prod ตรงกัน */
+  export const FALLBACK_FONT_STACK = `"Noto Sans Thai", system-ui, sans-serif`;
 
   export const RICH_MENU_FONT_WEIGHT = 700;
 
@@ -286,58 +290,67 @@ import { logger } from '@/lib/logger';
   export const FONT_PROBE_TEXT = 'กขคง ญ์ ปุ๊ ที่ …';
 
   export function resolveThaiFontFamily(rootStyle: CSSStyleDeclaration): string { ... }
-  export async function ensureFontsReady(family: string, sampleText: string): Promise<void> { ... }
-  export function assertThaiFontActive(ctx: CanvasRenderingContext2D, family: string, sizePx: number): void { ... }
+  export async function ensureFontsReady(sampleText: string): Promise<void> { ... }
+  export function assertCanvasFontApplied(ctx: CanvasRenderingContext2D, family: string, sizePx: number): void { ... }
   ```
 
-  **`resolveThaiFontFamily`** — `.trim()` แล้วคืนเลย ถ้าว่างคืน `FALLBACK_FONT_STACK`:
+  **`resolveThaiFontFamily`** — คืนค่าดิบ **อย่าตีความ อย่าแตะ quote**:
   ```typescript
   const raw = rootStyle.getPropertyValue(THAI_FONT_CSS_VAR).trim();
   return raw.length > 0 ? raw : FALLBACK_FONT_STACK;
   ```
 
-  **`ensureFontsReady`** — ต้องส่ง `sampleText` เป็นพารามิเตอร์ที่ 2 ของ `document.fonts.load()`:
+  **`ensureFontsReady`** — โหลด **family ที่เสถียร** พร้อมข้อความไทย แล้วยืนยันจาก `FontFace[]` ที่คืนมา:
   ```typescript
-  if (typeof document === 'undefined' || !document.fonts) return;
-  const sample = FONT_PROBE_TEXT + sampleText;   // sampleText = ป้ายจริงทุกป้ายต่อกัน
-  await document.fonts.load(`${RICH_MENU_FONT_WEIGHT} 100px ${family}`, sample);
+  if (typeof document === 'undefined' || !document.fonts) return;   // jsdom
+  const sample = FONT_PROBE_TEXT + sampleText;    // sampleText = ป้ายจริงทุกป้ายต่อกัน
+  const faces = await document.fonts.load(
+    `${RICH_MENU_FONT_WEIGHT} 100px ${THAI_FONT_CANONICAL_FAMILY}`,
+    sample,
+  );
+  if (faces.length === 0 || faces.some((f) => f.status !== 'loaded')) {
+    throw new Error('โหลดฟอนต์ไทย (Noto Sans Thai) ไม่สำเร็จ — ไม่สามารถสร้างภาพได้');
+  }
   await document.fonts.ready;
   ```
+  **นี่คือหลักฐานที่แท้จริงว่าฟอนต์ไทยพร้อม** — `load()` คืน array ของ `FontFace` ที่ *match จริง*
+  ถ้าไม่มี face ไหนตรงเลย array จะว่าง ซึ่งเป็นสัญญาณที่ `check()` ให้ไม่ได้
 
-  **`assertThaiFontActive`** — guard 3 ชั้น เพราะทุกความล้มเหลวที่นี่เงียบหมด:
+  **`assertCanvasFontApplied`** — เหลือหน้าที่เดียว: ยืนยันว่า `ctx.font` ถูก parse สำเร็จ
   ```typescript
   const wanted = `${RICH_MENU_FONT_WEIGHT} ${sizePx}px ${family}`;
   ctx.font = wanted;
-  // (1) round-trip: ถ้า parse ไม่ผ่าน ค่าจะไม่เปลี่ยน (คงเป็น '10px sans-serif')
+  // ถ้า parse ไม่ผ่าน spec สั่งให้ "ignore" → ค่าเดิมคงอยู่ (default '10px sans-serif')
   if (!ctx.font.includes(`${sizePx}px`)) {
     throw new Error('ตั้งค่าฟอนต์บน canvas ไม่สำเร็จ — ไม่สามารถสร้างภาพได้');
-  }
-  // (2) ทุกอักขระใน probe ต้องมี face ที่โหลดแล้วรองรับ
-  if (document.fonts && !document.fonts.check(wanted, FONT_PROBE_TEXT)) {
-    throw new Error('ฟอนต์ไทยยังโหลดไม่เสร็จ — กรุณาลองใหม่อีกครั้ง');
-  }
-  // (3) กัน check() ที่คืน true เพราะ "ไม่มี face ไหน match เลย"
-  const w1 = ctx.measureText(FONT_PROBE_TEXT).width;
-  ctx.font = `${RICH_MENU_FONT_WEIGHT} ${sizePx}px "__jsk_no_such_font__", monospace`;
-  const w2 = ctx.measureText(FONT_PROBE_TEXT).width;
-  ctx.font = wanted;
-  if (Math.abs(w1 - w2) < 0.5) {
-    throw new Error('ฟอนต์ไทยไม่ถูกใช้งาน — ภาพอาจแสดงผลผิดเพี้ยน');
   }
   ```
 - **MIRROR**: `ERROR_HANDLING` (ข้อความไทย), `NAMING_CONVENTION`
 - **IMPORTS**: ไม่มี (web API ล้วน)
 - **GOTCHA**:
   1. **ห้าม `.replace(/^['"]|['"]$/g, '')` ลอก quote** — ค่าจริงคือ font stack ที่มี quote หลายคู่
-     การลอกหัวท้ายจะได้ `Noto Sans Thai', 'Noto Sans Thai Fallback', system-ui, sans-serif`
-     ซึ่ง quote ไม่บาลานซ์ → `ctx.font` invalid → **ถูกเมินเงียบ ๆ เหลือ `10px sans-serif`**
-  2. **`document.fonts.load(font)` โดยไม่ส่ง text จะโหลดเฉพาะไฟล์ latin** เพราะ default text คือ
-     `" "` (U+0020) ซึ่งอยู่ใน unicode-range ของไฟล์ latin ไฟล์ไทย (`U+0E01-0E5B`) จะไม่ถูก request
-     และ `await document.fonts.ready` ก็ไม่ช่วย เพราะไฟล์ที่ไม่เคยถูกขอ ไม่นับเป็น pending
-  3. `document.fonts` **ไม่มีใน jsdom** → `ensureFontsReady` และ `assertThaiFontActive`
-     เทสต์อัตโนมัติไม่ได้ ให้ guard ด้วย `typeof document === 'undefined' || !document.fonts`
-  4. `document.fonts.check()` คืน `true` เมื่อ **ไม่มี face ไหน match เลย** ด้วย → ห้ามใช้เดี่ยว ๆ
-  5. `ctx.fillText` เป็น **synchronous** — วาดด้วยฟอนต์ที่มี ณ วินาทีนั้น ไม่รอโหลด
+     การลอกหัวท้ายจะได้ quote ไม่บาลานซ์ → `ctx.font` invalid → **ถูกเมินเงียบ ๆ เหลือ `10px sans-serif`**
+  2. **⚠️ ค่าของ CSS variable ต่างกันระหว่าง dev กับ production — ห้าม hardcode หรือ pin test กับค่าเดียว**
+     ตรวจจาก `.next/` จริงในโปรเจกต์นี้:
+     ```
+     dev  : --font-noto-thai: 'Noto Sans Thai', 'Noto Sans Thai Fallback', system-ui, sans-serif
+     prod : --font-noto-thai:"Noto Sans Thai",system-ui,sans-serif
+     ```
+     quote คนละแบบ ช่องว่างคนละแบบ และ **prod ไม่มี `'Noto Sans Thai Fallback'`**
+     → ให้ถือค่านี้เป็น **opaque string** ส่งต่อเข้า `ctx.font` ตรง ๆ ห้ามแยกส่วน ห้ามเทียบเท่ากับค่าคงที่
+     ส่วนที่เสถียรข้าม build มีแค่ `"Noto Sans Thai"` ซึ่งใช้เป็น `THAI_FONT_CANONICAL_FAMILY`
+  3. **`document.fonts.load(font)` โดยไม่ส่ง text จะไม่เลือกและไม่รอไฟล์ไทย** เพราะ default text คือ
+     `" "` (U+0020) ซึ่งอยู่ใน unicode-range ของไฟล์ latin ส่วนไทยเป็น `@font-face` คนละไฟล์ (`U+0E01-0E5B`)
+     **หมายเหตุความแม่นยำ**: `layout.tsx` ตั้ง `preload: true` ดังนั้นเบราว์เซอร์อาจ *ดาวน์โหลด* ไฟล์ไทย
+     ไว้แล้วจาก preload — แต่ **preload ไม่ใช่การรับประกันความพร้อม** และ `document.fonts.ready`
+     ก็ไม่รอไฟล์ที่ `load()` ไม่เคยขอ → **ต้องส่งข้อความไทยเข้าไปเสมอ**
+  4. `document.fonts.check()` คืน `true` เมื่อ **ไม่มี face ไหน match เลย** ด้วย →
+     **ห้ามใช้เป็นหลักฐานว่าฟอนต์พร้อม** ให้ดู `FontFace[]` ที่ `load()` คืนมาแทน
+  5. **การเทียบความกว้าง (width probe) พิสูจน์ไม่ได้ว่าเป็น Noto Sans Thai** — ถ้า Noto ล้มแล้วตกไปใช้
+     Leelawadee UI (Windows) หรือ Thonburi (macOS) ความกว้างก็ยังต่างจาก monospace อยู่ดี → guard ผ่านทั้งที่ฟอนต์ผิด
+     (REV 3 ใช้วิธีนี้ — REV 4 ถอดออกแล้ว) ใช้ได้แค่เป็น diagnostic รอง ไม่ใช่ gate
+  6. `document.fonts` **ไม่มีใน jsdom** → guard ด้วย `typeof document === 'undefined' || !document.fonts`
+  7. `ctx.fillText` เป็น **synchronous** — วาดด้วยฟอนต์ที่มี ณ วินาทีนั้น ไม่รอโหลด
 - **VALIDATE**: unit test ของ `resolveThaiFontFamily` ผ่าน (Task 6)
 
 ### Task 3: `frontend/lib/rich-menu/text-layout.ts` — **หัวใจของเฟสนี้**
@@ -401,39 +414,75 @@ import { logger } from '@/lib/logger';
 
   **`toBreakableUnits`** — กฎ UAX #14 ที่ `Intl.Segmenter` ไม่ให้ (แก้ 3 ปัญหาด้วยกฎเดียว):
   ```typescript
-  const THAI_LEAD_VOWELS = /[เ-ไ]/;   // เ แ โ ใ ไ
-  const NO_BREAK_BEFORE  = /^[ๆฯ๏๚๛\s.,!?)\]}%:;…]/;  // ๆ ฯ ๏ ฯลฯ
+  const THAI_LEAD_VOWELS = /[เ-ไ]$/;                   // เ แ โ ใ ไ ที่ท้ายหน่วย
+  const NO_BREAK_BEFORE  = /^[ๆฯ๏๚๛ัิ-ฺ็-๎\s.,!?)\]}%:;…]/;
 
-  // ถ้าหน่วยก่อนหน้า "จบด้วยสระหน้า" หรือหน่วยนี้ "ห้ามขึ้นต้นบรรทัด" → ผนวกเข้ากับหน่วยก่อนหน้า
+  export function toBreakableUnits(segments: readonly TextSegment[]): string[] {
+    const out: string[] = [];
+    for (const s of segments) {
+      if (s.text === '') continue;
+      const prev = out.at(-1);
+      const mustJoin =
+        prev !== undefined &&
+        (THAI_LEAD_VOWELS.test(prev) || NO_BREAK_BEFORE.test(s.text));
+      if (mustJoin) {
+        out[out.length - 1] = prev + s.text;     // ห้ามใช้ out.at(-1) = ... (assign ไม่ได้)
+      } else {
+        out.push(s.text);
+      }
+    }
+    return out;
+  }
   ```
+  **พฤติกรรมที่ต้องนิยามให้ครบ (REV 3 ขาดไป):**
+  - **หน่วยแรกเป็นอักขระต้องห้าม** (ป้ายขึ้นต้นด้วย `ๆ`, `.`, combining mark, หรือช่องว่าง) →
+    กฎนี้ผนวกเข้ากับหน่วยก่อนหน้าไม่ได้เพราะไม่มีหน่วยก่อนหน้า → **`normalizeLabel` ต้อง trim
+    ทุก paragraph หลัง `split('\n')`** และถ้ายังเหลืออักขระต้องห้ามนำหน้า **ให้ปล่อยผ่าน**
+    (แสดงตามที่แอดมินพิมพ์) ไม่ throw — การเตือนเป็นงานของ UI ใน Phase 3
+  - **การแตกหน่วยที่กว้างเกิน ต้องไม่วน `toBreakableUnits` ซ้ำ** — ไม่งั้นจะจับกลับมาเป็นหน่วยกว้างเกินเดิมอีก
+    ให้แปลงหน่วยที่กว้างเกินเป็น visual cluster **ครั้งเดียว** ด้วย `splitGraphemes` แล้วใช้ผลนั้นเลย
 
   **`wrapText`**:
-  1. `split('\n')` ก่อน — **`\n` ที่แอดมินพิมพ์คือจุดขึ้นบรรทัดที่ authoritative** (deterministic ข้ามเบราว์เซอร์)
-  2. แต่ละท่อน: `segmentText` → `toBreakableUnits` → greedy wrap
-  3. **ต้องเรียก `measure(candidateLine)` กับสตริงเต็มบรรทัดที่กำลังจะได้ ทุกครั้ง**
+  1. **`text === ''` → คืน `[]` ทันที** (นิยามชัดเจน ไม่ใช่ `['']` — ดู `fitTextToBox` ที่พึ่งค่านี้)
+  2. `split('\n')` แล้ว **`.trim()` ทุก paragraph** — `\n` ที่แอดมินพิมพ์คือจุดขึ้นบรรทัดที่
+     authoritative (deterministic ข้ามเบราว์เซอร์) paragraph ที่ trim แล้วว่างให้ข้ามไป
+  3. แต่ละท่อน: `segmentText` → `toBreakableUnits` → greedy wrap
+  4. **ต้องเรียก `measure(candidateLine)` กับสตริงเต็มบรรทัดที่กำลังจะได้ ทุกครั้ง**
      ห้ามบวกความกว้างของแต่ละ segment สะสม (shaping ของไทยไม่ additive)
-  4. ถ้าหน่วยเดียวกว้างเกินกรอบแม้อยู่บนบรรทัดว่าง → **ต้องแตกด้วย `splitGraphemes` จริง ๆ**
+  5. ถ้าหน่วยเดียวกว้างเกินกรอบแม้อยู่บนบรรทัดว่าง → **ต้องแตกด้วย `splitGraphemes` จริง ๆ**
      ไม่ใช่แค่ "ใส่ไปเลยแล้วขึ้นบรรทัดใหม่" (นั่นทำให้ loop จบ แต่ข้อความยังล้นกรอบ)
+     และ **ห้ามส่งผลลัพธ์กลับเข้า `toBreakableUnits` อีกรอบ** (จะจับกลับเป็นหน่วยเดิม)
 
-  **`truncateToWidth`** — ต้อง re-measure หลังต่อ `…`:
+  **`truncateToWidth`** — ⚠️ **ต้องตัดระดับ grapheme ไม่ใช่ระดับคำ**:
   ```typescript
-  let units = toBreakableUnits(segmentText(line));
-  while (units.length > 0 && measure(units.join('') + ELLIPSIS) > maxWidthPx) {
-    units = units.slice(0, -1);
+  export function truncateToWidth(
+    line: string, maxWidthPx: number, measure: MeasureTextFn,
+  ): string {
+    if (measure(ELLIPSIS) > maxWidthPx) return '';        // แคบจนใส่ '…' ยังไม่ได้
+    let units = splitGraphemes(line);                     // ← grapheme ไม่ใช่ segmentText()
+    while (units.length > 0 && measure(units.join('').trimEnd() + ELLIPSIS) > maxWidthPx) {
+      units.pop();
+    }
+    return units.join('').trimEnd() + ELLIPSIS;
   }
-  return units.join('').replace(/\s+$/, '') + ELLIPSIS;
   ```
+  **ทำไมต้องเป็น grapheme**: `segmentText()` คืนหน่วย *ระดับคำ* ป้ายไทยสั้นอย่าง "ประชาสัมพันธ์"
+  เป็นคำเดียว ถ้ากว้างเกินเพราะ `…` แค่นิดเดียว → ลบหน่วยเดียวจบ → **เหลือแค่ `"…"`**
+  ซึ่งขัดกับสิ่งที่ REV 2 แก้ไว้เอง (หน่วยที่กว้างเกินต้องแตกเป็น grapheme)
 
-  **`fitTextToBox`** — loop ที่พิสูจน์ได้ว่าจบ และไม่มีทางต่ำกว่า MIN:
+  **`fitTextToBox`** — แยกความล้มเหลว "บรรทัดเยอะ" ออกจาก "สูงเกิน" และเติม `…` เฉพาะเมื่อตัดจริง:
   ```typescript
+  if (text === '') return { fontSizePx: startFontSizePx, lines: [], didTruncate: false };
+
   const pad    = Math.round(Math.min(box.width, box.height) * AREA_PADDING_RATIO);
-  const availW = box.width  - pad * 2;
-  const availH = box.height - pad * 2;
+  const availW = Math.max(0, box.width  - pad * 2);
+  const availH = Math.max(0, box.height - pad * 2);
 
   let fontSizePx = Math.max(MIN_FONT_SIZE_PX, startFontSizePx);
   let lines = wrapText(text, availW, createMeasure(fontSizePx));
 
   const fits = (size: number, ls: string[]): boolean => {
+    if (ls.length === 0) return true;
     const m = metricsFor(size);
     // ความสูงบล็อก = (n-1) × lineHeight + ascent + descent  ← ไม่ใช่ n × lineHeight
     const blockH = (ls.length - 1) * m.lineHeight + m.ascent + m.descent;
@@ -441,18 +490,55 @@ import { logger } from '@/lib/logger';
     return ls.length <= MAX_LINES && blockH <= availH && ls.every((l) => measure(l) <= availW);
   };
 
+  // จำนวนรอบสูงสุดพิสูจน์ได้: ceil((start - MIN) / STEP) + 1
   while (fontSizePx > MIN_FONT_SIZE_PX && !fits(fontSizePx, lines)) {
-    fontSizePx = Math.max(MIN_FONT_SIZE_PX, fontSizePx - FONT_STEP_PX);  // clamp ทุกรอบ
+    fontSizePx = Math.max(MIN_FONT_SIZE_PX, fontSizePx - FONT_STEP_PX);   // clamp ทุกรอบ
     lines = wrapText(text, availW, createMeasure(fontSizePx));
   }
 
+  // ── ถึงขนาดต่ำสุดแล้วยังไม่พอดี: ต้องคำนวณว่า "สูงพอให้กี่บรรทัด" ไม่ใช่ตัดเป็น MAX_LINES ดื้อ ๆ
+  const m = metricsFor(fontSizePx);
+  const maxLinesByHeight = availH < m.ascent + m.descent
+    ? 0
+    : Math.floor((availH - m.ascent - m.descent) / m.lineHeight) + 1;
+  const visibleLineCount = Math.min(MAX_LINES, maxLinesByHeight);
+
+  if (visibleLineCount === 0) {
+    return { fontSizePx, lines: [], didTruncate: true };   // ช่องเตี้ยเกินกว่าจะใส่อะไรได้
+  }
+
+  const measure = createMeasure(fontSizePx);
+  const omittedLines = lines.length > visibleLineCount;
+  lines = lines.slice(0, visibleLineCount);
+
+  const lastTooWide = lines.length > 0 && measure(lines[lines.length - 1]) > availW;
   let didTruncate = false;
-  if (!fits(fontSizePx, lines)) {
-    lines = lines.slice(0, MAX_LINES);
-    lines[lines.length - 1] = truncateToWidth(lines[lines.length - 1], availW, createMeasure(fontSizePx));
+
+  if (omittedLines || lastTooWide) {
+    lines[lines.length - 1] = truncateToWidth(lines[lines.length - 1], availW, measure);
     didTruncate = true;
   }
   ```
+  **สิ่งที่แก้จาก REV 3**: เดิม `fits()` ล้มได้ 3 สาเหตุ (บรรทัดเยอะ / กว้างเกิน / **สูงเกิน**)
+  แต่ทางแก้คือ "ตัดเหลือ `MAX_LINES` แล้วเติม `…`" เสมอ ซึ่ง (ก) **ไม่แก้กรณีสูงเกิน** —
+  `ctx.clip()` แค่ซ่อนส่วนที่ล้น และ (ข) **เติม `…` ให้ป้าย 1 บรรทัดที่ครบถ้วนอยู่แล้ว**
+  ทั้งที่ไม่มีอะไรถูกตัดออกไปเลย
+
+  **`initialFontSize`** — REV 3 ประกาศแต่ signature ไม่เคยให้สูตร ทำให้ implement ไม่ได้จริง:
+  ```typescript
+  /** สัมประสิทธิ์เริ่มต้น — ปรับได้หลังเห็นภาพจริงใน Task 7 แต่ต้องมีค่าตั้งต้นที่ชัดเจน */
+  export const INITIAL_FONT_SIZE_COEFFICIENT = 0.28;
+
+  export function initialFontSize(box: { width: number; height: number }): number {
+    const innerMin = Math.min(box.width, box.height) * (1 - 2 * AREA_PADDING_RATIO);
+    return Math.max(
+      MIN_FONT_SIZE_PX,
+      Math.floor(innerMin * INITIAL_FONT_SIZE_COEFFICIENT),
+    );
+  }
+  ```
+  ตรวจกับช่องจริง: ช่อง 6 ปุ่ม 833×843 → `min = 833`, `innerMin = 833 × 0.76 ≈ 633`,
+  `633 × 0.28 ≈ 177px` → เริ่มที่ 177 แล้วลดลงมาได้ถึง 96 (≈ 41 รอบ) สมเหตุสมผล
 - **MIRROR**: `NAMING_CONVENTION`; ทุก export มี explicit return type
 - **IMPORTS**: `import type { MeasureTextFn, TextSegment } from './types';`
 - **GOTCHA**:
@@ -480,7 +566,17 @@ import { logger } from '@/lib/logger';
   > **ตรวจแล้วว่าไม่บีบเกินไป**: ช่อง large 6 ปุ่ม = 833×843, padding `0.12 × 833 ≈ 100` → availH ≈ 643
   > ส่วน 2 บรรทัดที่ 96px ใช้ `1 × 150 + 102 + 43 ≈ 295` → เหลือที่อีกมาก
   >
-  > **ผลข้างเคียงที่ยอมรับแล้ว**: ป้ายยาวจะถูกตัดด้วย "…" เร็วขึ้นมาก
+  > ⚠️ **`MAX_LINES = 2` เป็น product constraint ไม่ใช่ข้อจำกัดทางเรขาคณิต** — ที่ 96px
+  > 3 บรรทัดใช้ ~445px และ 4 บรรทัดใช้ ~595px ซึ่ง **ยังพอดีใน 643px ทั้งคู่** ค่า 2 มาจาก
+  > การตัดสินใจว่าป้ายเมนูควรสั้น ไม่ได้มาจากพื้นที่ ถ้าจะเปลี่ยนภายหลังทำได้โดยไม่ผิดเรขาคณิต
+  >
+  > ⚠️ **96px ≈ 15 CSS px คิดบนจอ 390pt เท่านั้น** — บนจอเล็กสุดที่รองรับ (320pt) จะเหลือ
+  > `96 × 320/2500 ≈ 12.3 CSS px` ตัวเลขนี้ยัง **ไม่ได้ผ่านการทดสอบกับผู้ใช้ไทยจริง**
+  > ให้ถือเป็นค่าตั้งต้นที่ต้องยืนยันใน usability test ไม่ใช่ข้อพิสูจน์
+  >
+  > **ผลข้างเคียงที่ยอมรับแล้ว**: ป้ายยาวจะถูกตัดด้วย "…" เร็วขึ้นมาก — และเมื่อถูกตัด
+  > **เนื้อหาบางส่วนหายไปจริง** จึงห้ามอ้างว่าค่าชุดนี้รับประกัน "ทุกป้ายอ่านออกครบถ้วน"
+  > มันรับประกันแค่ว่า *สิ่งที่แสดง* อ่านออก
   > **การแก้ที่ต้นเหตุอยู่ใน Phase 3** — เตือนแอดมินตั้งแต่ตอนพิมพ์ว่าป้ายจะถูกตัด เพื่อให้เขาย่อป้ายเอง
   > แทนที่ระบบจะย่อฟอนต์เงียบ ๆ แล้วไปเห็นตอนขึ้น LINE แล้ว (ป้ายในเมนู LINE ควรสั้นโดยธรรมชาติอยู่แล้ว)
 
@@ -494,14 +590,15 @@ import { logger } from '@/lib/logger';
   export const MAX_RICH_MENU_BYTES = 1024 * 1024;   // LINE จำกัด 1 MB
 
   export async function renderRichMenuImage(options: RenderRichMenuOptions): Promise<Blob> {
-    // 1. สร้าง canvas + ctx (throw ถ้า !ctx)
-    // 2. โหลดฟอนต์ให้ครบก่อน — เรียกเองภายใน ไม่ปล่อยให้ผู้เรียกจำลำดับ
-    //    await ensureFontsReady(options.fontFamily, options.areas.map(a => a.label).join(''));
-    // 3. assertThaiFontActive(ctx, options.fontFamily, 100)   ← throw ถ้าฟอนต์ไม่พร้อม
-    // 4. fillStyle = colors.background; fillRect เต็มผืน
-    // 5. วนทุก area (ดูโค้ดด้านล่าง)
-    // 6. toBlob('image/png') ห่อ Promise
-    // 7. ถ้า blob.size > MAX_RICH_MENU_BYTES → throw Error ภาษาไทยพร้อมขนาดจริง
+    // 1. ตรวจ options: width/height ต้อง finite และ > 0 ไม่งั้น throw
+    // 2. สร้าง canvas + ctx (throw ถ้า !ctx)
+    // 3. โหลดฟอนต์ให้ครบก่อน — เรียกเองภายใน ไม่ปล่อยให้ผู้เรียกจำลำดับ
+    //    await ensureFontsReady(options.areas.map(a => a.label).join(''));  ← throw ถ้าฟอนต์ไทยไม่โหลด
+    // 4. assertCanvasFontApplied(ctx, options.fontFamily, 100)              ← throw ถ้า ctx.font parse ไม่ผ่าน
+    // 5. fillStyle = colors.background; fillRect เต็มผืน
+    // 6. วนทุก area (ดูโค้ดด้านล่าง)
+    // 7. toBlob('image/png') ห่อ Promise
+    // 8. ถ้า blob.size > MAX_RICH_MENU_BYTES → throw Error ภาษาไทยพร้อมขนาดจริง
   }
   ```
 
@@ -510,12 +607,16 @@ import { logger } from '@/lib/logger';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';        // ตั้งก่อน measure เสมอ
 
+  /** ?? จับได้แค่ null/undefined ไม่จับ NaN — ต้องใช้ Number.isFinite */
+  const finiteOr = (v: number | undefined, fallback: number): number =>
+    Number.isFinite(v) && (v as number) >= 0 ? (v as number) : fallback;
+
   const metricsFor = (size: number) => {
     ctx.font = `${RICH_MENU_FONT_WEIGHT} ${size}px ${options.fontFamily}`;
     const m = ctx.measureText('ปุ๊ญ์');
-    const ascent  = m.fontBoundingBoxAscent  ?? size * 1.061;
-    const descent = m.fontBoundingBoxDescent ?? size * 0.450;
-    const lineHeight = Number.isFinite(ascent + descent) && ascent + descent > 0
+    const ascent  = finiteOr(m.fontBoundingBoxAscent,  size * 1.061);
+    const descent = finiteOr(m.fontBoundingBoxDescent, size * 0.450);
+    const lineHeight = ascent + descent > 0
       ? Math.ceil((ascent + descent) * 1.03)
       : Math.ceil(size * THAI_LINE_HEIGHT_RATIO);
     return { ascent, descent, lineHeight };
@@ -554,7 +655,7 @@ import { logger } from '@/lib/logger';
 - **IMPORTS**:
   ```typescript
   import type { RenderRichMenuOptions, MeasureTextFn } from './types';
-  import { ensureFontsReady, assertThaiFontActive, RICH_MENU_FONT_WEIGHT } from './fonts';
+  import { ensureFontsReady, assertCanvasFontApplied, RICH_MENU_FONT_WEIGHT } from './fonts';
   import { fitTextToBox, initialFontSize, normalizeLabel, THAI_LINE_HEIGHT_RATIO } from './text-layout';
   ```
 - **GOTCHA**:
@@ -572,7 +673,7 @@ import { logger } from '@/lib/logger';
      ไม่ได้แสดงผลบนจอ (คนที่เคยชินกับ on-screen canvas มักเผลอคูณ)
   7. **ห้ามตั้ง `ctx.letterSpacing`** — ค่าที่ไม่ใช่ 0 จะแทรกช่องว่างระหว่าง base กับ combining mark
      ในบางเบราว์เซอร์ ทำให้สระ/วรรณยุกต์ลอยเยื้อง
-- **VALIDATE**: `npx tsc --noEmit` ผ่าน + ตรวจด้วยตาผ่าน dev harness
+- **VALIDATE**: `npx tsc --noEmit` ผ่าน + `npx playwright test rich-menu-render` เขียว (Task 7)
 
 ### Task 5: `frontend/lib/rich-menu/__tests__/text-layout.test.ts`
 
@@ -615,15 +716,39 @@ import { logger } from '@/lib/logger';
   };
   ```
 
-  **7 invariant ที่ต้องรันครบทุก fixture × ทุก fake measure**:
+  **Invariant — ⚠️ แยกชุดตามฟังก์ชัน ห้ามรันชุดเดียวกับทั้งสองตัว**
+
+  REV 3 สั่งให้รัน 7 ข้อกับทุกอย่าง ซึ่ง**เป็นไปไม่ได้**: `fitTextToBox` ที่ตัดข้อความย่อม
+  ทำให้ grapheme หายและเพิ่ม `…` เข้ามา → ข้อ 1 กับ 4 ขัดกับข้อ 6-7 โดยตรง
+
+  **ชุด A — `wrapText` (ห้ามมีข้อมูลหาย)** รันทุก fixture × ทุก fake measure:
   ```
-  1. join(lines) หลังถอด whitespace ที่จุด wrap = input ที่ normalize แล้ว (ไม่มีอักขระหาย/เกิน)
-  2. ไม่มีบรรทัดใดจบด้วยสระหน้า [เ-ไ]
-  3. ไม่มีบรรทัดใดขึ้นต้นด้วย [ๆฯัิ-ฺ็-๎\s.]
-  4. เซตของ grapheme ใน output = เซตใน input (ไม่มี cluster ถูกผ่า)
-  5. terminates — ทุก input × ทุก measure จบใน < N รอบ (ไม่มี infinite loop)
-  6. lines.length <= MAX_LINES และ fontSizePx >= MIN_FONT_SIZE_PX เสมอ
-  7. เมื่อ didTruncate === true บรรทัดสุดท้าย (รวม '…' แล้ว) ต้องยัง <= availW
+  A1. join(lines) หลังถอด whitespace ที่จุด wrap = input ที่ normalize แล้ว — เทียบแบบ
+      "ลำดับ grapheme ตรงกันเป๊ะ" ไม่ใช่เทียบเซต (เซตจับ 'กกข' vs 'กข' ไม่ได้)
+  A2. ไม่มีบรรทัดใดจบด้วยสระหน้า [เ-ไ]
+  A3. ไม่มีบรรทัดใดขึ้นต้นด้วย [ๆฯัิ-ฺ็-๎\s.]  (ยกเว้นกรณีที่ input เองขึ้นต้นด้วยอักขระนั้น)
+  A4. ไม่มี grapheme cluster ใดถูกผ่ากลาง — ทุก cluster ใน output ต้องปรากฏครบใน input
+  A5. wrapText('') === []   และ wrapText('   ') === []
+  ```
+
+  **ชุด B — `fitTextToBox` (ตัดได้ แต่ต้องเป็น prefix)**:
+  ```
+  B1. output เป็น "prefix ตามลำดับของ input" + '…' ที่เป็นทางเลือก
+      (ไม่ใช่ "เท่ากับ input" เพราะการตัดคือพฤติกรรมที่ตั้งใจ)
+  B2. lines.length <= MAX_LINES และ fontSizePx >= MIN_FONT_SIZE_PX เสมอ
+  B3. เมื่อ didTruncate === true บรรทัดสุดท้าย (รวม '…' แล้ว) ต้องยัง <= availW
+  B4. เมื่อ didTruncate === false ต้อง**ไม่มี** '…' ต่อท้าย และ join(lines) = input ครบถ้วน
+      ← ข้อนี้จับบั๊ก REV 3 ที่เติม '…' ให้ป้าย 1 บรรทัดที่ครบถ้วนอยู่แล้ว
+  B5. fitTextToBox('', ...) → { lines: [], didTruncate: false }
+  B6. ช่องเตี้ยกว่า ascent+descent → { lines: [], didTruncate: true } ไม่ throw
+  ```
+
+  **ชุด C — การจบของลูป (ต้องมี seam ให้นับได้)**:
+  ```
+  C1. จำนวนรอบของ auto-shrink ต้อง <= ceil(max(0, start - MIN) / FONT_STEP_PX) + 1
+      → ห่อ createMeasure ด้วย counter ใน test เพื่อสังเกตได้จริง
+        ("จบใน < N รอบ" ของ REV 3 วัดไม่ได้เพราะไม่มี seam)
+  C2. ทุก fixture × ทุก fake measure ต้องจบ ไม่ค้าง
   ```
 - **MIRROR**: `TEST_STRUCTURE`
 - **IMPORTS**: `import { describe, expect, it } from 'vitest';` + import fixtures จริงจาก `@/lib/constants/categories`
@@ -646,33 +771,53 @@ import { logger } from '@/lib/logger';
   const fakeStyle = (value: string) =>
     ({ getPropertyValue: () => value }) as unknown as CSSStyleDeclaration;
 
-  const REAL_VALUE = `'Noto Sans Thai', 'Noto Sans Thai Fallback', system-ui, sans-serif`;
+  /** ⚠️ dev กับ prod ให้ค่าไม่เหมือนกัน — ต้องเทสต์ทั้งคู่ ห้าม pin ค่าเดียว */
+  const DEV_VALUE  = `'Noto Sans Thai', 'Noto Sans Thai Fallback', system-ui, sans-serif`;
+  const PROD_VALUE = `"Noto Sans Thai",system-ui,sans-serif`;
   ```
   เคสที่ต้องมี:
-  - ค่าจริงทั้งสแต็กต้องถูกคืน **เหมือนเดิมทุกตัวอักษร** (ไม่มีการลอก quote)
+  - `DEV_VALUE` และ `PROD_VALUE` ต้องถูกคืน **เหมือนเดิมทุกตัวอักษร** (ไม่มีการลอก quote)
   - มี whitespace นำหน้า/ต่อท้าย → ถูก trim แต่เนื้อในไม่เปลี่ยน
   - ค่าว่าง → คืน `FALLBACK_FONT_STACK`
-  - **จำนวน `'` ในผลลัพธ์ต้องเป็นเลขคู่** ← กันคนกลับมาใส่ regex ลอก quote
+  - **จำนวน quote (`'` และ `"`) ในผลลัพธ์ต้องเป็นเลขคู่ทั้งสองชนิด** ← กันคนกลับมาใส่ regex ลอก quote
+  - **ห้าม assert ว่าผลลัพธ์เท่ากับสตริงคงที่ตัวใดตัวหนึ่ง** — ค่านี้เป็น build artifact ที่เปลี่ยนได้
+    ให้ assert *คุณสมบัติ* (คืนค่าที่รับมาโดยไม่แก้ / quote บาลานซ์ / ว่างแล้ว fallback) เท่านั้น
 - **MIRROR**: `TEST_STRUCTURE`
 - **IMPORTS**: `import { resolveThaiFontFamily, FALLBACK_FONT_STACK } from '../fonts';`
-- **GOTCHA**: **ห้ามเทสต์ `ensureFontsReady` / `assertThaiFontActive`** — `document.fonts` ไม่มีใน jsdom
+- **GOTCHA**: **ห้ามเทสต์ `ensureFontsReady` / `assertCanvasFontApplied`** — `document.fonts` ไม่มีใน jsdom
   เทสต์ได้แค่ว่ามัน return เงียบ ๆ ไม่ throw เมื่อไม่มี `document.fonts`
 - **VALIDATE**: `npx vitest run lib/rich-menu` เขียว
 
-### Task 7 (optional): dev harness
+### Task 7 (**บังคับ ไม่ใช่ optional**): Playwright smoke test ในเบราว์เซอร์จริง
 
-- **ACTION**: หน้าชั่วคราวสำหรับตรวจภาพด้วยตา
-- **IMPLEMENT**: `frontend/app/admin/rich-menus/dev-preview/page.tsx` — `"use client"`
-  เรียก `renderRichMenuImage` ด้วย `PRESET_TEMPLATES` แบบ 6 ปุ่ม + ป้ายไทยจาก `THAI_FIXTURES`
-  แล้วแสดง `<img>` จาก `URL.createObjectURL(blob)`
+> **ทำไมเปลี่ยนจาก "ทำก็ได้ แล้วลบทิ้ง" เป็น "บังคับ และเก็บถาวร"**
+> `render.ts` ไม่มี unit test ได้เลยตามข้อจำกัดของ jsdom — ถ้าลบ harness ทิ้ง
+> จะ **ไม่เหลืออะไรตรวจสิ่งเหล่านี้อีกเลยตลอดไป**: ฟอนต์ถูก activate จริงไหม,
+> `ctx.font` parse ผ่านไหม, text metrics ของเบราว์เซอร์, การ shaping ภาษาไทย,
+> ตำแหน่ง baseline, การสร้าง PNG และขนาดภาพ, `clip()`, ขนาดไฟล์
+> fake measure ที่ inject เข้าไปทำให้เทสต์เขียวได้ทั้งที่ฟีเจอร์พังจริง
+> และ runtime guard ครอบได้แค่เรื่องฟอนต์ ไม่ครอบ layout/PNG/เบราว์เซอร์
+
+- **ACTION**: เขียน Playwright test ถาวรที่รัน `renderRichMenuImage` ในเบราว์เซอร์จริง
+- **IMPLEMENT**: `frontend/e2e/rich-menu-render.spec.ts` + หน้า harness
+  `frontend/app/admin/rich-menus/dev-preview/page.tsx` (`"use client"`) ที่ expose ผลลัพธ์
+  ให้ test อ่านได้ เรียก `renderRichMenuImage` ด้วย `PRESET_TEMPLATES` + ป้ายจาก `THAI_FIXTURES`
+- **สิ่งที่ต้อง assert**:
+  1. `ensureFontsReady` สำเร็จ — `document.fonts.check('700 96px "Noto Sans Thai"', 'กขค')` เป็น true
+  2. `blob.type === 'image/png'`
+  3. ขนาดภาพตรงเป๊ะ — 2500×1686 (large) และ 2500×843 (compact)
+  4. `blob.size <= 1 MB`
+  5. ภาพที่ได้มีพิกเซลที่ไม่ใช่สีพื้น (พิสูจน์ว่ามีตัวหนังสือถูกวาดจริง ไม่ใช่ผืนเปล่า)
+  6. ป้ายยาว (`longestReal`) — พิกเซลตัวอักษรทั้งหมดอยู่ในกรอบ `bounds` ของ area ตัวเอง
+     ไม่ล้นไปช่องข้าง
 - **GOTCHA**:
   1. **ห้ามใช้ชื่อ `_dev-preview`** — Next.js App Router ถือว่าโฟลเดอร์ขึ้นต้น `_` เป็น
      *private folder* ที่ **ไม่ถูก route** (repo นี้ใช้ convention นี้อยู่แล้วที่
      `live-chat/_components`, `_context`, `_hooks`, `_lib`) เปิดแล้วจะได้ 404
-  2. **ต้องลบทิ้งก่อน commit** เหตุผลคือ **มันคือ scratch code ที่ไม่ผ่านรีวิว** —
-     ไม่ใช่เพราะไม่มี auth guard (`frontend/app/admin/layout.tsx` ครอบ `useAuth()` ทุก route
-     ใต้ `/admin` อยู่แล้ว harness จะได้ guard นั้นไปด้วย)
-- **VALIDATE**: เปิดดูแล้วอ่านข้อความไทยออกครบ รวมสระบน/ล่าง
+  2. `/admin` มี `useAuth()` ครอบทุก route อยู่แล้ว (`frontend/app/admin/layout.tsx`)
+     → test ต้อง login ก่อน หรือใช้ storageState ตามที่ e2e อื่นในโปรเจกต์ทำ
+  3. Playwright ติดตั้งอยู่แล้ว (`@playwright/test`) ไม่ต้องลง package ใหม่
+- **VALIDATE**: `npx playwright test rich-menu-render` เขียว + เปิดภาพดูด้วยตาแล้วอ่านไทยออกครบ
 
 ---
 
@@ -685,6 +830,7 @@ cd frontend && npx tsc --noEmit                    # EXPECT: 0 errors
 cd frontend && npx eslint lib/rich-menu            # EXPECT: 0 errors
 cd frontend && npx vitest run lib/rich-menu        # EXPECT: ผ่านทั้งหมด
 cd frontend && npx vitest run                      # EXPECT: ไม่มี regression
+cd frontend && npx playwright test rich-menu-render # EXPECT: เขียว (ต้องมี dev server รันอยู่)
 cd frontend && npm run build                       # EXPECT: build สำเร็จ
 ```
 
@@ -715,9 +861,10 @@ cd frontend && npm run build                       # EXPECT: build สำเร�
 
 ## Acceptance Criteria
 
-- [ ] Task 1-6 เสร็จครบ (Task 7 optional และต้องลบก่อน commit)
+- [ ] Task 1-7 เสร็จครบ (**Task 7 บังคับ** — ไม่ใช่ optional และไม่ลบทิ้ง)
 - [ ] `npx tsc --noEmit` / `npx eslint lib/rich-menu` ไม่มี error
 - [ ] `npx vitest run` ผ่านทั้งหมด ไม่มี regression
+- [ ] `npx playwright test rich-menu-render` เขียว
 - [ ] `npm run build` สำเร็จ
 - [ ] Manual validation ผ่านครบ **โดยเฉพาะข้อยืนยันว่าเป็น Noto Sans Thai จริง**
 - [ ] **`git diff` ต้องไม่มีไฟล์ใน `app/admin/rich-menus/new/` หรือ `backend/` เลย**
@@ -738,13 +885,13 @@ cd frontend && npm run build                       # EXPECT: build สำเร�
 
 | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|
-| ฟอนต์ไทยไม่ถูกโหลด/ไม่ถูกใช้ แล้ววาดเงียบ ๆ ด้วยฟอนต์ระบบ | **H** | **H** | `ensureFontsReady` ส่ง Thai text + `assertThaiFontActive` guard 3 ชั้น + manual check ว่าไทย "มีหัว" |
-| `ctx.font` invalid แล้วถูกเมิน เหลือ `10px sans-serif` | M | **H** | round-trip guard ใน `assertThaiFontActive` ข้อ (1) |
+| ฟอนต์ไทยไม่ถูกโหลด/ไม่ถูกใช้ แล้ววาดเงียบ ๆ ด้วยฟอนต์ระบบ | **H** | **H** | `ensureFontsReady` ส่ง Thai text แล้ว **ตรวจ `FontFace[]` ที่ `load()` คืนมา** (`length === 0` หรือ `status !== 'loaded'` = throw) + Playwright test (Task 7) assert `document.fonts.check()` ในเบราว์เซอร์จริง + manual check ว่าไทย "มีหัว" |
+| `ctx.font` invalid แล้วถูกเมิน เหลือ `10px sans-serif` | M | **H** | `assertCanvasFontApplied` — round-trip ตรวจว่า `ctx.font` มี `${sizePx}px` จริงหลัง assign |
 | `system-ui` ใน stack ถูก canvas parser บางตัวปฏิเสธ → ทั้งสตริง invalid | L | **H** | guard เดียวกัน + `FALLBACK_FONT_STACK` |
 | ผลตัดคำต่างกันข้ามเบราว์เซอร์ → PNG จากป้ายเดียวกันขึ้นบรรทัดไม่เหมือนกัน | **H** | M | รองรับ `\n` เป็น break hint ที่ deterministic + assert invariant ไม่ใช่ผลลัพธ์เป๊ะ |
 | `wrapText` วนไม่รู้จบ / ข้อความล้นกรอบ | M | **H** | แตกด้วย `splitGraphemes` จริง + invariant 5 และ 7 + `clip()` เป็นตาข่ายสุดท้าย |
 | นักพัฒนาเผลอทำ Phase 3 (UI) ไปด้วย | M | M | acceptance criteria มีข้อ `git diff` |
-| `render.ts` ไม่มี automated test ตลอดไป | M | M | พิจารณาแปลง Task 7 harness เป็น Playwright test ถาวรแทนการลบทิ้ง (ดู Notes) |
+| `render.ts` ไม่มี automated test ตลอดไป | ~~M~~ **ปิดแล้ว** | H | Task 7 เปลี่ยนเป็น **Playwright test ถาวรที่บังคับต้องมี** ครอบ font activation / PNG / ขนาด / clip / ขนาดไฟล์ |
 
 ## Notes
 
@@ -754,9 +901,15 @@ cd frontend && npm run build                       # EXPECT: build สำเร�
 การรับ `createMeasure` เป็นพารามิเตอร์ทำให้ตรรกะที่ซับซ้อนที่สุดเทสต์ได้เต็มที่
 
 **ราคาที่ต้องจ่ายของการแยกนี้ (สำคัญ)**
-ความเสี่ยงทั้งหมดเรื่องฟอนต์ถูกย้ายไปอยู่ใน `render.ts` ซึ่ง **ไม่มี unit test เลย** ถ้าฟอนต์ไทย
-ไม่โหลด เทสต์ทุกเคสยังเขียวแต่ภาพผิด — นี่คือเหตุผลที่ `assertThaiFontActive` เป็น **ข้อบังคับ**
-ไม่ใช่ของแถม และเป็นเหตุผลที่ควรพิจารณาเก็บ harness ไว้เป็น Playwright test แทนการลบทิ้ง
+ความเสี่ยงทั้งหมดเรื่องฟอนต์ถูกย้ายไปอยู่ใน `render.ts` ซึ่ง **unit test เข้าไม่ถึง** ถ้าฟอนต์ไทย
+ไม่โหลด เทสต์ทุกเคสยังเขียวแต่ภาพผิด — จึงต้องปิดด้วย **สองชั้นพร้อมกัน**:
+1. **runtime guard** (`ensureFontsReady` ตรวจ `FontFace[]` + `assertCanvasFontApplied` ตรวจ round-trip)
+   — ครอบเรื่องฟอนต์
+2. **Playwright test ถาวร (Task 7, บังคับ)** — ครอบสิ่งที่ guard ครอบไม่ได้: layout, PNG,
+   ขนาดภาพ, `clip()`, ขนาดไฟล์, text metrics และ shaping ของเบราว์เซอร์จริง
+
+**"pure logic เทสต์ได้ 100%" เป็นคำที่ถูกเฉพาะกับ `text-layout.ts`** — ไม่ใช่กับตัวฟีเจอร์
+อย่าใช้ประโยคนี้อธิบายทั้งเฟส
 
 **TODO Phase 3 — ลบ type duplication**
 Phase 1 คัดลอกรูปทรง `TemplateBounds`/`TemplateArea` มาไว้ใน `lib/rich-menu/types.ts`
@@ -770,9 +923,17 @@ Phase 1 คัดลอกรูปทรง `TemplateBounds`/`TemplateArea` ม
 → แก้ที่หนึ่งโดยไม่แก้อีกที่ = ปุ่มกดไม่ตรง และไม่มีเทสต์จับ แผนนี้จึงบังคับให้ `render.ts` รับ
 `areas[].bounds` **ชุดเดียวกับที่ `new/page.tsx:314-317` ส่งให้ LINE**
 
-**ยังไม่ตัดสินใจ (ปล่อยให้ผู้ implement เลือกตอนเห็นภาพจริง)**
-- ค่าที่แน่นอนของ `AREA_PADDING_RATIO` และ `initialFontSize`
-- ค่าชดเชย optical ถ้าข้อความดูไม่กึ่งกลางพอ (ต้องเป็นค่าคงที่ตัวเดียวทั้งภาพ)
+**ค่าที่กำหนดไว้แล้ว แต่ปรับได้หลังเห็นภาพจริงใน Task 7**
+ทั้งสองค่ามีค่าตั้งต้นที่ชัดเจนแล้ว **implement ได้ทันทีโดยไม่ต้องถามใคร** — ถ้าภาพจาก
+Playwright test ดูไม่สวย ให้ปรับตัวเลขแล้วรัน test ซ้ำ ไม่ใช่ปล่อยว่างไว้ให้ตัดสินใจเอง:
+- `AREA_PADDING_RATIO = 0.12`
+- `INITIAL_FONT_SIZE_COEFFICIENT = 0.28` (ใช้ใน `initialFontSize`)
+- ค่าชดเชย optical ถ้าข้อความดูไม่กึ่งกลางพอ — เริ่มที่ **0** และถ้าจะใส่
+  ต้องเป็นค่าคงที่ตัวเดียวทั้งภาพ (เช่น `+0.03 × fontSizePx`) ห้ามคำนวณต่อสตริง
+
+**ข้อจำกัดของการอ้างอิง repo ภายนอก**
+`src/tools/createRichMenu.ts:257-338` ชี้ไปที่ `line/line-bot-mcp-server` ซึ่ง **ตรวจสอบจาก repo นี้ไม่ได้
+และไม่ได้ pin commit** ถ้าจะใช้อ้างอิงในอนาคตให้เปลี่ยนเป็นลิงก์ GitHub ที่ระบุ commit hash
 
 ---
 
@@ -785,7 +946,7 @@ Phase 1 คัดลอกรูปทรง `TemplateBounds`/`TemplateArea` ม
 |---|---|---|
 | 1 | `next/font` ตั้งชื่อ family แบบ hash ต้องอ่านจาก CSS var แล้วลอก quote ออก | ชื่อ family **ไม่ถูก hash** ค่าจริงเป็น font stack เต็มพร้อม quote → การลอก quote ทำให้ `ctx.font` invalid และถูกเมินเงียบ ๆ |
 | 2 | `ensureFontsReady` เรียก `document.fonts.load(\`${w} 100px ${family}\`)` | default text คือ `" "` → **โหลดเฉพาะไฟล์ latin ฟอนต์ไทยไม่เคยถูกโหลด** ต้องส่ง Thai text เป็น arg ที่ 2 |
-| 3 | (ไม่มี) | เพิ่ม `assertThaiFontActive` guard 3 ชั้น — ทุกความล้มเหลวเรื่องฟอนต์เงียบหมด |
+| 3 | (ไม่มี) | เพิ่ม guard เพราะทุกความล้มเหลวเรื่องฟอนต์เงียบหมด (REV 4 เปลี่ยนวิธี — ดูด้านล่าง) |
 | 4 | `LINE_HEIGHT_RATIO = 1.35` | metrics ของฟอนต์เองแนะนำ **1.511 em** (ascent 1.061 + descent 0.450) → 1.35 ทำให้วรรณยุกต์ชนสระล่างบรรทัดบน |
 | 5 | `textBaseline='middle'` แล้วถ้าเบี้ยวให้ใช้ `actualBoundingBox*` | `actualBoundingBox*` ผูกกับสตริง → แต่ละช่องลอยไม่เท่ากัน **แย่กว่าเดิม** ใช้ `fontBoundingBox*` แทน |
 | 6 | `granularity: 'grapheme'` พอสำหรับกันตัดกลาง cluster | ไม่พอ — สระหน้า เ แ โ ใ ไ ถูกแยกออก (`'เก'` → `["เ","ก"]`) ต้องมี `toBreakableUnits()` |
@@ -813,3 +974,26 @@ Phase 1 คัดลอกรูปทรง `TemplateBounds`/`TemplateArea` ม
 | 2 | contrast guard เป็น **Must** + เตือน **และ** บล็อกปุ่มบันทึก | ไม่กระทบ Phase 1 (เป็นงาน Phase 2/3) |
 | 3 | สำนักงานไม่มีระเบียบบังคับอนุมัติ → ใส่ **หน้ายืนยันก่อน publish** (frontend ล้วน) | ไม่กระทบ Phase 1 (เป็นงาน Phase 4) |
 | 4 | เปลี่ยนเกณฑ์วัดผลเป็น **usability test กับแอดมินจริง 3 คน** | ไม่กระทบ Phase 1 |
+
+**REV 4 (2026-08-02)** — แก้ตามรีวิวของ Codex (`codex exec --sandbox read-only`)
+Codex ให้ verdict **NEEDS REWORK / 4/10** และยืนยันว่าการแก้ของ REV 2 **ถูกต้อง 21 ข้อ**
+แต่พบบั๊กในสเปกที่ทำให้ implement ตามไม่ได้จริง ผู้เขียนแผนตรวจยืนยันเองครบทุกข้อแล้ว
+
+| # | REV 3 เขียนว่า | ความจริง / สิ่งที่แก้ |
+|---|---|---|
+| 1 | `assertThaiFontActive` ชั้นที่ 3 เทียบความกว้างกับ font ปลอม เพื่อกันกรณี `check()` คืน true ทั้งที่ไม่มี face | **guard นี้ผ่านได้ทั้งที่ฟอนต์ผิด** — ถ้า Noto ล้มแล้วตกไปใช้ Leelawadee UI / Thonburi ความกว้างก็ยังต่างจาก monospace → เปลี่ยนไปตรวจ **`FontFace[]` ที่ `document.fonts.load()` คืนมา** (`length === 0` หรือ `status !== 'loaded'` = ล้มเหลว) และแยกหน้าที่เป็น `ensureFontsReady` + `assertCanvasFontApplied` |
+| 2 | `truncateToWidth` ตัดทีละหน่วยจาก `segmentText()` | `segmentText()` เป็นหน่วย **ระดับคำ** — ป้ายไทยสั้นอย่าง "ประชาสัมพันธ์" เป็นคำเดียว ถ้ากว้างเกินเพราะ `…` แค่นิดเดียวจะลบทั้งคำ **เหลือแค่ `"…"`** → เปลี่ยนไปตัดด้วย `splitGraphemes()` + guard เมื่อ `…` เดี่ยว ๆ ยังกว้างเกิน |
+| 3 | `fitTextToBox` ถ้าไม่พอดี → `slice(0, MAX_LINES)` + เติม `…` เสมอ | `fits()` ล้มได้ 3 สาเหตุ แต่ทางแก้นี้ **ไม่แก้กรณีสูงเกิน** (`clip()` แค่ซ่อน) และ **เติม `…` ให้ป้ายที่ครบถ้วนอยู่แล้ว** → คำนวณ `maxLinesByHeight` จาก availH จริง และเติม `…` เฉพาะเมื่อ `omittedLines \|\| lastTooWide` |
+| 4 | Task 7 dev harness = optional และ **ต้องลบก่อน commit** | ลบทิ้งแล้วจะไม่เหลืออะไรตรวจ `render.ts` เลยตลอดไป (font activation, PNG, ขนาด, clip, ขนาดไฟล์, shaping) → **บังคับ + เก็บถาวรเป็น Playwright test** `frontend/e2e/rich-menu-render.spec.ts` พร้อม 6 assertion |
+| 5 | ค่า `--font-noto-thai` คือ `'Noto Sans Thai', 'Noto Sans Thai Fallback', system-ui, sans-serif` | **นั่นคือค่าของ dev build เท่านั้น** — prod ให้ `"Noto Sans Thai",system-ui,sans-serif` (quote คนละแบบ ไม่มี Fallback family) → ถือค่านี้เป็น **opaque** ห้าม pin test กับค่าเดียว, `FALLBACK_FONT_STACK` เหลือเฉพาะส่วนที่เสถียร, เพิ่ม `THAI_FONT_CANONICAL_FAMILY` |
+| 6 | "ไฟล์ไทยจะไม่ถูก request" | แม่นยำกว่าคือ **`load()` ที่ไม่ส่ง text ไม่ได้เลือกและไม่รอ face ไทย** ส่วนไฟล์เองอาจถูกดาวน์โหลดจาก `preload: true` ของ next/font ได้ — แต่ **preload ไม่ใช่การรับประกันความพร้อม** ข้อสรุปเชิงปฏิบัติไม่เปลี่ยน |
+| 7 | 7 invariant รันครบทุก fixture × ทุก fake measure | ข้อ 1 ("output = input") และ 4 ("เซต grapheme เท่ากัน") **ขัดกับข้อ 6-7 โดยตรง** เพราะการตัดคือพฤติกรรมที่ตั้งใจ; และเทียบ "เซต" จับ `กกข` vs `กข` ไม่ได้ → แยกเป็นชุด A (`wrapText`, ห้ามข้อมูลหาย, เทียบลำดับ), ชุด B (`fitTextToBox`, ต้องเป็น prefix + `…`), ชุด C (ขอบเขตจำนวนรอบที่วัดได้จริงผ่าน counter seam) |
+| 8 | `initialFontSize` มีแค่ signature | ไม่เคยให้สูตร ทั้งที่ Notes บอกว่า "ยังไม่ตัดสินใจ" ขณะที่ `AREA_PADDING_RATIO = 0.12` ถูก fix แล้ว — ขัดกันเองและ implement ไม่ได้ → ให้สูตรจริงพร้อม `INITIAL_FONT_SIZE_COEFFICIENT = 0.28` |
+| 9 | `m.fontBoundingBoxAscent ?? size * 1.061` | `??` จับแค่ `null`/`undefined` **ไม่จับ `NaN`** → ถ้าเบราว์เซอร์คืนค่าไม่ finite จะได้ `NaN` ทั้ง blockH และพิกัด baseline → ใช้ `Number.isFinite()` |
+| 10 | `toBreakableUnits` อธิบายเป็นประโยคเดียว | implement ได้หลายแบบ และไม่ครอบกรณี **หน่วยแรกเป็นอักขระต้องห้าม** (ป้ายขึ้นต้นด้วย `ๆ` / `.` / combining mark) กับ **การแตกหน่วยกว้างเกินแล้ววนกลับ** → ให้ pseudocode เต็ม + นิยามทั้งสองกรณี |
+| 11 | `wrapText('')` ไม่ได้นิยาม | ถ้าคืน `[]` แล้ว `(lines.length - 1) * lineHeight` เริ่มที่ `-lineHeight` และ branch ตัดจะเขียน `lines[-1]` → นิยามชัด: `wrapText('') === []`, `fitTextToBox('')` คืน `{ lines: [], didTruncate: false }` |
+| 12 | `MAX_LINES = 2` โดยนัยว่าเป็นข้อจำกัดของพื้นที่ | ที่ 96px 3 บรรทัด (~445px) และ 4 บรรทัด (~595px) **ยังพอดีใน 643px ทั้งคู่** → เป็น product constraint ไม่ใช่เรขาคณิต; และ 15 CSS px คิดบนจอ 390pt เท่านั้น จอ 320pt เหลือ 12.3 → ต้องยืนยันด้วย usability test ห้ามอ้างว่ารับประกัน "ทุกป้ายอ่านออกครบถ้วน" |
+| 13 | Estimated Files: 7 (มี harness ที่ต้องลบ) | 8 และเก็บถาวรทั้งหมด |
+
+**หมายเหตุ**: โค้ดตัวอย่างที่ Codex เสนอในข้อ 3 เขียน `lines.at(-1)! = ...` ซึ่งเป็น **SyntaxError**
+(`Array.prototype.at()` คืนค่า ไม่ใช่ reference) — แผนนี้ใช้ `lines[lines.length - 1] = ...` แทน
