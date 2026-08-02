@@ -1,13 +1,20 @@
 {
-  "last_updated": "2026-08-02T18:33:00+07:00",
+  "last_updated": "2026-08-02T19:35:00+07:00",
   "platform": "claude_code",
-  "current_task": "REV 3: ปิด DECISION-PENDING ครบ 4 ข้อ (font 96px/2 บรรทัด, contrast บล็อกปุ่ม, หน้ายืนยันก่อน publish, usability test 3 คน) — แผน Phase 1 พร้อม implement",
+  "current_task": "REV 4: ส่ง PRD+plan ให้ Codex review (read-only) แล้วแก้บั๊กในสเปก 6 กลุ่ม — จุดใหญ่สุดคือ CSS font variable ให้ค่าต่างกันระหว่าง dev กับ prod",
   "plan_status": "completed",
   "next_steps": [
-    "Implement Phase 1 ตาม plan REV 3 (Task 1-6 ใน frontend/lib/rich-menu/)",
-    "ปิด baseline + คู่มือ branding + ภาษาที่รองรับ ก่อนเข้า Phase 2"
+    "เช็ค baseline ก่อนเขียนโค้ด: SELECT count(*), min(created_at), max(created_at) FROM rich_menus — ถ้า < 1 เมนู/เดือน ให้หยุดโครงการ",
+    "ถ้าผ่าน gate: implement Phase 1 ตาม plan REV 4 (Task 1-7, Task 7 บังคับ)"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-08-02T19:35:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "6fb6982",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-08-02T18:33:00+07:00",
       "platform": "claude_code",
@@ -139,13 +146,6 @@
       "platform": "qoder",
       "branch": "main",
       "head": "4ba338a",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-27T22:34:00+07:00",
-      "platform": "qoder",
-      "branch": "main",
-      "head": "a495674",
       "status": "completed"
     }
   ],
