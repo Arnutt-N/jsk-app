@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Architecture review — JskApp</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({ startOnLoad: true, theme: "neutral", securityLevel: "loose", flowchart: { curve: "basis" } });
+    </script>
+    <style>
+      :root { color-scheme: light; }
+      html { scroll-behavior: smooth; }
+      body { background-image: radial-gradient(circle at 18% 0%, rgba(16,185,129,.08), transparent 28rem); }
+      .seam { border-top: 2px dashed #94a3b8; }
+      .deep { background: linear-gradient(145deg, #0f172a, #1e293b); box-shadow: 0 18px 45px rgba(15,23,42,.16); }
+      .leak { color: #dc2626; }
+      .diagram { min-height: 320px; }
+      .module-box { border: 1px solid #cbd5e1; background: rgba(255,255,255,.88); }
+      .arrow { color: #64748b; font-weight: 800; }
+      .red-arrow { color: #dc2626; font-weight: 900; }
+      .mass-interface { background: #fef2f2; border: 1px solid #fecaca; }
+      .mass-implementation { background: #f8fafc; border: 1px solid #cbd5e1; }
+      code { overflow-wrap: anywhere; }
+      .mermaid { display: flex; align-items: center; justify-content: center; min-height: 270px; }
+    </style>
+  </head>
+  <body class="bg-stone-50 text-slate-900 antialiased">
+    <main class="mx-auto max-w-6xl space-y-12 px-5 py-12 sm:px-8 lg:px-10">
+      <header class="border-b border-slate-200 pb-9">
+        <div class="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p class="text-xs font-bold uppercase tracking-[.22em] text-emerald-700">Deepening review</p>
+            <h1 class="mt-3 font-serif text-4xl tracking-tight text-slate-950 sm:text-5xl">JskApp architecture</h1>
+            <p class="mt-3 text-sm text-slate-500">02 Aug 2026 · repository scan + deletion tests</p>
+          </div>
+          <div class="grid grid-cols-2 gap-x-6 gap-y-3 text-xs text-slate-600 sm:grid-cols-4">
+            <div class="flex items-center gap-2"><span class="h-5 w-7 rounded border border-slate-300 bg-white"></span>module</div>
+            <div class="flex items-center gap-2"><span class="w-7 border-t-2 border-dashed border-slate-400"></span>seam</div>
+            <div class="flex items-center gap-2"><span class="text-base font-black text-red-600">→</span>leakage</div>
+            <div class="flex items-center gap-2"><span class="h-5 w-7 rounded bg-slate-900"></span>deep module</div>
+          </div>
+        </div>
+      </header>
+
+      <section id="candidates" class="space-y-12">
+        <article id="service-request-workflow" class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div class="space-y-7 p-6 sm:p-8">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p class="text-xs font-bold uppercase tracking-[.2em] text-slate-400">01 · Workflow</p>
+                <h2 class="mt-2 font-serif text-3xl tracking-tight">Deepen the Service Request workflow</h2>
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800">Strong</span>
+                <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">local-substitutable</span>
+              </div>
+            </div>
+
+            <div class="rounded-xl bg-slate-50 p-4 font-mono text-xs leading-6 text-slate-600">
+              backend/app/api/v1/endpoints/admin_requests.py · backend/app/models/service_request.py<br />
+              backend/app/core/permissions.py · backend/app/core/audit.py<br />
+              frontend/lib/constants/request-status.ts · backend/tests/test_admin_requests_endpoints.py
+            </div>
+
+            <div class="grid gap-5 lg:grid-cols-2">
+              <div class="diagram rounded-xl border border-red-100 bg-red-50/30 p-5">
+                <p class="text-xs font-bold uppercase tracking-wider text-red-700">Before · transport owns the workflow</p>
+                <div class="mt-5 grid grid-cols-[1fr_auto_1fr] items-center gap-3 text-center text-xs">
+                  <div class="module-box rounded-lg p-4 font-semibold">HTTP route<br /><span class="font-normal text-slate-500">622 lines</span></div>
+                  <span class="red-arrow text-2xl">→</span>
+                  <div class="space-y-2">
+                    <div class="module-box rounded-lg p-2">4 permission checks</div>
+                    <div class="module-box rounded-lg p-2">assignment rules</div>
+                    <div class="module-box rounded-lg p-2">status + timestamps</div>
+                    <div class="module-box rounded-lg p-2">field mutation</div>
+                    <div class="module-box rounded-lg p-2">3 audit paths</div>
+                  </div>
+                </div>
+                <div class="mt-5 seam pt-3 text-center text-xs font-semibold text-red-700">transport seam leaks domain invariants</div>
+              </div>
+              <div class="diagram rounded-xl border border-emerald-200 bg-emerald-50/30 p-5">
+                <p class="text-xs font-bold uppercase tracking-wider text-emerald-800">After · one place owns outcomes</p>
+                <div class="mt-6 flex flex-col items-center gap-4 text-center text-xs">
+                  <div class="module-box w-36 rounded-lg p-3 font-semibold">HTTP adapter</div>
+                  <span class="arrow text-xl">↓</span>
+                  <div class="w-full border-t-2 border-dashed border-emerald-400 pt-2 text-[10px] font-bold uppercase tracking-wider text-emerald-700">workflow seam</div>
+                  <div class="deep w-full rounded-xl p-5 text-white">
+                    <div class="text-sm font-bold">Service Request workflow module</div>
+                    <div class="mt-4 grid grid-cols-2 gap-2 text-[11px] text-slate-300">
+                      <span class="rounded bg-white/10 p-2">policy</span><span class="rounded bg-white/10 p-2">mutation</span>
+                      <span class="rounded bg-white/10 p-2">timestamps</span><span class="rounded bg-white/10 p-2">audit</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid gap-5 md:grid-cols-3">
+              <div><h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Problem</h3><p class="mt-2 text-sm leading-6">One transition requires knowledge from the route, model, four permission helpers, audit logic, and a frontend-only transition map.</p></div>
+              <div><h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Solution</h3><p class="mt-2 text-sm leading-6">Move lifecycle behavior behind one Service Request workflow seam; keep transport and persistence details internal.</p></div>
+              <div><h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Deletion test</h3><p class="mt-2 text-sm leading-6">Delete the workflow behavior and its complexity reappears in every caller. It earns a deep module.</p></div>
+            </div>
+            <ul class="grid gap-2 text-sm font-medium text-slate-700 sm:grid-cols-2 lg:grid-cols-4">
+              <li>locality: invariants stay together</li><li>leverage: one workflow everywhere</li><li>interface becomes test surface</li><li>audit follows each transition</li>
+            </ul>
+          </div>
+        </article>
+
+        <article id="liff-intake" class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div class="space-y-7 p-6 sm:p-8">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div><p class="text-xs font-bold uppercase tracking-[.2em] text-slate-400">02 · Citizen intake</p><h2 class="mt-2 font-serif text-3xl tracking-tight">Collapse the LIFF Service Request intake</h2></div>
+              <div class="flex flex-wrap gap-2"><span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800">Strong</span><span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">ports &amp; adapters</span></div>
+            </div>
+            <div class="rounded-xl bg-slate-50 p-4 font-mono text-xs leading-6 text-slate-600">
+              frontend/app/liff/service-request/page.tsx (1,078) · service-request-single/page.tsx (741)<br />
+              frontend/app/liff/request-v2/page.tsx (608) · frontend/lib/constants/{agencies,categories}.ts<br />
+              backend/app/api/v1/endpoints/liff.py · backend/app/schemas/service_request_liff.py
+            </div>
+            <div class="grid gap-5 lg:grid-cols-2">
+              <div class="diagram rounded-xl border border-red-100 bg-red-50/30 p-5">
+                <p class="text-xs font-bold uppercase tracking-wider text-red-700">Before · 2,427 repeated lines</p>
+                <div class="mt-5 grid grid-cols-3 gap-2 text-center text-[10px] font-semibold">
+                  <div class="module-box rounded-lg p-3">Wizard page</div><div class="module-box rounded-lg p-3">Single page</div><div class="module-box rounded-lg p-3">V2 page</div>
+                </div>
+                <div class="mx-auto my-3 text-center text-xl font-black text-red-600">↓ &nbsp; ↓ &nbsp; ↓</div>
+                <div class="grid grid-cols-2 gap-2 text-center text-[10px] text-slate-700">
+                  <div class="module-box rounded p-2">LIFF identity ×3</div><div class="module-box rounded p-2">locations ×3</div>
+                  <div class="module-box rounded p-2">attachments ×3</div><div class="module-box rounded p-2">validation ×3</div>
+                  <div class="module-box rounded p-2">payload mapping ×3</div><div class="module-box rounded p-2">submission ×3</div>
+                </div>
+                <div class="mt-4 text-center text-xs font-semibold text-red-700">same dependencies · different field names</div>
+              </div>
+              <div class="diagram rounded-xl border border-emerald-200 bg-emerald-50/30 p-5">
+                <p class="text-xs font-bold uppercase tracking-wider text-emerald-800">After · variants reuse depth</p>
+                <div class="mt-5 grid grid-cols-3 gap-2 text-center text-[10px] font-semibold">
+                  <div class="module-box rounded-lg p-3">Wizard view</div><div class="module-box rounded-lg p-3">Single view</div><div class="module-box rounded-lg p-3">V2 view</div>
+                </div>
+                <div class="mx-auto my-3 text-center text-xl font-black text-emerald-700">↘ &nbsp; ↓ &nbsp; ↙</div>
+                <div class="deep rounded-xl p-5 text-center text-white">
+                  <div class="text-sm font-bold">LIFF Service Request intake module</div>
+                  <div class="mt-4 grid grid-cols-3 gap-2 text-[10px] text-slate-300">
+                    <span class="rounded bg-white/10 p-2">identity</span><span class="rounded bg-white/10 p-2">locations</span><span class="rounded bg-white/10 p-2">attachments</span>
+                    <span class="rounded bg-white/10 p-2">validation</span><span class="rounded bg-white/10 p-2">mapping</span><span class="rounded bg-white/10 p-2">submit</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="grid gap-5 md:grid-cols-3">
+              <div><h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Problem</h3><p class="mt-2 text-sm leading-6">All three pages repeat five remote calls, LIFF timing, location resets, attachment handling, and Thai validation; none has a frontend test surface.</p></div>
+              <div><h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Solution</h3><p class="mt-2 text-sm leading-6">Keep presentation variants thin while one intake module absorbs identity, normalization, validation, and submission behavior.</p></div>
+              <div><h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Deletion test</h3><p class="mt-2 text-sm leading-6">Deleting a page-local handler just moves repeated behavior within that page; consolidation creates locality.</p></div>
+            </div>
+            <ul class="grid gap-2 text-sm font-medium text-slate-700 sm:grid-cols-2 lg:grid-cols-4"><li>locality: mobile timing once</li><li>leverage: three citizen views</li><li>one normalized request shape</li><li>tests cross one seam</li></ul>
+          </div>
+        </article>
+
+        <article id="rich-menu-lifecycle" class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div class="space-y-7 p-6 sm:p-8">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div><p class="text-xs font-bold uppercase tracking-[.2em] text-slate-400">03 · Rich Menu</p><h2 class="mt-2 font-serif text-3xl tracking-tight">Deepen the Rich Menu lifecycle</h2></div>
+              <div class="flex flex-wrap gap-2"><span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800">Strong</span><span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">ports &amp; adapters</span></div>
+            </div>
+            <div class="rounded-xl bg-slate-50 p-4 font-mono text-xs leading-6 text-slate-600">backend/app/api/v1/endpoints/rich_menus.py (700) · backend/app/services/rich_menu_service.py (454)<br />backend/app/models/{rich_menu,rich_menu_alias,user_rich_menu_link}.py · backend/tests/test_rich_menu_*.py</div>
+            <div class="grid gap-5 lg:grid-cols-2">
+              <div class="diagram rounded-xl border border-red-100 bg-red-50/30 p-4">
+                <p class="px-1 text-xs font-bold uppercase tracking-wider text-red-700">Before · callers coordinate two states</p>
+                <pre class="mermaid">
+sequenceDiagram
+  participant R as HTTP route
+  participant P as Postgres
+  participant L as LINE adapter
+  R->>P: validate local state
+  R->>L: mutate remote state
+  L-->>R: success / partial failure
+  R->>P: compensate + commit
+  R->>P: update sync status
+                </pre>
+              </div>
+              <div class="diagram rounded-xl border border-emerald-200 bg-emerald-50/30 p-4">
+                <p class="px-1 text-xs font-bold uppercase tracking-wider text-emerald-800">After · lifecycle hides ordering</p>
+                <div class="mt-8 flex flex-col items-center gap-4 text-center text-xs">
+                  <div class="module-box w-36 rounded-lg p-3 font-semibold">HTTP adapter</div><span class="arrow text-xl">↓</span>
+                  <div class="deep w-full rounded-xl p-5 text-white"><div class="text-sm font-bold">Rich Menu lifecycle module</div><div class="mt-3 text-[11px] text-slate-300">aliases · linking · sync · publish · delete · compensation</div></div>
+                  <div class="grid w-full grid-cols-2 gap-3"><div class="module-box rounded-lg p-3">Postgres adapter</div><div class="module-box rounded-lg p-3">LINE adapter</div></div>
+                </div>
+              </div>
+            </div>
+            <div class="grid gap-5 md:grid-cols-3">
+              <div><h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Problem</h3><p class="mt-2 text-sm leading-6">The current Rich Menu module exposes many LINE operations while routes still own sync prerequisites, local upserts, commits, guards, and partial-failure behavior.</p></div>
+              <div><h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Solution</h3><p class="mt-2 text-sm leading-6">Absorb local and remote lifecycle behavior into the existing module; keep Postgres and LINE as internal adapters.</p></div>
+              <div><h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Deletion test</h3><p class="mt-2 text-sm leading-6">The LINE adapter earns depth, but deleting route orchestration spreads lifecycle complexity. Deepen the existing module.</p></div>
+            </div>
+            <ul class="grid gap-2 text-sm font-medium text-slate-700 sm:grid-cols-2 lg:grid-cols-4"><li>locality: failure modes together</li><li>leverage: every mutation route</li><li>smaller lifecycle interface</li><li>outcome-focused tests</li></ul>
+          </div>
+        </article>
+
+        <article id="live-chat-commands" class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div class="space-y-7 p-6 sm:p-8">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div><p class="text-xs font-bold uppercase tracking-[.2em] text-slate-400">04 · Live Chat</p><h2 class="mt-2 font-serif text-3xl tracking-tight">Converge Live Chat lifecycle commands</h2></div>
+              <div class="flex flex-wrap gap-2"><span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800">Worth exploring</span><span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">ports &amp; adapters</span></div>
+            </div>
+            <div class="rounded-xl bg-slate-50 p-4 font-mono text-xs leading-6 text-slate-600">backend/app/api/v1/endpoints/admin_live_chat.py (650) · backend/app/services/ws_session/handlers.py (452)<br />backend/app/services/live_chat_service/{sessions,messaging}.py · backend/app/core/websocket_manager.py</div>
+            <div class="grid gap-5 lg:grid-cols-2">
+              <div class="diagram rounded-xl border border-red-100 bg-red-50/30 p-4"><p class="px-1 text-xs font-bold uppercase tracking-wider text-red-700">Before · command outcomes duplicated</p><pre class="mermaid">
+flowchart TB
+  H[HTTP adapter] --> HC[claim / close / transfer]
+  W[WebSocket adapter] --> WC[claim / close / transfer]
+  HC --> S[session mutation]
+  WC --> S
+  HC --> C1[commit]
+  WC --> C2[commit]
+  HC --> B1[broadcast]
+  WC --> B2[broadcast]
+  classDef leak fill:#fef2f2,stroke:#dc2626,color:#991b1b;
+  class HC,WC,C1,C2,B1,B2 leak;
+              </pre></div>
+              <div class="diagram rounded-xl border border-emerald-200 bg-emerald-50/30 p-4"><p class="px-1 text-xs font-bold uppercase tracking-wider text-emerald-800">After · two adapters justify the seam</p><pre class="mermaid">
+flowchart TB
+  H[HTTP adapter] -.-> SEAM{{lifecycle seam}}
+  W[WebSocket adapter] -.-> SEAM
+  SEAM --> D[Live Chat lifecycle module]
+  D --> I[session + transaction + event implementation]
+  classDef deep fill:#0f172a,stroke:#0f172a,color:#fff,stroke-width:3px;
+  class D deep;
+              </pre></div>
+            </div>
+            <div class="grid gap-5 md:grid-cols-3">
+              <div><h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Problem</h3><p class="mt-2 text-sm leading-6">HTTP and WebSocket paths independently sequence claim, close, transfer, commit, and broadcast, so observable outcomes can drift.</p></div>
+              <div><h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Solution</h3><p class="mt-2 text-sm leading-6">Preserve both transport adapters while concentrating lifecycle outcomes behind the real seam they already share.</p></div>
+              <div><h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Deletion test</h3><p class="mt-2 text-sm leading-6">Delete either orchestration path and complexity remains in the other. One deep implementation concentrates it.</p></div>
+            </div>
+            <ul class="grid gap-2 text-sm font-medium text-slate-700 sm:grid-cols-2 lg:grid-cols-4"><li>two adapters: real seam</li><li>locality: transaction + event</li><li>leverage across transports</li><li>same test surface twice</li></ul>
+          </div>
+        </article>
+
+        <article id="reporting-outputs" class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div class="space-y-7 p-6 sm:p-8">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div><p class="text-xs font-bold uppercase tracking-[.2em] text-slate-400">05 · Reporting</p><h2 class="mt-2 font-serif text-3xl tracking-tight">Make report data reusable across outputs</h2></div>
+              <div class="flex flex-wrap gap-2"><span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800">Worth exploring</span><span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">in-process</span></div>
+            </div>
+            <div class="rounded-xl bg-slate-50 p-4 font-mono text-xs leading-6 text-slate-600">backend/app/api/v1/endpoints/admin_reports.py · backend/app/services/report_service/*<br />backend/app/services/pdf_report_service.py · backend/tests/test_admin_reports_helpers.py</div>
+            <div class="grid gap-5 lg:grid-cols-2">
+              <div class="diagram rounded-xl border border-red-100 bg-red-50/30 p-5"><p class="text-xs font-bold uppercase tracking-wider text-red-700">Before · outputs bypass the report seam</p><div class="mt-6 grid grid-cols-[1fr_auto_1fr] gap-3 text-center text-[11px]"><div class="space-y-2"><div class="module-box rounded p-3">JSON routes</div><div class="module-box rounded p-3">CSV route</div><div class="module-box rounded p-3">PDF route</div></div><div class="flex items-center text-2xl font-black text-red-600">⇄</div><div class="space-y-2"><div class="module-box rounded p-3">report mixins</div><div class="module-box rounded p-3">direct queries</div><div class="module-box rounded p-3">route calls route</div></div></div><div class="mt-5 text-center text-xs font-semibold text-red-700">data selection changes by output</div></div>
+              <div class="diagram rounded-xl border border-emerald-200 bg-emerald-50/30 p-5"><p class="text-xs font-bold uppercase tracking-wider text-emerald-800">After · one query implementation, many adapters</p><div class="mt-6 flex flex-col items-center gap-4 text-center text-xs"><div class="grid w-full grid-cols-3 gap-2"><div class="module-box rounded p-3">JSON adapter</div><div class="module-box rounded p-3">CSV adapter</div><div class="module-box rounded p-3">PDF adapter</div></div><div class="text-xl font-black text-emerald-700">↘ &nbsp; ↓ &nbsp; ↙</div><div class="deep w-full rounded-xl p-6 text-white"><div class="text-sm font-bold">Reporting query module</div><div class="mt-2 text-[11px] text-slate-300">date ranges · selection · domain rows</div></div></div></div>
+            </div>
+            <div class="grid gap-5 md:grid-cols-3">
+              <div><h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Problem</h3><p class="mt-2 text-sm leading-6">JSON delegates to report mixins, CSV performs separate queries, and PDF calls route functions directly; tests mostly cover date helpers.</p></div>
+              <div><h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Solution</h3><p class="mt-2 text-sm leading-6">Let one reporting module own domain data selection while JSON, CSV, and PDF remain output adapters.</p></div>
+              <div><h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Deletion test</h3><p class="mt-2 text-sm leading-6">Delete shared query behavior and date/selection complexity spreads across three outputs. The seam has leverage.</p></div>
+            </div>
+            <ul class="grid gap-2 text-sm font-medium text-slate-700 sm:grid-cols-2 lg:grid-cols-4"><li>three adapters: real seam</li><li>locality: query rules once</li><li>leverage across outputs</li><li>tests compare output parity</li></ul>
+          </div>
+        </article>
+      </section>
+
+      <section id="top-recommendation" class="rounded-2xl bg-emerald-950 p-8 text-white shadow-xl sm:p-10">
+        <p class="text-xs font-bold uppercase tracking-[.22em] text-emerald-300">Top recommendation</p>
+        <a href="#service-request-workflow" class="mt-3 block font-serif text-3xl tracking-tight underline decoration-emerald-500 underline-offset-8">Deepen the Service Request workflow</a>
+        <p class="mt-5 max-w-3xl leading-7 text-emerald-50">It concentrates the highest-value invariants—authorization, lifecycle, timestamps, mutation, and audit—and turns existing behavioral coverage into one trustworthy test surface.</p>
+      </section>
+    </main>
+  </body>
+</html>

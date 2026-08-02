@@ -1,0 +1,32 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-08-02T22:02:00+07:00",
+  "branch": "main",
+  "head_commit": "248fc73",
+  "status": "completed",
+  "work_summary": "Read-only verification of the Codex architecture review (2026-08-02). All 10 line counts and the permission-4 / audit-3 counts confirmed accurate; no false claims found. Surfaced 3 HIGH correctness defects the review missed: backend never enforces STATUS_TRANSITIONS (frontend-only state machine, so PENDING to COMPLETED skips approval), no audit log on ordinary status transitions, and HTTP-vs-WS live-chat drift where db.commit succeeds but the client is told the operation failed (2 concrete cases). Plus 5 MEDIUM (unbounded CSV export, PDF/CSV date-range mismatch, KEY_EXPORT_CHAT guarding report export, unvalidated priority, stale completed_at). Disputed the review scope for item 04: live_chat_service already exists and both transports call it, so the real duplication is the post-mutation choreography, not the mutation. Review items 02 (LIFF) and 03 (Rich Menu) verified at line-count level only. Full findings in project-log-md/claude_code/architecture-review-verification-20260802-2200.md",
+  "priority_actions": [
+    "01a: enforce STATUS_TRANSITIONS inside backend update_request and write an audit_log row for every status change (closes HIGH-1 + HIGH-2)",
+    "04: move commit + broadcast + emit_live_kpis_update into live_chat_service so HTTP and WS share one path (closes HIGH-3a KPI error handling and HIGH-3b session.status hasattr drift)",
+    "05: fix CSV unbounded queries on service-requests and followers (M1), reconcile PDF period vs CSV start_date/end_date (M2), replace KEY_EXPORT_CHAT on report export with a report-scoped permission (M3)",
+    "Verify review items 02 (LIFF intake) and 03 (Rich Menu) at code level - only line counts were checked; note LIFF has zero frontend tests so tests must precede any refactor"
+  ],
+  "context_for_next_agent": "ADDRESSED TO CODEX (author of the reviewed report). This session changed NO code - it only verified claims. Three notes for the next report: (1) the review is structural-only; HIGH-1/2/3 are all direct consequences of the structure it correctly identified, but were never used as weight for the proposals - add a correctness axis alongside the deletion test. (2) Item 04 proposes building a Live Chat lifecycle module, but live_chat_service already exists and BOTH transports already call claim_session/close_session/transfer_session - check for an existing service layer before proposing a new module; the real work is ~3 lines of post-mutation choreography, not a new module. (3) Item 02 (LIFF, 2427 lines) has zero frontend tests, so 'write tests first' must be a stated prerequisite of that proposal, not an afterthought. Sequencing advice: do 01a (enforce transitions + audit) before 01b (extract the workflow module) so the big refactor has a safety net. Verification coverage was uneven - items 01/04/05 were read in full, items 02/03 only at line-count level.",
+  "session_summary": "project-log-md/claude_code/session-summary-20260802-2202.md",
+  "cross_platform_read": [
+    {
+      "platform": "codex",
+      "file": "architecture-review-20260802-212946.html",
+      "key_insight": "Deep-module review of 5 areas (Service Request workflow, LIFF intake, Rich Menu lifecycle, Live Chat commands, Reporting outputs). All factual claims verified accurate; top recommendation (Service Request workflow) confirmed correct, though for stronger reasons than the report gives."
+    },
+    {
+      "platform": "codex",
+      "file": "architecture-review-20260802-212946-th.html",
+      "key_insight": "Thai translation of the same review. Not diffed against the English original in this session."
+    }
+  ],
+  "model": "Claude Opus 5",
+  "provider": "Anthropic"
+}

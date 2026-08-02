@@ -1,16 +1,16 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Cross-Platform Session Index (generated)
 
-> **Last generated**: 2026-08-02 20:10 (from newest checkpoint)
+> **Last generated**: 2026-08-02 22:02 (from newest checkpoint)
 
 ## Quick Stats
 
 | Metric | Value |
 |--------|-------|
-| Handoff checkpoints (active) | 208 |
-| Session summaries on disk | 298 |
+| Handoff checkpoints (active) | 209 |
+| Session summaries on disk | 300 |
 | Platforms | 9 (antigravity, claude_code, cline, codex, gemini_cli, kilo_code, kimi_code, open_code, qoder) |
-| Most recent | 2026-08-02 20:10 — claude_code |
+| Most recent | 2026-08-02 22:02 — claude_code |
 
 > Regenerate after any handoff: `node .agents/scripts/gen-handoff-views.cjs`
 
@@ -23,10 +23,11 @@
 | 2026-04-04 12:04 | completed | — | — | `handover-antigravity-20260404-1204.json` |
 | 2026-02-15 03:20 | completed | — | — | `handover-antigravity-20260215-0320.json` |
 
-## claude_code (148)
+## claude_code (149)
 
 | When | Status | Model | Provider | Checkpoint |
 |------|--------|-------|----------|------------|
+| 2026-08-02 22:02 | completed | Claude Opus 5 | Anthropic | `handover-claude_code-20260802-2202.json` |
 | 2026-08-02 20:10 | completed | — | — | `handover-claude_code-20260802-2010.json` |
 | 2026-08-02 19:49 | completed | — | — | `handover-claude_code-20260802-1949.json` |
 | 2026-08-02 19:35 | completed | — | — | `handover-claude_code-20260802-1935.json` |
@@ -46,8 +47,7 @@
 | 2026-07-18 19:59 | completed | Fable 5 | Anthropic | `handover-claude_code-20260718-1959.json` |
 | 2026-07-18 18:14 | completed | Fable 5 | Anthropic | `handover-claude_code-20260718-1814.json` |
 | 2026-07-18 15:46 | completed | Fable 5 | Anthropic | `handover-claude_code-20260718-1546.json` |
-| 2026-07-17 17:54 | completed | Fable 5 | Anthropic | `handover-claude_code-20260717-1754.json` |
-| … | | | | +128 older |
+| … | | | | +129 older |
 
 ## cline (5)
 

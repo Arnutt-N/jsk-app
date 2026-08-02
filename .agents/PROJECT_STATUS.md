@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-08-02 20:10 by Claude Code (ลบชื่อหน่วยงาน/ตัวย่อที่กุขึ้นมาเอง 'สธก.', 'สำนักงานยุติธรรมชุมชน', 'คู่มือ branding' ออก)
+> **Last Updated:** 2026-08-02 22:02 by Claude Code (Read-only verification of the Codex architecture review 2026-08-02.)
 
 ## Thai Summary
 **PR C gate เคยขึ้น fail และแก้แล้ว** — การอ่าน `GET /api/v1/health/pseudonym-gate` แบบ authenticated ครั้งแรก (30 ก.ค.) ได้ `gate_status: fail`, `fallback_hit_count: 176` สาเหตุ: 6 จาก 8 LINE users บน prod (`users.id` 1,5,6,7,8,9) มี `line_user_id_hash` ที่คำนวณด้วย **dev fallback HMAC key** เพราะ process ที่ตั้ง `ENVIRONMENT=development` แต่ชี้ remote DB เขียนลงไป (`_get_hmac_key` fallback เงียบ) และ `resolve_many_by_line_id` นับ hit แต่ไม่ซ่อม row จึงถูกนับซ้ำทุก admin poll — ซ่อม prod แล้ว (re-hash 6 rows + ล้าง Redis counter) ตอนนี้ gate อ่านได้ `pass` / `0`
@@ -84,6 +84,7 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-08-02 22:02] Claude Code: Read-only verification of the Codex architecture review (2026-08-02). All 10 line counts and the permission-4 / audit-3 counts confirmed accurate; no false claims found. Surfaced 3 HIGH correctness defects the review missed: backend never e (Claude Code)
 - [2026-08-02 20:10] Claude Code: ลบชื่อหน่วยงาน/ตัวย่อที่กุขึ้นมาเอง ('สธก.', 'สำนักงานยุติธรรมชุมชน', 'คู่มือ branding') ออกจาก PRD + session summary 4 ไฟล์ — repo ไม่เคยระบุชื่อหน่วยงานเจ้าของระบบเลย (Claude Code)
 - [2026-08-02 19:49] Claude Code: REV 5: ยกเลิก gate 'สร้าง < 1 เมนู/เดือน ให้หยุดโครงการ' เพราะวัดผิดแกน — rich menu เป็นโครงสร้างพื้นฐานถาวร ไม่ใช่งานที่ทำซ้ำ; Phase 1 กลับเป็น APPROVED (Claude Code)
 - [2026-08-02 19:35] Claude Code: REV 4: ส่ง PRD+plan ให้ Codex review (read-only) แล้วแก้บั๊กในสเปก 6 กลุ่ม — จุดใหญ่สุดคือ CSS font variable ให้ค่าต่างกันระหว่าง dev กับ prod (Claude Code)
