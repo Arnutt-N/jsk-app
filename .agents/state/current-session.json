@@ -1,13 +1,20 @@
 {
-  "last_updated": "2026-08-02T18:01:00+07:00",
+  "last_updated": "2026-08-02T18:33:00+07:00",
   "platform": "claude_code",
-  "current_task": "REV 2: รีวิว PRD+plan ด้วย 4 agent ขนาน แล้วแก้ข้อผิดพลาดเชิงข้อเท็จจริง (ฟอนต์ไทยไม่ถูกโหลด, ctx.font invalid, metric วัดจาก audit log ที่ไม่มี)",
+  "current_task": "REV 3: ปิด DECISION-PENDING ครบ 4 ข้อ (font 96px/2 บรรทัด, contrast บล็อกปุ่ม, หน้ายืนยันก่อน publish, usability test 3 คน) — แผน Phase 1 พร้อม implement",
   "plan_status": "completed",
   "next_steps": [
-    "ปิด [DECISION-PENDING-1..4] ก่อนเริ่ม implement",
-    "Implement Phase 1 ตาม plan REV 2"
+    "Implement Phase 1 ตาม plan REV 3 (Task 1-6 ใน frontend/lib/rich-menu/)",
+    "ปิด baseline + คู่มือ branding + ภาษาที่รองรับ ก่อนเข้า Phase 2"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-08-02T18:33:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "3d5f147",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-08-02T18:01:00+07:00",
       "platform": "claude_code",
@@ -139,13 +146,6 @@
       "platform": "qoder",
       "branch": "main",
       "head": "a495674",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-26T09:18:00+07:00",
-      "platform": "qoder",
-      "branch": "main",
-      "head": "ff2a75a",
       "status": "completed"
     }
   ],

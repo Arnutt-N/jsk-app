@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 204 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 205 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-08-02 18:33 — claude_code — completed
+
+REV 3: ปิด DECISION-PENDING ครบ 4 ข้อ (font 96px/2 บรรทัด, contrast บล็อกปุ่ม, หน้ายืนยันก่อน publish, usability test 3 คน) — แผน Phase 1 พร้อม implement
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260802-1833.json`
+- Summary: `project-log-md/claude_code/session-summary-20260802-1833.md`
+
+---
 
 ### 2026-08-02 18:01 — claude_code — completed
 
