@@ -1,15 +1,21 @@
 {
-  "last_updated": "2026-08-02T22:02:00+07:00",
+  "last_updated": "2026-08-05T03:05:00+07:00",
   "platform": "claude_code",
-  "current_task": "Read-only verification of the Codex architecture review (2026-08-02). All 10 line counts and the permission-4 / audit-3 counts confirmed accurate; no false claims found. Surfaced 3 HIGH correctness de",
+  "current_task": "Verified Supabase PROD alembic head is already up to date (d5e6f7g8h9i0) - no migration pending; fixed 5 missing model imports in app/models/__init__.py so alembic autogenerate/check works again and m",
   "plan_status": "completed",
   "next_steps": [
-    "01a: enforce STATUS_TRANSITIONS inside backend update_request and write an audit_log row for every status change (closes HIGH-1 + HIGH-2)",
-    "04: move commit + broadcast + emit_live_kpis_update into live_chat_service so HTTP and WS share one path (closes HIGH-3a KPI error handling and HIGH-3b session.status hasattr drift)",
-    "05: fix CSV unbounded queries on service-requests and followers (M1), reconcile PDF period vs CSV start_date/end_date (M2), replace KEY_EXPORT_CHAT on report export with a report-scoped permission (M3)",
-    "Verify review items 02 (LIFF intake) and 03 (Rich Menu) at code level - only line counts were checked; note LIFF has zero frontend tests so tests must precede any refactor"
+    "Declare the 8 hand-written PROD indexes in __table_args__ so autogenerate stops proposing drop_index",
+    "Fix the 5 real model-vs-PROD drifts (user_agent 255 vs 500, missing ondelete=SET NULL x2, rich_menus.status Enum vs VARCHAR, nullable mismatches)",
+    "Run full pytest with docker db+redis up - 60 tests errored only because services were down"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-08-05T03:05:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "6aece07",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-08-02T22:02:00+07:00",
       "platform": "claude_code",
@@ -142,13 +148,6 @@
       "branch": "main",
       "head": "77135d2",
       "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-28T11:01:00+07:00",
-      "platform": "qoder",
-      "branch": "main",
-      "head": "06de3e2",
-      "status": "completed"
     }
   ],
   "cross_platform_context": {
@@ -158,7 +157,5 @@
       "antigravity/session-summary-20260602-0032.md"
     ],
     "key_insights": "Handoff system redesigned to single-source-of-truth (checkpoints) + generated views (TASK_LOG/SESSION_INDEX via gen-handoff-views.cjs). Use handoff-new.cjs to create handoffs. Stop hook enforces it. Do NOT hand-edit the generated files."
-  },
-  "model": "Claude Opus 5",
-  "provider": "Anthropic"
+  }
 }

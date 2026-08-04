@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 209 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 210 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-08-05 03:05 — claude_code — completed
+
+Verified Supabase PROD alembic head is already up to date (d5e6f7g8h9i0) - no migration pending; fixed 5 missing model imports in app/models/__init__.py so alembic autogenerate/check works again and mapped the model-vs-PROD drift
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260805-0305.json`
+- Summary: `project-log-md/claude_code/session-summary-20260805-0305.md`
+
+---
 
 ### 2026-08-02 22:02 — claude_code (Claude Opus 5 / Anthropic) — completed
 

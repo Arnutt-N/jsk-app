@@ -1,0 +1,18 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-08-05T03:05:00+07:00",
+  "branch": "main",
+  "head_commit": "6aece07",
+  "status": "completed",
+  "work_summary": "Verified Supabase PROD alembic head is already up to date (d5e6f7g8h9i0) - no migration pending; fixed 5 missing model imports in app/models/__init__.py so alembic autogenerate/check works again and mapped the model-vs-PROD drift",
+  "priority_actions": [
+    "Declare the 8 hand-written PROD indexes in __table_args__ so autogenerate stops proposing drop_index",
+    "Fix the 5 real model-vs-PROD drifts (user_agent 255 vs 500, missing ondelete=SET NULL x2, rich_menus.status Enum vs VARCHAR, nullable mismatches)",
+    "Run full pytest with docker db+redis up - 60 tests errored only because services were down"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/claude_code/session-summary-20260805-0305.md",
+  "cross_platform_read": []
+}
