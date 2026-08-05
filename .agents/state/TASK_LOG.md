@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 211 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 212 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-08-05 14:19 — claude_code (Claude Opus 5 / Anthropic) — completed
+
+PR #184 merged (squash e693a9a): closed all 3 HIGH correctness defects from the 2026-08-02 architecture review — backend now enforces the request state machine (with an explicit supervisor-override path), every status transition is audited, and live-chat can no longer report failure after a successful commit
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260805-1419.json`
+- Summary: `project-log-md/claude_code/session-summary-20260805-1419.md`
+
+---
 
 ### 2026-08-05 07:52 — claude_code (Claude Opus 5 / Anthropic) — completed
 
