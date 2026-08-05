@@ -50,8 +50,13 @@ export class WebSocketClient {
     if (options.heartbeatInterval) {
       this.heartbeatIntervalMs = options.heartbeatInterval;
     }
-    if (options.maxReconnectAttempts) {
+    if (options.maxReconnectAttempts !== undefined) {
       this.maxReconnectAttempts = options.maxReconnectAttempts;
+      this.reconnectStrategy = new ExponentialBackoffStrategy(
+        1000,
+        30000,
+        this.maxReconnectAttempts,
+      );
     }
   }
 
@@ -229,7 +234,7 @@ export class WebSocketClient {
 
   private attemptReconnect(): void {
     if (!this.reconnectStrategy.shouldRetry(this.reconnectAttempt)) {
-      this.setState('disconnected');
+      this.setState('failed');
       return;
     }
 

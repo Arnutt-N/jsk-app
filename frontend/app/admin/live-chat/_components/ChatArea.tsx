@@ -68,6 +68,7 @@ export function ChatArea() {
     startTyping,
     loadOlderMessages,
     retryMessage,
+    reconnect,
     selectConversation,
   } = useLiveChatContext();
 
@@ -119,6 +120,8 @@ export function ChatArea() {
         return { icon: Wifi, className: 'bg-away/10 text-away', label: 'Connecting...' };
       case 'reconnecting':
         return { icon: WifiOff, className: 'bg-away/10 text-away', label: 'Reconnecting...' };
+      case 'failed':
+        return { icon: WifiOff, className: 'bg-danger/10 text-danger', label: 'Connection failed' };
       default:
         return { icon: WifiOff, className: 'bg-offline/10 text-offline', label: 'Offline' };
     }
@@ -138,7 +141,7 @@ export function ChatArea() {
               className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border ${
                 wsStatus === 'connected'
                   ? 'bg-online/10 text-online border-online/20'
-                  : wsStatus === 'disconnected'
+                  : wsStatus === 'disconnected' || wsStatus === 'failed'
                     ? 'bg-danger/10 text-danger border-danger/20'
                     : 'bg-away/10 text-away border-away/20'
               }`}
@@ -151,7 +154,7 @@ export function ChatArea() {
                 )}
                 <span className={`relative inline-flex rounded-full h-2 w-2 ${
                   wsStatus === 'connected' ? 'bg-online' :
-                  wsStatus === 'disconnected' ? 'bg-danger' : 'bg-away'
+                  wsStatus === 'disconnected' || wsStatus === 'failed' ? 'bg-danger' : 'bg-away'
                 }`} />
               </span>
               {connectionStatus.label}
@@ -182,11 +185,11 @@ export function ChatArea() {
             </div>
             <p className="text-text-primary font-semibold text-base mb-1 thai-no-break">Select a Conversation</p>
             <p className="text-text-tertiary text-sm">Choose from the sidebar to start chatting</p>
-            {wsStatus !== 'connected' && (
+            {wsStatus === 'failed' && (
               <div className="mt-4 mx-auto max-w-xs px-4 py-3 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl flex items-center gap-2.5 text-sm">
                 <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
                 <span className="text-amber-700 dark:text-amber-300">
-                  {wsStatus === 'reconnecting' ? 'กำลังเชื่อมต่อใหม่...' : 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้'}
+                  ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้
                 </span>
               </div>
             )}
@@ -303,23 +306,19 @@ export function ChatArea() {
         <div role="status" aria-live="polite" className="sr-only">{typingUsersCount > 0 ? 'กำลังพิมพ์' : ''}</div>
       </div>
       {/* Inline connection warning — above message input */}
-      {wsStatus !== 'connected' && (
+      {wsStatus === 'failed' && (
         <div role="status" aria-live="polite" className="px-4 py-2.5 bg-amber-50 dark:bg-amber-500/10 border-t border-amber-200 dark:border-amber-500/20 flex items-center gap-2.5 thai-text">
           <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
           <span className="text-sm text-amber-700 dark:text-amber-300 flex-1">
-            {wsStatus === 'reconnecting'
-              ? 'กำลังเชื่อมต่อใหม่...'
-              : 'ขาดการเชื่อมต่อ — ข้อความจะถูกเก็บไว้ส่งภายหลัง'}
+            ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้
           </span>
-          {(wsStatus === 'disconnected') && (
-            <button
-              onClick={() => window.location.reload()}
+          <button
+              onClick={reconnect}
               className="px-3 py-1 text-xs font-semibold rounded-lg bg-amber-100 dark:bg-amber-500/20 hover:bg-amber-200 dark:hover:bg-amber-500/30 text-amber-700 dark:text-amber-300 transition-colors cursor-pointer flex items-center gap-1"
             >
               <RefreshCw className="w-3 h-3" />
               ลองใหม่
-            </button>
-          )}
+          </button>
         </div>
       )}
       <div role="log" aria-live="polite" aria-relevant="additions" className="sr-only">

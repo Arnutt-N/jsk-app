@@ -11,6 +11,7 @@ const waitingConversation: Conversation = {
   chat_mode: 'HUMAN',
   session: { id: 1, status: 'WAITING' },
   last_message: { content: 'สวัสดีครับ', created_at: '2026-06-27T00:00:00.000Z' },
+  last_user_activity_at: new Date().toISOString(),
   unread_count: 0,
   tags: [],
 };
@@ -29,7 +30,7 @@ function actionProps() {
 }
 
 describe('ConversationItem a11y', () => {
-  it('role="option" has an accessible name containing the status label กำลังรอ', () => {
+  it('role="option" has an accessible name containing the recent activity label ออนไลน์', () => {
     render(
       <ConversationItem
         optionId="conv-1"
@@ -41,7 +42,7 @@ describe('ConversationItem a11y', () => {
     );
 
     const option = screen.getByRole('option');
-    expect(option).toHaveAccessibleName(/กำลังรอ/);
+    expect(option).toHaveAccessibleName(/ออนไลน์/);
   });
 
   it('accessible name includes display_name', () => {
@@ -114,6 +115,7 @@ describe('ConversationItem a11y', () => {
     const offlineConversation: Conversation = {
       ...waitingConversation,
       session: undefined,
+      last_user_activity_at: undefined,
     };
 
     render(

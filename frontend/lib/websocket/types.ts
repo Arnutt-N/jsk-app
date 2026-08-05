@@ -39,7 +39,7 @@ export interface WebSocketMessage {
   timestamp: string;
 }
 
-export type ConnectionState = 'disconnected' | 'connecting' | 'authenticating' | 'connected' | 'reconnecting';
+export type ConnectionState = 'disconnected' | 'connecting' | 'authenticating' | 'connected' | 'reconnecting' | 'failed';
 
 export interface UseWebSocketOptions {
   url: string;
@@ -122,6 +122,7 @@ export interface ConversationUpdatePayload {
     content: string;
     created_at: string;
   };
+  last_user_activity_at?: string;
 }
 
 export interface TypingIndicatorPayload {

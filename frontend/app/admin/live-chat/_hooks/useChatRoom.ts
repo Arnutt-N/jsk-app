@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import type { RefObject } from 'react';
 
 import type { ConnectionState, Message } from '@/lib/websocket/types';
@@ -16,6 +16,7 @@ interface UseChatRoomParams {
   selectedIdRef: RefObject<string | null>;
   wsStatusRef: RefObject<ConnectionState>;
   fetchChatDetail: (id: string, includeMessages?: boolean) => Promise<void>;
+  markConversationRead?: (id: string, readAt?: string) => Promise<boolean>;
   refreshConversationState: (lineUserId: string, includeMessages?: boolean) => Promise<void>;
   fetchMessagesPage: (id: string, beforeId?: number) => Promise<{ messages: Message[]; has_more: boolean }>;
   joinRoom: (lineUserId: string) => void;
@@ -40,6 +41,7 @@ export function useChatRoom({
   selectedIdRef,
   wsStatusRef,
   fetchChatDetail,
+  markConversationRead = async () => false,
   refreshConversationState,
   fetchMessagesPage,
   joinRoom,
@@ -49,9 +51,27 @@ export function useChatRoom({
   wsTransferSession,
   wsConnected,
 }: UseChatRoomParams) {
+  const loadedRoomRef = useRef<string | null>(null);
+  const readBoundaryRef = useRef<Record<string, string | undefined>>({});
+
+  const isVisibleAndFocused = useCallback(() => {
+    if (typeof document === 'undefined') return false;
+    return document.visibilityState === 'visible'
+      && (typeof document.hasFocus !== 'function' || document.hasFocus());
+  }, []);
+
+  const acknowledgeLoadedRoom = useCallback(async (lineUserId?: string) => {
+    const id = lineUserId || selectedIdRef.current;
+    if (!id || loadedRoomRef.current !== id || !isVisibleAndFocused()) return false;
+    const conversation = getStore().conversations.find((item) => item.line_user_id === id);
+    if ((conversation?.unread_count || 0) === 0 && getStore().initialUnreadCount === 0) return false;
+    return markConversationRead(id, readBoundaryRef.current[id]);
+  }, [isVisibleAndFocused, markConversationRead, selectedIdRef]);
+
   // Load the selected conversation's detail + first message page on selection.
   useEffect(() => {
-    if (!selectedId) return;
+    loadedRoomRef.current = null;
+    if (!selectedId) return undefined;
     getStore().setMessages([]);
     fetchChatDetail(selectedId, false).then(async () => {
       const page = await fetchMessagesPage(selectedId);
@@ -66,8 +86,30 @@ export function useChatRoom({
       } else {
         getStore().setFirstUnreadMessageId(null);
       }
+      const latestMessage = msgs[msgs.length - 1];
+      readBoundaryRef.current[selectedId] = latestMessage?.created_at;
+      loadedRoomRef.current = selectedId;
+      await acknowledgeLoadedRoom(selectedId);
     }).catch(() => undefined);
-  }, [fetchChatDetail, fetchMessagesPage, selectedId, selectedIdRef]);
+    return () => {
+      if (loadedRoomRef.current === selectedId) loadedRoomRef.current = null;
+    };
+  }, [acknowledgeLoadedRoom, fetchChatDetail, fetchMessagesPage, selectedId, selectedIdRef]);
+
+  // A room opened while the tab was hidden/unfocused stays unread until the
+  // operator returns to the visible chat window.
+  useEffect(() => {
+    if (!selectedId) return undefined;
+    const handleVisibilityOrFocus = () => {
+      void acknowledgeLoadedRoom(selectedId);
+    };
+    document.addEventListener('visibilitychange', handleVisibilityOrFocus);
+    window.addEventListener('focus', handleVisibilityOrFocus);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+      window.removeEventListener('focus', handleVisibilityOrFocus);
+    };
+  }, [acknowledgeLoadedRoom, selectedId]);
 
   // Join the room over WS while connected; leave on deselect / disconnect.
   useEffect(() => {

@@ -150,4 +150,27 @@ describe('useConversationSync — sidebar ordering is stable across a join-room 
     const ids = useLiveChatStore.getState().conversations.map((c) => c.line_user_id);
     expect(ids).toContain('U9');
   });
+
+  it('keeps the unread badge when selecting and clears it only after read succeeds', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+    vi.stubGlobal('fetch', fetchMock);
+    useLiveChatStore.setState({
+      conversations: [conv('U1', { unread_count: 2 })],
+      selectedId: null,
+      currentChat: null,
+    });
+    const { result } = setup('U1');
+
+    act(() => result.current.selectConversation('U1'));
+    expect(useLiveChatStore.getState().conversations[0].unread_count).toBe(2);
+
+    await act(async () => {
+      await expect(result.current.markConversationRead('U1', '2026-08-05T12:00:00.000Z')).resolves.toBe(true);
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/conversations/U1/read'),
+      expect.objectContaining({ method: 'POST' }),
+    );
+    expect(useLiveChatStore.getState().conversations[0].unread_count).toBe(0);
+  });
 });

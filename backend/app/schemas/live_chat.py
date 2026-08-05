@@ -30,6 +30,7 @@ class ConversationSummary(BaseModel):
     chat_mode: ChatMode
     session: Optional[ChatSessionResponse] = None
     last_message: Optional[LastMessage] = None
+    last_user_activity_at: Optional[datetime] = None
     unread_count: int = 0
     tags: List[TagSummary] = Field(default_factory=list)
     is_pinned: bool = False
@@ -74,3 +75,9 @@ class ConversationPreferenceUpdate(BaseModel):
     is_pinned: Optional[bool] = None
     is_muted: Optional[bool] = None
     is_spam: Optional[bool] = None
+
+
+class ReadConversationRequest(BaseModel):
+    """Read boundary acknowledged by one operator for one conversation."""
+
+    read_at: Optional[datetime] = None

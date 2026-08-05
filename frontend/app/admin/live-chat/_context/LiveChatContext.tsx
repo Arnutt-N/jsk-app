@@ -47,6 +47,7 @@ interface LiveChatContextValue {
   clearFocusedMessage: () => void;
   fetchConversations: () => Promise<void>;
   fetchChatDetail: (id: string, includeMessages?: boolean) => Promise<void>;
+  markConversationRead: (id: string, readAt?: string) => Promise<boolean>;
   sendMessage: (text: string) => Promise<void>;
   sendMedia: (file: File) => Promise<void>;
   claimSession: () => Promise<void>;
@@ -122,6 +123,7 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
   const {
     fetchConversations,
     fetchChatDetail,
+    markConversationRead,
     refreshConversationState,
     handleConversationUpdate,
     selectConversation,
@@ -148,16 +150,26 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
     userDisplayName: user?.display_name,
     fetchChatDetail,
     fetchConversations,
+    markConversationRead,
   });
 
   // ── WS session-event handlers (status, typing, claim/close/transfer,
   // presence, errors) — write to the store, single source of truth ──
-  const sessionEvents = useSessionEvents({ fetchConversations, wsStatusRef, selectedIdRef, currentUserId });
+  const {
+    clearTyping,
+    onTyping,
+    onSessionClaimed,
+    onSessionClosed,
+    onSessionTransferred,
+    onPresenceUpdate,
+    onError,
+    onConnectionChange,
+  } = useSessionEvents({ fetchConversations, fetchChatDetail, wsStatusRef, selectedIdRef, currentUserId });
 
   // Clear typing indicators when switching rooms.
   useEffect(() => {
-    sessionEvents.clearTyping();
-  }, [selectedId, sessionEvents.clearTyping]);
+    clearTyping();
+  }, [selectedId, clearTyping]);
 
   const adminId = user?.id || '1';
   const {
@@ -178,14 +190,14 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
     onMessageSent: handleMessageSent,
     onMessageAck: (tempId) => handleMessageAck(tempId),
     onMessageFailed: handleMessageFailed,
-    onTyping: sessionEvents.onTyping,
-    onSessionClaimed: sessionEvents.onSessionClaimed,
-    onSessionClosed: sessionEvents.onSessionClosed,
-    onSessionTransferred: sessionEvents.onSessionTransferred,
-    onPresenceUpdate: sessionEvents.onPresenceUpdate,
-    onError: sessionEvents.onError,
+    onTyping,
+    onSessionClaimed,
+    onSessionClosed,
+    onSessionTransferred,
+    onPresenceUpdate,
+    onError,
     onConversationUpdate: handleConversationUpdate,
-    onConnectionChange: sessionEvents.onConnectionChange,
+    onConnectionChange,
   });
 
   // Bridge the socket's sendMessage into useMessageFlow, which is composed
@@ -201,6 +213,7 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
     selectedIdRef,
     wsStatusRef,
     fetchChatDetail,
+    markConversationRead,
     refreshConversationState,
     fetchMessagesPage,
     joinRoom,
@@ -241,6 +254,7 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
     clearFocusedMessage,
     fetchConversations,
     fetchChatDetail,
+    markConversationRead,
     sendMessage,
     sendMedia,
     claimSession,
@@ -276,6 +290,7 @@ export function LiveChatProvider({ children }: { children: React.ReactNode }) {
     clearFocusedMessage,
     fetchConversations,
     fetchChatDetail,
+    markConversationRead,
     sendMessage,
     sendMedia,
     claimSession,

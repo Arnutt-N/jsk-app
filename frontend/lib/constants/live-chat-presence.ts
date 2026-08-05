@@ -26,6 +26,21 @@ export const PRESENCE_LABEL: Record<PresenceStatus, string> = {
   offline: 'ออฟไลน์',
 };
 
+/** Recent inbound activity is the only customer-presence signal available to
+ * the sidebar. Keep the window deliberately short so the green dot does not
+ * imply a persistent LINE presence. */
+export const USER_ACTIVITY_WINDOW_MS = 5 * 60 * 1000;
+
+export function getUserActivityPresence(
+  lastUserActivityAt?: string,
+  now = Date.now(),
+): PresenceStatus {
+  if (!lastUserActivityAt) return 'offline';
+  const timestamp = Date.parse(lastUserActivityAt);
+  if (!Number.isFinite(timestamp) || timestamp > now) return 'offline';
+  return now - timestamp <= USER_ACTIVITY_WINDOW_MS ? 'online' : 'offline';
+}
+
 /** Map a conversation's session status onto the shared presence states. */
 export function getSessionPresence(status?: Session['status']): PresenceStatus {
   if (status === 'ACTIVE') return 'online';
