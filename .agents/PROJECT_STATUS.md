@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-08-05 14:19 by Claude Code (PR #184 merged squash e693a9a: closed all 3 HIGH correctness defects from the 2026-08-02 a)
+> **Last Updated:** 2026-08-06 06:03 by Codex (PRs #185/#186 merged: live-chat presence, unread, connection UX, and race hardening)
 
 ## Thai Summary
 **PR C gate เคยขึ้น fail และแก้แล้ว** — การอ่าน `GET /api/v1/health/pseudonym-gate` แบบ authenticated ครั้งแรก (30 ก.ค.) ได้ `gate_status: fail`, `fallback_hit_count: 176` สาเหตุ: 6 จาก 8 LINE users บน prod (`users.id` 1,5,6,7,8,9) มี `line_user_id_hash` ที่คำนวณด้วย **dev fallback HMAC key** เพราะ process ที่ตั้ง `ENVIRONMENT=development` แต่ชี้ remote DB เขียนลงไป (`_get_hmac_key` fallback เงียบ) และ `resolve_many_by_line_id` นับ hit แต่ไม่ซ่อม row จึงถูกนับซ้ำทุก admin poll — ซ่อม prod แล้ว (re-hash 6 rows + ล้าง Redis counter) ตอนนี้ gate อ่านได้ `pass` / `0`
@@ -84,6 +84,7 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-08-06 06:03] Codex: PRs #185/#186 merged; final post-merge review and main CI/CD passed. Manual production LINE/admin smoke remains. (Codex)
 - [2026-08-05 14:19] Claude Code: PR #184 merged (squash e693a9a): closed all 3 HIGH correctness defects from the 2026-08-02 architecture review — backend now enforces the request state machine (with an explicit supervisor-override path), every status transition is audited, (Claude Code)
 - [2026-08-05 07:52] Claude Code: PR #183 merged (squash 9da4b1a): alembic check against Supabase PROD now reports No new upgrade operations detected - closed the autogenerate trap that would have dropped 8 live indexes incl. the pseudonym uniqueness guards (Claude Code)
 - [2026-08-05 03:05] Claude Code: Verified Supabase PROD alembic head is already up to date (d5e6f7g8h9i0) - no migration pending; fixed 5 missing model imports in app/models/__init__.py so alembic autogenerate/check works again and mapped the model-vs-PROD drift (Claude Code)
