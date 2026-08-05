@@ -11,6 +11,7 @@ from app.db.session import get_db
 from app.api.deps import get_current_admin, get_current_manager
 from app.core.audit import create_audit_log
 from app.core.permissions import can_assign, can_self_assign, can_revert_approval, can_edit_request_details
+from app.core.request_workflow import describe_invalid_transition, requires_override
 from app.models.service_request import ServiceRequest, RequestStatus, RequestPriority
 from app.models.media_file import MediaFile
 from app.schemas.service_request_liff import ServiceRequestResponse
@@ -427,6 +428,29 @@ async def update_request(
             detail="คุณไม่มีสิทธิ์แก้ไขข้อมูลคำร้อง",
         )
 
+    # Workflow guard: `status` is a state machine, not a free-form field.
+    # Until this existed the transition map was frontend-only, so a caller
+    # talking to the API directly could PATCH PENDING -> COMPLETED and skip
+    # approval entirely.
+    #
+    # Off-map moves are not blanket-denied, because two of them are real
+    # features: the kebab menu offers supervisors "บังคับเสร็จสิ้น"
+    # (force-complete from any state) and "ย้อนกลับ รอรับเรื่อง" (send
+    # back to the start), both shown when `can_assign` is true. So the
+    # rule is: staying on the map needs nothing; leaving it needs
+    # supervisor authority and gets recorded as such.
+    #
+    # Deliberately placed AFTER the permission guards: a caller who may not
+    # touch this row should get 403 and learn nothing about its state.
+    is_forced_transition = False
+    if update_data.status is not None:
+        is_forced_transition = requires_override(request.status, update_data.status)
+        if is_forced_transition and not can_assign(current_admin.role):
+            raise HTTPException(
+                status_code=422,
+                detail=describe_invalid_transition(request.status, update_data.status),
+            )
+
     # Snapshot current values BEFORE the "# Update fields" block mutates the
     # row, so the audit diff records true old -> new transitions. Only fields
     # present in the payload are candidates.
@@ -508,6 +532,16 @@ async def update_request(
         name_parts = [p for p in [request.prefix, request.firstname, request.lastname] if p]
         request.requester_name = " ".join(name_parts) if name_parts else None
 
+    # Audit trail for status transitions. Before this, the table recorded
+    # who UNDID an approval but not who granted one -- "who completed this
+    # request?" had no answer beyond a bare `completed_at` timestamp.
+    #
+    # A revert is also a status change, but it has a dedicated, more
+    # specific action; the branches are exclusive so every transition
+    # yields exactly one row.
+    is_status_changed = (
+        update_data.status is not None and update_data.status != prior_status
+    )
     if is_revert_from_completed:
         await create_audit_log(
             db=db,
@@ -520,6 +554,26 @@ async def update_request(
                 "to_status": update_data.status.value,
                 "notes": update_data.notes,
             },
+        )
+    elif is_status_changed:
+        details = {
+            # NULL for legacy rows written before the enum existed.
+            "from_status": prior_status.value if prior_status else None,
+            "to_status": update_data.status.value,
+            "notes": update_data.notes,
+        }
+        if is_forced_transition:
+            # Skipping steps is allowed for supervisors but never silent:
+            # the whole point of enforcing the workflow is being able to
+            # answer "was this request approved, or was approval skipped?"
+            details["forced"] = True
+        await create_audit_log(
+            db=db,
+            admin_id=current_admin.id,
+            action="status_change_forced" if is_forced_transition else "status_change",
+            resource_type="service_request",
+            resource_id=str(request.id),
+            details=details,
         )
 
     # Audit trail for detail/contact edits: one entry per PATCH covering all

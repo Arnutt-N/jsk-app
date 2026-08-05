@@ -50,6 +50,14 @@ class _FakeDB:
         # For revert tests, we pre-populate `_fake_request` with all
         # the fields we care about, so refresh becomes a near no-op.
         if obj is self._fake_request:
+            # ...except for server-side defaults. The handler assigns
+            # `completed_at = func.now()`, a SQL expression the real
+            # session resolves to a datetime on refresh. Mirror that,
+            # otherwise response validation chokes on the raw expression
+            # for any transition INTO COMPLETED.
+            completed_at = getattr(obj, "completed_at", None)
+            if completed_at is not None and not isinstance(completed_at, datetime):
+                obj.completed_at = datetime(2026, 8, 5, 12, 0, tzinfo=timezone.utc)
             return None
         obj.id = 501
         obj.created_at = datetime(2026, 3, 13, 12, 0, tzinfo=timezone.utc)
@@ -236,7 +244,11 @@ def test_revert_completed_to_in_progress_logs_audit():
 def test_forward_transition_does_not_log_revert_audit():
     """A normal IN_PROGRESS -> AWAITING_APPROVAL via "ส่งอนุมัติ" must
     NOT produce a revert_approval audit row — the revert path only
-    triggers when leaving a COMPLETED row."""
+    triggers when leaving a COMPLETED row.
+
+    It does now produce a `status_change` row (HIGH-2): every transition
+    is recorded, but under the action that describes it.
+    """
     fake_db = _FakeDB()
     fake_db._fake_request = _build_in_progress_request()
     teardown = _patch_admin_overrides(fake_db)
@@ -255,7 +267,7 @@ def test_forward_transition_does_not_log_revert_audit():
     assert fake_db._fake_request.status == RequestStatus.AWAITING_APPROVAL
 
     audit_rows = [obj for obj in fake_db.added if isinstance(obj, AuditLog)]
-    assert audit_rows == []
+    assert [row.action for row in audit_rows] == ["status_change"]
 
 
 def test_unassign_request_clears_assigned_agent():
@@ -706,8 +718,14 @@ def test_edit_contact_forbidden_for_agent_role():
 
 
 def test_workflow_patch_not_blocked_by_details_guard_for_agent():
-    """Status-only PATCH stays open to any admin role — the new guard
-    must trigger only when a details/contact field is in the payload."""
+    """Status-only PATCH stays open to any admin role — the details guard
+    must trigger only when a details/contact field is in the payload.
+
+    Uses PENDING -> ACKNOWLEDGED: the row starts PENDING, and since the
+    state machine is now enforced backend-side the transition has to be a
+    legal one or this would 422 for a reason that has nothing to do with
+    the guard under test.
+    """
     fake_db = _FakeDB()
     fake_request = _build_editable_request(request_id=62)
     fake_db._fake_request = fake_request
@@ -717,14 +735,14 @@ def test_workflow_patch_not_blocked_by_details_guard_for_agent():
     try:
         response = client.patch(
             "/api/v1/admin/requests/62",
-            json={"status": "IN_PROGRESS"},
+            json={"status": "ACKNOWLEDGED"},
         )
     finally:
         client.close()
         teardown()
 
     assert response.status_code == 200
-    assert fake_request.status == RequestStatus.IN_PROGRESS
+    assert fake_request.status == RequestStatus.ACKNOWLEDGED
 
 
 # ---------------------------------------------------------------------------
@@ -846,3 +864,386 @@ def test_workflow_only_patch_logs_no_edit_audit():
 
     audit_rows = [obj for obj in fake_db.added if isinstance(obj, AuditLog)]
     assert audit_rows == []
+
+
+# ---------------------------------------------------------------------------
+# State-machine enforcement (HIGH-1 from the 2026-08-02 architecture review).
+#
+# STATUS_TRANSITIONS lived only in the frontend, so the API happily wrote
+# whatever status arrived. `PATCH {"status": "COMPLETED"}` on a PENDING row
+# skipped ACKNOWLEDGED, IN_PROGRESS and AWAITING_APPROVAL in one call —
+# the approval step was advisory, not enforced.
+#
+# Enforcement is NOT blanket, because two off-map moves are real features:
+# the kebab menu offers supervisors "บังคับเสร็จสิ้น" (force-complete from
+# any state) and "ย้อนกลับ รอรับเรื่อง" (back to the start), both gated on
+# `can_assign`. The rule is therefore:
+#
+#   on-map move          -> anyone who reaches the endpoint
+#   off-map move + can_assign  -> allowed, logged as status_change_forced
+#   off-map move, no can_assign -> 422
+# ---------------------------------------------------------------------------
+
+
+def test_pending_to_completed_rejected_without_assign_permission():
+    """The headline defect: an AGENT skipping straight to COMPLETED."""
+    fake_db = _FakeDB()
+    fake_request = _build_editable_request(request_id=80)
+    fake_db._fake_request = fake_request
+    teardown = _patch_agent_overrides(fake_db)  # AGENT: no can_assign
+
+    client = TestClient(app)
+    try:
+        response = client.patch(
+            "/api/v1/admin/requests/80",
+            json={"status": "COMPLETED"},
+        )
+    finally:
+        client.close()
+        teardown()
+
+    assert response.status_code == 422
+    # Rejected before any write: row untouched, nothing committed.
+    assert fake_request.status == RequestStatus.PENDING
+    assert fake_request.completed_at is None
+    assert fake_db.committed is False
+    assert [obj for obj in fake_db.added if isinstance(obj, AuditLog)] == []
+
+
+def test_rejection_message_names_both_states_and_the_legal_moves():
+    fake_db = _FakeDB()
+    fake_db._fake_request = _build_editable_request(request_id=81)
+    teardown = _patch_agent_overrides(fake_db)
+
+    client = TestClient(app)
+    try:
+        response = client.patch(
+            "/api/v1/admin/requests/81",
+            json={"status": "COMPLETED"},
+        )
+    finally:
+        client.close()
+        teardown()
+
+    detail = response.json()["detail"]
+    assert "PENDING" in detail
+    assert "COMPLETED" in detail
+    assert "ACKNOWLEDGED" in detail  # one of the legal moves is offered
+
+
+def test_supervisor_force_complete_still_works():
+    """The "บังคับเสร็จสิ้น" kebab item, from a PENDING row. Enforcing the
+    workflow must not take this away — it is an intentional feature."""
+    fake_db = _FakeDB()
+    fake_request = _build_editable_request(request_id=85)
+    fake_db._fake_request = fake_request
+    teardown = _patch_admin_overrides(fake_db)  # ADMIN: has can_assign
+
+    client = TestClient(app)
+    try:
+        response = client.patch(
+            "/api/v1/admin/requests/85",
+            json={"status": "COMPLETED"},
+        )
+    finally:
+        client.close()
+        teardown()
+
+    assert response.status_code == 200
+    assert fake_request.status == RequestStatus.COMPLETED
+
+
+def test_supervisor_force_complete_is_recorded_as_forced():
+    """Allowed, but never silent — otherwise "was this approved or was
+    approval skipped?" is still unanswerable."""
+    fake_db = _FakeDB()
+    fake_db._fake_request = _build_editable_request(request_id=86)
+    teardown = _patch_admin_overrides(fake_db)
+
+    client = TestClient(app)
+    try:
+        client.patch(
+            "/api/v1/admin/requests/86",
+            json={"status": "COMPLETED"},
+        )
+    finally:
+        client.close()
+        teardown()
+
+    audit_rows = [obj for obj in fake_db.added if isinstance(obj, AuditLog)]
+    assert len(audit_rows) == 1
+    log = audit_rows[0]
+    assert log.action == "status_change_forced"
+    assert log.details["from_status"] == "PENDING"
+    assert log.details["to_status"] == "COMPLETED"
+    assert log.details["forced"] is True
+
+
+def test_supervisor_revert_to_pending_still_works():
+    """The "ย้อนกลับ รอรับเรื่อง" kebab item. IN_PROGRESS -> PENDING is
+    off-map (only REJECTED -> PENDING is on it), so it takes the override
+    path too."""
+    fake_db = _FakeDB()
+    fake_request = _build_in_progress_request(request_id=87)
+    fake_db._fake_request = fake_request
+    teardown = _patch_admin_overrides(fake_db)
+
+    client = TestClient(app)
+    try:
+        response = client.patch(
+            "/api/v1/admin/requests/87",
+            json={"status": "PENDING"},
+        )
+    finally:
+        client.close()
+        teardown()
+
+    assert response.status_code == 200
+    assert fake_request.status == RequestStatus.PENDING
+
+    audit_rows = [obj for obj in fake_db.added if isinstance(obj, AuditLog)]
+    assert [row.action for row in audit_rows] == ["status_change_forced"]
+
+
+def test_on_map_move_is_not_labelled_forced():
+    """The override label must mean something — a normal step forward is
+    recorded as a plain status_change."""
+    fake_db = _FakeDB()
+    fake_db._fake_request = _build_editable_request(request_id=88)
+    teardown = _patch_admin_overrides(fake_db)
+
+    client = TestClient(app)
+    try:
+        client.patch(
+            "/api/v1/admin/requests/88",
+            json={"status": "ACKNOWLEDGED"},
+        )
+    finally:
+        client.close()
+        teardown()
+
+    audit_rows = [obj for obj in fake_db.added if isinstance(obj, AuditLog)]
+    assert [row.action for row in audit_rows] == ["status_change"]
+    assert "forced" not in audit_rows[0].details
+
+
+def test_pending_to_acknowledged_is_allowed():
+    fake_db = _FakeDB()
+    fake_request = _build_editable_request(request_id=82)
+    fake_db._fake_request = fake_request
+    teardown = _patch_admin_overrides(fake_db)
+
+    client = TestClient(app)
+    try:
+        response = client.patch(
+            "/api/v1/admin/requests/82",
+            json={"status": "ACKNOWLEDGED"},
+        )
+    finally:
+        client.close()
+        teardown()
+
+    assert response.status_code == 200
+    assert fake_request.status == RequestStatus.ACKNOWLEDGED
+
+
+def test_resending_the_current_status_is_a_no_op_not_a_rejection():
+    """PATCH payloads carry the whole form, so an edit to one field often
+    re-sends the unchanged status. That must not 422."""
+    fake_db = _FakeDB()
+    fake_request = _build_editable_request(request_id=83)
+    fake_db._fake_request = fake_request
+    teardown = _patch_admin_overrides(fake_db)
+
+    client = TestClient(app)
+    try:
+        response = client.patch(
+            "/api/v1/admin/requests/83",
+            json={"status": "PENDING", "priority": "HIGH"},
+        )
+    finally:
+        client.close()
+        teardown()
+
+    assert response.status_code == 200
+    assert fake_request.status == RequestStatus.PENDING
+    assert fake_request.priority == "HIGH"
+    # Status did not move, so no status_change row.
+    status_rows = [
+        obj for obj in fake_db.added
+        if isinstance(obj, AuditLog) and obj.action == "status_change"
+    ]
+    assert status_rows == []
+
+
+def test_permission_denial_wins_over_transition_validity():
+    """When a payload is both unauthorized AND an illegal transition, the
+    403 must win. Authorization is decided before workflow validity, so a
+    caller who may not touch the row learns nothing about its state."""
+    fake_db = _FakeDB()
+    fake_request = _build_editable_request(request_id=84)
+    fake_db._fake_request = fake_request
+    teardown = _patch_agent_overrides(fake_db)  # AGENT: no edit_request_details
+
+    client = TestClient(app)
+    try:
+        response = client.patch(
+            "/api/v1/admin/requests/84",
+            # phone_number -> forbidden for AGENT
+            # PENDING -> COMPLETED -> also an illegal transition
+            json={"status": "COMPLETED", "phone_number": "0899999999"},
+        )
+    finally:
+        client.close()
+        teardown()
+
+    assert response.status_code == 403
+    assert fake_request.status == RequestStatus.PENDING
+    assert fake_request.phone_number == "0812345678"
+
+
+# ---------------------------------------------------------------------------
+# status_change audit trail (HIGH-2 from the same review).
+#
+# The audit table covered unassign, revert_approval and edit_request_details
+# but not ordinary transitions — so "who approved this request?" had no
+# answer, while "who UNDID the approval?" did.
+# ---------------------------------------------------------------------------
+
+
+def test_ordinary_transition_writes_a_status_change_audit_row():
+    fake_db = _FakeDB()
+    fake_request = _build_in_progress_request(request_id=90)
+    fake_db._fake_request = fake_request
+    teardown = _patch_admin_overrides(fake_db)
+
+    client = TestClient(app)
+    try:
+        response = client.patch(
+            "/api/v1/admin/requests/90",
+            json={"status": "AWAITING_APPROVAL"},
+        )
+    finally:
+        client.close()
+        teardown()
+
+    assert response.status_code == 200
+
+    audit_rows = [obj for obj in fake_db.added if isinstance(obj, AuditLog)]
+    assert len(audit_rows) == 1
+    log = audit_rows[0]
+    assert log.action == "status_change"
+    assert log.resource_type == "service_request"
+    assert log.resource_id == "90"
+    assert log.admin_id == 7
+    assert log.details == {
+        "from_status": "IN_PROGRESS",
+        "to_status": "AWAITING_APPROVAL",
+        "notes": None,
+    }
+
+
+def test_the_approval_itself_is_now_traceable():
+    """AWAITING_APPROVAL -> COMPLETED is the transition that was invisible
+    in the audit trail while its reversal was recorded."""
+    fake_db = _FakeDB()
+    fake_request = SimpleNamespace(
+        id=91,
+        status=RequestStatus.AWAITING_APPROVAL,
+        completed_at=None,
+        priority="LOW",
+        due_date=None,
+        assigned_agent_id=None,
+        assigned_by_id=None,
+    )
+    fake_db._fake_request = fake_request
+    teardown = _patch_admin_overrides(fake_db)
+
+    client = TestClient(app)
+    try:
+        response = client.patch(
+            "/api/v1/admin/requests/91",
+            json={"status": "COMPLETED", "notes": "ตรวจสอบแล้ว"},
+        )
+    finally:
+        client.close()
+        teardown()
+
+    assert response.status_code == 200
+
+    audit_rows = [obj for obj in fake_db.added if isinstance(obj, AuditLog)]
+    assert len(audit_rows) == 1
+    assert audit_rows[0].action == "status_change"
+    assert audit_rows[0].details == {
+        "from_status": "AWAITING_APPROVAL",
+        "to_status": "COMPLETED",
+        "notes": "ตรวจสอบแล้ว",
+    }
+
+
+def test_revert_writes_revert_approval_only_not_a_duplicate_pair():
+    """A revert is still a status change, but it already has a dedicated,
+    more specific action. Exactly one row per transition."""
+    fake_db = _FakeDB()
+    fake_db._fake_request = _build_completed_request(request_id=92)
+    teardown = _patch_admin_overrides(fake_db)
+
+    client = TestClient(app)
+    try:
+        response = client.patch(
+            "/api/v1/admin/requests/92",
+            json={"status": "IN_PROGRESS"},
+        )
+    finally:
+        client.close()
+        teardown()
+
+    assert response.status_code == 200
+
+    audit_rows = [obj for obj in fake_db.added if isinstance(obj, AuditLog)]
+    assert [row.action for row in audit_rows] == ["revert_approval"]
+
+
+def test_patch_without_status_writes_no_status_audit():
+    fake_db = _FakeDB()
+    fake_db._fake_request = _build_editable_request(request_id=93)
+    teardown = _patch_admin_overrides(fake_db)
+
+    client = TestClient(app)
+    try:
+        response = client.patch(
+            "/api/v1/admin/requests/93",
+            json={"priority": "URGENT"},
+        )
+    finally:
+        client.close()
+        teardown()
+
+    assert response.status_code == 200
+    assert [obj for obj in fake_db.added if isinstance(obj, AuditLog)] == []
+
+
+def test_status_and_detail_edit_in_one_patch_yield_two_distinct_rows():
+    """The two audit paths are independent — a PATCH that both moves the
+    workflow and edits a field records both facts."""
+    fake_db = _FakeDB()
+    fake_request = _build_editable_request(request_id=94)
+    fake_db._fake_request = fake_request
+    teardown = _patch_admin_overrides(fake_db)
+
+    client = TestClient(app)
+    try:
+        response = client.patch(
+            "/api/v1/admin/requests/94",
+            json={"status": "ACKNOWLEDGED", "phone_number": "0899999999"},
+        )
+    finally:
+        client.close()
+        teardown()
+
+    assert response.status_code == 200
+
+    audit_rows = [obj for obj in fake_db.added if isinstance(obj, AuditLog)]
+    assert sorted(row.action for row in audit_rows) == [
+        "edit_request_details", "status_change",
+    ]

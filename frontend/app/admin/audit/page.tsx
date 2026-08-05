@@ -39,6 +39,15 @@ const ACTION_COLORS: Record<string, string> = {
   "delete": "bg-danger/12 text-danger",
   "login": "bg-muted text-text-secondary",
   "logout": "bg-muted text-text-secondary",
+  // Request workflow. `status_change` is routine; `status_change_forced`
+  // means a supervisor skipped workflow steps (the "บังคับเสร็จสิ้น" /
+  // "ย้อนกลับ รอรับเรื่อง" kebab items) and is the row an auditor is
+  // actually scanning for — so it gets danger, not another muted chip.
+  "status_change": "bg-info/12 text-info",
+  "status_change_forced": "bg-danger/12 text-danger",
+  "revert_approval": "bg-warning/12 text-warning",
+  "edit_request_details": "bg-brand-500/12 text-brand-600",
+  "unassign": "bg-muted text-text-secondary",
 };
 
 export default function AuditLogPage() {
