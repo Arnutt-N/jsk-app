@@ -12,7 +12,9 @@
     "If gate passes write the PR C destructive phase PRD+PRP (drop plaintext line_user_id on 7 tables, flip LINE_ID_STORAGE_MODE=pseudonym)",
     "Fix the 3 HIGH correctness defects from the 2026-08-02 architecture review (backend never enforces STATUS_TRANSITIONS, no audit log on status changes, HTTP-vs-WS drift)"
   ],
-  "context_for_next_agent": "",
+  "context_for_next_agent": "The point of PR #183 was to make --autogenerate SAFE for the PR C destructive migration you are probably about to write. Before it, autogenerate crashed (app/models/__init__.py imported 24 of 29 model modules, so alembic/env.py:35 built incomplete metadata); once fixed, it proposed dropping 8 indexes that exist in production, including uq_chat_sessions_one_open_per_user and uq_user_rich_menu_links_user_id - the pseudonym uniqueness guards created by d5e6f7g8h9i0, i.e. the exact invariants PR C depends on. Root cause: index=True generates ix_<table>_<col> while the hand-written migrations used idx_<...> and named constraints, and Alembic compares indexes BY NAME. RULE GOING FORWARD: anything a hand-written migration created must be declared in __table_args__ under the name production actually uses; never rely on index=True for it. Verify with `python scripts/db_target.py alembic --target remote check` - it must print 'No new upgrade operations detected'. Treat any drift it reports as a MODEL bug first: in every case found here, production was correct and the model had fallen behind. TESTING GOTCHA: locally you will see '739 passed' because the 60 DB-backed tests (test_websocket, test_session_claim, test_reconnection) silently error out without Postgres+Redis; CI runs the full 799. Do not read a local pass as coverage for model-layer changes - those 60 are the only tests that would have caught the rich_menus.status Enum->String(9) change. PROD state: alembic head d5e6f7g8h9i0, nothing pending, LINE_ID_STORAGE_MODE still defaults to plaintext (config.py:54, unset in backend/.env). The gate read was NOT done this session - it needs an admin cookie session in a browser (curl gets 401; SameSite=Strict), which the agent cannot create.",
   "session_summary": "project-log-md/claude_code/session-summary-20260805-0752.md",
-  "cross_platform_read": []
+  "cross_platform_read": [],
+  "model": "Claude Opus 5",
+  "provider": "Anthropic"
 }

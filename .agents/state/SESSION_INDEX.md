@@ -27,7 +27,7 @@
 
 | When | Status | Model | Provider | Checkpoint |
 |------|--------|-------|----------|------------|
-| 2026-08-05 07:52 | completed | — | — | `handover-claude_code-20260805-0752.json` |
+| 2026-08-05 07:52 | completed | Claude Opus 5 | Anthropic | `handover-claude_code-20260805-0752.json` |
 | 2026-08-05 03:05 | completed | — | — | `handover-claude_code-20260805-0305.json` |
 | 2026-08-02 22:02 | completed | Claude Opus 5 | Anthropic | `handover-claude_code-20260802-2202.json` |
 | 2026-08-02 20:10 | completed | — | — | `handover-claude_code-20260802-2010.json` |

@@ -4,7 +4,7 @@
 > Source of truth: `.agents/state/checkpoints/*.json` — 211 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
 
-### 2026-08-05 07:52 — claude_code — completed
+### 2026-08-05 07:52 — claude_code (Claude Opus 5 / Anthropic) — completed
 
 PR #183 merged (squash 9da4b1a): alembic check against Supabase PROD now reports No new upgrade operations detected - closed the autogenerate trap that would have dropped 8 live indexes incl. the pseudonym uniqueness guards
 
