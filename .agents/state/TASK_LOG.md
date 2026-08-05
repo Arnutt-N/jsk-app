@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 210 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 211 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-08-05 07:52 — claude_code — completed
+
+PR #183 merged (squash 9da4b1a): alembic check against Supabase PROD now reports No new upgrade operations detected - closed the autogenerate trap that would have dropped 8 live indexes incl. the pseudonym uniqueness guards
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260805-0752.json`
+- Summary: `project-log-md/claude_code/session-summary-20260805-0752.md`
+
+---
 
 ### 2026-08-05 03:05 — claude_code — completed
 

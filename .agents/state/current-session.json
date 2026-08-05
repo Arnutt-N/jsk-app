@@ -1,14 +1,21 @@
 {
-  "last_updated": "2026-08-05T03:05:00+07:00",
+  "last_updated": "2026-08-05T07:52:00+07:00",
   "platform": "claude_code",
-  "current_task": "Verified Supabase PROD alembic head is already up to date (d5e6f7g8h9i0) - no migration pending; fixed 5 missing model imports in app/models/__init__.py so alembic autogenerate/check works again and m",
+  "current_task": "PR #183 merged (squash 9da4b1a): alembic check against Supabase PROD now reports No new upgrade operations detected - closed the autogenerate trap that would have dropped 8 live indexes incl. the pseu",
   "plan_status": "completed",
   "next_steps": [
-    "Declare the 8 hand-written PROD indexes in __table_args__ so autogenerate stops proposing drop_index",
-    "Fix the 5 real model-vs-PROD drifts (user_agent 255 vs 500, missing ondelete=SET NULL x2, rich_menus.status Enum vs VARCHAR, nullable mismatches)",
-    "Run full pytest with docker db+redis up - 60 tests errored only because services were down"
+    "Read GET /api/v1/health/pseudonym-gate from a logged-in admin tab - gate clock started 2026-07-30, due 2026-08-04, so it is ripe",
+    "If gate passes write the PR C destructive phase PRD+PRP (drop plaintext line_user_id on 7 tables, flip LINE_ID_STORAGE_MODE=pseudonym)",
+    "Fix the 3 HIGH correctness defects from the 2026-08-02 architecture review (backend never enforces STATUS_TRANSITIONS, no audit log on status changes, HTTP-vs-WS drift)"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-08-05T07:52:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "9da4b1a",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-08-05T03:05:00+07:00",
       "platform": "claude_code",
@@ -140,13 +147,6 @@
       "platform": "qoder",
       "branch": "main",
       "head": "57f60f7",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-28T23:33:00+07:00",
-      "platform": "qoder",
-      "branch": "main",
-      "head": "77135d2",
       "status": "completed"
     }
   ],
