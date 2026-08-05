@@ -188,9 +188,16 @@ export function ChatArea() {
             {wsStatus === 'failed' && (
               <div className="mt-4 mx-auto max-w-xs px-4 py-3 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl flex items-center gap-2.5 text-sm">
                 <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                <span className="text-amber-700 dark:text-amber-300">
+                <span className="text-amber-700 dark:text-amber-300 flex-1">
                   ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้
                 </span>
+                <button
+                  onClick={reconnect}
+                  className="px-3 py-1 text-xs font-semibold rounded-lg bg-amber-100 dark:bg-amber-500/20 hover:bg-amber-200 dark:hover:bg-amber-500/30 text-amber-700 dark:text-amber-300 transition-colors cursor-pointer flex items-center gap-1"
+                >
+                  <RefreshCw className="w-3 h-3" />
+                  ลองใหม่
+                </button>
               </div>
             )}
             <div className="flex gap-6 justify-center mt-6">

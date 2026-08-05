@@ -152,7 +152,14 @@ describe('useConversationSync — sidebar ordering is stable across a join-room 
   });
 
   it('keeps the unread badge when selecting and clears it only after read succeeds', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+    const fetchMock = vi.fn().mockImplementation((_url, options) => (
+      options?.method === 'POST'
+        ? Promise.resolve({
+          ok: true,
+          json: async () => ({ read_at: '2026-08-05T12:00:00.000Z' }),
+        })
+        : Promise.resolve({ ok: false })
+    ));
     vi.stubGlobal('fetch', fetchMock);
     useLiveChatStore.setState({
       conversations: [conv('U1', { unread_count: 2 })],
@@ -171,6 +178,131 @@ describe('useConversationSync — sidebar ordering is stable across a join-room 
       expect.stringContaining('/conversations/U1/read'),
       expect.objectContaining({ method: 'POST' }),
     );
+    expect(useLiveChatStore.getState().conversations[0].unread_count).toBe(0);
+  });
+
+  it('does not acknowledge a JOIN_ROOM state sync before history loads', () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: false });
+    vi.stubGlobal('fetch', fetchMock);
+    useLiveChatStore.setState({
+      conversations: [conv('U1', { unread_count: 2 })],
+      selectedId: 'U1',
+      currentChat: { ...conv('U1'), messages: [] },
+    });
+    const { result } = setup('U1');
+
+    act(() => result.current.handleConversationUpdate({
+      ...joinRoomSync('U1'),
+      unread_count: 2,
+      last_user_activity_at: '2026-08-05T12:00:00.000Z',
+    }));
+
+    expect(fetchMock.mock.calls.some(([, options]) => options?.method === 'POST')).toBe(false);
+    expect(useLiveChatStore.getState().conversations[0].unread_count).toBe(2);
+  });
+
+  it('does not let an older acknowledgement clear a newer incoming message', async () => {
+    let resolveRead!: (value: { ok: boolean; json: () => Promise<{ read_at: string }> }) => void;
+    const readResponse = new Promise<{ ok: boolean; json: () => Promise<{ read_at: string }> }>((resolve) => {
+      resolveRead = resolve;
+    });
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((_url, options) => (
+      options?.method === 'POST'
+        ? readResponse
+        : Promise.resolve({ ok: false })
+    )));
+    useLiveChatStore.setState({
+      conversations: [conv('U1', {
+        unread_count: 1,
+        last_user_activity_at: '2026-08-05T12:00:00.000Z',
+      })],
+      selectedId: 'U1',
+      currentChat: { ...conv('U1'), messages: [] },
+    });
+    const { result } = setup('U1');
+
+    let pendingRead!: Promise<boolean>;
+    act(() => {
+      pendingRead = result.current.markConversationRead('U1', '2026-08-05T12:00:00.000Z');
+    });
+    act(() => {
+      useLiveChatStore.setState({
+        conversations: [conv('U1', {
+          unread_count: 1,
+          last_user_activity_at: '2026-08-05T12:01:00.000Z',
+        })],
+      });
+    });
+    resolveRead({
+      ok: true,
+      json: async () => ({ read_at: '2026-08-05T12:00:00.000Z' }),
+    });
+
+    await act(async () => {
+      await expect(pendingRead).resolves.toBe(true);
+    });
+    expect(useLiveChatStore.getState().conversations[0].unread_count).toBe(1);
+  });
+
+  it('ignores stale unread state at or before the acknowledged boundary', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((_url, options) => (
+      options?.method === 'POST'
+        ? Promise.resolve({
+          ok: true,
+          json: async () => ({ read_at: '2026-08-05T12:00:00.000Z' }),
+        })
+        : Promise.resolve({ ok: false })
+    )));
+    useLiveChatStore.setState({
+      conversations: [conv('U1', {
+        unread_count: 1,
+        last_user_activity_at: '2026-08-05T12:00:00.000Z',
+      })],
+      selectedId: 'U1',
+      currentChat: { ...conv('U1'), messages: [] },
+    });
+    const { result } = setup('U1');
+
+    await act(async () => {
+      await result.current.markConversationRead('U1', '2026-08-05T12:00:00.000Z');
+    });
+    act(() => result.current.handleConversationUpdate({
+      ...joinRoomSync('U1'),
+      unread_count: 1,
+      last_user_activity_at: '2026-08-05T12:00:00.000Z',
+    }));
+
+    expect(useLiveChatStore.getState().conversations[0].unread_count).toBe(0);
+  });
+
+  it('uses the server boundary to reject a stale update after manual mark-read', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((_url, options) => (
+      options?.method === 'POST'
+        ? Promise.resolve({
+          ok: true,
+          json: async () => ({ read_at: '2026-08-05T12:00:00.000Z' }),
+        })
+        : Promise.resolve({ ok: false })
+    )));
+    useLiveChatStore.setState({
+      conversations: [conv('U1', {
+        unread_count: 1,
+        last_user_activity_at: '2026-08-05T12:00:00.000Z',
+      })],
+      selectedId: 'U1',
+      currentChat: { ...conv('U1'), messages: [] },
+    });
+    const { result } = setup('U1');
+
+    await act(async () => {
+      await expect(result.current.markConversationRead('U1')).resolves.toBe(true);
+    });
+    act(() => result.current.handleConversationUpdate({
+      ...joinRoomSync('U1'),
+      unread_count: 1,
+      last_user_activity_at: '2026-08-05T12:00:00.000Z',
+    }));
+
     expect(useLiveChatStore.getState().conversations[0].unread_count).toBe(0);
   });
 });

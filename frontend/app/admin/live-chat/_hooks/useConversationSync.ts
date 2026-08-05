@@ -34,6 +34,7 @@ export function useConversationSync({ selectedIdRef, wsStatusRef }: UseConversat
 
   const searchParams = useSearchParams();
   const initializedRef = useRef<boolean>(false);
+  const acknowledgedThroughRef = useRef<Record<string, string | undefined>>({});
   const [focusedMessageId, setFocusedMessageId] = useState<number | null>(null);
 
   const fetchConversations = useCallback(async () => {
@@ -63,17 +64,29 @@ export function useConversationSync({ selectedIdRef, wsStatusRef }: UseConversat
         body: JSON.stringify(readAt ? { read_at: readAt } : {}),
       });
       if (!res.ok) return false;
-      getStore().markRead(lineUserId);
+      const response = (await res.json()) as { read_at?: string };
+      const acknowledgedAt = response.read_at || readAt;
+      const previousBoundary = acknowledgedThroughRef.current[lineUserId];
+      if (
+        acknowledgedAt
+        && (!previousBoundary || Date.parse(acknowledgedAt) >= Date.parse(previousBoundary))
+      ) {
+        acknowledgedThroughRef.current[lineUserId] = acknowledgedAt;
+      }
+
+      const latestActivity = getStore().conversations.find(
+        (conversation) => conversation.line_user_id === lineUserId,
+      )?.last_user_activity_at;
+      // A newer inbound message may arrive while this request is in flight.
+      // Only clear the local badge when the successful acknowledgement covers
+      // the latest activity still visible in the sidebar.
+      if (!acknowledgedAt || !latestActivity || Date.parse(latestActivity) <= Date.parse(acknowledgedAt)) {
+        getStore().markRead(lineUserId);
+      }
       return true;
     } catch {
       return false;
     }
-  }, []);
-
-  const isVisibleAndFocused = useCallback(() => {
-    if (typeof document === 'undefined') return false;
-    return document.visibilityState === 'visible'
-      && (typeof document.hasFocus !== 'function' || document.hasFocus());
   }, []);
 
   const fetchChatDetail = useCallback(async (id: string, includeMessages = true) => {
@@ -112,6 +125,14 @@ export function useConversationSync({ selectedIdRef, wsStatusRef }: UseConversat
     } else {
       unread = idx === -1 ? 0 : (list[idx]?.unread_count || 0);
     }
+    const acknowledgedThrough = acknowledgedThroughRef.current[data.line_user_id];
+    if (
+      acknowledgedThrough
+      && data.last_user_activity_at
+      && Date.parse(data.last_user_activity_at) <= Date.parse(acknowledgedThrough)
+    ) {
+      unread = 0;
+    }
     const existingConversation = idx >= 0 ? list[idx] : null;
     // Prefer the SIDEBAR row as the merge base; fall back to `currentChat` only
     // when the room is not in the list yet (e.g. a `?chat=` deep link).
@@ -129,12 +150,6 @@ export function useConversationSync({ selectedIdRef, wsStatusRef }: UseConversat
       data,
       unread,
     );
-    if (isSelected && data.last_user_activity_at && isVisibleAndFocused()) {
-      // The conversation update can arrive after NEW_MESSAGE. Re-acknowledge
-      // here so a stale unread_count from the broadcast cannot win the race
-      // against the successful read request from the message handler.
-      void markConversationRead(data.line_user_id, data.last_user_activity_at);
-    }
     // Only reorder when the payload carries a new last_message (a real message
     // event). Updates without one (e.g. the JOIN_ROOM state sync) must not
     // change list position — otherwise clicking a user makes it jump.
@@ -158,7 +173,7 @@ export function useConversationSync({ selectedIdRef, wsStatusRef }: UseConversat
         getStore().setMessages(data.messages);
       }
     }
-  }, [isVisibleAndFocused, markConversationRead, selectedIdRef]);
+  }, [selectedIdRef]);
 
   const selectConversation = useCallback((id: string | null) => {
     getStore().selectChat(id);
