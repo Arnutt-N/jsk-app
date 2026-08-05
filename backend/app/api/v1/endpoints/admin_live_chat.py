@@ -12,6 +12,11 @@ from app.services.live_chat_service import (
     TRANSFER_ERR_NO_ACTIVE_SESSION,
     TRANSFER_ERR_NOT_CURRENT_OPERATOR,
 )
+from app.services.live_chat_service.choreography import (
+    announce_session_event,
+    publish_session_event,
+    session_status_value,
+)
 from app.schemas.live_chat import (
     ConversationList, ConversationDetail,
     SendMessageRequest, ModeToggleRequest,
@@ -193,18 +198,17 @@ async def claim_conversation(
     )
     if not session:
         raise HTTPException(status_code=404, detail="Active session not found")
-    await db.commit()
-    await ws_manager.broadcast_to_all({
-        "type": WSEventType.SESSION_CLAIMED.value,
-        "payload": {
+    await publish_session_event(
+        db, ws_manager, analytics_service,
+        event_type=WSEventType.SESSION_CLAIMED.value,
+        payload={
             "line_user_id": line_user_id,
             "session_id": session.id,
-            "status": session.status.value if hasattr(session.status, "value") else session.status,
+            "status": session_status_value(session),
             "operator_id": current_user.id,
         },
-        "timestamp": _utcnow_isoformat(),
-    })
-    await analytics_service.emit_live_kpis_update(db)
+        timestamp=_utcnow_isoformat(),
+    )
     return session
 
 @router.post("/conversations/{line_user_id}/close")
@@ -219,16 +223,15 @@ async def close_conversation(
     )
     if not session:
         raise HTTPException(status_code=404, detail="Active session not found")
-    await db.commit()
-    await ws_manager.broadcast_to_all({
-        "type": WSEventType.SESSION_CLOSED.value,
-        "payload": {
+    await publish_session_event(
+        db, ws_manager, analytics_service,
+        event_type=WSEventType.SESSION_CLOSED.value,
+        payload={
             "line_user_id": line_user_id,
             "session_id": session.id,
         },
-        "timestamp": _utcnow_isoformat(),
-    })
-    await analytics_service.emit_live_kpis_update(db)
+        timestamp=_utcnow_isoformat(),
+    )
     return session
 
 @router.post("/conversations/{line_user_id}/transfer")
@@ -261,23 +264,18 @@ async def transfer_conversation(
     if not session:
         raise HTTPException(status_code=404, detail="Active session not found")
 
-    await db.commit()
-    await ws_manager.broadcast_to_all({
-        "type": WSEventType.SESSION_TRANSFERRED.value,
-        "payload": {
+    await publish_session_event(
+        db, ws_manager, analytics_service,
+        event_type=WSEventType.SESSION_TRANSFERRED.value,
+        payload={
             "line_user_id": line_user_id,
             "session_id": session.id,
             "from_operator_id": current_user.id,
             "to_operator_id": request.to_operator_id,
             "reason": request.reason,
         },
-        "timestamp": _utcnow_isoformat(),
-    })
-
-    try:
-        await analytics_service.emit_live_kpis_update(db)
-    except Exception as e:
-        logger.warning("KPI broadcast failed (non-fatal): %s", e)
+        timestamp=_utcnow_isoformat(),
+    )
 
     return {
         "success": True,
@@ -480,22 +478,19 @@ async def create_conversation(
     await db.commit()
     await db.refresh(session)
 
-    # Broadcast update
-    await ws_manager.broadcast_to_all({
-        "type": WSEventType.SESSION_CLAIMED.value,
-        "payload": {
+    # Announce (not publish): the refresh above has to sit between the
+    # commit and the fan-out, so this caller drives the two steps itself.
+    await announce_session_event(
+        db, ws_manager, analytics_service,
+        event_type=WSEventType.SESSION_CLAIMED.value,
+        payload={
             "line_user_id": data.line_user_id,
             "session_id": session.id,
-            "status": session.status,
+            "status": session_status_value(session),
             "operator_id": current_user.id,
         },
-        "timestamp": _utcnow_isoformat(),
-    })
-
-    try:
-        await analytics_service.emit_live_kpis_update(db)
-    except Exception as e:
-        logger.warning("KPI broadcast failed (non-fatal): %s", e)
+        timestamp=_utcnow_isoformat(),
+    )
 
     return {
         "success": True,
