@@ -10,9 +10,9 @@ import { render, act } from '@testing-library/react';
  * every consumer (ChatArea, ConversationList, CustomerPanel, LiveChatShell)
  * destructures from it. This test pins that shape:
  *
- *   1. The value exposes EXACTLY the 34 expected members (key-set equality —
+ *   1. The value exposes EXACTLY the 35 expected members (key-set equality —
  *      catches both an accidental drop during reassembly AND an unexpected
- *      addition). `Object.keys().length === 34` is deliberately NOT used: it
+ *      addition). `Object.keys().length === 35` is deliberately NOT used: it
  *      passes even when a member is renamed, so we compare the sorted key sets.
  *   2. Each member has its expected runtime type (a dropped method that is
  *      re-added as `undefined` would pass a key check but fail here).
@@ -78,7 +78,7 @@ type MemberKind =
   | 'nullable';
 
 /**
- * The frozen public contract. 34 members. `nullable` = present but null on a
+ * The frozen public contract. 35 members. `nullable` = present but null on a
  * fresh provider (focusedMessageId, selectedConversation); we assert presence +
  * null-or-correct-type rather than a fixed runtime type.
  */
@@ -110,6 +110,7 @@ const CONTRACT: Record<string, MemberKind> = {
   // ── data + actions ──
   fetchConversations: 'function',
   fetchChatDetail: 'function',
+  markConversationRead: 'function',
   sendMessage: 'function',
   sendMedia: 'function',
   claimSession: 'function',
@@ -207,12 +208,12 @@ describe('LiveChatContext public contract (Phase 8 / B7)', () => {
     return captured;
   };
 
-  it('exposes EXACTLY the 34 contract members — no drops, no additions', async () => {
+  it('exposes EXACTLY the 35 contract members — no drops, no additions', async () => {
     const value = await mount();
     const actualKeys = Object.keys(value).sort();
     const expectedKeys = Object.keys(CONTRACT).sort();
     expect(actualKeys).toEqual(expectedKeys);
-    expect(expectedKeys).toHaveLength(34);
+    expect(expectedKeys).toHaveLength(35);
   });
 
   it('does not expose a `state` member (Phase 1 / M3)', async () => {
