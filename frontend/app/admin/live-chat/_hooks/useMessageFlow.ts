@@ -33,6 +33,7 @@ interface UseMessageFlowParams {
   userDisplayName?: string;
   fetchChatDetail: (id: string, includeMessages?: boolean) => Promise<void>;
   fetchConversations: () => Promise<void>;
+  markConversationRead?: (id: string, readAt?: string) => Promise<boolean>;
 }
 
 /**
@@ -49,6 +50,7 @@ export function useMessageFlow({
   userDisplayName,
   fetchChatDetail,
   fetchConversations,
+  markConversationRead = async () => false,
 }: UseMessageFlowParams) {
   // Only message logic reads the latest messages list, so the ref lives here.
   // Pure ref-sync (no setState) keeps React-Compiler's set-state-in-effect happy.
@@ -57,6 +59,13 @@ export function useMessageFlow({
   useEffect(() => {
     messagesRef.current = messages;
   }, [messages]);
+
+  const acknowledgeVisibleIncoming = useCallback((message: Message) => {
+    if (message.direction !== 'INCOMING' || message.line_user_id !== selectedIdRef.current) return;
+    if (typeof document === 'undefined') return;
+    if (document.visibilityState !== 'visible' || (typeof document.hasFocus === 'function' && !document.hasFocus())) return;
+    void markConversationRead(message.line_user_id, message.created_at);
+  }, [markConversationRead, selectedIdRef]);
 
   const handleMessageAck = useCallback((tempId: string) => {
     getStore().removePending(tempId);
@@ -76,6 +85,9 @@ export function useMessageFlow({
           content: messagePreview(message.content, message.message_type),
           created_at: message.created_at,
         },
+        last_user_activity_at: message.direction === 'INCOMING'
+          ? message.created_at
+          : next[idx].last_user_activity_at,
       };
       getStore().setConversations(next);
     }
@@ -109,10 +121,12 @@ export function useMessageFlow({
     if (exists) {
       const next = currentMessages.map((m) => ((m.temp_id && m.temp_id === message.temp_id) ? message : m));
       getStore().setMessages(next);
+      acknowledgeVisibleIncoming(message);
       return;
     }
     getStore().addMessage(message);
-  }, [playNotification, selectedIdRef]);
+    acknowledgeVisibleIncoming(message);
+  }, [acknowledgeVisibleIncoming, playNotification, selectedIdRef]);
 
   const handleMessageSent = useCallback((message: Message) => {
     handleNewMessage(message);

@@ -25,22 +25,13 @@ async def notify_admins_conversation_update(
 ) -> None:
     """Broadcast CONVERSATION_UPDATE to all connected admins with per-admin unread counts."""
     ws = get_ws_manager()
-    room_id = ws.get_room_id(line_user_id)
 
     for admin_id in ws.get_connected_admin_ids():
-        if await ws.is_admin_in_room_global(admin_id, room_id):
-            await ws.mark_conversation_read(
-                admin_id,
-                line_user_id,
-                saved_message.created_at if saved_message.created_at else _utcnow(),
-            )
-            unread_count = 0
-        else:
-            unread_count = await get_live_chat_service().get_unread_count(
-                line_user_id=line_user_id,
-                admin_id=admin_id,
-                db=db,
-            )
+        unread_count = await get_live_chat_service().get_unread_count(
+            line_user_id=line_user_id,
+            admin_id=admin_id,
+            db=db,
+        )
 
         await ws.send_to_admin(admin_id, {
             "type": WSEventType.CONVERSATION_UPDATE.value,
@@ -53,6 +44,7 @@ async def notify_admins_conversation_update(
                     "content": content,
                     "created_at": saved_message.created_at.isoformat(),
                 },
+                "last_user_activity_at": saved_message.created_at.isoformat(),
                 "unread_count": unread_count,
             },
             "timestamp": _utcnow().isoformat(),
@@ -87,21 +79,12 @@ async def notify_admins_message_sent(
             "timestamp": _utcnow().isoformat(),
         })
 
-    try:
-        read_marker = datetime.fromisoformat(created_at)
-    except (ValueError, TypeError):
-        read_marker = _utcnow()
-
     for admin_id in ws.get_connected_admin_ids():
-        if await ws.is_admin_in_room_global(admin_id, room_id):
-            await ws.mark_conversation_read(admin_id, line_user_id, read_marker)
-            unread_count = 0
-        else:
-            unread_count = await get_live_chat_service().get_unread_count(
-                line_user_id=line_user_id,
-                admin_id=admin_id,
-                db=db,
-            )
+        unread_count = await get_live_chat_service().get_unread_count(
+            line_user_id=line_user_id,
+            admin_id=admin_id,
+            db=db,
+        )
 
         await ws.send_to_admin(admin_id, {
             "type": WSEventType.CONVERSATION_UPDATE.value,

@@ -67,7 +67,6 @@ async def handle_join_room(
 
     room_id = ws.get_room_id(line_user_id)
     await ws.join_room(websocket, room_id)
-    await ws.mark_conversation_read(admin_id, line_user_id)
 
     async with AsyncSessionLocal() as db:
         detail = await svc.get_conversation_detail(line_user_id, db)
@@ -86,6 +85,8 @@ async def handle_join_room(
                     "display_name": detail["display_name"],
                     "picture_url": detail["picture_url"],
                     "chat_mode": detail["chat_mode"].value if hasattr(detail["chat_mode"], 'value') else detail["chat_mode"],
+                    "last_user_activity_at": detail["last_user_activity_at"].isoformat()
+                    if detail.get("last_user_activity_at") else None,
                     "session": {
                         "id": detail["session"].id,
                         "status": detail["session"].status.value if hasattr(detail["session"].status, 'value') else detail["session"].status,

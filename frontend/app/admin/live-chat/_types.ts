@@ -34,6 +34,7 @@ export interface Conversation {
     content: string;
     created_at: string;
   };
+  last_user_activity_at?: string;
   unread_count: number;
   tags?: ConversationTag[];
   is_pinned?: boolean;

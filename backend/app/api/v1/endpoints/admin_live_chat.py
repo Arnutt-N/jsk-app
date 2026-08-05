@@ -21,6 +21,7 @@ from app.schemas.live_chat import (
     ConversationList, ConversationDetail,
     SendMessageRequest, ModeToggleRequest,
     ConversationPreferenceUpdate,
+    ReadConversationRequest,
     sanitize_message_text,
 )
 from app.models.chat_session import ChatSession, ClosedBy, SessionStatus
@@ -100,11 +101,31 @@ async def get_conversation(
     current_user: User = Depends(deps.get_current_staff),
 ) -> Any:
     """Get full chat history with a user"""
-    await ws_manager.mark_conversation_read(str(current_user.id), line_user_id)
     detail = await live_chat_service.get_conversation_detail(line_user_id, db)
     if not detail:
         raise HTTPException(status_code=404, detail="User not found")
     return detail
+
+
+@router.post("/conversations/{line_user_id}/read")
+async def mark_conversation_read(
+    line_user_id: str,
+    request: ReadConversationRequest,
+    db: AsyncSession = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_staff),
+) -> Any:
+    """Acknowledge messages through an explicit operator read boundary."""
+    detail = await live_chat_service.get_conversation_detail(line_user_id, db)
+    if not detail:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    read_at = request.read_at or _utcnow()
+    if read_at.tzinfo is None:
+        read_at = read_at.replace(tzinfo=timezone.utc)
+    # A client clock must not acknowledge messages that have not arrived yet.
+    read_at = min(read_at, _utcnow())
+    await ws_manager.mark_conversation_read(str(current_user.id), line_user_id, read_at)
+    return {"success": True, "line_user_id": line_user_id, "read_at": read_at.isoformat()}
 
 @router.get("/conversations/{line_user_id}/messages", response_model=MessagePage)
 async def get_conversation_messages(

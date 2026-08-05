@@ -75,6 +75,7 @@ export const mergeConversationUpdate = (
   chat_mode: data.chat_mode ?? existing?.chat_mode ?? 'BOT',
   session: mergeSession(existing?.session, data.session),
   last_message: data.last_message ?? existing?.last_message,
+  last_user_activity_at: data.last_user_activity_at ?? existing?.last_user_activity_at,
   unread_count: unreadCount,
   tags: data.tags ?? existing?.tags,
   messages: data.messages ?? existing?.messages,

@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
 from app.models.chat_session import ChatSession, SessionStatus
-from app.models.message import Message
+from app.models.message import Message, MessageDirection
 from app.models.tag import Tag, UserTag
 from app.models.user import ChatMode, User
 from app.services.user_identity_service import (
@@ -122,9 +122,27 @@ class ConversationsMixin:
         )
         latest_message = aliased(Message, latest_message_subquery)
 
+        # Latest inbound message is the only reliable customer-activity signal
+        # for the sidebar. Outgoing bot/operator messages must not make a
+        # customer appear online.
+        latest_incoming_subquery = (
+            select(
+                Message,
+                func.row_number()
+                .over(
+                    partition_by=child_column(Message),
+                    order_by=desc(Message.created_at),
+                )
+                .label("rn"),
+            )
+            .where(Message.direction == MessageDirection.INCOMING)
+            .subquery()
+        )
+        latest_incoming = aliased(Message, latest_incoming_subquery)
+
         # 3. Main query joining User, Session, and Message
         query = (
-            select(User, latest_session, latest_message)
+            select(User, latest_session, latest_message, latest_incoming)
             .outerjoin(
                 latest_session,
                 and_(
@@ -137,6 +155,13 @@ class ConversationsMixin:
                 and_(
                     child_join_condition(User, latest_message),
                     latest_message_subquery.c.rn == 1,
+                ),
+            )
+            .outerjoin(
+                latest_incoming,
+                and_(
+                    child_join_condition(User, latest_incoming),
+                    latest_incoming_subquery.c.rn == 1,
                 ),
             )
             .where(user_identity_filter())
@@ -155,7 +180,7 @@ class ConversationsMixin:
         rows = result.all()
 
         # 4. Batch fetch tags
-        user_ids = [user.id for user, _session, _last_msg in rows if user and user.id]
+        user_ids = [user.id for user, _session, _last_msg, _last_incoming in rows if user and user.id]
         tag_map: dict[int, list[dict[str, Any]]] = {}
         if user_ids:
             tag_rows = (
@@ -174,7 +199,7 @@ class ConversationsMixin:
         unread_counts: dict[str, int] = {}
         if admin_id:
             unread_counts = await self.get_unread_counts(
-                [user.line_user_id for user, _session, _last_msg in rows if user.line_user_id],
+                [user.line_user_id for user, _session, _last_msg, _last_incoming in rows if user.line_user_id],
                 admin_id=str(admin_id),
                 db=db,
             )
@@ -185,7 +210,7 @@ class ConversationsMixin:
 
         # 5. Conversations list construction
         conversations = []
-        for user, session, last_msg in rows:
+        for user, session, last_msg, last_incoming in rows:
             unread_count = unread_counts.get(user.line_user_id, 0) if user.line_user_id else 0
             pref = pref_map.get(user.id)
 
@@ -197,6 +222,7 @@ class ConversationsMixin:
                 "chat_mode": user.chat_mode or "BOT",
                 "session": session,
                 "last_message": build_last_message(last_msg),
+                "last_user_activity_at": last_incoming.created_at if last_incoming else None,
                 "unread_count": unread_count,
                 "tags": tag_map.get(user.id, []),
                 "is_pinned": bool(pref.is_pinned) if pref else False,
@@ -283,6 +309,16 @@ class ConversationsMixin:
         # returns oldest->newest (see its ordering test), so the newest message
         # is the last element.
         last_msg = messages[-1] if messages else None
+        latest_incoming_result = await db.execute(
+            select(Message)
+            .where(
+                child_filter(Message, line_user_id, user.id),
+                Message.direction == MessageDirection.INCOMING,
+            )
+            .order_by(desc(Message.created_at))
+            .limit(1)
+        )
+        last_incoming = latest_incoming_result.scalar_one_or_none()
 
         return {
             "line_user_id": user.line_user_id,
@@ -293,6 +329,7 @@ class ConversationsMixin:
             "session": session,
             "messages": messages,
             "last_message": build_last_message(last_msg),
+            "last_user_activity_at": last_incoming.created_at if last_incoming else None,
             "unread_count": 0,
             "tags": [{"id": tag_id, "name": name, "color": color} for tag_id, name, color in user_tags],
         }
