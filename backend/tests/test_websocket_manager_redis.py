@@ -1,9 +1,10 @@
 import pytest
 from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock
+from redis.exceptions import WatchError
 
 from app.core.redis_client import redis_client
-from app.core.websocket_manager import ConnectionManager
+from app.core.websocket_manager import ConnectionManager, ReadMarkerPersistenceError
 
 
 @pytest.fixture(autouse=True)
@@ -193,6 +194,9 @@ class FakeRedis:
         self.kv: dict[str, str] = {}
         self.expiry: dict[str, int] = {}
         self.zsets: dict[str, dict[str, float]] = {}
+        self.versions: dict[str, int] = {}
+        self.conflict_value: str | None = None
+        self.transaction_error: Exception | None = None
 
     async def sadd(self, key: str, *members: str):
         self.sets.setdefault(key, set()).update(str(m) for m in members)
@@ -221,6 +225,11 @@ class FakeRedis:
 
     async def setex(self, key: str, _ttl: int, value: str):
         self.kv[key] = value
+        self.versions[key] = self.versions.get(key, 0) + 1
+
+    def pipeline(self, transaction: bool = True):
+        assert transaction is True
+        return FakePipeline(self)
 
     async def zadd(self, _key: str, _mapping: dict[str, float]):
         return None
@@ -240,6 +249,104 @@ class FakeRedis:
         bucket = self.zsets.setdefault(_key, {})
         bucket[_member] = bucket.get(_member, 0.0) + float(_amount)
         return bucket[_member]
+
+
+class FakePipeline:
+    def __init__(self, redis: FakeRedis):
+        self.redis = redis
+        self.key: str | None = None
+        self.version = 0
+        self.pending: tuple[str, str, int] | None = None
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, _exc_type, _exc, _traceback):
+        return None
+
+    async def watch(self, key: str):
+        self.key = key
+        self.version = self.redis.versions.get(key, 0)
+
+    async def get(self, key: str):
+        return self.redis.kv.get(key)
+
+    def multi(self):
+        return None
+
+    def set(self, key: str, value: str, ex: int):
+        self.pending = (key, value, ex)
+
+    async def execute(self):
+        if self.redis.transaction_error is not None:
+            raise self.redis.transaction_error
+        if self.redis.conflict_value is not None and self.key is not None:
+            self.redis.kv[self.key] = self.redis.conflict_value
+            self.redis.versions[self.key] = self.redis.versions.get(self.key, 0) + 1
+            self.redis.conflict_value = None
+            raise WatchError
+        if self.key is not None and self.redis.versions.get(self.key, 0) != self.version:
+            raise WatchError
+        assert self.pending is not None
+        key, value, ttl = self.pending
+        self.redis.kv[key] = value
+        self.redis.expiry[key] = ttl
+        self.redis.versions[key] = self.redis.versions.get(key, 0) + 1
+        return [True]
+
+
+@pytest.mark.asyncio
+async def test_read_marker_keeps_newer_boundary_when_acks_finish_out_of_order():
+    manager = ConnectionManager()
+    fake = FakeRedis()
+    newer = datetime(2026, 8, 6, 10, 0, tzinfo=timezone.utc)
+    older = newer - timedelta(minutes=5)
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(redis_client, "_redis", fake)
+        await manager.mark_conversation_read("7", "U123", newer)
+        stored = await manager.mark_conversation_read("7", "U123", older)
+
+    key = manager.build_read_key("7", "U123")
+    assert datetime.fromisoformat(fake.kv[key]) == newer
+    assert stored == newer
+
+
+@pytest.mark.asyncio
+async def test_read_marker_retries_transaction_without_overwriting_concurrent_newer_ack():
+    manager = ConnectionManager()
+    fake = FakeRedis()
+    newer = datetime(2026, 8, 6, 10, 0, tzinfo=timezone.utc)
+    older = newer - timedelta(minutes=5)
+    fake.conflict_value = newer.isoformat()
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(redis_client, "_redis", fake)
+        stored = await manager.mark_conversation_read("7", "U123", older)
+
+    key = manager.build_read_key("7", "U123")
+    assert datetime.fromisoformat(fake.kv[key]) == newer
+    assert stored == newer
+
+
+@pytest.mark.asyncio
+async def test_read_marker_fails_when_redis_is_unavailable():
+    manager = ConnectionManager()
+
+    with pytest.raises(ReadMarkerPersistenceError):
+        await manager.mark_conversation_read("7", "U123")
+
+
+@pytest.mark.asyncio
+async def test_read_marker_fails_when_transaction_cannot_persist():
+    manager = ConnectionManager()
+    fake = FakeRedis()
+    fake.transaction_error = ConnectionError("redis unavailable")
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(redis_client, "_redis", fake)
+        with pytest.raises(ReadMarkerPersistenceError):
+            await manager.mark_conversation_read("7", "U123")
 
 
 @pytest.mark.asyncio

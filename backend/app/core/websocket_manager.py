@@ -1,17 +1,23 @@
 """WebSocket connection manager with Redis Pub/Sub support for horizontal scaling."""
-from typing import Dict, Set, Optional
-from fastapi import WebSocket
-from datetime import datetime, timedelta, timezone
-import time
 import json
-import uuid
 import logging
+import time
+import uuid
+from datetime import datetime, timedelta, timezone
+from typing import Dict, Optional, Set
+
+from fastapi import WebSocket
+from redis.exceptions import WatchError
 
 from app.core.rate_limiter import ws_rate_limiter
 from app.core.pubsub_manager import pubsub_manager
 from app.core.redis_client import redis_client
 
 logger = logging.getLogger(__name__)
+
+
+class ReadMarkerPersistenceError(RuntimeError):
+    """Raised when a read acknowledgement cannot be persisted durably."""
 
 
 class ConnectionManager:
@@ -34,6 +40,7 @@ class ConnectionManager:
     OPERATOR_ONLINE_PREFIX = "operator:online"
     OPERATOR_AVAILABILITY_PREFIX = "operator:availability"
     PRESENCE_TIMEOUT_SECONDS = 90
+    READ_MARKER_TTL_SECONDS = 60 * 60 * 24 * 30
 
     def __init__(self):
         # admin_id -> set of WebSocket connections (supports multiple tabs)
@@ -517,12 +524,50 @@ class ConnectionManager:
     def build_read_key(cls, admin_id: str, line_user_id: str) -> str:
         return f"{cls.READ_KEY_PREFIX}:{admin_id}:{line_user_id}"
 
-    async def mark_conversation_read(self, admin_id: str, line_user_id: str, timestamp: Optional[datetime] = None):
-        """Persist operator read marker in Redis for unread calculations."""
+    @staticmethod
+    def _parse_read_timestamp(raw: Optional[str]) -> Optional[datetime]:
+        if not raw:
+            return None
+        try:
+            parsed = datetime.fromisoformat(raw)
+        except ValueError:
+            return None
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return parsed.astimezone(timezone.utc)
+
+    async def mark_conversation_read(
+        self,
+        admin_id: str,
+        line_user_id: str,
+        timestamp: Optional[datetime] = None,
+    ) -> datetime:
+        """Atomically persist and return the greatest operator read boundary."""
         ts = timestamp or datetime.now(timezone.utc)
+        if ts.tzinfo is None:
+            ts = ts.replace(tzinfo=timezone.utc)
+        ts = ts.astimezone(timezone.utc)
         key = self.build_read_key(admin_id, line_user_id)
-        # Long TTL so unread state survives reconnect/restart
-        await redis_client.setex(key, 60 * 60 * 24 * 30, ts.isoformat())
+        client = redis_client._redis
+        if not client:
+            raise ReadMarkerPersistenceError("Redis is unavailable")
+
+        while True:
+            try:
+                async with client.pipeline(transaction=True) as pipeline:
+                    await pipeline.watch(key)
+                    current = self._parse_read_timestamp(await pipeline.get(key))
+                    stored = max(ts, current) if current else ts
+                    pipeline.multi()
+                    pipeline.set(key, stored.isoformat(), ex=self.READ_MARKER_TTL_SECONDS)
+                    await pipeline.execute()
+                    return stored
+            except WatchError:
+                # Another acknowledgement won the race; compare against it again.
+                continue
+            except Exception as exc:
+                logger.error("Redis read marker update failed: %s", exc)
+                raise ReadMarkerPersistenceError("Unable to persist read marker") from exc
 
     async def get_conversation_read_at(self, admin_id: str, line_user_id: str) -> Optional[datetime]:
         """Get read marker timestamp from Redis."""
@@ -530,10 +575,7 @@ class ConnectionManager:
         raw = await redis_client.get(key)
         if not raw:
             return None
-        try:
-            return datetime.fromisoformat(raw)
-        except ValueError:
-            return None
+        return self._parse_read_timestamp(raw)
 
     async def touch_presence(self, admin_id: str):
         """Refresh admin presence heartbeat."""
@@ -767,4 +809,3 @@ class ConnectionManager:
 
 # Singleton instance
 ws_manager = ConnectionManager()
-
