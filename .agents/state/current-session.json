@@ -1,14 +1,19 @@
 {
-  "last_updated": "2026-08-05T14:19:00+07:00",
-  "platform": "claude_code",
-  "current_task": "PR #184 merged (squash e693a9a): closed all 3 HIGH correctness defects from the 2026-08-02 architecture review — backend now enforces the request state machine (with an explicit supervisor-override pa",
+  "last_updated": "2026-08-06T06:03:00+07:00",
+  "platform": "codex",
+  "current_task": "Merged PRs #185 and #186: live-chat presence, unread acknowledgement, connection-state UX, and race hardening",
   "plan_status": "completed",
   "next_steps": [
-    "Read GET /api/v1/health/pseudonym-gate from a logged-in admin tab — still not done, overdue since 2026-08-04; needs a human browser session (curl gets 401, SameSite=Strict)",
-    "If the gate passes, write the PR C destructive-phase PRD+PRP (drop plaintext line_user_id on 7 tables, flip LINE_ID_STORAGE_MODE=pseudonym)",
-    "Fix the 5 MEDIUM findings from the same review — M5 (completed_at not reset leaving COMPLETED) and M4 (RequestUpdate.priority is Optional[str]) are the two this PR walked past"
+    "Run a manual production live-chat smoke test with a real LINE user and admin session"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-08-06T06:03:00+07:00",
+      "platform": "codex",
+      "branch": "fix/live-chat-post-merge-races",
+      "head": "eb9e93a",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-08-05T14:19:00+07:00",
       "platform": "claude_code",
@@ -141,13 +146,6 @@
       "branch": "feat/apifetch-adapter",
       "head": "cd3effb",
       "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-29T04:56:00+07:00",
-      "platform": "qoder",
-      "branch": "main",
-      "head": "c86c788",
-      "status": "completed"
     }
   ],
   "cross_platform_context": {
@@ -157,7 +155,5 @@
       "antigravity/session-summary-20260602-0032.md"
     ],
     "key_insights": "Handoff system redesigned to single-source-of-truth (checkpoints) + generated views (TASK_LOG/SESSION_INDEX via gen-handoff-views.cjs). Use handoff-new.cjs to create handoffs. Stop hook enforces it. Do NOT hand-edit the generated files."
-  },
-  "model": "Claude Opus 5",
-  "provider": "Anthropic"
+  }
 }

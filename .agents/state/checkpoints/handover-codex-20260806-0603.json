@@ -1,0 +1,16 @@
+{
+  "handoff_version": "2.0",
+  "platform": "codex",
+  "agent": "codex",
+  "timestamp": "2026-08-06T06:03:00+07:00",
+  "branch": "fix/live-chat-post-merge-races",
+  "head_commit": "eb9e93a",
+  "status": "completed",
+  "work_summary": "Merged PRs #185 and #186: live-chat presence, unread acknowledgement, connection-state UX, and race hardening",
+  "priority_actions": [
+    "Run a manual production live-chat smoke test with a real LINE user and admin session"
+  ],
+  "context_for_next_agent": "PR #185 merged as 23475c5 and follow-up PR #186 merged as 72e14e2 on origin/main. Final post-merge review found no Critical/Important issues. Main CI, Playwright, encoding, Vercel/frontend smoke, production DB migration, and Koyeb backend deployment completed successfully. Local checkout remains on fix/live-chat-post-merge-races at eb9e93a; preserve the unrelated untracked research/kilo_code/codebase-walkthrough-20260717.md file.",
+  "session_summary": "project-log-md/codex/session-summary-20260806-0603.md",
+  "cross_platform_read": []
+}

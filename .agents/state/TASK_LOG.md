@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 212 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 213 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-08-06 06:03 — codex — completed
+
+Merged PRs #185 and #186: live-chat presence, unread acknowledgement, connection-state UX, and race hardening
+
+- Checkpoint: `.agents/state/checkpoints/handover-codex-20260806-0603.json`
+- Summary: `project-log-md/codex/session-summary-20260806-0603.md`
+
+---
 
 ### 2026-08-05 14:19 — claude_code (Claude Opus 5 / Anthropic) — completed
 
