@@ -27,7 +27,7 @@ from app.schemas.live_chat import (
 from app.models.chat_session import ChatSession, ClosedBy, SessionStatus
 from app.models.message import Message, MessageDirection
 from app.models.user import ChatMode, User
-from app.core.websocket_manager import ws_manager
+from app.core.websocket_manager import ReadMarkerPersistenceError, ws_manager
 from app.schemas.ws_events import WSEventType
 from app.schemas.ws_events import TransferSessionPayload
 from app.schemas.message import MessagePage, MessageResponse
@@ -124,7 +124,10 @@ async def mark_conversation_read(
         read_at = read_at.replace(tzinfo=timezone.utc)
     # A client clock must not acknowledge messages that have not arrived yet.
     read_at = min(read_at, _utcnow())
-    await ws_manager.mark_conversation_read(str(current_user.id), line_user_id, read_at)
+    try:
+        read_at = await ws_manager.mark_conversation_read(str(current_user.id), line_user_id, read_at)
+    except ReadMarkerPersistenceError as exc:
+        raise HTTPException(status_code=503, detail="Unable to persist read status") from exc
     return {"success": True, "line_user_id": line_user_id, "read_at": read_at.isoformat()}
 
 @router.get("/conversations/{line_user_id}/messages", response_model=MessagePage)

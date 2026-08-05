@@ -50,7 +50,7 @@ export interface UseWebSocketOptions {
   ticket?: string;
   /** Cookie-mode ticket minter (P1.1b): called on every connect/reconnect to
    * fetch a fresh single-use ticket. Takes precedence over `ticket`/`token`.
-   * Returns the ticket string, or null on failure (client stays disconnected). */
+   * Returns the ticket string, or null on failure (client retries within its budget). */
   ticketMinter?: () => Promise<string | null>;
   /**
    * Pre-minted single-use ticket consumed via the WS URL query param
