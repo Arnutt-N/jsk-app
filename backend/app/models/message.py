@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, DateTime, ForeignKey, Text, Enum
+from sqlalchemy import Column, String, Integer, DateTime, ForeignKey, Index, Text, Enum, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -34,3 +34,10 @@ class Message(Base):
     operator_name = Column(String, nullable=True)  # Display name of admin operator
     
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+    __table_args__ = (
+        # Composite index backing the conversation-history query
+        # (WHERE line_user_id = ... ORDER BY created_at DESC).
+        # Created by migration c3d4e5f6g7h8 under this exact name.
+        Index("idx_messages_user_created", "line_user_id", text("created_at DESC")),
+    )

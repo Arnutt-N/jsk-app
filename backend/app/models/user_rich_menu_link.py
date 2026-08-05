@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, Index, Text, ForeignKey, text
 from sqlalchemy.sql import func
 from app.db.base import Base
 
@@ -31,3 +31,14 @@ class UserRichMenuLink(Base):
 
     linked_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    __table_args__ = (
+        # Mirrors the line_user_id uniqueness above via the FK path, for
+        # LINE_ID_STORAGE_MODE = "pseudonym". Created by migration d5e6f7g8h9i0.
+        Index(
+            "uq_user_rich_menu_links_user_id",
+            "user_id",
+            unique=True,
+            postgresql_where=text("user_id IS NOT NULL"),
+        ),
+    )

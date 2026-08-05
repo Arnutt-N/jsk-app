@@ -1,5 +1,5 @@
 """Business hours model for defining operating hours."""
-from sqlalchemy import Column, Integer, Boolean, String, DateTime, text
+from sqlalchemy import Column, Integer, Boolean, Index, String, DateTime, UniqueConstraint, text
 from sqlalchemy.orm import validates
 from app.db.base import Base
 
@@ -10,13 +10,21 @@ class BusinessHours(Base):
     __tablename__ = "business_hours"
 
     id = Column(Integer, primary_key=True)
-    day_of_week = Column(Integer, index=True, nullable=False, unique=True)  # 0=Monday, 6=Sunday
+    # Uniqueness and the index are declared in __table_args__ under the names
+    # the live schema actually uses; `unique=True, index=True` here would name
+    # them differently and make autogenerate propose a drop/recreate.
+    day_of_week = Column(Integer, nullable=False)  # 0=Monday, 6=Sunday
     is_open = Column(Boolean, default=True, server_default='true')
     open_time = Column(String(5), nullable=False)  # HH:MM format
     close_time = Column(String(5), nullable=False)  # HH:MM format
     timezone = Column(String(50), server_default='Asia/Bangkok')
     created_at = Column(DateTime(timezone=True), server_default=text('now()'))
     updated_at = Column(DateTime(timezone=True), server_default=text('now()'))
+
+    __table_args__ = (
+        UniqueConstraint("day_of_week", name="uq_business_hours_day"),
+        Index("ix_business_hours_day", "day_of_week", unique=True),
+    )
 
     @validates('day_of_week')
     def validate_day_of_week(self, key, value):

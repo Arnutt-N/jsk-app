@@ -11,14 +11,19 @@ class AuditLog(Base):
     
     __tablename__ = "audit_logs"
 
-    id = Column(Integer, primary_key=True, index=True)
-    admin_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
-    action = Column(String(50), index=True)  # e.g., claim_session, close_session, send_message
-    resource_type = Column(String(50), index=True)  # e.g., chat_session, message, user
+    id = Column(Integer, primary_key=True)
+    # ondelete="SET NULL" matches the live FK: deleting an admin must keep the
+    # audit trail (the row survives with admin_id = NULL), not cascade or block.
+    admin_id = Column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    action = Column(String(50), nullable=False, index=True)  # e.g., claim_session, close_session, send_message
+    resource_type = Column(String(50), nullable=False, index=True)  # e.g., chat_session, message, user
     resource_id = Column(String(100), index=True)  # filtered per-resource by request-detail timeline
     details = Column(JSONB, default={})  # Additional context
     ip_address = Column(String(50), nullable=True)
-    user_agent = Column(String(255), nullable=True)
+    # 500, not 255 — real User-Agent strings routinely exceed 255 chars.
+    user_agent = Column(String(500), nullable=True)
     # DB column is timestamptz (both local and Supabase). Declaring it naive
     # made asyncpg reject the tz-aware cutoff bind in GET /admin/audit/logs
     # ($1::TIMESTAMP WITHOUT TIME ZONE + aware datetime -> 500 on every call).

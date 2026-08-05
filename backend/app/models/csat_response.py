@@ -10,10 +10,15 @@ class CsatResponse(Base):
     
     __tablename__ = "csat_responses"
     
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True)
     
     # Reference to chat session
-    session_id = Column(Integer, ForeignKey("chat_sessions.id", ondelete="SET NULL"), nullable=True)
+    session_id = Column(
+        Integer,
+        ForeignKey("chat_sessions.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     
     # User who submitted
     line_user_id = Column(String, nullable=False, index=True)
