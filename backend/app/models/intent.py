@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, DateTime, Boolean, Enum, Text, ForeignKey
+from sqlalchemy import Column, String, Integer, DateTime, Boolean, Enum, Index, Text, ForeignKey, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
@@ -26,7 +26,10 @@ class IntentCategory(Base):
     __tablename__ = "intent_categories"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, index=True, nullable=False, unique=True)
+    # The live schema separates uniqueness (a constraint) from the lookup index
+    # (non-unique); `unique=True, index=True` would collapse them into one
+    # unique index under a different name.
+    name = Column(String, nullable=False)
     description = Column(Text, nullable=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -34,6 +37,11 @@ class IntentCategory(Base):
 
     keywords = relationship("IntentKeyword", back_populates="category", cascade="all, delete-orphan")
     responses = relationship("IntentResponse", back_populates="category", cascade="all, delete-orphan")
+
+    __table_args__ = (
+        UniqueConstraint("name", name="intent_categories_name_key"),
+        Index("ix_intent_categories_name", "name"),
+    )
 
 class IntentKeyword(Base):
     __tablename__ = "intent_keywords"

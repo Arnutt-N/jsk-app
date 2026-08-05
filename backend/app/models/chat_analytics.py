@@ -4,7 +4,7 @@ from app.db.base import Base
 class ChatAnalytics(Base):
     __tablename__ = "chat_analytics"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True)
     date = Column(Date, nullable=False, index=True)
     operator_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     total_sessions = Column(Integer, default=0)

@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-08-01 21:38 by Claude Code (Shipped the live-chat sidebar row-jump fix as PR #182 branch fix/live-chat-sidebar-row-res)
+> **Last Updated:** 2026-08-05 03:05 by Claude Code (Verified Supabase PROD alembic head is already up to date d5e6f7g8h9i0 - no migration pend)
 
 ## Thai Summary
 **PR C gate เคยขึ้น fail และแก้แล้ว** — การอ่าน `GET /api/v1/health/pseudonym-gate` แบบ authenticated ครั้งแรก (30 ก.ค.) ได้ `gate_status: fail`, `fallback_hit_count: 176` สาเหตุ: 6 จาก 8 LINE users บน prod (`users.id` 1,5,6,7,8,9) มี `line_user_id_hash` ที่คำนวณด้วย **dev fallback HMAC key** เพราะ process ที่ตั้ง `ENVIRONMENT=development` แต่ชี้ remote DB เขียนลงไป (`_get_hmac_key` fallback เงียบ) และ `resolve_many_by_line_id` นับ hit แต่ไม่ซ่อม row จึงถูกนับซ้ำทุก admin poll — ซ่อม prod แล้ว (re-hash 6 rows + ล้าง Redis counter) ตอนนี้ gate อ่านได้ `pass` / `0`
@@ -84,6 +84,15 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-08-05 03:05] Claude Code: Verified Supabase PROD alembic head is already up to date (d5e6f7g8h9i0) - no migration pending; fixed 5 missing model imports in app/models/__init__.py so alembic autogenerate/check works again and mapped the model-vs-PROD drift (Claude Code)
+- [2026-08-02 22:02] Claude Code: Read-only verification of the Codex architecture review (2026-08-02). All 10 line counts and the permission-4 / audit-3 counts confirmed accurate; no false claims found. Surfaced 3 HIGH correctness defects the review missed: backend never e (Claude Code)
+- [2026-08-02 20:10] Claude Code: ลบชื่อหน่วยงาน/ตัวย่อที่กุขึ้นมาเอง ('สธก.', 'สำนักงานยุติธรรมชุมชน', 'คู่มือ branding') ออกจาก PRD + session summary 4 ไฟล์ — repo ไม่เคยระบุชื่อหน่วยงานเจ้าของระบบเลย (Claude Code)
+- [2026-08-02 19:49] Claude Code: REV 5: ยกเลิก gate 'สร้าง < 1 เมนู/เดือน ให้หยุดโครงการ' เพราะวัดผิดแกน — rich menu เป็นโครงสร้างพื้นฐานถาวร ไม่ใช่งานที่ทำซ้ำ; Phase 1 กลับเป็น APPROVED (Claude Code)
+- [2026-08-02 19:35] Claude Code: REV 4: ส่ง PRD+plan ให้ Codex review (read-only) แล้วแก้บั๊กในสเปก 6 กลุ่ม — จุดใหญ่สุดคือ CSS font variable ให้ค่าต่างกันระหว่าง dev กับ prod (Claude Code)
+- [2026-08-02 18:33] Claude Code: REV 3: ปิด DECISION-PENDING ครบ 4 ข้อ (font 96px/2 บรรทัด, contrast บล็อกปุ่ม, หน้ายืนยันก่อน publish, usability test 3 คน) — แผน Phase 1 พร้อม implement (Claude Code)
+- [2026-08-02 18:01] Claude Code: REV 2: รีวิว PRD+plan ด้วย 4 agent ขนาน แล้วแก้ข้อผิดพลาดเชิงข้อเท็จจริง (ฟอนต์ไทยไม่ถูกโหลด, ctx.font invalid, metric วัดจาก audit log ที่ไม่มี) (Claude Code)
+- [2026-08-02 02:01] Claude Code: ศึกษา line-bot-mcp-server แล้วสร้าง PRD + Phase-1 plan สำหรับ Rich Menu image generator (Canvas ฝั่ง frontend) (Claude Code)
+- [2026-08-02 00:39] Claude Code: Ran a Full Stocktake of all 282 installed skills (243 global + 39 project) via the skill-stocktake skill, using 12 subagent batches that read every SKILL.md. Headline finding: 17 of 39 project skn-* skills state things about this codebase t (Claude Code)
 - [2026-08-01 21:38] Claude Code: Shipped the live-chat sidebar row-jump fix as PR #182 (branch fix/live-chat-sidebar-row-resort, 5 commits, pushed). Final code change this round: removed the vestigial onMouseDown preventDefault from the conversation listbox (44b5bba) - #17 (Claude Code)
 - [2026-08-01 21:18] Claude Code: Code review round on the live-chat sidebar re-sort fix (superpowers:requesting-code-review). Reviewer returned no Critical and a 'With fixes' verdict. Acted on Important #2 (comment the deliberate last_message omission inside handle_join_ro (Claude Code)
 - [2026-08-01 20:26] Claude Code: Root-caused the live-chat sidebar 'row jumps down on click' bug that PRs #176-#181 failed to fix six times: it was never a scroll bug. A browser diagnostic recorded zero scroll events on the listbox and every ancestor; the clicked row was r (Claude Code)

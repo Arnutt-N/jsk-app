@@ -11,7 +11,7 @@ class OperatorConversationPreference(Base):
     """
     __tablename__ = "operator_conversation_preferences"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True)
     operator_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     is_pinned = Column(Boolean, default=False, nullable=False)

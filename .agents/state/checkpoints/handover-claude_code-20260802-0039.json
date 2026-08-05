@@ -1,0 +1,18 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-08-02T00:39:00+07:00",
+  "branch": "main",
+  "head_commit": "c4837e7",
+  "status": "completed",
+  "work_summary": "Ran a Full Stocktake of all 282 installed skills (243 global + 39 project) via the skill-stocktake skill, using 12 subagent batches that read every SKILL.md. Headline finding: 17 of 39 project skn-* skills state things about this codebase that are factually FALSE - three of them wrongly claim endpoints have no auth (skn-liff-data on media.py, skn-operator-tools on admin_friends.py, skn-reply-auto on both reply endpoints), and several describe GAPs that were closed long ago (admin_friends/admin_credentials ARE registered, user CRUD endpoints DO exist, service-request fields ARE persisted, the handoff-keywords TODO is done). Also found skn-webhook-handler documenting a pre-refactor architecture, skn-devtools documenting a superseded scripts layout, and tailwind-design-system teaching Tailwind v3 on a v4 repo. Global side: 4 skills cite non-existent model IDs, 7 Retire candidates, 10 Merge candidates including a circular deprecation between autonomous-loops and continuous-agent-loop. Report saved to project-log-md/claude_code/skills/skill-stocktake-20260802.md; verdict cache at ~/.claude/skills/skill-stocktake/results.json. NOTE: skill-stocktake's own scripts cannot run on this host - they require jq, absent from both Git Bash and WSL. No skill files were modified: the skill mandates user confirmation before any retire/merge/edit.",
+  "priority_actions": [
+    "Awaiting user go-ahead on the fix order: (1) correct the 17 stale skn-* skills, starting with the three false no-auth claims, (2) make skill-stocktake work without jq, (3) fix 4 stale model IDs, (4) retire 7 + merge 10",
+    "Deploy backend to Koyeb for the get_conversation_detail last_message contract (PR #182 merged; frontend half already live on Vercel)",
+    "Verify the live-chat fix on prod: click the top 3 conversations - rows keep position, pinned rows stay pinned, arrow keys work right after a click"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/claude_code/session-summary-20260802-0039.md",
+  "cross_platform_read": []
+}

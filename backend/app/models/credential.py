@@ -14,7 +14,7 @@ class Provider(str, Enum):
 class Credential(Base):
     __tablename__ = "credentials"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True)
     name = Column(String(100), nullable=False)
     provider = Column(String(50), nullable=False, index=True)
     credentials = Column(Text, nullable=False)  # Encrypted

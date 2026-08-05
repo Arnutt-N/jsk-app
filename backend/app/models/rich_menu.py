@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Enum, JSON, Text
+from sqlalchemy import Column, Integer, String, DateTime, JSON, Text
 from sqlalchemy.sql import func
 from app.db.base import Base
 import enum
@@ -25,7 +25,10 @@ class RichMenu(Base):
     # Local Storage (Path A)
     image_path = Column(String, nullable=True)
 
-    status = Column(Enum(RichMenuStatus), default=RichMenuStatus.DRAFT)
+    # Stored as VARCHAR(9), not a PostgreSQL enum type — same pattern as
+    # ChatSession.status. RichMenuStatus is a str-enum, so assigning a member
+    # writes its value and the Pydantic schema still validates on read.
+    status = Column(String(9), default=RichMenuStatus.DRAFT.value)
 
     # Sync tracking for persistence
     sync_status = Column(String, default="PENDING")  # PENDING, SYNCED, FAILED

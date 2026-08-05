@@ -1,0 +1,17 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-08-02T19:35:00+07:00",
+  "branch": "main",
+  "head_commit": "6fb6982",
+  "status": "completed",
+  "work_summary": "REV 4: ส่ง PRD+plan ให้ Codex review (read-only) แล้วแก้บั๊กในสเปก 6 กลุ่ม — จุดใหญ่สุดคือ CSS font variable ให้ค่าต่างกันระหว่าง dev กับ prod",
+  "priority_actions": [
+    "เช็ค baseline ก่อนเขียนโค้ด: SELECT count(*), min(created_at), max(created_at) FROM rich_menus — ถ้า < 1 เมนู/เดือน ให้หยุดโครงการ",
+    "ถ้าผ่าน gate: implement Phase 1 ตาม plan REV 4 (Task 1-7, Task 7 บังคับ)"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/claude_code/session-summary-20260802-1935.md",
+  "cross_platform_read": []
+}

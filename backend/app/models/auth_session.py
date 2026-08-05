@@ -26,7 +26,7 @@ class AuthSession(Base):
 
     __tablename__ = "auth_sessions"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     family_id = Column(String(36), nullable=False, index=True)
     token_hash = Column(String(64), nullable=False, unique=True, index=True)

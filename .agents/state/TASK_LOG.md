@@ -1,8 +1,89 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 201 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 210 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-08-05 03:05 — claude_code — completed
+
+Verified Supabase PROD alembic head is already up to date (d5e6f7g8h9i0) - no migration pending; fixed 5 missing model imports in app/models/__init__.py so alembic autogenerate/check works again and mapped the model-vs-PROD drift
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260805-0305.json`
+- Summary: `project-log-md/claude_code/session-summary-20260805-0305.md`
+
+---
+
+### 2026-08-02 22:02 — claude_code (Claude Opus 5 / Anthropic) — completed
+
+Read-only verification of the Codex architecture review (2026-08-02). All 10 line counts and the permission-4 / audit-3 counts confirmed accurate; no false claims found. Surfaced 3 HIGH correctness defects the review missed: backend never enforces STATUS_TRANSITIONS (frontend-only state machine, so PENDING to COMPLETED skips approval), no audit log on ordinary status transitions, and HTTP-vs-WS live-chat drift where db.commit succeeds but the client is told the operation failed (2 concrete cases). Plus 5 MEDIUM (unbounded CSV export, PDF/CSV date-range mismatch, KEY_EXPORT_CHAT guarding report export, unvalidated priority, stale completed_at). Disputed the review scope for item 04: live_chat_service already exists and both transports call it, so the real duplication is the post-mutation choreography, not the mutation. Review items 02 (LIFF) and 03 (Rich Menu) verified at line-count level only. Full findings in project-log-md/claude_code/architecture-review-verification-20260802-2200.md
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260802-2202.json`
+- Summary: `project-log-md/claude_code/session-summary-20260802-2202.md`
+
+---
+
+### 2026-08-02 20:10 — claude_code — completed
+
+ลบชื่อหน่วยงาน/ตัวย่อที่กุขึ้นมาเอง ('สธก.', 'สำนักงานยุติธรรมชุมชน', 'คู่มือ branding') ออกจาก PRD + session summary 4 ไฟล์ — repo ไม่เคยระบุชื่อหน่วยงานเจ้าของระบบเลย
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260802-2010.json`
+- Summary: `project-log-md/claude_code/session-summary-20260802-2010.md`
+
+---
+
+### 2026-08-02 19:49 — claude_code — completed
+
+REV 5: ยกเลิก gate 'สร้าง < 1 เมนู/เดือน ให้หยุดโครงการ' เพราะวัดผิดแกน — rich menu เป็นโครงสร้างพื้นฐานถาวร ไม่ใช่งานที่ทำซ้ำ; Phase 1 กลับเป็น APPROVED
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260802-1949.json`
+- Summary: `project-log-md/claude_code/session-summary-20260802-1949.md`
+
+---
+
+### 2026-08-02 19:35 — claude_code — completed
+
+REV 4: ส่ง PRD+plan ให้ Codex review (read-only) แล้วแก้บั๊กในสเปก 6 กลุ่ม — จุดใหญ่สุดคือ CSS font variable ให้ค่าต่างกันระหว่าง dev กับ prod
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260802-1935.json`
+- Summary: `project-log-md/claude_code/session-summary-20260802-1935.md`
+
+---
+
+### 2026-08-02 18:33 — claude_code — completed
+
+REV 3: ปิด DECISION-PENDING ครบ 4 ข้อ (font 96px/2 บรรทัด, contrast บล็อกปุ่ม, หน้ายืนยันก่อน publish, usability test 3 คน) — แผน Phase 1 พร้อม implement
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260802-1833.json`
+- Summary: `project-log-md/claude_code/session-summary-20260802-1833.md`
+
+---
+
+### 2026-08-02 18:01 — claude_code — completed
+
+REV 2: รีวิว PRD+plan ด้วย 4 agent ขนาน แล้วแก้ข้อผิดพลาดเชิงข้อเท็จจริง (ฟอนต์ไทยไม่ถูกโหลด, ctx.font invalid, metric วัดจาก audit log ที่ไม่มี)
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260802-1801.json`
+- Summary: `project-log-md/claude_code/session-summary-20260802-1801.md`
+
+---
+
+### 2026-08-02 02:01 — claude_code — completed
+
+ศึกษา line-bot-mcp-server แล้วสร้าง PRD + Phase-1 plan สำหรับ Rich Menu image generator (Canvas ฝั่ง frontend)
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260802-0201.json`
+- Summary: `project-log-md/claude_code/session-summary-20260802-0201.md`
+
+---
+
+### 2026-08-02 00:39 — claude_code — completed
+
+Ran a Full Stocktake of all 282 installed skills (243 global + 39 project) via the skill-stocktake skill, using 12 subagent batches that read every SKILL.md. Headline finding: 17 of 39 project skn-* skills state things about this codebase that are factually FALSE - three of them wrongly claim endpoints have no auth (skn-liff-data on media.py, skn-operator-tools on admin_friends.py, skn-reply-auto on both reply endpoints), and several describe GAPs that were closed long ago (admin_friends/admin_credentials ARE registered, user CRUD endpoints DO exist, service-request fields ARE persisted, the handoff-keywords TODO is done). Also found skn-webhook-handler documenting a pre-refactor architecture, skn-devtools documenting a superseded scripts layout, and tailwind-design-system teaching Tailwind v3 on a v4 repo. Global side: 4 skills cite non-existent model IDs, 7 Retire candidates, 10 Merge candidates including a circular deprecation between autonomous-loops and continuous-agent-loop. Report saved to project-log-md/claude_code/skills/skill-stocktake-20260802.md; verdict cache at ~/.claude/skills/skill-stocktake/results.json. NOTE: skill-stocktake's own scripts cannot run on this host - they require jq, absent from both Git Bash and WSL. No skill files were modified: the skill mandates user confirmation before any retire/merge/edit.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260802-0039.json`
+- Summary: `project-log-md/claude_code/session-summary-20260802-0039.md`
+
+---
 
 ### 2026-08-01 21:38 — claude_code — completed
 

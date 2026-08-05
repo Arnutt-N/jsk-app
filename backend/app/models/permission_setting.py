@@ -45,5 +45,9 @@ class PermissionSetting(Base):
         server_default=func.now(),
         onupdate=func.now(),
     )
-    updated_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    # ondelete="SET NULL" matches the live FK: deleting the admin who last
+    # edited a rule must not delete or lock the rule itself.
+    updated_by_id = Column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
     updated_by = relationship("User", foreign_keys=[updated_by_id])

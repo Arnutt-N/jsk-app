@@ -17,8 +17,13 @@ from .tag import Tag, UserTag
 from .request_comment import RequestComment
 from .broadcast import Broadcast
 from .permission_setting import PermissionSetting
+from .rich_menu import RichMenu
 from .rich_menu_alias import RichMenuAlias
 from .user_rich_menu_link import UserRichMenuLink
 from .auth_session import AuthSession
 from .ws_ticket import WsTicket
 from .operator_conversation_preference import OperatorConversationPreference
+from .credential import Credential
+from .friend_event import FriendEvent
+from .system_setting import SystemSetting
+from .chat_analytics import ChatAnalytics
