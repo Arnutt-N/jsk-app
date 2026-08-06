@@ -33,12 +33,15 @@ export default function PageAccessGuard({
   children,
 }: PageAccessGuardProps) {
   const router = useRouter();
-  const { user, isLoading, isAuthenticated } = useAuth();
+  const { user, isLoading, isAuthenticated, bootstrapFailed } = useAuth();
 
   const isAllowed = !!user && user.role !== 'USER' && allowedRoles.includes(user.role as AllowedRole);
 
   useEffect(() => {
-    if (isLoading) {
+    // bootstrapFailed = auth state unknown (transient backend failure) —
+    // AdminAuthGate shows the retry UI; redirecting to /login here would
+    // discard a possibly-valid session.
+    if (isLoading || bootstrapFailed) {
       return;
     }
 
@@ -50,7 +53,7 @@ export default function PageAccessGuard({
     if (!isAllowed) {
       router.replace(fallbackPath ?? resolveFallbackPath(user.role));
     }
-  }, [fallbackPath, isAllowed, isAuthenticated, isLoading, router, user]);
+  }, [bootstrapFailed, fallbackPath, isAllowed, isAuthenticated, isLoading, router, user]);
 
   if (isLoading || !isAuthenticated || !isAllowed) {
     return (
