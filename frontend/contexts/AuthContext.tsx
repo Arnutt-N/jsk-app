@@ -19,6 +19,10 @@ interface AuthContextType {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  /** Bootstrap (GET /auth/me) exhausted retries on transient errors — auth
+   *  state is UNKNOWN, not "logged out". Callers must not redirect to /login. */
+  bootstrapFailed: boolean;
+  retryBootstrap: () => void;
   login: (username: string, password: string) => Promise<void>;
   logout: () => void;
   refreshToken: () => Promise<void>;
@@ -34,7 +38,7 @@ const MOCK_ADMIN: User = {
   display_name: 'Administrator'
 };
 
-type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated';
+type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated' | 'bootstrap_error';
 
 // Legacy localStorage keys (cleared during one-time Bearer→cookie migration).
 const LEGACY_TOKEN_KEY = 'auth_token';
@@ -117,6 +121,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [status, setStatus] = useState<AuthStatus>('loading');
+  const [bootstrapAttempt, setBootstrapAttempt] = useState(0);
   const router = useRouter();
   const bcRef = useRef<BroadcastChannel | null>(null);
 
@@ -158,12 +163,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
 
-        // Bootstrap: GET /auth/me — cookies carry auth.
-        const meRes = await fetch('/api/v1/auth/me', { credentials: 'include' });
-        if (cancelled) return;
+        // Bootstrap: GET /auth/me — cookies carry auth. Transient failures
+        // (5xx, network error) retry with backoff like login() does — a
+        // single cold-start 502 here used to bounce a freshly-logged-in
+        // user straight back to /login. Only a definitive non-transient
+        // response (e.g. 401) means "not logged in"; exhausted retries
+        // mean "unknown" (bootstrap_error), never "logged out".
+        const maxAttempts = 4;
+        let meRes: Response | null = null;
+
+        for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+          try {
+            meRes = await fetch('/api/v1/auth/me', { credentials: 'include' });
+          } catch (error) {
+            console.error('Cookie auth bootstrap fetch error:', error);
+            meRes = null;
+          }
+          if (cancelled) return;
+
+          if (meRes && !isTransientLoginStatus(meRes.status)) break;
+          if (attempt < maxAttempts) await waitBeforeRetry(attempt);
+          if (cancelled) return;
+        }
+
+        if (!meRes || isTransientLoginStatus(meRes.status)) {
+          setStatus('bootstrap_error');
+          return;
+        }
 
         if (meRes.ok) {
           const meData = await meRes.json();
+          if (cancelled) return;
           if (meData.csrf_token) setCsrfToken(meData.csrf_token);
           const { csrf_token: _csrf, ...userFields } = meData;
           setUser(userFields);
@@ -173,7 +203,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (error) {
         console.error('Cookie auth initialization error:', error);
-        setStatus('unauthenticated');
+        if (!cancelled) setStatus('bootstrap_error');
       } finally {
         if (!cancelled) setIsLoading(false);
       }
@@ -182,7 +212,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     initCookieAuth();
 
     return () => { cancelled = true; };
-  }, []);
+  }, [bootstrapAttempt]);
 
   // Multi-tab logout/expiry sync via BroadcastChannel.
   useEffect(() => {
@@ -204,6 +234,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       bcRef.current = null;
     };
   }, [router]);
+
+  const retryBootstrap = useCallback(() => {
+    setStatus('loading');
+    setBootstrapAttempt((attempt) => attempt + 1);
+  }, []);
 
   const login = useCallback(async (username: string, password: string) => {
     setIsLoading(true);
@@ -338,6 +373,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     token: null,
     isAuthenticated: status === 'authenticated',
     isLoading: status === 'loading',
+    bootstrapFailed: status === 'bootstrap_error',
+    retryBootstrap,
     login,
     logout,
     refreshToken
