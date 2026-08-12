@@ -1,12 +1,21 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 212 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 213 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
 
-### 2026-08-12 18:28 — claude_code — completed
+### 2026-08-12 21:03 — claude_code — completed
 
-Planned booking + appointment reminder feature (orch-add-feature Phase 0-2); plan doc written, awaiting Gate 1 approval
+Booking + appointment reminders: all 10 slices implemented and green (backend 129 passed/4 skipped, frontend 482+38 passed). PAUSED AT GATE 2 - feature diff is deliberately UNCOMMITTED pending user approval.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260812-2103.json`
+- Summary: `project-log-md/claude_code/session-summary-20260812-2103.md`
+
+---
+
+### 2026-08-12 18:28 — claude_code (Claude Opus 5 / Anthropic) — in_progress
+
+orch-add-feature pipeline for booking + appointment reminders: ran Phase 0 (size=large), Phase 1 (research/reuse) and Phase 2 (plan). Plan written to .claude/PRPs/plans/booking-and-reminder.plan.md. PAUSED AT GATE 1 - no implementation code written yet, awaiting user approval.
 
 - Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260812-1828.json`
 - Summary: `project-log-md/claude_code/session-summary-20260812-1828.md`

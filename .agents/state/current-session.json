@@ -1,13 +1,21 @@
 {
-  "last_updated": "2026-08-12T18:28:00+07:00",
+  "last_updated": "2026-08-12T21:03:00+07:00",
   "platform": "claude_code",
-  "current_task": "Planned booking + appointment reminder feature (orch-add-feature Phase 0-2); plan doc written, awaiting Gate 1 approval",
+  "current_task": "Booking + appointment reminders: all 10 slices implemented and green (backend 129 passed/4 skipped, frontend 482+38 passed). PAUSED AT GATE 2 - feature diff is deliberately UNCOMMITTED pending user ap",
   "plan_status": "completed",
   "next_steps": [
-    "Get Gate 1 approval from user",
-    "Branch feat/booking-appointments then start T1 (booking model + alembic migration) via TDD"
+    "Get GATE 2 approval, then commit the 7 proposed conventional commits",
+    "Start Docker and run the migration for real: upgrade+downgrade against local Postgres, then alembic check --target remote",
+    "Run the 4 skipped DB-backed concurrency tests once Postgres is up"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-08-12T21:03:00+07:00",
+      "platform": "claude_code",
+      "branch": "feat/booking-appointments",
+      "head": "3a479ad",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-08-12T18:28:00+07:00",
       "platform": "claude_code",
@@ -139,13 +147,6 @@
       "platform": "qoder",
       "branch": "feat/apifetch-adapter",
       "head": "cd3effb",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-29T04:56:00+07:00",
-      "platform": "qoder",
-      "branch": "main",
-      "head": "c86c788",
       "status": "completed"
     }
   ],
