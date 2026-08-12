@@ -20,7 +20,12 @@ from ._deps import (
     get_ws_manager,
 )
 from .broadcast import notify_admins_conversation_update
-from .commands import handle_bind_phone, handle_check_status
+from .commands import (
+    BOOKING_QUERY_KEYWORDS,
+    handle_bind_phone,
+    handle_check_booking,
+    handle_check_status,
+)
 from .intent_matching import resolve_reply_responses
 from .media_extraction import extract_non_text_message
 
@@ -122,6 +127,10 @@ async def handle_message_event(event: MessageEvent, db: AsyncSession):
 
         if text == "ติดตาม" or text == "สถานะ":
             await handle_check_status(line_user_id, event.reply_token, db)
+            return
+
+        if text in BOOKING_QUERY_KEYWORDS:
+            await handle_check_booking(line_user_id, event.reply_token, db)
             return
 
         if re.match(r"^0\d{9}$", text):

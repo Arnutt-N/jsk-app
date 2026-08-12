@@ -1,5 +1,200 @@
 from linebot.v3.messaging import FlexContainer
 
+_BOOKING_STATUS_MAP = {
+    "CONFIRMED": {"text": "ยืนยันแล้ว", "color": "#10B981"},   # Emerald
+    "CANCELLED": {"text": "ยกเลิก", "color": "#EF4444"},        # Rose
+    "COMPLETED": {"text": "มาตามนัดแล้ว", "color": "#3B82F6"},  # Blue
+    "NOSHOW": {"text": "ไม่มาตามนัด", "color": "#F59E0B"},      # Amber
+}
+
+
+def _format_thai_date(value):
+    """Render a date as d/m/พ.ศ. — Buddhist era is what the counter uses."""
+    if not value:
+        return "-"
+    return f"{value.day}/{value.month}/{value.year + 543}"
+
+
+def _format_time(value):
+    return value.strftime("%H:%M") if value else "-"
+
+
+def _booking_detail_row(label, value):
+    return {
+        "type": "box",
+        "layout": "horizontal",
+        "margin": "md",
+        "contents": [
+            {"type": "text", "text": label, "size": "sm", "color": "#aaaaaa", "flex": 2},
+            {
+                "type": "text",
+                "text": value,
+                "size": "sm",
+                "color": "#333333",
+                "flex": 4,
+                "wrap": True,
+                "align": "end",
+            },
+        ],
+    }
+
+
+def build_booking_confirmation(booking, *, title="✅ จองคิวสำเร็จ"):
+    """Bubble sent right after a booking is confirmed, and again as a reminder."""
+    return {
+        "type": "bubble",
+        "header": {
+            "type": "box",
+            "layout": "vertical",
+            "contents": [
+                {"type": "text", "text": title, "weight": "bold", "size": "xl", "color": "#1DB446"},
+                {
+                    "type": "text",
+                    "text": booking.service_type or "-",
+                    "size": "sm",
+                    "color": "#aaaaaa",
+                    "wrap": True,
+                },
+            ],
+        },
+        "body": {
+            "type": "box",
+            "layout": "vertical",
+            "contents": [
+                {
+                    "type": "text",
+                    "text": booking.queue_number or "-",
+                    "weight": "bold",
+                    "size": "xxl",
+                    "align": "center",
+                    "color": "#1DB446",
+                },
+                {
+                    "type": "text",
+                    "text": "หมายเลขคิวของท่าน",
+                    "size": "xs",
+                    "align": "center",
+                    "color": "#aaaaaa",
+                },
+                {"type": "separator", "margin": "lg", "color": "#f0f0f0"},
+                _booking_detail_row("วันที่", _format_thai_date(booking.booking_date)),
+                _booking_detail_row("เวลา", f"{_format_time(booking.booking_time)} น."),
+                _booking_detail_row("ชื่อผู้จอง", booking.contact_name or "-"),
+            ],
+        },
+        "footer": {
+            "type": "box",
+            "layout": "vertical",
+            "contents": [
+                {
+                    "type": "text",
+                    "text": "กรุณามาก่อนเวลานัด 10 นาที",
+                    "size": "xs",
+                    "align": "center",
+                    "color": "#aaaaaa",
+                    "wrap": True,
+                }
+            ],
+        },
+    }
+
+
+def build_booking_list(bookings):
+    """Bubble listing a citizen's upcoming bookings, for the 'คิว' query."""
+    if not bookings:
+        return {
+            "type": "bubble",
+            "body": {
+                "type": "box",
+                "layout": "vertical",
+                "contents": [
+                    {
+                        "type": "text",
+                        "text": "ไม่พบคิวนัดหมายของคุณ",
+                        "weight": "bold",
+                        "size": "md",
+                        "align": "center",
+                        "color": "#666666",
+                    },
+                    {
+                        "type": "text",
+                        "text": "ท่านสามารถจองคิวนัดหมายได้จากเมนูด้านล่างครับ",
+                        "size": "xs",
+                        "align": "center",
+                        "color": "#aaaaaa",
+                        "wrap": True,
+                        "margin": "md",
+                    },
+                ],
+            },
+        }
+
+    rows = []
+    for booking in bookings:
+        status = _BOOKING_STATUS_MAP.get(
+            getattr(booking.status, "value", str(booking.status)),
+            {"text": str(booking.status), "color": "#999999"},
+        )
+        rows.append(
+            {
+                "type": "box",
+                "layout": "vertical",
+                "margin": "lg",
+                "spacing": "sm",
+                "contents": [
+                    {
+                        "type": "text",
+                        "text": f"{booking.queue_number or '-'} · {booking.service_type or '-'}",
+                        "size": "sm",
+                        "color": "#333333",
+                        "weight": "bold",
+                        "wrap": True,
+                    },
+                    {
+                        "type": "box",
+                        "layout": "horizontal",
+                        "contents": [
+                            {
+                                "type": "text",
+                                "text": status["text"],
+                                "size": "xs",
+                                "color": status["color"],
+                                "flex": 0,
+                            },
+                            {"type": "filler"},
+                            {
+                                "type": "text",
+                                "text": (
+                                    f"{_format_thai_date(booking.booking_date)} "
+                                    f"{_format_time(booking.booking_time)} น."
+                                ),
+                                "size": "xs",
+                                "color": "#aaaaaa",
+                                "align": "end",
+                            },
+                        ],
+                    },
+                    {"type": "separator", "margin": "lg", "color": "#f0f0f0"},
+                ],
+            }
+        )
+
+    rows[-1]["contents"].pop()  # trailing separator
+
+    return {
+        "type": "bubble",
+        "header": {
+            "type": "box",
+            "layout": "vertical",
+            "contents": [
+                {"type": "text", "text": "📅 คิวนัดหมายของคุณ", "weight": "bold", "size": "xl", "color": "#1DB446"},
+                {"type": "text", "text": f"{len(bookings)} รายการ", "size": "xs", "color": "#aaaaaa"},
+            ],
+        },
+        "body": {"type": "box", "layout": "vertical", "contents": rows},
+    }
+
+
 def build_request_status_list(requests):
     """
     Build a Flex Message Bubble showing a list of service requests.
