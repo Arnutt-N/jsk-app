@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 211 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 212 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-08-12 18:28 — claude_code — completed
+
+Planned booking + appointment reminder feature (orch-add-feature Phase 0-2); plan doc written, awaiting Gate 1 approval
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260812-1828.json`
+- Summary: `project-log-md/claude_code/session-summary-20260812-1828.md`
+
+---
 
 ### 2026-08-05 07:52 — claude_code (Claude Opus 5 / Anthropic) — completed
 

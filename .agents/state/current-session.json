@@ -1,14 +1,20 @@
 {
-  "last_updated": "2026-08-05T07:52:00+07:00",
+  "last_updated": "2026-08-12T18:28:00+07:00",
   "platform": "claude_code",
-  "current_task": "PR #183 merged (squash 9da4b1a): alembic check against Supabase PROD now reports No new upgrade operations detected - closed the autogenerate trap that would have dropped 8 live indexes incl. the pseu",
+  "current_task": "Planned booking + appointment reminder feature (orch-add-feature Phase 0-2); plan doc written, awaiting Gate 1 approval",
   "plan_status": "completed",
   "next_steps": [
-    "Read GET /api/v1/health/pseudonym-gate from a logged-in admin tab - gate clock started 2026-07-30, due 2026-08-04, so it is ripe",
-    "If gate passes write the PR C destructive phase PRD+PRP (drop plaintext line_user_id on 7 tables, flip LINE_ID_STORAGE_MODE=pseudonym)",
-    "Fix the 3 HIGH correctness defects from the 2026-08-02 architecture review (backend never enforces STATUS_TRANSITIONS, no audit log on status changes, HTTP-vs-WS drift)"
+    "Get Gate 1 approval from user",
+    "Branch feat/booking-appointments then start T1 (booking model + alembic migration) via TDD"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-08-12T18:28:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "34c8ea8",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-08-05T07:52:00+07:00",
       "platform": "claude_code",
@@ -140,13 +146,6 @@
       "platform": "qoder",
       "branch": "main",
       "head": "c86c788",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-29T00:18:00+07:00",
-      "platform": "qoder",
-      "branch": "main",
-      "head": "57f60f7",
       "status": "completed"
     }
   ],
