@@ -15,9 +15,11 @@ from app.services.business_hours_service import business_hours_service
 from app.services.canned_response_service import canned_response_service
 from app.services.credential_service import credential_service
 from app.tasks import (
+    start_booking_reminder_scheduler,
     start_broadcast_scheduler,
     start_cleanup_task,
     start_health_watchdog,
+    stop_booking_reminder_scheduler,
     stop_broadcast_scheduler,
     stop_cleanup_task,
     stop_health_watchdog,
@@ -147,6 +149,7 @@ async def lifespan(_: FastAPI):
     # Start background tasks
     await start_cleanup_task()
     await start_broadcast_scheduler()
+    await start_booking_reminder_scheduler()
     await start_health_watchdog()
     logger.info("Background tasks started.")
 
@@ -155,6 +158,7 @@ async def lifespan(_: FastAPI):
     finally:
         await stop_cleanup_task()
         await stop_broadcast_scheduler()
+        await stop_booking_reminder_scheduler()
         await stop_health_watchdog()
         await pubsub_manager.disconnect()
         await redis_client.disconnect()
