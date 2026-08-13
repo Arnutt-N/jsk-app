@@ -1,12 +1,21 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 213 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 214 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
 
-### 2026-08-12 21:03 — claude_code — completed
+### 2026-08-13 07:02 — claude_code — completed
 
-Booking + appointment reminders: all 10 slices implemented and green (backend 129 passed/4 skipped, frontend 482+38 passed). PAUSED AT GATE 2 - feature diff is deliberately UNCOMMITTED pending user approval.
+Booking + appointment reminders SHIPPED to branch feat/booking-appointments as 7 conventional commits (172a21e..5164928). Gate 1 and Gate 2 both honoured. Supersedes the 20260812-2103 checkpoint, which described the diff as uncommitted.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260813-0702.json`
+- Summary: `project-log-md/claude_code/session-summary-20260813-0702.md`
+
+---
+
+### 2026-08-12 21:03 — claude_code (Claude Opus 5 / Anthropic) — in_progress
+
+Booking + appointment reminders (orch-add-feature, tier=large): all 10 planned slices implemented TDD-first and green — backend 129 passed/4 skipped, frontend 482 (full suite) + 38 (booking) passed, tsc and eslint clean. PAUSED AT GATE 2: the ~5180-line feature diff across 34 files is deliberately UNCOMMITTED pending the user's commit approval. Only the handoff artifacts are committed.
 
 - Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260812-2103.json`
 - Summary: `project-log-md/claude_code/session-summary-20260812-2103.md`
