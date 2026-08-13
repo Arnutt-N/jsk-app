@@ -1,10 +1,19 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 215 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 216 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
 
-### 2026-08-14 05:42 — claude_code — completed
+### 2026-08-14 06:49 — claude_code — completed
+
+Code review of the booking branch found a plaintext PROD admin password committed to this PUBLIC repo since PR #65. Rotated it on Supabase and verified by reading the hash back (new accepted, old rejected); removed both exposed lines. A full tracked-tree scan found nothing else - no API keys, JWTs, private keys, and no .env has ever been committed. Also applied the three review follow-ups to the concurrency fixture. Suite unchanged at 870 passed / 0 failed / 60 Redis-only errors.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260814-0649.json`
+- Summary: `project-log-md/claude_code/session-summary-20260814-0649.md`
+
+---
+
+### 2026-08-14 05:42 — claude_code (Claude Opus 5 / Anthropic) — completed
 
 Closed the booking verification gap that blocked the previous session: brought up PostgreSQL 16 from WSL as an unprivileged cluster (Docker still blocked by UAC), ran the migration for real (upgrade head from empty, alembic check --target local clean, downgrade -1 precise, re-upgrade, check clean), and got the 4 concurrency tests executing for the first time ever. Backend full suite now 870 passed / 0 failed / 60 Redis-only errors. Uncommitted work is a fix to tests/test_booking_create_concurrency.py.
 

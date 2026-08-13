@@ -1,16 +1,16 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Cross-Platform Session Index (generated)
 
-> **Last generated**: 2026-08-14 05:42 (from newest checkpoint)
+> **Last generated**: 2026-08-14 06:49 (from newest checkpoint)
 
 ## Quick Stats
 
 | Metric | Value |
 |--------|-------|
-| Handoff checkpoints (active) | 215 |
-| Session summaries on disk | 306 |
+| Handoff checkpoints (active) | 216 |
+| Session summaries on disk | 307 |
 | Platforms | 9 (antigravity, claude_code, cline, codex, gemini_cli, kilo_code, kimi_code, open_code, qoder) |
-| Most recent | 2026-08-14 05:42 — claude_code |
+| Most recent | 2026-08-14 06:49 — claude_code |
 
 > Regenerate after any handoff: `node .agents/scripts/gen-handoff-views.cjs`
 
@@ -23,11 +23,12 @@
 | 2026-04-04 12:04 | completed | — | — | `handover-antigravity-20260404-1204.json` |
 | 2026-02-15 03:20 | completed | — | — | `handover-antigravity-20260215-0320.json` |
 
-## claude_code (155)
+## claude_code (156)
 
 | When | Status | Model | Provider | Checkpoint |
 |------|--------|-------|----------|------------|
-| 2026-08-14 05:42 | completed | — | — | `handover-claude_code-20260814-0542.json` |
+| 2026-08-14 06:49 | completed | — | — | `handover-claude_code-20260814-0649.json` |
+| 2026-08-14 05:42 | completed | Claude Opus 5 | Anthropic | `handover-claude_code-20260814-0542.json` |
 | 2026-08-13 07:02 | completed | Claude Opus 5 | Anthropic | `handover-claude_code-20260813-0702.json` |
 | 2026-08-12 21:03 | in_progress | Claude Opus 5 | Anthropic | `handover-claude_code-20260812-2103.json` |
 | 2026-08-12 18:28 | in_progress | Claude Opus 5 | Anthropic | `handover-claude_code-20260812-1828.json` |
@@ -46,8 +47,7 @@
 | 2026-08-01 20:26 | completed | — | — | `handover-claude_code-20260801-2026.json` |
 | 2026-07-18 23:47 | completed | Fable 5 | Anthropic | `handover-claude_code-20260718-2347.json` |
 | 2026-07-18 22:26 | completed | Fable 5 | Anthropic | `handover-claude_code-20260718-2226.json` |
-| 2026-07-18 22:05 | completed | Fable 5 | Anthropic | `handover-claude_code-20260718-2205.json` |
-| … | | | | +135 older |
+| … | | | | +136 older |
 
 ## cline (5)
 

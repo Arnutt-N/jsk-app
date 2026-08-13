@@ -1,15 +1,22 @@
 {
-  "last_updated": "2026-08-14T05:42:00+07:00",
+  "last_updated": "2026-08-14T06:49:00+07:00",
   "platform": "claude_code",
-  "current_task": "Closed the booking verification gap that blocked the previous session: brought up PostgreSQL 16 from WSL as an unprivileged cluster (Docker still blocked by UAC), ran the migration for real (upgrade h",
+  "current_task": "Code review of the booking branch found a plaintext PROD admin password committed to this PUBLIC repo since PR #65. Rotated it on Supabase and verified by reading the hash back (new accepted, old reje",
   "plan_status": "completed",
   "next_steps": [
-    "Decide whether to open the PR to main - nothing on feat/booking-appointments has been pushed yet",
-    "Redis is NOT installed in WSL and apt needs the sudo password, so 60 live-chat/websocket tests remain unverified locally - CI covers them",
-    "Run alembic check --target remote only AFTER the migration is deployed; it cannot pass before",
-    "Manual LINE test still needs a LIFF ID from the LINE console; the rich-menu entry to /liff/booking is deliberately not built"
+    "Open the PR to main - nothing on feat/booking-appointments has been pushed yet",
+    "Delete the leftover test_deactivated account (id=4, role=ADMIN, is_active=False) from PROD",
+    "The new admin password is ONLY in the untracked secrets/secret-keys.txt as JSK_PROD_ADMIN_PASSWORD - never quote it in a tracked file",
+    "Redis is not installed in WSL and apt needs the sudo password, so 60 live-chat tests remain CI-only"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-08-14T06:49:00+07:00",
+      "platform": "claude_code",
+      "branch": "feat/booking-appointments",
+      "head": "d31fbdf",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-08-14T05:42:00+07:00",
       "platform": "claude_code",
@@ -141,13 +148,6 @@
       "platform": "qoder",
       "branch": "main",
       "head": "2314197",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-30T08:33:00+07:00",
-      "platform": "qoder",
-      "branch": "main",
-      "head": "cfa9ed0",
       "status": "completed"
     }
   ],
