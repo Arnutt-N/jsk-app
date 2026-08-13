@@ -13,6 +13,7 @@ import asyncio
 import os
 import socket
 from datetime import date, datetime, time, timedelta
+from typing import NamedTuple
 from urllib.parse import urlparse
 
 import pytest
@@ -78,8 +79,17 @@ def _open_hours() -> BusinessHours:
     )
 
 
+class Race(NamedTuple):
+    """Everything a racing test needs: two connections and two distinct bookers."""
+
+    db_a: AsyncSession
+    db_b: AsyncSession
+    user_a: int
+    user_b: int
+
+
 @pytest_asyncio.fixture
-async def sessions():
+async def race():
     """Two sessions on separate connections — one shared session cannot race.
 
     Must be `pytest_asyncio.fixture`, not `pytest.fixture`: with no `asyncio_mode`
@@ -92,29 +102,43 @@ async def sessions():
         ),
         pool_size=4,
     )
-    maker = async_sessionmaker(engine, expire_on_commit=False)
+    try:
+        maker = async_sessionmaker(engine, expire_on_commit=False)
 
-    async with maker() as setup:
-        await _clear(setup)
-        racers = [
-            User(username=name, display_name=name, role=UserRole.USER, is_active=True)
-            for name in RACE_USERNAMES
-        ]
-        setup.add_all(racers)
-        await setup.commit()
-        user_ids = (racers[0].id, racers[1].id)
+        async with maker() as setup:
+            # Also clears anything a previous run left behind if its teardown died.
+            await _clear(setup)
+            racers = [
+                User(username=name, display_name=name, role=UserRole.USER, is_active=True)
+                for name in RACE_USERNAMES
+            ]
+            setup.add_all(racers)
+            await setup.commit()
+            user_ids = (racers[0].id, racers[1].id)
 
-    async with maker() as a, maker() as b:
-        yield a, b, user_ids
-
-    async with maker() as cleanup:
-        await _clear(cleanup)
-    await engine.dispose()
+        try:
+            async with maker() as a, maker() as b:
+                yield Race(a, b, *user_ids)
+        finally:
+            async with maker() as cleanup:
+                await _clear(cleanup)
+    finally:
+        # Runs even if cleanup raises, so a failing test cannot leak the pool.
+        await engine.dispose()
 
 
 async def _clear(db: AsyncSession) -> None:
-    """Bookings first — they carry the FK that would pin the racers in place."""
-    await db.execute(delete(Booking).where(Booking.service_type == SERVICE))
+    """Bookings first — they carry the FK that would pin the racers in place.
+
+    Scoped to TARGET as well as the service name: a shared development database
+    may hold rows for other dates that this test has no business deleting.
+    """
+    await db.execute(
+        delete(Booking).where(
+            Booking.service_type == SERVICE,
+            Booking.booking_date == TARGET,
+        )
+    )
     await db.execute(delete(User).where(User.username.in_(RACE_USERNAMES)))
     await db.commit()
 
@@ -145,13 +169,11 @@ async def _attempt(db: AsyncSession, user_id: int, capacity: int):
 
 
 @pytest.mark.asyncio
-async def test_only_one_of_two_racing_bookings_takes_the_last_seat(sessions):
+async def test_only_one_of_two_racing_bookings_takes_the_last_seat(race):
     """The phantom-row race: both would pass a naive count-then-insert."""
-    db_a, db_b, (user_a, user_b) = sessions
-
     results = await asyncio.gather(
-        _attempt(db_a, user_a, capacity=1),
-        _attempt(db_b, user_b, capacity=1),
+        _attempt(race.db_a, race.user_a, capacity=1),
+        _attempt(race.db_b, race.user_b, capacity=1),
     )
     outcomes = sorted(outcome for outcome, _ in results)
 
@@ -159,13 +181,11 @@ async def test_only_one_of_two_racing_bookings_takes_the_last_seat(sessions):
 
 
 @pytest.mark.asyncio
-async def test_racing_bookings_receive_distinct_queue_numbers(sessions):
+async def test_racing_bookings_receive_distinct_queue_numbers(race):
     """The day lock also covers the per-day sequence, so no number repeats."""
-    db_a, db_b, (user_a, user_b) = sessions
-
     results = await asyncio.gather(
-        _attempt(db_a, user_a, capacity=5),
-        _attempt(db_b, user_b, capacity=5),
+        _attempt(race.db_a, race.user_a, capacity=5),
+        _attempt(race.db_b, race.user_b, capacity=5),
     )
     queue_numbers = [queue for outcome, queue in results if outcome == "ok"]
 
@@ -174,11 +194,11 @@ async def test_racing_bookings_receive_distinct_queue_numbers(sessions):
 
 
 @pytest.mark.asyncio
-async def test_a_cancelled_booking_frees_its_seat(sessions):
+async def test_a_cancelled_booking_frees_its_seat(race):
     """Capacity counts active bookings only, or a cancellation would strand a slot."""
-    db_a, _, (user_a, _user_b) = sessions
+    db_a = race.db_a
 
-    outcome, _ = await _attempt(db_a, user_a, capacity=1)
+    outcome, _ = await _attempt(db_a, race.user_a, capacity=1)
     assert outcome == "ok"
 
     result = await db_a.execute(
@@ -193,14 +213,14 @@ async def test_a_cancelled_booking_frees_its_seat(sessions):
     await db_a.commit()
 
     # The seat is free again, so a second attempt at capacity 1 now succeeds.
-    outcome_again, _ = await _attempt(db_a, user_a, capacity=1)
+    outcome_again, _ = await _attempt(db_a, race.user_a, capacity=1)
     assert outcome_again == "ok"
 
 
 @pytest.mark.asyncio
-async def test_the_advisory_lock_is_actually_held_until_commit(sessions):
+async def test_the_advisory_lock_is_actually_held_until_commit(race):
     """Directly observe that a second transaction blocks on the same day key."""
-    db_a, db_b, _users = sessions
+    db_a, db_b = race.db_a, race.db_b
     key = f"booking:{TARGET.isoformat()}"
 
     await db_a.execute(text("SELECT pg_advisory_xact_lock(hashtext(:key))"), {"key": key})
