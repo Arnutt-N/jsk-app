@@ -1,12 +1,21 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 214 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 215 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
 
-### 2026-08-13 07:02 — claude_code — completed
+### 2026-08-14 05:42 — claude_code — completed
 
-Booking + appointment reminders SHIPPED to branch feat/booking-appointments as 7 conventional commits (172a21e..5164928). Gate 1 and Gate 2 both honoured. Supersedes the 20260812-2103 checkpoint, which described the diff as uncommitted.
+Closed the booking verification gap that blocked the previous session: brought up PostgreSQL 16 from WSL as an unprivileged cluster (Docker still blocked by UAC), ran the migration for real (upgrade head from empty, alembic check --target local clean, downgrade -1 precise, re-upgrade, check clean), and got the 4 concurrency tests executing for the first time ever. Backend full suite now 870 passed / 0 failed / 60 Redis-only errors. Uncommitted work is a fix to tests/test_booking_create_concurrency.py.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260814-0542.json`
+- Summary: `project-log-md/claude_code/session-summary-20260814-0542.md`
+
+---
+
+### 2026-08-13 07:02 — claude_code (Claude Opus 5 / Anthropic) — completed
+
+Booking + appointment reminders shipped to branch feat/booking-appointments as 7 conventional commits (172a21e..5164928). Both pipeline gates honoured. Tests green: backend 129 passed/4 skipped for the feature, frontend 482 (full) + 38 (booking). Outstanding: the migration has never been executed and `alembic check --target remote` has never run, because Docker was down for the whole session.
 
 - Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260813-0702.json`
 - Summary: `project-log-md/claude_code/session-summary-20260813-0702.md`
