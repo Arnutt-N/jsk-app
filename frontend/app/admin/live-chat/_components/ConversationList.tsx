@@ -37,10 +37,9 @@ export function ConversationList() {
   const setSearchQuery = useLiveChatStore((s) => s.setSearchQuery);
   const setFilterStatus = useLiveChatStore((s) => s.setFilterStatus);
   const setActiveActionMenu = useLiveChatStore((s) => s.setActiveActionMenu);
-  const markRead = useLiveChatStore((s) => s.markRead);
 
   // API methods from Context
-  const { formatTime, selectConversation, jumpToMessage, fetchConversations } = useLiveChatContext();
+  const { formatTime, selectConversation, jumpToMessage, fetchConversations, markConversationRead } = useLiveChatContext();
 
   // M15: sort by longest-waiting (queue triage) vs. the default recent order.
   const [sortBy, setSortBy] = React.useState<'recent' | 'longest-waiting'>('recent');
@@ -94,6 +93,19 @@ export function ConversationList() {
   const handleTogglePin = React.useCallback((id: string) => togglePreference(id, 'is_pinned'), [togglePreference]);
   const handleToggleMute = React.useCallback((id: string) => togglePreference(id, 'is_muted'), [togglePreference]);
   const handleToggleSpam = React.useCallback((id: string) => togglePreference(id, 'is_spam'), [togglePreference]);
+
+  const handleMarkRead = React.useCallback((id: string) => {
+    void markConversationRead(id).then((success) => {
+      if (!success) {
+        useLiveChatStore.getState().addNotification({
+          title: 'ไม่สำเร็จ',
+          message: 'ทำเครื่องหมายว่าอ่านแล้วไม่สำเร็จ ลองอีกครั้ง',
+          type: 'system',
+          variant: 'warning',
+        });
+      }
+    });
+  }, [markConversationRead]);
 
   const handleArchive = React.useCallback((id: string) => {
     archiveConversation(id)
@@ -360,7 +372,7 @@ export function ConversationList() {
                   formattedTime={conversation.last_message?.created_at ? formatTime(conversation.last_message.created_at) : undefined}
                   onSelect={handleSelect}
                   onMenuToggle={handleMenuToggle}
-                  onMarkRead={() => markRead(conversation.line_user_id)}
+                  onMarkRead={() => handleMarkRead(conversation.line_user_id)}
                   onTogglePin={handleTogglePin}
                   onToggleMute={handleToggleMute}
                   onToggleSpam={handleToggleSpam}

@@ -21,12 +21,13 @@ import {
 
 import type { Conversation } from '../_types';
 import { getAvatarFallbackUrl } from '@/lib/constants/live-chat-avatar';
-import { PRESENCE_DOT_CLASS, PRESENCE_LABEL, getSessionPresence } from '@/lib/constants/live-chat-presence';
+import { PRESENCE_DOT_CLASS, PRESENCE_LABEL, getUserActivityPresence } from '@/lib/constants/live-chat-presence';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { formatWaiting, getWaitingSeconds, getWaitingTier } from '@/lib/waiting-time';
 
 /** How often the WAITING badge refreshes so the elapsed label stays current. */
 const WAITING_REFRESH_MS = 30_000;
+const PRESENCE_REFRESH_MS = 60_000;
 
 /** Token-based badge classes per SLA tier, with a selected-row variant that
  *  stays legible on the brand gradient background. */
@@ -76,7 +77,7 @@ export const ConversationItem = memo(function ConversationItem({
   const handleSelect = React.useCallback(() => onSelect(conversation.line_user_id), [onSelect, conversation.line_user_id]);
   const handleMenuToggle = React.useCallback(() => onMenuToggle(conversation.line_user_id), [onMenuToggle, conversation.line_user_id]);
   const isWaiting = conversation.session?.status === 'WAITING';
-  const presence = getSessionPresence(conversation.session?.status);
+  const presence = getUserActivityPresence(conversation.last_user_activity_at);
   const isVip = conversation.tags?.some((t) => t.name.toUpperCase() === 'VIP');
   const isBot = conversation.chat_mode === 'BOT';
   const isPinned = conversation.is_pinned === true;
@@ -100,6 +101,12 @@ export const ConversationItem = memo(function ConversationItem({
   }, [waitingStartedAt]);
   const waitingSeconds = waitingStartedAt ? getWaitingSeconds(waitingStartedAt) : 0;
   const waitingTier = getWaitingTier(waitingSeconds);
+
+  const [, refreshPresence] = React.useState(0);
+  React.useEffect(() => {
+    const id = setInterval(() => refreshPresence((n) => n + 1), PRESENCE_REFRESH_MS);
+    return () => clearInterval(id);
+  }, []);
 
   // Close menu on outside click
   React.useEffect(() => {
@@ -195,8 +202,12 @@ export const ConversationItem = memo(function ConversationItem({
             )}
             {/* Unread badge */}
             {conversation.unread_count > 0 && (
-              <span className="min-w-[18px] h-[18px] px-1 bg-danger text-white text-2xs font-bold rounded-full flex items-center justify-center tabular-nums">
-                {conversation.unread_count > 9 ? '9+' : conversation.unread_count}
+              <span
+                className="min-w-[18px] h-[18px] px-1 bg-danger text-white text-2xs font-bold rounded-full flex items-center justify-center tabular-nums"
+                aria-label={`${conversation.unread_count} ข้อความใหม่`}
+                title={`${conversation.unread_count} ข้อความใหม่`}
+              >
+                {conversation.unread_count > 99 ? '99+' : conversation.unread_count}
               </span>
             )}
           </div>

@@ -19,6 +19,10 @@ from app.schemas.ws_events import (
     JoinRoomPayload,
     TransferSessionPayload,
 )
+from app.services.live_chat_service.choreography import (
+    publish_session_event,
+    session_status_value,
+)
 
 from ._deps import (
     get_ws_manager,
@@ -63,7 +67,6 @@ async def handle_join_room(
 
     room_id = ws.get_room_id(line_user_id)
     await ws.join_room(websocket, room_id)
-    await ws.mark_conversation_read(admin_id, line_user_id)
 
     async with AsyncSessionLocal() as db:
         detail = await svc.get_conversation_detail(line_user_id, db)
@@ -82,6 +85,8 @@ async def handle_join_room(
                     "display_name": detail["display_name"],
                     "picture_url": detail["picture_url"],
                     "chat_mode": detail["chat_mode"].value if hasattr(detail["chat_mode"], 'value') else detail["chat_mode"],
+                    "last_user_activity_at": detail["last_user_activity_at"].isoformat()
+                    if detail.get("last_user_activity_at") else None,
                     "session": {
                         "id": detail["session"].id,
                         "status": detail["session"].status.value if hasattr(detail["session"].status, 'value') else detail["session"].status,
@@ -242,21 +247,17 @@ async def handle_claim_session(
         try:
             session = await svc.claim_session(line_user_id, admin_id_int, db)
             if session:
-                await db.commit()
-                await ws.broadcast_to_all({
-                    "type": WSEventType.SESSION_CLAIMED.value,
-                    "payload": {
+                await publish_session_event(
+                    db, ws, analytics,
+                    event_type=WSEventType.SESSION_CLAIMED.value,
+                    payload={
                         "line_user_id": line_user_id,
                         "session_id": session.id,
-                        "status": session.status.value,
+                        "status": session_status_value(session),
                         "operator_id": admin_id_int
                     },
-                    "timestamp": timestamp
-                })
-                try:
-                    await analytics.emit_live_kpis_update(db)
-                except Exception as e:
-                    logger.warning("KPI broadcast failed (non-fatal): %s", e)
+                    timestamp=timestamp,
+                )
             else:
                 await ws.send_personal(websocket, {
                     "type": WSEventType.ERROR.value,
@@ -316,19 +317,15 @@ async def handle_close_session(
                 line_user_id, ClosedBy.OPERATOR, db, operator_id=admin_id_int
             )
             if session:
-                await db.commit()
-                await ws.broadcast_to_all({
-                    "type": WSEventType.SESSION_CLOSED.value,
-                    "payload": {
+                await publish_session_event(
+                    db, ws, analytics,
+                    event_type=WSEventType.SESSION_CLOSED.value,
+                    payload={
                         "line_user_id": line_user_id,
                         "session_id": session.id
                     },
-                    "timestamp": timestamp
-                })
-                try:
-                    await analytics.emit_live_kpis_update(db)
-                except Exception as e:
-                    logger.warning("KPI broadcast failed (non-fatal): %s", e)
+                    timestamp=timestamp,
+                )
             else:
                 await ws.send_personal(websocket, {
                     "type": WSEventType.ERROR.value,
@@ -406,22 +403,18 @@ async def handle_transfer_session(
                 db=db
             )
             if session:
-                await db.commit()
-                await ws.broadcast_to_all({
-                    "type": WSEventType.SESSION_TRANSFERRED.value,
-                    "payload": {
+                await publish_session_event(
+                    db, ws, analytics,
+                    event_type=WSEventType.SESSION_TRANSFERRED.value,
+                    payload={
                         "line_user_id": line_user_id,
                         "session_id": session.id,
                         "from_operator_id": admin_id_int,
                         "to_operator_id": transfer_payload.to_operator_id,
                         "reason": transfer_payload.reason
                     },
-                    "timestamp": timestamp
-                })
-                try:
-                    await analytics.emit_live_kpis_update(db)
-                except Exception as e:
-                    logger.warning("KPI broadcast failed (non-fatal): %s", e)
+                    timestamp=timestamp,
+                )
             else:
                 await ws.send_personal(websocket, {
                     "type": WSEventType.ERROR.value,

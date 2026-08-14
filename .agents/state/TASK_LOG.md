@@ -1,10 +1,10 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 216 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 218 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
 
-### 2026-08-14 06:49 — claude_code — completed
+### 2026-08-14 06:49 — claude_code (Claude Opus 5 / Anthropic) — completed
 
 Code review of the booking branch found a plaintext PROD admin password committed to this PUBLIC repo since PR #65. Rotated it on Supabase and verified by reading the hash back (new accepted, old rejected); removed both exposed lines. A full tracked-tree scan found nothing else - no API keys, JWTs, private keys, and no .env has ever been committed. Also applied the three review follow-ups to the concurrency fixture. Suite unchanged at 870 passed / 0 failed / 60 Redis-only errors.
 
@@ -46,6 +46,24 @@ orch-add-feature pipeline for booking + appointment reminders: ran Phase 0 (size
 
 - Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260812-1828.json`
 - Summary: `project-log-md/claude_code/session-summary-20260812-1828.md`
+
+---
+
+### 2026-08-06 06:03 — codex — completed
+
+Merged PRs #185 and #186: live-chat presence, unread acknowledgement, connection-state UX, and race hardening
+
+- Checkpoint: `.agents/state/checkpoints/handover-codex-20260806-0603.json`
+- Summary: `project-log-md/codex/session-summary-20260806-0603.md`
+
+---
+
+### 2026-08-05 14:19 — claude_code (Claude Opus 5 / Anthropic) — completed
+
+PR #184 merged (squash e693a9a): closed all 3 HIGH correctness defects from the 2026-08-02 architecture review — backend now enforces the request state machine (with an explicit supervisor-override path), every status transition is audited, and live-chat can no longer report failure after a successful commit
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260805-1419.json`
+- Summary: `project-log-md/claude_code/session-summary-20260805-1419.md`
 
 ---
 

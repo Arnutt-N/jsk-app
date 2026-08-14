@@ -12,16 +12,22 @@ from app.services.live_chat_service import (
     TRANSFER_ERR_NO_ACTIVE_SESSION,
     TRANSFER_ERR_NOT_CURRENT_OPERATOR,
 )
+from app.services.live_chat_service.choreography import (
+    announce_session_event,
+    publish_session_event,
+    session_status_value,
+)
 from app.schemas.live_chat import (
     ConversationList, ConversationDetail,
     SendMessageRequest, ModeToggleRequest,
     ConversationPreferenceUpdate,
+    ReadConversationRequest,
     sanitize_message_text,
 )
 from app.models.chat_session import ChatSession, ClosedBy, SessionStatus
 from app.models.message import Message, MessageDirection
 from app.models.user import ChatMode, User
-from app.core.websocket_manager import ws_manager
+from app.core.websocket_manager import ReadMarkerPersistenceError, ws_manager
 from app.schemas.ws_events import WSEventType
 from app.schemas.ws_events import TransferSessionPayload
 from app.schemas.message import MessagePage, MessageResponse
@@ -95,11 +101,34 @@ async def get_conversation(
     current_user: User = Depends(deps.get_current_staff),
 ) -> Any:
     """Get full chat history with a user"""
-    await ws_manager.mark_conversation_read(str(current_user.id), line_user_id)
     detail = await live_chat_service.get_conversation_detail(line_user_id, db)
     if not detail:
         raise HTTPException(status_code=404, detail="User not found")
     return detail
+
+
+@router.post("/conversations/{line_user_id}/read")
+async def mark_conversation_read(
+    line_user_id: str,
+    request: ReadConversationRequest,
+    db: AsyncSession = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_staff),
+) -> Any:
+    """Acknowledge messages through an explicit operator read boundary."""
+    detail = await live_chat_service.get_conversation_detail(line_user_id, db)
+    if not detail:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    read_at = request.read_at or _utcnow()
+    if read_at.tzinfo is None:
+        read_at = read_at.replace(tzinfo=timezone.utc)
+    # A client clock must not acknowledge messages that have not arrived yet.
+    read_at = min(read_at, _utcnow())
+    try:
+        read_at = await ws_manager.mark_conversation_read(str(current_user.id), line_user_id, read_at)
+    except ReadMarkerPersistenceError as exc:
+        raise HTTPException(status_code=503, detail="Unable to persist read status") from exc
+    return {"success": True, "line_user_id": line_user_id, "read_at": read_at.isoformat()}
 
 @router.get("/conversations/{line_user_id}/messages", response_model=MessagePage)
 async def get_conversation_messages(
@@ -193,18 +222,17 @@ async def claim_conversation(
     )
     if not session:
         raise HTTPException(status_code=404, detail="Active session not found")
-    await db.commit()
-    await ws_manager.broadcast_to_all({
-        "type": WSEventType.SESSION_CLAIMED.value,
-        "payload": {
+    await publish_session_event(
+        db, ws_manager, analytics_service,
+        event_type=WSEventType.SESSION_CLAIMED.value,
+        payload={
             "line_user_id": line_user_id,
             "session_id": session.id,
-            "status": session.status.value if hasattr(session.status, "value") else session.status,
+            "status": session_status_value(session),
             "operator_id": current_user.id,
         },
-        "timestamp": _utcnow_isoformat(),
-    })
-    await analytics_service.emit_live_kpis_update(db)
+        timestamp=_utcnow_isoformat(),
+    )
     return session
 
 @router.post("/conversations/{line_user_id}/close")
@@ -219,16 +247,15 @@ async def close_conversation(
     )
     if not session:
         raise HTTPException(status_code=404, detail="Active session not found")
-    await db.commit()
-    await ws_manager.broadcast_to_all({
-        "type": WSEventType.SESSION_CLOSED.value,
-        "payload": {
+    await publish_session_event(
+        db, ws_manager, analytics_service,
+        event_type=WSEventType.SESSION_CLOSED.value,
+        payload={
             "line_user_id": line_user_id,
             "session_id": session.id,
         },
-        "timestamp": _utcnow_isoformat(),
-    })
-    await analytics_service.emit_live_kpis_update(db)
+        timestamp=_utcnow_isoformat(),
+    )
     return session
 
 @router.post("/conversations/{line_user_id}/transfer")
@@ -261,23 +288,18 @@ async def transfer_conversation(
     if not session:
         raise HTTPException(status_code=404, detail="Active session not found")
 
-    await db.commit()
-    await ws_manager.broadcast_to_all({
-        "type": WSEventType.SESSION_TRANSFERRED.value,
-        "payload": {
+    await publish_session_event(
+        db, ws_manager, analytics_service,
+        event_type=WSEventType.SESSION_TRANSFERRED.value,
+        payload={
             "line_user_id": line_user_id,
             "session_id": session.id,
             "from_operator_id": current_user.id,
             "to_operator_id": request.to_operator_id,
             "reason": request.reason,
         },
-        "timestamp": _utcnow_isoformat(),
-    })
-
-    try:
-        await analytics_service.emit_live_kpis_update(db)
-    except Exception as e:
-        logger.warning("KPI broadcast failed (non-fatal): %s", e)
+        timestamp=_utcnow_isoformat(),
+    )
 
     return {
         "success": True,
@@ -480,22 +502,19 @@ async def create_conversation(
     await db.commit()
     await db.refresh(session)
 
-    # Broadcast update
-    await ws_manager.broadcast_to_all({
-        "type": WSEventType.SESSION_CLAIMED.value,
-        "payload": {
+    # Announce (not publish): the refresh above has to sit between the
+    # commit and the fan-out, so this caller drives the two steps itself.
+    await announce_session_event(
+        db, ws_manager, analytics_service,
+        event_type=WSEventType.SESSION_CLAIMED.value,
+        payload={
             "line_user_id": data.line_user_id,
             "session_id": session.id,
-            "status": session.status,
+            "status": session_status_value(session),
             "operator_id": current_user.id,
         },
-        "timestamp": _utcnow_isoformat(),
-    })
-
-    try:
-        await analytics_service.emit_live_kpis_update(db)
-    except Exception as e:
-        logger.warning("KPI broadcast failed (non-fatal): %s", e)
+        timestamp=_utcnow_isoformat(),
+    )
 
     return {
         "success": True,

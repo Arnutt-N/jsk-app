@@ -34,6 +34,7 @@ export function useConversationSync({ selectedIdRef, wsStatusRef }: UseConversat
 
   const searchParams = useSearchParams();
   const initializedRef = useRef<boolean>(false);
+  const acknowledgedThroughRef = useRef<Record<string, string | undefined>>({});
   const [focusedMessageId, setFocusedMessageId] = useState<number | null>(null);
 
   const fetchConversations = useCallback(async () => {
@@ -43,19 +44,7 @@ export function useConversationSync({ selectedIdRef, wsStatusRef }: UseConversat
       if (res.ok) {
         const data = await res.json();
         const fetched = data.conversations || data || [];
-        // L9.3 (unread fix): The backend may still return unread_count > 0 for
-        // the currently-open conversation (mark_conversation_read is async and
-        // the 5s polling may race ahead of it). Override to 0 locally so the
-        // sidebar badge disappears immediately when the user is viewing it.
-        const currentSelectedId = selectedIdRef.current;
-        if (currentSelectedId) {
-          const adjusted = fetched.map((c: { line_user_id: string; unread_count?: number }) =>
-            c.line_user_id === currentSelectedId ? { ...c, unread_count: 0 } : c
-          );
-          getStore().setConversations(adjusted);
-        } else {
-          getStore().setConversations(fetched);
-        }
+        getStore().setConversations(fetched);
         getStore().setBackendOnline(true);
       } else {
         getStore().setBackendOnline(false);
@@ -65,7 +54,40 @@ export function useConversationSync({ selectedIdRef, wsStatusRef }: UseConversat
     } finally {
       getStore().setLoading(false);
     }
-  }, [selectedIdRef]);
+  }, []);
+
+  const markConversationRead = useCallback(async (lineUserId: string, readAt?: string): Promise<boolean> => {
+    try {
+      const res = await fetch(`${API_BASE}/admin/live-chat/conversations/${encodeURIComponent(lineUserId)}/read`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(readAt ? { read_at: readAt } : {}),
+      });
+      if (!res.ok) return false;
+      const response = (await res.json()) as { read_at?: string };
+      const acknowledgedAt = response.read_at || readAt;
+      const previousBoundary = acknowledgedThroughRef.current[lineUserId];
+      if (
+        acknowledgedAt
+        && (!previousBoundary || Date.parse(acknowledgedAt) >= Date.parse(previousBoundary))
+      ) {
+        acknowledgedThroughRef.current[lineUserId] = acknowledgedAt;
+      }
+
+      const latestActivity = getStore().conversations.find(
+        (conversation) => conversation.line_user_id === lineUserId,
+      )?.last_user_activity_at;
+      // A newer inbound message may arrive while this request is in flight.
+      // Only clear the local badge when the successful acknowledgement covers
+      // the latest activity still visible in the sidebar.
+      if (!acknowledgedAt || !latestActivity || Date.parse(latestActivity) <= Date.parse(acknowledgedAt)) {
+        getStore().markRead(lineUserId);
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  }, []);
 
   const fetchChatDetail = useCallback(async (id: string, includeMessages = true) => {
     try {
@@ -100,12 +122,15 @@ export function useConversationSync({ selectedIdRef, wsStatusRef }: UseConversat
       unread = data.unread_count;
     } else if (!isSelected) {
       unread = idx === -1 ? 1 : (list[idx]?.unread_count || 0) + 1;
+    } else {
+      unread = idx === -1 ? 0 : (list[idx]?.unread_count || 0);
     }
-    // L9.3 (unread fix): If this conversation is currently selected (user is
-    // viewing it), force unread=0 regardless of what the backend says. The
-    // user is reading the messages in real-time, so they should not see a
-    // red badge for a room they have open.
-    if (isSelected) {
+    const acknowledgedThrough = acknowledgedThroughRef.current[data.line_user_id];
+    if (
+      acknowledgedThrough
+      && data.last_user_activity_at
+      && Date.parse(data.last_user_activity_at) <= Date.parse(acknowledgedThrough)
+    ) {
       unread = 0;
     }
     const existingConversation = idx >= 0 ? list[idx] : null;
@@ -165,15 +190,11 @@ export function useConversationSync({ selectedIdRef, wsStatusRef }: UseConversat
     });
     if (id) {
       window.history.replaceState(null, '', `/admin/live-chat?chat=${id}`);
-      // L9.4 (unread divider): Capture the unread count BEFORE clearing it,
-      // so ChatArea can render the UnreadDivider at the correct position.
+      // L9.4 (unread divider): Capture the unread count before the room is
+      // loaded. The badge is cleared only after an explicit read acknowledgement.
       const conv = getStore().conversations.find((c) => c.line_user_id === id);
       const unreadAtOpen = conv?.unread_count || 0;
       getStore().setInitialUnreadCount(unreadAtOpen);
-      const next = getStore().conversations.map((c) => (
-        c.line_user_id === id ? { ...c, unread_count: 0 } : c
-      ));
-      getStore().setConversations(next);
     } else {
       window.history.replaceState(null, '', '/admin/live-chat');
       getStore().setCurrentChat(null);
@@ -217,6 +238,7 @@ export function useConversationSync({ selectedIdRef, wsStatusRef }: UseConversat
   return {
     fetchConversations,
     fetchChatDetail,
+    markConversationRead,
     refreshConversationState,
     handleConversationUpdate,
     selectConversation,

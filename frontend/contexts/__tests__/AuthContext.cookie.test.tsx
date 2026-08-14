@@ -73,6 +73,7 @@ describe('AuthContext — cookie mode', () => {
   afterEach(() => {
     global.fetch = originalFetch;
     localStorage.clear();
+    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
@@ -114,6 +115,80 @@ describe('AuthContext — cookie mode', () => {
       expect(snapshot.current?.isLoading).toBe(false);
     });
     expect(snapshot.current?.isAuthenticated).toBe(false);
+  });
+
+  it('bootstrap retries a transient 5xx then authenticates', async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(503))
+      .mockResolvedValueOnce(jsonResponse(200, { ...ME_USER, csrf_token: 'csrf-1' }));
+    global.fetch = fetchMock;
+    const snapshot = makeSnapshot();
+    render(
+      <AuthProvider>
+        <TestConsumer snapshot={snapshot} />
+      </AuthProvider>,
+    );
+    await act(async () => {
+      await vi.runAllTimersAsync();
+    });
+    const meCalls = fetchMock.mock.calls.filter(
+      (c) => (c[0] as string).includes('/auth/me'),
+    );
+    expect(meCalls).toHaveLength(2);
+    expect(snapshot.current?.isAuthenticated).toBe(true);
+    expect(snapshot.current?.bootstrapFailed).toBe(false);
+  });
+
+  it('bootstrap exhausting transient retries → bootstrapFailed (NOT unauthenticated), retryBootstrap recovers', async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(503));
+    global.fetch = fetchMock;
+    const snapshot = makeSnapshot();
+    render(
+      <AuthProvider>
+        <TestConsumer snapshot={snapshot} />
+      </AuthProvider>,
+    );
+    await act(async () => {
+      await vi.runAllTimersAsync();
+    });
+    expect(
+      fetchMock.mock.calls.filter((c) => (c[0] as string).includes('/auth/me')),
+    ).toHaveLength(4);
+    expect(snapshot.current?.bootstrapFailed).toBe(true);
+    expect(snapshot.current?.isAuthenticated).toBe(false);
+    expect(snapshot.current?.isLoading).toBe(false);
+    // A guard must NOT have been sent to /login: auth state is unknown.
+    expect(hoisted.replace).not.toHaveBeenCalled();
+
+    // Backend recovers → retryBootstrap re-runs the bootstrap and succeeds.
+    fetchMock.mockResolvedValue(jsonResponse(200, { ...ME_USER, csrf_token: 'csrf-1' }));
+    await act(async () => {
+      snapshot.current?.retryBootstrap();
+      await vi.runAllTimersAsync();
+    });
+    expect(snapshot.current?.isAuthenticated).toBe(true);
+    expect(snapshot.current?.bootstrapFailed).toBe(false);
+  });
+
+  it('bootstrap network errors on all attempts → bootstrapFailed', async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'));
+    global.fetch = fetchMock;
+    const snapshot = makeSnapshot();
+    render(
+      <AuthProvider>
+        <TestConsumer snapshot={snapshot} />
+      </AuthProvider>,
+    );
+    await act(async () => {
+      await vi.runAllTimersAsync();
+    });
+    expect(snapshot.current?.bootstrapFailed).toBe(true);
+    expect(snapshot.current?.isAuthenticated).toBe(false);
+    expect(snapshot.current?.isLoading).toBe(false);
   });
 
   it('migrates legacy Bearer token then bootstraps (FR4)', async () => {

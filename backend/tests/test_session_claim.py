@@ -5,7 +5,7 @@ Tests for session claim workflow:
 - Claim without joining room first (error)
 - SESSION_CLAIMED broadcast to all operators
 """
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from typing import Optional
 from unittest.mock import AsyncMock, Mock, patch
@@ -13,6 +13,8 @@ from unittest.mock import AsyncMock, Mock, patch
 import pytest
 from pydantic import BaseModel
 from sqlalchemy.exc import IntegrityError
+
+from app.core.websocket_manager import ReadMarkerPersistenceError
 
 from app.api import deps
 from app.main import app
@@ -265,17 +267,90 @@ def test_send_message_rest_broadcasts_message_and_conversation_update(test_clien
         mock_send.assert_awaited_once()
         mock_recent.assert_awaited_once()
         mock_detail.assert_awaited_once()
-        mock_unread.assert_awaited_once()
-        mock_in_room.assert_awaited()
-        mock_mark_read.assert_awaited_once()
+        assert mock_unread.await_count == 2
+        mock_in_room.assert_not_awaited()
+        mock_mark_read.assert_not_awaited()
         mock_room_broadcast.assert_awaited_once()
         assert mock_send_admin.await_count == 2
         first_payload = mock_send_admin.await_args_list[0].args[1]
         second_payload = mock_send_admin.await_args_list[1].args[1]
         assert first_payload["type"] == "conversation_update"
         assert second_payload["type"] == "conversation_update"
-        assert first_payload["payload"]["unread_count"] == 0
+        assert first_payload["payload"]["unread_count"] == 3
         assert second_payload["payload"]["unread_count"] == 3
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_mark_conversation_read_uses_explicit_boundary(test_client):
+    mock_db = AsyncMock()
+    fake_user = SimpleNamespace(id=7)
+    line_user_id = "Uabcdef0123456789abcdef0123456789"
+    read_at = "2026-03-18T00:00:00+00:00"
+    stored_read_at = datetime.fromisoformat(read_at) + timedelta(minutes=1)
+
+    async def _override_get_db():
+        yield mock_db
+
+    async def _override_get_current_staff():
+        return fake_user
+
+    app.dependency_overrides[deps.get_db] = _override_get_db
+    app.dependency_overrides[deps.get_current_staff] = _override_get_current_staff
+
+    try:
+        with patch(
+            "app.api.v1.endpoints.admin_live_chat.live_chat_service.get_conversation_detail",
+            new=AsyncMock(return_value={"line_user_id": line_user_id}),
+        ), patch(
+            "app.api.v1.endpoints.admin_live_chat.ws_manager.mark_conversation_read",
+            new=AsyncMock(return_value=stored_read_at),
+        ) as mock_mark_read:
+            response = test_client.post(
+                f"/api/v1/admin/live-chat/conversations/{line_user_id}/read",
+                json={"read_at": read_at},
+            )
+
+        assert response.status_code == 200
+        assert response.json()["success"] is True
+        assert response.json()["read_at"] == stored_read_at.isoformat()
+        mock_mark_read.assert_awaited_once()
+        args = mock_mark_read.await_args.args
+        assert args[0:2] == ("7", line_user_id)
+        assert args[2].isoformat() == read_at
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_mark_conversation_read_returns_503_when_marker_cannot_persist(test_client):
+    mock_db = AsyncMock()
+    fake_user = SimpleNamespace(id=7)
+    line_user_id = "Uabcdef0123456789abcdef0123456789"
+
+    async def _override_get_db():
+        yield mock_db
+
+    async def _override_get_current_staff():
+        return fake_user
+
+    app.dependency_overrides[deps.get_db] = _override_get_db
+    app.dependency_overrides[deps.get_current_staff] = _override_get_current_staff
+
+    try:
+        with patch(
+            "app.api.v1.endpoints.admin_live_chat.live_chat_service.get_conversation_detail",
+            new=AsyncMock(return_value={"line_user_id": line_user_id}),
+        ), patch(
+            "app.api.v1.endpoints.admin_live_chat.ws_manager.mark_conversation_read",
+            new=AsyncMock(side_effect=ReadMarkerPersistenceError("redis unavailable")),
+        ):
+            response = test_client.post(
+                f"/api/v1/admin/live-chat/conversations/{line_user_id}/read",
+                json={"read_at": "2026-03-18T00:00:00+00:00"},
+            )
+
+        assert response.status_code == 503
+        assert response.json()["detail"] == "Unable to persist read status"
     finally:
         app.dependency_overrides.clear()
 

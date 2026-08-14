@@ -23,6 +23,7 @@ export class WebSocketClient {
   private heartbeatInterval?: ReturnType<typeof setInterval>;
   private reconnectTimeout?: ReturnType<typeof setTimeout>;
   private intentionalDisconnect = false;
+  private connectionGeneration = 0;
 
   private onMessage?: (message: WebSocketMessage) => void;
   private onConnect?: () => void;
@@ -50,8 +51,13 @@ export class WebSocketClient {
     if (options.heartbeatInterval) {
       this.heartbeatIntervalMs = options.heartbeatInterval;
     }
-    if (options.maxReconnectAttempts) {
+    if (options.maxReconnectAttempts !== undefined) {
       this.maxReconnectAttempts = options.maxReconnectAttempts;
+      this.reconnectStrategy = new ExponentialBackoffStrategy(
+        1000,
+        30000,
+        this.maxReconnectAttempts,
+      );
     }
   }
 
@@ -67,14 +73,15 @@ export class WebSocketClient {
 
     this.intentionalDisconnect = false;
     this.setState('connecting');
+    const generation = ++this.connectionGeneration;
 
     // Fire-and-forget: mint a fresh cross-origin ticket if a minter is
     // provided, then open the socket. Keeps connect() sync so callers
     // (useWebSocket useEffect, client.reconnect()) stay unchanged.
-    void this._openWithTicket();
+    void this._openWithTicket(generation);
   }
 
-  private async _openWithTicket(): Promise<void> {
+  private async _openWithTicket(generation: number): Promise<void> {
     // Cross-origin mode (P1.1b / PR 2B): mint a fresh single-use ticket
     // via Bearer <REDACTED> (no cookies). SameSite=Lax blocks cookie auth on
     // cross-origin handshakes, so external frontends pass the ticket via
@@ -84,15 +91,17 @@ export class WebSocketClient {
     if (this.queryTicketMinter) {
       try {
         const ticket = await this.queryTicketMinter();
+        if (!this.isCurrentGeneration(generation)) {
+          return;
+        }
         if (!ticket) {
-          this.intentionalDisconnect = true;
-          this.setState('disconnected');
           this.onError?.(new Error('Failed to mint WebSocket cross-origin ticket'));
+          this.attemptReconnect();
           return;
         }
         this.queryTicket = ticket;
       } catch (error) {
-        this.handleError(error as Error);
+        this.handleError(error as Error, undefined, generation);
         return;
       }
     }
@@ -102,18 +111,33 @@ export class WebSocketClient {
     }
 
     try {
-      this.ws = new WebSocket(url);
+      if (!this.isCurrentGeneration(generation)) {
+        return;
+      }
+      const socket = new WebSocket(url);
+      this.ws = socket;
 
-      this.ws.onopen = () => this.handleOpen();
-      this.ws.onmessage = (event) => this.handleMessage(event);
-      this.ws.onclose = () => this.handleClose();
-      this.ws.onerror = (error) => this.handleError(error as unknown as Error);
+      socket.onopen = () => this.handleOpen(socket, generation);
+      socket.onmessage = (event) => this.handleMessage(event, socket, generation);
+      socket.onclose = () => this.handleClose(socket, generation);
+      socket.onerror = (error) => this.handleError(error as unknown as Error, socket, generation);
     } catch (error) {
-      this.handleError(error as Error);
+      this.handleError(error as Error, undefined, generation);
     }
   }
 
-  private async handleOpen(): Promise<void> {
+  private isCurrentGeneration(generation: number): boolean {
+    return generation === this.connectionGeneration;
+  }
+
+  private isCurrentSocket(socket: WebSocket, generation: number): boolean {
+    return this.isCurrentGeneration(generation) && socket === this.ws;
+  }
+
+  private async handleOpen(socket: WebSocket, generation: number): Promise<void> {
+    if (!this.isCurrentSocket(socket, generation)) {
+      return;
+    }
     // Cross-origin (query-ticket) mode: the server already authenticated the
     // handshake via `?ticket=<raw>` URL param. Skip the first-frame auth and
     // jump directly to the connected state — the server pushes AUTH_SUCCESS
@@ -137,18 +161,22 @@ export class WebSocketClient {
     if (this.ticketMinter) {
       try {
         const ticket = await this.ticketMinter();
+        if (!this.isCurrentSocket(socket, generation)) {
+          return;
+        }
         if (!ticket) {
-          this.intentionalDisconnect = true;
-          this.setState('disconnected');
           this.onError?.(new Error('Failed to mint WebSocket auth ticket'));
+          this.attemptReconnect();
           this.ws?.close();
           return;
         }
         authPayload.ticket = ticket;
       } catch (error) {
-        this.intentionalDisconnect = true;
-        this.setState('disconnected');
+        if (!this.isCurrentSocket(socket, generation)) {
+          return;
+        }
         this.onError?.(error instanceof Error ? error : new Error('Ticket mint failed'));
+        this.attemptReconnect();
         this.ws?.close();
         return;
       }
@@ -160,7 +188,10 @@ export class WebSocketClient {
     this.sendRaw(MessageType.AUTH, authPayload);
   }
 
-  private handleMessage(event: MessageEvent): void {
+  private handleMessage(event: MessageEvent, socket: WebSocket, generation: number): void {
+    if (!this.isCurrentSocket(socket, generation)) {
+      return;
+    }
     try {
       const message: WebSocketMessage = JSON.parse(event.data);
 
@@ -198,12 +229,17 @@ export class WebSocketClient {
     }
   }
 
-  private handleClose(): void {
+  private handleClose(socket: WebSocket, generation: number): void {
+    if (!this.isCurrentSocket(socket, generation)) {
+      return;
+    }
     this.stopHeartbeat();
     this.ws = null;
 
     const wasConnected = this.state === 'connected';
-    this.setState('disconnected');
+    if (!this.reconnectTimeout) {
+      this.setState('disconnected');
+    }
 
     if (wasConnected) {
       this.onDisconnect?.();
@@ -219,7 +255,13 @@ export class WebSocketClient {
     this.attemptReconnect();
   }
 
-  private handleError(error: Error): void {
+  private handleError(error: Error, socket?: WebSocket, generation?: number): void {
+    if (generation !== undefined && !this.isCurrentGeneration(generation)) {
+      return;
+    }
+    if (socket && socket !== this.ws) {
+      return;
+    }
     this.onError?.(error);
 
     if (this.state === 'connecting' || this.state === 'authenticating') {
@@ -228,8 +270,12 @@ export class WebSocketClient {
   }
 
   private attemptReconnect(): void {
+    if (this.reconnectTimeout) {
+      return;
+    }
+
     if (!this.reconnectStrategy.shouldRetry(this.reconnectAttempt)) {
-      this.setState('disconnected');
+      this.setState('failed');
       return;
     }
 
@@ -239,6 +285,7 @@ export class WebSocketClient {
     const delay = this.reconnectStrategy.getDelay(this.reconnectAttempt);
 
     this.reconnectTimeout = setTimeout(() => {
+      this.reconnectTimeout = undefined;
       this.connect();
     }, delay);
   }
@@ -324,6 +371,8 @@ export class WebSocketClient {
 
   disconnect(): void {
     this.stopHeartbeat();
+    this.connectionGeneration++;
+    this.intentionalDisconnect = true;
 
     if (this.reconnectTimeout) {
       clearTimeout(this.reconnectTimeout);
@@ -331,7 +380,6 @@ export class WebSocketClient {
     }
 
     if (this.ws) {
-      this.intentionalDisconnect = true;
       this.ws.close();
       this.ws = null;
     }

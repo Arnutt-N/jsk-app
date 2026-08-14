@@ -46,6 +46,20 @@
       "status": "completed"
     },
     {
+      "timestamp": "2026-08-06T06:03:00+07:00",
+      "platform": "codex",
+      "branch": "fix/live-chat-post-merge-races",
+      "head": "eb9e93a",
+      "status": "completed"
+    },
+    {
+      "timestamp": "2026-08-05T14:19:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "e693a9a",
+      "status": "completed"
+    },
+    {
       "timestamp": "2026-08-05T07:52:00+07:00",
       "platform": "claude_code",
       "branch": "main",
@@ -148,6 +162,27 @@
       "platform": "qoder",
       "branch": "main",
       "head": "2314197",
+      "status": "completed"
+    },
+    {
+      "timestamp": "2026-07-30T08:33:00+07:00",
+      "platform": "qoder",
+      "branch": "main",
+      "head": "cfa9ed0",
+      "status": "completed"
+    },
+    {
+      "timestamp": "2026-07-30T07:16:00+07:00",
+      "platform": "qoder",
+      "branch": "refactor/live-chat-frontend",
+      "head": "d1b47f7",
+      "status": "completed"
+    },
+    {
+      "timestamp": "2026-07-30T06:09:00+07:00",
+      "platform": "qoder",
+      "branch": "feat/apifetch-adapter",
+      "head": "cd3effb",
       "status": "completed"
     }
   ],

@@ -17,6 +17,7 @@ const getStore = () => useLiveChatStore.getState();
 
 interface UseSessionEventsDeps {
   fetchConversations: () => Promise<void>;
+  fetchChatDetail?: (id: string, includeMessages?: boolean) => Promise<void>;
   wsStatusRef: RefObject<ConnectionState>;
   selectedIdRef: RefObject<string | null>;
   currentUserId: number;
@@ -30,6 +31,7 @@ interface UseSessionEventsDeps {
  */
 export function useSessionEvents({
   fetchConversations,
+  fetchChatDetail = async () => undefined,
   wsStatusRef,
   selectedIdRef,
   currentUserId,
@@ -56,9 +58,12 @@ export function useSessionEvents({
           type: 'system',
           variant: 'success',
         });
+        void fetchConversations();
+        const selectedId = selectedIdRef.current;
+        if (selectedId) void fetchChatDetail(selectedId, true);
       }
     }
-  }, [wsStatusRef]);
+  }, [fetchChatDetail, fetchConversations, selectedIdRef, wsStatusRef]);
 
   const onTyping = useCallback((lineUserId: string, adminId: string, isTyping: boolean) => {
     if (lineUserId !== selectedIdRef.current) return;

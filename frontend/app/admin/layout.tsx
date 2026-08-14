@@ -36,15 +36,18 @@ interface MenuItem {
 }
 
 function AdminAuthGate({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { isAuthenticated, isLoading, user, bootstrapFailed, retryBootstrap } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    // bootstrapFailed = auth state UNKNOWN (transient backend failure) —
+    // bouncing to /login here would discard a valid session; show the
+    // retry UI below instead.
+    if (!isLoading && !isAuthenticated && !bootstrapFailed) {
       router.replace('/login');
     }
-  }, [isAuthenticated, isLoading, router]);
+  }, [isAuthenticated, isLoading, bootstrapFailed, router]);
 
   useEffect(() => {
     if (isLoading || !isAuthenticated || !user) {
@@ -59,6 +62,25 @@ function AdminAuthGate({ children }: { children: React.ReactNode }) {
       router.replace('/admin/live-chat');
     }
   }, [isAuthenticated, isLoading, pathname, router, user]);
+
+  if (bootstrapFailed) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center gap-4 bg-gray-50 dark:bg-gray-900 px-6 text-center">
+        <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
+          ไม่สามารถตรวจสอบสถานะการเข้าสู่ระบบได้ในขณะนี้
+        </p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          ระบบอาจกำลังเริ่มทำงานหรือเครือข่ายมีปัญหาชั่วคราว กรุณาลองใหม่อีกครั้ง
+        </p>
+        <button
+          onClick={retryBootstrap}
+          className="mt-2 px-5 py-2.5 rounded-xl bg-brand-600 text-white text-sm font-semibold hover:bg-brand-700 transition-colors cursor-pointer"
+        >
+          ลองใหม่
+        </button>
+      </div>
+    );
+  }
 
   if (isLoading || !isAuthenticated) {
     return (
