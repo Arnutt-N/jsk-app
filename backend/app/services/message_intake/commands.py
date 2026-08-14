@@ -5,11 +5,33 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.service_request import ServiceRequest
-from app.services.flex_messages import build_request_status_list
+from app.services.flex_messages import build_booking_list, build_request_status_list
 
 from ._deps import get_line_service
 
 logger = logging.getLogger(__name__)
+
+# Text a citizen might send to ask about their appointment. Matched on the whole
+# message (like "ติดตาม"/"สถานะ" above) rather than as a substring, so an
+# ordinary sentence mentioning a queue still falls through to intent matching.
+BOOKING_QUERY_KEYWORDS = frozenset({"คิว", "คิวของฉัน", "นัดหมาย", "จองคิว", "ดูคิว"})
+
+
+async def handle_check_booking(line_user_id: str, reply_token: str, db: AsyncSession):
+    """Reply with the citizen's own bookings as a Flex bubble."""
+    line_svc = get_line_service()
+    try:
+        from app.services.booking_service import list_user_bookings
+        from app.services.user_identity_service import resolve_by_line_id
+
+        user = await resolve_by_line_id(db, line_user_id)
+        bookings = await list_user_bookings(db, user.id) if user else []
+
+        flex_content = build_booking_list(bookings)
+        await line_svc.reply_flex(reply_token, "คิวนัดหมายของคุณ", flex_content)
+    except Exception as e:
+        logger.error(f"Error checking bookings for {line_user_id}: {e}")
+        await line_svc.reply_text(reply_token, "ขออภัย ไม่สามารถดึงข้อมูลคิวนัดหมายได้ในขณะนี้")
 
 
 async def handle_check_status(line_user_id: str, reply_token: str, db: AsyncSession):

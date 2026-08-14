@@ -15,6 +15,7 @@ import {
     ChevronRight,
     RefreshCw,
     ShieldCheck,
+    CalendarCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { logger } from '@/lib/logger';
@@ -154,6 +155,28 @@ export default function SettingsOverviewPage() {
                                                 <CardTitle>การกำหนดสิทธิ์</CardTitle>
                                                 <CardDescription>
                                                     กำหนดว่า role ใดสามารถมอบหมายงาน รับเรื่องเอง และแก้ไขการตั้งค่าได้
+                                                </CardDescription>
+                                            </div>
+                                        </div>
+                                        <ChevronRight className="w-5 h-5 text-text-tertiary" />
+                                    </div>
+                                </CardHeader>
+                            </Card>
+                        </Link>
+                    </StaggerItem>
+                    <StaggerItem>
+                        <Link href="/admin/settings/booking">
+                            <Card hover="border" className="h-full">
+                                <CardHeader>
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-900/30 flex items-center justify-center">
+                                                <CalendarCheck className="w-5 h-5 text-brand-500" />
+                                            </div>
+                                            <div>
+                                                <CardTitle>การจองคิวนัดหมาย</CardTitle>
+                                                <CardDescription>
+                                                    บริการที่เปิดจอง ช่วงเวลา วันหยุดพิเศษ และการแจ้งเตือนล่วงหน้า
                                                 </CardDescription>
                                             </div>
                                         </div>

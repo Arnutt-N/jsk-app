@@ -1,8 +1,53 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 213 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 218 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-08-14 06:49 — claude_code (Claude Opus 5 / Anthropic) — completed
+
+Code review of the booking branch found a plaintext PROD admin password committed to this PUBLIC repo since PR #65. Rotated it on Supabase and verified by reading the hash back (new accepted, old rejected); removed both exposed lines. A full tracked-tree scan found nothing else - no API keys, JWTs, private keys, and no .env has ever been committed. Also applied the three review follow-ups to the concurrency fixture. Suite unchanged at 870 passed / 0 failed / 60 Redis-only errors.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260814-0649.json`
+- Summary: `project-log-md/claude_code/session-summary-20260814-0649.md`
+
+---
+
+### 2026-08-14 05:42 — claude_code (Claude Opus 5 / Anthropic) — completed
+
+Closed the booking verification gap that blocked the previous session: brought up PostgreSQL 16 from WSL as an unprivileged cluster (Docker still blocked by UAC), ran the migration for real (upgrade head from empty, alembic check --target local clean, downgrade -1 precise, re-upgrade, check clean), and got the 4 concurrency tests executing for the first time ever. Backend full suite now 870 passed / 0 failed / 60 Redis-only errors. Uncommitted work is a fix to tests/test_booking_create_concurrency.py.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260814-0542.json`
+- Summary: `project-log-md/claude_code/session-summary-20260814-0542.md`
+
+---
+
+### 2026-08-13 07:02 — claude_code (Claude Opus 5 / Anthropic) — completed
+
+Booking + appointment reminders shipped to branch feat/booking-appointments as 7 conventional commits (172a21e..5164928). Both pipeline gates honoured. Tests green: backend 129 passed/4 skipped for the feature, frontend 482 (full) + 38 (booking). Outstanding: the migration has never been executed and `alembic check --target remote` has never run, because Docker was down for the whole session.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260813-0702.json`
+- Summary: `project-log-md/claude_code/session-summary-20260813-0702.md`
+
+---
+
+### 2026-08-12 21:03 — claude_code (Claude Opus 5 / Anthropic) — in_progress
+
+Booking + appointment reminders (orch-add-feature, tier=large): all 10 planned slices implemented TDD-first and green — backend 129 passed/4 skipped, frontend 482 (full suite) + 38 (booking) passed, tsc and eslint clean. PAUSED AT GATE 2: the ~5180-line feature diff across 34 files is deliberately UNCOMMITTED pending the user's commit approval. Only the handoff artifacts are committed.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260812-2103.json`
+- Summary: `project-log-md/claude_code/session-summary-20260812-2103.md`
+
+---
+
+### 2026-08-12 18:28 — claude_code (Claude Opus 5 / Anthropic) — in_progress
+
+orch-add-feature pipeline for booking + appointment reminders: ran Phase 0 (size=large), Phase 1 (research/reuse) and Phase 2 (plan). Plan written to .claude/PRPs/plans/booking-and-reminder.plan.md. PAUSED AT GATE 1 - no implementation code written yet, awaiting user approval.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260812-1828.json`
+- Summary: `project-log-md/claude_code/session-summary-20260812-1828.md`
+
+---
 
 ### 2026-08-06 06:03 — codex — completed
 

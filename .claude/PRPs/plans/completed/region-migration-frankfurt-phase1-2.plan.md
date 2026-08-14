@@ -191,7 +191,9 @@ DATABASE_URL=postgresql+asyncpg://postgres.PROJECT_REF:PASSWORD@aws-1-REGION.poo
   ```bash
   cd /mnt/d/genAI/jsk-app/backend
   source venv_linux/bin/activate
-  export ADMIN_DEFAULT_PASSWORD="adminjsk4p0"
+  # Never write the real value here — this repo is public.
+  # Read it from the untracked secrets/secret-keys.txt (JSK_PROD_ADMIN_PASSWORD).
+  export ADMIN_DEFAULT_PASSWORD="$JSK_PROD_ADMIN_PASSWORD"
   python scripts/seed_admin.py --apply
   ```
 - **MIRROR**: Seed script reads from resolved env file (backend/.env for remote)
@@ -274,7 +276,7 @@ python run.py --target local  # temporarily point to Frankfurt
 # Then test login
 curl -X POST http://localhost:8000/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"adminjsk4p0"}'
+  -d "{\"username\":\"admin\",\"password\":\"$JSK_PROD_ADMIN_PASSWORD\"}"
 ```
 EXPECT: Returns JWT token
 

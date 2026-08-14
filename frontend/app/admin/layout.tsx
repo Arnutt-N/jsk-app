@@ -12,7 +12,7 @@ import {
   LayoutDashboard, FileText, Bot, MessageCircle,
   Reply, MessageSquareReply, MessageSquareText, PanelTop, Users,
   UserCog, BarChart3, Megaphone, FolderOpen,
-  Settings, Palette, Shield, History, Scaling, Activity,
+  Settings, Palette, Shield, History, Scaling, Activity, CalendarCheck,
 } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
@@ -184,6 +184,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
       items: [
         { name: 'Dashboard', href: '/admin', icon: LayoutDashboard, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'DIRECTOR', 'HEAD'] },
         { name: 'Manage Requests', href: '/admin/requests', icon: FileText, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'DIRECTOR', 'HEAD'] },
+        { name: 'Appointments', href: '/admin/bookings', icon: CalendarCheck, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'DIRECTOR', 'HEAD', 'AGENT'] },
       ]
     },
     {

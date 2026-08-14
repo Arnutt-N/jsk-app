@@ -1,0 +1,140 @@
+import { describe, expect, test } from 'vitest'
+import {
+  BOOKING_STATUS_LABELS,
+  buildDateOptions,
+  describeReminder,
+  formatThaiDate,
+  formatThaiWeekday,
+  formatTime,
+  groupSlotsByPeriod,
+  parseISODate,
+  toISODate,
+  type Slot,
+} from '@/lib/booking'
+
+function slot(time: string, overrides: Partial<Slot> = {}): Slot {
+  return { time, capacity: 3, booked: 0, remaining: 3, is_full: false, ...overrides }
+}
+
+describe('date parsing', () => {
+  test('parses an ISO date as local time, not UTC', () => {
+    // `new Date('2026-08-19')` is UTC midnight, which renders as the 18th in
+    // any timezone behind UTC — Bangkok is ahead, but the bug is real elsewhere.
+    const parsed = parseISODate('2026-08-19')
+    expect(parsed.getFullYear()).toBe(2026)
+    expect(parsed.getMonth()).toBe(7)
+    expect(parsed.getDate()).toBe(19)
+  })
+
+  test('round-trips through toISODate', () => {
+    expect(toISODate(parseISODate('2026-08-19'))).toBe('2026-08-19')
+  })
+
+  test('pads single-digit months and days', () => {
+    expect(toISODate(new Date(2026, 0, 5))).toBe('2026-01-05')
+  })
+})
+
+describe('formatThaiDate', () => {
+  test('renders the Buddhist era', () => {
+    expect(formatThaiDate('2026-08-19')).toBe('19 ส.ค. 2569')
+  })
+
+  test('handles the first and last month', () => {
+    expect(formatThaiDate('2026-01-01')).toBe('1 ม.ค. 2569')
+    expect(formatThaiDate('2026-12-31')).toBe('31 ธ.ค. 2569')
+  })
+
+  test('returns a dash for an empty value rather than "NaN"', () => {
+    expect(formatThaiDate('')).toBe('-')
+  })
+
+  test('gives the Thai weekday abbreviation', () => {
+    expect(formatThaiWeekday('2026-08-19')).toBe('พ.') // a Wednesday
+  })
+})
+
+describe('formatTime', () => {
+  test('trims seconds off the API value', () => {
+    expect(formatTime('09:30:00')).toBe('09:30')
+  })
+
+  test('leaves an already-trimmed value alone', () => {
+    expect(formatTime('09:30')).toBe('09:30')
+  })
+
+  test('returns a dash when missing', () => {
+    expect(formatTime('')).toBe('-')
+  })
+})
+
+describe('buildDateOptions', () => {
+  const today = new Date(2026, 7, 12) // 12 Aug 2026
+
+  test('includes today and spans the full advance window', () => {
+    const options = buildDateOptions(today, 3)
+    expect(options).toEqual(['2026-08-12', '2026-08-13', '2026-08-14', '2026-08-15'])
+  })
+
+  test('removes blackout dates', () => {
+    const options = buildDateOptions(today, 3, ['2026-08-13', '2026-08-15'])
+    expect(options).toEqual(['2026-08-12', '2026-08-14'])
+  })
+
+  test('crosses a month boundary correctly', () => {
+    const options = buildDateOptions(new Date(2026, 7, 30), 2)
+    expect(options).toEqual(['2026-08-30', '2026-08-31', '2026-09-01'])
+  })
+
+  test('an advance window of zero still offers today', () => {
+    expect(buildDateOptions(today, 0)).toEqual(['2026-08-12'])
+  })
+})
+
+describe('groupSlotsByPeriod', () => {
+  test('splits at noon, with 12:00 counting as afternoon', () => {
+    const { morning, afternoon } = groupSlotsByPeriod([
+      slot('08:00:00'),
+      slot('11:30:00'),
+      slot('12:00:00'),
+      slot('15:00:00'),
+    ])
+    expect(morning.map((s) => s.time)).toEqual(['08:00:00', '11:30:00'])
+    expect(afternoon.map((s) => s.time)).toEqual(['12:00:00', '15:00:00'])
+  })
+
+  test('handles an empty list', () => {
+    expect(groupSlotsByPeriod([])).toEqual({ morning: [], afternoon: [] })
+  })
+})
+
+describe('describeReminder', () => {
+  test('describes a day-based lead time', () => {
+    expect(
+      describeReminder({ reminder_enabled: true, reminder_lead_value: 1, reminder_lead_unit: 'DAY' }),
+    ).toBe('แจ้งเตือนล่วงหน้า 1 วัน ก่อนถึงเวลานัด')
+  })
+
+  test('describes an hour-based lead time', () => {
+    expect(
+      describeReminder({ reminder_enabled: true, reminder_lead_value: 3, reminder_lead_unit: 'HOUR' }),
+    ).toBe('แจ้งเตือนล่วงหน้า 3 ชั่วโมง ก่อนถึงเวลานัด')
+  })
+
+  test('says so plainly when reminders are off', () => {
+    expect(
+      describeReminder({ reminder_enabled: false, reminder_lead_value: 1, reminder_lead_unit: 'DAY' }),
+    ).toBe('ปิดการแจ้งเตือนล่วงหน้า')
+  })
+})
+
+describe('status labels', () => {
+  test('every status has a Thai label', () => {
+    expect(Object.keys(BOOKING_STATUS_LABELS).sort()).toEqual(
+      ['CANCELLED', 'COMPLETED', 'CONFIRMED', 'NOSHOW'],
+    )
+    for (const label of Object.values(BOOKING_STATUS_LABELS)) {
+      expect(label.length).toBeGreaterThan(0)
+    }
+  })
+})

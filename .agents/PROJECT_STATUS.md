@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-08-06 06:03 by Codex (PRs #185/#186 merged: live-chat presence, unread, connection UX, and race hardening)
+> **Last Updated:** 2026-08-14 06:49 by Claude Code (Code review of the booking branch found a plaintext PROD admin password committed to this )
 
 ## Thai Summary
 **PR C gate เคยขึ้น fail และแก้แล้ว** — การอ่าน `GET /api/v1/health/pseudonym-gate` แบบ authenticated ครั้งแรก (30 ก.ค.) ได้ `gate_status: fail`, `fallback_hit_count: 176` สาเหตุ: 6 จาก 8 LINE users บน prod (`users.id` 1,5,6,7,8,9) มี `line_user_id_hash` ที่คำนวณด้วย **dev fallback HMAC key** เพราะ process ที่ตั้ง `ENVIRONMENT=development` แต่ชี้ remote DB เขียนลงไป (`_get_hmac_key` fallback เงียบ) และ `resolve_many_by_line_id` นับ hit แต่ไม่ซ่อม row จึงถูกนับซ้ำทุก admin poll — ซ่อม prod แล้ว (re-hash 6 rows + ล้าง Redis counter) ตอนนี้ gate อ่านได้ `pass` / `0`
@@ -84,6 +84,11 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-08-14 06:49] Claude Code: Code review of the booking branch found a plaintext PROD admin password committed to this PUBLIC repo since PR #65. Rotated it on Supabase and verified by reading the hash back (new accepted, old rejected); removed both exposed lines. A ful (Claude Code)
+- [2026-08-14 05:42] Claude Code: Closed the booking verification gap that blocked the previous session: brought up PostgreSQL 16 from WSL as an unprivileged cluster (Docker still blocked by UAC), ran the migration for real (upgrade head from empty, alembic check --target l (Claude Code)
+- [2026-08-13 07:02] Claude Code: Booking + appointment reminders SHIPPED to branch feat/booking-appointments as 7 conventional commits (172a21e..5164928). Gate 1 and Gate 2 both honoured. Supersedes the 20260812-2103 checkpoint, which described the diff as uncommitted. (Claude Code)
+- [2026-08-12 21:03] Claude Code: Booking + appointment reminders: all 10 slices implemented and green (backend 129 passed/4 skipped, frontend 482+38 passed). PAUSED AT GATE 2 - feature diff is deliberately UNCOMMITTED pending user approval. (Claude Code)
+- [2026-08-12 18:28] Claude Code: Planned booking + appointment reminder feature (orch-add-feature Phase 0-2); plan doc written, awaiting Gate 1 approval (Claude Code)
 - [2026-08-06 06:03] Codex: PRs #185/#186 merged; final post-merge review and main CI/CD passed. Manual production LINE/admin smoke remains. (Codex)
 - [2026-08-05 14:19] Claude Code: PR #184 merged (squash e693a9a): closed all 3 HIGH correctness defects from the 2026-08-02 architecture review — backend now enforces the request state machine (with an explicit supervisor-override path), every status transition is audited, (Claude Code)
 - [2026-08-05 07:52] Claude Code: PR #183 merged (squash 9da4b1a): alembic check against Supabase PROD now reports No new upgrade operations detected - closed the autogenerate trap that would have dropped 8 live indexes incl. the pseudonym uniqueness guards (Claude Code)
