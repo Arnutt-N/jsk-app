@@ -81,12 +81,31 @@ describe('the day list', () => {
     expect(await screen.findByText('ไม่มีการจองในวันที่เลือก')).toBeInTheDocument()
   })
 
-  it('requests the selected date from the API', async () => {
+  it('requests all days by default (no date param)', async () => {
     await renderLoaded()
     await waitFor(() => {
       const [url] = fetchMock.mock.calls[0]
-      expect(String(url)).toContain('/api/v1/admin/bookings?date=')
+      expect(String(url)).not.toContain('date=')
     })
+  })
+
+  it('requests the selected date when one is chosen', async () => {
+    const user = userEvent.setup()
+    await renderLoaded()
+
+    await user.type(screen.getByLabelText('วันที่'), '2026-08-19')
+
+    await waitFor(() => {
+      const call = fetchMock.mock.calls.find(
+        ([url]) => String(url).includes('date=2026-08-19'),
+      )
+      expect(call).toBeTruthy()
+    })
+  })
+
+  it('says "ทุกวัน" in the footer when no date is selected', async () => {
+    await renderLoaded()
+    expect(await screen.findByText('แสดงรายการทุกวัน')).toBeInTheDocument()
   })
 })
 
