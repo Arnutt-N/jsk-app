@@ -1,0 +1,19 @@
+{
+  "handoff_version": "2.0",
+  "platform": "open_code",
+  "agent": "open_code",
+  "timestamp": "2026-08-15T14:50:00+07:00",
+  "branch": "main",
+  "head_commit": "2818c6e",
+  "status": "completed",
+  "work_summary": "LIFF root-endpoint migration shipped: PR #190 (LiffStateBoot — completes LIFF secondary redirect when landing reached with liff.state) + PR #191 (splash overlay per Codex UX report: JSK brand mark + 'กำลังเปิดบริการ...' + 250ms-delayed spinner). Root cause chain: LIFF path-append rule (APPEND not REPLACE) -> single LIFF app + root endpoint chosen -> path-appended URLs stranded users on home page (primary redirect lands on landing which never ran liff.init) -> fixed by boot component; second root cause: NEXT_PUBLIC_LIFF_ID was never set on Vercel (user set it + redeployed). Both PRs merged, CD deployed, verified live in prod bundle (splash strings in chunk b849b3b1). Also drafted manual booking test checklist + booking-list-filter issue in .scratch/liff-booking-test/ (untracked by design).",
+  "priority_actions": [
+    "User re-tests https://liff.line.me/{liffId}/liff/booking in LINE (expect: splash -> booking page, no home flash)",
+    "Run manual booking test per .scratch/liff-booking-test/manual-test-checklist.md (preconditions 0.1-0.8 already verified: endpoint root, no rich menus in prod, env set)",
+    "Implement fix/booking-list-filter per approved plan: list_user_bookings filter CONFIRMED+upcoming asc + include_past param for /liff/bookings/me, TDD 4 tests in test_booking_list.py, issue doc .scratch/liff-booking-test/issue-booking-list-filter.md",
+    "Known CI flake: Turbopack Google Fonts 404 on frontend build (rerun works)"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/open_code/session-summary-20260815-1450.md",
+  "cross_platform_read": []
+}

@@ -1,15 +1,22 @@
 {
-  "last_updated": "2026-08-14T23:06:00+07:00",
-  "platform": "claude_code",
-  "current_task": "Shipped the booking feature to production. PR #189 squash-merged to main (84ec230) with all CI green; CD then migrated Supabase PROD to e6f7g8h9i0j1 and redeployed Koyeb, and the post-deploy alembic c",
+  "last_updated": "2026-08-15T14:50:00+07:00",
+  "platform": "open_code",
+  "current_task": "LIFF root-endpoint migration shipped: PR #190 (LiffStateBoot — completes LIFF secondary redirect when landing reached with liff.state) + PR #191 (splash overlay per Codex UX report: JSK brand mark + '",
   "plan_status": "completed",
   "next_steps": [
-    "Manual LINE test - needs a LIFF ID from the LINE console; citizens cannot reach /liff/booking yet because the rich-menu entry is deliberately not built",
-    "Move the new admin password from secrets/secret-keys.txt into a password manager",
-    "CD is ACTIVE - any merge to main migrates PROD and redeploys with no human step; the skipping Detect Deployment Scope job on a PR is only a branch guard",
-    "Redis still cannot be installed in WSL (no gcc, apt needs the sudo password) so the 60 live-chat tests stay CI-only"
+    "User re-tests https://liff.line.me/{liffId}/liff/booking in LINE (expect: splash -> booking page, no home flash)",
+    "Run manual booking test per .scratch/liff-booking-test/manual-test-checklist.md (preconditions 0.1-0.8 already verified: endpoint root, no rich menus in prod, env set)",
+    "Implement fix/booking-list-filter per approved plan: list_user_bookings filter CONFIRMED+upcoming asc + include_past param for /liff/bookings/me, TDD 4 tests in test_booking_list.py, issue doc .scratch/liff-booking-test/issue-booking-list-filter.md",
+    "Known CI flake: Turbopack Google Fonts 404 on frontend build (rerun works)"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-08-15T14:50:00+07:00",
+      "platform": "open_code",
+      "branch": "main",
+      "head": "2818c6e",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-08-14T23:06:00+07:00",
       "platform": "claude_code",
@@ -141,13 +148,6 @@
       "platform": "claude_code",
       "branch": "fix/live-chat-sidebar-row-resort",
       "head": "44b5bba",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-08-01T21:18:00+07:00",
-      "platform": "claude_code",
-      "branch": "fix/live-chat-sidebar-row-resort",
-      "head": "8befa17",
       "status": "completed"
     }
   ],

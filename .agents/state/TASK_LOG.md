@@ -1,10 +1,19 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 219 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 220 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
 
-### 2026-08-14 23:06 — claude_code — completed
+### 2026-08-15 14:50 — open_code — completed
+
+LIFF root-endpoint migration shipped: PR #190 (LiffStateBoot — completes LIFF secondary redirect when landing reached with liff.state) + PR #191 (splash overlay per Codex UX report: JSK brand mark + 'กำลังเปิดบริการ...' + 250ms-delayed spinner). Root cause chain: LIFF path-append rule (APPEND not REPLACE) -> single LIFF app + root endpoint chosen -> path-appended URLs stranded users on home page (primary redirect lands on landing which never ran liff.init) -> fixed by boot component; second root cause: NEXT_PUBLIC_LIFF_ID was never set on Vercel (user set it + redeployed). Both PRs merged, CD deployed, verified live in prod bundle (splash strings in chunk b849b3b1). Also drafted manual booking test checklist + booking-list-filter issue in .scratch/liff-booking-test/ (untracked by design).
+
+- Checkpoint: `.agents/state/checkpoints/handover-open_code-20260815-1450.json`
+- Summary: `project-log-md/open_code/session-summary-20260815-1450.md`
+
+---
+
+### 2026-08-14 23:06 — claude_code (Claude Opus 5 / Anthropic) — completed
 
 Shipped the booking feature to production. PR #189 squash-merged to main (84ec230) with all CI green; CD then migrated Supabase PROD to e6f7g8h9i0j1 and redeployed Koyeb, and the post-deploy alembic check --target remote now reports no drift. Earlier in the session a plaintext PROD admin password was found in this PUBLIC repo and rotated, and the leftover test_deactivated admin account was deleted from PROD after confirming all 23 FKs pointed at zero rows.
 
