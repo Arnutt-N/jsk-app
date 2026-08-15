@@ -1,7 +1,6 @@
 'use client'
 
-import Script from 'next/script'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 
 /**
  * Completes the LIFF primary→secondary redirect chain when the landing page
@@ -16,24 +15,19 @@ import { useEffect, useState } from 'react'
  * nothing extra and see the landing page unchanged.
  */
 export function LiffStateBoot() {
-  const [needsBoot, setNeedsBoot] = useState(false)
-
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const liffId = process.env.NEXT_PUBLIC_LIFF_ID
-    if (params.has('liff.state') && liffId) {
-      setNeedsBoot(true)
-    }
-  }, [])
+    if (!params.has('liff.state') || !liffId) return
 
-  useEffect(() => {
-    if (!needsBoot) return
+    const script = document.createElement('script')
+    script.src = 'https://static.line-scdn.net/liff/edge/2/sdk.js'
+    script.async = true
+    document.head.appendChild(script)
 
     const timer = window.setInterval(() => {
       if (window.liff) {
         window.clearInterval(timer)
-        const liffId = process.env.NEXT_PUBLIC_LIFF_ID
-        if (!liffId) return
         window.liff
           .init({ liffId })
           .catch(() => {
@@ -47,10 +41,9 @@ export function LiffStateBoot() {
     return () => {
       window.clearInterval(timer)
       window.clearTimeout(giveUp)
+      script.remove()
     }
-  }, [needsBoot])
+  }, [])
 
-  if (!needsBoot) return null
-
-  return <Script src="https://static.line-scdn.net/liff/edge/2/sdk.js" strategy="afterInteractive" />
+  return null
 }
