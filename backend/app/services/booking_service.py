@@ -145,11 +145,15 @@ def compute_slots(
         return []
 
     open_at = _parse_hhmm(day_hours.open_time)
-    close_at = _parse_hhmm(day_hours.close_time)
 
     slots: list[SlotAvailability] = []
     cursor = datetime.combine(target_date, open_at)
-    closing = datetime.combine(target_date, close_at)
+    if day_hours.close_time == "24:00":
+        # datetime.time cannot hold 24:00; express "until midnight" as the next
+        # day's 00:00 so the last slot of the day still fits entirely inside.
+        closing = datetime.combine(target_date + timedelta(days=1), time(0, 0))
+    else:
+        closing = datetime.combine(target_date, _parse_hhmm(day_hours.close_time))
     step = timedelta(minutes=config.slot_minutes)
 
     # `cursor + step <= closing` rather than `cursor < closing`: a slot must fit

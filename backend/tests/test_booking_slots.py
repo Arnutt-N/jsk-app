@@ -111,6 +111,14 @@ def test_slots_cover_opening_hours_at_the_configured_interval():
     assert slots[-1].start == time(16, 30)
 
 
+def test_close_24_00_covers_the_full_day():
+    """The chatbot serves 24/7: "24:00" close must not drop the late slots."""
+    slots = _slots(day_hours=_hours(open_time="00:00", close_time="24:00"))
+    assert slots[0].start == time(0, 0)
+    assert slots[-1].start == time(23, 30)
+    assert len(slots) == 48
+
+
 def test_a_slot_that_would_run_past_closing_is_dropped():
     """With 45-minute slots and a 17:00 close, 16:30 would end at 17:15."""
     slots = _slots(config=_config(slot_minutes=45))
