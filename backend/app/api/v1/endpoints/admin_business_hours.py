@@ -26,13 +26,17 @@ router = APIRouter()
 _PLACEHOLDER_TIMES = {"open_time": "08:00", "close_time": "17:00"}
 
 
+async def _rows_by_weekday(db: AsyncSession) -> dict[int, BusinessHours]:
+    result = await db.execute(select(BusinessHours))
+    return {row.day_of_week: row for row in result.scalars().all()}
+
+
 @router.get("", response_model=BusinessHoursOut, summary="Read weekly business hours")
 async def get_business_hours(
     db: AsyncSession = Depends(get_db),
     _staff: User = Depends(get_current_staff),
 ):
-    result = await db.execute(select(BusinessHours))
-    rows = {row.day_of_week: row for row in result.scalars().all()}
+    rows = await _rows_by_weekday(db)
     days = []
     for weekday in range(7):
         row = rows.get(weekday)
@@ -56,8 +60,7 @@ async def update_business_hours(
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(get_current_admin),
 ):
-    result = await db.execute(select(BusinessHours))
-    rows = {row.day_of_week: row for row in result.scalars().all()}
+    rows = await _rows_by_weekday(db)
     for day in payload.days:
         row = rows.get(day.day_of_week)
         if row is None:

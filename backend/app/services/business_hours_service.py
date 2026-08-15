@@ -66,19 +66,18 @@ class BusinessHoursService:
                 continue
 
             open_t = _parse_time(hours.open_time)
-            close_24h = hours.close_time == FULL_DAY_CLOSE
-            close_t = None if close_24h else _parse_time(hours.close_time)
 
             if days_ahead == 0:
                 if current_time < open_t:
                     return f"วันนี้ เวลา {hours.open_time} น."
-                elif close_24h or current_time < close_t:
+                # Short-circuit keeps "24:00" away from _parse_time, which
+                # datetime.time cannot hold.
+                if hours.close_time == FULL_DAY_CLOSE or current_time < _parse_time(hours.close_time):
                     return f"เปิดให้บริการอยู่ (ถึง {hours.close_time} น.)"
-                else:
-                    continue
-            else:
-                day_name_th = self._get_thai_day_name(check_day)
-                return f"{day_name_th} เวลา {hours.open_time} น."
+                continue
+
+            day_name_th = self._get_thai_day_name(check_day)
+            return f"{day_name_th} เวลา {hours.open_time} น."
 
         return "ไม่มีเวลาทำการที่กำหนดไว้"
 

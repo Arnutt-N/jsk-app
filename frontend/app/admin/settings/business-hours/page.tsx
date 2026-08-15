@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { Save } from 'lucide-react'
 import { logger } from '@/lib/logger'
+import { cn } from '@/lib/utils'
 import {
   fetchBusinessHours,
   saveBusinessHours,
@@ -24,9 +25,79 @@ const THAI_DAY_NAMES = [
 
 const FULL_DAY = { open_time: '00:00', close_time: '24:00' }
 const DEFAULT_TIMES = { open_time: '08:00', close_time: '17:00' }
+const TIME_INPUT_CLASS =
+  'rounded-lg border border-slate-200 px-2 py-1 dark:border-slate-700 dark:bg-slate-800'
 
 function isFullDay(day: BusinessHoursDay): boolean {
   return day.open_time === FULL_DAY.open_time && day.close_time === FULL_DAY.close_time
+}
+
+interface DayRowProps {
+  day: BusinessHoursDay
+  onUpdate: (patch: Partial<BusinessHoursDay>) => void
+  onToggleFullDay: () => void
+}
+
+function DayRow({ day, onUpdate, onToggleFullDay }: DayRowProps) {
+  const dayName = THAI_DAY_NAMES[day.day_of_week]
+  const fullDay = isFullDay(day)
+  return (
+    <li className="flex flex-wrap items-center gap-3 rounded-lg bg-slate-50 px-3 py-2 dark:bg-slate-800">
+      <label className="flex w-32 items-center gap-2 text-sm font-medium text-slate-900 dark:text-slate-100">
+        <input
+          type="checkbox"
+          checked={day.is_open}
+          onChange={(e) => onUpdate({ is_open: e.target.checked })}
+          aria-label={`เปิด${dayName}`}
+          className="h-4 w-4 accent-emerald-600"
+        />
+        {dayName}
+      </label>
+
+      {day.is_open ? (
+        <span className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+          <input
+            type="time"
+            value={day.open_time}
+            onChange={(e) => onUpdate({ open_time: e.target.value })}
+            aria-label={`เวลาเปิด${dayName}`}
+            className={TIME_INPUT_CLASS}
+          />
+          ถึง
+          {fullDay ? (
+            <span className="font-medium text-emerald-700 dark:text-emerald-400">
+              24:00 (ตลอด 24 ชั่วโมง)
+            </span>
+          ) : (
+            <input
+              type="time"
+              value={day.close_time}
+              onChange={(e) => onUpdate({ close_time: e.target.value })}
+              aria-label={`เวลาปิด${dayName}`}
+              className={TIME_INPUT_CLASS}
+            />
+          )}
+        </span>
+      ) : (
+        <span className="text-sm text-slate-400">ปิดทำการ</span>
+      )}
+
+      <button
+        type="button"
+        onClick={onToggleFullDay}
+        aria-label={`เปิด 24 ชั่วโมง${dayName}`}
+        aria-pressed={fullDay}
+        className={cn(
+          'ml-auto rounded-lg border px-2 py-1 text-xs transition',
+          fullDay
+            ? 'border-emerald-500 bg-emerald-50 font-semibold text-emerald-700 dark:bg-emerald-900/30'
+            : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700',
+        )}
+      >
+        เปิด 24 ชม.
+      </button>
+    </li>
+  )
 }
 
 export default function BusinessHoursSettingsPage() {
@@ -123,71 +194,14 @@ export default function BusinessHoursSettingsPage() {
 
       <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
         <ul className="space-y-3">
-          {days.map((day) => {
-            const dayName = THAI_DAY_NAMES[day.day_of_week]
-            const fullDay = isFullDay(day)
-            return (
-              <li
-                key={day.day_of_week}
-                className="flex flex-wrap items-center gap-3 rounded-lg bg-slate-50 px-3 py-2 dark:bg-slate-800"
-              >
-                <label className="flex w-32 items-center gap-2 text-sm font-medium text-slate-900 dark:text-slate-100">
-                  <input
-                    type="checkbox"
-                    checked={day.is_open}
-                    onChange={(e) => updateDay(day.day_of_week, { is_open: e.target.checked })}
-                    aria-label={`เปิด${dayName}`}
-                    className="h-4 w-4 accent-emerald-600"
-                  />
-                  {dayName}
-                </label>
-
-                {day.is_open ? (
-                  <span className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-                    <input
-                      type="time"
-                      value={day.open_time}
-                      onChange={(e) => updateDay(day.day_of_week, { open_time: e.target.value })}
-                      aria-label={`เวลาเปิด${dayName}`}
-                      className="rounded-lg border border-slate-200 px-2 py-1 dark:border-slate-700 dark:bg-slate-800"
-                    />
-                    ถึง
-                    {fullDay ? (
-                      <span className="font-medium text-emerald-700 dark:text-emerald-400">
-                        24:00 (ตลอด 24 ชั่วโมง)
-                      </span>
-                    ) : (
-                      <input
-                        type="time"
-                        value={day.close_time}
-                        onChange={(e) =>
-                          updateDay(day.day_of_week, { close_time: e.target.value })
-                        }
-                        aria-label={`เวลาปิด${dayName}`}
-                        className="rounded-lg border border-slate-200 px-2 py-1 dark:border-slate-700 dark:bg-slate-800"
-                      />
-                    )}
-                  </span>
-                ) : (
-                  <span className="text-sm text-slate-400">ปิดทำการ</span>
-                )}
-
-                <button
-                  type="button"
-                  onClick={() => toggleFullDay(day)}
-                  aria-label={`เปิด 24 ชั่วโมง${dayName}`}
-                  aria-pressed={fullDay}
-                  className={`ml-auto rounded-lg border px-2 py-1 text-xs transition ${
-                    fullDay
-                      ? 'border-emerald-500 bg-emerald-50 font-semibold text-emerald-700 dark:bg-emerald-900/30'
-                      : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700'
-                  }`}
-                >
-                  เปิด 24 ชม.
-                </button>
-              </li>
-            )
-          })}
+          {days.map((day) => (
+            <DayRow
+              key={day.day_of_week}
+              day={day}
+              onUpdate={(patch) => updateDay(day.day_of_week, patch)}
+              onToggleFullDay={() => toggleFullDay(day)}
+            />
+          ))}
         </ul>
       </section>
 
