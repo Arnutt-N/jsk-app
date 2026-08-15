@@ -3,6 +3,10 @@ from sqlalchemy import Column, Integer, Boolean, Index, String, DateTime, Unique
 from sqlalchemy.orm import validates
 from app.db.base import Base
 
+# Sentinel close time meaning "open until midnight". datetime.time cannot hold
+# 24:00, so every consumer must compare against this constant rather than parse.
+FULL_DAY_CLOSE = "24:00"
+
 
 class BusinessHours(Base):
     """Business hours configuration for each day of the week."""

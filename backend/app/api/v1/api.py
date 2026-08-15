@@ -13,6 +13,7 @@ from app.api.v1.endpoints import (
     liff_bookings,
     locations,
     admin_bookings,
+    admin_business_hours,
     admin_requests,
     admin_users,
     rich_menus,
@@ -48,6 +49,7 @@ api_router.include_router(admin_bookings.router, prefix="/admin/bookings", tags=
 api_router.include_router(admin_users.router, prefix="/admin/users", tags=["admin"])
 api_router.include_router(rich_menus.router, prefix="/admin/rich-menus", tags=["admin"])
 api_router.include_router(settings.router, prefix="/admin/settings", tags=["admin"])
+api_router.include_router(admin_business_hours.router, prefix="/admin/settings/business-hours", tags=["admin"])
 api_router.include_router(admin_live_chat.router, prefix="/admin/live-chat", tags=["admin"])
 api_router.include_router(admin_analytics.router, prefix="/admin/analytics", tags=["admin"])
 api_router.include_router(admin_audit.router, prefix="/admin/audit", tags=["admin"])
