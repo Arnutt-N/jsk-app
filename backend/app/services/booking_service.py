@@ -353,15 +353,24 @@ async def get_availability(
 
 
 async def list_user_bookings(
-    db: AsyncSession, user_id: int, *, limit: int = 10
+    db: AsyncSession, user_id: int, *, limit: int = 10, include_past: bool = False
 ) -> Sequence[Booking]:
-    """A citizen's own bookings, soonest first, upcoming before past."""
-    result = await db.execute(
-        select(Booking)
-        .where(Booking.user_id == user_id)
-        .order_by(Booking.booking_date.desc(), Booking.booking_time.desc())
-        .limit(limit)
-    )
+    """A citizen's own bookings, soonest first.
+
+    By default only CONFIRMED bookings that have not started yet are returned —
+    the 'คิว' Flex reply and /liff/bookings/me both present this as "your
+    upcoming appointments", and a past or cancelled row would mislead. Pass
+    ``include_past=True`` to see the full history instead.
+    """
+    stmt = select(Booking).where(Booking.user_id == user_id)
+    if not include_past:
+        appointment_at = type_coerce(Booking.booking_date + Booking.booking_time, DateTime)
+        stmt = stmt.where(
+            Booking.status == BookingStatus.CONFIRMED,
+            appointment_at > local_now(),
+        )
+    stmt = stmt.order_by(Booking.booking_date, Booking.booking_time).limit(limit)
+    result = await db.execute(stmt)
     return result.scalars().all()
 
 
