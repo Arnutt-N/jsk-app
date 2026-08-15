@@ -35,6 +35,11 @@ export default function BusinessHoursSettingsPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
+  // Times set aside when the 24h shortcut is activated, so toggling it off
+  // restores what the operator had instead of clobbering it with defaults.
+  const [stashedTimes, setStashedTimes] = useState<
+    Record<number, { open_time: string; close_time: string }>
+  >({})
 
   useEffect(() => {
     const load = async () => {
@@ -60,10 +65,16 @@ export default function BusinessHoursSettingsPage() {
   }
 
   const toggleFullDay = (day: BusinessHoursDay) => {
-    updateDay(
-      day.day_of_week,
-      isFullDay(day) ? { ...DEFAULT_TIMES } : { is_open: true, ...FULL_DAY },
-    )
+    if (isFullDay(day)) {
+      const restored = stashedTimes[day.day_of_week] ?? DEFAULT_TIMES
+      updateDay(day.day_of_week, { ...restored })
+    } else {
+      setStashedTimes((current) => ({
+        ...current,
+        [day.day_of_week]: { open_time: day.open_time, close_time: day.close_time },
+      }))
+      updateDay(day.day_of_week, { is_open: true, ...FULL_DAY })
+    }
   }
 
   const handleSave = async () => {

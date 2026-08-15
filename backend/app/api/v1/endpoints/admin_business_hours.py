@@ -14,6 +14,7 @@ from app.api.deps import get_current_admin, get_current_staff
 from app.core.audit import create_audit_log
 from app.db.session import get_db
 from app.models.business_hours import BusinessHours
+from app.models.user import User
 from app.schemas.business_hours import BusinessHoursOut, BusinessHoursUpdate
 
 logger = logging.getLogger(__name__)
@@ -28,7 +29,7 @@ _PLACEHOLDER_TIMES = {"open_time": "08:00", "close_time": "17:00"}
 @router.get("", response_model=BusinessHoursOut, summary="Read weekly business hours")
 async def get_business_hours(
     db: AsyncSession = Depends(get_db),
-    _staff=Depends(get_current_staff),
+    _staff: User = Depends(get_current_staff),
 ):
     result = await db.execute(select(BusinessHours))
     rows = {row.day_of_week: row for row in result.scalars().all()}
@@ -53,7 +54,7 @@ async def get_business_hours(
 async def update_business_hours(
     payload: BusinessHoursUpdate,
     db: AsyncSession = Depends(get_db),
-    admin=Depends(get_current_admin),
+    admin: User = Depends(get_current_admin),
 ):
     result = await db.execute(select(BusinessHours))
     rows = {row.day_of_week: row for row in result.scalars().all()}

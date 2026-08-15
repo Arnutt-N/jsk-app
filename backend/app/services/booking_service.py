@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.booking import Booking, BookingStatus
-from app.models.business_hours import BusinessHours
+from app.models.business_hours import BusinessHours, FULL_DAY_CLOSE
 from app.services.business_hours_service import BANGKOK_TZ
 
 
@@ -148,7 +148,7 @@ def compute_slots(
 
     slots: list[SlotAvailability] = []
     cursor = datetime.combine(target_date, open_at)
-    if day_hours.close_time == "24:00":
+    if day_hours.close_time == FULL_DAY_CLOSE:
         # datetime.time cannot hold 24:00; express "until midnight" as the next
         # day's 00:00 so the last slot of the day still fits entirely inside.
         closing = datetime.combine(target_date + timedelta(days=1), time(0, 0))

@@ -4,7 +4,7 @@ from typing import Optional
 import pytz
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.models.business_hours import BusinessHours
+from app.models.business_hours import BusinessHours, FULL_DAY_CLOSE
 import logging
 
 logger = logging.getLogger(__name__)
@@ -39,7 +39,7 @@ class BusinessHoursService:
             return False
 
         open_t = _parse_time(hours.open_time)
-        if hours.close_time == "24:00":
+        if hours.close_time == FULL_DAY_CLOSE:
             # "24:00" = open until midnight; datetime.time cannot hold it, so
             # any time at or after opening is within hours.
             return open_t <= current_time
@@ -66,7 +66,7 @@ class BusinessHoursService:
                 continue
 
             open_t = _parse_time(hours.open_time)
-            close_24h = hours.close_time == "24:00"
+            close_24h = hours.close_time == FULL_DAY_CLOSE
             close_t = None if close_24h else _parse_time(hours.close_time)
 
             if days_ahead == 0:

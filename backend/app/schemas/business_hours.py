@@ -10,6 +10,8 @@ from typing import List
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from app.models.business_hours import FULL_DAY_CLOSE
+
 _HHMM_RE = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
 
 
@@ -31,7 +33,7 @@ class BusinessHoursDay(BaseModel):
     def _validate_close_time(cls, value: str) -> str:
         # "24:00" is the supported way to express "open until midnight"; it is
         # close-only because a day cannot start at 24:00.
-        if value == "24:00":
+        if value == FULL_DAY_CLOSE:
             return value
         if not _HHMM_RE.match(value) or value == "00:00":
             raise ValueError("เวลาปิดต้องอยู่ในรูปแบบ HH:MM (00:01-23:59) หรือ 24:00")

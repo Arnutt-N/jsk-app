@@ -112,6 +112,22 @@ describe('the 24-hour toggle', () => {
       expect(saturday).toMatchObject({ open_time: '08:00', close_time: '17:00' })
     })
   })
+
+  it('restores the previous custom times when 24h is toggled off', async () => {
+    const user = userEvent.setup()
+    const week = defaultWeek()
+    week[0] = { day_of_week: 0, is_open: true, open_time: '09:00', close_time: '22:00' }
+    await renderLoaded(week)
+
+    await user.click(screen.getByLabelText('เปิด 24 ชั่วโมงวันจันทร์'))
+    await user.click(screen.getByLabelText('เปิด 24 ชั่วโมงวันจันทร์'))
+    await user.click(screen.getByRole('button', { name: /บันทึกเวลาทำการ/ }))
+
+    await waitFor(() => {
+      const monday = savedPayload().days.find((d) => d.day_of_week === 0)
+      expect(monday).toMatchObject({ open_time: '09:00', close_time: '22:00' })
+    })
+  })
 })
 
 describe('open/close toggle', () => {
