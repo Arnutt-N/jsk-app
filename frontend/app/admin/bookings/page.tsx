@@ -33,7 +33,7 @@ const ACTIONS: { status: BookingStatus; label: string }[] = [
 ]
 
 export default function AdminBookingsPage() {
-  const [date, setDate] = useState('') // '' = ทุกวัน — default ต้องไม่กรองวันนี้
+  const [date, setDate] = useState('') // '' = all days; must not default to today
   const [statusFilter, setStatusFilter] = useState<BookingStatus | ''>('')
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
@@ -102,6 +102,9 @@ export default function AdminBookingsPage() {
               className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-800"
             />
           </label>
+          {!date && (
+            <span className="text-xs text-slate-400">ทุกวัน</span>
+          )}
           <label className="text-sm">
             <span className="sr-only">สถานะ</span>
             <select
@@ -132,7 +135,7 @@ export default function AdminBookingsPage() {
         </div>
       ) : bookings.length === 0 ? (
         <p className="rounded-xl border border-dashed border-slate-200 py-16 text-center text-sm text-slate-400 dark:border-slate-700">
-          ไม่มีการจองในวันที่เลือก
+          {date ? 'ไม่มีการจองในวันที่เลือก' : 'ไม่มีการจอง'}
         </p>
       ) : (
         <ul className="space-y-2">

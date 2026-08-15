@@ -229,7 +229,7 @@ async def cancel_my_booking(
 )
 async def update_my_booking(
     booking_id: int = Path(ge=1),
-    payload: BookingUpdateIn = None,
+    payload: Optional[BookingUpdateIn] = None,
     db: AsyncSession = Depends(get_db),
     line_user_id: str = Depends(require_line_user_id),
 ):
@@ -257,6 +257,9 @@ async def update_my_booking(
     if payload.note is not None:
         booking.note = payload.note
 
+    logger.info(
+        "Booking %s contact info updated by user %s", booking.id, user.id
+    )
     await db.commit()
     await db.refresh(booking)
     return BookingOut.model_validate(booking)
