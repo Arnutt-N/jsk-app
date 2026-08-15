@@ -61,14 +61,49 @@ export default function LiffBookingPage() {
   // --- LIFF bootstrap ---
   useEffect(() => {
     let cancelled = false
+    const pending: number[] = []
+    const wait = (ms: number) =>
+      new Promise<void>((resolve) => pending.push(window.setTimeout(resolve, ms)))
+
+    // The SDK <Script> injects window.liff after hydration. If no script tag
+    // has appeared after a grace period (e.g. a stuck __next_s queue), inject
+    // our own — the same pattern as LiffStateBoot on the landing page.
+    const waitForSdk = async () => {
+      const start = Date.now()
+      const deadline = start + 15000
+      let fallbackInjected = false
+      while (!window.liff && Date.now() < deadline) {
+        if (
+          !fallbackInjected &&
+          Date.now() - start >= 5000 &&
+          !document.querySelector('script[src*="line-scdn"]')
+        ) {
+          fallbackInjected = true
+          const s = document.createElement('script')
+          s.src = 'https://static.line-scdn.net/liff/edge/2/sdk.js'
+          s.async = true
+          document.head.appendChild(s)
+        }
+        await wait(150)
+      }
+      return typeof window.liff !== 'undefined'
+    }
 
     const boot = async () => {
       try {
         const liffId = process.env.NEXT_PUBLIC_LIFF_ID
-        if (!liffId || !window.liff) {
+        if (!liffId) {
           throw new Error('ไม่สามารถเชื่อมต่อ LINE ได้')
         }
+        // Budget the *load* only — liff.init() is network-bound and must not
+        // be timed out; a blanket 10s timer used to surface a false
+        // "SDK load failed" error while init was still in flight.
+        const sdkReady = await waitForSdk()
+        if (!sdkReady) throw new Error('ไม่สามารถโหลด LINE SDK ได้')
+        if (cancelled) return
+
         await window.liff.init({ liffId })
+        if (cancelled) return
         if (!window.liff.isLoggedIn()) {
           window.liff.login()
           return
@@ -87,6 +122,7 @@ export default function LiffBookingPage() {
         }
         const loaded: BookingOptions = await res.json()
         if (cancelled) return
+        setError(null)
         setOptions(loaded)
         if (loaded.service_types.length === 1) setServiceType(loaded.service_types[0])
       } catch (err) {
@@ -97,25 +133,11 @@ export default function LiffBookingPage() {
       }
     }
 
-    // window.liff is injected by the SDK <Script>; poll briefly for it.
-    const timer = window.setInterval(() => {
-      if (window.liff) {
-        window.clearInterval(timer)
-        void boot()
-      }
-    }, 100)
-    const giveUp = window.setTimeout(() => {
-      window.clearInterval(timer)
-      if (!cancelled) {
-        setError('ไม่สามารถโหลด LINE SDK ได้')
-        setBooting(false)
-      }
-    }, 10000)
+    void boot()
 
     return () => {
       cancelled = true
-      window.clearInterval(timer)
-      window.clearTimeout(giveUp)
+      pending.forEach((t) => window.clearTimeout(t))
     }
   }, [])
 
