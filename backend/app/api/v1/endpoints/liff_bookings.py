@@ -178,11 +178,14 @@ async def create_booking(
 async def list_my_bookings(
     db: AsyncSession = Depends(get_db),
     line_user_id: str = Depends(require_line_user_id),
+    include_past: bool = Query(default=False),
 ):
     user = await resolve_by_line_id(db, line_user_id)
     if user is None:
         return []
-    bookings = await booking_service.list_user_bookings(db, user.id)
+    bookings = await booking_service.list_user_bookings(
+        db, user.id, include_past=include_past
+    )
     return [BookingOut.model_validate(b) for b in bookings]
 
 
