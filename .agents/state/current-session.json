@@ -1,15 +1,21 @@
 {
-  "last_updated": "2026-08-15T14:50:00+07:00",
+  "last_updated": "2026-08-15T15:20:00+07:00",
   "platform": "open_code",
-  "current_task": "LIFF root-endpoint migration shipped: PR #190 (LiffStateBoot — completes LIFF secondary redirect when landing reached with liff.state) + PR #191 (splash overlay per Codex UX report: JSK brand mark + '",
+  "current_task": "Fixed LIFF booking false 'SDK load failed' error: PR #192 squash-merged (f952106), live on prod, regression-verified with headless Chromium (fake-liff-at-12s no-error + blocked-CDN error-at-15.7s). Ro",
   "plan_status": "completed",
   "next_steps": [
-    "User re-tests https://liff.line.me/{liffId}/liff/booking in LINE (expect: splash -> booking page, no home flash)",
-    "Run manual booking test per .scratch/liff-booking-test/manual-test-checklist.md (preconditions 0.1-0.8 already verified: endpoint root, no rich menus in prod, env set)",
-    "Implement fix/booking-list-filter per approved plan: list_user_bookings filter CONFIRMED+upcoming asc + include_past param for /liff/bookings/me, TDD 4 tests in test_booking_list.py, issue doc .scratch/liff-booking-test/issue-booking-list-filter.md",
-    "Known CI flake: Turbopack Google Fonts 404 on frontend build (rerun works)"
+    "User re-tests booking in LINE (should boot past 10s on slow networks now)",
+    "Run manual booking test per .scratch/liff-booking-test/manual-test-checklist.md (weekday; booking settings enabled)",
+    "Implement fix/booking-list-filter per approved plan"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-08-15T15:20:00+07:00",
+      "platform": "open_code",
+      "branch": "main",
+      "head": "f952106",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-08-15T14:50:00+07:00",
       "platform": "open_code",
@@ -141,13 +147,6 @@
       "platform": "claude_code",
       "branch": "main",
       "head": "c4837e7",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-08-01T21:38:00+07:00",
-      "platform": "claude_code",
-      "branch": "fix/live-chat-sidebar-row-resort",
-      "head": "44b5bba",
       "status": "completed"
     }
   ],

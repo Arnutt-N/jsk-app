@@ -1,0 +1,18 @@
+{
+  "handoff_version": "2.0",
+  "platform": "open_code",
+  "agent": "open_code",
+  "timestamp": "2026-08-15T15:20:00+07:00",
+  "branch": "main",
+  "head_commit": "f952106",
+  "status": "completed",
+  "work_summary": "Fixed LIFF booking false 'SDK load failed' error: PR #192 squash-merged (f952106), live on prod, regression-verified with headless Chromium (fake-liff-at-12s no-error + blocked-CDN error-at-15.7s). Root cause: uncleared 10s give-up timer fired over in-flight liff.init on slow LINE in-app browsers.",
+  "priority_actions": [
+    "User re-tests booking in LINE (should boot past 10s on slow networks now)",
+    "Run manual booking test per .scratch/liff-booking-test/manual-test-checklist.md (weekday; booking settings enabled)",
+    "Implement fix/booking-list-filter per approved plan"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/open_code/session-summary-20260815-1520.md",
+  "cross_platform_read": []
+}

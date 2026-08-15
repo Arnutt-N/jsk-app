@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 220 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 221 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-08-15 15:20 — open_code — completed
+
+Fixed LIFF booking false 'SDK load failed' error: PR #192 squash-merged (f952106), live on prod, regression-verified with headless Chromium (fake-liff-at-12s no-error + blocked-CDN error-at-15.7s). Root cause: uncleared 10s give-up timer fired over in-flight liff.init on slow LINE in-app browsers.
+
+- Checkpoint: `.agents/state/checkpoints/handover-open_code-20260815-1520.json`
+- Summary: `project-log-md/open_code/session-summary-20260815-1520.md`
+
+---
 
 ### 2026-08-15 14:50 — open_code — completed
 
