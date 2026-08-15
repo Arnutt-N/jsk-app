@@ -10,6 +10,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from pydantic import ValidationError
 
 from app.api.v1.endpoints import liff_bookings
 from app.models.booking import Booking, BookingStatus
@@ -125,3 +126,26 @@ async def test_update_unknown_user_is_404():
             )
 
     assert exc.value.status_code == 404
+
+
+# --- schema validation (the schema is the guard) ---
+
+
+def test_phone_number_rejects_non_digits():
+    with pytest.raises(ValidationError):
+        BookingUpdateIn(phone_number="0812-abc")
+
+
+def test_phone_number_strips_separators():
+    payload = BookingUpdateIn(phone_number="081-234-5678")
+    assert payload.phone_number == "0812345678"
+
+
+def test_blank_contact_name_becomes_none():
+    payload = BookingUpdateIn(contact_name="   ")
+    assert payload.contact_name is None
+
+
+def test_update_cannot_change_service_or_time():
+    with pytest.raises(ValidationError):
+        BookingUpdateIn(service_type="ไกล่เกลี่ยข้อพิพาท")

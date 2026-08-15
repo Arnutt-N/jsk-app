@@ -76,9 +76,24 @@ describe('the day list', () => {
     expect((await list()).getByText('ไม่ระบุชื่อ')).toBeInTheDocument()
   })
 
-  it('says so plainly when the day is empty', async () => {
+  it('says so plainly when the selected day is empty', async () => {
+    const user = userEvent.setup()
     await renderLoaded([])
+
+    await user.type(screen.getByLabelText('วันที่'), '2026-08-19')
+
     expect(await screen.findByText('ไม่มีการจองในวันที่เลือก')).toBeInTheDocument()
+  })
+
+  it('says "ไม่มีการจอง" when no date filter is set', async () => {
+    await renderLoaded([])
+    expect(await screen.findByText('ไม่มีการจอง')).toBeInTheDocument()
+    expect(screen.queryByText('ไม่มีการจองในวันที่เลือก')).not.toBeInTheDocument()
+  })
+
+  it('shows a "ทุกวัน" hint next to the date picker when no date is selected', async () => {
+    await renderLoaded()
+    expect(await screen.findByText('ทุกวัน')).toBeInTheDocument()
   })
 
   it('requests all days by default (no date param)', async () => {

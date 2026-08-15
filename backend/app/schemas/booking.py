@@ -40,10 +40,13 @@ class AvailabilityOut(BaseModel):
     slots: List[SlotOut]
 
 
-class BookingCreate(BaseModel):
-    service_type: str = Field(min_length=1, max_length=200)
-    booking_date: date
-    booking_time: time
+class ContactFields(BaseModel):
+    """Contact details shared by booking create and update.
+
+    The validators are duplicated logic that must stay identical between the
+    two schemas, so they live on one base both inherit from.
+    """
+
     contact_name: Optional[str] = Field(default=None, max_length=120)
     phone_number: Optional[str] = Field(default=None, max_length=20)
     note: Optional[str] = Field(default=None, max_length=1000)
@@ -66,6 +69,12 @@ class BookingCreate(BaseModel):
         if value is None:
             return None
         return value.strip() or None
+
+
+class BookingCreate(ContactFields):
+    service_type: str = Field(min_length=1, max_length=200)
+    booking_date: date
+    booking_time: time
 
 
 class BookingOut(BaseModel):
@@ -87,34 +96,15 @@ class BookingOut(BaseModel):
         return getattr(value, "value", value)
 
 
-class BookingUpdateIn(BaseModel):
+class BookingUpdateIn(ContactFields):
     """Citizen-editable contact fields. All optional — send only what changed.
 
     Deliberately excludes service/date/time: changing those means cancelling
-    and re-booking, so the seat accounting stays sound.
+    and re-booking, so the seat accounting stays sound. Unknown fields are
+    rejected rather than silently ignored.
     """
-    contact_name: Optional[str] = Field(default=None, max_length=120)
-    phone_number: Optional[str] = Field(default=None, max_length=20)
-    note: Optional[str] = Field(default=None, max_length=1000)
 
-    @field_validator("phone_number")
-    @classmethod
-    def _digits_only(cls, value: Optional[str]) -> Optional[str]:
-        if value is None:
-            return None
-        cleaned = value.strip().replace("-", "").replace(" ", "")
-        if not cleaned:
-            return None
-        if not cleaned.isdigit():
-            raise ValueError("phone_number must contain digits only")
-        return cleaned
-
-    @field_validator("contact_name", "note")
-    @classmethod
-    def _strip_blank(cls, value: Optional[str]) -> Optional[str]:
-        if value is None:
-            return None
-        return value.strip() or None
+    model_config = ConfigDict(extra="forbid")
 
 
 class BookingSettingsIn(BaseModel):

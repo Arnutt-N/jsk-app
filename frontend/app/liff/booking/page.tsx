@@ -179,6 +179,7 @@ export default function LiffBookingPage() {
     if (!idToken || !serviceType || !selectedDate || !selectedSlot) return
     setSubmitting(true)
     setError(null)
+    setNotice(null)
     try {
       const booking = await submitBooking(idToken, {
         service_type: serviceType,
@@ -204,6 +205,7 @@ export default function LiffBookingPage() {
   const resetFlow = () => {
     setConfirmed(null)
     setEditing(false)
+    setNotice(null)
     setServiceType(null)
     setSelectedDate(null)
     setSelectedSlot(null)

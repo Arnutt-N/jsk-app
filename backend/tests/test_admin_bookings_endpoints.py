@@ -8,7 +8,7 @@ from fastapi import HTTPException
 from pydantic import ValidationError
 
 from app.api.v1.endpoints import admin_bookings
-from app.models.booking import BookingStatus
+from app.models.booking import Booking, BookingStatus
 from app.schemas.booking import BookingSettingsIn
 from app.services.booking_service import ReminderUnit
 
@@ -174,3 +174,30 @@ async def test_settings_update_is_persisted_and_audit_logged():
     assert kwargs["details"]["reminder_lead"] == "3 HOUR"
     assert result.reminder_lead_value == 3
     db.commit.assert_awaited()
+
+
+# --- list ordering ---
+
+
+@pytest.mark.asyncio
+async def test_list_orders_soonest_first():
+    """The counter must see tomorrow's bookings before today's — a far-future
+    appointment disappearing from the top of the list is how staff convinced
+    themselves 'nobody has booked yet'."""
+    from unittest.mock import MagicMock
+    from sqlalchemy.dialects import postgresql
+
+    db = AsyncMock()
+    result = MagicMock()  # scalars().all() is sync in the endpoint
+    result.scalars.return_value.all.return_value = []
+    db.execute.return_value = result
+
+    await admin_bookings.list_bookings(
+        db=db, _staff=SimpleNamespace(id=1), limit=100, offset=0
+    )
+
+    stmt = db.execute.call_args.args[0]
+    sql = str(stmt.compile(dialect=postgresql.dialect()))
+    assert "bookings.booking_date ASC" in sql
+    assert "bookings.booking_time ASC" in sql
+    assert "DESC" not in sql
