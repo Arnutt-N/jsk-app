@@ -8,6 +8,7 @@ import { LandingStats } from '@/components/landing/LandingStats';
 import { LandingFeatures } from '@/components/landing/LandingFeatures';
 import { LandingLineSection } from '@/components/landing/LandingLineSection';
 import { LandingFooter } from '@/components/landing/LandingFooter';
+import { LiffStateBoot } from '@/components/liff/LiffStateBoot';
 import type { Locale } from '@/lib/i18n/landing';
 
 export default function Home() {
@@ -44,6 +45,7 @@ export default function Home() {
         />
       </div>
 
+      <LiffStateBoot />
       <LandingNavbar locale={locale} onToggleLocale={toggleLocale} />
       <LandingHero locale={locale} />
       <LandingStats locale={locale} />

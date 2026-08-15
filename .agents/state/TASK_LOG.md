@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 218 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 219 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-08-14 23:06 — claude_code — completed
+
+Shipped the booking feature to production. PR #189 squash-merged to main (84ec230) with all CI green; CD then migrated Supabase PROD to e6f7g8h9i0j1 and redeployed Koyeb, and the post-deploy alembic check --target remote now reports no drift. Earlier in the session a plaintext PROD admin password was found in this PUBLIC repo and rotated, and the leftover test_deactivated admin account was deleted from PROD after confirming all 23 FKs pointed at zero rows.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260814-2306.json`
+- Summary: `project-log-md/claude_code/session-summary-20260814-2306.md`
+
+---
 
 ### 2026-08-14 06:49 — claude_code (Claude Opus 5 / Anthropic) — completed
 

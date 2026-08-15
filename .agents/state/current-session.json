@@ -1,15 +1,22 @@
 {
-  "last_updated": "2026-08-14T06:49:00+07:00",
+  "last_updated": "2026-08-14T23:06:00+07:00",
   "platform": "claude_code",
-  "current_task": "Code review of the booking branch found a plaintext PROD admin password committed to this PUBLIC repo since PR #65. Rotated it on Supabase and verified by reading the hash back (new accepted, old reje",
+  "current_task": "Shipped the booking feature to production. PR #189 squash-merged to main (84ec230) with all CI green; CD then migrated Supabase PROD to e6f7g8h9i0j1 and redeployed Koyeb, and the post-deploy alembic c",
   "plan_status": "completed",
   "next_steps": [
-    "Open the PR to main - nothing on feat/booking-appointments has been pushed yet",
-    "Delete the leftover test_deactivated account (id=4, role=ADMIN, is_active=False) from PROD",
-    "The new admin password is ONLY in the untracked secrets/secret-keys.txt as JSK_PROD_ADMIN_PASSWORD - never quote it in a tracked file",
-    "Redis is not installed in WSL and apt needs the sudo password, so 60 live-chat tests remain CI-only"
+    "Manual LINE test - needs a LIFF ID from the LINE console; citizens cannot reach /liff/booking yet because the rich-menu entry is deliberately not built",
+    "Move the new admin password from secrets/secret-keys.txt into a password manager",
+    "CD is ACTIVE - any merge to main migrates PROD and redeploys with no human step; the skipping Detect Deployment Scope job on a PR is only a branch guard",
+    "Redis still cannot be installed in WSL (no gcc, apt needs the sudo password) so the 60 live-chat tests stay CI-only"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-08-14T23:06:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "84ec230",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-08-14T06:49:00+07:00",
       "platform": "claude_code",
@@ -141,48 +148,6 @@
       "platform": "claude_code",
       "branch": "fix/live-chat-sidebar-row-resort",
       "head": "8befa17",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-08-01T20:26:00+07:00",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "a19f21f",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-30T11:15:00+07:00",
-      "platform": "qoder",
-      "branch": "main",
-      "head": "a34c080",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-30T09:01:00+07:00",
-      "platform": "qoder",
-      "branch": "main",
-      "head": "2314197",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-30T08:33:00+07:00",
-      "platform": "qoder",
-      "branch": "main",
-      "head": "cfa9ed0",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-30T07:16:00+07:00",
-      "platform": "qoder",
-      "branch": "refactor/live-chat-frontend",
-      "head": "d1b47f7",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-07-30T06:09:00+07:00",
-      "platform": "qoder",
-      "branch": "feat/apifetch-adapter",
-      "head": "cd3effb",
       "status": "completed"
     }
   ],
