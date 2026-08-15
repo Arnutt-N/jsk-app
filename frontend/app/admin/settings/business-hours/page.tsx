@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { Save } from 'lucide-react'
 import { logger } from '@/lib/logger'
+import { cn } from '@/lib/utils'
 import {
   fetchBusinessHours,
   saveBusinessHours,
@@ -86,11 +87,12 @@ function DayRow({ day, onUpdate, onToggleFullDay }: DayRowProps) {
         onClick={onToggleFullDay}
         aria-label={`เปิด 24 ชั่วโมง${dayName}`}
         aria-pressed={fullDay}
-        className={`ml-auto rounded-lg border px-2 py-1 text-xs transition ${
+        className={cn(
+          'ml-auto rounded-lg border px-2 py-1 text-xs transition',
           fullDay
             ? 'border-emerald-500 bg-emerald-50 font-semibold text-emerald-700 dark:bg-emerald-900/30'
-            : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700'
-        }`}
+            : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700',
+        )}
       >
         เปิด 24 ชม.
       </button>
