@@ -87,6 +87,36 @@ class BookingOut(BaseModel):
         return getattr(value, "value", value)
 
 
+class BookingUpdateIn(BaseModel):
+    """Citizen-editable contact fields. All optional — send only what changed.
+
+    Deliberately excludes service/date/time: changing those means cancelling
+    and re-booking, so the seat accounting stays sound.
+    """
+    contact_name: Optional[str] = Field(default=None, max_length=120)
+    phone_number: Optional[str] = Field(default=None, max_length=20)
+    note: Optional[str] = Field(default=None, max_length=1000)
+
+    @field_validator("phone_number")
+    @classmethod
+    def _digits_only(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        cleaned = value.strip().replace("-", "").replace(" ", "")
+        if not cleaned:
+            return None
+        if not cleaned.isdigit():
+            raise ValueError("phone_number must contain digits only")
+        return cleaned
+
+    @field_validator("contact_name", "note")
+    @classmethod
+    def _strip_blank(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        return value.strip() or None
+
+
 class BookingSettingsIn(BaseModel):
     """Admin-editable configuration. Rejects values that would break the engine."""
 

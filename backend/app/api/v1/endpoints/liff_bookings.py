@@ -7,7 +7,7 @@ caller has nothing legitimate to do. The verified `sub` claim is the only source
 of identity; nothing in the request body is trusted to say who the caller is.
 """
 import logging
-from datetime import date as date_type
+from datetime import date as date_type, datetime, time
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Path, Query
@@ -16,12 +16,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.http_rate_limit import http_rate_limit
 from app.db.session import get_db
-from app.models.booking import Booking
+from app.models.booking import Booking, BookingStatus
 from app.schemas.booking import (
     AvailabilityOut,
     BookingCreate,
     BookingOptionsOut,
     BookingOut,
+    BookingUpdateIn,
     SlotOut,
 )
 from app.services import booking_service
@@ -214,6 +215,47 @@ async def cancel_my_booking(
         await booking_service.cancel_booking(db, booking)
     except BookingNotCancellableError:
         raise HTTPException(status_code=409, detail="การจองนี้ยกเลิกไม่ได้แล้ว")
+
+    await db.commit()
+    await db.refresh(booking)
+    return BookingOut.model_validate(booking)
+
+
+@router.patch(
+    "/{booking_id}",
+    response_model=BookingOut,
+    summary="Update my booking contact info",
+    dependencies=[_submit_rate_limit],
+)
+async def update_my_booking(
+    booking_id: int = Path(ge=1),
+    payload: BookingUpdateIn = None,
+    db: AsyncSession = Depends(get_db),
+    line_user_id: str = Depends(require_line_user_id),
+):
+    user = await resolve_by_line_id(db, line_user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="ไม่พบการจอง")
+
+    booking = await db.get(Booking, booking_id)
+    # Same 404 for "does not exist" and "belongs to someone else", exactly
+    # like cancel: a different status would let a caller probe booking ids.
+    if booking is None or booking.user_id != user.id:
+        raise HTTPException(status_code=404, detail="ไม่พบการจอง")
+
+    if booking.status != BookingStatus.CONFIRMED:
+        raise HTTPException(status_code=409, detail="การจองนี้แก้ไขไม่ได้แล้ว")
+
+    appointment_at = datetime.combine(booking.booking_date, booking.booking_time)
+    if appointment_at <= booking_service.local_now():
+        raise HTTPException(status_code=409, detail="การจองนี้แก้ไขไม่ได้แล้ว")
+
+    if payload.contact_name is not None:
+        booking.contact_name = payload.contact_name
+    if payload.phone_number is not None:
+        booking.phone_number = payload.phone_number
+    if payload.note is not None:
+        booking.note = payload.note
 
     await db.commit()
     await db.refresh(booking)
