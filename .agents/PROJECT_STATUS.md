@@ -3,6 +3,9 @@
 > **Last Updated:** 2026-08-15 21:20 by OpenCode (Shipped the business-hours admin feature end-to-end: PR #193 6a853f6 added GET/PUT /admin/)
 
 ## Thai Summary
+**ระบบจองคิวเปิดใช้งานแล้ว (2026-08-15)** — ตั้งเวลาทำการ 24 ชม. + เปิด booking + เพิ่มบริการบน prod แล้ว ผู้ใช้ยืนยันว่าจองได้จริง งานที่เกี่ยวข้อง: PR #193/#194 (หน้า admin เวลาทำการ + 24:00 engine), PR #195 (fix booking-list-filter — Flex "คิว" แสดงเฉพาะนัด CONFIRMED ที่ยังไม่ถึง, เรียงเร็วสุดก่อน, `include_past` param) — backend 1025 passed, CI เขียว
+- **ถัดไป:** PR C destructive phase — อ่าน gate `pseudonym-gate` (admin session) ว่า `pass`/`0` ต่อเนื่อง → เขียน PRD+PRP destructive step (drop plaintext columns 7 ตาราง + flip `LINE_ID_STORAGE_MODE=pseudonym`)
+
 **หน้า admin เวลาทำการขึ้น prod แล้ว (PR #193 + #194)** — ระบบแชทบอทต้องให้บริการ 24 ชม. แต่ตาราง `business_hours` (คุมทั้ง slot จองคิว + การโอนแชทเข้าเจ้าหน้าที่) เคยแก้ได้ทาง SQL เท่านั้น และ default ปิดส-อา → เพิ่ม `GET/PUT /api/v1/admin/settings/business-hours` (staff อ่าน/admin เขียน+audit) + หน้า `/admin/settings/business-hours` (7 วัน, ปุ่ม "เปิด 24 ชม." ต่อบรรทัด — กดปิดคืนเวลาเดิมไม่ overwrite) + รองรับ `close_time="24:00"` ใน `compute_slots` และ `is_within_business_hours`/`get_next_open_time` (ค่าคงที่ `FULL_DAY_CLOSE` บน model) — ไม่มี migration, deep review 2 รอบ + simplification pass (tests ไม่ถูกแก้, backend 1020 / frontend 531 passed, CI เขียว)
 - **ขั้นตอนถัดไป (ต้องทำบน prod หลัง CD deploy):** (1) `/admin/settings/business-hours` → กด "เปิด 24 ชม." ทุกวัน → บันทึก (2) `/admin/settings/booking` → เพิ่มบริการ ≥1 + เปิดสวิตช์ booking — ถ้ายังไม่ทำ LIFF จองคิวยังขึ้น "ยังไม่เปิดบริการ"
 - Known bug คงค้าง: Flex รายการจองรวมนัดที่ผ่านไปแล้ว/ยกเลิกแล้ว — plan อยู่ที่ `fix/booking-list-filter` (approved)
@@ -47,7 +50,8 @@
 - [x] PR #193 (squash `6a853f6`): `GET/PUT /api/v1/admin/settings/business-hours` (staff read / admin write + audit log), upsert 7 วัน, `close_time="24:00"` support ใน `compute_slots` + `is_within_business_hours`/`get_next_open_time` (`FULL_DAY_CLOSE` constant), หน้า `/admin/settings/business-hours` (7 วัน + ปุ่ม "เปิด 24 ชม." คืนเวลาเดิมเมื่อกดปิด) + hub card. ไม่มี migration. 35 tests ใหม่.
 - [x] Deep review 2 แกน 2 รอบ + simplification pass: PR #194 (squash `a027a0f`) — `_rows_by_weekday` helper, ตัด nullable `close_t`, แยก `DayRow` + `TIME_INPUT_CLASS`, ใช้ `cn()`. Behavior-preserving, tests ไม่ถูกแก้.
 - [x] Gates: backend 1020 passed (13 failures เดิมจาก env), frontend 531 passed, lint+build+CI เขียวทั้งสอง PR.
-- [ ] **Open (prod config):** เปิด `/admin/settings/business-hours` → "เปิด 24 ชม." ทุกวัน → เปิด booking + เพิ่มบริการที่ `/admin/settings/booking` — ก่อนทำขั้นนี้ LIFF จองคิวยังขึ้น "ยังไม่เปิดบริการ".
+- [x] **Prod config COMPLETE (2026-08-15):** ตั้งเวลาทำการ 24 ชม. + เปิด booking + เพิ่มบริการ — ผู้ใช้ยืนยันว่าจองได้แล้ว
+- [x] PR #195 (squash `75912c8`): fix booking-list-filter — `list_user_bookings` default กรอง CONFIRMED + ยังไม่ถึงเวลา, เรียงเร็วสุดก่อน, `include_past` param; 5 tests TDD ใหม่, full suite 1025 passed
 
 ### LINE User ID Display Masking — PDPA Display Layer (Status: COMPLETE - Merged to main)
 - [x] Full-system audit: ~50 backend query sites + 18 frontend display points exposing raw `line_user_id` identified.
