@@ -52,7 +52,7 @@ async def list_bookings(
         stmt = stmt.where(Booking.service_type == service_type)
 
     stmt = (
-        stmt.order_by(Booking.booking_date.desc(), Booking.booking_time.asc())
+        stmt.order_by(Booking.booking_date.asc(), Booking.booking_time.asc())
         .limit(limit)
         .offset(offset)
     )

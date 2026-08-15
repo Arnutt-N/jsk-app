@@ -9,6 +9,7 @@ import { CalendarDays, CheckCircle2, Clock, Loader2, Users } from 'lucide-react'
 import { logger } from '@/lib/logger'
 import {
   buildDateOptions,
+  cancelBooking,
   fetchAvailability,
   formatThaiDate,
   formatThaiWeekday,
@@ -16,6 +17,7 @@ import {
   groupSlotsByPeriod,
   parseISODate,
   submitBooking,
+  updateBookingContact,
   type Availability,
   type Booking,
   type Slot,
@@ -47,6 +49,9 @@ export default function LiffBookingPage() {
   const [note, setNote] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [confirmed, setConfirmed] = useState<Booking | null>(null)
+  const [editing, setEditing] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
+  const [notice, setNotice] = useState<string | null>(null)
 
   const step: Step = confirmed
     ? 'done'
@@ -196,6 +201,56 @@ export default function LiffBookingPage() {
     }
   }
 
+  const resetFlow = () => {
+    setConfirmed(null)
+    setEditing(false)
+    setServiceType(null)
+    setSelectedDate(null)
+    setSelectedSlot(null)
+    setAvailability(null)
+    setContactName('')
+    setPhoneNumber('')
+    setNote('')
+  }
+
+  const handleCancel = async () => {
+    if (!idToken || !confirmed) return
+    if (!window.confirm('ต้องการยกเลิกการจองนี้หรือไม่?')) return
+    setCancelling(true)
+    setError(null)
+    try {
+      await cancelBooking(idToken, confirmed.id)
+      resetFlow()
+      setNotice('ยกเลิกการจองแล้ว')
+    } catch (err) {
+      logger.error('Cancel booking failed:', err)
+      setError(err instanceof Error ? err.message : 'ยกเลิกไม่สำเร็จ')
+    } finally {
+      setCancelling(false)
+    }
+  }
+
+  const handleUpdate = async () => {
+    if (!idToken || !confirmed) return
+    setSubmitting(true)
+    setError(null)
+    try {
+      const updated = await updateBookingContact(idToken, confirmed.id, {
+        contact_name: contactName.trim() || null,
+        phone_number: phoneNumber.trim() || null,
+        note: note.trim() || null,
+      })
+      setConfirmed(updated)
+      setEditing(false)
+      setNotice('แก้ไขข้อมูลเรียบร้อย')
+    } catch (err) {
+      logger.error('Update booking failed:', err)
+      setError(err instanceof Error ? err.message : 'แก้ไขข้อมูลไม่สำเร็จ')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   const { morning, afternoon } = groupSlotsByPeriod(availability?.slots ?? [])
 
   if (booting) {
@@ -223,38 +278,122 @@ export default function LiffBookingPage() {
             {error}
           </Alert>
         )}
+        {notice && (
+          <Alert variant="success" className="mb-4">
+            {notice}
+          </Alert>
+        )}
 
         {step === 'done' && confirmed && (
           <section className="rounded-2xl border border-emerald-200 bg-white p-6 text-center shadow-sm">
-            <CheckCircle2 className="mx-auto h-12 w-12 text-emerald-500" aria-hidden="true" />
-            <h2 className="mt-3 text-lg font-bold text-slate-900">จองคิวสำเร็จ</h2>
-            <p className="mt-4 text-4xl font-bold tracking-tight text-emerald-600">
-              {confirmed.queue_number ?? '-'}
-            </p>
-            <p className="text-xs text-slate-400">หมายเลขคิวของท่าน</p>
-            <dl className="mt-5 space-y-2 text-left text-sm">
-              <div className="flex justify-between">
-                <dt className="text-slate-500">บริการ</dt>
-                <dd className="font-medium text-slate-900">{confirmed.service_type}</dd>
+            {editing ? (
+              <div className="text-left">
+                <h2 className="mb-3 text-left text-lg font-bold text-slate-900">
+                  แก้ไขข้อมูลผู้จอง
+                </h2>
+                <div className="space-y-3">
+                  <label className="block">
+                    <span className="mb-1 block text-xs text-slate-500">ชื่อ-นามสกุล</span>
+                    <input
+                      type="text"
+                      value={contactName}
+                      onChange={(e) => setContactName(e.target.value)}
+                      maxLength={120}
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+                      placeholder="ชื่อสำหรับเรียกคิว"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-xs text-slate-500">เบอร์โทรศัพท์</span>
+                    <input
+                      type="tel"
+                      inputMode="numeric"
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value.replace(/[^\d]/g, ''))}
+                      maxLength={20}
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+                      placeholder="0812345678"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-xs text-slate-500">รายละเอียดเพิ่มเติม (ถ้ามี)</span>
+                    <textarea
+                      value={note}
+                      onChange={(e) => setNote(e.target.value)}
+                      maxLength={1000}
+                      rows={3}
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+                    />
+                  </label>
+                </div>
+                <div className="mt-4 space-y-2">
+                  <Button className="w-full" onClick={handleUpdate} disabled={submitting}>
+                    {submitting ? 'กำลังบันทึก...' : 'บันทึกการแก้ไข'}
+                  </Button>
+                  <Button variant="secondary" className="w-full" onClick={() => setEditing(false)}>
+                    กลับ
+                  </Button>
+                </div>
               </div>
-              <div className="flex justify-between">
-                <dt className="text-slate-500">วันที่</dt>
-                <dd className="font-medium text-slate-900">{formatThaiDate(confirmed.booking_date)}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-slate-500">เวลา</dt>
-                <dd className="font-medium text-slate-900">{formatTime(confirmed.booking_time)} น.</dd>
-              </div>
-            </dl>
-            <p className="mt-5 text-xs text-slate-400">
-              ระบบได้ส่งรายละเอียดไปยัง LINE ของท่านแล้ว กรุณามาก่อนเวลานัด 10 นาที
-            </p>
-            <Button
-              className="mt-5 w-full"
-              onClick={() => window.liff?.closeWindow?.()}
-            >
-              ปิดหน้าต่าง
-            </Button>
+            ) : (
+              <>
+                <CheckCircle2 className="mx-auto h-12 w-12 text-emerald-500" aria-hidden="true" />
+                <h2 className="mt-3 text-lg font-bold text-slate-900">จองคิวสำเร็จ</h2>
+                <p className="mt-4 text-4xl font-bold tracking-tight text-emerald-600">
+                  {confirmed.queue_number ?? '-'}
+                </p>
+                <p className="text-xs text-slate-400">หมายเลขคิวของท่าน</p>
+                <dl className="mt-5 space-y-2 text-left text-sm">
+                  <div className="flex justify-between">
+                    <dt className="text-slate-500">บริการ</dt>
+                    <dd className="font-medium text-slate-900">{confirmed.service_type}</dd>
+                  </div>
+                  <div className="flex justify-between">
+                    <dt className="text-slate-500">วันที่</dt>
+                    <dd className="font-medium text-slate-900">{formatThaiDate(confirmed.booking_date)}</dd>
+                  </div>
+                  <div className="flex justify-between">
+                    <dt className="text-slate-500">เวลา</dt>
+                    <dd className="font-medium text-slate-900">{formatTime(confirmed.booking_time)} น.</dd>
+                  </div>
+                  {confirmed.contact_name && (
+                    <div className="flex justify-between">
+                      <dt className="text-slate-500">ผู้จอง</dt>
+                      <dd className="font-medium text-slate-900">{confirmed.contact_name}</dd>
+                    </div>
+                  )}
+                  {confirmed.phone_number && (
+                    <div className="flex justify-between">
+                      <dt className="text-slate-500">โทรศัพท์</dt>
+                      <dd className="font-medium text-slate-900">{confirmed.phone_number}</dd>
+                    </div>
+                  )}
+                </dl>
+                <p className="mt-5 text-xs text-slate-400">
+                  ระบบได้ส่งรายละเอียดไปยัง LINE ของท่านแล้ว กรุณามาก่อนเวลานัด 10 นาที
+                </p>
+                <div className="mt-5 space-y-2">
+                  <Button variant="secondary" className="w-full" onClick={() => {
+                    setContactName(confirmed.contact_name ?? '')
+                    setPhoneNumber(confirmed.phone_number ?? '')
+                    setNote(confirmed.note ?? '')
+                    setEditing(true)
+                  }}>
+                    แก้ไขข้อมูล
+                  </Button>
+                  <Button variant="danger" className="w-full" onClick={handleCancel} disabled={cancelling}>
+                    {cancelling ? 'กำลังยกเลิก...' : 'ยกเลิกการจอง'}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="w-full"
+                    onClick={() => window.liff?.closeWindow?.()}
+                  >
+                    ปิดหน้าต่าง
+                  </Button>
+                </div>
+              </>
+            )}
           </section>
         )}
 

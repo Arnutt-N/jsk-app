@@ -12,7 +12,6 @@ import {
   fetchAdminBookings,
   formatThaiDate,
   formatTime,
-  toISODate,
   updateBookingStatus,
   type Booking,
   type BookingStatus,
@@ -34,7 +33,7 @@ const ACTIONS: { status: BookingStatus; label: string }[] = [
 ]
 
 export default function AdminBookingsPage() {
-  const [date, setDate] = useState(() => toISODate(new Date()))
+  const [date, setDate] = useState('') // '' = ทุกวัน — default ต้องไม่กรองวันนี้
   const [statusFilter, setStatusFilter] = useState<BookingStatus | ''>('')
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
@@ -191,7 +190,9 @@ export default function AdminBookingsPage() {
         </ul>
       )}
 
-      <p className="text-xs text-slate-400">แสดงรายการของวันที่ {formatThaiDate(date)}</p>
+      <p className="text-xs text-slate-400">
+        แสดงรายการ{date ? `ของวันที่ ${formatThaiDate(date)}` : 'ทุกวัน'}
+      </p>
     </div>
   )
 }

@@ -205,6 +205,24 @@ export async function cancelBooking(idToken: string, bookingId: number): Promise
   return res.json()
 }
 
+export async function updateBookingContact(
+  idToken: string,
+  bookingId: number,
+  payload: {
+    contact_name?: string | null
+    phone_number?: string | null
+    note?: string | null
+  },
+): Promise<Booking> {
+  const res = await fetch(`${LIFF_BASE}/${bookingId}`, {
+    method: 'PATCH',
+    headers: liffHeaders(idToken),
+    body: JSON.stringify(payload),
+  })
+  if (!res.ok) throw new Error(await readError(res, 'แก้ไขข้อมูลไม่สำเร็จ'))
+  return res.json()
+}
+
 export async function fetchAdminBookings(params: {
   date?: string
   status?: BookingStatus
