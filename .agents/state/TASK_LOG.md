@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 222 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 223 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-08-15 21:20 — open_code — completed
+
+Shipped the business-hours admin feature end-to-end: PR #193 (6a853f6) added GET/PUT /admin/settings/business-hours (staff read/admin write + audit), close_time=24:00 support in compute_slots + is_within_business_hours/get_next_open_time, and a /admin/settings/business-hours page with per-day 24h toggle + hub card; deep review fixed 4 findings (typed deps, FULL_DAY_CLOSE constant, readErrorMessage reuse, 24h toggle restores previous times); PR #194 (a027a0f) was a behavior-preserving simplification pass (code-simplification skill): _rows_by_weekday helper, dropped nullable close_t, extracted DayRow + TIME_INPUT_CLASS, cn(). All gates green: backend 1020 passed (13 pre-existing env failures verified on clean main), frontend 531 passed, lint+build+CI green, tests never modified. Final two-axis deep review of merged state: 0 hard violations, spec faithful.
+
+- Checkpoint: `.agents/state/checkpoints/handover-open_code-20260815-2120.json`
+- Summary: `project-log-md/open_code/session-summary-20260815-2120.md`
+
+---
 
 ### 2026-08-15 15:50 — open_code — completed
 
