@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-08-15 15:20 by OpenCode (Fixed LIFF booking false 'SDK load failed' error: PR #192 squash-merged f952106, live on p)
+> **Last Updated:** 2026-08-15 15:50 by OpenCode (Post-merge code review of PR #192 LIFF booking boot fix, squash f952106 via parallel Stand)
 
 ## Thai Summary
 **PR C gate เคยขึ้น fail และแก้แล้ว** — การอ่าน `GET /api/v1/health/pseudonym-gate` แบบ authenticated ครั้งแรก (30 ก.ค.) ได้ `gate_status: fail`, `fallback_hit_count: 176` สาเหตุ: 6 จาก 8 LINE users บน prod (`users.id` 1,5,6,7,8,9) มี `line_user_id_hash` ที่คำนวณด้วย **dev fallback HMAC key** เพราะ process ที่ตั้ง `ENVIRONMENT=development` แต่ชี้ remote DB เขียนลงไป (`_get_hmac_key` fallback เงียบ) และ `resolve_many_by_line_id` นับ hit แต่ไม่ซ่อม row จึงถูกนับซ้ำทุก admin poll — ซ่อม prod แล้ว (re-hash 6 rows + ล้าง Redis counter) ตอนนี้ gate อ่านได้ `pass` / `0`
@@ -84,6 +84,7 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-08-15 15:50] OpenCode: Post-merge code review of PR #192 (LIFF booking boot fix, squash f952106) via parallel Standards+Spec sub-agents: 0 hard violations, all 4 spec items implemented, 2 low-risk notes (double-SDK-load window if Next Script un-sticks after manua (OpenCode)
 - [2026-08-15 15:20] OpenCode: Fixed LIFF booking false 'SDK load failed' error: PR #192 squash-merged (f952106), live on prod, regression-verified with headless Chromium (fake-liff-at-12s no-error + blocked-CDN error-at-15.7s). Root cause: uncleared 10s give-up timer fi (OpenCode)
 - [2026-08-15 14:50] OpenCode: LIFF root-endpoint migration shipped: PR #190 (LiffStateBoot — completes LIFF secondary redirect when landing reached with liff.state) + PR #191 (splash overlay per Codex UX report: JSK brand mark + 'กำลังเปิดบริการ...' + 250ms-delayed spin (OpenCode)
 - [2026-08-14 23:06] Claude Code: Shipped the booking feature to production. PR #189 squash-merged to main (84ec230) with all CI green; CD then migrated Supabase PROD to e6f7g8h9i0j1 and redeployed Koyeb, and the post-deploy alembic check --target remote now reports no drif (Claude Code)

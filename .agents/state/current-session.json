@@ -1,14 +1,22 @@
 {
-  "last_updated": "2026-08-15T15:20:00+07:00",
+  "last_updated": "2026-08-15T15:50:00+07:00",
   "platform": "open_code",
-  "current_task": "Fixed LIFF booking false 'SDK load failed' error: PR #192 squash-merged (f952106), live on prod, regression-verified with headless Chromium (fake-liff-at-12s no-error + blocked-CDN error-at-15.7s). Ro",
+  "current_task": "Post-merge code review of PR #192 (LIFF booking boot fix, squash f952106) via parallel Standards+Spec sub-agents: 0 hard violations, all 4 spec items implemented, 2 low-risk notes (double-SDK-load win",
   "plan_status": "completed",
   "next_steps": [
-    "User re-tests booking in LINE (should boot past 10s on slow networks now)",
+    "User re-tests booking in LINE (fix live on prod since f952106)",
     "Run manual booking test per .scratch/liff-booking-test/manual-test-checklist.md (weekday; booking settings enabled)",
-    "Implement fix/booking-list-filter per approved plan"
+    "Implement fix/booking-list-filter per approved plan",
+    "Optional cleanup: extract LIFF_SDK_URL constant + double-load guard comment (see session summary review section)"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-08-15T15:50:00+07:00",
+      "platform": "open_code",
+      "branch": "main",
+      "head": "125be81",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-08-15T15:20:00+07:00",
       "platform": "open_code",
@@ -140,13 +148,6 @@
       "platform": "claude_code",
       "branch": "main",
       "head": "e52743c",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-08-02T00:39:00+07:00",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "c4837e7",
       "status": "completed"
     }
   ],

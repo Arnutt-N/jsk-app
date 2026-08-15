@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 221 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 222 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-08-15 15:50 — open_code — completed
+
+Post-merge code review of PR #192 (LIFF booking boot fix, squash f952106) via parallel Standards+Spec sub-agents: 0 hard violations, all 4 spec items implemented, 2 low-risk notes (double-SDK-load window if Next Script un-sticks after manual fallback inject; missing script.remove() on unmount vs LiffStateBoot pattern) + judgement-call smells (SDK URL duplicated 4 spots/2 files -> extract LIFF_SDK_URL, magic numbers 15000/5000/150, names pending/s). Nothing blocking; follow-ups optional.
+
+- Checkpoint: `.agents/state/checkpoints/handover-open_code-20260815-1550.json`
+- Summary: `project-log-md/open_code/session-summary-20260815-1550.md`
+
+---
 
 ### 2026-08-15 15:20 — open_code — completed
 

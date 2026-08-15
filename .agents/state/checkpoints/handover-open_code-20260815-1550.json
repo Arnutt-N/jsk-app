@@ -1,0 +1,19 @@
+{
+  "handoff_version": "2.0",
+  "platform": "open_code",
+  "agent": "open_code",
+  "timestamp": "2026-08-15T15:50:00+07:00",
+  "branch": "main",
+  "head_commit": "125be81",
+  "status": "completed",
+  "work_summary": "Post-merge code review of PR #192 (LIFF booking boot fix, squash f952106) via parallel Standards+Spec sub-agents: 0 hard violations, all 4 spec items implemented, 2 low-risk notes (double-SDK-load window if Next Script un-sticks after manual fallback inject; missing script.remove() on unmount vs LiffStateBoot pattern) + judgement-call smells (SDK URL duplicated 4 spots/2 files -> extract LIFF_SDK_URL, magic numbers 15000/5000/150, names pending/s). Nothing blocking; follow-ups optional.",
+  "priority_actions": [
+    "User re-tests booking in LINE (fix live on prod since f952106)",
+    "Run manual booking test per .scratch/liff-booking-test/manual-test-checklist.md (weekday; booking settings enabled)",
+    "Implement fix/booking-list-filter per approved plan",
+    "Optional cleanup: extract LIFF_SDK_URL constant + double-load guard comment (see session summary review section)"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/open_code/session-summary-20260815-1550.md",
+  "cross_platform_read": []
+}
