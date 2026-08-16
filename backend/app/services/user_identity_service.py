@@ -138,7 +138,9 @@ async def resolve_many_by_line_id(
     return mapping
 
 
-async def decrypt_line_id_for_user(db: AsyncSession, user_id: int) -> Optional[str]:
+async def decrypt_line_id_for_user(
+    db: AsyncSession, user_id: Optional[int]
+) -> Optional[str]:
     """Decrypt raw LINE ID from users.line_user_id_encrypted (fail-loud if empty).
 
     Returns None only when the user row itself does not exist.
