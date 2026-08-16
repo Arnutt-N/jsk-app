@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 224 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 225 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-08-16 20:30 — qoder — completed
+
+PR C destructive phase shipped: migration q8r9s0t1u2v3 drops line_user_id from 7 tables + MV rebuild on user_id; identity service hash-only + fail-loud decrypt; config default pseudonym; 1049 tests passed; migration drill verified; PR #199 opened — pending reviewer gate check + Supabase backup before merge
+
+- Checkpoint: `.agents/state/checkpoints/handover-qoder-20260816-2030.json`
+- Summary: `project-log-md/qoder/session-summary-20260816-2030.md`
+
+---
 
 ### 2026-08-16 17:27 — open_code — completed
 

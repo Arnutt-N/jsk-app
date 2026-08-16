@@ -1,14 +1,17 @@
 {
-  "last_updated": "2026-08-16T17:27:00+07:00",
-  "platform": "open_code",
-  "current_task": "Booking UX shipped end-to-end + PR C planned. PR #195 (75912c8) fixed booking-list-filter (CONFIRMED+upcoming only, include_past param, 5 TDD tests). PR #196 (09e6552) added admin default all-days vie",
+  "last_updated": "2026-08-16T20:30:00+07:00",
+  "platform": "qoder",
+  "current_task": "PR C destructive phase shipped: migration q8r9s0t1u2v3 drops line_user_id from 7 tables + MV rebuild on user_id; identity service hash-only + fail-loud decrypt; config default pseudonym; 1049 tests pa",
   "plan_status": "completed",
-  "next_steps": [
-    "User confirms pseudonym-gate reads pass/0 via admin session (fetch('/api/v1/health/pseudonym-gate', {credentials:'include'})) — then implement PR C per .claude/PRPs/plans/pr-c-pseudonym-contract.plan.md (grep-proof -> migration -> remove fallback -> tests -> PR)",
-    "User re-tests booking in LINE (book -> edit -> cancel) and admin all-days view on prod",
-    "Optional: consolidate _parse_hhmm/_parse_time duplication between booking_service and business_hours_service"
-  ],
+  "next_steps": [],
   "handoff_history": [
+    {
+      "timestamp": "2026-08-16T20:30:00+07:00",
+      "platform": "qoder",
+      "branch": "feat/pr-c-pseudonym-contract",
+      "head": "9c6a6e6",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-08-16T17:27:00+07:00",
       "platform": "open_code",
@@ -140,13 +143,6 @@
       "platform": "claude_code",
       "branch": "main",
       "head": "6fb6982",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-08-02T18:33:00+07:00",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "3d5f147",
       "status": "completed"
     }
   ],
