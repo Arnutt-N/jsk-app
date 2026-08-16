@@ -10,6 +10,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from fastapi import HTTPException
 from pydantic import ValidationError
 
 from app.api.v1.endpoints import liff_bookings
@@ -69,7 +70,7 @@ async def test_update_booking_of_another_user_is_404():
     db = _db_with(_booking(user_id=99))
 
     with _patch_identity(user_id=7):
-        with pytest.raises(Exception) as exc:
+        with pytest.raises(HTTPException) as exc:
             await liff_bookings.update_my_booking(
                 booking_id=1,
                 payload=BookingUpdateIn(contact_name="x"),
@@ -85,7 +86,7 @@ async def test_update_cancelled_booking_is_409():
     db = _db_with(_booking(status=BookingStatus.CANCELLED))
 
     with _patch_identity():
-        with pytest.raises(Exception) as exc:
+        with pytest.raises(HTTPException) as exc:
             await liff_bookings.update_my_booking(
                 booking_id=1,
                 payload=BookingUpdateIn(contact_name="x"),
@@ -101,7 +102,7 @@ async def test_update_past_booking_is_409():
     db = _db_with(_booking())
 
     with _patch_identity(), _freeze_now(datetime(2026, 8, 20, 9, 0)):
-        with pytest.raises(Exception) as exc:
+        with pytest.raises(HTTPException) as exc:
             await liff_bookings.update_my_booking(
                 booking_id=1,
                 payload=BookingUpdateIn(contact_name="x"),
@@ -117,7 +118,7 @@ async def test_update_unknown_user_is_404():
     db = AsyncMock()
 
     with _patch_identity(user_id=None):
-        with pytest.raises(Exception) as exc:
+        with pytest.raises(HTTPException) as exc:
             await liff_bookings.update_my_booking(
                 booking_id=1,
                 payload=BookingUpdateIn(contact_name="x"),

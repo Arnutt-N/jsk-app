@@ -389,6 +389,32 @@ async def cancel_booking(db: AsyncSession, booking: Booking) -> Booking:
     return booking
 
 
+async def update_booking_contact(
+    db: AsyncSession, booking: Booking, *, contact_name, phone_number, note
+) -> Booking:
+    """Edit a citizen's contact fields on a still-editable booking.
+
+    Same editable-window rule as cancel_booking: only CONFIRMED bookings whose
+    appointment has not started can be changed. The caller owns the
+    transaction — this flushes but does not commit.
+    """
+    if booking.status != BookingStatus.CONFIRMED:
+        raise BookingNotCancellableError(f"booking {booking.id} is {booking.status}")
+
+    appointment_at = datetime.combine(booking.booking_date, booking.booking_time)
+    if appointment_at <= local_now():
+        raise BookingNotCancellableError(f"booking {booking.id} is in the past")
+
+    if contact_name is not None:
+        booking.contact_name = contact_name
+    if phone_number is not None:
+        booking.phone_number = phone_number
+    if note is not None:
+        booking.note = note
+    await db.flush()
+    return booking
+
+
 # --- advance reminders ------------------------------------------------------
 
 

@@ -7,7 +7,7 @@ caller has nothing legitimate to do. The verified `sub` claim is the only source
 of identity; nothing in the request body is trusted to say who the caller is.
 """
 import logging
-from datetime import date as date_type, datetime, time
+from datetime import date as date_type
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Path, Query
@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.http_rate_limit import http_rate_limit
 from app.db.session import get_db
-from app.models.booking import Booking, BookingStatus
+from app.models.booking import Booking
 from app.schemas.booking import (
     AvailabilityOut,
     BookingCreate,
@@ -243,19 +243,16 @@ async def update_my_booking(
     if booking is None or booking.user_id != user.id:
         raise HTTPException(status_code=404, detail="ไม่พบการจอง")
 
-    if booking.status != BookingStatus.CONFIRMED:
+    try:
+        await booking_service.update_booking_contact(
+            db,
+            booking,
+            contact_name=payload.contact_name,
+            phone_number=payload.phone_number,
+            note=payload.note,
+        )
+    except BookingNotCancellableError:
         raise HTTPException(status_code=409, detail="การจองนี้แก้ไขไม่ได้แล้ว")
-
-    appointment_at = datetime.combine(booking.booking_date, booking.booking_time)
-    if appointment_at <= booking_service.local_now():
-        raise HTTPException(status_code=409, detail="การจองนี้แก้ไขไม่ได้แล้ว")
-
-    if payload.contact_name is not None:
-        booking.contact_name = payload.contact_name
-    if payload.phone_number is not None:
-        booking.phone_number = payload.phone_number
-    if payload.note is not None:
-        booking.note = payload.note
 
     logger.info(
         "Booking %s contact info updated by user %s", booking.id, user.id
