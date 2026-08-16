@@ -32,6 +32,71 @@ interface BookingOptions {
 
 type Step = 'service' | 'date' | 'slot' | 'details' | 'done'
 
+function contactPayload(contactName: string, phoneNumber: string, note: string) {
+  return {
+    contact_name: contactName.trim() || null,
+    phone_number: phoneNumber.trim() || null,
+    note: note.trim() || null,
+  }
+}
+
+interface ContactFieldsFormProps {
+  contactName: string
+  phoneNumber: string
+  note: string
+  onContactName: (value: string) => void
+  onPhoneNumber: (value: string) => void
+  onNote: (value: string) => void
+}
+
+/** The name/phone/note trio, shared by the booking step and the edit form. */
+function ContactFieldsForm({
+  contactName,
+  phoneNumber,
+  note,
+  onContactName,
+  onPhoneNumber,
+  onNote,
+}: ContactFieldsFormProps) {
+  return (
+    <div className="space-y-3">
+      <label className="block">
+        <span className="mb-1 block text-xs text-slate-500">ชื่อ-นามสกุล</span>
+        <input
+          type="text"
+          value={contactName}
+          onChange={(e) => onContactName(e.target.value)}
+          maxLength={120}
+          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+          placeholder="ชื่อสำหรับเรียกคิว"
+        />
+      </label>
+      <label className="block">
+        <span className="mb-1 block text-xs text-slate-500">เบอร์โทรศัพท์</span>
+        <input
+          type="tel"
+          inputMode="numeric"
+          value={phoneNumber}
+          onChange={(e) => onPhoneNumber(e.target.value.replace(/[^\d]/g, ''))}
+          maxLength={20}
+          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+          placeholder="0812345678"
+        />
+      </label>
+      <label className="block">
+        <span className="mb-1 block text-xs text-slate-500">รายละเอียดเพิ่มเติม (ถ้ามี)</span>
+        <textarea
+          value={note}
+          onChange={(e) => onNote(e.target.value)}
+          maxLength={1000}
+          rows={3}
+          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+        />
+      </label>
+    </div>
+  )
+}
+
 export default function LiffBookingPage() {
   const [idToken, setIdToken] = useState<string | null>(null)
   const [booting, setBooting] = useState(true)
@@ -185,9 +250,7 @@ export default function LiffBookingPage() {
         service_type: serviceType,
         booking_date: selectedDate,
         booking_time: selectedSlot.time,
-        contact_name: contactName.trim() || null,
-        phone_number: phoneNumber.trim() || null,
-        note: note.trim() || null,
+        ...contactPayload(contactName, phoneNumber, note),
       })
       setConfirmed(booking)
     } catch (err) {
@@ -237,11 +300,11 @@ export default function LiffBookingPage() {
     setSubmitting(true)
     setError(null)
     try {
-      const updated = await updateBookingContact(idToken, confirmed.id, {
-        contact_name: contactName.trim() || null,
-        phone_number: phoneNumber.trim() || null,
-        note: note.trim() || null,
-      })
+      const updated = await updateBookingContact(
+        idToken,
+        confirmed.id,
+        contactPayload(contactName, phoneNumber, note),
+      )
       setConfirmed(updated)
       setEditing(false)
       setNotice('แก้ไขข้อมูลเรียบร้อย')
@@ -293,41 +356,14 @@ export default function LiffBookingPage() {
                 <h2 className="mb-3 text-left text-lg font-bold text-slate-900">
                   แก้ไขข้อมูลผู้จอง
                 </h2>
-                <div className="space-y-3">
-                  <label className="block">
-                    <span className="mb-1 block text-xs text-slate-500">ชื่อ-นามสกุล</span>
-                    <input
-                      type="text"
-                      value={contactName}
-                      onChange={(e) => setContactName(e.target.value)}
-                      maxLength={120}
-                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
-                      placeholder="ชื่อสำหรับเรียกคิว"
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="mb-1 block text-xs text-slate-500">เบอร์โทรศัพท์</span>
-                    <input
-                      type="tel"
-                      inputMode="numeric"
-                      value={phoneNumber}
-                      onChange={(e) => setPhoneNumber(e.target.value.replace(/[^\d]/g, ''))}
-                      maxLength={20}
-                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
-                      placeholder="0812345678"
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="mb-1 block text-xs text-slate-500">รายละเอียดเพิ่มเติม (ถ้ามี)</span>
-                    <textarea
-                      value={note}
-                      onChange={(e) => setNote(e.target.value)}
-                      maxLength={1000}
-                      rows={3}
-                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
-                    />
-                  </label>
-                </div>
+                <ContactFieldsForm
+                  contactName={contactName}
+                  phoneNumber={phoneNumber}
+                  note={note}
+                  onContactName={setContactName}
+                  onPhoneNumber={setPhoneNumber}
+                  onNote={setNote}
+                />
                 <div className="mt-4 space-y-2">
                   <Button className="w-full" onClick={handleUpdate} disabled={submitting}>
                     {submitting ? 'กำลังบันทึก...' : 'บันทึกการแก้ไข'}
@@ -524,41 +560,14 @@ export default function LiffBookingPage() {
             {selectedSlot && (
               <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                 <h2 className="mb-3 text-sm font-semibold text-slate-700">ข้อมูลผู้จอง</h2>
-                <div className="space-y-3">
-                  <label className="block">
-                    <span className="mb-1 block text-xs text-slate-500">ชื่อ-นามสกุล</span>
-                    <input
-                      type="text"
-                      value={contactName}
-                      onChange={(e) => setContactName(e.target.value)}
-                      maxLength={120}
-                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
-                      placeholder="ชื่อสำหรับเรียกคิว"
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="mb-1 block text-xs text-slate-500">เบอร์โทรศัพท์</span>
-                    <input
-                      type="tel"
-                      inputMode="numeric"
-                      value={phoneNumber}
-                      onChange={(e) => setPhoneNumber(e.target.value.replace(/[^\d]/g, ''))}
-                      maxLength={20}
-                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
-                      placeholder="0812345678"
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="mb-1 block text-xs text-slate-500">รายละเอียดเพิ่มเติม (ถ้ามี)</span>
-                    <textarea
-                      value={note}
-                      onChange={(e) => setNote(e.target.value)}
-                      maxLength={1000}
-                      rows={3}
-                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
-                    />
-                  </label>
-                </div>
+                <ContactFieldsForm
+                  contactName={contactName}
+                  phoneNumber={phoneNumber}
+                  note={note}
+                  onContactName={setContactName}
+                  onPhoneNumber={setPhoneNumber}
+                  onNote={setNote}
+                />
 
                 <div className="mt-4 rounded-xl bg-slate-50 p-3 text-sm">
                   <p className="font-medium text-slate-900">{serviceType}</p>
