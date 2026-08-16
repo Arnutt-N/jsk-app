@@ -73,7 +73,9 @@ MV_SQL_LINE_USER_ID = sa.text(
 
 
 def _assert_not_plaintext() -> None:
-    mode = os.environ.get("LINE_ID_STORAGE_MODE", "plaintext")
+    # Fallback matches the Settings default flipped in PR C: a missing env var
+    # means pseudonym mode. Only an explicit "plaintext" (pre-cutover app) blocks.
+    mode = os.environ.get("LINE_ID_STORAGE_MODE", "pseudonym")
     if mode == "plaintext":
         raise RuntimeError(
             "PR C cannot run while LINE_ID_STORAGE_MODE=plaintext — "
