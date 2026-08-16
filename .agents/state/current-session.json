@@ -1,10 +1,17 @@
 {
-  "last_updated": "2026-08-16T20:30:00+07:00",
+  "last_updated": "2026-08-16T21:02:00+07:00",
   "platform": "qoder",
-  "current_task": "PR C destructive phase shipped: migration q8r9s0t1u2v3 drops line_user_id from 7 tables + MV rebuild on user_id; identity service hash-only + fail-loud decrypt; config default pseudonym; 1049 tests pa",
+  "current_task": "Deep-review fixes for PR C shipped: 2 CRITICAL stale-schema 500s fixed (ChatSessionResponse/FriendEventResponse vs dropped line_user_id), MEDIUM hardening (decrypt guards, cleanup/SLA graceful degrade",
   "plan_status": "completed",
   "next_steps": [],
   "handoff_history": [
+    {
+      "timestamp": "2026-08-16T21:02:00+07:00",
+      "platform": "qoder",
+      "branch": "feat/pr-c-pseudonym-contract",
+      "head": "c87db65",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-08-16T20:30:00+07:00",
       "platform": "qoder",
@@ -136,13 +143,6 @@
       "platform": "claude_code",
       "branch": "main",
       "head": "88c02eb",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-08-02T19:35:00+07:00",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "6fb6982",
       "status": "completed"
     }
   ],

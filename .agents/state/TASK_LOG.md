@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 225 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 226 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-08-16 21:02 — qoder — completed
+
+Deep-review fixes for PR C shipped: 2 CRITICAL stale-schema 500s fixed (ChatSessionResponse/FriendEventResponse vs dropped line_user_id), MEDIUM hardening (decrypt guards, cleanup/SLA graceful degrade, migration RuntimeError), 1049 tests pass, pushed c87db65 to PR #199 — awaiting reviewer + Supabase backup before merge
+
+- Checkpoint: `.agents/state/checkpoints/handover-qoder-20260816-2102.json`
+- Summary: `project-log-md/qoder/session-summary-20260816-2102.md`
+
+---
 
 ### 2026-08-16 20:30 — qoder — completed
 

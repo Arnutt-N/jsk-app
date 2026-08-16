@@ -241,3 +241,4 @@ def downgrade() -> None:
 5. **`rich_menu_service.get_current_links_for_users`** — เปลี่ยนเป็นรับ `user_ids: list[int]` (caller มี User rows อยู่แล้ว ประหยัด hash round-trip)
 6. **62 Redis-gated tests** — รันผ่านครบหลังเปิด Docker Desktop: final result **1049 passed, 0 failed** (full suite, post-migration schema)
 7. **config guard** — `LINE_ID_HMAC_KEY` required unconditional ใน production (ตามแผน task 3 step 3)
+8. **Deep-review fix round (c87db65)** — post-review: stale schemas (`ChatSessionResponse`/`FriendEventResponse` ยัง require dropped `line_user_id`) ทำให้ live-chat + friend-events endpoints 500 → ลบ field + inject จาก path param; MEDIUM hardening (decrypt guards, cleanup/SLA graceful degrade, migration assert→RuntimeError); 1049 tests pass
