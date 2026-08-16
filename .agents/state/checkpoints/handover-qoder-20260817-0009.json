@@ -1,0 +1,19 @@
+{
+  "handoff_version": "2.0",
+  "platform": "qoder",
+  "agent": "qoder",
+  "timestamp": "2026-08-17T00:09:00+07:00",
+  "branch": "feat/pr-c-pseudonym-contract",
+  "head_commit": "055d201",
+  "status": "completed",
+  "work_summary": "Session closing: PR #199 merge-ready, all code pushed (055d201), CI green, awaiting reviewer approval. Merge watch cron is session-only and dies with this session — re-arm in next session",
+  "priority_actions": [
+    "Re-arm PR #199 merge watch (gh pr view 199; merge only after APPROVED + Supabase backup confirmed)",
+    "Take Supabase backup then merge",
+    "Post-merge: set LINE_ID_STORAGE_MODE=pseudonym on Koyeb",
+    "Drop throwaway DB skn_app_db_fresh_verify on local PG"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/qoder/session-summary-20260817-0009.md",
+  "cross_platform_read": []
+}

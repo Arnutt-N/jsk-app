@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-08-16 22:53 by Qoder (PR #199 review rounds complete: two-axis review + L3 migration deep-review fixes all pushe)
+> **Last Updated:** 2026-08-17 00:09 by Qoder (Session closing: PR #199 merge-ready, all code pushed 055d201, CI green, awaiting reviewer)
 
 ## Thai Summary
 **Booking UX ครบ + PR C พร้อมเริ่ม (2026-08-16)** — PR #195 (list filter CONFIRMED+upcoming), #196 (admin default ทุกวัน + LIFF ยกเลิก/แก้ไข PATCH), #197/#198 (deep review 2 รอบ: ContactFields, service-layer edit, ContactFieldsForm) — backend 1035 / frontend 539 passed, CI เขียว, prod verify แล้ว (UI ใหม่ขึ้น, endpoints 401) — **PR C destructive phase PRD+PRP เขียนเสร็จ (`0050210`)** รอ gate: user ต้องยืนยัน `pseudonym-gate` = `pass`/`0` จาก admin session ก่อน implement (drop `line_user_id` 7 ตาราง + recreate indexes + ลบ dual-write)
@@ -113,6 +113,7 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-08-17 00:09] Qoder: Session closing: PR #199 merge-ready, all code pushed (055d201), CI green, awaiting reviewer approval. Merge watch cron is session-only and dies with this session — re-arm in next session (Qoder)
 - [2026-08-16 22:53] Qoder: PR #199 review rounds complete: two-axis review + L3 migration deep-review fixes all pushed (f30edce) — migration guard fallback aligned with pseudonym config default, verified on fresh DB; Optional[int] hint fixed; 1049 tests pass. PR #199 (Qoder)
 - [2026-08-16 21:02] Qoder: Deep-review fixes for PR C shipped: 2 CRITICAL stale-schema 500s fixed (ChatSessionResponse/FriendEventResponse vs dropped line_user_id), MEDIUM hardening (decrypt guards, cleanup/SLA graceful degrade, migration RuntimeError), 1049 tests pa (Qoder)
 - [2026-08-16 20:30] Qoder: PR C destructive phase shipped: migration q8r9s0t1u2v3 drops line_user_id from 7 tables + MV rebuild on user_id; identity service hash-only + fail-loud decrypt; config default pseudonym; 1049 tests passed; migration drill verified; PR #199  (Qoder)

@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 227 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 228 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-08-17 00:09 — qoder — completed
+
+Session closing: PR #199 merge-ready, all code pushed (055d201), CI green, awaiting reviewer approval. Merge watch cron is session-only and dies with this session — re-arm in next session
+
+- Checkpoint: `.agents/state/checkpoints/handover-qoder-20260817-0009.json`
+- Summary: `project-log-md/qoder/session-summary-20260817-0009.md`
+
+---
 
 ### 2026-08-16 22:53 — qoder — completed
 
