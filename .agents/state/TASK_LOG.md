@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 223 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 224 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-08-16 17:27 — open_code — completed
+
+Booking UX shipped end-to-end + PR C planned. PR #195 (75912c8) fixed booking-list-filter (CONFIRMED+upcoming only, include_past param, 5 TDD tests). PR #196 (09e6552) added admin default all-days view (was today-only, hiding far-future bookings) + LIFF post-booking cancel/edit (PATCH /liff/bookings/{id} contact-only, guards mirror cancel). Two deep-review fix rounds: PR #197 (5a8a16b) ContactFields base, extra=forbid, logger, 'ทุกวัน' label, date-aware empty state; PR #198 (ca022b0) update_booking_contact moved into service layer, ContactFieldsForm dedupe, contactPayload helper. All gates green: backend 1035 passed (13 pre-existing env failures), frontend 539 passed, lint+build+CI green. Prod verified: frontend chunk has new UI strings, PATCH/me endpoints live (401), CD runs green. PR C destructive phase PRD+PRP written (0050210): drop line_user_id from 7 tables + recreate indexes on user_id + remove dual-write/fallback, 6-task plan, gate = pseudonym-gate pass/0.
+
+- Checkpoint: `.agents/state/checkpoints/handover-open_code-20260816-1727.json`
+- Summary: `project-log-md/open_code/session-summary-20260816-1727.md`
+
+---
 
 ### 2026-08-15 21:20 — open_code — completed
 

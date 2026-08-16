@@ -1,8 +1,10 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-08-15 21:20 by OpenCode (Shipped the business-hours admin feature end-to-end: PR #193 6a853f6 added GET/PUT /admin/)
+> **Last Updated:** 2026-08-16 17:27 by OpenCode (Booking UX shipped end-to-end + PR C planned.)
 
 ## Thai Summary
+**Booking UX ครบ + PR C พร้อมเริ่ม (2026-08-16)** — PR #195 (list filter CONFIRMED+upcoming), #196 (admin default ทุกวัน + LIFF ยกเลิก/แก้ไข PATCH), #197/#198 (deep review 2 รอบ: ContactFields, service-layer edit, ContactFieldsForm) — backend 1035 / frontend 539 passed, CI เขียว, prod verify แล้ว (UI ใหม่ขึ้น, endpoints 401) — **PR C destructive phase PRD+PRP เขียนเสร็จ (`0050210`)** รอ gate: user ต้องยืนยัน `pseudonym-gate` = `pass`/`0` จาก admin session ก่อน implement (drop `line_user_id` 7 ตาราง + recreate indexes + ลบ dual-write)
+
 **ระบบจองคิวเปิดใช้งานแล้ว (2026-08-15)** — ตั้งเวลาทำการ 24 ชม. + เปิด booking + เพิ่มบริการบน prod แล้ว ผู้ใช้ยืนยันว่าจองได้จริง งานที่เกี่ยวข้อง: PR #193/#194 (หน้า admin เวลาทำการ + 24:00 engine), PR #195 (fix booking-list-filter — Flex "คิว" แสดงเฉพาะนัด CONFIRMED ที่ยังไม่ถึง, เรียงเร็วสุดก่อน, `include_past` param) — backend 1025 passed, CI เขียว
 - **ถัดไป:** PR C destructive phase — อ่าน gate `pseudonym-gate` (admin session) ว่า `pass`/`0` ต่อเนื่อง → เขียน PRD+PRP destructive step (drop plaintext columns 7 ตาราง + flip `LINE_ID_STORAGE_MODE=pseudonym`)
 
@@ -45,6 +47,17 @@
 - Database: PostgreSQL + Redis
 
 ## Active Milestones
+
+### Booking UX — Admin All-Days + Citizen Cancel/Edit (Status: COMPLETE - Merged to main, in PROD)
+- [x] PR #195 (squash `75912c8`): `list_user_bookings` กรอง CONFIRMED + ยังไม่ถึงเวลา, เรียงเร็วสุดก่อน, `include_past` param — 5 TDD tests
+- [x] PR #196 (squash `09e6552`): admin default ทุกวัน (date='') + เรียง asc; `PATCH /liff/bookings/{id}` (contact-only, guard เหมือน cancel); LIFF ปุ่มแก้ไข/ยกเลิก + สรุปชื่อ/เบอร์ — 19 tests ใหม่
+- [x] Deep review 2 รอบ: PR #197 (`5a8a16b` — ContactFields base, extra=forbid, logger, label/empty-state) + PR #198 (`ca022b0` — service-layer edit, ContactFieldsForm, contactPayload)
+- [x] Gates: backend 1035 / frontend 539 passed, lint+build+CI เขียว; prod verify (UI chunk + endpoints 401)
+- [ ] **Open:** user re-test จริงใน LINE (จอง→แก้ไข→ยกเลิก) + admin เห็นทุกวัน
+
+### PR C — LINE ID Pseudonymization Contract Phase (Status: PLANNED - PRD+PRP ready, awaiting gate)
+- [x] PRD + PRP เขียนเสร็จ (commit `0050210`): `.claude/PRPs/prds/pr-c-pseudonym-contract.prd.md` + `.claude/PRPs/plans/pr-c-pseudonym-contract.plan.md` — drop `line_user_id` 7 ตาราง + recreate indexes บน `user_id` + ลบ dual-write/fallback; 6 tasks; migration hand-written + precondition + downgrade
+- [ ] **Gate (user):** ยืนยัน `pseudonym-gate` = `pass`/`0` จาก admin session → เริ่ม implement
 
 ### Business Hours Admin Page — 24/7 Service (Status: COMPLETE - Merged to main, pending prod config)
 - [x] PR #193 (squash `6a853f6`): `GET/PUT /api/v1/admin/settings/business-hours` (staff read / admin write + audit log), upsert 7 วัน, `close_time="24:00"` support ใน `compute_slots` + `is_within_business_hours`/`get_next_open_time` (`FULL_DAY_CLOSE` constant), หน้า `/admin/settings/business-hours` (7 วัน + ปุ่ม "เปิด 24 ชม." คืนเวลาเดิมเมื่อกดปิด) + hub card. ไม่มี migration. 35 tests ใหม่.
@@ -89,6 +102,7 @@
 - [x] Merged PR #78 to `main` branch.
 
 ## Latest Pickup Status
+- [2026-08-16] **Booking UX shipped + PR C planned** — PR #195 (list filter), #196 (admin all-days + LIFF cancel/edit), #197/#198 (deep review 2 รอบ) merged; backend 1035 / frontend 539 passed, CI เขียว, prod verify แล้ว. **PR C destructive phase PRD+PRP เขียนเสร็จ (`0050210`)** — รอ user ยืนยัน gate `pseudonym-gate` = `pass`/`0` (admin session) แล้วเริ่ม implement ตาม `.claude/PRPs/plans/pr-c-pseudonym-contract.plan.md`. Handoff: `project-log-md/open_code/session-summary-20260816-1727.md`.
 - [2026-08-15] **Business-hours admin feature SHIPPED** — PR #193 (squash `6a853f6`) + simplification PR #194 (squash `a027a0f`) both merged to `main`. New `GET/PUT /api/v1/admin/settings/business-hours` (staff read / admin write + audit), `close_time="24:00"` support across `compute_slots` + `is_within_business_hours`/`get_next_open_time` (`FULL_DAY_CLOSE` constant), and `/admin/settings/business-hours` page (7-day rows + per-day "เปิด 24 ชม." toggle that restores previous times) + hub card. No migration. Deep review (two-axis, twice) + behavior-preserving simplification; tests never modified; backend 1020 / frontend 531 passed; CI green both PRs. **Next: prod config** — set every day to 24h at `/admin/settings/business-hours`, then enable booking + add a service at `/admin/settings/booking`, then user re-tests booking in LINE per `.scratch/liff-booking-test/manual-test-checklist.md`. Handoff: `project-log-md/open_code/session-summary-20260815-2120.md`.
 - [2026-07-30] **Refactor series COMPLETE** — PR A #172 (report_service), PR B #173 (apiFetch adapter), PR C #174 (live-chat frontend reassembly) all merged to `main`. PR #174 (squash `cfa9ed0`): Zustand store now owns `wsStatus`/`onlineOperators`/`claimContenders`/`typingUsersCount`; WS handlers extracted to `_hooks/useSessionEvents.ts`; scroll/virtualization extracted to `_hooks/useVirtualScroll.ts`; `ChatArea.tsx` 534→352 lines; `LiveChatContext.contract.test.tsx` (34 members) + memo test pass unmodified; 119 frontend tests + tsc + build + full CI green. Post-merge: branch deleted, headless browser pass on `/admin/live-chat` clean (sidebar/ChatArea/CustomerPanel render, no page errors). **Next priority: PR C pseudonym gate** — check `GET /api/v1/health/pseudonym-gate` for `gate_status: pass` + `fallback_hit_count: 0` across 3-5 consecutive days (read-cutover #160 live since 2026-07-28, ~day 2), then plan the destructive phase. Handoff: `project-log-md/qoder/session-summary-20260730-0901.md`.
 - [2026-07-30] Refactor series (architecture-review candidates 4-6) nearly done: PR A #172 report_service + PR B #173 apiFetch adapter both merged to `main` (#173 squash `d1b47f7` after fixing 9 `react-hooks/set-state-in-effect` lint errors via try/finally fetchers + handler-based page resets, commit `6bddb03`). PR C (live-chat frontend reassembly: `useVirtualScroll`, `useSessionEvents`, Zustand consolidation) STARTED — branch `refactor/live-chat-frontend`, PRD + PRP plan drafted (`.claude/PRPs/prds+plans/live-chat-frontend-reassembly.*`), awaiting document review before implementation. Guard: `LiveChatContext.contract.test.tsx` (34 fields) must pass unmodified. Handoff: `project-log-md/qoder/session-summary-20260730-0716.md`.
@@ -99,6 +113,7 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-08-16 17:27] OpenCode: Booking UX shipped end-to-end + PR C planned. PR #195 (75912c8) fixed booking-list-filter (CONFIRMED+upcoming only, include_past param, 5 TDD tests). PR #196 (09e6552) added admin default all-days view (was today-only, hiding far-future boo (OpenCode)
 - [2026-08-15 21:20] OpenCode: Shipped the business-hours admin feature end-to-end: PR #193 (6a853f6) added GET/PUT /admin/settings/business-hours (staff read/admin write + audit), close_time=24:00 support in compute_slots + is_within_business_hours/get_next_open_time, a (OpenCode)
 - [2026-08-15 15:50] OpenCode: Post-merge code review of PR #192 (LIFF booking boot fix, squash f952106) via parallel Standards+Spec sub-agents: 0 hard violations, all 4 spec items implemented, 2 low-risk notes (double-SDK-load window if Next Script un-sticks after manua (OpenCode)
 - [2026-08-15 15:20] OpenCode: Fixed LIFF booking false 'SDK load failed' error: PR #192 squash-merged (f952106), live on prod, regression-verified with headless Chromium (fake-liff-at-12s no-error + blocked-CDN error-at-15.7s). Root cause: uncleared 10s give-up timer fi (OpenCode)

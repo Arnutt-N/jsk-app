@@ -1,0 +1,18 @@
+{
+  "handoff_version": "2.0",
+  "platform": "open_code",
+  "agent": "open_code",
+  "timestamp": "2026-08-16T17:27:00+07:00",
+  "branch": "main",
+  "head_commit": "0050210",
+  "status": "completed",
+  "work_summary": "Booking UX shipped end-to-end + PR C planned. PR #195 (75912c8) fixed booking-list-filter (CONFIRMED+upcoming only, include_past param, 5 TDD tests). PR #196 (09e6552) added admin default all-days view (was today-only, hiding far-future bookings) + LIFF post-booking cancel/edit (PATCH /liff/bookings/{id} contact-only, guards mirror cancel). Two deep-review fix rounds: PR #197 (5a8a16b) ContactFields base, extra=forbid, logger, 'ทุกวัน' label, date-aware empty state; PR #198 (ca022b0) update_booking_contact moved into service layer, ContactFieldsForm dedupe, contactPayload helper. All gates green: backend 1035 passed (13 pre-existing env failures), frontend 539 passed, lint+build+CI green. Prod verified: frontend chunk has new UI strings, PATCH/me endpoints live (401), CD runs green. PR C destructive phase PRD+PRP written (0050210): drop line_user_id from 7 tables + recreate indexes on user_id + remove dual-write/fallback, 6-task plan, gate = pseudonym-gate pass/0.",
+  "priority_actions": [
+    "User confirms pseudonym-gate reads pass/0 via admin session (fetch('/api/v1/health/pseudonym-gate', {credentials:'include'})) — then implement PR C per .claude/PRPs/plans/pr-c-pseudonym-contract.plan.md (grep-proof -> migration -> remove fallback -> tests -> PR)",
+    "User re-tests booking in LINE (book -> edit -> cancel) and admin all-days view on prod",
+    "Optional: consolidate _parse_hhmm/_parse_time duplication between booking_service and business_hours_service"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/open_code/session-summary-20260816-1727.md",
+  "cross_platform_read": []
+}
