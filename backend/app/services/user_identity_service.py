@@ -143,6 +143,8 @@ async def decrypt_line_id_for_user(db: AsyncSession, user_id: int) -> Optional[s
 
     Returns None only when the user row itself does not exist.
     """
+    if user_id is None:
+        return None
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user:

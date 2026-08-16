@@ -11,6 +11,7 @@ from app.services.rich_menu_service import RichMenuService
 from app.schemas.friend_event import (
     FriendEventListResponse,
     FriendEventListWithUserResponse,
+    FriendEventResponse,
     FriendStatsResponse,
 )
 import math
@@ -113,4 +114,10 @@ async def get_friend_events(
 ) -> Any:
     """Get friend history for a specific user"""
     events = await friend_service.get_friend_events(line_user_id, db)
-    return {"events": events, "total": len(events)}
+    validated = [
+        FriendEventResponse.model_validate(e).model_copy(
+            update={"line_user_id": line_user_id}
+        )
+        for e in events
+    ]
+    return {"events": validated, "total": len(validated)}

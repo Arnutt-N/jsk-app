@@ -18,19 +18,15 @@ class EventSource(str, Enum):
 
 
 class FriendEventBase(BaseModel):
-    line_user_id: str
     event_type: FriendEventType
     source: EventSource = EventSource.WEBHOOK
     refollow_count: int = 0
     event_data: Optional[Dict[str, Any]] = None
 
 
-class FriendEventCreate(FriendEventBase):
-    pass
-
-
 class FriendEventResponse(FriendEventBase):
     id: int
+    line_user_id: Optional[str] = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True, use_enum_values=True)

@@ -31,7 +31,6 @@ logger = logging.getLogger(__name__)
 
 GATE_REDIS_KEY = "pseudonym_gate:fallback_hits"
 GATE_REDIS_FIRST_HIT_KEY = "pseudonym_gate:first_hit_at"
-GATE_REDIS_TTL_SECONDS = 60 * 60 * 24 * 30  # 30 days — gate window is 3-5 days
 
 _LOCK = threading.Lock()
 _LOCAL_COUNT = 0

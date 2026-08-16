@@ -201,7 +201,7 @@ async def list_users(
                 picture_url=u.picture_url,
                 role=u.role,
                 is_active=u.is_active,
-                line_user_id=decrypt_user_line_id(u) if u.line_user_id_hash else None,
+                line_user_id=decrypt_user_line_id(u) if u.line_user_id_encrypted else None,
                 created_at=u.created_at.isoformat() if u.created_at else None,
                 updated_at=u.updated_at.isoformat() if u.updated_at else None,
             )
@@ -312,7 +312,7 @@ async def get_user(
         picture_url=user.picture_url,
         role=user.role,
         is_active=user.is_active,
-        line_user_id=decrypt_user_line_id(user) if user.line_user_id_hash else None,
+        line_user_id=decrypt_user_line_id(user) if user.line_user_id_encrypted else None,
         created_at=user.created_at.isoformat() if user.created_at else None,
         updated_at=user.updated_at.isoformat() if user.updated_at else None,
     )
@@ -377,7 +377,7 @@ async def create_user(
         picture_url=user.picture_url,
         role=user.role,
         is_active=user.is_active,
-        line_user_id=decrypt_user_line_id(user) if user.line_user_id_hash else None,
+        line_user_id=decrypt_user_line_id(user) if user.line_user_id_encrypted else None,
         created_at=user.created_at.isoformat() if user.created_at else None,
         updated_at=user.updated_at.isoformat() if user.updated_at else None,
     )
@@ -489,7 +489,7 @@ async def update_user(
         picture_url=user.picture_url,
         role=user.role,
         is_active=user.is_active,
-        line_user_id=decrypt_user_line_id(user) if user.line_user_id_hash else None,
+        line_user_id=decrypt_user_line_id(user) if user.line_user_id_encrypted else None,
         created_at=user.created_at.isoformat() if user.created_at else None,
         updated_at=user.updated_at.isoformat() if user.updated_at else None,
     )

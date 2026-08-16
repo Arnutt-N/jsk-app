@@ -147,7 +147,12 @@ async def get_conversation_messages(
         db=db,
     )
     return MessagePage(
-        messages=[MessageResponse.model_validate(m) for m in result["messages"]],
+        messages=[
+            MessageResponse.model_validate(m).model_copy(
+                update={"line_user_id": line_user_id}
+            )
+            for m in result["messages"]
+        ],
         has_more=result["has_more"],
     )
 

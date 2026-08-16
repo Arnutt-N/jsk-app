@@ -74,10 +74,11 @@ MV_SQL_LINE_USER_ID = sa.text(
 
 def _assert_not_plaintext() -> None:
     mode = os.environ.get("LINE_ID_STORAGE_MODE", "plaintext")
-    assert mode != "plaintext", (
-        "PR C cannot run while LINE_ID_STORAGE_MODE=plaintext — "
-        "backfill/cutover incomplete"
-    )
+    if mode == "plaintext":
+        raise RuntimeError(
+            "PR C cannot run while LINE_ID_STORAGE_MODE=plaintext — "
+            "backfill/cutover incomplete"
+        )
 
 
 def _has_column(conn, table: str, column: str) -> bool:

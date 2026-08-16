@@ -15,6 +15,14 @@ from app.services.user_identity_service import decrypt_line_id_for_user
 logger = logging.getLogger(__name__)
 
 
+async def _safe_decrypt(db: AsyncSession, user_id: Optional[int]) -> Optional[str]:
+    try:
+        return await decrypt_line_id_for_user(db, user_id)
+    except Exception as e:
+        logger.error(f"SLA alert decrypt failed user_id={user_id}: {e}")
+        return None
+
+
 class SLAService:
     """Checks SLA thresholds and broadcasts breaches to operators."""
 
@@ -31,7 +39,7 @@ class SLAService:
             metric="queue_wait_seconds",
             value_seconds=elapsed,
             threshold_seconds=settings.SLA_MAX_QUEUE_WAIT_SECONDS,
-            line_user_id=await decrypt_line_id_for_user(db, session.user_id),
+            line_user_id=await _safe_decrypt(db, session.user_id),
             session_id=session.id,
             db=db,
         )
@@ -49,7 +57,7 @@ class SLAService:
             metric="resolution_seconds",
             value_seconds=elapsed,
             threshold_seconds=settings.SLA_MAX_RESOLUTION_SECONDS,
-            line_user_id=await decrypt_line_id_for_user(db, session.user_id),
+            line_user_id=await _safe_decrypt(db, session.user_id),
             session_id=session.id,
             db=db,
         )
@@ -67,7 +75,7 @@ class SLAService:
             metric="first_response_seconds",
             value_seconds=elapsed,
             threshold_seconds=settings.SLA_MAX_FRT_SECONDS,
-            line_user_id=await decrypt_line_id_for_user(db, session.user_id),
+            line_user_id=await _safe_decrypt(db, session.user_id),
             session_id=session.id,
             db=db,
         )
@@ -77,7 +85,7 @@ class SLAService:
         metric: str,
         value_seconds: float,
         threshold_seconds: int,
-        line_user_id: str,
+        line_user_id: Optional[str],
         session_id: int,
         db: AsyncSession,
     ):

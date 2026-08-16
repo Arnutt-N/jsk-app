@@ -104,7 +104,11 @@ async def _close_inactive_session(session: ChatSession, db: AsyncSession):
         },
     )
 
-    raw_line_id = await decrypt_line_id_for_user(db, session.user_id)
+    try:
+        raw_line_id = await decrypt_line_id_for_user(db, session.user_id)
+    except Exception as e:
+        logger.error(f"Decrypt failed for cleanup user_id={session.user_id}: {e}")
+        raw_line_id = None
 
     try:
         if raw_line_id:
@@ -156,7 +160,11 @@ async def _mark_abandoned_waiting_session(session: ChatSession, db: AsyncSession
         },
     )
 
-    raw_line_id = await decrypt_line_id_for_user(db, session.user_id)
+    try:
+        raw_line_id = await decrypt_line_id_for_user(db, session.user_id)
+    except Exception as e:
+        logger.error(f"Decrypt failed for abandonment user_id={session.user_id}: {e}")
+        raw_line_id = None
 
     try:
         if raw_line_id:
