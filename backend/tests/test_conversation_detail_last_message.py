@@ -17,6 +17,7 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
+from app.services.credential_service import credential_service
 from app.services.live_chat_service import live_chat_service
 
 LINE_ID = "Uabcdef0123456789abcdef0123456789"
@@ -33,7 +34,7 @@ async def _detail(messages):
     db.execute.return_value = Mock(all=Mock(return_value=[]))
     user = SimpleNamespace(
         id=1,
-        line_user_id=LINE_ID,
+        line_user_id_encrypted=credential_service.encrypt_line_id(LINE_ID),
         display_name="Somchai",
         picture_url="",
         friend_status="ACTIVE",

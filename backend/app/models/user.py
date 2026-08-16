@@ -40,7 +40,6 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
-    line_user_id = Column(String, unique=True, index=True, nullable=True) # For LINE users
     line_user_id_hash = Column(String(64), unique=True, index=True, nullable=True)
     line_user_id_encrypted = Column(Text, nullable=True)
     line_key_version = Column(Integer, nullable=False, default=1, server_default="1")

@@ -24,7 +24,7 @@ async def test_process_inactive_sessions_handles_abandoned_waiting():
     waiting_session.status = SessionStatus.WAITING
     waiting_session.claimed_at = None
     waiting_session.started_at = now - timedelta(minutes=20)
-    waiting_session.line_user_id = "Utest"
+    waiting_session.user_id = 123
 
     mock_db = AsyncMock()
     mock_db.execute.side_effect = [

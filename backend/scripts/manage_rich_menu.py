@@ -70,19 +70,21 @@ async def unlink_known_users(line_bot_api) -> int:
 
     from app.db.session import AsyncSessionLocal
     from app.models.message import Message
+    from app.services.user_identity_service import decrypt_line_ids_for_users
 
     print("\nUnlinking from known users in DB...")
     unlinked = 0
     async with AsyncSessionLocal() as db:
         result = await db.execute(
-            select(distinct(Message.line_user_id)).filter(Message.line_user_id.isnot(None))
+            select(distinct(Message.user_id)).filter(Message.user_id.isnot(None))
         )
         user_ids = result.scalars().all()
+        raw_by_user = await decrypt_line_ids_for_users(db, user_ids)
 
-        for user_id in user_ids:
+        for line_user_id in raw_by_user.values():
             try:
-                await line_bot_api.unlink_rich_menu_from_user(user_id)
-                print(f"     Unlinked from: {user_id}")
+                await line_bot_api.unlink_rich_menu_from_user(line_user_id)
+                print(f"     Unlinked from: {line_user_id}")
                 unlinked += 1
             except Exception:
                 pass

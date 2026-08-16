@@ -18,6 +18,7 @@ from app.models.message import Message
 from app.models.service_request import ServiceRequest
 from app.models.user import User
 from app.services.report_service import report_service, parse_dates
+from app.services.user_identity_service import decrypt_line_ids_for_users
 
 router = APIRouter()
 
@@ -187,9 +188,12 @@ async def export_report(
             Message.created_at >= start, Message.created_at < end,
         ).order_by(Message.created_at.desc()).limit(10000)
         rows = (await db.execute(q)).scalars().all()
+        line_ids = await decrypt_line_ids_for_users(
+            db, list({r.user_id for r in rows if r.user_id is not None})
+        )
         for r in rows:
             writer.writerow([
-                r.id, r.line_user_id or "",
+                r.id, line_ids.get(r.user_id, ""),
                 r.direction.value if r.direction else "",
                 r.message_type or "",
                 r.sender_role.value if r.sender_role else "",
@@ -211,8 +215,11 @@ async def export_report(
             FriendEvent.created_at >= start, FriendEvent.created_at < end,
         ).order_by(FriendEvent.created_at.desc())
         rows = (await db.execute(q)).scalars().all()
+        line_ids = await decrypt_line_ids_for_users(
+            db, list({r.user_id for r in rows if r.user_id is not None})
+        )
         for r in rows:
-            writer.writerow([r.id, r.line_user_id, r.event_type, str(r.created_at)])
+            writer.writerow([r.id, line_ids.get(r.user_id, ""), r.event_type, str(r.created_at)])
 
     buf.seek(0)
     inclusive_end = end - timedelta(microseconds=1)

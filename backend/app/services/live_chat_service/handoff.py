@@ -12,6 +12,7 @@ from app.models.user import ChatMode, User
 from app.services.business_hours_service import business_hours_service
 from app.services.line_service import line_service
 from app.services.telegram_service import telegram_service
+from app.services.user_identity_service import decrypt_user_line_id, resolve_by_line_id
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +29,6 @@ class HandoffMixin:
         session is fetched and reused. Returns (session, created).
         """
         session = ChatSession(
-            line_user_id=user.line_user_id,
             user_id=user.id,
             status=SessionStatus.WAITING,
             started_at=datetime.now(timezone.utc),
@@ -39,11 +39,11 @@ class HandoffMixin:
                 db.add(session)
                 await db.flush()
         except IntegrityError:
-            existing = await self.get_active_session(user.line_user_id, db)
+            existing = await self.get_active_session(decrypt_user_line_id(user), db)
             if existing is None:
                 raise
             logger.info(
-                f"Concurrent handoff race for {user.line_user_id}: reusing open session {existing.id}"
+                f"Concurrent handoff race for user {user.id}: reusing open session {existing.id}"
             )
             return existing, False
         return session, True
@@ -62,7 +62,9 @@ class HandoffMixin:
         Checks business hours first. If after hours, sends after-hours message
         and creates an offline ticket for follow-up.
         """
-        existing_session = await self.get_active_session(user.line_user_id, db)
+        raw_line_id = decrypt_user_line_id(user)
+
+        existing_session = await self.get_active_session(raw_line_id, db)
         if existing_session:
             user.chat_mode = ChatMode.HUMAN
             if commit:
@@ -96,7 +98,7 @@ class HandoffMixin:
                 await db.flush()
 
             if created:
-                logger.info(f"After-hours handoff for user {user.line_user_id}, next open: {next_open}")
+                logger.info(f"After-hours handoff for user {user.id}, next open: {next_open}")
             return session
 
         # 2. Create chat session (savepoint-guarded against the open-session race)
@@ -120,13 +122,13 @@ class HandoffMixin:
         await line_service.reply_text(reply_token, greeting)
 
         # 5. Send queue position info
-        queue_info = await self.get_queue_position(user.line_user_id, db)
+        queue_info = await self.get_queue_position(raw_line_id, db)
         if queue_info["position"] > 0:
-            await self._send_queue_flex_message(user.line_user_id, queue_info)
+            await self._send_queue_flex_message(raw_line_id, queue_info)
 
         # 6. Telegram notification
-        recent_msgs = await self.get_recent_messages(user.line_user_id, 3, db)
-        admin_url = f"{settings.ADMIN_URL}/admin/live-chat?user={user.line_user_id}"
+        recent_msgs = await self.get_recent_messages(raw_line_id, 3, db)
+        admin_url = f"{settings.ADMIN_URL}/admin/live-chat?user={raw_line_id}"
 
         # Send directly (async)
         await telegram_service.send_handoff_notification(
@@ -212,9 +214,16 @@ class HandoffMixin:
         result = await db.execute(stmt)
         waiting_sessions = result.scalars().all()
 
+        resolved = await resolve_by_line_id(db, line_user_id)
+        resolved_user_id = resolved.id if resolved else None
+
         # Find user's position
         position = next(
-            (i + 1 for i, s in enumerate(waiting_sessions) if s.line_user_id == line_user_id),
+            (
+                i + 1
+                for i, s in enumerate(waiting_sessions)
+                if resolved_user_id is not None and s.user_id == resolved_user_id
+            ),
             0
         )
 

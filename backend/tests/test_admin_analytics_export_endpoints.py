@@ -65,7 +65,7 @@ def test_export_csv_endpoint_streams_file():
             SimpleNamespace(
                 id=1,
                 created_at=datetime(2026, 2, 8, 3, 0, 0, tzinfo=timezone.utc),
-                line_user_id="U123",
+                user_id=1,
                 direction=MessageDirection.INCOMING,
                 sender_role=SenderRole.USER,
                 message_type="text",
@@ -74,7 +74,7 @@ def test_export_csv_endpoint_streams_file():
             SimpleNamespace(
                 id=2,
                 created_at=datetime(2026, 2, 8, 3, 1, 0, tzinfo=timezone.utc),
-                line_user_id="U123",
+                user_id=1,
                 direction=MessageDirection.OUTGOING,
                 sender_role=SenderRole.ADMIN,
                 message_type="text",
@@ -121,7 +121,7 @@ def test_export_pdf_endpoint_streams_file():
             SimpleNamespace(
                 id=1,
                 created_at=datetime(2026, 2, 8, 3, 0, 0, tzinfo=timezone.utc),
-                line_user_id="U123",
+                user_id=1,
                 direction=MessageDirection.INCOMING,
                 sender_role=SenderRole.USER,
                 message_type="text",

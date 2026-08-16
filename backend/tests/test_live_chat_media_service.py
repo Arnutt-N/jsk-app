@@ -34,7 +34,7 @@ async def test_send_media_image_success(service):
 
     saved_message = MagicMock()
     saved_message.id = 10
-    saved_message.line_user_id = "U123"
+    saved_message.user_id = 1
     saved_message.direction = MagicMock(value="OUTGOING")
     saved_message.content = "[Image]"
     saved_message.message_type = "image"
@@ -91,7 +91,7 @@ async def test_send_media_file_sends_text_with_url(service):
 
     saved_message = MagicMock()
     saved_message.id = 11
-    saved_message.line_user_id = "U123"
+    saved_message.user_id = 1
     saved_message.direction = MagicMock(value="OUTGOING")
     saved_message.content = "invoice.pdf"
     saved_message.message_type = "file"

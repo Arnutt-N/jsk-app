@@ -7,15 +7,15 @@ class UserRichMenuLink(Base):
     """Local cache of a per-user rich menu assignment.
 
     LINE lets us bind a specific rich menu to a single user (overriding the
-    default menu). We cache that binding here, keyed by `line_user_id`
-    (U + 32 hex). One active assignment per user, so `line_user_id` is unique;
-    unlinking is a hard delete of the row.
+    default menu). We cache that binding here, keyed by the ``user_id`` FK
+    (U + 32 hex LINE IDs are resolved to users via HMAC hash). One active
+    assignment per user, so ``user_id`` is unique; unlinking is a hard
+    delete of the row.
     """
 
     __tablename__ = "user_rich_menu_links"
 
     id = Column(Integer, primary_key=True, index=True)
-    line_user_id = Column(String(50), unique=True, index=True, nullable=False)  # U + 32 hex
     user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=True)
     rich_menu_id = Column(
         Integer,
@@ -33,8 +33,8 @@ class UserRichMenuLink(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     __table_args__ = (
-        # Mirrors the line_user_id uniqueness above via the FK path, for
-        # LINE_ID_STORAGE_MODE = "pseudonym". Created by migration d5e6f7g8h9i0.
+        # One assignment per user (PR C — line_user_id column dropped).
+        # Created by migration d5e6f7g8h9i0.
         Index(
             "uq_user_rich_menu_links_user_id",
             "user_id",

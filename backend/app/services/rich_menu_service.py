@@ -8,9 +8,8 @@ from datetime import datetime, timezone
 from app.models.rich_menu import RichMenu, RichMenuStatus
 from app.models.user_rich_menu_link import UserRichMenuLink
 from app.services.settings_service import SettingsService
-from app.core.config import settings
 from app.core.redis_client import redis_client
-from app.services.user_identity_service import child_column, resolve_many_by_line_id
+from app.services.user_identity_service import child_column
 import os
 
 logger = logging.getLogger(__name__)
@@ -31,9 +30,9 @@ class RichMenuService:
 
     @staticmethod
     async def get_current_links_for_users(
-        db: AsyncSession, line_user_ids: List[str]
-    ) -> Dict[str, Dict[str, Any]]:
-        """Map each given line_user_id to its current rich menu {id, name}.
+        db: AsyncSession, user_ids: List[int]
+    ) -> Dict[int, Dict[str, Any]]:
+        """Map each given user id to its current rich menu {id, name}.
 
         Joins user_rich_menu_links -> rich_menus so a friends-list page can show
         which menu each user is bound to. Users with no per-user link are simply
@@ -41,26 +40,22 @@ class RichMenuService:
         menu"). Scoped to the passed ids (one page) so we never scan the whole
         table.
         """
-        if not line_user_ids:
+        if not user_ids:
             return {}
         owner_col = child_column(UserRichMenuLink)
-        query = select(
-            owner_col.label("owner_key"),
-            RichMenu.id.label("rich_menu_id"),
-            RichMenu.name.label("rich_menu_name"),
-        ).join(RichMenu, RichMenu.id == UserRichMenuLink.rich_menu_id)
-
-        id_to_user: Dict[str, int] = {}
-        if settings.LINE_ID_STORAGE_MODE == "pseudonym":
-            id_to_user = await resolve_many_by_line_id(db, line_user_ids)
-            query = query.where(owner_col.in_(list(id_to_user.values())))
-        else:
-            query = query.where(owner_col.in_(line_user_ids))
+        query = (
+            select(
+                owner_col.label("owner_key"),
+                RichMenu.id.label("rich_menu_id"),
+                RichMenu.name.label("rich_menu_name"),
+            )
+            .join(RichMenu, RichMenu.id == UserRichMenuLink.rich_menu_id)
+            .where(owner_col.in_(list(user_ids)))
+        )
 
         result = await db.execute(query)
-        user_to_id = {user_id: raw for raw, user_id in id_to_user.items()}
         return {
-            user_to_id.get(row.owner_key, row.owner_key): {
+            row.owner_key: {
                 "rich_menu_id": row.rich_menu_id,
                 "rich_menu_name": row.rich_menu_name,
             }

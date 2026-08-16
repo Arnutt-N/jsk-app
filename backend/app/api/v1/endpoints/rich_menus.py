@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Path, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Dict, List, Optional
+from typing import Dict, List
 import logging
 import os
 import shutil
@@ -25,6 +25,7 @@ from app.schemas.rich_menu import (
 from app.models.rich_menu_alias import RichMenuAlias
 from app.models.user_rich_menu_link import UserRichMenuLink
 from app.services.rich_menu_service import RichMenuService
+from app.services.user_identity_service import resolve_by_line_id, resolve_many_by_line_id
 from sqlalchemy import select, delete, func
 from sqlalchemy.exc import IntegrityError
 from datetime import date, datetime, timedelta, timezone
@@ -186,20 +187,16 @@ async def delete_rich_menu_alias(
 async def _ensure_known_line_user(db: AsyncSession, line_user_id: str) -> int:
     """IDOR guard: the line_user_id must belong to a known user (404 otherwise).
     Returns the user's integer id for FK population."""
-    result = await db.execute(select(User.id).where(User.line_user_id == line_user_id))
-    user_id = result.scalar_one_or_none()
-    if user_id is None:
+    user = await resolve_by_line_id(db, line_user_id)
+    if user is None:
         raise HTTPException(status_code=404, detail="Unknown LINE user")
-    return user_id
+    return user.id
 
 
 async def _ensure_known_line_users(db: AsyncSession, line_user_ids: List[str]) -> Dict[str, int]:
     """IDOR guard for bulk: every line_user_id must be known (404 lists missing).
     Returns {line_user_id: user.id} mapping for FK population."""
-    result = await db.execute(
-        select(User.line_user_id, User.id).where(User.line_user_id.in_(line_user_ids))
-    )
-    uid_map = {row.line_user_id: row.id for row in result.all()}
+    uid_map = await resolve_many_by_line_id(db, line_user_ids)
     missing = [u for u in line_user_ids if u not in uid_map]
     if missing:
         logger.warning("Bulk rich-menu op referenced %d unknown LINE user(s)", len(missing))
@@ -208,30 +205,26 @@ async def _ensure_known_line_users(db: AsyncSession, line_user_ids: List[str]) -
 
 
 async def _upsert_user_links(
-    db: AsyncSession, line_user_ids: List[str], rich_menu_id: int,
-    uid_map: Optional[Dict[str, int]] = None,
+    db: AsyncSession, user_ids: List[int], rich_menu_id: int,
 ) -> None:
-    """Cache per-user assignments locally. line_user_id is unique (one menu/user),
+    """Cache per-user assignments locally. user_id is unique (one menu/user),
     so re-linking updates the existing row instead of inserting a duplicate."""
     existing = await db.execute(
-        select(UserRichMenuLink).where(UserRichMenuLink.line_user_id.in_(line_user_ids))
+        select(UserRichMenuLink).where(UserRichMenuLink.user_id.in_(user_ids))
     )
-    by_uid = {row.line_user_id: row for row in existing.scalars().all()}
+    by_uid = {row.user_id: row for row in existing.scalars().all()}
     now = datetime.now(timezone.utc)
-    for uid in line_user_ids:
+    for uid in user_ids:
         row = by_uid.get(uid)
         if row:
             row.rich_menu_id = rich_menu_id
             row.sync_status = "SYNCED"
             row.last_synced_at = now
             row.last_sync_error = None
-            if uid_map and uid in uid_map:
-                row.user_id = uid_map[uid]
         else:
             db.add(
                 UserRichMenuLink(
-                    line_user_id=uid,
-                    user_id=uid_map.get(uid) if uid_map else None,
+                    user_id=uid,
                     rich_menu_id=rich_menu_id,
                     sync_status="SYNCED",
                     last_synced_at=now,
@@ -278,7 +271,7 @@ async def bulk_link_users(
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"LINE bulk link failed: {str(e)}")
 
-    await _upsert_user_links(db, data.user_ids, rich_menu.id, uid_map)
+    await _upsert_user_links(db, list(uid_map.values()), rich_menu.id)
     await db.commit()
     return {"message": "Linked", "rich_menu_id": rich_menu.id, "count": len(data.user_ids)}
 
@@ -290,7 +283,7 @@ async def bulk_unlink_users(
     current_admin: User = Depends(require_permission(KEY_MANAGE_RICH_MENUS)),
 ):
     # No synced-guard: unlinking should always be possible.
-    await _ensure_known_line_users(db, data.user_ids)
+    uid_map = await _ensure_known_line_users(db, data.user_ids)
 
     try:
         await RichMenuService.bulk_unlink(db, data.user_ids)
@@ -298,7 +291,7 @@ async def bulk_unlink_users(
         raise HTTPException(status_code=400, detail=f"LINE bulk unlink failed: {str(e)}")
 
     await db.execute(
-        delete(UserRichMenuLink).where(UserRichMenuLink.line_user_id.in_(data.user_ids))
+        delete(UserRichMenuLink).where(UserRichMenuLink.user_id.in_(list(uid_map.values())))
     )
     await db.commit()
     return {"message": "Unlinked", "count": len(data.user_ids)}
@@ -325,7 +318,7 @@ async def link_user_to_rich_menu(
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"LINE link failed: {str(e)}")
 
-    await _upsert_user_links(db, [user_id], rich_menu.id, {user_id: uid})
+    await _upsert_user_links(db, [uid], rich_menu.id)
     await db.commit()
     return {"message": "Linked", "line_user_id": user_id, "rich_menu_id": rich_menu.id}
 
@@ -345,7 +338,7 @@ async def unlink_user_from_rich_menu(
     if not rich_menu:
         raise HTTPException(status_code=404, detail="Rich Menu not found")
 
-    await _ensure_known_line_user(db, user_id)
+    uid = await _ensure_known_line_user(db, user_id)
 
     # No synced-guard: allow reverting a user even if the menu lost its LINE id.
     try:
@@ -354,7 +347,7 @@ async def unlink_user_from_rich_menu(
         raise HTTPException(status_code=400, detail=f"LINE unlink failed: {str(e)}")
 
     await db.execute(
-        delete(UserRichMenuLink).where(UserRichMenuLink.line_user_id == user_id)
+        delete(UserRichMenuLink).where(UserRichMenuLink.user_id == uid)
     )
     await db.commit()
     return {"message": "Unlinked", "line_user_id": user_id}

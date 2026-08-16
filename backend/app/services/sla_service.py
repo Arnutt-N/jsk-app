@@ -10,6 +10,7 @@ from app.core.websocket_manager import ws_manager
 from app.models.chat_session import ChatSession
 from app.schemas.ws_events import WSEventType
 from app.services.telegram_service import telegram_service
+from app.services.user_identity_service import decrypt_line_id_for_user
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +31,7 @@ class SLAService:
             metric="queue_wait_seconds",
             value_seconds=elapsed,
             threshold_seconds=settings.SLA_MAX_QUEUE_WAIT_SECONDS,
-            line_user_id=session.line_user_id,
+            line_user_id=await decrypt_line_id_for_user(db, session.user_id),
             session_id=session.id,
             db=db,
         )
@@ -48,7 +49,7 @@ class SLAService:
             metric="resolution_seconds",
             value_seconds=elapsed,
             threshold_seconds=settings.SLA_MAX_RESOLUTION_SECONDS,
-            line_user_id=session.line_user_id,
+            line_user_id=await decrypt_line_id_for_user(db, session.user_id),
             session_id=session.id,
             db=db,
         )
@@ -66,7 +67,7 @@ class SLAService:
             metric="first_response_seconds",
             value_seconds=elapsed,
             threshold_seconds=settings.SLA_MAX_FRT_SECONDS,
-            line_user_id=session.line_user_id,
+            line_user_id=await decrypt_line_id_for_user(db, session.user_id),
             session_id=session.id,
             db=db,
         )

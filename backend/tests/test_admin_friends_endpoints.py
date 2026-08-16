@@ -9,19 +9,31 @@ from app.api import deps
 from app.api.v1.endpoints import admin_friends
 from app.main import app
 from app.models.user import ChatMode, UserRole
+from app.services.credential_service import credential_service
+
+from tests.identity_helpers import make_line_user_fields
 
 
-def _make_db_mock():
-    """Create a DB mock where execute().scalar() returns a sync value."""
+def _make_db_mock(user_rows: list[tuple[int, str]], total: int = 1):
+    """DB mock wired for list_friends' two real db.execute calls:
+    1) count query → .scalar() → total
+    2) decrypt_line_ids_for_users select(User.id, User.line_user_id_encrypted)
+       → .all() → [(user_id, encrypted_token), ...]
+    """
     db = AsyncMock()
-    scalar_result = MagicMock()
-    scalar_result.scalar.return_value = 1  # total count
-    db.execute.return_value = scalar_result
+    count_result = MagicMock()
+    count_result.scalar.return_value = total
+    decrypt_result = MagicMock()
+    decrypt_result.all.return_value = user_rows
+    db.execute = AsyncMock(side_effect=[count_result, decrypt_result])
     return db
 
 
-async def _override_get_db():
-    yield _make_db_mock()
+def _make_db_override(user_rows: list[tuple[int, str]], total: int = 1):
+    async def _override_get_db():
+        yield _make_db_mock(user_rows, total=total)
+
+    return _override_get_db
 
 
 async def _override_get_current_admin():
@@ -29,7 +41,9 @@ async def _override_get_current_admin():
 
 
 def test_list_friends_serializes_friend_rows():
-    app.dependency_overrides[deps.get_db] = _override_get_db
+    app.dependency_overrides[deps.get_db] = _make_db_override(
+        [(1, credential_service.encrypt_line_id("U123"))]
+    )
     app.dependency_overrides[deps.get_current_admin] = _override_get_current_admin
 
     original_list_friends = admin_friends.friend_service.list_friends
@@ -37,13 +51,14 @@ def test_list_friends_serializes_friend_rows():
     admin_friends.friend_service.list_friends = AsyncMock(
         return_value=[
             SimpleNamespace(
-                line_user_id="U123",
+                id=1,
                 display_name="Friend One",
                 picture_url="https://example.com/friend.png",
                 friend_status="ACTIVE",
                 friend_since=datetime(2026, 3, 10, 1, 2, tzinfo=timezone.utc),
                 last_message_at=datetime(2026, 3, 11, 3, 4, tzinfo=timezone.utc),
                 chat_mode=ChatMode.HUMAN,
+                **make_line_user_fields("U123"),
             )
         ]
     )
@@ -74,8 +89,15 @@ def test_list_friends_serializes_friend_rows():
 
 def test_list_friends_includes_current_rich_menu():
     """Each friend row reports its current per-user rich menu (id + name), or
-    null when the user has no per-user binding."""
-    app.dependency_overrides[deps.get_db] = _override_get_db
+    null when the user has no per-user binding. Rich menu links are keyed by
+    user.id (PR C: user_id FK)."""
+    app.dependency_overrides[deps.get_db] = _make_db_override(
+        [
+            (1, credential_service.encrypt_line_id("U123")),
+            (2, credential_service.encrypt_line_id("U999")),
+        ],
+        total=2,
+    )
     app.dependency_overrides[deps.get_current_admin] = _override_get_current_admin
 
     original_list = admin_friends.friend_service.list_friends
@@ -85,28 +107,30 @@ def test_list_friends_includes_current_rich_menu():
     admin_friends.friend_service.list_friends = AsyncMock(
         return_value=[
             SimpleNamespace(
-                line_user_id="U123",
+                id=1,
                 display_name="Has Menu",
                 picture_url=None,
                 friend_status="ACTIVE",
                 friend_since=None,
                 last_message_at=None,
                 chat_mode=ChatMode.BOT,
+                **make_line_user_fields("U123"),
             ),
             SimpleNamespace(
-                line_user_id="U999",
+                id=2,
                 display_name="No Menu",
                 picture_url=None,
                 friend_status="ACTIVE",
                 friend_since=None,
                 last_message_at=None,
                 chat_mode=ChatMode.BOT,
+                **make_line_user_fields("U999"),
             ),
         ]
     )
     admin_friends.friend_service.get_user_refollow_counts = AsyncMock(return_value={})
     admin_friends.RichMenuService.get_current_links_for_users = AsyncMock(
-        return_value={"U123": {"rich_menu_id": 5, "rich_menu_name": "Main Menu"}}
+        return_value={1: {"rich_menu_id": 5, "rich_menu_name": "Main Menu"}}
     )
 
     client = TestClient(app)

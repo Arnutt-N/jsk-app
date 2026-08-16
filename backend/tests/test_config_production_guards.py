@@ -22,6 +22,7 @@ BASE_SETTINGS = {
     "SECRET_KEY": "x" * 40,
     "LINE_LOGIN_CHANNEL_ID": "2000000000",
     "ENCRYPTION_KEY": "zsi41Kqura0QA7xUGAtHnwoAnPP3IAddcu-cb2mfGCA=",
+    "LINE_ID_HMAC_KEY": "test-line-id-hmac-key-0123456789",
     "DEV_AUTH_BYPASS": False,
 }
 
@@ -166,6 +167,34 @@ def test_production_rejects_empty_encryption_key() -> None:
         settings.enforce_production_guards()
 
 
+def test_production_rejects_empty_line_id_hmac_key() -> None:
+    settings = build_settings(ENVIRONMENT="production", LINE_ID_HMAC_KEY="")
+
+    with pytest.raises(RuntimeError, match="LINE_ID_HMAC_KEY"):
+        settings.enforce_production_guards()
+
+
+def test_production_rejects_blank_line_id_hmac_key() -> None:
+    settings = build_settings(ENVIRONMENT="production", LINE_ID_HMAC_KEY="   ")
+
+    with pytest.raises(RuntimeError, match="LINE_ID_HMAC_KEY"):
+        settings.enforce_production_guards()
+
+
+def test_production_hmac_key_guard_is_unconditional_across_storage_modes() -> None:
+    """PR C contract: the HMAC key guard does not depend on
+    LINE_ID_STORAGE_MODE — resolution is hash-only in every mode."""
+    for mode in ("pseudonym", "dual", "plaintext"):
+        settings = build_settings(
+            ENVIRONMENT="production",
+            LINE_ID_STORAGE_MODE=mode,
+            LINE_ID_HMAC_KEY="",
+        )
+
+        with pytest.raises(RuntimeError, match="LINE_ID_HMAC_KEY"):
+            settings.enforce_production_guards()
+
+
 def test_production_reports_all_violations_together() -> None:
     settings = build_settings(
         ENVIRONMENT="production",
@@ -173,6 +202,7 @@ def test_production_reports_all_violations_together() -> None:
         SECRET_KEY="change_this_to_a_secure_random_string",
         LINE_LOGIN_CHANNEL_ID="",
         ENCRYPTION_KEY="",
+        LINE_ID_HMAC_KEY="",
     )
 
     with pytest.raises(RuntimeError) as exc_info:
@@ -183,6 +213,7 @@ def test_production_reports_all_violations_together() -> None:
     assert "SECRET_KEY" in message
     assert "LINE_LOGIN_CHANNEL_ID" in message
     assert "ENCRYPTION_KEY" in message
+    assert "LINE_ID_HMAC_KEY" in message
 
 
 def test_production_error_message_does_not_echo_secret_value() -> None:

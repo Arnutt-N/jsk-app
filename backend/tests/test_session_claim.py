@@ -20,6 +20,8 @@ from app.api import deps
 from app.main import app
 from app.models.chat_session import SessionStatus, ClosedBy
 
+from tests.identity_helpers import make_line_user_fields
+
 
 @pytest.fixture(autouse=True)
 def mock_live_chat_auth():
@@ -205,7 +207,7 @@ def test_send_message_rest_broadcasts_message_and_conversation_update(test_clien
     fake_user = SimpleNamespace(id=7)
     message = SimpleNamespace(
         id=11,
-        line_user_id="Uabcdef0123456789abcdef0123456789",
+        user_id=1,
         direction="OUTGOING",
         content="hello",
         message_type="text",
@@ -392,7 +394,7 @@ def test_send_message_rest_sanitizes_text_like_websocket(test_client):
 
     message = SimpleNamespace(
         id=11,
-        line_user_id="Uabcdef0123456789abcdef0123456789",
+        user_id=1,
         direction="OUTGOING",
         content="hello world",
         message_type="text",
@@ -535,7 +537,10 @@ def test_create_conversation_returns_409_on_open_session_race(test_client):
     mock_db = AsyncMock()
     mock_db.add = Mock()
     fake_user = SimpleNamespace(id=7)
-    line_user = SimpleNamespace(line_user_id="Uabcdef0123456789abcdef0123456789")
+    line_user = SimpleNamespace(
+        id=99,
+        **make_line_user_fields("Uabcdef0123456789abcdef0123456789"),
+    )
 
     query_result = SimpleNamespace(scalar_one_or_none=lambda: line_user)
     mock_db.execute.return_value = query_result

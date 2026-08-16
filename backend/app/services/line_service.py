@@ -264,10 +264,19 @@ class LineService:
             payload: Full JSON payload for complex messages
             sender_role: USER, BOT, or ADMIN
             operator_name: Display name of admin operator (for live chat)
-            user_id: Internal user ID (dual-write pseudonymization)
+            user_id: Internal user ID (resolved from line_user_id when omitted)
         """
+        if user_id is None and line_user_id:
+            from app.services.user_identity_service import resolve_by_line_id
+
+            resolved = await resolve_by_line_id(db, line_user_id)
+            if not resolved:
+                raise RuntimeError(
+                    f"ไม่พบผู้ใช้สำหรับ LINE ID {line_user_id} — "
+                    "ต้องสร้างผู้ใช้ก่อนบันทึกข้อความ"
+                )
+            user_id = resolved.id
         message = Message(
-            line_user_id=line_user_id,
             user_id=user_id,
             direction=direction,
             message_type=message_type,
@@ -427,15 +436,10 @@ line_service = LineService()
 
 
 async def resolve_raw_for_push(db: AsyncSession, user) -> str:
-    """Resolve the raw LINE user ID for outbound push.
+    """Resolve the raw LINE user ID for outbound push (fail-loud)."""
+    from app.services.user_identity_service import decrypt_user_line_id
 
-    Prefers decrypting line_user_id_encrypted; falls back to plaintext column.
-    PR B will switch push callers to use this instead of user.line_user_id directly.
-    """
-    from app.services.user_identity_service import decrypt_line_id_for_user
-
-    decrypted = await decrypt_line_id_for_user(db, user.id)
-    if decrypted:
-        return decrypted
-    return user.line_user_id
+    if user is None:
+        raise RuntimeError("resolve_raw_for_push: ไม่พบผู้ใช้ — ไม่สามารถส่งข้อความ push ได้")
+    return decrypt_user_line_id(user)
 

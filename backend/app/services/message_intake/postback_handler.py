@@ -45,7 +45,6 @@ async def handle_csat_response(line_user_id: str, data: str, reply_token: str, d
         resolved_user = await resolve_by_line_id(db, line_user_id)
         await csat_service.record_response(
             session_id=session_id,
-            line_user_id=line_user_id,
             score=score,
             feedback=None,
             db=db,

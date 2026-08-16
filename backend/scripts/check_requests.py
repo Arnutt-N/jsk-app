@@ -26,6 +26,7 @@ async def check_requests(limit: int) -> int:
 
     from app.db.session import AsyncSessionLocal
     from app.models.service_request import ServiceRequest
+    from app.services.user_identity_service import decrypt_line_ids_for_users
 
     print_script_header("Inspect latest service requests", apply=False)
     async with AsyncSessionLocal() as db:
@@ -38,13 +39,17 @@ async def check_requests(limit: int) -> int:
             print("No requests found in database yet.")
             return 0
 
+        line_ids = await decrypt_line_ids_for_users(
+            db, [r.user_id for r in requests if r.user_id is not None]
+        )
+
         print(f"Found {len(requests)} requests:")
         for request in requests:
             print(
                 f"[{request.id}] Name: {request.requester_name}, "
                 f"Phone: {request.phone_number}, "
                 f"Type: {request.category}, "
-                f"LINE ID: {request.line_user_id}"
+                f"LINE ID: {line_ids.get(request.user_id) if request.user_id else '-'}"
             )
     return 0
 

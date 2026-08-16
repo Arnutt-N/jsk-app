@@ -22,7 +22,6 @@ class FriendEvent(Base):
     __tablename__ = "friend_events"
 
     id = Column(Integer, primary_key=True)
-    line_user_id = Column(String(50), nullable=False, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=True)
     event_type = Column(String(20), nullable=False)
     source = Column(String(20), default=EventSource.WEBHOOK)

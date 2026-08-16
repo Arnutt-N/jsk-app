@@ -44,7 +44,7 @@ class OperatorReportMixin:
                 )
                 .join(
                     Message,
-                    (Message.line_user_id == ChatSession.line_user_id)
+                    (Message.user_id == ChatSession.user_id)
                     & (Message.created_at >= ChatSession.started_at)
                     & ((Message.created_at <= ChatSession.closed_at) | (ChatSession.closed_at.is_(None))),
                 )

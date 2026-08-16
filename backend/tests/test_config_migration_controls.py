@@ -19,6 +19,7 @@ def test_migration_controls_default_to_hardened_modes() -> None:
 
     assert settings.LIFF_STRICT_MODE is True
     assert settings.COOKIE_AUTH_MODE == "cookie"
+    assert settings.LINE_ID_STORAGE_MODE == "pseudonym"
 
 
 @pytest.mark.parametrize("mode", ["bearer", "dual", "cookie"])

@@ -7,12 +7,16 @@ Unit tests for live_chat_service.py:
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import datetime, timezone
+from types import SimpleNamespace
 from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
 
 from app.services.live_chat_service import LiveChatService
 from app.models.chat_session import SessionStatus, ClosedBy
 from app.models.user import UserRole
+from app.services.credential_service import credential_service
+
+from tests.identity_helpers import make_line_user_fields
 
 
 @pytest.fixture
@@ -85,7 +89,8 @@ class TestInitiateHandoff:
     @pytest.mark.asyncio
     async def test_initiate_handoff_reuses_existing_open_session(self, live_chat_service):
         mock_user = MagicMock()
-        mock_user.line_user_id = "Utest"
+        mock_user.id = 1
+        mock_user.line_user_id_encrypted = credential_service.encrypt_line_id("Utest")
         mock_user.chat_mode = "BOT"
         mock_session = MagicMock()
         mock_db = AsyncMock()
@@ -113,7 +118,8 @@ class TestInitiateHandoff:
         transaction: the savepoint rolls back, the winner's session is adopted,
         and no duplicate greeting is sent."""
         mock_user = MagicMock()
-        mock_user.line_user_id = "Utest"
+        mock_user.id = 1
+        mock_user.line_user_id_encrypted = credential_service.encrypt_line_id("Utest")
         mock_user.chat_mode = "BOT"
         winner_session = MagicMock()
 
@@ -428,16 +434,20 @@ class TestSearchMessages:
     async def test_search_messages_returns_formatted_items(self, live_chat_service):
         mock_message = MagicMock()
         mock_message.id = 101
-        mock_message.line_user_id = "Uabc"
+        mock_message.user_id = 5
         mock_message.content = "hello world"
         mock_message.direction = MagicMock(value="INCOMING")
         mock_message.sender_role = None
         mock_message.created_at = datetime.now(timezone.utc)
 
         mock_db = AsyncMock()
-        mock_result = MagicMock()
-        mock_result.all.return_value = [(mock_message, "Tester")]
-        mock_db.execute.return_value = mock_result
+        search_result = MagicMock()
+        search_result.all.return_value = [(mock_message, "Tester")]
+        decrypt_result = MagicMock()
+        decrypt_result.all.return_value = [
+            (5, credential_service.encrypt_line_id("Uabc"))
+        ]
+        mock_db.execute.side_effect = [search_result, decrypt_result]
 
         items = await live_chat_service.search_messages("hello", mock_db)
         assert len(items) == 1
@@ -478,11 +488,24 @@ class TestUnreadCount:
     async def test_get_unread_counts_batches_queries(self, live_chat_service):
         mock_db = AsyncMock()
 
+        # 1st execute: resolve_many_by_line_id maps raw LINE IDs -> user.id
+        resolve_result = MagicMock()
+        resolve_result.scalars.return_value.all.return_value = [
+            SimpleNamespace(id=11, **make_line_user_fields("Uno-marker")),
+            SimpleNamespace(id=12, **make_line_user_fields("Uwith-marker")),
+            SimpleNamespace(id=13, **make_line_user_fields("Ubad-marker")),
+        ]
+        # 2nd execute: unread counts grouped by user_id (no read markers)
         no_marker_result = MagicMock()
-        no_marker_result.all.return_value = [("Uno-marker", 4), ("Ubad-marker", 1)]
+        no_marker_result.all.return_value = [(11, 4), (13, 1)]
+        # 3rd execute: unread counts grouped by user_id (with read markers)
         with_marker_result = MagicMock()
-        with_marker_result.all.return_value = [("Uwith-marker", 2)]
-        mock_db.execute.side_effect = [no_marker_result, with_marker_result]
+        with_marker_result.all.return_value = [(12, 2)]
+        mock_db.execute.side_effect = [
+            resolve_result,
+            no_marker_result,
+            with_marker_result,
+        ]
 
         with patch('app.services.live_chat_service.redis_client.mget', new_callable=AsyncMock) as mock_mget:
             mock_mget.return_value = [
@@ -501,4 +524,4 @@ class TestUnreadCount:
             "Uwith-marker": 2,
             "Ubad-marker": 1,
         }
-        assert mock_db.execute.call_count == 2
+        assert mock_db.execute.call_count == 3

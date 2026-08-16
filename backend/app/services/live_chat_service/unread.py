@@ -3,10 +3,9 @@ import logging
 from datetime import datetime
 from typing import Union
 
-from sqlalchemy import DateTime, Integer, String, column, func, select, values
+from sqlalchemy import DateTime, Integer, column, func, select, values
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
 from app.core.redis_client import redis_client
 from app.core.websocket_manager import ConnectionManager
 from app.models.message import Message, MessageDirection
@@ -75,25 +74,18 @@ class UnreadCountsMixin:
             except ValueError:
                 ids_without_markers.append(line_user_id)
 
-        use_pseudonym = settings.LINE_ID_STORAGE_MODE == "pseudonym"
-        id_to_user: dict[str, int] = {}
-        user_to_id: dict[int, str] = {}
-        if use_pseudonym:
-            id_to_user = await resolve_many_by_line_id(
-                db,
-                ids_without_markers + [line_user_id for line_user_id, _ in ids_with_markers],
-            )
-            user_to_id = {user_id: line_user_id for line_user_id, user_id in id_to_user.items()}
+        id_to_user: dict[str, int] = await resolve_many_by_line_id(
+            db,
+            ids_without_markers + [line_user_id for line_user_id, _ in ids_with_markers],
+        )
+        user_to_id: dict[int, str] = {user_id: line_user_id for line_user_id, user_id in id_to_user.items()}
 
         msg_col = child_column(Message)
 
         if ids_without_markers:
-            if use_pseudonym:
-                owner_cond = msg_col.in_(
-                    [id_to_user[line_user_id] for line_user_id in ids_without_markers if line_user_id in id_to_user]
-                )
-            else:
-                owner_cond = msg_col.in_(ids_without_markers)
+            owner_cond = msg_col.in_(
+                [id_to_user[line_user_id] for line_user_id in ids_without_markers if line_user_id in id_to_user]
+            )
             result = await db.execute(
                 select(
                     msg_col,
@@ -109,16 +101,12 @@ class UnreadCountsMixin:
                 counts[user_to_id.get(key, key)] = int(unread_count)
 
         if ids_with_markers:
-            if use_pseudonym:
-                id_column = column("user_id", Integer())
-                marker_rows = [
-                    (id_to_user[line_user_id], read_at)
-                    for line_user_id, read_at in ids_with_markers
-                    if line_user_id in id_to_user
-                ]
-            else:
-                id_column = column("line_user_id", String())
-                marker_rows = ids_with_markers
+            id_column = column("user_id", Integer())
+            marker_rows = [
+                (id_to_user[line_user_id], read_at)
+                for line_user_id, read_at in ids_with_markers
+                if line_user_id in id_to_user
+            ]
             if marker_rows:
                 marker_values = (
                     values(

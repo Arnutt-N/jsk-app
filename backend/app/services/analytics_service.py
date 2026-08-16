@@ -147,7 +147,7 @@ class AnalyticsService:
         closed_sessions = (
             select(
                 ChatSession.id.label("id"),
-                child_column(ChatSession).label("line_user_id"),
+                child_column(ChatSession).label("user_id"),
                 ChatSession.closed_at.label("closed_at"),
             )
             .where(
@@ -166,7 +166,7 @@ class AnalyticsService:
         reopened_exists = exists(
             select(ChatSession.id).where(
                 and_(
-                    child_column(ChatSession) == closed_sessions.c.line_user_id,
+                    child_column(ChatSession) == closed_sessions.c.user_id,
                     ChatSession.started_at > closed_sessions.c.closed_at,
                     ChatSession.started_at < closed_sessions.c.closed_at + timedelta(hours=24),
                 )
@@ -191,7 +191,7 @@ class AnalyticsService:
         closed_sessions = (
             select(
                 ChatSession.id.label("id"),
-                child_column(ChatSession).label("line_user_id"),
+                child_column(ChatSession).label("user_id"),
                 ChatSession.closed_at.label("closed_at"),
             )
             .where(
@@ -207,7 +207,7 @@ class AnalyticsService:
         reopened_exists = exists(
             select(ChatSession.id).where(
                 and_(
-                    child_column(ChatSession) == closed_sessions.c.line_user_id,
+                    child_column(ChatSession) == closed_sessions.c.user_id,
                     ChatSession.started_at > closed_sessions.c.closed_at,
                     ChatSession.started_at < closed_sessions.c.closed_at + timedelta(hours=24),
                 )

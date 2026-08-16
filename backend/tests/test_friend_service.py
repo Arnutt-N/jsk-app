@@ -7,15 +7,17 @@ import pytest
 
 from app.services.friend_service import FriendService
 
+from tests.identity_helpers import make_line_user_fields
+
 
 @pytest.mark.asyncio
 async def test_refresh_profile_skips_when_not_stale():
     service = FriendService()
     recent_user = SimpleNamespace(
-        line_user_id="U123",
         display_name="Existing",
         picture_url="old.png",
         profile_updated_at=datetime.now(timezone.utc),
+        **make_line_user_fields("U123"),
     )
     mock_db = AsyncMock()
     mock_result = MagicMock()
@@ -32,10 +34,10 @@ async def test_refresh_profile_skips_when_not_stale():
 async def test_refresh_profile_updates_when_stale():
     service = FriendService()
     stale_user = SimpleNamespace(
-        line_user_id="U456",
         display_name="Old Name",
         picture_url="old.png",
         profile_updated_at=datetime.now(timezone.utc) - timedelta(days=2),
+        **make_line_user_fields("U456"),
     )
     mock_db = AsyncMock()
     mock_result = MagicMock()
@@ -81,10 +83,10 @@ async def test_handle_follow_returning_user_creates_refollow_event():
     service = FriendService()
     existing = SimpleNamespace(
         id=1,
-        line_user_id="U123",
         friend_status="UNFOLLOWED",
         is_active=False,
         friend_since=datetime(2025, 1, 1, tzinfo=timezone.utc),
+        **make_line_user_fields("U123"),
     )
     mock_db = AsyncMock()
     # resolve_by_line_id handles the user lookup; only the refollow count hits db.execute
@@ -111,10 +113,10 @@ async def test_handle_follow_blocked_user_creates_refollow_event():
     service = FriendService()
     existing = SimpleNamespace(
         id=2,
-        line_user_id="U456",
         friend_status="BLOCKED",
         is_active=False,
         friend_since=datetime(2025, 6, 1, tzinfo=timezone.utc),
+        **make_line_user_fields("U456"),
     )
     mock_db = AsyncMock()
     refollow_result = MagicMock()
@@ -138,10 +140,10 @@ async def test_handle_follow_sets_friend_since_only_if_missing():
     service = FriendService()
     existing = SimpleNamespace(
         id=3,
-        line_user_id="U789",
         friend_status="ACTIVE",
         is_active=True,
         friend_since=None,
+        **make_line_user_fields("U789"),
     )
     mock_db = AsyncMock()
     user_result = MagicMock()
@@ -159,8 +161,8 @@ async def test_handle_unfollow_sets_unfollowed_status():
     service = FriendService()
     existing = SimpleNamespace(
         id=4,
-        line_user_id="U123",
         friend_status="ACTIVE",
+        **make_line_user_fields("U123"),
     )
     mock_db = AsyncMock()
     user_result = MagicMock()
