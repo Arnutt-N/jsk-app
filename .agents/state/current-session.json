@@ -1,10 +1,22 @@
 {
-  "last_updated": "2026-08-16T21:02:00+07:00",
+  "last_updated": "2026-08-16T22:53:00+07:00",
   "platform": "qoder",
-  "current_task": "Deep-review fixes for PR C shipped: 2 CRITICAL stale-schema 500s fixed (ChatSessionResponse/FriendEventResponse vs dropped line_user_id), MEDIUM hardening (decrypt guards, cleanup/SLA graceful degrade",
+  "current_task": "PR #199 review rounds complete: two-axis review + L3 migration deep-review fixes all pushed (f30edce) — migration guard fallback aligned with pseudonym config default, verified on fresh DB; Optional[i",
   "plan_status": "completed",
-  "next_steps": [],
+  "next_steps": [
+    "Reviewer gate check on PR #199",
+    "Take Supabase backup then merge",
+    "Post-merge: set LINE_ID_STORAGE_MODE=pseudonym on Koyeb (currently dual)",
+    "Drop throwaway DB skn_app_db_fresh_verify on local PG"
+  ],
   "handoff_history": [
+    {
+      "timestamp": "2026-08-16T22:53:00+07:00",
+      "platform": "qoder",
+      "branch": "feat/pr-c-pseudonym-contract",
+      "head": "f30edce",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-08-16T21:02:00+07:00",
       "platform": "qoder",
@@ -136,13 +148,6 @@
       "platform": "claude_code",
       "branch": "main",
       "head": "c94434a",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-08-02T19:49:00+07:00",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "88c02eb",
       "status": "completed"
     }
   ],

@@ -1,0 +1,19 @@
+{
+  "handoff_version": "2.0",
+  "platform": "qoder",
+  "agent": "qoder",
+  "timestamp": "2026-08-16T22:53:00+07:00",
+  "branch": "feat/pr-c-pseudonym-contract",
+  "head_commit": "f30edce",
+  "status": "completed",
+  "work_summary": "PR #199 review rounds complete: two-axis review + L3 migration deep-review fixes all pushed (f30edce) — migration guard fallback aligned with pseudonym config default, verified on fresh DB; Optional[int] hint fixed; 1049 tests pass. PR #199 ready for reviewer + Supabase backup before merge",
+  "priority_actions": [
+    "Reviewer gate check on PR #199",
+    "Take Supabase backup then merge",
+    "Post-merge: set LINE_ID_STORAGE_MODE=pseudonym on Koyeb (currently dual)",
+    "Drop throwaway DB skn_app_db_fresh_verify on local PG"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/qoder/session-summary-20260816-2253.md",
+  "cross_platform_read": []
+}
