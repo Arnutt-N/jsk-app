@@ -10,6 +10,8 @@ from app.core.http_rate_limit import http_rate_limit
 from app.db.session import get_db
 from app.models.service_request import ServiceRequest
 from app.schemas.service_request_liff import ServiceRequestCreate, ServiceRequestResponse
+from app.services.friend_service import friend_service
+from app.services.user_identity_service import resolve_by_line_id
 
 logger = logging.getLogger(__name__)
 
@@ -94,9 +96,18 @@ async def create_service_request(
     if request.name and not full_name:
         full_name = request.name # Fallback
 
+    # Resolve the LINE identity to a user row. LIFF submissions may precede the
+    # follow event that normally creates the user, so create on miss. An
+    # unverified submission without a line_user_id stays unlinked.
+    user = None
+    if line_user_id:
+        user = await resolve_by_line_id(db, line_user_id)
+        if user is None:
+            user = await friend_service.get_or_create_user(line_user_id, db, commit=False)
+
     db_obj = ServiceRequest(
         # Context
-        line_user_id=line_user_id,
+        user_id=user.id if user else None,
         status=None, # User requested no initial status
         priority=None, # User requested no initial priority
         details=source_details,
@@ -137,7 +148,7 @@ async def create_service_request(
     
     return ServiceRequestResponse(
         id=db_obj.id,
-        line_user_id=db_obj.line_user_id,
+        line_user_id=line_user_id,
         created_at=db_obj.created_at,
         status=db_obj.status.value if hasattr(db_obj.status, 'value') else db_obj.status,
         priority=db_obj.priority.value if hasattr(db_obj.priority, 'value') else db_obj.priority, # No default value

@@ -40,7 +40,8 @@ class MessagingMixin:
             message_type="text",
             content=text,
             sender_role="ADMIN",
-            operator_name=operator_name
+            operator_name=operator_name,
+            user_id=session.user_id,
         )
 
         session.message_count += 1
@@ -129,6 +130,7 @@ class MessagingMixin:
             payload=payload,
             sender_role="ADMIN",
             operator_name=operator_name,
+            user_id=session.user_id,
         )
 
         session.message_count += 1
@@ -142,7 +144,7 @@ class MessagingMixin:
             "success": True,
             "message": {
                 "id": saved_message.id,
-                "line_user_id": saved_message.line_user_id,
+                "line_user_id": line_user_id,
                 "direction": saved_message.direction.value if hasattr(saved_message.direction, "value") else saved_message.direction,
                 "content": saved_message.content,
                 "message_type": saved_message.message_type,

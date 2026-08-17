@@ -119,17 +119,17 @@ class HandoffService:
         
         # Only initiate if user is currently in BOT mode
         if user.chat_mode != ChatMode.BOT:
-            logger.debug(f"User {user.line_user_id} already in {user.chat_mode} mode, skipping handoff")
+            logger.debug(f"User {user.id} already in {user.chat_mode} mode, skipping handoff")
             return False
         
-        logger.info(f"Handoff keyword detected: '{matched_keyword}' for user {user.line_user_id}")
+        logger.info(f"Handoff keyword detected: '{matched_keyword}' for user {user.id}")
         
         # Initiate handoff
         try:
             await live_chat_service.initiate_handoff(user, reply_token, db, commit=commit)
             return True
         except Exception as e:
-            logger.error(f"Failed to initiate handoff for user {user.line_user_id}: {e}")
+            logger.error(f"Failed to initiate handoff for user {user.id}: {e}")
             # Try to notify the user that handoff failed
             try:
                 from app.services.line_service import line_service

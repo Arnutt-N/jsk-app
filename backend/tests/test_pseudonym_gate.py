@@ -1,4 +1,11 @@
-"""Tests for PR C gate observability (app/core/pseudonym_gate.py + health endpoint)."""
+"""Tests for PR C gate observability (app/core/pseudonym_gate.py + health endpoint).
+
+PR C contract phase: `record_fallback_hit` has been deleted (the plaintext
+fallback path no longer exists), so the tests focus on `get_gate_status`
+read paths: Redis connected + absent key must prove zero hits (source
+"redis"), Redis unreachable falls back to the in-memory counter, and
+pseudonym mode short-circuits the gate.
+"""
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -10,7 +17,6 @@ from app.api import deps
 from app.core import pseudonym_gate
 from app.main import app
 from app.models.user import UserRole
-from app.services import user_identity_service
 
 
 async def _override_get_current_admin():
@@ -21,13 +27,6 @@ async def _override_get_current_user_unauthorized():
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
 
 
-def _make_begin_nested_mock() -> MagicMock:
-    ctx = MagicMock()
-    ctx.__aenter__ = AsyncMock(return_value=None)
-    ctx.__aexit__ = AsyncMock(return_value=False)
-    return MagicMock(return_value=ctx)
-
-
 @pytest.fixture(autouse=True)
 def _reset_gate_counters():
     """Each test starts with a clean in-memory counter."""
@@ -36,31 +35,7 @@ def _reset_gate_counters():
     pseudonym_gate.reset_local_counter()
 
 
-# ── 1. record_fallback_hit increments the in-memory counter ──────────
-
-
-@pytest.mark.asyncio
-async def test_record_fallback_hit_increments_local_counter():
-    assert pseudonym_gate._LOCAL_COUNT == 0
-    await pseudonym_gate.record_fallback_hit("Uabc", 42)
-    assert pseudonym_gate._LOCAL_COUNT == 1
-    assert pseudonym_gate._LOCAL_FIRST_HIT_AT is not None
-
-
-# ── 2. record_fallback_hit is best-effort (Redis failure does not raise) ──
-
-
-@pytest.mark.asyncio
-async def test_record_fallback_hit_swallows_redis_error():
-    with patch.object(
-        pseudonym_gate.redis_client, "incr", new=AsyncMock(side_effect=RuntimeError("redis down"))
-    ):
-        # Must not raise even though Redis is down.
-        await pseudonym_gate.record_fallback_hit("Uabc", 42)
-    assert pseudonym_gate._LOCAL_COUNT == 1  # local counter still incremented
-
-
-# ── 3. get_gate_status reports zero hits when none recorded ──────────
+# ── 1. get_gate_status reports zero hits when none recorded ──────────
 
 
 @pytest.mark.asyncio
@@ -81,12 +56,11 @@ async def test_get_gate_status_zero_hits_pass():
     assert status["first_hit_at"] is None
 
 
-# ── 4. get_gate_status reports fail when hits recorded ───────────────
+# ── 2. get_gate_status reports fail when hits recorded in Redis ──────
 
 
 @pytest.mark.asyncio
 async def test_get_gate_status_fail_when_hits_recorded():
-    await pseudonym_gate.record_fallback_hit("Uabc", 42)
     with patch.object(
         pseudonym_gate.settings, "LINE_ID_STORAGE_MODE", "dual"
     ), patch.object(
@@ -102,12 +76,15 @@ async def test_get_gate_status_fail_when_hits_recorded():
     assert status["first_hit_at"] is not None
 
 
-# ── 5. get_gate_status falls back to memory when Redis is unavailable ──
+# ── 3. get_gate_status falls back to memory when Redis is unavailable ──
 
 
 @pytest.mark.asyncio
-async def test_get_gate_status_falls_back_to_memory_when_redis_down():
-    await pseudonym_gate.record_fallback_hit("Uabc", 42)
+async def test_get_gate_status_falls_back_to_memory_when_redis_down(monkeypatch):
+    # Simulate a pre-cutover hit recorded in this worker's memory.
+    monkeypatch.setattr(pseudonym_gate, "_LOCAL_COUNT", 1)
+    monkeypatch.setattr(pseudonym_gate, "_LOCAL_FIRST_HIT_AT", 1700000000.0)
+
     with patch.object(
         pseudonym_gate.settings, "LINE_ID_STORAGE_MODE", "dual"
     ), patch.object(
@@ -124,7 +101,7 @@ async def test_get_gate_status_falls_back_to_memory_when_redis_down():
     assert status["local_worker"]["hit_count"] == 1
 
 
-# ── 6. pseudonym mode short-circuits the gate ────────────────────────
+# ── 4. pseudonym mode short-circuits the gate ────────────────────────
 
 
 @pytest.mark.asyncio
@@ -141,96 +118,55 @@ async def test_get_gate_status_pseudonym_mode_no_fallback():
     assert status["gate_status"] == "pseudonym_mode_no_fallback"
 
 
-# ── 7. resolve_by_line_id calls record_fallback_hit on plaintext hit ──
+# ── 5. Connected Redis with absent key proves zero hits (source "redis") ──
 
 
 @pytest.mark.asyncio
-async def test_resolve_by_line_id_records_fallback_hit_on_plaintext_hit():
-    legacy_user = SimpleNamespace(
-        id=50,
-        line_user_id="Udual",
-        line_user_id_hash=None,
-        line_user_id_encrypted=None,
-        line_key_version=None,
-    )
+async def test_get_redis_count_connected_redis_absent_key_returns_zero(monkeypatch):
+    """Key absent while Redis is connected → 0, NOT None (reserved for unreachable)."""
+    fake_redis = MagicMock()
+    fake_redis.get = AsyncMock(return_value=None)
+    monkeypatch.setattr(pseudonym_gate.redis_client, "_redis", fake_redis)
 
-    mock_db = AsyncMock()
-    call_count = [0]
+    count = await pseudonym_gate._get_redis_count()
 
-    async def fake_execute(stmt):
-        call_count[0] += 1
-        result = MagicMock()
-        if call_count[0] == 1:
-            result.scalar_one_or_none.return_value = None  # hash miss
-        else:
-            result.scalar_one_or_none.return_value = legacy_user  # plaintext hit
-        return result
-
-    mock_db.execute = fake_execute
-    mock_db.begin_nested = _make_begin_nested_mock()
-
-    with patch.object(
-        user_identity_service.settings, "LINE_ID_HMAC_KEY", "test-key"
-    ), patch.object(
-        user_identity_service.settings, "LINE_ID_STORAGE_MODE", "dual"
-    ), patch.object(
-        user_identity_service.credential_service, "encrypt_line_id", lambda raw: f"enc:{raw}"
-    ), patch.object(
-        user_identity_service, "record_fallback_hit", new=AsyncMock()
-    ) as mock_record:
-        resolved = await user_identity_service.resolve_by_line_id(mock_db, "Udual")
-
-    assert resolved is legacy_user
-    mock_record.assert_awaited_once_with("Udual", 50)
-
-
-# ── 8. resolve_by_line_id does NOT record when no plaintext hit ──────
+    assert count == 0
 
 
 @pytest.mark.asyncio
-async def test_resolve_by_line_id_no_record_when_user_not_found():
-    mock_db = AsyncMock()
-    mock_result = MagicMock()
-    mock_result.scalar_one_or_none.return_value = None  # hash miss + plaintext miss
-    mock_db.execute.return_value = mock_result
+async def test_get_gate_status_connected_redis_absent_key_reports_zero_from_redis(monkeypatch):
+    fake_redis = MagicMock()
+    fake_redis.get = AsyncMock(return_value=None)
+    monkeypatch.setattr(pseudonym_gate.redis_client, "_redis", fake_redis)
 
-    with patch.object(
-        user_identity_service.settings, "LINE_ID_HMAC_KEY", "test-key"
-    ), patch.object(
-        user_identity_service.settings, "LINE_ID_STORAGE_MODE", "dual"
-    ), patch.object(
-        user_identity_service, "record_fallback_hit", new=AsyncMock()
-    ) as mock_record:
-        resolved = await user_identity_service.resolve_by_line_id(mock_db, "Unobody")
+    with patch.object(pseudonym_gate.settings, "LINE_ID_STORAGE_MODE", "dual"):
+        status = await pseudonym_gate.get_gate_status()
 
-    assert resolved is None
-    mock_record.assert_not_awaited()
-
-
-# ── 9. resolve_by_line_id does NOT record in pseudonym mode ──────────
+    assert status["fallback_hit_count"] == 0
+    assert status["fallback_hit_source"] == "redis"
+    assert status["gate_status"] == "pass"
+    assert status["redis"]["hit_count"] == 0
+    assert status["redis"]["connected"] is True
 
 
 @pytest.mark.asyncio
-async def test_resolve_by_line_id_no_record_in_pseudonym_mode():
-    mock_db = AsyncMock()
-    mock_result = MagicMock()
-    mock_result.scalar_one_or_none.return_value = None  # hash miss
-    mock_db.execute.return_value = mock_result
+async def test_get_redis_count_unreachable_redis_returns_none(monkeypatch):
+    monkeypatch.setattr(pseudonym_gate.redis_client, "_redis", None)
 
-    with patch.object(
-        user_identity_service.settings, "LINE_ID_HMAC_KEY", "test-key"
-    ), patch.object(
-        user_identity_service.settings, "LINE_ID_STORAGE_MODE", "pseudonym"
-    ), patch.object(
-        user_identity_service, "record_fallback_hit", new=AsyncMock()
-    ) as mock_record:
-        resolved = await user_identity_service.resolve_by_line_id(mock_db, "Ughost")
+    count = await pseudonym_gate._get_redis_count()
 
-    assert resolved is None
-    mock_record.assert_not_awaited()
+    assert count is None
 
 
-# ── 10. GET /api/v1/health/pseudonym-gate endpoint — admin auth ──────
+# ── 6. record_fallback_hit is gone (contract phase) ──────────────────
+
+
+def test_record_fallback_hit_removed():
+    """The fallback recorder was deleted with the plaintext fallback path."""
+    assert not hasattr(pseudonym_gate, "record_fallback_hit")
+
+
+# ── 7. GET /api/v1/health/pseudonym-gate endpoint — admin auth ──────
 
 
 def test_pseudonym_gate_endpoint_requires_auth():

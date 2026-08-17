@@ -19,7 +19,6 @@ class ChatSession(Base):
     __tablename__ = "chat_sessions"
 
     id = Column(Integer, primary_key=True)
-    line_user_id = Column(String(50), nullable=False, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=True)
     operator_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     status = Column(String(20), default=SessionStatus.WAITING, index=True)
@@ -46,18 +45,8 @@ class ChatSession(Base):
     csat_responses = relationship("CsatResponse", back_populates="session")
 
     __table_args__ = (
-        Index(
-            "uq_chat_sessions_one_open_per_line_user",
-            "line_user_id",
-            unique=True,
-            postgresql_where=status.in_([
-                SessionStatus.WAITING.value,
-                SessionStatus.ACTIVE.value,
-            ]),
-        ),
-        # Mirrors the constraint above via the FK path, for LINE_ID_STORAGE_MODE
-        # = "pseudonym" where line_user_id is no longer populated.
-        # Created by migration d5e6f7g8h9i0.
+        # One open session per user, enforced via the FK path (PR C —
+        # line_user_id column dropped). Created by migration d5e6f7g8h9i0.
         Index(
             "uq_chat_sessions_one_open_per_user",
             "user_id",

@@ -14,8 +14,8 @@ class FriendService:
     async def get_or_create_user(self, line_user_id: str, db: AsyncSession, commit: bool = True) -> User:
         """Get existing user or create new one from LINE profile.
 
-        Resolution order: HMAC hash lookup → legacy plaintext fallback → create.
-        Populates pseudonymization surrogate (hash + encrypted) on every path.
+        Resolution is HMAC-hash only (plaintext column dropped in PR C).
+        Populates the pseudonymization surrogate (hash + encrypted) on create.
         """
         from app.services.user_identity_service import resolve_by_line_id, populate_surrogate
 
@@ -27,7 +27,6 @@ class FriendService:
         try:
             profile = await get_line_bot_api().get_profile(line_user_id)
             user = User(
-                line_user_id=line_user_id,
                 display_name=profile.display_name,
                 picture_url=profile.picture_url,
                 friend_status="ACTIVE",
@@ -37,7 +36,6 @@ class FriendService:
         except Exception as e:
             logger.warning("Failed to fetch LINE profile for %s: %s", line_user_id, e)
             user = User(
-                line_user_id=line_user_id,
                 display_name="LINE User",
                 friend_status="ACTIVE",
                 friend_since=datetime.now(timezone.utc),
@@ -70,11 +68,7 @@ class FriendService:
         stale_after_hours: int = 24,
         commit: bool = True,
     ) -> Optional[User]:
-        """Refresh LINE profile for a user when stale or forced.
-
-        Also backfills identity surrogates (hash/encrypted) on legacy users
-        found via plaintext fallback — a write side-effect of resolve_by_line_id.
-        """
+        """Refresh LINE profile for a user when stale or forced."""
         from app.services.user_identity_service import resolve_by_line_id
 
         user = await resolve_by_line_id(db, line_user_id)
@@ -143,7 +137,6 @@ class FriendService:
                 user.friend_since = datetime.now(timezone.utc)
 
         event = FriendEvent(
-            line_user_id=line_user_id,
             user_id=user.id if user else None,
             event_type=event_type.value,
             source=EventSource.WEBHOOK.value,
@@ -166,7 +159,6 @@ class FriendService:
             user.friend_status = "UNFOLLOWED"
 
         event = FriendEvent(
-            line_user_id=line_user_id,
             user_id=user.id if user else None,
             event_type=FriendEventType.UNFOLLOW.value,
             source=EventSource.WEBHOOK.value,
@@ -239,11 +231,17 @@ class FriendService:
         rows = result.all()
 
         events = []
+        event_rows = [row[0] for row in rows]
+        from app.services.user_identity_service import decrypt_line_ids_for_users
+
+        raw_by_user = await decrypt_line_ids_for_users(
+            db, [e.user_id for e in event_rows if e.user_id]
+        )
         for row in rows:
             event = row[0]
             events.append({
                 "id": event.id,
-                "line_user_id": event.line_user_id,
+                "line_user_id": raw_by_user.get(event.user_id),
                 "event_type": event.event_type,
                 "source": event.source,
                 "refollow_count": event.refollow_count or 0,
@@ -337,7 +335,6 @@ class FriendService:
 
     async def get_user_refollow_counts(self, db: AsyncSession, line_user_ids: list[str] | None = None) -> Dict[str, int]:
         """Get max refollow count per user, optionally scoped to specific IDs."""
-        from app.core.config import settings
         from app.services.user_identity_service import child_column, resolve_many_by_line_id
 
         owner_col = child_column(FriendEvent)
@@ -350,11 +347,8 @@ class FriendService:
 
         id_to_user: Dict[str, int] = {}
         if line_user_ids:
-            if settings.LINE_ID_STORAGE_MODE == "pseudonym":
-                id_to_user = await resolve_many_by_line_id(db, line_user_ids)
-                query = query.where(owner_col.in_(list(id_to_user.values())))
-            else:
-                query = query.where(owner_col.in_(line_user_ids))
+            id_to_user = await resolve_many_by_line_id(db, line_user_ids)
+            query = query.where(owner_col.in_(list(id_to_user.values())))
 
         result = await db.execute(query)
         user_to_id = {user_id: raw for raw, user_id in id_to_user.items()}

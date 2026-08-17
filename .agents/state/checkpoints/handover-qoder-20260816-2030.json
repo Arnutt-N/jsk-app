@@ -1,0 +1,14 @@
+{
+  "handoff_version": "2.0",
+  "platform": "qoder",
+  "agent": "qoder",
+  "timestamp": "2026-08-16T20:30:00+07:00",
+  "branch": "feat/pr-c-pseudonym-contract",
+  "head_commit": "9c6a6e6",
+  "status": "completed",
+  "work_summary": "PR C destructive phase shipped: migration q8r9s0t1u2v3 drops line_user_id from 7 tables + MV rebuild on user_id; identity service hash-only + fail-loud decrypt; config default pseudonym; 1049 tests passed; migration drill verified; PR #199 opened — pending reviewer gate check + Supabase backup before merge",
+  "priority_actions": [],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/qoder/session-summary-20260816-2030.md",
+  "cross_platform_read": []
+}

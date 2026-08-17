@@ -146,7 +146,7 @@ class SessionLifecycleMixin:
         - WAITING                         -> claim it (WAITING -> ACTIVE)
         - no open session                 -> create one directly as ACTIVE
 
-        Respects the partial-unique "one open session per line_user_id" index;
+        Respects the partial-unique "one open session per user" index;
         a lost create race is reconciled by re-reading the winning session.
         """
         session = await self.get_active_session(line_user_id, db)
@@ -162,9 +162,15 @@ class SessionLifecycleMixin:
         if session and session.status == SessionStatus.WAITING:
             return await self.claim_session(line_user_id, operator_id, db)
 
+        user = await resolve_by_line_id(db, line_user_id)
+        if not user:
+            raise RuntimeError(
+                f"ไม่พบผู้ใช้สำหรับ LINE ID {line_user_id} — ไม่สามารถสร้างเซสชันแชทได้"
+            )
+
         now = datetime.now(timezone.utc)
         new_session = ChatSession(
-            line_user_id=line_user_id,
+            user_id=user.id,
             operator_id=operator_id,
             status=SessionStatus.ACTIVE,
             started_at=now,
@@ -252,6 +258,10 @@ class SessionLifecycleMixin:
     async def get_active_session(self, line_user_id: str, db: AsyncSession, lock: bool = False, user_id: int = None):
         """Get active session for user"""
         from app.services.user_identity_service import child_filter
+
+        if user_id is None and line_user_id:
+            resolved = await resolve_by_line_id(db, line_user_id)
+            user_id = resolved.id if resolved else None
 
         stmt = (
             select(ChatSession)

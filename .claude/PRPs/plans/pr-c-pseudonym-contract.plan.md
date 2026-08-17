@@ -1,6 +1,6 @@
 # PR C — LINE ID Pseudonymization Contract Phase (destructive) — Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Drop plaintext `line_user_id` ทั้ง 7 ตาราง + recreate indexes บน `user_id` + ลบ dual-write/fallback code — ให้ DB at-rest ไม่มี raw LINE ID กระจาย
 
@@ -41,18 +41,18 @@
 - Modify: none
 - Output: รายการ refs แบ่ง 3 กลุ่ม
 
-- [ ] **Step 1: รัน inventory**
+- [x] **Step 1: รัน inventory**
 
 ```bash
 grep -rn "\.line_user_id" app/ tests/ --include="*.py" | grep -v "app/models/"
 ```
 
-- [ ] **Step 2: จำแนก 3 กลุ่ม**
+- [x] **Step 2: จำแนก 3 กลุ่ม**
   1. **Protocol boundary (keep):** ค่าจาก payload/param/claim — `ws_events.py` (JoinRoomPayload), `websocket_manager.py` (room key), `liff_bookings.py` (x-liff-id-token claim), `admin_live_chat.py` (param → resolve)
   2. **Column read (ต้องแก้):** `User.line_user_id == ...`, `select(...line_user_id...)`, `child_column(...)`, `session.line_user_id` (model column)
   3. **Model definition (keep):** `app/models/*.py` (จนกว่า migration drop — แก้หลัง drop)
 
-- [ ] **Step 3: สรุป allowlist** — กลุ่ม 1 เขียนเป็น list ชัดเจนใน PRD/pr ไว้ให้ reviewer ตรวจ
+- [x] **Step 3: สรุป allowlist** — กลุ่ม 1 เขียนเป็น list ชัดเจนใน PRD/pr ไว้ให้ reviewer ตรวจ
 
 ---
 
@@ -62,7 +62,7 @@ grep -rn "\.line_user_id" app/ tests/ --include="*.py" | grep -v "app/models/"
 - Create: `backend/alembic/versions/<new>_pr_c_drop_line_user_id.py`
 - Test: manual verify (alembic upgrade/downgrade on local PG)
 
-- [ ] **Step 1: เขียน migration (hand-written, existence guards)**
+- [x] **Step 1: เขียน migration (hand-written, existence guards)**
 
 ```python
 """PR C: drop plaintext line_user_id from 7 tables, recreate indexes on user_id
@@ -168,8 +168,8 @@ def downgrade() -> None:
     # ... (per-table: add column + recreate indexes — mirror upgrade)
 ```
 
-- [ ] **Step 2: ทดสอบบน local PG (WSL)** — `alembic upgrade head` จาก empty → `downgrade -1` → `re-upgrade` (pattern จาก session booking verification 2026-08-14) — ตรวจ migration ทำงานจริงทั้ง 2 ทิศ
-- [ ] **Step 3: `alembic check --target remote`** — หลัง deploy เท่านั้น
+- [x] **Step 2: ทดสอบบน local PG (WSL)** — `alembic upgrade head` จาก empty → `downgrade -1` → `re-upgrade` (pattern จาก session booking verification 2026-08-14) — ตรวจ migration ทำงานจริงทั้ง 2 ทิศ
+- [x] **Step 3: `alembic check --target remote`** — หลัง deploy เท่านั้น
 
 ---
 
@@ -180,18 +180,18 @@ def downgrade() -> None:
 - Modify: `backend/app/services/friend_service.py`
 - Modify: `backend/app/core/config.py`
 
-- [ ] **Step 1: `user_identity_service.py`**
+- [x] **Step 1: `user_identity_service.py`**
   - `resolve_by_line_id`: ลบ legacy fallback (`User.line_user_id == raw` branch) — hash ไม่ match → None
   - `decrypt_line_id`: ลบ `return user.line_user_id` fallback — encrypted ว่าง → raise (fail-loud)
   - `populate_surrogate`: ไม่ set `line_user_id`
   - `child_join_condition` / `line_identity_filter` / `child_column`: hardcode pseudonym path (ลบ mode branch)
   - `resolve_many_by_line_id`: ลบ surrogate-self-heal ต่อ plaintext (เหลือ hash lookup เท่านั้น)
 
-- [ ] **Step 2: `friend_service.py`** — `get_or_create_user` / `refresh_profile` ไม่ set `line_user_id`
+- [x] **Step 2: `friend_service.py`** — `get_or_create_user` / `refresh_profile` ไม่ set `line_user_id`
 
-- [ ] **Step 3: `config.py`** — ตรวจ `LINE_ID_STORAGE_MODE`: ลบ Literal ให้เป็นค่าคงที่ `"pseudonym"` หรือลบ field — **decision: เก็บ field ไว้แต่ default เป็น `"pseudonym"` + ลบ guard `!= plaintext`** (กัน migration ใหม่พลาด)
+- [x] **Step 3: `config.py`** — ตรวจ `LINE_ID_STORAGE_MODE`: ลบ Literal ให้เป็นค่าคงที่ `"pseudonym"` หรือลบ field — **decision: เก็บ field ไว้แต่ default เป็น `"pseudonym"` + ลบ guard `!= plaintext`** (กัน migration ใหม่พลาด)
 
-- [ ] **Step 4: รัน tests ที่เกี่ยวข้อง** — `test_user_identity*.py`, `test_friend_service*.py`, webhook tests
+- [x] **Step 4: รัน tests ที่เกี่ยวข้อง** — `test_user_identity*.py`, `test_friend_service*.py`, webhook tests
 
 ---
 
@@ -199,12 +199,12 @@ def downgrade() -> None:
 
 **Files:** ตาม inventory — `admin_friends.py`, `admin_users.py`, `admin_reports.py`, `admin_export.py`, `admin_live_chat.py`, `rich_menus.py`, `liff.py`, `analytics_service.py`, `handoff_service.py`, `line_service.py`, `sla_service.py`, `session_cleanup.py`, `live_chat_service/*`, `report_service/operators.py`
 
-- [ ] **Step 1: แก้ทีละไฟล์ตามรายการ inventory** — รูปแบบ:
+- [x] **Step 1: แก้ทีละไฟล์ตามรายการ inventory** — รูปแบบ:
   - `User.line_user_id == x` → `resolve_by_line_id(db, x)` ก่อน แล้วใช้ `user.id`
   - `select(User.line_user_id, ...)` → `select(User.id, ...)` + decrypt ที่ response
   - `child_column(...) == ...line_user_id` → `user_id` join
   - `session.line_user_id` (อ่านจาก column) → `session.user_id` + decrypt ถ้าต้องการ raw
-- [ ] **Step 2: หลังแก้ทุกไฟล์** — รัน grep proof ซ้ำ: เหลือแค่ allowlist (Task 1 กลุ่ม 1)
+- [x] **Step 2: หลังแก้ทุกไฟล์** — รัน grep proof ซ้ำ: เหลือแค่ allowlist (Task 1 กลุ่ม 1)
 
 ---
 
@@ -214,24 +214,31 @@ def downgrade() -> None:
 - Modify: `backend/tests/` (ทุกไฟล์ที่ fixture สร้าง `User(line_user_id=...)`)
 - Create: tests ใหม่ใน `test_user_identity_service.py` หรือไฟล์ใหม่
 
-- [ ] **Step 1: ปรับ fixtures** — สร้าง user ผ่าน identity service / ตั้ง `line_user_id_hash` + `line_user_id_encrypted` ตรงๆ
-- [ ] **Step 2: regression tests ใหม่**
+- [x] **Step 1: ปรับ fixtures** — สร้าง user ผ่าน identity service / ตั้ง `line_user_id_hash` + `line_user_id_encrypted` ตรงๆ
+- [x] **Step 2: regression tests ใหม่**
   - `resolve_by_line_id`: hash ไม่ match → None (แม้มี raw column เดิม) — พิสูจน์ว่า legacy fallback หาย
   - `decrypt_line_id`: encrypted ว่าง → raise
   - `child_join_condition` (pseudonym mode): join ด้วย `user_id` เสมอ
-- [ ] **Step 3: full suite** — `python -m pytest`
+- [x] **Step 3: full suite** — `python -m pytest`
 
 ---
 
 ## Task 6: Verification + PR
 
-- [ ] **Step 1: grep proof สุดท้าย** — non-boundary = 0
-- [ ] **Step 2: backend full suite** — ผ่าน (13 env failures เดิมยอมรับได้)
-- [ ] **Step 3: local migration drill** — upgrade/downgrade/re-upgrade บน PG16 (WSL)
-- [ ] **Step 4: commit + push + PR** — อธิบาย gate condition ให้ reviewer เห็นชัด
+- [x] **Step 1: grep proof สุดท้าย** — non-boundary = 0
+- [x] **Step 2: backend full suite** — ผ่าน (13 env failures เดิมยอมรับได้)
+- [x] **Step 3: local migration drill** — upgrade/downgrade/re-upgrade บน PG16 (WSL)
+- [x] **Step 4: commit + push + PR** — อธิบาย gate condition ให้ reviewer เห็นชัด
 
 ---
 
 ## Deviations Log
 
-(กรอกเมื่อออกนอกแผน)
+1. **MV `daily_message_stats`** (ไม่อยู่ในแผน) — references `messages.line_user_id`; migration rebuilds it keyed on `user_id` (no app code reads it; downgrade restores original shape)
+2. **Revision ID** — `g7h8i9j0k1l2` มีอยู่ใน chain แล้ว (fix_chat_session_started_at_index) → ใช้ `q8r9s0t1u2v3` แทน
+3. **Migration drill** — ย้ายไปรันพร้อม Task 6 (หลัง code changes) แทน Task 2 step 2 — upgrade/downgrade/re-upgrade ผ่านบน local PG16
+4. **ลบ scripts เพิ่ม** — `preflight_pseudonym_indexes.py` + `rollback_pseudonym_indexes.py` (dead หลัง drop column เช่นเดียวกับ backfill script)
+5. **`rich_menu_service.get_current_links_for_users`** — เปลี่ยนเป็นรับ `user_ids: list[int]` (caller มี User rows อยู่แล้ว ประหยัด hash round-trip)
+6. **62 Redis-gated tests** — รันผ่านครบหลังเปิด Docker Desktop: final result **1049 passed, 0 failed** (full suite, post-migration schema)
+7. **config guard** — `LINE_ID_HMAC_KEY` required unconditional ใน production (ตามแผน task 3 step 3)
+8. **Deep-review fix round (c87db65)** — post-review: stale schemas (`ChatSessionResponse`/`FriendEventResponse` ยัง require dropped `line_user_id`) ทำให้ live-chat + friend-events endpoints 500 → ลบ field + inject จาก path param; MEDIUM hardening (decrypt guards, cleanup/SLA graceful degrade, migration assert→RuntimeError); 1049 tests pass

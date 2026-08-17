@@ -6,6 +6,8 @@ import pytest
 from app.models.user import ChatMode
 from app.services.handoff_service import HandoffService
 
+from tests.identity_helpers import make_line_user_fields
+
 
 @pytest.mark.asyncio
 async def test_get_configurable_keywords_uses_cached_defaults(monkeypatch):
@@ -43,7 +45,7 @@ async def test_check_handoff_keywords_uses_configured_keywords(monkeypatch):
     )
     initiate_handoff = AsyncMock()
     monkeypatch.setattr("app.services.handoff_service.live_chat_service.initiate_handoff", initiate_handoff)
-    user = SimpleNamespace(chat_mode=ChatMode.BOT, line_user_id="U123")
+    user = SimpleNamespace(id=1, chat_mode=ChatMode.BOT, **make_line_user_fields("U123"))
 
     result = await service.check_handoff_keywords("Please escalate this case", user, "reply-token", AsyncMock())
 

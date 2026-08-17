@@ -13,7 +13,7 @@ from app.models.chat_session import ChatSession, SessionStatus
 from app.models.user import ChatMode, User
 from app.services.line_service import line_service
 from app.services.analytics_service import analytics_service
-from app.services.user_identity_service import resolve_by_line_id
+from app.services.user_identity_service import decrypt_line_id_for_user
 from linebot.v3.messaging import TextMessage
 
 logger = logging.getLogger(__name__)
@@ -84,11 +84,10 @@ async def _close_inactive_session(session: ChatSession, db: AsyncSession):
     session.closed_at = datetime.now(timezone.utc)
     session.closed_by = "SYSTEM"
 
-    user = await resolve_by_line_id(db, session.line_user_id)
-    if user:
+    if session.user_id is not None:
         await db.execute(
             update(User)
-            .where(User.id == user.id)
+            .where(User.id == session.user_id)
             .values(chat_mode=ChatMode.BOT)
         )
 
@@ -106,19 +105,26 @@ async def _close_inactive_session(session: ChatSession, db: AsyncSession):
     )
 
     try:
-        await line_service.push_messages(
-            session.line_user_id,
-            [TextMessage(text="Chat session ended due to inactivity. Please message again to reopen.")],
-        )
+        raw_line_id = await decrypt_line_id_for_user(db, session.user_id)
     except Exception as e:
-        logger.error(f"Failed to notify inactive close user {session.line_user_id}: {e}")
+        logger.error(f"Decrypt failed for cleanup user_id={session.user_id}: {e}")
+        raw_line_id = None
+
+    try:
+        if raw_line_id:
+            await line_service.push_messages(
+                raw_line_id,
+                [TextMessage(text="Chat session ended due to inactivity. Please message again to reopen.")],
+            )
+    except Exception as e:
+        logger.error(f"Failed to notify inactive close user_id={session.user_id}: {e}")
 
     try:
         await ws_manager.broadcast_to_all(
             {
                 "type": "session_closed",
                 "payload": {
-                    "line_user_id": session.line_user_id,
+                    "line_user_id": raw_line_id,
                     "closed_by": "SYSTEM",
                     "reason": "inactivity",
                 },
@@ -134,11 +140,10 @@ async def _mark_abandoned_waiting_session(session: ChatSession, db: AsyncSession
     session.closed_at = datetime.now(timezone.utc)
     session.closed_by = "SYSTEM_TIMEOUT"
 
-    user = await resolve_by_line_id(db, session.line_user_id)
-    if user:
+    if session.user_id is not None:
         await db.execute(
             update(User)
-            .where(User.id == user.id)
+            .where(User.id == session.user_id)
             .values(chat_mode=ChatMode.BOT)
         )
 
@@ -156,19 +161,26 @@ async def _mark_abandoned_waiting_session(session: ChatSession, db: AsyncSession
     )
 
     try:
-        await line_service.push_messages(
-            session.line_user_id,
-            [TextMessage(text="No operator was available in time. Please send a new message to rejoin queue.")],
-        )
+        raw_line_id = await decrypt_line_id_for_user(db, session.user_id)
     except Exception as e:
-        logger.error(f"Failed to notify abandoned waiting user {session.line_user_id}: {e}")
+        logger.error(f"Decrypt failed for abandonment user_id={session.user_id}: {e}")
+        raw_line_id = None
+
+    try:
+        if raw_line_id:
+            await line_service.push_messages(
+                raw_line_id,
+                [TextMessage(text="No operator was available in time. Please send a new message to rejoin queue.")],
+            )
+    except Exception as e:
+        logger.error(f"Failed to notify abandoned waiting user_id={session.user_id}: {e}")
 
     try:
         await ws_manager.broadcast_to_all(
             {
                 "type": "session_closed",
                 "payload": {
-                    "line_user_id": session.line_user_id,
+                    "line_user_id": raw_line_id,
                     "closed_by": "SYSTEM_TIMEOUT",
                     "reason": "waiting_timeout",
                 },

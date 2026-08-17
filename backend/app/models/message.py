@@ -22,7 +22,6 @@ class Message(Base):
     __tablename__ = "messages"
 
     id = Column(Integer, primary_key=True, index=True)
-    line_user_id = Column(String, index=True, nullable=True)  # Can be null if system broadcast
     user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=True)
     direction = Column(Enum(MessageDirection), nullable=False)
     message_type = Column(String, nullable=False)  # text, image, sticker, location, flex
@@ -37,7 +36,7 @@ class Message(Base):
 
     __table_args__ = (
         # Composite index backing the conversation-history query
-        # (WHERE line_user_id = ... ORDER BY created_at DESC).
-        # Created by migration c3d4e5f6g7h8 under this exact name.
-        Index("idx_messages_user_created", "line_user_id", text("created_at DESC")),
+        # (WHERE user_id = ... ORDER BY created_at DESC).
+        # Created by migration q8r9s0t1u2v3 (PR C).
+        Index("ix_messages_user_created", "user_id", text("created_at DESC")),
     )

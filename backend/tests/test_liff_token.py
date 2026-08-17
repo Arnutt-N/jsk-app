@@ -31,6 +31,8 @@ from sqlalchemy.pool import NullPool
 from app.api.v1.endpoints import liff as liff_module
 from app.core.config import settings
 from app.models.service_request import ServiceRequest
+from app.models.user import User
+from app.services.credential_service import credential_service
 
 # The app's own AsyncSessionLocal (app/db/session.py) is bound to a pooled
 # engine whose connections get created inside the TestClient's ASGI event
@@ -92,8 +94,11 @@ def _patch_line_verify(monkeypatch, resp: _FakeLineVerifyResponse) -> None:
 
 
 async def _fetch_and_delete(request_id: int):
-    """Fetch a persisted ServiceRequest row's line_user_id/details by id,
-    then delete it (test cleanup — this endpoint has no DELETE route)."""
+    """Fetch a persisted ServiceRequest row's raw LINE ID/details by id,
+    then delete it (test cleanup — this endpoint has no DELETE route).
+
+    PR C: ServiceRequest carries only a user_id FK, so the raw LINE ID is
+    recovered by joining to User and decrypting the surrogate."""
     engine = _fresh_engine()
     Session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     try:
@@ -104,7 +109,16 @@ async def _fetch_and_delete(request_id: int):
             row = result.scalar_one_or_none()
             if row is None:
                 return None, None
-            line_user_id = row.line_user_id
+            line_user_id = None
+            if row.user_id is not None:
+                user_result = await session.execute(
+                    select(User).where(User.id == row.user_id)
+                )
+                user = user_result.scalar_one_or_none()
+                if user is not None and user.line_user_id_encrypted:
+                    line_user_id = credential_service.decrypt_line_id(
+                        user.line_user_id_encrypted
+                    )
             details = dict(row.details) if row.details else None
             await session.delete(row)
             await session.commit()

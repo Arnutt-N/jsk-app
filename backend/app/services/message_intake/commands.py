@@ -78,6 +78,11 @@ async def handle_bind_phone(phone_number: str, line_user_id: str, reply_token: s
         resolved_user = await resolve_by_line_id(db, line_user_id)
         user_id = resolved_user.id if resolved_user else None
 
+        if user_id is None:
+            logger.warning(f"Phone bind: ไม่พบผู้ใช้สำหรับ LINE ID {line_user_id}")
+            await line_svc.reply_text(reply_token, "ขออภัย ไม่พบข้อมูลผู้ใช้ของคุณ กรุณาลองใหม่อีกครั้ง")
+            return
+
         stmt = select(ServiceRequest).where(ServiceRequest.phone_number == phone_number)
         result = await db.execute(stmt)
         requests = result.scalars().all()
@@ -86,7 +91,7 @@ async def handle_bind_phone(phone_number: str, line_user_id: str, reply_token: s
             await line_svc.reply_text(reply_token, f"❌ ไม่พบข้อมูลคำร้องของเบอร์ {phone_number} ครับ")
             return
 
-        bindable = [r for r in requests if not r.line_user_id or r.line_user_id == line_user_id]
+        bindable = [r for r in requests if r.user_id is None or r.user_id == user_id]
         already_bound_to_others = len(requests) - len(bindable)
 
         if not bindable:
@@ -98,9 +103,7 @@ async def handle_bind_phone(phone_number: str, line_user_id: str, reply_token: s
             return
 
         for req in bindable:
-            req.line_user_id = line_user_id
-            if user_id is not None:
-                req.user_id = user_id
+            req.user_id = user_id
         await db.flush()
 
         if already_bound_to_others > 0:
@@ -111,7 +114,7 @@ async def handle_bind_phone(phone_number: str, line_user_id: str, reply_token: s
 
         stmt_latest = (
             select(ServiceRequest)
-            .where(ServiceRequest.line_user_id == line_user_id)
+            .where(ServiceRequest.user_id == user_id)
             .order_by(ServiceRequest.created_at.desc())
             .limit(5)
         )

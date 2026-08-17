@@ -51,7 +51,11 @@ class Settings(BaseSettings):
     # Rollback: set LIFF_STRICT_MODE=false in env.
     LIFF_STRICT_MODE: bool = True
     COOKIE_AUTH_MODE: Literal["bearer", "dual", "cookie"] = "cookie"
-    LINE_ID_STORAGE_MODE: Literal["plaintext", "dual", "pseudonym"] = "plaintext"
+    # PR C contract phase: plaintext line_user_id columns are dropped, so the
+    # app only ever runs the pseudonym path. The Literal is kept so an env
+    # override stays parseable, but "plaintext"/"dual" are no longer valid
+    # runtime states once the PR C migration has run.
+    LINE_ID_STORAGE_MODE: Literal["plaintext", "dual", "pseudonym"] = "pseudonym"
 
     # Explicit opt-in for dev auth bypass — must set DEV_AUTH_BYPASS=true in .env
     # Safe by default: missing env var = bypass disabled
@@ -201,9 +205,10 @@ class Settings(BaseSettings):
                 "ENCRYPTION_KEY must be set in production — generate a Fernet key."
             )
 
-        if self.LINE_ID_STORAGE_MODE != "plaintext" and not self.LINE_ID_HMAC_KEY.strip():
+        if not self.LINE_ID_HMAC_KEY.strip():
             violations.append(
-                "LINE_ID_HMAC_KEY must be set when LINE_ID_STORAGE_MODE is not plaintext."
+                "LINE_ID_HMAC_KEY must be set in production — LINE user IDs are "
+                "resolved via HMAC hash only (PR C pseudonym contract)."
             )
 
         if violations:

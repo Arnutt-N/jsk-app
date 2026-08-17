@@ -11,9 +11,12 @@ Design:
 - Redis-backed shared counter + first-hit timestamp (cross-worker, survives
   worker restarts within the Redis TTL). Best-effort: if Redis is down the
   in-memory counter still reports local hits.
-- `record_fallback_hit()` is called from `resolve_by_line_id` whenever the
-  plaintext fallback path actually fires (hash miss + plaintext hit).
 - `get_gate_status()` returns a JSON-serializable snapshot for the endpoint.
+
+PR C contract phase: the plaintext fallback path has been removed from
+`resolve_by_line_id`, so nothing increments these counters anymore. The
+endpoint is retained as historical evidence for the PR review (counts stay
+at their pre-cutover values until the Redis TTL lapses).
 """
 import logging
 import threading
@@ -28,7 +31,6 @@ logger = logging.getLogger(__name__)
 
 GATE_REDIS_KEY = "pseudonym_gate:fallback_hits"
 GATE_REDIS_FIRST_HIT_KEY = "pseudonym_gate:first_hit_at"
-GATE_REDIS_TTL_SECONDS = 60 * 60 * 24 * 30  # 30 days — gate window is 3-5 days
 
 _LOCK = threading.Lock()
 _LOCAL_COUNT = 0
@@ -44,39 +46,19 @@ def reset_local_counter() -> None:
         _LOCAL_FIRST_HIT_AT = None
 
 
-def _set_local_first_hit_unchecked(ts: float) -> None:
-    global _LOCAL_FIRST_HIT_AT
-    if _LOCAL_FIRST_HIT_AT is None or ts < _LOCAL_FIRST_HIT_AT:
-        _LOCAL_FIRST_HIT_AT = ts
-
-
-async def record_fallback_hit(raw_line_id: str, user_id: Any) -> None:
-    """Record one plaintext-fallback hit (called from resolve_by_line_id).
-
-    Best-effort: Redis failures only log, never raise — the caller is already
-    on a hot path (LINE webhook) and must not fail because observability broke.
-    """
-    global _LOCAL_COUNT, _LOCAL_FIRST_HIT_AT
-    now = time.time()
-    with _LOCK:
-        _LOCAL_COUNT += 1
-        _set_local_first_hit_unchecked(now)
-
-    try:
-        new_count = await redis_client.incr(GATE_REDIS_KEY)
-        if new_count == 1:
-            await redis_client.setex(
-                GATE_REDIS_FIRST_HIT_KEY, GATE_REDIS_TTL_SECONDS, str(now)
-            )
-    except Exception as e:
-        logger.error("pseudonym_gate redis record error: %s", e)
-
-
 async def _get_redis_count() -> Optional[int]:
+    """Read the shared counter.
+
+    The key is only ever created on the first hit, so an absent key while
+    Redis is connected proves zero hits (return 0, source "redis"). None is
+    reserved for "Redis unreachable" so the endpoint can tell the two apart.
+    """
+    if not redis_client.is_connected:
+        return None
     try:
         raw = await redis_client.get(GATE_REDIS_KEY)
         if raw is None:
-            return None
+            return 0
         return int(raw)
     except Exception as e:
         logger.error("pseudonym_gate redis read error: %s", e)

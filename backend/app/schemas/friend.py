@@ -5,7 +5,7 @@ from pydantic import BaseModel, ConfigDict
 
 
 class FriendResponse(BaseModel):
-    line_user_id: str
+    line_user_id: Optional[str] = None
     display_name: Optional[str] = None
     picture_url: Optional[str] = None
     friend_status: Optional[str] = None

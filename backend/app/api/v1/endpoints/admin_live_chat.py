@@ -35,6 +35,7 @@ from app.services.analytics_service import analytics_service
 from app.services.friend_service import friend_service
 from app.services.line_service import line_service
 from app.services.message_intake import notify_admins_message_sent
+from app.services.user_identity_service import child_filter, resolve_by_line_id
 from datetime import datetime, timezone
 
 router = APIRouter()
@@ -146,7 +147,12 @@ async def get_conversation_messages(
         db=db,
     )
     return MessagePage(
-        messages=[MessageResponse.model_validate(m) for m in result["messages"]],
+        messages=[
+            MessageResponse.model_validate(m).model_copy(
+                update={"line_user_id": line_user_id}
+            )
+            for m in result["messages"]
+        ],
         has_more=result["has_more"],
     )
 
@@ -434,14 +440,11 @@ async def create_conversation(
 ) -> Any:
     """Admin initiates a new live-chat conversation with a LINE user."""
     # 1. Find user by line_user_id
-    result = await db.execute(
-        select(User).where(User.line_user_id == data.line_user_id)
-    )
-    user = result.scalar_one_or_none()
+    user = await resolve_by_line_id(db, data.line_user_id)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="LINE user not found",
+            detail="ไม่พบผู้ใช้ LINE",
         )
 
     # 2. Check no ACTIVE/WAITING session exists
@@ -458,7 +461,7 @@ async def create_conversation(
     # 4. Create ChatSession as ACTIVE with current operator
     now = datetime.now(timezone.utc)
     session = ChatSession(
-        line_user_id=data.line_user_id,
+        user_id=user.id,
         status=SessionStatus.ACTIVE,
         operator_id=current_user.id,
         started_at=now,
@@ -537,9 +540,10 @@ async def archive_conversation(
 ) -> Any:
     """Archive a closed conversation. Session must be CLOSED first."""
     # Find the most recent session for this user
+    user = await resolve_by_line_id(db, line_user_id)
     result = await db.execute(
         select(ChatSession)
-        .where(ChatSession.line_user_id == line_user_id)
+        .where(child_filter(ChatSession, line_user_id, user.id if user else None))
         .order_by(ChatSession.started_at.desc())
         .limit(1)
     )
@@ -632,9 +636,10 @@ async def delete_conversation(
     Reversible — messages are never destroyed; the conversation is hidden from
     the default inbox view (recoverable via include_archived).
     """
+    user = await resolve_by_line_id(db, line_user_id)
     result = await db.execute(
         select(ChatSession)
-        .where(ChatSession.line_user_id == line_user_id)
+        .where(child_filter(ChatSession, line_user_id, user.id if user else None))
         .order_by(ChatSession.started_at.desc())
         .limit(1)
     )

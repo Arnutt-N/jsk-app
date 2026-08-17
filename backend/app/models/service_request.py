@@ -44,8 +44,7 @@ class ServiceRequest(Base):
     requester_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     requester = relationship("User", back_populates="requests", foreign_keys=[requester_id])
     
-    # LINE Integration
-    line_user_id = Column(String, index=True, nullable=True)
+    # LINE Integration (identity via user_id FK — plaintext column dropped in PR C)
     user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=True)
     
     # Detailed form fields matching User Request

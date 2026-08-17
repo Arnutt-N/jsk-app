@@ -77,7 +77,7 @@ async def export_conversation_csv(
         writer.writerow(
             [
                 message.created_at.isoformat() if message.created_at else "",
-                message.line_user_id or "",
+                line_user_id,
                 message.direction.value if hasattr(message.direction, "value") else message.direction,
                 sender,
                 message.message_type or "",

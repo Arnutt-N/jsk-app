@@ -15,11 +15,7 @@ class ClosedBy(str, Enum):
     SYSTEM_TIMEOUT = "SYSTEM_TIMEOUT"
 
 class ChatSessionBase(BaseModel):
-    line_user_id: str
     status: SessionStatus = SessionStatus.WAITING
-
-class ChatSessionCreate(ChatSessionBase):
-    pass
 
 class ChatSessionResponse(ChatSessionBase):
     id: int

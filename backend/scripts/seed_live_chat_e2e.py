@@ -56,6 +56,7 @@ async def seed_live_chat_e2e(*, apply: bool) -> int:
     from app.models.chat_session import ChatSession, SessionStatus
     from app.models.message import Message, MessageDirection, SenderRole
     from app.models.user import ChatMode, User, UserRole
+    from app.services.user_identity_service import populate_surrogate, resolve_by_line_id
 
     _env_path, database_target = print_script_header(
         "Seed e2e WAITING live-chat session", apply=apply
@@ -86,12 +87,9 @@ async def seed_live_chat_e2e(*, apply: bool) -> int:
 
     async with AsyncSessionLocal() as db:
         # 1. Upsert the LINE customer (chat_mode=HUMAN, as a real handoff leaves it).
-        user = await db.scalar(
-            select(User).where(User.line_user_id == SEED_LINE_USER_ID)
-        )
+        user = await resolve_by_line_id(db, SEED_LINE_USER_ID)
         if user is None:
             user = User(
-                line_user_id=SEED_LINE_USER_ID,
                 display_name=SEED_DISPLAY_NAME,
                 role=UserRole.USER,
                 is_active=True,
@@ -99,6 +97,7 @@ async def seed_live_chat_e2e(*, apply: bool) -> int:
                 friend_status="ACTIVE",
                 last_message_at=last_activity_at,
             )
+            populate_surrogate(user, SEED_LINE_USER_ID)
             db.add(user)
             print("  [created] customer user")
         else:
@@ -107,14 +106,17 @@ async def seed_live_chat_e2e(*, apply: bool) -> int:
             user.is_active = True
             user.friend_status = "ACTIVE"
             user.last_message_at = last_activity_at
+            if not user.line_user_id_hash:
+                populate_surrogate(user, SEED_LINE_USER_ID)
             print("  [updated] customer user")
+        await db.flush()  # user.id needed by the session/message rows below
 
         # 2. Upsert a single non-closed session into the unclaimed WAITING state.
         #    Reset an already-claimed (ACTIVE) session back to WAITING so the
         #    e2e can re-run from a clean slate.
         session = await db.scalar(
             select(ChatSession)
-            .where(ChatSession.line_user_id == SEED_LINE_USER_ID)
+            .where(ChatSession.user_id == user.id)
             .where(
                 ChatSession.status.in_([SessionStatus.WAITING, SessionStatus.ACTIVE])
             )
@@ -123,7 +125,7 @@ async def seed_live_chat_e2e(*, apply: bool) -> int:
         )
         if session is None:
             session = ChatSession(
-                line_user_id=SEED_LINE_USER_ID,
+                user_id=user.id,
                 status=SessionStatus.WAITING,
                 operator_id=None,
                 started_at=started_at,
@@ -147,14 +149,14 @@ async def seed_live_chat_e2e(*, apply: bool) -> int:
         #    and sorts by recency (last_message join is otherwise nullable).
         existing_message = await db.scalar(
             select(Message)
-            .where(Message.line_user_id == SEED_LINE_USER_ID)
+            .where(Message.user_id == user.id)
             .where(Message.direction == MessageDirection.INCOMING)
             .limit(1)
         )
         if existing_message is None:
             db.add(
                 Message(
-                    line_user_id=SEED_LINE_USER_ID,
+                    user_id=user.id,
                     direction=MessageDirection.INCOMING,
                     message_type="text",
                     content=SEED_INCOMING_TEXT,

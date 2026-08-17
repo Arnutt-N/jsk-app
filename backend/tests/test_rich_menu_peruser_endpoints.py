@@ -24,6 +24,8 @@ from app.db.session import get_db as session_get_db
 from app.main import app
 from app.models.user import UserRole
 
+from tests.identity_helpers import make_line_user_fields
+
 BASE = "/api/v1/admin/rich-menus"
 # Valid LINE userId: "U" + 32 lowercase hex chars (33 total).
 USER_A = "U" + "0" * 32
@@ -107,7 +109,7 @@ def _menu(line_id="richmenu-xyz"):
 
 
 def _line_user():
-    return SimpleNamespace(id=42, line_user_id=USER_A)
+    return SimpleNamespace(id=42, **make_line_user_fields(USER_A))
 
 
 # ---------------------------------------------------------------------------

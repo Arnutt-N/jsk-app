@@ -21,7 +21,6 @@ class CsatResponse(Base):
     )
     
     # User who submitted
-    line_user_id = Column(String, nullable=False, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=True)
     
     # Score (1-5)

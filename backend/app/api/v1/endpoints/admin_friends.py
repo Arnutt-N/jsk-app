@@ -11,6 +11,7 @@ from app.services.rich_menu_service import RichMenuService
 from app.schemas.friend_event import (
     FriendEventListResponse,
     FriendEventListWithUserResponse,
+    FriendEventResponse,
     FriendStatsResponse,
 )
 import math
@@ -32,24 +33,34 @@ async def list_friends(
     # Get total count for pagination
     from sqlalchemy import func as sa_func
     from app.models.user import User as UserModel
-    from app.services.user_identity_service import user_identity_filter
+    from app.services.user_identity_service import decrypt_line_ids_for_users, user_identity_filter
     count_query = select(sa_func.count(UserModel.id)).where(user_identity_filter())
     if status:
         count_query = count_query.where(UserModel.friend_status == status)
     total_result = await db.execute(count_query)
     total = total_result.scalar() or 0
 
-    # Scope refollow counts to current page only
-    line_user_ids = [f.line_user_id for f in friends if f.line_user_id]
-    refollow_counts = await friend_service.get_user_refollow_counts(db, line_user_ids=line_user_ids)
-    # Current per-user rich menu binding per friend (same page scope).
-    rich_menu_links = await RichMenuService.get_current_links_for_users(db, line_user_ids)
+    # Batch-decrypt the raw LINE IDs for this page (friends are User rows).
+    raw_by_user_id = await decrypt_line_ids_for_users(
+        db, [f.id for f in friends if f.line_user_id_hash]
+    )
+
+    # Scope refollow counts to current page only (result keyed by raw LINE id).
+    refollow_counts = await friend_service.get_user_refollow_counts(
+        db, line_user_ids=list(raw_by_user_id.values())
+    )
+    # Current per-user rich menu binding per friend (same page scope, keyed by user id).
+    rich_menu_links = await RichMenuService.get_current_links_for_users(
+        db, [f.id for f in friends]
+    )
 
     friend_list = []
     for friend in friends:
         data = FriendResponse.model_validate(friend).model_dump()
-        data["refollow_count"] = refollow_counts.get(friend.line_user_id, 0)
-        link = rich_menu_links.get(friend.line_user_id)
+        raw_id = raw_by_user_id.get(friend.id)
+        data["line_user_id"] = raw_id
+        data["refollow_count"] = refollow_counts.get(raw_id, 0)
+        link = rich_menu_links.get(friend.id)
         data["rich_menu_id"] = link["rich_menu_id"] if link else None
         data["rich_menu_name"] = link["rich_menu_name"] if link else None
         friend_list.append(data)
@@ -103,4 +114,10 @@ async def get_friend_events(
 ) -> Any:
     """Get friend history for a specific user"""
     events = await friend_service.get_friend_events(line_user_id, db)
-    return {"events": events, "total": len(events)}
+    validated = [
+        FriendEventResponse.model_validate(e).model_copy(
+            update={"line_user_id": line_user_id}
+        )
+        for e in events
+    ]
+    return {"events": validated, "total": len(validated)}

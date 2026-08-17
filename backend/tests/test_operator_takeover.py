@@ -185,11 +185,15 @@ async def test_ensure_creates_active_when_none(svc):
     mock_db.add = Mock()
     mock_db.begin_nested = Mock(return_value=_NestedCM())
     mock_db.flush = AsyncMock()
-    with patch.object(svc, "get_active_session", new=AsyncMock(return_value=None)):
+    with patch.object(svc, "get_active_session", new=AsyncMock(return_value=None)), \
+         patch(
+             "app.services.live_chat_service.sessions.resolve_by_line_id",
+             new=AsyncMock(return_value=SimpleNamespace(id=33)),
+         ):
         result = await svc.ensure_operator_session(LINE_USER, 7, mock_db)
     assert result.status == SessionStatus.ACTIVE
     assert result.operator_id == 7
-    assert result.line_user_id == LINE_USER
+    assert result.user_id == 33
     mock_db.add.assert_called_once()
 
 

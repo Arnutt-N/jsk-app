@@ -1,8 +1,44 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 224 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 228 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-08-17 00:09 — qoder — completed
+
+Session closing: PR #199 merge-ready, all code pushed (055d201), CI green, awaiting reviewer approval. Merge watch cron is session-only and dies with this session — re-arm in next session
+
+- Checkpoint: `.agents/state/checkpoints/handover-qoder-20260817-0009.json`
+- Summary: `project-log-md/qoder/session-summary-20260817-0009.md`
+
+---
+
+### 2026-08-16 22:53 — qoder — completed
+
+PR #199 review rounds complete: two-axis review + L3 migration deep-review fixes all pushed (f30edce) — migration guard fallback aligned with pseudonym config default, verified on fresh DB; Optional[int] hint fixed; 1049 tests pass. PR #199 ready for reviewer + Supabase backup before merge
+
+- Checkpoint: `.agents/state/checkpoints/handover-qoder-20260816-2253.json`
+- Summary: `project-log-md/qoder/session-summary-20260816-2253.md`
+
+---
+
+### 2026-08-16 21:02 — qoder — completed
+
+Deep-review fixes for PR C shipped: 2 CRITICAL stale-schema 500s fixed (ChatSessionResponse/FriendEventResponse vs dropped line_user_id), MEDIUM hardening (decrypt guards, cleanup/SLA graceful degrade, migration RuntimeError), 1049 tests pass, pushed c87db65 to PR #199 — awaiting reviewer + Supabase backup before merge
+
+- Checkpoint: `.agents/state/checkpoints/handover-qoder-20260816-2102.json`
+- Summary: `project-log-md/qoder/session-summary-20260816-2102.md`
+
+---
+
+### 2026-08-16 20:30 — qoder — completed
+
+PR C destructive phase shipped: migration q8r9s0t1u2v3 drops line_user_id from 7 tables + MV rebuild on user_id; identity service hash-only + fail-loud decrypt; config default pseudonym; 1049 tests passed; migration drill verified; PR #199 opened — pending reviewer gate check + Supabase backup before merge
+
+- Checkpoint: `.agents/state/checkpoints/handover-qoder-20260816-2030.json`
+- Summary: `project-log-md/qoder/session-summary-20260816-2030.md`
+
+---
 
 ### 2026-08-16 17:27 — open_code — completed
 
