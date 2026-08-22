@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 228 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 229 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-08-22 16:24 — open_code — completed
+
+PR C post-merge ops verified: PR #199 merged (095d386), CD run 31980891406 applied migration q8r9s0t1u2v3 to Supabase PROD; direct DB check confirms alembic head q8r9s0t1u2v3 + zero line_user_id columns in public schema; prod healthy 5 days post-merge. Fresh Supabase backup taken (backups/supabase-prod-backup-20260822-1558.dump, 12.5 MB, pg_dump v17 portable built in WSL ~/pg17); dropped throwaway DB skn_app_db_fresh_verify from local pgdata_test cluster; added backups/ to .gitignore (PDPA guard)
+
+- Checkpoint: `.agents/state/checkpoints/handover-open_code-20260822-1624.json`
+- Summary: `project-log-md/open_code/session-summary-20260822-1624.md`
+
+---
 
 ### 2026-08-17 00:09 — qoder — completed
 

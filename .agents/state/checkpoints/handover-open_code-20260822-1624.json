@@ -1,0 +1,17 @@
+{
+  "handoff_version": "2.0",
+  "platform": "open_code",
+  "agent": "open_code",
+  "timestamp": "2026-08-22T16:24:00+07:00",
+  "branch": "main",
+  "head_commit": "095d386",
+  "status": "completed",
+  "work_summary": "PR C post-merge ops verified: PR #199 merged (095d386), CD run 31980891406 applied migration q8r9s0t1u2v3 to Supabase PROD; direct DB check confirms alembic head q8r9s0t1u2v3 + zero line_user_id columns in public schema; prod healthy 5 days post-merge. Fresh Supabase backup taken (backups/supabase-prod-backup-20260822-1558.dump, 12.5 MB, pg_dump v17 portable built in WSL ~/pg17); dropped throwaway DB skn_app_db_fresh_verify from local pgdata_test cluster; added backups/ to .gitignore (PDPA guard)",
+  "priority_actions": [
+    "Confirm/set LINE_ID_STORAGE_MODE=pseudonym env var on Koyeb dashboard (no koyeb CLI/token on dev machine; code default already pseudonym at config.py:58)",
+    "User re-test booking in LINE (book -> edit -> cancel) + admin sees all-days view"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/open_code/session-summary-20260822-1624.md",
+  "cross_platform_read": []
+}
