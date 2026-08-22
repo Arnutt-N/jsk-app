@@ -4,7 +4,7 @@
 > Source of truth: `.agents/state/checkpoints/*.json` — 230 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
 
-### 2026-08-22 17:36 — open_code — completed
+### 2026-08-22 17:36 — open_code (ox-alpha-free / opencode) — completed
 
 LINE_ID_STORAGE_MODE flipped dual->pseudonym on Koyeb PROD: verified stale dual value via control-plane API GET /v1/deployments, user-approved, koyeb CLI services update with merge semantics (all other 19 env vars untouched), new deployment a13b92da HEALTHY, health endpoint database/redis true. Gotchas documented: WSL grep -P broken + PowerShell eats dollar-paren subexpressions inside double quotes -> use bash script file via tr -d CR; koyeb token at secrets/secret-keys.txt line koyeb-token=. Remaining priority action: user re-test booking in LINE (book->edit->cancel)
 

@@ -1,6 +1,8 @@
 {
   "last_updated": "2026-08-22T17:36:00+07:00",
   "platform": "open_code",
+  "model": "ox-alpha-free",
+  "provider": "opencode",
   "current_task": "LINE_ID_STORAGE_MODE flipped dual->pseudonym on Koyeb PROD: verified stale dual value via control-plane API GET /v1/deployments, user-approved, koyeb CLI services update with merge semantics (all othe",
   "plan_status": "completed",
   "next_steps": [

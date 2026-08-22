@@ -118,7 +118,7 @@
 
 | When | Status | Model | Provider | Checkpoint |
 |------|--------|-------|----------|------------|
-| 2026-08-22 17:36 | completed | — | — | `handover-open_code-20260822-1736.json` |
+| 2026-08-22 17:36 | completed | ox-alpha-free | opencode | `handover-open_code-20260822-1736.json` |
 | 2026-08-22 16:24 | completed | — | — | `handover-open_code-20260822-1624.json` |
 | 2026-08-16 17:27 | completed | — | — | `handover-open_code-20260816-1727.json` |
 | 2026-08-15 21:20 | completed | — | — | `handover-open_code-20260815-2120.json` |
