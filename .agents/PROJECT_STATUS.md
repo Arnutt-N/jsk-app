@@ -71,16 +71,16 @@
 - [x] Reviewed (ecc fastapi + react reviewers, 6 findings applied) + AgentShield security scan (clean).
 - [x] Migrated Supabase PROD to alembic head `t0u1v2w3x4y5` (additive). Frontend deployed to Vercel (READY).
 - [x] Merged PR #114 (merge commit `3a90f4d`). Local CI green (pytest 499, lint, vitest 161, build, encoding).
-- [ ] **Open:** verify backend prod has Task 6.2 code (FastAPI deploys separately from Vercel frontend); smoke test on prod.
+- [x] **Smoke test DONE (2026-08-22):** prod admin login 200 → `GET /admin/rich-menus/aliases` + `GET /admin/rich-menus` return 200 (Task 6.2 code live on Koyeb via CD).
 
-### PR C — LINE ID Pseudonymization Gate Endpoint (Status: COMPLETE - Merged to main, awaiting CD deploy)
+### PR C — LINE ID Pseudonymization Gate Endpoint (Status: COMPLETE - fully deployed & verified)
 - [x] PR #158 (squash `3d01958`): `GET /api/v1/health/pseudonym-gate` (admin-only) — in-memory + Redis-shared counter for `line_id_plaintext_fallback_hit` so operators verify the PR C gate (zero hits 3-5 days in `dual` mode) without Koyeb log access (api.koyeb.com DNS-blocked on dev machine).
 - [x] `app/core/pseudonym_gate.py` (counter) + hook in `resolve_by_line_id` + endpoint in health.py + 11 tests. Backend suite 753 passed. CI all green.
 - [x] PR #160 (squash `4ba338a`): **read-cutover phase complete** — ~50 read paths across 13 files converted to mode-aware helpers; 4 new helpers in `user_identity_service.py` (`child_column`, `child_join_condition` incl. User-as-parent PK handling, `user_identity_filter`, `resolve_many_by_line_id`); bulk-IN sites preserve raw-LINE-ID dict keys via reverse mapping. 24 helper unit tests, full suite 771 passed, CI all green. Plan + errata + deviations: `.claude/PRPs/plans/pr-c-read-cutover.plan.md`.
 - [x] **2026-07-30 gate incident + repair:** first authenticated gate read returned `gate_status: fail`, `fallback_hit_count: 176` (first hit 2026-07-28 08:16 UTC). Root cause: 6 of 8 prod LINE users (`users.id` 1,5,6,7,8,9) held `line_user_id_hash` computed with the **dev fallback HMAC key** — a development-configured process (ENVIRONMENT=development + exported remote `DATABASE_URL`) had written them, and `resolve_many_by_line_id` counted the misses on every admin poll without repairing them. `line_user_id_encrypted` was correct (prod `ENCRYPTION_KEY`) on all 8 rows. Repair: re-hashed the 6 rows with the Koyeb key (all 8 verified matching) + deleted `pseudonym_gate:fallback_hits` / `first_hit_at` on Upstash. Gate now reads `pass` / `0`, confirmed unchanged after exercising `/admin/friends` (the batch-resolver path).
-- [ ] **Open:** hardening PR on `fix/pseudonym-gate-hardening` — `Settings.is_remote_database` + fail-loud `_get_hmac_key` on dev-key-to-remote-DB, and surrogate backfill in `resolve_many_by_line_id`. PRD + PRP: `docs/remediation/pseudonym-gate-hardening-prd-prp.md`. Suite 794 passed.
-- [ ] **Open:** gate clock **restarted 2026-07-30** after the repair — need `gate_status: pass` + `fallback_hit_count: 0` through ~2026-08-04. Read it with an admin session: `fetch('/api/v1/health/pseudonym-gate', { credentials: 'include' })` from a logged-in admin tab (cookie auth; a bare `curl` to the Koyeb host returns 401).
-- [ ] **Open (gated):** PR C destructive step (drop `line_user_id` on 7 tables, remove dual-write, flip `LINE_ID_STORAGE_MODE=pseudonym`) — only after gate pass 3-5 days (read-cutover is now complete).
+- [x] Hardening merged as PR #175 (squash `a34c080`) — `Settings.is_remote_database` + fail-loud `_get_hmac_key` + surrogate self-heal. Suite 794 passed.
+- [x] Gate cleared — `gate_status: pass` / `fallback_hit_count: 0` sustained through the observation window (destructive phase proceeded).
+- [x] Destructive step DONE — PR #199 (migration `q8r9s0t1u2v3` on Supabase PROD) + env flip dual→pseudonym (2026-08-22, deployment `a13b92da`); gate now reports `storage_mode=pseudonym` / `pseudonym_mode_no_fallback` / hits=0 (verified via admin session 2026-08-22).
 
 ### UX & Error Handling Improvements (Status: COMPLETE - Merged to main)
 - [x] Added `useUndoableState` hook with undo/redo controls and keyboard shortcuts.
@@ -94,6 +94,7 @@
 - [x] Merged PR #78 to `main` branch.
 
 ## Latest Pickup Status
+- [2026-08-22 19:30] **Prod smoke test: Rich Menu Task 6.2 LIVE + cookie auth proven + gate reports pseudonym** — admin login 200 (cookie-only session, no Bearer) → `GET /admin/rich-menus/aliases` + `GET /admin/rich-menus` = 200; `GET /health/pseudonym-gate` = `storage_mode=pseudonym` / `pseudonym_mode_no_fallback` / hits=0 / redis connected. Closed stale checkboxes: Rich Menu smoke item, PR C gate-endpoint section 3 items, Backlog SLA + LIFF_STRICT_MODE; COOKIE_AUTH_MODE backlog narrowed to cleanup PR only.
 - [2026-08-22 19:05] **Session cleanup: Thai Summary compressed + SLA Telegram alerts ON** — compress PROJECT_STATUS Thai Summary (21 บรรทัด prose → 6 bullets, ตัด next-steps หมดอายุ), เพิ่ม `model`/`provider` keys ให้ checkpoint 17:36 (แก้ validator warning — script รองรับ `--model/--provider` flags อยู่แล้ว), doc history cap (20 entries) ใน handoff-to-any.md, flip `SLA_ALERT_TELEGRAM_ENABLED=true` บน prod (deployment `63d007ba` HEALTHY)
 - [2026-08-22 17:36] **LINE_ID_STORAGE_MODE flip dual→pseudonym DONE on Koyeb PROD** — ยืนยันค่าเดิม `dual` (ค้างจาก PR A/B rollout) ผ่าน control-plane API `GET /v1/deployments/{id}`; user-approved → `koyeb services update jsk-app --env LINE_ID_STORAGE_MODE=pseudonym` (default merge semantics — env อื่น 19 รายการไม่ถูกแตะ), deployment `a13b92da` HEALTHY, health endpoint green. Gotchas ฝั่ง Koyeb access/quoting รวมไว้ที่ bullet "Ops access (Koyeb)" ด้านบน (canonical — อย่าพิมพ์ซ้ำ). **เหลือ:** user re-test booking ใน LINE (จอง→แก้ไข→ยกเลิก)
 - [2026-08-22] **PR C post-merge ops VERIFIED** — PR #199 merged (`095d386`), CI/CD green (CD run 31980891406 applied migration `q8r9s0t1u2v3` to Supabase PROD). Direct DB verification: `alembic_version = q8r9s0t1u2v3`, zero `line_user_id` columns in public schema, prod healthy 5 days post-merge. Fresh Supabase backup taken (`backups/supabase-prod-backup-20260822-1558.dump`, 12.5 MB, pg_dump v17 portable built in WSL ~/pg17); dropped throwaway DB `skn_app_db_fresh_verify` from local `~/pgdata_test`; added `backups/` to .gitignore. **Remaining:** confirm/set `LINE_ID_STORAGE_MODE=pseudonym` env var on Koyeb dashboard (no koyeb CLI/token locally; code default already pseudonym at config.py:58).
@@ -289,12 +290,11 @@
 - [2026-05-25 01:00] Claude Code: Implemented PRD E — Drug Reporting. PR #61 merged to main. (Claude Code)
 
 ## Backlog (Future)
-- [ ] **COOKIE_AUTH_MODE production completion** (runbook: `docs/remediation/cookie-auth-rollout-runbook.md`)
-  - PR 2A/2B/2C merged: backend foundation + frontend cookie-only + hardening (default `cookie`, `SameSite=Strict`, `NEXT_PUBLIC_COOKIE_AUTH` flag removed)
-  - Remaining: verify effective mode on Koyeb (DevTools cookie/body check — env var overrides code default); if `bearer`/`dual`, advance stepwise to `cookie` via `koyeb service update conservative-lusa/jsk-app --env COOKIE_AUTH_MODE=<mode>`
-  - Note: Koyeb CLI needs token; security policy blocks the agent from running authed commands — user runs the flip manually
-  - After cookie stable 3-5 days: cleanup PR removing the mode flag + backend Bearer fallback
-- [ ] Enable `SLA_ALERT_TELEGRAM_ENABLED=true` on Koyeb (low risk, needs TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID already set)
-- [ ] Enable `LIFF_STRICT_MODE=true` on prod (wait until error rate is monitored — may reject expired LINE tokens)
+- [ ] **COOKIE_AUTH_MODE cleanup PR** (runbook: `docs/remediation/cookie-auth-rollout-runbook.md`)
+  - PR 2A/2B/2C merged: backend foundation + frontend cookie-only + hardening (default `cookie`, `SameSite=Strict`)
+  - ~~Verify effective mode~~ **DONE (2026-08-22):** `COOKIE_AUTH_MODE` unset on Koyeb → code default `cookie` active; proven empirically — cookie-only session (no Bearer header) passed admin auth on prod smoke test
+  - Remaining: cleanup PR removing the mode flag (`Literal["bearer","dual","cookie"]`) + backend Bearer fallback
+- [x] Enable `SLA_ALERT_TELEGRAM_ENABLED=true` on Koyeb — DONE 2026-08-22 (deployment `63d007ba` HEALTHY)
+- [x] Enable `LIFF_STRICT_MODE=true` on prod — already effective: code default `True` (config.py) with no env override on Koyeb
 - [ ] Monitor production deployment via Vercel
 - [ ] Address any post-merge feedback or minor UI polish
