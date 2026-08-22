@@ -30,8 +30,8 @@ PR 2A/2B/2C (ก.ค. 2026) เปิดตัว cookie auth พร้อม mo
   one-time path (ส่ง Bearer legacy token → endpoint `_bearer_only` by design), (d) WS types comment
 - **Test suite ไม่พังกระจาย:** pattern หลักของ 93 test files คือ
   `app.dependency_overrides[deps.get_current_admin]` — bypass real auth resolution
-  มีแค่ 1 file ที่ใช้ `headers={"Authorization": ...}` ตรง; ไฟล์ที่ exercise mode matrix จริงมี 2:
-  `test_cookie_auth.py` + `test_config_migration_controls.py`
+  ไฟล์ที่ exercise mode matrix + Bearer headers ทั้งหมดอยู่ใน **test_cookie_auth.py
+  file เดียว** (14 จุด `headers={"Authorization"}`) + test_config_migration_controls.py
 - **pydantic settings `extra="ignore"`**: env var `COOKIE_AUTH_MODE` ที่เหลือค้างที่ใดก็ตาม
   จะถูก ignore เงียบ ๆ หลังลบ field — ไม่ crash startup
 
@@ -39,11 +39,12 @@ PR 2A/2B/2C (ก.ค. 2026) เปิดตัว cookie auth พร้อม mo
 
 | ไฟล์ | จุด | สิ่งที่ทำ |
 |---|---|---|
-| `app/core/config.py:48-53` | flag + comments | ลบ field |
+| `app/core/config.py:48-53` | flag + comments | ลบ field — ⚠️ ระวังช่วง 48-53 มี `LIFF_STRICT_MODE` (:52) อยู่ด้วย ห้ามลบรวบ |
 | `app/api/deps.py:19` | `security = HTTPBearer(auto_error=False)` | ลบ + import |
 | `app/api/deps.py:32-68` | `get_current_user` mode-aware block | collapse → cookie-only |
 | `app/api/deps.py:149-159` | CSRF comment อ้าง bearer exemption | แก้ comment (behavior เดิม) |
 | `app/api/v1/endpoints/auth.py:186-197` | login branches | always session family + cookies + empty body tokens |
+| `auth.py:222` | param `authorization: Header(default=None)` กลายเป็น dead | ลบ (ไม่งั้นค้างใน OpenAPI) |
 | `auth.py:228-235` | refresh source fallback header | cookie-only |
 | `auth.py:274` | guard `COOKIE_AUTH_MODE == "cookie"` | unconditional |
 | `auth.py:321,334-335` | `body_omitted` conditional | always omit |
@@ -53,6 +54,13 @@ PR 2A/2B/2C (ก.ค. 2026) เปิดตัว cookie auth พร้อม mo
 | `auth.py:498-499` | ws-ticket docstring "Any auth mode" | แก้ docstring |
 | `core/security.py:113` | comment "bearer-mode caller" | แก้ comment |
 | `core/cookie_auth.py:58` | docstring "`dual` or `cookie`" | แก้ docstring |
+| `app/schemas/auth.py:34` | comment "dual/cookie; None in bearer mode" | แก้ comment |
+| `app/services/auth_session_service.py:80-81` | docstring "dual or cookie" | แก้ docstring |
+| `backend/app/.env.example:14`, `.env.production.example:9`, `.env.development.example:5` | `COOKIE_AUTH_MODE=bearer` (stale) | ลบบรรทัด |
+| `frontend/app/admin/friends/page.tsx:3`, `chat-histories/page.tsx:3`, `chat-histories/[lineUserId]/page.tsx:3` | comment "bearer or cookie mode" | แก้ comment |
+
+**ไม่แตะ (historical record):** alembic migration comments ที่อ้าง flag
+(`w3x4y5z6a7b8_*:11`, `b3c4d5e6f7g8_*:8`) — migrations เขียนครั้งเดียวแก้ไม่ได้
 
 **คงไว้ (deliberate):** `/auth/migrate-session` endpoint ทั้งตัว (legacy straggler one-time
 migration — frontend `AuthContext.tsx:152` ยังเรียกถ้า localStorage มี token เก่า; การถอด
@@ -93,7 +101,11 @@ CSRF double-submit, DEV_AUTH_BYPASS, ws-ticket flow
 ## Acceptance criteria / Gates
 
 1. `grep -rn "COOKIE_AUTH_MODE" backend/app --include="*.py"` = **0 matches**
-2. `grep -rn "COOKIE_AUTH_MODE" backend/tests` เหลือเฉพาะจุดที่ assert การไม่มี flag (ถ้ามี)
-3. Full pytest green (suite ปรับแล้ว), lint/tsc/vitest/build green, CI green
-4. Post-deploy prod smoke: login → admin GET (cookie-only) 200; ws-ticket no-CSRF=403 /
+2. `grep -rni "COOKIE_AUTH_MODE" backend --include="*.env*" .claude/../backend/*.example*`
+   และ `grep -rn "COOKIE_AUTH_MODE" backend/.env.*.example` = **0 matches**
+   (alembic/ docs/ ยกเว้น — historical record)
+3. Frontend: `grep -rn "COOKIE_AUTH_MODE\|bearer or cookie mode" frontend/` — comment-only
+   mentions ล้างให้หมด
+4. Full pytest green (suite ปรับแล้ว), lint/tsc/vitest/build green, CI green
+5. Post-deploy prod smoke: login → admin GET (cookie-only) 200; ws-ticket no-CSRF=403 /
    with-CSRF=200; health green
