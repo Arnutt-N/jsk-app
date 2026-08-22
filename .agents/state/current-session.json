@@ -3,7 +3,9 @@
   "platform": "open_code",
   "current_task": "LINE_ID_STORAGE_MODE flipped dual->pseudonym on Koyeb PROD: verified stale dual value via control-plane API GET /v1/deployments, user-approved, koyeb CLI services update with merge semantics (all othe",
   "plan_status": "completed",
-  "next_steps": [],
+  "next_steps": [
+    "User re-test booking in LINE (book -> edit -> cancel) + admin sees all-days view"
+  ],
   "handoff_history": [
     {
       "timestamp": "2026-08-22T17:36:00+07:00",

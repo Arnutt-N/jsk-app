@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-08-22 17:36 by OpenCode (LINE_ID_STORAGE_MODE flipped dual->pseudonym on Koyeb PROD: verified stale dual value via )
+> **Last Updated:** 2026-08-22 17:36 by OpenCode (LINE_ID_STORAGE_MODE flipped dual->pseudonym on Koyeb PROD — deployment a13b92da HEALTHY, PR C post-merge items all closed)
 
 ## Thai Summary
 **PR C post-merge ops ยืนยันครบ (2026-08-22)** — PR #199 merge แล้ว (`095d386`), CI/CD เขียว, CD run 31980891406 apply migration `q8r9s0t1u2v3` บน Supabase PROD สำเร็จ; verify ตรงที่ DB: `alembic_version = q8r9s0t1u2v3` + `line_user_id` เหลือ **0 column** ใน public schema; prod healthy (`database/redis: true`) หลัง merge 5 วัน — Supabase backup ใหม่สำเร็จ `backups/supabase-prod-backup-20260822-1558.dump` (12.5 MB, pg_dump v17 portable ใน WSL); ลบ throwaway DB `skn_app_db_fresh_verify` จาก local cluster `~/pgdata_test` แล้ว; เพิ่ม `backups/` ลง .gitignore (กัน staging dump PDPA) — **env var ปิดแล้ว (2026-08-22):** `LINE_ID_STORAGE_MODE` บน Koyeb ยืนยันว่าเคยค้าง `dual` → flip เป็น `pseudonym` ผ่าน control-plane API (`app.koyeb.com/v1`) + koyeb CLI (merge semantics, env อื่น 19 รายการไม่ถูกแตะ), redeploy `a13b92da` HEALTHY, health endpoint `database/redis: true`; token อ่านจาก `secrets/secret-keys.txt` (`koyeb-token=`, ใช้ผ่าน script file กันปัญหา quoting — grep -P ใน WSL เสีย ต้องใช้ sed)
