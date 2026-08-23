@@ -1,7 +1,8 @@
 from datetime import datetime, timezone
 import csv
 import io
-from typing import List
+import asyncio
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response, StreamingResponse
@@ -36,18 +37,20 @@ def _build_export_filename(display_name: str, messages: List[Message], extension
     return f"{_sanitize_filename(display_name)}_{start}-{end}.{extension}"
 
 
-async def _get_conversation_messages(line_user_id: str, db: AsyncSession) -> List[Message]:
+async def _load_conversation(
+    line_user_id: str, db: AsyncSession
+) -> tuple[Optional[User], List[Message]]:
+    """Resolve identity + messages once per export (not twice)."""
     user = await resolve_by_line_id(db, line_user_id)
     result = await db.execute(
         select(Message)
         .where(child_filter(Message, line_user_id, user.id if user else None))
         .order_by(Message.created_at.asc(), Message.id.asc())
     )
-    return list(result.scalars().all())
+    return user, list(result.scalars().all())
 
 
-async def _get_display_name(line_user_id: str, db: AsyncSession) -> str:
-    user = await resolve_by_line_id(db, line_user_id)
+def _display_name(user: Optional[User], line_user_id: str) -> str:
     if user and user.display_name:
         return user.display_name
     return line_user_id
@@ -60,11 +63,11 @@ async def export_conversation_csv(
     _current_user: User = Depends(require_permission(KEY_EXPORT_CHAT)),
 ):
     """Export one conversation as CSV."""
-    messages = await _get_conversation_messages(line_user_id, db)
+    user, messages = await _load_conversation(line_user_id, db)
     if not messages:
         raise HTTPException(status_code=404, detail="Conversation not found or has no messages")
 
-    display_name = await _get_display_name(line_user_id, db)
+    display_name = _display_name(user, line_user_id)
     filename = _build_export_filename(display_name, messages, "csv")
 
     buffer = io.StringIO()
@@ -101,17 +104,33 @@ async def export_conversation_pdf(
 ):
     """Export one conversation as PDF."""
     try:
-        from reportlab.lib.pagesizes import A4
-        from reportlab.pdfgen import canvas
+        import reportlab  # noqa: F401 — availability probe
     except Exception as exc:
         raise HTTPException(status_code=500, detail="PDF export dependency not installed") from exc
 
-    messages = await _get_conversation_messages(line_user_id, db)
+    user, messages = await _load_conversation(line_user_id, db)
     if not messages:
         raise HTTPException(status_code=404, detail="Conversation not found or has no messages")
 
-    display_name = await _get_display_name(line_user_id, db)
+    display_name = _display_name(user, line_user_id)
     filename = _build_export_filename(display_name, messages, "pdf")
+
+    # ReportLab drawing is CPU-bound sync — offload to a thread.
+    data = await asyncio.to_thread(
+        _build_conversation_pdf, line_user_id, display_name, messages
+    )
+    return Response(
+        content=data,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+def _build_conversation_pdf(
+    line_user_id: str, display_name: str, messages: List[Message]
+) -> bytes:
+    from reportlab.lib.pagesizes import A4
+    from reportlab.pdfgen import canvas
 
     buffer = io.BytesIO()
     pdf = canvas.Canvas(buffer, pagesize=A4)
@@ -148,9 +167,5 @@ async def export_conversation_pdf(
         y -= line_height
 
     pdf.save()
-    return Response(
-        content=buffer.getvalue(),
-        media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
-    )
+    return buffer.getvalue()
 

@@ -57,30 +57,32 @@ def test_export_csv_endpoint_streams_file():
     # which resolves the user via deps.get_current_user — override that too.
     app.dependency_overrides[deps.get_current_user] = _override_get_current_admin
 
-    original_get_display_name = admin_export._get_display_name
-    original_get_messages = admin_export._get_conversation_messages
-    admin_export._get_display_name = AsyncMock(return_value="Demo User")
-    admin_export._get_conversation_messages = AsyncMock(
-        return_value=[
-            SimpleNamespace(
-                id=1,
-                created_at=datetime(2026, 2, 8, 3, 0, 0, tzinfo=timezone.utc),
-                user_id=1,
-                direction=MessageDirection.INCOMING,
-                sender_role=SenderRole.USER,
-                message_type="text",
-                content="hello",
-            ),
-            SimpleNamespace(
-                id=2,
-                created_at=datetime(2026, 2, 8, 3, 1, 0, tzinfo=timezone.utc),
-                user_id=1,
-                direction=MessageDirection.OUTGOING,
-                sender_role=SenderRole.ADMIN,
-                message_type="text",
-                content="hi",
-            ),
-        ]
+    original_load = admin_export._load_conversation
+    _demo_user = SimpleNamespace(id=1, display_name="Demo User")
+    admin_export._load_conversation = AsyncMock(
+        return_value=(
+            _demo_user,
+            [
+                SimpleNamespace(
+                    id=1,
+                    created_at=datetime(2026, 2, 8, 3, 0, 0, tzinfo=timezone.utc),
+                    user_id=1,
+                    direction=MessageDirection.INCOMING,
+                    sender_role=SenderRole.USER,
+                    message_type="text",
+                    content="hello",
+                ),
+                SimpleNamespace(
+                    id=2,
+                    created_at=datetime(2026, 2, 8, 3, 1, 0, tzinfo=timezone.utc),
+                    user_id=1,
+                    direction=MessageDirection.OUTGOING,
+                    sender_role=SenderRole.ADMIN,
+                    message_type="text",
+                    content="hi",
+                ),
+            ],
+        )
     )
 
     client = TestClient(app)
@@ -88,8 +90,7 @@ def test_export_csv_endpoint_streams_file():
         response = client.get("/api/v1/admin/export/conversations/U123/csv")
     finally:
         client.close()
-        admin_export._get_display_name = original_get_display_name
-        admin_export._get_conversation_messages = original_get_messages
+        admin_export._load_conversation = original_load
         app.dependency_overrides.clear()
 
     assert response.status_code == 200
@@ -113,21 +114,23 @@ def test_export_pdf_endpoint_streams_file():
     # which resolves the user via deps.get_current_user — override that too.
     app.dependency_overrides[deps.get_current_user] = _override_get_current_admin
 
-    original_get_display_name = admin_export._get_display_name
-    original_get_messages = admin_export._get_conversation_messages
-    admin_export._get_display_name = AsyncMock(return_value="Demo User")
-    admin_export._get_conversation_messages = AsyncMock(
-        return_value=[
-            SimpleNamespace(
-                id=1,
-                created_at=datetime(2026, 2, 8, 3, 0, 0, tzinfo=timezone.utc),
-                user_id=1,
-                direction=MessageDirection.INCOMING,
-                sender_role=SenderRole.USER,
-                message_type="text",
-                content="hello",
-            ),
-        ]
+    original_load = admin_export._load_conversation
+    _demo_user = SimpleNamespace(id=1, display_name="Demo User")
+    admin_export._load_conversation = AsyncMock(
+        return_value=(
+            _demo_user,
+            [
+                SimpleNamespace(
+                    id=1,
+                    created_at=datetime(2026, 2, 8, 3, 0, 0, tzinfo=timezone.utc),
+                    user_id=1,
+                    direction=MessageDirection.INCOMING,
+                    sender_role=SenderRole.USER,
+                    message_type="text",
+                    content="hello",
+                ),
+            ],
+        )
     )
 
     client = TestClient(app)
@@ -135,8 +138,7 @@ def test_export_pdf_endpoint_streams_file():
         response = client.get("/api/v1/admin/export/conversations/U123/pdf")
     finally:
         client.close()
-        admin_export._get_display_name = original_get_display_name
-        admin_export._get_conversation_messages = original_get_messages
+        admin_export._load_conversation = original_load
         app.dependency_overrides.clear()
 
     assert response.status_code == 200

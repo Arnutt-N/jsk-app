@@ -4,6 +4,7 @@ from typing import Dict, List
 import logging
 import os
 import shutil
+import asyncio
 import httpx
 from app.db.session import get_db
 from app.api.deps import get_current_admin, require_permission
@@ -32,6 +33,16 @@ from datetime import date, datetime, timedelta, timezone
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+
+def _write_upload_sync(file_path: str, upload_file) -> None:
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(upload_file.file, buffer)
+
+
+def _read_file_sync(path: str) -> bytes:
+    with open(path, "rb") as f:
+        return f.read()
 
 UPLOAD_DIR = "uploads/rich_menus"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -561,15 +572,15 @@ async def upload_rich_menu_image(
     file_path = os.path.join(UPLOAD_DIR, f"{id}_{safe_name}")
     if not os.path.realpath(file_path).startswith(os.path.realpath(UPLOAD_DIR)):
         raise HTTPException(status_code=400, detail="Invalid filename")
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-    
+    # Offload MB-scale file IO to a thread so the event loop (webhook/WS)
+    # is not blocked for the duration of the copy.
+    await asyncio.to_thread(_write_upload_sync, file_path, file)
+
     rich_menu.image_path = file_path
-    
+
     # If already has LINE ID, sync image now. Otherwise, wait for explicit sync.
     if rich_menu.line_rich_menu_id:
-        with open(file_path, "rb") as f:
-            img_bytes = f.read()
+        img_bytes = await asyncio.to_thread(_read_file_sync, file_path)
         try:
             await RichMenuService.upload_image_to_line(
                 db, 
@@ -603,8 +614,7 @@ async def sync_rich_menu(id: int, db: AsyncSession = Depends(get_db), current_ad
 
     if sync_result.get("success") and rich_menu.image_path and os.path.exists(rich_menu.image_path):
         try:
-            with open(rich_menu.image_path, "rb") as f:
-                img_bytes = f.read()
+            img_bytes = await asyncio.to_thread(_read_file_sync, rich_menu.image_path)
 
             ext = os.path.splitext(rich_menu.image_path)[1].lower()
             content_type = "image/png" if ext == ".png" else "image/jpeg"
