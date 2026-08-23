@@ -1,13 +1,20 @@
 {
-  "last_updated": "2026-08-23T18:21:00+07:00",
+  "last_updated": "2026-08-23T19:05:00+07:00",
   "platform": "open_code",
-  "current_task": "COOKIE_AUTH_MODE cleanup SHIPPED end-to-end (PR #200 squash f223bd3): PRD+PRP REV 2 per mandatory workflow, deep review x2 rounds (7 findings all fixed + re-verified), CI green, merged, CD deployed, post-merge prod smoke all-pass",
+  "current_task": "Post-merge hardening for PR #200 session: deep review x2 axes on post-merge artifacts (claims fact-checked LIVE - docker dev DB confirmed at head q8r9s0t1u2v3 via psql, PR #200 MERGED f223bd3, CI numb",
   "plan_status": "completed",
   "next_steps": [
     "User re-test booking in LINE (book -> edit -> cancel) + admin sees all-days view",
-    "Optional future PR: remove POST /auth/migrate-session + AuthContext legacy-migration call once legacy-token cohort confirmed zero"
+    "Optional future PR: remove POST /auth/migrate-session once legacy-token cohort = 0"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-08-23T19:05:00+07:00",
+      "platform": "open_code",
+      "branch": "main",
+      "head": "3aa120a",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-08-23T18:21:00+07:00",
       "platform": "open_code",
@@ -139,13 +146,6 @@
       "platform": "codex",
       "branch": "fix/live-chat-post-merge-races",
       "head": "eb9e93a",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-08-05T14:19:00+07:00",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "e693a9a",
       "status": "completed"
     }
   ],

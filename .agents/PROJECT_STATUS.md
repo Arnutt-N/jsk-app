@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-08-23 18:21 by OpenCode (COOKIE_AUTH_MODE cleanup SHIPPED — PR #200 squash `f223bd3`: deep review ×2, CI green, prod smoke all-pass)
+> **Last Updated:** 2026-08-23 19:05 by OpenCode (Post-merge hardening for PR #200 session: deep review x2 axes on post-merge artifacts clai)
 
 ## Thai Summary
 **สถานะล่าสุด (2026-08-23)** — milestone หลักทุกตัวปิดแล้ว เหลือเฉพาะ manual test ฝั่งผู้ใช้:
@@ -111,6 +111,7 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-08-23 19:05] OpenCode: Post-merge hardening for PR #200 session: deep review x2 axes on post-merge artifacts (claims fact-checked LIVE - docker dev DB confirmed at head q8r9s0t1u2v3 via psql, PR #200 MERGED f223bd3, CI numbers matched); migrated stale docker db ( (OpenCode)
 - [2026-08-23 18:21] OpenCode: COOKIE_AUTH_MODE cleanup SHIPPED end-to-end (PR #200 squash f223bd3): PRD+PRP REV 2 per mandatory workflow, deep review x2 rounds (7 findings all fixed + re-verified), CI green, merged, CD deployed, post-merge prod smoke all-pass (OpenCode)
 - [2026-08-22 17:36] OpenCode: LINE_ID_STORAGE_MODE flipped dual->pseudonym on Koyeb PROD: verified stale dual value via control-plane API GET /v1/deployments, user-approved, koyeb CLI services update with merge semantics (all other 19 env vars untouched), new deployment (OpenCode)
 - [2026-08-22 16:24] OpenCode: PR C post-merge ops verified: PR #199 merged (095d386), CD run 31980891406 applied migration q8r9s0t1u2v3 to Supabase PROD; direct DB check confirms alembic head q8r9s0t1u2v3 + zero line_user_id columns in public schema; prod healthy 5 days (OpenCode)

@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 231 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 232 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-08-23 19:05 — open_code (ox-alpha-free / opencode) — completed
+
+Post-merge hardening for PR #200 session: deep review x2 axes on post-merge artifacts (claims fact-checked LIVE - docker dev DB confirmed at head q8r9s0t1u2v3 via psql, PR #200 MERGED f223bd3, CI numbers matched); migrated stale docker db (5432) d5e6f7g8h9i0 -> q8r9s0t1u2v3 so both local DBs match main; tidied milestone headers to actual status; applied review fixes: structured next_steps/priority_actions populated, truncation artifacts fixed x4, Thai Summary updated to 2026-08-23 with cookie-auth bullet, stale docker-db gotcha superseded with dated UPDATE note
+
+- Checkpoint: `.agents/state/checkpoints/handover-open_code-20260823-1905.json`
+- Summary: `project-log-md/open_code/session-summary-20260823-1905.md`
+
+---
 
 ### 2026-08-23 18:21 — open_code (ox-alpha-free / opencode) — completed
 
