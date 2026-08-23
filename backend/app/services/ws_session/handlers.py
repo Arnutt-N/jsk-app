@@ -32,7 +32,7 @@ from ._deps import (
     get_resolve_by_line_id,
     get_notify_admins_message_sent,
 )
-from .auth import send_message_failed
+from .auth import send_message_failed, send_ws_error
 
 logger = logging.getLogger(__name__)
 
@@ -52,14 +52,7 @@ async def handle_join_room(
         room_payload = JoinRoomPayload(**payload)
         line_user_id = room_payload.line_user_id
     except ValidationError:
-        await ws.send_personal(websocket, {
-            "type": WSEventType.ERROR.value,
-            "payload": {
-                "message": "Invalid line_user_id format",
-                "code": WSErrorCode.VALIDATION_ERROR.value
-            },
-            "timestamp": timestamp
-        })
+        await send_ws_error(websocket, "Invalid line_user_id format", WSErrorCode.VALIDATION_ERROR, timestamp)
         return None
 
     if current_room:
@@ -125,14 +118,7 @@ async def handle_send_message(
     health = get_ws_health_monitor()
 
     if not current_room:
-        await ws.send_personal(websocket, {
-            "type": WSEventType.ERROR.value,
-            "payload": {
-                "message": "Join a room first",
-                "code": WSErrorCode.NOT_IN_ROOM.value
-            },
-            "timestamp": timestamp
-        })
+        await send_ws_error(websocket, "Join a room first", WSErrorCode.NOT_IN_ROOM, timestamp)
         return
 
     temp_id = payload.get("temp_id") if isinstance(payload, dict) else None
@@ -232,14 +218,7 @@ async def handle_claim_session(
     analytics = get_analytics_service()
 
     if not current_room:
-        await ws.send_personal(websocket, {
-            "type": WSEventType.ERROR.value,
-            "payload": {
-                "message": "Must join a conversation before claiming session",
-                "code": WSErrorCode.NOT_IN_ROOM.value
-            },
-            "timestamp": timestamp
-        })
+        await send_ws_error(websocket, "Must join a conversation before claiming session", WSErrorCode.NOT_IN_ROOM, timestamp)
         return
 
     line_user_id = current_room.replace("conversation:", "")
@@ -259,33 +238,12 @@ async def handle_claim_session(
                     timestamp=timestamp,
                 )
             else:
-                await ws.send_personal(websocket, {
-                    "type": WSEventType.ERROR.value,
-                    "payload": {
-                        "message": "Session not found or already claimed",
-                        "code": WSErrorCode.SESSION_NOT_FOUND.value
-                    },
-                    "timestamp": timestamp
-                })
+                await send_ws_error(websocket, "Session not found or already claimed", WSErrorCode.SESSION_NOT_FOUND, timestamp)
         except HTTPException as e:
-            await ws.send_personal(websocket, {
-                "type": WSEventType.ERROR.value,
-                "payload": {
-                    "message": str(e.detail),
-                    "code": WSErrorCode.VALIDATION_ERROR.value
-                },
-                "timestamp": timestamp
-            })
+            await send_ws_error(websocket, str(e.detail), WSErrorCode.VALIDATION_ERROR, timestamp)
         except Exception as e:
             logger.error(f"Error claiming session: {e}")
-            await ws.send_personal(websocket, {
-                "type": WSEventType.ERROR.value,
-                "payload": {
-                    "message": "Failed to claim session",
-                    "code": WSErrorCode.INTERNAL_ERROR.value
-                },
-                "timestamp": timestamp
-            })
+            await send_ws_error(websocket, "Failed to claim session", WSErrorCode.INTERNAL_ERROR, timestamp)
 
 
 async def handle_close_session(
@@ -300,14 +258,7 @@ async def handle_close_session(
     analytics = get_analytics_service()
 
     if not current_room:
-        await ws.send_personal(websocket, {
-            "type": WSEventType.ERROR.value,
-            "payload": {
-                "message": "Must join a conversation before closing session",
-                "code": WSErrorCode.NOT_IN_ROOM.value
-            },
-            "timestamp": timestamp
-        })
+        await send_ws_error(websocket, "Must join a conversation before closing session", WSErrorCode.NOT_IN_ROOM, timestamp)
         return
 
     line_user_id = current_room.replace("conversation:", "")
@@ -327,33 +278,12 @@ async def handle_close_session(
                     timestamp=timestamp,
                 )
             else:
-                await ws.send_personal(websocket, {
-                    "type": WSEventType.ERROR.value,
-                    "payload": {
-                        "message": "Session not found or already closed",
-                        "code": WSErrorCode.SESSION_NOT_FOUND.value
-                    },
-                    "timestamp": timestamp
-                })
+                await send_ws_error(websocket, "Session not found or already closed", WSErrorCode.SESSION_NOT_FOUND, timestamp)
         except HTTPException as e:
-            await ws.send_personal(websocket, {
-                "type": WSEventType.ERROR.value,
-                "payload": {
-                    "message": str(e.detail),
-                    "code": WSErrorCode.VALIDATION_ERROR.value
-                },
-                "timestamp": timestamp
-            })
+            await send_ws_error(websocket, str(e.detail), WSErrorCode.VALIDATION_ERROR, timestamp)
         except Exception as e:
             logger.error(f"Error closing session: {e}")
-            await ws.send_personal(websocket, {
-                "type": WSEventType.ERROR.value,
-                "payload": {
-                    "message": "Failed to close session",
-                    "code": WSErrorCode.INTERNAL_ERROR.value
-                },
-                "timestamp": timestamp
-            })
+            await send_ws_error(websocket, "Failed to close session", WSErrorCode.INTERNAL_ERROR, timestamp)
 
 
 async def handle_transfer_session(
@@ -369,28 +299,14 @@ async def handle_transfer_session(
     analytics = get_analytics_service()
 
     if not current_room:
-        await ws.send_personal(websocket, {
-            "type": WSEventType.ERROR.value,
-            "payload": {
-                "message": "Must join a conversation before transferring session",
-                "code": WSErrorCode.NOT_IN_ROOM.value
-            },
-            "timestamp": timestamp
-        })
+        await send_ws_error(websocket, "Must join a conversation before transferring session", WSErrorCode.NOT_IN_ROOM, timestamp)
         return
 
     line_user_id = current_room.replace("conversation:", "")
     try:
         transfer_payload = TransferSessionPayload(**payload)
     except ValidationError:
-        await ws.send_personal(websocket, {
-            "type": WSEventType.ERROR.value,
-            "payload": {
-                "message": "Invalid transfer payload: to_operator_id required",
-                "code": WSErrorCode.VALIDATION_ERROR.value
-            },
-            "timestamp": timestamp
-        })
+        await send_ws_error(websocket, "Invalid transfer payload: to_operator_id required", WSErrorCode.VALIDATION_ERROR, timestamp)
         return
 
     async with AsyncSessionLocal() as db:
@@ -416,30 +332,9 @@ async def handle_transfer_session(
                     timestamp=timestamp,
                 )
             else:
-                await ws.send_personal(websocket, {
-                    "type": WSEventType.ERROR.value,
-                    "payload": {
-                        "message": "Session not found or not active",
-                        "code": WSErrorCode.SESSION_NOT_FOUND.value
-                    },
-                    "timestamp": timestamp
-                })
+                await send_ws_error(websocket, "Session not found or not active", WSErrorCode.SESSION_NOT_FOUND, timestamp)
         except ValueError as e:
-            await ws.send_personal(websocket, {
-                "type": WSEventType.ERROR.value,
-                "payload": {
-                    "message": str(e),
-                    "code": WSErrorCode.VALIDATION_ERROR.value
-                },
-                "timestamp": timestamp
-            })
+            await send_ws_error(websocket, str(e), WSErrorCode.VALIDATION_ERROR, timestamp)
         except Exception as e:
             logger.error(f"Error transferring session: {e}")
-            await ws.send_personal(websocket, {
-                "type": WSEventType.ERROR.value,
-                "payload": {
-                    "message": "Failed to transfer session",
-                    "code": WSErrorCode.INTERNAL_ERROR.value
-                },
-                "timestamp": timestamp
-            })
+            await send_ws_error(websocket, "Failed to transfer session", WSErrorCode.INTERNAL_ERROR, timestamp)

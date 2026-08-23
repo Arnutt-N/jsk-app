@@ -29,6 +29,25 @@ def log_ws_event(admin_id, event):
     logger.info("WS event for admin %s: %s", admin_id, event)
 
 
+async def send_ws_error(
+    websocket: WebSocket,
+    message: str,
+    code: WSErrorCode,
+    timestamp: str,
+    event_type: WSEventType = WSEventType.ERROR,
+) -> None:
+    """Send the standard error frame: {type, payload: {message, code}, timestamp}."""
+    ws = get_ws_manager()
+    await ws.send_personal(websocket, {
+        "type": event_type.value,
+        "payload": {
+            "message": message,
+            "code": code.value
+        },
+        "timestamp": timestamp
+    })
+
+
 async def _load_and_authorize_ws_user(user_id: int) -> Optional[User]:
     """Shared user-load + role-check for both WS auth paths (JWT and ticket).
 
@@ -51,16 +70,11 @@ async def _load_and_authorize_ws_user(user_id: int) -> Optional[User]:
 
 async def authenticate_ws_user(websocket: WebSocket, token: Optional[str]) -> Optional[str]:
     """Authenticate a WebSocket connection and return the authenticated admin_id."""
-    ws = get_ws_manager()
     if not token:
-        await ws.send_personal(websocket, {
-            "type": WSEventType.AUTH_ERROR.value,
-            "payload": {
-                "message": "Access token required.",
-                "code": WSErrorCode.AUTH_MISSING_TOKEN.value
-            },
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        })
+        await send_ws_error(
+            websocket, "Access token required.", WSErrorCode.AUTH_MISSING_TOKEN,
+            datetime.now(timezone.utc).isoformat(), WSEventType.AUTH_ERROR,
+        )
         return None
 
     try:
@@ -91,57 +105,40 @@ async def authenticate_ws_user(websocket: WebSocket, token: Optional[str]) -> Op
 
     except ExpiredSignatureError:
         logger.warning("WebSocket auth failed: Token expired")
-        await ws.send_personal(websocket, {
-            "type": WSEventType.AUTH_ERROR.value,
-            "payload": {
-                "message": "Token expired. Please refresh and reconnect.",
-                "code": WSErrorCode.AUTH_EXPIRED_TOKEN.value
-            },
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        })
+        await send_ws_error(
+            websocket, "Token expired. Please refresh and reconnect.", WSErrorCode.AUTH_EXPIRED_TOKEN,
+            datetime.now(timezone.utc).isoformat(), WSEventType.AUTH_ERROR,
+        )
         return None
 
     except JWTError as e:
         logger.warning(f"WebSocket auth failed: {e}")
-        await ws.send_personal(websocket, {
-            "type": WSEventType.AUTH_ERROR.value,
-            "payload": {
-                "message": "Invalid token or insufficient permissions",
-                "code": WSErrorCode.AUTH_INVALID_TOKEN.value
-            },
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        })
+        await send_ws_error(
+            websocket, "Invalid token or insufficient permissions", WSErrorCode.AUTH_INVALID_TOKEN,
+            datetime.now(timezone.utc).isoformat(), WSEventType.AUTH_ERROR,
+        )
         return None
 
 
 async def authenticate_ws_ticket(websocket: WebSocket, ticket: str) -> Optional[str]:
     """Authenticate using a single-use ws-ticket (P1.1a FR6)."""
-    ws = get_ws_manager()
     async with AsyncSessionLocal() as db:
         user_id = await claim_ws_ticket(db, ticket)
         await db.commit()
 
     if user_id is None:
-        await ws.send_personal(websocket, {
-            "type": WSEventType.AUTH_ERROR.value,
-            "payload": {
-                "message": "Invalid or expired ticket.",
-                "code": WSErrorCode.AUTH_INVALID_TOKEN.value
-            },
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        })
+        await send_ws_error(
+            websocket, "Invalid or expired ticket.", WSErrorCode.AUTH_INVALID_TOKEN,
+            datetime.now(timezone.utc).isoformat(), WSEventType.AUTH_ERROR,
+        )
         return None
 
     user = await _load_and_authorize_ws_user(user_id)
     if user is None:
-        await ws.send_personal(websocket, {
-            "type": WSEventType.AUTH_ERROR.value,
-            "payload": {
-                "message": "Invalid token or insufficient permissions",
-                "code": WSErrorCode.AUTH_INVALID_TOKEN.value
-            },
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        })
+        await send_ws_error(
+            websocket, "Invalid token or insufficient permissions", WSErrorCode.AUTH_INVALID_TOKEN,
+            datetime.now(timezone.utc).isoformat(), WSEventType.AUTH_ERROR,
+        )
         return None
 
     logger.info(f"WebSocket auth successful for admin {user.id} (ticket)")
