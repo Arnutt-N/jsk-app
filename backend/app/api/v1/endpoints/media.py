@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Respons
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func as sa_func
+from sqlalchemy.orm import defer
 
 from app.db.session import AsyncSessionLocal
 from app.models.media_file import MediaFile, FileCategory, detect_category
@@ -171,7 +172,8 @@ async def list_media(
     _admin=Depends(get_current_admin),
 ):
     """List media files with optional category filter, search, and pagination."""
-    query = select(MediaFile)
+    # Defer the binary payload column — list responses only need metadata.
+    query = select(MediaFile).options(defer(MediaFile.data))
 
     if category and category != "ALL":
         try:
@@ -391,21 +393,25 @@ async def bulk_delete_media(
     _admin=Depends(require_permission(KEY_MANAGE_FILES)),
 ):
     """Delete multiple media files. Body: {"ids": ["uuid", ...]}"""
-    ids = body.ids
+    uids = []
+    for mid in body.ids:
+        try:
+            uids.append(uuid.UUID(mid))
+        except ValueError:
+            continue
 
     deleted = 0
     deleted_ids = []
-    for mid in ids:
-        try:
-            uid = uuid.UUID(mid)
-        except ValueError:
-            continue
-        result = await db.execute(select(MediaFile).where(MediaFile.id == uid))
-        media = result.scalar_one_or_none()
-        if media:
+    if uids:
+        # Single fetch without the binary payload column instead of one
+        # full-entity SELECT per id.
+        result = await db.execute(
+            select(MediaFile).where(MediaFile.id.in_(uids)).options(defer(MediaFile.data))
+        )
+        for media in result.scalars().all():
             await db.delete(media)
             deleted += 1
-            deleted_ids.append(str(uid))
+            deleted_ids.append(str(media.id))
 
     if deleted:
         await create_audit_log(
@@ -428,17 +434,19 @@ async def bulk_create_public_links(
     _admin=Depends(require_permission(KEY_MANAGE_FILES)),
 ):
     """Create public links for multiple files. Body: {"ids": ["uuid", ...]}"""
-    ids = body.ids
-
-    updated = 0
-    for mid in ids:
+    uids = []
+    for mid in body.ids:
         try:
-            uid = uuid.UUID(mid)
+            uids.append(uuid.UUID(mid))
         except ValueError:
             continue
-        result = await db.execute(select(MediaFile).where(MediaFile.id == uid))
-        media = result.scalar_one_or_none()
-        if media:
+
+    updated = 0
+    if uids:
+        result = await db.execute(
+            select(MediaFile).where(MediaFile.id.in_(uids)).options(defer(MediaFile.data))
+        )
+        for media in result.scalars().all():
             if not media.public_token:
                 media.public_token = str(uuid.uuid4())
             media.is_public = True

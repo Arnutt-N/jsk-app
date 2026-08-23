@@ -198,7 +198,11 @@ class _FakeQueryResult:
         return self
 
     def all(self):
-        return [self._value] if self._value is not None else []
+        if self._value is None:
+            return []
+        if isinstance(self._value, list):
+            return self._value
+        return [self._value]
 
 
 class _RecordingDB:
@@ -602,10 +606,15 @@ async def test_delete_media_writes_one_audit_row():
 
 @pytest.mark.asyncio
 async def test_bulk_delete_media_writes_one_audit_row_with_count():
-    media_file = SimpleNamespace(id=uuid4(), filename="a.pdf", category=FileCategory.DOCUMENT)
-    db = _RecordingDB(execute_result=media_file)
+    # bulk_delete_media fetches all matching rows in ONE IN-query, so the
+    # fake returns both media files from that single execute() call.
+    media_files = [
+        SimpleNamespace(id=uuid4(), filename="a.pdf", category=FileCategory.DOCUMENT),
+        SimpleNamespace(id=uuid4(), filename="b.pdf", category=FileCategory.DOCUMENT),
+    ]
+    db = _RecordingDB(execute_result=media_files)
     admin = _super_admin(2)
-    ids = [str(uuid4()), str(uuid4())]
+    ids = [str(mf.id) for mf in media_files]
 
     response = await media.bulk_delete_media(body=BulkIdsRequest(ids=ids), db=db, _admin=admin)
 

@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Optional
+from typing import Optional, NoReturn
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -113,6 +113,23 @@ async def _load_admin_user(db: AsyncSession, user_id: int) -> Optional[User]:
     return result.scalar_one_or_none()
 
 
+async def _login_failed(db: AsyncSession, username_masked: str) -> NoReturn:
+    """Audit + reject any failed login. Never reveals which check failed."""
+    await create_audit_log(
+        db,
+        admin_id=None,
+        action="login_failed",
+        resource_type="auth",
+        resource_id=None,
+        details={"username_masked": username_masked},
+    )
+    await db.commit()
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid username or password",
+    )
+
+
 @router.post("/login", response_model=LoginResponse)
 async def login(
     payload: LoginRequest,
@@ -129,49 +146,13 @@ async def login(
     )
     user = result.scalar_one_or_none()
     if not user or not user.hashed_password:
-        await create_audit_log(
-            db,
-            admin_id=None,
-            action="login_failed",
-            resource_type="auth",
-            resource_id=None,
-            details={"username_masked": username_masked},
-        )
-        await db.commit()
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid username or password",
-        )
+        await _login_failed(db, username_masked)
 
     if not await verify_password_async(payload.password, user.hashed_password):
-        await create_audit_log(
-            db,
-            admin_id=None,
-            action="login_failed",
-            resource_type="auth",
-            resource_id=None,
-            details={"username_masked": username_masked},
-        )
-        await db.commit()
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid username or password",
-        )
+        await _login_failed(db, username_masked)
 
     if not user.is_active:
-        await create_audit_log(
-            db,
-            admin_id=None,
-            action="login_failed",
-            resource_type="auth",
-            resource_id=None,
-            details={"username_masked": username_masked},
-        )
-        await db.commit()
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid username or password",
-        )
+        await _login_failed(db, username_masked)
 
     access_token = create_access_token(
         subject=user.id,

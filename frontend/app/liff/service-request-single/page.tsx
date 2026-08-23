@@ -21,31 +21,9 @@ import {
     Loader2
 } from 'lucide-react'
 import { logger } from '@/lib/logger';
+import { TOPIC_OPTIONS } from '@/lib/constants/categories'
 
 // --- CONSTANTS ---
-const TOPIC_OPTIONS: Record<string, string[]> = {
-    "กองทุนยุติธรรม": [
-        "ค่าจ้างทนายความ",
-        "ค่าธรรมเนียมศาล",
-        "เงินประกันตัว",
-        "อื่นๆ"
-    ],
-    "เงินเยียวยาเหยื่ออาชญากรรม": [
-        "กรณีถูกทำร้ายร่างกาย/ถูกลูกหลง",
-        "กรณีอุบัติเหตุจราจร",
-        "กรณีอนาจาร/ข่มขืน",
-        "กรณีจำเลยในคดีอาญาที่ศาลยกฟ้อง",
-        "อื่นๆ"
-    ],
-    "ไกล่เกลี่ยข้อพิพาท": [
-        "ข้อพิพาททางแพ่ง (ที่ดิน มรดก ครอบครัว หนี้ ค้ำประกัน เช่าชื้อ)",
-        "ข้อพิพาททางอาญา (เพศ ร่างกาย ทรัพย์ รถชน)",
-        "อื่นๆ"
-    ],
-    "ร้องเรียน/ร้องทุกข์": [
-        "อธิบายสั้นๆ"
-    ]
-}
 
 export default function LiffServiceRequestSingle() {
     interface LiffProfile {

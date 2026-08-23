@@ -20,29 +20,6 @@ def get_base_url() -> str:
     return base_url.rstrip("/")
 
 
-def resolve_media_url(relative_url: str) -> str:
-    """
-    Convert a relative media URL to an absolute URL.
-    
-    Example:
-        Input:  "/api/v1/media/abc-123"
-        Output: "https://abc.ngrok.io/api/v1/media/abc-123"
-    """
-    if not relative_url:
-        return relative_url
-    
-    # Already absolute URL
-    if relative_url.startswith("http://") or relative_url.startswith("https://"):
-        return relative_url
-    
-    # Relative URL - prepend base
-    base_url = get_base_url()
-    if relative_url.startswith("/"):
-        return f"{base_url}{relative_url}"
-    else:
-        return f"{base_url}/{relative_url}"
-
-
 def resolve_payload_urls(payload: Dict[str, Any]) -> Dict[str, Any]:
     """
     Recursively resolve all media URLs in a Flex Message payload.
