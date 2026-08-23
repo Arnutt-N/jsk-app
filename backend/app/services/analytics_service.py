@@ -127,23 +127,8 @@ class AnalyticsService:
         except Exception as e:
             logger.warning("KPI broadcast failed (non-fatal): %s", e)
 
-    async def calculate_fcr_rate(self, db: AsyncSession, days: int = 7) -> float:
-        """
-        Calculate First Contact Resolution rate.
-        
-        A session is "first contact resolved" if:
-        - Not reopened within 24 hours
-        - Has a CSAT score >= 4 (or no CSAT but was closed normally)
-        
-        Args:
-            db: Database session
-            days: Lookback period in days
-            
-        Returns:
-            FCR rate as percentage (0-100)
-        """
-        cutoff = datetime.now(timezone.utc) - timedelta(days=days)
-
+    async def _fcr_rate(self, db: AsyncSession, *window_conditions) -> float:
+        """Shared FCR body — callers supply only the closed_at window predicates."""
         closed_sessions = (
             select(
                 ChatSession.id.label("id"),
@@ -152,7 +137,7 @@ class AnalyticsService:
             )
             .where(
                 ChatSession.status == SessionStatus.CLOSED,
-                ChatSession.closed_at > cutoff
+                *window_conditions
             )
             .subquery()
         )
@@ -161,7 +146,7 @@ class AnalyticsService:
             select(func.count()).select_from(closed_sessions)
         )
         if not total_sessions:
-            return 0
+            return 0.0
 
         reopened_exists = exists(
             select(ChatSession.id).where(
@@ -181,6 +166,24 @@ class AnalyticsService:
 
         return ((fcr_count or 0) / total_sessions) * 100
 
+    async def calculate_fcr_rate(self, db: AsyncSession, days: int = 7) -> float:
+        """
+        Calculate First Contact Resolution rate.
+
+        A session is "first contact resolved" if:
+        - Not reopened within 24 hours
+        - Has a CSAT score >= 4 (or no CSAT but was closed normally)
+
+        Args:
+            db: Database session
+            days: Lookback period in days
+
+        Returns:
+            FCR rate as percentage (0-100)
+        """
+        cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+        return await self._fcr_rate(db, ChatSession.closed_at > cutoff)
+
     async def calculate_fcr_rate_window(
         self,
         db: AsyncSession,
@@ -188,35 +191,34 @@ class AnalyticsService:
         end: datetime,
     ) -> float:
         """Calculate FCR within an explicit closed_at time window."""
-        closed_sessions = (
-            select(
-                ChatSession.id.label("id"),
-                child_column(ChatSession).label("user_id"),
-                ChatSession.closed_at.label("closed_at"),
-            )
-            .where(
-                ChatSession.status == SessionStatus.CLOSED,
-                ChatSession.closed_at >= start,
-                ChatSession.closed_at < end,
-            )
-            .subquery()
+        return await self._fcr_rate(
+            db, ChatSession.closed_at >= start, ChatSession.closed_at < end
         )
-        total_sessions = await db.scalar(select(func.count()).select_from(closed_sessions))
-        if not total_sessions:
+
+    async def _abandonment_rate(
+        self, db: AsyncSession, closed_bounds: tuple, claimed_bounds: tuple
+    ) -> float:
+        """Shared abandonment body — callers supply the time-window predicates."""
+        abandoned = await db.scalar(
+            select(func.count(ChatSession.id)).where(
+                *closed_bounds,
+                ChatSession.closed_by == "SYSTEM_TIMEOUT",
+            )
+        )
+
+        claimed = await db.scalar(
+            select(func.count(ChatSession.id)).where(
+                *claimed_bounds,
+                ChatSession.claimed_at.isnot(None),
+            )
+        )
+
+        abandoned_count = abandoned or 0
+        claimed_count = claimed or 0
+        total = abandoned_count + claimed_count
+        if total == 0:
             return 0.0
-        reopened_exists = exists(
-            select(ChatSession.id).where(
-                and_(
-                    child_column(ChatSession) == closed_sessions.c.user_id,
-                    ChatSession.started_at > closed_sessions.c.closed_at,
-                    ChatSession.started_at < closed_sessions.c.closed_at + timedelta(hours=24),
-                )
-            )
-        )
-        fcr_count = await db.scalar(
-            select(func.count()).select_from(closed_sessions).where(~reopened_exists)
-        )
-        return ((fcr_count or 0) / total_sessions) * 100
+        return (abandoned_count / total) * 100
 
     async def calculate_abandonment_rate(self, db: AsyncSession, days: int = 7) -> float:
         """
@@ -227,27 +229,11 @@ class AnalyticsService:
         Where abandoned = closed_by SYSTEM_TIMEOUT, claimed = claimed_at is not null
         """
         cutoff = datetime.now(timezone.utc) - timedelta(days=days)
-
-        abandoned = await db.scalar(
-            select(func.count(ChatSession.id)).where(
-                ChatSession.closed_at > cutoff,
-                ChatSession.closed_by == "SYSTEM_TIMEOUT",
-            )
+        return await self._abandonment_rate(
+            db,
+            closed_bounds=(ChatSession.closed_at > cutoff,),
+            claimed_bounds=(ChatSession.claimed_at > cutoff,),
         )
-
-        claimed = await db.scalar(
-            select(func.count(ChatSession.id)).where(
-                ChatSession.claimed_at > cutoff,
-                ChatSession.claimed_at.isnot(None),
-            )
-        )
-
-        abandoned_count = abandoned or 0
-        claimed_count = claimed or 0
-        total = abandoned_count + claimed_count
-        if total == 0:
-            return 0.0
-        return (abandoned_count / total) * 100
 
     async def calculate_abandonment_rate_window(
         self,
@@ -256,26 +242,11 @@ class AnalyticsService:
         end: datetime,
     ) -> float:
         """Calculate abandonment rate for a specific time window."""
-        abandoned = await db.scalar(
-            select(func.count(ChatSession.id)).where(
-                ChatSession.closed_at >= start,
-                ChatSession.closed_at < end,
-                ChatSession.closed_by == "SYSTEM_TIMEOUT",
-            )
+        return await self._abandonment_rate(
+            db,
+            closed_bounds=(ChatSession.closed_at >= start, ChatSession.closed_at < end),
+            claimed_bounds=(ChatSession.claimed_at >= start, ChatSession.claimed_at < end),
         )
-        claimed = await db.scalar(
-            select(func.count(ChatSession.id)).where(
-                ChatSession.claimed_at >= start,
-                ChatSession.claimed_at < end,
-                ChatSession.claimed_at.isnot(None),
-            )
-        )
-        abandoned_count = abandoned or 0
-        claimed_count = claimed or 0
-        total = abandoned_count + claimed_count
-        if total == 0:
-            return 0.0
-        return (abandoned_count / total) * 100
 
     async def get_session_volume(self, db: AsyncSession, days: int = 7) -> list[dict]:
         """Get daily session counts for the last N days."""
