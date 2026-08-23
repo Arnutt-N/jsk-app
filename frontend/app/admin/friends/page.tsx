@@ -1,6 +1,6 @@
 'use client';
 // Client Component required: interactive table with selection, filters, and modals.
-// Auth is handled globally by the authFetch interceptor (bearer or cookie mode).
+// Auth is handled globally by the authFetch interceptor (cookie auth).
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { History, RefreshCw, Tag, User } from 'lucide-react';

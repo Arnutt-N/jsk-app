@@ -109,9 +109,8 @@ def create_refresh_token(
         subject: User ID
         jti: Optional unique token id (uuid4 string). When provided, the
             claim is included so the token can be matched to a server-side
-            `auth_sessions` row (P1.1a — cookie/dual mode session-backed
-            refresh tokens). Omitted by every existing `bearer`-mode caller,
-            so those tokens are byte-identical to before this change.
+            `auth_sessions` row (P1.1a — session-backed refresh tokens,
+            now the only kind issued).
         family: Optional session family id (uuid4 string), included as the
             `family` claim alongside `jti`. Only meaningful when `jti` is
             also provided.

@@ -45,12 +45,12 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     ENVIRONMENT: str = "development"
 
-    # Migration controls. COOKIE_AUTH_MODE defaults to "cookie" (PR 2C);
-    # set to "dual" or "bearer" for rollback without code changes.
-    # LIFF_STRICT_MODE defaults to True — all LIFF clients send x-liff-id-token.
-    # Rollback: set LIFF_STRICT_MODE=false in env.
+    # Migration controls. LIFF_STRICT_MODE defaults to True — all LIFF clients
+    # send x-liff-id-token. Rollback: set LIFF_STRICT_MODE=false in env.
     LIFF_STRICT_MODE: bool = True
-    COOKIE_AUTH_MODE: Literal["bearer", "dual", "cookie"] = "cookie"
+    # Cookie auth is unconditional since the auth mode-flag cleanup: the
+    # former bearer/dual mode ladder and its env flag were removed. Auth is
+    # cookie-only; rollback = redeploy a pre-cleanup image.
     # PR C contract phase: plaintext line_user_id columns are dropped, so the
     # app only ever runs the pseudonym path. The Literal is kept so an env
     # override stays parseable, but "plaintext"/"dual" are no longer valid

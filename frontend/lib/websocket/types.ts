@@ -56,15 +56,16 @@ export interface UseWebSocketOptions {
    * Pre-minted single-use ticket consumed via the WS URL query param
    * (`?ticket=<raw>`). Forces the client to skip the first-frame auth
    * message -- the server authenticates the handshake directly from the URL.
-   * Use this for cross-origin connections where SameSite=Lax blocks cookie auth.
+   * Use this for cross-origin connections where SameSite=Strict blocks cookie auth.
    */
   queryTicket?: string;
   /**
    * Cross-origin ticket minter: called on every connect/reconnect to fetch a
-   * fresh single-use ticket via Bearer <REDACTED> (no cookies). The minted
-   * ticket is passed to the server via `?ticket=<raw>` URL query param,
-   * bypassing the cookie/SameSite=Lax limitation. Use this for external
-   * (cross-origin) frontends that hold a JWT access token.
+   * fresh single-use ticket via the cookie-authenticated
+   * POST /auth/ws-ticket (credentials + CSRF handled by the global authFetch
+   * patch). The minted ticket is passed to the server via `?ticket=<raw>`
+   * URL query param, bypassing the SameSite=Strict limitation on the
+   * WebSocket handshake itself.
    */
   queryTicketMinter?: () => Promise<string | null>;
   onMessage?: (message: WebSocketMessage) => void;

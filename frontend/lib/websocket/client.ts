@@ -83,9 +83,10 @@ export class WebSocketClient {
 
   private async _openWithTicket(generation: number): Promise<void> {
     // Cross-origin mode (P1.1b / PR 2B): mint a fresh single-use ticket
-    // via Bearer <REDACTED> (no cookies). SameSite=Lax blocks cookie auth on
-    // cross-origin handshakes, so external frontends pass the ticket via
-    // `?ticket=<raw>` URL query param — server authenticates the handshake
+    // via the cookie-authenticated POST /auth/ws-ticket (the global authFetch
+    // patch supplies credentials + CSRF header). SameSite=Strict blocks cookie
+    // auth on cross-origin handshakes, so external frontends pass the ticket
+    // via `?ticket=<raw>` URL query param — server authenticates the handshake
     // directly from the URL, and the client skips the first-frame auth.
     let url = this.url;
     if (this.queryTicketMinter) {

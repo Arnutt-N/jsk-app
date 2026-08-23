@@ -21,8 +21,8 @@ class AuthUserResponse(BaseModel):
     display_name: Optional[str] = None
     # P1.1a: echoed (never rotated) when the request was cookie-authenticated
     # and a csrf_token cookie exists, so a page refresh can recover the
-    # header value without forcing re-login. None in bearer mode / when the
-    # request wasn't cookie-authenticated.
+    # header value without forcing re-login. None when the request wasn't
+    # cookie-authenticated.
     csrf_token: Optional[str] = None
 
 
@@ -30,8 +30,7 @@ class TokenResponse(BaseModel):
     access_token: str
     refresh_token: Optional[str] = None
     token_type: str = "bearer"
-    # P1.1a: set alongside Set-Cookie on login/refresh/migrate-session when
-    # COOKIE_AUTH_MODE is dual/cookie; None in bearer mode.
+    # P1.1a: set alongside Set-Cookie on login/refresh/migrate-session.
     csrf_token: Optional[str] = None
 
 

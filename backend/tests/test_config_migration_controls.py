@@ -18,15 +18,10 @@ def test_migration_controls_default_to_hardened_modes() -> None:
     settings = build_settings()
 
     assert settings.LIFF_STRICT_MODE is True
-    assert settings.COOKIE_AUTH_MODE == "cookie"
+    # COOKIE_AUTH_MODE was removed by the mode-flag cleanup -- auth is
+    # cookie-only and the setting no longer exists.
+    assert "COOKIE_AUTH_MODE" not in Settings.model_fields
     assert settings.LINE_ID_STORAGE_MODE == "pseudonym"
-
-
-@pytest.mark.parametrize("mode", ["bearer", "dual", "cookie"])
-def test_cookie_auth_mode_accepts_documented_values(mode: str) -> None:
-    settings = build_settings(COOKIE_AUTH_MODE=mode)
-
-    assert settings.COOKIE_AUTH_MODE == mode
 
 
 def test_liff_strict_mode_parses_environment_boolean() -> None:
@@ -37,7 +32,7 @@ def test_liff_strict_mode_parses_environment_boolean() -> None:
 
 @pytest.mark.parametrize(
     ("field", "value"),
-    [("COOKIE_AUTH_MODE", "unknown"), ("LIFF_STRICT_MODE", "sometimes")],
+    [("LIFF_STRICT_MODE", "sometimes")],
 )
 def test_production_rejects_unknown_migration_control_values(
     field: str,
