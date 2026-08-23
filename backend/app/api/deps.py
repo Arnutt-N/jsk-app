@@ -129,10 +129,10 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"}
         )
 
-    # CSRF double-submit enforcement (P1.1a FR3): every authenticated request
-    # is cookie-sourced, so this applies to all state-changing methods.
+    # CSRF double-submit enforcement (P1.1a FR3): applies to all
+    # state-changing methods -- every authenticated request is cookie-sourced.
     # Implemented once, here, rather than per-endpoint.
-    if token_source == "cookie" and request.method in _CSRF_PROTECTED_METHODS:
+    if request.method in _CSRF_PROTECTED_METHODS:
         header_csrf = request.headers.get("x-csrf-token")
         cookie_csrf = request.cookies.get(CSRF_COOKIE)
         if not header_csrf or not cookie_csrf or not secrets.compare_digest(header_csrf, cookie_csrf):

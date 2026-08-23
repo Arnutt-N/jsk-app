@@ -252,6 +252,19 @@ async def test_case3_cookie_mode_omits_body_tokens_bearer_only_rejected(
         await _delete_user_and_sessions(user_id)
 
 
+@pytest.mark.asyncio
+async def test_case3b_garbage_access_cookie_rejected_presence_based(
+    test_client, monkeypatch
+):
+    """Presence-based rule carried over from the removed case2: once an
+    access_token cookie is PRESENT it is authoritative -- a garbage value
+    must 401, never silently resolve to unauthenticated-then-dev-bypass."""
+    monkeypatch.setattr(settings, "DEV_AUTH_BYPASS", False)
+    _clear(test_client)
+    res = test_client.get("/api/v1/auth/me", cookies={ACCESS_COOKIE: "garbage-cookie-value"})
+    assert res.status_code == 401
+
+
 # --- FR8 test 4: rotation + reuse detection ------------------------------------
 
 
@@ -355,6 +368,27 @@ async def test_case4_expired_active_refresh_is_invalid_not_reuse(
     finally:
         await _delete_user_and_sessions(user_id)
 
+
+@pytest.mark.asyncio
+async def test_case4b_refresh_without_jti_is_rejected(test_client):
+    """Cookie-only refresh requires a session-backed token: a legacy-shape
+    refresh JWT without a jti claim (what the old bearer mode issued) must
+    401 even when presented as a cookie. Carries over the cookie-reject half
+    of the removed case5."""
+    from app.core.security import create_refresh_token
+
+    username = f"cookie-t4b-{uuid.uuid4().hex[:10]}"
+    user_id = await _create_admin_user(username)
+    try:
+        legacy_refresh = create_refresh_token(subject=user_id)
+        _clear(test_client)
+        res = test_client.post(
+            "/api/v1/auth/refresh", cookies={REFRESH_COOKIE: legacy_refresh}
+        )
+        assert res.status_code == 401
+        assert await _count_auth_sessions(user_id) == 0
+    finally:
+        await _delete_user_and_sessions(user_id)
 
 
 # --- FR8 test 6: CSRF double-submit -------------------------------------------

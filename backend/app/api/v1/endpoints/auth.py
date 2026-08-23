@@ -178,7 +178,7 @@ async def login(
         expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
     )
 
-    refresh_token, family_id = await create_session_family(db, user.id)
+    refresh_token, _family_id = await create_session_family(db, user.id)
     csrf_token = issue_csrf_token()
     set_auth_cookies(response, access=access_token, refresh=refresh_token, csrf=csrf_token)
 
@@ -208,11 +208,7 @@ async def refresh(
     response: Response,
     db: AsyncSession = Depends(get_db),
 ) -> TokenResponse:
-    refresh_token: Optional[str] = None
-
-    cookie_token = request.cookies.get(REFRESH_COOKIE)
-    if cookie_token:
-        refresh_token = cookie_token
+    refresh_token = request.cookies.get(REFRESH_COOKIE)
 
     if not refresh_token:
         raise HTTPException(
@@ -245,72 +241,69 @@ async def refresh(
     # Cookie-only refresh tokens are session-backed by construction: they are
     # issued exclusively by create_session_family and always carry a jti
     # claim. A token without jti cannot originate from this backend anymore.
-    session_backed = bool(payload.get("jti"))
-
-    if not session_backed:
+    if not payload.get("jti"):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid refresh token",
         )
 
-    if session_backed:
-        rotation = await rotate_refresh_session(db, payload)
+    rotation = await rotate_refresh_session(db, payload)
 
-        if rotation.outcome == RotationOutcome.REUSE_DETECTED:
-            await create_audit_log(
-                db,
-                admin_id=rotation.user_id,
-                action="refresh_reuse_detected",
-                resource_type="auth",
-                resource_id=str(rotation.user_id) if rotation.user_id else None,
-                details={"family_id": rotation.family_id},
-            )
-            await db.commit()
-            clear_auth_cookies(response)
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid refresh token",
-            )
-
-        if rotation.outcome == RotationOutcome.INVALID:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid refresh token",
-            )
-
-        user = await _load_admin_user(db, rotation.user_id)
-        if not user or not user.is_active:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid refresh token",
-            )
-
-        access_token = create_access_token(
-            subject=user.id,
-            expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
-        )
-        csrf_token = issue_csrf_token()
-        set_auth_cookies(
-            response, access=access_token, refresh=rotation.refresh_token, csrf=csrf_token
-        )
-
+    if rotation.outcome == RotationOutcome.REUSE_DETECTED:
         await create_audit_log(
             db,
-            admin_id=user.id,
-            action="refresh_rotated",
+            admin_id=rotation.user_id,
+            action="refresh_reuse_detected",
             resource_type="auth",
-            resource_id=str(user.id),
+            resource_id=str(rotation.user_id) if rotation.user_id else None,
             details={"family_id": rotation.family_id},
         )
         await db.commit()
-
-        # Cookie-only: rotated tokens live in the cookies, never in the body.
-        return TokenResponse(
-            access_token="",
-            refresh_token="",
-            token_type="bearer",
-            csrf_token=csrf_token,
+        clear_auth_cookies(response)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token",
         )
+
+    if rotation.outcome == RotationOutcome.INVALID:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token",
+        )
+
+    user = await _load_admin_user(db, rotation.user_id)
+    if not user or not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token",
+        )
+
+    access_token = create_access_token(
+        subject=user.id,
+        expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
+    )
+    csrf_token = issue_csrf_token()
+    set_auth_cookies(
+        response, access=access_token, refresh=rotation.refresh_token, csrf=csrf_token
+    )
+
+    await create_audit_log(
+        db,
+        admin_id=user.id,
+        action="refresh_rotated",
+        resource_type="auth",
+        resource_id=str(user.id),
+        details={"family_id": rotation.family_id},
+    )
+    await db.commit()
+
+    # Cookie-only: rotated tokens live in the cookies, never in the body.
+    return TokenResponse(
+        access_token="",
+        refresh_token="",
+        token_type="bearer",
+        csrf_token=csrf_token,
+    )
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
