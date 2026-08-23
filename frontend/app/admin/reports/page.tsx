@@ -6,9 +6,12 @@ import { Button } from '@/components/ui/Button';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/Table';
+import { TrendBadge, type TrendValue } from '@/components/ui/TrendBadge';
 import PageHeader from '@/app/admin/components/PageHeader';
 import CalendarPickerTH from '@/components/ui/CalendarPickerTH';
 import { isoToYMD } from '@/lib/utils';
+import { formatDuration } from '@/lib/format';
+import { getStatusLabel } from '@/lib/constants/request-status';
 import {
   ResponsiveContainer,
   LineChart,
@@ -43,12 +46,6 @@ import { apiFetch } from '@/lib/api-error';
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
-
-interface TrendValue {
-  current: number;
-  previous: number;
-  change_percent: number;
-}
 
 interface OverviewData {
   total_requests: number;
@@ -117,14 +114,6 @@ const CHART_COLORS = [
 
 const PIE_COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#2563eb', '#1d4ed8', '#14b8a6', '#f97316'];
 
-const STATUS_LABELS: Record<string, string> = {
-  PENDING: 'รอดำเนินการ',
-  IN_PROGRESS: 'กำลังดำเนินการ',
-  AWAITING_APPROVAL: 'รออนุมัติ',
-  COMPLETED: 'เสร็จสิ้น',
-  REJECTED: 'ปฏิเสธ',
-};
-
 type DatePreset = '7d' | '30d' | '90d' | 'year' | 'custom';
 
 function presetToDates(preset: DatePreset): { start: string; end: string } {
@@ -152,32 +141,9 @@ function presetToDates(preset: DatePreset): { start: string; end: string } {
   };
 }
 
-function formatDuration(seconds: number): string {
-  if (!seconds || seconds <= 0) return '-';
-  if (seconds < 60) return `${Math.round(seconds)}s`;
-  const m = Math.floor(seconds / 60);
-  const s = Math.round(seconds % 60);
-  if (m < 60) return `${m}m ${s}s`;
-  const h = Math.floor(m / 60);
-  return `${h}h ${m % 60}m`;
-}
-
 // ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
-
-function TrendBadge({ trend }: { trend?: TrendValue }) {
-  if (!trend) return null;
-  const up = trend.change_percent >= 0;
-  const Icon = up ? ArrowUpRight : ArrowDownRight;
-  const cls = up ? 'text-success' : 'text-danger';
-  return (
-    <span className={`inline-flex items-center gap-0.5 text-xs font-semibold ${cls}`}>
-      <Icon className="w-3.5 h-3.5" />
-      {Math.abs(trend.change_percent).toFixed(1)}%
-    </span>
-  );
-}
 
 function StatCard({
   label,
@@ -486,7 +452,7 @@ export default function ReportsPage() {
                 <PieChart>
                   <Pie
                     data={Object.entries(overview.requests_by_status).map(([k, v]) => ({
-                      name: STATUS_LABELS[k] || k,
+                      name: getStatusLabel(k),
                       value: v,
                     }))}
                     cx="50%"
@@ -513,7 +479,7 @@ export default function ReportsPage() {
   const renderRequests = () => {
     if (!srReport) return null;
     const statusData = Object.entries(srReport.by_status).map(([k, v]) => ({
-      name: STATUS_LABELS[k] || k,
+      name: getStatusLabel(k),
       value: v,
     }));
 

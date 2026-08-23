@@ -20,6 +20,17 @@ interface ThaiAddressCascadeProps {
 const DEFAULT_LABEL_CLASS =
     'text-[11px] font-bold uppercase tracking-wider text-text-tertiary';
 
+function cascadePlaceholder(
+    current: string,
+    matched: boolean,
+    loading: boolean,
+    selectLabel: string,
+): string {
+    if (current && !matched) return `${current} (ค่าเดิม)`;
+    if (loading) return 'กำลังโหลด...';
+    return selectLabel;
+}
+
 /**
  * Dropdown ที่อยู่แบบลำดับชั้น จังหวัด → อำเภอ/เขต → ตำบล/แขวง
  * ใช้ /api/v1/locations/* ชุดเดียวกับฟอร์ม LIFF (request-v2) เพื่อ unity/consistency
@@ -134,10 +145,12 @@ export function ThaiAddressCascade({
     // legacy passthrough: ค่าเดิมที่หาไม่เจอในชุดข้อมูล แสดงบน option ว่างแทน placeholder
     const provincePlaceholder = value.province && !selectedProvince
         ? `${value.province} (ค่าเดิม)` : '— เลือกจังหวัด —';
-    const districtPlaceholder = value.district && !selectedDistrict
-        ? `${value.district} (ค่าเดิม)` : loadingDistricts ? 'กำลังโหลด...' : '— เลือกอำเภอ/เขต —';
-    const subDistrictPlaceholder = value.sub_district && !selectedSubDistrict
-        ? `${value.sub_district} (ค่าเดิม)` : loadingSubDistricts ? 'กำลังโหลด...' : '— เลือกตำบล/แขวง —';
+    const districtPlaceholder = cascadePlaceholder(
+        value.district, !!selectedDistrict, loadingDistricts, '— เลือกอำเภอ/เขต —',
+    );
+    const subDistrictPlaceholder = cascadePlaceholder(
+        value.sub_district, !!selectedSubDistrict, loadingSubDistricts, '— เลือกตำบล/แขวง —',
+    );
 
     return (
         <>

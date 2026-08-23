@@ -17,6 +17,7 @@ from linebot.v3.messaging import (
 )
 from linebot.v3.messaging.exceptions import ApiException
 import mimetypes
+import asyncio
 from pathlib import Path
 from typing import Optional, Tuple
 from uuid import uuid4
@@ -350,7 +351,8 @@ class LineService:
         if not str(full_path).startswith(str(uploads_root.resolve())):
             safe_name = f"{media_type}_{uuid4().hex}{ext}"
             full_path = uploads_root / safe_name
-        full_path.write_bytes(data)
+        # MB-scale media — write off-thread so the event loop is not blocked.
+        await asyncio.to_thread(full_path.write_bytes, data)
 
         relative_url = f"/uploads/line_media/{safe_name}"
         base = (settings.SERVER_BASE_URL or "").rstrip("/")
@@ -362,7 +364,7 @@ class LineService:
             if preview_data:
                 preview_name = f"preview_{uuid4().hex}{mimetypes.guess_extension(preview_ct or '') or '.jpg'}"
                 preview_path = uploads_root / preview_name
-                preview_path.write_bytes(preview_data)
+                await asyncio.to_thread(preview_path.write_bytes, preview_data)
                 preview_relative = f"/uploads/line_media/{preview_name}"
                 preview_url = f"{base}{preview_relative}" if base else preview_relative
 
@@ -400,7 +402,7 @@ class LineService:
 
         safe_name = f"{uuid4().hex}_{base_name}"
         full_path = uploads_root / safe_name
-        full_path.write_bytes(data)
+        await asyncio.to_thread(full_path.write_bytes, data)
 
         relative_url = f"/uploads/operator_media/{safe_name}"
         base = (settings.SERVER_BASE_URL or "").rstrip("/")

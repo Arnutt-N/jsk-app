@@ -15,8 +15,6 @@ import {
   Star,
   BarChart3,
   RefreshCw,
-  ArrowUpRight,
-  ArrowDownRight,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -30,12 +28,14 @@ import {
   Bar,
 } from "recharts";
 import { StaggerContainer, StaggerItem } from "@/components/ui/PageTransition";
+import { TrendBadge, type TrendMetric } from "@/components/ui/TrendBadge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { MessageType, WebSocketMessage } from "@/lib/websocket/types";
 import { getLiveChatWsUrl } from "@/lib/websocket/wsUrl";
 import { logger } from '@/lib/logger';
 import { readErrorMessage } from '@/lib/api-error';
+import { formatDuration } from '@/lib/format';
 
 interface KPIData {
   waiting: number;
@@ -63,13 +63,6 @@ interface OperatorPerformance {
   availability_percent: number;
 }
 
-interface TrendMetric {
-  current: number;
-  previous: number;
-  delta: number;
-  delta_percent: number;
-}
-
 interface DashboardData {
   trends: {
     sessions_today: TrendMetric;
@@ -92,26 +85,6 @@ interface DashboardData {
 const CHART_BRAND = 'hsl(221 83% 53%)';   // --color-brand-600 (navy blue)
 const CHART_SUCCESS = 'hsl(142 71% 45%)'; // --color-success
 const CHART_BRAND_RGB = '59, 130, 246';   // brand-600 for rgba heatmap
-
-function formatDuration(seconds: number): string {
-  if (seconds < 60) return `${Math.round(seconds)}s`;
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = Math.round(seconds % 60);
-  return `${minutes}m ${remainingSeconds}s`;
-}
-
-function TrendBadge({ metric }: { metric?: TrendMetric }) {
-  if (!metric) return <span className="text-xs text-text-tertiary">vs yesterday</span>;
-  const positive = metric.delta >= 0;
-  const Icon = positive ? ArrowUpRight : ArrowDownRight;
-  const cls = positive ? "text-success-text" : "text-danger-text";
-  return (
-    <span className={`text-xs inline-flex items-center gap-1 ${cls}`}>
-      <Icon className="w-3 h-3" />
-      {Math.abs(metric.delta_percent).toFixed(1)}%
-    </span>
-  );
-}
 
 export default function AnalyticsPage() {
   const { user, token } = useAuth();
@@ -285,7 +258,7 @@ export default function AnalyticsPage() {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-text-tertiary flex items-center justify-between">
                 <span className="flex items-center gap-2"><BarChart3 className="w-4 h-4" /> Sessions Today</span>
-                <TrendBadge metric={dashboard?.trends.sessions_today} />
+                <TrendBadge metric={dashboard?.trends.sessions_today} placeholder={<span className="text-xs text-text-tertiary">vs yesterday</span>} />
               </CardTitle>
             </CardHeader>
             <CardContent><div className="text-3xl font-bold">{kpis?.sessions_today ?? "-"}</div></CardContent>
@@ -319,7 +292,7 @@ export default function AnalyticsPage() {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-text-tertiary flex items-center justify-between">
                 <span className="flex items-center gap-2"><Clock className="w-4 h-4" /> Avg First Response</span>
-                <TrendBadge metric={dashboard?.trends.avg_first_response_seconds} />
+                <TrendBadge metric={dashboard?.trends.avg_first_response_seconds} placeholder={<span className="text-xs text-text-tertiary">vs yesterday</span>} />
               </CardTitle>
             </CardHeader>
             <CardContent><div className="text-3xl font-bold">{kpis ? formatDuration(kpis.avg_first_response_seconds) : "-"}</div></CardContent>
@@ -331,7 +304,7 @@ export default function AnalyticsPage() {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-text-tertiary flex items-center justify-between">
                 <span className="flex items-center gap-2"><Clock className="w-4 h-4" /> Avg Resolution</span>
-                <TrendBadge metric={dashboard?.trends.avg_resolution_seconds} />
+                <TrendBadge metric={dashboard?.trends.avg_resolution_seconds} placeholder={<span className="text-xs text-text-tertiary">vs yesterday</span>} />
               </CardTitle>
             </CardHeader>
             <CardContent><div className="text-3xl font-bold">{kpis ? formatDuration(kpis.avg_resolution_seconds) : "-"}</div></CardContent>
@@ -343,7 +316,7 @@ export default function AnalyticsPage() {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-text-tertiary flex items-center justify-between">
                 <span className="flex items-center gap-2"><Star className="w-4 h-4" /> CSAT</span>
-                <TrendBadge metric={dashboard?.trends.csat_percentage} />
+                <TrendBadge metric={dashboard?.trends.csat_percentage} placeholder={<span className="text-xs text-text-tertiary">vs yesterday</span>} />
               </CardTitle>
             </CardHeader>
             <CardContent><div className="text-3xl font-bold">{kpis ? `${kpis.csat_percentage}%` : "-"}</div></CardContent>
@@ -355,7 +328,7 @@ export default function AnalyticsPage() {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-text-tertiary flex items-center justify-between">
                 <span className="flex items-center gap-2"><CheckCircle className="w-4 h-4" /> FCR</span>
-                <TrendBadge metric={dashboard?.trends.fcr_rate} />
+                <TrendBadge metric={dashboard?.trends.fcr_rate} placeholder={<span className="text-xs text-text-tertiary">vs yesterday</span>} />
               </CardTitle>
             </CardHeader>
             <CardContent><div className="text-3xl font-bold">{kpis ? `${kpis.fcr_rate}%` : "-"}</div></CardContent>

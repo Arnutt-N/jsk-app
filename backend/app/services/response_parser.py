@@ -69,14 +69,51 @@ async def parse_response(response_text: str, db: AsyncSession) -> List[Any]:
     if text_content:
         messages.append(TextMessage(text=text_content))
     
-    # Resolve object references
+    # Resolve all object references in one batched query (hot path: every
+    # bot reply goes through here).
+    objects = await _resolve_objects_batch(refs, db)
     for object_id in refs:
-        message = await resolve_object(object_id, db)
+        obj = objects.get(object_id)
+        if obj is None:
+            logger.warning(f"ReplyObject not found: ${object_id}")
+            continue
+        try:
+            message = build_message_from_object(obj)
+        except Exception as e:
+            logger.error(f"Error resolving object ${object_id}: {e}")
+            continue
         if message:
             messages.append(message)
-    
+
     # LINE API limit: max 5 messages per reply
     return messages[:5]
+
+
+async def _resolve_objects_batch(object_ids: List[str], db: AsyncSession) -> Dict[str, ReplyObject]:
+    """Resolve unique $object_id refs with a single IN query.
+
+    Returns a map of the first active row per object_id (missing ids are
+    simply absent). Build errors are handled by the caller.
+    """
+    unique_ids = list(dict.fromkeys(object_ids))
+    if not unique_ids:
+        return {}
+    try:
+        result = await db.execute(
+            select(ReplyObject).filter(
+                ReplyObject.object_id.in_(unique_ids),
+                ReplyObject.is_active == True
+            )
+        )
+        found: Dict[str, ReplyObject] = {}
+        for obj in result.scalars().all():
+            # Keep the first row per id — matches the previous per-ref
+            # `.first()` semantics when duplicate rows exist.
+            found.setdefault(obj.object_id, obj)
+        return found
+    except Exception as e:
+        logger.error(f"Error resolving objects {unique_ids}: {e}")
+        return {}
 
 
 async def resolve_object(object_id: str, db: AsyncSession) -> Optional[Any]:

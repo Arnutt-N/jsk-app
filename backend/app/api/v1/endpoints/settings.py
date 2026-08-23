@@ -179,14 +179,20 @@ async def update_permissions(
                 detail=f"ห้ามถอด SUPER_ADMIN ออกจากสิทธิ์ '{rule.key}'",
             )
 
-    # Apply -- one upsert per rule. Track old->new role transitions for the
-    # audit row (role NAMES only -- no secrets are ever involved here).
+    # Apply -- fetch every existing rule in one IN-query, then upsert per rule.
+    # Track old->new role transitions for the audit row (role NAMES only -- no
+    # secrets are ever involved here).
+    keys = [rule.key for rule in body.updates]
+    existing_rows: dict = {}
+    if keys:
+        existing_result = await db.execute(
+            select(PermissionSetting).where(PermissionSetting.key.in_(keys))
+        )
+        existing_rows = {row.key: row for row in existing_result.scalars().all()}
+
     changes = []
     for rule in body.updates:
-        existing = await db.execute(
-            select(PermissionSetting).where(PermissionSetting.key == rule.key)
-        )
-        row = existing.scalar_one_or_none()
+        row = existing_rows.get(rule.key)
         if row is None:
             prior_roles = None
             row = PermissionSetting(

@@ -17,21 +17,6 @@ from app.schemas.intent import (
 router = APIRouter()
 
 
-async def _response_counts(db: AsyncSession, category_id: int) -> tuple[int, int]:
-    """คืน (total, active) จำนวน IntentResponse ของ category ใน query เดียว.
-
-    ใช้ Postgres FILTER clause นับ 'ทั้งหมด' กับ 'active' พร้อมกัน (ไม่เพิ่ม
-    round-trip). active = is_active == True — ตรงเกณฑ์ serviceable ใน webhook.py:249.
-    """
-    row = (await db.execute(
-        select(
-            func.count(IntentResponse.id),
-            func.count(IntentResponse.id).filter(IntentResponse.is_active == True),
-        ).where(IntentResponse.category_id == category_id)
-    )).one()
-    return int(row[0]), int(row[1])
-
-
 # --- Categories ---
 @router.get("/categories", response_model=List[IntentCategoryResponse])
 async def list_categories(
@@ -41,29 +26,68 @@ async def list_categories(
     current_admin: User = Depends(get_current_admin)
 ):
     """List all intent categories with row counts."""
-    # We use a subquery or separate counts for simplicity in async
     stmt = select(IntentCategory).order_by(IntentCategory.name).offset(skip).limit(limit)
     result = await db.execute(stmt)
     categories = result.scalars().all()
-    
-    # Enrich with counts and keywords preview
+
+    if not categories:
+        return []
+
+    cat_ids = [cat.id for cat in categories]
+
+    # Aggregate counts for ALL categories in one query each instead of
+    # 3 round-trips per category (N=100 => ~301 queries before).
+    kw_count_rows = (await db.execute(
+        select(IntentKeyword.category_id, func.count(IntentKeyword.id))
+        .where(IntentKeyword.category_id.in_(cat_ids))
+        .group_by(IntentKeyword.category_id)
+    )).all()
+    kw_count_map = {row[0]: int(row[1]) for row in kw_count_rows}
+
+    # active = is_active == True — ตรงเกณฑ์ serviceable ใน webhook.py:249.
+    resp_count_rows = (await db.execute(
+        select(
+            IntentResponse.category_id,
+            func.count(IntentResponse.id),
+            func.count(IntentResponse.id).filter(IntentResponse.is_active == True),
+        )
+        .where(IntentResponse.category_id.in_(cat_ids))
+        .group_by(IntentResponse.category_id)
+    )).all()
+    resp_total_map = {row[0]: int(row[1]) for row in resp_count_rows}
+    resp_active_map = {row[0]: int(row[2]) for row in resp_count_rows}
+
+    # First 5 keyword previews for every category via one windowed query.
+    kw_rownum = (
+        func.row_number()
+        .over(partition_by=IntentKeyword.category_id, order_by=IntentKeyword.id)
+        .label("rn")
+    )
+    kw_window = (
+        select(
+            IntentKeyword.category_id.label("cid"),
+            IntentKeyword.keyword.label("kw"),
+            kw_rownum,
+        )
+        .where(IntentKeyword.category_id.in_(cat_ids))
+        .subquery()
+    )
+    preview_rows = (await db.execute(
+        select(kw_window.c.cid, kw_window.c.kw).where(kw_window.c.rn <= 5)
+    )).all()
+    preview_map: dict[int, List[str]] = {}
+    for cid, kw in preview_rows:
+        preview_map.setdefault(cid, []).append(kw)
+
     out = []
     for cat in categories:
-        k_count = await db.scalar(select(func.count(IntentKeyword.id)).filter(IntentKeyword.category_id == cat.id))
-        r_total, r_active = await _response_counts(db, cat.id)
-        
-        # Fetch first 5 keywords for preview
-        kw_stmt = select(IntentKeyword.keyword).filter(IntentKeyword.category_id == cat.id).limit(5)
-        kw_result = await db.execute(kw_stmt)
-        keywords_preview = [kw for kw in kw_result.scalars().all()]
-        
         resp = IntentCategoryResponse.model_validate(cat)
-        resp.keyword_count = k_count
-        resp.response_count = r_total
-        resp.active_response_count = r_active
-        resp.keywords_preview = keywords_preview
+        resp.keyword_count = kw_count_map.get(cat.id, 0)
+        resp.response_count = resp_total_map.get(cat.id, 0)
+        resp.active_response_count = resp_active_map.get(cat.id, 0)
+        resp.keywords_preview = preview_map.get(cat.id, [])
         out.append(resp)
-        
+
     return out
 
 @router.post("/categories", response_model=IntentCategoryResponse, status_code=status.HTTP_201_CREATED)

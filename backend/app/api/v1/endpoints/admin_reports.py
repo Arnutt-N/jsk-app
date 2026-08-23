@@ -2,6 +2,7 @@
 
 import csv
 import io
+import asyncio
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -267,7 +268,8 @@ async def export_report_pdf(
         raise HTTPException(status_code=400, detail=f"Unsupported report type: {report_type}")
 
     service = PDFReportService()
-    pdf_buffer = service.generate(report_type, data, period)
+    # ReportLab build is CPU-bound sync — offload to a thread.
+    pdf_buffer = await asyncio.to_thread(service.generate, report_type, data, period)
     filename = f"report_{report_type}_{datetime.now(timezone.utc).strftime('%Y%m%d')}.pdf"
     return StreamingResponse(
         pdf_buffer, media_type="application/pdf",

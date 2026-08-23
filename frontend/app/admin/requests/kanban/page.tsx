@@ -19,7 +19,7 @@ import {
     ShieldCheck,
 } from 'lucide-react';
 import PageHeader from '../../components/PageHeader';
-import type { RequestStatus } from '@/lib/constants/request-status';
+import { STATUS_CONFIG, type RequestStatus } from '@/lib/constants/request-status';
 import { logger } from '@/lib/logger';
 
 interface ServiceRequest {
@@ -44,12 +44,12 @@ const COLUMNS: Array<{
     icon: React.ReactNode;
     color: string;
 }> = [
-    { id: 'PENDING',           label: 'รอรับเรื่อง',    icon: <Clock className="w-4 h-4 text-amber-500" />,        color: 'bg-amber-500' },
-    { id: 'ACKNOWLEDGED',      label: 'รอดำเนินการ',   icon: <Inbox className="w-4 h-4 text-orange-500" />,       color: 'bg-orange-500' },
-    { id: 'IN_PROGRESS',       label: 'กำลังดำเนินการ', icon: <Eye className="w-4 h-4 text-blue-500" />,           color: 'bg-blue-500' },
-    { id: 'AWAITING_APPROVAL', label: 'รออนุมัติ',      icon: <ShieldCheck className="w-4 h-4 text-violet-500" />, color: 'bg-violet-500' },
-    { id: 'COMPLETED',         label: 'เสร็จสิ้น',      icon: <CheckCircle2 className="w-4 h-4 text-green-500" />, color: 'bg-green-500' },
-    { id: 'REJECTED',          label: 'ปฏิเสธ',         icon: <AlertCircle className="w-4 h-4 text-rose-500" />,   color: 'bg-rose-500' },
+    { id: 'PENDING',           label: STATUS_CONFIG.PENDING.label,           icon: <Clock className="w-4 h-4 text-amber-500" />,        color: 'bg-amber-500' },
+    { id: 'ACKNOWLEDGED',      label: STATUS_CONFIG.ACKNOWLEDGED.label,      icon: <Inbox className="w-4 h-4 text-orange-500" />,       color: 'bg-orange-500' },
+    { id: 'IN_PROGRESS',       label: STATUS_CONFIG.IN_PROGRESS.label,       icon: <Eye className="w-4 h-4 text-blue-500" />,           color: 'bg-blue-500' },
+    { id: 'AWAITING_APPROVAL', label: STATUS_CONFIG.AWAITING_APPROVAL.label, icon: <ShieldCheck className="w-4 h-4 text-violet-500" />, color: 'bg-violet-500' },
+    { id: 'COMPLETED',         label: STATUS_CONFIG.COMPLETED.label,         icon: <CheckCircle2 className="w-4 h-4 text-green-500" />, color: 'bg-green-500' },
+    { id: 'REJECTED',          label: STATUS_CONFIG.REJECTED.label,          icon: <AlertCircle className="w-4 h-4 text-rose-500" />,   color: 'bg-rose-500' },
 ];
 
 export default function KanbanPage() {

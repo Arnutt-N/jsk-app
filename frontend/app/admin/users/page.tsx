@@ -17,6 +17,7 @@ import { Modal } from '@/components/ui/Modal';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ModalAlert } from '@/components/ui/ModalAlert';
 import { ActionIconButton } from '@/components/ui/ActionIconButton';
+import { PasswordStrengthMeter } from '@/components/ui/PasswordStrengthMeter';
 import StatsCard from '../components/StatsCard';
 import { StaggerContainer, StaggerItem } from '@/components/ui/PageTransition';
 import PageHeader from '../components/PageHeader';
@@ -273,23 +274,6 @@ export default function UsersPage() {
         });
         setEditError('');
     };
-
-    /* ── Password strength ──────────────────────────────────────────── */
-
-    function passwordStrength(pw: string): { level: number; label: string; color: string } {
-        if (!pw) return { level: 0, label: '', color: '' };
-        let score = 0;
-        if (pw.length >= 8) score++;
-        if (pw.length >= 12) score++;
-        if (/[A-Z]/.test(pw)) score++;
-        if (/[0-9]/.test(pw)) score++;
-        if (/[^A-Za-z0-9]/.test(pw)) score++;
-
-        if (score <= 1) return { level: 1, label: 'อ่อน', color: 'bg-red-500' };
-        if (score <= 2) return { level: 2, label: 'ปานกลาง', color: 'bg-amber-500' };
-        if (score <= 3) return { level: 3, label: 'ดี', color: 'bg-blue-500' };
-        return { level: 4, label: 'แข็งแรง', color: 'bg-green-500' };
-    }
 
     /* ── Filtered role options for create based on current user ────── */
 
@@ -557,19 +541,7 @@ export default function UsersPage() {
                             value={createForm.password}
                             onChange={(e) => setCreateForm(f => ({ ...f, password: e.target.value }))}
                         />
-                        {createForm.password && (
-                            <div className="mt-2">
-                                <div className="flex items-center gap-2">
-                                    <div className="flex-1 h-1.5 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
-                                        <div
-                                            className={`h-full rounded-full transition-all ${passwordStrength(createForm.password).color}`}
-                                            style={{ width: `${passwordStrength(createForm.password).level * 25}%` }}
-                                        />
-                                    </div>
-                                    <span className="text-xs text-text-secondary">{passwordStrength(createForm.password).label}</span>
-                                </div>
-                            </div>
-                        )}
+                        {createForm.password && <PasswordStrengthMeter password={createForm.password} />}
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-text-primary mb-1.5">ชื่อที่แสดง (Display Name) *</label>
@@ -676,19 +648,7 @@ export default function UsersPage() {
                                 value={editForm.password}
                                 onChange={(e) => setEditForm(f => ({ ...f, password: e.target.value }))}
                             />
-                            {editForm.password && (
-                                <div className="mt-2">
-                                    <div className="flex items-center gap-2">
-                                        <div className="flex-1 h-1.5 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
-                                            <div
-                                                className={`h-full rounded-full transition-all ${passwordStrength(editForm.password).color}`}
-                                                style={{ width: `${passwordStrength(editForm.password).level * 25}%` }}
-                                            />
-                                        </div>
-                                        <span className="text-xs text-text-secondary">{passwordStrength(editForm.password).label}</span>
-                                    </div>
-                                </div>
-                            )}
+                            {editForm.password && <PasswordStrengthMeter password={editForm.password} />}
                         </div>
 
                         {editError && (
@@ -725,19 +685,7 @@ export default function UsersPage() {
                                 value={resetPassword}
                                 onChange={(e) => setResetPassword(e.target.value)}
                             />
-                            {resetPassword && (
-                                <div className="mt-2">
-                                    <div className="flex items-center gap-2">
-                                        <div className="flex-1 h-1.5 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
-                                            <div
-                                                className={`h-full rounded-full transition-all ${passwordStrength(resetPassword).color}`}
-                                                style={{ width: `${passwordStrength(resetPassword).level * 25}%` }}
-                                            />
-                                        </div>
-                                        <span className="text-xs text-text-secondary">{passwordStrength(resetPassword).label}</span>
-                                    </div>
-                                </div>
-                            )}
+                            {resetPassword && <PasswordStrengthMeter password={resetPassword} />}
                         </div>
 
                         {resetError && (

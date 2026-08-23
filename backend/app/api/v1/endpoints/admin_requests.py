@@ -348,32 +348,8 @@ EDITABLE_DETAIL_CONTACT_FIELDS = (
 )
 
 
-@router.patch("/{request_id}", response_model=ServiceRequestResponse)
-async def update_request(
-    request_id: int,
-    update_data: RequestUpdate,
-    db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_manager)
-):
-    """Update request status, priority, due date or assign an agent.
-
-    Authorization (Stage 1, hardcoded; Stage 2 will read from
-    permission_settings table):
-      - Reassigning to ANOTHER user: requires can_assign(current_admin.role)
-      - Self-assigning (assigned_agent_id == current_admin.id):
-        requires can_self_assign(current_admin.role)
-      - Status transitions, priority, due_date edits: any admin role
-      - Details/contact field edits: requires
-        can_edit_request_details(current_admin.role)
-    """
-    query = select(ServiceRequest).where(ServiceRequest.id == request_id)
-    result = await db.execute(query)
-    request = result.scalar_one_or_none()
-
-    if not request:
-        raise HTTPException(status_code=404, detail="Request not found")
-
-    # Permission check on assignment changes
+def _check_assignment_permissions(update_data, request, current_admin) -> None:
+    """Permission check on assignment changes."""
     is_changing_assignee = (
         (update_data.assigned_agent_id is not None and update_data.assigned_agent_id != request.assigned_agent_id)
         or (update_data.unassign and request.assigned_agent_id is not None)
@@ -390,6 +366,12 @@ async def update_request(
             if not is_self_assign and not can_assign(current_admin.role):
                 raise HTTPException(status_code=403, detail="คุณไม่มีสิทธิ์มอบหมายงานให้ผู้อื่น")
 
+
+def _check_workflow_guards(update_data, request, current_admin) -> tuple[bool, bool]:
+    """Revert/details/transition guards.
+
+    Returns (is_revert_from_completed, is_forced_transition).
+    """
     # Detect revert-from-COMPLETED BEFORE mutating so we can:
     #   1. Reset completed_at symmetrically (it was set to func.now() on entry)
     #   2. Write an audit_log row capturing who unwound the approval
@@ -405,7 +387,6 @@ async def update_request(
             RequestStatus.IN_PROGRESS,
         )
     )
-    prior_status = request.status
 
     # Permission guard: revert approval requires explicit permission
     if is_revert_from_completed and not can_revert_approval(current_admin.role):
@@ -449,16 +430,13 @@ async def update_request(
                 detail=describe_invalid_transition(request.status, update_data.status),
             )
 
-    # Snapshot current values BEFORE the "# Update fields" block mutates the
-    # row, so the audit diff records true old -> new transitions. Only fields
-    # present in the payload are candidates.
-    prior_detail_values = {
-        f: getattr(request, f, None)
-        for f in EDITABLE_DETAIL_CONTACT_FIELDS
-        if getattr(update_data, f) is not None
-    }
+    return is_revert_from_completed, is_forced_transition
 
-    # Update fields
+
+async def _apply_status_and_assignment(
+    request, update_data, db, current_admin, is_revert_from_completed
+) -> None:
+    """Mutate status/priority/due_date/assignment (+ unassign audit row)."""
     if update_data.status is not None:
         request.status = update_data.status
         if update_data.status == RequestStatus.COMPLETED:
@@ -492,7 +470,10 @@ async def update_request(
     if update_data.assigned_by_id is not None:
         request.assigned_by_id = update_data.assigned_by_id
 
-    # NEW: Update details tab fields
+
+def _apply_detail_contact_fields(request, update_data) -> None:
+    """Update details-tab + contact-tab fields; recompute requester_name."""
+    # Update details tab fields
     if update_data.topic_category is not None:
         request.topic_category = update_data.topic_category
     if update_data.topic_subcategory is not None:
@@ -500,7 +481,7 @@ async def update_request(
     if update_data.description is not None:
         request.description = update_data.description
 
-    # NEW: Update contact tab fields
+    # Update contact tab fields
     if update_data.prefix is not None:
         request.prefix = update_data.prefix
     if update_data.firstname is not None:
@@ -520,7 +501,7 @@ async def update_request(
     if update_data.agency is not None:
         request.agency = update_data.agency
 
-    # NEW: Recompute requester_name if any name field changed
+    # Recompute requester_name if any name field changed
     name_fields_changed = any([
         update_data.prefix is not None,
         update_data.firstname is not None,
@@ -530,6 +511,18 @@ async def update_request(
         name_parts = [p for p in [request.prefix, request.firstname, request.lastname] if p]
         request.requester_name = " ".join(name_parts) if name_parts else None
 
+
+async def _write_update_audit_logs(
+    db,
+    request,
+    update_data,
+    current_admin,
+    prior_status,
+    is_revert_from_completed,
+    is_forced_transition,
+    prior_detail_values,
+) -> None:
+    """Audit rows: status transitions + detail/contact edits."""
     # Audit trail for status transitions. Before this, the table recorded
     # who UNDID an approval but not who granted one -- "who completed this
     # request?" had no answer beyond a bare `completed_at` timestamp.
@@ -590,6 +583,63 @@ async def update_request(
             resource_id=str(request.id),
             details={"fields": changed_fields},
         )
+
+
+@router.patch("/{request_id}", response_model=ServiceRequestResponse)
+async def update_request(
+    request_id: int,
+    update_data: RequestUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_admin: User = Depends(get_current_manager)
+):
+    """Update request status, priority, due date or assign an agent.
+
+    Authorization (Stage 1, hardcoded; Stage 2 will read from
+    permission_settings table):
+      - Reassigning to ANOTHER user: requires can_assign(current_admin.role)
+      - Self-assigning (assigned_agent_id == current_admin.id):
+        requires can_self_assign(current_admin.role)
+      - Status transitions, priority, due_date edits: any admin role
+      - Details/contact field edits: requires
+        can_edit_request_details(current_admin.role)
+    """
+    query = select(ServiceRequest).where(ServiceRequest.id == request_id)
+    result = await db.execute(query)
+    request = result.scalar_one_or_none()
+
+    if not request:
+        raise HTTPException(status_code=404, detail="Request not found")
+
+    _check_assignment_permissions(update_data, request, current_admin)
+
+    is_revert_from_completed, is_forced_transition = _check_workflow_guards(
+        update_data, request, current_admin
+    )
+    prior_status = request.status
+
+    # Snapshot current values BEFORE the mutation helpers touch the row, so
+    # the audit diff records true old -> new transitions. Only fields
+    # present in the payload are candidates.
+    prior_detail_values = {
+        f: getattr(request, f, None)
+        for f in EDITABLE_DETAIL_CONTACT_FIELDS
+        if getattr(update_data, f) is not None
+    }
+
+    await _apply_status_and_assignment(
+        request, update_data, db, current_admin, is_revert_from_completed
+    )
+    _apply_detail_contact_fields(request, update_data)
+    await _write_update_audit_logs(
+        db,
+        request,
+        update_data,
+        current_admin,
+        prior_status,
+        is_revert_from_completed,
+        is_forced_transition,
+        prior_detail_values,
+    )
 
     await db.commit()
     await db.refresh(request)
