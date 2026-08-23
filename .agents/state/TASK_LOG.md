@@ -6,7 +6,7 @@
 
 ### 2026-08-23 18:21 — open_code (ox-alpha-free / opencode) — completed
 
-COOKIE_AUTH_MODE cleanup SHIPPED end-to-end (PR #200 squash f223bd3): PRD+PRP REV 2 per mandatory workflow, deep review x2 rounds (7 findings all fixed + re-verified), CI green, merged, CD deployed, post-merge prod smoke all-pass (login body-empty / cookie-only admin GETs / ws-ticket CSRF 403+200 / gate pseudonym hits=0 / healthy). Auth is now unconditionally cookie-only; rollback = redeploy pre-cleanup image. Local test infra: PG16 pgdata_test on port 5434 (5432 held by stale-schema docker db) + redis-server apt-installed. Remaining: user re-test booking in LINE
+COOKIE_AUTH_MODE cleanup SHIPPED end-to-end (PR #200 squash f223bd3): PRD+PRP REV 2 per mandatory workflow, deep review x2 rounds (7 findings all fixed + re-verified), CI green, merged, CD deployed, post-merge prod smoke all-pass (login body-empty / cookie-only admin GETs / ws-ticket CSRF 403+200 / gate pseudonym hits=0 / healthy). Auth is now unconditionally cookie-only; rollback = redeploy pre-cleanup image. Local test infra: PG16 pgdata_test on port 5434; the docker db on 5432 was migrated to head q8r9s0t1u2v3 later the same day (both local DBs now match main). Remaining: user re-test booking in LINE
 
 - Checkpoint: `.agents/state/checkpoints/handover-open_code-20260823-1821.json`
 - Summary: `project-log-md/open_code/session-summary-20260823-1821.md`

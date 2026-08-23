@@ -17,6 +17,7 @@ Ship the COOKIE_AUTH_MODE cleanup PR end-to-end: PRD → PRP → implement → d
 
 ### Gotchas for the next agent
 - **Local test DB**: port **5432 is held by the docker-compose db container whose schema is STALE (alembic d5e6f7g8h9i0)** — do NOT migrate it blindly. Use cluster `~/pgdata_test` (PG16 at `/usr/lib/postgresql/16/bin`, started with `-o "-p 5434 -k /home/arnutt-n"`) and export `DATABASE_URL=postgresql+asyncpg://postgres:<pw>@localhost:5434/skn_app_db` for pytest runs (env beats .env). Redis via `sudo service redis-server start` (apt-installed this session; dpkg needed `--configure -a` first).
+  **UPDATE (same day, 18:32):** the docker db on 5432 WAS migrated to head `q8r9s0t1u2v3` afterwards — both local DBs now match main; the "do NOT migrate" caution above is superseded.
 - WSL VM restarts wipe `/tmp` AND kill manually-started pg/redis — keep helper scripts in `~/bin/`.
 - wsl.exe quoting: backslash escapes inside nested double quotes get eaten (`tr -d "\r"` became "delete letter r"!) — use PS-double-quote + bash-single-quote pattern, or script files.
 - handoff-new.cjs supports `--model`/`--provider` flags — pass them to avoid validator warnings.

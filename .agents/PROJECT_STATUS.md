@@ -1,10 +1,11 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-08-23 18:21 by OpenCode (COOKIE_AUTH_MODE cleanup SHIPPED end-to-end PR #200 squash f223bd3: PRD+PRP REV 2 per mand)
+> **Last Updated:** 2026-08-23 18:21 by OpenCode (COOKIE_AUTH_MODE cleanup SHIPPED — PR #200 squash `f223bd3`: deep review ×2, CI green, prod smoke all-pass)
 
 ## Thai Summary
-**สถานะล่าสุด (2026-08-22)** — milestone หลักทุกตัวปิดแล้ว เหลือเฉพาะ manual test ฝั่งผู้ใช้:
+**สถานะล่าสุด (2026-08-23)** — milestone หลักทุกตัวปิดแล้ว เหลือเฉพาะ manual test ฝั่งผู้ใช้:
 
+- **Auth: cookie-only ถาวร (PR #200, squash `f223bd3`, 2026-08-23)** — ลบ `COOKIE_AUTH_MODE` flag + Bearer fallback + legacy stateless refresh; migrate-session/CSRF/DEV_AUTH_BYPASS คงเดิม; deep review 2 รอบ, CI เขียว, prod smoke all-pass
 - **PR C — LINE ID Pseudonymization: COMPLETE end-to-end** — expand (#153/#154) → gate endpoint (#158) → display masking (#159) → read-cutover ~50 query paths (#160) → hardening (#175) → destructive phase (#199, squash `095d386`): migration `q8r9s0t1u2v3` apply บน Supabase PROD แล้ว (`line_user_id` = 0 column), env var flip dual→pseudonym เสร็จ 2026-08-22 (deployment `a13b92da` HEALTHY)
 - **Booking UX + Business Hours: COMPLETE in prod** — PR #193/#194 (24h engine + admin page), #195 (list filter CONFIRMED+upcoming), #196–#198 (LIFF cancel/edit + deep review 2 รอบ); prod config ครบ (24 ชม. + booking เปิด + มีบริการ); user ยืนยันจองได้จริง
 - **คงเหลือ:** user re-test booking ใน LINE (จอง → แก้ไข → ยกเลิก) + admin เห็น view ทุกวัน
@@ -110,7 +111,7 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
-- [2026-08-23 18:21] OpenCode: COOKIE_AUTH_MODE cleanup SHIPPED end-to-end (PR #200 squash f223bd3): PRD+PRP REV 2 per mandatory workflow, deep review x2 rounds (7 findings all fixed + re-verified), CI green, merged, CD deployed, post-merge prod smoke all-pass (login bod (OpenCode)
+- [2026-08-23 18:21] OpenCode: COOKIE_AUTH_MODE cleanup SHIPPED end-to-end (PR #200 squash f223bd3): PRD+PRP REV 2 per mandatory workflow, deep review x2 rounds (7 findings all fixed + re-verified), CI green, merged, CD deployed, post-merge prod smoke all-pass (OpenCode)
 - [2026-08-22 17:36] OpenCode: LINE_ID_STORAGE_MODE flipped dual->pseudonym on Koyeb PROD: verified stale dual value via control-plane API GET /v1/deployments, user-approved, koyeb CLI services update with merge semantics (all other 19 env vars untouched), new deployment (OpenCode)
 - [2026-08-22 16:24] OpenCode: PR C post-merge ops verified: PR #199 merged (095d386), CD run 31980891406 applied migration q8r9s0t1u2v3 to Supabase PROD; direct DB check confirms alembic head q8r9s0t1u2v3 + zero line_user_id columns in public schema; prod healthy 5 days (OpenCode)
 - [2026-08-17 00:09] Qoder: Session closing: PR #199 merge-ready, all code pushed (055d201), CI green, awaiting reviewer approval. Merge watch cron is session-only and dies with this session — re-arm in next session (Qoder)
