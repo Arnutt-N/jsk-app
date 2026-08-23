@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.audit import audit_action
 from app.models.message import MessageDirection
 from app.models.user import ChatMode, User
+from app.schemas.message import message_payload_dict
 from app.services.line_service import line_service
 from app.services.user_identity_service import resolve_by_line_id
 
@@ -142,17 +143,7 @@ class MessagingMixin:
 
         return {
             "success": True,
-            "message": {
-                "id": saved_message.id,
-                "line_user_id": line_user_id,
-                "direction": saved_message.direction.value if hasattr(saved_message.direction, "value") else saved_message.direction,
-                "content": saved_message.content,
-                "message_type": saved_message.message_type,
-                "payload": saved_message.payload,
-                "sender_role": saved_message.sender_role.value if hasattr(saved_message.sender_role, "value") else saved_message.sender_role,
-                "operator_name": saved_message.operator_name,
-                "created_at": saved_message.created_at.isoformat() if saved_message.created_at else None,
-            },
+            "message": message_payload_dict(saved_message, line_user_id=line_user_id),
         }
 
     async def set_chat_mode(self, line_user_id: str, mode: ChatMode, db: AsyncSession):

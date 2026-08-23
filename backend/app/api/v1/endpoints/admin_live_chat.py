@@ -30,7 +30,7 @@ from app.models.user import ChatMode, User
 from app.core.websocket_manager import ReadMarkerPersistenceError, ws_manager
 from app.schemas.ws_events import WSEventType
 from app.schemas.ws_events import TransferSessionPayload
-from app.schemas.message import MessagePage, MessageResponse
+from app.schemas.message import MessagePage, MessageResponse, message_payload_dict
 from app.services.analytics_service import analytics_service
 from app.services.friend_service import friend_service
 from app.services.line_service import line_service
@@ -51,18 +51,7 @@ def _utcnow_isoformat() -> str:
 
 
 def _message_payload_from_record(message, line_user_id: str, temp_id: Optional[str] = None) -> dict[str, Any]:
-    return {
-        "id": message.id,
-        "line_user_id": line_user_id,
-        "direction": message.direction.value if hasattr(message.direction, "value") else message.direction,
-        "content": message.content,
-        "message_type": message.message_type,
-        "payload": message.payload,
-        "sender_role": message.sender_role.value if hasattr(message.sender_role, "value") else message.sender_role,
-        "operator_name": message.operator_name,
-        "created_at": message.created_at.isoformat(),
-        "temp_id": temp_id,
-    }
+    return message_payload_dict(message, line_user_id=line_user_id, temp_id=temp_id)
 
 
 async def _broadcast_conversation_update(
