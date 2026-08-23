@@ -91,25 +91,19 @@ def _clear():
     invalidate_cache()
 
 
-# --- helper unit test -------------------------------------------------------
-@pytest.mark.asyncio
-async def test_response_counts_filters_active():
-    from app.api.v1.endpoints.admin_intents import _response_counts
-
-    db = _FakeDB(execute_results=[(3, 2)])
-    total, active = await _response_counts(db, category_id=1)
-
-    assert total == 3
-    assert active == 2
-
-
 # --- GET endpoint test ------------------------------------------------------
 def test_get_categories_exposes_active_response_count():
-    # list_categories issues, per category: execute(categories),
-    # scalar(keyword count), execute(counts .one()), execute(keywords preview)
+    # list_categories issues, in order: execute(categories),
+    # execute(keyword counts GROUP BY), execute(response counts GROUP BY
+    # with active FILTER), execute(windowed keywords preview <= 5)
     db = _FakeDB(
-        execute_results=[[_cat()], (3, 2), ["ราคา"]],
-        scalar_results=[2],
+        execute_results=[
+            [_cat()],            # categories
+            [(1, 2)],            # keyword counts: category 1 -> 2
+            [(1, 3, 2)],         # response counts: total=3, active=2
+            [(1, "ราคา")],       # keyword preview rows (cid, keyword)
+        ],
+        scalar_results=[],
     )
     _override_db_and_admin(db)
     client = TestClient(app)
