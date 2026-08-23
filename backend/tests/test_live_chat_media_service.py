@@ -35,13 +35,15 @@ async def test_send_media_image_success(service):
     saved_message = MagicMock()
     saved_message.id = 10
     saved_message.user_id = 1
-    saved_message.direction = MagicMock(value="OUTGOING")
+    saved_message.line_user_id = "U123"
+    saved_message.direction = "OUTGOING"
     saved_message.content = "[Image]"
     saved_message.message_type = "image"
     saved_message.payload = {"url": "https://example.com/uploads/operator_media/img.jpg"}
-    saved_message.sender_role = MagicMock(value="ADMIN")
+    saved_message.sender_role = "ADMIN"
     saved_message.operator_name = "Agent A"
     saved_message.created_at = datetime.now(timezone.utc)
+    saved_message.temp_id = None
 
     with patch(
         "app.services.live_chat_service.line_service.persist_operator_upload",
@@ -92,13 +94,15 @@ async def test_send_media_file_sends_text_with_url(service):
     saved_message = MagicMock()
     saved_message.id = 11
     saved_message.user_id = 1
-    saved_message.direction = MagicMock(value="OUTGOING")
+    saved_message.line_user_id = "U123"
+    saved_message.direction = "OUTGOING"
     saved_message.content = "invoice.pdf"
     saved_message.message_type = "file"
     saved_message.payload = {"url": "https://example.com/uploads/operator_media/invoice.pdf"}
-    saved_message.sender_role = MagicMock(value="ADMIN")
+    saved_message.sender_role = "ADMIN"
     saved_message.operator_name = "Agent B"
     saved_message.created_at = datetime.now(timezone.utc)
+    saved_message.temp_id = None
 
     with patch(
         "app.services.live_chat_service.line_service.persist_operator_upload",
