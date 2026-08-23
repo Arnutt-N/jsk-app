@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-08-22 19:05 by OpenCode (session cleanup: Thai Summary compressed, SLA Telegram alerts ON — deployment 63d007ba HEALTHY)
+> **Last Updated:** 2026-08-23 18:21 by OpenCode (COOKIE_AUTH_MODE cleanup SHIPPED end-to-end PR #200 squash f223bd3: PRD+PRP REV 2 per mand)
 
 ## Thai Summary
 **สถานะล่าสุด (2026-08-22)** — milestone หลักทุกตัวปิดแล้ว เหลือเฉพาะ manual test ฝั่งผู้ใช้:
@@ -94,6 +94,7 @@
 - [x] Merged PR #78 to `main` branch.
 
 ## Latest Pickup Status
+- [2026-08-23] **COOKIE_AUTH_MODE cleanup SHIPPED (PR #200, squash `f223bd3`)** — auth เป็น cookie-only แบบไม่มีเงื่อนไข: ลบ mode flag + Bearer fallback + legacy stateless refresh; migrate-session/ws-ticket/CSRF/DEV_AUTH_BYPASS คงเดิม; PRD+PRP REV 2 → deep review 2 รอบ (7 findings fixed, re-verified) → CI เขียวทุกช่อง → merge → CD deploy → prod smoke ผ่านครบ. Local test infra ใหม่: PG16 `~/pgdata_test` บน **port 5434** (5432 ถือโดย docker db schema เก่า — อย่า migrate ตัวนั้น) + redis-server (apt); รัน tests ผ่าน `DATABASE_URL` override ดู `~/bin/run-pytest.sh` pattern. **คงเหลือ:** user re-test booking ใน LINE
 - [2026-08-22 19:30] **Prod smoke test: Rich Menu Task 6.2 LIVE + cookie auth proven + gate reports pseudonym** — admin login 200 (cookie-only session, no Bearer) → `GET /admin/rich-menus/aliases` + `GET /admin/rich-menus` = 200; `GET /health/pseudonym-gate` = `storage_mode=pseudonym` / `pseudonym_mode_no_fallback` / hits=0 / redis connected. Closed stale checkboxes: Rich Menu smoke item, PR C gate-endpoint section 3 items, Backlog SLA + LIFF_STRICT_MODE; COOKIE_AUTH_MODE backlog narrowed to cleanup PR only.
 - [2026-08-22 19:05] **Session cleanup: Thai Summary compressed + SLA Telegram alerts ON** — compress PROJECT_STATUS Thai Summary (21 บรรทัด prose → 6 bullets, ตัด next-steps หมดอายุ), เพิ่ม `model`/`provider` keys ให้ checkpoint 17:36 (แก้ validator warning — script รองรับ `--model/--provider` flags อยู่แล้ว), doc history cap (20 entries) ใน handoff-to-any.md, flip `SLA_ALERT_TELEGRAM_ENABLED=true` บน prod (deployment `63d007ba` HEALTHY)
 - [2026-08-22 17:36] **LINE_ID_STORAGE_MODE flip dual→pseudonym DONE on Koyeb PROD** — ยืนยันค่าเดิม `dual` (ค้างจาก PR A/B rollout) ผ่าน control-plane API `GET /v1/deployments/{id}`; user-approved → `koyeb services update jsk-app --env LINE_ID_STORAGE_MODE=pseudonym` (default merge semantics — env อื่น 19 รายการไม่ถูกแตะ), deployment `a13b92da` HEALTHY, health endpoint green. Gotchas ฝั่ง Koyeb access/quoting รวมไว้ที่ bullet "Ops access (Koyeb)" ด้านบน (canonical — อย่าพิมพ์ซ้ำ). **เหลือ:** user re-test booking ใน LINE (จอง→แก้ไข→ยกเลิก)
@@ -109,6 +110,7 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-08-23 18:21] OpenCode: COOKIE_AUTH_MODE cleanup SHIPPED end-to-end (PR #200 squash f223bd3): PRD+PRP REV 2 per mandatory workflow, deep review x2 rounds (7 findings all fixed + re-verified), CI green, merged, CD deployed, post-merge prod smoke all-pass (login bod (OpenCode)
 - [2026-08-22 17:36] OpenCode: LINE_ID_STORAGE_MODE flipped dual->pseudonym on Koyeb PROD: verified stale dual value via control-plane API GET /v1/deployments, user-approved, koyeb CLI services update with merge semantics (all other 19 env vars untouched), new deployment (OpenCode)
 - [2026-08-22 16:24] OpenCode: PR C post-merge ops verified: PR #199 merged (095d386), CD run 31980891406 applied migration q8r9s0t1u2v3 to Supabase PROD; direct DB check confirms alembic head q8r9s0t1u2v3 + zero line_user_id columns in public schema; prod healthy 5 days (OpenCode)
 - [2026-08-17 00:09] Qoder: Session closing: PR #199 merge-ready, all code pushed (055d201), CI green, awaiting reviewer approval. Merge watch cron is session-only and dies with this session — re-arm in next session (Qoder)
@@ -290,10 +292,7 @@
 - [2026-05-25 01:00] Claude Code: Implemented PRD E — Drug Reporting. PR #61 merged to main. (Claude Code)
 
 ## Backlog (Future)
-- [ ] **COOKIE_AUTH_MODE cleanup PR** (runbook: `docs/remediation/cookie-auth-rollout-runbook.md`)
-  - PR 2A/2B/2C merged: backend foundation + frontend cookie-only + hardening (default `cookie`, `SameSite=Strict`)
-  - ~~Verify effective mode~~ **DONE (2026-08-22):** `COOKIE_AUTH_MODE` unset on Koyeb → code default `cookie` active; proven empirically — cookie-only session (no Bearer header) passed admin auth on prod smoke test
-  - Remaining: cleanup PR removing the mode flag (`Literal["bearer","dual","cookie"]`) + backend Bearer fallback
+- [x] ~~**COOKIE_AUTH_MODE cleanup PR**~~ **DONE (PR #200 merged `f223bd3`, 2026-08-23)** — flag ถูกลบจาก Settings, deps/auth collapse เป็น cookie-only, legacy stateless refresh path ลบ, tests reworked (1044 passed), docs updated; post-merge prod smoke ผ่านทุกข้อ (login body-empty / cookie-only admin GETs / ws-ticket CSRF pair 403+200 / gate pseudonym / health)
 - [x] Enable `SLA_ALERT_TELEGRAM_ENABLED=true` on Koyeb — DONE 2026-08-22 (deployment `63d007ba` HEALTHY)
 - [x] Enable `LIFF_STRICT_MODE=true` on prod — already effective: code default `True` (config.py) with no env override on Koyeb
 - [ ] Monitor production deployment via Vercel

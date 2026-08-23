@@ -1,0 +1,16 @@
+{
+  "handoff_version": "2.0",
+  "platform": "open_code",
+  "agent": "open_code",
+  "timestamp": "2026-08-23T18:21:00+07:00",
+  "branch": "main",
+  "head_commit": "f223bd3",
+  "status": "completed",
+  "work_summary": "COOKIE_AUTH_MODE cleanup SHIPPED end-to-end (PR #200 squash f223bd3): PRD+PRP REV 2 per mandatory workflow, deep review x2 rounds (7 findings all fixed + re-verified), CI green, merged, CD deployed, post-merge prod smoke all-pass (login body-empty / cookie-only admin GETs / ws-ticket CSRF 403+200 / gate pseudonym hits=0 / healthy). Auth is now unconditionally cookie-only; rollback = redeploy pre-cleanup image. Local test infra: PG16 pgdata_test on port 5434 (5432 held by stale-schema docker db) + redis-server apt-installed. Remaining: user re-test booking in LINE",
+  "priority_actions": [],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/open_code/session-summary-20260823-1821.md",
+  "cross_platform_read": [],
+  "model": "ox-alpha-free",
+  "provider": "opencode"
+}

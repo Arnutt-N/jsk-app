@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 230 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 231 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-08-23 18:21 — open_code (ox-alpha-free / opencode) — completed
+
+COOKIE_AUTH_MODE cleanup SHIPPED end-to-end (PR #200 squash f223bd3): PRD+PRP REV 2 per mandatory workflow, deep review x2 rounds (7 findings all fixed + re-verified), CI green, merged, CD deployed, post-merge prod smoke all-pass (login body-empty / cookie-only admin GETs / ws-ticket CSRF 403+200 / gate pseudonym hits=0 / healthy). Auth is now unconditionally cookie-only; rollback = redeploy pre-cleanup image. Local test infra: PG16 pgdata_test on port 5434 (5432 held by stale-schema docker db) + redis-server apt-installed. Remaining: user re-test booking in LINE
+
+- Checkpoint: `.agents/state/checkpoints/handover-open_code-20260823-1821.json`
+- Summary: `project-log-md/open_code/session-summary-20260823-1821.md`
+
+---
 
 ### 2026-08-22 17:36 — open_code (ox-alpha-free / opencode) — completed
 
