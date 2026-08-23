@@ -77,8 +77,7 @@ class RotationResult:
 async def create_session_family(db: AsyncSession, user_id: int) -> tuple[str, str]:
     """Create a new refresh-token session family and return (refresh_jwt, family_id).
 
-    Called from login (and migrate-session) whenever COOKIE_AUTH_MODE is
-    `dual` or `cookie`. Caller commits.
+    Called from login (and migrate-session). Caller commits.
     """
     jti = str(uuid4())
     family_id = str(uuid4())

@@ -1,6 +1,14 @@
 # Runbook: COOKIE_AUTH_MODE — ตรวจสอบและปิดงาน production rollout
 
-> **สถานะ:** PR 2A/2B/2C merged หมดแล้ว — default ในโค้ดคือ `cookie`, frontend ใช้ cookie
+> **✅ COMPLETED & CLEANED UP (2026-08-22)** — rollout จบสมบูรณ์ และ flag
+> `COOKIE_AUTH_MODE` **ถูกลบออกจากโค้ดแล้ว** (`refactor/cookie-auth-mode-cleanup`):
+> auth เป็น cookie-only แบบไม่มีเงื่อนไข ขั้นตอน Step 0-1 ด้านล่างกลายเป็นประวัติศาสตร์
+> **Rollback หลัง cleanup:** flip env ไม่ได้อีกแล้ว — redeploy image ก่อนหน้าบน Koyeb
+> **Evidence 2026-08-22:** env var ไม่ถูก set บน Koyeb (อ่านผ่าน control-plane API);
+> prod smoke: login → body ไม่คืน tokens, admin GET ผ่าน cookie-only session,
+> ws-ticket CSRF enforce ถูกต้อง (403 ไม่มี header / 200 เมื่อมี)
+
+> **สถานะ (ยุค pre-cleanup):** PR 2A/2B/2C merged หมดแล้ว — default ในโค้ดคือ `cookie`, frontend ใช้ cookie
 > auth เท่านั้น (ลบ Bearer path แล้ว) สิ่งที่ยังต้องทำ: **ยืนยันว่า Koyeb prod ทำงานใน
 > mode `cookie` จริง** (ถ้าเคย set env var ค้างไว้เป็น `bearer`/`dual` จะต้องเลื่อนขึ้น)
 > ต้นฉบับ control semantics: [`migration-controls.md`](./migration-controls.md)

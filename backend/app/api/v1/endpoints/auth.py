@@ -1,7 +1,7 @@
 from datetime import timedelta
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,7 +20,6 @@ from app.core.rate_limiter import SlidingWindowLimiter
 from app.core.redis_client import redis_client
 from app.core.security import (
     create_access_token,
-    create_refresh_token,
     verify_password_async,
     verify_token,
 )
@@ -179,22 +178,9 @@ async def login(
         expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
     )
 
-    body_access_token = access_token
-    body_refresh_token: Optional[str] = None
-    csrf_token: Optional[str] = None
-
-    if settings.COOKIE_AUTH_MODE in ("dual", "cookie"):
-        refresh_token, family_id = await create_session_family(db, user.id)
-        csrf_token = issue_csrf_token()
-        set_auth_cookies(response, access=access_token, refresh=refresh_token, csrf=csrf_token)
-
-        if settings.COOKIE_AUTH_MODE == "cookie":
-            body_access_token = ""
-            body_refresh_token = ""
-        else:  # dual: old frontend still works via the body tokens too
-            body_refresh_token = refresh_token
-    else:  # bearer: today's code path, byte-identical
-        body_refresh_token = create_refresh_token(subject=user.id)
+    refresh_token, family_id = await create_session_family(db, user.id)
+    csrf_token = issue_csrf_token()
+    set_auth_cookies(response, access=access_token, refresh=refresh_token, csrf=csrf_token)
 
     await create_audit_log(
         db,
@@ -206,9 +192,10 @@ async def login(
     )
     await db.commit()
 
+    # Cookie-only: tokens live in HttpOnly cookies, never in the response body.
     return LoginResponse(
-        access_token=body_access_token,
-        refresh_token=body_refresh_token,
+        access_token="",
+        refresh_token="",
         token_type="bearer",
         csrf_token=csrf_token,
         user=_to_auth_user(user),
@@ -219,21 +206,13 @@ async def login(
 async def refresh(
     request: Request,
     response: Response,
-    authorization: Optional[str] = Header(default=None),
     db: AsyncSession = Depends(get_db),
 ) -> TokenResponse:
     refresh_token: Optional[str] = None
-    source: Optional[str] = None
 
-    if settings.COOKIE_AUTH_MODE in ("dual", "cookie"):
-        cookie_token = request.cookies.get(REFRESH_COOKIE)
-        if cookie_token:
-            refresh_token, source = cookie_token, "cookie"
-
-    if refresh_token is None and settings.COOKIE_AUTH_MODE != "cookie":
-        if authorization and authorization.startswith("Bearer "):
-            refresh_token = authorization.removeprefix("Bearer ").strip()
-            source = "header"
+    cookie_token = request.cookies.get(REFRESH_COOKIE)
+    if cookie_token:
+        refresh_token = cookie_token
 
     if not refresh_token:
         raise HTTPException(
@@ -263,15 +242,12 @@ async def refresh(
             detail="Invalid refresh token",
         )
 
-    # A refresh token is "session-backed" only when it arrived via the
-    # refresh cookie AND carries a jti claim (cookie/migrate-session-issued
-    # tokens always do). Header-carried tokens stay on the legacy stateless
-    # path even in dual mode (Task 6 GOTCHA -- deliberate scope decision:
-    # upgrading them would create one session family per refresh from
-    # pre-2B frontends, sprawl with no security benefit).
-    session_backed = source == "cookie" and bool(payload.get("jti"))
+    # Cookie-only refresh tokens are session-backed by construction: they are
+    # issued exclusively by create_session_family and always carry a jti
+    # claim. A token without jti cannot originate from this backend anymore.
+    session_backed = bool(payload.get("jti"))
 
-    if settings.COOKIE_AUTH_MODE == "cookie" and not session_backed:
+    if not session_backed:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid refresh token",
@@ -318,8 +294,6 @@ async def refresh(
             response, access=access_token, refresh=rotation.refresh_token, csrf=csrf_token
         )
 
-        body_omitted = settings.COOKIE_AUTH_MODE == "cookie"
-
         await create_audit_log(
             db,
             admin_id=user.id,
@@ -330,29 +304,13 @@ async def refresh(
         )
         await db.commit()
 
+        # Cookie-only: rotated tokens live in the cookies, never in the body.
         return TokenResponse(
-            access_token="" if body_omitted else access_token,
-            refresh_token="" if body_omitted else rotation.refresh_token,
+            access_token="",
+            refresh_token="",
             token_type="bearer",
             csrf_token=csrf_token,
         )
-
-    # Legacy stateless path: header-sourced refresh token (bearer mode, or a
-    # pre-2B dual-mode frontend). Byte-identical to pre-P1.1a behavior --
-    # only a new access token is issued, the refresh token itself is not
-    # rotated and no auth_sessions row is written.
-    user = await _load_admin_user(db, user_id)
-    if not user or not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid refresh token",
-        )
-
-    access_token = create_access_token(
-        subject=user.id,
-        expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
-    )
-    return TokenResponse(access_token=access_token, token_type="bearer")
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
@@ -363,7 +321,7 @@ async def logout(
 ) -> None:
     """Clear auth cookies and revoke the presented session's family.
 
-    All modes, no CSRF requirement (it only destroys state). Idempotent: a
+    No CSRF requirement (it only destroys state). Idempotent: a
     request with no refresh cookie still clears cookies and returns 204.
 
     Mutates the FastAPI-injected `response` in place and returns None --
@@ -412,8 +370,9 @@ async def migrate_session(
     """Exchange a Bearer access token for a cookie session (FR4).
 
     Bearer-only by construction (see `_bearer_only` above) -- a cookie can
-    never satisfy this endpoint's auth. Does not invalidate the presented
-    Bearer token (dual mode tolerates both until PR 2C).
+    never satisfy this endpoint's auth. This is the sole remaining Bearer
+    surface in the app, kept deliberately for one-time migration of legacy
+    localStorage tokens.
     """
     if not credentials or not credentials.credentials:
         raise HTTPException(
@@ -448,12 +407,6 @@ async def migrate_session(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    if settings.COOKIE_AUTH_MODE == "bearer":
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Cookie auth mode is not enabled",
-        )
-
     if await _auth_rate_limit_exceeded(f"migrate:{user.id}"):
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
@@ -468,8 +421,6 @@ async def migrate_session(
     )
     set_auth_cookies(response, access=access_token, refresh=refresh_token, csrf=csrf_token)
 
-    body_omitted = settings.COOKIE_AUTH_MODE == "cookie"
-
     await create_audit_log(
         db,
         admin_id=user.id,
@@ -480,9 +431,10 @@ async def migrate_session(
     )
     await db.commit()
 
+    # Cookie-only: tokens live in the cookies, never in the body.
     return TokenResponse(
-        access_token="" if body_omitted else access_token,
-        refresh_token="" if body_omitted else refresh_token,
+        access_token="",
+        refresh_token="",
         token_type="bearer",
         csrf_token=csrf_token,
     )
@@ -495,8 +447,8 @@ async def issue_ws_ticket(
 ) -> WsTicketResponse:
     """Mint a single-use, short-lived WebSocket auth ticket (FR6).
 
-    Any auth mode/credential type accepted (delegates to the mode-aware
-    get_current_user). Rate-limited like migrate-session.
+    Cookie-authenticated via get_current_user. Rate-limited like
+    migrate-session.
     """
     if await _auth_rate_limit_exceeded(f"ws-ticket:{current_user.id}"):
         raise HTTPException(

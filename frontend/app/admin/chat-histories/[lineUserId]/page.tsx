@@ -1,6 +1,6 @@
 'use client';
 // Client Component required: interactive chat scroll, pagination, and export actions.
-// Auth is handled globally by the authFetch interceptor (bearer or cookie mode).
+// Auth is handled globally by the authFetch interceptor (cookie auth).
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';

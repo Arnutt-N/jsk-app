@@ -54,8 +54,7 @@ def set_auth_cookies(
 ) -> None:
     """Set the access/refresh/csrf cookie triple with matching attributes.
 
-    Called from login/refresh/migrate-session whenever
-    `settings.COOKIE_AUTH_MODE` is `dual` or `cookie`.
+    Called from login/refresh/migrate-session.
     """
     response.set_cookie(
         ACCESS_COOKIE,

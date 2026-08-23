@@ -1,30 +1,27 @@
-"""Tests for P1.1a — Cookie Backend Foundation (PR 2A).
+"""Tests for P1.1a — Cookie Backend Foundation (PR 2A), post mode-flag cleanup.
 
 Maps to the FR8 matrix in
-`.claude/PRPs/prds/p1.1a-cookie-backend-foundation.prd.md`:
+`.claude/PRPs/prds/p1.1a-cookie-backend-foundation.prd.md`
+(cookie is the ONLY mode since the COOKIE_AUTH_MODE cleanup):
 
-  test_case1_*  -> FR8 #1  bearer mode: byte-compatible, no cookies, no
-                            auth_sessions rows, stray cookie ignored
-  test_case2_*  -> FR8 #2  dual mode: cookies + body tokens, cookie wins,
-                            no silent fallback on an invalid cookie
-  test_case3_*  -> FR8 #3  cookie mode: body omits tokens, bearer-only 401
+  test_case3_*  -> FR8 #3  cookie mode: body omits tokens, bearer-only 401,
+                            Set-Cookie triple attributes (paths/HttpOnly/SameSite)
   test_case4_*  -> FR8 #4  rotation issues new jti; reusing the old one 401s
                             and revokes the whole family
-  test_case5_*  -> FR8 #5  legacy no-jti refresh via header: accepted in
-                            dual (stateless), rejected in cookie mode
   test_case6_*  -> FR8 #6  CSRF double-submit enforcement
   test_case7_*  -> FR8 #7  logout clears cookies (attribute-matched),
                             revokes the family, idempotent
   test_case8_*  -> FR8 #8  migrate-session: happy path / cookie-only 401 /
-                            bearer-mode 409 / rate limit 429 / audit row
+                            rate limit 429 / audit row
   test_case9_*  -> FR8 #9  ws-ticket mint + single-use claim + Origin guard
   test_case10_* -> FR8 #10 CORS wildcard-origin guard + explicit lists
 
-Settings-monkeypatch idiom from `test_liff_token.py`
-(`monkeypatch.setattr(settings, "COOKIE_AUTH_MODE", ...)`); direct-DB
-assertions use a throwaway NullPool engine (same file) because the app's
-pooled `AsyncSessionLocal` is bound to the ASGI/TestClient event loop, not
-this test module's pytest-asyncio loop ("attached to a different loop").
+(The old case1 bearer / case2 dual / case5 legacy-header suites were removed
+together with the mode flag they exercised.)
+
+Direct-DB assertions use a throwaway NullPool engine (this file) because the
+app's pooled `AsyncSessionLocal` is bound to the ASGI/TestClient event loop,
+not this test module's pytest-asyncio loop ("attached to a different loop").
 
 Rate-limiter GOTCHA: `auth_rate_limiter` (auth.py) is a module-level
 singleton whose bucket state persists across tests. Every test that
@@ -205,120 +202,6 @@ def _login(test_client, username: str) -> "httpx.Response":  # noqa: F821 (typin
     )
 
 
-# --- FR8 test 1: bearer mode byte-compatibility ------------------------------
-
-
-@pytest.mark.asyncio
-async def test_case1_bearer_mode_byte_compatible_no_cookies_no_sessions(
-    test_client, monkeypatch
-):
-    monkeypatch.setattr(settings, "COOKIE_AUTH_MODE", "bearer")
-    username = f"cookie-t1-{uuid.uuid4().hex[:10]}"
-    user_id = await _create_admin_user(username)
-    try:
-        res = _login(test_client, username)
-        assert res.status_code == 200
-        body = res.json()
-        assert body["access_token"]
-        assert body["refresh_token"]
-        assert body["token_type"] == "bearer"
-        assert body.get("csrf_token") is None
-        assert res.headers.get_list("set-cookie") == []
-        assert await _count_auth_sessions(user_id) == 0
-
-        access_token = body["access_token"]
-        refresh_token = body["refresh_token"]
-
-        # A stray access_token cookie must be ignored entirely in bearer mode.
-        _clear(test_client)
-        res_me = test_client.get(
-            "/api/v1/auth/me",
-            headers={"Authorization": f"Bearer {access_token}"},
-            cookies={ACCESS_COOKIE: "not-a-real-token"},
-        )
-        assert res_me.status_code == 200
-        assert res_me.json()["username"] == username
-        assert res_me.json().get("csrf_token") is None
-
-        _clear(test_client)
-        res_refresh = test_client.post(
-            "/api/v1/auth/refresh",
-            headers={"Authorization": f"Bearer {refresh_token}"},
-        )
-        assert res_refresh.status_code == 200
-        refresh_body = res_refresh.json()
-        assert refresh_body["access_token"]
-        assert refresh_body.get("refresh_token") is None
-        assert refresh_body.get("csrf_token") is None
-        assert res_refresh.headers.get_list("set-cookie") == []
-        assert await _count_auth_sessions(user_id) == 0
-    finally:
-        await _delete_user_and_sessions(user_id)
-
-
-# --- FR8 test 2: dual mode ----------------------------------------------------
-
-
-@pytest.mark.asyncio
-async def test_case2_dual_mode_cookies_and_body_tokens_cookie_wins(test_client, monkeypatch):
-    monkeypatch.setattr(settings, "COOKIE_AUTH_MODE", "dual")
-    username = f"cookie-t2-{uuid.uuid4().hex[:10]}"
-    user_id = await _create_admin_user(username)
-    try:
-        res = _login(test_client, username)
-        assert res.status_code == 200
-        body = res.json()
-        assert body["access_token"]
-        assert body["refresh_token"]
-        assert body["csrf_token"]
-
-        set_cookie_headers = res.headers.get_list("set-cookie")
-        attrs = _parse_set_cookie_attrs(set_cookie_headers)
-        assert set(attrs) == {ACCESS_COOKIE, REFRESH_COOKIE, CSRF_COOKIE}
-        for name, a in attrs.items():
-            assert a["httponly"] is True
-            assert a["samesite"] == "strict"
-        assert attrs[ACCESS_COOKIE]["path"] == "/api/v1"
-        assert attrs[REFRESH_COOKIE]["path"] == "/api/v1/auth"
-        assert attrs[CSRF_COOKIE]["path"] == "/api/v1"
-
-        cookies = dict(res.cookies)
-
-        # cookie-authed GET works
-        _clear(test_client)
-        res_me_cookie = test_client.get("/api/v1/auth/me", cookies=cookies)
-        assert res_me_cookie.status_code == 200
-
-        # Bearer-authed GET also still works (no cookie riding along)
-        _clear(test_client)
-        res_me_bearer = test_client.get(
-            "/api/v1/auth/me",
-            headers={"Authorization": f"Bearer {body['access_token']}"},
-        )
-        assert res_me_bearer.status_code == 200
-
-        # Cookie wins when both present: garbage Bearer + valid cookie -> 200
-        _clear(test_client)
-        res_both = test_client.get(
-            "/api/v1/auth/me",
-            headers={"Authorization": "Bearer not-a-real-token"},
-            cookies=cookies,
-        )
-        assert res_both.status_code == 200
-
-        # Presence-based, not validity-based: invalid cookie + valid Bearer
-        # still 401s -- no silent fallback to the header.
-        _clear(test_client)
-        res_bad_cookie = test_client.get(
-            "/api/v1/auth/me",
-            headers={"Authorization": f"Bearer {body['access_token']}"},
-            cookies={ACCESS_COOKIE: "garbage-cookie-value"},
-        )
-        assert res_bad_cookie.status_code == 401
-    finally:
-        await _delete_user_and_sessions(user_id)
-
-
 # --- FR8 test 3: cookie mode ---------------------------------------------------
 
 
@@ -326,11 +209,10 @@ async def test_case2_dual_mode_cookies_and_body_tokens_cookie_wins(test_client, 
 async def test_case3_cookie_mode_omits_body_tokens_bearer_only_rejected(
     test_client, monkeypatch
 ):
-    monkeypatch.setattr(settings, "COOKIE_AUTH_MODE", "cookie")
-    # Neither cookie nor header present resolves to "no token" the same way
-    # DEV_AUTH_BYPASS's mock-admin escape hatch checks for -- disable it here
-    # so this assertion exercises the real 401, not the dev bypass (this
-    # repo's test env has DEV_AUTH_BYPASS=true for other tests' convenience).
+    # No cookie present resolves to "no token" the same way DEV_AUTH_BYPASS's
+    # mock-admin escape hatch checks for -- disable it here so this assertion
+    # exercises the real 401, not the dev bypass (this repo's test env has
+    # DEV_AUTH_BYPASS=true for other tests' convenience).
     monkeypatch.setattr(settings, "DEV_AUTH_BYPASS", False)
     username = f"cookie-t3-{uuid.uuid4().hex[:10]}"
     user_id = await _create_admin_user(username)
@@ -342,11 +224,24 @@ async def test_case3_cookie_mode_omits_body_tokens_bearer_only_rejected(
         assert body["refresh_token"] == ""
         assert body["csrf_token"]
 
+        # Set-Cookie triple attributes (carried over from the removed case2):
+        # HttpOnly + SameSite=Strict + per-cookie paths.
+        set_cookie_headers = res.headers.get_list("set-cookie")
+        attrs = _parse_set_cookie_attrs(set_cookie_headers)
+        assert set(attrs) == {ACCESS_COOKIE, REFRESH_COOKIE, CSRF_COOKIE}
+        for name, a in attrs.items():
+            assert a["httponly"] is True
+            assert a["samesite"] == "strict"
+        assert attrs[ACCESS_COOKIE]["path"] == "/api/v1"
+        assert attrs[REFRESH_COOKIE]["path"] == "/api/v1/auth"
+        assert attrs[CSRF_COOKIE]["path"] == "/api/v1"
+
         cookies = dict(res.cookies)
         _clear(test_client)
         res_me = test_client.get("/api/v1/auth/me", cookies=cookies)
         assert res_me.status_code == 200
 
+        # A stray Authorization header is ignored entirely -- cookie-only.
         _clear(test_client)
         res_bearer_only = test_client.get(
             "/api/v1/auth/me",
@@ -362,9 +257,8 @@ async def test_case3_cookie_mode_omits_body_tokens_bearer_only_rejected(
 
 @pytest.mark.asyncio
 async def test_case4_rotation_issues_new_jti_reuse_401s_and_revokes_family(
-    test_client, monkeypatch
+    test_client,
 ):
-    monkeypatch.setattr(settings, "COOKIE_AUTH_MODE", "cookie")
     username = f"cookie-t4-{uuid.uuid4().hex[:10]}"
     user_id = await _create_admin_user(username)
     try:
@@ -404,7 +298,7 @@ async def test_case4_rotation_issues_new_jti_reuse_401s_and_revokes_family(
 
 @pytest.mark.asyncio
 async def test_case4_expired_active_refresh_is_invalid_not_reuse(
-    test_client, monkeypatch
+    test_client,
 ):
     """F1: a refresh cookie whose server-side row is `active` but past its
     TTL is an ordinary expiry, NOT reuse -- the refresh must 401 with outcome
@@ -419,7 +313,6 @@ async def test_case4_expired_active_refresh_is_invalid_not_reuse(
     `now + REFRESH_TOKEN_EXPIRE_DAYS`, so the DB row expires slightly before
     the JWT, opening a window where this code path runs for a benign expiry.
     """
-    monkeypatch.setattr(settings, "COOKIE_AUTH_MODE", "cookie")
     username = f"cookie-t4exp-{uuid.uuid4().hex[:10]}"
     user_id = await _create_admin_user(username)
     try:
@@ -464,46 +357,11 @@ async def test_case4_expired_active_refresh_is_invalid_not_reuse(
 
 
 
-# --- FR8 test 5: legacy no-jti refresh via header -----------------------------
-
-
-@pytest.mark.asyncio
-async def test_case5_legacy_header_refresh_dual_accepted_cookie_rejected(
-    test_client, monkeypatch
-):
-    username = f"cookie-t5-{uuid.uuid4().hex[:10]}"
-    user_id = await _create_admin_user(username)
-    try:
-        monkeypatch.setattr(settings, "COOKIE_AUTH_MODE", "bearer")
-        res_login = _login(test_client, username)
-        assert res_login.status_code == 200
-        legacy_refresh_token = res_login.json()["refresh_token"]
-
-        monkeypatch.setattr(settings, "COOKIE_AUTH_MODE", "dual")
-        res_dual = test_client.post(
-            "/api/v1/auth/refresh",
-            headers={"Authorization": f"Bearer {legacy_refresh_token}"},
-        )
-        assert res_dual.status_code == 200
-        assert res_dual.json()["access_token"]
-        assert await _count_auth_sessions(user_id) == 0
-
-        monkeypatch.setattr(settings, "COOKIE_AUTH_MODE", "cookie")
-        res_cookie = test_client.post(
-            "/api/v1/auth/refresh",
-            headers={"Authorization": f"Bearer {legacy_refresh_token}"},
-        )
-        assert res_cookie.status_code == 401
-    finally:
-        await _delete_user_and_sessions(user_id)
-
-
 # --- FR8 test 6: CSRF double-submit -------------------------------------------
 
 
 @pytest.mark.asyncio
-async def test_case6_csrf_double_submit_enforcement(test_client, monkeypatch):
-    monkeypatch.setattr(settings, "COOKIE_AUTH_MODE", "dual")
+async def test_case6_csrf_double_submit_enforcement(test_client):
     username = f"cookie-t6-{uuid.uuid4().hex[:10]}"
     user_id = await _create_admin_user(username)
     try:
@@ -511,7 +369,6 @@ async def test_case6_csrf_double_submit_enforcement(test_client, monkeypatch):
         assert res_login.status_code == 200
         cookies = dict(res_login.cookies)
         csrf_value = cookies[CSRF_COOKIE]
-        access_token = res_login.json()["access_token"]
 
         # cookie-authed POST without header -> 403
         _clear(test_client)
@@ -546,15 +403,6 @@ async def test_case6_csrf_double_submit_enforcement(test_client, monkeypatch):
         )
         assert res_ok.status_code == 200
 
-        # Bearer-authed POST without header -> 2xx (exempt: not cookie-sourced,
-        # and no cookie must ride along from the jar to force cookie-sourcing)
-        _clear(test_client)
-        res_bearer_ok = test_client.post(
-            "/api/v1/auth/ws-ticket",
-            headers={"Authorization": f"Bearer {access_token}"},
-        )
-        assert res_bearer_ok.status_code == 200
-
         # login/refresh are exempt entirely (no get_current_user dependency)
         res_login2 = _login(test_client, username)
         assert res_login2.status_code == 200
@@ -566,8 +414,7 @@ async def test_case6_csrf_double_submit_enforcement(test_client, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_case7_logout_clears_cookies_revokes_family_idempotent(test_client, monkeypatch):
-    monkeypatch.setattr(settings, "COOKIE_AUTH_MODE", "dual")
+async def test_case7_logout_clears_cookies_revokes_family_idempotent(test_client):
     username = f"cookie-t7-{uuid.uuid4().hex[:10]}"
     user_id = await _create_admin_user(username)
     try:
@@ -604,27 +451,28 @@ async def test_case7_logout_clears_cookies_revokes_family_idempotent(test_client
 
 
 @pytest.mark.asyncio
-async def test_case8_migrate_session_matrix(test_client, monkeypatch):
+async def test_case8_migrate_session_happy_cookie_attempt_401_rate_limit(
+    test_client,
+):
+    """Cookie-only migrate-session: a legacy Bearer access token (minted
+    directly -- login no longer returns body tokens) is exchanged for a
+    cookie session; cookie-only attempts 401; the rate limiter trips 429."""
+    from app.core.security import create_access_token
+
     username = f"cookie-t8-{uuid.uuid4().hex[:10]}"
     user_id = await _create_admin_user(username)
     try:
-        monkeypatch.setattr(settings, "COOKIE_AUTH_MODE", "bearer")
-        res_login = _login(test_client, username)
-        access_token = res_login.json()["access_token"]
-
-        # bearer mode -> 409
-        res_bearer_mode = test_client.post(
-            "/api/v1/auth/migrate-session",
-            headers={"Authorization": f"Bearer {access_token}"},
+        # A legacy client holds only a Bearer access token (pre-2B era).
+        access_token = create_access_token(
+            subject=user_id,
+            expires_delta=timedelta(minutes=30),
         )
-        assert res_bearer_mode.status_code == 409
-
-        monkeypatch.setattr(settings, "COOKIE_AUTH_MODE", "dual")
 
         # cookie-only attempt (no Authorization header) -> 401: this
         # endpoint's dependency is Bearer-only by construction.
-        res_login_dual = _login(test_client, username)
-        cookies = dict(res_login_dual.cookies)
+        res_login = _login(test_client, username)
+        cookies = dict(res_login.cookies)
+        _clear(test_client)
         res_cookie_attempt = test_client.post("/api/v1/auth/migrate-session", cookies=cookies)
         assert res_cookie_attempt.status_code == 401
 
@@ -637,8 +485,8 @@ async def test_case8_migrate_session_matrix(test_client, monkeypatch):
         )
         assert res_ok.status_code == 200
         ok_body = res_ok.json()
-        assert ok_body["access_token"]
-        assert ok_body["refresh_token"]
+        assert ok_body["access_token"] == ""
+        assert ok_body["refresh_token"] == ""
         assert ok_body["csrf_token"]
         assert len(res_ok.headers.get_list("set-cookie")) == 3
         assert await _count_audit_rows(user_id, "migrate_session") >= 1
@@ -662,21 +510,22 @@ async def test_case8_migrate_session_matrix(test_client, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_case9_ws_ticket_single_use_expiry_and_origin_guard(test_client, monkeypatch):
-    monkeypatch.setattr(settings, "COOKIE_AUTH_MODE", "dual")
+async def test_case9_ws_ticket_single_use_expiry_and_origin_guard(test_client):
     username = f"cookie-t9-{uuid.uuid4().hex[:10]}"
     user_id = await _create_admin_user(username)
     try:
         res_login = _login(test_client, username)
-        access_token = res_login.json()["access_token"]
+        assert res_login.status_code == 200
+        login_cookies = dict(res_login.cookies)
+        csrf_value = login_cookies[CSRF_COOKIE]
 
-        # Clear the jar so this Bearer-authed mint isn't silently
-        # cookie-sourced instead (dual mode: a leftover access_token cookie
-        # from login would take priority and trip the CSRF check).
+        # Cookie-authenticated mint with the CSRF double-submit header
+        # (mirrors what the browser's patched fetch sends).
         _clear(test_client)
         res_ticket = test_client.post(
             "/api/v1/auth/ws-ticket",
-            headers={"Authorization": f"Bearer {access_token}"},
+            cookies=login_cookies,
+            headers={"x-csrf-token": csrf_value},
         )
         assert res_ticket.status_code == 200
         ticket_body = res_ticket.json()

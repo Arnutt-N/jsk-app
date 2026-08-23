@@ -1,6 +1,6 @@
 'use client';
 // Client Component required: interactive search, pagination, and polling state.
-// Auth is handled globally by the authFetch interceptor (bearer or cookie mode).
+// Auth is handled globally by the authFetch interceptor (cookie auth).
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
