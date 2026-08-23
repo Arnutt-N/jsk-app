@@ -22,23 +22,28 @@ import {
 } from 'lucide-react'
 import { logger } from '@/lib/logger';
 import { TOPIC_OPTIONS } from '@/lib/constants/categories'
+import { useLiffInit } from '@/hooks/useLiffInit'
+import { useAutoCloseCountdown } from '@/hooks/useAutoCloseCountdown'
+import { fetchDistricts, fetchSubDistricts } from '@/lib/liff/location-cascade'
+import { submitServiceRequest } from '@/lib/liff/submit-service-request'
 
 // --- CONSTANTS ---
 
 export default function LiffServiceRequestSingle() {
-    interface LiffProfile {
-        userId: string;
-    }
-
     // --- STATE ---
-    const [loading, setLoading] = useState(true)
     const [submitting, setSubmitting] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState(false)
     const [showConfirm, setShowConfirm] = useState(false)
     const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
-    const [profile, setProfile] = useState<LiffProfile | null>(null)
-    const [idToken, setIdToken] = useState<string | null>(null)
+
+    // LIFF init (script-injected window.liff; skip silently when absent)
+    const { profile, idToken, initDone } = useLiffInit({
+        getLiff: () => (typeof window !== 'undefined' ? window.liff : undefined),
+        requireLiffId: false,
+        redirectLogin: false
+    })
+    const loading = !initDone
 
     // Location Data State
     const [provinces, setProvinces] = useState<Province[]>([])
@@ -77,30 +82,8 @@ export default function LiffServiceRequestSingle() {
     const [selectedProvinceId, setSelectedProvinceId] = useState<number | null>(null)
     const [selectedDistrictId, setSelectedDistrictId] = useState<number | null>(null)
 
-    // --- INITIALIZATION ---
+    // --- PROVINCES (initial load) ---
     useEffect(() => {
-        const initLiff = async () => {
-            try {
-                const liffId = process.env.NEXT_PUBLIC_LIFF_ID
-                if (liffId && typeof window !== 'undefined' && window.liff) {
-                    await window.liff.init({ liffId })
-                    if (window.liff.isLoggedIn()) {
-                        const userProfile = await window.liff.getProfile()
-                        setProfile(userProfile)
-                        try {
-                            setIdToken(window.liff.getIDToken())
-                        } catch (tokenErr) {
-                            logger.error('LIFF getIDToken Error:', tokenErr)
-                        }
-                    }
-                }
-            } catch (err: unknown) {
-                logger.error('LIFF Init Error:', err)
-            } finally {
-                setLoading(false)
-            }
-        }
-
         const fetchProvinces = async () => {
             try {
                 const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api/v1'
@@ -113,7 +96,6 @@ export default function LiffServiceRequestSingle() {
             }
         }
 
-        initLiff()
         fetchProvinces()
     }, [])
 
@@ -149,8 +131,7 @@ export default function LiffServiceRequestSingle() {
         if (provinceId) {
             setLoadingDistricts(true)
             try {
-                const res = await fetch(`/api/v1/locations/provinces/${provinceId}/districts`)
-                const data = await res.json()
+                const data = await fetchDistricts(provinceId)
                 setDistricts(data)
             } catch (err) {
                 logger.error(err)
@@ -175,8 +156,7 @@ export default function LiffServiceRequestSingle() {
         if (districtId) {
             setLoadingSubDistricts(true)
             try {
-                const res = await fetch(`/api/v1/locations/districts/${districtId}/sub-districts`)
-                const data = await res.json()
+                const data = await fetchSubDistricts(districtId)
                 setSubDistricts(data)
             } catch (err) {
                 logger.error(err)
@@ -263,14 +243,7 @@ export default function LiffServiceRequestSingle() {
                 line_user_id: profile?.userId || 'GUEST'
             }
 
-            const res = await fetch('/api/v1/liff/service-requests', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(idToken ? { 'x-liff-id-token': idToken } : {})
-                },
-                body: JSON.stringify(payload)
-            })
+            const res = await submitServiceRequest(payload, idToken)
 
             const resText = await res.text()
             let data
@@ -281,9 +254,6 @@ export default function LiffServiceRequestSingle() {
             }
 
             if (!res.ok) {
-                if (res.status === 401) {
-                    throw new Error('เซสชัน LINE หมดอายุ กรุณาปิดหน้าต่างนี้แล้วเปิดฟอร์มใหม่จากเมนู LINE')
-                }
                 throw new Error(data.detail || 'Failed to submit')
             }
 
@@ -316,16 +286,8 @@ export default function LiffServiceRequestSingle() {
         }
     }
 
-    const [timeLeft, setTimeLeft] = useState(5)
-    useEffect(() => {
-        let timer: NodeJS.Timeout
-        if (success && timeLeft > 0) {
-            timer = setTimeout(() => setTimeLeft(prev => prev - 1), 1000)
-        } else if (success && timeLeft === 0) {
-            handleClose()
-        }
-        return () => clearTimeout(timer)
-    }, [success, timeLeft])
+    // Auto-close countdown on the success screen.
+    const { timeLeft } = useAutoCloseCountdown(success, handleClose)
 
     if (loading) {
         return (

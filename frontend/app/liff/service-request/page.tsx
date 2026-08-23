@@ -27,6 +27,10 @@ import {
 import { logger } from '@/lib/logger';
 import { useToast } from '@/components/ui/Toast';
 import { TOPIC_OPTIONS } from '@/lib/constants/categories'
+import { useLiffInit } from '@/hooks/useLiffInit'
+import { useAutoCloseCountdown } from '@/hooks/useAutoCloseCountdown'
+import { fetchDistricts, fetchSubDistricts } from '@/lib/liff/location-cascade'
+import { submitServiceRequest } from '@/lib/liff/submit-service-request'
 
 // --- CONSTANTS ---
 const STEPS = [
@@ -37,10 +41,6 @@ const STEPS = [
 ]
 
 export default function LiffServiceRequestV2() {
-    interface LiffProfile {
-        userId: string;
-    }
-
     // --- STATE ---
     const [step, setStep] = useState(0)
     const [submitting, setSubmitting] = useState(false)
@@ -48,11 +48,16 @@ export default function LiffServiceRequestV2() {
     const [success, setSuccess] = useState(false)
     const [showConfirm, setShowConfirm] = useState(false)
     const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
-    const [profile, setProfile] = useState<LiffProfile | null>(null)
-    const [idToken, setIdToken] = useState<string | null>(null)
-    const [isInLineApp, setIsInLineApp] = useState(false)
     const [showLeaveConfirm, setShowLeaveConfirm] = useState(false)
     const { toast } = useToast()
+
+    // LIFF init (profile / idToken / in-LINE detection)
+    const { profile, idToken, isInLineApp, setIsInLineApp } = useLiffInit({
+        getLiff: () => liff,
+        requireLiffId: true,
+        redirectLogin: true,
+        trackInLineApp: true
+    })
 
     // Location Data State
     const [provinces, setProvinces] = useState<Province[]>([])
@@ -92,51 +97,8 @@ export default function LiffServiceRequestV2() {
     const [selectedProvinceId, setSelectedProvinceId] = useState<number | null>(null)
     const [selectedDistrictId, setSelectedDistrictId] = useState<number | null>(null)
 
-    // --- INITIALIZATION ---
+    // --- PROVINCES (initial load) ---
     useEffect(() => {
-        const initLiff = async () => {
-            try {
-                const liffId = process.env.NEXT_PUBLIC_LIFF_ID
-                if (!liffId) {
-                    throw new Error('LIFF ID is not specified in environment variables.')
-                }
-
-                // Initialize LIFF
-                await liff.init({ liffId })
-
-                // Check if running inside LINE App
-                const inClient = liff.isInClient()
-                setIsInLineApp(inClient)
-
-                // Get profile if logged in
-                if (liff.isLoggedIn()) {
-                    const userProfile = await liff.getProfile()
-                    setProfile(userProfile)
-                    try {
-                        setIdToken(liff.getIDToken())
-                    } catch (tokenErr) {
-                        logger.error('LIFF getIDToken Error:', tokenErr)
-                    }
-                } else {
-                    // Not logged in - trigger login
-                    liff.login()
-                    return
-                }
-            } catch (err: unknown) {
-                logger.error('LIFF Init Error:', err)
-                // Don't show error to user immediately, just log it.
-                // We'll fallback to manual inputs if LIFF fails.
-                // Still try to detect the LINE in-app context so the success
-                // screen + auto-close behave correctly even if init hiccupped
-                // (otherwise isInLineApp stays false on mobile and never closes).
-                try {
-                    setIsInLineApp(liff.isInClient())
-                } catch {
-                    // Not in the LINE client (or LIFF unavailable) — leave as false.
-                }
-            }
-        }
-
         const fetchProvinces = async () => {
             try {
                 // Use the relative path so the request goes through the Next.js
@@ -157,7 +119,6 @@ export default function LiffServiceRequestV2() {
             // No global loading gate — UI renders immediately while provinces load
         }
 
-        initLiff()
         fetchProvinces()
     }, [])
 
@@ -199,8 +160,7 @@ export default function LiffServiceRequestV2() {
         if (provinceId) {
             setLoadingDistricts(true)
             try {
-                const res = await fetch(`/api/v1/locations/provinces/${provinceId}/districts`)
-                const data = await res.json()
+                const data = await fetchDistricts(provinceId)
                 setDistricts(data)
             } catch (err) {
                 logger.error(err)
@@ -226,8 +186,7 @@ export default function LiffServiceRequestV2() {
         if (districtId) {
             setLoadingSubDistricts(true)
             try {
-                const res = await fetch(`/api/v1/locations/districts/${districtId}/sub-districts`)
-                const data = await res.json()
+                const data = await fetchSubDistricts(districtId)
                 setSubDistricts(data)
             } catch (err) {
                 logger.error(err)
@@ -348,14 +307,7 @@ export default function LiffServiceRequestV2() {
             }
 
             // Post to backend
-            const res = await fetch('/api/v1/liff/service-requests', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(idToken ? { 'x-liff-id-token': idToken } : {})
-                },
-                body: JSON.stringify(payload)
-            })
+            const res = await submitServiceRequest(payload, idToken)
 
             const resText = await res.text()
             let data
@@ -367,9 +319,6 @@ export default function LiffServiceRequestV2() {
             }
 
             if (!res.ok) {
-                if (res.status === 401) {
-                    throw new Error('เซสชัน LINE หมดอายุ กรุณาปิดหน้าต่างนี้แล้วเปิดฟอร์มใหม่จากเมนู LINE')
-                }
                 throw new Error(data.detail || JSON.stringify(data))
             }
 
@@ -388,9 +337,6 @@ export default function LiffServiceRequestV2() {
             setSubmitting(false)
         }
     }
-
-    // Auto-close countdown state (only works in LINE App)
-    const [timeLeft, setTimeLeft] = useState(5)
 
     // Clear only the fields belonging to the current step ("ล้างค่า" per tab).
     const clearStep = () => {
@@ -423,7 +369,7 @@ export default function LiffServiceRequestV2() {
         setError(null)
         setShowConfirm(false)
         setSuccess(false)
-        setTimeLeft(5)
+        resetCountdown()
         window.scrollTo(0, 0)
     }
 
@@ -435,6 +381,10 @@ export default function LiffServiceRequestV2() {
             logger.error('Close window failed:', e)
         }
     }
+
+    // Auto-close countdown (only ticks inside the LINE in-app browser — an
+    // external browser tab cannot be closed programmatically).
+    const { timeLeft, resetCountdown } = useAutoCloseCountdown(success && isInLineApp, handleClose)
 
     // "ยกเลิกรายการ" leave action. Inside LINE we close the LIFF window; in an
     // external (desktop) browser the tab can't be closed by script, so navigate
@@ -457,18 +407,6 @@ export default function LiffServiceRequestV2() {
         performLeave()
         setShowLeaveConfirm(false)
     }
-
-    useEffect(() => {
-        // Auto-close only runs inside the LINE in-app browser; an external
-        // browser tab cannot be closed programmatically, so skip it there.
-        if (!success || !isInLineApp) return
-        if (timeLeft <= 0) {
-            handleClose()
-            return
-        }
-        const timer = setTimeout(() => setTimeLeft(prev => prev - 1), 1000)
-        return () => clearTimeout(timer)
-    }, [success, timeLeft, isInLineApp])
 
     if (success) {
         return (

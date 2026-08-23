@@ -16,6 +16,7 @@ import { ROLE, ROLE_META, getRoleOptionLabel, type RoleBadgeVariant } from '@/li
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { ModalAlert } from '@/components/ui/ModalAlert';
+import { PasswordStrengthMeter } from '@/components/ui/PasswordStrengthMeter';
 import { readErrorMessage } from '@/lib/api-error';
 import logger from '@/lib/logger';
 import { maskLineUserId } from '@/lib/mask';
@@ -54,20 +55,6 @@ const ROLE_OPTIONS: SelectOption[] = [
     { value: ROLE.AGENT, label: getRoleOptionLabel(ROLE.AGENT) },
     { value: ROLE.USER, label: getRoleOptionLabel(ROLE.USER) },
 ];
-
-function passwordStrength(pw: string): { level: number; label: string; color: string } {
-    if (!pw) return { level: 0, label: '', color: '' };
-    let score = 0;
-    if (pw.length >= 8) score++;
-    if (pw.length >= 12) score++;
-    if (/[A-Z]/.test(pw)) score++;
-    if (/[0-9]/.test(pw)) score++;
-    if (/[^A-Za-z0-9]/.test(pw)) score++;
-    if (score <= 1) return { level: 1, label: 'อ่อน', color: 'bg-red-500' };
-    if (score <= 2) return { level: 2, label: 'ปานกลาง', color: 'bg-amber-500' };
-    if (score <= 3) return { level: 3, label: 'ดี', color: 'bg-blue-500' };
-    return { level: 4, label: 'แข็งแรง', color: 'bg-green-500' };
-}
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 
@@ -387,19 +374,7 @@ export default function UserDetailPage() {
                                 value={newPassword}
                                 onChange={(e) => setNewPassword(e.target.value)}
                             />
-                            {newPassword && (
-                                <div className="mt-2">
-                                    <div className="flex items-center gap-2">
-                                        <div className="flex-1 h-1.5 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
-                                            <div
-                                                className={`h-full rounded-full transition-all ${passwordStrength(newPassword).color}`}
-                                                style={{ width: `${passwordStrength(newPassword).level * 25}%` }}
-                                            />
-                                        </div>
-                                        <span className="text-xs text-text-secondary">{passwordStrength(newPassword).label}</span>
-                                    </div>
-                                </div>
-                            )}
+                            {newPassword && <PasswordStrengthMeter password={newPassword} />}
                         </div>
                         <Button
                             variant="secondary"
@@ -464,19 +439,7 @@ export default function UserDetailPage() {
                             value={resetPw}
                             onChange={(e) => setResetPw(e.target.value)}
                         />
-                        {resetPw && (
-                            <div className="mt-2">
-                                <div className="flex items-center gap-2">
-                                    <div className="flex-1 h-1.5 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
-                                        <div
-                                            className={`h-full rounded-full transition-all ${passwordStrength(resetPw).color}`}
-                                            style={{ width: `${passwordStrength(resetPw).level * 25}%` }}
-                                        />
-                                    </div>
-                                    <span className="text-xs text-text-secondary">{passwordStrength(resetPw).label}</span>
-                                </div>
-                            </div>
-                        )}
+                        {resetPw && <PasswordStrengthMeter password={resetPw} />}
                     </div>
 
                     {resetError && (
