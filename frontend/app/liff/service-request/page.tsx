@@ -26,6 +26,7 @@ import {
 } from 'lucide-react'
 import { logger } from '@/lib/logger';
 import { useToast } from '@/components/ui/Toast';
+import { TOPIC_OPTIONS } from '@/lib/constants/categories'
 
 // --- CONSTANTS ---
 const STEPS = [
@@ -35,36 +36,6 @@ const STEPS = [
     { title: 'เอกสารแนบ', icon: <Paperclip className="w-4 h-4" /> }
 ]
 
-const TOPIC_OPTIONS: Record<string, string[]> = {
-    "แจ้งเบาะแสยาเสพติด": [
-        "ปัญหายาเสพติด",
-        "ผู้เสพ/ผู้ป่วยที่เฝ้าระวัง/อันตราย",
-        "ขอความช่วยเหลือบำบัดผู้เสพ",
-        "ครอบครัวที่ต้องเข้าช่วยเหลือจากผลกระทบยาเสพติด"
-    ],
-    "กองทุนยุติธรรม": [
-        "ค่าจ้างทนายความ",
-        "ค่าธรรมเนียมศาล",
-        "เงินประกันตัว",
-        "อื่นๆ"
-    ],
-    "เงินเยียวยาเหยื่ออาชญากรรม": [
-        "กรณีถูกทำร้ายร่างกาย/ถูกลูกหลง",
-        "กรณีอุบัติเหตุจราจร",
-        "กรณีอนาจาร/ข่มขืน",
-        "กรณีจำเลยในคดีอาญาที่ศาลยกฟ้อง",
-        "อื่นๆ"
-    ],
-    "ไกล่เกลี่ยข้อพิพาท": [
-        "ข้อพิพาททางแพ่ง (ที่ดิน มรดก ครอบครัว หนี้ ค้ำประกัน เช่าชื้อ)",
-        "ข้อพิพาททางอาญา (เพศ ร่างกาย ทรัพย์ รถชน)",
-        "อื่นๆ"
-    ],
-    "ร้องเรียน/ร้องทุกข์": [
-        "อธิบายสั้นๆ"
-    ]
-}
-
 export default function LiffServiceRequestV2() {
     interface LiffProfile {
         userId: string;
@@ -72,7 +43,6 @@ export default function LiffServiceRequestV2() {
 
     // --- STATE ---
     const [step, setStep] = useState(0)
-    const [, setLoading] = useState(false) // Start as false to render immediately
     const [submitting, setSubmitting] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState(false)
@@ -183,11 +153,8 @@ export default function LiffServiceRequestV2() {
             } catch (err: unknown) {
                 logger.error("Provinces fetch error:", err)
                 setError(err instanceof Error ? err.message : 'Failed to load provinces') // Show detail to user for debugging
-            } finally {
-                // Unblock UI as soon as provinces are loaded (or failed)
-                // We don't wait for LIFF anymore
-                setLoading(false)
             }
+            // No global loading gate — UI renders immediately while provinces load
         }
 
         initLiff()
@@ -502,9 +469,6 @@ export default function LiffServiceRequestV2() {
         const timer = setTimeout(() => setTimeLeft(prev => prev - 1), 1000)
         return () => clearTimeout(timer)
     }, [success, timeLeft, isInLineApp])
-
-    // Global loading spinner removed to allow instant render
-    // if (loading) { ... }
 
     if (success) {
         return (
