@@ -670,8 +670,6 @@ class AnalyticsService:
         Returns:
             List of hourly stats dicts
         """
-        from app.models.message import Message
-        
         cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
         
         # Get messages per hour

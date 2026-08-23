@@ -3,7 +3,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, update
+from sqlalchemy import select, func
 from typing import List, Optional
 from datetime import datetime
 
@@ -14,9 +14,10 @@ from app.core.permissions import can_assign, can_self_assign, can_revert_approva
 from app.core.request_workflow import describe_invalid_transition, requires_override
 from app.models.service_request import ServiceRequest, RequestStatus, RequestPriority
 from app.models.media_file import MediaFile
-from app.schemas.service_request_liff import ServiceRequestResponse
+from app.schemas.service_request_liff import ServiceRequestResponse, RequestCommentCreate, RequestCommentResponse
 from pydantic import BaseModel
 from app.models.user import User
+from app.models.request_comment import RequestComment
 
 router = APIRouter()
 
@@ -252,8 +253,7 @@ async def get_performance_stats(db: AsyncSession = Depends(get_db), current_admi
     ot_row = ot_result.one()
     
     avg_ct = ct_row.avg_cycle_time_days or 0.0
-    total_ot = ot_row.total_completed or 1 # Avoid division by zero
-    ot_percent = (ot_row.on_time_count / total_ot) * 100 if ot_row.total_completed else 100.0
+    ot_percent = (ot_row.on_time_count / ot_row.total_completed * 100) if ot_row.total_completed else 100.0
     
     return PerformanceStats(avg_cycle_time_days=round(avg_ct, 2), on_time_percentage=round(ot_percent, 1))
 
@@ -269,8 +269,6 @@ async def list_requests(
     current_admin: User = Depends(get_current_manager)
 ):
     """List all service requests with filtering and search."""
-    # query = select(ServiceRequest).offset(skip).limit(limit).order_by(ServiceRequest.created_at.desc())
-    
     # Use join to get assignee name
     query = (
         select(ServiceRequest, User.display_name.label("assignee_name"))
@@ -614,10 +612,6 @@ async def delete_request(
     await db.delete(request)
     await db.commit()
     return None
-
-from app.schemas.service_request_liff import RequestCommentCreate, RequestCommentResponse
-
-from app.models.request_comment import RequestComment
 
 @router.post("/{request_id}/comments", response_model=RequestCommentResponse)
 async def create_comment(
