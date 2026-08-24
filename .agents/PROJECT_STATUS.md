@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-08-23 19:05 by OpenCode (Post-merge hardening for PR #200 session: deep review x2 axes on post-merge artifacts clai)
+> **Last Updated:** 2026-08-24 07:45 by OpenCode (Simplify pass complete: PR #201 Tier 1, -208 lines + PR #202 Tier 2/3, 33 files both squas)
 
 ## Thai Summary
 **สถานะล่าสุด (2026-08-23)** — milestone หลักทุกตัวปิดแล้ว เหลือเฉพาะ manual test ฝั่งผู้ใช้:
@@ -111,6 +111,7 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-08-24 07:45] OpenCode: Simplify pass complete: PR #201 (Tier 1, -208 lines) + PR #202 (Tier 2/3, 33 files) both squash-merged to main. Backend perf (N+1 fixes, IN-query batching, to_thread offload, message_payload_dict SSOT), frontend SSOT consolidation (status l (OpenCode)
 - [2026-08-23 19:05] OpenCode: Post-merge hardening for PR #200 session: deep review x2 axes on post-merge artifacts (claims fact-checked LIVE - docker dev DB confirmed at head q8r9s0t1u2v3 via psql, PR #200 MERGED f223bd3, CI numbers matched); migrated stale docker db ( (OpenCode)
 - [2026-08-23 18:21] OpenCode: COOKIE_AUTH_MODE cleanup SHIPPED end-to-end (PR #200 squash f223bd3): PRD+PRP REV 2 per mandatory workflow, deep review x2 rounds (7 findings all fixed + re-verified), CI green, merged, CD deployed, post-merge prod smoke all-pass (OpenCode)
 - [2026-08-22 17:36] OpenCode: LINE_ID_STORAGE_MODE flipped dual->pseudonym on Koyeb PROD: verified stale dual value via control-plane API GET /v1/deployments, user-approved, koyeb CLI services update with merge semantics (all other 19 env vars untouched), new deployment (OpenCode)

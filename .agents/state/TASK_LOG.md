@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 232 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 233 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-08-24 07:45 — open_code — completed
+
+Simplify pass complete: PR #201 (Tier 1, -208 lines) + PR #202 (Tier 2/3, 33 files) both squash-merged to main. Backend perf (N+1 fixes, IN-query batching, to_thread offload, message_payload_dict SSOT), frontend SSOT consolidation (status labels, PasswordStrengthMeter, TrendBadge/formatDuration, LIFF shared hooks), update_request split into helpers. Verified: backend 1043 passed, frontend 539 passed, tsc clean.
+
+- Checkpoint: `.agents/state/checkpoints/handover-open_code-20260824-0745.json`
+- Summary: `project-log-md/open_code/session-summary-20260824-0745.md`
+
+---
 
 ### 2026-08-23 19:05 — open_code (ox-alpha-free / opencode) — completed
 
