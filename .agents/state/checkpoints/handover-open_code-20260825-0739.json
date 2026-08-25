@@ -1,0 +1,20 @@
+{
+  "handoff_version": "2.0",
+  "platform": "open_code",
+  "agent": "open_code",
+  "timestamp": "2026-08-25T07:39:00+07:00",
+  "branch": "main",
+  "head_commit": "584b2ad",
+  "status": "completed",
+  "work_summary": "LIFF smoke-test plan for PR #202 drafted+reviewed (.scratch/liff-smoke-pr202/smoke-test-plan.md, REV1: 5 findings fixed); agent-side pre-checks PASS: Vercel deploy d259efe verified via commit status + live-bundle marker string (unique to new useLiffInit), health 200 db/redis ok, headless render: service-request-single full render + 78 provinces, wizard/request-v2 redirect to LINE login in fresh external browser (pre-existing redirectLogin behavior, not regression); PR #202 code review via review agent = clean, no bugs (116 pytest related files, 539 vitest, tsc clean); remaining: user phone test Section A-B esp. countdown A3",
+  "priority_actions": [
+    "User phone test Section A-B per checklist (focus A3 countdown 5-0 auto-close + manual close button round 2)",
+    "Follow-up: unit tests for hooks/useLiffInit + useAutoCloseCountdown (no coverage yet)",
+    "Follow-up: sync stale skn-liff-form skill (still describes pre-PR202 single-file structure)"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/open_code/session-summary-20260825-0739.md",
+  "cross_platform_read": [],
+  "model": "ox-alpha-free",
+  "provider": "opencode-go"
+}

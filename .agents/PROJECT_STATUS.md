@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-08-24 07:45 by OpenCode (Simplify pass complete: PR #201 Tier 1, -208 lines + PR #202 Tier 2/3, 33 files both squas)
+> **Last Updated:** 2026-08-25 07:39 by OpenCode (LIFF smoke-test plan for PR #202 drafted+reviewed .scratch/liff-smoke-pr202/smoke-test-pla)
 
 ## Thai Summary
 **สถานะล่าสุด (2026-08-23)** — milestone หลักทุกตัวปิดแล้ว เหลือเฉพาะ manual test ฝั่งผู้ใช้:
@@ -95,6 +95,7 @@
 - [x] Merged PR #78 to `main` branch.
 
 ## Latest Pickup Status
+- [2026-08-25] **PR #202 smoke-test plan READY + code review CLEAN** — plan REV1 ที่ `.scratch/liff-smoke-pr202/smoke-test-plan.md` (gitignored): Section A wizard (โฟกัส countdown A3: `enabled = success && isInLineApp`, onClose ผ่าน ref, resetCountdown reachable เฉพาะ non-LINE branch) + B quick pass 2 หน้า + C external browser. Agent pre-checks PASS: Vercel=`d259efe` (commit status + live-bundle marker `"LIFF SDK not found..."` เฉพาะ hook ใหม่ใน chunk `7bb4a22b`), health 200, headless render single-page OK (78 provinces); wizard/request-v2 redirect→LINE login ใน fresh browser = พฤติกรรมเดิม (`redirectLogin`) ไม่ใช่ regression. Review agent ตรวจ PR #202 clean — 116 pytest/539 vitest/tsc clean, 4 informational notes. **คงเหลือ:** user phone test A-B (A3 countdown) → follow-up: hook unit tests + sync skn-liff-form skill (stale post-#202)
 - [2026-08-23] **COOKIE_AUTH_MODE cleanup SHIPPED (PR #200, squash `f223bd3`)** — auth เป็น cookie-only แบบไม่มีเงื่อนไข: ลบ mode flag + Bearer fallback + legacy stateless refresh; migrate-session/ws-ticket/CSRF/DEV_AUTH_BYPASS คงเดิม; PRD+PRP REV 2 → deep review 2 รอบ (7 findings fixed, re-verified) → CI เขียวทุกช่อง → merge → CD deploy → prod smoke ผ่านครบ. Local test infra ใหม่: PG16 `~/pgdata_test` บน **port 5434** + redis-server (apt); รัน tests ผ่าน `DATABASE_URL` override ดู `~/bin/run-pytest.sh` pattern. **อัปเดต (23 ส.ค.):** docker db บน 5432 migrate ถึง head `q8r9s0t1u2v3` แล้ว — schema ตรง main ทั้งสอง port. **คงเหลือ:** user re-test booking ใน LINE
 - [2026-08-22 19:30] **Prod smoke test: Rich Menu Task 6.2 LIVE + cookie auth proven + gate reports pseudonym** — admin login 200 (cookie-only session, no Bearer) → `GET /admin/rich-menus/aliases` + `GET /admin/rich-menus` = 200; `GET /health/pseudonym-gate` = `storage_mode=pseudonym` / `pseudonym_mode_no_fallback` / hits=0 / redis connected. Closed stale checkboxes: Rich Menu smoke item, PR C gate-endpoint section 3 items, Backlog SLA + LIFF_STRICT_MODE; COOKIE_AUTH_MODE backlog narrowed to cleanup PR only.
 - [2026-08-22 19:05] **Session cleanup: Thai Summary compressed + SLA Telegram alerts ON** — compress PROJECT_STATUS Thai Summary (21 บรรทัด prose → 6 bullets, ตัด next-steps หมดอายุ), เพิ่ม `model`/`provider` keys ให้ checkpoint 17:36 (แก้ validator warning — script รองรับ `--model/--provider` flags อยู่แล้ว), doc history cap (20 entries) ใน handoff-to-any.md, flip `SLA_ALERT_TELEGRAM_ENABLED=true` บน prod (deployment `63d007ba` HEALTHY)
@@ -111,6 +112,7 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-08-25 07:39] OpenCode: LIFF smoke-test plan for PR #202 drafted+reviewed (.scratch/liff-smoke-pr202/smoke-test-plan.md, REV1: 5 findings fixed); agent-side pre-checks PASS: Vercel deploy d259efe verified via commit status + live-bundle marker string (unique to ne (OpenCode)
 - [2026-08-24 07:45] OpenCode: Simplify pass complete: PR #201 (Tier 1, -208 lines) + PR #202 (Tier 2/3, 33 files) both squash-merged to main. Backend perf (N+1 fixes, IN-query batching, to_thread offload, message_payload_dict SSOT), frontend SSOT consolidation (status l (OpenCode)
 - [2026-08-23 19:05] OpenCode: Post-merge hardening for PR #200 session: deep review x2 axes on post-merge artifacts (claims fact-checked LIVE - docker dev DB confirmed at head q8r9s0t1u2v3 via psql, PR #200 MERGED f223bd3, CI numbers matched); migrated stale docker db ( (OpenCode)
 - [2026-08-23 18:21] OpenCode: COOKIE_AUTH_MODE cleanup SHIPPED end-to-end (PR #200 squash f223bd3): PRD+PRP REV 2 per mandatory workflow, deep review x2 rounds (7 findings all fixed + re-verified), CI green, merged, CD deployed, post-merge prod smoke all-pass (OpenCode)

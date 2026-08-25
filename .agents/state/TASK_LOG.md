@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 233 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 234 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-08-25 07:39 — open_code (ox-alpha-free / opencode-go) — completed
+
+LIFF smoke-test plan for PR #202 drafted+reviewed (.scratch/liff-smoke-pr202/smoke-test-plan.md, REV1: 5 findings fixed); agent-side pre-checks PASS: Vercel deploy d259efe verified via commit status + live-bundle marker string (unique to new useLiffInit), health 200 db/redis ok, headless render: service-request-single full render + 78 provinces, wizard/request-v2 redirect to LINE login in fresh external browser (pre-existing redirectLogin behavior, not regression); PR #202 code review via review agent = clean, no bugs (116 pytest related files, 539 vitest, tsc clean); remaining: user phone test Section A-B esp. countdown A3
+
+- Checkpoint: `.agents/state/checkpoints/handover-open_code-20260825-0739.json`
+- Summary: `project-log-md/open_code/session-summary-20260825-0739.md`
+
+---
 
 ### 2026-08-24 07:45 — open_code — completed
 
