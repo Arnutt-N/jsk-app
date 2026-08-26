@@ -264,4 +264,28 @@ describe('useLiffInit', () => {
     expect(result.current.liffError).toBeNull()
     expect(logger.error).toHaveBeenCalled()
   })
+
+  it('holds initDone=false while init is in flight (loading gate stays closed)', async () => {
+    // Arrange — park init() on an unresolved promise so we can observe the
+    // mid-flight state; request-v2 renders its loader behind !initDone.
+    let resolveInit!: () => void
+    const gated = new Promise<void>((res) => {
+      resolveInit = res
+    })
+    const liff = createMockLiff({ init: vi.fn().mockReturnValue(gated) })
+
+    // Act / Assert — effects ran synchronously on mount but no microtask has
+    // flushed yet: the gate must still be closed and nothing else resolved.
+    const { result } = renderHook(() => useLiffInit({ getLiff: () => liff }))
+    expect(result.current.initDone).toBe(false)
+    expect(liff.init).toHaveBeenCalledTimes(1)
+    expect(result.current.profile).toBeNull()
+
+    // Release the flow — completion flips the gate exactly once more.
+    await act(async () => {
+      resolveInit()
+    })
+    await waitFor(() => expect(result.current.initDone).toBe(true))
+    expect(result.current.profile).toEqual({ userId: 'U123abc' })
+  })
 })
