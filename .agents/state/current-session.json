@@ -1,14 +1,21 @@
 {
-  "last_updated": "2026-08-25T07:39:00+07:00",
-  "platform": "open_code",
-  "current_task": "LIFF smoke-test plan for PR #202 drafted+reviewed (.scratch/liff-smoke-pr202/smoke-test-plan.md, REV1: 5 findings fixed); agent-side pre-checks PASS: Vercel deploy d259efe verified via commit status +",
+  "last_updated": "2026-08-27T07:12:00+07:00",
+  "platform": "cline",
+  "current_task": "Merged PR #203 (squash 570caf4): unit tests for useLiffInit + useAutoCloseCountdown - 22 behavior-level tests closing the zero-direct-coverage gap flagged by handoff 20260825-0739; mutation-verified x",
   "plan_status": "completed",
   "next_steps": [
-    "User phone test Section A-B per checklist (focus A3 countdown 5-0 auto-close + manual close button round 2)",
-    "Follow-up: unit tests for hooks/useLiffInit + useAutoCloseCountdown (no coverage yet)",
-    "Follow-up: sync stale skn-liff-form skill (still describes pre-PR202 single-file structure)"
+    "User phone test Section A-B per .scratch/liff-smoke-pr202/smoke-test-plan.md - focus A3 countdown 5-0 auto-close + manual close button round 2 (STILL OPEN from previous handoff)",
+    "After mobile test passes: record evidence + close the smoke-test loop, consider updating PROJECT_STATUS Thai Summary",
+    "Nit backlog: extract shared __tests__/helpers.ts if a third controllable-promise copy appears (currently 2: useGuardedUpdate, useLiffInit)"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-08-27T07:12:00+07:00",
+      "platform": "cline",
+      "branch": "main",
+      "head": "570caf4",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-08-25T07:39:00+07:00",
       "platform": "open_code",
@@ -140,13 +147,6 @@
       "platform": "claude_code",
       "branch": "feat/booking-appointments",
       "head": "5164928",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-08-12T21:03:00+07:00",
-      "platform": "claude_code",
-      "branch": "feat/booking-appointments",
-      "head": "3a479ad",
       "status": "completed"
     }
   ],

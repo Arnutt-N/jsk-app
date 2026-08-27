@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 234 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 235 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-08-27 07:12 — cline — completed
+
+Merged PR #203 (squash 570caf4): unit tests for useLiffInit + useAutoCloseCountdown - 22 behavior-level tests closing the zero-direct-coverage gap flagged by handoff 20260825-0739; mutation-verified x4 (ref-sync removal, getIDToken try/catch removal, setInitDone-too-early); skn-liff-form skill synced v1.0.0 -> v1.1.0 to post-PR202 layered structure (hooks + lib/liff modules, per-page init option matrix, countdown gating table); PRD+PRP docs under .claude/PRPs; review = two-axis x2 rounds + deep review, CI green all jobs on 7f49dc8 (Pytest/Lint+Build incl full vitest/Playwright/Encoding Scan); branch deleted post-squash
+
+- Checkpoint: `.agents/state/checkpoints/handover-cline-20260827-0712.json`
+- Summary: `project-log-md/cline/session-summary-20260827-0712.md`
+
+---
 
 ### 2026-08-25 07:39 — open_code (ox-alpha-free / opencode-go) — completed
 
