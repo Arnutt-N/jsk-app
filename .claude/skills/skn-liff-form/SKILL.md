@@ -17,10 +17,11 @@ compatibility: >
   Geography tables must be seeded in DB (see skn-liff-data GAP-3).
 metadata:
   author: SKN App Team
-  version: 1.0.0
+  version: 1.1.0
   project: skn-app
   category: frontend
-  tags: [liff, mobile, line, service-request, form]
+  tags: [liff, mobile, line, service-request, form, hooks]
+  pr202-refactor: shared hooks/lib extraction synced into this skill
   related-skills:
     - skn-liff-data
     - skn-service-request
@@ -32,16 +33,24 @@ metadata:
 
 The LIFF service request wizard is a mobile-first, Thai-language form for citizens
 to submit service requests directly from LINE. It is the primary public-facing
-entry point — NOT part of the admin panel. It consists of a single page component
-(`frontend/app/liff/service-request/page.tsx`) with 4 steps and embedded LIFF SDK logic.
+entry point — NOT part of the admin panel. Since PR #202 (`d259efe`) the shared
+LIFF plumbing (SDK init, auto-close countdown, cascade fetches, submit POST)
+lives in reusable hooks/helpers under `frontend/hooks` + `frontend/lib/liff`;
+each page keeps its own step UI, formData, and validation.
 
 ---
 
 ## CRITICAL: Project-Specific Rules
 
-1. **Single-file, no component extraction** — The entire 4-step wizard lives in one
-   `page.tsx`. There are no sub-components. All state, handlers, and UI are inline.
-   When adding a new step or field, edit this file directly.
+1. **Layered structure since PR #202** — Step UI, `formData`, and `validateStep`
+   stay inline in each `page.tsx`. Shared behavior lives in four modules:
+   - `frontend/hooks/useLiffInit.ts` — init / login redirect / profile / idToken / isInLineApp
+   - `frontend/hooks/useAutoCloseCountdown.ts` — success-screen countdown → `onClose`
+   - `frontend/lib/liff/location-cascade.ts` — `fetchDistricts` / `fetchSubDistricts`
+   - `frontend/lib/liff/submit-service-request.ts` — POST wrapper (`x-liff-id-token`, 401 message)
+   Adding a field/step → edit `page.tsx` directly. Changing init/close/cascade/
+   submit semantics → edit the module above. Both hooks have unit tests in
+   `frontend/hooks/__tests__/` — keep them green (`npm run test:unit`).
 
 2. **Location cascade: two separate state layers** — IDs are NOT stored in `formData`.
    Use `selectedProvinceId` and `selectedDistrictId` (integers) for API cascade calls.
@@ -53,9 +62,12 @@ entry point — NOT part of the admin panel. It consists of a single page compon
    selectedProvinceId = 1          // integer ID → used for next-level fetch only
    ```
 
-3. **LIFF SDK loads via layout, not import** — `liff/layout.tsx` loads
-   `https://static.line-scdn.net/liff/edge/2/sdk.js` with `strategy="beforeInteractive"`.
-   The page uses the `liff` global from `@line/liff`. `NEXT_PUBLIC_LIFF_ID` must be set.
+3. **LIFF SDK loads via layout, then `useLiffInit` drives it** — `liff/layout.tsx`
+   loads `https://static.line-scdn.net/liff/edge/2/sdk.js` with `strategy="beforeInteractive"`.
+   Pages never inline `liff.init` — they call `useLiffInit({ getLiff })` where
+   `getLiff` returns the bundled import (`() => liff`) on the wizard or
+   `() => window.liff` (script-injected) on `request-v2` / `service-request-single`.
+   `NEXT_PUBLIC_LIFF_ID` must be set.
 
 4. **`liff.isInClient()` controls close behavior** — Inside LINE app: `liff.closeWindow()`.
    Outside LINE app: `window.close()` (may silently fail if not opened by a script).
@@ -96,12 +108,17 @@ entry point — NOT part of the admin panel. It consists of a single page compon
 
 ```
 frontend/app/liff/
-├── layout.tsx              — Loads LINE LIFF SDK script (beforeInteractive)
+├── layout.tsx                 — Loads LINE LIFF SDK script (beforeInteractive)
 ├── service-request/
-│   └── page.tsx            — Main 4-step wizard (single 930-line file)
-├── request-v2/page.tsx     — Alternative version (legacy)
-├── service-request-single/ — Single-page variant
-└── test/page.tsx           — LIFF test page
+│   └── page.tsx               — Main 4-step wizard (bundled liff import)
+├── request-v2/page.tsx        — window.liff variant with loading gate (!initDone)
+├── service-request-single/    — Single-page variant (requireLiffId=false, silent skip)
+└── test/page.tsx              — LIFF test page
+
+frontend/hooks/useLiffInit.ts           — Shared init hook (+ __tests__/useLiffInit.test.tsx)
+frontend/hooks/useAutoCloseCountdown.ts — Countdown→close hook (+ __tests__)
+frontend/lib/liff/location-cascade.ts   — fetchDistricts / fetchSubDistricts
+frontend/lib/liff/submit-service-request.ts — POST wrapper for all 3 pages
 
 frontend/types/location.ts  — Province, District, SubDistrict TypeScript types
 ```
@@ -110,31 +127,47 @@ frontend/types/location.ts  — Province, District, SubDistrict TypeScript types
 
 ## Step 1 — LIFF SDK Initialization
 
-LIFF init runs in `useEffect` on mount alongside province fetch:
+All pages initialize through `useLiffInit`; per-page options differ:
 
 ```ts
-useEffect(() => {
-  const initLiff = async () => {
-    const liffId = process.env.NEXT_PUBLIC_LIFF_ID
-    if (!liffId) throw new Error('LIFF ID not set')
-    await liff.init({ liffId })
-    const inClient = liff.isInClient()
-    setIsInLineApp(inClient)
-    if (liff.isLoggedIn()) {
-      const userProfile = await liff.getProfile()
-      setProfile(userProfile)     // { userId, displayName, pictureUrl }
-    } else {
-      liff.login()                // redirects to LINE login
-      return
-    }
-  }
-  initLiff().catch(console.error) // Don't block UI on LIFF failure
-  fetchProvinces()                // Run in parallel
-}, [])
+// service-request/page.tsx (wizard)
+const { profile, idToken, isInLineApp, setIsInLineApp } = useLiffInit({
+    getLiff: () => liff,          // bundled @line/liff default export
+    requireLiffId: true,
+    redirectLogin: true,
+    trackInLineApp: true,         // drives auto-close gating on success screen
+})
+
+// request-v2/page.tsx
+const { profile, idToken, initDone } = useLiffInit({
+    getLiff: () => window.liff,
+    requireLiffId: true,
+    redirectLogin: true,
+    warnWhenSdkMissing: true,
+    onError: () => setError('Failed to initialize LIFF...'),
+})
+const loading = !initDone           // initDone=true ALWAYS after success/failure/skip
+
+// service-request-single/page.tsx
+const { profile, idToken, initDone } = useLiffInit({
+    getLiff: () => window.liff,
+    requireLiffId: false,           // tolerate missing env in browser mode
+    redirectLogin: false,           // skip silently when not logged in
+})
 ```
 
-**Key:** LIFF failure is caught and swallowed — the form still renders and accepts manual
-inputs. `line_user_id` will be null on submit if LIFF failed.
+| Page | getLiff | requireLiffId | redirectLogin | warnWhenSdkMissing | onError | trackInLineApp |
+|---|---|---|---|---|---|---|
+| service-request | `() => liff` | true | true | – | – | **true** |
+| request-v2 | `() => window.liff` | true | true | true | sets error text | false |
+| service-request-single | `() => window.liff` | **false** | **false** | – | – | false |
+
+**Key:** failures are caught inside the hook (`initDone=true` always; `liffError`
++ `onError` carry the problem) — the form still renders and accepts manual inputs.
+If init failed or login was skipped, `profile` stays null → `line_user_id` is null
+on submit. The province fetch runs in parallel outside the hook and is unaffected.
+On init failure with `trackInLineApp:true`, the hook re-detects via a fresh
+`getLiff()?.isInClient()` so mobile users still get auto-close.
 
 ---
 
@@ -143,7 +176,7 @@ inputs. `line_user_id` will be null on submit if LIFF failed.
 Three cascade levels: province → district → sub-district.
 
 ```ts
-// Province selection
+// Province selection (cascade fetches go through lib/liff/location-cascade.ts)
 const handleProvinceChange = async (e) => {
   const provinceId = parseInt(e.target.value)
   const provinceObj = provinces.find(p => p.PROVINCE_ID === provinceId)
@@ -155,8 +188,8 @@ const handleProvinceChange = async (e) => {
   }))
   setDistricts([]);  setSubDistricts([])
   setSelectedDistrictId(null)
-  const res = await fetch(`/api/v1/locations/provinces/${provinceId}/districts`)
-  setDistricts(await res.json())
+  const data = await fetchDistricts(provinceId)   // from '@/lib/liff/location-cascade'
+  setDistricts(data)
 }
 ```
 
@@ -285,26 +318,34 @@ const payload = {
 
 ## Step 6 — Submit Flow
 
+All three pages POST through the shared wrapper:
+
 ```ts
-const submitData = async () => {
-  setSubmitting(true)
-  const payload = { ...formData, line_user_id: profile?.userId || null }
-  const res = await fetch('/api/v1/liff/service-requests', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  })
-  // Error handling: parses response as text first → tries JSON.parse
-  // Handles HTML error pages from 500s gracefully
-  if (!res.ok) throw new Error(data.detail || JSON.stringify(data))
-  setSuccess(true)
-}
+const res = await submitServiceRequest(
+  { ...formData, line_user_id: profile?.userId || null },
+  idToken                       // from useLiffInit
+)
 ```
 
-**On success:**
-- `success = true` → shows success card
-- If `isInLineApp` → starts 5-second countdown → `liff.closeWindow()`
-- If outside LINE → shows "please close manually" message
+- Attaches header `x-liff-id-token` automatically when `idToken` is present
+- On **401** throws exactly:
+  `'เซสชัน LINE หมดอายุ กรุณาปิดหน้าต่างนี้แล้วเปิดฟอร์มใหม่จากเมนู LINE'`
+- Returns the raw `Response` otherwise — each page keeps its own parsing /
+  error formatting (parses as text first → tries JSON.parse, handles HTML error
+  pages from 500s gracefully)
+
+**On success (`success = true` → success card):**
+
+| Page | Countdown enabled when | Reset path |
+|---|---|---|
+| service-request | `success && isInLineApp` — **silent outside LINE**, no counter shown | "ยื่นคำร้องใหม่" (external browser only) |
+| request-v2 | `success` — counts always once submitted | n/a |
+| service-request-single | `success` — counts always once submitted | n/a |
+
+Inside LINE the countdown ticks 5→0 then fires `onClose` once (`liff.closeWindow()`);
+the callback is re-read through a ref on every render so inline closures are safe.
+Outside LINE (wizard only) the success card stays without a timer and offers
+"ยื่นคำร้องใหม่" / "กลับหน้าหลัก".
 
 ---
 
@@ -328,10 +369,17 @@ NEXT_PUBLIC_LIFF_ID=1234567890-AbCdEfGh
 **Fix:** `liff.isInClient()` returns false → `window.close()` fallback. User sees
 "กรุณาปิดหน้านี้ด้วยตนเอง" instruction.
 
+### No countdown on the wizard success screen outside LINE
+**Not a bug** — the wizard gates the timer behind `useAutoCloseCountdown(success && isInLineApp)`,
+so external browsers intentionally show a static card ("ยื่นคำร้องใหม่" / "กลับหน้าหลัก").
+`request-v2` and `service-request-single` count as soon as `success` flips, any context.
+
 ### Form submits but `line_user_id` is null in DB
-**Cause:** LIFF init failed silently or user denied LINE login.
-**Fix:** Check browser console for LIFF init errors. Ensure `NEXT_PUBLIC_LIFF_ID` is
-set and the LIFF channel is published.
+**Cause:** LIFF init failed or login was skipped (`redirectLogin=false` on the single page).
+**Fix:** `useLiffInit` captures failures in `liffError` (+ optional `onError`) while still
+setting `initDone=true`, so look there first, then the browser console. Ensure
+`NEXT_PUBLIC_LIFF_ID` is set and the LIFF channel is published. `profile=null`
+→ `line_user_id=null` is expected behavior in those cases.
 
 ### Step validation blocks on wrong step
 **Cause:** `validateStep(3)` is called on step 3 (attachments), which has no required
@@ -356,7 +404,9 @@ Before finishing, verify:
 - [ ] New fields added to per-step `validateStep()` case
 - [ ] New topic categories added to `TOPIC_OPTIONS` constant
 - [ ] File upload: only `id` values in attachments payload to backend
-- [ ] LIFF failure doesn't block form render (`try/catch` around `initLiff()`)
+- [ ] LIFF failure doesn't block form render — guaranteed by `useLiffInit` (error captured, `initDone` always set)
+- [ ] No inline location-cascade fetches or submit POSTs reintroduced in pages — reuse `lib/liff` helpers
+- [ ] Hook/helper behavior changes keep unit tests green (`npm run test:unit`)
 - [ ] Confirmation modal shown before `submitData()`
 - [ ] `window.scrollTo(0, 0)` called after step advance and after success/error
 
