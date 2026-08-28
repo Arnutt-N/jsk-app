@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 235 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 236 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-08-28 09:06 — qoder — completed
+
+Follow-ups #2/#3 verified closed + coverage hardening merged: ran 22 hook tests green (PR #203 artifacts), spec-coverage mapping vs PRD 19/19 rows, installed @vitest/coverage-v8, added missing test for useLiffInit.ts:115 null-SDK fallback branch (14th test), both hooks now 100% coverage all metrics, full suite 562 passed, tsc clean; shipped as PR #204 squash a56180a; remaining: user phone test Section A-B
+
+- Checkpoint: `.agents/state/checkpoints/handover-qoder-20260828-0906.json`
+- Summary: `project-log-md/qoder/session-summary-20260828-0906.md`
+
+---
 
 ### 2026-08-27 07:12 — cline — completed
 

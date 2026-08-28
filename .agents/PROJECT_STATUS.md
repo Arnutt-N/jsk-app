@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-08-27 07:12 by Cline (Merged PR #203 squash 570caf4: unit tests for useLiffInit + useAutoCloseCountdown - 22 beh)
+> **Last Updated:** 2026-08-28 09:06 by Qoder (Follow-ups #2/#3 verified closed + coverage hardening merged: ran 22 hook tests green PR #)
 
 ## Thai Summary
 **สถานะล่าสุด (2026-08-23)** — milestone หลักทุกตัวปิดแล้ว เหลือเฉพาะ manual test ฝั่งผู้ใช้:
@@ -112,6 +112,7 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-08-28 09:06] Qoder: Follow-ups #2/#3 verified closed + coverage hardening merged: ran 22 hook tests green (PR #203 artifacts), spec-coverage mapping vs PRD 19/19 rows, installed @vitest/coverage-v8, added missing test for useLiffInit.ts:115 null-SDK fallback b (Qoder)
 - [2026-08-27 07:12] Cline: Merged PR #203 (squash 570caf4): unit tests for useLiffInit + useAutoCloseCountdown - 22 behavior-level tests closing the zero-direct-coverage gap flagged by handoff 20260825-0739; mutation-verified x4 (ref-sync removal, getIDToken try/catc (Cline)
 - [2026-08-25 07:39] OpenCode: LIFF smoke-test plan for PR #202 drafted+reviewed (.scratch/liff-smoke-pr202/smoke-test-plan.md, REV1: 5 findings fixed); agent-side pre-checks PASS: Vercel deploy d259efe verified via commit status + live-bundle marker string (unique to ne (OpenCode)
 - [2026-08-24 07:45] OpenCode: Simplify pass complete: PR #201 (Tier 1, -208 lines) + PR #202 (Tier 2/3, 33 files) both squash-merged to main. Backend perf (N+1 fixes, IN-query batching, to_thread offload, message_payload_dict SSOT), frontend SSOT consolidation (status l (OpenCode)
