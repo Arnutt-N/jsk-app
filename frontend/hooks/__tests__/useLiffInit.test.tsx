@@ -246,6 +246,26 @@ describe('useLiffInit', () => {
     expect(result.current.liffError).toBe(boom)
   })
 
+  it('fallback re-detection treats a vanished SDK as not-in-client (?? false)', async () => {
+    // Arrange — SDK present when init starts, gone by the time the error
+    // path re-detects the LINE client (useLiffInit.ts:115 `?? false` branch)
+    const boom = new Error('flaky init')
+    const liff = createMockLiff({ init: vi.fn().mockRejectedValue(boom) })
+    const getLiff = vi
+      .fn<() => LiffSdk | null>()
+      .mockReturnValueOnce(liff)
+      .mockReturnValue(null)
+    const { result } = renderHook(() =>
+      useLiffInit({ getLiff, trackInLineApp: true })
+    )
+    await waitFor(() => expect(result.current.initDone).toBe(true))
+
+    // Assert — flag falls back to false; the init error is preserved
+    expect(result.current.isInLineApp).toBe(false)
+    expect(result.current.liffError).toBe(boom)
+    expect(getLiff).toHaveBeenCalledTimes(2)
+  })
+
   it('getIDToken throwing loses the token but keeps profile and success state', async () => {
     // Arrange
     const liff = createMockLiff({
