@@ -1,14 +1,17 @@
 {
-  "last_updated": "2026-08-27T07:12:00+07:00",
-  "platform": "cline",
-  "current_task": "Merged PR #203 (squash 570caf4): unit tests for useLiffInit + useAutoCloseCountdown - 22 behavior-level tests closing the zero-direct-coverage gap flagged by handoff 20260825-0739; mutation-verified x",
+  "last_updated": "2026-08-28T09:06:00+07:00",
+  "platform": "qoder",
+  "current_task": "Follow-ups #2/#3 verified closed + coverage hardening merged: ran 22 hook tests green (PR #203 artifacts), spec-coverage mapping vs PRD 19/19 rows, installed @vitest/coverage-v8, added missing test fo",
   "plan_status": "completed",
-  "next_steps": [
-    "User phone test Section A-B per .scratch/liff-smoke-pr202/smoke-test-plan.md - focus A3 countdown 5-0 auto-close + manual close button round 2 (STILL OPEN from previous handoff)",
-    "After mobile test passes: record evidence + close the smoke-test loop, consider updating PROJECT_STATUS Thai Summary",
-    "Nit backlog: extract shared __tests__/helpers.ts if a third controllable-promise copy appears (currently 2: useGuardedUpdate, useLiffInit)"
-  ],
+  "next_steps": [],
   "handoff_history": [
+    {
+      "timestamp": "2026-08-28T09:06:00+07:00",
+      "platform": "qoder",
+      "branch": "main",
+      "head": "a56180a",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-08-27T07:12:00+07:00",
       "platform": "cline",
@@ -140,13 +143,6 @@
       "platform": "claude_code",
       "branch": "feat/booking-appointments",
       "head": "de9314f",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-08-13T07:02:00+07:00",
-      "platform": "claude_code",
-      "branch": "feat/booking-appointments",
-      "head": "5164928",
       "status": "completed"
     }
   ],
