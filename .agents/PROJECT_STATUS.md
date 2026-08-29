@@ -114,6 +114,7 @@
 
 ## Recent Completions
 - [2026-08-29 22:44] Qoder: LIFF booking redesign + handoff-system hardening shipped as PR #206/#207 (both pushed; #207 rebased onto main) (Qoder)
+- [2026-08-29 21:58] Qoder: Handoff-system hardening (branch chore/handoff-system-hardening-eval): /evaluate found 4 real bugs (path traversal via platform name, same-minute silent overwrite, bare-repo crash in view regen, dangling --model flag); implemented all 5 imp (Qoder)
 - [2026-08-29 20:20] Qoder: Merged PR #205 (squash to main as 72786ec): audit sweep 2026-08-29 across 5 lanes + closed LIFF upload CRITICAL — shared uploadLiffMedia helper with x-liff-id-token, SessionExpiredError, attachment cap 3 with in-flight counting; CI green (B (Qoder)
 - [2026-08-29 06:54] Codex: Completed evidence-backed deep review of Qoder audit sweep and architecture report; consolidated findings and remediation queue in project-log-md/codex/deep-review-qoder-audit-architecture-20260829.md (Codex)
 - [2026-08-29 03:13] Qoder: Codex deep-reviewed Qoder audit sweep and architecture report; found LIFF upload blocker and prioritized remediation in project-log-md/codex/deep-review-qoder-audit-architecture-20260829.md (Qoder)

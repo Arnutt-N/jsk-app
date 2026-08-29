@@ -7,8 +7,8 @@
 
 | Metric | Value |
 |--------|-------|
-| Handoff checkpoints (active) | 240 |
-| Session summaries on disk | 337 |
+| Handoff checkpoints (active) | 241 |
+| Session summaries on disk | 338 |
 | Platforms | 9 (antigravity, claude_code, cline, codex, gemini_cli, kilo_code, kimi_code, open_code, qoder) |
 | Most recent | 2026-08-29 22:44 — qoder |
 
@@ -133,11 +133,12 @@
 | 2026-08-15 14:50 | completed | — | — | `handover-open_code-20260815-1450.json` |
 | 2026-02-14 23:00 | completed | — | — | `handover-open_code-20260214-2300.json` |
 
-## qoder (24)
+## qoder (25)
 
 | When | Status | Model | Provider | Checkpoint |
 |------|--------|-------|----------|------------|
 | 2026-08-29 22:44 | completed | — | — | `handover-qoder-20260829-2244.json` |
+| 2026-08-29 21:58 | completed | Cantus | Qoder | `handover-qoder-20260829-2158.json` |
 | 2026-08-29 20:20 | completed | — | — | `handover-qoder-20260829-2020.json` |
 | 2026-08-29 03:13 | completed | — | — | `handover-qoder-20260829-0313.json` |
 | 2026-08-28 09:06 | completed | — | — | `handover-qoder-20260828-0906.json` |
@@ -156,5 +157,4 @@
 | 2026-07-28 11:01 | completed | — | — | `handover-qoder-20260728-1101.json` |
 | 2026-07-28 10:32 | completed | — | — | `handover-qoder-20260728-1032.json` |
 | 2026-07-28 03:49 | completed | — | — | `handover-qoder-20260728-0349.json` |
-| 2026-07-28 01:08 | completed | — | — | `handover-qoder-20260728-0108.json` |
-| … | | | | +4 older |
+| … | | | | +5 older |
