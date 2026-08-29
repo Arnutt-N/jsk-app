@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/components/providers';
 import { logger } from '@/lib/logger';
 import { HELP_ENTRIES } from '@/lib/help-content';
 
@@ -102,6 +103,7 @@ export function CommandPalette() {
   });
   const router = useRouter();
   const { logout } = useAuth();
+  const { toggleTheme } = useTheme();
 
   // ⌘K / Ctrl+K shortcut + custom event from navbar trigger
   useEffect(() => {
@@ -120,19 +122,6 @@ export function CommandPalette() {
       document.removeEventListener('keydown', down);
       document.removeEventListener('jsk:open-command-palette', openEvent);
     };
-  }, []);
-
-  // Theme toggle: dispatch a custom event the existing ThemeToggleSwitch listens for.
-  // Falls back to document.documentElement.classList.toggle if no listener responds.
-  const toggleTheme = useCallback(() => {
-    const isDark = document.documentElement.classList.contains('dark');
-    if (isDark) {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('jsk-theme', 'light');
-    } else {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('jsk-theme', 'dark');
-    }
   }, []);
 
   const navigateAndClose = useCallback((href: string) => {

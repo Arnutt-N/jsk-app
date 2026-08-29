@@ -6,6 +6,7 @@ import {
 } from './types';
 import { ExponentialBackoffStrategy } from './reconnectStrategy';
 import { MessageQueue } from './messageQueue';
+import { maskLineUserId } from '../mask';
 
 export class WebSocketClient {
   private ws: WebSocket | null = null;
@@ -33,6 +34,8 @@ export class WebSocketClient {
 
   private heartbeatIntervalMs = 25000;
   private maxReconnectAttempts = 10;
+  private missedPongs = 0;
+  private readonly maxMissedPongs = 2;
 
   constructor(options: UseWebSocketOptions & { onStateChange?: (state: ConnectionState) => void }) {
     this.url = options.url;
@@ -221,12 +224,13 @@ export class WebSocketClient {
 
       // Handle pong (heartbeat response)
       if (message.type === MessageType.PONG) {
+        this.missedPongs = 0;
         return;
       }
 
       this.onMessage?.(message);
     } catch (error) {
-      console.error('Failed to parse WebSocket message:', error);
+      console.error('Failed to parse WebSocket message:', maskLineUserId(String(error)));
     }
   }
 
@@ -293,8 +297,17 @@ export class WebSocketClient {
 
   private startHeartbeat(): void {
     this.stopHeartbeat();
+    this.missedPongs = 0;
     this.heartbeatInterval = setInterval(() => {
       if (this.state === 'connected' && this.ws?.readyState === WebSocket.OPEN) {
+        this.missedPongs++;
+        if (this.missedPongs > this.maxMissedPongs) {
+          // Zombie connection detected — force reconnect
+          console.warn(`WebSocket: ${this.missedPongs} missed pongs, forcing reconnect`);
+          this.missedPongs = 0;
+          this.reconnect();
+          return;
+        }
         this.sendRaw(MessageType.PING, {});
       }
     }, this.heartbeatIntervalMs);
@@ -305,6 +318,7 @@ export class WebSocketClient {
       clearInterval(this.heartbeatInterval);
       this.heartbeatInterval = undefined;
     }
+    this.missedPongs = 0;
   }
 
   private processQueue(): void {

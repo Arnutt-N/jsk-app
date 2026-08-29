@@ -13,7 +13,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.services.live_chat_service import LiveChatService
 from app.models.chat_session import SessionStatus, ClosedBy
-from app.models.user import UserRole
+from app.models.user import ChatMode, UserRole
 from app.services.credential_service import credential_service
 
 from tests.identity_helpers import make_line_user_fields
@@ -165,10 +165,13 @@ class TestCloseSession:
 
         mock_db = AsyncMock()
 
-        # Mock execute for user query
+        # Mock execute: used by the optimistic UPDATE (rowcount) and the user query
         mock_result = MagicMock()
+        mock_result.rowcount = 1
         mock_result.scalar_one_or_none.return_value = mock_user
         mock_db.execute.return_value = mock_result
+        # After the UPDATE succeeds, close_session re-fetches the session via db.get
+        mock_db.get.return_value = mock_session
 
         with patch.object(live_chat_service, 'get_active_session', new_callable=AsyncMock) as mock_get, \
              patch('app.services.live_chat_service.sla_service') as mock_sla:
@@ -180,10 +183,34 @@ class TestCloseSession:
                     "Utest", ClosedBy.OPERATOR, mock_db, operator_id=1
                 )
 
-            assert result == mock_session
-            assert mock_session.status == SessionStatus.CLOSED
-            assert mock_session.closed_at is not None
-            assert mock_session.closed_by == ClosedBy.OPERATOR
+            # Status/closed_at/closed_by are now written via the UPDATE statement,
+            # not by mutating the Python object; assert the refreshed session is returned.
+            assert result is mock_session
+            assert mock_db.execute.called
+            assert mock_user.chat_mode == ChatMode.BOT
+
+    @pytest.mark.asyncio
+    async def test_close_session_race_lost(self, live_chat_service):
+        """When a concurrent close/transfer already changed the session, return None"""
+        mock_session = MagicMock()
+        mock_session.status = SessionStatus.ACTIVE
+        mock_session.operator_id = 1
+
+        mock_db = AsyncMock()
+        mock_result = MagicMock()
+        mock_result.rowcount = 0  # UPDATE matched no rows — lost the race
+        mock_db.execute.return_value = mock_result
+
+        with patch.object(live_chat_service, 'get_active_session', new_callable=AsyncMock) as mock_get, \
+             patch('app.services.live_chat_service.sla_service') as mock_sla:
+            mock_sla.check_resolution_on_close = AsyncMock()
+            mock_get.return_value = mock_session
+            result = await live_chat_service.close_session(
+                "Utest", ClosedBy.OPERATOR, mock_db, operator_id=1
+            )
+
+            assert result is None
+            mock_db.get.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_close_nonexistent_session(self, live_chat_service):

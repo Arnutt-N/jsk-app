@@ -16,10 +16,30 @@ describe('buildChangedFields', () => {
     expect(buildChangedFields(form, baseline)).toEqual({ firstname: 'สมหญิง' });
   });
 
-  it('treats null/undefined baseline values as empty string (no false positives)', () => {
-    // Legacy rows ส่งค่า null มาจาก API — form เก็บเป็น '' หลัง snapshot
-    const form = { email: '', agency: '' };
-    const baseline = { email: null, agency: undefined } as Record<string, string | null | undefined>;
+  it('treats undefined baseline as empty string (no false positive)', () => {
+    // Field not present in baseline at all — form initializes as '' → no diff
+    const form = { agency: '' };
+    const baseline = {} as Record<string, unknown>;
+
+    expect(buildChangedFields(form, baseline)).toEqual({});
+  });
+
+  it('treats null baseline vs empty-string form as intentional clear (produces diff)', () => {
+    // Legacy rows ส่งค่า null มาจาก API — user clearing sends '' which backend
+    // treats as "intentionally delete". This must produce a diff entry so the
+    // PATCH payload includes the field.
+    const form = { email: '' };
+    const baseline = { email: null } as Record<string, string | null>;
+
+    expect(buildChangedFields(form, baseline)).toEqual({ email: '' });
+  });
+
+  it('produces no diff when both baseline and form are effectively empty (null→null)', () => {
+    // If form somehow has null-coerced-to-empty and baseline is null,
+    // that's still an intentional clear per PATCH semantics.
+    // But value→same-value should never produce a diff.
+    const form = { firstname: 'สมชาย' };
+    const baseline = { firstname: 'สมชาย' };
 
     expect(buildChangedFields(form, baseline)).toEqual({});
   });

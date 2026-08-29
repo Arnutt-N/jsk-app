@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Head from 'next/head'
 import Script from 'next/script'
 import { Province, District, SubDistrict } from '../../../types/location'
@@ -12,6 +12,8 @@ import { useLiffInit } from '@/hooks/useLiffInit'
 import { useAutoCloseCountdown } from '@/hooks/useAutoCloseCountdown'
 import { fetchDistricts, fetchSubDistricts } from '@/lib/liff/location-cascade'
 import { submitServiceRequest } from '@/lib/liff/submit-service-request'
+import { uploadLiffMedia, attachmentCapMessage, readErrorDetail } from '@/lib/liff/upload-media'
+import { SESSION_EXPIRED_MESSAGE, isSessionExpired } from '@/lib/liff/session-expired'
 
 export default function LiffServiceRequestV2() {
     // --- STATE ---
@@ -20,14 +22,19 @@ export default function LiffServiceRequestV2() {
     const [success, setSuccess] = useState(false)
 
     // LIFF init (script-injected window.liff)
-    const { profile, idToken, initDone } = useLiffInit({
+    const { profile, idToken, isInLineApp, initDone } = useLiffInit({
         getLiff: () => (typeof window !== 'undefined' ? window.liff : undefined),
         requireLiffId: true,
         redirectLogin: true,
         warnWhenSdkMissing: true,
+        trackInLineApp: true,
         onError: () => setError('Failed to initialize LIFF. You might be opening this outside LINE.')
     })
     const loading = !initDone
+
+    // Uploads started but not yet resolved — counted toward the attachment
+    // cap so rapid file picks cannot exceed the shared rate-limit budget.
+    const inflightUploadsRef = useRef(0)
 
     // Location Data State
     const [provinces, setProvinces] = useState<Province[]>([])
@@ -160,18 +167,24 @@ export default function LiffServiceRequestV2() {
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files?.length) return
 
+        const capMessage = attachmentCapMessage(formData.attachments.length, inflightUploadsRef.current)
+        if (capMessage) {
+            alert(capMessage)
+            return
+        }
+
         const file = e.target.files[0]
-        const formDataUpload = new FormData()
-        formDataUpload.append('file', file)
+        let failureMessage = 'อัพโหลดไฟล์ไม่สำเร็จ'
+        inflightUploadsRef.current += 1
 
         try {
-            // Show simple loading/toast here if needed
-            const res = await fetch('/api/v1/media', {
-                method: 'POST',
-                body: formDataUpload
-            })
+            const res = await uploadLiffMedia(file, idToken)
 
-            if (!res.ok) throw new Error('Upload failed')
+            if (!res.ok) {
+                const detail = await readErrorDetail(res)
+                if (detail) failureMessage = detail
+                throw new Error('Upload failed')
+            }
 
             const data = await res.json()
             setFormData(prev => ({
@@ -179,8 +192,10 @@ export default function LiffServiceRequestV2() {
                 attachments: [...prev.attachments, { id: data.id, url: `/api/v1/media/${data.id}`, name: data.filename }]
             }))
         } catch (err) {
-            alert('อัพโหลดไฟล์ไม่สำเร็จ')
+            alert(isSessionExpired(err) ? SESSION_EXPIRED_MESSAGE : failureMessage)
             logger.error(err)
+        } finally {
+            inflightUploadsRef.current -= 1
         }
     }
 
@@ -229,7 +244,7 @@ export default function LiffServiceRequestV2() {
     }
 
     // Auto-close countdown on the success screen.
-    const { timeLeft } = useAutoCloseCountdown(success, handleClose)
+    const { timeLeft } = useAutoCloseCountdown(success && isInLineApp, handleClose)
 
     if (loading) {
         return (

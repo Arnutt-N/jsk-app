@@ -7,6 +7,7 @@ from linebot.v3.messaging import FlexMessage, FlexContainer
 
 from app.models.csat_response import CsatResponse
 from app.services.line_service import line_service
+from app.core.logging_utils import mask_line_id
 
 logger = logging.getLogger(__name__)
 
@@ -90,9 +91,9 @@ class CsatService:
                 contents=FlexContainer.from_dict(flex_contents)
             )
             await line_service.push_messages(line_user_id, [flex_message])
-            logger.info(f"CSAT survey sent to {line_user_id} for session {session_id}")
+            logger.info(f"CSAT survey sent to {mask_line_id(line_user_id)} for session {session_id}")
         except Exception as e:
-            logger.error(f"Failed to send CSAT survey to {line_user_id}: {e}")
+            logger.error(f"Failed to send CSAT survey to {mask_line_id(line_user_id)}: {e}")
 
     async def record_response(
         self,

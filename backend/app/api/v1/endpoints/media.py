@@ -13,6 +13,7 @@ from app.models.media_file import MediaFile, FileCategory, detect_category
 from app.api.deps import get_db, get_current_admin, require_permission
 from app.core.audit import create_audit_log
 from app.core.http_rate_limit import http_rate_limit
+from app.core.query_utils import escape_ilike
 from app.core.permissions import KEY_MANAGE_FILES
 from typing import List
 from pydantic import Field
@@ -183,7 +184,8 @@ async def list_media(
             pass
 
     if search:
-        query = query.where(MediaFile.filename.ilike(f"%{search}%"))
+        escaped_search = escape_ilike(search)
+        query = query.where(MediaFile.filename.ilike(f"%{escaped_search}%", escape="\\"))
 
     # Count
     count_q = select(sa_func.count()).select_from(query.subquery())

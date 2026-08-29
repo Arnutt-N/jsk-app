@@ -21,6 +21,11 @@ from app.models.request_comment import RequestComment
 
 router = APIRouter()
 
+
+def _escape_ilike(value: str) -> str:
+    """Escape SQL LIKE wildcards and backslash in user-supplied search terms."""
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
 class RequestStats(BaseModel):
     total: int
     pending: int            # PENDING (no assignee) -- "รอมอบหมาย"
@@ -284,11 +289,12 @@ async def list_requests(
         query = query.where(ServiceRequest.topic_category == category)
     
     if search:
+        escaped = _escape_ilike(search)
         search_filter = (
-            (ServiceRequest.firstname.ilike(f"%{search}%")) |
-            (ServiceRequest.lastname.ilike(f"%{search}%")) |
-            (ServiceRequest.phone_number.ilike(f"%{search}%")) |
-            (ServiceRequest.description.ilike(f"%{search}%"))
+            (ServiceRequest.firstname.ilike(f"%{escaped}%", escape="\\")) |
+            (ServiceRequest.lastname.ilike(f"%{escaped}%", escape="\\")) |
+            (ServiceRequest.phone_number.ilike(f"%{escaped}%", escape="\\")) |
+            (ServiceRequest.description.ilike(f"%{escaped}%", escape="\\"))
         )
         query = query.where(search_filter)
         

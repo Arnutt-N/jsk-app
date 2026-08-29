@@ -2,8 +2,9 @@ import logging
 import os
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from app.api.v1.api import api_router
 from app.core.connection_targets import describe_postgres_url, is_localhost_url
@@ -197,7 +198,7 @@ app.add_middleware(
 )
 
 @app.get("/")
-def root():
+async def root():
     return {"message": "Welcome to JskApp API"}
 
 # Find 'uploads' directory relative to the current working directory or main.py
@@ -214,3 +215,17 @@ os.makedirs(UPLOADS_DIR, exist_ok=True)
 # app.mount("/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Catch-all for unhandled exceptions.
+
+    Logs the full traceback server-side for debugging but returns a
+    sanitised 500 response so stack traces never leak to clients.
+    """
+    logger.exception("Unhandled exception on %s %s", request.method, request.url.path)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal Server Error"},
+    )

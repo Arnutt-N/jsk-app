@@ -72,10 +72,10 @@ class ServiceRequest(Base):
     # Legacy / Mapped Fields (Optional, kept for compatibility if needed)
     category = Column(String, index=True, nullable=True)    
     subcategory = Column(String, nullable=True)
-    location = Column(JSONB, default={})
-    
+    location = Column(JSONB, default=dict)
+
     # Flexible extra data
-    details = Column(JSONB, default={})
+    details = Column(JSONB, default=dict)
     
     status = Column(Enum(RequestStatus), default=RequestStatus.PENDING, index=True)
     priority = Column(Enum(RequestPriority), default=RequestPriority.MEDIUM, index=True)
@@ -86,7 +86,7 @@ class ServiceRequest(Base):
     
     # Assignment
     assigned_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    assigned_agent_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    assigned_agent_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     
     assignor = relationship("User", foreign_keys=[assigned_by_id])
     assignee = relationship("User", back_populates="assigned_requests", foreign_keys=[assigned_agent_id])

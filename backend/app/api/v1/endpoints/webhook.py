@@ -18,6 +18,7 @@ from app.services.message_intake.message_handler import handle_message_event as 
 from app.services.message_intake.postback_handler import handle_postback_event
 
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.logging_utils import mask_line_id
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -111,7 +112,7 @@ async def handle_message_event(event: MessageEvent, db: AsyncSession):
 async def handle_follow_event(event: FollowEvent, db: AsyncSession):
     """Handle when a user adds the LINE OA as friend."""
     line_user_id = event.source.user_id
-    logger.info(f"User {line_user_id} followed the OA")
+    logger.info(f"User {mask_line_id(line_user_id)} followed the OA")
     await friend_service.get_or_create_user(line_user_id, db, commit=False)
     await friend_service.handle_follow(line_user_id, db, commit=False)
 
@@ -119,5 +120,5 @@ async def handle_follow_event(event: FollowEvent, db: AsyncSession):
 async def handle_unfollow_event(event: UnfollowEvent, db: AsyncSession):
     """Handle when a user blocks/unfollows the LINE OA."""
     line_user_id = event.source.user_id
-    logger.info(f"User {line_user_id} unfollowed the OA")
+    logger.info(f"User {mask_line_id(line_user_id)} unfollowed the OA")
     await friend_service.handle_unfollow(line_user_id, db, commit=False)

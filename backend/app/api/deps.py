@@ -59,20 +59,16 @@ async def get_current_user(
     # and ONLY when no cookie produced a candidate token.
     if not token:
         if settings.DEV_AUTH_BYPASS:
-            logger.warning("DEV AUTH BYPASS: No token provided, returning mock admin")
+            logger.warning("DEV AUTH BYPASS: No token provided, looking up admin user id=1")
             result = await db.execute(select(User).where(User.id == 1))
             user = result.scalar_one_or_none()
             if user:
                 return user
-            mock_user = User(
-                id=1,
-                username="admin",
-                display_name="Admin (Dev)",
-                role=UserRole.ADMIN
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="DEV_AUTH_BYPASS enabled but no admin user (id=1) exists. Seed the database first.",
+                headers={"WWW-Authenticate": "Bearer"},
             )
-            db.add(mock_user)
-            await db.commit()
-            return mock_user
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authenticated",

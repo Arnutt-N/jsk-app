@@ -8,6 +8,7 @@ from app.models.service_request import ServiceRequest
 from app.services.flex_messages import build_booking_list, build_request_status_list
 
 from ._deps import get_line_service
+from app.core.logging_utils import mask_line_id, mask_phone
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +31,7 @@ async def handle_check_booking(line_user_id: str, reply_token: str, db: AsyncSes
         flex_content = build_booking_list(bookings)
         await line_svc.reply_flex(reply_token, "คิวนัดหมายของคุณ", flex_content)
     except Exception as e:
-        logger.error(f"Error checking bookings for {line_user_id}: {e}")
+        logger.error(f"Error checking bookings for {mask_line_id(line_user_id)}: {e}")
         await line_svc.reply_text(reply_token, "ขออภัย ไม่สามารถดึงข้อมูลคิวนัดหมายได้ในขณะนี้")
 
 
@@ -65,7 +66,7 @@ async def handle_check_status(line_user_id: str, reply_token: str, db: AsyncSess
         await line_svc.reply_flex(reply_token, "สถานะคำร้องของคุณ", flex_content)
 
     except Exception as e:
-        logger.error(f"Error checking status for {line_user_id}: {e}")
+        logger.error(f"Error checking status for {mask_line_id(line_user_id)}: {e}")
         await line_svc.reply_text(reply_token, "ขออภัย ไม่สามารถดึงข้อมูลสถานะได้ในขณะนี้")
 
 
@@ -79,7 +80,7 @@ async def handle_bind_phone(phone_number: str, line_user_id: str, reply_token: s
         user_id = resolved_user.id if resolved_user else None
 
         if user_id is None:
-            logger.warning(f"Phone bind: ไม่พบผู้ใช้สำหรับ LINE ID {line_user_id}")
+            logger.warning(f"Phone bind: ไม่พบผู้ใช้สำหรับ LINE ID {mask_line_id(line_user_id)}")
             await line_svc.reply_text(reply_token, "ขออภัย ไม่พบข้อมูลผู้ใช้ของคุณ กรุณาลองใหม่อีกครั้ง")
             return
 
@@ -125,5 +126,5 @@ async def handle_bind_phone(phone_number: str, line_user_id: str, reply_token: s
         await line_svc.reply_flex(reply_token, "สถานะคำร้องของคุณ", flex_content)
 
     except Exception as e:
-        logger.error(f"Error binding phone {phone_number}: {e}")
+        logger.error(f"Error binding phone {mask_phone(phone_number)}: {e}")
         await line_svc.reply_text(reply_token, "ขออภัย เกิดข้อผิดพลาดในการเชื่อมโยงข้อมูล")

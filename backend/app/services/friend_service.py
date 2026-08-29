@@ -6,6 +6,7 @@ from app.models.user import User
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Tuple
 import logging
+from app.core.logging_utils import mask_line_id
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +35,7 @@ class FriendService:
                 profile_updated_at=datetime.now(timezone.utc),
             )
         except Exception as e:
-            logger.warning("Failed to fetch LINE profile for %s: %s", line_user_id, e)
+            logger.warning("Failed to fetch LINE profile for %s: %s", mask_line_id(line_user_id), e)
             user = User(
                 display_name="LINE User",
                 friend_status="ACTIVE",
@@ -99,7 +100,7 @@ class FriendService:
             else:
                 await db.flush()
         except Exception as exc:
-            logger.warning("Failed to refresh LINE profile for %s: %s", line_user_id, exc)
+            logger.warning("Failed to refresh LINE profile for %s: %s", mask_line_id(line_user_id), exc)
 
         return user
 

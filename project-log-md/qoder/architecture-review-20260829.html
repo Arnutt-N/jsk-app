@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SknApp — รายงานสถาปัตยกรรม 2026-08-29</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+<style>
+  body { font-family: 'Segoe UI', system-ui, sans-serif; }
+  .iface { background: #0f172a; color: #fff; border-radius: 4px 4px 0 0; text-align: center; font-size: 11px; padding: 4px; }
+  .impl { border: 2px solid #0f172a; border-top: none; border-radius: 0 0 4px 4px; font-size: 10px; text-align: center; padding: 6px 2px; color: #334155; }
+  .impl.deep { background: linear-gradient(#e2e8f0, #94a3b8); }
+  .impl.thin { background: #f1f5f9; }
+  .mass-bar { background: linear-gradient(90deg, #dc2626, #f97316); height: 18px; border-radius: 3px; }
+  .mass-bar.ok { background: linear-gradient(90deg, #0891b2, #06b6d4); }
+  .mermaid svg { max-width: 100%; }
+</style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+<div class="max-w-6xl mx-auto px-6 py-10">
+
+  <header class="mb-10">
+    <h1 class="text-3xl font-bold text-slate-900">SknApp — รายงานทบทวนสถาปัตยกรรม</h1>
+    <p class="text-slate-500 mt-1">2026-08-29 · โอกาสทำโมดูลให้ลึกขึ้น ครอบคลุมทั้งฝั่ง backend (FastAPI) และ frontend (Next.js)</p>
+    <p class="text-sm text-slate-600 mt-3 max-w-3xl">
+      ภาพรวม: ฝั่ง <em>service layer</em> ของโปรเจกต์ทำได้ดี (booking, broadcast, live-chat packages) แต่แรงเสียดทานไปกองอยู่ที่สองจุด —
+      <strong>endpoints ที่โตจนกลายเป็น service เสียเอง</strong> และ <strong>pages ที่ fetch + business logic + JSX ปนกัน</strong>
+      และมี <strong>seams ที่ทำค้างไว้</strong> 3 แห่ง: apiFetch (adopt แค่ ~3 ไฟล์), live-chat ที่ยกโค้ดออกแต่ยัง raise HTTPException ใน service,
+      และ pseudonym contract ที่ยังเหลือ flag 3 สถานะทั้งที่เหลือสถานะเดียวที่ใช้ได้
+    </p>
+    <p class="text-xs text-slate-400 mt-3">
+      คำศัพท์ที่ใช้ตลอดรายงาน (ตามหลัก codebase-design): <strong>module</strong> (หน่วยที่มี interface + การทำงานภายใน) ·
+      <strong>interface</strong> (ทุกสิ่งที่คนเรียกต้องรู้) · <strong>ความลึก</strong> (ความสามารถมากต่อ interface เล็ก) ·
+      <strong>seam</strong> (จุดที่เปลี่ยนพฤติกรรมได้โดยไม่ต้องแก้ที่นั่น) · <strong>adapter</strong> (ของจริงที่สวมเข้าที่ seam) ·
+      <strong>leverage</strong> (ผลตอบแทนของคนเรียก) · <strong>ความกระชับ</strong> (locality — แก้ที่เดียวจบ)
+    </p>
+  </header>
+
+  <!-- MASS DISTRIBUTION -->
+  <section class="mb-12 bg-white rounded-xl shadow p-6">
+    <h2 class="text-xl font-semibold mb-1">การกระจายของขนาดโค้ด — ไฟล์ที่ใหญ่ที่สุด</h2>
+    <p class="text-sm text-slate-500 mb-4">สีแดง = มีสัญญาณรวมหลายความรับผิดชอบไว้ด้วยกัน / สีฟ้า = ขนาดใหญ่แต่ภายในเป็นอันหนึ่งอันเดียวกัน</p>
+    <div class="space-y-2 text-sm">
+      <div class="flex items-center gap-3"><span class="w-72 shrink-0 text-right text-xs">admin/requests/[id]/page.tsx</span><div class="mass-bar" style="width:100%"></div><span class="text-xs w-14">1,683</span></div>
+      <div class="flex items-center gap-3"><span class="w-72 shrink-0 text-right text-xs">liff/service-request/page.tsx</span><div class="mass-bar" style="width:58%"></div><span class="text-xs w-14">980</span></div>
+      <div class="flex items-center gap-3"><span class="w-72 shrink-0 text-right text-xs">admin/files/page.tsx</span><div class="mass-bar" style="width:55%"></div><span class="text-xs w-14">933</span></div>
+      <div class="flex items-center gap-3"><span class="w-72 shrink-0 text-right text-xs">admin/reports/page.tsx</span><div class="mass-bar" style="width:52%"></div><span class="text-xs w-14">877</span></div>
+      <div class="flex items-center gap-3"><span class="w-72 shrink-0 text-right text-xs">core/websocket_manager.py</span><div class="mass-bar" style="width:48%"></div><span class="text-xs w-14">811</span></div>
+      <div class="flex items-center gap-3"><span class="w-72 shrink-0 text-right text-xs">admin/users/page.tsx</span><div class="mass-bar" style="width:44%"></div><span class="text-xs w-14">736</span></div>
+      <div class="flex items-center gap-3"><span class="w-72 shrink-0 text-right text-xs">endpoints/admin_requests.py</span><div class="mass-bar" style="width:43%"></div><span class="text-xs w-14">720</span></div>
+      <div class="flex items-center gap-3"><span class="w-72 shrink-0 text-right text-xs">endpoints/rich_menus.py</span><div class="mass-bar" style="width:42%"></div><span class="text-xs w-14">703</span></div>
+      <div class="flex items-center gap-3"><span class="w-72 shrink-0 text-right text-xs">rich-menus/new/page.tsx</span><div class="mass-bar" style="width:42%"></div><span class="text-xs w-14">708</span></div>
+      <div class="flex items-center gap-3"><span class="w-72 shrink-0 text-right text-xs">services/analytics_service.py</span><div class="mass-bar ok" style="width:41%"></div><span class="text-xs w-14">687</span></div>
+      <div class="flex items-center gap-3"><span class="w-72 shrink-0 text-right text-xs">liff/service-request-single/page.tsx</span><div class="mass-bar" style="width:40%"></div><span class="text-xs w-14">681</span></div>
+      <div class="flex items-center gap-3"><span class="w-72 shrink-0 text-right text-xs">endpoints/admin_integrations.py</span><div class="mass-bar" style="width:40%"></div><span class="text-xs w-14">667</span></div>
+      <div class="flex items-center gap-3"><span class="w-72 shrink-0 text-right text-xs">endpoints/admin_live_chat.py</span><div class="mass-bar" style="width:39%"></div><span class="text-xs w-14">663</span></div>
+    </div>
+  </section>
+
+  <h2 class="text-2xl font-bold text-slate-900 mb-6">ผู้สมัคร 8 ข้อ — โอกาสทำโมดูลให้ลึกขึ้น</h2>
+
+  <!-- CANDIDATE 1 -->
+  <section class="mb-8 bg-white rounded-xl shadow p-6">
+    <div class="flex items-center justify-between mb-3">
+      <h3 class="text-lg font-semibold">1. ServiceRequest — endpoint ที่กลายเป็น service เสียเอง</h3>
+      <span class="bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full">แนะนำ بقوة</span>
+    </div>
+    <p class="text-sm mb-3"><strong>ไฟล์ที่เกี่ยวข้อง:</strong> <code>backend/app/api/v1/endpoints/admin_requests.py</code> (720 บรรทัด), <code>app/core/request_workflow.py</code>, <code>app/core/permissions.py</code></p>
+    <p class="text-sm mb-2"><strong>ปัญหา:</strong> ไม่มี <code>request_service</code> — endpoint <em>คือ</em> service: มี <code>db.execute/select</code> ตรง ๆ ~30 จุด, 6 Pydantic models นิยามในไฟล์, 4 stats queries, และ private helpers (<code>_check_workflow_guards</code>:370, <code>_apply_status_and_assignment</code>:436) ที่รับของ 3 ระดับพร้อมกัน (Pydantic + ORM + User) กฎการเปลี่ยนสถานะกระจายอยู่ 3 ที่: <code>request_workflow.py</code> (แผนที่สถานะ) + <code>permissions.py</code> (สิทธิ์) + ตัว endpoint (การบังคับใช้) — แก้หนึ่งการเปลี่ยนสถานะต้องแตะสามไฟล์ <span class="text-slate-500">ผลการทดสอบการลบ: ลบ private helpers แล้วตรรกะจะไปเกิดซ้ำในทุก route — มันทำงานอยู่จริง แต่อยู่ผิดที่</span></p>
+    <p class="text-sm mb-2"><strong>แนวทาง:</strong> สร้าง <code>ServiceRequestService</code> ที่รับข้อมูลธรรมดาแล้วคืนผลลัพธ์: โอนย้าย queries, การเปลี่ยนสถานะตาม workflow, และการเขียน audit เข้าไป; endpoint เหลือแค่ตรวจสอบสิทธิ์ + เรียกใช้ + แปลง response</p>
+    <p class="text-sm mb-4"><strong>ผลดี:</strong> <em>ความกระชับ</em> — เครื่องสถานะทั้งเส้นอยู่ในไฟล์เดียว ทดสอบได้โดยไม่ต้องตั้ง HTTP; <em>leverage</em> — stats queries ทั้ง 4 ชุดเรียกใช้ซ้ำจากที่อื่นได้; interface กลายเป็นพื้นผิวของการทดสอบตรง ๆ</p>
+    <div class="grid grid-cols-2 gap-6">
+      <div>
+        <p class="text-xs font-bold text-red-600 mb-2">ก่อน — workflow กระจาย 3 ที่, ตรรกะฝังใน endpoint</p>
+        <div class="iface w-full">admin_requests.py — interface ใหญ่: ~30 จุดแตะ DB + 6 schemas + 4 private helpers</div>
+        <div class="impl thin">ตื้น: ไม่มีอะไรซ่อน — ทุกอย่างโผล่ที่ผิว</div>
+        <div class="flex gap-1 mt-2 text-[10px] text-slate-500"><span class="border rounded px-1">request_workflow.py</span><span>+</span><span class="border rounded px-1">permissions.py</span><span>+</span><span class="border rounded px-1">endpoint helpers</span></div>
+      </div>
+      <div>
+        <p class="text-xs font-bold text-emerald-600 mb-2">หลัง — module เดียวลึก, endpoint บาง</p>
+        <div class="iface w-1/2 mx-auto">ServiceRequestService<br><span class="opacity-70">interface เล็ก: โหลด/เปลี่ยน/สถิติ</span></div>
+        <div class="impl deep">ลึก: queries + เครื่องสถานะ + สิทธิ์ + audit ฝังข้างใน</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CANDIDATE 2 -->
+  <section class="mb-8 bg-white rounded-xl shadow p-6">
+    <div class="flex items-center justify-between mb-3">
+      <h3 class="text-lg font-semibold">2. กังวลเรื่อง HTTP รั่วเข้า live-chat service (seam ที่ทำค้าง)</h3>
+      <span class="bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full">แนะนำ بقوة</span>
+    </div>
+    <p class="text-sm mb-3"><strong>ไฟล์ที่เกี่ยวข้อง:</strong> <code>backend/app/services/live_chat_service/sessions.py</code> (raise <code>HTTPException</code> 7 จุด: บรรทัด 41, 61, 84, 119, 124, 158, 191), <code>endpoints/admin_live_chat.py</code>:264–281</p>
+    <p class="text-sm mb-2"><strong>ปัญหา:</strong> การแยก <code>live_chat_service/</code> เป็น 10 โมดูล (จาก PR #137) ย้ายโค้ดสำเร็จแต่<em>ย้ายเรื่อง HTTP ออกไม่หมด</em>: ตัวบริการยังเลือก status code เอง แล้ว endpoint ก็จับ <code>ValueError</code> มาเทียบ <strong>ค่าสตริง</strong> เพื่อแปลงกลับเป็น status อีกรอบ — สองชั้นทำหน้าเดียวกัน</p>
+    <p class="text-sm mb-4"><strong>แนวทาง:</strong> บริการ raise <em>domain exceptions</em> (<code>SessionAlreadyClaimed</code>, <code>NotSessionOperator</code>) — ไม่มี <code>from fastapi import</code> ใน service; endpoint มีตัวแปลเป็น HTTP เพียงจุดเดียว</p>
+    <p class="text-sm mb-4"><strong>ผลดี:</strong> ทดสอบวงจรชีวิตของแชทผ่าน interface ของมันได้โดยไม่ต้องพึ่ง FastAPI; การแก้ข้อความ/รหัสสถานะทำที่เดียว — <em>ความกระชับ</em>; รอยต่อระหว่าง domain กับ transport ชัดขึ้นทั้ง 10 โมดูลใน package</p>
+    <div class="grid grid-cols-2 gap-6">
+      <div>
+        <p class="text-xs font-bold text-red-600 mb-2">ก่อน — แปล HTTP สองรอบ</p>
+        <div class="font-mono text-[11px] bg-slate-100 rounded p-3 leading-5">service: raise HTTPException(409)<br>endpoint: catch ValueError<br>&nbsp;&nbsp;→ เทียบสตริง → ได้ status ใหม่</div>
+      </div>
+      <div>
+        <p class="text-xs font-bold text-emerald-600 mb-2">หลัง — domain exception แปลรอบเดียว</p>
+        <div class="font-mono text-[11px] bg-slate-100 rounded p-3 leading-5">service: raise SessionAlreadyClaimed<br>endpoint: ตัวแปลตัวเดียว → 409</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CANDIDATE 3 -->
+  <section class="mb-8 bg-white rounded-xl shadow p-6">
+    <div class="flex items-center justify-between mb-3">
+      <h3 class="text-lg font-semibold">3. module เรียก HTTP หนึ่งเดียว — ปิดงานค้างของ apiFetch</h3>
+      <span class="bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full">แนะนำ بقوة</span>
+    </div>
+    <p class="text-sm mb-3"><strong>ไฟล์ที่เกี่ยวข้อง:</strong> <code>frontend/lib/api-error.ts</code> (apiFetch), <code>frontend/hooks/useApiFetch.ts</code> (45 บรรทัด), <code>frontend/lib/authFetch.ts</code>, 40+ ไฟล์เรียก <code>fetch()</code> ตรง, ~25 หน้าประกาศ <code>const API_BASE = '/api/v1'</code> เอง</p>
+    <p class="text-sm mb-2"><strong>ปัญหา:</strong> <code>apiFetch</code> มีอยู่แต่ถูกใช้งานแค่ ~3 ไฟล์; อีก 40+ ไฟล์เรียก <code>fetch()</code> ดิบ ๆ — ได้ cookies/CSRF จาก interceptor ของ <code>authFetch.ts</code> แต่<em>ไม่ได้</em>การอ่าน error, ข้อความไทยตามสถานะ, หรือ logging แบบเดียวกัน ความไม่สม่ำเสมอนี้มองไม่เห็นตอนรัน แต่เป็นของจริง <span class="text-slate-500">ผลการทดสอบการลบกับ <code>useApiFetch</code>: interface (data/loading/error/execute/clearError) ใหญ่พอ ๆ กับตัวมันเอง = ตื้น</span></p>
+    <div class="mermaid bg-slate-50 rounded p-3 my-3">
+graph LR
+  P1[หน้า admin ×25<br/>ประกาศ API_BASE เอง] -->|fetch ดิบ| B[backend]
+  P2[หน้า LIFF ×4] -->|fetch ดิบ| B
+  P3[~3 ไฟล์] -->|apiFetch| B
+  I[authFetch monkey-patch<br/>window.fetch] -.cookie/CSRF.-> P1
+  I -.cookie/CSRF.-> P2
+  style P1 fill:#fee2e2,stroke:#dc2626
+  style P2 fill:#fee2e2,stroke:#dc2626
+  style P3 fill:#dcfce7,stroke:#16a34a
+    </div>
+    <p class="text-sm mb-2"><strong>แนวทาง:</strong> module <code>http</code> ลึกสองตัว: <code>adminApi</code> (นำหน้าด้วย <code>/api/v1/admin/…</code>) และ <code>liffApi</code> (ลูกโซ่จังหวัด/อำเภอ/ตำบล, อัปโหลดไฟล์, ตัวเลือกการจอง) — คนเรียกใช้ <code>await adminApi.get('friends')</code> ได้ผลลัพธ์แบบแยกชนิด + การอ่าน error ในตัว; ลบ <code>API_BASE</code> ท้องถิ่นทิ้งทั้งหมด</p>
+    <p class="text-sm mb-4"><strong>ผลดี:</strong> <em>leverage</em> สูงสุดทุกข้อ — 40+ จุดเรียกใช้ดีขึ้นพร้อมกัน; <em>ความกระชับ</em>ของ error handling/ข้อความไทย/CSRF อยู่ที่เดียว; ทดสอบการเรียก API ของทุกหน้าผ่าน interface เดียว</p>
+    <div class="grid grid-cols-2 gap-6">
+      <div>
+        <p class="text-xs font-bold text-red-600 mb-2">ก่อน — 3 ทางเรียก, ใช้จริงทางเดียว</p>
+        <div class="iface w-full">API_BASE ท้องถิ่น ×25 + fetch ดิบ + apiFetch + useApiFetch</div>
+        <div class="impl thin">คนเรียกต้องรู้เอง: URL, การอ่าน error, ข้อความสถานะ</div>
+      </div>
+      <div>
+        <p class="text-xs font-bold text-emerald-600 mb-2">หลัง — interface เล็กสองตัว</p>
+        <div class="iface w-2/3 mx-auto">adminApi / liffApi<br><span class="opacity-70">get / post / upload</span></div>
+        <div class="impl deep">ลึก: นำหน้า URL + CSRF + อ่าน error + ข้อความไทย + logging</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CANDIDATE 4 -->
+  <section class="mb-8 bg-white rounded-xl shadow p-6">
+    <div class="flex items-center justify-between mb-3">
+      <h3 class="text-lg font-semibold">4. ตัวช่วยสร้างฟอร์ม LIFF ×3 — ฟอร์มเดียวกันเขียนสามชุด</h3>
+      <span class="bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full">แนะนำ بقوة</span>
+    </div>
+    <p class="text-sm mb-3"><strong>ไฟล์ที่เกี่ยวข้อง:</strong> <code>frontend/app/liff/service-request/page.tsx</code> (980 บรรทัด), <code>app/liff/service-request-single/page.tsx</code> (681), <code>app/liff/request-v2/page.tsx</code> (560), <code>lib/liff/submit-service-request.ts</code> (29)</p>
+    <p class="text-sm mb-2"><strong>ปัญหา:</strong> โครงตัวช่วยสร้าง (สถานะขั้น, การตรวจสอบ, ลูกโซ่จังหวัด→อำเภอ→ตำบล, อัปโหลดไฟล์, การเริ่ม LIFF, นับถอยหลังปิดเอง) <em>ถูกเขียนซ้ำสามรอบ</em> — เฉพาะลูกโซ่ที่อยู่อย่างเดียวก็สามชุด; มีเพียงการส่งแบบฟอร์มที่ดึงออกมาแล้ว (29 บรรทัด)</p>
+    <p class="text-sm mb-4"><strong>แนวทาง:</strong> <code>useLiffServiceForm</code> hook (หรือ <code>&lt;LiffFormShell&gt;</code>) ที่ถือวงจรของตัวช่วยสร้างทั้งหมด + วาง <code>liffApi</code> (ข้อ 3) ไว้ข้างใต้; ทั้งสามหน้าเหลือแค่การตั้งค่า + การแสดงผลของตัวเอง</p>
+    <p class="text-sm mb-4"><strong>ผลดี:</strong> แก้บั๊กการกรอกฟอร์มครั้งเดียว = แก้ทั้งสามหน้า (<em>ความกระชับ</em>); ตัวช่วยสร้างกลายเป็นพื้นผิวทดสอบที่ใช้กับ Vitest ได้โดยไม่ต้องเปิด LIFF จริง; <code>service-request-single</code> กับ <code>request-v2</code> อาจเหลือแค่ <em>adapter</em> บน module เดียว</p>
+    <div class="grid grid-cols-2 gap-6">
+      <div>
+        <p class="text-xs font-bold text-red-600 mb-2">ก่อน — คัดลอกสามชุด (~2,200 บรรทัด)</p>
+        <div class="flex gap-1"><div class="iface flex-1">ตัวช่วย #1<br>980</div><div class="iface flex-1">ตัวช่วย #2<br>681</div><div class="iface flex-1">ตัวช่วย #3<br>560</div></div>
+        <div class="impl thin">ลูกโซ่ที่อยู่ ×3 · การตรวจสอบ ×3 · อัปโหลด ×3</div>
+      </div>
+      <div>
+        <p class="text-xs font-bold text-emerald-600 mb-2">หลัง — module ลึก + 3 หน้าบาง</p>
+        <div class="iface w-2/3 mx-auto">useLiffServiceForm<br><span class="opacity-70">ขั้น / ตรวจสอบ / ส่ง</span></div>
+        <div class="impl deep">ลึก: ลูกโซ่ + อัปโหลด + นับถอยหลัง + liffApi</div>
+        <div class="flex gap-1 mt-2"><div class="border rounded text-[10px] flex-1 text-center py-1">หน้า A</div><div class="border rounded text-[10px] flex-1 text-center py-1">หน้า B</div><div class="border rounded text-[10px] flex-1 text-center py-1">หน้า C</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CANDIDATE 5 -->
+  <section class="mb-8 bg-white rounded-xl shadow p-6">
+    <div class="flex items-center justify-between mb-3">
+      <h3 class="text-lg font-semibold">5. websocket_manager — วัตถุรวมศูนย์ 811 บรรทัด</h3>
+      <span class="bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded-full">คุ้มค่าที่จะสำรวจ</span>
+    </div>
+    <p class="text-sm mb-3"><strong>ไฟล์ที่เกี่ยวข้อง:</strong> <code>backend/app/core/websocket_manager.py</code> (811 บรรทัด)</p>
+    <p class="text-sm mb-2"><strong>ปัญหา:</strong> ไฟล์เดียวถือ 4+ ความรับผิดชอบ: วงจรชีวิตของการเชื่อมต่อ, ห้อง/สมาชิก, การส่งข้ามเครื่องผ่าน Redis, การอยู่ออนไลน์ + เครื่องหมายอ่านแล้ว + ผู้ติดตามสถิติ — ทั้งหมดเป็น dicts ที่เปลี่ยนค่าได้บนวัตถุเดียว; <code>initialize()</code> มีผลข้างเคียงกันด้วยค่าบูลีน; จะทดสอบเส้นทางการส่งกระจายต้องประกอบผู้จัดการทั้งตัวแล้วจำลอง Redis — ตรรกะล้วน ๆ เช่น "ใครอยู่ในห้องไหน" แยกออกมาทดสอบไม่ได้</p>
+    <p class="text-sm mb-4"><strong>แนวทาง:</strong> แยกเป็น <em>module ภายใน</em> ใต้หน้ากากเดิม: สมุดทะเบียนห้อง (ตรรกะล้วน), ตัวติดตามการอยู่ออนไลน์, ตัวเชื่อมการส่งข้ามเครื่อง — <code>ws_manager</code> เหลือเป็นตัวประกอบ; แต่ละชิ้นทดสอบผ่าน interface ของตัวเอง</p>
+    <p class="text-sm mb-4"><strong>ผลดี:</strong> สมาชิกห้อง / ระยะเวลาอยู่ออนไลน์ เป็นฟังก์ชันล้วนที่ทดสอบได้ทันที; <em>ความกระชับ</em>ของบั๊กข้ามเครื่องอยู่ในไฟล์เดียว; ลดจุดเสี่ยงที่สุดของระบบเรียลไทม์</p>
+    <div class="grid grid-cols-2 gap-6">
+      <div>
+        <p class="text-xs font-bold text-red-600 mb-2">ก่อน — ทุกอย่างใน dict เดียว</p>
+        <div class="iface w-full">ws_manager (811)</div>
+        <div class="impl thin text-left leading-5">การเชื่อมต่อ · ห้อง · การจับคู่แอดมิน · ข้อมูลประกอบ<br>ชื่อแอดมิน · สถิติ · การส่งข้ามเครื่อง · รหัสเซิร์ฟเวอร์</div>
+      </div>
+      <div>
+        <p class="text-xs font-bold text-emerald-600 mb-2">หลัง — หน้ากากบาง + ชิ้นที่ทดสอบได้</p>
+        <div class="iface w-2/3 mx-auto">ws_manager (หน้ากาก)</div>
+        <div class="flex gap-1 mt-1"><div class="impl deep flex-1">ห้อง<br>(ล้วน)</div><div class="impl deep flex-1">ออนไลน์<br>(ล้วน)</div><div class="impl deep flex-1">ข้ามเครื่อง<br>(adapter)</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CANDIDATE 6 -->
+  <section class="mb-8 bg-white rounded-xl shadow p-6">
+    <div class="flex items-center justify-between mb-3">
+      <h3 class="text-lg font-semibold">6. หน้าคำขอ/[id] 1,683 บรรทัด — ดึง useRequestDetail ออกมา</h3>
+      <span class="bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded-full">คุ้มค่าที่จะสำรวจ</span>
+    </div>
+    <p class="text-sm mb-3"><strong>ไฟล์ที่เกี่ยวข้อง:</strong> <code>frontend/app/admin/requests/[id]/page.tsx</code> (1,683 บรรทัด — ใหญ่สุดฝั่ง frontend)</p>
+    <p class="text-sm mb-2"><strong>ปัญหา:</strong> หน้าเดียวผสม: <code>fetch()</code> 6+ จุด, การเปลี่ยนสถานะ, การตามรอยการแก้ไข, เลิกทำ/ทำซ้ำ, ตรวจสอบสิทธิ์, และ JSX ~1,200 บรรทัด; ส่วนคอมเมนต์ (บรรทัด 135–256) ทำประวัติเองทั้งที่ <code>useUndoableState</code> มีอยู่ และฟอร์มหลักก็ใช้มันแล้ว (บรรทัด 278) — การทดสอบพฤติกรรมใด ๆ ต้องยกทั้งหน้าขึ้นมาพร้อมตัวจำลองทุกอย่าง</p>
+    <p class="text-sm mb-4"><strong>แนวทาง:</strong> <code>useRequestDetail(id)</code> hook ถือการโหลด/การแก้ไข/การเปลี่ยนสถานะ/การอัปเดตล่วงหน้า; หน้าเหลือแค่การแสดงผล; คอมเมนต์ย้ายไปใช้ <code>useUndoableState</code> ตัวเดียวกับฟอร์มหลัก</p>
+    <p class="text-sm mb-4"><strong>ผลดี:</strong> interface ของ hook กลายเป็นพื้นผิวทดสอบ — ทดสอบการเปลี่ยนสถานะ/สิทธิ์ได้โดยไม่ต้องเรนเดอร์; เป็นแม่แบบให้ไฟล์ใหญ่ที่เหลือ (files 933, reports 877, users 736) แยกตามแบบเดียวกัน</p>
+    <div class="grid grid-cols-2 gap-6">
+      <div>
+        <p class="text-xs font-bold text-red-600 mb-2">ก่อน</p>
+        <div class="iface w-full">page.tsx (1,683)</div>
+        <div class="impl thin text-left">fetch ×6 · การเปลี่ยนสถานะ · เลิกทำ (2 ชุด) · สิทธิ์ · JSX 1,200</div>
+      </div>
+      <div>
+        <p class="text-xs font-bold text-emerald-600 mb-2">หลัง</p>
+        <div class="iface w-2/3 mx-auto">useRequestDetail(id)</div>
+        <div class="impl deep">ลึก: โหลด/แก้/สถานะ/เลิกทำ หนึ่งเดียว</div>
+        <div class="border rounded text-[10px] text-center py-1 mt-1">หน้า = แสดงผลล้วน</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CANDIDATE 7 -->
+  <section class="mb-8 bg-white rounded-xl shadow p-6">
+    <div class="flex items-center justify-between mb-3">
+      <h3 class="text-lg font-semibold">7. การบูต LIFF สองเส้นทาง — รวมเป็น liffBoot เดียว</h3>
+      <span class="bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded-full">คุ้มค่าที่จะสำรวจ</span>
+    </div>
+    <p class="text-sm mb-3"><strong>ไฟล์ที่เกี่ยวข้อง:</strong> <code>components/liff/LiffStateBoot.tsx</code> (99 บรรทัด), <code>hooks/useLiffInit.ts</code> (130), <code>app/liff/layout.tsx</code>, หน้า LIFF ×4</p>
+    <p class="text-sm mb-2"><strong>ปัญหา:</strong> จะเข้าใจว่า "LIFF เริ่มทำงาน" ต้องไล่ 5 โมดูล และมี <em>สองเส้นทางการเริ่มที่ไม่แชร์โค้ดกันเลย</em>: LiffStateBoot มีวงจรหน่วงเวลา + หมดเวลาของตัวเอง (ซ้ำกับที่ useLiffInit ทำ) และฉากโหลดถูกเขียนเป็นก้อนจาวาสคริปต์ในสตริง — ไม่ทดสอบ ไม่ระบุชนิด; แต่ละหน้าต้องจำส่งตัวเลือก 5 ตัวเข้า hook เอง</p>
+    <p class="text-sm mb-4"><strong>แนวทาง:</strong> module <code>liffBoot</code> เดียวถือลำดับ: โหลด SDK → เปิด/ปิดฉากโหลด → เริ่มใช้งานพร้อมรับ <code>liff.state</code> กลับจากการเปลี่ยนเส้นทาง; หน้าเรียกแค่ครั้งเดียว ตัวเลือกเหลือ 1–2 ตัว</p>
+    <p class="text-sm mb-4"><strong>ผลดี:</strong> <em>ความกระชับ</em>ของปัญหา "ทำไมเปิดไม่ขึ้น" อยู่ที่ไฟล์เดียว; ทดสอบลำดับบูตด้วย Vitest ได้ (ตอนนี้ทดสอบได้แค่ useLiffInit); ลดจุดที่หน้าใหม่จะใช้ผิด</p>
+    <div class="grid grid-cols-2 gap-6">
+      <div>
+        <p class="text-xs font-bold text-red-600 mb-2">ก่อน — สองลำดับซ้ำกัน</p>
+        <div class="font-mono text-[11px] bg-slate-100 rounded p-3 leading-5">LiffStateBoot: วนรอ + หมดเวลา + ฉากโหลด (สตริง)<br>useLiffInit: เริ่ม + เข้าระบบ + โปรไฟล์ (ต่อหน้า)<br>→ ไม่แชร์อะไรกันเลย</div>
+      </div>
+      <div>
+        <p class="text-xs font-bold text-emerald-600 mb-2">หลัง — ลำดับเดียว</p>
+        <div class="iface w-2/3 mx-auto">liffBoot</div>
+        <div class="impl deep">ลึก: โหลด SDK → ฉากโหลด → เริ่ม (+กู้คืนการเปลี่ยนเส้นทาง)</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CANDIDATE 8 -->
+  <section class="mb-8 bg-white rounded-xl shadow p-6">
+    <div class="flex items-center justify-between mb-3">
+      <h3 class="text-lg font-semibold">8. user_identity_service — seam ตื้น + ค่าตั้งที่ตายแล้ว</h3>
+      <span class="bg-slate-400 text-white text-xs font-bold px-3 py-1 rounded-full">คาดเดา — รอหลักฐานเพิ่ม</span>
+    </div>
+    <p class="text-sm mb-3"><strong>ไฟล์ที่เกี่ยวข้อง:</strong> <code>backend/app/services/user_identity_service.py</code> (175 บรรทัด), <code>backend/app/core/config.py</code>:58, จุดเรียกใช้ 5+ ไฟล์</p>
+    <p class="text-sm mb-2"><strong>ปัญหา:</strong> ตัวช่วยสาธารณะ 4 ตัว (<code>resolve_by_line_id</code>, <code>child_filter</code>, <code>populate_surrogate</code>, <code>decrypt_user_line_id</code>) ตัวละ 3–8 บรรทัด — คนเรียกต้อง<em>จำเอง</em>ว่าเมื่อไหร่เรียกตัวไหน และใครถือการบันทึก; ความซับซ้อนจริง (การเลือกคีย์, บรรทัด 33–45) เป็นส่วนตัวหมด; และ <code>LINE_ID_STORAGE_MODE</code> ยังเป็น <code>Literal["plaintext","dual","pseudonym"]</code> ทั้งที่หลัง PR #199 เหลือสถานะเดียวที่ใช้ได้ — ชนิดข้อมูลประกาศ 3 สถานะ เอกสารบอกมี 1</p>
+    <p class="text-sm mb-4"><strong>แนวทาง:</strong> พับเป็นค่าวัตถุ <code>UserIdentity</code> (<code>.from_raw()</code> / <code>.resolve()</code> / <code>.for_storage()</code>) ที่ซ่อนการเลือกคีย์และความเป็นเจ้าของการบันทึก; ยุบ <code>LINE_ID_STORAGE_MODE</code> เป็นค่าคงที่</p>
+    <p class="text-sm mb-4"><strong>ผลดี:</strong> สัญญาการเข้ารหัสชื่อผู้ใช้ (pseudonym) อยู่หลัง interface เดียวที่ทดสอบได้; ลด "ข้อควรรู้" ที่คนเรียกต้องจำ — <em>interface คือพื้นผิวทดสอบ</em>; เสี่ยงต่ำเพราะเป็นงานหด ไม่ใช่ย้าย</p>
+    <div class="grid grid-cols-2 gap-6">
+      <div>
+        <p class="text-xs font-bold text-red-600 mb-2">ก่อน — 4 ตัวช่วยตื้น + 3 สถานะในชื่อ</p>
+        <div class="iface w-full">resolve · child_filter · populate · decrypt + โหมด 3 ค่า</div>
+        <div class="impl thin">ตัวละ 3–8 บรรทัด, คนเรียกต้องรู้ว่าเรียกตัวไหน</div>
+      </div>
+      <div>
+        <p class="text-xs font-bold text-emerald-600 mb-2">หลัง — ค่าวัตถุเดียว</p>
+        <div class="iface w-2/3 mx-auto">UserIdentity<br><span class="opacity-70">from_raw · resolve · for_storage</span></div>
+        <div class="impl deep">ลึก: เลือกคีย์ + เข้ารหัส + โหมดคงที่</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TOP RECOMMENDATION -->
+  <section class="mt-10 bg-slate-900 text-white rounded-xl shadow-lg p-8">
+    <h2 class="text-2xl font-bold mb-3">คำแนะนำอันดับหนึ่ง — เริ่มที่ข้อ 3: module เรียก HTTP หนึ่งเดียว</h2>
+    <p class="text-slate-300 leading-relaxed max-w-4xl">
+      ข้อ 3 (adminApi / liffApi) คือจุดเริ่มที่ดีที่สุด เพราะเป็น <strong>leverage สูงสุดต่อความเสี่ยงต่ำสุด</strong>: 40+ จุดเรียกใช้ดีขึ้นพร้อมกันโดยไม่ต้องเปลี่ยนพฤติกรรมของใคร,
+      มันเป็นการ<em>ปิดงานที่เริ่มไว้แล้ว</em> (apiFetch + authFetch) แทนที่จะประดิษฐ์สิ่งใหม่, และมันปลดล็อกการทดสอบของทุกหน้าพร้อมกัน —
+      สมอเรือตัวเดียวที่ดึงเรือทั้งลำ
+      <br><br>
+      ลำดับที่แนะนำ: <strong>ข้อ 3 → ข้อ 4 (liffApi ได้ใช้ทันที) → ข้อ 2 (งานเล็ก เห็นผลเร็วฝั่ง backend)</strong> แล้วค่อยข้อ 1 และ 6 ซึ่งเป็นงานลึกแต่ขอบเขตกว้างกว่า
+      ข้อ 5, 7, 8 เก็บไว้ทำเมื่อแตะพื้นที่นั้นอยู่แล้ว
+    </p>
+  </section>
+
+  <footer class="mt-8 text-xs text-slate-400">
+    สร้างจากผลการสำรวจฝั่ง backend + frontend, 2026-08-29 · ไม่มี CONTEXT.md / docs/adr/ ในโปรเจกต์ — จึงไม่มีข้อขัดแย้งกับบันทึกการตัดสินใจ (ADR) · ผู้จัดทำ: Qoder
+  </footer>
+</div>
+</body>
+</html>

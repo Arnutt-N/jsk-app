@@ -50,7 +50,7 @@ export default function RootLayout({
 }) {
     return (
         <html lang="th" suppressHydrationWarning className={`${notoThai.variable} ${inter.variable} ${outfit.variable}`}>
-            <body suppressHydrationWarning className="font-sans antialiased">
+            <body className="font-sans antialiased">
                 <Providers>
                     {children}
                 </Providers>
