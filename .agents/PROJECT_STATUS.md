@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-08-29 21:58 by Qoder (Handoff-system hardening branch chore/handoff-system-hardening-eval: /evaluate found 4 rea)
+> **Last Updated:** 2026-08-29 22:44 by Qoder (LIFF booking redesign + handoff-system hardening shipped as PR #206/#207 both pushed; #207)
 
 ## Thai Summary
 **สถานะล่าสุด (2026-08-23)** — milestone หลักทุกตัวปิดแล้ว เหลือเฉพาะ manual test ฝั่งผู้ใช้:
@@ -113,6 +113,7 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-08-29 22:44] Qoder: LIFF booking redesign + handoff-system hardening shipped as PR #206/#207 (both pushed; #207 rebased onto main) (Qoder)
 - [2026-08-29 21:58] Qoder: Handoff-system hardening (branch chore/handoff-system-hardening-eval): /evaluate found 4 real bugs (path traversal via platform name, same-minute silent overwrite, bare-repo crash in view regen, dangling --model flag); implemented all 5 imp (Qoder)
 - [2026-08-29 20:20] Qoder: Merged PR #205 (squash to main as 72786ec): audit sweep 2026-08-29 across 5 lanes + closed LIFF upload CRITICAL — shared uploadLiffMedia helper with x-liff-id-token, SessionExpiredError, attachment cap 3 with in-flight counting; CI green (B (Qoder)
 - [2026-08-29 06:54] Codex: Completed evidence-backed deep review of Qoder audit sweep and architecture report; consolidated findings and remediation queue in project-log-md/codex/deep-review-qoder-audit-architecture-20260829.md (Codex)
@@ -309,3 +310,4 @@
 - [x] Enable `LIFF_STRICT_MODE=true` on prod — already effective: code default `True` (config.py) with no env override on Koyeb
 - [ ] Monitor production deployment via Vercel
 - [ ] Address any post-merge feedback or minor UI polish
+- [ ] **Backend: `GET /liff/bookings/availability/range?service_type=&from=&to=`** — return `[{date, is_open, remaining}]` for a date window so the `/liff/booking` date strip can disable closed/full days up front instead of revealing them after a tap. Deferred from PR #207 (UI-only scope); the frontend in `frontend/app/liff/booking/page.tsx` already caches per-day `/availability` and can consume this incrementally.

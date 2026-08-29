@@ -1,19 +1,20 @@
 {
-  "last_updated": "2026-08-29T21:58:00+07:00",
+  "last_updated": "2026-08-29T22:44:00+07:00",
   "platform": "qoder",
-  "current_task": "Handoff-system hardening (branch chore/handoff-system-hardening-eval): /evaluate found 4 real bugs (path traversal via platform name, same-minute silent overwrite, bare-repo crash in view regen, dangl",
+  "current_task": "LIFF booking redesign + handoff-system hardening shipped as PR #206/#207 (both pushed; #207 rebased onto main)",
   "plan_status": "completed",
   "next_steps": [
-    "Commit hardening changes + handoff artifacts, push, open PR for chore/handoff-system-hardening-eval",
-    "Consider committing the .gitignore /graft/ line as a separate chore commit",
-    "Deferred: success-window cap hardening, 401-guard dedup, alert stacking; sync skn-liff-form skill (stale post-#202)"
+    "Merge PR #206 and #207 after CI green",
+    "Verify /liff/booking on a real LINE device: date-strip border fix, dark mode, ConfirmDialog flow",
+    "Raise advance_days in /admin/settings/booking (the 4-day cap is a DB setting, not code)",
+    "Add GET /liff/bookings/availability/range endpoint so closed/full days can be disabled in the strip (was interrupted before writing it to PROJECT_STATUS.md Backlog)"
   ],
   "handoff_history": [
     {
-      "timestamp": "2026-08-29T21:58:00+07:00",
+      "timestamp": "2026-08-29T22:44:00+07:00",
       "platform": "qoder",
-      "branch": "chore/handoff-system-hardening-eval",
-      "head": "5caea24",
+      "branch": "feat/liff-booking-redesign",
+      "head": "2f6fdbd",
       "status": "completed"
     },
     {
@@ -157,7 +158,5 @@
       "antigravity/session-summary-20260602-0032.md"
     ],
     "key_insights": "Handoff system redesigned to single-source-of-truth (checkpoints) + generated views (TASK_LOG/SESSION_INDEX via gen-handoff-views.cjs). Use handoff-new.cjs to create handoffs. Stop hook enforces it. Do NOT hand-edit the generated files."
-  },
-  "model": "Cantus",
-  "provider": "Qoder"
+  }
 }
