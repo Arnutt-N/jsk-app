@@ -1,0 +1,19 @@
+{
+  "handoff_version": "2.0",
+  "platform": "qoder",
+  "agent": "qoder",
+  "timestamp": "2026-08-29T22:44:00+07:00",
+  "branch": "feat/liff-booking-redesign",
+  "head_commit": "2f6fdbd",
+  "status": "completed",
+  "work_summary": "LIFF booking redesign + handoff-system hardening shipped as PR #206/#207 (both pushed; #207 rebased onto main)",
+  "priority_actions": [
+    "Merge PR #206 and #207 after CI green",
+    "Verify /liff/booking on a real LINE device: date-strip border fix, dark mode, ConfirmDialog flow",
+    "Raise advance_days in /admin/settings/booking (the 4-day cap is a DB setting, not code)",
+    "Add GET /liff/bookings/availability/range endpoint so closed/full days can be disabled in the strip (was interrupted before writing it to PROJECT_STATUS.md Backlog)"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/qoder/session-summary-20260829-2244.md",
+  "cross_platform_read": []
+}

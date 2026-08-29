@@ -1,14 +1,22 @@
 {
-  "last_updated": "2026-08-29T20:20:00+07:00",
+  "last_updated": "2026-08-29T22:44:00+07:00",
   "platform": "qoder",
-  "current_task": "Merged PR #205 (squash to main as 72786ec): audit sweep 2026-08-29 across 5 lanes + closed LIFF upload CRITICAL — shared uploadLiffMedia helper with x-liff-id-token, SessionExpiredError, attachment ca",
+  "current_task": "LIFF booking redesign + handoff-system hardening shipped as PR #206/#207 (both pushed; #207 rebased onto main)",
   "plan_status": "completed",
   "next_steps": [
-    "Optional: manual LINE in-app test of the 3 LIFF forms uploading 3 attachments end-to-end",
-    "Optional follow-ups noted in review: success-window cap hardening, 401-guard dedup between lib helpers, alert stacking UX",
-    "Untracked local-only files kept: graft/ and .ignore (local graft tooling)"
+    "Merge PR #206 and #207 after CI green",
+    "Verify /liff/booking on a real LINE device: date-strip border fix, dark mode, ConfirmDialog flow",
+    "Raise advance_days in /admin/settings/booking (the 4-day cap is a DB setting, not code)",
+    "Add GET /liff/bookings/availability/range endpoint so closed/full days can be disabled in the strip (was interrupted before writing it to PROJECT_STATUS.md Backlog)"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-08-29T22:44:00+07:00",
+      "platform": "qoder",
+      "branch": "feat/liff-booking-redesign",
+      "head": "2f6fdbd",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-08-29T20:20:00+07:00",
       "platform": "qoder",
@@ -140,13 +148,6 @@
       "platform": "open_code",
       "branch": "main",
       "head": "f952106",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-08-15T14:50:00+07:00",
-      "platform": "open_code",
-      "branch": "main",
-      "head": "2818c6e",
       "status": "completed"
     }
   ],

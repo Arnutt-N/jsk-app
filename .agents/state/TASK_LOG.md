@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 239 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 240 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-08-29 22:44 — qoder — completed
+
+LIFF booking redesign + handoff-system hardening shipped as PR #206/#207 (both pushed; #207 rebased onto main)
+
+- Checkpoint: `.agents/state/checkpoints/handover-qoder-20260829-2244.json`
+- Summary: `project-log-md/qoder/session-summary-20260829-2244.md`
+
+---
 
 ### 2026-08-29 20:20 — qoder — completed
 
