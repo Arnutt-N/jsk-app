@@ -9,8 +9,11 @@ from datetime import date, datetime, time, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from fastapi import HTTPException
 from sqlalchemy.dialects import postgresql
+from types import SimpleNamespace
 
+from app.api.v1.endpoints import liff_bookings
 from app.models.business_hours import BusinessHours
 from app.services import booking_service
 from app.services.booking_service import (
@@ -213,3 +216,108 @@ async def test_the_counts_query_filters_by_service_window_and_active_status():
     assert "bookings.booking_date <=" in sql and "2026-08-25" in sql
     assert "bookings.status IN ('CONFIRMED')" in sql
     assert "GROUP BY bookings.booking_date, bookings.booking_time" in sql
+
+
+# --- endpoint: guards and shape (direct call, style of test_liff_bookings_endpoints.py) ---
+
+
+def _enabled_config():
+    return SimpleNamespace(enabled=True, service_types=(SERVICE,))
+
+
+def _day(date_, is_open=True, remaining=4):
+    return SimpleNamespace(date=date_, is_open=is_open, remaining=remaining)
+
+
+@pytest.mark.asyncio
+async def test_endpoint_rejects_a_missing_token_with_401():
+    with pytest.raises(HTTPException) as exc:
+        await liff_bookings.require_line_user_id(x_liff_id_token=None)
+    assert exc.value.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_endpoint_returns_422_for_an_inverted_range():
+    with pytest.raises(HTTPException) as exc:
+        await liff_bookings.get_availability_range(
+            service_type=SERVICE,
+            range_start=TODAY,
+            range_end=TODAY - timedelta(days=1),
+            db=AsyncMock(),
+        )
+    assert exc.value.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_endpoint_returns_422_for_a_window_longer_than_62_days():
+    with pytest.raises(HTTPException) as exc:
+        await liff_bookings.get_availability_range(
+            service_type=SERVICE,
+            range_start=TODAY,
+            range_end=TODAY + timedelta(days=63),
+            db=AsyncMock(),
+        )
+    assert exc.value.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_endpoint_returns_503_while_booking_is_disabled():
+    disabled = SimpleNamespace(enabled=False, service_types=())
+    with patch.object(liff_bookings, "load_booking_config", new=AsyncMock(return_value=disabled)):
+        with pytest.raises(HTTPException) as exc:
+            await liff_bookings.get_availability_range(
+                service_type=SERVICE,
+                range_start=TODAY,
+                range_end=TODAY,
+                db=AsyncMock(),
+            )
+    assert exc.value.status_code == 503
+
+
+@pytest.mark.asyncio
+async def test_endpoint_maps_an_unknown_service_to_404():
+    db = AsyncMock()
+    with patch.object(liff_bookings, "load_booking_config", new=AsyncMock(return_value=_enabled_config())), \
+         patch.object(
+             liff_bookings.booking_service,
+             "get_availability_range",
+             new=AsyncMock(side_effect=UnknownServiceTypeError(SERVICE)),
+         ):
+        with pytest.raises(HTTPException) as exc:
+            await liff_bookings.get_availability_range(
+                service_type="บริการที่ไม่มีอยู่จริง",
+                range_start=TODAY,
+                range_end=TODAY,
+                db=db,
+            )
+    assert exc.value.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_endpoint_maps_service_rows_into_the_day_schema_ascending():
+    """Ordering is the service's contract (pinned in its own tests); the
+    endpoint just maps rows into the response schema without reordering."""
+    rows = [
+        _day(TODAY, is_open=False, remaining=0),
+        _day(TODAY + timedelta(days=1), is_open=True, remaining=6),
+        _day(TODAY + timedelta(days=2), is_open=True, remaining=0),
+    ]
+    with patch.object(liff_bookings, "load_booking_config", new=AsyncMock(return_value=_enabled_config())), \
+         patch.object(
+             liff_bookings.booking_service,
+             "get_availability_range",
+             new=AsyncMock(return_value=rows),
+         ):
+        result = await liff_bookings.get_availability_range(
+            service_type=SERVICE,
+            range_start=TODAY,
+            range_end=TODAY + timedelta(days=2),
+            db=AsyncMock(),
+        )
+
+    assert result.service_type == SERVICE
+    assert [(day.date, day.is_open, day.remaining) for day in result.days] == [
+        (TODAY, False, 0),
+        (TODAY + timedelta(days=1), True, 6),
+        (TODAY + timedelta(days=2), True, 0),
+    ]
