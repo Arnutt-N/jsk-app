@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 239 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 240 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-08-29 21:58 — qoder (Cantus / Qoder) — completed
+
+Handoff-system hardening (branch chore/handoff-system-hardening-eval): /evaluate found 4 real bugs (path traversal via platform name, same-minute silent overwrite, bare-repo crash in view regen, dangling --model flag); implemented all 5 improvements — platform regex guard ^[a-z0-9_]+$, dual-artifact collision guard, fail-open view regeneration, strict --model/--provider validation, and a 23-test sandboxed golden suite (.agents/scripts/test-handoff-system.sh); code review pass fixed 4 findings (T07 minute-rollover retry, CANON hasOwnProperty lookup, sumPath collision check, inline-flag positive test). 23/23 tests green, validator PASS.
+
+- Checkpoint: `.agents/state/checkpoints/handover-qoder-20260829-2158.json`
+- Summary: `project-log-md/qoder/session-summary-20260829-2158.md`
+
+---
 
 ### 2026-08-29 20:20 — qoder — completed
 

@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-08-29 20:20 by Qoder (Merged PR #205 squash to main as 72786ec: audit sweep 2026-08-29 across 5 lanes + closed L)
+> **Last Updated:** 2026-08-29 21:58 by Qoder (Handoff-system hardening branch chore/handoff-system-hardening-eval: /evaluate found 4 rea)
 
 ## Thai Summary
 **สถานะล่าสุด (2026-08-23)** — milestone หลักทุกตัวปิดแล้ว เหลือเฉพาะ manual test ฝั่งผู้ใช้:
@@ -113,6 +113,7 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-08-29 21:58] Qoder: Handoff-system hardening (branch chore/handoff-system-hardening-eval): /evaluate found 4 real bugs (path traversal via platform name, same-minute silent overwrite, bare-repo crash in view regen, dangling --model flag); implemented all 5 imp (Qoder)
 - [2026-08-29 20:20] Qoder: Merged PR #205 (squash to main as 72786ec): audit sweep 2026-08-29 across 5 lanes + closed LIFF upload CRITICAL — shared uploadLiffMedia helper with x-liff-id-token, SessionExpiredError, attachment cap 3 with in-flight counting; CI green (B (Qoder)
 - [2026-08-29 06:54] Codex: Completed evidence-backed deep review of Qoder audit sweep and architecture report; consolidated findings and remediation queue in project-log-md/codex/deep-review-qoder-audit-architecture-20260829.md (Codex)
 - [2026-08-29 03:13] Qoder: Codex deep-reviewed Qoder audit sweep and architecture report; found LIFF upload blocker and prioritized remediation in project-log-md/codex/deep-review-qoder-audit-architecture-20260829.md (Qoder)
