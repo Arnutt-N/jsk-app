@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 241 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 242 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-08-29 23:21 — qoder (GLM-5.3-Flash / Z.ai) — completed
+
+Merged PR #206 + #207 to main (8ddbda3, beaff04) — resolved #206 generated-state conflicts (kept both 21:58/22:44 records, regenerated views from 241 checkpoints, golden suite 23/23); wrote PRD+PRP for availability-range endpoint (commit 391fa9d), awaiting user approval before implementation
+
+- Checkpoint: `.agents/state/checkpoints/handover-qoder-20260829-2321.json`
+- Summary: `project-log-md/qoder/session-summary-20260829-2321.md`
+
+---
 
 ### 2026-08-29 22:44 — qoder — completed
 

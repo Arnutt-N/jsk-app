@@ -1,15 +1,21 @@
 {
-  "last_updated": "2026-08-29T22:44:00+07:00",
+  "last_updated": "2026-08-29T23:21:00+07:00",
   "platform": "qoder",
-  "current_task": "LIFF booking redesign + handoff-system hardening shipped as PR #206/#207 (both pushed; #207 rebased onto main)",
+  "current_task": "Merged PR #206 + #207 to main (8ddbda3, beaff04) — resolved #206 generated-state conflicts (kept both 21:58/22:44 records, regenerated views, golden suite 23/23); wrote PRD+PRP for availability-range ",
   "plan_status": "completed",
   "next_steps": [
-    "Merge PR #206 and #207 after CI green",
-    "Verify /liff/booking on a real LINE device: date-strip border fix, dark mode, ConfirmDialog flow",
-    "Raise advance_days in /admin/settings/booking (the 4-day cap is a DB setting, not code)",
-    "Add GET /liff/bookings/availability/range endpoint so closed/full days can be disabled in the strip (was interrupted before writing it to PROJECT_STATUS.md Backlog)"
+    "Get user approval on PRD+PRP then implement feat/booking-availability-range per plan",
+    "Device-verify PR #207 on real LINE device (date-strip borders, dark mode, ConfirmDialog)",
+    "Raise advance_days at /admin/settings/booking"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-08-29T23:21:00+07:00",
+      "platform": "qoder",
+      "branch": "main",
+      "head": "391fa9d",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-08-29T22:44:00+07:00",
       "platform": "qoder",
@@ -141,13 +147,6 @@
       "platform": "open_code",
       "branch": "main",
       "head": "125be81",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-08-15T15:20:00+07:00",
-      "platform": "open_code",
-      "branch": "main",
-      "head": "f952106",
       "status": "completed"
     }
   ],

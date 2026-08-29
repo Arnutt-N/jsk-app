@@ -1,0 +1,20 @@
+{
+  "handoff_version": "2.0",
+  "platform": "qoder",
+  "agent": "qoder",
+  "model": "GLM-5.3-Flash",
+  "provider": "Z.ai",
+  "timestamp": "2026-08-29T23:21:00+07:00",
+  "branch": "main",
+  "head_commit": "391fa9d",
+  "status": "completed",
+  "work_summary": "Merged PR #206 + #207 to main (8ddbda3, beaff04) — resolved #206 generated-state conflicts (kept both 21:58/22:44 records, regenerated views from 241 checkpoints, golden suite 23/23); wrote PRD+PRP for availability-range endpoint (commit 391fa9d), awaiting user approval before implementation",
+  "priority_actions": [
+    "Get user approval on PRD+PRP (.claude/PRPs/*liff-booking-availability-range*) then implement feat/booking-availability-range per plan (service TDD 10 cases -> schemas+endpoint -> frontend chip disable + preselect -> PR/merge)",
+    "Device-verify PR #207 on real LINE device (date-strip borders, dark mode, ConfirmDialog cancel/edit flow)",
+    "Raise advance_days at /admin/settings/booking (DB setting, was 3)"
+  ],
+  "context_for_next_agent": "Merge order mattered: #207 landed first (was CLEAN), #206 conflicted only in generated handoff state (PROJECT_STATUS/TASK_LOG/SESSION_INDEX/current-session.json) — resolution = main's version for state files, both Recent-Completions entries kept, views regenerated via gen-handoff-views.cjs. Range endpoint semantics locked in PRD: is_open = bool(compute_slots output) so an open-but-full day reports is_open=true/remaining=0 (frontend disables on !is_open || remaining===0); service must batch into exactly 2 queries; 422 caps: from>to, range>62 days. PRD+PRP committed at 391fa9d — implementation NOT started, user approval pending. Untracked .ignore (graft tool config) stays uncommitted by convention.",
+  "session_summary": "project-log-md/qoder/session-summary-20260829-2321.md",
+  "cross_platform_read": []
+}

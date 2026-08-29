@@ -1,16 +1,16 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Cross-Platform Session Index (generated)
 
-> **Last generated**: 2026-08-29 22:44 (from newest checkpoint)
+> **Last generated**: 2026-08-29 23:21 (from newest checkpoint)
 
 ## Quick Stats
 
 | Metric | Value |
 |--------|-------|
-| Handoff checkpoints (active) | 241 |
-| Session summaries on disk | 338 |
+| Handoff checkpoints (active) | 242 |
+| Session summaries on disk | 339 |
 | Platforms | 9 (antigravity, claude_code, cline, codex, gemini_cli, kilo_code, kimi_code, open_code, qoder) |
-| Most recent | 2026-08-29 22:44 — qoder |
+| Most recent | 2026-08-29 23:21 — qoder |
 
 > Regenerate after any handoff: `node .agents/scripts/gen-handoff-views.cjs`
 
@@ -133,10 +133,11 @@
 | 2026-08-15 14:50 | completed | — | — | `handover-open_code-20260815-1450.json` |
 | 2026-02-14 23:00 | completed | — | — | `handover-open_code-20260214-2300.json` |
 
-## qoder (25)
+## qoder (26)
 
 | When | Status | Model | Provider | Checkpoint |
 |------|--------|-------|----------|------------|
+| 2026-08-29 23:21 | completed | GLM-5.3-Flash | Z.ai | `handover-qoder-20260829-2321.json` |
 | 2026-08-29 22:44 | completed | — | — | `handover-qoder-20260829-2244.json` |
 | 2026-08-29 21:58 | completed | Cantus | Qoder | `handover-qoder-20260829-2158.json` |
 | 2026-08-29 20:20 | completed | — | — | `handover-qoder-20260829-2020.json` |
@@ -156,5 +157,4 @@
 | 2026-07-28 23:33 | completed | — | — | `handover-qoder-20260728-2333.json` |
 | 2026-07-28 11:01 | completed | — | — | `handover-qoder-20260728-1101.json` |
 | 2026-07-28 10:32 | completed | — | — | `handover-qoder-20260728-1032.json` |
-| 2026-07-28 03:49 | completed | — | — | `handover-qoder-20260728-0349.json` |
-| … | | | | +5 older |
+| … | | | | +6 older |
