@@ -52,14 +52,18 @@ function main() {
   const positional = [];
   for (let i = 0; i < rawArgs.length; i++) {
     const a = rawArgs[i];
-    if (a === '--model' && i + 1 < rawArgs.length) {
-      model = rawArgs[++i];
-    } else if (a.startsWith('--model=')) {
-      model = a.slice('--model='.length);
-    } else if (a === '--provider' && i + 1 < rawArgs.length) {
-      provider = rawArgs[++i];
-    } else if (a.startsWith('--provider=')) {
-      provider = a.slice('--provider='.length);
+    if (a === '--model' || a.startsWith('--model=')) {
+      model = a === '--model' ? (i + 1 < rawArgs.length ? rawArgs[++i] : '') : a.slice('--model='.length);
+      if (!model) {
+        process.stderr.write('Error: --model requires a non-empty value (e.g. --model "GLM-4.5").\n');
+        process.exit(1);
+      }
+    } else if (a === '--provider' || a.startsWith('--provider=')) {
+      provider = a === '--provider' ? (i + 1 < rawArgs.length ? rawArgs[++i] : '') : a.slice('--provider='.length);
+      if (!provider) {
+        process.stderr.write('Error: --provider requires a non-empty value (e.g. --provider "Zhipu AI").\n');
+        process.exit(1);
+      }
     } else {
       positional.push(a);
     }
@@ -72,7 +76,18 @@ function main() {
     );
     process.exit(1);
   }
-  const platform = CANON[platformArg] || platformArg.toLowerCase().replace(/-/g, '_');
+  const platform = Object.prototype.hasOwnProperty.call(CANON, platformArg)
+    ? CANON[platformArg]
+    : platformArg.toLowerCase().replace(/-/g, '_');
+  // Guard: the platform name becomes part of file/dir paths. Reject anything that
+  // isn't a plain identifier so a crafted name (e.g. "../../evil") cannot escape
+  // .agents/state/checkpoints/ or the repo root via path.join.
+  if (!/^[a-z0-9_]+$/.test(platform)) {
+    process.stderr.write(
+      `Invalid platform name: "${platformArg}" — use only letters, digits, dashes or underscores (e.g. qoder, claude_code).\n`
+    );
+    process.exit(1);
+  }
 
   const d = new Date();
   const p2 = (n) => String(n).padStart(2, '0');
@@ -97,6 +112,21 @@ function main() {
   const ckPath = path.join(ROOT, '.agents', 'state', 'checkpoints', `handover-${platform}-${ts}.json`);
   const sumDir = path.join(ROOT, 'project-log-md', platform);
   const sumPath = path.join(sumDir, `session-summary-${ts}.md`);
+
+  // Collision guard: filenames are minute-granular, so a second handoff for the
+  // same platform in the same minute would silently overwrite the first record.
+  // Refuse instead — the earlier artifacts are the source of truth. (sumPath is
+  // checked too: an orphaned summary with a deleted checkpoint must not be clobbered.)
+  if (fs.existsSync(ckPath) || fs.existsSync(sumPath)) {
+    process.stderr.write(
+      `Refusing to overwrite existing handoff artifacts for ${platform} at ${ts}:\n` +
+      `  .agents/state/checkpoints/handover-${platform}-${ts}.json\n` +
+      `  project-log-md/${platform}/session-summary-${ts}.md\n` +
+      'A handoff for this platform already exists in this minute. Wait a minute and retry,\n' +
+      'or amend the existing summary instead of creating a new handoff.\n'
+    );
+    process.exit(1);
+  }
 
   const checkpoint = {
     handoff_version: '2.0',
@@ -208,10 +238,19 @@ function main() {
     /* fail-open */
   }
 
-  // Regenerate the views from the (now updated) source of truth.
-  execFileSync('node', [path.join(ROOT, '.agents', 'scripts', 'gen-handoff-views.cjs')], {
-    cwd: ROOT, stdio: 'inherit',
-  });
+  // Regenerate the views from the (now updated) source of truth. Fail-open: the
+  // checkpoint is already written and is the source of truth, so a missing/broken
+  // view generator (e.g. first session in a bare repo) must not abort the handoff.
+  try {
+    execFileSync('node', [path.join(ROOT, '.agents', 'scripts', 'gen-handoff-views.cjs')], {
+      cwd: ROOT, stdio: 'inherit',
+    });
+  } catch {
+    process.stderr.write(
+      'WARNING: could not regenerate TASK_LOG.md/SESSION_INDEX.md automatically.\n' +
+      'Run manually: node .agents/scripts/gen-handoff-views.cjs\n'
+    );
+  }
 
   // Close the loop: validate the state we just wrote, automatically. The validator
   // is the authority on cross-file consistency (timestamps, required keys, freshness).

@@ -19,7 +19,9 @@ metadata:
 
 1. `.agents/PROJECT_STATUS.md` — Thai summary, Active Milestones, Latest Pickup Status, Backlog.
 2. `.agents/state/TASK_LOG.md` — newest-first handoff log (generated). Read the top few entries.
-3. `.agents/state/SESSION_INDEX.md` — cross-platform index (generated).
+3. `.agents/state/SESSION_INDEX.md` — cross-platform index (generated). **Long file** —
+   read only the Quick Stats table at the top; the per-platform tables are history and
+   rarely needed for pickup.
 4. The latest `project-log-md/<platform>/session-summary-*.md` for full detail.
 5. (Optional) the newest checkpoint JSON in `.agents/state/checkpoints/` for the raw record.
 
