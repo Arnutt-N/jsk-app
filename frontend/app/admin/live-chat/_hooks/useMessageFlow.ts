@@ -7,6 +7,7 @@ import type { ConnectionState, Message } from '@/lib/websocket/types';
 import { useLiveChatStore } from '../_store/liveChatStore';
 import { API_BASE } from '../_lib/constants';
 import { mapWsErrorToThai } from '../_lib/wsErrorMessages';
+import { maskLineUserId } from '@/lib/mask';
 import { messagePreview } from './liveChatApi';
 
 /**
@@ -142,7 +143,7 @@ export function useMessageFlow({
     // Operators see Thai; the raw backend text goes to the console. A
     // retryable=false failure means the message already reached LINE — the UI
     // must not offer a retry that would duplicate it for the customer.
-    console.warn('Live chat message failed:', error);
+    console.warn('Live chat message failed:', maskLineUserId(error));
     getStore().setFailed(tempId, mapWsErrorToThai(error), retryable);
     getStore().setSending(false);
   }, []);

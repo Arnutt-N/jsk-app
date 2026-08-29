@@ -11,8 +11,9 @@ from app.core.audit import create_audit_log
 from app.core.permissions import KEY_MANAGE_USERS
 from app.models.user import User, UserRole
 from app.models.service_request import ServiceRequest, RequestStatus
-from app.core.security import get_password_hash, verify_password
+from app.core.security import get_password_hash, get_password_hash_async, verify_password
 from app.services.user_identity_service import decrypt_user_line_id
+from app.core.query_utils import escape_ilike
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 import math
 
@@ -168,11 +169,12 @@ async def list_users(
     if is_active is not None:
         filters.append(User.is_active == is_active)
     if search:
+        escaped_search = escape_ilike(search)
         filters.append(
             or_(
-                User.display_name.ilike(f"%{search}%"),
-                User.username.ilike(f"%{search}%"),
-                User.email.ilike(f"%{search}%"),
+                User.display_name.ilike(f"%{escaped_search}%", escape="\\"),
+                User.username.ilike(f"%{escaped_search}%", escape="\\"),
+                User.email.ilike(f"%{escaped_search}%", escape="\\"),
             )
         )
 
@@ -235,10 +237,11 @@ async def list_user_workload(
     if role:
         query = query.where(User.role == role)
     if search:
+        escaped_search = escape_ilike(search)
         query = query.where(
             or_(
-                User.display_name.ilike(f"%{search}%"),
-                User.username.ilike(f"%{search}%"),
+                User.display_name.ilike(f"%{escaped_search}%", escape="\\"),
+                User.username.ilike(f"%{escaped_search}%", escape="\\"),
             )
         )
 
@@ -346,7 +349,7 @@ async def create_user(
 
     user = User(
         username=body.username,
-        hashed_password=get_password_hash(body.password),
+        hashed_password=await get_password_hash_async(body.password),
         display_name=body.display_name,
         email=body.email,
         role=body.role,
@@ -446,7 +449,7 @@ async def update_user(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Only SUPER_ADMIN can change passwords via this endpoint",
             )
-        user.hashed_password = get_password_hash(body.password)
+        user.hashed_password = await get_password_hash_async(body.password)
 
     # Field NAMES only (+ role/is_active old->new) -- never the password.
     changed_fields = []
@@ -574,7 +577,7 @@ async def reset_password(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    user.hashed_password = get_password_hash(body.new_password)
+    user.hashed_password = await get_password_hash_async(body.new_password)
 
     await create_audit_log(
         db=db,

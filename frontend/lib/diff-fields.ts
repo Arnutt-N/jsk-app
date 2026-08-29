@@ -17,8 +17,12 @@ export function buildChangedFields(
 ): Record<string, string> {
     const changed: Record<string, string> = {};
     for (const key of Object.keys(form)) {
-        const baselineValue = baseline[key] ?? '';
-        if (form[key] !== baselineValue) {
+        const baseVal = baseline[key];
+        // Normalize: treat undefined baseline as '' (field not present = empty)
+        // but keep null distinct from '' so clearing a null field produces a
+        // diff entry (backend PATCH semantic: empty string = intentionally delete).
+        const normalizedBase = baseVal === undefined ? '' : baseVal;
+        if (form[key] !== normalizedBase) {
             changed[key] = form[key];
         }
     }

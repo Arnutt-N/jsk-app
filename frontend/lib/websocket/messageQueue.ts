@@ -12,14 +12,19 @@ export class MessageQueue {
   private queue: QueuedMessage[] = [];
   private maxRetries = 3;
   private maxSize = 100;
+  private overflowLogged = false;
 
-  enqueue(type: MessageType, payload: unknown): string {
-    const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-    // Prevent queue overflow
+  enqueue(type: MessageType, payload: unknown): string | false {
+    // Prevent queue overflow — signal failure instead of silently dropping
     if (this.queue.length >= this.maxSize) {
-      this.queue.shift(); // Remove oldest
+      if (!this.overflowLogged) {
+        console.warn(`MessageQueue: queue full (${this.maxSize}), message dropped`);
+        this.overflowLogged = true;
+      }
+      return false;
     }
+
+    const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
     this.queue.push({
       id,

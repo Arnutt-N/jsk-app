@@ -11,6 +11,7 @@ import type {
 import { useLiveChatStore } from '../_store/liveChatStore';
 import { resolveOperatorName, removeKey } from './liveChatApi';
 import { mapWsErrorToThai } from '../_lib/wsErrorMessages';
+import { maskLineUserId } from '@/lib/mask';
 
 // Helper to get current store state without subscribing
 const getStore = () => useLiveChatStore.getState();
@@ -153,11 +154,11 @@ export function useSessionEvents({
       // burst of queued frames after a reconnect can still trip the limiter,
       // and a toast per frame would flood the screen.
       if (normalized.includes('rate limit')) {
-        console.warn('Live chat WS rate limit hit:', message);
+        console.warn('Live chat WS rate limit hit:', maskLineUserId(message));
         return;
       }
       // Operators see Thai; keep the raw backend text in the console.
-      console.warn('Live chat WS error:', message);
+      console.warn('Live chat WS error:', maskLineUserId(message));
       getStore().addNotification({
         title: 'ไลฟ์แชทขัดข้อง',
         message: mapWsErrorToThai(message),

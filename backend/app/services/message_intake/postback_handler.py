@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ._deps import get_line_service
 from .commands import handle_check_status
+from app.core.logging_utils import mask_line_id
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +22,7 @@ async def handle_postback_event(event, db: AsyncSession):
     elif data.startswith("csat|"):
         await handle_csat_response(line_user_id, data, event.reply_token, db)
     else:
-        logger.info("Unhandled postback data '%s' from user %s", data, line_user_id)
+        logger.info("Unhandled postback data '%s' from user %s", data, mask_line_id(line_user_id))
 
 
 async def handle_csat_response(line_user_id: str, data: str, reply_token: str, db: AsyncSession):

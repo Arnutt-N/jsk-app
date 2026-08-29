@@ -1,9 +1,10 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { installAdminAuthFetchInterceptor, setAuthRefreshHandler } from '@/lib/authFetch';
 import { setCsrfToken, clearCsrfToken } from '@/lib/csrfStore';
+import { readErrorMessage } from '@/lib/api-error';
 
 const AUTH_CHANNEL_NAME = 'jsk:auth';
 
@@ -79,22 +80,6 @@ function isAuthRequestError(error: unknown): error is AuthRequestError {
 
 function isTransientLoginStatus(status: number): boolean {
   return [500, 502, 503, 504].includes(status);
-}
-
-async function readErrorMessage(response: Response): Promise<string> {
-  try {
-    const contentType = response.headers.get('content-type') ?? '';
-
-    if (contentType.includes('application/json')) {
-      const payload = await response.json() as { detail?: string; message?: string };
-      return payload.detail ?? payload.message ?? `Request failed with status ${response.status}`;
-    }
-
-    const text = (await response.text()).trim();
-    return text || `Request failed with status ${response.status}`;
-  } catch {
-    return `Request failed with status ${response.status}`;
-  }
 }
 
 async function waitBeforeRetry(attempt: number): Promise<void> {
@@ -255,7 +240,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           });
 
           if (!response.ok) {
-            const message = await readErrorMessage(response);
+            const message = await readErrorMessage(response, `Request failed with status ${response.status}`);
 
             if (response.status === 401) {
               throw createAuthRequestError(
@@ -368,7 +353,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [refreshAccessToken, logout]);
 
-  const value: AuthContextType = {
+  const value = useMemo<AuthContextType>(() => ({
     user,
     token: null,
     isAuthenticated: status === 'authenticated',
@@ -378,7 +363,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     login,
     logout,
     refreshToken
-  };
+  }), [user, status, retryBootstrap, login, logout, refreshToken]);
 
   return (
     <AuthContext.Provider value={value}>

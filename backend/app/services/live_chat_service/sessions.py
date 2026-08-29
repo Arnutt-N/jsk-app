@@ -1,4 +1,5 @@
 """Session lifecycle: claim, close, takeover, release, and transfer."""
+import asyncio
 import logging
 from datetime import datetime, timezone
 from typing import Optional
@@ -23,6 +24,9 @@ from .errors import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Background tasks reference set to prevent garbage collection of fire-and-forget tasks.
+_background_tasks: set[asyncio.Task] = set()
 
 
 class SessionLifecycleMixin:
@@ -86,26 +90,48 @@ class SessionLifecycleMixin:
                 detail="Only the claiming operator can close this session",
             )
 
-        session.status = SessionStatus.CLOSED
-        session.closed_at = datetime.now(timezone.utc)
-        session.closed_by = closed_by
+        now = datetime.now(timezone.utc)
+        result = await db.execute(
+            update(ChatSession)
+            .where(
+                ChatSession.id == session.id,
+                ChatSession.status == SessionStatus.ACTIVE,
+            )
+            .values(
+                status=SessionStatus.CLOSED,
+                closed_at=now,
+                closed_by=closed_by,
+            )
+        )
+        if result.rowcount == 0:
+            # Another concurrent close/transfer already changed the session.
+            return None
+
+        # Refresh to get the updated object for downstream side effects.
+        refreshed = await db.get(ChatSession, session.id)
+        if not refreshed:
+            return None
 
         # Return user to bot mode
         user = await resolve_by_line_id(db, line_user_id)
         if user:
             user.chat_mode = ChatMode.BOT
 
-        await get_sla_service().check_resolution_on_close(session, db)
+        await get_sla_service().check_resolution_on_close(refreshed, db)
 
-        # Send CSAT survey after closing (non-blocking)
-        if session:
+        # Send CSAT survey after closing (fire-and-forget, non-blocking)
+        async def _send_csat():
             try:
                 from app.services.csat_service import csat_service
-                await csat_service.send_survey(line_user_id, session.id)
+                await csat_service.send_survey(line_user_id, refreshed.id)
             except Exception as e:
                 logger.error(f"Failed to send CSAT survey: {e}")
 
-        return session
+        task = asyncio.create_task(_send_csat())
+        _background_tasks.add(task)
+        task.add_done_callback(_background_tasks.discard)
+
+        return refreshed
 
     async def _require_active_session_owner(
         self,

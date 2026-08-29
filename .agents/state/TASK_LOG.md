@@ -1,8 +1,26 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 236 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 238 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-08-29 06:54 — codex (GPT-5.4 / OpenAI) — completed
+
+Completed evidence-backed deep review of Qoder audit sweep and architecture report; consolidated findings and remediation queue in project-log-md/codex/deep-review-qoder-audit-architecture-20260829.md
+
+- Checkpoint: `.agents/state/checkpoints/handover-codex-20260829-0654.json`
+- Summary: `project-log-md/codex/session-summary-20260829-0654.md`
+
+---
+
+### 2026-08-29 03:13 — qoder — completed
+
+Codex deep-reviewed Qoder audit sweep and architecture report; found LIFF upload blocker and prioritized remediation in project-log-md/codex/deep-review-qoder-audit-architecture-20260829.md
+
+- Checkpoint: `.agents/state/checkpoints/handover-qoder-20260829-0313.json`
+- Summary: `project-log-md/qoder/session-summary-20260829-0313.md`
+
+---
 
 ### 2026-08-28 09:06 — qoder — completed
 

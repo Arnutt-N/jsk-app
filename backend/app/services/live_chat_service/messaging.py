@@ -32,8 +32,8 @@ class MessagingMixin:
         operator = operator_result.scalar_one_or_none()
         operator_name = operator.display_name if operator else "Admin"
 
-        await line_service.push_messages(line_user_id, [TextMessage(text=text)])
-
+        # Persist first, then push to LINE — if save fails the user never
+        # receives a ghost message with no record.
         await line_service.save_message(
             db=db,
             line_user_id=line_user_id,
@@ -44,6 +44,14 @@ class MessagingMixin:
             operator_name=operator_name,
             user_id=session.user_id,
         )
+        await db.flush()
+
+        # Push to LINE after persist. On failure the DB record is kept;
+        # the caller's commit will still persist it for audit/retry.
+        try:
+            await line_service.push_messages(line_user_id, [TextMessage(text=text)])
+        except Exception as e:
+            logger.error(f"LINE push failed after persist for {line_user_id}: {e}")
 
         session.message_count += 1
         session.last_activity_at = datetime.now(timezone.utc)
@@ -104,15 +112,8 @@ class MessagingMixin:
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="SERVER_BASE_URL must be configured for image sending",
                 )
-            await line_service.push_image_message(
-                line_user_id=line_user_id,
-                image_url=media_url,
-                preview_url=media.get("preview_url") or media_url,
-            )
             content = "[Image]"
         else:
-            text = f"Attachment: {file_name}\n{media_url}"
-            await line_service.push_messages(line_user_id, [TextMessage(text=text[:5000])])
             content = file_name or "[File]"
 
         payload = {
@@ -133,13 +134,28 @@ class MessagingMixin:
             operator_name=operator_name,
             user_id=session.user_id,
         )
+        await db.flush()
+
+        # Push to LINE after persist. On failure the DB record is kept;
+        # the caller's commit will still persist it for audit/retry.
+        try:
+            if media_type == "image":
+                await line_service.push_image_message(
+                    line_user_id=line_user_id,
+                    image_url=media_url,
+                    preview_url=media.get("preview_url") or media_url,
+                )
+            else:
+                text_msg = f"Attachment: {file_name}\n{media_url}"
+                await line_service.push_messages(line_user_id, [TextMessage(text=text_msg[:5000])])
+        except Exception as e:
+            logger.error(f"LINE push failed after persist for {line_user_id}: {e}")
 
         session.message_count += 1
         session.last_activity_at = datetime.now(timezone.utc)
         if not session.first_response_at:
             session.first_response_at = datetime.now(timezone.utc)
             await get_sla_service().check_frt_on_first_response(session, db)
-        await db.commit()
 
         return {
             "success": True,

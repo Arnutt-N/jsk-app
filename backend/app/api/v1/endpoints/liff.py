@@ -2,13 +2,14 @@ import logging
 from typing import Any, Optional
 
 import httpx
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, File, Header, HTTPException, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.http_rate_limit import http_rate_limit
 from app.db.session import get_db
-from app.models.service_request import ServiceRequest
+from app.models.media_file import MediaFile, detect_category
+from app.models.service_request import RequestStatus, ServiceRequest
 from app.schemas.service_request_liff import ServiceRequestCreate, ServiceRequestResponse
 from app.services.friend_service import friend_service
 from app.services.user_identity_service import resolve_by_line_id
@@ -40,6 +41,64 @@ async def verify_liff_token(id_token: str) -> str:
     if not sub:
         raise HTTPException(status_code=401, detail="LIFF token missing sub claim")
     return sub
+
+
+_LIFF_MEDIA_ALLOWED_MIMES = {"image/jpeg", "image/png", "application/pdf"}
+_LIFF_MEDIA_MAX_BYTES = 10 * 1024 * 1024  # 10 MB
+
+
+@router.post(
+    "/media",
+    summary="Upload attachment (LIFF)",
+    description="Citizen-facing file upload for LIFF service-request wizards. No admin permission required; identity verified via LIFF ID token.",
+    dependencies=[
+        Depends(
+            http_rate_limit(
+                "liff-submit",
+                max_events=settings.LIFF_SUBMIT_RATE_LIMIT,
+                window_seconds=settings.LIFF_SUBMIT_RATE_WINDOW,
+            )
+        )
+    ],
+)
+async def upload_liff_media(
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    x_liff_id_token: Optional[str] = Header(None),
+) -> dict:
+    """Accept a single file upload from a LIFF wizard page."""
+    # --- LIFF identity verification (same pattern as create_service_request) ---
+    if x_liff_id_token:
+        await verify_liff_token(x_liff_id_token)
+    elif settings.LIFF_STRICT_MODE:
+        raise HTTPException(status_code=401, detail="LIFF ID token required")
+
+    # --- Validate MIME type server-side ---
+    mime = file.content_type or "application/octet-stream"
+    if mime not in _LIFF_MEDIA_ALLOWED_MIMES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"ประเภทไฟล์ไม่รองรับ ({mime}) เฉพาะ JPEG, PNG, PDF เท่านั้น",
+        )
+
+    content = await file.read()
+    if len(content) > _LIFF_MEDIA_MAX_BYTES:
+        raise HTTPException(status_code=413, detail="ไฟล์มีขนาดใหญ่เกินไป (สูงสุด 10MB)")
+
+    filename = file.filename or "untitled"
+
+    media = MediaFile(
+        filename=filename,
+        mime_type=mime,
+        data=content,
+        size_bytes=len(content),
+        category=detect_category(mime, filename),
+    )
+    db.add(media)
+    await db.commit()
+    await db.refresh(media)
+
+    return {"id": str(media.id), "filename": media.filename}
 
 
 @router.post(
@@ -108,7 +167,7 @@ async def create_service_request(
     db_obj = ServiceRequest(
         # Context
         user_id=user.id if user else None,
-        status=None, # User requested no initial status
+        status=RequestStatus.PENDING,
         priority=None, # User requested no initial priority
         details=source_details,
         

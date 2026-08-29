@@ -1,10 +1,29 @@
 {
-  "last_updated": "2026-08-28T09:06:00+07:00",
-  "platform": "qoder",
-  "current_task": "Follow-ups #2/#3 verified closed + coverage hardening merged: ran 22 hook tests green (PR #203 artifacts), spec-coverage mapping vs PRD 19/19 rows, installed @vitest/coverage-v8, added missing test fo",
+  "last_updated": "2026-08-29T06:54:00+07:00",
+  "platform": "codex",
+  "current_task": "Completed evidence-backed deep review of Qoder audit sweep and architecture report; consolidated findings and remediation queue in project-log-md/codex/deep-review-qoder-audit-architecture-20260829.md",
   "plan_status": "completed",
-  "next_steps": [],
+  "next_steps": [
+    "Qoder: read the Codex deep-review report and existing Qoder reports before editing",
+    "Fix LIFF media upload ID-token header and add endpoint/client regression tests first",
+    "Fix background AsyncSession ownership, remaining plaintext LINE-ID logs, and LINE delivery failure semantics",
+    "Rerun validation gates with saved command output, then correct both Qoder reports; do not commit or push without user approval"
+  ],
   "handoff_history": [
+    {
+      "timestamp": "2026-08-29T06:54:00+07:00",
+      "platform": "codex",
+      "branch": "fix/audit-sweep-20260829",
+      "head": "951b5d9",
+      "status": "completed"
+    },
+    {
+      "timestamp": "2026-08-29T03:13:00+07:00",
+      "platform": "qoder",
+      "branch": "fix/audit-sweep-20260829",
+      "head": "951b5d9",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-08-28T09:06:00+07:00",
       "platform": "qoder",
@@ -130,20 +149,6 @@
       "branch": "main",
       "head": "84ec230",
       "status": "completed"
-    },
-    {
-      "timestamp": "2026-08-14T06:49:00+07:00",
-      "platform": "claude_code",
-      "branch": "feat/booking-appointments",
-      "head": "d31fbdf",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-08-14T05:42:00+07:00",
-      "platform": "claude_code",
-      "branch": "feat/booking-appointments",
-      "head": "de9314f",
-      "status": "completed"
     }
   ],
   "cross_platform_context": {
@@ -153,5 +158,7 @@
       "antigravity/session-summary-20260602-0032.md"
     ],
     "key_insights": "Handoff system redesigned to single-source-of-truth (checkpoints) + generated views (TASK_LOG/SESSION_INDEX via gen-handoff-views.cjs). Use handoff-new.cjs to create handoffs. Stop hook enforces it. Do NOT hand-edit the generated files."
-  }
+  },
+  "model": "GPT-5.4",
+  "provider": "OpenAI"
 }

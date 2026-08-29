@@ -31,10 +31,15 @@ interface UseConversationSyncParams {
 export function useConversationSync({ selectedIdRef, wsStatusRef }: UseConversationSyncParams) {
   const conversations = useLiveChatStore((s) => s.conversations);
   const selectedId = useLiveChatStore((s) => s.selectedId);
+  const messages = useLiveChatStore((s) => s.messages);
 
   const searchParams = useSearchParams();
   const initializedRef = useRef<boolean>(false);
   const acknowledgedThroughRef = useRef<Record<string, string | undefined>>({});
+  const messagesRef = useRef<typeof messages>([]);
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
   const [focusedMessageId, setFocusedMessageId] = useState<number | null>(null);
 
   const fetchConversations = useCallback(async () => {
@@ -170,7 +175,17 @@ export function useConversationSync({ selectedIdRef, wsStatusRef }: UseConversat
       const updatedChat = mergeConversationUpdate(getStore().currentChat, data, unread);
       getStore().setCurrentChat(updatedChat);
       if (data.messages) {
-        getStore().setMessages(data.messages);
+        // Merge: preserve local optimistic messages still pending ack so they
+        // don't flicker out and back in on every conversation_update event.
+        const pending = getStore().pendingMessages;
+        const optimisticMessages = messagesRef.current.filter(
+          (m) => m.temp_id && pending.has(m.temp_id),
+        );
+        const serverIds = new Set(data.messages.map((m) => m.id));
+        const survivingOptimistic = optimisticMessages.filter(
+          (m) => !serverIds.has(m.id),
+        );
+        getStore().setMessages([...data.messages, ...survivingOptimistic]);
       }
     }
   }, [selectedIdRef]);

@@ -45,6 +45,7 @@ export const Modal: React.FC<ModalProps> = ({
   // Unique per instance so two titled modals mounted at once never share an id
   // (a11y-8 — duplicate `id="modal-title"` broke aria-labelledby resolution).
   const titleId = React.useId();
+  const descriptionId = React.useId();
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape') {
@@ -140,6 +141,7 @@ export const Modal: React.FC<ModalProps> = ({
         {...(title
           ? { 'aria-labelledby': titleId }
           : { 'aria-label': 'Dialog' })}
+        {...(description ? { 'aria-describedby': descriptionId } : {})}
         className={cn(
           'relative bg-surface dark:bg-surface-dark rounded-2xl w-full',
           'shadow-2xl shadow-black/20 dark:shadow-black/60',
@@ -157,7 +159,7 @@ export const Modal: React.FC<ModalProps> = ({
                   {title}
                 </h3>
                 {description && (
-                  <p className="text-sm text-text-tertiary mt-0.5">{description}</p>
+                  <p id={descriptionId} className="text-sm text-text-tertiary mt-0.5">{description}</p>
                 )}
               </div>
             ) : (

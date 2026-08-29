@@ -12,6 +12,7 @@ from app.models.message import MessageDirection
 from app.schemas.ws_events import WSEventType
 from app.services.line_service import describe_line_message
 from app.services.response_parser import parse_response
+from app.core.logging_utils import mask_line_id
 
 from ._deps import (
     get_friend_service,
@@ -111,7 +112,7 @@ async def handle_message_event(event: MessageEvent, db: AsyncSession):
         await notify_admins_conversation_update(line_user_id, user, saved_message, text, db)
 
         if user.chat_mode and user.chat_mode.value == "HUMAN":
-            logger.info(f"User {line_user_id} in HUMAN mode — skipping bot reply")
+            logger.info(f"User {mask_line_id(line_user_id)} in HUMAN mode — skipping bot reply")
             return
 
         await line_svc.show_loading_animation(line_user_id)

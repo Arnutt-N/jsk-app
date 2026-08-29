@@ -1,8 +1,9 @@
 """Human handoff initiation and queue-position helpers."""
+import asyncio
 import logging
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,6 +16,9 @@ from app.services.telegram_service import telegram_service
 from app.services.user_identity_service import decrypt_user_line_id, resolve_by_line_id
 
 logger = logging.getLogger(__name__)
+
+# Background tasks reference set to prevent garbage collection of fire-and-forget tasks.
+_background_tasks: set[asyncio.Task] = set()
 
 
 class HandoffMixin:
@@ -126,18 +130,25 @@ class HandoffMixin:
         if queue_info["position"] > 0:
             await self._send_queue_flex_message(raw_line_id, queue_info)
 
-        # 6. Telegram notification
+        # 6. Telegram notification (fire-and-forget, non-blocking)
         recent_msgs = await self.get_recent_messages(raw_line_id, 3, db)
         admin_url = f"{settings.ADMIN_URL}/admin/live-chat?user={raw_line_id}"
 
-        # Send directly (async)
-        await telegram_service.send_handoff_notification(
-            user.display_name or "Unknown",
-            user.picture_url,
-            recent_msgs,
-            admin_url,
-            db
-        )
+        async def _send_telegram():
+            try:
+                await telegram_service.send_handoff_notification(
+                    user.display_name or "Unknown",
+                    user.picture_url,
+                    recent_msgs,
+                    admin_url,
+                    db
+                )
+            except Exception as e:
+                logger.error(f"Failed to send Telegram handoff notification: {e}")
+
+        task = asyncio.create_task(_send_telegram())
+        _background_tasks.add(task)
+        task.add_done_callback(_background_tasks.discard)
 
         if commit:
             await db.commit()
@@ -206,26 +217,34 @@ class HandoffMixin:
         Returns:
             Dict with position, total_waiting, and estimated_wait_minutes
         """
-        # Get all waiting sessions ordered by creation time (FIFO)
-        stmt = select(ChatSession).where(
-            ChatSession.status == SessionStatus.WAITING
-        ).order_by(ChatSession.started_at)
-
-        result = await db.execute(stmt)
-        waiting_sessions = result.scalars().all()
-
         resolved = await resolve_by_line_id(db, line_user_id)
         resolved_user_id = resolved.id if resolved else None
 
-        # Find user's position
-        position = next(
-            (
-                i + 1
-                for i, s in enumerate(waiting_sessions)
-                if resolved_user_id is not None and s.user_id == resolved_user_id
-            ),
-            0
+        # Total waiting sessions
+        total_stmt = select(func.count()).where(
+            ChatSession.status == SessionStatus.WAITING
         )
+        total_result = await db.execute(total_stmt)
+        total_waiting = total_result.scalar() or 0
+
+        # Position: count of waiting sessions that started before this user's session + 1
+        position = 0
+        if resolved_user_id is not None:
+            # Find this user's waiting session start time
+            user_session_stmt = select(ChatSession.started_at).where(
+                ChatSession.user_id == resolved_user_id,
+                ChatSession.status == SessionStatus.WAITING,
+            ).limit(1)
+            user_result = await db.execute(user_session_stmt)
+            user_started_at = user_result.scalar()
+
+            if user_started_at is not None:
+                position_stmt = select(func.count()).where(
+                    ChatSession.status == SessionStatus.WAITING,
+                    ChatSession.started_at <= user_started_at,
+                )
+                pos_result = await db.execute(position_stmt)
+                position = pos_result.scalar() or 0
 
         # Calculate average wait time from recent sessions
         avg_wait = await self._calculate_avg_wait_time(db)
@@ -233,7 +252,7 @@ class HandoffMixin:
 
         return {
             "position": position,
-            "total_waiting": len(waiting_sessions),
+            "total_waiting": total_waiting,
             "estimated_wait_seconds": estimated_wait,
             "estimated_wait_minutes": round(estimated_wait / 60, 1)
         }

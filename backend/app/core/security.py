@@ -56,6 +56,12 @@ def get_password_hash(password: str) -> str:
     ).decode("utf-8")
 
 
+async def get_password_hash_async(password: str) -> str:
+    """Hash a password in a thread pool to avoid blocking the event loop."""
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(None, get_password_hash, password)
+
+
 def create_access_token(
     subject: Union[str, int],
     expires_delta: Optional[timedelta] = None,
