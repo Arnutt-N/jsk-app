@@ -1,12 +1,16 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import Script from 'next/script'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Alert } from '@/components/ui/Alert'
-import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { Input } from '@/components/ui/Input'
+import { Textarea } from '@/components/ui/Textarea'
+import { Skeleton } from '@/components/ui/Skeleton'
 import { CalendarDays, CheckCircle2, Clock, Loader2, Users } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { logger } from '@/lib/logger'
+import { useLiffInit } from '@/hooks/useLiffInit'
 import {
   buildDateOptions,
   cancelBooking,
@@ -32,12 +36,77 @@ interface BookingOptions {
 
 type Step = 'service' | 'date' | 'slot' | 'details' | 'done'
 
+const STEPS: { key: Step; label: string }[] = [
+  { key: 'service', label: 'บริการ' },
+  { key: 'date', label: 'วันที่' },
+  { key: 'slot', label: 'เวลา' },
+  { key: 'details', label: 'ยืนยัน' },
+]
+
 function contactPayload(contactName: string, phoneNumber: string, note: string) {
   return {
     contact_name: contactName.trim() || null,
     phone_number: phoneNumber.trim() || null,
     note: note.trim() || null,
   }
+}
+
+/** Progress rail so the citizen always knows how many taps remain. */
+function StepRail({ current }: { current: Step }) {
+  const activeIndex = current === 'done' ? STEPS.length : STEPS.findIndex((s) => s.key === current)
+  return (
+    <ol className="mb-5 flex items-center gap-1.5" aria-label="ขั้นตอนการจอง">
+      {STEPS.map((s, index) => {
+        const state = index < activeIndex ? 'done' : index === activeIndex ? 'current' : 'todo'
+        return (
+          <li key={s.key} className="flex flex-1 flex-col gap-1.5">
+            <span
+              className={cn(
+                'h-1 rounded-full transition-colors',
+                state === 'todo' ? 'bg-border-default' : 'bg-brand-500',
+              )}
+            />
+            <span
+              className={cn(
+                'text-2xs',
+                state === 'current' ? 'font-medium text-brand-text' : 'text-text-tertiary',
+              )}
+              aria-current={state === 'current' ? 'step' : undefined}
+            >
+              {s.label}
+            </span>
+          </li>
+        )
+      })}
+    </ol>
+  )
+}
+
+interface SectionProps {
+  icon: React.ReactNode
+  title: string
+  children: React.ReactNode
+  className?: string
+}
+
+/** One card per step — the single card shape used across the whole flow. */
+function Section({ icon, title, children, className }: SectionProps) {
+  return (
+    <section
+      className={cn(
+        'rounded-xl border border-border-default bg-surface p-4 shadow-sm',
+        className,
+      )}
+    >
+      <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-text-primary">
+        <span className="text-text-tertiary" aria-hidden="true">
+          {icon}
+        </span>
+        {title}
+      </h2>
+      {children}
+    </section>
+  )
 }
 
 interface ContactFieldsFormProps {
@@ -61,46 +130,68 @@ function ContactFieldsForm({
   return (
     <div className="space-y-3">
       <label className="block">
-        <span className="mb-1 block text-xs text-slate-500">ชื่อ-นามสกุล</span>
-        <input
+        <span className="mb-1.5 block text-xs font-medium text-text-secondary">ชื่อ-นามสกุล</span>
+        <Input
           type="text"
           value={contactName}
           onChange={(e) => onContactName(e.target.value)}
           maxLength={120}
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
           placeholder="ชื่อสำหรับเรียกคิว"
         />
       </label>
       <label className="block">
-        <span className="mb-1 block text-xs text-slate-500">เบอร์โทรศัพท์</span>
-        <input
+        <span className="mb-1.5 block text-xs font-medium text-text-secondary">เบอร์โทรศัพท์</span>
+        <Input
           type="tel"
           inputMode="numeric"
           value={phoneNumber}
           onChange={(e) => onPhoneNumber(e.target.value.replace(/[^\d]/g, ''))}
           maxLength={20}
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
           placeholder="0812345678"
         />
       </label>
       <label className="block">
-        <span className="mb-1 block text-xs text-slate-500">รายละเอียดเพิ่มเติม (ถ้ามี)</span>
-        <textarea
+        <span className="mb-1.5 block text-xs font-medium text-text-secondary">
+          รายละเอียดเพิ่มเติม (ถ้ามี)
+        </span>
+        <Textarea
           value={note}
           onChange={(e) => onNote(e.target.value)}
           maxLength={1000}
           rows={3}
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
         />
       </label>
     </div>
   )
 }
 
+function BookingSkeleton() {
+  return (
+    <div className="space-y-5" aria-busy="true" aria-label="กำลังโหลดระบบจองคิว">
+      <Skeleton className="h-8 w-48" />
+      <Skeleton className="h-1 w-full" />
+      {[0, 1].map((i) => (
+        <div key={i} className="rounded-xl border border-border-default bg-surface p-4 shadow-sm">
+          <Skeleton className="mb-3 h-4 w-24" />
+          <div className="space-y-2">
+            <Skeleton className="h-11 w-full" />
+            <Skeleton className="h-11 w-full" />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default function LiffBookingPage() {
-  const [idToken, setIdToken] = useState<string | null>(null)
-  const [booting, setBooting] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const { idToken, initDone } = useLiffInit({
+    getLiff: () => (typeof window !== 'undefined' ? window.liff : undefined),
+    requireLiffId: true,
+    redirectLogin: true,
+    warnWhenSdkMissing: true,
+    onError: () => setError('ไม่สามารถเชื่อมต่อ LINE ได้ กรุณาเปิดหน้านี้จากแอป LINE'),
+  })
 
   const [options, setOptions] = useState<BookingOptions | null>(null)
   const [serviceType, setServiceType] = useState<string | null>(null)
@@ -116,7 +207,13 @@ export default function LiffBookingPage() {
   const [confirmed, setConfirmed] = useState<Booking | null>(null)
   const [editing, setEditing] = useState(false)
   const [cancelling, setCancelling] = useState(false)
+  const [cancelOpen, setCancelOpen] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
+
+  // Availability is immutable enough within one session to reuse when the
+  // citizen taps back and forth between days; a stale slot is re-validated
+  // server-side on submit, and a failed submit refetches the day.
+  const slotCache = useRef(new Map<string, Availability>())
 
   const step: Step = confirmed
     ? 'done'
@@ -128,63 +225,13 @@ export default function LiffBookingPage() {
           ? 'date'
           : 'service'
 
-  // --- LIFF bootstrap ---
   useEffect(() => {
+    if (!idToken) return
     let cancelled = false
-    const pending: number[] = []
-    const wait = (ms: number) =>
-      new Promise<void>((resolve) => pending.push(window.setTimeout(resolve, ms)))
-
-    // The SDK <Script> injects window.liff after hydration. If no script tag
-    // has appeared after a grace period (e.g. a stuck __next_s queue), inject
-    // our own — the same pattern as LiffStateBoot on the landing page.
-    const waitForSdk = async () => {
-      const start = Date.now()
-      const deadline = start + 15000
-      let fallbackInjected = false
-      while (!window.liff && Date.now() < deadline) {
-        if (
-          !fallbackInjected &&
-          Date.now() - start >= 5000 &&
-          !document.querySelector('script[src*="line-scdn"]')
-        ) {
-          fallbackInjected = true
-          const s = document.createElement('script')
-          s.src = 'https://static.line-scdn.net/liff/edge/2/sdk.js'
-          s.async = true
-          document.head.appendChild(s)
-        }
-        await wait(150)
-      }
-      return typeof window.liff !== 'undefined'
-    }
-
-    const boot = async () => {
+    const loadOptions = async () => {
       try {
-        const liffId = process.env.NEXT_PUBLIC_LIFF_ID
-        if (!liffId) {
-          throw new Error('ไม่สามารถเชื่อมต่อ LINE ได้')
-        }
-        // Budget the *load* only — liff.init() is network-bound and must not
-        // be timed out; a blanket 10s timer used to surface a false
-        // "SDK load failed" error while init was still in flight.
-        const sdkReady = await waitForSdk()
-        if (!sdkReady) throw new Error('ไม่สามารถโหลด LINE SDK ได้')
-        if (cancelled) return
-
-        await window.liff.init({ liffId })
-        if (cancelled) return
-        if (!window.liff.isLoggedIn()) {
-          window.liff.login()
-          return
-        }
-        const token = window.liff.getIDToken()
-        if (!token) throw new Error('ไม่สามารถยืนยันตัวตนกับ LINE ได้')
-        if (cancelled) return
-        setIdToken(token)
-
         const res = await fetch(`${API_BASE}/liff/bookings/options`, {
-          headers: { 'X-Liff-Id-Token': token },
+          headers: { 'X-Liff-Id-Token': idToken },
         })
         if (!res.ok) {
           const body = await res.json().catch(() => null)
@@ -196,20 +243,15 @@ export default function LiffBookingPage() {
         setOptions(loaded)
         if (loaded.service_types.length === 1) setServiceType(loaded.service_types[0])
       } catch (err) {
-        logger.error('LIFF booking bootstrap failed:', err)
+        logger.error('Failed to load booking options:', err)
         if (!cancelled) setError(err instanceof Error ? err.message : 'เกิดข้อผิดพลาด')
-      } finally {
-        if (!cancelled) setBooting(false)
       }
     }
-
-    void boot()
-
+    void loadOptions()
     return () => {
       cancelled = true
-      pending.forEach((t) => window.clearTimeout(t))
     }
-  }, [])
+  }, [idToken])
 
   const dateOptions = useMemo(() => {
     if (!options) return []
@@ -217,12 +259,23 @@ export default function LiffBookingPage() {
   }, [options])
 
   const loadSlots = useCallback(
-    async (service: string, date: string) => {
+    async (service: string, date: string, { force = false } = {}) => {
       if (!idToken) return
+      const key = `${service}|${date}`
+      if (!force) {
+        const cached = slotCache.current.get(key)
+        if (cached) {
+          setAvailability(cached)
+          setLoadingSlots(false)
+          return
+        }
+      }
       setLoadingSlots(true)
       setError(null)
       try {
-        setAvailability(await fetchAvailability(idToken, service, date))
+        const loaded = await fetchAvailability(idToken, service, date)
+        slotCache.current.set(key, loaded)
+        setAvailability(loaded)
       } catch (err) {
         logger.error('Failed to load availability:', err)
         setError(err instanceof Error ? err.message : 'โหลดช่วงเวลาไม่สำเร็จ')
@@ -234,10 +287,28 @@ export default function LiffBookingPage() {
     [idToken],
   )
 
-  const chooseDate = (date: string) => {
-    setSelectedDate(date)
+  const chooseDate = useCallback(
+    (date: string) => {
+      setSelectedDate(date)
+      setSelectedSlot(null)
+      if (serviceType) void loadSlots(serviceType, date)
+    },
+    [loadSlots, serviceType],
+  )
+
+  // Preselect the nearest bookable day so the slot grid is already on screen
+  // (and its request already in flight) by the time the citizen looks for it.
+  useEffect(() => {
+    if (!serviceType || selectedDate || confirmed || dateOptions.length === 0) return
+    chooseDate(dateOptions[0])
+  }, [chooseDate, confirmed, dateOptions, selectedDate, serviceType])
+
+  const chooseService = (service: string) => {
+    if (service === serviceType) return
+    setServiceType(service)
+    setSelectedDate(null)
     setSelectedSlot(null)
-    if (serviceType) void loadSlots(serviceType, date)
+    setAvailability(null)
   }
 
   const handleSubmit = async () => {
@@ -258,7 +329,7 @@ export default function LiffBookingPage() {
       setError(err instanceof Error ? err.message : 'จองคิวไม่สำเร็จ')
       // The slot may have filled while the form was open — refresh it so the
       // citizen sees the real state instead of a stale "available" button.
-      if (serviceType && selectedDate) void loadSlots(serviceType, selectedDate)
+      if (serviceType && selectedDate) void loadSlots(serviceType, selectedDate, { force: true })
       setSelectedSlot(null)
     } finally {
       setSubmitting(false)
@@ -269,22 +340,23 @@ export default function LiffBookingPage() {
     setConfirmed(null)
     setEditing(false)
     setNotice(null)
-    setServiceType(null)
+    setServiceType(options?.service_types.length === 1 ? options.service_types[0] : null)
     setSelectedDate(null)
     setSelectedSlot(null)
     setAvailability(null)
     setContactName('')
     setPhoneNumber('')
     setNote('')
+    slotCache.current.clear()
   }
 
   const handleCancel = async () => {
     if (!idToken || !confirmed) return
-    if (!window.confirm('ต้องการยกเลิกการจองนี้หรือไม่?')) return
     setCancelling(true)
     setError(null)
     try {
       await cancelBooking(idToken, confirmed.id)
+      setCancelOpen(false)
       resetFlow()
       setNotice('ยกเลิกการจองแล้ว')
     } catch (err) {
@@ -317,273 +389,308 @@ export default function LiffBookingPage() {
   }
 
   const { morning, afternoon } = groupSlotsByPeriod(availability?.slots ?? [])
-
-  if (booting) {
-    return (
-      <>
-        <Script src="https://static.line-scdn.net/liff/edge/2/sdk.js" strategy="afterInteractive" />
-        <div className="flex min-h-screen items-center justify-center">
-          <LoadingSpinner />
-        </div>
-      </>
-    )
-  }
+  const booting = !initDone || (!options && !error)
 
   return (
-    <>
-      <Script src="https://static.line-scdn.net/liff/edge/2/sdk.js" strategy="afterInteractive" />
-      <main className="mx-auto min-h-screen w-full max-w-lg bg-slate-50 px-4 py-6">
-        <header className="mb-5">
-          <h1 className="text-2xl font-bold text-slate-900">จองคิวนัดหมาย</h1>
-          <p className="mt-1 text-sm text-slate-500">เลือกบริการ วันที่ และช่วงเวลาที่สะดวก</p>
-        </header>
+    <main className="mx-auto min-h-screen w-full max-w-lg bg-bg px-4 py-6">
+      {booting ? (
+        <BookingSkeleton />
+      ) : (
+        <>
+          <header className="mb-5">
+            <h1 className="text-2xl font-bold tracking-tight text-text-primary">จองคิวนัดหมาย</h1>
+            <p className="mt-1 text-sm text-text-secondary">เลือกบริการ วันที่ และช่วงเวลาที่สะดวก</p>
+          </header>
 
-        {error && (
-          <Alert variant="danger" className="mb-4">
-            {error}
-          </Alert>
-        )}
-        {notice && (
-          <Alert variant="success" className="mb-4">
-            {notice}
-          </Alert>
-        )}
+          {step !== 'done' && <StepRail current={step} />}
 
-        {step === 'done' && confirmed && (
-          <section className="rounded-2xl border border-emerald-200 bg-white p-6 text-center shadow-sm">
-            {editing ? (
-              <div className="text-left">
-                <h2 className="mb-3 text-left text-lg font-bold text-slate-900">
-                  แก้ไขข้อมูลผู้จอง
-                </h2>
-                <ContactFieldsForm
-                  contactName={contactName}
-                  phoneNumber={phoneNumber}
-                  note={note}
-                  onContactName={setContactName}
-                  onPhoneNumber={setPhoneNumber}
-                  onNote={setNote}
-                />
-                <div className="mt-4 space-y-2">
-                  <Button className="w-full" onClick={handleUpdate} disabled={submitting}>
-                    {submitting ? 'กำลังบันทึก...' : 'บันทึกการแก้ไข'}
-                  </Button>
-                  <Button variant="secondary" className="w-full" onClick={() => setEditing(false)}>
-                    กลับ
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <>
-                <CheckCircle2 className="mx-auto h-12 w-12 text-emerald-500" aria-hidden="true" />
-                <h2 className="mt-3 text-lg font-bold text-slate-900">จองคิวสำเร็จ</h2>
-                <p className="mt-4 text-4xl font-bold tracking-tight text-emerald-600">
-                  {confirmed.queue_number ?? '-'}
-                </p>
-                <p className="text-xs text-slate-400">หมายเลขคิวของท่าน</p>
-                <dl className="mt-5 space-y-2 text-left text-sm">
-                  <div className="flex justify-between">
-                    <dt className="text-slate-500">บริการ</dt>
-                    <dd className="font-medium text-slate-900">{confirmed.service_type}</dd>
-                  </div>
-                  <div className="flex justify-between">
-                    <dt className="text-slate-500">วันที่</dt>
-                    <dd className="font-medium text-slate-900">{formatThaiDate(confirmed.booking_date)}</dd>
-                  </div>
-                  <div className="flex justify-between">
-                    <dt className="text-slate-500">เวลา</dt>
-                    <dd className="font-medium text-slate-900">{formatTime(confirmed.booking_time)} น.</dd>
-                  </div>
-                  {confirmed.contact_name && (
-                    <div className="flex justify-between">
-                      <dt className="text-slate-500">ผู้จอง</dt>
-                      <dd className="font-medium text-slate-900">{confirmed.contact_name}</dd>
-                    </div>
-                  )}
-                  {confirmed.phone_number && (
-                    <div className="flex justify-between">
-                      <dt className="text-slate-500">โทรศัพท์</dt>
-                      <dd className="font-medium text-slate-900">{confirmed.phone_number}</dd>
-                    </div>
-                  )}
-                </dl>
-                <p className="mt-5 text-xs text-slate-400">
-                  ระบบได้ส่งรายละเอียดไปยัง LINE ของท่านแล้ว กรุณามาก่อนเวลานัด 10 นาที
-                </p>
-                <div className="mt-5 space-y-2">
-                  <Button variant="secondary" className="w-full" onClick={() => {
-                    setContactName(confirmed.contact_name ?? '')
-                    setPhoneNumber(confirmed.phone_number ?? '')
-                    setNote(confirmed.note ?? '')
-                    setEditing(true)
-                  }}>
-                    แก้ไขข้อมูล
-                  </Button>
-                  <Button variant="danger" className="w-full" onClick={handleCancel} disabled={cancelling}>
-                    {cancelling ? 'กำลังยกเลิก...' : 'ยกเลิกการจอง'}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    className="w-full"
-                    onClick={() => window.liff?.closeWindow?.()}
-                  >
-                    ปิดหน้าต่าง
-                  </Button>
-                </div>
-              </>
-            )}
-          </section>
-        )}
+          {error && (
+            <Alert variant="danger" className="mb-4">
+              {error}
+            </Alert>
+          )}
+          {notice && (
+            <Alert variant="success" className="mb-4">
+              {notice}
+            </Alert>
+          )}
 
-        {step !== 'done' && (
-          <div className="space-y-5">
-            {/* Service */}
-            <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-700">
-                <Users className="h-4 w-4 text-slate-400" aria-hidden="true" />
-                เลือกบริการ
-              </h2>
-              <div className="grid gap-2">
-                {(options?.service_types ?? []).map((service) => (
-                  <button
-                    key={service}
-                    type="button"
-                    onClick={() => {
-                      setServiceType(service)
-                      setSelectedDate(null)
-                      setSelectedSlot(null)
-                      setAvailability(null)
-                    }}
-                    className={`rounded-xl border px-4 py-3 text-left text-sm transition ${
-                      serviceType === service
-                        ? 'border-emerald-500 bg-emerald-50 font-semibold text-emerald-700'
-                        : 'border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50'
-                    }`}
-                    aria-pressed={serviceType === service}
-                  >
-                    {service}
-                  </button>
-                ))}
-                {!options?.service_types?.length && (
-                  <p className="text-sm text-slate-400">ยังไม่มีบริการที่เปิดให้จอง</p>
-                )}
-              </div>
-            </section>
-
-            {/* Date */}
-            {serviceType && (
-              <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-700">
-                  <CalendarDays className="h-4 w-4 text-slate-400" aria-hidden="true" />
-                  เลือกวันที่
-                </h2>
-                <div className="flex gap-2 overflow-x-auto pb-1">
-                  {dateOptions.map((date) => (
-                    <button
-                      key={date}
-                      type="button"
-                      onClick={() => chooseDate(date)}
-                      className={`min-w-[4.5rem] shrink-0 rounded-xl border px-3 py-2 text-center transition ${
-                        selectedDate === date
-                          ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
-                          : 'border-slate-200 text-slate-700 hover:border-slate-300'
-                      }`}
-                      aria-pressed={selectedDate === date}
+          {step === 'done' && confirmed && (
+            <section className="rounded-xl border border-border-default bg-surface p-6 shadow-sm">
+              {editing ? (
+                <>
+                  <h2 className="mb-3 text-lg font-bold text-text-primary">แก้ไขข้อมูลผู้จอง</h2>
+                  <ContactFieldsForm
+                    contactName={contactName}
+                    phoneNumber={phoneNumber}
+                    note={note}
+                    onContactName={setContactName}
+                    onPhoneNumber={setPhoneNumber}
+                    onNote={setNote}
+                  />
+                  <div className="mt-4 space-y-2">
+                    <Button className="w-full" onClick={handleUpdate} disabled={submitting}>
+                      {submitting ? 'กำลังบันทึก...' : 'บันทึกการแก้ไข'}
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      className="w-full"
+                      onClick={() => setEditing(false)}
                     >
-                      <span className="block text-[11px] text-slate-400">{formatThaiWeekday(date)}</span>
-                      <span className="block text-lg font-semibold">{parseISODate(date).getDate()}</span>
-                      <span className="block text-[11px] text-slate-400">
-                        {formatThaiDate(date).split(' ')[1]}
-                      </span>
+                      กลับ
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="text-center">
+                    <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-success/10">
+                      <CheckCircle2 className="h-8 w-8 text-success" aria-hidden="true" />
+                    </span>
+                    <h2 className="mt-3 text-lg font-bold text-text-primary">จองคิวสำเร็จ</h2>
+                    <p className="mt-4 text-4xl font-bold tracking-tight text-success-text">
+                      {confirmed.queue_number ?? '-'}
+                    </p>
+                    <p className="text-xs text-text-tertiary">หมายเลขคิวของท่าน</p>
+                  </div>
+                  <dl className="mt-5 space-y-2 text-sm">
+                    <div className="flex justify-between gap-4">
+                      <dt className="text-text-secondary">บริการ</dt>
+                      <dd className="text-right font-medium text-text-primary">
+                        {confirmed.service_type}
+                      </dd>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <dt className="text-text-secondary">วันที่</dt>
+                      <dd className="text-right font-medium text-text-primary">
+                        {formatThaiDate(confirmed.booking_date)}
+                      </dd>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <dt className="text-text-secondary">เวลา</dt>
+                      <dd className="text-right font-medium text-text-primary">
+                        {formatTime(confirmed.booking_time)} น.
+                      </dd>
+                    </div>
+                    {confirmed.contact_name && (
+                      <div className="flex justify-between gap-4">
+                        <dt className="text-text-secondary">ผู้จอง</dt>
+                        <dd className="text-right font-medium text-text-primary">
+                          {confirmed.contact_name}
+                        </dd>
+                      </div>
+                    )}
+                    {confirmed.phone_number && (
+                      <div className="flex justify-between gap-4">
+                        <dt className="text-text-secondary">โทรศัพท์</dt>
+                        <dd className="text-right font-medium text-text-primary">
+                          {confirmed.phone_number}
+                        </dd>
+                      </div>
+                    )}
+                  </dl>
+                  <p className="mt-5 text-center text-xs text-text-tertiary">
+                    ระบบได้ส่งรายละเอียดไปยัง LINE ของท่านแล้ว กรุณามาก่อนเวลานัด 10 นาที
+                  </p>
+                  <div className="mt-5 space-y-2">
+                    <Button
+                      variant="secondary"
+                      className="w-full"
+                      onClick={() => {
+                        setContactName(confirmed.contact_name ?? '')
+                        setPhoneNumber(confirmed.phone_number ?? '')
+                        setNote(confirmed.note ?? '')
+                        setEditing(true)
+                      }}
+                    >
+                      แก้ไขข้อมูล
+                    </Button>
+                    <Button
+                      variant="danger"
+                      className="w-full"
+                      onClick={() => setCancelOpen(true)}
+                      disabled={cancelling}
+                    >
+                      ยกเลิกการจอง
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="w-full"
+                      onClick={() => window.liff?.closeWindow?.()}
+                    >
+                      ปิดหน้าต่าง
+                    </Button>
+                  </div>
+                </>
+              )}
+            </section>
+          )}
+
+          {step !== 'done' && (
+            <div className="space-y-4">
+              <Section icon={<Users className="h-4 w-4" />} title="เลือกบริการ">
+                <div className="grid gap-2">
+                  {(options?.service_types ?? []).map((service) => (
+                    <button
+                      key={service}
+                      type="button"
+                      onClick={() => chooseService(service)}
+                      className={cn(
+                        'rounded-lg border px-4 py-3 text-left text-sm transition-colors',
+                        serviceType === service
+                          ? 'border-brand-500 bg-brand-50 font-semibold text-brand-text dark:bg-brand-500/15 dark:text-brand-300'
+                          : 'border-border-default bg-surface text-text-secondary hover:border-border-hover hover:bg-bg',
+                      )}
+                      aria-pressed={serviceType === service}
+                    >
+                      {service}
                     </button>
                   ))}
+                  {!options?.service_types?.length && (
+                    <p className="text-sm text-text-tertiary">ยังไม่มีบริการที่เปิดให้จอง</p>
+                  )}
                 </div>
-              </section>
-            )}
+              </Section>
 
-            {/* Slots */}
-            {selectedDate && (
-              <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-700">
-                  <Clock className="h-4 w-4 text-slate-400" aria-hidden="true" />
-                  เลือกช่วงเวลา
-                </h2>
-                {loadingSlots ? (
-                  <div className="py-6 text-center">
-                    <Loader2 className="mx-auto h-5 w-5 animate-spin text-slate-400" aria-hidden="true" />
+              {serviceType && (
+                <Section icon={<CalendarDays className="h-4 w-4" />} title="เลือกวันที่">
+                  {/* The strip bleeds to the card edge, but keeps scroll padding so
+                      the first and last chip's border is never clipped by the
+                      overflow container. */}
+                  <div className="-mx-4 flex snap-x snap-mandatory gap-2 overflow-x-auto px-4 py-1 scroll-px-4 [&::-webkit-scrollbar]:hidden">
+                    {dateOptions.map((date, index) => {
+                      const isSelected = selectedDate === date
+                      return (
+                        <button
+                          key={date}
+                          type="button"
+                          onClick={() => chooseDate(date)}
+                          className={cn(
+                            'w-[4.5rem] shrink-0 snap-start rounded-lg border px-2 py-2 text-center transition-colors',
+                            isSelected
+                              ? 'border-brand-500 bg-brand-50 text-brand-text dark:bg-brand-500/15 dark:text-brand-300'
+                              : 'border-border-default bg-surface text-text-secondary hover:border-border-hover',
+                          )}
+                          aria-pressed={isSelected}
+                        >
+                          <span className="block text-2xs text-text-tertiary">
+                            {index === 0 ? 'วันนี้' : formatThaiWeekday(date)}
+                          </span>
+                          <span className="block text-lg font-semibold leading-tight">
+                            {parseISODate(date).getDate()}
+                          </span>
+                          <span className="block text-2xs text-text-tertiary">
+                            {formatThaiDate(date).split(' ')[1]}
+                          </span>
+                        </button>
+                      )
+                    })}
                   </div>
-                ) : availability && availability.slots.length > 0 ? (
-                  <div className="space-y-4">
-                    {[
-                      { label: 'ช่วงเช้า', slots: morning },
-                      { label: 'ช่วงบ่าย', slots: afternoon },
-                    ]
-                      .filter((group) => group.slots.length > 0)
-                      .map((group) => (
-                        <div key={group.label}>
-                          <p className="mb-2 text-xs font-medium text-slate-400">{group.label}</p>
-                          <div className="grid grid-cols-3 gap-2">
-                            {group.slots.map((slot) => (
-                              <button
-                                key={slot.time}
-                                type="button"
-                                disabled={slot.is_full}
-                                onClick={() => setSelectedSlot(slot)}
-                                aria-pressed={selectedSlot?.time === slot.time}
-                                className={`rounded-lg border px-2 py-2 text-sm transition ${
-                                  slot.is_full
-                                    ? 'cursor-not-allowed border-slate-100 bg-slate-50 text-slate-300'
-                                    : selectedSlot?.time === slot.time
-                                      ? 'border-emerald-500 bg-emerald-50 font-semibold text-emerald-700'
-                                      : 'border-slate-200 text-slate-700 hover:border-slate-300'
-                                }`}
-                              >
-                                <span className="block">{formatTime(slot.time)}</span>
-                                <span className="block text-[10px] text-slate-400">
-                                  {slot.is_full ? 'เต็ม' : `ว่าง ${slot.remaining}`}
-                                </span>
-                              </button>
-                            ))}
+                </Section>
+              )}
+
+              {selectedDate && (
+                <Section icon={<Clock className="h-4 w-4" />} title="เลือกช่วงเวลา">
+                  {loadingSlots ? (
+                    <div className="py-6 text-center">
+                      <Loader2
+                        className="mx-auto h-5 w-5 animate-spin text-text-tertiary"
+                        aria-hidden="true"
+                      />
+                    </div>
+                  ) : availability && availability.slots.length > 0 ? (
+                    <div className="space-y-4">
+                      {[
+                        { label: 'ช่วงเช้า', slots: morning },
+                        { label: 'ช่วงบ่าย', slots: afternoon },
+                      ]
+                        .filter((group) => group.slots.length > 0)
+                        .map((group) => (
+                          <div key={group.label}>
+                            <p className="mb-2 text-xs font-medium text-text-tertiary">
+                              {group.label}
+                            </p>
+                            <div className="grid grid-cols-3 gap-2">
+                              {group.slots.map((slot) => {
+                                const isSelected = selectedSlot?.time === slot.time
+                                return (
+                                  <button
+                                    key={slot.time}
+                                    type="button"
+                                    disabled={slot.is_full}
+                                    onClick={() => setSelectedSlot(slot)}
+                                    aria-pressed={isSelected}
+                                    className={cn(
+                                      'rounded-lg border px-2 py-2 text-sm transition-colors',
+                                      slot.is_full
+                                        ? 'cursor-not-allowed border-border-subtle bg-bg text-text-tertiary'
+                                        : isSelected
+                                          ? 'border-brand-500 bg-brand-50 font-semibold text-brand-text dark:bg-brand-500/15 dark:text-brand-300'
+                                          : 'border-border-default bg-surface text-text-secondary hover:border-border-hover',
+                                    )}
+                                  >
+                                    <span className="block">{formatTime(slot.time)}</span>
+                                    <span className="block text-2xs text-text-tertiary">
+                                      {slot.is_full ? 'เต็ม' : `ว่าง ${slot.remaining}`}
+                                    </span>
+                                  </button>
+                                )
+                              })}
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        ))}
+                    </div>
+                  ) : (
+                    <p className="py-4 text-center text-sm text-text-tertiary">
+                      วันที่เลือกไม่มีช่วงเวลาให้จอง กรุณาเลือกวันอื่น
+                    </p>
+                  )}
+                </Section>
+              )}
+
+              {selectedSlot && (
+                <Section icon={<Users className="h-4 w-4" />} title="ข้อมูลผู้จอง">
+                  <ContactFieldsForm
+                    contactName={contactName}
+                    phoneNumber={phoneNumber}
+                    note={note}
+                    onContactName={setContactName}
+                    onPhoneNumber={setPhoneNumber}
+                    onNote={setNote}
+                  />
+
+                  <div className="mt-4 rounded-lg border border-border-subtle bg-bg p-3 text-sm">
+                    <p className="font-medium text-text-primary">{serviceType}</p>
+                    <p className="text-text-secondary">
+                      {formatThaiDate(selectedDate ?? '')} เวลา {formatTime(selectedSlot.time)} น.
+                    </p>
                   </div>
-                ) : (
-                  <p className="py-4 text-center text-sm text-slate-400">
-                    วันที่เลือกไม่มีช่วงเวลาให้จอง กรุณาเลือกวันอื่น
-                  </p>
-                )}
-              </section>
-            )}
 
-            {/* Details */}
-            {selectedSlot && (
-              <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                <h2 className="mb-3 text-sm font-semibold text-slate-700">ข้อมูลผู้จอง</h2>
-                <ContactFieldsForm
-                  contactName={contactName}
-                  phoneNumber={phoneNumber}
-                  note={note}
-                  onContactName={setContactName}
-                  onPhoneNumber={setPhoneNumber}
-                  onNote={setNote}
-                />
+                  <Button className="mt-4 w-full" onClick={handleSubmit} disabled={submitting}>
+                    {submitting ? 'กำลังจอง...' : 'ยืนยันการจอง'}
+                  </Button>
+                </Section>
+              )}
+            </div>
+          )}
+        </>
+      )}
 
-                <div className="mt-4 rounded-xl bg-slate-50 p-3 text-sm">
-                  <p className="font-medium text-slate-900">{serviceType}</p>
-                  <p className="text-slate-500">
-                    {formatThaiDate(selectedDate ?? '')} เวลา {formatTime(selectedSlot.time)} น.
-                  </p>
-                </div>
-
-                <Button className="mt-4 w-full" onClick={handleSubmit} disabled={submitting}>
-                  {submitting ? 'กำลังจอง...' : 'ยืนยันการจอง'}
-                </Button>
-              </section>
-            )}
-          </div>
-        )}
-      </main>
-    </>
+      <ConfirmDialog
+        isOpen={cancelOpen}
+        onClose={() => setCancelOpen(false)}
+        onConfirm={handleCancel}
+        title="ยกเลิกการจอง"
+        description={
+          confirmed
+            ? `ต้องการยกเลิกคิว ${confirmed.queue_number ?? ''} วันที่ ${formatThaiDate(confirmed.booking_date)} เวลา ${formatTime(confirmed.booking_time)} น. หรือไม่?`
+            : 'ต้องการยกเลิกการจองนี้หรือไม่?'
+        }
+        confirmText="ยืนยันยกเลิก"
+        cancelText="เก็บการจองไว้"
+        variant="danger"
+        isLoading={cancelling}
+      />
+    </main>
   )
 }
