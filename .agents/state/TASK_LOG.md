@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 238 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 239 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-08-29 20:20 — qoder — completed
+
+Merged PR #205 (squash to main as 72786ec): audit sweep 2026-08-29 across 5 lanes + closed LIFF upload CRITICAL — shared uploadLiffMedia helper with x-liff-id-token, SessionExpiredError, attachment cap 3 with in-flight counting; CI green (Backend Pytest, Frontend Lint+Build, Playwright Smoke, Encoding Scan)
+
+- Checkpoint: `.agents/state/checkpoints/handover-qoder-20260829-2020.json`
+- Summary: `project-log-md/qoder/session-summary-20260829-2020.md`
+
+---
 
 ### 2026-08-29 06:54 — codex (GPT-5.4 / OpenAI) — completed
 
