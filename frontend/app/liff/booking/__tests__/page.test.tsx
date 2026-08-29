@@ -31,21 +31,26 @@ function stubLiff() {
   vi.stubGlobal('liff', {
     init: vi.fn(async () => {}),
     isLoggedIn: vi.fn(() => true),
+    isInClient: vi.fn(() => true),
+    getProfile: vi.fn(async () => ({ userId: 'U1', displayName: 'สมชาย' })),
     getIDToken: vi.fn(() => 'token-123'),
     closeWindow: vi.fn(),
   })
 }
 
-function stubFetch(overrides: {
-  onCancel?: (booking: Booking) => Booking
-  onUpdate?: (booking: Booking) => Booking
-} = {}) {
+function stubFetch(
+  overrides: {
+    onCancel?: (booking: Booking) => Booking
+    onUpdate?: (booking: Booking) => Booking
+    advanceDays?: number
+  } = {},
+) {
   fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     const u = String(url)
     if (u.includes('/options')) {
       return jsonResponse({
         service_types: ['ปรึกษากฎหมาย'],
-        advance_days: 14,
+        advance_days: overrides.advanceDays ?? 14,
         blackout_dates: [],
       })
     }
@@ -55,6 +60,7 @@ function stubFetch(overrides: {
         date: '2026-08-19',
         slots: [
           { time: '09:30:00', capacity: 3, booked: 0, remaining: 3, is_full: false },
+          { time: '10:00:00', capacity: 3, booked: 3, remaining: 0, is_full: true },
         ],
       })
     }
@@ -68,7 +74,9 @@ function stubFetch(overrides: {
     }
     if (init?.method === 'PATCH') {
       const payload = JSON.parse(String(init.body))
-      return jsonResponse(overrides.onUpdate?.({ ...CONFIRMED, ...payload }) ?? { ...CONFIRMED, ...payload })
+      return jsonResponse(
+        overrides.onUpdate?.({ ...CONFIRMED, ...payload }) ?? { ...CONFIRMED, ...payload },
+      )
     }
     // POST booking
     return jsonResponse(CONFIRMED)
@@ -76,20 +84,20 @@ function stubFetch(overrides: {
   vi.stubGlobal('fetch', fetchMock)
 }
 
+/** The date strip is the scroll container holding every bookable day chip. */
+async function dateStrip(): Promise<HTMLElement> {
+  const today = await screen.findByRole('button', { name: /วันนี้/ })
+  return today.parentElement as HTMLElement
+}
+
 /** Walk the wizard to the confirmation screen. */
 async function bookToDone() {
   const user = userEvent.setup()
   render(<LiffBookingPage />)
-  await screen.findByRole('button', { name: 'ปรึกษากฎหมาย' })
-  await user.click(screen.getByRole('button', { name: 'ปรึกษากฎหมาย' }))
+  await user.click(await screen.findByRole('button', { name: 'ปรึกษากฎหมาย' }))
 
-  const dateSection = screen.getByText('เลือกวันที่').closest('section') as HTMLElement
-  const firstDate = within(dateSection).getAllByRole('button')[0]
-  await user.click(firstDate)
-
-  const slotSection = screen.getByText('เลือกช่วงเวลา').closest('section') as HTMLElement
-  await within(slotSection).findByRole('button', { name: /09:30/ })
-  await user.click(within(slotSection).getByRole('button', { name: /09:30/ }))
+  const slotSection = (await screen.findByText('เลือกช่วงเวลา')).closest('section') as HTMLElement
+  await user.click(await within(slotSection).findByRole('button', { name: /09:30/ }))
 
   await user.type(screen.getByPlaceholderText('ชื่อสำหรับเรียกคิว'), 'สมชาย ใจดี')
   await user.type(screen.getByPlaceholderText('0812345678'), '0812345678')
@@ -105,6 +113,78 @@ beforeEach(() => {
   stubFetch()
 })
 
+describe('date selection', () => {
+  it('renders every day in the advance window, not just the first few', async () => {
+    stubFetch({ advanceDays: 13 })
+    render(<LiffBookingPage />)
+    await userEvent.click(await screen.findByRole('button', { name: 'ปรึกษากฎหมาย' }))
+
+    // advance_days = 13 -> today plus 13 days = 14 selectable chips.
+    expect((await dateStrip()).querySelectorAll('button')).toHaveLength(14)
+  })
+
+  it('scroll-pads the strip so the edge chips keep their full border', async () => {
+    render(<LiffBookingPage />)
+    await userEvent.click(await screen.findByRole('button', { name: 'ปรึกษากฎหมาย' }))
+
+    const strip = await dateStrip()
+    expect(strip.className).toContain('overflow-x-auto')
+    expect(strip.className).toContain('px-4')
+    expect(strip.className).toContain('scroll-px-4')
+  })
+
+  it('preselects the nearest day and loads its slots without another tap', async () => {
+    render(<LiffBookingPage />)
+    await userEvent.click(await screen.findByRole('button', { name: 'ปรึกษากฎหมาย' }))
+
+    expect(await screen.findByText('ช่วงเช้า')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /วันนี้/ })).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('serves a revisited day from cache instead of refetching', async () => {
+    const user = userEvent.setup()
+    render(<LiffBookingPage />)
+    await user.click(await screen.findByRole('button', { name: 'ปรึกษากฎหมาย' }))
+    await screen.findByText('ช่วงเช้า')
+
+    const availabilityCalls = () =>
+      fetchMock.mock.calls.filter(([url]) => String(url).includes('/availability')).length
+    const before = availabilityCalls()
+
+    const [today, tomorrow] = Array.from((await dateStrip()).querySelectorAll('button'))
+    await user.click(tomorrow)
+    await waitFor(() => expect(availabilityCalls()).toBe(before + 1))
+    await user.click(today)
+
+    expect(availabilityCalls()).toBe(before + 1) // the revisited day came from cache
+  })
+})
+
+describe('design-system consistency', () => {
+  it('uses brand tokens rather than emerald for selected state', async () => {
+    render(<LiffBookingPage />)
+    const service = await screen.findByRole('button', { name: 'ปรึกษากฎหมาย' })
+    await userEvent.click(service)
+
+    await waitFor(() => expect(service).toHaveAttribute('aria-pressed', 'true'))
+    expect(service.className).toContain('border-brand-500')
+    expect(service.className).not.toContain('emerald')
+
+    const today = screen.getByRole('button', { name: /วันนี้/ })
+    expect(today.className).toContain('border-brand-500')
+    expect(today.className).not.toContain('emerald')
+  })
+
+  it('disables a full slot and labels it เต็ม', async () => {
+    render(<LiffBookingPage />)
+    await userEvent.click(await screen.findByRole('button', { name: 'ปรึกษากฎหมาย' }))
+
+    const fullSlot = await screen.findByRole('button', { name: /10:00/ })
+    expect(fullSlot).toBeDisabled()
+    expect(within(fullSlot).getByText('เต็ม')).toBeInTheDocument()
+  })
+})
+
 describe('post-booking actions', () => {
   it('offers cancel and edit buttons on the confirmation screen', async () => {
     await bookToDone()
@@ -113,11 +193,11 @@ describe('post-booking actions', () => {
     expect(screen.getByText('260819-001')).toBeInTheDocument()
   })
 
-  it('cancels the booking after confirmation and returns to the start', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
+  it('cancels the booking after dialog confirmation and returns to the start', async () => {
     const user = await bookToDone()
 
     await user.click(screen.getByRole('button', { name: 'ยกเลิกการจอง' }))
+    await user.click(await screen.findByRole('button', { name: 'ยืนยันยกเลิก' }))
 
     await waitFor(() => {
       const cancel = fetchMock.mock.calls.find(
@@ -129,11 +209,11 @@ describe('post-booking actions', () => {
     expect(screen.queryByText('260819-001')).not.toBeInTheDocument()
   })
 
-  it('does not cancel when the citizen backs out of the confirm dialog', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(false)
+  it('does not cancel when the citizen backs out of the dialog', async () => {
     const user = await bookToDone()
 
     await user.click(screen.getByRole('button', { name: 'ยกเลิกการจอง' }))
+    await user.click(await screen.findByRole('button', { name: 'เก็บการจองไว้' }))
 
     expect(screen.getByText('260819-001')).toBeInTheDocument()
     const cancels = fetchMock.mock.calls.filter(
