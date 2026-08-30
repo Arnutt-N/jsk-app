@@ -7,6 +7,7 @@ import { Loader2 } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { useToast } from '@/components/ui/Toast';
 import { logger } from '@/lib/logger';
+import { readErrorMessage } from '@/lib/api-error';
 
 interface RichMenuArea {
     bounds: { x: number; y: number; width: number; height: number };
@@ -33,7 +34,7 @@ interface RichMenu {
     chat_bar_text: string;
     line_rich_menu_id: string | null;
     status: string;
-    image_path: string | null;
+    image_url: string | null;
     config: {
         size: { width: number; height: number };
         areas: RichMenuArea[];
@@ -68,9 +69,10 @@ export default function EditRichMenuPage() {
                 setName(data.name);
                 setChatBarText(data.chat_bar_text);
                 setAreas(data.config?.areas || []);
-                if (data.image_path) {
-                    const baseHost = API_BASE.split('/api/')[0];
-                    setImagePreview(`${baseHost}/${data.image_path}`);
+                if (data.image_url) {
+                    setImagePreview(data.image_url);
+                } else {
+                    setImagePreview(null);
                 }
             } else {
                 toast({ variant: 'error', title: 'ไม่พบ Rich Menu', description: 'ไม่พบข้อมูล Rich Menu ที่ต้องการ' });
@@ -154,7 +156,13 @@ export default function EditRichMenuPage() {
                     body: formData
                 });
                 if (!uploadRes.ok) {
-                    toast({ variant: 'error', title: 'อัปโหลดรูปภาพไม่สำเร็จ', description: 'ไม่สามารถอัปโหลดรูปภาพได้' });
+                    // Upload failure means the menu is NOT fully saved — show the
+                    // error and stay on the page (previously this showed an error
+                    // toast and then a success toast and redirected anyway).
+                    const detail = await readErrorMessage(uploadRes, 'ไม่สามารถอัปโหลดรูปภาพได้');
+                    toast({ variant: 'error', title: 'อัปโหลดรูปภาพไม่สำเร็จ', description: detail });
+                    setSaving(false);
+                    return;
                 }
             }
 

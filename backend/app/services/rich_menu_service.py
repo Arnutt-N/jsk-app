@@ -5,7 +5,8 @@ import httpx
 import json
 import logging
 from datetime import datetime, timezone
-from app.models.rich_menu import RichMenu, RichMenuStatus
+from app.models.rich_menu import RichMenu, RichMenuStatus, RichMenuSyncStatus
+from app.models.media_file import MediaFile, FileCategory
 from app.models.user_rich_menu_link import UserRichMenuLink
 from app.services.settings_service import SettingsService
 from app.core.redis_client import redis_client
@@ -23,10 +24,83 @@ class RichMenuService:
     @staticmethod
     async def get_client_headers(db: AsyncSession) -> Dict[str, str]:
         token = await SettingsService.get_setting(db, "LINE_CHANNEL_ACCESS_TOKEN")
+        if not token:
+            # Fail fast with an actionable message instead of sending
+            # "Authorization: Bearer " and letting LINE answer with a raw 401.
+            raise RuntimeError("LINE channel access token is not configured")
         return {
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json"
         }
+
+    @staticmethod
+    def _line_error_detail(e: httpx.HTTPStatusError) -> str:
+        """Extract LINE's own error text from an HTTPStatusError for user-facing
+        detail (LINE bodies carry `message`/`details`; the httpx str(e) blob that
+        used to reach admins contained neither)."""
+        try:
+            payload = e.response.json()
+            if isinstance(payload, dict):
+                parts = [payload.get("message") or ""]
+                details = payload.get("details")
+                if details:
+                    parts.append(json.dumps(details, ensure_ascii=False))
+                joined = " - ".join(p for p in parts if p)
+                if joined:
+                    return joined
+        except Exception:
+            pass
+        return (e.response.text or "").strip()[:500] or str(e)
+
+    # ---- Image storage (media_files pipeline) ----------------------------
+
+    @staticmethod
+    async def replace_image(
+        db: AsyncSession, rich_menu: RichMenu, filename: str, mime_type: str, data: bytes
+    ) -> MediaFile:
+        """Store the menu image as a media_files row and point the menu at it.
+
+        Replaces (deletes) any previous media row so re-uploads never orphan
+        bytes. The caller has already validated mime/size; this is pure storage.
+        """
+        if rich_menu.image_media_id:
+            previous = await db.get(MediaFile, rich_menu.image_media_id)
+            if previous:
+                await db.delete(previous)
+        media = MediaFile(
+            filename=filename,
+            mime_type=mime_type,
+            data=data,
+            size_bytes=len(data),
+            category=FileCategory.IMAGE,
+        )
+        db.add(media)
+        await db.flush()
+        rich_menu.image_media_id = media.id
+        await db.commit()
+        await db.refresh(rich_menu)
+        await db.refresh(media)
+        return media
+
+    @staticmethod
+    async def push_image_to_line(db: AsyncSession, rich_menu: RichMenu) -> bool:
+        """Push the stored image bytes to LINE for an already-synced menu.
+
+        Returns False when the menu has no stored image (menu-only sync stays
+        valid); raises on LINE failures so the caller can surface them.
+        """
+        if not rich_menu.line_rich_menu_id or not rich_menu.image_media_id:
+            return False
+        result = await db.execute(
+            select(MediaFile).where(MediaFile.id == rich_menu.image_media_id)
+        )
+        media = result.scalar_one_or_none()
+        if not media:
+            return False
+        await RichMenuService.upload_image_to_line(
+            db, rich_menu.line_rich_menu_id, media.data, media.mime_type
+        )
+        return True
 
     @staticmethod
     async def get_current_links_for_users(
@@ -292,11 +366,13 @@ class RichMenuService:
     async def update_sync_status(
         db: AsyncSession,
         rich_menu: RichMenu,
-        status: str,
+        status: RichMenuSyncStatus | str,
         error: Optional[str] = None
     ):
-        """Update the sync status of a rich menu."""
-        rich_menu.sync_status = status
+        """Update the sync status of the rich menu."""
+        rich_menu.sync_status = (
+            status.value if isinstance(status, RichMenuSyncStatus) else status
+        )
         rich_menu.last_synced_at = datetime.now(timezone.utc)
         rich_menu.last_sync_error = error
         await db.commit()
@@ -320,59 +396,59 @@ class RichMenuService:
         if not rich_menu:
             return {"success": False, "message": "Rich menu not found"}
 
-        # If already has LINE ID, verify it exists on LINE
+        # If already has LINE ID, verify it exists on LINE. When it does not,
+        # the id is stale (deleted on LINE / different channel): clear it and
+        # fall through to the create path — publish's 409 message tells the
+        # user "กด Sync เพื่อสร้างใหม่", so Sync MUST be able to recreate.
+        # A get_from_line 404 proves the old menu is gone, so recreation
+        # cannot duplicate anything.
+        was_stale = False
         if rich_menu.line_rich_menu_id:
             line_menu = await RichMenuService.get_from_line(db, rich_menu.line_rich_menu_id)
             if line_menu:
                 # Already exists on LINE - no need to recreate
-                await RichMenuService.update_sync_status(db, rich_menu, "SYNCED")
+                await RichMenuService.update_sync_status(db, rich_menu, RichMenuSyncStatus.SYNCED)
                 return {
                     "success": True,
                     "message": "Already synced with LINE",
                     "line_rich_menu_id": rich_menu.line_rich_menu_id,
-                    "sync_status": "SYNCED"
+                    "sync_status": RichMenuSyncStatus.SYNCED.value
                 }
             else:
-                # LINE ID exists but menu was deleted on LINE
-                await RichMenuService.update_sync_status(
-                    db, rich_menu, "FAILED",
-                    f"Rich menu with ID {rich_menu.line_rich_menu_id} not found on LINE"
-                )
-                return {
-                    "success": False,
-                    "message": "LINE ID exists but menu not found on LINE",
-                    "sync_status": "FAILED",
-                    "error": rich_menu.last_sync_error
-                }
+                was_stale = True
+                rich_menu.line_rich_menu_id = None
 
         # Not synced yet - create on LINE
         try:
             line_id = await RichMenuService.create_on_line(db, rich_menu.config)
             rich_menu.line_rich_menu_id = line_id
-            await RichMenuService.update_sync_status(db, rich_menu, "SYNCED")
+            await RichMenuService.update_sync_status(db, rich_menu, RichMenuSyncStatus.SYNCED)
             await db.refresh(rich_menu)
             return {
                 "success": True,
-                "message": "Created on LINE successfully",
+                "message": (
+                    "Recreated on LINE (previous id was stale)"
+                    if was_stale else "Created on LINE successfully"
+                ),
                 "line_rich_menu_id": line_id,
-                "sync_status": "SYNCED"
+                "sync_status": RichMenuSyncStatus.SYNCED.value
             }
         except httpx.HTTPStatusError as e:
             error_msg = f"LINE API error: {e.response.status_code} - {e.response.text}"
-            await RichMenuService.update_sync_status(db, rich_menu, "FAILED", error_msg)
+            await RichMenuService.update_sync_status(db, rich_menu, RichMenuSyncStatus.FAILED, error_msg)
             return {
                 "success": False,
                 "message": error_msg,
-                "sync_status": "FAILED",
+                "sync_status": RichMenuSyncStatus.FAILED.value,
                 "error": error_msg
             }
         except Exception as e:
             error_msg = f"Sync failed: {str(e)}"
-            await RichMenuService.update_sync_status(db, rich_menu, "FAILED", error_msg)
+            await RichMenuService.update_sync_status(db, rich_menu, RichMenuSyncStatus.FAILED, error_msg)
             return {
                 "success": False,
                 "message": error_msg,
-                "sync_status": "FAILED",
+                "sync_status": RichMenuSyncStatus.FAILED.value,
                 "error": error_msg
             }
 

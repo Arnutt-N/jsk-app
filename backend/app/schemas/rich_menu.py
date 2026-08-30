@@ -102,7 +102,10 @@ class RichMenuResponse(BaseModel):
     chat_bar_text: str
     line_rich_menu_id: Optional[str]
     config: Dict[str, Any]
-    image_path: Optional[str]
+    # URL the admin frontend can put in <img src>. Populated by the endpoints
+    # from image_media_id (never an ORM attribute — defaults to None so every
+    # response path validates even before the endpoint fills it in).
+    image_url: Optional[str] = None
     status: RichMenuStatus
     sync_status: str
     last_synced_at: Optional[datetime]

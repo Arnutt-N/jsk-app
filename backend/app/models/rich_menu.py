@@ -1,12 +1,21 @@
-from sqlalchemy import Column, Integer, String, DateTime, JSON, Text
-from sqlalchemy.sql import func
-from app.db.base import Base
 import enum
+import uuid
+
+from sqlalchemy import Column, ForeignKey, Integer, String, DateTime, JSON, Text
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.sql import func
+
+from app.db.base import Base
 
 class RichMenuStatus(str, enum.Enum):
     DRAFT = "DRAFT"
     PUBLISHED = "PUBLISHED"
     INACTIVE = "INACTIVE"
+
+class RichMenuSyncStatus(str, enum.Enum):
+    PENDING = "PENDING"
+    SYNCED = "SYNCED"
+    FAILED = "FAILED"
 
 class RichMenu(Base):
     __tablename__ = "rich_menus"
@@ -22,16 +31,26 @@ class RichMenu(Base):
     # { "size": {"width": 2500, "height": 1686}, "areas": [...] }
     config = Column(JSON, nullable=False)
 
-    # Local Storage (Path A)
-    image_path = Column(String, nullable=True)
+    # Menu image bytes live in media_files (one pipeline with LIFF uploads and
+    # the admin files page), served at /api/v1/media/{id}. Deliberately NO
+    # relationship attribute: a lazy many-to-one traversal inside the event
+    # loop raises MissingGreenlet — async code selects MediaFile explicitly by
+    # this FK. ondelete SET NULL means a media row deleted from the admin
+    # files page gracefully reverts the menu to "no image".
+    image_media_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("media_files.id", ondelete="SET NULL"),
+        nullable=True,
+    )
 
     # Stored as VARCHAR(9), not a PostgreSQL enum type — same pattern as
     # ChatSession.status. RichMenuStatus is a str-enum, so assigning a member
     # writes its value and the Pydantic schema still validates on read.
     status = Column(String(9), default=RichMenuStatus.DRAFT.value)
 
-    # Sync tracking for persistence
-    sync_status = Column(String, default="PENDING")  # PENDING, SYNCED, FAILED
+    # Sync tracking for persistence (RichMenuSyncStatus values; the column is
+    # a plain String, same native_enum=False pattern as `status` above).
+    sync_status = Column(String, default=RichMenuSyncStatus.PENDING.value)
     last_synced_at = Column(DateTime(timezone=True), nullable=True)
     last_sync_error = Column(Text, nullable=True)
 

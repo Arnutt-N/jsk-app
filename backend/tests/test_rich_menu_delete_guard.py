@@ -64,6 +64,12 @@ class _SeqDB:
     async def delete(self, obj):
         pass
 
+    async def get(self, model, pk):
+        return None
+
+    async def flush(self):
+        pass
+
     async def rollback(self):
         pass
 
@@ -95,8 +101,10 @@ def _clear():
     invalidate_cache()
 
 
-def _menu(line_id=None, image_path=None):
-    return SimpleNamespace(id=1, line_rich_menu_id=line_id, image_path=image_path)
+def _menu(line_id=None, image_media_id=None, name="Menu A"):
+    return SimpleNamespace(
+        id=1, name=name, line_rich_menu_id=line_id, image_media_id=image_media_id, status="DRAFT"
+    )
 
 
 def _alias():
