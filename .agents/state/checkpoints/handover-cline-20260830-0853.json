@@ -1,0 +1,17 @@
+{
+  "handoff_version": "2.0",
+  "platform": "cline",
+  "agent": "cline",
+  "timestamp": "2026-08-30T08:53:00+07:00",
+  "branch": "main",
+  "head_commit": "e3b853b",
+  "status": "completed",
+  "work_summary": "Merged PR #208 (squash e3b853b): GET /liff/bookings/availability/range endpoint + LIFF date-strip disabling of closed/full days, 16 backend + 3 frontend tests, all CI green",
+  "priority_actions": [
+    "Device-verify booking flow on real LINE mobile (incl. disabled-day chips from PR #208)",
+    "Raise advance_days at /admin/settings/booking (DB setting, was 3)"
+  ],
+  "context_for_next_agent": "Semantics locked per PRD: is_open = bool(compute_slots(...)) so an open-but-full day reports is_open:true/remaining:0; frontend disables on !is_open || remaining===0. Fail-open by design at EVERY layer (range fetch error -> chips stay enabled + preselect falls back to dateOptions[0]; missing map entry -> chip stays enabled) - worst case = pre-feature behavior, do NOT harden into hard-fail. Frontend clips range window to first 63 chips because advance_days is admin-editable (le=365) while backend caps at 62 days. /availability single-day remains SSOT for the slot grid when a day is tapped (range endpoint intentionally omits per-slot data). Frontend test stub gotcha: route /availability/range BEFORE /availability (url.includes substring match). Backend endpoint: 422 guards run BEFORE the 503 _require_booking_enabled gate - 503 tests must use valid ranges. Local test infra: Windows venv backend/venv/Scripts/python.exe is fast (~2s); WSL pytest over /mnt/d is very slow; long runs via Start-Process background + poll .scratch/py_win_out.txt. Untracked .ignore (graft tool config) stays uncommitted by convention. Deferred user-owned: device-verify booking flow on real LINE mobile (incl. PR #207 UI), raise advance_days at /admin/settings/booking.",
+  "session_summary": "project-log-md/cline/session-summary-20260830-0853.md",
+  "cross_platform_read": []
+}

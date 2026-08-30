@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 242 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 243 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-08-30 08:53 — cline — completed
+
+Merged PR #208 (squash e3b853b): GET /liff/bookings/availability/range endpoint + LIFF date-strip disabling of closed/full days, 16 backend + 3 frontend tests, all CI green
+
+- Checkpoint: `.agents/state/checkpoints/handover-cline-20260830-0853.json`
+- Summary: `project-log-md/cline/session-summary-20260830-0853.md`
+
+---
 
 ### 2026-08-29 23:21 — qoder (GLM-5.3-Flash / Z.ai) — completed
 

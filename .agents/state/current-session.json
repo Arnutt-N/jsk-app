@@ -1,14 +1,20 @@
 {
-  "last_updated": "2026-08-29T23:21:00+07:00",
-  "platform": "qoder",
-  "current_task": "Merged PR #206 + #207 to main (8ddbda3, beaff04) — resolved #206 generated-state conflicts (kept both 21:58/22:44 records, regenerated views, golden suite 23/23); wrote PRD+PRP for availability-range ",
+  "last_updated": "2026-08-30T08:53:00+07:00",
+  "platform": "cline",
+  "current_task": "Merged PR #208 (squash e3b853b): GET /liff/bookings/availability/range endpoint + LIFF date-strip disabling of closed/full days, 16 backend + 3 frontend tests, all CI green",
   "plan_status": "completed",
   "next_steps": [
-    "Get user approval on PRD+PRP then implement feat/booking-availability-range per plan",
-    "Device-verify PR #207 on real LINE device (date-strip borders, dark mode, ConfirmDialog)",
-    "Raise advance_days at /admin/settings/booking"
+    "Device-verify booking flow on real LINE mobile (incl. disabled-day chips from PR #208)",
+    "Raise advance_days at /admin/settings/booking (DB setting, was 3)"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-08-30T08:53:00+07:00",
+      "platform": "cline",
+      "branch": "main",
+      "head": "e3b853b",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-08-29T23:21:00+07:00",
       "platform": "qoder",
@@ -140,13 +146,6 @@
       "platform": "open_code",
       "branch": "main",
       "head": "a027a0f",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-08-15T15:50:00+07:00",
-      "platform": "open_code",
-      "branch": "main",
-      "head": "125be81",
       "status": "completed"
     }
   ],
