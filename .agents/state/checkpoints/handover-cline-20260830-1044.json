@@ -1,0 +1,17 @@
+{
+  "handoff_version": "2.0",
+  "platform": "cline",
+  "agent": "cline",
+  "timestamp": "2026-08-30T10:44:00+07:00",
+  "branch": "main",
+  "head_commit": "8aa4872",
+  "status": "completed",
+  "work_summary": "Merged PR #209 (squash 8aa4872): availability-range review remediation — clip range window by calendar span (real bug from /review), DayAvailabilityOut model_validate, drop unused day_hours, import order, AGENTS.md 409/422; all CI green",
+  "priority_actions": [
+    "Device-verify booking flow on real LINE mobile (incl. disabled-day chips + PR #209 clip fix)",
+    "Raise advance_days at /admin/settings/booking (DB setting, was 3)"
+  ],
+  "context_for_next_agent": "Semantics locked: clipRangeWindow() in lib/booking.ts clips the range request by CALENDAR distance from the first day (MAX_AVAILABILITY_RANGE_DAYS=62 mirrors the backend cap in liff_bookings.py — keep the two in sync); entry-count clipping was the review's real bug because buildDateOptions excludes blackout dates, so a 63-entry window could span >62 calendar days -> 422 -> fail-open silently disabled the feature. Fail-open by design at EVERY layer remains (chips beyond the clip have no day info and stay enabled) - do NOT harden into hard-fail. DayAvailabilityOut now validates rows via model_validate (from_attributes=True; endpoint tests stub days as SimpleNamespace, which validates fine). DayAvailability.day_hours was dropped - stored at construction but never read anywhere; compute_slots still receives the business-hours row directly. Review findings intentionally left as-is (rationale in .claude/PRPs/plans/availability-range-review-fixes.plan.md + PR #209 body): Out suffix, rangeInfo/rangeReady two-state, a11y additions, UnknownServiceTypeError guard duplication. Frontend test stub gotcha: route /availability/range BEFORE /availability (url.includes substring match). Local test infra: Windows venv backend/venv/Scripts/python.exe is fast; long suites via Start-Process background + poll .scratch/*.txt (run_commands wrapper times out at 30s — keep poll sleeps <= 20s). Untracked .ignore (graft tool config) stays uncommitted by convention. Deferred user-owned: device-verify booking flow on real LINE mobile (incl. disabled-day chips + PR #209 clip fix under a wide window), raise advance_days at /admin/settings/booking.",
+  "session_summary": "project-log-md/cline/session-summary-20260830-1044.md",
+  "cross_platform_read": []
+}

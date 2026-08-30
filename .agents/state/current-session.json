@@ -1,13 +1,20 @@
 {
-  "last_updated": "2026-08-30T08:53:00+07:00",
+  "last_updated": "2026-08-30T10:44:00+07:00",
   "platform": "cline",
-  "current_task": "Merged PR #208 (squash e3b853b): GET /liff/bookings/availability/range endpoint + LIFF date-strip disabling of closed/full days, 16 backend + 3 frontend tests, all CI green",
+  "current_task": "Merged PR #209 (squash 8aa4872): availability-range review remediation — clip range window by calendar span (real bug from /review), DayAvailabilityOut model_validate, drop unused day_hours, import or",
   "plan_status": "completed",
   "next_steps": [
-    "Device-verify booking flow on real LINE mobile (incl. disabled-day chips from PR #208)",
+    "Device-verify booking flow on real LINE mobile (incl. disabled-day chips + PR #209 clip fix)",
     "Raise advance_days at /admin/settings/booking (DB setting, was 3)"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-08-30T10:44:00+07:00",
+      "platform": "cline",
+      "branch": "main",
+      "head": "8aa4872",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-08-30T08:53:00+07:00",
       "platform": "cline",
@@ -139,13 +146,6 @@
       "platform": "open_code",
       "branch": "main",
       "head": "0050210",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-08-15T21:20:00+07:00",
-      "platform": "open_code",
-      "branch": "main",
-      "head": "a027a0f",
       "status": "completed"
     }
   ],

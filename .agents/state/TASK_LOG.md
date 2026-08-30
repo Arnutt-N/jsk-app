@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 243 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 244 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-08-30 10:44 — cline — completed
+
+Merged PR #209 (squash 8aa4872): availability-range review remediation — clip range window by calendar span (real bug from /review), DayAvailabilityOut model_validate, drop unused day_hours, import order, AGENTS.md 409/422; all CI green
+
+- Checkpoint: `.agents/state/checkpoints/handover-cline-20260830-1044.json`
+- Summary: `project-log-md/cline/session-summary-20260830-1044.md`
+
+---
 
 ### 2026-08-30 08:53 — cline — completed
 
