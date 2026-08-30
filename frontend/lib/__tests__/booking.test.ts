@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest'
 import {
   BOOKING_STATUS_LABELS,
   buildDateOptions,
+  clipRangeWindow,
   describeReminder,
   formatThaiDate,
   formatThaiWeekday,
@@ -136,5 +137,39 @@ describe('status labels', () => {
     for (const label of Object.values(BOOKING_STATUS_LABELS)) {
       expect(label.length).toBeGreaterThan(0)
     }
+  })
+})
+
+describe('clipRangeWindow', () => {
+  test('keeps a window whose calendar span fits the backend cap', () => {
+    // 63 entries spanning exactly 62 calendar days — nothing to clip.
+    const options = buildDateOptions(new Date(2026, 7, 1), 62)
+    expect(clipRangeWindow(options)).toEqual(options)
+  })
+
+  test('clips by calendar span, not entry count, when blackouts thin the window', () => {
+    const blackouts = [
+      '2026-08-05', '2026-08-08', '2026-08-11', '2026-08-14', '2026-08-17',
+      '2026-08-20', '2026-08-23', '2026-08-26', '2026-08-29', '2026-09-01',
+    ]
+    const options = buildDateOptions(new Date(2026, 7, 1), 99, blackouts)
+    const clipped = clipRangeWindow(options)
+
+    // 62 calendar days out from 2026-08-01 is 2026-10-02, and it is not a
+    // blackout, so it is the last day kept.
+    expect(clipped[clipped.length - 1]).toBe('2026-10-02')
+    // 63 calendar days in the kept span minus the 10 blackouts inside it.
+    // The count-based clip this replaces kept 63 entries, ending 2026-10-12 —
+    // a 72-day span the backend rejects with 422.
+    expect(clipped).toHaveLength(53)
+    expect(clipped.length).toBeLessThan(options.length)
+  })
+
+  test('returns an empty window unchanged', () => {
+    expect(clipRangeWindow([])).toEqual([])
+  })
+
+  test('keeps a single day', () => {
+    expect(clipRangeWindow(['2026-08-01'])).toEqual(['2026-08-01'])
   })
 })

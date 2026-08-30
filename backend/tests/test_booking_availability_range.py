@@ -6,12 +6,12 @@ database cost must stay flat: exactly two queries (business hours + grouped
 booked counts) no matter how long the requested window is.
 """
 from datetime import date, datetime, time, timedelta
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import HTTPException
 from sqlalchemy.dialects import postgresql
-from types import SimpleNamespace
 
 from app.api.v1.endpoints import liff_bookings
 from app.models.business_hours import BusinessHours

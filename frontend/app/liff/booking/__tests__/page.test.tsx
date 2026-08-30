@@ -3,14 +3,21 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import LiffBookingPage from '../page'
 import { toISODate, type Booking } from '@/lib/booking'
+
+import LiffBookingPage from '../page'
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: { 'Content-Type': 'application/json' },
   })
+}
+
+/** ISO date `offset` days from today — the same dates buildDateOptions offers. */
+function isoFromToday(offset: number): string {
+  const base = new Date()
+  return toISODate(new Date(base.getFullYear(), base.getMonth(), base.getDate() + offset))
 }
 
 const CONFIRMED: Booking = {
@@ -43,6 +50,8 @@ function stubFetch(
     onCancel?: (booking: Booking) => Booking
     onUpdate?: (booking: Booking) => Booking
     advanceDays?: number
+    /** Blackout dates to serve from /options (defaults to none). */
+    blackouts?: string[]
     /** Per-day override for the /availability/range response. */
     rangeDay?: (iso: string) => { date: string; is_open: boolean; remaining: number }
     /** Make the range request fail with this status (fail-open scenarios). */
@@ -55,7 +64,7 @@ function stubFetch(
       return jsonResponse({
         service_types: ['ปรึกษากฎหมาย'],
         advance_days: overrides.advanceDays ?? 14,
-        blackout_dates: [],
+        blackout_dates: overrides.blackouts ?? [],
       })
     }
     // NOTE: the range route must be matched before /availability — its URL
@@ -181,12 +190,9 @@ describe('date selection', () => {
   })
 
   it('disables a closed day chip before the citizen taps it', async () => {
-    const base = new Date()
-    const iso = (offset: number) =>
-      toISODate(new Date(base.getFullYear(), base.getMonth(), base.getDate() + offset))
     stubFetch({
       rangeDay: (d) =>
-        d === iso(1)
+        d === isoFromToday(1)
           ? { date: d, is_open: false, remaining: 0 }
           : { date: d, is_open: true, remaining: 5 },
     })
@@ -199,12 +205,9 @@ describe('date selection', () => {
   })
 
   it('preselects the first open day with seats, skipping closed days', async () => {
-    const base = new Date()
-    const iso = (offset: number) =>
-      toISODate(new Date(base.getFullYear(), base.getMonth(), base.getDate() + offset))
     stubFetch({
       rangeDay: (d) =>
-        d === iso(0) || d === iso(1)
+        d === isoFromToday(0) || d === isoFromToday(1)
           ? { date: d, is_open: false, remaining: 0 }
           : { date: d, is_open: true, remaining: 5 },
     })
@@ -220,7 +223,26 @@ describe('date selection', () => {
     const dayCall = fetchMock.mock.calls.find(
       ([url]) => String(url).includes('/availability') && !String(url).includes('/range'),
     )
-    expect(String(dayCall?.[0])).toContain(`date=${iso(2)}`)
+    expect(String(dayCall?.[0])).toContain(`date=${isoFromToday(2)}`)
+  })
+
+  it('clips the range request to 62 calendar days when blackouts thin the window', async () => {
+    // advance_days beyond the backend cap, with blackouts thinning the window:
+    // the old count-based clip asked for >62 calendar days and got a 422.
+    const blackouts = Array.from({ length: 10 }, (_, i) => isoFromToday(5 + i * 3))
+    stubFetch({ advanceDays: 99, blackouts })
+    render(<LiffBookingPage />)
+    await userEvent.click(await screen.findByRole('button', { name: 'ปรึกษากฎหมาย' }))
+
+    await waitFor(() => {
+      const rangeCall = fetchMock.mock.calls.find(([url]) =>
+        String(url).includes('/availability/range'),
+      )
+      expect(rangeCall).toBeDefined()
+      const params = new URL(String(rangeCall?.[0]), 'http://localhost').searchParams
+      expect(params.get('from')).toBe(isoFromToday(0))
+      expect(params.get('to')).toBe(isoFromToday(62))
+    })
   })
 
   it('keeps every chip enabled and preselects today when the range fetch fails', async () => {

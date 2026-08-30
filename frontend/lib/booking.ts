@@ -124,6 +124,35 @@ export function buildDateOptions(
   return options
 }
 
+/**
+ * The backend refuses range requests spanning more than this many days
+ * (`MAX_AVAILABILITY_RANGE_DAYS` in `liff_bookings.py`) — keep the two in sync.
+ */
+export const MAX_AVAILABILITY_RANGE_DAYS = 62
+
+/** ISO date + `days`, computed in local time so it never drifts through UTC. */
+function addDaysISO(iso: string, days: number): string {
+  const shifted = parseISODate(iso)
+  shifted.setDate(shifted.getDate() + days)
+  return toISODate(shifted)
+}
+
+/**
+ * The largest slice of `dateOptions` the range endpoint accepts.
+ *
+ * `dateOptions` excludes blackout dates, so its *length* is not its *span* —
+ * with blackouts in a long admin window, the 63rd entry can sit far more
+ * than 62 calendar days from the first. Clip by calendar distance from the
+ * first day, never by count, or the request exceeds the backend cap and the
+ * whole range fetch (silently) fails. ISO dates compare lexicographically,
+ * so the filter needs no Date objects.
+ */
+export function clipRangeWindow(dateOptions: readonly string[]): string[] {
+  if (dateOptions.length === 0) return []
+  const limit = addDaysISO(dateOptions[0], MAX_AVAILABILITY_RANGE_DAYS)
+  return dateOptions.filter((iso) => iso <= limit)
+}
+
 /** Split slots at noon so a long day does not render as one endless column. */
 export function groupSlotsByPeriod(slots: readonly Slot[]): {
   morning: Slot[]
