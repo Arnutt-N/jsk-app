@@ -1,8 +1,26 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 244 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 246 active handoffs, 9 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-08-30 14:15 — cline — completed
+
+Merged PR #211 (squash f514ff6): review round 3 clean (0 hard violations / 0 substantive), pinned negative max_range_days fallback in clipRangeWindow unit test - one assertion, mutation value verified; local full pytest verified 996 passed (72 errors all environmental - no local PostgreSQL); prod deploy healthy
+
+- Checkpoint: `.agents/state/checkpoints/handover-cline-20260830-1415.json`
+- Summary: `project-log-md/cline/session-summary-20260830-1415.md`
+
+---
+
+### 2026-08-30 13:20 — cline — completed
+
+Merged PR #210 (squash 7497b07): availability-range review follow-ups — 62-day range cap now has a single home (booking_service.MAX_AVAILABILITY_RANGE_DAYS, advertised via GET /liff/bookings/options as max_range_days; LIFF clipRangeWindow uses the advertised value, local 62 is fallback only for older backends) + new range test pins AC #4 (slots at/before NOW never appear in today's day; old assertion was tautological); all CI green (Pytest full 1m12s, Lint+Build 1m43s, Playwright 3m11s)
+
+- Checkpoint: `.agents/state/checkpoints/handover-cline-20260830-1320.json`
+- Summary: `project-log-md/cline/session-summary-20260830-1320.md`
+
+---
 
 ### 2026-08-30 10:44 — cline — completed
 

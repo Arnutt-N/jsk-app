@@ -1,0 +1,17 @@
+{
+  "handoff_version": "2.0",
+  "platform": "cline",
+  "agent": "cline",
+  "timestamp": "2026-08-30T14:15:00+07:00",
+  "branch": "main",
+  "head_commit": "18303fa",
+  "status": "completed",
+  "work_summary": "Merged PR #211 (squash f514ff6): review round 3 clean (0 hard violations / 0 substantive), pinned negative max_range_days fallback in clipRangeWindow unit test - one assertion, mutation value verified; local full pytest verified 996 passed (72 errors all environmental - no local PostgreSQL); prod deploy healthy",
+  "priority_actions": [
+    "Device-verify booking flow on real LINE mobile (checklist at .scratch/device-verify-checklist-20260830.md, ~15 min)",
+    "Raise advance_days at /admin/settings/booking (DB setting, currently 3)"
+  ],
+  "context_for_next_agent": "HANDOFF PROCESS (learned the hard way this session): always run node .agents/scripts/handoff-new.cjs <platform> \"<summary>\" \"<next step>\"... — it syncs current-session.json, regenerates TASK_LOG.md + SESSION_INDEX.md (both generated, never hand-edit), refreshes PROJECT_STATUS 2 lines, and runs validate_handoff_state.py. Writing checkpoint/summary by hand leaves state out of sync and duplicates work. Optional 'model'/'provider' keys missing triggers only a WARNING, not a failure. SEMANTICS (unchanged from PR #210/#211): the 62-day range cap has ONE home — booking_service.MAX_AVAILABILITY_RANGE_DAYS — advertised via GET /liff/bookings/options as max_range_days; the LIFF page passes it into clipRangeWindow(); the frontend constant 62 is FALLBACK ONLY (older backend / malformed value). Fail-open by design at EVERY layer — do NOT harden into hard-fail. The clipRangeWindow fallback unit test now pins ALL FOUR invalid cases (undefined/0/NaN/negative maxRangeDays -> 62) — do not regress coverage below that. Review round 3 (two-axis, range 43629cd...84b12cc) closed the last actionable availability-range finding; remaining notes are deliberate non-actions (plan-wording default-vs-guard equivalent, Out-suffix rename pre-existing/deferred, direct-call endpoint test style matches file convention, 62 in two files = documented fallback). Backend findings intentionally deferred with rationale in .claude/PRPs/plans/availability-range-review-fixes.plan.md (404 guard duplication, rangeInfo/rangeReady two-state, useAvailabilityRange hook extraction, 422-before-503). Local full pytest verified: 996 passed, 72 errors — ALL environmental (PostgreSQL not running on this Windows box; CI runs identical suite with services and passes 100%). Machine gotchas: read_files/search_codebase flaky — use PowerShell Get-Content / git --no-pager; run_commands wrapper 30s timeout — long suites via Start-Process cmd /c with output redirect to .scratch/*.txt + poll (sleep <= 20s); gh pr create with backticks in body breaks PowerShell quoting — write body to .scratch file and use --body-file; npm run lint full run reports ~3000 pre-existing problems (old admin files + playwright-report artifacts) — targeted eslint of touched files is the reliable local gate. Untracked .ignore (graft tool config) stays uncommitted by convention.",
+  "session_summary": "project-log-md/cline/session-summary-20260830-1415.md",
+  "cross_platform_read": []
+}

@@ -1,13 +1,20 @@
 {
-  "last_updated": "2026-08-30T10:44:00+07:00",
+  "last_updated": "2026-08-30T14:15:00+07:00",
   "platform": "cline",
-  "current_task": "Merged PR #209 (squash 8aa4872): availability-range review remediation — clip range window by calendar span (real bug from /review), DayAvailabilityOut model_validate, drop unused day_hours, import or",
+  "current_task": "Merged PR #211 (squash f514ff6): review round 3 clean (0 hard violations / 0 substantive), pinned negative max_range_days fallback in clipRangeWindow unit test - one assertion, mutation value verified",
   "plan_status": "completed",
   "next_steps": [
-    "Device-verify booking flow on real LINE mobile (incl. disabled-day chips + PR #209 clip fix)",
-    "Raise advance_days at /admin/settings/booking (DB setting, was 3)"
+    "Device-verify booking flow on real LINE mobile (checklist at .scratch/device-verify-checklist-20260830.md, ~15 min)",
+    "Raise advance_days at /admin/settings/booking (DB setting, currently 3)"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-08-30T14:15:00+07:00",
+      "platform": "cline",
+      "branch": "main",
+      "head": "18303fa",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-08-30T10:44:00+07:00",
       "platform": "cline",
@@ -139,13 +146,6 @@
       "platform": "qoder",
       "branch": "feat/pr-c-pseudonym-contract",
       "head": "9c6a6e6",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-08-16T17:27:00+07:00",
-      "platform": "open_code",
-      "branch": "main",
-      "head": "0050210",
       "status": "completed"
     }
   ],
