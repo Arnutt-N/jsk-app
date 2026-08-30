@@ -43,6 +43,10 @@ class AvailabilityOut(BaseModel):
 class DayAvailabilityOut(BaseModel):
     """One day in a range: open at all, and how many seats remain."""
 
+    # Validated straight from the service's DayAvailability dataclass; the
+    # field list here is the public contract, so nothing is hand-mapped.
+    model_config = ConfigDict(from_attributes=True)
+
     date: date
     is_open: bool
     remaining: int

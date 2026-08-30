@@ -162,10 +162,7 @@ async def get_availability_range(
 
     return AvailabilityRangeOut(
         service_type=service_type,
-        days=[
-            DayAvailabilityOut(date=day.date, is_open=day.is_open, remaining=day.remaining)
-            for day in days
-        ],
+        days=[DayAvailabilityOut.model_validate(day) for day in days],
     )
 
 

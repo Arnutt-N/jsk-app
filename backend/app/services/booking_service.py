@@ -362,7 +362,6 @@ class DayAvailability:
     """
 
     date: date
-    day_hours: Optional[BusinessHours]
     slots: Sequence[SlotAvailability]
 
     @property
@@ -425,7 +424,7 @@ async def get_availability_range(
             booked_counts=booked_by_date.get(cursor, {}),
             now_local=now_local,
         )
-        days.append(DayAvailability(date=cursor, day_hours=day_hours, slots=slots))
+        days.append(DayAvailability(date=cursor, slots=slots))
         cursor += timedelta(days=1)
     return days
 
