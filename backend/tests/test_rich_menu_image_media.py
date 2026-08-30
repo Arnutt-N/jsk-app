@@ -480,6 +480,120 @@ def test_line_error_detail_extracts_message_from_json_body():
 
 
 # ---------------------------------------------------------------------------
+# LINE image limit (1 MB) — friendly error mapping + sync fail-fast
+# ---------------------------------------------------------------------------
+
+
+def _fake_line_client(post_side_effect=None):
+    """MagicMock httpx.AsyncClient whose post() raises the given error (the
+    raise happens while evaluating the awaited expression, before the await)."""
+    client_cls = MagicMock()
+    instance = MagicMock()
+    instance.post = MagicMock(side_effect=post_side_effect)
+    client_cls.return_value.__aenter__ = AsyncMock(return_value=instance)
+    client_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+    return client_cls
+
+
+def _patch_line_client(error):
+    return patch(
+        "app.services.rich_menu_service.httpx.AsyncClient",
+        new=_fake_line_client(error),
+    )
+
+
+def test_upload_image_to_line_413_maps_to_friendly_thai_error():
+    response = MagicMock(status_code=413, text="",
+                         json=MagicMock(side_effect=ValueError("no body")))
+    err = httpx.HTTPStatusError(
+        "Client error '413 Request Entity Too Large'",
+        request=MagicMock(), response=response,
+    )
+
+    import asyncio
+
+    with patch.object(
+        RichMenuService, "get_client_headers",
+        new=AsyncMock(return_value={"Authorization": "Bearer t"}),
+    ), _patch_line_client(err):
+        with pytest.raises(RuntimeError) as excinfo:
+            asyncio.run(RichMenuService.upload_image_to_line(
+                _SeqDB(), "richmenu-x", PNG_MAGIC, "image/png"
+            ))
+
+    message = str(excinfo.value)
+    assert "1 MB" in message
+    # the raw httpx blob must not leak through
+    assert "Client error" not in message
+    assert "api-data.line.me" not in message
+
+
+def test_upload_image_to_line_other_status_uses_line_error_detail():
+    response = MagicMock(status_code=400, text="",
+                         json=MagicMock(return_value={"message": "invalid richmenu object"}))
+    err = httpx.HTTPStatusError(
+        "Client error '400 Bad Request'",
+        request=MagicMock(), response=response,
+    )
+
+    import asyncio
+
+    with patch.object(
+        RichMenuService, "get_client_headers",
+        new=AsyncMock(return_value={"Authorization": "Bearer t"}),
+    ), _patch_line_client(err):
+        with pytest.raises(RuntimeError) as excinfo:
+            asyncio.run(RichMenuService.upload_image_to_line(
+                _SeqDB(), "richmenu-x", PNG_MAGIC, "image/png"
+            ))
+
+    message = str(excinfo.value)
+    assert "LINE rejected image upload (400)" in message
+    assert "invalid richmenu object" in message
+
+
+def test_sync_fail_fast_when_stored_image_exceeds_line_limit():
+    oversized = SimpleNamespace(
+        id="00000000-0000-0000-0000-000000000001", size_bytes=2 * 1024 * 1024
+    )
+    menu = _full_menu(id=1, image_media_id=oversized.id)
+    db = _SeqDB([menu], gets=[oversized])
+
+    import asyncio
+
+    with patch.object(
+        RichMenuService, "create_on_line", new=AsyncMock(return_value="richmenu-x")
+    ) as mock_create:
+        result = asyncio.run(RichMenuService.sync_with_idempotency(db, 1))
+
+    # no orphan menu may be created on LINE for an image LINE would refuse
+    mock_create.assert_not_called()
+    assert result["success"] is False
+    assert "1 MB" in result["message"]
+    assert result["sync_status"] == RichMenuSyncStatus.FAILED.value
+    assert menu.sync_status == RichMenuSyncStatus.FAILED.value
+
+
+def test_sync_create_passes_when_image_exactly_at_limit():
+    at_cap = SimpleNamespace(
+        id="00000000-0000-0000-0000-000000000001", size_bytes=1024 * 1024
+    )
+    menu = _full_menu(id=1, image_media_id=at_cap.id)
+    db = _SeqDB([menu], gets=[at_cap])
+
+    import asyncio
+
+    with patch.object(
+        RichMenuService, "create_on_line", new=AsyncMock(return_value="richmenu-new")
+    ) as mock_create:
+        result = asyncio.run(RichMenuService.sync_with_idempotency(db, 1))
+
+    assert result["success"] is True
+    assert result["line_rich_menu_id"] == "richmenu-new"
+    mock_create.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
 # Migration (structural — repo precedent test_booking_migration.py)
 # ---------------------------------------------------------------------------
 

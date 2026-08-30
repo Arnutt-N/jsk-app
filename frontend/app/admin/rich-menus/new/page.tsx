@@ -7,7 +7,7 @@ import Link from 'next/link';
 import PageHeader from '../../components/PageHeader';
 import { useToast } from '@/components/ui/Toast';
 import { logger } from '@/lib/logger';
-import { parseSyncResult } from '@/lib/rich-menu';
+import { ensureRichMenuImage, parseSyncResult } from '@/lib/rich-menu';
 
 interface TemplateBounds {
     x: number;
@@ -327,9 +327,17 @@ export default function NewRichMenuPage() {
             if (!createRes.ok) throw new Error("Failed to save local draft");
             const menu = await createRes.json();
 
-            // 2. Upload Image locally
+            // 2. Upload Image locally (auto-fit to LINE's 1 MB content cap first)
+            const fitted = await ensureRichMenuImage(file).catch((e: unknown) => {
+                toast({ variant: 'error', title: 'รูปไม่พร้อมอัปโหลด', description: e instanceof Error ? e.message : 'โปรดใช้รูปขนาดไม่เกิน 1 MB' });
+                return null;
+            });
+            if (!fitted) return;
+            if (fitted.converted) {
+                toast({ variant: 'info', title: 'ย่อรูปอัตโนมัติแล้ว', description: `รูปถูกย่อเป็น ${Math.round(fitted.file.size / 1024)} KB เพื่อให้อยู่ในขีดจำกัด 1 MB ของ LINE` });
+            }
             const formData = new FormData();
-            formData.append('file', file);
+            formData.append('file', fitted.file, fitted.filename);
             const uploadRes = await fetch(`${API_BASE}/admin/rich-menus/${menu.id}/upload`, {
                 method: 'POST',
                 body: formData

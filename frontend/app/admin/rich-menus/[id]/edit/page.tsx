@@ -8,6 +8,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { useToast } from '@/components/ui/Toast';
 import { logger } from '@/lib/logger';
 import { readErrorMessage } from '@/lib/api-error';
+import { ensureRichMenuImage } from '@/lib/rich-menu';
 
 interface RichMenuArea {
     bounds: { x: number; y: number; width: number; height: number };
@@ -147,10 +148,18 @@ export default function EditRichMenuPage() {
                 return;
             }
 
-            // Upload new image if selected
+            // Upload new image if selected (auto-fit to LINE's 1 MB content cap first)
             if (imageFile) {
+                const fitted = await ensureRichMenuImage(imageFile).catch((e: unknown) => {
+                    toast({ variant: 'error', title: 'รูปไม่พร้อมอัปโหลด', description: e instanceof Error ? e.message : 'โปรดใช้รูปขนาดไม่เกิน 1 MB' });
+                    return null;
+                });
+                if (!fitted) return;
+                if (fitted.converted) {
+                    toast({ variant: 'info', title: 'ย่อรูปอัตโนมัติแล้ว', description: `รูปถูกย่อเป็น ${Math.round(fitted.file.size / 1024)} KB เพื่อให้อยู่ในขีดจำกัด 1 MB ของ LINE` });
+                }
                 const formData = new FormData();
-                formData.append('file', imageFile);
+                formData.append('file', fitted.file, fitted.filename);
                 const uploadRes = await fetch(`${API_BASE}/admin/rich-menus/${menuId}/upload`, {
                     method: 'POST',
                     body: formData

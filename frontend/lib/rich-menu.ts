@@ -54,3 +54,175 @@ export function parseSyncResult(payload: SyncResultPayload | null): {
   }
   return { ok: true, message: payload.message || 'Sync ไปยัง LINE สำเร็จ' };
 }
+
+// ---- Image auto-fit (LINE caps rich-menu image content at 1 MB) ----------
+// The Messaging API rejects POST /v2/bot/richmenu/{id}/content bodies over
+// 1 MB (HTTP 413) regardless of what LINE OA Manager's UI accepts. Files at
+// or under the cap pass through untouched — never re-encode a fitting image
+// (PNG alpha must survive); oversized ones are downscaled and JPEG-compressed
+// client-side, which is what OA Manager does before its own upload.
+
+export const RICH_MENU_IMAGE_LIMIT_BYTES = 1024 * 1024;
+export const RICH_MENU_IMAGE_MAX_W = 2500;
+export const RICH_MENU_IMAGE_MAX_H = 1686;
+
+const RICH_MENU_FIT_GUIDANCE =
+  'ไม่สามารถย่อรูปอัตโนมัติได้ — โปรดใช้รูปขนาดไม่เกิน 1 MB หรือย่อรูปที่หน้า /admin/image-resize ก่อนอัปโหลด';
+
+export interface RichMenuFitAttempt {
+  scale: number;
+  quality: number;
+}
+
+/** Ordered downscale attempts, least-degradation first: keep full resolution
+ *  and walk JPEG quality down before shrinking the image. */
+export function planRichMenuFit(fileSize: number): {
+  fits: boolean;
+  attempts: RichMenuFitAttempt[];
+} {
+  if (fileSize <= RICH_MENU_IMAGE_LIMIT_BYTES) {
+    return { fits: true, attempts: [] };
+  }
+  const attempts: RichMenuFitAttempt[] = [];
+  for (const scale of [1, 0.75, 0.5, 0.35]) {
+    for (const quality of [0.9, 0.8, 0.7, 0.6]) {
+      attempts.push({ scale, quality });
+    }
+  }
+  return { fits: false, attempts };
+}
+
+/** Largest rectangle fitting the box, aspect preserved, never upscaling. */
+export function scaledToFit(
+  width: number,
+  height: number,
+  maxW: number,
+  maxH: number,
+): { width: number; height: number } {
+  const ratio = Math.min(maxW / width, maxH / height, 1);
+  return {
+    width: Math.max(1, Math.round(width * ratio)),
+    height: Math.max(1, Math.round(height * ratio)),
+  };
+}
+
+export interface EnsureRichMenuImageResult {
+  file: File | Blob;
+  filename: string;
+  converted: boolean;
+}
+
+function richMenuCanvasSupported(): boolean {
+  try {
+    return !!document.createElement('canvas').getContext('2d');
+  } catch {
+    return false;
+  }
+}
+
+async function decodeRichMenuSource(
+  file: File,
+): Promise<{ source: CanvasImageSource; width: number; height: number; release: () => void }> {
+  if (typeof createImageBitmap === 'function') {
+    try {
+      const bitmap = await createImageBitmap(file);
+      return {
+        source: bitmap,
+        width: bitmap.width,
+        height: bitmap.height,
+        release: () => bitmap.close(),
+      };
+    } catch {
+      // fall through to the Image element path
+    }
+  }
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = () => reject(new Error('ไม่สามารถอ่านไฟล์รูปภาพได้'));
+      el.src = url;
+    });
+    return {
+      source: img,
+      width: img.naturalWidth,
+      height: img.naturalHeight,
+      release: () => URL.revokeObjectURL(url),
+    };
+  } catch (e) {
+    URL.revokeObjectURL(url);
+    throw e;
+  }
+}
+
+async function encodeRichMenuJpeg(
+  source: CanvasImageSource,
+  width: number,
+  height: number,
+  quality: number,
+): Promise<Blob> {
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error(RICH_MENU_FIT_GUIDANCE);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, width, height);
+  ctx.drawImage(source, 0, 0, width, height);
+  const blob = await new Promise<Blob | null>((resolve) =>
+    canvas.toBlob(resolve, 'image/jpeg', quality),
+  );
+  if (!blob) throw new Error(RICH_MENU_FIT_GUIDANCE);
+  return blob;
+}
+
+function toJpegFilename(name: string): string {
+  return `${name.replace(/\.[^.]+$/, '') || 'image'}.jpg`;
+}
+
+/** Return an image at or under LINE's 1 MB cap. Fitting files pass through
+ *  unchanged; oversized ones are downscaled + JPEG-compressed client-side.
+ *  Throws when the browser cannot canvas-decode, so callers block the upload
+ *  instead of POSTing a file LINE would refuse. */
+export async function ensureRichMenuImage(file: File): Promise<EnsureRichMenuImageResult> {
+  if (file.size <= RICH_MENU_IMAGE_LIMIT_BYTES) {
+    return { file, filename: file.name, converted: false };
+  }
+  if (typeof document === 'undefined' || !richMenuCanvasSupported()) {
+    throw new Error(RICH_MENU_FIT_GUIDANCE);
+  }
+
+  const decoded = await decodeRichMenuSource(file);
+  try {
+    const target = scaledToFit(
+      decoded.width,
+      decoded.height,
+      RICH_MENU_IMAGE_MAX_W,
+      RICH_MENU_IMAGE_MAX_H,
+    );
+    const { attempts } = planRichMenuFit(file.size);
+    let best: Blob | null = null;
+    for (const { scale, quality } of attempts) {
+      const blob = await encodeRichMenuJpeg(
+        decoded.source,
+        Math.max(1, Math.round(target.width * scale)),
+        Math.max(1, Math.round(target.height * scale)),
+        quality,
+      );
+      if (!best || blob.size < best.size) best = blob;
+      if (blob.size <= RICH_MENU_IMAGE_LIMIT_BYTES) {
+        return { file: blob, filename: toJpegFilename(file.name), converted: true };
+      }
+    }
+    // Every attempt is still over the cap (near-impossible for a 2500 px
+    // JPEG): send the smallest encoding and let the backend's 413 mapping
+    // deliver the final verdict — it is authoritative and now readable.
+    if (!best) throw new Error(RICH_MENU_FIT_GUIDANCE);
+    return { file: best, filename: toJpegFilename(file.name), converted: true };
+  } finally {
+    decoded.release();
+  }
+}
