@@ -1,0 +1,20 @@
+# Session Summary — zcode — 2026-08-30T23:29:00+07:00
+
+**Branch**: `main`  **HEAD**: `ca25295`
+**Checkpoint**: `.agents/state/checkpoints/handover-zcode-20260830-2329.json`
+
+## Objective
+Merged PR #212 (squash ca25295): rich-menu durable fix — images moved into media_files pipeline (additive migration s0t1u2v3w4x5 + backfill; image_path drop deferred to follow-up PR per expand-contract), upload hardened (rate limiter, file.size pre-read bound, PNG/JPEG magic-byte sniffing), publish verify-then-act (409 stale-on-LINE + 503 empty token + 502 parsed LINE detail + audit), stale-id sync recovery (clears dead line_rich_menu_id and recreates), honest sync state (FAILED + image_upload_error surfaced, no more swallowed half-failures), frontend previews from image_url with canPublish gating + Re-sync, shared parseSyncResult helper fixes res.ok-only bug on list+new pages, edit page blocks save on upload failure. PRD+PRP (PRPs/2026-08-30-rich-menu-media-publish.*) reviewed via 4-skill round (review/code-review/requesting-code-review/security-review), 24 findings folded in before implementation. Validation: local suite 1028 passed/1 skipped (3 Windows-hang websocket files excluded; CI runs them), rich-menu suite 95/95, migration round-trip on local DB, vitest 3/3, next build clean, CI+E2E+CD green on main, prod migrations+smoke pass
+
+## Completed
+- Merged PR #212 (squash ca25295): rich-menu durable fix — images moved into media_files pipeline (additive migration s0t1u2v3w4x5 + backfill; image_path drop deferred to follow-up PR per expand-contract), upload hardened (rate limiter, file.size pre-read bound, PNG/JPEG magic-byte sniffing), publish verify-then-act (409 stale-on-LINE + 503 empty token + 502 parsed LINE detail + audit), stale-id sync recovery (clears dead line_rich_menu_id and recreates), honest sync state (FAILED + image_upload_error surfaced, no more swallowed half-failures), frontend previews from image_url with canPublish gating + Re-sync, shared parseSyncResult helper fixes res.ok-only bug on list+new pages, edit page blocks save on upload failure. PRD+PRP (PRPs/2026-08-30-rich-menu-media-publish.*) reviewed via 4-skill round (review/code-review/requesting-code-review/security-review), 24 findings folded in before implementation. Validation: local suite 1028 passed/1 skipped (3 Windows-hang websocket files excluded; CI runs them), rich-menu suite 95/95, migration round-trip on local DB, vitest 3/3, next build clean, CI+E2E+CD green on main, prod migrations+smoke pass
+
+## Next Steps
+- Device/UI smoke on prod: login -> /admin/rich-menus -> preview renders + Set Active on a real menu
+- Menus whose disk images were lost (Koyeb ephemeral FS) show No Image -> one-time re-upload via edit page
+- Follow-up PR: drop rich_menus.image_path (contract phase) once this is verified live
+
+## Blockers
+- _none_
+
+> Fill in detail above, then commit. TASK_LOG.md + SESSION_INDEX.md are generated.

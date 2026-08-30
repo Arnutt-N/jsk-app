@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 246 active handoffs, 9 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 247 active handoffs, 10 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-08-30 23:29 — zcode — completed
+
+Merged PR #212 (squash ca25295): rich-menu durable fix — images moved into media_files pipeline (additive migration s0t1u2v3w4x5 + backfill; image_path drop deferred to follow-up PR per expand-contract), upload hardened (rate limiter, file.size pre-read bound, PNG/JPEG magic-byte sniffing), publish verify-then-act (409 stale-on-LINE + 503 empty token + 502 parsed LINE detail + audit), stale-id sync recovery (clears dead line_rich_menu_id and recreates), honest sync state (FAILED + image_upload_error surfaced, no more swallowed half-failures), frontend previews from image_url with canPublish gating + Re-sync, shared parseSyncResult helper fixes res.ok-only bug on list+new pages, edit page blocks save on upload failure. PRD+PRP (PRPs/2026-08-30-rich-menu-media-publish.*) reviewed via 4-skill round (review/code-review/requesting-code-review/security-review), 24 findings folded in before implementation. Validation: local suite 1028 passed/1 skipped (3 Windows-hang websocket files excluded; CI runs them), rich-menu suite 95/95, migration round-trip on local DB, vitest 3/3, next build clean, CI+E2E+CD green on main, prod migrations+smoke pass
+
+- Checkpoint: `.agents/state/checkpoints/handover-zcode-20260830-2329.json`
+- Summary: `project-log-md/zcode/session-summary-20260830-2329.md`
+
+---
 
 ### 2026-08-30 14:15 — cline — completed
 

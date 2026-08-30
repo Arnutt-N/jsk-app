@@ -1,13 +1,21 @@
 {
-  "last_updated": "2026-08-30T14:15:00+07:00",
-  "platform": "cline",
-  "current_task": "Merged PR #211 (squash f514ff6): review round 3 clean (0 hard violations / 0 substantive), pinned negative max_range_days fallback in clipRangeWindow unit test - one assertion, mutation value verified",
+  "last_updated": "2026-08-30T23:29:00+07:00",
+  "platform": "zcode",
+  "current_task": "Merged PR #212 (squash ca25295): rich-menu durable fix — images moved into media_files pipeline (additive migration s0t1u2v3w4x5 + backfill; image_path drop deferred to follow-up PR per expand-contrac",
   "plan_status": "completed",
   "next_steps": [
-    "Device-verify booking flow on real LINE mobile (checklist at .scratch/device-verify-checklist-20260830.md, ~15 min)",
-    "Raise advance_days at /admin/settings/booking (DB setting, currently 3)"
+    "Device/UI smoke on prod: login -> /admin/rich-menus -> preview renders + Set Active on a real menu",
+    "Menus whose disk images were lost (Koyeb ephemeral FS) show No Image -> one-time re-upload via edit page",
+    "Follow-up PR: drop rich_menus.image_path (contract phase) once this is verified live"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-08-30T23:29:00+07:00",
+      "platform": "zcode",
+      "branch": "main",
+      "head": "ca25295",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-08-30T14:15:00+07:00",
       "platform": "cline",
@@ -139,13 +147,6 @@
       "platform": "qoder",
       "branch": "feat/pr-c-pseudonym-contract",
       "head": "c87db65",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-08-16T20:30:00+07:00",
-      "platform": "qoder",
-      "branch": "feat/pr-c-pseudonym-contract",
-      "head": "9c6a6e6",
       "status": "completed"
     }
   ],

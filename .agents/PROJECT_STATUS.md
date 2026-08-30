@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-08-30 14:15 by Cline (Merged PR #211 squash f514ff6: review round 3 clean 0 hard violations / 0 substantive, pin)
+> **Last Updated:** 2026-08-30 23:29 by Zcode (Merged PR #212 squash ca25295: rich-menu durable fix — images moved into media_files pipel)
 
 ## Thai Summary
 **สถานะล่าสุด (2026-08-23)** — milestone หลักทุกตัวปิดแล้ว เหลือเฉพาะ manual test ฝั่งผู้ใช้:
@@ -115,6 +115,7 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-08-30 23:29] Zcode: Merged PR #212 (squash ca25295): rich-menu durable fix — images moved into media_files pipeline (additive migration s0t1u2v3w4x5 + backfill; image_path drop deferred to follow-up PR per expand-contract), upload hardened (rate limiter, file. (Zcode)
 - [2026-08-30 14:15] Cline: Merged PR #211 (squash f514ff6): review round 3 clean (0 hard violations / 0 substantive), pinned negative max_range_days fallback in clipRangeWindow unit test - one assertion, mutation value verified; local full pytest verified 996 passed  (Cline)
 - [2026-08-30 13:20] Cline: Merged PR #210 (squash 7497b07): availability-range review follow-ups — 62-cap เป็น single source (ค่าคงที่ย้ายไป booking_service + ส่งผ่าน `/options` เป็น `max_range_days`; LIFF clip ใช้ค่าที่ backend บอก, 62 เหลือเป็น fallback เมื่อ backend เก่า — fail-open คงเดิม) + เทสใหม่ pin AC #4 (slot ที่เลย NOW หายจากวันนี้, assertion เดิมเป็น tautology); CI เขียวทุกช่อง (Cline)
 - [2026-08-30 10:44] Cline: Merged PR #209 (squash 8aa4872): availability-range review remediation — clip range window by calendar span (real bug from /review), DayAvailabilityOut model_validate, drop unused day_hours, import order, AGENTS.md 409/422; all CI green (Cline)
