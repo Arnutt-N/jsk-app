@@ -17,6 +17,16 @@ logger = logging.getLogger(__name__)
 
 INSIGHT_CACHE_TTL = 1800
 
+# LINE caps rich-menu image content at 1 MB — POST api-data.line.me/v2/bot/
+# richmenu/{id}/content answers 413 above it. This is the Messaging API's
+# limit; LINE OA Manager's UI accepts bigger picks only because it compresses
+# client-side before its own upload. (PRPs/2026-08-31-rich-menu-image-1mb.prd.md)
+LINE_IMAGE_LIMIT_BYTES = 1024 * 1024
+LINE_IMAGE_TOO_LARGE_DETAIL = (
+    "รูปใหญ่เกินขีดจำกัด 1 MB ของ LINE — เลือกรูปใหม่แล้วระบบจะย่อให้อัตโนมัติ "
+    "หรือย่อรูปเองที่ /admin/image-resize ก่อนอัปโหลด"
+)
+
 class RichMenuService:
     API_BASE = "https://api.line.me/v2/bot"
     DATA_API_BASE = "https://api-data.line.me/v2/bot"
@@ -151,17 +161,30 @@ class RichMenuService:
 
     @staticmethod
     async def upload_image_to_line(db: AsyncSession, line_rich_menu_id: str, image_bytes: bytes, content_type: str):
-        """Upload rich menu image to LINE."""
+        """Upload rich menu image to LINE.
+
+        httpx.HTTPStatusError is re-raised as RuntimeError carrying LINE's own
+        error text — the raw str(e) blob (no LINE body, no instruction) must
+        not reach admins (same principle as _line_error_detail).
+        """
         headers = await RichMenuService.get_client_headers(db)
         headers["Content-Type"] = content_type
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                f"{RichMenuService.DATA_API_BASE}/richmenu/{line_rich_menu_id}/content",
-                headers=headers,
-                content=image_bytes
-            )
-            response.raise_for_status()
-            return response.json()
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    f"{RichMenuService.DATA_API_BASE}/richmenu/{line_rich_menu_id}/content",
+                    headers=headers,
+                    content=image_bytes
+                )
+                response.raise_for_status()
+                return response.json()
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 413:
+                raise RuntimeError(LINE_IMAGE_TOO_LARGE_DETAIL) from e
+            raise RuntimeError(
+                f"LINE rejected image upload ({e.response.status_code}): "
+                f"{RichMenuService._line_error_detail(e)}"
+            ) from e
 
     @staticmethod
     async def set_default_on_line(db: AsyncSession, line_rich_menu_id: str):
@@ -417,6 +440,24 @@ class RichMenuService:
             else:
                 was_stale = True
                 rich_menu.line_rich_menu_id = None
+
+        # Fail-fast before create (covers fresh create AND stale-recreate):
+        # LINE caps image content at 1 MB, so creating a menu whose stored
+        # image is over the cap would strand an imageless, un-publishable
+        # menu on LINE. Refuse before any LINE call creates anything.
+        if rich_menu.image_media_id:
+            media = await db.get(MediaFile, rich_menu.image_media_id)
+            if media and media.size_bytes > LINE_IMAGE_LIMIT_BYTES:
+                await RichMenuService.update_sync_status(
+                    db, rich_menu, RichMenuSyncStatus.FAILED,
+                    LINE_IMAGE_TOO_LARGE_DETAIL,
+                )
+                return {
+                    "success": False,
+                    "message": LINE_IMAGE_TOO_LARGE_DETAIL,
+                    "sync_status": RichMenuSyncStatus.FAILED.value,
+                    "error": LINE_IMAGE_TOO_LARGE_DETAIL,
+                }
 
         # Not synced yet - create on LINE
         try:

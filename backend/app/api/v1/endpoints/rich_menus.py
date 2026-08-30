@@ -27,7 +27,11 @@ from app.schemas.rich_menu import (
 )
 from app.models.rich_menu_alias import RichMenuAlias
 from app.models.user_rich_menu_link import UserRichMenuLink
-from app.services.rich_menu_service import RichMenuService
+from app.services.rich_menu_service import (
+    RichMenuService,
+    LINE_IMAGE_LIMIT_BYTES,
+    LINE_IMAGE_TOO_LARGE_DETAIL,
+)
 from app.services.user_identity_service import resolve_by_line_id, resolve_many_by_line_id
 from sqlalchemy import select, delete, func
 from sqlalchemy.exc import IntegrityError
@@ -39,7 +43,9 @@ logger = logging.getLogger(__name__)
 # Image upload validation. The sniffed magic bytes — NOT the spoofable
 # client Content-Type — decide what is stored and pushed to LINE
 # (security-review finding; precedents: liff.py whitelist, media.py size cap).
-MAX_RICH_MENU_IMAGE_BYTES = 10 * 1024 * 1024  # 10 MB, mirrors media.py
+# The cap is LINE's rich-menu content limit, NOT media.py's 10 MB: a larger
+# image would pass storage here and die at the LINE push (PRD 2026-08-31).
+MAX_RICH_MENU_IMAGE_BYTES = LINE_IMAGE_LIMIT_BYTES
 _UPLOAD_RATE_LIMIT = http_rate_limit(
     "media-upload",
     max_events=settings.MEDIA_UPLOAD_RATE_LIMIT,
@@ -586,10 +592,10 @@ async def upload_rich_menu_image(
     # multipart headers, so an oversized upload is rejected without ever
     # being pulled into memory (memory-DoS bound).
     if file.size is not None and file.size > MAX_RICH_MENU_IMAGE_BYTES:
-        raise HTTPException(status_code=413, detail="Image exceeds the 10 MB limit")
+        raise HTTPException(status_code=413, detail=LINE_IMAGE_TOO_LARGE_DETAIL)
     data = await file.read()
     if len(data) > MAX_RICH_MENU_IMAGE_BYTES:
-        raise HTTPException(status_code=413, detail="Image exceeds the 10 MB limit")
+        raise HTTPException(status_code=413, detail=LINE_IMAGE_TOO_LARGE_DETAIL)
 
     # Magic bytes decide the stored/pushed mime — client Content-Type is
     # spoofable and these bytes go to LINE under our name.
