@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-08-31 01:57 by Zcode (Merged PR #213 squash 59732ba: LINE 1MB rich-menu image limit - backend cap 10MB->1MB + fr)
+> **Last Updated:** 2026-08-31 04:17 by Zcode (Merged PRs #214-#217: rich-menu sync fix LINE already-uploaded 400 → idempotent success, g)
 
 ## Thai Summary
 **สถานะล่าสุด (2026-08-23)** — milestone หลักทุกตัวปิดแล้ว เหลือเฉพาะ manual test ฝั่งผู้ใช้:
@@ -115,6 +115,7 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-08-31 04:17] Zcode: Merged PRs #214-#217: rich-menu sync fix (LINE already-uploaded 400 → idempotent success), guided sync flow UI (spinner + next-step toast), edit-page parity (area overlay + sync machine), proportional overlay numbers (cqw) (Zcode)
 - [2026-08-31 01:57] Zcode: Merged PR #213 (squash 59732ba): LINE 1MB rich-menu image limit - backend cap 10MB->1MB + friendly 413 mapping (RuntimeError with LINE detail via _line_error_detail) + sync fail-fast before create_on_line (no more orphan imageless menus) +  (Zcode)
 - [2026-08-30 23:29] Zcode: Merged PR #212 (squash ca25295): rich-menu durable fix — images moved into media_files pipeline (additive migration s0t1u2v3w4x5 + backfill; image_path drop deferred to follow-up PR per expand-contract), upload hardened (rate limiter, file. (Zcode)
 - [2026-08-30 14:15] Cline: Merged PR #211 (squash f514ff6): review round 3 clean (0 hard violations / 0 substantive), pinned negative max_range_days fallback in clipRangeWindow unit test - one assertion, mutation value verified; local full pytest verified 996 passed  (Cline)

@@ -1,0 +1,16 @@
+{
+  "handoff_version": "2.0",
+  "platform": "zcode",
+  "agent": "zcode",
+  "timestamp": "2026-08-31T04:17:00+07:00",
+  "branch": "main",
+  "head_commit": "f2fac5e",
+  "status": "completed",
+  "work_summary": "Merged PRs #214-#217: rich-menu sync fix (LINE already-uploaded 400 → idempotent success), guided sync flow UI (spinner + next-step toast), edit-page parity (area overlay + sync machine), proportional overlay numbers (cqw)",
+  "priority_actions": [
+    "User to smoke test edit-page overlay on prod"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/zcode/session-summary-20260831-0417.md",
+  "cross_platform_read": []
+}

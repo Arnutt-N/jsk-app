@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 248 active handoffs, 10 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 249 active handoffs, 10 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-08-31 04:17 — zcode — completed
+
+Merged PRs #214-#217: rich-menu sync fix (LINE already-uploaded 400 → idempotent success), guided sync flow UI (spinner + next-step toast), edit-page parity (area overlay + sync machine), proportional overlay numbers (cqw)
+
+- Checkpoint: `.agents/state/checkpoints/handover-zcode-20260831-0417.json`
+- Summary: `project-log-md/zcode/session-summary-20260831-0417.md`
+
+---
 
 ### 2026-08-31 01:57 — zcode — completed
 

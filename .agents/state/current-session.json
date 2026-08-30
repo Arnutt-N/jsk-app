@@ -1,13 +1,19 @@
 {
-  "last_updated": "2026-08-31T01:57:00+07:00",
+  "last_updated": "2026-08-31T04:17:00+07:00",
   "platform": "zcode",
-  "current_task": "Merged PR #213 (squash 59732ba): LINE 1MB rich-menu image limit - backend cap 10MB->1MB + friendly 413 mapping (RuntimeError with LINE detail via _line_error_detail) + sync fail-fast before create_on_",
+  "current_task": "Merged PRs #214-#217: rich-menu sync fix (LINE already-uploaded 400 → idempotent success), guided sync flow UI (spinner + next-step toast), edit-page parity (area overlay + sync machine), proportional",
   "plan_status": "completed",
   "next_steps": [
-    "User device smoke: edit the stuck menu richmenu-affeb34dcdae0367c879eec35af1f219 -> re-pick image (auto-fit shrinks it) -> upload pushes to LINE immediately -> Re-sync -> Set Active",
-    "Follow-up PR: drop rich_menus.image_path (contract phase) once verified live"
+    "User to smoke test edit-page overlay on prod"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-08-31T04:17:00+07:00",
+      "platform": "zcode",
+      "branch": "main",
+      "head": "f2fac5e",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-08-31T01:57:00+07:00",
       "platform": "zcode",
@@ -139,13 +145,6 @@
       "platform": "qoder",
       "branch": "feat/pr-c-pseudonym-contract",
       "head": "055d201",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-08-16T22:53:00+07:00",
-      "platform": "qoder",
-      "branch": "feat/pr-c-pseudonym-contract",
-      "head": "f30edce",
       "status": "completed"
     }
   ],
