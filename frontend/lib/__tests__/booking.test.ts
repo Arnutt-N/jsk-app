@@ -186,5 +186,6 @@ describe('clipRangeWindow', () => {
     expect(clipRangeWindow(options, undefined)).toHaveLength(63)
     expect(clipRangeWindow(options, 0)).toHaveLength(63)
     expect(clipRangeWindow(options, Number.NaN)).toHaveLength(63)
+    expect(clipRangeWindow(options, -5)).toHaveLength(63)
   })
 })
