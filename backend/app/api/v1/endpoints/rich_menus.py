@@ -609,10 +609,15 @@ async def upload_rich_menu_image(
 
     # If already synced, push the image to LINE now. On failure the stored
     # media row survives (the image IS saved) but the menu must not read
-    # SYNCED — it can no longer be published as-is.
+    # SYNCED — it can no longer be published as-is. A dict return means LINE
+    # kept its existing image (already-uploaded 400 mapped to success): tell
+    # the admin instead of pretending their new pick replaced it.
+    already_uploaded = False
     if rich_menu.line_rich_menu_id:
         try:
-            await RichMenuService.push_image_to_line(db, rich_menu)
+            push_result = await RichMenuService.push_image_to_line(db, rich_menu)
+            if isinstance(push_result, dict):
+                already_uploaded = bool(push_result.get("already_uploaded"))
         except Exception as e:
             await RichMenuService.update_sync_status(
                 db, rich_menu, RichMenuSyncStatus.FAILED,
@@ -623,7 +628,11 @@ async def upload_rich_menu_image(
                 detail=f"รูปบันทึกในระบบแล้ว แต่อัปโหลดไป LINE ไม่สำเร็จ: {e}",
             )
 
-    return {"message": "Image saved", "media_id": str(rich_menu.image_media_id)}
+    return {
+        "message": "Image saved",
+        "media_id": str(rich_menu.image_media_id),
+        **({"already_uploaded": True} if already_uploaded else {}),
+    }
 
 @router.post("/{id}/sync")
 async def sync_rich_menu(id: int, db: AsyncSession = Depends(get_db), current_admin: User = Depends(require_permission(KEY_MANAGE_RICH_MENUS))):
@@ -651,6 +660,9 @@ async def sync_rich_menu(id: int, db: AsyncSession = Depends(get_db), current_ad
         result = await db.execute(select(RichMenu).where(RichMenu.id == id))
         rich_menu = result.scalar_one_or_none()
         if rich_menu and rich_menu.image_media_id:
+            # Already-uploaded 400s return a marker instead of raising, so an
+            # already-decorated menu re-syncs green — only genuine LINE
+            # failures land in the except (FAILED + image_upload_error).
             try:
                 await RichMenuService.push_image_to_line(db, rich_menu)
             except Exception as e:

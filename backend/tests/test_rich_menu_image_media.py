@@ -32,7 +32,10 @@ from app.db.session import get_db as session_get_db
 from app.main import app
 from app.models.rich_menu import RichMenuStatus, RichMenuSyncStatus
 from app.models.user import UserRole
-from app.services.rich_menu_service import RichMenuService
+from app.services.rich_menu_service import (
+    LINE_IMAGE_ALREADY_UPLOADED_RESULT,
+    RichMenuService,
+)
 
 BASE = "/api/v1/admin/rich-menus"
 
@@ -459,13 +462,17 @@ def test_push_image_to_line_uses_stored_mime_and_bytes():
     media = SimpleNamespace(id=menu.image_media_id, data=PNG_MAGIC + b"bytes", mime_type="image/png")
     db = _SeqDB([media])
     with patch.object(
-        RichMenuService, "upload_image_to_line", new=AsyncMock()
+        RichMenuService, "upload_image_to_line", new=AsyncMock(
+            return_value=LINE_IMAGE_ALREADY_UPLOADED_RESULT
+        )
     ) as mock_upload:
         import asyncio
 
         result = asyncio.run(RichMenuService.push_image_to_line(db, menu))
 
-    assert result is True
+    # the push result is upload_image_to_line's, passed through verbatim —
+    # True for a fresh upload, the marker dict for an already-decorated menu
+    assert result == LINE_IMAGE_ALREADY_UPLOADED_RESULT
     mock_upload.assert_awaited_once_with(db, "richmenu-live", PNG_MAGIC + b"bytes", "image/png")
 
 
@@ -550,6 +557,117 @@ def test_upload_image_to_line_other_status_uses_line_error_detail():
     message = str(excinfo.value)
     assert "LINE rejected image upload (400)" in message
     assert "invalid richmenu object" in message
+
+
+def test_upload_image_to_line_already_uploaded_400_is_success():
+    """LINE allows one image per rich menu; a re-push 400 saying so is a
+    completed state, not a failure — sync of a decorated menu stays green."""
+    response = MagicMock(
+        status_code=400,
+        text="",
+        json=MagicMock(return_value={
+            "message": "An image has already been uploaded to the richmenu"
+        }),
+    )
+    err = httpx.HTTPStatusError(
+        "Client error '400 Bad Request'", request=MagicMock(), response=response
+    )
+
+    import asyncio
+
+    with patch.object(
+        RichMenuService, "get_client_headers",
+        new=AsyncMock(return_value={"Authorization": "Bearer t"}),
+    ), _patch_line_client(err):
+        result = asyncio.run(RichMenuService.upload_image_to_line(
+            _SeqDB(), "richmenu-x", PNG_MAGIC, "image/png"
+        ))
+
+    assert result == {"already_uploaded": True}
+
+
+def test_upload_image_to_line_400_other_message_still_raises():
+    """The substring match must not swallow unrelated 400s (false positive)."""
+    response = MagicMock(
+        status_code=400,
+        text="",
+        json=MagicMock(return_value={"message": "Invalid rich menu id"}),
+    )
+    err = httpx.HTTPStatusError(
+        "Client error '400 Bad Request'", request=MagicMock(), response=response
+    )
+
+    import asyncio
+
+    with patch.object(
+        RichMenuService, "get_client_headers",
+        new=AsyncMock(return_value={"Authorization": "Bearer t"}),
+    ), _patch_line_client(err):
+        with pytest.raises(RuntimeError) as excinfo:
+            asyncio.run(RichMenuService.upload_image_to_line(
+                _SeqDB(), "richmenu-x", PNG_MAGIC, "image/png"
+            ))
+
+    message = str(excinfo.value)
+    assert "LINE rejected image upload (400)" in message
+    assert "Invalid rich menu id" in message
+    assert "already" not in message.lower()
+
+
+def test_sync_on_already_decorated_menu_stays_synced():
+    """POST /{id}/sync on a menu LINE already decorated: the marker return
+    must NOT flip sync_status to FAILED nor add image_upload_error."""
+    menu = _full_menu(id=1, line_id="richmenu-live", sync_status="SYNCED",
+                      image_media_id="00000000-0000-0000-0000-000000000001")
+    media = SimpleNamespace(id=menu.image_media_id, data=PNG_MAGIC, mime_type="image/png")
+    _override(role=UserRole.ADMIN, results=[menu, menu], gets=[media])
+    with patch.object(
+        RichMenuService,
+        "sync_with_idempotency",
+        new=AsyncMock(return_value={"success": True, "message": "Already synced with LINE",
+                                    "line_rich_menu_id": "richmenu-live", "sync_status": "SYNCED"}),
+    ), patch.object(
+        RichMenuService, "push_image_to_line",
+        new=AsyncMock(return_value={"already_uploaded": True}),
+    ):
+        client = _client()
+        try:
+            resp = client.post(f"{BASE}/1/sync")
+        finally:
+            client.close()
+            _clear()
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["success"] is True
+    assert "image_upload_error" not in body
+    assert menu.sync_status == RichMenuSyncStatus.SYNCED.value
+
+
+def test_upload_endpoint_already_uploaded_returns_200_with_marker():
+    """POST /{id}/upload on a decorated menu: bytes are stored, the marker
+    rides along in the payload, and sync_status is untouched (not FAILED)."""
+    menu = _full_menu(id=1, line_id="richmenu-live", sync_status="SYNCED")
+    _override(role=UserRole.ADMIN, results=[menu])
+    with patch.object(
+        RichMenuService, "push_image_to_line",
+        new=AsyncMock(return_value={"already_uploaded": True}),
+    ):
+        client = _client()
+        try:
+            resp = client.post(
+                f"{BASE}/1/upload",
+                files={"file": ("menu.png", PNG_MAGIC + b"rest", "image/png")},
+            )
+        finally:
+            client.close()
+            _clear()
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["media_id"]
+    assert body["already_uploaded"] is True
+    assert menu.sync_status == RichMenuSyncStatus.SYNCED.value
 
 
 def test_sync_fail_fast_when_stored_image_exceeds_line_limit():

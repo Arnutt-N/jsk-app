@@ -27,6 +27,15 @@ LINE_IMAGE_TOO_LARGE_DETAIL = (
     "หรือย่อรูปเองที่ /admin/image-resize ก่อนอัปโหลด"
 )
 
+# LINE has no image-replace endpoint: a rich menu's image uploads exactly once
+# (POST /content answers 400 "An image has already been uploaded to the
+# richmenu" on any second push; only delete-and-recreate changes it). Matched
+# as a case-insensitive substring so LINE rewording the message stays benign.
+LINE_IMAGE_ALREADY_UPLOADED_MARKER = "an image has already been uploaded"
+# Response body signaling "LINE kept the menu's existing image" — returned
+# (not raised) so sync/upload of an already-decorated menu completes green.
+LINE_IMAGE_ALREADY_UPLOADED_RESULT = {"already_uploaded": True}
+
 class RichMenuService:
     API_BASE = "https://api.line.me/v2/bot"
     DATA_API_BASE = "https://api-data.line.me/v2/bot"
@@ -93,11 +102,13 @@ class RichMenuService:
         return media
 
     @staticmethod
-    async def push_image_to_line(db: AsyncSession, rich_menu: RichMenu) -> bool:
+    async def push_image_to_line(db: AsyncSession, rich_menu: RichMenu) -> bool | Dict[str, Any]:
         """Push the stored image bytes to LINE for an already-synced menu.
 
         Returns False when the menu has no stored image (menu-only sync stays
         valid); raises on LINE failures so the caller can surface them.
+        A True/False legacy return means pushed/absent; the already-uploaded
+        dict means LINE kept its existing image — also a completed state.
         """
         if not rich_menu.line_rich_menu_id or not rich_menu.image_media_id:
             return False
@@ -107,10 +118,9 @@ class RichMenuService:
         media = result.scalar_one_or_none()
         if not media:
             return False
-        await RichMenuService.upload_image_to_line(
+        return await RichMenuService.upload_image_to_line(
             db, rich_menu.line_rich_menu_id, media.data, media.mime_type
         )
-        return True
 
     @staticmethod
     async def get_current_links_for_users(
@@ -165,7 +175,11 @@ class RichMenuService:
 
         httpx.HTTPStatusError is re-raised as RuntimeError carrying LINE's own
         error text — the raw str(e) blob (no LINE body, no instruction) must
-        not reach admins (same principle as _line_error_detail).
+        not reach admins (same principle as _line_error_detail). One exception:
+        LINE allows an image exactly once per rich menu, so a 400 saying the
+        menu already has one is a completed state, returned as
+        LINE_IMAGE_ALREADY_UPLOADED_RESULT instead of raised — re-syncing an
+        already-decorated menu must land green, not FAILED.
         """
         headers = await RichMenuService.get_client_headers(db)
         headers["Content-Type"] = content_type
@@ -181,6 +195,11 @@ class RichMenuService:
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 413:
                 raise RuntimeError(LINE_IMAGE_TOO_LARGE_DETAIL) from e
+            if e.response.status_code == 400 and (
+                LINE_IMAGE_ALREADY_UPLOADED_MARKER
+                in RichMenuService._line_error_detail(e).lower()
+            ):
+                return dict(LINE_IMAGE_ALREADY_UPLOADED_RESULT)
             raise RuntimeError(
                 f"LINE rejected image upload ({e.response.status_code}): "
                 f"{RichMenuService._line_error_detail(e)}"
