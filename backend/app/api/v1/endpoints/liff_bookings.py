@@ -19,10 +19,12 @@ from app.db.session import get_db
 from app.models.booking import Booking
 from app.schemas.booking import (
     AvailabilityOut,
+    AvailabilityRangeOut,
     BookingCreate,
     BookingOptionsOut,
     BookingOut,
     BookingUpdateIn,
+    DayAvailabilityOut,
     SlotOut,
 )
 from app.services import booking_service
@@ -117,6 +119,52 @@ async def get_availability(
                 is_full=slot.is_full,
             )
             for slot in slots
+        ],
+    )
+
+
+MAX_AVAILABILITY_RANGE_DAYS = 62
+
+
+@router.get(
+    "/availability/range",
+    response_model=AvailabilityRangeOut,
+    summary="Open/full status per day across a date window",
+)
+async def get_availability_range(
+    service_type: str = Query(min_length=1, max_length=200),
+    range_start: date_type = Query(alias="from"),
+    range_end: date_type = Query(alias="to"),
+    db: AsyncSession = Depends(get_db),
+    _line_user_id: str = Depends(require_line_user_id),
+):
+    """Day-level availability so the strip can disable closed/full days up front.
+
+    No per-slot detail here — the citizen still gets the slot grid from the
+    single-day `/availability` once a day is actually selected.
+    """
+    if range_start > range_end:
+        raise HTTPException(status_code=422, detail="ช่วงวันที่ไม่ถูกต้อง")
+    if (range_end - range_start).days > MAX_AVAILABILITY_RANGE_DAYS:
+        raise HTTPException(status_code=422, detail="ช่วงวันที่ยาวเกินไป")
+
+    config = await _require_booking_enabled(db)
+    try:
+        days = await booking_service.get_availability_range(
+            db,
+            service_type=service_type,
+            start_date=range_start,
+            end_date=range_end,
+            config=config,
+        )
+    except UnknownServiceTypeError:
+        raise HTTPException(status_code=404, detail="ไม่พบบริการที่เลือก")
+
+    return AvailabilityRangeOut(
+        service_type=service_type,
+        days=[
+            DayAvailabilityOut(date=day.date, is_open=day.is_open, remaining=day.remaining)
+            for day in days
         ],
     )
 

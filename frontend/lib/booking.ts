@@ -25,6 +25,17 @@ export interface Availability {
   slots: Slot[]
 }
 
+export interface DayAvailability {
+  date: string // ISO "2026-08-19"
+  is_open: boolean
+  remaining: number
+}
+
+export interface AvailabilityRange {
+  service_type: string
+  days: DayAvailability[]
+}
+
 export interface Booking {
   id: number
   service_type: string
@@ -167,6 +178,23 @@ export async function fetchAvailability(
     headers: liffHeaders(idToken),
   })
   if (!res.ok) throw new Error(await readError(res, 'ไม่สามารถโหลดช่วงเวลาที่ว่างได้'))
+  return res.json()
+}
+
+/** Per-day open/full status for a window — lets the strip disable closed/full
+ * days before the citizen taps them. No per-slot detail; that stays with
+ * `fetchAvailability` for the selected day. */
+export async function fetchAvailabilityRange(
+  idToken: string,
+  serviceType: string,
+  from: string,
+  to: string,
+): Promise<AvailabilityRange> {
+  const query = new URLSearchParams({ service_type: serviceType, from, to })
+  const res = await fetch(`${LIFF_BASE}/availability/range?${query}`, {
+    headers: liffHeaders(idToken),
+  })
+  if (!res.ok) throw new Error(await readError(res, 'ไม่สามารถโหลดวันที่เปิดให้จองได้'))
   return res.json()
 }
 

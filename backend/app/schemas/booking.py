@@ -40,6 +40,19 @@ class AvailabilityOut(BaseModel):
     slots: List[SlotOut]
 
 
+class DayAvailabilityOut(BaseModel):
+    """One day in a range: open at all, and how many seats remain."""
+
+    date: date
+    is_open: bool
+    remaining: int
+
+
+class AvailabilityRangeOut(BaseModel):
+    service_type: str
+    days: List[DayAvailabilityOut]
+
+
 class ContactFields(BaseModel):
     """Contact details shared by booking create and update.
 

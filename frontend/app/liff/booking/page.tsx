@@ -15,6 +15,7 @@ import {
   buildDateOptions,
   cancelBooking,
   fetchAvailability,
+  fetchAvailabilityRange,
   formatThaiDate,
   formatThaiWeekday,
   formatTime,
@@ -24,6 +25,7 @@ import {
   updateBookingContact,
   type Availability,
   type Booking,
+  type DayAvailability,
   type Slot,
 } from '@/lib/booking'
 import { API_BASE } from '@/lib/constants/api'
@@ -200,6 +202,11 @@ export default function LiffBookingPage() {
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null)
 
+  // Per-day open/full status for the strip, keyed by ISO date. null until the
+  // range request lands (or fails — see rangeReady below).
+  const [rangeInfo, setRangeInfo] = useState<Map<string, DayAvailability> | null>(null)
+  const [rangeReady, setRangeReady] = useState(false)
+
   const [contactName, setContactName] = useState('')
   const [phoneNumber, setPhoneNumber] = useState('')
   const [note, setNote] = useState('')
@@ -258,6 +265,33 @@ export default function LiffBookingPage() {
     return buildDateOptions(new Date(), options.advance_days, options.blackout_dates)
   }, [options])
 
+  // One range request per service: which days are closed or full, so the strip
+  // can disable them up front. Fail-open — on error the chips stay enabled and
+  // the strip behaves exactly as before this feature.
+  useEffect(() => {
+    if (!idToken || !serviceType || confirmed || dateOptions.length === 0) return
+    let cancelled = false
+    // The backend caps the window at 62 days; advance_days is admin-editable
+    // and can exceed that, so clip the request. Chips beyond the clip have no
+    // day info and stay enabled (the per-chip fail-open rule below).
+    const last = dateOptions[Math.min(dateOptions.length, 63) - 1]
+    fetchAvailabilityRange(idToken, serviceType, dateOptions[0], last)
+      .then((range) => {
+        if (cancelled) return
+        setRangeInfo(new Map(range.days.map((day) => [day.date, day])))
+        setRangeReady(true)
+      })
+      .catch((err) => {
+        logger.error('Failed to load availability range:', err)
+        if (cancelled) return
+        setRangeInfo(null)
+        setRangeReady(true)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [confirmed, dateOptions, idToken, serviceType])
+
   const loadSlots = useCallback(
     async (service: string, date: string, { force = false } = {}) => {
       if (!idToken) return
@@ -298,10 +332,17 @@ export default function LiffBookingPage() {
 
   // Preselect the nearest bookable day so the slot grid is already on screen
   // (and its request already in flight) by the time the citizen looks for it.
+  // Waits for the range so "bookable" skips closed/full days, falling back to
+  // the first day when the range never arrived.
   useEffect(() => {
     if (!serviceType || selectedDate || confirmed || dateOptions.length === 0) return
-    chooseDate(dateOptions[0])
-  }, [chooseDate, confirmed, dateOptions, selectedDate, serviceType])
+    if (!rangeReady) return
+    const firstBookable = dateOptions.find((iso) => {
+      const info = rangeInfo?.get(iso)
+      return Boolean(info?.is_open && info.remaining > 0)
+    })
+    chooseDate(firstBookable ?? dateOptions[0])
+  }, [chooseDate, confirmed, dateOptions, rangeInfo, rangeReady, selectedDate, serviceType])
 
   const chooseService = (service: string) => {
     if (service === serviceType) return
@@ -309,6 +350,8 @@ export default function LiffBookingPage() {
     setSelectedDate(null)
     setSelectedSlot(null)
     setAvailability(null)
+    setRangeInfo(null)
+    setRangeReady(false)
   }
 
   const handleSubmit = async () => {
@@ -560,18 +603,26 @@ export default function LiffBookingPage() {
                   <div className="-mx-4 flex snap-x snap-mandatory gap-2 overflow-x-auto px-4 py-1 scroll-px-4 [&::-webkit-scrollbar]:hidden">
                     {dateOptions.map((date, index) => {
                       const isSelected = selectedDate === date
+                      const info = rangeInfo?.get(date)
+                      // Disabled only on day-level data we actually have — an
+                      // absent entry (request still in flight, or it failed)
+                      // keeps the chip enabled.
+                      const chipDisabled = info ? !info.is_open || info.remaining === 0 : false
                       return (
                         <button
                           key={date}
                           type="button"
                           onClick={() => chooseDate(date)}
+                          disabled={chipDisabled}
                           className={cn(
                             'w-[4.5rem] shrink-0 snap-start rounded-lg border px-2 py-2 text-center transition-colors',
                             isSelected
                               ? 'border-brand-500 bg-brand-50 text-brand-text dark:bg-brand-500/15 dark:text-brand-300'
                               : 'border-border-default bg-surface text-text-secondary hover:border-border-hover',
+                            chipDisabled && 'opacity-40 hover:border-border-hover hover:bg-surface',
                           )}
                           aria-pressed={isSelected}
+                          aria-disabled={chipDisabled}
                         >
                           <span className="block text-2xs text-text-tertiary">
                             {index === 0 ? 'วันนี้' : formatThaiWeekday(date)}

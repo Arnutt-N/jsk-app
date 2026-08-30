@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import LiffBookingPage from '../page'
-import type { Booking } from '@/lib/booking'
+import { toISODate, type Booking } from '@/lib/booking'
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -43,6 +43,10 @@ function stubFetch(
     onCancel?: (booking: Booking) => Booking
     onUpdate?: (booking: Booking) => Booking
     advanceDays?: number
+    /** Per-day override for the /availability/range response. */
+    rangeDay?: (iso: string) => { date: string; is_open: boolean; remaining: number }
+    /** Make the range request fail with this status (fail-open scenarios). */
+    rangeStatus?: number
   } = {},
 ) {
   fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
@@ -53,6 +57,23 @@ function stubFetch(
         advance_days: overrides.advanceDays ?? 14,
         blackout_dates: [],
       })
+    }
+    // NOTE: the range route must be matched before /availability — its URL
+    // contains that substring.
+    if (u.includes('/availability/range')) {
+      if (overrides.rangeStatus) return jsonResponse({ detail: 'range failed' }, overrides.rangeStatus)
+      const params = new URL(u, 'http://localhost').searchParams
+      const from = params.get('from') as string
+      const to = params.get('to') as string
+      const days: { date: string; is_open: boolean; remaining: number }[] = []
+      const cursor = new Date(`${from}T00:00:00`)
+      const end = new Date(`${to}T00:00:00`)
+      while (cursor <= end) {
+        const iso = toISODate(cursor)
+        days.push(overrides.rangeDay?.(iso) ?? { date: iso, is_open: true, remaining: 5 })
+        cursor.setDate(cursor.getDate() + 1)
+      }
+      return jsonResponse({ service_type: 'ปรึกษากฎหมาย', days })
     }
     if (u.includes('/availability')) {
       return jsonResponse({
@@ -157,6 +178,59 @@ describe('date selection', () => {
     await user.click(today)
 
     expect(availabilityCalls()).toBe(before + 1) // the revisited day came from cache
+  })
+
+  it('disables a closed day chip before the citizen taps it', async () => {
+    const base = new Date()
+    const iso = (offset: number) =>
+      toISODate(new Date(base.getFullYear(), base.getMonth(), base.getDate() + offset))
+    stubFetch({
+      rangeDay: (d) =>
+        d === iso(1)
+          ? { date: d, is_open: false, remaining: 0 }
+          : { date: d, is_open: true, remaining: 5 },
+    })
+    render(<LiffBookingPage />)
+    await userEvent.click(await screen.findByRole('button', { name: 'ปรึกษากฎหมาย' }))
+
+    const strip = await dateStrip()
+    await waitFor(() => expect(strip.querySelectorAll('button[disabled]')).toHaveLength(1))
+    expect(screen.getByRole('button', { name: /วันนี้/ })).toBeEnabled()
+  })
+
+  it('preselects the first open day with seats, skipping closed days', async () => {
+    const base = new Date()
+    const iso = (offset: number) =>
+      toISODate(new Date(base.getFullYear(), base.getMonth(), base.getDate() + offset))
+    stubFetch({
+      rangeDay: (d) =>
+        d === iso(0) || d === iso(1)
+          ? { date: d, is_open: false, remaining: 0 }
+          : { date: d, is_open: true, remaining: 5 },
+    })
+    render(<LiffBookingPage />)
+    await userEvent.click(await screen.findByRole('button', { name: 'ปรึกษากฎหมาย' }))
+
+    // The slot grid loaded — meaning some day was preselected — but not today.
+    expect(await screen.findByText('ช่วงเช้า')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /วันนี้/ })).toHaveAttribute('aria-pressed', 'false')
+    const thirdChip = (await dateStrip()).querySelectorAll('button')[2]
+    expect(thirdChip).toHaveAttribute('aria-pressed', 'true')
+
+    const dayCall = fetchMock.mock.calls.find(
+      ([url]) => String(url).includes('/availability') && !String(url).includes('/range'),
+    )
+    expect(String(dayCall?.[0])).toContain(`date=${iso(2)}`)
+  })
+
+  it('keeps every chip enabled and preselects today when the range fetch fails', async () => {
+    stubFetch({ rangeStatus: 500 })
+    render(<LiffBookingPage />)
+    await userEvent.click(await screen.findByRole('button', { name: 'ปรึกษากฎหมาย' }))
+
+    expect(await screen.findByText('ช่วงเช้า')).toBeInTheDocument()
+    expect((await dateStrip()).querySelectorAll('button[disabled]')).toHaveLength(0)
+    expect(screen.getByRole('button', { name: /วันนี้/ })).toHaveAttribute('aria-pressed', 'true')
   })
 })
 

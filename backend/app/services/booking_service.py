@@ -352,6 +352,84 @@ async def get_availability(
     )
 
 
+@dataclass(frozen=True)
+class DayAvailability:
+    """One day's availability, summarised for the LIFF date strip.
+
+    `is_open` means "the engine produces bookable slots for this day at all" —
+    a day that is open but fully booked is therefore is_open=True with
+    remaining=0, which is what the strip's disabled state keys on.
+    """
+
+    date: date
+    day_hours: Optional[BusinessHours]
+    slots: Sequence[SlotAvailability]
+
+    @property
+    def is_open(self) -> bool:
+        return bool(self.slots)
+
+    @property
+    def remaining(self) -> int:
+        return sum(slot.remaining for slot in self.slots)
+
+
+async def get_availability_range(
+    db: AsyncSession,
+    *,
+    service_type: str,
+    start_date: date,
+    end_date: date,
+    config: BookingConfig,
+) -> list[DayAvailability]:
+    """Per-day availability across [start_date, end_date], ascending.
+
+    Reuses the single-day engine per day, but batches the database work into
+    exactly two queries regardless of window length: all business-hours rows,
+    then active booking counts grouped by (date, time) for the whole window.
+    """
+    if service_type not in config.service_types:
+        raise UnknownServiceTypeError(service_type)
+
+    # ONE now for the whole loop: a fresh local_now() per day could straddle
+    # midnight mid-iteration and flip "today" underneath the engine.
+    now_local = local_now()
+
+    hours_result = await db.execute(select(BusinessHours))
+    day_hours_by_weekday: dict[int, BusinessHours] = {
+        row.day_of_week: row for row in hours_result.scalars().all()
+    }
+
+    counts_result = await db.execute(
+        select(Booking.booking_date, Booking.booking_time, func.count())
+        .where(
+            Booking.service_type == service_type,
+            Booking.booking_date >= start_date,
+            Booking.booking_date <= end_date,
+            Booking.status.in_(ACTIVE_STATUSES),
+        )
+        .group_by(Booking.booking_date, Booking.booking_time)
+    )
+    booked_by_date: dict[date, dict[time, int]] = {}
+    for booking_date, booking_time, count in counts_result.all():
+        booked_by_date.setdefault(booking_date, {})[booking_time] = int(count)
+
+    days: list[DayAvailability] = []
+    cursor = start_date
+    while cursor <= end_date:
+        day_hours = day_hours_by_weekday.get(cursor.weekday())
+        slots = compute_slots(
+            target_date=cursor,
+            day_hours=day_hours,
+            config=config,
+            booked_counts=booked_by_date.get(cursor, {}),
+            now_local=now_local,
+        )
+        days.append(DayAvailability(date=cursor, day_hours=day_hours, slots=slots))
+        cursor += timedelta(days=1)
+    return days
+
+
 async def list_user_bookings(
     db: AsyncSession, user_id: int, *, limit: int = 10, include_past: bool = False
 ) -> Sequence[Booking]:
