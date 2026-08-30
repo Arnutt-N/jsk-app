@@ -14,6 +14,7 @@ import { useLiffInit } from '@/hooks/useLiffInit'
 import {
   buildDateOptions,
   cancelBooking,
+  clipRangeWindow,
   fetchAvailability,
   fetchAvailabilityRange,
   formatThaiDate,
@@ -272,9 +273,13 @@ export default function LiffBookingPage() {
     if (!idToken || !serviceType || confirmed || dateOptions.length === 0) return
     let cancelled = false
     // The backend caps the window at 62 days; advance_days is admin-editable
-    // and can exceed that, so clip the request. Chips beyond the clip have no
-    // day info and stay enabled (the per-chip fail-open rule below).
-    const last = dateOptions[Math.min(dateOptions.length, 63) - 1]
+    // and can exceed that, so clip the request. clipRangeWindow measures the
+    // calendar span from the first day — blackouts thin dateOptions, so a
+    // count-based clip can still send a span past the cap and 422 the whole
+    // request. Chips beyond the clip have no day info and stay enabled (the
+    // per-chip fail-open rule below).
+    const clipped = clipRangeWindow(dateOptions)
+    const last = clipped[clipped.length - 1] ?? dateOptions[0]
     fetchAvailabilityRange(idToken, serviceType, dateOptions[0], last)
       .then((range) => {
         if (cancelled) return
