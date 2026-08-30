@@ -1,0 +1,17 @@
+{
+  "handoff_version": "2.0",
+  "platform": "zcode",
+  "agent": "zcode",
+  "timestamp": "2026-08-31T01:57:00+07:00",
+  "branch": "main",
+  "head_commit": "59732ba",
+  "status": "completed",
+  "work_summary": "Merged PR #213 (squash 59732ba): LINE 1MB rich-menu image limit - backend cap 10MB->1MB + friendly 413 mapping (RuntimeError with LINE detail via _line_error_detail) + sync fail-fast before create_on_line (no more orphan imageless menus) + client auto-fit ensureRichMenuImage (planRichMenuFit scale x quality ladder, scaledToFit aspect box, <=1MB passthrough keeps PNG alpha, canvas-less blocks with guidance); gates: backend 1033 passed/1 skipped, vitest 9 new + full suite clean, tsc/eslint/build ok, CI+E2E green, CD 33329221730 success (migrate no-op, Vercel+Koyeb smoke pass); OA Manager accepts 10MB picks only because it compresses client-side - Messaging API content endpoint hard-caps 1MB (docs + observed 413)",
+  "priority_actions": [
+    "User device smoke: edit the stuck menu richmenu-affeb34dcdae0367c879eec35af1f219 -> re-pick image (auto-fit shrinks it) -> upload pushes to LINE immediately -> Re-sync -> Set Active",
+    "Follow-up PR: drop rich_menus.image_path (contract phase) once verified live"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/zcode/session-summary-20260831-0157.md",
+  "cross_platform_read": []
+}

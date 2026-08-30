@@ -1,14 +1,20 @@
 {
-  "last_updated": "2026-08-30T23:29:00+07:00",
+  "last_updated": "2026-08-31T01:57:00+07:00",
   "platform": "zcode",
-  "current_task": "Merged PR #212 (squash ca25295): rich-menu durable fix — images moved into media_files pipeline (additive migration s0t1u2v3w4x5 + backfill; image_path drop deferred to follow-up PR per expand-contrac",
+  "current_task": "Merged PR #213 (squash 59732ba): LINE 1MB rich-menu image limit - backend cap 10MB->1MB + friendly 413 mapping (RuntimeError with LINE detail via _line_error_detail) + sync fail-fast before create_on_",
   "plan_status": "completed",
   "next_steps": [
-    "Device/UI smoke on prod: login -> /admin/rich-menus -> preview renders + Set Active on a real menu",
-    "Menus whose disk images were lost (Koyeb ephemeral FS) show No Image -> one-time re-upload via edit page",
-    "Follow-up PR: drop rich_menus.image_path (contract phase) once this is verified live"
+    "User device smoke: edit the stuck menu richmenu-affeb34dcdae0367c879eec35af1f219 -> re-pick image (auto-fit shrinks it) -> upload pushes to LINE immediately -> Re-sync -> Set Active",
+    "Follow-up PR: drop rich_menus.image_path (contract phase) once verified live"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-08-31T01:57:00+07:00",
+      "platform": "zcode",
+      "branch": "main",
+      "head": "59732ba",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-08-30T23:29:00+07:00",
       "platform": "zcode",
@@ -140,13 +146,6 @@
       "platform": "qoder",
       "branch": "feat/pr-c-pseudonym-contract",
       "head": "f30edce",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-08-16T21:02:00+07:00",
-      "platform": "qoder",
-      "branch": "feat/pr-c-pseudonym-contract",
-      "head": "c87db65",
       "status": "completed"
     }
   ],

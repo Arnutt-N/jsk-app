@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 247 active handoffs, 10 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 248 active handoffs, 10 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-08-31 01:57 — zcode — completed
+
+Merged PR #213 (squash 59732ba): LINE 1MB rich-menu image limit - backend cap 10MB->1MB + friendly 413 mapping (RuntimeError with LINE detail via _line_error_detail) + sync fail-fast before create_on_line (no more orphan imageless menus) + client auto-fit ensureRichMenuImage (planRichMenuFit scale x quality ladder, scaledToFit aspect box, <=1MB passthrough keeps PNG alpha, canvas-less blocks with guidance); gates: backend 1033 passed/1 skipped, vitest 9 new + full suite clean, tsc/eslint/build ok, CI+E2E green, CD 33329221730 success (migrate no-op, Vercel+Koyeb smoke pass); OA Manager accepts 10MB picks only because it compresses client-side - Messaging API content endpoint hard-caps 1MB (docs + observed 413)
+
+- Checkpoint: `.agents/state/checkpoints/handover-zcode-20260831-0157.json`
+- Summary: `project-log-md/zcode/session-summary-20260831-0157.md`
+
+---
 
 ### 2026-08-30 23:29 — zcode — completed
 

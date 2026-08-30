@@ -1,16 +1,16 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Cross-Platform Session Index (generated)
 
-> **Last generated**: 2026-08-30 23:29 (from newest checkpoint)
+> **Last generated**: 2026-08-31 01:57 (from newest checkpoint)
 
 ## Quick Stats
 
 | Metric | Value |
 |--------|-------|
-| Handoff checkpoints (active) | 247 |
-| Session summaries on disk | 344 |
+| Handoff checkpoints (active) | 248 |
+| Session summaries on disk | 345 |
 | Platforms | 10 (antigravity, claude_code, cline, codex, gemini_cli, kilo_code, kimi_code, open_code, qoder, zcode) |
-| Most recent | 2026-08-30 23:29 — zcode |
+| Most recent | 2026-08-31 01:57 — zcode |
 
 > Regenerate after any handoff: `node .agents/scripts/gen-handoff-views.cjs`
 
@@ -163,8 +163,9 @@
 | 2026-07-28 10:32 | completed | — | — | `handover-qoder-20260728-1032.json` |
 | … | | | | +6 older |
 
-## zcode (1)
+## zcode (2)
 
 | When | Status | Model | Provider | Checkpoint |
 |------|--------|-------|----------|------------|
+| 2026-08-31 01:57 | completed | — | — | `handover-zcode-20260831-0157.json` |
 | 2026-08-30 23:29 | completed | — | — | `handover-zcode-20260830-2329.json` |
