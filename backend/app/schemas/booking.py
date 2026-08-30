@@ -26,12 +26,15 @@ class BookingOptionsOut(BaseModel):
     """What the LIFF app needs before it can ask about a specific slot.
 
     Deliberately narrow: capacity and reminder settings are operational detail
-    the public app has no use for.
+    the public app has no use for. `max_range_days` is the one exception —
+    the app needs it to shape its range request, and serving it here keeps the
+    range cap from being hardcoded on both sides of the wire.
     """
 
     service_types: List[str]
     advance_days: int
     blackout_dates: List[date]
+    max_range_days: int
 
 
 class AvailabilityOut(BaseModel):

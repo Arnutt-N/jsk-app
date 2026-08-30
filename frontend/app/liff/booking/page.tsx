@@ -35,6 +35,8 @@ interface BookingOptions {
   service_types: string[]
   advance_days: number
   blackout_dates: string[]
+  /** Range cap the backend advertises; the local 62 is only the fallback. */
+  max_range_days?: number
 }
 
 type Step = 'service' | 'date' | 'slot' | 'details' | 'done'
@@ -272,13 +274,14 @@ export default function LiffBookingPage() {
   useEffect(() => {
     if (!idToken || !serviceType || confirmed || dateOptions.length === 0) return
     let cancelled = false
-    // The backend caps the window at 62 days; advance_days is admin-editable
-    // and can exceed that, so clip the request. clipRangeWindow measures the
-    // calendar span from the first day — blackouts thin dateOptions, so a
-    // count-based clip can still send a span past the cap and 422 the whole
-    // request. Chips beyond the clip have no day info and stay enabled (the
-    // per-chip fail-open rule below).
-    const clipped = clipRangeWindow(dateOptions)
+    // The backend caps the window (max_range_days from /options; 62 is only
+    // the fallback) and advance_days is admin-editable, so it can exceed the
+    // cap — clip the request. clipRangeWindow measures the calendar span
+    // from the first day — blackouts thin dateOptions, so a count-based clip
+    // can still send a span past the cap and 422 the whole request. Chips
+    // beyond the clip have no day info and stay enabled (the per-chip
+    // fail-open rule below).
+    const clipped = clipRangeWindow(dateOptions, options?.max_range_days)
     const last = clipped[clipped.length - 1] ?? dateOptions[0]
     fetchAvailabilityRange(idToken, serviceType, dateOptions[0], last)
       .then((range) => {
@@ -295,7 +298,7 @@ export default function LiffBookingPage() {
     return () => {
       cancelled = true
     }
-  }, [confirmed, dateOptions, idToken, serviceType])
+  }, [confirmed, dateOptions, idToken, options, serviceType])
 
   const loadSlots = useCallback(
     async (service: string, date: string, { force = false } = {}) => {

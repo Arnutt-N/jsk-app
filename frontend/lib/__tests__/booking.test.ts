@@ -172,4 +172,19 @@ describe('clipRangeWindow', () => {
   test('keeps a single day', () => {
     expect(clipRangeWindow(['2026-08-01'])).toEqual(['2026-08-01'])
   })
+
+  test('clips by the cap the backend advertises, not the local fallback', () => {
+    // 31 entries (no blackouts); the backend says the cap is 10, so the clip
+    // must follow that value rather than the local 62.
+    const options = buildDateOptions(new Date(2026, 7, 1), 30)
+    expect(clipRangeWindow(options, 10)).toHaveLength(11) // offsets 0..10
+  })
+
+  test('falls back to the local cap when the advertised one is missing or invalid', () => {
+    const options = buildDateOptions(new Date(2026, 7, 1), 99)
+    // 2026-08-01 through 2026-10-02 — exactly 63 entries under the local cap.
+    expect(clipRangeWindow(options, undefined)).toHaveLength(63)
+    expect(clipRangeWindow(options, 0)).toHaveLength(63)
+    expect(clipRangeWindow(options, Number.NaN)).toHaveLength(63)
+  })
 })

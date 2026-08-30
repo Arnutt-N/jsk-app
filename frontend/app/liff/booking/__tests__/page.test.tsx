@@ -52,6 +52,8 @@ function stubFetch(
     advanceDays?: number
     /** Blackout dates to serve from /options (defaults to none). */
     blackouts?: string[]
+    /** Range cap to serve from /options as max_range_days (defaults: omit). */
+    maxRangeDays?: number
     /** Per-day override for the /availability/range response. */
     rangeDay?: (iso: string) => { date: string; is_open: boolean; remaining: number }
     /** Make the range request fail with this status (fail-open scenarios). */
@@ -65,6 +67,9 @@ function stubFetch(
         service_types: ['ปรึกษากฎหมาย'],
         advance_days: overrides.advanceDays ?? 14,
         blackout_dates: overrides.blackouts ?? [],
+        ...(overrides.maxRangeDays !== undefined && {
+          max_range_days: overrides.maxRangeDays,
+        }),
       })
     }
     // NOTE: the range route must be matched before /availability — its URL
@@ -242,6 +247,24 @@ describe('date selection', () => {
       const params = new URL(String(rangeCall?.[0]), 'http://localhost').searchParams
       expect(params.get('from')).toBe(isoFromToday(0))
       expect(params.get('to')).toBe(isoFromToday(62))
+    })
+  })
+
+  it('clips the range request with the cap advertised by /options, not a local guess', async () => {
+    // The backend owns the cap and serves it via /options (max_range_days);
+    // the hardcoded 62 is only a fallback for older backends.
+    stubFetch({ advanceDays: 99, maxRangeDays: 10 })
+    render(<LiffBookingPage />)
+    await userEvent.click(await screen.findByRole('button', { name: 'ปรึกษากฎหมาย' }))
+
+    await waitFor(() => {
+      const rangeCall = fetchMock.mock.calls.find(([url]) =>
+        String(url).includes('/availability/range'),
+      )
+      expect(rangeCall).toBeDefined()
+      const params = new URL(String(rangeCall?.[0]), 'http://localhost').searchParams
+      expect(params.get('from')).toBe(isoFromToday(0))
+      expect(params.get('to')).toBe(isoFromToday(10))
     })
   })
 

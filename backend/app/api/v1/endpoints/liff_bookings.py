@@ -35,6 +35,7 @@ from app.services.booking_notifications import (
 from app.services.booking_service import (
     BookingNotCancellableError,
     DuplicateBookingError,
+    MAX_AVAILABILITY_RANGE_DAYS,
     SlotFullError,
     SlotUnavailableError,
     UnknownServiceTypeError,
@@ -85,6 +86,7 @@ async def get_booking_options(
         service_types=list(config.service_types),
         advance_days=config.advance_days,
         blackout_dates=sorted(config.blackout_dates),
+        max_range_days=MAX_AVAILABILITY_RANGE_DAYS,
     )
 
 
@@ -121,9 +123,6 @@ async def get_availability(
             for slot in slots
         ],
     )
-
-
-MAX_AVAILABILITY_RANGE_DAYS = 62
 
 
 @router.get(
