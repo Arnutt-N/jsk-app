@@ -317,7 +317,7 @@ export default function EditRichMenuPage() {
                         <label className="block text-sm font-medium text-slate-600 mb-2">รูปภาพเมนู</label>
                         <div
                             onClick={() => fileInputRef.current?.click()}
-                            className="w-full aspect-[250/168.6] bg-slate-100 rounded-xl border-2 border-dashed border-slate-300 hover:border-primary/40 transition-colors cursor-pointer overflow-hidden group relative"
+                            className="@container w-full aspect-[250/168.6] bg-slate-100 rounded-xl border-2 border-dashed border-slate-300 hover:border-primary/40 transition-colors cursor-pointer overflow-hidden group relative"
                             style={menu?.config?.size ? { aspectRatio: `${menu.config.size.width}/${menu.config.size.height}` } : undefined}
                         >
                             {imagePreview ? (
@@ -332,7 +332,7 @@ export default function EditRichMenuPage() {
                                         {areas.map((area, i) => (
                                             <div
                                                 key={i}
-                                                className="absolute border border-white/80 flex items-center justify-center text-white font-bold text-3xl bg-black/20"
+                                                className="absolute border border-white/80 flex items-center justify-center text-white font-bold text-[10cqw] bg-black/20"
                                                 style={{
                                                     left: `${(area.bounds.x / (menu?.config?.size?.width || 2500)) * 100}%`,
                                                     top: `${(area.bounds.y / (menu?.config?.size?.height || 1686)) * 100}%`,
