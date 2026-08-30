@@ -54,7 +54,7 @@ def _full_menu(id=1, name="Menu"):
         chat_bar_text="menu",
         line_rich_menu_id="richmenu-x",
         config={},
-        image_path=None,
+        image_media_id=None,
         status=RichMenuStatus.DRAFT,
         sync_status="PENDING",
         last_synced_at=None,

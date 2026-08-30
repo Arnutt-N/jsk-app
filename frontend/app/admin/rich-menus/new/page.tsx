@@ -7,6 +7,7 @@ import Link from 'next/link';
 import PageHeader from '../../components/PageHeader';
 import { useToast } from '@/components/ui/Toast';
 import { logger } from '@/lib/logger';
+import { parseSyncResult } from '@/lib/rich-menu';
 
 interface TemplateBounds {
     x: number;
@@ -341,9 +342,12 @@ export default function NewRichMenuPage() {
                 const syncRes = await fetch(`${API_BASE}/admin/rich-menus/${menu.id}/sync`, {
                     method: 'POST'
                 });
-                if (!syncRes.ok) {
-                    const errorData = await syncRes.json();
-                    toast({ variant: 'error', title: 'ซิงค์ไม่สำเร็จ', description: `บันทึกแล้ว แต่ซิงค์ไป LINE ไม่สำเร็จ: ${errorData.detail || 'ไม่ทราบสาเหตุ'}` });
+                // A 200 can still carry success:false / image_upload_error —
+                // parseSyncResult decides the real outcome (AC-3.3).
+                const syncPayload = syncRes.ok ? await syncRes.json() : null;
+                const syncOutcome = parseSyncResult(syncPayload);
+                if (!syncOutcome.ok) {
+                    toast({ variant: 'error', title: 'ซิงค์ไม่สมบูรณ์', description: `บันทึกแล้ว แต่${syncOutcome.message}` });
                     router.push('/admin/rich-menus');
                     return;
                 }

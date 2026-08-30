@@ -88,7 +88,7 @@ docker-compose up -d db redis    # Start PostgreSQL + Redis
 - **Type hints**: strict typing with Pydantic V2; `Optional[]` for nullable fields
 - **Enums**: inherit `(str, enum.Enum)` with UPPERCASE values
 - **Imports**: stdlib -> third-party -> local (`from app.xxx import yyy`)
-- **Error handling**: `HTTPException` with status codes (400/401/403/404/409/422/500)
+- **Error handling**: `HTTPException` with status codes (400/401/403/404/409/413/422/429/500/502/503 — 402 unused today; 413 upload-too-large, 429 rate-limited, 502 upstream LINE failure, 503 config/service unavailable, per codebase precedent in `media.py`, `liff.py`, `admin_broadcast.py`)
 - **Logging**: `logger = logging.getLogger(__name__)` at module level
 - **Naming**: `snake_case` functions/variables, `PascalCase` classes/enums, `UPPER_SNAKE` constants
 - **Schemas**: `Create`/`Update`/`Response` suffix; `ConfigDict(from_attributes=True, use_enum_values=True)`

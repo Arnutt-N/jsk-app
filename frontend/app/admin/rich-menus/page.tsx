@@ -12,6 +12,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/Toast';
 import { logger } from '@/lib/logger';
 import { readErrorMessage } from '@/lib/api-error';
+import { canPublish, parseSyncResult, RichMenuSyncStatus } from '@/lib/rich-menu';
 
 interface RichMenu {
     id: number;
@@ -19,7 +20,9 @@ interface RichMenu {
     chat_bar_text: string;
     line_rich_menu_id: string | null;
     status: string;
-    image_path: string | null;
+    sync_status: string;
+    last_sync_error: string | null;
+    image_url: string | null;
     created_at: string;
     // Count of users bound to this menu via per-user assignment (Task 6.2).
     user_link_count?: number;
@@ -81,7 +84,15 @@ export default function RichMenuListPage() {
         try {
             const res = await fetch(`${API_BASE}/admin/rich-menus/${id}/sync`, { method: 'POST' });
             if (res.ok) {
-                toast({ title: 'สำเร็จ', description: 'Sync ไปยัง LINE สำเร็จ', variant: 'success' });
+                // A 200 can still carry success:false or image_upload_error —
+                // parseSyncResult decides the real outcome (sync-state honesty).
+                const payload = await res.json();
+                const outcome = parseSyncResult(payload);
+                if (outcome.ok) {
+                    toast({ title: 'สำเร็จ', description: outcome.message, variant: 'success' });
+                } else {
+                    toast({ title: 'Sync ไม่สมบูรณ์', description: outcome.message, variant: 'error' });
+                }
                 fetchMenus();
             } else {
                 const msg = await readErrorMessage(res, 'Sync ไปยัง LINE ล้มเหลว');
@@ -109,12 +120,6 @@ export default function RichMenuListPage() {
             logger.error('publishRichMenu error', err, { id });
             toast({ title: 'ผิดพลาด', description: 'เกิดข้อผิดพลาด กรุณาลองใหม่', variant: 'error' });
         }
-    };
-
-    const getImageUrl = (path: string | null) => {
-        if (!path) return null;
-        const baseHost = API_BASE.split('/api/')[0]; // Gets http://localhost:8000
-        return `${baseHost}/${path}`;
     };
 
     return (
@@ -152,10 +157,10 @@ export default function RichMenuListPage() {
                                 <tr key={menu.id} className="hover:bg-bg/50 transition-colors">
                                     <td className="px-5 py-4">
                                         <div className="w-32 aspect-[250/168.6] bg-muted rounded-lg overflow-hidden border border-border-default">
-                                            {menu.image_path ? (
+                                            {menu.image_url ? (
                                                 // eslint-disable-next-line @next/next/no-img-element
                                                 <img
-                                                    src={getImageUrl(menu.image_path) || ''}
+                                                    src={menu.image_url}
                                                     alt={menu.name}
                                                     className="w-full h-full object-cover"
                                                     onError={(e) => {
@@ -189,13 +194,27 @@ export default function RichMenuListPage() {
                                         )}
                                     </td>
                                     <td className="px-5 py-4 text-center">
-                                        <span className={`px-2.5 py-1 text-[10px] font-bold rounded-full border ${menu.status === 'PUBLISHED'
-                                            ? 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20'
-                                            : menu.line_rich_menu_id
-                                                ? 'bg-brand-50 text-brand-600 border-brand-100 dark:bg-brand-500/10 dark:text-brand-400 dark:border-brand-500/20'
-                                                : 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20'
-                                            }`}>
-                                            {menu.status === 'PUBLISHED' ? 'ACTIVE' : menu.line_rich_menu_id ? 'SYNCED' : 'DRAFT'}
+                                        {/* Badge + button derive from REAL sync state — a
+                                            FAILED sync (e.g. LINE rejected the image) must not
+                                            offer publishing (that is how the LINE 400 happened). */}
+                                        <span
+                                            title={menu.last_sync_error || undefined}
+                                            className={`px-2.5 py-1 text-[10px] font-bold rounded-full border ${menu.status === 'PUBLISHED'
+                                                ? 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20'
+                                                : menu.sync_status === RichMenuSyncStatus.FAILED
+                                                    ? 'bg-red-50 text-red-600 border-red-100 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20'
+                                                    : menu.line_rich_menu_id
+                                                        ? 'bg-brand-50 text-brand-600 border-brand-100 dark:bg-brand-500/10 dark:text-brand-400 dark:border-brand-500/20'
+                                                        : 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20'
+                                                }`}
+                                        >
+                                            {menu.status === 'PUBLISHED'
+                                                ? 'ACTIVE'
+                                                : menu.sync_status === RichMenuSyncStatus.FAILED
+                                                    ? 'SYNC FAILED'
+                                                    : menu.line_rich_menu_id
+                                                        ? 'SYNCED'
+                                                        : 'DRAFT'}
                                         </span>
                                     </td>
                                     <td className="px-5 py-4">
@@ -208,13 +227,21 @@ export default function RichMenuListPage() {
                                                 >
                                                     Sync to LINE
                                                 </Button>
-                                            ) : menu.status !== 'PUBLISHED' ? (
+                                            ) : canPublish(menu) && menu.status !== 'PUBLISHED' ? (
                                                 <Button
                                                     size="xs"
                                                     variant="success"
                                                     onClick={() => handlePublish(menu.id)}
                                                 >
                                                     Set Active
+                                                </Button>
+                                            ) : menu.sync_status === RichMenuSyncStatus.FAILED ? (
+                                                <Button
+                                                    size="xs"
+                                                    variant="outline"
+                                                    onClick={() => handleSync(menu.id)}
+                                                >
+                                                    Re-sync
                                                 </Button>
                                             ) : (
                                                 <div className="text-[10px] font-black text-emerald-600 px-3 py-1 bg-emerald-50 rounded-full border border-emerald-100 tracking-widest leading-none thai-no-break dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20">Live Now</div>

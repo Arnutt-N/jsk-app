@@ -1,15 +1,17 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Path, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Dict, List
+from typing import Dict, List, Optional
 import logging
 import os
-import shutil
-import asyncio
 import httpx
 from app.db.session import get_db
 from app.api.deps import get_current_admin, require_permission
 from app.core.permissions import KEY_MANAGE_RICH_MENUS
-from app.models.rich_menu import RichMenu, RichMenuStatus
+from app.core.audit import create_audit_log
+from app.core.http_rate_limit import http_rate_limit
+from app.core.config import settings
+from app.models.rich_menu import RichMenu, RichMenuStatus, RichMenuSyncStatus
+from app.models.media_file import MediaFile
 from app.models.user import User
 from app.schemas.rich_menu import (
     RichMenuResponse,
@@ -34,18 +36,34 @@ from datetime import date, datetime, timedelta, timezone
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
+# Image upload validation. The sniffed magic bytes — NOT the spoofable
+# client Content-Type — decide what is stored and pushed to LINE
+# (security-review finding; precedents: liff.py whitelist, media.py size cap).
+MAX_RICH_MENU_IMAGE_BYTES = 10 * 1024 * 1024  # 10 MB, mirrors media.py
+_UPLOAD_RATE_LIMIT = http_rate_limit(
+    "media-upload",
+    max_events=settings.MEDIA_UPLOAD_RATE_LIMIT,
+    window_seconds=settings.MEDIA_UPLOAD_RATE_WINDOW,
+)
 
-def _write_upload_sync(file_path: str, upload_file) -> None:
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(upload_file.file, buffer)
+
+def _sniff_image_mime(data: bytes) -> Optional[str]:
+    """Return the real image mime from magic bytes, or None when the bytes are
+    neither PNG nor JPEG (frontend `accept` promises this whitelist too)."""
+    if data.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if data.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    return None
 
 
-def _read_file_sync(path: str) -> bytes:
-    with open(path, "rb") as f:
-        return f.read()
-
-UPLOAD_DIR = "uploads/rich_menus"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+def _rich_menu_response(menu: RichMenu) -> RichMenuResponse:
+    """ORM -> schema with the image URL filled in from the FK (plain column —
+    no extra query, no lazy relationship)."""
+    item = RichMenuResponse.model_validate(menu)
+    if menu.image_media_id:
+        item.image_url = f"/api/v1/media/{menu.image_media_id}"
+    return item
 
 # LINE rich menu canvas sizes.
 # Ref: https://developers.line.biz/en/reference/messaging-api/#rich-menu-object
@@ -88,7 +106,7 @@ async def list_rich_menus(db: AsyncSession = Depends(get_db), current_admin: Use
 
     enriched = []
     for menu in menus:
-        item = RichMenuResponse.model_validate(menu)
+        item = _rich_menu_response(menu)
         item.user_link_count = link_counts.get(menu.id, 0)
         enriched.append(item)
     return enriched
@@ -494,7 +512,7 @@ async def get_rich_menu(id: int, db: AsyncSession = Depends(get_db), current_adm
     rich_menu = result.scalar_one_or_none()
     if not rich_menu:
         raise HTTPException(status_code=404, detail="Rich Menu not found")
-    return rich_menu
+    return _rich_menu_response(rich_menu)
 
 @router.put("/{id}", response_model=RichMenuResponse)
 async def update_rich_menu(id: int, data: RichMenuUpdate, db: AsyncSession = Depends(get_db), current_admin: User = Depends(require_permission(KEY_MANAGE_RICH_MENUS))):
@@ -523,7 +541,7 @@ async def update_rich_menu(id: int, data: RichMenuUpdate, db: AsyncSession = Dep
 
     await db.commit()
     await db.refresh(rich_menu)
-    return rich_menu
+    return _rich_menu_response(rich_menu)
 
 @router.post("", response_model=RichMenuResponse)
 async def create_rich_menu(
@@ -539,7 +557,7 @@ async def create_rich_menu(
         "chatBarText": data.chat_bar_text,
         "areas": [area.model_dump() for area in data.areas]
     }
-    
+
     # Save locally as DRAFT first
     rich_menu = RichMenu(
         name=data.name,
@@ -550,9 +568,9 @@ async def create_rich_menu(
     db.add(rich_menu)
     await db.commit()
     await db.refresh(rich_menu)
-    return rich_menu
+    return _rich_menu_response(rich_menu)
 
-@router.post("/{id}/upload")
+@router.post("/{id}/upload", dependencies=[Depends(_UPLOAD_RATE_LIMIT)])
 async def upload_rich_menu_image(
     id: int,
     file: UploadFile = File(...),
@@ -563,44 +581,51 @@ async def upload_rich_menu_image(
     rich_menu = result.scalar_one_or_none()
     if not rich_menu:
         raise HTTPException(status_code=404, detail="Rich Menu not found")
-        
-    # Save local file — sanitize filename to prevent path traversal (file.filename
-    # is user-controlled; e.g. "../../etc/cron.d/evil").
-    safe_name = os.path.basename(file.filename or "image.png").replace("..", "")
-    if not safe_name or safe_name.startswith("."):
-        safe_name = "image.png"
-    file_path = os.path.join(UPLOAD_DIR, f"{id}_{safe_name}")
-    if not os.path.realpath(file_path).startswith(os.path.realpath(UPLOAD_DIR)):
-        raise HTTPException(status_code=400, detail="Invalid filename")
-    # Offload MB-scale file IO to a thread so the event loop (webhook/WS)
-    # is not blocked for the duration of the copy.
-    await asyncio.to_thread(_write_upload_sync, file_path, file)
 
-    rich_menu.image_path = file_path
+    # Bound the read BEFORE buffering the body: file.size comes from the
+    # multipart headers, so an oversized upload is rejected without ever
+    # being pulled into memory (memory-DoS bound).
+    if file.size is not None and file.size > MAX_RICH_MENU_IMAGE_BYTES:
+        raise HTTPException(status_code=413, detail="Image exceeds the 10 MB limit")
+    data = await file.read()
+    if len(data) > MAX_RICH_MENU_IMAGE_BYTES:
+        raise HTTPException(status_code=413, detail="Image exceeds the 10 MB limit")
 
-    # If already has LINE ID, sync image now. Otherwise, wait for explicit sync.
+    # Magic bytes decide the stored/pushed mime — client Content-Type is
+    # spoofable and these bytes go to LINE under our name.
+    mime = _sniff_image_mime(data)
+    if not mime:
+        raise HTTPException(status_code=422, detail="Only PNG or JPEG images are supported")
+
+    safe_name = os.path.basename(file.filename or "image.png").replace("..", "") or "image.png"
+    await RichMenuService.replace_image(db, rich_menu, safe_name, mime, data)
+    await db.refresh(rich_menu)
+
+    # If already synced, push the image to LINE now. On failure the stored
+    # media row survives (the image IS saved) but the menu must not read
+    # SYNCED — it can no longer be published as-is.
     if rich_menu.line_rich_menu_id:
-        img_bytes = await asyncio.to_thread(_read_file_sync, file_path)
         try:
-            await RichMenuService.upload_image_to_line(
-                db, 
-                rich_menu.line_rich_menu_id, 
-                img_bytes, 
-                file.content_type
-            )
+            await RichMenuService.push_image_to_line(db, rich_menu)
         except Exception as e:
-            await db.commit() # Save local path anyway
-            raise HTTPException(status_code=400, detail=f"Image saved locally, but LINE Upload failed: {str(e)}")
-    
-    await db.commit()
-    return {"message": "Image saved", "path": file_path}
+            await RichMenuService.update_sync_status(
+                db, rich_menu, RichMenuSyncStatus.FAILED,
+                f"Image upload to LINE failed: {e}",
+            )
+            raise HTTPException(
+                status_code=400,
+                detail=f"รูปบันทึกในระบบแล้ว แต่อัปโหลดไป LINE ไม่สำเร็จ: {e}",
+            )
+
+    return {"message": "Image saved", "media_id": str(rich_menu.image_media_id)}
 
 @router.post("/{id}/sync")
 async def sync_rich_menu(id: int, db: AsyncSession = Depends(get_db), current_admin: User = Depends(require_permission(KEY_MANAGE_RICH_MENUS))):
     """
     Sync rich menu to LINE with idempotency.
-    If already synced, verifies existence on LINE.
-    If not synced, creates on LINE and stores the ID.
+    If already synced, verifies existence on LINE (a stale id is cleared and
+    the menu is recreated, so the publish 409's "กด Sync เพื่อสร้างใหม่"
+    promise actually works).
     """
     result = await db.execute(select(RichMenu).where(RichMenu.id == id))
     rich_menu = result.scalar_one_or_none()
@@ -612,22 +637,23 @@ async def sync_rich_menu(id: int, db: AsyncSession = Depends(get_db), current_ad
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Sync failed: {str(e)}")
 
-    if sync_result.get("success") and rich_menu.image_path and os.path.exists(rich_menu.image_path):
-        try:
-            img_bytes = await asyncio.to_thread(_read_file_sync, rich_menu.image_path)
-
-            ext = os.path.splitext(rich_menu.image_path)[1].lower()
-            content_type = "image/png" if ext == ".png" else "image/jpeg"
-
-            await RichMenuService.upload_image_to_line(
-                db,
-                sync_result.get("line_rich_menu_id") or rich_menu.line_rich_menu_id,
-                img_bytes,
-                content_type
-            )
-        except Exception as e:
-            sync_result["image_upload_error"] = str(e)
-            logger.warning("Sync succeeded but image upload failed for menu %s", id, exc_info=e)
+    if sync_result.get("success"):
+        # Re-fetch: the service committed/refreshed its own copy, so this
+        # endpoint's object (and the line_rich_menu_id it may have just
+        # created) is stale here. _SeqDB in tests has no identity map — the
+        # re-fetch is load-bearing.
+        result = await db.execute(select(RichMenu).where(RichMenu.id == id))
+        rich_menu = result.scalar_one_or_none()
+        if rich_menu and rich_menu.image_media_id:
+            try:
+                await RichMenuService.push_image_to_line(db, rich_menu)
+            except Exception as e:
+                await RichMenuService.update_sync_status(
+                    db, rich_menu, RichMenuSyncStatus.FAILED,
+                    f"Image upload to LINE failed: {e}",
+                )
+                sync_result["image_upload_error"] = str(e)
+                logger.warning("Sync succeeded but image upload failed for menu %s", id, exc_info=e)
 
     return sync_result
 
@@ -649,12 +675,45 @@ async def publish_rich_menu(id: int, db: AsyncSession = Depends(get_db), current
         raise HTTPException(status_code=409, detail="Rich menu must be synced to LINE before publishing")
 
     try:
+        # Verify-then-act: LINE answers set-default with an opaque 400 when
+        # the richMenuId no longer exists (deleted on LINE / channel switched)
+        # — check existence first so the admin gets an actionable message.
+        line_menu = await RichMenuService.get_from_line(db, rich_menu.line_rich_menu_id)
+        if line_menu is None:
+            await RichMenuService.update_sync_status(
+                db, rich_menu, RichMenuSyncStatus.FAILED,
+                f"Rich menu with ID {rich_menu.line_rich_menu_id} not found on LINE",
+            )
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "message": "เมนูนี้ถูกลบจาก LINE แล้ว กรุณากด Sync เพื่อสร้างใหม่ก่อนตั้งค่า",
+                    "line_rich_menu_id": rich_menu.line_rich_menu_id,
+                },
+            )
         await RichMenuService.set_default_on_line(db, rich_menu.line_rich_menu_id)
-        rich_menu.status = RichMenuStatus.PUBLISHED
-        await db.commit()
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"LINE Publish Error: {str(e)}")
-        
+    except RuntimeError as e:
+        # get_client_headers fail-fast: channel token not configured
+        raise HTTPException(status_code=503, detail=str(e))
+    except httpx.HTTPStatusError as e:
+        detail = RichMenuService._line_error_detail(e)
+        logger.error("LINE rejected set-default for rich menu %s: %s", id, detail)
+        raise HTTPException(
+            status_code=502,
+            detail=f"LINE Publish failed ({e.response.status_code}): {detail}",
+        )
+
+    rich_menu.status = RichMenuStatus.PUBLISHED
+    await db.commit()
+    await create_audit_log(
+        db,
+        admin_id=current_admin.id,
+        action="rich_menu_publish",
+        resource_type="rich_menu",
+        resource_id=str(id),
+        details={"line_rich_menu_id": rich_menu.line_rich_menu_id},
+    )
+
     return {"message": "Rich Menu is now default on LINE Official Account"}
 
 @router.delete("/{id}")
@@ -684,12 +743,16 @@ async def delete_rich_menu(id: int, db: AsyncSession = Depends(get_db), current_
         except Exception as e:
             logger.warning("Failed to delete rich menu %s from LINE during local delete", rich_menu.line_rich_menu_id, exc_info=e)
 
-    # Delete local file if exists
-    if rich_menu.image_path and os.path.exists(rich_menu.image_path):
-        os.remove(rich_menu.image_path)
+    # Delete the stored image bytes (media row) with the menu — the FK is
+    # rich_menus -> media_files, so removing the menu alone would orphan them.
+    if rich_menu.image_media_id:
+        media = await db.get(MediaFile, rich_menu.image_media_id)
+        if media:
+            await db.delete(media)
 
     # FK RESTRICT backstop: a dependency created between the pre-check and the
     # delete still raises IntegrityError — surface it as a 409, not a 500.
+    deleted_name = rich_menu.name
     try:
         await db.delete(rich_menu)
         await db.commit()
@@ -699,5 +762,14 @@ async def delete_rich_menu(id: int, db: AsyncSession = Depends(get_db), current_
             status_code=409,
             detail="Rich menu has dependencies; cannot delete",
         )
+
+    await create_audit_log(
+        db,
+        admin_id=current_admin.id,
+        action="rich_menu_delete",
+        resource_type="rich_menu",
+        resource_id=str(id),
+        details={"name_masked": (deleted_name or "")[:2] + "…"},
+    )
 
     return {"message": "Rich Menu deleted"}
