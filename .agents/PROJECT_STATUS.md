@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-08-30 10:44 by Cline (Merged PR #209 squash 8aa4872: availability-range review remediation — clip range window b)
+> **Last Updated:** 2026-08-30 13:20 by Cline (Merged PR #210 squash 7497b07: availability-range review follow-ups — single range-cap source + pinned AC)
 
 ## Thai Summary
 **สถานะล่าสุด (2026-08-23)** — milestone หลักทุกตัวปิดแล้ว เหลือเฉพาะ manual test ฝั่งผู้ใช้:
@@ -115,6 +115,7 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-08-30 13:20] Cline: Merged PR #210 (squash 7497b07): availability-range review follow-ups — 62-cap เป็น single source (ค่าคงที่ย้ายไป booking_service + ส่งผ่าน `/options` เป็น `max_range_days`; LIFF clip ใช้ค่าที่ backend บอก, 62 เหลือเป็น fallback เมื่อ backend เก่า — fail-open คงเดิม) + เทสใหม่ pin AC #4 (slot ที่เลย NOW หายจากวันนี้, assertion เดิมเป็น tautology); CI เขียวทุกช่อง (Cline)
 - [2026-08-30 10:44] Cline: Merged PR #209 (squash 8aa4872): availability-range review remediation — clip range window by calendar span (real bug from /review), DayAvailabilityOut model_validate, drop unused day_hours, import order, AGENTS.md 409/422; all CI green (Cline)
 - [2026-08-30 08:53] Cline: Merged PR #208 (squash e3b853b): GET /liff/bookings/availability/range endpoint + LIFF date-strip disabling of closed/full days, 16 backend + 3 frontend tests, all CI green (Cline)
 - [2026-08-29 23:21] Qoder: Merged PR #206 + #207 to main (8ddbda3, beaff04) — resolved #206 generated-state conflicts (kept both 21:58/22:44 records, regenerated views, golden suite 23/23); wrote PRD+PRP for availability-range endpoint (committed 391fa9d) awaiting us (Qoder)

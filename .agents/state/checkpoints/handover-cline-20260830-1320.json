@@ -1,0 +1,17 @@
+{
+  "handoff_version": "2.0",
+  "platform": "cline",
+  "agent": "cline",
+  "timestamp": "2026-08-30T13:20:00+07:00",
+  "branch": "main",
+  "head_commit": "7497b07",
+  "status": "completed",
+  "work_summary": "Merged PR #210 (squash 7497b07): availability-range review follow-ups — 62-day range cap now has a single home (booking_service.MAX_AVAILABILITY_RANGE_DAYS, advertised via GET /liff/bookings/options as max_range_days; LIFF clipRangeWindow uses the advertised value, local 62 is fallback only for older backends) + new range test pins AC #4 (slots at/before NOW never appear in today's day; old assertion was tautological); all CI green (Pytest full 1m12s, Lint+Build 1m43s, Playwright 3m11s)",
+  "priority_actions": [
+    "Device-verify booking flow on real LINE mobile (checklist at .scratch/device-verify-checklist-20260830.md, ~15 min)",
+    "Raise advance_days at /admin/settings/booking (DB setting, currently 3)"
+  ],
+  "context_for_next_agent": "SEMANTICS UPDATED (PR #210): the 62-day range cap is NO LONGER two constants kept in sync by comment. One home: booking_service.MAX_AVAILABILITY_RANGE_DAYS. GET /liff/bookings/options serves it as max_range_days; the LIFF page passes options.max_range_days into clipRangeWindow(). The frontend constant (62) is FALLBACK ONLY (older backend / malformed value) — do NOT 'sync' it when changing the backend cap; the page follows /options automatically. Changing the cap = edit booking_service constant only. Fail-open by design at EVERY layer remains (chips without day info stay enabled) — do NOT harden into hard-fail. AC #4 is now pinned by test_slots_at_or_before_now_are_dropped_from_todays_day (asserts the exact surviving slot grid vs NOW; avoid tautological assertions like remaining == len*capacity). Review findings still intentionally left as-is (rationale in .claude/PRPs/plans/availability-range-review-fixes.plan.md): Out suffix, rangeInfo/rangeReady two-state, UnknownServiceTypeError guard duplication, 422-before-503, useAvailabilityRange hook extraction. Frontend test stub gotchas: route /availability/range BEFORE /availability (substring match); stubFetch has maxRangeDays override to inject max_range_days into /options mock. Local test infra: Windows venv backend/venv/Scripts/python.exe; long suites via Start-Process background + poll .scratch/*.txt — machine VERY slow today: even Start-Process calls can hit the 30s wrapper timeout while still launching (verify via output files, not exit code); keep poll sleeps <= 20s and gh commands in their own call. npm run lint full run reports ~3000 pre-existing problems (old admin files + playwright-report/trace artifacts) — NOT introduced by us; targeted eslint of touched files is the reliable local gate; CI 'Frontend Lint and Build' is authoritative and green. Untracked .ignore (graft tool config) stays uncommitted by convention. Deferred user-owned: device-verify booking flow on real LINE mobile (checklist ready), raise advance_days at /admin/settings/booking.",
+  "session_summary": "project-log-md/cline/session-summary-20260830-1320.md",
+  "cross_platform_read": []
+}
