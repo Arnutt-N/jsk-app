@@ -332,7 +332,7 @@ export default function EditRichMenuPage() {
                                         {areas.map((area, i) => (
                                             <div
                                                 key={i}
-                                                className="absolute border border-white/80 flex items-center justify-center text-white font-bold text-sm bg-black/25"
+                                                className="absolute border border-white/80 flex items-center justify-center text-white font-bold text-3xl bg-black/20"
                                                 style={{
                                                     left: `${(area.bounds.x / (menu?.config?.size?.width || 2500)) * 100}%`,
                                                     top: `${(area.bounds.y / (menu?.config?.size?.height || 1686)) * 100}%`,
