@@ -102,6 +102,23 @@ async def test_an_open_day_reports_is_open_and_summed_remaining():
 
 
 @pytest.mark.asyncio
+async def test_slots_at_or_before_now_are_dropped_from_todays_day():
+    """AC #4: the range reuses the single-day engine, so today's day must not
+    offer slots that already started — the 08:00-09:00 starts are gone at
+    NOW=09:15. Compared to asserting `remaining == len(slots) * 2`, which
+    stays green even if past slots leak in (both sides grow together), this
+    pins the exact surviving grid."""
+    hours = _hours(TODAY.weekday())  # 08:00-17:00 grid, every 30 minutes
+    db = _db(hours=[hours])
+
+    days = await _run(db, start=TODAY, end=TODAY)
+
+    expected = [t for t in _slot_times(hours) if datetime.combine(TODAY, t) > NOW]
+    assert len(expected) == 15  # 09:30 through 16:30 — guards the helper itself
+    assert [slot.start for slot in days[0].slots] == expected
+
+
+@pytest.mark.asyncio
 async def test_a_weekday_with_no_business_hours_row_is_closed():
     db = _db(hours=[])  # no rows at all
 
@@ -234,6 +251,25 @@ async def test_endpoint_rejects_a_missing_token_with_401():
     with pytest.raises(HTTPException) as exc:
         await liff_bookings.require_line_user_id(x_liff_id_token=None)
     assert exc.value.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_endpoint_options_advertise_the_range_cap():
+    """The LIFF app clips its range request with this value, so the cap has
+    exactly one home: the service constant, served through /options. The
+    endpoint-side import below is the same object, proving the guard and the
+    advertised cap can never drift apart."""
+    config = SimpleNamespace(
+        enabled=True,
+        service_types=(SERVICE,),
+        advance_days=14,
+        blackout_dates=frozenset(),
+    )
+    with patch.object(liff_bookings, "load_booking_config", new=AsyncMock(return_value=config)):
+        result = await liff_bookings.get_booking_options(db=AsyncMock(), _line_user_id="U1")
+
+    assert result.max_range_days == liff_bookings.MAX_AVAILABILITY_RANGE_DAYS
+    assert result.max_range_days == 62
 
 
 @pytest.mark.asyncio

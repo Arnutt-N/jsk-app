@@ -125,8 +125,9 @@ export function buildDateOptions(
 }
 
 /**
- * The backend refuses range requests spanning more than this many days
- * (`MAX_AVAILABILITY_RANGE_DAYS` in `liff_bookings.py`) — keep the two in sync.
+ * Fallback range cap for `clipRangeWindow` when `/options` does not advertise
+ * one (older backends). The live value is the backend's `max_range_days`
+ * served from `/options` — the backend is the single source of the cap.
  */
 export const MAX_AVAILABILITY_RANGE_DAYS = 62
 
@@ -146,10 +147,22 @@ function addDaysISO(iso: string, days: number): string {
  * first day, never by count, or the request exceeds the backend cap and the
  * whole range fetch (silently) fails. ISO dates compare lexicographically,
  * so the filter needs no Date objects.
+ *
+ * `maxRangeDays` is the backend-advertised cap from `/options`; the exported
+ * constant is only a fallback when that value is missing or invalid.
  */
-export function clipRangeWindow(dateOptions: readonly string[]): string[] {
+export function clipRangeWindow(
+  dateOptions: readonly string[],
+  maxRangeDays?: number,
+): string[] {
   if (dateOptions.length === 0) return []
-  const limit = addDaysISO(dateOptions[0], MAX_AVAILABILITY_RANGE_DAYS)
+  // An older backend does not advertise the cap, and a malformed value must
+  // not silently empty the window — fall back to the local constant.
+  const cap =
+    maxRangeDays !== undefined && Number.isFinite(maxRangeDays) && maxRangeDays > 0
+      ? maxRangeDays
+      : MAX_AVAILABILITY_RANGE_DAYS
+  const limit = addDaysISO(dateOptions[0], cap)
   return dateOptions.filter((iso) => iso <= limit)
 }
 

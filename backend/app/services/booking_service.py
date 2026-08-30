@@ -50,6 +50,12 @@ class BookingNotCancellableError(BookingError):
 ACTIVE_STATUSES = (BookingStatus.CONFIRMED,)
 
 
+# The widest date window `/availability/range` will answer, in calendar days.
+# One home for the cap so the endpoint guard and the LIFF app (which reads it
+# back from `/options` as `max_range_days`) can never drift apart.
+MAX_AVAILABILITY_RANGE_DAYS = 62
+
+
 class ReminderUnit(str, Enum):
     """Unit for the admin-configurable advance-reminder lead time."""
 
