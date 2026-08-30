@@ -31,6 +31,7 @@ interface RichMenu {
 export default function RichMenuListPage() {
     const [menus, setMenus] = useState<RichMenu[]>([]);
     const [loading, setLoading] = useState(true);
+    const [syncingId, setSyncingId] = useState<number | null>(null);
     const [confirmDelete, setConfirmDelete] = useState<{open: boolean; id: number | null}>({open: false, id: null});
     const { toast } = useToast();
     const tableColumns: AdminTableHeadColumn[] = [
@@ -80,28 +81,37 @@ export default function RichMenuListPage() {
         }
     };
 
-    const handleSync = async (id: number) => {
+    const handleSync = async (menu: RichMenu) => {
+        setSyncingId(menu.id);
         try {
-            const res = await fetch(`${API_BASE}/admin/rich-menus/${id}/sync`, { method: 'POST' });
+            const res = await fetch(`${API_BASE}/admin/rich-menus/${menu.id}/sync`, { method: 'POST' });
             if (res.ok) {
                 // A 200 can still carry success:false or image_upload_error —
                 // parseSyncResult decides the real outcome (sync-state honesty).
                 const payload = await res.json();
                 const outcome = parseSyncResult(payload);
                 if (outcome.ok) {
-                    toast({ title: 'สำเร็จ', description: outcome.message, variant: 'success' });
+                    // Sync alone never goes live — tell the admin the next
+                    // step instead of letting the button silently morph into
+                    // Set Active (PRD G3).
+                    const nextStep = menu.status === 'PUBLISHED'
+                        ? 'เมนูนี้กำลังใช้งานอยู่แล้ว'
+                        : 'กด "Set Active" เพื่อใช้งานเมนูนี้';
+                    toast({ title: 'ซิงค์สำเร็จ', description: `${outcome.message} — ${nextStep}`, variant: 'success' });
                 } else {
                     toast({ title: 'Sync ไม่สมบูรณ์', description: outcome.message, variant: 'error' });
                 }
                 fetchMenus();
             } else {
                 const msg = await readErrorMessage(res, 'Sync ไปยัง LINE ล้มเหลว');
-                logger.error('syncRichMenu failed', { status: res.status, id });
+                logger.error('syncRichMenu failed', { status: res.status, id: menu.id });
                 toast({ title: 'ผิดพลาด', description: msg, variant: 'error' });
             }
         } catch (err) {
-            logger.error('syncRichMenu error', err, { id });
+            logger.error('syncRichMenu error', err, { id: menu.id });
             toast({ title: 'ผิดพลาด', description: 'เกิดข้อผิดพลาด กรุณาลองใหม่', variant: 'error' });
+        } finally {
+            setSyncingId(null);
         }
     };
 
@@ -223,7 +233,9 @@ export default function RichMenuListPage() {
                                             {!menu.line_rich_menu_id ? (
                                                 <Button
                                                     size="xs"
-                                                    onClick={() => handleSync(menu.id)}
+                                                    onClick={() => handleSync(menu)}
+                                                    isLoading={syncingId === menu.id}
+                                                    loadingText="กำลังซิงค์..."
                                                 >
                                                     Sync to LINE
                                                 </Button>
@@ -239,7 +251,9 @@ export default function RichMenuListPage() {
                                                 <Button
                                                     size="xs"
                                                     variant="outline"
-                                                    onClick={() => handleSync(menu.id)}
+                                                    onClick={() => handleSync(menu)}
+                                                    isLoading={syncingId === menu.id}
+                                                    loadingText="กำลังซิงค์..."
                                                 >
                                                     Re-sync
                                                 </Button>

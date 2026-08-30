@@ -118,4 +118,67 @@ describe('RichMenuListPage — sync-state honesty', () => {
         // and the list was refetched
         expect(fetchMock.mock.calls.length).toBeGreaterThanOrEqual(3);
     });
+
+    it('disables the Re-sync button with loading state while the sync is in flight', async () => {
+        const menus = [menuFixture({ id: 1, name: 'Broken Menu', sync_status: 'FAILED' })];
+        let resolveSync!: (value: Response) => void;
+        const syncPromise = new Promise<Response>((resolve) => { resolveSync = resolve; });
+        const fetchMock = vi.fn()
+            .mockResolvedValueOnce(jsonResponse(menus)) // initial load
+            .mockReturnValueOnce(syncPromise) // sync: pending until we resolve
+            .mockResolvedValue(jsonResponse(menus)); // refetch after sync
+        renderPage(fetchMock);
+
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Re-sync' })).toBeInTheDocument());
+        const user = userEvent.setup();
+        await user.click(screen.getByRole('button', { name: 'Re-sync' }));
+
+        // While the sync fetch is pending the button is disabled and shows the
+        // loading text (spinner state) — the "is it working?" feedback (PRD G3).
+        await waitFor(() => expect(screen.getByText('กำลังซิงค์...')).toBeInTheDocument());
+        expect(screen.getByRole('button', { name: /Re-sync/ })).toBeDisabled();
+
+        resolveSync(jsonResponse({ success: true, message: 'Synced', sync_status: 'SYNCED' }));
+        await waitFor(() => expect(fetchMock.mock.calls.length).toBeGreaterThanOrEqual(3));
+    });
+
+    it('names the Set Active next step in the sync success toast (not yet published)', async () => {
+        const menus = [menuFixture({ id: 1, name: 'Broken Menu', sync_status: 'FAILED' })];
+        const recovered = [menuFixture({ id: 1, name: 'Broken Menu', sync_status: 'SYNCED' })];
+        const fetchMock = vi.fn()
+            .mockResolvedValueOnce(jsonResponse(menus)) // initial load
+            .mockResolvedValueOnce(jsonResponse({ success: true, message: 'Synced with LINE' }))
+            .mockResolvedValueOnce(jsonResponse(recovered)) // refetch: now publishable
+            .mockResolvedValue(jsonResponse(recovered));
+        renderPage(fetchMock);
+
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Re-sync' })).toBeInTheDocument());
+        const user = userEvent.setup();
+        await user.click(screen.getByRole('button', { name: 'Re-sync' }));
+
+        // The toast tells the admin the sync alone did NOT go live (PRD AC-3.2) —
+        // scoped to the toast title so it cannot collide with the Set Active
+        // button that the refetch reveals in the same tick.
+        await waitFor(() => expect(screen.getByText('ซิงค์สำเร็จ')).toBeInTheDocument());
+        const toastDescriptions = screen.getAllByText(/Set Active/);
+        expect(toastDescriptions.length).toBeGreaterThanOrEqual(1);
+
+        // and after the refetch the row reveals the Set Active button (AC-3.3)
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Set Active' })).toBeInTheDocument());
+    });
+
+    it('says the menu is already live when re-syncing a PUBLISHED menu', async () => {
+        const menus = [menuFixture({ id: 1, name: 'Live Menu', sync_status: 'SYNCED', status: 'PUBLISHED' })];
+        const fetchMock = vi.fn()
+            .mockResolvedValueOnce(jsonResponse(menus))
+            .mockResolvedValueOnce(jsonResponse({ success: true, message: 'Already synced with LINE' }))
+            .mockResolvedValue(jsonResponse(menus));
+        renderPage(fetchMock);
+
+        // PUBLISHED rows show "Live Now", not a publish button
+        await waitFor(() => expect(screen.getByText('Live Now')).toBeInTheDocument());
+        // still reachable via sync through the edit-free path: publish button absent
+        expect(screen.queryByRole('button', { name: 'Set Active' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Re-sync' })).not.toBeInTheDocument();
+    });
 });

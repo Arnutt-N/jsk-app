@@ -5,10 +5,11 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
 import { logger } from '@/lib/logger';
 import { readErrorMessage } from '@/lib/api-error';
-import { ensureRichMenuImage } from '@/lib/rich-menu';
+import { canPublish, ensureRichMenuImage, parseSyncResult, RichMenuSyncStatus } from '@/lib/rich-menu';
 
 interface RichMenuArea {
     bounds: { x: number; y: number; width: number; height: number };
@@ -35,6 +36,8 @@ interface RichMenu {
     chat_bar_text: string;
     line_rich_menu_id: string | null;
     status: string;
+    sync_status: string;
+    last_sync_error: string | null;
     image_url: string | null;
     config: {
         size: { width: number; height: number };
@@ -57,6 +60,8 @@ export default function EditRichMenuPage() {
     const [aliases, setAliases] = useState<AliasLite[]>([]);
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const [syncBusy, setSyncBusy] = useState(false);
+    const [publishBusy, setPublishBusy] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const API_BASE = '/api/v1';
@@ -184,6 +189,56 @@ export default function EditRichMenuPage() {
         }
     };
 
+    // Mirror of the list page's sync flow: parseSyncResult decides the real
+    // outcome (200 can still carry success:false / image_upload_error), and
+    // the toast names the next step — sync alone never goes live.
+    const handleSync = async () => {
+        setSyncBusy(true);
+        try {
+            const res = await fetch(`${API_BASE}/admin/rich-menus/${menuId}/sync`, { method: 'POST' });
+            if (res.ok) {
+                const payload = await res.json();
+                const outcome = parseSyncResult(payload);
+                if (outcome.ok) {
+                    const nextStep = menu?.status === 'PUBLISHED'
+                        ? 'เมนูนี้กำลังใช้งานอยู่แล้ว'
+                        : 'กด "Set Active" เพื่อใช้งานเมนูนี้';
+                    toast({ variant: 'success', title: 'ซิงค์สำเร็จ', description: `${outcome.message} — ${nextStep}` });
+                } else {
+                    toast({ variant: 'error', title: 'Sync ไม่สมบูรณ์', description: outcome.message });
+                }
+                fetchMenu();
+            } else {
+                const msg = await readErrorMessage(res, 'Sync ไปยัง LINE ล้มเหลว');
+                toast({ variant: 'error', title: 'ผิดพลาด', description: msg });
+            }
+        } catch (err) {
+            logger.error('syncRichMenu error', err, { id: menuId });
+            toast({ variant: 'error', title: 'ผิดพลาด', description: 'เกิดข้อผิดพลาด กรุณาลองใหม่' });
+        } finally {
+            setSyncBusy(false);
+        }
+    };
+
+    const handlePublish = async () => {
+        setPublishBusy(true);
+        try {
+            const res = await fetch(`${API_BASE}/admin/rich-menus/${menuId}/publish`, { method: 'POST' });
+            if (res.ok) {
+                toast({ variant: 'success', title: 'สำเร็จ', description: 'ตั้งเป็นเมนูหลักสำเร็จ' });
+                fetchMenu();
+            } else {
+                const msg = await readErrorMessage(res, 'ไม่สามารถตั้งเป็นเมนูหลักได้');
+                toast({ variant: 'error', title: 'ผิดพลาด', description: msg });
+            }
+        } catch (err) {
+            logger.error('publishRichMenu error', err, { id: menuId });
+            toast({ variant: 'error', title: 'ผิดพลาด', description: 'เกิดข้อผิดพลาด กรุณาลองใหม่' });
+        } finally {
+            setPublishBusy(false);
+        }
+    };
+
     if (loading) {
         return <LoadingSpinner label="กำลังโหลด..." />;
     }
@@ -230,12 +285,30 @@ export default function EditRichMenuPage() {
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-600 mb-1">Status</label>
-                            <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold ${menu?.status === 'PUBLISHED' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
-                                }`}>
-                                <span className={`w-2 h-2 rounded-full ${menu?.status === 'PUBLISHED' ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
-                                {menu?.status === 'PUBLISHED' ? 'ACTIVE' : 'DRAFT'}
-                            </div>
+                            <label className="block text-sm font-medium text-slate-600 mb-1">สถานะ</label>
+                            {/* Sync-aware badge (same states as the list page) — a
+                                FAILED sync must be visible here, not hidden behind
+                                a plain DRAFT/ACTIVE pill. */}
+                            <span
+                                title={menu?.last_sync_error || undefined}
+                                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold ${menu?.status === 'PUBLISHED'
+                                    ? 'bg-emerald-50 text-emerald-600'
+                                    : menu?.sync_status === RichMenuSyncStatus.FAILED
+                                        ? 'bg-red-50 text-red-600'
+                                        : menu?.line_rich_menu_id
+                                            ? 'bg-brand-50 text-brand-600'
+                                            : 'bg-amber-50 text-amber-600'
+                                    }`}
+                            >
+                                <span className={`w-2 h-2 rounded-full ${menu?.status === 'PUBLISHED' ? 'bg-emerald-500' : menu?.sync_status === RichMenuSyncStatus.FAILED ? 'bg-red-500' : 'bg-amber-500'}`}></span>
+                                {menu?.status === 'PUBLISHED'
+                                    ? 'ACTIVE'
+                                    : menu?.sync_status === RichMenuSyncStatus.FAILED
+                                        ? 'SYNC FAILED'
+                                        : menu?.line_rich_menu_id
+                                            ? 'SYNCED'
+                                            : 'DRAFT'}
+                            </span>
                         </div>
                     </div>
 
@@ -245,10 +318,36 @@ export default function EditRichMenuPage() {
                         <div
                             onClick={() => fileInputRef.current?.click()}
                             className="w-full aspect-[250/168.6] bg-slate-100 rounded-xl border-2 border-dashed border-slate-300 hover:border-primary/40 transition-colors cursor-pointer overflow-hidden group relative"
+                            style={menu?.config?.size ? { aspectRatio: `${menu.config.size.width}/${menu.config.size.height}` } : undefined}
                         >
                             {imagePreview ? (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img src={imagePreview} alt="Preview" className="w-full h-full object-cover group-hover:opacity-80 transition-opacity" />
+                                <div className="w-full h-full relative">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img src={imagePreview} alt="Preview" className="w-full h-full object-cover group-hover:opacity-80 transition-opacity" />
+                                    {/* Area overlay from the menu's own saved bounds —
+                                        the canvas layout is fixed at creation, so the
+                                        stored areas ARE the template (PRD G1). Same
+                                        numbered-box affordance as the create page. */}
+                                    <div className="absolute inset-0 pointer-events-none">
+                                        {areas.map((area, i) => (
+                                            <div
+                                                key={i}
+                                                className="absolute border border-white/80 flex items-center justify-center text-white font-bold text-sm bg-black/25"
+                                                style={{
+                                                    left: `${(area.bounds.x / (menu?.config?.size?.width || 2500)) * 100}%`,
+                                                    top: `${(area.bounds.y / (menu?.config?.size?.height || 1686)) * 100}%`,
+                                                    width: `${(area.bounds.width / (menu?.config?.size?.width || 2500)) * 100}%`,
+                                                    height: `${(area.bounds.height / (menu?.config?.size?.height || 1686)) * 100}%`,
+                                                }}
+                                            >
+                                                {i + 1}
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                        <span className="text-white text-sm font-medium">เปลี่ยนรูปภาพ</span>
+                                    </div>
+                                </div>
                             ) : (
                                 <div className="flex flex-col items-center justify-center h-full text-slate-400">
                                     <svg className="w-12 h-12 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -257,9 +356,6 @@ export default function EditRichMenuPage() {
                                     <span className="text-sm">คลิกเพื่ออัปโหลดรูปภาพ</span>
                                 </div>
                             )}
-                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                <span className="text-white text-sm font-medium">เปลี่ยนรูปภาพ</span>
-                            </div>
                         </div>
                         <input
                             ref={fileInputRef}
@@ -349,7 +445,36 @@ export default function EditRichMenuPage() {
                 )}
 
                 {/* Action Buttons */}
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                <div className="flex flex-wrap justify-end items-center gap-3 pt-4 border-t border-slate-100">
+                    {/* Sync state machine — same actions the list page offers
+                        (PRD G2), so a FAILED menu can be recovered without
+                        navigating away. canPublish gates Set Active on the
+                        real sync state, never on a guess. */}
+                    {menu && (
+                        <div className="flex items-center gap-3 mr-auto">
+                            {!menu.line_rich_menu_id ? (
+                                <Button size="sm" onClick={handleSync} isLoading={syncBusy} loadingText="กำลังซิงค์...">
+                                    Sync to LINE
+                                </Button>
+                            ) : menu.status === 'PUBLISHED' ? (
+                                <span className="text-[10px] font-black text-emerald-600 px-3 py-1 bg-emerald-50 rounded-full border border-emerald-100 tracking-widest leading-none thai-no-break">
+                                    Live Now
+                                </span>
+                            ) : menu.sync_status === RichMenuSyncStatus.FAILED ? (
+                                <Button size="sm" variant="outline" onClick={handleSync} isLoading={syncBusy} loadingText="กำลังซิงค์...">
+                                    Re-sync
+                                </Button>
+                            ) : canPublish(menu) ? (
+                                <Button size="sm" variant="success" onClick={handlePublish} isLoading={publishBusy} loadingText="กำลังตั้งค่า...">
+                                    Set Active
+                                </Button>
+                            ) : (
+                                <Button size="sm" onClick={handleSync} isLoading={syncBusy} loadingText="กำลังซิงค์...">
+                                    Sync to LINE
+                                </Button>
+                            )}
+                        </div>
+                    )}
                     <Link
                         href="/admin/rich-menus"
                         className="px-6 py-2.5 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors text-sm font-medium cursor-pointer"
