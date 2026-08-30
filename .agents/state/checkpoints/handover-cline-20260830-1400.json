@@ -1,0 +1,17 @@
+{
+  "handoff_version": "2.0",
+  "platform": "cline",
+  "agent": "cline",
+  "timestamp": "2026-08-30T14:00:00+07:00",
+  "branch": "main",
+  "head_commit": "f514ff6",
+  "status": "completed",
+  "work_summary": "Merged PR #211 (squash f514ff6): /review round 3 (two-axis: Standards + Spec, range 43629cd...84b12cc) came back clean — 0 hard violations, 0 substantive findings; closed the single actionable minor by adding one assertion to the existing clipRangeWindow fallback unit test (negative max_rangeDays -> fallback 62, same as undefined/0/NaN). Mutation value verified: removing the `> 0` guard condition would make -5 the live cap, emptying the window, and the test now fails on exactly that. No production code touched. All CI green (Pytest 1m15s, Lint+Build 1m54s, Playwright 3m31s).",
+  "priority_actions": [
+    "Device-verify booking flow on real LINE mobile (checklist at .scratch/device-verify-checklist-20260830.md, ~15 min)",
+    "Raise advance_days at /admin/settings/booking (DB setting, currently 3)"
+  ],
+  "context_for_next_agent": "SEMANTICS (unchanged from PR #210): the 62-day range cap has ONE home — booking_service.MAX_AVAILABILITY_RANGE_DAYS — advertised via GET /liff/bookings/options as max_range_days; the LIFF page passes it into clipRangeWindow(); the frontend constant 62 is FALLBACK ONLY (older backend / malformed value). Fail-open by design at EVERY layer — do NOT harden into hard-fail. NEW (PR #211): the clipRangeWindow fallback unit test now pins all FOUR invalid cases (undefined/0/NaN/negative) — do not regress coverage below that. Review round 3 (2026-08-30, range 43629cd...84b12cc) closed the last actionable finding from the availability-range reviews; remaining review notes are deliberate non-actions: plan-vs-implementation wording (default param vs optional param + guard — functionally equivalent, guard requirement forced the choice), Out-suffix rename (pre-existing, deferred), direct-call endpoint test style (matches file convention), 62 appearing in two files (one is the documented fallback). Local full pytest now verified: 996 passed, 72 errors — ALL environmental (PostgreSQL not running on this Windows box; errors are 'ERROR at setup' fixture failures; CI runs the identical suite with services and passes 100%). Backend findings intentionally left (rationale in .claude/PRPs/plans/availability-range-review-fixes.plan.md): 404 guard duplication, rangeInfo/rangeReady two-state, useAvailabilityRange hook extraction, 422-before-503 order. Machine notes: read_files/search_codebase flaky — use PowerShell Get-Content / git --no-pager; run_commands wrapper 30s timeout — long suites via Start-Process cmd /c with output redirect to .scratch/*.txt + poll (sleep <= 20s); gh pr create with backticks in body breaks PowerShell quoting — write body to .scratch file and use --body-file. npm run lint full run reports ~3000 pre-existing problems (old admin files + playwright-report artifacts) — targeted eslint of touched files is the reliable local gate. Untracked .ignore (graft tool config) stays uncommitted by convention. Deferred user-owned: device-verify booking flow on real LINE mobile (checklist ready), raise advance_days at /admin/settings/booking.",
+  "session_summary": "project-log-md/cline/session-summary-20260830-1400.md",
+  "cross_platform_read": []
+}
