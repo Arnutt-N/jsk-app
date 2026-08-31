@@ -54,7 +54,7 @@ def upgrade() -> None:
     op.create_table(
         "debt_mediation_requests",
         sa.Column("id", sa.Integer(), primary_key=True),
-        sa.Column("user_id", sa.Integer(), sa.ForeignKey("users.id"), nullable=True),
+        sa.Column("user_id", sa.Integer(), sa.ForeignKey("users.id", ondelete="SET NULL"), nullable=True),
         # create_type=False: the enums are created/dropped explicitly above/below
         # with checkfirst, so create_table must not try to CREATE TYPE them again
         # (same gotcha documented in y0z1a2b3c4d5_add_broadcasts_table.py).
@@ -63,21 +63,21 @@ def upgrade() -> None:
             postgresql.ENUM("DEBTOR", "CREDITOR", name="debtparty", create_type=False),
             nullable=False,
         ),
-        sa.Column("full_name", sa.String(), nullable=False),
-        sa.Column("phone_number", sa.String(), nullable=False),
-        sa.Column("province", sa.String(), nullable=False),
-        sa.Column("sub_district", sa.String(), nullable=True),
+        sa.Column("full_name", sa.String(200), nullable=False),
+        sa.Column("phone_number", sa.String(20), nullable=False),
+        sa.Column("province", sa.String(100), nullable=False),
+        sa.Column("sub_district", sa.String(100), nullable=True),
         sa.Column("debt_amount", sa.Numeric(14, 2), nullable=False),
         sa.Column(
             "debt_type",
             postgresql.ENUM("INFORMAL", "FORMAL", name="debttype", create_type=False),
             nullable=False,
         ),
-        sa.Column("counterparty_name", sa.String(), nullable=False),
-        sa.Column("interest_rate", sa.String(), nullable=True),
-        sa.Column("issue_category", sa.String(), nullable=False),
-        sa.Column("issue_other", sa.String(), nullable=True),
-        sa.Column("details", postgresql.JSONB(), nullable=True),
+        sa.Column("counterparty_name", sa.String(200), nullable=False),
+        sa.Column("interest_rate", sa.String(80), nullable=True),
+        sa.Column("issue_category", sa.String(200), nullable=False),
+        sa.Column("issue_other", sa.String(500), nullable=True),
+        sa.Column("details", postgresql.JSONB(), nullable=False, server_default=sa.text("'{}'::jsonb")),
         sa.Column(
             "status",
             status_enum,

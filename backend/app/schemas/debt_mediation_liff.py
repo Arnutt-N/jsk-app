@@ -8,7 +8,26 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 ISSUE_OTHER_LABEL = "อื่น ๆ"
 
-_PHONE_PATTERN = re.compile(r"^\+?\d{9,15}$")
+_PHONE_PATTERN = re.compile(r"^\+?[0-9]{9,15}$")
+
+# Allowlists mirrored from the LIFF wizard options (page.tsx DEBTOR_ISSUE_OPTIONS
+# / CREDITOR_ISSUE_OPTIONS). A non-empty issue_category outside the submitter's
+# own path is rejected so a switched submitter cannot store a stale label.
+DEBTOR_ISSUE_CATEGORIES = frozenset({
+    "ค้างชำระหนี้ ถูกข่มขู่/กลั่นแกล้ง ไม่สามารถจ่ายได้",
+    "ทำสัญญา/ข้อตกลงที่ลักษณะเป็นอาชญากรรม (ถูกหลอก สัญญาไม่ชอบด้วยกฎหมาย)",
+    "ถูกข่มขู่/หนวกหู จากบุคคลอื่น",
+    "รายได้ไม่เพียงพอจะชำระหนี้",
+    "ผู้ไกล่เกลี่ยติดต่อเจ้าหนี้ไม่ได้",
+    ISSUE_OTHER_LABEL,
+})
+CREDITOR_ISSUE_CATEGORIES = frozenset({
+    "ลูกหนี้ไม่มีเงินจ่ายหนี้",
+    "ลูกหนี้ปฏิเสธว่าไม่ได้เป็นหนี้",
+    "ลูกหนี้ปฏิเสธไม่ยอมชำระหนี้",
+    "ลูกหนี้หลบหนีหนี้",
+    ISSUE_OTHER_LABEL,
+})
 
 
 class SubmitterType(str, Enum):
@@ -37,20 +56,22 @@ class DebtMediationCreate(BaseModel):
     # then enforces 9–15 digits (optional leading +). Keep the raw cap loose.
     phone_number: str = Field(min_length=1, max_length=20)
     province: str = Field(min_length=1, max_length=100)
-    sub_district: Optional[str] = None
+    sub_district: Optional[str] = Field(default=None, max_length=100)
 
-    debt_amount: Decimal = Field(gt=0)
+    debt_amount: Decimal = Field(gt=0, max_digits=14, decimal_places=2, allow_inf_nan=False)
     debt_type: DebtType
 
     # อีกฝ่ายของข้อพิพาท (ชื่อเจ้าหนี้ เมื่อผู้ยื่นเป็นลูกหนี้ หรือกลับกัน)
     counterparty_name: str = Field(min_length=1, max_length=200)
-    interest_rate: Optional[str] = None
+    interest_rate: Optional[str] = Field(default=None, max_length=80)
 
-    issue_category: str = Field(min_length=1)
-    issue_other: Optional[str] = None
+    issue_category: str = Field(min_length=1, max_length=200)
+    issue_other: Optional[str] = Field(default=None, max_length=500)
 
-    # User context
-    line_user_id: Optional[str] = None
+    # User context — LINE ids are fixed-shape (≤33 chars); the cap keeps a
+    # multi-MB body value from being parsed/persisted as identity in
+    # transition mode.
+    line_user_id: Optional[str] = Field(default=None, max_length=64)
 
     @field_validator("phone_number")
     @classmethod
@@ -115,6 +136,16 @@ class DebtMediationCreate(BaseModel):
             raise ValueError(
                 "issue_other must be empty unless issue_category is อื่น ๆ."
             )
+
+        allowed = (
+            DEBTOR_ISSUE_CATEGORIES
+            if self.submitter_type == SubmitterType.DEBTOR
+            else CREDITOR_ISSUE_CATEGORIES
+        )
+        if self.issue_category not in allowed:
+            raise ValueError("issue_category is not valid for this submitter_type.")
+        if self.submitter_type == SubmitterType.CREDITOR:
+            self.interest_rate = None
         return self
 
     model_config = ConfigDict(
@@ -150,7 +181,6 @@ class DebtMediationResponse(BaseModel):
     interest_rate: Optional[str] = None
     issue_category: str
     issue_other: Optional[str] = None
-    line_user_id: Optional[str] = None
     status: Optional[str] = None
     created_at: Optional[datetime] = None
 

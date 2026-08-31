@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { SessionExpiredError, isSessionExpired } from '../session-expired'
+import {
+  SessionExpiredError,
+  SESSION_EXPIRED_MESSAGE,
+  isSessionExpired,
+} from '../session-expired'
 import {
   formatLiffSubmitError,
   isValidPhone,
@@ -75,6 +79,7 @@ describe('submitDebtMediation', () => {
     )
     expect(err).toBeInstanceOf(SessionExpiredError)
     expect(isSessionExpired(err)).toBe(true)
+    expect((err as Error).message).toBe(SESSION_EXPIRED_MESSAGE)
   })
 })
 
@@ -93,6 +98,13 @@ describe('phone helpers', () => {
   it('rejects letters and too-short values', () => {
     expect(isValidPhone('abcdefghij')).toBe(false)
     expect(isValidPhone('09123456')).toBe(false)
+  })
+
+  it('accepts ASCII local and +66 phones and rejects Thai digits', () => {
+    expect(isValidPhone('0812345678')).toBe(true)
+    expect(isValidPhone('081-234-5678')).toBe(true)
+    expect(isValidPhone('+66812345678')).toBe(true)
+    expect(isValidPhone('๐๘๑๒๓๔๕๖๗๘')).toBe(false)
   })
 })
 
