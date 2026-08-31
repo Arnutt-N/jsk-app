@@ -102,6 +102,22 @@ def test_phone_too_short_rejected():
         DebtMediationCreate(**_debtor_payload(phone_number="09123456"))
 
 
+def test_phone_letters_rejected():
+    """Length-only checks used to accept 'abcdefghij' (10 chars, no digits)."""
+    with pytest.raises(Exception):
+        DebtMediationCreate(**_debtor_payload(phone_number="abcdefghij"))
+
+
+def test_phone_with_dashes_normalized():
+    obj = DebtMediationCreate(**_debtor_payload(phone_number="081-234-5678"))
+    assert obj.phone_number == "0812345678"
+
+
+def test_phone_plus_prefix_accepted():
+    obj = DebtMediationCreate(**_debtor_payload(phone_number="+66812345678"))
+    assert obj.phone_number == "+66812345678"
+
+
 def test_zero_or_negative_debt_amount_rejected():
     with pytest.raises(Exception):
         DebtMediationCreate(**_debtor_payload(debt_amount="0"))

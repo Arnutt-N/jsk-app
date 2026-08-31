@@ -21,7 +21,7 @@ import {
 import { logger } from '@/lib/logger';
 import { useLiffInit } from '@/hooks/useLiffInit'
 import { useAutoCloseCountdown } from '@/hooks/useAutoCloseCountdown'
-import { submitDebtMediation, DebtMediationPayload } from '@/lib/liff/submit-debt-mediation'
+import { submitDebtMediation, DebtMediationPayload, formatLiffSubmitError, isValidPhone, normalizePhone } from '@/lib/liff/submit-debt-mediation'
 
 // --- FORM CONTENT (mirrors the MoJ debt-mediation registration form) ---
 
@@ -155,7 +155,7 @@ export default function LiffDebtMediation() {
             case 1: // Debt info
                 if (!formData.full_name) errors.full_name = 'กรุณาระบุชื่อ-สกุล'
                 if (!formData.phone_number) errors.phone_number = 'กรุณาระบุหมายเลขโทรศัพท์'
-                else if (formData.phone_number.length < 9) errors.phone_number = 'เบอร์โทรไม่ถูกต้อง'
+                else if (!isValidPhone(formData.phone_number)) errors.phone_number = 'เบอร์โทรไม่ถูกต้อง'
                 if (!formData.province) errors.province = 'กรุณาเลือกจังหวัดที่อาศัย'
                 if (!formData.debt_amount || Number(formData.debt_amount) <= 0) errors.debt_amount = 'กรุณาระบุยอดหนี้สิน'
                 if (!formData.debt_type) errors.debt_type = 'กรุณาเลือกประเภทหนี้'
@@ -202,7 +202,7 @@ export default function LiffDebtMediation() {
     const buildPayload = (): DebtMediationPayload => ({
         submitter_type: formData.submitter_type as SubmitterType,
         full_name: formData.full_name,
-        phone_number: formData.phone_number,
+        phone_number: normalizePhone(formData.phone_number),
         province: formData.province,
         sub_district: formData.sub_district || null,
         debt_amount: formData.debt_amount,
@@ -230,8 +230,7 @@ export default function LiffDebtMediation() {
             }
 
             if (!res.ok) {
-                const detail = typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail ?? data)
-                throw new Error(detail)
+                throw new Error(formatLiffSubmitError(data))
             }
 
             setSuccess(true)
@@ -240,7 +239,7 @@ export default function LiffDebtMediation() {
             try { setIsInLineApp(getLiff()?.isInClient() ?? false) } catch { /* not in LINE */ }
         } catch (err: unknown) {
             logger.error('Submit Error:', err)
-            setError(err instanceof Error ? err.message : 'Failed to submit')
+            setError(err instanceof Error ? err.message : 'ไม่สามารถส่งคำขอได้ กรุณาลองอีกครั้ง')
             setShowConfirm(false)
             window.scrollTo(0, 0)
         } finally {

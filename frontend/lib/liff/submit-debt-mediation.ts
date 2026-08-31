@@ -2,6 +2,30 @@ import { SessionExpiredError } from './session-expired'
 
 const DEBT_MEDIATION_ENDPOINT = '/api/v1/liff/debt-mediation'
 
+/** Optional +, then 9–15 digits — matches backend `_PHONE_PATTERN`. */
+const PHONE_DIGITS = /^\+?\d{9,15}$/
+
+const GENERIC_SUBMIT_ERROR = 'ไม่สามารถส่งคำขอได้ กรุณาตรวจสอบข้อมูลแล้วลองอีกครั้ง'
+
+export function normalizePhone(raw: string): string {
+  return raw.trim().replace(/[-\s]/g, '')
+}
+
+export function isValidPhone(raw: string): boolean {
+  return PHONE_DIGITS.test(normalizePhone(raw))
+}
+
+/** Surface a string `detail`; never dump FastAPI 422 arrays as JSON. */
+export function formatLiffSubmitError(body: unknown): string {
+  if (body && typeof body === 'object' && 'detail' in body) {
+    const detail = (body as { detail: unknown }).detail
+    if (typeof detail === 'string' && detail.trim()) {
+      return detail
+    }
+  }
+  return GENERIC_SUBMIT_ERROR
+}
+
 /** Mirrors the backend `DebtMediationCreate` schema. */
 export interface DebtMediationPayload {
   submitter_type: 'DEBTOR' | 'CREDITOR'

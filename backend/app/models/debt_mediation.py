@@ -63,7 +63,13 @@ class DebtMediationRequest(Base):
 
     # Workflow status — reuses the existing requeststatus pg type so a future
     # admin pipeline can follow the ServiceRequest lifecycle.
-    status = Column(Enum(RequestStatus), default=RequestStatus.PENDING, index=True)
+    status = Column(
+        Enum(RequestStatus),
+        default=RequestStatus.PENDING,
+        server_default="PENDING",
+        nullable=False,
+        index=True,
+    )
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

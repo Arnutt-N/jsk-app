@@ -119,6 +119,8 @@ describe('debt mediation wizard', () => {
       ([u, init]) => String(u).includes('/liff/debt-mediation') && init?.method === 'POST',
     )
     expect(call).toBeDefined()
+    const headers = new Headers(call![1]?.headers as HeadersInit)
+    expect(headers.get('x-liff-id-token')).toBe('token-123')
     const payload = JSON.parse(String(call![1].body))
     expect(payload).toMatchObject({
       submitter_type: 'DEBTOR',
@@ -209,5 +211,53 @@ describe('debt mediation wizard', () => {
       await screen.findByText('interest_rate is required when the submitter is a debtor.'),
     ).toBeInTheDocument()
     expect(screen.queryByText('ลงทะเบียนสำเร็จ')).not.toBeInTheDocument()
+  })
+
+  it('blocks step 2 when the phone number has no digits', async () => {
+    const user = userEvent.setup()
+    render(<LiffDebtMediationPage />)
+    await screen.findByText('สถานะของผู้ยื่นคำขอ')
+
+    await user.click(screen.getByRole('button', { name: /^ลูกหนี้/ }))
+    await user.click(screen.getByRole('button', { name: 'ถัดไป' }))
+    await waitFor(() => screen.getByPlaceholderText('ระบุชื่อ-นามสกุล'))
+    await user.type(screen.getByPlaceholderText('ระบุชื่อ-นามสกุล'), 'สมชาย ใจดี')
+    await user.type(screen.getByPlaceholderText('0xx-xxx-xxxx'), 'abcdefghij')
+    await user.type(screen.getByPlaceholderText('0.00'), '20000')
+    await user.selectOptions(screen.getByRole('combobox'), 'สกลนคร')
+    await user.click(screen.getByRole('button', { name: /^หนี้นอกระบบ/ }))
+    await user.click(screen.getByRole('button', { name: 'ถัดไป' }))
+
+    expect(screen.getByText('เบอร์โทรไม่ถูกต้อง')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('ระบุชื่อ-นามสกุล')).toBeInTheDocument()
+  })
+
+  it('shows a Thai fallback instead of dumping a 422 array', async () => {
+    stubFetch({
+      submitStatus: 422,
+      submitBody: {
+        detail: [{ loc: ['body', 'phone_number'], msg: 'Value error', type: 'value_error' }],
+      },
+    })
+    const user = userEvent.setup()
+    render(<LiffDebtMediationPage />)
+    await screen.findByText('สถานะของผู้ยื่นคำขอ')
+
+    await user.click(screen.getByRole('button', { name: /^ลูกหนี้/ }))
+    await user.click(screen.getByRole('button', { name: 'ถัดไป' }))
+    await fillStep2(user)
+    await user.click(screen.getByRole('button', { name: /^หนี้นอกระบบ/ }))
+    await user.click(screen.getByRole('button', { name: 'ถัดไป' }))
+    await user.type(screen.getByPlaceholderText('ระบุชื่อเจ้าหนี้ (บุคคลหรือสถาบัน)'), 'นายทุน')
+    await user.type(screen.getByPlaceholderText('เช่น ร้อยละ 5 ต่อเดือน'), 'ร้อยละ 20')
+    await chooseDebtorIssue(user)
+    await user.click(screen.getByRole('button', { name: 'ยื่นคำขอ' }))
+    await user.click(screen.getByRole('button', { name: 'ยืนยันคำขอ' }))
+
+    expect(
+      await screen.findByText('ไม่สามารถส่งคำขอได้ กรุณาตรวจสอบข้อมูลแล้วลองอีกครั้ง'),
+    ).toBeInTheDocument()
+    expect(screen.queryByText('ลงทะเบียนสำเร็จ')).not.toBeInTheDocument()
+    expect(screen.queryByText(/Value error/)).not.toBeInTheDocument()
   })
 })

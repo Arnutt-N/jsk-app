@@ -78,7 +78,12 @@ def upgrade() -> None:
         sa.Column("issue_category", sa.String(), nullable=False),
         sa.Column("issue_other", sa.String(), nullable=True),
         sa.Column("details", postgresql.JSONB(), nullable=True),
-        sa.Column("status", status_enum, nullable=True),
+        sa.Column(
+            "status",
+            status_enum,
+            nullable=False,
+            server_default="PENDING",
+        ),
         sa.Column(
             "created_at", sa.DateTime(timezone=True), server_default=sa.func.now()
         ),

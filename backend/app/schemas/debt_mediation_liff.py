@@ -4,7 +4,7 @@ from enum import Enum
 from typing import Optional
 import re
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 ISSUE_OTHER_LABEL = "อื่น ๆ"
 
@@ -33,8 +33,10 @@ def _blank(value: Optional[str]) -> bool:
 class DebtMediationCreate(BaseModel):
     submitter_type: SubmitterType
     full_name: str = Field(min_length=1, max_length=200)
-    phone_number: str = Field(min_length=9, max_length=15)
-    province: str = Field(min_length=1)
+    # Raw input may include dashes/spaces; the field validator strips them and
+    # then enforces 9–15 digits (optional leading +). Keep the raw cap loose.
+    phone_number: str = Field(min_length=1, max_length=20)
+    province: str = Field(min_length=1, max_length=100)
     sub_district: Optional[str] = None
 
     debt_amount: Decimal = Field(gt=0)
@@ -49,6 +51,14 @@ class DebtMediationCreate(BaseModel):
 
     # User context
     line_user_id: Optional[str] = None
+
+    @field_validator("phone_number")
+    @classmethod
+    def _normalize_phone(cls, value: str) -> str:
+        cleaned = value.strip().replace("-", "").replace(" ", "")
+        if not _PHONE_PATTERN.fullmatch(cleaned):
+            raise ValueError("เบอร์โทรต้องเป็นตัวเลข 9–15 หลัก")
+        return cleaned
 
     @model_validator(mode="after")
     def _require_path_fields(self) -> "DebtMediationCreate":
