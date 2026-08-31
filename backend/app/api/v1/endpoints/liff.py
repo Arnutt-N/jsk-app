@@ -263,7 +263,7 @@ async def create_debt_mediation_request(
     request: DebtMediationCreate,
     db: AsyncSession = Depends(get_db),
     x_liff_id_token: Optional[str] = Header(None),
-) -> Any:
+) -> DebtMediationResponse:
     """Create a new debt mediation request from LIFF (ขอแก้หนี้)."""
     # Same identity pattern as create_service_request: trust only the verified
     # LINE token sub, reject unverified submissions in strict mode.
@@ -324,7 +324,6 @@ async def create_debt_mediation_request(
         interest_rate=db_obj.interest_rate,
         issue_category=db_obj.issue_category,
         issue_other=db_obj.issue_other,
-        line_user_id=line_user_id,
         status=db_obj.status.value if hasattr(db_obj.status, "value") else db_obj.status,
         created_at=db_obj.created_at,
     )

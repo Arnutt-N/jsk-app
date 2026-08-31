@@ -3,7 +3,7 @@ import { SessionExpiredError } from './session-expired'
 const DEBT_MEDIATION_ENDPOINT = '/api/v1/liff/debt-mediation'
 
 /** Optional +, then 9–15 digits — matches backend `_PHONE_PATTERN`. */
-const PHONE_DIGITS = /^\+?\d{9,15}$/
+const PHONE_DIGITS = /^\+?[0-9]{9,15}$/
 
 const GENERIC_SUBMIT_ERROR = 'ไม่สามารถส่งคำขอได้ กรุณาตรวจสอบข้อมูลแล้วลองอีกครั้ง'
 
