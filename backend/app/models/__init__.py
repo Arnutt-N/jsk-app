@@ -1,6 +1,7 @@
 from .user import User
 from .organization import Organization
 from .service_request import ServiceRequest
+from .debt_mediation import DebtMediationRequest
 from .booking import Booking
 from .message import Message
 from .media_file import MediaFile
