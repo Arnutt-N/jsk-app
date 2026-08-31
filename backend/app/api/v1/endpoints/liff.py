@@ -8,8 +8,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.http_rate_limit import http_rate_limit
 from app.db.session import get_db
+from app.models.debt_mediation import (
+    DebtMediationDebtType,
+    DebtMediationParty,
+    DebtMediationRequest,
+)
 from app.models.media_file import MediaFile, detect_category
 from app.models.service_request import RequestStatus, ServiceRequest
+from app.schemas.debt_mediation_liff import (
+    DebtMediationCreate,
+    DebtMediationResponse,
+)
 from app.schemas.service_request_liff import ServiceRequestCreate, ServiceRequestResponse
 from app.services.friend_service import friend_service
 from app.services.user_identity_service import resolve_by_line_id
@@ -211,12 +220,12 @@ async def create_service_request(
         created_at=db_obj.created_at,
         status=db_obj.status.value if hasattr(db_obj.status, 'value') else db_obj.status,
         priority=db_obj.priority.value if hasattr(db_obj.priority, 'value') else db_obj.priority, # No default value
-        
+
         # Mapped fields
         name=db_obj.requester_name,
         phone=db_obj.phone_number,
         service_type=db_obj.topic_category or db_obj.category,
-        
+
         # Direct fields
         prefix=db_obj.prefix,
         firstname=db_obj.firstname,
@@ -230,4 +239,91 @@ async def create_service_request(
         topic_subcategory=db_obj.topic_subcategory,
         description=db_obj.description,
         attachments=db_obj.attachments or []
+    )
+
+
+@router.post(
+    "/debt-mediation",
+    response_model=DebtMediationResponse,
+    status_code=201,
+    summary="Create Debt Mediation Request (LIFF)",
+    description="Register a debt-mediation intention (ขอแก้หนี้) from the LIFF application. The submitter is either the debtor or the creditor; path-specific fields are enforced by the schema.",
+    response_description="The created debt mediation request with ID and status.",
+    dependencies=[
+        Depends(
+            http_rate_limit(
+                "liff-submit",
+                max_events=settings.LIFF_SUBMIT_RATE_LIMIT,
+                window_seconds=settings.LIFF_SUBMIT_RATE_WINDOW,
+            )
+        )
+    ],
+)
+async def create_debt_mediation_request(
+    request: DebtMediationCreate,
+    db: AsyncSession = Depends(get_db),
+    x_liff_id_token: Optional[str] = Header(None),
+) -> DebtMediationResponse:
+    """Create a new debt mediation request from LIFF (ขอแก้หนี้)."""
+    # Same identity pattern as create_service_request: trust only the verified
+    # LINE token sub, reject unverified submissions in strict mode.
+    if x_liff_id_token:
+        verified_line_user_id = await verify_liff_token(x_liff_id_token)
+        if request.line_user_id and request.line_user_id != verified_line_user_id:
+            logger.warning(
+                "LIFF body line_user_id mismatch with verified token sub %s…; using verified identity",
+                verified_line_user_id[:6],
+            )
+        line_user_id = verified_line_user_id
+        source_details = {"source": "LIFF"}
+    elif settings.LIFF_STRICT_MODE:
+        logger.warning("LIFF_token_missing_strict_mode_reject_debt_mediation")
+        raise HTTPException(status_code=401, detail="LIFF ID token required")
+    else:
+        logger.warning("LIFF_token_missing_transition_mode_debt_mediation")
+        line_user_id = request.line_user_id
+        source_details = {"source": "LIFF-unverified"}
+
+    user = None
+    if line_user_id:
+        user = await resolve_by_line_id(db, line_user_id)
+        if user is None:
+            user = await friend_service.get_or_create_user(line_user_id, db, commit=False)
+
+    db_obj = DebtMediationRequest(
+        user_id=user.id if user else None,
+        status=RequestStatus.PENDING,
+        submitter_type=DebtMediationParty(request.submitter_type.value),
+        full_name=request.full_name.strip(),
+        phone_number=request.phone_number.strip(),
+        province=request.province,
+        sub_district=request.sub_district,
+        debt_amount=request.debt_amount,
+        debt_type=DebtMediationDebtType(request.debt_type.value),
+        counterparty_name=request.counterparty_name.strip(),
+        interest_rate=request.interest_rate,
+        issue_category=request.issue_category,
+        issue_other=request.issue_other,
+        details=source_details,
+    )
+
+    db.add(db_obj)
+    await db.commit()
+    await db.refresh(db_obj)
+
+    return DebtMediationResponse(
+        id=db_obj.id,
+        submitter_type=db_obj.submitter_type,
+        full_name=db_obj.full_name,
+        phone_number=db_obj.phone_number,
+        province=db_obj.province,
+        sub_district=db_obj.sub_district,
+        debt_amount=db_obj.debt_amount,
+        debt_type=db_obj.debt_type,
+        counterparty_name=db_obj.counterparty_name,
+        interest_rate=db_obj.interest_rate,
+        issue_category=db_obj.issue_category,
+        issue_other=db_obj.issue_other,
+        status=db_obj.status.value if hasattr(db_obj.status, "value") else db_obj.status,
+        created_at=db_obj.created_at,
     )
