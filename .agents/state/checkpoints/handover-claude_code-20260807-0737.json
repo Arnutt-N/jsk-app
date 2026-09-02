@@ -1,0 +1,22 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-08-07T07:37:00+07:00",
+  "branch": "main",
+  "head_commit": "9127301",
+  "status": "completed",
+  "work_summary": "Audited all 35 skn-* skills against current code and verified the full test suite after syncing main",
+  "priority_actions": [
+    "Update skn-api-patterns and skn-auth-security to the require_permission() authorization model",
+    "Add DIRECTOR and HEAD roles to 15 stale skill files and CLAUDE.md",
+    "Remove the false GAP-1/GAP-5/GAP-6 claims from skn-user-management",
+    "Rewrite the skn-devtools script table around backend/scripts/",
+    "Confirm on the second machine whether backend/scripts/create_admin.py and scripts/seed_geography.py exist uncommitted"
+  ],
+  "context_for_next_agent": "Local main fast-forwarded to 9127301 (PRs #185/#186 live-chat races, #188 auth bootstrap retry). Both suites verified green on this machine: frontend 482 passed, backend 878 passed with 0 failures. The 62 backend errors in the first run were the conftest.py fail-fast probe firing because Docker was down, not test failures; after starting db/redis the 8 blocked files passed 71/71. Environment gotcha: this machine has backend/venv/ (not the venv_linux/ that CLAUDE.md documents) and the system Python has no pytest, so run backend tests via backend/venv/Scripts/python.exe. No code or skill files were modified this session. The skn-* skills audit found the authorization model is the biggest drift: require_permission(KEY_*) is used in 28 endpoint files but documented in only 1 of 35 skills, and DIRECTOR/HEAD roles are missing from all 15 role-mentioning skill files plus CLAUDE.md. skn-user-management documents three already-closed gaps and would send a reader to hand-write DB inserts. skn-devtools references five scripts that git history shows were deleted in ba5b2ca and d0a93cc. Live-chat skills and all frontmatter verified accurate. Preserve the untracked research/kilo_code/codebase-walkthrough-20260717.md file. Docker was torn down after the test run, so run docker-compose up -d db redis before any DB-backed backend tests.",
+  "session_summary": "project-log-md/claude_code/session-summary-20260807-0737.md",
+  "cross_platform_read": [],
+  "model": "Claude Opus 5 (1M context)",
+  "provider": "Anthropic"
+}

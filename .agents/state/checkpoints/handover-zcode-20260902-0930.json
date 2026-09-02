@@ -1,0 +1,18 @@
+{
+  "handoff_version": "2.0",
+  "platform": "zcode",
+  "agent": "zcode",
+  "timestamp": "2026-09-02T09:30:00+07:00",
+  "branch": "main",
+  "head_commit": "ff8bae8",
+  "status": "completed",
+  "work_summary": "Rich-menu admin fixes from user smoke test: PR #220 (squash 647441b) — edits now reach LINE via recreate-on-drift sync (LINE has no update endpoint; sync detects config/image drift or PENDING flag and rebuilds the menu on LINE, moving aliases + per-user links + default to the new id before deleting the old one; abort-safe and retry-safe), edit page gains create-page action parity (บันทึกฉบับร่าง / บันทึกและซิงค์, รอซิงค์ amber state, stays-on-page refresh). PR #221 (squash ff8bae8) — display settings parity with OA Manager: การแสดงผล card on create+edit (แสดงตลอดเวลา / ตามช่วงเวลา / ซ่อน), rich_menu_display_scheduler task (60s poll, activate=set-default at period start, expire=INACTIVE and cancels default ONLY if LINE still reports this menu — never un-publishes someone else's default), migration c9d0e1f2a3b4 applied on prod (verified in CD log), menuStatusPill single resolver adds ตามเวลา/หมดเวลา/ซ่อน pills. De-flaked edit-page vitest by routing fetch mocks by URL+method instead of call order (CI flake root cause). All CI/CD/E2E green on main",
+  "priority_actions": [
+    "User to smoke test on prod: แก้ไขพื้นที่เมนู (เช่น message->uri) แล้วกด บันทึกและซิงค์ ต้องเห็นการเปลี่ยนแปลงใน LINE ทันทีโดยไม่ต้อง Set Active ซ้ำ (เมนู PUBLISHED)",
+    "User to smoke test display modes: สร้างเมนูโหมด ตามช่วงเวลา แล้วรอถึงเวลาเริ่ม — เมนูต้องขึ้นเองภายใน ~1 นาที และซ่อนเองเมื่อหมดเวลา",
+    "User to check existing menus read ALWAYS and behave unchanged"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/zcode/session-summary-20260902-0930.md",
+  "cross_platform_read": []
+}

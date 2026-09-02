@@ -1,16 +1,16 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Cross-Platform Session Index (generated)
 
-> **Last generated**: 2026-08-31 04:17 (from newest checkpoint)
+> **Last generated**: 2026-09-02 09:30 (from newest checkpoint)
 
 ## Quick Stats
 
 | Metric | Value |
 |--------|-------|
-| Handoff checkpoints (active) | 249 |
-| Session summaries on disk | 346 |
+| Handoff checkpoints (active) | 251 |
+| Session summaries on disk | 348 |
 | Platforms | 10 (antigravity, claude_code, cline, codex, gemini_cli, kilo_code, kimi_code, open_code, qoder, zcode) |
-| Most recent | 2026-08-31 04:17 — zcode |
+| Most recent | 2026-09-02 09:30 — zcode |
 
 > Regenerate after any handoff: `node .agents/scripts/gen-handoff-views.cjs`
 
@@ -23,7 +23,7 @@
 | 2026-04-04 12:04 | completed | — | — | `handover-antigravity-20260404-1204.json` |
 | 2026-02-15 03:20 | completed | — | — | `handover-antigravity-20260215-0320.json` |
 
-## claude_code (158)
+## claude_code (159)
 
 | When | Status | Model | Provider | Checkpoint |
 |------|--------|-------|----------|------------|
@@ -33,6 +33,7 @@
 | 2026-08-13 07:02 | completed | Claude Opus 5 | Anthropic | `handover-claude_code-20260813-0702.json` |
 | 2026-08-12 21:03 | in_progress | Claude Opus 5 | Anthropic | `handover-claude_code-20260812-2103.json` |
 | 2026-08-12 18:28 | in_progress | Claude Opus 5 | Anthropic | `handover-claude_code-20260812-1828.json` |
+| 2026-08-07 07:37 | completed | Claude Opus 5 (1M context) | Anthropic | `handover-claude_code-20260807-0737.json` |
 | 2026-08-05 14:19 | completed | Claude Opus 5 | Anthropic | `handover-claude_code-20260805-1419.json` |
 | 2026-08-05 07:52 | completed | Claude Opus 5 | Anthropic | `handover-claude_code-20260805-0752.json` |
 | 2026-08-05 03:05 | completed | — | — | `handover-claude_code-20260805-0305.json` |
@@ -46,8 +47,7 @@
 | 2026-08-02 00:39 | completed | — | — | `handover-claude_code-20260802-0039.json` |
 | 2026-08-01 21:38 | completed | — | — | `handover-claude_code-20260801-2138.json` |
 | 2026-08-01 21:18 | completed | — | — | `handover-claude_code-20260801-2118.json` |
-| 2026-08-01 20:26 | completed | — | — | `handover-claude_code-20260801-2026.json` |
-| … | | | | +138 older |
+| … | | | | +139 older |
 
 ## cline (10)
 
@@ -163,10 +163,11 @@
 | 2026-07-28 10:32 | completed | — | — | `handover-qoder-20260728-1032.json` |
 | … | | | | +6 older |
 
-## zcode (3)
+## zcode (4)
 
 | When | Status | Model | Provider | Checkpoint |
 |------|--------|-------|----------|------------|
+| 2026-09-02 09:30 | completed | — | — | `handover-zcode-20260902-0930.json` |
 | 2026-08-31 04:17 | completed | — | — | `handover-zcode-20260831-0417.json` |
 | 2026-08-31 01:57 | completed | — | — | `handover-zcode-20260831-0157.json` |
 | 2026-08-30 23:29 | completed | — | — | `handover-zcode-20260830-2329.json` |

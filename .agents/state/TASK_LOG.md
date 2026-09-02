@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 249 active handoffs, 10 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 251 active handoffs, 10 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-09-02 09:30 — zcode — completed
+
+Rich-menu admin fixes from user smoke test: PR #220 (squash 647441b) — edits now reach LINE via recreate-on-drift sync (LINE has no update endpoint; sync detects config/image drift or PENDING flag and rebuilds the menu on LINE, moving aliases + per-user links + default to the new id before deleting the old one; abort-safe and retry-safe), edit page gains create-page action parity (บันทึกฉบับร่าง / บันทึกและซิงค์, รอซิงค์ amber state, stays-on-page refresh). PR #221 (squash ff8bae8) — display settings parity with OA Manager: การแสดงผล card on create+edit (แสดงตลอดเวลา / ตามช่วงเวลา / ซ่อน), rich_menu_display_scheduler task (60s poll, activate=set-default at period start, expire=INACTIVE and cancels default ONLY if LINE still reports this menu — never un-publishes someone else's default), migration c9d0e1f2a3b4 applied on prod (verified in CD log), menuStatusPill single resolver adds ตามเวลา/หมดเวลา/ซ่อน pills. De-flaked edit-page vitest by routing fetch mocks by URL+method instead of call order (CI flake root cause). All CI/CD/E2E green on main
+
+- Checkpoint: `.agents/state/checkpoints/handover-zcode-20260902-0930.json`
+- Summary: `project-log-md/zcode/session-summary-20260902-0930.md`
+
+---
 
 ### 2026-08-31 04:17 — zcode — completed
 
@@ -325,6 +334,15 @@ orch-add-feature pipeline for booking + appointment reminders: ran Phase 0 (size
 
 - Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260812-1828.json`
 - Summary: `project-log-md/claude_code/session-summary-20260812-1828.md`
+
+---
+
+### 2026-08-07 07:37 — claude_code (Claude Opus 5 (1M context) / Anthropic) — completed
+
+Audited all 35 skn-* skills against current code and verified the full test suite after syncing main
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20260807-0737.json`
+- Summary: `project-log-md/claude_code/session-summary-20260807-0737.md`
 
 ---
 
