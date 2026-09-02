@@ -104,6 +104,12 @@ class Settings(BaseSettings):
     PUBLIC_FILE_RATE_LIMIT: int = 120      # Public file fetches per window
     PUBLIC_FILE_RATE_WINDOW: int = 60      # seconds
 
+    # POST /auth/login attempts per (client IP + username) before 429 (M1).
+    # The E2E workflow raises the limit: its whole suite shares one client IP
+    # and the seeded admin username, and performs ~20 logins per run.
+    AUTH_LOGIN_RATE_LIMIT: int = 5         # attempts per window (prod posture)
+    AUTH_LOGIN_RATE_WINDOW: int = 60       # seconds
+
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
 

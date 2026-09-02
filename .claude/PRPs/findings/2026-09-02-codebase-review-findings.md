@@ -58,6 +58,7 @@ Evidence rule: every finding below was verified against the codebase (location +
 ### M1 ≡ (backend + security, 2 reporters) — POST /auth/login has no rate limit
 - location: `backend/app/api/v1/endpoints/auth.py:133` (`_auth_rate_limit_exceeded` only wired at :384 and :427)
 - disposition: **FIX** — reuse the existing limiter keyed by IP+username before password verification.
+- test note (2026-09-02, E2E fix): the limiter is settings-driven (`AUTH_LOGIN_RATE_LIMIT`/`AUTH_LOGIN_RATE_WINDOW`, defaults 5/60s = prod posture); the E2E workflow sets `AUTH_LOGIN_RATE_LIMIT=100` because the suite shares one client IP + seeded admin username (~20 logins/run) — the hardcoded 5/60s 429'd every login past the fifth and broke ~10 Playwright tests (`waitForURL` after login). Pytest is unaffected (conftest flushes `ratelimit:*` between tests).
 
 ### M2 — Live-chat media upload has no size cap
 - location: `backend/app/api/v1/endpoints/admin_live_chat.py:180` (`content = await file.read()`, only empty-check in messaging.py:81; siblings cap 10 MB)

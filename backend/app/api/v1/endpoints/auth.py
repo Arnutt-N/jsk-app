@@ -59,8 +59,11 @@ _ADMIN_AUTH_ROLES = [
 # to this in-process SlidingWindowLimiter (still limits, but per worker).
 # Endpoints key their bucket with a per-route prefix so the two routes never
 # share a bucket for the same user.
-AUTH_RATE_LIMIT = 5
-AUTH_RATE_WINDOW = 60
+# POST /auth/login attempts per (IP+username) before 429 (M1 review fix).
+# Settings-driven so the E2E workflow can raise the limit: its whole suite
+# shares one client IP + the seeded admin username (~20 logins per run).
+AUTH_RATE_LIMIT = settings.AUTH_LOGIN_RATE_LIMIT
+AUTH_RATE_WINDOW = settings.AUTH_LOGIN_RATE_WINDOW
 auth_rate_limiter = SlidingWindowLimiter(
     max_events=AUTH_RATE_LIMIT, window_seconds=AUTH_RATE_WINDOW
 )
