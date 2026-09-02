@@ -12,7 +12,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/Toast';
 import { logger } from '@/lib/logger';
 import { readErrorMessage } from '@/lib/api-error';
-import { canPublish, parseSyncResult, RichMenuSyncStatus } from '@/lib/rich-menu';
+import { canPublish, needsResync, parseSyncResult, RichMenuSyncStatus } from '@/lib/rich-menu';
 
 interface RichMenu {
     id: number;
@@ -93,11 +93,12 @@ export default function RichMenuListPage() {
                 if (outcome.ok) {
                     // Sync alone never goes live — tell the admin the next
                     // step instead of letting the button silently morph into
-                    // Set Active (PRD G3).
+                    // Set Active (PRD G3). A recreated outcome means local
+                    // edits were just pushed to LINE (immutable menus).
                     const nextStep = menu.status === 'PUBLISHED'
-                        ? 'เมนูนี้กำลังใช้งานอยู่แล้ว'
+                        ? 'เมนูหลักกำลังใช้เนื้อหาที่แก้ไขแล้ว'
                         : 'กด "Set Active" เพื่อใช้งานเมนูนี้';
-                    toast({ title: 'ซิงค์สำเร็จ', description: `${outcome.message} — ${nextStep}`, variant: 'success' });
+                    toast({ title: outcome.recreated ? 'อัปเดตบน LINE แล้ว' : 'ซิงค์สำเร็จ', description: `${outcome.message} — ${nextStep}`, variant: 'success' });
                 } else {
                     toast({ title: 'Sync ไม่สมบูรณ์', description: outcome.message, variant: 'error' });
                 }
@@ -208,23 +209,27 @@ export default function RichMenuListPage() {
                                             FAILED sync (e.g. LINE rejected the image) must not
                                             offer publishing (that is how the LINE 400 happened). */}
                                         <span
-                                            title={menu.last_sync_error || undefined}
-                                            className={`px-2.5 py-1 text-[10px] font-bold rounded-full border ${menu.status === 'PUBLISHED'
+                                            title={menu.last_sync_error || (needsResync(menu) ? 'แก้ไขในระบบแล้ว ยังไม่ส่งไป LINE' : undefined)}
+                                            className={`px-2.5 py-1 text-[10px] font-bold rounded-full border ${menu.status === 'PUBLISHED' && !needsResync(menu)
                                                 ? 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20'
                                                 : menu.sync_status === RichMenuSyncStatus.FAILED
                                                     ? 'bg-red-50 text-red-600 border-red-100 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20'
-                                                    : menu.line_rich_menu_id
-                                                        ? 'bg-brand-50 text-brand-600 border-brand-100 dark:bg-brand-500/10 dark:text-brand-400 dark:border-brand-500/20'
-                                                        : 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20'
+                                                    : needsResync(menu)
+                                                        ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20'
+                                                        : menu.line_rich_menu_id
+                                                            ? 'bg-brand-50 text-brand-600 border-brand-100 dark:bg-brand-500/10 dark:text-brand-400 dark:border-brand-500/20'
+                                                            : 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20'
                                                 }`}
                                         >
-                                            {menu.status === 'PUBLISHED'
+                                            {menu.status === 'PUBLISHED' && !needsResync(menu)
                                                 ? 'ACTIVE'
                                                 : menu.sync_status === RichMenuSyncStatus.FAILED
                                                     ? 'SYNC FAILED'
-                                                    : menu.line_rich_menu_id
-                                                        ? 'SYNCED'
-                                                        : 'DRAFT'}
+                                                    : needsResync(menu)
+                                                        ? 'รอซิงค์'
+                                                        : menu.line_rich_menu_id
+                                                            ? 'SYNCED'
+                                                            : 'DRAFT'}
                                         </span>
                                     </td>
                                     <td className="px-5 py-4">
@@ -238,6 +243,16 @@ export default function RichMenuListPage() {
                                                     loadingText="กำลังซิงค์..."
                                                 >
                                                     Sync to LINE
+                                                </Button>
+                                            ) : needsResync(menu) ? (
+                                                <Button
+                                                    size="xs"
+                                                    variant="outline"
+                                                    onClick={() => handleSync(menu)}
+                                                    isLoading={syncingId === menu.id}
+                                                    loadingText="กำลังซิงค์..."
+                                                >
+                                                    ซิงค์การแก้ไข
                                                 </Button>
                                             ) : canPublish(menu) && menu.status !== 'PUBLISHED' ? (
                                                 <Button

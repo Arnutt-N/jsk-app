@@ -543,6 +543,14 @@ async def update_rich_menu(id: int, data: RichMenuUpdate, db: AsyncSession = Dep
         "chatBarText": data.chat_bar_text,
         "areas": [area.model_dump() for area in data.areas]
     }
+
+    # LINE has no rich-menu update endpoint, so an edit to an already-synced
+    # menu is local-only until the next Sync recreates it there. Flag that
+    # honestly (PENDING) — but only when something actually changed, so a
+    # no-op save doesn't trigger an unnecessary recreate on the next sync.
+    if rich_menu.line_rich_menu_id and rich_menu.config != line_config:
+        rich_menu.sync_status = RichMenuSyncStatus.PENDING.value
+
     rich_menu.config = line_config
 
     await db.commit()
@@ -610,14 +618,18 @@ async def upload_rich_menu_image(
     # If already synced, push the image to LINE now. On failure the stored
     # media row survives (the image IS saved) but the menu must not read
     # SYNCED — it can no longer be published as-is. A dict return means LINE
-    # kept its existing image (already-uploaded 400 mapped to success): tell
-    # the admin instead of pretending their new pick replaced it.
+    # kept its existing image (already-uploaded 400 mapped to success): the
+    # new bytes are local-only until the next Sync recreates the menu on LINE
+    # (an image uploads exactly once per rich menu id), so flag PENDING.
     already_uploaded = False
     if rich_menu.line_rich_menu_id:
         try:
             push_result = await RichMenuService.push_image_to_line(db, rich_menu)
             if isinstance(push_result, dict):
                 already_uploaded = bool(push_result.get("already_uploaded"))
+                if already_uploaded:
+                    rich_menu.sync_status = RichMenuSyncStatus.PENDING.value
+                    await db.commit()
         except Exception as e:
             await RichMenuService.update_sync_status(
                 db, rich_menu, RichMenuSyncStatus.FAILED,

@@ -126,4 +126,88 @@ describe('EditRichMenuPage — area overlay + sync machine', () => {
 
         await waitFor(() => expect(screen.getByRole('button', { name: 'Set Active' })).toBeInTheDocument());
     });
+
+    it('shows รอซิงค์ badge and ซิงค์การแก้ไข button when edits are local-only', async () => {
+        // PENDING on a synced menu = backend flagged a local edit (PUT/upload)
+        // that LINE has not received yet — must not read SYNCED or offer publish.
+        const menu = editMenuFixture({ status: 'DRAFT', sync_status: 'PENDING' });
+        const fetchMock = vi.fn()
+            .mockResolvedValueOnce(jsonResponse(menu))
+            .mockResolvedValue(jsonResponse([]));
+        renderPage(fetchMock);
+
+        await waitFor(() => expect(screen.getByText('รอซิงค์')).toBeInTheDocument());
+        expect(screen.getByRole('button', { name: 'ซิงค์การแก้ไข' })).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Set Active' })).not.toBeInTheDocument();
+    });
+
+    it('shows รอซิงค์ (not Live Now) for a published menu with unsynced edits', async () => {
+        const menu = editMenuFixture({ status: 'PUBLISHED', sync_status: 'PENDING' });
+        const fetchMock = vi.fn()
+            .mockResolvedValueOnce(jsonResponse(menu))
+            .mockResolvedValue(jsonResponse([]));
+        renderPage(fetchMock);
+
+        await waitFor(() => expect(screen.getByText('รอซิงค์')).toBeInTheDocument());
+        expect(screen.queryByText('Live Now')).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'ซิงค์การแก้ไข' })).toBeInTheDocument();
+    });
+
+    it('renders both save actions from the create page (draft + save-and-sync)', async () => {
+        const fetchMock = vi.fn()
+            .mockResolvedValueOnce(jsonResponse(editMenuFixture()))
+            .mockResolvedValue(jsonResponse([]));
+        renderPage(fetchMock);
+
+        await waitFor(() => expect(screen.getByAltText('Preview')).toBeInTheDocument());
+        expect(screen.getByRole('button', { name: 'บันทึกฉบับร่าง' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'บันทึกและซิงค์' })).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'ยกเลิก' })).toBeInTheDocument();
+    });
+
+    it('save-and-sync issues PUT then sync and stays on the page (no redirect)', async () => {
+        const menu = editMenuFixture();
+        const fetchMock = vi.fn()
+            .mockResolvedValueOnce(jsonResponse(menu)) // initial load
+            .mockResolvedValue(jsonResponse([])) // aliases
+            // save-and-sync: PUT -> sync -> refetch after refresh
+            .mockResolvedValueOnce(jsonResponse({ ...menu, sync_status: 'PENDING' }))
+            .mockResolvedValueOnce(jsonResponse({ success: true, message: 'อัปเดตบน LINE แล้ว', recreated: true }))
+            .mockResolvedValueOnce(jsonResponse({ ...menu }));
+        renderPage(fetchMock);
+
+        await waitFor(() => expect(screen.getByAltText('Preview')).toBeInTheDocument());
+        screen.getByRole('button', { name: 'บันทึกและซิงค์' }).click();
+
+        await waitFor(() => {
+            const calls = fetchMock.mock.calls.map((c) => String(c[0]));
+            const putIdx = calls.findIndex((u) => u.includes('/admin/rich-menus/1') && !u.includes('/sync'));
+            const syncIdx = calls.findIndex((u) => u.includes('/admin/rich-menus/1/sync'));
+            expect(putIdx).toBeGreaterThan(-1);
+            expect(syncIdx).toBeGreaterThan(putIdx);
+        });
+        // stayed on the page: the menu was re-fetched (badge refresh), no router.push
+        await waitFor(() => {
+            const calls = fetchMock.mock.calls.map((c) => String(c[0])).filter((u) => u.endsWith('/admin/rich-menus/1'));
+            expect(calls.length).toBeGreaterThanOrEqual(2);
+        });
+    });
+
+    it('draft save of a synced menu says the edit has not reached LINE', async () => {
+        const menu = editMenuFixture();
+        const fetchMock = vi.fn()
+            .mockResolvedValueOnce(jsonResponse(menu)) // initial load
+            .mockResolvedValue(jsonResponse([])) // aliases
+            .mockResolvedValueOnce(jsonResponse({ ...menu, sync_status: 'PENDING' })) // PUT
+            .mockResolvedValueOnce(jsonResponse({ ...menu })); // refetch
+        renderPage(fetchMock);
+
+        await waitFor(() => expect(screen.getByAltText('Preview')).toBeInTheDocument());
+        screen.getByRole('button', { name: 'บันทึกฉบับร่าง' }).click();
+
+        await waitFor(() => expect(screen.getByText(/ยังไม่ส่งไป LINE/)).toBeInTheDocument());
+        // draft save must NOT call the sync endpoint
+        const calls = fetchMock.mock.calls.map((c) => String(c[0]));
+        expect(calls.some((u) => u.includes('/sync'))).toBe(false);
+    });
 });
