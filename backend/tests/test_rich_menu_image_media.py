@@ -646,7 +646,9 @@ def test_sync_on_already_decorated_menu_stays_synced():
 
 def test_upload_endpoint_already_uploaded_returns_200_with_marker():
     """POST /{id}/upload on a decorated menu: bytes are stored, the marker
-    rides along in the payload, and sync_status is untouched (not FAILED)."""
+    rides along in the payload, and sync_status flips to PENDING — LINE kept
+    its existing image (uploads happen once per menu id), so the new bytes are
+    local-only until the next Sync recreates the menu (PRD 2026-09-02)."""
     menu = _full_menu(id=1, line_id="richmenu-live", sync_status="SYNCED")
     _override(role=UserRole.ADMIN, results=[menu])
     with patch.object(
@@ -667,7 +669,7 @@ def test_upload_endpoint_already_uploaded_returns_200_with_marker():
     body = resp.json()
     assert body["media_id"]
     assert body["already_uploaded"] is True
-    assert menu.sync_status == RichMenuSyncStatus.SYNCED.value
+    assert menu.sync_status == RichMenuSyncStatus.PENDING.value
 
 
 def test_sync_fail_fast_when_stored_image_exceeds_line_limit():

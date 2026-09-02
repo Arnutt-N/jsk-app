@@ -26,11 +26,25 @@ export function canPublish(menu: RichMenuSyncFields): boolean {
   return !!menu.line_rich_menu_id && menu.sync_status === RichMenuSyncStatus.SYNCED;
 }
 
+/**
+ * True when a synced menu has local edits that are NOT on LINE yet. The
+ * backend flags PENDING on PUT/upload of a synced menu (LINE rich menus are
+ * immutable — the next Sync recreates the menu there), so the UI must say
+ * "รอซิงค์" instead of pretending the live copy is current.
+ */
+export function needsResync(menu: RichMenuSyncFields): boolean {
+  return !!menu.line_rich_menu_id && menu.sync_status === RichMenuSyncStatus.PENDING;
+}
+
 export interface SyncResultPayload {
   success?: boolean;
   message?: string;
   error?: string;
   image_upload_error?: string;
+  /** Sync rebuilt the menu on LINE (edits can't be applied in place). */
+  recreated?: boolean;
+  /** Non-fatal issues encountered while moving bindings to the new menu. */
+  warnings?: string[];
 }
 
 /** Interpret a POST /{id}/sync response body into a user-facing outcome.
@@ -39,20 +53,33 @@ export interface SyncResultPayload {
 export function parseSyncResult(payload: SyncResultPayload | null): {
   ok: boolean;
   message: string;
+  recreated: boolean;
 } {
   if (!payload) {
-    return { ok: false, message: 'ไม่ได้รับข้อมูลจากเซิร์ฟเวอร์' };
+    return { ok: false, message: 'ไม่ได้รับข้อมูลจากเซิร์ฟเวอร์', recreated: false };
   }
   if (payload.image_upload_error) {
     return {
       ok: false,
       message: `เมนูถูกสร้างบน LINE แล้ว แต่อัปโหลดรูปไม่สำเร็จ (LINE จะไม่รับเมนูที่ไม่มีรูป): ${payload.image_upload_error}`,
+      recreated: false,
     };
   }
   if (payload.success === false) {
-    return { ok: false, message: payload.message || payload.error || 'Sync ไปยัง LINE ล้มเหลว' };
+    return {
+      ok: false,
+      message: payload.message || payload.error || 'Sync ไปยัง LINE ล้มเหลว',
+      recreated: false,
+    };
   }
-  return { ok: true, message: payload.message || 'Sync ไปยัง LINE สำเร็จ' };
+  const warnings = payload.warnings?.length
+    ? ` (${payload.warnings.join(' / ')})`
+    : '';
+  return {
+    ok: true,
+    message: (payload.message || 'Sync ไปยัง LINE สำเร็จ') + warnings,
+    recreated: !!payload.recreated,
+  };
 }
 
 // ---- Image auto-fit (LINE caps rich-menu image content at 1 MB) ----------

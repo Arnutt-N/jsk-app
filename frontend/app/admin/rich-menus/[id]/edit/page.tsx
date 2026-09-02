@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
 import { logger } from '@/lib/logger';
 import { readErrorMessage } from '@/lib/api-error';
-import { canPublish, ensureRichMenuImage, parseSyncResult, RichMenuSyncStatus } from '@/lib/rich-menu';
+import { canPublish, ensureRichMenuImage, needsResync, parseSyncResult, RichMenuSyncStatus } from '@/lib/rich-menu';
 
 interface RichMenuArea {
     bounds: { x: number; y: number; width: number; height: number };
@@ -125,7 +125,11 @@ export default function EditRichMenuPage() {
         }
     };
 
-    const handleSave = async () => {
+    // Save flow mirrors the create page's two modes. `andSync` continues into
+    // POST sync, which (since LINE menus are immutable) recreates the menu on
+    // LINE when local state drifted — that is how an edit actually reaches
+    // users. Draft-only saves of a synced menu keep the รอซิงค์ state visible.
+    const handleSave = async (andSync: boolean) => {
         // A "switch menu" area must point at an alias; the backend rejects it
         // otherwise (422), so guard here for a friendly message.
         if (areas.some((a) => a.action?.type === 'richmenuswitch' && !a.action?.richMenuAliasId)) {
@@ -135,7 +139,7 @@ export default function EditRichMenuPage() {
 
         setSaving(true);
         try {
-            // Update menu details
+            // 1. Save menu details
             const updateRes = await fetch(`${API_BASE}/admin/rich-menus/${menuId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
@@ -153,13 +157,14 @@ export default function EditRichMenuPage() {
                 return;
             }
 
-            // Upload new image if selected (auto-fit to LINE's 1 MB content cap first)
+            // 2. Upload new image if selected (auto-fit to LINE's 1 MB cap first)
+            let alreadyUploaded = false;
             if (imageFile) {
                 const fitted = await ensureRichMenuImage(imageFile).catch((e: unknown) => {
                     toast({ variant: 'error', title: 'รูปไม่พร้อมอัปโหลด', description: e instanceof Error ? e.message : 'โปรดใช้รูปขนาดไม่เกิน 1 MB' });
                     return null;
                 });
-                if (!fitted) return;
+                if (!fitted) { setSaving(false); return; }
                 if (fitted.converted) {
                     toast({ variant: 'info', title: 'ย่อรูปอัตโนมัติแล้ว', description: `รูปถูกย่อเป็น ${Math.round(fitted.file.size / 1024)} KB เพื่อให้อยู่ในขีดจำกัด 1 MB ของ LINE` });
                 }
@@ -171,17 +176,54 @@ export default function EditRichMenuPage() {
                 });
                 if (!uploadRes.ok) {
                     // Upload failure means the menu is NOT fully saved — show the
-                    // error and stay on the page (previously this showed an error
-                    // toast and then a success toast and redirected anyway).
+                    // error and stay on the page.
                     const detail = await readErrorMessage(uploadRes, 'ไม่สามารถอัปโหลดรูปภาพได้');
                     toast({ variant: 'error', title: 'อัปโหลดรูปภาพไม่สำเร็จ', description: detail });
                     setSaving(false);
                     return;
                 }
+                alreadyUploaded = !!(await uploadRes.json().catch(() => ({})))?.already_uploaded;
             }
 
-            toast({ variant: 'success', title: 'บันทึกสำเร็จ', description: 'แก้ไข Rich Menu เรียบร้อยแล้ว' });
-            router.push('/admin/rich-menus');
+            // 3. Optional: push everything to LINE (recreates the menu there
+            //    when local state drifted — LINE has no in-place update).
+            if (andSync) {
+                const res = await fetch(`${API_BASE}/admin/rich-menus/${menuId}/sync`, { method: 'POST' });
+                if (!res.ok) {
+                    const msg = await readErrorMessage(res, 'Sync ไปยัง LINE ล้มเหลว');
+                    toast({ variant: 'error', title: 'ผิดพลาด', description: msg });
+                } else {
+                    const outcome = parseSyncResult(await res.json());
+                    if (outcome.ok) {
+                        const nextStep = menu?.status === 'PUBLISHED'
+                            ? 'เมนูหลักกำลังใช้เนื้อหาที่แก้ไขแล้ว'
+                            : 'กด "Set Active" เพื่อใช้งานเมนูนี้';
+                        toast({
+                            variant: 'success',
+                            title: outcome.recreated ? 'อัปเดตบน LINE แล้ว' : 'ซิงค์สำเร็จ',
+                            description: `${outcome.message} — ${nextStep}`,
+                        });
+                    } else {
+                        toast({ variant: 'error', title: 'Sync ไม่สมบูรณ์', description: outcome.message });
+                    }
+                }
+            } else {
+                toast({
+                    variant: 'success',
+                    title: 'บันทึกสำเร็จ',
+                    description: menu?.line_rich_menu_id
+                        ? 'บันทึกในระบบแล้ว — ยังไม่ส่งไป LINE กด "บันทึกและซิงค์" เพื่ออัปเดตให้ผู้ใช้เห็น'
+                        : 'บันทึก Rich Menu เป็นฉบับร่างแล้ว',
+                });
+                if (alreadyUploaded) {
+                    toast({ variant: 'info', title: 'รูปใหม่ยังไม่ถึง LINE', description: 'LINE รับรูปได้ครั้งเดียวต่อเมนู — กด "บันทึกและซิงค์" แล้วระบบจะสร้างเมนูใหม่พร้อมรูปล่าสุดให้อัตโนมัติ' });
+                }
+            }
+
+            setImageFile(null);
+            // Stay on the page and refresh state — badges/actions must reflect
+            // the new truth (e.g. รอซิงค์ after a draft-only save).
+            await fetchMenu();
         } catch {
             toast({ variant: 'error', title: 'เกิดข้อผิดพลาด', description: 'ไม่สามารถบันทึก Rich Menu ได้' });
         } finally {
@@ -201,9 +243,9 @@ export default function EditRichMenuPage() {
                 const outcome = parseSyncResult(payload);
                 if (outcome.ok) {
                     const nextStep = menu?.status === 'PUBLISHED'
-                        ? 'เมนูนี้กำลังใช้งานอยู่แล้ว'
+                        ? 'เมนูหลักกำลังใช้เนื้อหาที่แก้ไขแล้ว'
                         : 'กด "Set Active" เพื่อใช้งานเมนูนี้';
-                    toast({ variant: 'success', title: 'ซิงค์สำเร็จ', description: `${outcome.message} — ${nextStep}` });
+                    toast({ variant: 'success', title: outcome.recreated ? 'อัปเดตบน LINE แล้ว' : 'ซิงค์สำเร็จ', description: `${outcome.message} — ${nextStep}` });
                 } else {
                     toast({ variant: 'error', title: 'Sync ไม่สมบูรณ์', description: outcome.message });
                 }
@@ -242,6 +284,10 @@ export default function EditRichMenuPage() {
     if (loading) {
         return <LoadingSpinner label="กำลังโหลด..." />;
     }
+
+    // Local edits of a synced menu are NOT on LINE yet (backend flags PENDING
+    // on PUT/upload) — drives both the badge and the action bar.
+    const pendingResync = menu != null && needsResync(menu);
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
@@ -287,27 +333,31 @@ export default function EditRichMenuPage() {
                         <div>
                             <label className="block text-sm font-medium text-slate-600 mb-1">สถานะ</label>
                             {/* Sync-aware badge (same states as the list page) — a
-                                FAILED sync must be visible here, not hidden behind
-                                a plain DRAFT/ACTIVE pill. */}
+                                FAILED sync or LOCAL EDITS must be visible here,
+                                not hidden behind a plain DRAFT/ACTIVE pill. */}
                             <span
-                                title={menu?.last_sync_error || undefined}
-                                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold ${menu?.status === 'PUBLISHED'
+                                title={menu?.last_sync_error || (pendingResync ? 'แก้ไขในระบบแล้ว ยังไม่ส่งไป LINE' : undefined)}
+                                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold ${menu?.status === 'PUBLISHED' && !pendingResync
                                     ? 'bg-emerald-50 text-emerald-600'
                                     : menu?.sync_status === RichMenuSyncStatus.FAILED
                                         ? 'bg-red-50 text-red-600'
-                                        : menu?.line_rich_menu_id
-                                            ? 'bg-brand-50 text-brand-600'
-                                            : 'bg-amber-50 text-amber-600'
+                                        : pendingResync
+                                            ? 'bg-amber-50 text-amber-600'
+                                            : menu?.line_rich_menu_id
+                                                ? 'bg-brand-50 text-brand-600'
+                                                : 'bg-amber-50 text-amber-600'
                                     }`}
                             >
-                                <span className={`w-2 h-2 rounded-full ${menu?.status === 'PUBLISHED' ? 'bg-emerald-500' : menu?.sync_status === RichMenuSyncStatus.FAILED ? 'bg-red-500' : 'bg-amber-500'}`}></span>
-                                {menu?.status === 'PUBLISHED'
+                                <span className={`w-2 h-2 rounded-full ${menu?.status === 'PUBLISHED' && !pendingResync ? 'bg-emerald-500' : menu?.sync_status === RichMenuSyncStatus.FAILED ? 'bg-red-500' : 'bg-amber-500'}`}></span>
+                                {menu?.status === 'PUBLISHED' && !pendingResync
                                     ? 'ACTIVE'
                                     : menu?.sync_status === RichMenuSyncStatus.FAILED
                                         ? 'SYNC FAILED'
-                                        : menu?.line_rich_menu_id
-                                            ? 'SYNCED'
-                                            : 'DRAFT'}
+                                        : pendingResync
+                                            ? 'รอซิงค์'
+                                            : menu?.line_rich_menu_id
+                                                ? 'SYNCED'
+                                                : 'DRAFT'}
                             </span>
                         </div>
                     </div>
@@ -447,14 +497,18 @@ export default function EditRichMenuPage() {
                 {/* Action Buttons */}
                 <div className="flex flex-wrap justify-end items-center gap-3 pt-4 border-t border-slate-100">
                     {/* Sync state machine — same actions the list page offers
-                        (PRD G2), so a FAILED menu can be recovered without
-                        navigating away. canPublish gates Set Active on the
-                        real sync state, never on a guess. */}
+                        (PRD G4), so a FAILED or LOCALLY-EDITED menu can be
+                        reconciled without navigating away. canPublish gates
+                        Set Active on the real sync state, never on a guess. */}
                     {menu && (
                         <div className="flex items-center gap-3 mr-auto">
                             {!menu.line_rich_menu_id ? (
                                 <Button size="sm" onClick={handleSync} isLoading={syncBusy} loadingText="กำลังซิงค์...">
                                     Sync to LINE
+                                </Button>
+                            ) : pendingResync ? (
+                                <Button size="sm" variant="outline" onClick={handleSync} isLoading={syncBusy} loadingText="กำลังซิงค์...">
+                                    ซิงค์การแก้ไข
                                 </Button>
                             ) : menu.status === 'PUBLISHED' ? (
                                 <span className="text-[10px] font-black text-emerald-600 px-3 py-1 bg-emerald-50 rounded-full border border-emerald-100 tracking-widest leading-none thai-no-break">
@@ -482,17 +536,24 @@ export default function EditRichMenuPage() {
                         ยกเลิก
                     </Link>
                     <button
-                        onClick={handleSave}
-                        disabled={saving}
+                        onClick={() => handleSave(false)}
+                        disabled={saving || syncBusy}
+                        className="px-6 py-2.5 bg-white text-slate-600 rounded-lg border-2 border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-colors text-sm font-bold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        บันทึกฉบับร่าง
+                    </button>
+                    <button
+                        onClick={() => handleSave(true)}
+                        disabled={saving || syncBusy}
                         className="px-6 py-2.5 bg-gradient-to-br from-primary to-primary-dark text-white rounded-lg hover:bg-primary-dark transition-colors text-sm font-bold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     >
                         {saving ? (
                             <>
                                 <Loader2 className="h-4 w-4 animate-spin" />
-                                กำลังบันทึก...
+                                กำลังบันทึกและซิงค์...
                             </>
                         ) : (
-                            'บันทึกการแก้ไข'
+                            'บันทึกและซิงค์'
                         )}
                     </button>
                 </div>
