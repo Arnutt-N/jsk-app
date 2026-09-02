@@ -17,6 +17,15 @@ class RichMenuSyncStatus(str, enum.Enum):
     SYNCED = "SYNCED"
     FAILED = "FAILED"
 
+class RichMenuDisplayMode(str, enum.Enum):
+    """How the menu goes live (OA Manager's default-behavior + display-period
+    parity): ALWAYS = live as soon as it syncs/publishes; SCHEDULED = the
+    display scheduler sets/cancels the default inside [start, end]; MANUAL =
+    synced but never auto-published (per-user/alias use only)."""
+    ALWAYS = "ALWAYS"
+    SCHEDULED = "SCHEDULED"
+    MANUAL = "MANUAL"
+
 class RichMenu(Base):
     __tablename__ = "rich_menus"
 
@@ -53,6 +62,16 @@ class RichMenu(Base):
     sync_status = Column(String, default=RichMenuSyncStatus.PENDING.value)
     last_synced_at = Column(DateTime(timezone=True), nullable=True)
     last_sync_error = Column(Text, nullable=True)
+
+    # Display settings (RichMenuDisplayMode values; plain String, same pattern
+    # as status/sync_status). ALWAYS keeps pre-PR behavior for existing rows
+    # via the server_default in the migration.
+    display_mode = Column(
+        String(9), default=RichMenuDisplayMode.ALWAYS.value,
+        server_default=RichMenuDisplayMode.ALWAYS.value, nullable=False,
+    )
+    display_start_at = Column(DateTime(timezone=True), nullable=True)
+    display_end_at = Column(DateTime(timezone=True), nullable=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

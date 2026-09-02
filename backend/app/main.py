@@ -20,10 +20,12 @@ from app.tasks import (
     start_broadcast_scheduler,
     start_cleanup_task,
     start_health_watchdog,
+    start_rich_menu_display_scheduler,
     stop_booking_reminder_scheduler,
     stop_broadcast_scheduler,
     stop_cleanup_task,
     stop_health_watchdog,
+    stop_rich_menu_display_scheduler,
 )
 
 logger = logging.getLogger(__name__)
@@ -152,6 +154,7 @@ async def lifespan(_: FastAPI):
     await start_broadcast_scheduler()
     await start_booking_reminder_scheduler()
     await start_health_watchdog()
+    await start_rich_menu_display_scheduler()
     logger.info("Background tasks started.")
 
     try:
@@ -161,6 +164,7 @@ async def lifespan(_: FastAPI):
         await stop_broadcast_scheduler()
         await stop_booking_reminder_scheduler()
         await stop_health_watchdog()
+        await stop_rich_menu_display_scheduler()
         await pubsub_manager.disconnect()
         await redis_client.disconnect()
 

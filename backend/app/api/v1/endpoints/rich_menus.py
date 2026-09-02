@@ -552,6 +552,9 @@ async def update_rich_menu(id: int, data: RichMenuUpdate, db: AsyncSession = Dep
         rich_menu.sync_status = RichMenuSyncStatus.PENDING.value
 
     rich_menu.config = line_config
+    # Display settings (mode/period) ride along on every save; the shared
+    # validator already guaranteed a SCHEDULED payload carries a full period.
+    data.apply_to(rich_menu)
 
     await db.commit()
     await db.refresh(rich_menu)
@@ -579,6 +582,7 @@ async def create_rich_menu(
         config=line_config,
         status=RichMenuStatus.DRAFT
     )
+    data.apply_to(rich_menu)
     db.add(rich_menu)
     await db.commit()
     await db.refresh(rich_menu)

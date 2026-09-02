@@ -36,6 +36,85 @@ export function needsResync(menu: RichMenuSyncFields): boolean {
   return !!menu.line_rich_menu_id && menu.sync_status === RichMenuSyncStatus.PENDING;
 }
 
+// ---- Display settings (แสดงตลอดเวลา / ตามช่วงเวลา / ซ่อน) ------------------
+
+export const RichMenuDisplayMode = {
+  ALWAYS: 'ALWAYS',
+  SCHEDULED: 'SCHEDULED',
+  MANUAL: 'MANUAL',
+} as const;
+
+export type RichMenuDisplayModeValue =
+  (typeof RichMenuDisplayMode)[keyof typeof RichMenuDisplayMode];
+
+export interface RichMenuDisplayFields {
+  status?: string | null;
+  display_mode?: string | null;
+  display_start_at?: string | null;
+  display_end_at?: string | null;
+}
+
+export type RichMenuPillTone =
+  | 'active'
+  | 'error'
+  | 'pending'
+  | 'scheduled'
+  | 'inactive'
+  | 'hidden'
+  | 'synced'
+  | 'draft';
+
+export interface RichMenuPill {
+  label: string;
+  tone: RichMenuPillTone;
+  title?: string;
+}
+
+/** The ONE status-pill resolver shared by the list and edit pages, so the
+ *  states can never diverge (sync state first, then display mode). */
+export function menuStatusPill(
+  menu: RichMenuSyncFields & RichMenuDisplayFields,
+): RichMenuPill {
+  if (menu.status === 'PUBLISHED' && !needsResync(menu)) {
+    return { label: 'ACTIVE', tone: 'active' };
+  }
+  if (menu.sync_status === RichMenuSyncStatus.FAILED) {
+    return { label: 'SYNC FAILED', tone: 'error', title: menu.last_sync_error || undefined };
+  }
+  if (needsResync(menu)) {
+    return { label: 'รอซิงค์', tone: 'pending', title: 'แก้ไขในระบบแล้ว ยังไม่ส่งไป LINE' };
+  }
+  if (menu.display_mode === RichMenuDisplayMode.SCHEDULED) {
+    if (menu.status === 'INACTIVE') {
+      return { label: 'หมดเวลา', tone: 'inactive', title: 'ช่วงเวลาการแสดงผลจบแล้ว' };
+    }
+    const start = menu.display_start_at ? new Date(menu.display_start_at) : null;
+    const end = menu.display_end_at ? new Date(menu.display_end_at) : null;
+    const title =
+      start && end && !isNaN(start.getTime()) && !isNaN(end.getTime())
+        ? `แสดงตามเวลา: ${start.toLocaleString('th-TH')} – ${end.toLocaleString('th-TH')}`
+        : 'แสดงตามช่วงเวลาที่กำหนด';
+    return { label: 'ตามเวลา', tone: 'scheduled', title };
+  }
+  if (menu.display_mode === RichMenuDisplayMode.MANUAL && menu.status !== 'PUBLISHED') {
+    return { label: 'ซ่อน', tone: 'hidden', title: 'ซิงค์แล้วแต่ไม่ตั้งเป็นเมนูหลัก (ใช้กับ alias / ผู้ใช้เฉพาะราย)' };
+  }
+  if (menu.line_rich_menu_id) {
+    return { label: 'SYNCED', tone: 'synced' };
+  }
+  return { label: 'DRAFT', tone: 'draft' };
+}
+
+/** ISO string -> value usable by <input type="datetime-local"> in the user's
+ *  local timezone (a plain slice(0,16) would show UTC, not local wall time). */
+export function toLocalDatetimeInputValue(iso?: string | null): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 export interface SyncResultPayload {
   success?: boolean;
   message?: string;

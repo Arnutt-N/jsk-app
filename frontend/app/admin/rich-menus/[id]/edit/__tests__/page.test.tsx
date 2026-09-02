@@ -19,6 +19,9 @@ interface EditMenuFixture {
     sync_status: string;
     last_sync_error: string | null;
     image_url: string | null;
+    display_mode?: string;
+    display_start_at?: string;
+    display_end_at?: string;
     config: {
         size: { width: number; height: number };
         areas: Array<{
@@ -38,6 +41,7 @@ function editMenuFixture(overrides: Partial<EditMenuFixture> = {}): EditMenuFixt
         sync_status: 'SYNCED',
         last_sync_error: null,
         image_url: '/api/v1/media/11111111-2222-3333-4444-555555555555',
+        display_mode: 'ALWAYS',
         config: {
             size: { width: 2500, height: 1686 },
             areas: [
@@ -209,5 +213,68 @@ describe('EditRichMenuPage — area overlay + sync machine', () => {
         // draft save must NOT call the sync endpoint
         const calls = fetchMock.mock.calls.map((c) => String(c[0]));
         expect(calls.some((u) => u.includes('/sync'))).toBe(false);
+    });
+
+    it('renders the display-mode radios from the saved menu (SCHEDULED preselects)', async () => {
+        const menu = editMenuFixture({
+            display_mode: 'SCHEDULED',
+            display_start_at: '2026-09-03T02:00:00.000Z',
+            display_end_at: '2026-09-10T14:00:00.000Z',
+        });
+        const fetchMock = vi.fn()
+            .mockResolvedValueOnce(jsonResponse(menu))
+            .mockResolvedValue(jsonResponse([]));
+        renderPage(fetchMock);
+
+        await waitFor(() => expect(screen.getByText('การแสดงผล')).toBeInTheDocument());
+        expect(screen.getByText('แสดงตลอดเวลา')).toBeInTheDocument();
+        expect(screen.getByText('ตามช่วงเวลา')).toBeInTheDocument();
+        expect(screen.getByText('ซ่อน (เตรียมใช้งาน)')).toBeInTheDocument();
+        // SCHEDULED reveals both period inputs, prefilled with the saved period
+        const starts = screen.getAllByLabelText(/เริ่มแสดง/);
+        expect(starts[0]).toBeInTheDocument();
+        expect((starts[0] as HTMLInputElement).value).not.toBe('');
+    });
+
+    it('save-and-sync on a MANUAL menu never auto-publishes', async () => {
+        const menu = editMenuFixture({ display_mode: 'MANUAL', status: 'DRAFT' });
+        const fetchMock = vi.fn()
+            .mockResolvedValueOnce(jsonResponse(menu)) // initial load
+            .mockResolvedValue(jsonResponse([])) // aliases
+            .mockResolvedValueOnce(jsonResponse({ ...menu, sync_status: 'PENDING' })) // PUT
+            .mockResolvedValueOnce(jsonResponse({ success: true, message: 'Sync ok' })) // sync
+            .mockResolvedValueOnce(jsonResponse({ ...menu })); // refetch
+        renderPage(fetchMock);
+
+        await waitFor(() => expect(screen.getByAltText('Preview')).toBeInTheDocument());
+        screen.getByRole('button', { name: 'บันทึกและซิงค์' }).click();
+
+        await waitFor(() => {
+            const calls = fetchMock.mock.calls.map((c) => String(c[0]));
+            expect(calls.some((u) => u.includes('/sync'))).toBe(true);
+        });
+        // MANUAL mode: no publish call may follow the sync
+        const calls = fetchMock.mock.calls.map((c) => String(c[0]));
+        expect(calls.some((u) => u.includes('/publish'))).toBe(false);
+    });
+
+    it('save-and-sync on an ALWAYS, unpublished menu publishes right after sync', async () => {
+        const menu = editMenuFixture({ display_mode: 'ALWAYS', status: 'DRAFT' });
+        const fetchMock = vi.fn()
+            .mockResolvedValueOnce(jsonResponse(menu)) // initial load
+            .mockResolvedValue(jsonResponse([])) // aliases
+            .mockResolvedValueOnce(jsonResponse({ ...menu, sync_status: 'PENDING' })) // PUT
+            .mockResolvedValueOnce(jsonResponse({ success: true, message: 'Sync ok' })) // sync
+            .mockResolvedValueOnce(jsonResponse({ message: 'Rich Menu is now default' })) // publish
+            .mockResolvedValueOnce(jsonResponse({ ...menu, status: 'PUBLISHED' })); // refetch
+        renderPage(fetchMock);
+
+        await waitFor(() => expect(screen.getByAltText('Preview')).toBeInTheDocument());
+        screen.getByRole('button', { name: 'บันทึกและซิงค์' }).click();
+
+        await waitFor(() => {
+            const calls = fetchMock.mock.calls.map((c) => String(c[0]));
+            expect(calls.some((u) => u.includes('/publish'))).toBe(true);
+        });
     });
 });

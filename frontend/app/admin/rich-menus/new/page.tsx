@@ -7,7 +7,9 @@ import Link from 'next/link';
 import PageHeader from '../../components/PageHeader';
 import { useToast } from '@/components/ui/Toast';
 import { logger } from '@/lib/logger';
-import { ensureRichMenuImage, parseSyncResult } from '@/lib/rich-menu';
+import { readErrorMessage } from '@/lib/api-error';
+import { ensureRichMenuImage, parseSyncResult, RichMenuDisplayMode } from '@/lib/rich-menu';
+import type { RichMenuDisplayModeValue } from '@/lib/rich-menu';
 
 interface TemplateBounds {
     x: number;
@@ -236,6 +238,13 @@ export default function NewRichMenuPage() {
     const [file, setFile] = useState<File | null>(null);
     const [isSaving, setIsSaving] = useState(false);
 
+    // Display settings (OA Manager parity): ALWAYS = live right after sync;
+    // SCHEDULED = the backend scheduler sets/cancels the default inside the
+    // period; MANUAL = synced but hidden (per-user / alias use only).
+    const [displayMode, setDisplayMode] = useState<RichMenuDisplayModeValue>(RichMenuDisplayMode.ALWAYS);
+    const [displayStart, setDisplayStart] = useState('');
+    const [displayEnd, setDisplayEnd] = useState('');
+
     // Synchronize pendingTemplate when modal opens
     useEffect(() => {
         if (isTemplateModalOpen) {
@@ -305,6 +314,27 @@ export default function NewRichMenuPage() {
             return;
         }
 
+        // SCHEDULED needs a full, ordered period — the backend 422s otherwise.
+        const display: {
+            display_mode: RichMenuDisplayModeValue;
+            display_start_at?: string;
+            display_end_at?: string;
+        } = { display_mode: displayMode };
+        if (displayMode === RichMenuDisplayMode.SCHEDULED) {
+            if (!displayStart || !displayEnd) {
+                toast({ variant: 'warning', title: 'ยังไม่ได้ระบุช่วงเวลา', description: 'โหมด "ตามช่วงเวลา" ต้องระบุวันเวลาเริ่มต้นและสิ้นสุด' });
+                return;
+            }
+            const start = new Date(displayStart);
+            const end = new Date(displayEnd);
+            if (end <= start) {
+                toast({ variant: 'warning', title: 'ช่วงเวลาไม่ถูกต้อง', description: 'วันเวลาสิ้นสุดต้องอยู่หลังวันเวลาเริ่มต้น' });
+                return;
+            }
+            display.display_start_at = start.toISOString();
+            display.display_end_at = end.toISOString();
+        }
+
         setIsSaving(true);
         try {
             // 1. Save locally as DRAFT
@@ -315,7 +345,8 @@ export default function NewRichMenuPage() {
                 areas: selectedTemplate.item.areas.map((area: TemplateArea, i: number) => ({
                     bounds: area.bounds,
                     action: actions[i]
-                }))
+                })),
+                ...display
             };
 
             const createRes = await fetch(`${API_BASE}/admin/rich-menus`, {
@@ -345,7 +376,7 @@ export default function NewRichMenuPage() {
 
             if (!uploadRes.ok) throw new Error("Failed to upload image locally");
 
-            // 3. Optional: Sync to LINE
+            // 3. Optional: Sync to LINE (+ publish when the mode says live)
             if (syncToLine) {
                 const syncRes = await fetch(`${API_BASE}/admin/rich-menus/${menu.id}/sync`, {
                     method: 'POST'
@@ -359,9 +390,27 @@ export default function NewRichMenuPage() {
                     router.push('/admin/rich-menus');
                     return;
                 }
-            }
 
-            toast({ variant: 'success', title: syncToLine ? 'สร้างและซิงค์สำเร็จ' : 'บันทึกสำเร็จ', description: syncToLine ? 'สร้าง Rich Menu และซิงค์ไป LINE เรียบร้อยแล้ว' : 'บันทึก Rich Menu เป็นฉบับร่างแล้ว' });
+                if (displayMode === RichMenuDisplayMode.ALWAYS) {
+                    // OA Manager default behavior: แสดงตลอดเวลา = live immediately.
+                    const pubRes = await fetch(`${API_BASE}/admin/rich-menus/${menu.id}/publish`, {
+                        method: 'POST'
+                    });
+                    if (!pubRes.ok) {
+                        const msg = await readErrorMessage(pubRes, 'ไม่ทราบสาเหตุ');
+                        toast({ variant: 'error', title: 'ตั้งเป็นเมนูหลักไม่สำเร็จ', description: `ซิงค์สำเร็จแล้ว แต่ตั้งเป็นเมนูหลักไม่สำเร็จ: ${msg} — กด "Set Active" ในหน้ารายการได้` });
+                        router.push('/admin/rich-menus');
+                        return;
+                    }
+                    toast({ variant: 'success', title: 'สร้างและเผยแพร่สำเร็จ', description: 'สร้าง Rich Menu ซิงค์ไป LINE และตั้งเป็นเมนูหลักเรียบร้อยแล้ว' });
+                } else if (displayMode === RichMenuDisplayMode.SCHEDULED) {
+                    toast({ variant: 'success', title: 'สร้างและซิงค์สำเร็จ', description: 'ระบบจะแสดงเมนูนี้เป็นเมนูหลักโดยอัตโนมัติตามช่วงเวลาที่กำหนด และซ่อนเมื่อหมดเวลา' });
+                } else {
+                    toast({ variant: 'success', title: 'สร้างและซิงค์สำเร็จ', description: 'เมนูถูกซ่อนไว้ (ไม่ตั้งเป็นเมนูหลัก) — นำไปใช้ผ่านการผูกรายคนหรือ alias ได้เลย' });
+                }
+            } else {
+                toast({ variant: 'success', title: 'บันทึกสำเร็จ', description: 'บันทึก Rich Menu เป็นฉบับร่างแล้ว' });
+            }
             router.push('/admin/rich-menus');
         } catch (error: unknown) {
             toast({ variant: 'error', title: 'เกิดข้อผิดพลาด', description: error instanceof Error ? error.message : 'ไม่ทราบสาเหตุ' });
@@ -607,6 +656,73 @@ export default function NewRichMenuPage() {
                                 <p className="text-[10px] text-amber-700 leading-normal">
                                     Ensure your image strictly matches the dimensions of the selected template. Max size 1MB.
                                 </p>
+                            </div>
+
+                            {/* Display settings — OA Manager's default-behavior +
+                                display-period parity */}
+                            <div className="space-y-3">
+                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider">การแสดงผล</label>
+                                <div className="space-y-2">
+                                    <label className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${displayMode === RichMenuDisplayMode.ALWAYS ? 'border-primary/40 bg-primary/8' : 'border-slate-200 hover:border-slate-300'}`}>
+                                        <input
+                                            type="radio"
+                                            name="display-mode"
+                                            className="mt-0.5 accent-[var(--primary)]"
+                                            checked={displayMode === RichMenuDisplayMode.ALWAYS}
+                                            onChange={() => setDisplayMode(RichMenuDisplayMode.ALWAYS)}
+                                        />
+                                        <span>
+                                            <span className="block text-sm font-bold text-slate-700">แสดงตลอดเวลา</span>
+                                            <span className="block text-[11px] text-slate-400">เมื่อบันทึกและซิงค์ เมนูจะถูกตั้งเป็นเมนูหลักและใช้งานทันที</span>
+                                        </span>
+                                    </label>
+                                    <label className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${displayMode === RichMenuDisplayMode.SCHEDULED ? 'border-primary/40 bg-primary/8' : 'border-slate-200 hover:border-slate-300'}`}>
+                                        <input
+                                            type="radio"
+                                            name="display-mode"
+                                            className="mt-0.5 accent-[var(--primary)]"
+                                            checked={displayMode === RichMenuDisplayMode.SCHEDULED}
+                                            onChange={() => setDisplayMode(RichMenuDisplayMode.SCHEDULED)}
+                                        />
+                                        <span className="flex-1">
+                                            <span className="block text-sm font-bold text-slate-700">ตามช่วงเวลา</span>
+                                            <span className="block text-[11px] text-slate-400">ระบบแสดงเมนูอัตโนมัติเมื่อถึงเวลาเริ่ม และซ่อนเมื่อหมดเวลา</span>
+                                            {displayMode === RichMenuDisplayMode.SCHEDULED && (
+                                                <span className="mt-3 grid grid-cols-1 gap-2" onClick={(e) => e.preventDefault()}>
+                                                    <label className="text-[10px] font-bold text-slate-400">เริ่มแสดง
+                                                        <input
+                                                            type="datetime-local"
+                                                            value={displayStart}
+                                                            onChange={(e) => setDisplayStart(e.target.value)}
+                                                            className="mt-1 w-full text-sm bg-white border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary/20 outline-none"
+                                                        />
+                                                    </label>
+                                                    <label className="text-[10px] font-bold text-slate-400">ซ่อนเมื่อถึง
+                                                        <input
+                                                            type="datetime-local"
+                                                            value={displayEnd}
+                                                            onChange={(e) => setDisplayEnd(e.target.value)}
+                                                            className="mt-1 w-full text-sm bg-white border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary/20 outline-none"
+                                                        />
+                                                    </label>
+                                                </span>
+                                            )}
+                                        </span>
+                                    </label>
+                                    <label className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${displayMode === RichMenuDisplayMode.MANUAL ? 'border-primary/40 bg-primary/8' : 'border-slate-200 hover:border-slate-300'}`}>
+                                        <input
+                                            type="radio"
+                                            name="display-mode"
+                                            className="mt-0.5 accent-[var(--primary)]"
+                                            checked={displayMode === RichMenuDisplayMode.MANUAL}
+                                            onChange={() => setDisplayMode(RichMenuDisplayMode.MANUAL)}
+                                        />
+                                        <span>
+                                            <span className="block text-sm font-bold text-slate-700">ซ่อน (เตรียมใช้งาน)</span>
+                                            <span className="block text-[11px] text-slate-400">ซิงค์ไป LINE แต่ไม่ตั้งเป็นเมนูหลัก — ใช้กับการผูกรายคนหรือปุ่มสลับเมนู</span>
+                                        </span>
+                                    </label>
+                                </div>
                             </div>
                         </div>
 
