@@ -66,6 +66,22 @@ function jsonResponse(body: unknown, status = 200): Response {
     });
 }
 
+const MENU_URL = '/api/v1/admin/rich-menus/1';
+const ALIASES_URL = '/api/v1/admin/rich-menus/aliases';
+
+/**
+ * URL/method-aware fetch mock. Sequence-based mocks (mockResolvedValueOnce in
+ * call order) proved flaky on CI: mount effects and refetches can interleave,
+ * shifting which queued response each call consumes. Routing by
+ * "METHOD url" is immune to call order.
+ */
+function routeFetch(routes: Record<string, unknown>) {
+    return vi.fn(async (url: string, init?: RequestInit) => {
+        const key = `${(init?.method ?? 'GET').toUpperCase()} ${String(url)}`;
+        return jsonResponse(routes[key] ?? []);
+    });
+}
+
 function renderPage(fetchMock: ReturnType<typeof vi.fn>) {
     vi.stubGlobal('fetch', fetchMock);
     return render(
@@ -171,39 +187,40 @@ describe('EditRichMenuPage — area overlay + sync machine', () => {
 
     it('save-and-sync issues PUT then sync and stays on the page (no redirect)', async () => {
         const menu = editMenuFixture();
-        const fetchMock = vi.fn()
-            .mockResolvedValueOnce(jsonResponse(menu)) // initial load
-            .mockResolvedValue(jsonResponse([])) // aliases
-            // save-and-sync: PUT -> sync -> refetch after refresh
-            .mockResolvedValueOnce(jsonResponse({ ...menu, sync_status: 'PENDING' }))
-            .mockResolvedValueOnce(jsonResponse({ success: true, message: 'อัปเดตบน LINE แล้ว', recreated: true }))
-            .mockResolvedValueOnce(jsonResponse({ ...menu }));
+        const fetchMock = routeFetch({
+            [`GET ${MENU_URL}`]: menu,
+            [`GET ${ALIASES_URL}`]: [],
+            [`PUT ${MENU_URL}`]: { ...menu, sync_status: 'PENDING' },
+            [`POST ${MENU_URL}/sync`]: { success: true, message: 'อัปเดตบน LINE แล้ว', recreated: true },
+        });
         renderPage(fetchMock);
 
         await waitFor(() => expect(screen.getByAltText('Preview')).toBeInTheDocument());
         screen.getByRole('button', { name: 'บันทึกและซิงค์' }).click();
 
         await waitFor(() => {
-            const calls = fetchMock.mock.calls.map((c) => String(c[0]));
-            const putIdx = calls.findIndex((u) => u.includes('/admin/rich-menus/1') && !u.includes('/sync'));
-            const syncIdx = calls.findIndex((u) => u.includes('/admin/rich-menus/1/sync'));
+            const calls = fetchMock.mock.calls.map((c) => `${(c[1] as RequestInit | undefined)?.method ?? 'GET'} ${c[0]}`);
+            const putIdx = calls.findIndex((c) => c === `PUT ${MENU_URL}`);
+            const syncIdx = calls.findIndex((c) => c === `POST ${MENU_URL}/sync`);
             expect(putIdx).toBeGreaterThan(-1);
             expect(syncIdx).toBeGreaterThan(putIdx);
         });
         // stayed on the page: the menu was re-fetched (badge refresh), no router.push
         await waitFor(() => {
-            const calls = fetchMock.mock.calls.map((c) => String(c[0])).filter((u) => u.endsWith('/admin/rich-menus/1'));
-            expect(calls.length).toBeGreaterThanOrEqual(2);
+            const gets = fetchMock.mock.calls
+                .map((c) => `${(c[1] as RequestInit | undefined)?.method ?? 'GET'} ${c[0]}`)
+                .filter((c) => c === `GET ${MENU_URL}`);
+            expect(gets.length).toBeGreaterThanOrEqual(2);
         });
     });
 
     it('draft save of a synced menu says the edit has not reached LINE', async () => {
         const menu = editMenuFixture();
-        const fetchMock = vi.fn()
-            .mockResolvedValueOnce(jsonResponse(menu)) // initial load
-            .mockResolvedValue(jsonResponse([])) // aliases
-            .mockResolvedValueOnce(jsonResponse({ ...menu, sync_status: 'PENDING' })) // PUT
-            .mockResolvedValueOnce(jsonResponse({ ...menu })); // refetch
+        const fetchMock = routeFetch({
+            [`GET ${MENU_URL}`]: menu,
+            [`GET ${ALIASES_URL}`]: [],
+            [`PUT ${MENU_URL}`]: { ...menu, sync_status: 'PENDING' },
+        });
         renderPage(fetchMock);
 
         await waitFor(() => expect(screen.getByAltText('Preview')).toBeInTheDocument());
@@ -238,12 +255,12 @@ describe('EditRichMenuPage — area overlay + sync machine', () => {
 
     it('save-and-sync on a MANUAL menu never auto-publishes', async () => {
         const menu = editMenuFixture({ display_mode: 'MANUAL', status: 'DRAFT' });
-        const fetchMock = vi.fn()
-            .mockResolvedValueOnce(jsonResponse(menu)) // initial load
-            .mockResolvedValue(jsonResponse([])) // aliases
-            .mockResolvedValueOnce(jsonResponse({ ...menu, sync_status: 'PENDING' })) // PUT
-            .mockResolvedValueOnce(jsonResponse({ success: true, message: 'Sync ok' })) // sync
-            .mockResolvedValueOnce(jsonResponse({ ...menu })); // refetch
+        const fetchMock = routeFetch({
+            [`GET ${MENU_URL}`]: menu,
+            [`GET ${ALIASES_URL}`]: [],
+            [`PUT ${MENU_URL}`]: { ...menu, sync_status: 'PENDING' },
+            [`POST ${MENU_URL}/sync`]: { success: true, message: 'Sync ok' },
+        });
         renderPage(fetchMock);
 
         await waitFor(() => expect(screen.getByAltText('Preview')).toBeInTheDocument());
@@ -260,21 +277,24 @@ describe('EditRichMenuPage — area overlay + sync machine', () => {
 
     it('save-and-sync on an ALWAYS, unpublished menu publishes right after sync', async () => {
         const menu = editMenuFixture({ display_mode: 'ALWAYS', status: 'DRAFT' });
-        const fetchMock = vi.fn()
-            .mockResolvedValueOnce(jsonResponse(menu)) // initial load
-            .mockResolvedValue(jsonResponse([])) // aliases
-            .mockResolvedValueOnce(jsonResponse({ ...menu, sync_status: 'PENDING' })) // PUT
-            .mockResolvedValueOnce(jsonResponse({ success: true, message: 'Sync ok' })) // sync
-            .mockResolvedValueOnce(jsonResponse({ message: 'Rich Menu is now default' })) // publish
-            .mockResolvedValueOnce(jsonResponse({ ...menu, status: 'PUBLISHED' })); // refetch
+        const fetchMock = routeFetch({
+            [`GET ${MENU_URL}`]: menu,
+            [`GET ${ALIASES_URL}`]: [],
+            [`PUT ${MENU_URL}`]: { ...menu, sync_status: 'PENDING' },
+            [`POST ${MENU_URL}/sync`]: { success: true, message: 'Sync ok' },
+            [`POST ${MENU_URL}/publish`]: { message: 'Rich Menu is now default' },
+        });
         renderPage(fetchMock);
 
         await waitFor(() => expect(screen.getByAltText('Preview')).toBeInTheDocument());
         screen.getByRole('button', { name: 'บันทึกและซิงค์' }).click();
 
         await waitFor(() => {
-            const calls = fetchMock.mock.calls.map((c) => String(c[0]));
-            expect(calls.some((u) => u.includes('/publish'))).toBe(true);
+            const calls = fetchMock.mock.calls.map((c) => `${(c[1] as RequestInit | undefined)?.method ?? 'GET'} ${c[0]}`);
+            const syncIdx = calls.findIndex((c) => c.includes(`POST ${MENU_URL}/sync`));
+            const pubIdx = calls.findIndex((c) => c.includes(`POST ${MENU_URL}/publish`));
+            expect(syncIdx).toBeGreaterThan(-1);
+            expect(pubIdx).toBeGreaterThan(syncIdx);
         });
     });
 });
