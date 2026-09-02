@@ -194,3 +194,10 @@ frontend/
 ## Language
 
 UI is in **Thai** (primary). Database fields include Thai names. Code comments and docs use English.
+
+## Communication With The User
+
+- **The user is NOT an IT person** — no programming jargon unless it is explained in plain everyday Thai. Use real-life analogies instead of tech terms (e.g. "ระบบหลังบ้าน" not "backend API", "ทางเข้าหน้าเว็บ" not "endpoint").
+- **Explain every technical term on first use in a session, every session.** Do NOT assume the user remembers terms explained in earlier conversations — the agent has no memory between sessions, so if it matters once it must be re-explained once more.
+- Summaries of finished work should lead with **what changed from the user's point of view** (what works differently, what to test on the phone), and keep technical detail in a clearly separated section below.
+- Work notes and agent-facing docs stay in English per the rule above; but anything addressed TO the user (summaries, answers, status updates) is written in Thai, plainly.
