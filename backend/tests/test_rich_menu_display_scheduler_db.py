@@ -191,6 +191,39 @@ async def test_expire_due_cancels_only_when_still_default():
 
 
 @pytest.mark.asyncio
+async def test_expire_due_foreign_default_still_unpublishes():
+    """AC4 guard against real SQL: when the LINE default belongs to ANOTHER
+    menu, this menu still flips INACTIVE but the default is NOT cancelled —
+    never un-publish someone else's default (plan Task 18 scenario 4)."""
+    Session, engine = _test_session()
+    try:
+        mine = _menu(line_rich_menu_id="rm-expiring-foreign",
+                     status=RichMenuStatus.PUBLISHED.value,
+                     display_end_at=NOW - timedelta(minutes=5))
+        async with Session() as db:
+            mine = (await _create_rows(db, mine))[0]
+            try:
+                with patch.object(RichMenuService, "get_default_on_line",
+                                  new=AsyncMock(return_value={"richMenuId": "rm-someone-else"})), \
+                     patch.object(RichMenuService, "cancel_default_on_line",
+                                  new=AsyncMock()) as cancel, \
+                     patch("app.tasks.rich_menu_display_scheduler.create_audit_log",
+                           new=AsyncMock()) as audit:
+                    expired = await _expire_due(db, NOW)
+
+                assert mine.id in {m.id for m in expired}
+                cancel.assert_not_awaited()
+                assert audit.await_args.kwargs["details"]["cancelled_default"] is False
+                await db.refresh(mine)
+                assert mine.status == RichMenuStatus.INACTIVE.value
+            finally:
+                await db.delete(mine)
+                await db.commit()
+    finally:
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
 async def test_expire_due_skips_period_still_open():
     Session, engine = _test_session()
     try:

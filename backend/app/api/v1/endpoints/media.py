@@ -36,10 +36,8 @@ MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
 # Admin uploads must serve-safe: the sniffed magic bytes — NOT the spoofable
 # client Content-Type — decide the stored mime, and only serve-safe types are
 # accepted (parity with the LIFF upload allowlist; review finding M10 — the
-# public endpoints serve these bytes without auth).
-MEDIA_ALLOWED_MIMES = {"image/jpeg", "image/png", "application/pdf"}
-
-
+# public endpoints serve these bytes without auth). _sniff_mime below is the
+# single enforcement point; the accepted set is JPEG/PNG/PDF.
 def _sniff_mime(data: bytes) -> Optional[str]:
     """Real mime from magic bytes, or None when the bytes are neither PNG,
     JPEG, nor PDF."""

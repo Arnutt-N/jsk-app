@@ -305,7 +305,7 @@ async def test_telegram(
         logger.error("Integration test failed for Telegram: %s", exc, exc_info=True)
         return await _finish_integration_test(
             db, current_admin.id, "telegram", cred.id if cred else None,
-            TestResult(success=False, message=str(exc)),
+            TestResult(success=False, message=str(exc)[:120]),
         )
 
 
@@ -415,7 +415,7 @@ async def test_n8n(
         logger.error("Integration test failed for n8n: %s", exc, exc_info=True)
         return await _finish_integration_test(
             db, current_admin.id, "n8n", cred.id if cred else None,
-            TestResult(success=False, message=str(exc)),
+            TestResult(success=False, message=str(exc)[:120]),
         )
 
 
@@ -652,7 +652,7 @@ async def test_integration(
         logger.error("Integration test failed for custom integration %d: %s", integration_id, exc, exc_info=True)
         return await _finish_integration_test(
             db, current_admin.id, "custom", obj.id,
-            TestResult(success=False, message=str(exc)),
+            TestResult(success=False, message=str(exc)[:120]),
         )
 
 

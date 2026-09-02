@@ -306,6 +306,11 @@ export default function LiffBookingPage() {
     async (service: string, date: string, { force = false } = {}) => {
       if (!idToken) return
       const key = `${service}|${date}`
+      // Mark THIS key as the newest request before any early return — the
+      // cache-hit path must also invalidate an older in-flight fetch, or that
+      // fetch's late response would pass the guard below and overwrite the
+      // (cached) slots just rendered.
+      latestSlotKeyRef.current = key
       if (!force) {
         const cached = slotCache.current.get(key)
         if (cached) {
@@ -317,7 +322,6 @@ export default function LiffBookingPage() {
       // Stale-response guard (review finding H4): a slow availability fetch
       // for a superseded date/service must not overwrite the current slots —
       // a slot time from date A could otherwise be booked under date B.
-      latestSlotKeyRef.current = key
       setLoadingSlots(true)
       setError(null)
       try {
