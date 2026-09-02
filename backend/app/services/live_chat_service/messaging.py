@@ -13,6 +13,7 @@ from app.models.user import ChatMode, User
 from app.schemas.message import message_payload_dict
 from app.services.line_service import line_service
 from app.services.user_identity_service import resolve_by_line_id
+from app.core.logging_utils import mask_line_id
 
 from ._deps import get_sla_service
 
@@ -51,7 +52,7 @@ class MessagingMixin:
         try:
             await line_service.push_messages(line_user_id, [TextMessage(text=text)])
         except Exception as e:
-            logger.error(f"LINE push failed after persist for {line_user_id}: {e}")
+            logger.error(f"LINE push failed after persist for {mask_line_id(line_user_id)}: {e}")
 
         session.message_count += 1
         session.last_activity_at = datetime.now(timezone.utc)
@@ -149,7 +150,7 @@ class MessagingMixin:
                 text_msg = f"Attachment: {file_name}\n{media_url}"
                 await line_service.push_messages(line_user_id, [TextMessage(text=text_msg[:5000])])
         except Exception as e:
-            logger.error(f"LINE push failed after persist for {line_user_id}: {e}")
+            logger.error(f"LINE push failed after persist for {mask_line_id(line_user_id)}: {e}")
 
         session.message_count += 1
         session.last_activity_at = datetime.now(timezone.utc)

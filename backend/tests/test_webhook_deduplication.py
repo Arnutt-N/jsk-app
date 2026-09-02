@@ -273,9 +273,11 @@ class TestRedisClient:
 
     @pytest.mark.asyncio
     async def test_set_with_no_connection(self, redis_client):
-        """Test set() returns False when not connected."""
+        """Test set() returns None when not connected (tri-state contract:
+        None = redis unavailable, False = NX lost — the webhook dedup lock
+        fails open on None so a Redis outage cannot drop events)."""
         result = await redis_client.set("key", "value", seconds=300, nx=True)
-        assert result is False
+        assert result is None
 
     @pytest.mark.asyncio
     async def test_is_connected_property(self, redis_client):

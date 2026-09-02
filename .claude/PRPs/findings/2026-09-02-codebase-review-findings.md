@@ -70,6 +70,7 @@ Evidence rule: every finding below was verified against the codebase (location +
 ### M4 — CSV exports unbounded for wide date ranges
 - location: `backend/app/api/v1/endpoints/admin_reports.py:171` (service-requests + followers exports have no `.limit()`; messages export caps at 10 000)
 - disposition: **FIX** — same 10 000-row cap on the other two exports.
+- test note (2026-09-02): no dedicated `admin_reports` test exists (grep over `backend/tests/` returned none) — accepted-risk recorded per plan Task 7a: the change is a single `.limit(10000)` clause per export select, mirrored on the messages-export cap; CI full-suite covers import/contract integrity.
 
 ### M5 — Upload endpoints buffer the whole body before the size check
 - location: `backend/app/api/v1/endpoints/media.py:222` (same pattern `liff.py:93`)

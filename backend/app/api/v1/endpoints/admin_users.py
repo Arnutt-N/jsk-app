@@ -115,6 +115,15 @@ def _check_role_permission(current_user: User, target_role: UserRole) -> None:
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Only ADMIN or SUPER_ADMIN can manage AGENT users",
             )
+    elif target_role in (UserRole.DIRECTOR, UserRole.HEAD):
+        # DIRECTOR/HEAD previously fell through with NO check — an ADMIN
+        # (manage_users) could create/modify them, escalating into roles that
+        # carry access_manager_endpoints/access_staff_endpoints.
+        if current_user.role != UserRole.SUPER_ADMIN:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only SUPER_ADMIN can manage DIRECTOR or HEAD users",
+            )
 
 
 # ── Endpoints ────────────────────────────────────────────────────────

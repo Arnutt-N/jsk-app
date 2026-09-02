@@ -34,6 +34,9 @@ export default function LiffServiceRequestV2() {
 
     // Uploads started but not yet resolved — counted toward the attachment
     // cap so rapid file picks cannot exceed the shared rate-limit budget.
+    // Latest-request tokens for the cascading selects (H3 race guard)
+    const provinceReqRef = useRef<string | null>(null)
+    const districtReqRef = useRef<string | null>(null)
     const inflightUploadsRef = useRef(0)
 
     // Location Data State
@@ -119,13 +122,21 @@ export default function LiffServiceRequestV2() {
         // Fetch Districts
         if (provinceId) {
             setLoadingDistricts(true)
+            const provinceReqId = String(provinceId)
+            provinceReqRef.current = provinceReqId
             try {
                 const data = await fetchDistricts(provinceId)
+                // Stale-response guard (review finding H3): the user may have
+                // switched provinces while this fetch was in flight.
+                if (provinceReqRef.current !== provinceReqId) return
                 setDistricts(data)
             } catch (err) {
+                if (provinceReqRef.current !== provinceReqId) return
                 logger.error(err)
             } finally {
-                setLoadingDistricts(false)
+                // Only the newest request may clear the spinner — a stale
+                // response resolving later must not clear a newer one's state.
+                if (provinceReqRef.current === provinceReqId) setLoadingDistricts(false)
             }
         }
     }
@@ -145,13 +156,19 @@ export default function LiffServiceRequestV2() {
         // Fetch SubDistricts
         if (districtId) {
             setLoadingSubDistricts(true)
+            const districtReqId = String(districtId)
+            districtReqRef.current = districtReqId
             try {
                 const data = await fetchSubDistricts(districtId)
+                // Stale-response guard: a slow sub-district response for a
+                // superseded district must not land in the new selection.
+                if (districtReqRef.current !== districtReqId) return
                 setSubDistricts(data)
             } catch (err) {
+                if (districtReqRef.current !== districtReqId) return
                 logger.error(err)
             } finally {
-                setLoadingSubDistricts(false)
+                if (districtReqRef.current === districtReqId) setLoadingSubDistricts(false)
             }
         }
     }

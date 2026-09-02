@@ -134,9 +134,22 @@ async def _login_failed(db: AsyncSession, username_masked: str) -> NoReturn:
 async def login(
     payload: LoginRequest,
     response: Response,
+    request: Request,
     db: AsyncSession = Depends(get_db),
 ) -> LoginResponse:
     username_masked = _mask_username(payload.username)
+
+    # Throttle credential attempts BEFORE any DB/password work — /login was the
+    # only auth route without a limiter (unlimited online password guessing).
+    # Same limiter as migrate-session/ws-ticket (Redis bucket, in-process
+    # fallback), keyed per client IP + username.
+    if await _auth_rate_limit_exceeded(
+        f"login:{request.client.host if request.client else 'unknown'}:{payload.username}"
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many login attempts, try again later",
+        )
 
     result = await db.execute(
         select(User).where(

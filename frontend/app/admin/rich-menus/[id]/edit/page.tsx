@@ -130,13 +130,23 @@ export default function EditRichMenuPage() {
         );
     };
 
+    const objectUrlRef = useRef<string | null>(null);
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
             setImageFile(file);
-            setImagePreview(URL.createObjectURL(file));
+            // Revoke the previous blob URL before minting the next one — the
+            // old URL (and its File blob) leaked per image selection (M6).
+            // Server-served image_url previews are never revoked.
+            if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
+            const url = URL.createObjectURL(file);
+            objectUrlRef.current = url;
+            setImagePreview(url);
         }
     };
+    useEffect(() => () => {
+        if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
+    }, []);
 
     // Save flow mirrors the create page's two modes. `andSync` continues into
     // POST sync, which (since LINE menus are immutable) recreates the menu on

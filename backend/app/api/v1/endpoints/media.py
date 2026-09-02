@@ -1,3 +1,4 @@
+import secrets
 import uuid
 import math
 from typing import Optional
@@ -31,6 +32,24 @@ from app.models.user import User
 router = APIRouter()
 
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
+
+# Admin uploads must serve-safe: the sniffed magic bytes — NOT the spoofable
+# client Content-Type — decide the stored mime, and only serve-safe types are
+# accepted (parity with the LIFF upload allowlist; review finding M10 — the
+# public endpoints serve these bytes without auth).
+MEDIA_ALLOWED_MIMES = {"image/jpeg", "image/png", "application/pdf"}
+
+
+def _sniff_mime(data: bytes) -> Optional[str]:
+    """Real mime from magic bytes, or None when the bytes are neither PNG,
+    JPEG, nor PDF."""
+    if data.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if data.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if data.startswith(b"%PDF"):
+        return "application/pdf"
+    return None
 
 # Shared limiter dependencies — one bucket per scope across the routes below.
 _upload_rate_limit = http_rate_limit(
@@ -97,7 +116,14 @@ async def get_public_file(public_token: str):
             content=media.data,
             media_type=media.mime_type,
             headers={
-                "Content-Disposition": f'inline; filename="{_safe_filename(media.filename)}"',
+                # inline preview only for images we sniff-verified can't be
+                # HTML; everything else downloads (stored-XSS defense, M10)
+                "Content-Disposition": (
+                    f'inline; filename="{_safe_filename(media.filename)}"'
+                    if media.mime_type in ("image/jpeg", "image/png")
+                    else f'attachment; filename="{_safe_filename(media.filename)}"'
+                ),
+                "X-Content-Type-Options": "nosniff",
                 "Cache-Control": "public, max-age=86400",
             },
         )
@@ -121,10 +147,18 @@ async def get_media(
     if not media:
         raise HTTPException(status_code=404, detail="Media not found")
 
-    if not media.is_public and media.public_token != token:
+    # Constant-time compare (both sides encoded — compare_digest raises
+    # TypeError on non-ASCII str); on mismatch a wrong token still 403s.
+    if not media.is_public and not secrets.compare_digest(
+        (media.public_token or "").encode(), (token or "").encode()
+    ):
         raise HTTPException(status_code=403, detail="Access denied")
 
-    return Response(content=media.data, media_type=media.mime_type)
+    return Response(
+        content=media.data,
+        media_type=media.mime_type,
+        headers={"X-Content-Type-Options": "nosniff"},
+    )
 
 
 # ===================================================================
@@ -219,10 +253,21 @@ async def upload_media(
     ``application/octet-stream`` — otherwise ``.jpg``/``.png`` uploads
     end up categorised as OTHER.
     """
+    # Reject on the multipart header BEFORE buffering the body — an oversized
+    # upload must not be pulled into memory just to be discarded (the
+    # post-read check stays as a backstop for missing/lying headers).
+    if file.size is not None and file.size > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="File too large (max 10MB)")
     content = await file.read()
     if len(content) > MAX_UPLOAD_BYTES:
         raise HTTPException(status_code=413, detail="File too large (max 10MB)")
-    mime = file.content_type or "application/octet-stream"
+    # Magic bytes decide the stored mime — the client Content-Type is
+    # spoofable and these bytes are served publicly (M10).
+    mime = _sniff_mime(content)
+    if mime is None:
+        raise HTTPException(
+            status_code=422, detail="Only JPEG, PNG, or PDF files are supported"
+        )
     filename = file.filename or "untitled"
 
     media = MediaFile(
@@ -465,10 +510,18 @@ async def upload_media_legacy(
     db: AsyncSession = Depends(get_db),
     _admin: User = Depends(require_permission(KEY_MANAGE_FILES)),
 ):
+    if file.size is not None and file.size > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="File too large (max 10MB)")
     content = await file.read()
     if len(content) > MAX_UPLOAD_BYTES:
         raise HTTPException(status_code=413, detail="File too large (max 10MB)")
-    mime = file.content_type or "application/octet-stream"
+    # Magic bytes decide the stored mime — the client Content-Type is
+    # spoofable and these bytes are served publicly (M10).
+    mime = _sniff_mime(content)
+    if mime is None:
+        raise HTTPException(
+            status_code=422, detail="Only JPEG, PNG, or PDF files are supported"
+        )
     filename = file.filename or "untitled"
 
     media = MediaFile(

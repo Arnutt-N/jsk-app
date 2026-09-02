@@ -235,7 +235,23 @@ export function useMessageFlow({
         method: 'POST',
         body: formData,
       });
-      if (!res.ok) throw new Error('media send failed');
+      // A 4xx is a server rejection (e.g. 413 oversized, 422 wrong file type),
+      // not an outage — surface a toast and stay online. Only network failures
+      // and 5xx flip the console offline (review finding M7).
+      if (!res.ok) {
+        if (res.status < 500) {
+          getStore().addNotification({
+            title: 'ส่งไฟล์ไม่สำเร็จ',
+            message: res.status === 413
+              ? 'ไฟล์มีขนาดใหญ่เกินที่ระบบรองรับ'
+              : 'ไม่สามารถส่งไฟล์นี้ได้ กรุณาตรวจสอบไฟล์แล้วลองใหม่',
+            type: 'system',
+            variant: 'warning',
+          });
+          return;
+        }
+        throw new Error(`media send failed (HTTP ${res.status})`);
+      }
       await Promise.all([fetchChatDetail(s.selectedId, true), fetchConversations()]);
     } catch {
       getStore().setBackendOnline(false);

@@ -10,6 +10,13 @@ from app.models.user import UserRole
 from app.schemas.auth import LoginRequest
 
 
+class _FakeRequest:
+    """Minimal stand-in for starlette Request — login() only reads client.host."""
+
+    class client:  # noqa: N801 - mimics starlette's attribute shape
+        host = "testclient"
+
+
 class _ScalarResult:
     def __init__(self, value):
         self._value = value
@@ -57,7 +64,14 @@ async def test_login_returns_401_for_invalid_stored_hash() -> None:
         # P1.1a added a `response: Response` parameter (for cookie
         # issuance in dual/cookie mode) between payload and db -- this
         # white-box call now needs a real Response instance to match.
-        await login(LoginRequest(username="admin", password="admin1234"), Response(), db)
+        # The login rate limiter (Redis bucket keyed per IP+username) added
+        # a `request: Request` parameter between response and db.
+        await login(
+            LoginRequest(username="admin", password="admin1234"),
+            Response(),
+            _FakeRequest(),
+            db,
+        )
 
     assert exc_info.value.status_code == 401
     assert exc_info.value.detail == "Invalid username or password"

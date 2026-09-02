@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
@@ -244,6 +244,11 @@ export default function NewRichMenuPage() {
     const [displayMode, setDisplayMode] = useState<RichMenuDisplayModeValue>(RichMenuDisplayMode.ALWAYS);
     const [displayStart, setDisplayStart] = useState('');
     const [displayEnd, setDisplayEnd] = useState('');
+
+    // Memoized blob URL — URL.createObjectURL called inline in JSX minted a
+    // new URL on every render and leaked the old ones (review finding M6).
+    const previewUrl = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
+    useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl); }, [previewUrl]);
 
     // Synchronize pendingTemplate when modal opens
     useEffect(() => {
@@ -619,7 +624,7 @@ export default function NewRichMenuPage() {
                                 {file ? (
                                     <div className="w-full h-full relative">
                                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                                        <img src={URL.createObjectURL(file)} alt="Rich menu preview" className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-700" />
+                                        <img src={previewUrl ?? undefined} alt="Rich menu preview" className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-700" />
                                         <div className="absolute inset-0 pointer-events-none opacity-40">
                                             {selectedTemplate?.item.areas.map((area: TemplateArea, i: number) => (
                                                 <div key={i} className="absolute border border-white flex items-center justify-center text-white font-bold text-3xl bg-black bg-opacity-20"

@@ -90,6 +90,11 @@ async def upload_liff_media(
             detail=f"ประเภทไฟล์ไม่รองรับ ({mime}) เฉพาะ JPEG, PNG, PDF เท่านั้น",
         )
 
+    # Reject on the multipart header BEFORE buffering the body (the
+    # post-read check stays as a backstop for missing/lying headers).
+    if file.size is not None and file.size > _LIFF_MEDIA_MAX_BYTES:
+        raise HTTPException(status_code=413, detail="ไฟล์มีขนาดใหญ่เกินไป (สูงสุด 10MB)")
+
     content = await file.read()
     if len(content) > _LIFF_MEDIA_MAX_BYTES:
         raise HTTPException(status_code=413, detail="ไฟล์มีขนาดใหญ่เกินไป (สูงสุด 10MB)")

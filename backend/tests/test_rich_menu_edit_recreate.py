@@ -384,6 +384,26 @@ def test_sync_recreate_failfast_oversize_image_before_create():
     create.assert_not_called()
 
 
+def test_sync_recreate_failfast_on_dangling_image_media_id():
+    """image_media_id set but the media row is gone: hard-fail BEFORE create —
+    silently recreating imageless would then delete the old image-bearing menu
+    (review finding M12)."""
+    menu = _menu(sync_status="PENDING", config=_config([AREA_MSG]),
+                 image_media_id="00000000-0000-0000-0000-000000000001")
+    line_copy = _config([AREA_URI])
+    db = _SeqDB([menu, [], []], gets=[None])
+
+    with patch.object(RichMenuService, "get_from_line",
+                      new=AsyncMock(return_value=line_copy)), \
+         patch.object(RichMenuService, "create_on_line", new=AsyncMock()) as create:
+        result = _run(RichMenuService.sync_with_idempotency(db, 1))
+
+    assert result["success"] is False
+    assert "รูป" in result["message"]
+    create.assert_not_called()
+    assert menu.line_rich_menu_id == "richmenu-old"
+
+
 # ---------------------------------------------------------------------------
 # Per-user re-linking
 # ---------------------------------------------------------------------------

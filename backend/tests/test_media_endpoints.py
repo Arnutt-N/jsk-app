@@ -32,8 +32,11 @@ async def test_upload_media_returns_created_payload():
 
     db.refresh.side_effect = _refresh
 
+    # Real PDF magic bytes — the admin upload route now sniffs magic bytes and
+    # rejects non-JPEG/PNG/PDF content (review finding M10), so the old
+    # b"hello world" declared as application/pdf would 422.
     file = UploadFile(
-        BytesIO(b"hello world"),
+        BytesIO(b"%PDF-1.4\n%minimal fake pdf body"),
         filename="manual.pdf",
         headers=Headers({"content-type": "application/pdf"}),
     )
