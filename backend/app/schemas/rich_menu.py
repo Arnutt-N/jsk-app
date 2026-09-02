@@ -1,7 +1,7 @@
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from typing import Annotated, List, Dict, Any, Optional, Literal
 from datetime import datetime
-from app.models.rich_menu import RichMenuStatus
+from app.models.rich_menu import RichMenuStatus, RichMenuDisplayMode
 
 # LINE userId: "U" + 32 lowercase hex chars (33 total). Validated per-element.
 LineUserId = Annotated[str, Field(pattern=r"^U[0-9a-f]{32}$")]
@@ -48,6 +48,31 @@ class RichMenuArea(BaseModel):
     bounds: RichMenuAreaBounds
     action: RichMenuAreaAction
 
+# Display settings shared by create/update (PRD 2026-09-02): SCHEDULED is only
+# meaningful with a full, ordered period; ALWAYS/MANUAL ignore the times.
+DisplayModeLiteral = Literal["ALWAYS", "SCHEDULED", "MANUAL"]
+
+class RichMenuDisplaySettings(BaseModel):
+    display_mode: DisplayModeLiteral = RichMenuDisplayMode.ALWAYS.value
+    display_start_at: Optional[datetime] = None
+    display_end_at: Optional[datetime] = None
+
+    @model_validator(mode="after")
+    def _validate_period(self):
+        if self.display_mode == "SCHEDULED":
+            if not self.display_start_at or not self.display_end_at:
+                raise ValueError("display_start_at and display_end_at are required when display_mode is SCHEDULED")
+            if self.display_end_at <= self.display_start_at:
+                raise ValueError("display_end_at must be after display_start_at")
+        return self
+
+    def apply_to(self, rich_menu) -> None:
+        """Copy the display settings onto a RichMenu ORM row (shared by the
+        create and update endpoints so the two can never diverge)."""
+        rich_menu.display_mode = self.display_mode
+        rich_menu.display_start_at = self.display_start_at
+        rich_menu.display_end_at = self.display_end_at
+
 class RichMenuConfig(BaseModel):
     size: Dict[str, int] # e.g. {"width": 2500, "height": 1686}
     selected: bool = False
@@ -55,13 +80,13 @@ class RichMenuConfig(BaseModel):
     chatBarText: str
     areas: List[RichMenuArea]
 
-class RichMenuCreate(BaseModel):
+class RichMenuCreate(RichMenuDisplaySettings):
     name: str
     chat_bar_text: str
     template_type: str # e.g. "3-buttons", "6-buttons"
     areas: List[RichMenuArea] # Final calculated areas
 
-class RichMenuUpdate(BaseModel):
+class RichMenuUpdate(RichMenuDisplaySettings):
     # PUT /{id}: no template_type (layout fixed after creation) so update_rich_menu
     # must NOT call resolve_rich_menu_size(). Avoids the latent 422 on edit-save.
     name: str
@@ -110,6 +135,9 @@ class RichMenuResponse(BaseModel):
     sync_status: str
     last_synced_at: Optional[datetime]
     last_sync_error: Optional[str]
+    display_mode: str = RichMenuDisplayMode.ALWAYS.value
+    display_start_at: Optional[datetime] = None
+    display_end_at: Optional[datetime] = None
     created_at: datetime
     updated_at: Optional[datetime]
     # Number of users currently bound to this menu (rows in user_rich_menu_links).

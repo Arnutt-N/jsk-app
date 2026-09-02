@@ -220,6 +220,35 @@ class RichMenuService:
             return response.json()
 
     @staticmethod
+    async def get_default_on_line(db: AsyncSession) -> Optional[Dict[str, Any]]:
+        """The current default rich menu on LINE ({"richMenuId": ...}), or None
+        when no default is set (404). Used by the display scheduler so an
+        expiring menu only cancels a default that still belongs to it."""
+        headers = await RichMenuService.get_client_headers(db)
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{RichMenuService.API_BASE}/user/all/richmenu",
+                headers=headers
+            )
+            if response.status_code == 404:
+                return None
+            response.raise_for_status()
+            return response.json()
+
+    @staticmethod
+    async def cancel_default_on_line(db: AsyncSession):
+        """Unset the default rich menu for all users (reverts everyone to no
+        menu). Raises on LINE failures — callers decide how to surface them."""
+        headers = await RichMenuService.get_client_headers(db)
+        async with httpx.AsyncClient() as client:
+            response = await client.delete(
+                f"{RichMenuService.API_BASE}/user/all/richmenu",
+                headers=headers
+            )
+            response.raise_for_status()
+            return response.json() if response.content else {}
+
+    @staticmethod
     async def delete_from_line(db: AsyncSession, line_rich_menu_id: str):
         """Delete rich menu from LINE."""
         headers = await RichMenuService.get_client_headers(db)
