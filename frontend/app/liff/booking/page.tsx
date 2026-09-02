@@ -224,6 +224,8 @@ export default function LiffBookingPage() {
   // citizen taps back and forth between days; a stale slot is re-validated
   // server-side on submit, and a failed submit refetches the day.
   const slotCache = useRef(new Map<string, Availability>())
+  // H4 race guard: the newest loadSlots request key (service|date)
+  const latestSlotKeyRef = useRef<string>("")
 
   const step: Step = confirmed
     ? 'done'
@@ -304,6 +306,11 @@ export default function LiffBookingPage() {
     async (service: string, date: string, { force = false } = {}) => {
       if (!idToken) return
       const key = `${service}|${date}`
+      // Mark THIS key as the newest request before any early return — the
+      // cache-hit path must also invalidate an older in-flight fetch, or that
+      // fetch's late response would pass the guard below and overwrite the
+      // (cached) slots just rendered.
+      latestSlotKeyRef.current = key
       if (!force) {
         const cached = slotCache.current.get(key)
         if (cached) {
@@ -312,18 +319,23 @@ export default function LiffBookingPage() {
           return
         }
       }
+      // Stale-response guard (review finding H4): a slow availability fetch
+      // for a superseded date/service must not overwrite the current slots —
+      // a slot time from date A could otherwise be booked under date B.
       setLoadingSlots(true)
       setError(null)
       try {
         const loaded = await fetchAvailability(idToken, service, date)
         slotCache.current.set(key, loaded)
+        if (latestSlotKeyRef.current !== key) return
         setAvailability(loaded)
       } catch (err) {
         logger.error('Failed to load availability:', err)
+        if (latestSlotKeyRef.current !== key) return
         setError(err instanceof Error ? err.message : 'โหลดช่วงเวลาไม่สำเร็จ')
         setAvailability(null)
       } finally {
-        setLoadingSlots(false)
+        if (latestSlotKeyRef.current === key) setLoadingSlots(false)
       }
     },
     [idToken],

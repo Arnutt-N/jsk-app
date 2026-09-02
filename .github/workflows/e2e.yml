@@ -65,6 +65,10 @@ jobs:
       ADMIN_URL: http://localhost:3000
       BACKEND_CORS_ORIGINS: '["http://localhost:3000"]'
       ADMIN_DEFAULT_PASSWORD: e2e-test-password
+      # The whole E2E suite shares one client IP + the seeded admin username
+      # and performs ~20 logins per run — the prod login throttle (5/60s, M1)
+      # would 429 every login past the fifth and time out half the suite.
+      AUTH_LOGIN_RATE_LIMIT: "100"
       # Frontend env -- the rewrite proxy points at the local backend so
       # the Playwright browser hits real endpoints, not a mock.
       NEXT_PUBLIC_API_URL: http://localhost:8000/api/v1

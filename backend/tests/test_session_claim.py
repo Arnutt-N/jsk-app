@@ -577,3 +577,54 @@ def test_create_conversation_returns_409_on_open_session_race(test_client):
         mock_push.assert_not_awaited()
     finally:
         app.dependency_overrides.clear()
+
+
+def test_delete_conversation_resets_chat_mode_to_bot(test_client):
+    """Review finding M3: force-closing via conversation delete must return
+    the user to BOT mode (parity with close_session), not leave HUMAN mode
+    with no ACTIVE session."""
+    from app.models.user import ChatMode
+
+    mock_db = AsyncMock()
+    fake_user = SimpleNamespace(id=7, chat_mode=ChatMode.HUMAN)
+    session = SimpleNamespace(
+        id=42, status=SessionStatus.ACTIVE.value,
+        is_archived=False, is_archived_at=None,
+    )
+
+    class _Result:
+        def scalar_one_or_none(self):
+            return session
+
+    async def _execute(stmt):
+        return _Result()
+
+    mock_db.execute = _execute
+
+    async def _override_get_db():
+        yield mock_db
+
+    async def _override_get_current_staff():
+        return SimpleNamespace(id=9)
+
+    app.dependency_overrides[deps.get_db] = _override_get_db
+    app.dependency_overrides[deps.get_current_staff] = _override_get_current_staff
+
+    try:
+        with patch(
+            "app.api.v1.endpoints.admin_live_chat.resolve_by_line_id",
+            new=AsyncMock(return_value=fake_user),
+        ):
+            response = test_client.delete(
+                "/api/v1/admin/live-chat/conversations/Uabcdef0123456789abcdef0123456789"
+            )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["success"] is True
+        # the fix under test
+        assert fake_user.chat_mode == ChatMode.BOT
+        assert session.status == SessionStatus.CLOSED.value
+        mock_db.commit.assert_awaited()
+    finally:
+        app.dependency_overrides.clear()

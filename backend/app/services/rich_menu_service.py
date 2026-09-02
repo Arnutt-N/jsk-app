@@ -545,10 +545,16 @@ class RichMenuService:
 
         # Fail-fast before create, mirroring the fresh-create path: LINE caps
         # image content at 1 MB, so recreating with an oversized stored image
-        # would strand a fresh imageless menu on LINE.
+        # would strand a fresh imageless menu on LINE. A set image FK with a
+        # missing media row (dangling) must also hard-fail here: silently
+        # recreating imageless would then DELETE the old image-bearing menu.
         if rich_menu.image_media_id:
             media = await db.get(MediaFile, rich_menu.image_media_id)
-            if media and media.size_bytes > LINE_IMAGE_LIMIT_BYTES:
+            if media is None:
+                raise RuntimeError(
+                    "รูปของเมนูหายไปจากระบบ กรุณาอัปโหลดรูปใหม่ก่อนซิงค์"
+                )
+            if media.size_bytes > LINE_IMAGE_LIMIT_BYTES:
                 raise RuntimeError(LINE_IMAGE_TOO_LARGE_DETAIL)
 
         # 1. Create the new menu from the current local config

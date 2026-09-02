@@ -72,16 +72,22 @@ class RedisClient:
         except Exception as e:
             logger.error(f"Redis setex error: {e}")
 
-    async def set(self, key: str, value: str, seconds: Optional[int] = None, nx: bool = False) -> bool:
-        """Set key with optional expiration and NX semantics."""
+    async def set(self, key: str, value: str, seconds: Optional[int] = None, nx: bool = False) -> Optional[bool]:
+        """Set key with optional expiration and NX semantics.
+
+        Tri-state: True = set (lock acquired), False = NX lost (real
+        contention), None = Redis unavailable/error — callers decide fail-open
+        vs fail-closed (the webhook dedup lock fails open so a Redis outage
+        cannot drop LINE messages).
+        """
         if not self._redis:
-            return False
+            return None
         try:
             result = await self._redis.set(key, value, ex=seconds, nx=nx)
             return bool(result)
         except Exception as e:
             logger.error(f"Redis set error: {e}")
-            return False
+            return None
     
     async def get(self, key: str) -> Optional[str]:
         """Get value by key."""

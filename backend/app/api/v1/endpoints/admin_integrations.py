@@ -10,7 +10,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
 import httpx
+import ipaddress
 import logging
+from urllib.parse import urlsplit
 
 from app.api import deps
 from app.api.deps import get_current_admin, require_permission
@@ -24,6 +26,35 @@ from app.services.credential_service import credential_service
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+# NOTE (M9 minimal): blocks non-http(s) schemes and private/loopback/link-local
+# IP literals (incl. 169.254.169.254 cloud metadata). Decimal/octal IP host
+# encodings (e.g. http://2130706433/) are NOT caught here — ip_address() raises
+# on those hostnames; accepted under DEFER-L1 (full host allowlist needs an
+# owner-approved allowed-host policy). DNS-level resolution gaps likewise.
+_BLOCKED_HOSTNAMES = {"localhost"}
+
+
+def _assert_safe_url(url: str) -> None:
+    """Reject URLs the server-side test fetch must not touch.
+
+    Raises ValueError for non-http(s) schemes, localhost-style hostnames, and
+    IP literals in private/loopback/link-local ranges (read-SSRF guard).
+    """
+    parts = urlsplit(url or "")
+    if parts.scheme not in ("http", "https"):
+        raise ValueError(f"Unsupported URL scheme: {parts.scheme!r}")
+    host = (parts.hostname or "").lower()
+    if not host:
+        raise ValueError("URL has no hostname")
+    if host in _BLOCKED_HOSTNAMES or host.endswith(".localhost") or host.endswith(".local"):
+        raise ValueError(f"Blocked hostname: {host}")
+    try:
+        ip = ipaddress.ip_address(host)
+    except ValueError:
+        return  # regular DNS name — scheme/host checks above passed
+    if ip.is_private or ip.is_loopback or ip.is_link_local:
+        raise ValueError(f"Blocked IP range: {host}")
 
 
 # ── Pydantic Schemas ────────────────────────────────────────────────
@@ -274,7 +305,7 @@ async def test_telegram(
         logger.error("Integration test failed for Telegram: %s", exc, exc_info=True)
         return await _finish_integration_test(
             db, current_admin.id, "telegram", cred.id if cred else None,
-            TestResult(success=False, message=str(exc)),
+            TestResult(success=False, message=str(exc)[:120]),
         )
 
 
@@ -350,6 +381,7 @@ async def test_n8n(
         decrypted = credential_service.decrypt_credentials(cred.credentials)
         webhook_url = decrypted.get("webhook_url", "")
         api_key = decrypted.get("api_key")
+        _assert_safe_url(webhook_url)  # read-SSRF guard (M9)
 
         headers: Dict[str, str] = {"Content-Type": "application/json"}
         if api_key:
@@ -374,14 +406,16 @@ async def test_n8n(
                 db, current_admin.id, "n8n", cred.id,
                 TestResult(
                     success=False,
-                    message=f"Webhook returned {resp.status_code}: {resp.text[:200]}",
+                    # status only — echoing the body could leak internal
+                    # service responses to the caller (M9)
+                    message=f"Webhook returned {resp.status_code}",
                 ),
             )
     except Exception as exc:
         logger.error("Integration test failed for n8n: %s", exc, exc_info=True)
         return await _finish_integration_test(
             db, current_admin.id, "n8n", cred.id if cred else None,
-            TestResult(success=False, message=str(exc)),
+            TestResult(success=False, message=str(exc)[:120]),
         )
 
 
@@ -579,6 +613,7 @@ async def test_integration(
         api_key = decrypted.get("api_key")
         custom_headers = decrypted.get("headers") or {}
         integration_type = decrypted.get("integration_type", "webhook")
+        _assert_safe_url(url)  # read-SSRF guard (M9)
 
         headers: Dict[str, str] = {"Content-Type": "application/json"}
         headers.update(custom_headers)
@@ -608,14 +643,16 @@ async def test_integration(
                 db, current_admin.id, "custom", obj.id,
                 TestResult(
                     success=False,
-                    message=f"HTTP {resp.status_code}: {resp.text[:200]}",
+                    # status only — echoing the body could leak internal
+                    # service responses to the caller (M9)
+                    message=f"HTTP {resp.status_code}",
                 ),
             )
     except Exception as exc:
         logger.error("Integration test failed for custom integration %d: %s", integration_id, exc, exc_info=True)
         return await _finish_integration_test(
             db, current_admin.id, "custom", obj.id,
-            TestResult(success=False, message=str(exc)),
+            TestResult(success=False, message=str(exc)[:120]),
         )
 
 

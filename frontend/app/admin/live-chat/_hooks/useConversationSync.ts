@@ -41,6 +41,10 @@ export function useConversationSync({ selectedIdRef, wsStatusRef }: UseConversat
     messagesRef.current = messages;
   }, [messages]);
   const [focusedMessageId, setFocusedMessageId] = useState<number | null>(null);
+  // Monotonic sequence for detail fetches: only the most recently issued call
+  // may touch store state, so an older overlapping response that resolves
+  // later is dropped instead of overwriting fresh data (review finding M8).
+  const detailSeqRef = useRef(0);
 
   const fetchConversations = useCallback(async () => {
     const currentFilter = getStore().filterStatus;
@@ -95,11 +99,13 @@ export function useConversationSync({ selectedIdRef, wsStatusRef }: UseConversat
   }, []);
 
   const fetchChatDetail = useCallback(async (id: string, includeMessages = true) => {
+    const seq = ++detailSeqRef.current;
     try {
       const res = await fetch(`${API_BASE}/admin/live-chat/conversations/${id}`);
       if (!res.ok) return;
       const data = (await res.json()) as CurrentChat;
       if (selectedIdRef.current !== id) return;
+      if (seq !== detailSeqRef.current) return;
       getStore().setCurrentChat(data);
       if (includeMessages) {
         const nextMessages = data.messages || [];
@@ -108,6 +114,7 @@ export function useConversationSync({ selectedIdRef, wsStatusRef }: UseConversat
       }
       getStore().setBackendOnline(true);
     } catch {
+      if (seq !== detailSeqRef.current) return;
       getStore().setBackendOnline(false);
     }
   }, [selectedIdRef]);

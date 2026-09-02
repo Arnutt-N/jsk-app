@@ -41,6 +41,8 @@ from datetime import datetime, timezone
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
+MAX_LIVE_CHAT_MEDIA_BYTES = 10 * 1024 * 1024  # 10 MB (parity with media.py / liff.py)
+
 
 def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
@@ -177,7 +179,14 @@ async def send_media(
     current_user: User = Depends(deps.get_current_staff),
 ) -> Any:
     """Upload and send media message to user via LINE."""
+    # Size cap BEFORE buffering (same 10 MB cap as media.py / liff.py) —
+    # messaging.send_media_message only rejects empty bytes, so an unbounded
+    # upload would be fully materialized in RAM first (review finding M2).
+    if file.size is not None and file.size > MAX_LIVE_CHAT_MEDIA_BYTES:
+        raise HTTPException(status_code=413, detail="File too large (max 10MB)")
     content = await file.read()
+    if len(content) > MAX_LIVE_CHAT_MEDIA_BYTES:
+        raise HTTPException(status_code=413, detail="File too large (max 10MB)")
     result = await live_chat_service.send_media_message(
         line_user_id=line_user_id,
         operator_id=current_user.id,
@@ -646,6 +655,11 @@ async def delete_conversation(
         session.status = SessionStatus.CLOSED.value
         session.closed_at = now
         session.closed_by = ClosedBy.OPERATOR.value
+        # Mirror close_session: force-closing must also return the user to bot
+        # mode, otherwise the conversation stays in HUMAN mode with no ACTIVE
+        # session (review finding M3).
+        if user:
+            user.chat_mode = ChatMode.BOT
 
     session.is_archived = True
     session.archived_at = now

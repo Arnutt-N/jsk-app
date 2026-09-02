@@ -170,7 +170,7 @@ async def export_report(
         writer.writerow(["ID", "Status", "Category", "Subcategory", "Requester", "Created", "Completed"])
         q = select(ServiceRequest).where(
             ServiceRequest.created_at >= start, ServiceRequest.created_at < end,
-        ).order_by(ServiceRequest.created_at.desc())
+        ).order_by(ServiceRequest.created_at.desc()).limit(10000)
         rows = (await db.execute(q)).scalars().all()
         for r in rows:
             writer.writerow([
@@ -214,7 +214,7 @@ async def export_report(
         writer.writerow(["ID", "LineUserID", "EventType", "Created"])
         q = select(FriendEvent).where(
             FriendEvent.created_at >= start, FriendEvent.created_at < end,
-        ).order_by(FriendEvent.created_at.desc())
+        ).order_by(FriendEvent.created_at.desc()).limit(10000)
         rows = (await db.execute(q)).scalars().all()
         line_ids = await decrypt_line_ids_for_users(
             db, list({r.user_id for r in rows if r.user_id is not None})

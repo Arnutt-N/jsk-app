@@ -236,9 +236,13 @@ class LineService:
                 child_filter(Message, line_user_id, user.id if user else None),
                 Message.direction == MessageDirection.INCOMING,
                 Message.payload["line_message_id"].astext == line_message_id,
-            )
+            ).limit(1)
         )
-        return result.scalar_one_or_none()
+        # .limit(1) + first(): payload->>'line_message_id' is not unique — a
+        # single duplicate row would make scalar_one_or_none() raise
+        # MultipleResultsFound and permanently fail every redelivery of the
+        # message (review finding L1).
+        return result.scalars().first()
 
     async def save_message(
         self,

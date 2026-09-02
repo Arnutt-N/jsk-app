@@ -66,9 +66,16 @@ async def process_webhook_events(events):
                         seconds=settings.WEBHOOK_EVENT_TTL,
                         nx=True,
                     )
-                    if not lock_acquired:
+                    # Tri-state: False = another worker holds the lock (real
+                    # duplicate delivery → skip); None = Redis unavailable →
+                    # fail OPEN and process (dedup is best-effort; dropping
+                    # every event during a Redis outage would be worse than a
+                    # rare double-process).
+                    if lock_acquired is False:
                         logger.info(f"Webhook event {event_id} is already being processed, skipping duplicate delivery")
                         continue
+                    if lock_acquired is None:
+                        logger.warning(f"Redis unavailable - processing webhook event {event_id} without dedup lock")
 
                 if isinstance(event, MessageEvent):
                     await handle_message_event(event, db)
