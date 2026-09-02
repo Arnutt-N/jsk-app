@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 251 active handoffs, 10 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 252 active handoffs, 10 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-09-02 17:47 — zcode (GLM (Zhipu)) — completed
+
+Codebase-review-fix pipeline CLOSED via PR #222 (squash f97492f): 36 findings (6H/17M/13L) — all 6 High + 14 Medium + 2 Low fixed, 3 Medium + 11 Low deferred w/ reasons in findings file. G3 review SHIP + 4 MINOR fixed (scheduler scenario-4 test, exc[:120], dead const, booking cache-guard). Post-G3 E2E regression root-caused: M1 login limiter 5/60s 429'd shared-IP Playwright logins -> settings-driven AUTH_LOGIN_RATE_LIMIT + e2e.yml=100. CI 4/4 green post-fix. Backend 1203 passed / frontend tsc+lint+vitest+build green.
+
+- Checkpoint: `.agents/state/checkpoints/handover-zcode-20260902-1747.json`
+- Summary: `project-log-md/zcode/session-summary-20260902-1747.md`
+
+---
 
 ### 2026-09-02 09:30 — zcode — completed
 

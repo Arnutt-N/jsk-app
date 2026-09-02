@@ -1,14 +1,26 @@
 {
-  "last_updated": "2026-09-02T09:30:00+07:00",
-  "platform": "zcode",
-  "current_task": "Rich-menu admin fixes from user smoke test: PR #220 (squash 647441b) — edits now reach LINE via recreate-on-drift sync (LINE has no update endpoint; sync detects config/image drift or PENDING flag and",
+  "last_updated": "2026-09-02T17:48:00+07:00",
+  "platform": "__validate_only",
+  "current_task": "zcode",
   "plan_status": "completed",
   "next_steps": [
-    "User to smoke test on prod: แก้ไขพื้นที่เมนู (เช่น message->uri) แล้วกด บันทึกและซิงค์ ต้องเห็นการเปลี่ยนแปลงใน LINE ทันทีโดยไม่ต้อง Set Active ซ้ำ (เมนู PUBLISHED)",
-    "User to smoke test display modes: สร้างเมนูโหมด ตามช่วงเวลา แล้วรอถึงเวลาเริ่ม — เมนูต้องขึ้นเองภายใน ~1 นาที และซ่อนเองเมื่อหมดเวลา",
-    "User to check existing menus read ALWAYS and behave unchanged"
+    "test"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-09-02T17:48:00+07:00",
+      "platform": "__validate_only",
+      "branch": "main",
+      "head": "f97492f",
+      "status": "completed"
+    },
+    {
+      "timestamp": "2026-09-02T17:47:00+07:00",
+      "platform": "zcode",
+      "branch": "main",
+      "head": "f97492f",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-09-02T09:30:00+07:00",
       "platform": "zcode",
@@ -133,20 +145,6 @@
       "platform": "open_code",
       "branch": "main",
       "head": "f223bd3",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-08-22T17:36:00+07:00",
-      "platform": "open_code",
-      "branch": "main",
-      "head": "bd8b139",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-08-22T16:24:00+07:00",
-      "platform": "open_code",
-      "branch": "main",
-      "head": "095d386",
       "status": "completed"
     }
   ],

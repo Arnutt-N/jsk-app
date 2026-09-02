@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-09-02 09:30 by Zcode (Rich-menu admin fixes from user smoke test: PR #220 squash 647441b — edits now reach LINE )
+> **Last Updated:** 2026-09-02 17:48 by   Validate Only (zcode)
 
 ## Thai Summary
 **สถานะล่าสุด (2026-08-23)** — milestone หลักทุกตัวปิดแล้ว เหลือเฉพาะ manual test ฝั่งผู้ใช้:
@@ -115,6 +115,8 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-09-02 17:48]   Validate Only: zcode (  Validate Only)
+- [2026-09-02 17:47] Zcode: Codebase-review-fix pipeline CLOSED via PR #222 (squash f97492f): 36 findings (6H/17M/13L) — all 6 High + 14 Medium + 2 Low fixed, 3 Medium + 11 Low deferred w/ reasons in findings file. G3 review SHIP + 4 MINOR fixed (scheduler scenario-4  (Zcode)
 - [2026-09-02 09:30] Zcode: Rich-menu admin fixes from user smoke test: PR #220 (squash 647441b) — edits now reach LINE via recreate-on-drift sync (LINE has no update endpoint; sync detects config/image drift or PENDING flag and rebuilds the menu on LINE, moving alias (Zcode)
 - [2026-08-31 04:17] Zcode: Merged PRs #214-#217: rich-menu sync fix (LINE already-uploaded 400 → idempotent success), guided sync flow UI (spinner + next-step toast), edit-page parity (area overlay + sync machine), proportional overlay numbers (cqw) (Zcode)
 - [2026-08-31 01:57] Zcode: Merged PR #213 (squash 59732ba): LINE 1MB rich-menu image limit - backend cap 10MB->1MB + friendly 413 mapping (RuntimeError with LINE detail via _line_error_detail) + sync fail-fast before create_on_line (no more orphan imageless menus) +  (Zcode)
