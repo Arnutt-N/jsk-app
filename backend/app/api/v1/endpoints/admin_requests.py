@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from typing import List, Optional
-from datetime import datetime, date, time, timezone
+from datetime import datetime, date, time, timezone, timedelta
 from app.services.business_hours_service import BANGKOK_TZ
 
 from app.db.session import get_db
@@ -299,9 +299,10 @@ async def list_requests(
         start_dt = BANGKOK_TZ.localize(start_naive).astimezone(timezone.utc)
         query = query.where(ServiceRequest.created_at >= start_dt)
     if end_date:
-        end_naive = datetime.combine(end_date, time.max)
-        end_dt = BANGKOK_TZ.localize(end_naive).astimezone(timezone.utc)
-        query = query.where(ServiceRequest.created_at <= end_dt)
+        next_day = end_date + timedelta(days=1)
+        next_naive = datetime.combine(next_day, time.min)
+        end_dt = BANGKOK_TZ.localize(next_naive).astimezone(timezone.utc)
+        query = query.where(ServiceRequest.created_at < end_dt)
     
     if search:
         escaped = _escape_ilike(search)

@@ -11,14 +11,16 @@ vi.mock('@/components/ui/CalendarPickerTH', () => ({
   default: function MockCalendarPicker({
     value,
     onChange,
+    ariaLabel,
   }: {
     value: string | null
     onChange: (val: string | null) => void
+    ariaLabel?: string
   }) {
     return (
       <input
         type="date"
-        aria-label="วันที่"
+        aria-label={ariaLabel || 'วันที่'}
         value={value ? isoToYMD(value) : ''}
         onChange={(e) => {
           const val = e.target.value
@@ -149,6 +151,18 @@ describe('the day list', () => {
   it('says "ทุกวัน" in the footer when no date is selected', async () => {
     await renderLoaded()
     expect(await screen.findByText('แสดงรายการทุกวัน')).toBeInTheDocument()
+  })
+
+  it('clears date filter and re-fetches all bookings when "ล้างวันที่" is clicked', async () => {
+    const user = userEvent.setup()
+    await renderLoaded()
+    await user.type(screen.getByLabelText('วันที่'), '2026-08-19')
+    const clearButton = await screen.findByRole('button', { name: 'ล้างวันที่' })
+    await user.click(clearButton)
+    await waitFor(() => {
+      const lastCall = fetchMock.mock.calls[fetchMock.mock.calls.length - 1]
+      expect(String(lastCall[0])).not.toContain('date=')
+    })
   })
 })
 

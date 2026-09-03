@@ -22,6 +22,7 @@ import PageHeader from '../../components/PageHeader';
 import { STATUS_CONFIG, type RequestStatus } from '@/lib/constants/request-status';
 import { logger } from '@/lib/logger';
 import { formatThaiDate } from '@/lib/format-date';
+import { isoToYMD } from '@/lib/utils';
 
 interface ServiceRequest {
     id: string;
@@ -106,9 +107,11 @@ export default function KanbanPage() {
         }
     };
 
-    const isOverdue = (date?: string) => {
+    const isOverdue = (date?: string | null) => {
         if (!date) return false;
-        return new Date(date) < new Date() && date !== '';
+        const target = isoToYMD(date);
+        const today = isoToYMD(new Date().toISOString());
+        return Boolean(target && target < today);
     };
 
     return (

@@ -27,6 +27,12 @@ class _FakeListResult:
     def all(self):
         return self._rows
 
+    def scalars(self):
+        return self
+
+    def scalar_one_or_none(self):
+        return self._rows[0] if self._rows else None
+
 
 class _FakeDB:
     def __init__(self) -> None:
@@ -1269,8 +1275,48 @@ def test_list_requests_date_filter_bounds():
         teardown()
 
     assert response.status_code == 200
-    assert str(fake_db.last_stmt).find("created_at >=") != -1
-    assert str(fake_db.last_stmt).find("created_at <=") != -1
+    assert "created_at >=" in str(fake_db.last_stmt)
+    assert "created_at <" in str(fake_db.last_stmt)
+    assert "created_at <=" not in str(fake_db.last_stmt)
+
+    # Verify compiled UTC timestamp parameters
+    # Bangkok 2026-09-01 00:00:00 -> 2026-08-31 17:00:00 UTC
+    # Bangkok 2026-09-04 00:00:00 (next day) -> 2026-09-03 17:00:00 UTC
+    compiled = fake_db.last_stmt.compile()
+    params = compiled.params
+    param_values = list(params.values())
+    assert any(isinstance(v, datetime) and v.year == 2026 and v.month == 8 and v.day == 31 and v.hour == 17 for v in param_values)
+    assert any(isinstance(v, datetime) and v.year == 2026 and v.month == 9 and v.day == 3 and v.hour == 17 for v in param_values)
+
+
+def test_list_requests_single_bound_and_same_day():
+    fake_db = _FakeDB()
+    fake_request = _build_editable_request(request_id=1)
+    fake_db._fake_list_rows = [(fake_request, "Admin User")]
+    teardown = _patch_admin_overrides(fake_db)
+
+    client = TestClient(app)
+    try:
+        # Start only
+        r1 = client.get("/api/v1/admin/requests?start_date=2026-09-01")
+        assert r1.status_code == 200
+        assert "created_at >=" in str(fake_db.last_stmt)
+        assert "created_at <" not in str(fake_db.last_stmt)
+
+        # End only
+        r2 = client.get("/api/v1/admin/requests?end_date=2026-09-03")
+        assert r2.status_code == 200
+        assert "created_at <" in str(fake_db.last_stmt)
+        assert "created_at >=" not in str(fake_db.last_stmt)
+
+        # Same day: start == end
+        r3 = client.get("/api/v1/admin/requests?start_date=2026-09-01&end_date=2026-09-01")
+        assert r3.status_code == 200
+        assert "created_at >=" in str(fake_db.last_stmt)
+        assert "created_at <" in str(fake_db.last_stmt)
+    finally:
+        client.close()
+        teardown()
 
 
 def test_list_requests_invalid_date_bounds_returns_400():

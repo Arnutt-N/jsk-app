@@ -20,7 +20,7 @@ import {
   type BookingStatus,
 } from '@/lib/booking'
 
-const CalendarPickerTH = dynamic(() => import('@/components/ui/CalendarPickerTH'))
+const CalendarPickerTH = dynamic(() => import('@/components/ui/CalendarPickerTH'), { ssr: false })
 
 const STATUS_FILTER_OPTIONS = [
   { value: '', label: 'ทุกสถานะ' },

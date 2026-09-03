@@ -67,8 +67,9 @@ import { logger } from '@/lib/logger';
 import { AuditTimelineEntry } from '@/components/admin/AuditTimelineEntry';
 import { mergeTimeline, type AuditLogEntry } from '@/lib/timeline-merge';
 import { formatThaiDate } from '@/lib/format-date';
+import { isoToYMD } from '@/lib/utils';
 
-const CalendarPickerTH = dynamic(() => import('@/components/ui/CalendarPickerTH'));
+const CalendarPickerTH = dynamic(() => import('@/components/ui/CalendarPickerTH'), { ssr: false });
 
 // Interfaces for API Data
 interface Comment {
@@ -394,14 +395,9 @@ export default function RequestDetailPage() {
     // --- Handlers ---
     // Stable reference so the calendar's dayCells useMemo doesn't invalidate every render.
     const handleDueDateChange = useCallback((iso: string | null) => {
-        if (!iso) {
-            setManageFormData(prev => ({ ...prev, due_date: '' }));
-            return;
-        }
-        const d = new Date(iso);
-        const ymd = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        const ymd = iso ? isoToYMD(iso) : '';
         setManageFormData(prev => ({ ...prev, due_date: ymd }));
-    }, []);
+    }, [setManageFormData]);
 
     const handleUpdateField = async (fieldData: RequestUpdatePayload) => {
         try {

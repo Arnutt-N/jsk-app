@@ -10,7 +10,6 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { formatThaiDate } from '@/lib/format-date';
 import { isoToYMD } from '@/lib/utils';
-const CalendarPickerTH = dynamic(() => import('@/components/ui/CalendarPickerTH'));
 import {
     Search,
     Eye,
@@ -47,6 +46,8 @@ import {
 import { usePermissions } from '@/lib/permissions';
 import { useToast } from '@/components/ui/Toast';
 import { apiFetch } from '@/lib/api-error';
+
+const CalendarPickerTH = dynamic(() => import('@/components/ui/CalendarPickerTH'), { ssr: false });
 
 // Bridge between shared module (icons stored as string names) and the
 // lucide-react components actually rendered. Centralised so swapping an
@@ -100,9 +101,15 @@ export default function AdminRequestList() {
     });
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
-
+    const [dateRangeError, setDateRangeError] = useState<string | null>(null);
 
     const fetchRequests = useCallback(async () => {
+        if (filter.startDate && filter.endDate && filter.startDate > filter.endDate) {
+            setDateRangeError('วันที่เริ่มต้นต้องไม่มากกว่าวันที่สิ้นสุด');
+            setLoading(false);
+            return;
+        }
+        setDateRangeError(null);
         setLoading(true);
         setFetchError(null);
         try {
@@ -261,8 +268,12 @@ export default function AdminRequestList() {
                                     <span className="text-xs font-medium text-text-secondary whitespace-nowrap">จากวันที่:</span>
                                     <div className="w-48">
                                         <CalendarPickerTH
+                                            ariaLabel="จากวันที่"
                                             value={filter.startDate ? new Date(`${filter.startDate}T00:00:00`).toISOString() : null}
-                                            onChange={(iso) => setFilter(prev => ({ ...prev, startDate: iso ? isoToYMD(iso) : '' }))}
+                                            onChange={(iso) => {
+                                                setDateRangeError(null);
+                                                setFilter(prev => ({ ...prev, startDate: iso ? isoToYMD(iso) : '' }));
+                                            }}
                                         />
                                     </div>
                                 </div>
@@ -270,8 +281,12 @@ export default function AdminRequestList() {
                                     <span className="text-xs font-medium text-text-secondary whitespace-nowrap">ถึงวันที่:</span>
                                     <div className="w-48">
                                         <CalendarPickerTH
+                                            ariaLabel="ถึงวันที่"
                                             value={filter.endDate ? new Date(`${filter.endDate}T00:00:00`).toISOString() : null}
-                                            onChange={(iso) => setFilter(prev => ({ ...prev, endDate: iso ? isoToYMD(iso) : '' }))}
+                                            onChange={(iso) => {
+                                                setDateRangeError(null);
+                                                setFilter(prev => ({ ...prev, endDate: iso ? isoToYMD(iso) : '' }));
+                                            }}
                                         />
                                     </div>
                                 </div>
@@ -279,13 +294,23 @@ export default function AdminRequestList() {
                                     <Button
                                         variant="ghost"
                                         size="sm"
-                                        onClick={() => setFilter(prev => ({ ...prev, startDate: '', endDate: '' }))}
+                                        onClick={() => {
+                                            setDateRangeError(null);
+                                            setFilter(prev => ({ ...prev, startDate: '', endDate: '' }));
+                                        }}
                                         className="text-xs text-text-tertiary hover:text-text-primary"
                                     >
                                         ล้างวันที่
                                     </Button>
                                 )}
                             </div>
+
+                            {dateRangeError && (
+                                <div className="mt-3 flex items-center gap-2 text-xs text-danger-text bg-danger/10 p-2.5 rounded-lg">
+                                    <AlertCircle size={14} className="shrink-0" />
+                                    <span>{dateRangeError}</span>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 </StaggerItem>

@@ -37,14 +37,19 @@ export function AuditTimelineEntry({ audit }: { audit: AuditLogEntry }) {
 
             {/* Content Bubble — รายการ field ที่เปลี่ยน: ค่าเดิม → ค่าใหม่ */}
             <div className="bg-violet-50/60 dark:bg-violet-900/10 border border-violet-200 dark:border-violet-800 rounded-2xl rounded-tl-sm p-4 text-sm text-text-secondary leading-relaxed shadow-sm space-y-1.5">
-                {Object.entries(fields).map(([field, change]) => (
-                    <div key={field} className="flex flex-wrap items-baseline gap-x-2">
-                        <span className="font-semibold text-text-primary">{getRequestFieldLabel(field)}:</span>
-                        <span className="line-through text-text-tertiary thai-no-break">{change.old || '—'}</span>
-                        <span aria-hidden="true" className="text-text-tertiary">→</span>
-                        <span className="font-medium thai-no-break">{change.new || '—'}</span>
-                    </div>
-                ))}
+                {Object.entries(fields).map(([field, change]) => {
+                    const isDateField = field === 'due_date' || field.endsWith('_at');
+                    const oldVal = isDateField && change.old ? formatThaiDate(change.old) : (change.old || '—');
+                    const newVal = isDateField && change.new ? formatThaiDate(change.new) : (change.new || '—');
+                    return (
+                        <div key={field} className="flex flex-wrap items-baseline gap-x-2">
+                            <span className="font-semibold text-text-primary">{getRequestFieldLabel(field)}:</span>
+                            <span className="line-through text-text-tertiary thai-no-break">{oldVal}</span>
+                            <span aria-hidden="true" className="text-text-tertiary">→</span>
+                            <span className="font-medium thai-no-break">{newVal}</span>
+                        </div>
+                    );
+                })}
             </div>
         </div>
     );

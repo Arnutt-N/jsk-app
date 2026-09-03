@@ -98,4 +98,28 @@ describe('parseDateParts', () => {
       minutes: 44,
     });
   });
+
+  it('rejects impossible calendar dates', () => {
+    expect(parseDateParts('2023-02-29')).toBeNull(); // Non-leap year Feb 29
+    expect(parseDateParts('2024-04-31')).toBeNull(); // April only has 30 days
+    expect(parseDateParts('2025-02-30')).toBeNull();
+    expect(formatThaiDate('2023-02-29')).toBe('—');
+    expect(formatThaiDate('2024-04-31')).toBe('—');
+  });
+
+  it('accepts valid leap year Feb 29', () => {
+    expect(parseDateParts('2024-02-29')).toEqual({
+      year: 2024,
+      month: 1, // 0-indexed February
+      day: 29,
+      hours: 0,
+      minutes: 0,
+    });
+  });
+
+  it('correctly shifts UTC timestamp crossing midnight into Bangkok date', () => {
+    // 2025-12-31 18:00:00 UTC = 2026-01-01 01:00:00 Bangkok
+    expect(formatThaiDate('2025-12-31T18:00:00.000Z')).toBe('01 ม.ค. 2569');
+  });
 });
+

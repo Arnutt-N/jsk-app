@@ -4,6 +4,8 @@
  * across all client and server environments.
  */
 
+import { daysInMonth } from '@/lib/utils';
+
 export const THAI_MONTHS_SHORT = [
   'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
   'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.',
@@ -30,16 +32,16 @@ const BANGKOK_FORMATTER = new Intl.DateTimeFormat('en-US', {
   day: 'numeric',
   hour: 'numeric',
   minute: 'numeric',
+  second: 'numeric',
   hourCycle: 'h23',
 });
 
 /**
- * Extracts year, month (0-11), day, hours, and minutes in Bangkok timezone.
- * Handles date-only strings (YYYY-MM-DD) without UTC day rollback.
+ * Extract calendar parts in Bangkok timezone without local timezone shift.
  */
 export function parseDateParts(input: string | Date | null | undefined): {
   year: number;
-  month: number; // 0-11
+  month: number; // 0-indexed (0 = Jan, 11 = Dec)
   day: number;
   hours: number;
   minutes: number;
@@ -56,7 +58,9 @@ export function parseDateParts(input: string | Date | null | undefined): {
     // Date-only string (YYYY-MM-DD): parse calendar parts directly to avoid UTC shift
     if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
       const [y, m, day] = trimmed.split('-').map(Number);
-      if (m < 1 || m > 12 || day < 1 || day > 31) return null;
+      if (m < 1 || m > 12 || day < 1) return null;
+      const maxDays = daysInMonth(y, m);
+      if (day > maxDays) return null;
       return { year: y, month: m - 1, day, hours: 0, minutes: 0 };
     }
     d = new Date(trimmed);
