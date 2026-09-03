@@ -5,7 +5,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, date, time, timezone
+from app.services.business_hours_service import BANGKOK_TZ
 
 from app.db.session import get_db
 from app.api.deps import get_current_admin, get_current_manager
@@ -268,12 +269,17 @@ async def list_requests(
     status: Optional[RequestStatus] = None,
     category: Optional[str] = None,
     search: Optional[str] = Query(None, description="Search by name, phone, or description"),
+    start_date: Optional[date] = Query(None, description="Filter requests created on or after this date (YYYY-MM-DD)"),
+    end_date: Optional[date] = Query(None, description="Filter requests created on or before this date (YYYY-MM-DD)"),
     skip: int = 0,
     limit: int = 100,
     db: AsyncSession = Depends(get_db),
     current_admin: User = Depends(get_current_manager)
 ):
     """List all service requests with filtering and search."""
+    if start_date and end_date and start_date > end_date:
+        raise HTTPException(status_code=400, detail="start_date must not be after end_date")
+
     # Use join to get assignee name
     query = (
         select(ServiceRequest, User.display_name.label("assignee_name"))
@@ -287,6 +293,15 @@ async def list_requests(
         query = query.where(ServiceRequest.status == status)
     if category:
         query = query.where(ServiceRequest.topic_category == category)
+    
+    if start_date:
+        start_naive = datetime.combine(start_date, time.min)
+        start_dt = BANGKOK_TZ.localize(start_naive).astimezone(timezone.utc)
+        query = query.where(ServiceRequest.created_at >= start_dt)
+    if end_date:
+        end_naive = datetime.combine(end_date, time.max)
+        end_dt = BANGKOK_TZ.localize(end_naive).astimezone(timezone.utc)
+        query = query.where(ServiceRequest.created_at <= end_dt)
     
     if search:
         escaped = _escape_ilike(search)

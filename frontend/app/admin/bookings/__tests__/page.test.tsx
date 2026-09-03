@@ -5,6 +5,34 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import AdminBookingsPage from '../page'
 import type { Booking } from '@/lib/booking'
+import { isoToYMD } from '@/lib/utils'
+
+vi.mock('@/components/ui/CalendarPickerTH', () => ({
+  default: function MockCalendarPicker({
+    value,
+    onChange,
+  }: {
+    value: string | null
+    onChange: (val: string | null) => void
+  }) {
+    return (
+      <input
+        type="date"
+        aria-label="วันที่"
+        value={value ? isoToYMD(value) : ''}
+        onChange={(e) => {
+          const val = e.target.value
+          if (!val) {
+            onChange(null)
+          } else {
+            const d = new Date(`${val}T00:00:00`)
+            onChange(!isNaN(d.getTime()) ? d.toISOString() : null)
+          }
+        }}
+      />
+    )
+  },
+}))
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {

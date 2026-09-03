@@ -19,21 +19,27 @@ class _FakeScalarResult:
     def scalar_one_or_none(self):
         return self._value
 
+
+class _FakeListResult:
+    def __init__(self, rows):
+        self._rows = rows
+
+    def all(self):
+        return self._rows
+
+
 class _FakeDB:
     def __init__(self) -> None:
         self.added = []
         self.committed = False
-        # Tests that exercise endpoints which read+mutate an existing row
-        # (e.g. revert flow in update_request) inject the row here so
-        # `execute()` returns it. Default None keeps the original
-        # "validation passes via truthy value=True" path working for
-        # tests that pre-date this hook.
         self._fake_request = None
+        self._fake_list_rows = None
+        self.last_stmt = None
 
     async def execute(self, stmt):
-        # When a fake request is registered, return it so the handler
-        # can mutate it. Otherwise keep the original "True" sentinel
-        # for tests that only need the not-None check to pass.
+        self.last_stmt = stmt
+        if self._fake_list_rows is not None:
+            return _FakeListResult(rows=self._fake_list_rows)
         if self._fake_request is not None:
             return _FakeScalarResult(value=self._fake_request)
         return _FakeScalarResult(value=True)
@@ -1247,3 +1253,37 @@ def test_status_and_detail_edit_in_one_patch_yield_two_distinct_rows():
     assert sorted(row.action for row in audit_rows) == [
         "edit_request_details", "status_change",
     ]
+
+
+def test_list_requests_date_filter_bounds():
+    fake_db = _FakeDB()
+    fake_request = _build_editable_request(request_id=1)
+    fake_db._fake_list_rows = [(fake_request, "Admin User")]
+    teardown = _patch_admin_overrides(fake_db)
+
+    client = TestClient(app)
+    try:
+        response = client.get("/api/v1/admin/requests?start_date=2026-09-01&end_date=2026-09-03")
+    finally:
+        client.close()
+        teardown()
+
+    assert response.status_code == 200
+    assert str(fake_db.last_stmt).find("created_at >=") != -1
+    assert str(fake_db.last_stmt).find("created_at <=") != -1
+
+
+def test_list_requests_invalid_date_bounds_returns_400():
+    fake_db = _FakeDB()
+    teardown = _patch_admin_overrides(fake_db)
+
+    client = TestClient(app)
+    try:
+        response = client.get("/api/v1/admin/requests?start_date=2026-09-05&end_date=2026-09-01")
+    finally:
+        client.close()
+        teardown()
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "start_date must not be after end_date"
+

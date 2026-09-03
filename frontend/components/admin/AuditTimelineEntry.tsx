@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { getRequestFieldLabel, getAuditEditScopeLabel } from '@/lib/constants/request-field-labels';
 import type { AuditLogEntry } from '@/lib/timeline-merge';
+import { formatThaiDate } from '@/lib/format-date';
 
 /**
  * Timeline entry สำหรับ audit log การแก้ไขข้อมูลคำร้อง (edit_request_details)
@@ -12,10 +13,7 @@ import type { AuditLogEntry } from '@/lib/timeline-merge';
 export function AuditTimelineEntry({ audit }: { audit: AuditLogEntry }) {
     const formatted = useMemo(() => {
         if (!audit.created_at) return '';
-        const d = new Date(audit.created_at);
-        const date = d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' });
-        const time = d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
-        return `${date}, ${time}`;
+        return formatThaiDate(audit.created_at, { includeTime: true, yearFormat: 'numeric' });
     }, [audit.created_at]);
 
     const fields = audit.details?.fields ?? {};

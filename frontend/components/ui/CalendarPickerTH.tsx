@@ -12,6 +12,7 @@ export interface CalendarPickerTHProps {
   error?: string;
   helper?: string;
   required?: boolean;
+  className?: string;
 }
 
 const THAI_MONTHS_LONG = [
@@ -82,6 +83,7 @@ export default function CalendarPickerTH({
   error,
   helper,
   required,
+  className,
 }: CalendarPickerTHProps) {
   const dayRef = useRef<HTMLInputElement>(null);
   const monthRef = useRef<HTMLInputElement>(null);
@@ -322,7 +324,7 @@ export default function CalendarPickerTH({
   const hasValue = !!value;
 
   return (
-    <div className="w-full relative" ref={containerRef}>
+    <div className={cn("w-full relative", className)} ref={containerRef}>
       {label && (
         <label className="block text-sm font-medium text-text-secondary mb-2">
           {label}
@@ -348,7 +350,7 @@ export default function CalendarPickerTH({
           onBlur={handleBlur}
           onFocus={() => setIsEditing(true)}
           aria-label="วันที่"
-          className="w-10 px-2 py-2 text-center text-sm font-medium bg-transparent text-text-primary focus:outline-none placeholder:text-gray-300"
+          className="w-9 px-1 py-1.5 text-center text-sm font-medium bg-transparent text-text-primary focus:outline-none placeholder:text-gray-300"
         />
 
         <span className="text-gray-300 font-light">/</span>
@@ -364,16 +366,12 @@ export default function CalendarPickerTH({
           onBlur={handleBlur}
           onFocus={() => setIsEditing(true)}
           aria-label="เดือน"
-          className="w-10 px-2 py-2 text-center text-sm font-medium bg-transparent text-text-primary focus:outline-none placeholder:text-gray-300"
+          className="w-9 px-1 py-1.5 text-center text-sm font-medium bg-transparent text-text-primary focus:outline-none placeholder:text-gray-300"
         />
 
         <span className="text-gray-300 font-light">/</span>
 
-        {/* Year Input — `flex-1` so it expands to fill the available
-            space inside the bordered container; this keeps the action
-            icons anchored to the right edge instead of clustering near
-            the centre. The `min-w-[80px]` floor prevents the field from
-            collapsing too narrow in tight grids. */}
+        {/* Year Input */}
         <input
           ref={yearRef}
           type="text"
@@ -384,11 +382,11 @@ export default function CalendarPickerTH({
           onBlur={handleBlur}
           onFocus={() => setIsEditing(true)}
           aria-label="ปี พ.ศ."
-          className="flex-1 min-w-[80px] px-2 py-2 text-center text-sm font-medium bg-transparent text-text-primary focus:outline-none placeholder:text-gray-300"
+          className="flex-1 min-w-[50px] px-1 py-1.5 text-center text-sm font-medium bg-transparent text-text-primary focus:outline-none placeholder:text-gray-300"
         />
 
         {/* Action icons grouped with consistent spacing, separated from year input */}
-        <div className="flex items-center gap-1.5 ml-2 shrink-0">
+        <div className="flex items-center gap-1 ml-1.5 shrink-0">
           {hasValue && !isEditing && !localError && (
             <span
               className="p-1.5 text-emerald-500"

@@ -2,11 +2,15 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
+import { formatThaiDate } from '@/lib/format-date';
+import { isoToYMD } from '@/lib/utils';
+const CalendarPickerTH = dynamic(() => import('@/components/ui/CalendarPickerTH'));
 import {
     Search,
     Eye,
@@ -88,7 +92,12 @@ export default function AdminRequestList() {
     const [requests, setRequests] = useState<ServiceRequest[]>([]);
     const [loading, setLoading] = useState(true);
     const [fetchError, setFetchError] = useState<string | null>(null);
-    const [filter, setFilter] = useState({ status: '', category: '' });
+    const [filter, setFilter] = useState({
+        status: '',
+        category: '',
+        startDate: '',
+        endDate: '',
+    });
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
 
@@ -106,6 +115,8 @@ export default function AdminRequestList() {
             }
             if (filter.category) query.append('category', filter.category);
             if (debouncedSearch) query.append('search', debouncedSearch);
+            if (filter.startDate) query.append('start_date', filter.startDate);
+            if (filter.endDate) query.append('end_date', filter.endDate);
 
             const result = await apiFetch<ServiceRequest[]>(`/admin/requests?${query.toString()}`);
             if (result.ok) {
@@ -122,7 +133,7 @@ export default function AdminRequestList() {
         } finally {
             setLoading(false);
         }
-    }, [debouncedSearch, filter.category, filter.status]);
+    }, [debouncedSearch, filter.category, filter.status, filter.startDate, filter.endDate]);
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -243,6 +254,38 @@ export default function AdminRequestList() {
                                     ]}
                                 />
                             </div>
+
+                            {/* Date Range Filter Row */}
+                            <div className="mt-4 pt-4 border-t border-border-default flex flex-wrap items-center gap-4">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs font-medium text-text-secondary whitespace-nowrap">จากวันที่:</span>
+                                    <div className="w-48">
+                                        <CalendarPickerTH
+                                            value={filter.startDate ? new Date(`${filter.startDate}T00:00:00`).toISOString() : null}
+                                            onChange={(iso) => setFilter(prev => ({ ...prev, startDate: iso ? isoToYMD(iso) : '' }))}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs font-medium text-text-secondary whitespace-nowrap">ถึงวันที่:</span>
+                                    <div className="w-48">
+                                        <CalendarPickerTH
+                                            value={filter.endDate ? new Date(`${filter.endDate}T00:00:00`).toISOString() : null}
+                                            onChange={(iso) => setFilter(prev => ({ ...prev, endDate: iso ? isoToYMD(iso) : '' }))}
+                                        />
+                                    </div>
+                                </div>
+                                {(filter.startDate || filter.endDate) && (
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setFilter(prev => ({ ...prev, startDate: '', endDate: '' }))}
+                                        className="text-xs text-text-tertiary hover:text-text-primary"
+                                    >
+                                        ล้างวันที่
+                                    </Button>
+                                )}
+                            </div>
                         </CardContent>
                     </Card>
                 </StaggerItem>
@@ -313,13 +356,7 @@ export default function AdminRequestList() {
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-2 text-xs text-text-secondary font-medium">
                                             <Calendar className="w-3.5 h-3.5 text-text-tertiary" />
-                                            {new Date(req.created_at).toLocaleDateString('th-TH', {
-                                                day: '2-digit',
-                                                month: 'short',
-                                                year: '2-digit',
-                                                hour: '2-digit',
-                                                minute: '2-digit'
-                                            })}
+                                            {formatThaiDate(req.created_at, { includeTime: true })}
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
@@ -433,7 +470,7 @@ export default function AdminRequestList() {
                             <div>
                                 <label className="text-xs text-text-tertiary">วันที่ยื่น</label>
                                 <p className="text-sm font-medium text-text-secondary">
-                                    {new Date(selectedRequest.created_at).toLocaleDateString('th-TH')}
+                                    {formatThaiDate(selectedRequest.created_at, { includeTime: true })}
                                 </p>
                             </div>
                             <div className="col-span-2">
