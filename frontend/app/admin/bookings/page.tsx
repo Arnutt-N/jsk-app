@@ -1,21 +1,34 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import dynamic from 'next/dynamic'
 import { Alert } from '@/components/ui/Alert'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
+import { Select } from '@/components/ui/Select'
 import { CalendarDays, Phone, RefreshCw } from 'lucide-react'
 import { logger } from '@/lib/logger'
+import { formatThaiDate } from '@/lib/format-date'
+import { isoToYMD } from '@/lib/utils'
 import {
   BOOKING_STATUS_LABELS,
   fetchAdminBookings,
-  formatThaiDate,
   formatTime,
   updateBookingStatus,
   type Booking,
   type BookingStatus,
 } from '@/lib/booking'
+
+const CalendarPickerTH = dynamic(() => import('@/components/ui/CalendarPickerTH'), { ssr: false })
+
+const STATUS_FILTER_OPTIONS = [
+  { value: '', label: 'ทุกสถานะ' },
+  ...(Object.keys(BOOKING_STATUS_LABELS) as BookingStatus[]).map((status) => ({
+    value: status,
+    label: BOOKING_STATUS_LABELS[status],
+  })),
+]
 
 const STATUS_VARIANT: Record<BookingStatus, 'success' | 'danger' | 'info' | 'warning'> = {
   CONFIRMED: 'success',
@@ -92,34 +105,37 @@ export default function AdminBookingsPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <label className="flex items-center gap-2 text-sm">
+          <div className="flex items-center gap-2 text-sm">
             <CalendarDays className="h-4 w-4 text-slate-400" aria-hidden="true" />
-            <span className="sr-only">วันที่</span>
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-800"
-            />
-          </label>
-          {!date && (
-            <span className="text-xs text-slate-400">ทุกวัน</span>
-          )}
-          <label className="text-sm">
-            <span className="sr-only">สถานะ</span>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as BookingStatus | '')}
-              className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-800"
-            >
-              <option value="">ทุกสถานะ</option>
-              {(Object.keys(BOOKING_STATUS_LABELS) as BookingStatus[]).map((status) => (
-                <option key={status} value={status}>
-                  {BOOKING_STATUS_LABELS[status]}
-                </option>
-              ))}
-            </select>
-          </label>
+            <div className="w-48">
+              <CalendarPickerTH
+                value={date ? new Date(`${date}T00:00:00`).toISOString() : null}
+                onChange={(iso) => setDate(iso ? isoToYMD(iso) : '')}
+              />
+            </div>
+            {!date && (
+              <span className="text-xs text-slate-400">ทุกวัน</span>
+            )}
+            {date && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setDate('')}
+                className="text-xs text-text-tertiary hover:text-text-primary"
+              >
+                ล้างวันที่
+              </Button>
+            )}
+            <div className="w-36">
+              <Select
+                size="sm"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as BookingStatus | '')}
+                options={STATUS_FILTER_OPTIONS}
+              />
+            </div>
+          </div>
           <Button variant="secondary" onClick={() => void load()} disabled={loading}>
             <RefreshCw className="mr-1 h-4 w-4" aria-hidden="true" />
             รีเฟรช
@@ -194,7 +210,7 @@ export default function AdminBookingsPage() {
       )}
 
       <p className="text-xs text-slate-400">
-        แสดงรายการ{date ? `ของวันที่ ${formatThaiDate(date)}` : 'ทุกวัน'}
+        แสดงรายการ{date ? `ของวันที่ ${formatThaiDate(date, { yearFormat: 'numeric' })}` : 'ทุกวัน'}
       </p>
     </div>
   )

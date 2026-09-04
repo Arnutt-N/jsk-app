@@ -21,6 +21,8 @@ import {
 import PageHeader from '../../components/PageHeader';
 import { STATUS_CONFIG, type RequestStatus } from '@/lib/constants/request-status';
 import { logger } from '@/lib/logger';
+import { formatThaiDate } from '@/lib/format-date';
+import { isoToYMD } from '@/lib/utils';
 
 interface ServiceRequest {
     id: string;
@@ -105,9 +107,11 @@ export default function KanbanPage() {
         }
     };
 
-    const isOverdue = (date?: string) => {
+    const isOverdue = (date?: string | null) => {
         if (!date) return false;
-        return new Date(date) < new Date() && date !== '';
+        const target = isoToYMD(date);
+        const today = isoToYMD(new Date().toISOString());
+        return Boolean(target && target < today);
     };
 
     return (
@@ -172,12 +176,12 @@ export default function KanbanPage() {
                                                 <div className="flex items-center justify-between">
                                                     <div className="flex items-center gap-1.5 text-[10px] text-text-tertiary">
                                                         <Clock className="w-3 h-3" />
-                                                        {new Date(req.created_at).toLocaleDateString('th-TH')}
+                                                        {formatThaiDate(req.created_at)}
                                                     </div>
                                                     {req.due_date && (
                                                         <div className={`flex items-center gap-1 text-[10px] font-bold ${isOverdue(req.due_date) ? 'text-rose-500' : 'text-text-tertiary'}`}>
                                                             <Calendar className="w-3 h-3" />
-                                                            {new Date(req.due_date).toLocaleDateString('th-TH')}
+                                                            {formatThaiDate(req.due_date)}
                                                             {isOverdue(req.due_date) && <AlertTriangle className="w-3 h-3" />}
                                                         </div>
                                                     )}

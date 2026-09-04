@@ -66,8 +66,10 @@ import { buildChangedFields } from '@/lib/diff-fields';
 import { logger } from '@/lib/logger';
 import { AuditTimelineEntry } from '@/components/admin/AuditTimelineEntry';
 import { mergeTimeline, type AuditLogEntry } from '@/lib/timeline-merge';
+import { formatThaiDate } from '@/lib/format-date';
+import { isoToYMD } from '@/lib/utils';
 
-const CalendarPickerTH = dynamic(() => import('@/components/ui/CalendarPickerTH'));
+const CalendarPickerTH = dynamic(() => import('@/components/ui/CalendarPickerTH'), { ssr: false });
 
 // Interfaces for API Data
 interface Comment {
@@ -261,10 +263,7 @@ function CommentInputSection({ requestId, onSuccess }: {
 // ------------------------------------------------------------------
 function CommentDate({ dateStr }: { dateStr: string }) {
     const formatted = useMemo(() => {
-        const d = new Date(dateStr);
-        const date = d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' });
-        const time = d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
-        return `${date}, ${time}`;
+        return formatThaiDate(dateStr, { includeTime: true, yearFormat: 'numeric' });
     }, [dateStr]);
     return <span className="text-[10px] font-bold text-text-tertiary">{formatted}</span>;
 }
@@ -396,14 +395,9 @@ export default function RequestDetailPage() {
     // --- Handlers ---
     // Stable reference so the calendar's dayCells useMemo doesn't invalidate every render.
     const handleDueDateChange = useCallback((iso: string | null) => {
-        if (!iso) {
-            setManageFormData(prev => ({ ...prev, due_date: '' }));
-            return;
-        }
-        const d = new Date(iso);
-        const ymd = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        const ymd = iso ? isoToYMD(iso) : '';
         setManageFormData(prev => ({ ...prev, due_date: ymd }));
-    }, []);
+    }, [setManageFormData]);
 
     const handleUpdateField = async (fieldData: RequestUpdatePayload) => {
         try {
@@ -709,17 +703,17 @@ export default function RequestDetailPage() {
 
     const formattedCreatedAt = useMemo(() => {
         if (!createdAtStr) return '';
-        return new Date(createdAtStr).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
+        return formatThaiDate(createdAtStr, { yearFormat: 'numeric' });
     }, [createdAtStr]);
 
     const formattedDueDate = useMemo(() => {
         if (!dueDateStr) return null;
-        return new Date(dueDateStr).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
+        return formatThaiDate(dueDateStr, { yearFormat: 'numeric' });
     }, [dueDateStr]);
 
     const formattedFooterDate = useMemo(() => {
         if (!createdAtStr) return '';
-        return new Date(createdAtStr).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        return formatThaiDate(createdAtStr, { includeTime: true, yearFormat: 'numeric' });
     }, [createdAtStr]);
 
     // --- UI Helpers ---

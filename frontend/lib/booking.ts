@@ -6,6 +6,10 @@
  * are easy to get subtly wrong and hard to assert on through rendered DOM.
  */
 import { API_BASE } from '@/lib/constants/api'
+import {
+  formatThaiDate as baseFormatThaiDate,
+  type FormatThaiDateOptions,
+} from '@/lib/format-date'
 
 export type ReminderUnit = 'DAY' | 'HOUR'
 
@@ -67,7 +71,7 @@ export const BOOKING_STATUS_LABELS: Record<BookingStatus, string> = {
   NOSHOW: 'ไม่มาตามนัด',
 }
 
-const THAI_MONTHS_SHORT = [
+export const THAI_MONTHS_SHORT = [
   'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
   'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.',
 ]
@@ -86,12 +90,16 @@ export function toISODate(date: Date): string {
   return `${date.getFullYear()}-${month}-${day}`
 }
 
-/** "2026-08-19" -> "19 ส.ค. 2569" — Thai readers expect the Buddhist era. */
-export function formatThaiDate(iso: string): string {
-  if (!iso) return '-'
-  const date = parseISODate(iso)
-  if (Number.isNaN(date.getTime())) return iso
-  return `${date.getDate()} ${THAI_MONTHS_SHORT[date.getMonth()]} ${date.getFullYear() + 543}`
+/**
+ * Re-exports central Thai date formatter preserving legacy booking formatting
+ * (unpadded single-digit days like '19 ส.ค. 2569' and '-' fallback) with optional overrides.
+ */
+export function formatThaiDate(
+  iso: string | Date | null | undefined,
+  options?: FormatThaiDateOptions,
+): string {
+  if (!iso) return '-';
+  return baseFormatThaiDate(iso, { dayFormat: 'numeric', fallback: '-', ...options });
 }
 
 export function formatThaiWeekday(iso: string): string {

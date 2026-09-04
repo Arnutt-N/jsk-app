@@ -4,45 +4,23 @@ import { useState, useRef, useEffect, useMemo, type FormEvent, type ReactNode } 
 import { motion, AnimatePresence } from "motion/react";
 import { Calendar, Check, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { parseThaiDate, toBE, daysInMonth, cn } from "@/lib/utils";
+import {
+  parseDateParts,
+  formatThaiDate,
+  THAI_MONTHS_LONG,
+  THAI_MONTHS_SHORT,
+} from "@/lib/format-date";
 
 export interface CalendarPickerTHProps {
   label?: string;
+  ariaLabel?: string;
   value: string | null;
   onChange: (isoDate: string | null) => void;
   error?: string;
   helper?: string;
   required?: boolean;
+  className?: string;
 }
-
-const THAI_MONTHS_LONG = [
-  "มกราคม",
-  "กุมภาพันธ์",
-  "มีนาคม",
-  "เมษายน",
-  "พฤษภาคม",
-  "มิถุนายน",
-  "กรกฎาคม",
-  "สิงหาคม",
-  "กันยายน",
-  "ตุลาคม",
-  "พฤศจิกายน",
-  "ธันวาคม",
-] as const;
-
-const THAI_MONTHS_SHORT = [
-  "ม.ค.",
-  "ก.พ.",
-  "มี.ค.",
-  "เม.ย.",
-  "พ.ค.",
-  "มิ.ย.",
-  "ก.ค.",
-  "ส.ค.",
-  "ก.ย.",
-  "ต.ค.",
-  "พ.ย.",
-  "ธ.ค.",
-] as const;
 
 const THAI_WEEKDAYS_SHORT = ["จ", "อ", "พ", "พฤ", "ศ", "ส", "อา"] as const;
 
@@ -56,32 +34,29 @@ function thaiDow(date: Date): number {
 
 function partsFrom(value: string | null): { day: string; month: string; beYear: string } {
   if (!value) return { day: "", month: "", beYear: "" };
-  const d = new Date(value);
-  if (isNaN(d.getTime())) return { day: "", month: "", beYear: "" };
+  const parts = parseDateParts(value);
+  if (!parts) return { day: "", month: "", beYear: "" };
   return {
-    day: d.getDate().toString().padStart(2, "0"),
-    month: (d.getMonth() + 1).toString().padStart(2, "0"),
-    beYear: toBE(d.getFullYear()).toString(),
+    day: parts.day.toString().padStart(2, "0"),
+    month: (parts.month + 1).toString().padStart(2, "0"),
+    beYear: toBE(parts.year).toString(),
   };
 }
 
 function formatDisplayDate(value: string | null): string {
   if (!value) return "";
-  const d = new Date(value);
-  if (isNaN(d.getTime())) return "";
-  const day = d.getDate();
-  const month = THAI_MONTHS_SHORT[d.getMonth()];
-  const beYear = toBE(d.getFullYear());
-  return `${day} ${month} ${beYear}`;
+  return formatThaiDate(value, { dayFormat: 'numeric', fallback: '' });
 }
 
 export default function CalendarPickerTH({
   label,
+  ariaLabel,
   value,
   onChange,
   error,
   helper,
   required,
+  className,
 }: CalendarPickerTHProps) {
   const dayRef = useRef<HTMLInputElement>(null);
   const monthRef = useRef<HTMLInputElement>(null);
@@ -95,17 +70,26 @@ export default function CalendarPickerTH({
   const [calendarView, setCalendarView] = useState<"date" | "month" | "year">("date");
   const [yearGridStart, setYearGridStart] = useState<number>(0);
 
+  const selectedParts = useMemo(() => parseDateParts(value), [value]);
+
   const viewMonth = useMemo<Date>(() => {
     if (viewMonthOverride) return viewMonthOverride;
     if (value) {
-      const d = new Date(value);
-      if (!isNaN(d.getTime())) return firstOfMonth(d.getFullYear(), d.getMonth());
+      const parts = parseDateParts(value);
+      if (parts) return firstOfMonth(parts.year, parts.month);
     }
     const now = new Date();
     return firstOfMonth(now.getFullYear(), now.getMonth());
   }, [viewMonthOverride, value]);
 
+  const prevValueRef = useRef(value);
   useEffect(() => {
+    if (prevValueRef.current !== value) {
+      prevValueRef.current = value;
+      if (!value) {
+        setIsEditing(false);
+      }
+    }
     if (!isEditing) {
       const parts = partsFrom(value);
       if (dayRef.current && dayRef.current.value !== parts.day) {
@@ -119,6 +103,19 @@ export default function CalendarPickerTH({
       }
     }
   }, [value, isEditing]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsOpen(false);
+        setCalendarView("date");
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen]);
+
 
   useEffect(() => {
     if (!isOpen) return;
@@ -266,12 +263,11 @@ export default function CalendarPickerTH({
     const month = viewMonth.getMonth();
     const firstDow = thaiDow(firstOfMonth(year, month));
     const dayCount = daysInMonth(year, month + 1);
-    const selectedDate = value ? new Date(value) : null;
     const isSelectedDay = (d: number): boolean =>
-      !!selectedDate &&
-      selectedDate.getFullYear() === year &&
-      selectedDate.getMonth() === month &&
-      selectedDate.getDate() === d;
+      !!selectedParts &&
+      selectedParts.year === year &&
+      selectedParts.month === month &&
+      selectedParts.day === d;
     const today = new Date();
     const isToday = (d: number): boolean =>
       today.getFullYear() === year &&
@@ -308,7 +304,7 @@ export default function CalendarPickerTH({
               ? "bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md"
               : tod
                 ? "bg-blue-50 text-blue-600 font-semibold ring-2 ring-blue-200"
-                : "text-gray-700 hover:bg-gray-100",
+                : "text-text-primary hover:bg-bg dark:text-slate-200 dark:hover:bg-slate-800",
           )}
         >
           {d}
@@ -316,13 +312,13 @@ export default function CalendarPickerTH({
       );
     }
     return cells;
-  }, [viewMonth, value, onChange]);
+  }, [viewMonth, selectedParts, onChange]);
 
   const parts = partsFrom(value);
   const hasValue = !!value;
 
   return (
-    <div className="w-full relative" ref={containerRef}>
+    <div className={cn("w-full relative", className)} ref={containerRef}>
       {label && (
         <label className="block text-sm font-medium text-text-secondary mb-2">
           {label}
@@ -347,8 +343,8 @@ export default function CalendarPickerTH({
           onInput={(e) => handleInput(e, 'day')}
           onBlur={handleBlur}
           onFocus={() => setIsEditing(true)}
-          aria-label="วันที่"
-          className="w-10 px-2 py-2 text-center text-sm font-medium bg-transparent text-text-primary focus:outline-none placeholder:text-gray-300"
+          aria-label={ariaLabel || "วันที่"}
+          className="w-9 px-1 py-1.5 text-center text-sm font-medium bg-transparent text-text-primary focus:outline-none placeholder:text-gray-300"
         />
 
         <span className="text-gray-300 font-light">/</span>
@@ -364,16 +360,12 @@ export default function CalendarPickerTH({
           onBlur={handleBlur}
           onFocus={() => setIsEditing(true)}
           aria-label="เดือน"
-          className="w-10 px-2 py-2 text-center text-sm font-medium bg-transparent text-text-primary focus:outline-none placeholder:text-gray-300"
+          className="w-9 px-1 py-1.5 text-center text-sm font-medium bg-transparent text-text-primary focus:outline-none placeholder:text-gray-300"
         />
 
         <span className="text-gray-300 font-light">/</span>
 
-        {/* Year Input — `flex-1` so it expands to fill the available
-            space inside the bordered container; this keeps the action
-            icons anchored to the right edge instead of clustering near
-            the centre. The `min-w-[80px]` floor prevents the field from
-            collapsing too narrow in tight grids. */}
+        {/* Year Input */}
         <input
           ref={yearRef}
           type="text"
@@ -384,16 +376,15 @@ export default function CalendarPickerTH({
           onBlur={handleBlur}
           onFocus={() => setIsEditing(true)}
           aria-label="ปี พ.ศ."
-          className="flex-1 min-w-[80px] px-2 py-2 text-center text-sm font-medium bg-transparent text-text-primary focus:outline-none placeholder:text-gray-300"
+          className="w-14 px-1 py-1.5 text-center text-sm font-medium bg-transparent text-text-primary focus:outline-none placeholder:text-gray-300"
         />
 
-        {/* Action icons grouped with consistent spacing, separated from year input */}
-        <div className="flex items-center gap-1.5 ml-2 shrink-0">
-          {hasValue && !isEditing && !localError && (
+        {/* Action Buttons */}
+        <div className="ml-auto flex items-center gap-1">
+          {hasValue && (
             <span
-              className="p-1.5 text-emerald-500"
-              aria-label="วันที่ถูกต้อง"
-              title="วันที่ถูกต้อง"
+              className="p-1 text-emerald-600 dark:text-emerald-400"
+              title={formatDisplayDate(value)}
             >
               <Check size={16} strokeWidth={3} />
             </span>
@@ -404,6 +395,7 @@ export default function CalendarPickerTH({
               type="button"
               onClick={() => {
                 onChange(null);
+                setIsEditing(false);
                 setLocalError("");
                 if (dayRef.current) dayRef.current.value = "";
                 if (monthRef.current) monthRef.current.value = "";
@@ -452,7 +444,7 @@ export default function CalendarPickerTH({
             role="dialog"
             aria-modal="true"
             aria-label="ปฏิทิน พ.ศ."
-            className="absolute z-50 mt-2 right-0 bg-surface rounded-2xl border border-border-default shadow-xl p-4 w-[340px] max-w-[calc(100vw-32px)]"
+            className="absolute z-50 mt-2 left-0 sm:left-auto sm:right-0 bg-surface rounded-2xl border border-border-default shadow-xl p-4 w-[340px] max-w-[calc(100vw-32px)]"
           >
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
@@ -564,11 +556,10 @@ export default function CalendarPickerTH({
               <div className="grid grid-cols-3 gap-2 py-2">
                 {THAI_MONTHS_SHORT.map((monthLabel, i) => {
                   const isCurrent = viewMonth.getMonth() === i;
-                  const selectedDate = value ? new Date(value) : null;
                   const isSelected =
-                    !!selectedDate &&
-                    selectedDate.getFullYear() === viewMonth.getFullYear() &&
-                    selectedDate.getMonth() === i;
+                    !!selectedParts &&
+                    selectedParts.year === viewMonth.getFullYear() &&
+                    selectedParts.month === i;
                   return (
                     <motion.button
                       key={monthLabel}
@@ -599,7 +590,7 @@ export default function CalendarPickerTH({
                 {Array.from({ length: 12 }, (_, i) => {
                   const beYear = yearGridStart + i;
                   const isCurrent = toBE(viewMonth.getFullYear()) === beYear;
-                  const selectedBE = value ? toBE(new Date(value).getFullYear()) : null;
+                  const selectedBE = selectedParts ? toBE(selectedParts.year) : null;
                   const isSelected = selectedBE === beYear;
                   return (
                     <motion.button

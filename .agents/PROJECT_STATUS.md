@@ -1,8 +1,14 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-09-02 17:48 by   Validate Only (zcode)
+> **Last Updated:** 2026-09-04 07:05 by Antigravity
 
 ## Thai Summary
+**สถานะล่าสุด (2026-09-04 07:05)** — งาน **P2 Thai Calendar and Date Standardization & Review Fixes** เสร็จสมบูรณ์ (Gate G1, G2, G3 ผ่านครบ 100%):
+- **P2 Reusable DatePicker & Thai Date Format**: พัฒนา `CalendarPickerTH` รองรับ พ.ศ., ตรวจสอบวัน/เดือน/ปีถูกต้อง, ปรับหน้า `/admin/requests`, `/admin/bookings`, `/admin/requests/kanban`, `/admin/requests/[id]`, และระบบกรองวันที่หลังบ้าน ผ่านการทดสอบระดับ Unit Test และ Build ผ่านฉลุย
+- **P1 Login flake:** ผู้ใช้ล็อกอินสำเร็จแต่บางครั้งถูกพากลับหน้า login — งานถัดไปหลังผสาน PR นี้
+- **ถัดไป:** Push PR และผสาน (Merge) เข้าสู่ `main`
+
+<!-- Previous project summary retained below for historical context. -->
 **สถานะล่าสุด (2026-08-23)** — milestone หลักทุกตัวปิดแล้ว เหลือเฉพาะ manual test ฝั่งผู้ใช้:
 
 - **Auth: cookie-only ถาวร (PR #200, squash `f223bd3`, 2026-08-23)** — ลบ `COOKIE_AUTH_MODE` flag + Bearer fallback + legacy stateless refresh; migrate-session/CSRF/DEV_AUTH_BYPASS คงเดิม; deep review 2 รอบ, CI เขียว, prod smoke all-pass
