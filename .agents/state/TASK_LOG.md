@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 252 active handoffs, 10 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 253 active handoffs, 10 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-09-04 09:00 — antigravity (Gemini 2.5 Pro (DeepMind Antigravity) / Google DeepMind) — completed
+
+P2 Thai Calendar and Date Standardization merged into main (PR #223, commit f91b12b). 3-gate codebase-review-fix pipeline completed with 18 review findings resolved (0 Critical, 0 High remaining). Full test suites (39 backend tests, frontend unit tests, lint, and Next.js Turbopack build) passing. All CI/CD checks green.
+
+- Checkpoint: `.agents/state/checkpoints/handover-antigravity-20260904-0900.json`
+- Summary: `project-log-md/antigravity/session-summary-20260904-0900.md`
+
+---
 
 ### 2026-09-02 17:47 — zcode (GLM (Zhipu)) — completed
 

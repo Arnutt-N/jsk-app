@@ -1,23 +1,24 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Cross-Platform Session Index (generated)
 
-> **Last generated**: 2026-09-02 17:47 (from newest checkpoint)
+> **Last generated**: 2026-09-04 09:00 (from newest checkpoint)
 
 ## Quick Stats
 
 | Metric | Value |
 |--------|-------|
-| Handoff checkpoints (active) | 252 |
+| Handoff checkpoints (active) | 253 |
 | Session summaries on disk | 353 |
 | Platforms | 10 (antigravity, claude_code, cline, codex, gemini_cli, kilo_code, kimi_code, open_code, qoder, zcode) |
-| Most recent | 2026-09-02 17:47 — zcode |
+| Most recent | 2026-09-04 09:00 — antigravity |
 
 > Regenerate after any handoff: `node .agents/scripts/gen-handoff-views.cjs`
 
-## antigravity (4)
+## antigravity (5)
 
 | When | Status | Model | Provider | Checkpoint |
 |------|--------|-------|----------|------------|
+| 2026-09-04 09:00 | completed | Gemini 2.5 Pro (DeepMind Antigravity) | Google DeepMind | `handover-antigravity-20260904-0900.json` |
 | 2026-06-02 00:32 | completed | — | — | `handover-antigravity-20260602-0032.json` |
 | 2026-04-07 15:43 | completed | — | — | `handover-antigravity-20260407-1543.json` |
 | 2026-04-04 12:04 | completed | — | — | `handover-antigravity-20260404-1204.json` |

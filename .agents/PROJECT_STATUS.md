@@ -1,12 +1,12 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-09-04 07:05 by Antigravity
+> **Last Updated:** 2026-09-04 09:00 by Antigravity
 
 ## Thai Summary
-**สถานะล่าสุด (2026-09-04 07:05)** — งาน **P2 Thai Calendar and Date Standardization & Review Fixes** เสร็จสมบูรณ์ (Gate G1, G2, G3 ผ่านครบ 100%):
-- **P2 Reusable DatePicker & Thai Date Format**: พัฒนา `CalendarPickerTH` รองรับ พ.ศ., ตรวจสอบวัน/เดือน/ปีถูกต้อง, ปรับหน้า `/admin/requests`, `/admin/bookings`, `/admin/requests/kanban`, `/admin/requests/[id]`, และระบบกรองวันที่หลังบ้าน ผ่านการทดสอบระดับ Unit Test และ Build ผ่านฉลุย
-- **P1 Login flake:** ผู้ใช้ล็อกอินสำเร็จแต่บางครั้งถูกพากลับหน้า login — งานถัดไปหลังผสาน PR นี้
-- **ถัดไป:** Push PR และผสาน (Merge) เข้าสู่ `main`
+**สถานะล่าสุด (2026-09-04 09:00)** — งาน **P2 Thai Calendar and Date Standardization & Review Fixes** เสร็จสมบูรณ์ (Gate G1, G2, G3 ผ่านครบ 100%):
+- **P2 Reusable DatePicker & Thai Date Format**: พัฒนา `CalendarPickerTH` รองรับ พ.ศ., ตรวจสอบวัน/เดือน/ปีถูกต้อง, ปรับหน้า `/admin/requests`, `/admin/bookings`, `/admin/requests/kanban`, `/admin/requests/[id]`, และระบบกรองวันที่หลังบ้าน ผ่านการทดสอบระดับ Unit Test และ Build ผ่านฉลุย ผสานเข้าสู่ `main` เรียบร้อย (PR #223, commit `f91b12b`)
+- **P1 Login flake:** ผู้ใช้ล็อกอินสำเร็จแต่บางครั้งถูกพากลับหน้า login — งานถัดไปที่ต้องทำ
+- **ถัดไป:** เริ่มงาน P1 Login flake (สร้าง branch, PRD, PRP plan)
 
 <!-- Previous project summary retained below for historical context. -->
 **สถานะล่าสุด (2026-08-23)** — milestone หลักทุกตัวปิดแล้ว เหลือเฉพาะ manual test ฝั่งผู้ใช้:
