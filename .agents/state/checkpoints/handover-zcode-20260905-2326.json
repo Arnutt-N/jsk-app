@@ -1,0 +1,17 @@
+{
+  "handoff_version": "2.0",
+  "platform": "zcode",
+  "agent": "zcode",
+  "timestamp": "2026-09-05T23:26:00+07:00",
+  "branch": "main",
+  "head_commit": "bb30a04",
+  "status": "completed",
+  "work_summary": "Review follow-up mediums fixed and merged as PR #225 (squash bb30a04, CI 4/4, CD watch): (1) webhook dedup lock now released only by the acquiring invocation - loser of NX race no longer deletes winner's lock (duplicate LINE event processing closed); (2) update_user checks target's current role on EVERY PUT incl. profile-only/is_active-only PUTs (ADMIN can no longer modify DIRECTOR/HEAD by omitting role; self-edit still allowed); TDD: 7 new tests, targeted 66 passed; docs in .claude/PRPs/*2026-09-05-review-followup-mediums*",
+  "priority_actions": [
+    "Await user prod smoke test of P1 login flake fix (PR #224 deployed earlier today)",
+    "Next queued: P2 leftover scope - CalendarPickerTH adoption for LIFF pages + admin/settings/booking raw type=date input"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/zcode/session-summary-20260905-2326.md",
+  "cross_platform_read": []
+}

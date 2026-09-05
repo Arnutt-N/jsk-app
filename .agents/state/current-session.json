@@ -1,13 +1,20 @@
 {
-  "last_updated": "2026-09-05T21:37:00+07:00",
+  "last_updated": "2026-09-05T23:26:00+07:00",
   "platform": "zcode",
-  "current_task": "P1 login flake fixed and merged as PR #224 (squash 218b824, CI 4/4 green, CD deployed): root cause = broadcast eviction (any stale tab's 401 chain broadcast logout -> fresh tab cleared session uncondi",
+  "current_task": "Review follow-up mediums fixed and merged as PR #225 (squash bb30a04, CI 4/4, CD watch): (1) webhook dedup lock now released only by the acquiring invocation - loser of NX race no longer deletes winne",
   "plan_status": "completed",
   "next_steps": [
-    "Watch CD deploy of 218b824 (done: CD success 13:02 ICT)",
-    "User smoke test: login on phone/real browser - dashboard must open first try; logout in one tab must not evict another tab"
+    "Await user prod smoke test of P1 login flake fix (PR #224 deployed earlier today)",
+    "Next queued: P2 leftover scope - CalendarPickerTH adoption for LIFF pages + admin/settings/booking raw type=date input"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-09-05T23:26:00+07:00",
+      "platform": "zcode",
+      "branch": "main",
+      "head": "bb30a04",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-09-05T21:37:00+07:00",
       "platform": "zcode",
@@ -139,13 +146,6 @@
       "platform": "cline",
       "branch": "main",
       "head": "570caf4",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-08-25T07:39:00+07:00",
-      "platform": "open_code",
-      "branch": "main",
-      "head": "584b2ad",
       "status": "completed"
     }
   ],

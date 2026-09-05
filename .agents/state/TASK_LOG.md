@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 254 active handoffs, 10 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 255 active handoffs, 10 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-09-05 23:26 — zcode — completed
+
+Review follow-up mediums fixed and merged as PR #225 (squash bb30a04, CI 4/4, CD watch): (1) webhook dedup lock now released only by the acquiring invocation - loser of NX race no longer deletes winner's lock (duplicate LINE event processing closed); (2) update_user checks target's current role on EVERY PUT incl. profile-only/is_active-only PUTs (ADMIN can no longer modify DIRECTOR/HEAD by omitting role; self-edit still allowed); TDD: 7 new tests, targeted 66 passed; docs in .claude/PRPs/*2026-09-05-review-followup-mediums*
+
+- Checkpoint: `.agents/state/checkpoints/handover-zcode-20260905-2326.json`
+- Summary: `project-log-md/zcode/session-summary-20260905-2326.md`
+
+---
 
 ### 2026-09-05 21:37 — zcode — completed
 
