@@ -17,6 +17,7 @@ vi.mock('@/lib/authFetch', () => ({
 
 // Static import — COOKIE_AUTH is true at module load.
 import { AuthProvider, useAuth } from '../AuthContext';
+import { resetAuthStore, setAuthState } from '@/lib/authStore';
 
 const hoisted = vi.hoisted(() => ({ replace: vi.fn() }));
 vi.mock('next/navigation', () => ({
@@ -64,6 +65,7 @@ describe('AuthContext — cookie mode', () => {
     }
     originalFetch = global.fetch;
     localStorage.clear();
+    resetAuthStore();
     hoisted.replace.mockClear();
     // Reset the interceptor install guard so each test captures its own mock
     // as the interceptor's nativeFetch.
@@ -259,6 +261,74 @@ describe('AuthContext — cookie mode', () => {
     );
     expect(logoutCall).toBeDefined();
     expect(hoisted.replace).toHaveBeenCalledWith('/login');
+  });
+});
+
+describe('shared auth store across provider trees (login-flake fix)', () => {
+  let originalFetch: typeof global.fetch;
+
+  beforeEach(() => {
+    resetAuthStore();
+    originalFetch = global.fetch;
+    localStorage.clear();
+    hoisted.replace.mockClear();
+  });
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+    vi.restoreAllMocks();
+  });
+
+  it('a freshly mounted provider does not re-verify when the store already holds a session', async () => {
+    setAuthState({ user: { id: '1', username: 'admin', role: 'ADMIN' }, status: 'authenticated' });
+    // 500 on every call: if the provider wrongly re-bootstraps, it retries
+    // with backoff and never reports authenticated -> waitFor times out.
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(500));
+    global.fetch = fetchMock;
+    const snapshot = makeSnapshot();
+
+    render(
+      <AuthProvider>
+        <TestConsumer snapshot={snapshot} />
+      </AuthProvider>,
+    );
+
+    await waitFor(() => {
+      expect(snapshot.current?.isAuthenticated).toBe(true);
+    });
+    expect(snapshot.current?.user?.username).toBe('admin');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('state survives a provider tree swap: unmount + remount needs no /me round-trip', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse(200, { ...ME_USER, csrf_token: 'csrf-1' }),
+    );
+    global.fetch = fetchMock;
+    const first = makeSnapshot();
+    const { unmount } = render(
+      <AuthProvider>
+        <TestConsumer snapshot={first} />
+      </AuthProvider>,
+    );
+    await waitFor(() => {
+      expect(first.current?.isAuthenticated).toBe(true);
+    });
+    const callsAfterFirstMount = fetchMock.mock.calls.length;
+    unmount();
+
+    // Mirrors the /login -> /admin client-side navigation: a NEW provider
+    // tree mounts while the shared store already holds the session.
+    const second = makeSnapshot();
+    render(
+      <AuthProvider>
+        <TestConsumer snapshot={second} />
+      </AuthProvider>,
+    );
+    await waitFor(() => {
+      expect(second.current?.isAuthenticated).toBe(true);
+    });
+    expect(fetchMock.mock.calls.length).toBe(callsAfterFirstMount);
   });
 });
 
