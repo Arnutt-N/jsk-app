@@ -6,6 +6,8 @@ import { ArrowLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import PageHeader from '../../components/PageHeader';
 import { useToast } from '@/components/ui/Toast';
+import CalendarPickerTH from '@/components/ui/CalendarPickerTH';
+import { isoToYMD } from '@/lib/utils';
 import { logger } from '@/lib/logger';
 import { readErrorMessage } from '@/lib/api-error';
 import { ensureRichMenuImage, parseSyncResult, RichMenuDisplayMode } from '@/lib/rich-menu';
@@ -242,8 +244,17 @@ export default function NewRichMenuPage() {
     // SCHEDULED = the backend scheduler sets/cancels the default inside the
     // period; MANUAL = synced but hidden (per-user / alias use only).
     const [displayMode, setDisplayMode] = useState<RichMenuDisplayModeValue>(RichMenuDisplayMode.ALWAYS);
-    const [displayStart, setDisplayStart] = useState('');
-    const [displayEnd, setDisplayEnd] = useState('');
+    // Thai (พ.ศ.) date + separate time — native datetime-local renders ค.ศ.
+    // only (same approach as the broadcast scheduler). The derived combined
+    // local string feeds the existing save logic unchanged.
+    const [displayStartDate, setDisplayStartDate] = useState('');
+    const [displayStartTime, setDisplayStartTime] = useState('');
+    const [displayEndDate, setDisplayEndDate] = useState('');
+    const [displayEndTime, setDisplayEndTime] = useState('');
+    const displayStart = displayStartDate && displayStartTime
+        ? `${displayStartDate}T${displayStartTime}` : '';
+    const displayEnd = displayEndDate && displayEndTime
+        ? `${displayEndDate}T${displayEndTime}` : '';
 
     // Memoized blob URL — URL.createObjectURL called inline in JSX minted a
     // new URL on every render and leaked the old ones (review finding M6).
@@ -694,22 +705,34 @@ export default function NewRichMenuPage() {
                                             <span className="block text-[11px] text-slate-400">ระบบแสดงเมนูอัตโนมัติเมื่อถึงเวลาเริ่ม และซ่อนเมื่อหมดเวลา</span>
                                             {displayMode === RichMenuDisplayMode.SCHEDULED && (
                                                 <span className="mt-3 grid grid-cols-1 gap-2" onClick={(e) => e.preventDefault()}>
-                                                    <label className="text-[10px] font-bold text-slate-400">เริ่มแสดง
+                                                    <span className="block text-[10px] font-bold text-slate-400">เริ่มแสดง
+                                                        <CalendarPickerTH
+                                                            ariaLabel="วันที่เริ่มแสดง"
+                                                            value={displayStartDate || null}
+                                                            onChange={(iso) => setDisplayStartDate(isoToYMD(iso))}
+                                                        />
                                                         <input
-                                                            type="datetime-local"
-                                                            value={displayStart}
-                                                            onChange={(e) => setDisplayStart(e.target.value)}
+                                                            type="time"
+                                                            aria-label="เวลาเริ่มแสดง"
+                                                            value={displayStartTime}
+                                                            onChange={(e) => setDisplayStartTime(e.target.value)}
                                                             className="mt-1 w-full text-sm bg-white border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary/20 outline-none"
                                                         />
-                                                    </label>
-                                                    <label className="text-[10px] font-bold text-slate-400">ซ่อนเมื่อถึง
+                                                    </span>
+                                                    <span className="block text-[10px] font-bold text-slate-400">ซ่อนเมื่อถึง
+                                                        <CalendarPickerTH
+                                                            ariaLabel="วันที่ซ่อนเมื่อถึง"
+                                                            value={displayEndDate || null}
+                                                            onChange={(iso) => setDisplayEndDate(isoToYMD(iso))}
+                                                        />
                                                         <input
-                                                            type="datetime-local"
-                                                            value={displayEnd}
-                                                            onChange={(e) => setDisplayEnd(e.target.value)}
+                                                            type="time"
+                                                            aria-label="เวลาซ่อนเมื่อถึง"
+                                                            value={displayEndTime}
+                                                            onChange={(e) => setDisplayEndTime(e.target.value)}
                                                             className="mt-1 w-full text-sm bg-white border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary/20 outline-none"
                                                         />
-                                                    </label>
+                                                    </span>
                                                 </span>
                                             )}
                                         </span>

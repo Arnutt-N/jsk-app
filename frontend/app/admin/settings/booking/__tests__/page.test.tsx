@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -149,6 +149,26 @@ describe('blackout dates', () => {
     await user.click(screen.getByRole('button', { name: /บันทึกการตั้งค่า/ }))
 
     await waitFor(() => expect(savedPayload().blackout_dates).toEqual([]))
+  })
+
+  it('adds a blackout date through the Thai (พ.ศ.) picker', async () => {
+    const user = userEvent.setup()
+    await renderLoaded()
+
+    // Drive the picker's numeric parts (selectors per
+    // components/ui/__tests__/CalendarPickerTH.test.tsx — note the day input's
+    // label comes from the ariaLabel prop): 10/01/2570 พ.ศ.
+    fireEvent.input(screen.getByLabelText('เลือกวันหยุดพิเศษ'), { target: { value: '10' } })
+    fireEvent.input(screen.getByLabelText('เดือน'), { target: { value: '01' } })
+    fireEvent.input(screen.getByLabelText('ปี พ.ศ.'), { target: { value: '2570' } })
+    // Flush the picker's deferred year commit before clicking add.
+    await act(async () => {})
+
+    await user.click(screen.getByLabelText('เพิ่มวันหยุดพิเศษ'))
+    await user.click(screen.getByRole('button', { name: /บันทึกการตั้งค่า/ }))
+    await waitFor(() =>
+      expect(savedPayload().blackout_dates).toContain('2027-01-10'),
+    )
   })
 })
 
