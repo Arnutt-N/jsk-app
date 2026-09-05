@@ -1,0 +1,17 @@
+{
+  "handoff_version": "2.0",
+  "platform": "zcode",
+  "agent": "zcode",
+  "timestamp": "2026-09-06T01:24:00+07:00",
+  "branch": "main",
+  "head_commit": "17dad1a",
+  "status": "completed",
+  "work_summary": "P2 date-picker scope CLOSED via PR #226 (squash 17dad1a, CI 4/4, CD success: Vercel deployed + frontend smoke pass, backend skipped by scope): (1) booking-settings blackout adder type=date -> CalendarPickerTH with isoToYMD local-parts conversion; (2) rich-menu display period (new+edit, 4 datetime-local) -> CalendarPickerTH + time inputs using the broadcast pattern, split states with derived combined string so save logic unchanged, edit loader splits toLocalDatetimeInputValue; LIFF decision documented: booking chip strip kept (already Thai, constrained booking UX), no date inputs anywhere else in LIFF; final sweep: zero native date-entry controls left in frontend/app+components; tests: settings 11/11, rich-menu edit 13/13, new-page test created; full-suite LIFF failures remain the documented pre-existing local-load flake",
+  "priority_actions": [
+    "User prod smoke: pick a blackout date and schedule a rich menu period on the Thai calendar",
+    "Backlog: extract shared DateTimePickerTH from broadcast+richmenu duplication; DEFER-M1..M3/L1..L11 owner review; DB index on service_requests.created_at"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/zcode/session-summary-20260906-0124.md",
+  "cross_platform_read": []
+}

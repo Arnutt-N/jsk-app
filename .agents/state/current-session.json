@@ -1,13 +1,20 @@
 {
-  "last_updated": "2026-09-05T23:26:00+07:00",
+  "last_updated": "2026-09-06T01:24:00+07:00",
   "platform": "zcode",
-  "current_task": "Review follow-up mediums fixed and merged as PR #225 (squash bb30a04, CI 4/4, CD watch): (1) webhook dedup lock now released only by the acquiring invocation - loser of NX race no longer deletes winne",
+  "current_task": "P2 date-picker scope CLOSED via PR #226 (squash 17dad1a, CI 4/4, CD success: Vercel deployed + frontend smoke pass, backend skipped by scope): (1) booking-settings blackout adder type=date -> Calendar",
   "plan_status": "completed",
   "next_steps": [
-    "Await user prod smoke test of P1 login flake fix (PR #224 deployed earlier today)",
-    "Next queued: P2 leftover scope - CalendarPickerTH adoption for LIFF pages + admin/settings/booking raw type=date input"
+    "User prod smoke: pick a blackout date and schedule a rich menu period on the Thai calendar",
+    "Backlog: extract shared DateTimePickerTH from broadcast+richmenu duplication; DEFER-M1..M3/L1..L11 owner review; DB index on service_requests.created_at"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-09-06T01:24:00+07:00",
+      "platform": "zcode",
+      "branch": "main",
+      "head": "17dad1a",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-09-05T23:26:00+07:00",
       "platform": "zcode",
@@ -139,13 +146,6 @@
       "platform": "qoder",
       "branch": "main",
       "head": "a56180a",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-08-27T07:12:00+07:00",
-      "platform": "cline",
-      "branch": "main",
-      "head": "570caf4",
       "status": "completed"
     }
   ],

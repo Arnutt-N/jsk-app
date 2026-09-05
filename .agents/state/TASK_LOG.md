@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 255 active handoffs, 10 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 256 active handoffs, 10 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-09-06 01:24 — zcode — completed
+
+P2 date-picker scope CLOSED via PR #226 (squash 17dad1a, CI 4/4, CD success: Vercel deployed + frontend smoke pass, backend skipped by scope): (1) booking-settings blackout adder type=date -> CalendarPickerTH with isoToYMD local-parts conversion; (2) rich-menu display period (new+edit, 4 datetime-local) -> CalendarPickerTH + time inputs using the broadcast pattern, split states with derived combined string so save logic unchanged, edit loader splits toLocalDatetimeInputValue; LIFF decision documented: booking chip strip kept (already Thai, constrained booking UX), no date inputs anywhere else in LIFF; final sweep: zero native date-entry controls left in frontend/app+components; tests: settings 11/11, rich-menu edit 13/13, new-page test created; full-suite LIFF failures remain the documented pre-existing local-load flake
+
+- Checkpoint: `.agents/state/checkpoints/handover-zcode-20260906-0124.json`
+- Summary: `project-log-md/zcode/session-summary-20260906-0124.md`
+
+---
 
 ### 2026-09-05 23:26 — zcode — completed
 
