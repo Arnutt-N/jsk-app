@@ -1,19 +1,23 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef, useMemo, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import { installAdminAuthFetchInterceptor, setAuthRefreshHandler } from '@/lib/authFetch';
 import { setCsrfToken, clearCsrfToken } from '@/lib/csrfStore';
 import { readErrorMessage } from '@/lib/api-error';
+import {
+  getAuthSnapshot,
+  setAuthState,
+  subscribeAuth,
+  type AuthUser,
+} from '@/lib/authStore';
+
+// Moved verbatim to lib/authStore.ts so both provider trees (/login and
+// /admin) share one state source; re-exported for existing importers.
+export type { AuthStatus, AuthUser as User } from '@/lib/authStore';
+type User = AuthUser;
 
 const AUTH_CHANNEL_NAME = 'jsk:auth';
-
-interface User {
-  id: string;
-  username: string;
-  role: 'SUPER_ADMIN' | 'ADMIN' | 'DIRECTOR' | 'HEAD' | 'AGENT' | 'USER';
-  display_name?: string;
-}
 
 interface AuthContextType {
   user: User | null;
@@ -38,8 +42,6 @@ const MOCK_ADMIN: User = {
   role: 'ADMIN',
   display_name: 'Administrator'
 };
-
-type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated' | 'bootstrap_error';
 
 // Legacy localStorage keys (cleared during one-time Bearer→cookie migration).
 const LEGACY_TOKEN_KEY = 'auth_token';
@@ -103,9 +105,12 @@ function isLocalhostDevBypass(): boolean {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [status, setStatus] = useState<AuthStatus>('loading');
+  // Shared store: single source of truth across the /login and /admin
+  // provider trees (see lib/authStore.ts). Loading derives from status —
+  // the old standalone isLoading state was never read by consumers.
+  const auth = useSyncExternalStore(subscribeAuth, getAuthSnapshot, getAuthSnapshot);
+  const user = auth.user;
+  const status = auth.status;
   const [bootstrapAttempt, setBootstrapAttempt] = useState(0);
   const router = useRouter();
   const bcRef = useRef<BroadcastChannel | null>(null);
@@ -119,13 +124,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let cancelled = false;
 
     const initCookieAuth = async () => {
+      // A tree mounting after a client-side login already holds fresh state
+      // in the shared store — skip the network re-verification entirely.
+      if (getAuthSnapshot().status !== 'loading') return;
       try {
         // Dev bypass: skip network calls entirely.
         const devBypassActive = (DEV_MODE || process.env.NODE_ENV === 'development') && isLocalhostDevBypass();
         if (devBypassActive) {
-          setUser(MOCK_ADMIN);
-          setStatus('authenticated');
-          setIsLoading(false);
+          setAuthState({ user: MOCK_ADMIN, status: 'authenticated' });
           return;
         }
 
@@ -172,7 +178,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (!meRes || isTransientLoginStatus(meRes.status)) {
-          setStatus('bootstrap_error');
+          setAuthState({ status: 'bootstrap_error' });
           return;
         }
 
@@ -181,16 +187,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (cancelled) return;
           if (meData.csrf_token) setCsrfToken(meData.csrf_token);
           const { csrf_token: _csrf, ...userFields } = meData;
-          setUser(userFields);
-          setStatus('authenticated');
+          setAuthState({ user: userFields, status: 'authenticated' });
         } else {
-          setStatus('unauthenticated');
+          setAuthState({ status: 'unauthenticated' });
         }
       } catch (error) {
         console.error('Cookie auth initialization error:', error);
-        if (!cancelled) setStatus('bootstrap_error');
-      } finally {
-        if (!cancelled) setIsLoading(false);
+        if (!cancelled) setAuthState({ status: 'bootstrap_error' });
       }
     };
 
@@ -198,6 +201,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => { cancelled = true; };
   }, [bootstrapAttempt]);
+
+  // A logout/expiry broadcast may come from a tab holding a different
+  // (older) session than ours. Confirm with the server before clearing
+  // anything: a 200 on /auth/me means the broadcast was not about our
+  // session — ignoring it is what keeps a freshly logged-in tab stable
+  // when a stale tab's expired-auth chain shouts (P1 login flake).
+  const verifyThenApplyRemoteLogout = useCallback(async () => {
+    try {
+      const res = await fetch('/api/v1/auth/me', { credentials: 'include' });
+      if (res.ok) return;
+      if (isTransientLoginStatus(res.status)) return; // unknown state — keep session
+    } catch {
+      return; // cannot verify on a network error — keep session
+    }
+    clearCsrfToken();
+    setAuthState({ user: null, status: 'unauthenticated' });
+    router.replace('/login');
+  }, [router]);
 
   // Multi-tab logout/expiry sync via BroadcastChannel.
   useEffect(() => {
@@ -207,10 +228,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     bcRef.current = bc;
     bc.onmessage = (event: MessageEvent) => {
       if (event.data?.type === 'logout' || event.data?.type === 'expired') {
-        clearCsrfToken();
-        setUser(null);
-        setStatus('unauthenticated');
-        router.replace('/login');
+        void verifyThenApplyRemoteLogout();
       }
     };
 
@@ -218,17 +236,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       bc.close();
       bcRef.current = null;
     };
-  }, [router]);
+  }, [router, verifyThenApplyRemoteLogout]);
 
   const retryBootstrap = useCallback(() => {
-    setStatus('loading');
+    setAuthState({ status: 'loading' });
     setBootstrapAttempt((attempt) => attempt + 1);
   }, []);
 
   const login = useCallback(async (username: string, password: string) => {
-    setIsLoading(true);
-    try {
-      const maxAttempts = 4;
+    const maxAttempts = 4;
 
       for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
         try {
@@ -263,9 +279,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
 
           const data = await response.json();
-          setUser(data.user);
           if (data.csrf_token) setCsrfToken(data.csrf_token);
-          setStatus('authenticated');
+          setAuthState({ user: data.user, status: 'authenticated' });
           return;
         } catch (error) {
           if (isAuthRequestError(error)) {
@@ -296,9 +311,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           throw networkError;
         }
       }
-    } finally {
-      setIsLoading(false);
-    }
   }, []);
 
   const logout = useCallback(() => {
@@ -306,8 +318,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     clearCsrfToken();
     clearLegacyAuthStorage();
     localStorage.removeItem('dev_bypass');
-    setUser(null);
-    setStatus('unauthenticated');
+    setAuthState({ user: null, status: 'unauthenticated' });
     bcRef.current?.postMessage({ type: 'logout' });
     router.replace('/login');
   }, [router]);
@@ -345,7 +356,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setAuthRefreshHandler(refreshAccessToken);
-    const onAuthExpired = () => logout();
+    const onAuthExpired = () => {
+      // Only a tab that currently holds a session has something to log out.
+      // A tab whose bootstrap failed (never authenticated — e.g. its own
+      // /login 401 chain) firing this event must not end up broadcasting
+      // logout to every other tab: that broadcast was the P1 login flake.
+      if (getAuthSnapshot().status !== 'authenticated') return;
+      logout();
+    };
     window.addEventListener('jsk:auth-expired', onAuthExpired as EventListener);
     return () => {
       setAuthRefreshHandler(null);
