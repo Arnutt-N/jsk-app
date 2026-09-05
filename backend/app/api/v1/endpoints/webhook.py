@@ -52,6 +52,7 @@ async def process_webhook_events(events):
         for event in events:
             cache_key = None
             lock_key = None
+            lock_acquired = False
             try:
                 event_id = getattr(event, 'webhook_event_id', None)
                 if event_id:
@@ -107,7 +108,12 @@ async def process_webhook_events(events):
                 logger.error("Failed to process event %s (%s): %s", event_id, type(event).__name__, e, exc_info=True)
                 continue
             finally:
-                if lock_key:
+                # Release the lock ONLY when this invocation actually acquired
+                # it: the `continue` paths above (lock lost to another worker,
+                # Redis down) still run the finally block, and deleting then
+                # would destroy the winner's in-flight lock and let a third
+                # duplicate delivery process the same event again.
+                if lock_key and lock_acquired:
                     await redis_client.delete(lock_key)
 
 
