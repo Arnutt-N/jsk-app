@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-09-04 09:00 by Antigravity
+> **Last Updated:** 2026-09-05 21:37 by Zcode (P1 login flake fixed and merged as PR #224 squash 218b824, CI 4/4 green, CD deployed: root)
 
 ## Thai Summary
 **สถานะล่าสุด (2026-09-04 09:00)** — งาน **P2 Thai Calendar and Date Standardization & Review Fixes** เสร็จสมบูรณ์ (Gate G1, G2, G3 ผ่านครบ 100%):
@@ -121,6 +121,7 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-09-05 21:37] Zcode: P1 login flake fixed and merged as PR #224 (squash 218b824, CI 4/4 green, CD deployed): root cause = broadcast eviction (any stale tab's 401 chain broadcast logout -> fresh tab cleared session unconditionally) + split auth state across /log (Zcode)
 - [2026-09-02 17:48]   Validate Only: zcode (  Validate Only)
 - [2026-09-02 17:47] Zcode: Codebase-review-fix pipeline CLOSED via PR #222 (squash f97492f): 36 findings (6H/17M/13L) — all 6 High + 14 Medium + 2 Low fixed, 3 Medium + 11 Low deferred w/ reasons in findings file. G3 review SHIP + 4 MINOR fixed (scheduler scenario-4  (Zcode)
 - [2026-09-02 09:30] Zcode: Rich-menu admin fixes from user smoke test: PR #220 (squash 647441b) — edits now reach LINE via recreate-on-drift sync (LINE has no update endpoint; sync detects config/image drift or PENDING flag and rebuilds the menu on LINE, moving alias (Zcode)

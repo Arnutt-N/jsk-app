@@ -1,13 +1,20 @@
 {
-  "last_updated": "2026-09-04T09:00:00+07:00",
-  "platform": "antigravity",
-  "current_task": "feat-thai-date-format-and-calendar-standardization",
+  "last_updated": "2026-09-05T21:37:00+07:00",
+  "platform": "zcode",
+  "current_task": "P1 login flake fixed and merged as PR #224 (squash 218b824, CI 4/4 green, CD deployed): root cause = broadcast eviction (any stale tab's 401 chain broadcast logout -> fresh tab cleared session uncondi",
   "plan_status": "completed",
   "next_steps": [
-    "Investigate P1 login flake bug where users intermittently get redirected back to /login",
-    "Prepare PRD and PRP plan for P1 before writing implementation code"
+    "Watch CD deploy of 218b824 (done: CD success 13:02 ICT)",
+    "User smoke test: login on phone/real browser - dashboard must open first try; logout in one tab must not evict another tab"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-09-05T21:37:00+07:00",
+      "platform": "zcode",
+      "branch": "main",
+      "head": "218b824",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-09-04T09:00:00+07:00",
       "platform": "antigravity",
@@ -139,27 +146,6 @@
       "platform": "open_code",
       "branch": "main",
       "head": "584b2ad",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-08-24T07:45:00+07:00",
-      "platform": "open_code",
-      "branch": "main",
-      "head": "d259efe",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-08-23T19:05:00+07:00",
-      "platform": "open_code",
-      "branch": "main",
-      "head": "3aa120a",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-08-23T18:21:00+07:00",
-      "platform": "open_code",
-      "branch": "main",
-      "head": "f223bd3",
       "status": "completed"
     }
   ],

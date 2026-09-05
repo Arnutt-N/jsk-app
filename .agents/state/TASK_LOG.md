@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 253 active handoffs, 10 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 254 active handoffs, 10 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-09-05 21:37 — zcode — completed
+
+P1 login flake fixed and merged as PR #224 (squash 218b824, CI 4/4 green, CD deployed): root cause = broadcast eviction (any stale tab's 401 chain broadcast logout -> fresh tab cleared session unconditionally) + split auth state across /login and /admin provider trees; fix = module-level auth store (frontend/lib/authStore.ts, useSyncExternalStore) shared by both trees, cross-tab logout verified via GET /auth/me before clearing, sender-side guard on jsk:auth-expired, dead isLoading removed; permanent e2e login-stability.spec.ts (10x zero-bounce + eviction guard) passes on prod build 9/9 auth specs; known local-env flakes documented (frontend unit LIFF files fail under full-suite load on main too, backend pytest hangs on Windows teardown - both CI-green)
+
+- Checkpoint: `.agents/state/checkpoints/handover-zcode-20260905-2137.json`
+- Summary: `project-log-md/zcode/session-summary-20260905-2137.md`
+
+---
 
 ### 2026-09-04 09:00 — antigravity (Gemini 2.5 Pro (DeepMind Antigravity) / Google DeepMind) — completed
 

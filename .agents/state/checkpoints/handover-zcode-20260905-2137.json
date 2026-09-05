@@ -1,0 +1,17 @@
+{
+  "handoff_version": "2.0",
+  "platform": "zcode",
+  "agent": "zcode",
+  "timestamp": "2026-09-05T21:37:00+07:00",
+  "branch": "main",
+  "head_commit": "218b824",
+  "status": "completed",
+  "work_summary": "P1 login flake fixed and merged as PR #224 (squash 218b824, CI 4/4 green, CD deployed): root cause = broadcast eviction (any stale tab's 401 chain broadcast logout -> fresh tab cleared session unconditionally) + split auth state across /login and /admin provider trees; fix = module-level auth store (frontend/lib/authStore.ts, useSyncExternalStore) shared by both trees, cross-tab logout verified via GET /auth/me before clearing, sender-side guard on jsk:auth-expired, dead isLoading removed; permanent e2e login-stability.spec.ts (10x zero-bounce + eviction guard) passes on prod build 9/9 auth specs; known local-env flakes documented (frontend unit LIFF files fail under full-suite load on main too, backend pytest hangs on Windows teardown - both CI-green)",
+  "priority_actions": [
+    "Watch CD deploy of 218b824 (done: CD success 13:02 ICT)",
+    "User smoke test: login on phone/real browser - dashboard must open first try; logout in one tab must not evict another tab"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/zcode/session-summary-20260905-2137.md",
+  "cross_platform_read": []
+}
