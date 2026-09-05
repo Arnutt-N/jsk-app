@@ -3,6 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ToastProvider } from '@/components/ui/Toast';
+import { toLocalDatetimeInputValue } from '@/lib/rich-menu';
 import EditRichMenuPage from '../page';
 
 vi.mock('next/navigation', () => ({
@@ -247,10 +248,22 @@ describe('EditRichMenuPage — area overlay + sync machine', () => {
         expect(screen.getByText('แสดงตลอดเวลา')).toBeInTheDocument();
         expect(screen.getByText('ตามช่วงเวลา')).toBeInTheDocument();
         expect(screen.getByText('ซ่อน (เตรียมใช้งาน)')).toBeInTheDocument();
-        // SCHEDULED reveals both period inputs, prefilled with the saved period
-        const starts = screen.getAllByLabelText(/เริ่มแสดง/);
-        expect(starts[0]).toBeInTheDocument();
-        expect((starts[0] as HTMLInputElement).value).not.toBe('');
+        // SCHEDULED reveals the Thai (พ.ศ.) split inputs — date part + time
+        // part per period, timezone-consistent with toLocalDatetimeInputValue.
+        // Day inputs carry the ariaLabel prop; เดือน/ปี พ.ศ. labels are shared
+        // by both pickers (start + end) → AllBy.
+        expect(document.querySelector('input[type="datetime-local"]')).toBeNull();
+        const [startYMD, startTime] = toLocalDatetimeInputValue('2026-09-03T02:00:00.000Z').split('T');
+        const [endYMD, endTime] = toLocalDatetimeInputValue('2026-09-10T14:00:00.000Z').split('T');
+        const beYear = String(Number(startYMD.split('-')[0]) + 543);
+        expect(screen.getByLabelText('วันที่เริ่มแสดง')).toHaveValue(startYMD.split('-')[2]);
+        expect(screen.getAllByLabelText('เดือน')[0]).toHaveValue(startYMD.split('-')[1]);
+        expect(screen.getAllByLabelText('ปี พ.ศ.')[0]).toHaveValue(beYear);
+        expect(screen.getByLabelText('เวลาเริ่มแสดง')).toHaveValue(startTime);
+        expect(screen.getByLabelText('วันที่ซ่อนเมื่อถึง')).toHaveValue(endYMD.split('-')[2]);
+        expect(screen.getAllByLabelText('เดือน')[1]).toHaveValue(endYMD.split('-')[1]);
+        expect(screen.getAllByLabelText('ปี พ.ศ.')[1]).toHaveValue(beYear);
+        expect(screen.getByLabelText('เวลาซ่อนเมื่อถึง')).toHaveValue(endTime);
     });
 
     it('save-and-sync on a MANUAL menu never auto-publishes', async () => {
