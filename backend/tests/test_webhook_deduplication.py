@@ -213,6 +213,45 @@ class TestWebhookDeduplication:
         mock_redis.delete.assert_awaited()
 
     @pytest.mark.asyncio
+    async def test_lost_lock_does_not_delete_winners_lock(self, mock_redis, mock_event_with_id):
+        """Losing the NX race must not delete the winner's in-flight lock.
+
+        The loser's `continue` path still runs the finally block — before the
+        fix it deleted the winner's lock, letting a third duplicate delivery
+        acquire the lock and process the same event again.
+        """
+        mock_redis.exists.return_value = False
+        mock_redis.set.return_value = False  # another worker holds the lock
+
+        await process_webhook_events([mock_event_with_id])
+
+        mock_redis.delete.assert_not_awaited()
+        mock_redis.setex.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_winner_releases_own_lock(self, mock_redis, mock_event_with_id):
+        """The lock holder releases its own lock after processing."""
+        mock_redis.exists.return_value = False
+        mock_redis.set.return_value = True
+
+        await process_webhook_events([mock_event_with_id])
+
+        mock_redis.delete.assert_awaited_once()
+        released_key = mock_redis.delete.call_args[0][0]
+        assert "test-event-id-12345" in released_key
+
+    @pytest.mark.asyncio
+    async def test_redis_down_fails_open_without_lock_release(self, mock_redis, mock_event_with_id):
+        """Redis outage processes without dedup and must not attempt release."""
+        mock_redis.exists.return_value = False
+        mock_redis.set.return_value = None  # Redis unavailable (fail open)
+
+        await process_webhook_events([mock_event_with_id])
+
+        mock_redis.delete.assert_not_awaited()
+        mock_redis.setex.assert_awaited_once()
+
+    @pytest.mark.asyncio
     async def test_redelivered_message_skips_bot_flow_when_message_already_exists(self, monkeypatch):
         """A redelivered LINE message should exit before re-running bot logic."""
         from app.api.v1.endpoints import webhook as webhook_module
