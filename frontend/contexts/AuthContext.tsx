@@ -202,6 +202,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => { cancelled = true; };
   }, [bootstrapAttempt]);
 
+  // A logout/expiry broadcast may come from a tab holding a different
+  // (older) session than ours. Confirm with the server before clearing
+  // anything: a 200 on /auth/me means the broadcast was not about our
+  // session — ignoring it is what keeps a freshly logged-in tab stable
+  // when a stale tab's expired-auth chain shouts (P1 login flake).
+  const verifyThenApplyRemoteLogout = useCallback(async () => {
+    try {
+      const res = await fetch('/api/v1/auth/me', { credentials: 'include' });
+      if (res.ok) return;
+      if (isTransientLoginStatus(res.status)) return; // unknown state — keep session
+    } catch {
+      return; // cannot verify on a network error — keep session
+    }
+    clearCsrfToken();
+    setAuthState({ user: null, status: 'unauthenticated' });
+    router.replace('/login');
+  }, [router]);
+
   // Multi-tab logout/expiry sync via BroadcastChannel.
   useEffect(() => {
     if (typeof BroadcastChannel === 'undefined') return;
@@ -210,9 +228,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     bcRef.current = bc;
     bc.onmessage = (event: MessageEvent) => {
       if (event.data?.type === 'logout' || event.data?.type === 'expired') {
-        clearCsrfToken();
-        setAuthState({ user: null, status: 'unauthenticated' });
-        router.replace('/login');
+        void verifyThenApplyRemoteLogout();
       }
     };
 
@@ -220,7 +236,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       bc.close();
       bcRef.current = null;
     };
-  }, [router]);
+  }, [router, verifyThenApplyRemoteLogout]);
 
   const retryBootstrap = useCallback(() => {
     setAuthState({ status: 'loading' });
@@ -340,7 +356,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setAuthRefreshHandler(refreshAccessToken);
-    const onAuthExpired = () => logout();
+    const onAuthExpired = () => {
+      // Only a tab that currently holds a session has something to log out.
+      // A tab whose bootstrap failed (never authenticated — e.g. its own
+      // /login 401 chain) firing this event must not end up broadcasting
+      // logout to every other tab: that broadcast was the P1 login flake.
+      if (getAuthSnapshot().status !== 'authenticated') return;
+      logout();
+    };
     window.addEventListener('jsk:auth-expired', onAuthExpired as EventListener);
     return () => {
       setAuthRefreshHandler(null);

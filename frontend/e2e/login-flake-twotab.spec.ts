@@ -23,8 +23,14 @@ test.describe('login flake repro (two tabs)', () => {
       bc.close()
     })
 
-    // Pre-fix expectation: adminTab is unconditionally logged out -> /login.
-    await adminTab.waitForURL(/\/login/, { timeout: 10_000 })
-    console.log('BOUNCE CONFIRMED: admin tab ended on', adminTab.url())
+    // Post-fix expectation: the receiver verifies with the server before
+    // clearing — the admin tab keeps its valid session and stays put.
+    await otherTab.evaluate(() => {
+      const bc = new BroadcastChannel('jsk:auth')
+      bc.postMessage({ type: 'logout' })
+      bc.close()
+    })
+    await adminTab.waitForTimeout(3_000)
+    expect(adminTab).toHaveURL(/\/admin/)
   })
 })

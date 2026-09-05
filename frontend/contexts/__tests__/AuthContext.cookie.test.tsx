@@ -332,3 +332,118 @@ describe('shared auth store across provider trees (login-flake fix)', () => {
   });
 });
 
+describe('cross-tab logout broadcast (login-flake fix)', () => {
+  let originalFetch: typeof global.fetch;
+
+  class MockChannel {
+    static instances: MockChannel[] = [];
+    onmessage: ((event: { data?: unknown }) => void) | null = null;
+    postMessage = vi.fn();
+    close = vi.fn();
+    constructor() {
+      MockChannel.instances.push(this);
+    }
+  }
+
+  beforeEach(() => {
+    resetAuthStore();
+    originalFetch = global.fetch;
+    localStorage.clear();
+    hoisted.replace.mockClear();
+    MockChannel.instances = [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (globalThis as any).BroadcastChannel = MockChannel;
+  });
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+    localStorage.clear();
+    vi.restoreAllMocks();
+  });
+
+  async function renderAuthenticated(): Promise<AuthSnapshot> {
+    const snapshot = makeSnapshot();
+    render(
+      <AuthProvider>
+        <TestConsumer snapshot={snapshot} />
+      </AuthProvider>,
+    );
+    await waitFor(() => {
+      expect(snapshot.current?.isAuthenticated).toBe(true);
+    });
+    return snapshot;
+  }
+
+  it('keeps the session when a logout broadcast arrives but the server still recognises us', async () => {
+    // /auth/me 200: our session is valid — the broadcast was another tab's.
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(200, ME_USER));
+    global.fetch = fetchMock;
+    const snapshot = await renderAuthenticated();
+
+    const channel = MockChannel.instances[0];
+    expect(channel).toBeDefined();
+    await act(async () => {
+      channel.onmessage?.({ data: { type: 'logout' } });
+    });
+
+    await waitFor(() => {
+      expect(snapshot.current?.isAuthenticated).toBe(true);
+    });
+    expect(hoisted.replace).not.toHaveBeenCalledWith('/login');
+  });
+
+  it('clears the session when a logout broadcast arrives and the server says 401', async () => {
+    // /auth/me 401 (definitive, non-transient): the broadcast is about us.
+    // The 401 mock is global, so seed the session via the store — the
+    // bootstrap skip-guard keeps the mount fetch-free.
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(401));
+    global.fetch = fetchMock;
+    setAuthState({ user: { id: '1', username: 'admin', role: 'ADMIN' }, status: 'authenticated' });
+    const snapshot = makeSnapshot();
+    render(
+      <AuthProvider>
+        <TestConsumer snapshot={snapshot} />
+      </AuthProvider>,
+    );
+    await waitFor(() => {
+      expect(snapshot.current?.isAuthenticated).toBe(true);
+    });
+
+    const channel = MockChannel.instances[0];
+    await act(async () => {
+      channel.onmessage?.({ data: { type: 'expired' } });
+    });
+
+    await waitFor(() => {
+      expect(snapshot.current?.isAuthenticated).toBe(false);
+    });
+    expect(hoisted.replace).toHaveBeenCalledWith('/login');
+  });
+
+  it('a tab that was never authenticated does not log out or broadcast on auth-expired', async () => {
+    // Unauthenticated tab (e.g. its own /login bootstrap 401 chain) — the
+    // auth-expired event must not trigger logout()/broadcast: it has no
+    // session to end and must not evict other tabs.
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(200));
+    global.fetch = fetchMock;
+    setAuthState({ user: null, status: 'unauthenticated' });
+    const snapshot = makeSnapshot();
+    render(
+      <AuthProvider>
+        <TestConsumer snapshot={snapshot} />
+      </AuthProvider>,
+    );
+    await waitFor(() => {
+      expect(snapshot.current?.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      window.dispatchEvent(new CustomEvent('jsk:auth-expired'));
+    });
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(MockChannel.instances.every((c) => c.postMessage.mock.calls.length === 0)).toBe(true);
+    expect(hoisted.replace).not.toHaveBeenCalledWith('/login');
+  });
+});
+
