@@ -3,8 +3,10 @@
 import { useEffect, useState } from 'react'
 import { Alert } from '@/components/ui/Alert'
 import { Button } from '@/components/ui/Button'
+import CalendarPickerTH from '@/components/ui/CalendarPickerTH'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { Plus, Save, X } from 'lucide-react'
+import { isoToYMD } from '@/lib/utils'
 import { logger } from '@/lib/logger'
 import {
   describeReminder,
@@ -229,11 +231,13 @@ export default function BookingSettingsPage() {
           )}
         </ul>
         <div className="flex gap-2">
-          <input
-            type="date"
-            value={newBlackout}
-            onChange={(e) => setNewBlackout(e.target.value)}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800"
+          {/* Thai (พ.ศ.) picker — isoToYMD reads LOCAL parts of the emitted
+              instant so the stored date is the calendar day the admin picked
+              (a UTC slice would land on the previous day in +07). */}
+          <CalendarPickerTH
+            ariaLabel="เลือกวันหยุดพิเศษ"
+            value={newBlackout || null}
+            onChange={(iso) => setNewBlackout(isoToYMD(iso))}
           />
           <Button variant="secondary" onClick={addBlackout} aria-label="เพิ่มวันหยุดพิเศษ">
             <Plus className="h-4 w-4" aria-hidden="true" />
