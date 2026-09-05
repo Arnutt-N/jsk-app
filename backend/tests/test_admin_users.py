@@ -101,3 +101,99 @@ def test_workload_allows_non_admin_staff_agent():
         assert response.json() == []
     finally:
         app.dependency_overrides.clear()
+
+
+# ── update_user target-role guard (review follow-up M2) ─────────────
+# A profile-only PUT (no `role` in the body) used to skip the target-role
+# permission check entirely, so an ADMIN could modify DIRECTOR/HEAD accounts
+# (display name, email, is_active) by omitting the role field.
+
+class _FakeResult:
+    def __init__(self, value):
+        self._value = value
+
+    def scalar_one_or_none(self):
+        return self._value
+
+
+def _target_user(role: UserRole, user_id: int = 5):
+    return SimpleNamespace(
+        id=user_id, username="target", email="target@example.com",
+        display_name="Old Name", picture_url=None, role=role, is_active=True,
+        line_user_id=None, line_user_id_encrypted=None,
+        created_at=None, updated_at=None,
+    )
+
+
+def _put_user(client, user_id: int = 5, **fields):
+    return client.put(f"/api/v1/admin/users/{user_id}", json=fields)
+
+
+def _wire_update_overrides(current_user, target):
+    db = AsyncMock()
+    db.execute = AsyncMock(return_value=_FakeResult(target))
+
+    async def _override_get_db():
+        yield db
+
+    async def _override_get_current_user():
+        return current_user
+
+    app.dependency_overrides[session_get_db] = _override_get_db
+    app.dependency_overrides[deps.get_current_user] = _override_get_current_user
+
+
+def test_admin_cannot_profile_edit_director():
+    """ADMIN + profile-only PUT on a DIRECTOR account must be 403."""
+    admin = SimpleNamespace(id=1, username="admin", display_name="A",
+                            role=UserRole.ADMIN, is_active=True)
+    target = _target_user(UserRole.DIRECTOR)
+    _wire_update_overrides(admin, target)
+    client = TestClient(app)
+    try:
+        response = _put_user(client, display_name="Renamed")
+    finally:
+        app.dependency_overrides.clear()
+    assert response.status_code == 403
+
+
+def test_admin_cannot_deactivate_director_via_profile_put():
+    """The is_active toggle rides the same profile-only PUT path — 403."""
+    admin = SimpleNamespace(id=1, username="admin", display_name="A",
+                            role=UserRole.ADMIN, is_active=True)
+    target = _target_user(UserRole.HEAD)
+    _wire_update_overrides(admin, target)
+    client = TestClient(app)
+    try:
+        response = _put_user(client, is_active=False)
+    finally:
+        app.dependency_overrides.clear()
+    assert response.status_code == 403
+
+
+def test_admin_can_still_edit_own_profile():
+    """Editing your own account is always allowed (self-edit exception)."""
+    admin = SimpleNamespace(id=1, username="admin", display_name="A",
+                            role=UserRole.ADMIN, is_active=True)
+    target = _target_user(UserRole.ADMIN, user_id=1)  # self
+    _wire_update_overrides(admin, target)
+    client = TestClient(app)
+    try:
+        response = _put_user(client, user_id=1, display_name="Renamed")
+    finally:
+        app.dependency_overrides.clear()
+    assert response.status_code == 200
+
+
+def test_super_admin_can_profile_edit_director():
+    """SUPER_ADMIN manages every role — profile-only PUT on DIRECTOR is 200."""
+    super_admin = SimpleNamespace(id=1, username="root", display_name="Root",
+                                  role=UserRole.SUPER_ADMIN, is_active=True)
+    target = _target_user(UserRole.DIRECTOR)
+    _wire_update_overrides(super_admin, target)
+    client = TestClient(app)
+    try:
+        response = _put_user(client, display_name="Renamed")
+    finally:
+        app.dependency_overrides.clear()
+    assert response.status_code == 200

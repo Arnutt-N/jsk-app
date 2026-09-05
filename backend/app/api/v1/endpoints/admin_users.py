@@ -415,11 +415,16 @@ async def update_user(
             detail="Cannot change your own role",
         )
 
+    # Profile-only PUTs (no `role` in the body) must still respect the
+    # target's CURRENT role — otherwise an ADMIN could modify DIRECTOR/HEAD
+    # accounts (display name, email, is_active) by omitting the role field.
+    # Editing your own account is always allowed.
+    if user.id != current_admin.id:
+        _check_role_permission(current_admin, user.role)
+
     # Check permission for target role changes
     if body.role is not None:
         _check_role_permission(current_admin, body.role)
-        # Also check permission for the user's current role
-        _check_role_permission(current_admin, user.role)
 
     # Snapshot prior values for the audit diff -- captured before mutation.
     prior_display_name = user.display_name
