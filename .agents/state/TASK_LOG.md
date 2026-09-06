@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 257 active handoffs, 10 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 258 active handoffs, 10 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-09-06 12:24 — zcode — completed
+
+FULL-SESSION HANDOFF (2026-09-05..06): four PRs merged+deployed, all CI 4/4 - PR #224 P1 login flake (root cause: cross-tab logout broadcast evicted fresh sessions + split auth state; fix: lib/authStore.ts shared store via useSyncExternalStore, broadcast verified via GET /auth/me before clearing, sender guard on jsk:auth-expired, permanent e2e login-stability.spec.ts); PR #225 webhook dedup lock released only by owner + update_user target-role check on every PUT; PR #226 P2 calendar closure (settings/booking blackout + rich-menu display period -> CalendarPickerTH, isoToYMD local-parts timezone fix, LIFF chip strip deliberately kept); PR #227 logout confirmation dialog (LogoutConfirmDialog on all 3 user-initiated surfaces, system-initiated stays immediate). Pre-session: consistency check of handoff docs vs local/graft/GitHub (aligned, 5 gaps reported) + graft privacy audit (NO external transmission; only opt-in version-check and build --deep with user-supplied key) + housekeeping (1758 summary committed, 3 pytest logs deleted). Known local-env issues (do NOT chase): full-unit-suite LIFF flakes on main too, backend pytest Windows hang -> CI is the gate, cookie-auth logout selector hits Next devtools on DEV server only
+
+- Checkpoint: `.agents/state/checkpoints/handover-zcode-20260906-1224.json`
+- Summary: `project-log-md/zcode/session-summary-20260906-1224.md`
+
+---
 
 ### 2026-09-06 12:01 — zcode — completed
 

@@ -1,13 +1,20 @@
 {
-  "last_updated": "2026-09-06T12:01:00+07:00",
+  "last_updated": "2026-09-06T12:24:00+07:00",
   "platform": "zcode",
-  "current_task": "Logout confirmation dialog shipped via PR #227 (squash 0d94f86, CI 4/4, CD success Vercel+smoke, backend scope-skipped): all three user-initiated logout surfaces (UserMenu header menu, CommandPalette ",
+  "current_task": "FULL-SESSION HANDOFF (2026-09-05..06): four PRs merged+deployed, all CI 4/4 - PR #224 P1 login flake (root cause: cross-tab logout broadcast evicted fresh sessions + split auth state; fix: lib/authSto",
   "plan_status": "completed",
   "next_steps": [
-    "User prod smoke: click ออกจากระบบ - dialog must appear; ยกเลิก keeps session; ยืนยัน logs out",
-    "Backlog unchanged: extract shared DateTimePickerTH; DEFER-M1..M3/L1..L11 owner review; service_requests.created_at index; webhook Lua token-release"
+    "User prod smoke: login on phone first-try; logout dialog (ยกเลิก keeps session, ยืนยัน logs out); pick blackout date + rich-menu schedule on Thai calendar",
+    "Backlog: shared DateTimePickerTH extraction; DEFER-M1..M3/L1..L11 owner review; service_requests.created_at index; webhook Lua token-release; reply-objects input height"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-09-06T12:24:00+07:00",
+      "platform": "zcode",
+      "branch": "main",
+      "head": "9747516",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-09-06T12:01:00+07:00",
       "platform": "zcode",
@@ -137,13 +144,6 @@
     {
       "timestamp": "2026-08-29T06:54:00+07:00",
       "platform": "codex",
-      "branch": "fix/audit-sweep-20260829",
-      "head": "951b5d9",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-08-29T03:13:00+07:00",
-      "platform": "qoder",
       "branch": "fix/audit-sweep-20260829",
       "head": "951b5d9",
       "status": "completed"
