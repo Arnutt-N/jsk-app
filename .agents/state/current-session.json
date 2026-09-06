@@ -1,13 +1,19 @@
 {
-  "last_updated": "2026-09-06T17:31:00+07:00",
+  "last_updated": "2026-09-06T22:56:00+07:00",
   "platform": "zcode",
-  "current_task": "Backlog batch shipped via PR #228 (squash 249f2c9, CI all green, CD success incl. prod migration): (1) shared DateTimePickerTH component replaces 3 hand-copied date+time compositions in broadcast + ri",
+  "current_task": "codebase-review-fix on PR #228 CLOSED via PR #229 (squash e63ee9f, CI 4/4, CD success): review found 0 Critical/High; 3 accepted follow-ups all fixed (F1 DateTimePickerTH timeDisabled+invalid-value te",
   "plan_status": "completed",
   "next_steps": [
-    "User prod smoke: schedule a broadcast + rich-menu period on Thai calendar; verify duplicate LINE messages stay deduped (no visible change expected); requests list unchanged but faster as data grows",
-    "Backlog remaining: DEFER-M1..M3/L1..L11 (await owner decisions), LIFF chip-strip kept by design"
+    "User smoke unchanged from PR #228 (broadcast schedule, rich-menu period, reply-objects form)"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-09-06T22:56:00+07:00",
+      "platform": "zcode",
+      "branch": "main",
+      "head": "e63ee9f",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-09-06T17:31:00+07:00",
       "platform": "zcode",
@@ -139,13 +145,6 @@
       "platform": "qoder",
       "branch": "feat/liff-booking-redesign",
       "head": "2f6fdbd",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-08-29T20:20:00+07:00",
-      "platform": "qoder",
-      "branch": "main",
-      "head": "72786ec",
       "status": "completed"
     }
   ],

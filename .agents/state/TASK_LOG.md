@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 259 active handoffs, 10 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 260 active handoffs, 10 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-09-06 22:56 — zcode — completed
+
+codebase-review-fix on PR #228 CLOSED via PR #229 (squash e63ee9f, CI 4/4, CD success): review found 0 Critical/High; 3 accepted follow-ups all fixed (F1 DateTimePickerTH timeDisabled+invalid-value tests, F2 reply-objects select bg-surface token, F3 webhook release-failure-swallowed test); rejected findings R1-R5 documented in findings file. Gates: G1 findings persisted, G2 prp-validate-plan dual review READY 10/10, G3 fix review PASS 0 critical. Note: review-phase subagents initially failed (Model request failed) -> in-context fallback; subagents recovered by G2 (used for dual reviewers + G3). Local whole-batch liff flakes pass in isolation.
+
+- Checkpoint: `.agents/state/checkpoints/handover-zcode-20260906-2256.json`
+- Summary: `project-log-md/zcode/session-summary-20260906-2256.md`
+
+---
 
 ### 2026-09-06 17:31 — zcode — completed
 
