@@ -14,6 +14,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/components/providers';
 import { Avatar } from '@/components/ui/Avatar';
+import LogoutConfirmDialog from '@/components/admin/LogoutConfirmDialog';
 import { AdminLanguageToggle, type AdminLocale } from '@/components/admin/AdminLanguageToggle';
 import { cn } from '@/lib/utils';
 import { getRoleLabel } from '@/lib/constants/roles';
@@ -41,6 +42,9 @@ export function UserMenu({ className, locale, onToggleLocale }: UserMenuProps) {
   const { user, logout } = useAuth();
   const { resolvedTheme, toggleTheme } = useTheme();
   const [open, setOpen] = useState(false);
+  // User-initiated logout asks for confirmation first (system-initiated
+  // session ends do not — they have no user present to confirm).
+  const [confirmingLogout, setConfirmingLogout] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   const displayName = user?.display_name || user?.username || 'Administrator';
@@ -182,7 +186,7 @@ export function UserMenu({ className, locale, onToggleLocale }: UserMenuProps) {
           {/* Sign Out */}
           <div className="py-1.5">
             <button
-              onClick={() => { setOpen(false); logout?.(); }}
+              onClick={() => { setOpen(false); setConfirmingLogout(true); }}
               className="flex items-center gap-3 px-4 py-2.5 text-sm text-danger hover:bg-danger/5 transition-colors w-full text-left cursor-pointer"
               role="menuitem"
             >
@@ -192,6 +196,12 @@ export function UserMenu({ className, locale, onToggleLocale }: UserMenuProps) {
           </div>
         </div>
       )}
+
+      <LogoutConfirmDialog
+        isOpen={confirmingLogout}
+        onClose={() => setConfirmingLogout(false)}
+        onConfirm={() => { setConfirmingLogout(false); logout?.(); }}
+      />
     </div>
   );
 }

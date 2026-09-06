@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { LayoutDashboard, LogOut, Settings, User } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import LogoutConfirmDialog from '@/components/admin/LogoutConfirmDialog';
 import { useTheme } from '@/components/providers';
 import { Avatar } from '@/components/ui/Avatar';
 import { getRoleLabel } from '@/lib/constants/roles';
@@ -15,6 +16,9 @@ export function ProfileDropdown() {
   const { resolvedTheme, toggleTheme } = useTheme();
   const currentChat = useLiveChatStore((s) => s.currentChat);
   const [open, setOpen] = useState(false);
+  // User-initiated logout asks for confirmation first (same dialog as the
+  // navbar profile menu).
+  const [confirmingLogout, setConfirmingLogout] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   const displayName = user?.display_name || user?.username || 'Admin';
@@ -134,7 +138,7 @@ export function ProfileDropdown() {
           {/* Sign Out */}
           <div className="py-1.5">
             <button
-              onClick={() => { setOpen(false); logout(); }}
+              onClick={() => { setOpen(false); setConfirmingLogout(true); }}
               className="flex items-center gap-3 px-4 py-2.5 text-sm text-danger hover:bg-danger/5 transition-colors w-full text-left cursor-pointer"
               role="menuitem"
             >
@@ -144,6 +148,12 @@ export function ProfileDropdown() {
           </div>
         </div>
       )}
+
+      <LogoutConfirmDialog
+        isOpen={confirmingLogout}
+        onClose={() => setConfirmingLogout(false)}
+        onConfirm={() => { setConfirmingLogout(false); logout(); }}
+      />
     </div>
   );
 }

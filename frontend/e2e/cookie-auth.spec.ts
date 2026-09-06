@@ -49,6 +49,9 @@ test.describe('Cookie Auth Flow (PR 2C)', () => {
       }
     }
 
+    // The logout now asks for confirmation first (ยืนยัน / ยกเลิก).
+    await page.getByRole('button', { name: 'ยืนยัน' }).click()
+
     await page.waitForURL(/\/login/, { timeout: 10_000 })
 
     const cookiesAfter = await page.context().cookies()

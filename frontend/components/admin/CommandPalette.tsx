@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import LogoutConfirmDialog from '@/components/admin/LogoutConfirmDialog';
 import { useTheme } from '@/components/providers';
 import { logger } from '@/lib/logger';
 import { HELP_ENTRIES } from '@/lib/help-content';
@@ -104,6 +105,9 @@ export function CommandPalette() {
   const router = useRouter();
   const { logout } = useAuth();
   const { toggleTheme } = useTheme();
+  // Logout from the palette asks for confirmation first (same dialog as the
+  // profile menu) — the palette itself closes so the dialog is unobstructed.
+  const [confirmingLogout, setConfirmingLogout] = useState(false);
 
   // ⌘K / Ctrl+K shortcut + custom event from navbar trigger
   useEffect(() => {
@@ -202,7 +206,7 @@ export function CommandPalette() {
         thaiLabel: 'ออกจากระบบ',
         group: 'การตั้งค่า',
         icon: LogOut,
-        action: () => { logout?.(); setOpen(false); setSearch(''); },
+        action: () => { setConfirmingLogout(true); setOpen(false); setSearch(''); },
         keywords: ['logout', 'sign out', 'ออก', 'จบ'],
       },
     ];
@@ -364,6 +368,12 @@ export function CommandPalette() {
           </div>
         </Command>
       </div>
+
+      <LogoutConfirmDialog
+        isOpen={confirmingLogout}
+        onClose={() => setConfirmingLogout(false)}
+        onConfirm={() => { setConfirmingLogout(false); logout?.(); }}
+      />
     </div>
   );
 }
