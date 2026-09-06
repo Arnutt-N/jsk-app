@@ -1,13 +1,20 @@
 {
-  "last_updated": "2026-09-06T12:24:00+07:00",
+  "last_updated": "2026-09-06T17:31:00+07:00",
   "platform": "zcode",
-  "current_task": "FULL-SESSION HANDOFF (2026-09-05..06): four PRs merged+deployed, all CI 4/4 - PR #224 P1 login flake (root cause: cross-tab logout broadcast evicted fresh sessions + split auth state; fix: lib/authSto",
+  "current_task": "Backlog batch shipped via PR #228 (squash 249f2c9, CI all green, CD success incl. prod migration): (1) shared DateTimePickerTH component replaces 3 hand-copied date+time compositions in broadcast + ri",
   "plan_status": "completed",
   "next_steps": [
-    "User prod smoke: login on phone first-try; logout dialog (ยกเลิก keeps session, ยืนยัน logs out); pick blackout date + rich-menu schedule on Thai calendar",
-    "Backlog: shared DateTimePickerTH extraction; DEFER-M1..M3/L1..L11 owner review; service_requests.created_at index; webhook Lua token-release; reply-objects input height"
+    "User prod smoke: schedule a broadcast + rich-menu period on Thai calendar; verify duplicate LINE messages stay deduped (no visible change expected); requests list unchanged but faster as data grows",
+    "Backlog remaining: DEFER-M1..M3/L1..L11 (await owner decisions), LIFF chip-strip kept by design"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-09-06T17:31:00+07:00",
+      "platform": "zcode",
+      "branch": "main",
+      "head": "249f2c9",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-09-06T12:24:00+07:00",
       "platform": "zcode",
@@ -139,13 +146,6 @@
       "platform": "qoder",
       "branch": "main",
       "head": "72786ec",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-08-29T06:54:00+07:00",
-      "platform": "codex",
-      "branch": "fix/audit-sweep-20260829",
-      "head": "951b5d9",
       "status": "completed"
     }
   ],

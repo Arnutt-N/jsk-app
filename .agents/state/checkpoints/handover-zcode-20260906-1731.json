@@ -1,0 +1,17 @@
+{
+  "handoff_version": "2.0",
+  "platform": "zcode",
+  "agent": "zcode",
+  "timestamp": "2026-09-06T17:31:00+07:00",
+  "branch": "main",
+  "head_commit": "249f2c9",
+  "status": "completed",
+  "work_summary": "Backlog batch shipped via PR #228 (squash 249f2c9, CI all green, CD success incl. prod migration): (1) shared DateTimePickerTH component replaces 3 hand-copied date+time compositions in broadcast + rich-menu new/edit — single ISO emit, timezone law from PR #226 preserved, existing page tests unmodified; (2) index ix_service_requests_created_at added via migration t1u2v3w4x5y6 (round-trip drill local + applied on Supabase PROD by CD); (3) webhook dedup lock release now token-based via RedisClient.release_lock (atomic Lua compare-and-delete) closing the TTL-takeover race from PR #225; (4) reply-objects form normalized to shared Input md height. Head-guard test updated to new chain head.",
+  "priority_actions": [
+    "User prod smoke: schedule a broadcast + rich-menu period on Thai calendar; verify duplicate LINE messages stay deduped (no visible change expected); requests list unchanged but faster as data grows",
+    "Backlog remaining: DEFER-M1..M3/L1..L11 (await owner decisions), LIFF chip-strip kept by design"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/zcode/session-summary-20260906-1731.md",
+  "cross_platform_read": []
+}

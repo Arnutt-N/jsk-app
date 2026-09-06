@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-09-06 12:24 by Zcode (FULL-SESSION HANDOFF 2026-09-05..06: four PRs merged+deployed, all CI 4/4 - PR #224 P1 log)
+> **Last Updated:** 2026-09-06 17:31 by Zcode (Backlog batch shipped via PR #228 squash 249f2c9, CI all green, CD success incl.)
 
 ## Thai Summary
 **สถานะล่าสุด (2026-09-04 09:00)** — งาน **P2 Thai Calendar and Date Standardization & Review Fixes** เสร็จสมบูรณ์ (Gate G1, G2, G3 ผ่านครบ 100%):
@@ -121,6 +121,7 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-09-06 17:31] Zcode: Backlog batch shipped via PR #228 (squash 249f2c9, CI all green, CD success incl. prod migration): (1) shared DateTimePickerTH component replaces 3 hand-copied date+time compositions in broadcast + rich-menu new/edit — single ISO emit, time (Zcode)
 - [2026-09-06 12:24] Zcode: FULL-SESSION HANDOFF (2026-09-05..06): four PRs merged+deployed, all CI 4/4 - PR #224 P1 login flake (root cause: cross-tab logout broadcast evicted fresh sessions + split auth state; fix: lib/authStore.ts shared store via useSyncExternalSt (Zcode)
 - [2026-09-06 12:01] Zcode: Logout confirmation dialog shipped via PR #227 (squash 0d94f86, CI 4/4, CD success Vercel+smoke, backend scope-skipped): all three user-initiated logout surfaces (UserMenu header menu, CommandPalette Ctrl+K, live-chat ProfileDropdown) now o (Zcode)
 - [2026-09-06 01:24] Zcode: P2 date-picker scope CLOSED via PR #226 (squash 17dad1a, CI 4/4, CD success: Vercel deployed + frontend smoke pass, backend skipped by scope): (1) booking-settings blackout adder type=date -> CalendarPickerTH with isoToYMD local-parts conve (Zcode)

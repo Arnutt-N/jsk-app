@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 258 active handoffs, 10 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 259 active handoffs, 10 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-09-06 17:31 — zcode — completed
+
+Backlog batch shipped via PR #228 (squash 249f2c9, CI all green, CD success incl. prod migration): (1) shared DateTimePickerTH component replaces 3 hand-copied date+time compositions in broadcast + rich-menu new/edit — single ISO emit, timezone law from PR #226 preserved, existing page tests unmodified; (2) index ix_service_requests_created_at added via migration t1u2v3w4x5y6 (round-trip drill local + applied on Supabase PROD by CD); (3) webhook dedup lock release now token-based via RedisClient.release_lock (atomic Lua compare-and-delete) closing the TTL-takeover race from PR #225; (4) reply-objects form normalized to shared Input md height. Head-guard test updated to new chain head.
+
+- Checkpoint: `.agents/state/checkpoints/handover-zcode-20260906-1731.json`
+- Summary: `project-log-md/zcode/session-summary-20260906-1731.md`
+
+---
 
 ### 2026-09-06 12:24 — zcode — completed
 
