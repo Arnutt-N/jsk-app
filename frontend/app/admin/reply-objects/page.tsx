@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Package, Trash2, SquarePen, ChevronDown } from 'lucide-react';
 import PageHeader from '@/app/admin/components/PageHeader';
 import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ActionIconButton } from '@/components/ui/ActionIconButton';
@@ -326,25 +327,25 @@ export default function ReplyObjectsPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
                             <label htmlFor="ro-field-object-id" className="text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-1">Universal ID *</label>
-                            <input
+                            <Input
                                 id="ro-field-object-id"
                                 type="text"
                                 value={formData.object_id}
                                 onChange={(e) => setFormData({ ...formData, object_id: e.target.value })}
                                 disabled={!!editingId}
-                                className="w-full px-4 py-3 bg-bg border border-border-default rounded-xl text-text-primary font-bold focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:bg-surface disabled:opacity-50 transition-all font-mono"
+                                className="font-bold font-mono"
                                 placeholder="flex_welcome"
                                 required
                             />
                         </div>
                         <div className="space-y-2">
                             <label htmlFor="ro-field-name" className="text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-1">Internal Name *</label>
-                            <input
+                            <Input
                                 id="ro-field-name"
                                 type="text"
                                 value={formData.name}
                                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                className="w-full px-4 py-3 bg-bg border border-border-default rounded-xl text-text-primary font-bold focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:bg-surface transition-all"
+                                className="font-bold"
                                 placeholder="Welcome Message 2.0"
                                 required
                             />
@@ -359,7 +360,7 @@ export default function ReplyObjectsPage() {
                                     id="ro-field-object-type"
                                     value={formData.object_type}
                                     onChange={(e) => handleTypeChange(e.target.value)}
-                                    className="w-full px-4 py-3 bg-bg border border-border-default rounded-xl text-text-primary font-bold appearance-none focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:bg-surface transition-all cursor-pointer"
+                                    className="w-full h-10 px-4 py-0 bg-bg border border-border-default rounded-xl text-sm text-text-primary font-bold appearance-none focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:bg-surface transition-all cursor-pointer"
                                 >
                                     {OBJECT_TYPES.map(t => (
                                         <option key={t} value={t} className="bg-surface text-text-primary">{t.toUpperCase()}</option>
@@ -372,12 +373,12 @@ export default function ReplyObjectsPage() {
                         </div>
                         <div className="space-y-2">
                             <label htmlFor="ro-field-category" className="text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-1">Grouping Category</label>
-                            <input
+                            <Input
                                 id="ro-field-category"
                                 type="text"
                                 value={formData.category}
                                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                                className="w-full px-4 py-3 bg-bg border border-border-default rounded-xl text-text-primary font-bold focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:bg-surface transition-all"
+                                className="font-bold"
                                 placeholder="Marketing / Support"
                             />
                         </div>
@@ -385,14 +386,14 @@ export default function ReplyObjectsPage() {
 
                     <div className="space-y-2">
                         <label htmlFor="ro-field-alt-text" className="text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-1">Alt Text (Mobile/Tablet accessibility)</label>
-                        <input
-                            id="ro-field-alt-text"
-                            type="text"
-                            value={formData.alt_text}
-                            onChange={(e) => setFormData({ ...formData, alt_text: e.target.value })}
-                            className="w-full px-4 py-3 bg-bg border border-border-default rounded-xl text-text-primary font-bold focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:bg-surface transition-all"
-                            placeholder="Brief description of the message"
-                        />
+                            <Input
+                                id="ro-field-alt-text"
+                                type="text"
+                                value={formData.alt_text}
+                                onChange={(e) => setFormData({ ...formData, alt_text: e.target.value })}
+                                className="font-bold"
+                                placeholder="Brief description of the message"
+                            />
                     </div>
 
                     {/* Content editor (left) + live preview (right) */}
