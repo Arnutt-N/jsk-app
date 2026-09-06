@@ -13,6 +13,10 @@ export interface DateTimePickerTHProps {
   dateLabel: string;
   /** aria-label for the time field. */
   timeLabel: string;
+  /** Also reports the local YYYY-MM-DD date part on every date change — for
+   *  callers that need to know "a date was picked" while the time is still
+   *  pending (e.g. switching Send-now/Schedule buttons). */
+  onDateChange?: (dateYMD: string | null) => void;
   /** Additionally disable the time field (it is always disabled until a date is chosen). */
   timeDisabled?: boolean;
   className?: string;
@@ -41,6 +45,7 @@ export function DateTimePickerTH({
   onChange,
   dateLabel,
   timeLabel,
+  onDateChange,
   timeDisabled = false,
   className,
   dateClassName,
@@ -80,6 +85,7 @@ export function DateTimePickerTH({
           onChange={(iso) => {
             const nextDate = iso ? isoToYMD(iso) : "";
             setDatePart(nextDate);
+            onDateChange?.(nextDate || null);
             emit(nextDate, timePart);
           }}
         />

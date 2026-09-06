@@ -96,4 +96,23 @@ describe('DateTimePickerTH', () => {
     await waitFor(() => expect(onChange).toHaveBeenLastCalledWith(null));
     expect((screen.getByLabelText('เวลาที่ทดสอบ') as HTMLInputElement).disabled).toBe(true);
   });
+
+  it('reports the date part via onDateChange (intent signal while time is pending)', async () => {
+    const onDateChange = vi.fn();
+    render(
+      <DateTimePickerTH
+        value={null}
+        onChange={vi.fn()}
+        onDateChange={onDateChange}
+        dateLabel="วันที่ทดสอบ"
+        timeLabel="เวลาที่ทดสอบ"
+      />,
+    );
+
+    typeThaiDate();
+    await waitFor(() => expect(onDateChange).toHaveBeenLastCalledWith('2026-09-15'));
+
+    fireEvent.click(screen.getByLabelText('ล้างวันที่'));
+    await waitFor(() => expect(onDateChange).toHaveBeenLastCalledWith(null));
+  });
 });
