@@ -54,11 +54,17 @@ test.describe('Cookie Auth Flow (PR 2C)', () => {
 
     await page.waitForURL(/\/login/, { timeout: 10_000 })
 
-    const cookiesAfter = await page.context().cookies()
-    const authCookies = cookiesAfter.filter((c) =>
-      ['access_token', 'refresh_token', 'csrf_token'].includes(c.name),
-    )
-    expect(authCookies).toHaveLength(0)
+    // The logout POST is fire-and-forget: the redirect can land before its
+    // Set-Cookie response is applied. Poll until the auth cookies are really
+    // cleared instead of racing the request.
+    await expect
+      .poll(async () => {
+        const cookiesAfter = await page.context().cookies()
+        return cookiesAfter.filter((c) =>
+          ['access_token', 'refresh_token', 'csrf_token'].includes(c.name),
+        ).length
+      }, { timeout: 5_000 })
+      .toBe(0)
   })
 
   test('unauthenticated admin access redirects to /login after logout', async ({ page }) => {
