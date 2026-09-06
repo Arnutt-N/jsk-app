@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import CalendarPickerTH from "@/components/ui/CalendarPickerTH";
 import { cn, isoToYMD, isoToHM } from "@/lib/utils";
 
@@ -55,13 +55,19 @@ export function DateTimePickerTH({
   const [timePart, setTimePart] = useState(() => isoToHM(value ?? null));
   const lastEmittedRef = useRef<string | null>(value ?? null);
 
-  useEffect(() => {
-    const incoming = value ?? null;
-    if (incoming === lastEmittedRef.current) return;
-    lastEmittedRef.current = incoming;
-    setDatePart(isoToYMD(incoming));
-    setTimePart(isoToHM(incoming));
-  }, [value]);
+  // Sync from an EXTERNAL value change (e.g. edit-page load) during render —
+  // the React-recommended "adjust state when a prop changes" pattern. The
+  // component's own emissions echo back as `value`; re-deriving from those
+  // would clobber a pending partial selection (date picked, time still empty).
+  const incoming = value ?? null;
+  const [prevIncoming, setPrevIncoming] = useState<string | null>(incoming);
+  if (incoming !== prevIncoming) {
+    setPrevIncoming(incoming);
+    if (incoming !== lastEmittedRef.current) {
+      setDatePart(isoToYMD(incoming));
+      setTimePart(isoToHM(incoming));
+    }
+  }
 
   const emit = (date: string, time: string) => {
     if (!date || !time) {
