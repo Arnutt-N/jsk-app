@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 256 active handoffs, 10 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 257 active handoffs, 10 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-09-06 12:01 — zcode — completed
+
+Logout confirmation dialog shipped via PR #227 (squash 0d94f86, CI 4/4, CD success Vercel+smoke, backend scope-skipped): all three user-initiated logout surfaces (UserMenu header menu, CommandPalette Ctrl+K, live-chat ProfileDropdown) now open a shared LogoutConfirmDialog (ConfirmDialog variant=warning, title ต้องการออกจากระบบหรือไม่?, default ยืนยัน/ยกเลิก) before calling logout; dialogs render outside dropdown {open&&} blocks to survive menu close; system-initiated ends (auth-expired/timeout/cross-tab) stay immediate by design; tests: new UserMenu unit tests 3/3 (first tests for components/admin), cookie-auth e2e updated to click ยืนยัน AND poll cookie clearing - logout POST is fire-and-forget so redirect can land before Set-Cookie applies (pre-existing race old test won by luck); learned: day input of CalendarPickerTH takes its label from the ariaLabel prop
+
+- Checkpoint: `.agents/state/checkpoints/handover-zcode-20260906-1201.json`
+- Summary: `project-log-md/zcode/session-summary-20260906-1201.md`
+
+---
 
 ### 2026-09-06 01:24 — zcode — completed
 

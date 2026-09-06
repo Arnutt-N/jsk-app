@@ -1,13 +1,20 @@
 {
-  "last_updated": "2026-09-06T01:24:00+07:00",
+  "last_updated": "2026-09-06T12:01:00+07:00",
   "platform": "zcode",
-  "current_task": "P2 date-picker scope CLOSED via PR #226 (squash 17dad1a, CI 4/4, CD success: Vercel deployed + frontend smoke pass, backend skipped by scope): (1) booking-settings blackout adder type=date -> Calendar",
+  "current_task": "Logout confirmation dialog shipped via PR #227 (squash 0d94f86, CI 4/4, CD success Vercel+smoke, backend scope-skipped): all three user-initiated logout surfaces (UserMenu header menu, CommandPalette ",
   "plan_status": "completed",
   "next_steps": [
-    "User prod smoke: pick a blackout date and schedule a rich menu period on the Thai calendar",
-    "Backlog: extract shared DateTimePickerTH from broadcast+richmenu duplication; DEFER-M1..M3/L1..L11 owner review; DB index on service_requests.created_at"
+    "User prod smoke: click ออกจากระบบ - dialog must appear; ยกเลิก keeps session; ยืนยัน logs out",
+    "Backlog unchanged: extract shared DateTimePickerTH; DEFER-M1..M3/L1..L11 owner review; service_requests.created_at index; webhook Lua token-release"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-09-06T12:01:00+07:00",
+      "platform": "zcode",
+      "branch": "main",
+      "head": "0d94f86",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-09-06T01:24:00+07:00",
       "platform": "zcode",
@@ -139,13 +146,6 @@
       "platform": "qoder",
       "branch": "fix/audit-sweep-20260829",
       "head": "951b5d9",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-08-28T09:06:00+07:00",
-      "platform": "qoder",
-      "branch": "main",
-      "head": "a56180a",
       "status": "completed"
     }
   ],

@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-09-06 01:24 by Zcode (P2 date-picker scope CLOSED via PR #226 squash 17dad1a, CI 4/4, CD success: Vercel deploye)
+> **Last Updated:** 2026-09-06 12:01 by Zcode (Logout confirmation dialog shipped via PR #227 squash 0d94f86, CI 4/4, CD success Vercel+s)
 
 ## Thai Summary
 **สถานะล่าสุด (2026-09-04 09:00)** — งาน **P2 Thai Calendar and Date Standardization & Review Fixes** เสร็จสมบูรณ์ (Gate G1, G2, G3 ผ่านครบ 100%):
@@ -121,6 +121,7 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-09-06 12:01] Zcode: Logout confirmation dialog shipped via PR #227 (squash 0d94f86, CI 4/4, CD success Vercel+smoke, backend scope-skipped): all three user-initiated logout surfaces (UserMenu header menu, CommandPalette Ctrl+K, live-chat ProfileDropdown) now o (Zcode)
 - [2026-09-06 01:24] Zcode: P2 date-picker scope CLOSED via PR #226 (squash 17dad1a, CI 4/4, CD success: Vercel deployed + frontend smoke pass, backend skipped by scope): (1) booking-settings blackout adder type=date -> CalendarPickerTH with isoToYMD local-parts conve (Zcode)
 - [2026-09-05 23:26] Zcode: Review follow-up mediums fixed and merged as PR #225 (squash bb30a04, CI 4/4, CD watch): (1) webhook dedup lock now released only by the acquiring invocation - loser of NX race no longer deletes winner's lock (duplicate LINE event processin (Zcode)
 - [2026-09-05 21:37] Zcode: P1 login flake fixed and merged as PR #224 (squash 218b824, CI 4/4 green, CD deployed): root cause = broadcast eviction (any stale tab's 401 chain broadcast logout -> fresh tab cleared session unconditionally) + split auth state across /log (Zcode)

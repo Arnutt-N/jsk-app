@@ -1,0 +1,17 @@
+{
+  "handoff_version": "2.0",
+  "platform": "zcode",
+  "agent": "zcode",
+  "timestamp": "2026-09-06T12:01:00+07:00",
+  "branch": "main",
+  "head_commit": "0d94f86",
+  "status": "completed",
+  "work_summary": "Logout confirmation dialog shipped via PR #227 (squash 0d94f86, CI 4/4, CD success Vercel+smoke, backend scope-skipped): all three user-initiated logout surfaces (UserMenu header menu, CommandPalette Ctrl+K, live-chat ProfileDropdown) now open a shared LogoutConfirmDialog (ConfirmDialog variant=warning, title ต้องการออกจากระบบหรือไม่?, default ยืนยัน/ยกเลิก) before calling logout; dialogs render outside dropdown {open&&} blocks to survive menu close; system-initiated ends (auth-expired/timeout/cross-tab) stay immediate by design; tests: new UserMenu unit tests 3/3 (first tests for components/admin), cookie-auth e2e updated to click ยืนยัน AND poll cookie clearing - logout POST is fire-and-forget so redirect can land before Set-Cookie applies (pre-existing race old test won by luck); learned: day input of CalendarPickerTH takes its label from the ariaLabel prop",
+  "priority_actions": [
+    "User prod smoke: click ออกจากระบบ - dialog must appear; ยกเลิก keeps session; ยืนยัน logs out",
+    "Backlog unchanged: extract shared DateTimePickerTH; DEFER-M1..M3/L1..L11 owner review; service_requests.created_at index; webhook Lua token-release"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/zcode/session-summary-20260906-1201.md",
+  "cross_platform_read": []
+}
