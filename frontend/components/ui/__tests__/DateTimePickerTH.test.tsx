@@ -115,4 +115,31 @@ describe('DateTimePickerTH', () => {
     fireEvent.click(screen.getByLabelText('ล้างวันที่'));
     await waitFor(() => expect(onDateChange).toHaveBeenLastCalledWith(null));
   });
+
+  it('timeDisabled keeps the time field disabled even after a date is chosen', async () => {
+    render(
+      <DateTimePickerTH
+        value={null}
+        onChange={vi.fn()}
+        timeDisabled
+        dateLabel="วันที่ทดสอบ"
+        timeLabel="เวลาที่ทดสอบ"
+      />,
+    );
+    typeThaiDate();
+    // Await the deferred year commit (day input keeps '15') so the disabled
+    // assertion below is unambiguously post-date-selection — before the
+    // commit the time field is disabled anyway (no date chosen yet).
+    await waitFor(() =>
+      expect((screen.getByLabelText('วันที่ทดสอบ') as HTMLInputElement).value).toBe('15'),
+    );
+    expect(screen.getByLabelText('เวลาที่ทดสอบ')).toBeDisabled();
+  });
+
+  it('degrades an invalid value to empty parts without crashing', () => {
+    render(<StaticHarness value="not-an-iso-string" onChange={vi.fn()} />);
+    expect((screen.getByLabelText('วันที่ทดสอบ') as HTMLInputElement).value).toBe('');
+    expect((screen.getByLabelText('เวลาที่ทดสอบ') as HTMLInputElement).value).toBe('');
+    expect(screen.getByLabelText('เวลาที่ทดสอบ')).toBeDisabled();
+  });
 });
