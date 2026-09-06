@@ -274,6 +274,24 @@ class TestWebhookDeduplication:
         assert token == stored
 
     @pytest.mark.asyncio
+    async def test_release_failure_is_swallowed(self, mock_redis, mock_event_with_id):
+        """A Redis error at release time must not fail event processing.
+
+        release_lock returns None on error (its tri-state contract); the
+        finally block ignores it and the event is still marked processed
+        (the Redis dedup marker via setex — a MagicMock event runs no
+        isinstance handler). The lock's TTL is the eventual cleanup.
+        """
+        mock_redis.exists.return_value = False  # defaults, restated for clarity
+        mock_redis.set.return_value = True
+        mock_redis.release_lock = AsyncMock(return_value=None)
+
+        await process_webhook_events([mock_event_with_id])
+
+        mock_redis.setex.assert_awaited_once()
+        mock_redis.release_lock.assert_awaited_once()
+
+    @pytest.mark.asyncio
     async def test_release_lock_returns_none_when_not_connected(self):
         from app.core.redis_client import RedisClient
 

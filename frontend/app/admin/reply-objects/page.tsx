@@ -360,7 +360,7 @@ export default function ReplyObjectsPage() {
                                     id="ro-field-object-type"
                                     value={formData.object_type}
                                     onChange={(e) => handleTypeChange(e.target.value)}
-                                    className="w-full h-10 px-4 py-0 bg-bg border border-border-default rounded-xl text-sm text-text-primary font-bold appearance-none focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:bg-surface transition-all cursor-pointer"
+                                    className="w-full h-10 px-4 py-0 bg-surface border border-border-default rounded-xl text-sm text-text-primary font-bold appearance-none focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:bg-surface transition-all cursor-pointer"
                                 >
                                     {OBJECT_TYPES.map(t => (
                                         <option key={t} value={t} className="bg-surface text-text-primary">{t.toUpperCase()}</option>
