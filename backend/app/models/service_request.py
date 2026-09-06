@@ -92,5 +92,5 @@ class ServiceRequest(Base):
     assignee = relationship("User", back_populates="assigned_requests", foreign_keys=[assigned_agent_id])
 
 
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
