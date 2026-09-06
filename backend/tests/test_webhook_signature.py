@@ -67,6 +67,7 @@ def webhook_mocks():
         redis_mock.set = AsyncMock(return_value=True)  # lock acquired
         redis_mock.setex = AsyncMock()
         redis_mock.delete = AsyncMock()
+        redis_mock.release_lock = AsyncMock(return_value=True)
 
         session_ctx = AsyncMock()
         session_ctx.__aenter__ = AsyncMock(return_value=AsyncMock())
