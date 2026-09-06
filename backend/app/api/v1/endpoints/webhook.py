@@ -1,4 +1,7 @@
 """LINE webhook endpoint — signature verification and event dispatch only."""
+import uuid
+from typing import Optional
+
 from fastapi import APIRouter, Request, HTTPException, Header, BackgroundTasks
 from linebot.v3.exceptions import InvalidSignatureError
 from linebot.v3.webhooks import (
@@ -52,6 +55,7 @@ async def process_webhook_events(events):
         for event in events:
             cache_key = None
             lock_key = None
+            lock_token: Optional[str] = None
             lock_acquired = False
             try:
                 event_id = getattr(event, 'webhook_event_id', None)
@@ -61,9 +65,14 @@ async def process_webhook_events(events):
                         logger.info(f"Duplicate webhook event {event_id}, skipping")
                         continue
                     lock_key = f"{cache_key}{WEBHOOK_EVENT_LOCK_SUFFIX}"
+                    # Store a per-invocation token (not a constant): the Lua
+                    # compare-and-delete release only deletes the lock when
+                    # the stored token still matches, so a stale holder whose
+                    # TTL expired can never delete another worker's lock.
+                    lock_token = uuid.uuid4().hex
                     lock_acquired = await redis_client.set(
                         lock_key,
-                        "1",
+                        lock_token,
                         seconds=settings.WEBHOOK_EVENT_TTL,
                         nx=True,
                     )
@@ -110,11 +119,12 @@ async def process_webhook_events(events):
             finally:
                 # Release the lock ONLY when this invocation actually acquired
                 # it: the `continue` paths above (lock lost to another worker,
-                # Redis down) still run the finally block, and deleting then
-                # would destroy the winner's in-flight lock and let a third
-                # duplicate delivery process the same event again.
+                # Redis down) still run the finally block. The Lua
+                # compare-and-delete makes the release atomic: if our TTL
+                # expired and another worker now holds the lock, our stale
+                # token no longer matches and their lock survives.
                 if lock_key and lock_acquired:
-                    await redis_client.delete(lock_key)
+                    await redis_client.release_lock(lock_key, lock_token)
 
 
 async def handle_message_event(event: MessageEvent, db: AsyncSession):

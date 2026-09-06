@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/components/ui/Toast';
 import { Card, CardContent } from '@/components/ui/Card';
@@ -21,7 +21,8 @@ import {
     Package,
 } from 'lucide-react';
 import PageHeader from '@/app/admin/components/PageHeader';
-import CalendarPickerTH from '@/components/ui/CalendarPickerTH';
+import { DateTimePickerTH } from '@/components/ui/DateTimePickerTH';
+import { isoToHM } from '@/lib/utils';
 import { logger } from '@/lib/logger';
 
 type MessageType = 'text' | 'image' | 'flex' | 'object_ref';
@@ -68,20 +69,12 @@ export default function BroadcastCreatePage() {
     const [flexJson, setFlexJson] = useState('');
     const [flexAltText, setFlexAltText] = useState('');
     const [objectIdRef, setObjectIdRef] = useState('');
-    // Schedule split into a Thai (พ.ศ.) date picker + a separate time field.
-    // The native datetime-local control could only render a Gregorian (ค.ศ.)
-    // calendar, so we compose CalendarPickerTH with an <input type="time">.
-    const [scheduleDatePart, setScheduleDatePart] = useState('');
-    const [scheduleTime, setScheduleTime] = useState('');
-
-    const scheduledAt = useMemo(() => {
-        if (!scheduleDatePart || !scheduleTime) return null;
-        const d = new Date(scheduleDatePart);
-        if (isNaN(d.getTime())) return null;
-        const [h, m] = scheduleTime.split(':').map((n) => parseInt(n, 10));
-        d.setHours(h || 0, m || 0, 0, 0);
-        return d;
-    }, [scheduleDatePart, scheduleTime]);
+    // The shared DateTimePickerTH owns the Thai (พ.ศ.) date + time composition
+    // (native datetime-local renders ค.ศ. only) and emits a complete ISO only
+    // once both parts are chosen. `scheduleIntent` tracks "a date was picked"
+    // (even with the time still pending) to switch the Send-now/Schedule button.
+    const [scheduledAtIso, setScheduledAtIso] = useState<string | null>(null);
+    const [scheduleIntent, setScheduleIntent] = useState(false);
 
     const canProceed = (): boolean => {
         switch (step) {
@@ -173,8 +166,7 @@ export default function BroadcastCreatePage() {
     };
 
     const handleSaveAndSchedule = async () => {
-        if (!scheduleDatePart) { toast({ variant: 'warning', title: 'กรุณาเลือกวันที่ต้องการส่ง' }); return; }
-        if (!scheduleTime || !scheduledAt) { toast({ variant: 'warning', title: 'กรุณาเลือกเวลาที่ต้องการส่ง' }); return; }
+        if (!scheduledAtIso) { toast({ variant: 'warning', title: 'กรุณาเลือกวันและเวลาที่ต้องการส่ง' }); return; }
         setSaving(true);
         try {
             const body = {
@@ -194,7 +186,7 @@ export default function BroadcastCreatePage() {
             const schedRes = await fetch(`${API_BASE}/admin/broadcasts/${created.id}/schedule`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ scheduled_at: scheduledAt.toISOString() }),
+                body: JSON.stringify({ scheduled_at: scheduledAtIso }),
             });
             if (!schedRes.ok) {
                 const errBody = await schedRes.json().catch(() => ({}));
@@ -451,29 +443,21 @@ export default function BroadcastCreatePage() {
                                 </div>
                             </div>
 
-                            {/* Schedule option — Thai (พ.ศ.) date picker + separate time field */}
+                            {/* Schedule option — shared Thai (พ.ศ.) date + time picker */}
                             <div className="border-t border-gray-100 dark:border-gray-700 pt-6 space-y-4">
                                 <label className="text-xs text-text-tertiary">ตั้งเวลาส่ง (ไม่บังคับ)</label>
-                                <div className="flex flex-wrap items-start gap-3">
-                                    <div className="w-52">
-                                        <CalendarPickerTH
-                                            value={scheduleDatePart || null}
-                                            onChange={(iso) => setScheduleDatePart(iso ?? '')}
-                                        />
-                                    </div>
-                                    <Input
-                                        type="time"
-                                        value={scheduleTime}
-                                        onChange={(e) => setScheduleTime(e.target.value)}
-                                        disabled={!scheduleDatePart}
-                                        className="w-32"
-                                    />
-                                </div>
-                                {scheduledAt && (
+                                <DateTimePickerTH
+                                    value={scheduledAtIso}
+                                    onChange={setScheduledAtIso}
+                                    onDateChange={(ymd) => setScheduleIntent(!!ymd)}
+                                    dateLabel="วันที่ตั้งเวลาส่ง"
+                                    timeLabel="เวลาที่ต้องการส่ง"
+                                />
+                                {scheduledAtIso && (
                                     <p className="text-xs text-text-tertiary">
                                         จะส่งเมื่อ:{' '}
-                                        {scheduledAt.toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}
-                                        {' '}เวลา {scheduleTime} น.
+                                        {new Date(scheduledAtIso).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                        {' '}เวลา {isoToHM(scheduledAtIso)} น.
                                     </p>
                                 )}
                             </div>
@@ -484,7 +468,7 @@ export default function BroadcastCreatePage() {
                                     <FileText className="w-4 h-4" />
                                     {saving ? 'กำลังบันทึก...' : 'บันทึกแบบร่าง'}
                                 </Button>
-                                {scheduleDatePart ? (
+                                {scheduleIntent ? (
                                     <Button onClick={handleSaveAndSchedule} disabled={saving} className="gap-2">
                                         <Clock className="w-4 h-4" />
                                         {saving ? 'กำลังตั้งเวลา...' : 'ตั้งเวลาส่ง'}

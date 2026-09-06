@@ -7,6 +7,17 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
+# Compare-and-delete: delete `key` only when its value still equals the
+# caller's token. Atomic — a slow holder whose TTL expired and whose lock was
+# re-acquired by another worker can never delete the new holder's lock.
+_RELEASE_LOCK_LUA = """
+if redis.call('get', KEYS[1]) == ARGV[1] then
+    return redis.call('del', KEYS[1])
+else
+    return 0
+end
+"""
+
 
 async def _close_redis_resource(resource) -> None:
     """Close a Redis async resource across redis-py versions/test doubles."""
@@ -174,6 +185,24 @@ class RedisClient:
             return bool(result)
         except Exception as e:
             logger.error(f"Redis claim_once error: {e}")
+            return None
+
+    async def release_lock(self, key: str, token: str) -> Optional[bool]:
+        """Atomically release a token lock (Lua compare-and-delete).
+
+        Returns:
+          * True  — this caller's lock was deleted
+          * False — the key exists but is owned by another token (our lock
+                    expired and someone else took over); leave it alone
+          * None  — Redis unavailable/errored; the TTL cleans up eventually
+        """
+        if not self._redis:
+            return None
+        try:
+            result = await self._redis.eval(_RELEASE_LOCK_LUA, 1, key, token)
+            return int(result) == 1
+        except Exception as e:
+            logger.error(f"Redis release_lock error: {e}")
             return None
 
     @property

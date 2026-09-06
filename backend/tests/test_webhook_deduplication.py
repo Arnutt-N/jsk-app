@@ -18,6 +18,7 @@ class TestWebhookDeduplication:
             mock.set = AsyncMock(return_value=True)
             mock.setex = AsyncMock()
             mock.delete = AsyncMock()
+            mock.release_lock = AsyncMock(return_value=True)
             yield mock
 
     @pytest.fixture
@@ -210,7 +211,7 @@ class TestWebhookDeduplication:
 
         mock_redis.set.assert_awaited_once()
         mock_redis.setex.assert_not_awaited()
-        mock_redis.delete.assert_awaited()
+        mock_redis.release_lock.assert_awaited()
 
     @pytest.mark.asyncio
     async def test_lost_lock_does_not_delete_winners_lock(self, mock_redis, mock_event_with_id):
@@ -225,7 +226,7 @@ class TestWebhookDeduplication:
 
         await process_webhook_events([mock_event_with_id])
 
-        mock_redis.delete.assert_not_awaited()
+        mock_redis.release_lock.assert_not_awaited()
         mock_redis.setex.assert_not_awaited()
 
     @pytest.mark.asyncio
@@ -236,9 +237,85 @@ class TestWebhookDeduplication:
 
         await process_webhook_events([mock_event_with_id])
 
-        mock_redis.delete.assert_awaited_once()
-        released_key = mock_redis.delete.call_args[0][0]
+        mock_redis.release_lock.assert_awaited_once()
+        released_key = mock_redis.release_lock.call_args[0][0]
         assert "test-event-id-12345" in released_key
+
+    @pytest.mark.asyncio
+    async def test_lock_value_is_unique_token(self, mock_redis, mock_event_with_id):
+        """The lock stores a per-invocation token, not the literal "1".
+
+        The token is what makes the Lua compare-and-delete release safe: a
+        stale holder whose TTL expired cannot delete a lock re-acquired by
+        another worker because the stored token no longer matches.
+        """
+        mock_redis.exists.return_value = False
+        mock_redis.set.return_value = True
+
+        await process_webhook_events([mock_event_with_id])
+
+        token = mock_redis.set.call_args[0][1]
+        assert isinstance(token, str)
+        assert len(token) >= 16
+        assert token != "1"
+
+    @pytest.mark.asyncio
+    async def test_winner_releases_with_the_token_it_stored(self, mock_redis, mock_event_with_id):
+        """Release passes exactly the token that was stored with SET."""
+        mock_redis.exists.return_value = False
+        mock_redis.set.return_value = True
+
+        await process_webhook_events([mock_event_with_id])
+
+        stored = mock_redis.set.call_args[0][1]
+        mock_redis.release_lock.assert_awaited_once()
+        key, token = mock_redis.release_lock.call_args[0]
+        assert "test-event-id-12345" in key
+        assert token == stored
+
+    @pytest.mark.asyncio
+    async def test_release_lock_returns_none_when_not_connected(self):
+        from app.core.redis_client import RedisClient
+
+        assert await RedisClient().release_lock("k", "tok") is None
+
+    @pytest.mark.asyncio
+    async def test_release_lock_true_when_lua_deleted(self):
+        from app.core.redis_client import RedisClient
+
+        client = RedisClient()
+        fake = AsyncMock()
+        fake.eval = AsyncMock(return_value=1)
+        client._redis = fake
+
+        assert await client.release_lock("k", "tok") is True
+        script, numkeys, key, token = fake.eval.call_args[0]
+        assert numkeys == 1
+        assert key == "k"
+        assert token == "tok"
+        assert "get" in script and "del" in script
+
+    @pytest.mark.asyncio
+    async def test_release_lock_false_when_no_longer_owner(self):
+        from app.core.redis_client import RedisClient
+
+        client = RedisClient()
+        fake = AsyncMock()
+        fake.eval = AsyncMock(return_value=0)
+        client._redis = fake
+
+        assert await client.release_lock("k", "tok") is False
+
+    @pytest.mark.asyncio
+    async def test_release_lock_returns_none_on_error(self):
+        from app.core.redis_client import RedisClient
+
+        client = RedisClient()
+        fake = AsyncMock()
+        fake.eval = AsyncMock(side_effect=RuntimeError("boom"))
+        client._redis = fake
+
+        assert await client.release_lock("k", "tok") is None
 
     @pytest.mark.asyncio
     async def test_redis_down_fails_open_without_lock_release(self, mock_redis, mock_event_with_id):
@@ -248,7 +325,7 @@ class TestWebhookDeduplication:
 
         await process_webhook_events([mock_event_with_id])
 
-        mock_redis.delete.assert_not_awaited()
+        mock_redis.release_lock.assert_not_awaited()
         mock_redis.setex.assert_awaited_once()
 
     @pytest.mark.asyncio
