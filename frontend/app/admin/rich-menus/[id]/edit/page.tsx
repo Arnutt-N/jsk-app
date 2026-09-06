@@ -7,11 +7,10 @@ import { Loader2 } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
-import CalendarPickerTH from '@/components/ui/CalendarPickerTH';
-import { isoToYMD } from '@/lib/utils';
+import { DateTimePickerTH } from '@/components/ui/DateTimePickerTH';
 import { logger } from '@/lib/logger';
 import { readErrorMessage } from '@/lib/api-error';
-import { canPublish, ensureRichMenuImage, needsResync, parseSyncResult, RichMenuDisplayMode, RichMenuSyncStatus, toLocalDatetimeInputValue } from '@/lib/rich-menu';
+import { canPublish, ensureRichMenuImage, needsResync, parseSyncResult, RichMenuDisplayMode, RichMenuSyncStatus } from '@/lib/rich-menu';
 import type { RichMenuDisplayModeValue } from '@/lib/rich-menu';
 
 interface RichMenuArea {
@@ -70,17 +69,11 @@ export default function EditRichMenuPage() {
     const [publishBusy, setPublishBusy] = useState(false);
     // Display settings — initialized from the saved menu, sent on every save.
     const [displayMode, setDisplayMode] = useState<RichMenuDisplayModeValue>(RichMenuDisplayMode.ALWAYS);
-    // Thai (พ.ศ.) date + separate time — native datetime-local renders ค.ศ.
-    // only (same approach as the broadcast scheduler). The derived combined
-    // local string feeds the existing save logic unchanged.
-    const [displayStartDate, setDisplayStartDate] = useState('');
-    const [displayStartTime, setDisplayStartTime] = useState('');
-    const [displayEndDate, setDisplayEndDate] = useState('');
-    const [displayEndTime, setDisplayEndTime] = useState('');
-    const displayStart = displayStartDate && displayStartTime
-        ? `${displayStartDate}T${displayStartTime}` : '';
-    const displayEnd = displayEndDate && displayEndTime
-        ? `${displayEndDate}T${displayEndTime}` : '';
+    // Shared Thai (พ.ศ.) date + time pickers (native datetime-local renders
+    // ค.ศ. only). Each field emits a complete ISO only once both parts are set;
+    // loading an existing period feeds the backend ISO straight into `value`.
+    const [displayStartAt, setDisplayStartAt] = useState<string | null>(null);
+    const [displayEndAt, setDisplayEndAt] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const API_BASE = '/api/v1';
@@ -97,12 +90,8 @@ export default function EditRichMenuPage() {
                 setDisplayMode(
                     (data.display_mode as RichMenuDisplayModeValue) || RichMenuDisplayMode.ALWAYS,
                 );
-                const [startD, startT] = toLocalDatetimeInputValue(data.display_start_at).split('T');
-                setDisplayStartDate(startD ?? '');
-                setDisplayStartTime(startT ?? '');
-                const [endD, endT] = toLocalDatetimeInputValue(data.display_end_at).split('T');
-                setDisplayEndDate(endD ?? '');
-                setDisplayEndTime(endT ?? '');
+                setDisplayStartAt(data.display_start_at ?? null);
+                setDisplayEndAt(data.display_end_at ?? null);
                 if (data.image_url) {
                     setImagePreview(data.image_url);
                 } else {
@@ -184,20 +173,20 @@ export default function EditRichMenuPage() {
                 display_end_at?: string;
             } = { display_mode: displayMode };
             if (displayMode === RichMenuDisplayMode.SCHEDULED) {
-                if (!displayStart || !displayEnd) {
+                if (!displayStartAt || !displayEndAt) {
                     toast({ variant: 'warning', title: 'ยังไม่ได้ระบุช่วงเวลา', description: 'โหมด "ตามช่วงเวลา" ต้องระบุวันเวลาเริ่มต้นและสิ้นสุด' });
                     setSaving(false);
                     return;
                 }
-                const start = new Date(displayStart);
-                const end = new Date(displayEnd);
+                const start = new Date(displayStartAt);
+                const end = new Date(displayEndAt);
                 if (end <= start) {
                     toast({ variant: 'warning', title: 'ช่วงเวลาไม่ถูกต้อง', description: 'วันเวลาสิ้นสุดต้องอยู่หลังวันเวลาเริ่มต้น' });
                     setSaving(false);
                     return;
                 }
-                display.display_start_at = start.toISOString();
-                display.display_end_at = end.toISOString();
+                display.display_start_at = displayStartAt;
+                display.display_end_at = displayEndAt;
             }
 
             // 1. Save menu details
@@ -476,31 +465,25 @@ export default function EditRichMenuPage() {
                                         {displayMode === RichMenuDisplayMode.SCHEDULED && (
                                             <span className="mt-3 grid grid-cols-1 gap-2" onClick={(e) => e.preventDefault()}>
                                                 <span className="block text-[10px] font-bold text-slate-400">เริ่มแสดง
-                                                    <CalendarPickerTH
-                                                        ariaLabel="วันที่เริ่มแสดง"
-                                                        value={displayStartDate || null}
-                                                        onChange={(iso) => setDisplayStartDate(isoToYMD(iso))}
-                                                    />
-                                                    <input
-                                                        type="time"
-                                                        aria-label="เวลาเริ่มแสดง"
-                                                        value={displayStartTime}
-                                                        onChange={(e) => setDisplayStartTime(e.target.value)}
-                                                        className="mt-1 w-full text-sm bg-white border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary/20 outline-none"
+                                                    <DateTimePickerTH
+                                                        className="mt-3 grid grid-cols-1 gap-2"
+                                                        dateClassName="w-full"
+                                                        timeInputClassName="mt-1 w-full text-sm bg-white border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary/20 outline-none"
+                                                        dateLabel="วันที่เริ่มแสดง"
+                                                        timeLabel="เวลาเริ่มแสดง"
+                                                        value={displayStartAt}
+                                                        onChange={setDisplayStartAt}
                                                     />
                                                 </span>
                                                 <span className="block text-[10px] font-bold text-slate-400">ซ่อนเมื่อถึง
-                                                    <CalendarPickerTH
-                                                        ariaLabel="วันที่ซ่อนเมื่อถึง"
-                                                        value={displayEndDate || null}
-                                                        onChange={(iso) => setDisplayEndDate(isoToYMD(iso))}
-                                                    />
-                                                    <input
-                                                        type="time"
-                                                        aria-label="เวลาซ่อนเมื่อถึง"
-                                                        value={displayEndTime}
-                                                        onChange={(e) => setDisplayEndTime(e.target.value)}
-                                                        className="mt-1 w-full text-sm bg-white border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary/20 outline-none"
+                                                    <DateTimePickerTH
+                                                        className="mt-3 grid grid-cols-1 gap-2"
+                                                        dateClassName="w-full"
+                                                        timeInputClassName="mt-1 w-full text-sm bg-white border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary/20 outline-none"
+                                                        dateLabel="วันที่ซ่อนเมื่อถึง"
+                                                        timeLabel="เวลาซ่อนเมื่อถึง"
+                                                        value={displayEndAt}
+                                                        onChange={setDisplayEndAt}
                                                     />
                                                 </span>
                                             </span>
