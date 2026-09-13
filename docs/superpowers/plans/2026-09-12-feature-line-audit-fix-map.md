@@ -2707,7 +2707,8 @@ Expected: PASS — ไม่มี type/lint error
 - Modify: `backend/app/api/v1/endpoints/admin_credentials.py` (gate ด้วย `require_permission`)
 - Modify: `backend/app/api/v1/endpoints/admin_business_hours.py` (PUT gate ด้วย `require_permission`)
 - Reference (verify-only, ห้ามสร้าง endpoint): image-resize เป็น client-side ล้วน (`frontend/app/admin/image-resize/use-image-resize.ts` — canvas ใน browser, ไม่มี backend route)
-- Reference (verify-only): `frontend/app/admin/settings/permissions/page.tsx` (matrix render จาก API อัตโนมัติ — 2 แถวใหม่โผล่เองพร้อม label ไทย)
+- Modify: `frontend/lib/constants/permission-modules.ts` (เติม 2 entries ใน `PERMISSION_REGISTRY` — static mirror ของ backend registry)
+- Reference (verify-only): `frontend/app/admin/settings/permissions/page.tsx` (matrix render จาก API + mirror นี้ — ไม่ต้องแก้ page โดยตรง)
 - Test: `backend/tests/test_new_permission_keys.py`
 
 **Interfaces (verified):**
@@ -2800,7 +2801,14 @@ KEY_EDIT_BUSINESS_HOURS = "edit_business_hours"
 # (จุดที่ใช้ KEY_EDIT_SYSTEM_SETTINGS อยู่แล้วคงไว้)
 ```
 
-(frontend matrix ดึง registry จาก API — 2 แถวใหม่ + label ไทยโผล่เอง ไม่ต้องแก้ page; `ensure_seed_rows` seed rows ใหม่ตอน startup — ไม่ต้อง migration)
+```ts
+// frontend/lib/constants/permission-modules.ts — กลุ่ม system ต่อจาก image_resize
+// (static mirror ของ backend registry + integrity-test source of truth — ดู lib/constants/__tests__/permission-modules.test.ts)
+{ key: 'manage_credentials', label: 'จัดการรหัสเชื่อมต่อ (credentials/integrations)', module: 'system', level: 3 },
+{ key: 'edit_business_hours', label: 'แก้เวลาทำการ (business hours)', module: 'system', level: 2 },
+```
+
+(`ensure_seed_rows` seed rows ใหม่ตอน startup — ไม่ต้อง migration; page.tsx ไม่ต้องแก้โดยตรง)
 
 - [ ] **Step 4: Run test to verify it passes**
 
@@ -2810,7 +2818,7 @@ Expected: PASS
 - [ ] **Step 5: Commit**
 
 ```bash
-git add backend/app/core/permissions.py backend/app/api/v1/endpoints/admin_credentials.py backend/app/api/v1/endpoints/admin_business_hours.py backend/tests/test_new_permission_keys.py
+git add backend/app/core/permissions.py backend/app/api/v1/endpoints/admin_credentials.py backend/app/api/v1/endpoints/admin_business_hours.py frontend/lib/constants/permission-modules.ts backend/tests/test_new_permission_keys.py
 git commit -m "fix(permissions): credential and business-hours keys with gates"
 ```
 
@@ -2818,6 +2826,9 @@ git commit -m "fix(permissions): credential and business-hours keys with gates"
 
 Run: `python -m pytest tests/test_module_permission_endpoints.py tests/test_deps_gates.py tests/test_credential_service.py -v`
 Expected: PASS
+
+Run: `npm run test:unit -- permission-modules` (workdir `frontend/`)
+Expected: PASS — mirror ใหม่ตรง backend registry (`lib/constants/__tests__/permission-modules.test.ts`)
 
 
 
