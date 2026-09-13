@@ -19,7 +19,7 @@
 - ห้าม return ORM model ตรง ต้องแปลงเป็น Pydantic schema ผ่าน `model_validate`
 - Logging ใช้ `logger = logging.getLogger(__name__)` ระดับ module
 - Branch นี้คือ `feat/feature-line-audit-fix-map` ห้ามแก้ไฟล์เดียวกันขนานกัน (liff.py → A ก่อน C/D3; media.py → A ก่อน C/D; sessions.py + errors.py → B1 เจ้าของคนเดียว; messaging.py → C8; admin_live_chat.py transfer mapping → B1, messages/export routes → D1)
-- Test conventions (ทุก task): `test_client` คือ sync `TestClient` (ห้าม `await test_client.*` — ดู `backend/tests/test_liff_token.py:147-160`); งาน admin ใช้ `app.dependency_overrides[deps.get_current_user]` คืน `SimpleNamespace(id, role=UserRole.*, is_active=True)` แล้ว `clear()` ทุกครั้ง (ดู `backend/tests/test_admin_requests_endpoints.py:89-112`, `backend/tests/test_transfer_session_errors.py:39-59`); งาน DB ใช้ `_fresh_engine()` + NullPool recipe จาก `backend/tests/test_liff_token.py:37-44` (ห้าม reuse pool ของ app ข้าม event loop); ห้าม import helper ข้าม test module (ไม่มี `__init__.py`) — copy สูตรสั้นสั้นไว้ในไฟล์ test นั้นนั้น; `conftest.py` มีแค่ `app/test_client/_reset_http_rate_limits/drain_auth_responses/auth_websocket` (`backend/tests/conftest.py:80-154) — fixture อื่นทุกตัวต้องนิยามเต็มใน task นี้; fixture ที่เป็น `async def` ต้องใช้ `@pytest_asyncio.fixture` เสมอ (repo ใช้ strict mode ไม่มี `asyncio_mode` — ดู precedent `backend/tests/test_booking_create_concurrency.py:91-97`)
+- Test conventions (ทุก task): `test_client` คือ sync `TestClient` (ห้าม `await test_client.*` — ดู `backend/tests/test_liff_token.py:147-160`); งาน admin ใช้ `app.dependency_overrides[deps.get_current_user]` คืน `SimpleNamespace(id, role=UserRole.*, is_active=True)` แล้ว `clear()` ทุกครั้ง (ดู `backend/tests/test_module_permission_endpoints.py:83-107` — ไฟล์นี้ override `get_current_user` ตรง ๆ; อย่าอ้าง test_admin_requests_endpoints ซึ่ง override `get_current_admin`/`get_current_manager`); งาน DB ใช้ `_fresh_engine()` + NullPool recipe จาก `backend/tests/test_liff_token.py:37-44` (ห้าม reuse pool ของ app ข้าม event loop); ห้าม import helper ข้าม test module (ไม่มี `__init__.py`) — copy สูตรสั้นสั้นไว้ในไฟล์ test นั้นนั้น; `conftest.py` มีแค่ `app/test_client/_reset_http_rate_limits/drain_auth_responses/auth_websocket` (`backend/tests/conftest.py:80-154) — fixture อื่นทุกตัวต้องนิยามเต็มใน task นี้; fixture ที่เป็น `async def` ต้องใช้ `@pytest_asyncio.fixture` เสมอ (repo ใช้ strict mode ไม่มี `asyncio_mode` — ดู precedent `backend/tests/test_booking_create_concurrency.py:91-97`)
 
 ---
 
@@ -757,7 +757,7 @@ import pytest
 
 from app.api import deps as api_deps
 from app.core.redis_client import redis_client
-from app.db.session import AsyncSessionLocal
+from app.db.session import engine as _app_engine
 from app.main import app
 from app.models.user import UserRole
 from sqlalchemy import event
@@ -770,10 +770,12 @@ def query_counter():
     def _incr(*_a, **_k):
         counter.count += 1
 
-    engine = AsyncSessionLocal.bind
-    event.listen(engine.sync_engine, "before_cursor_execute", _incr)
+    # ฟัง engine ตัวเดียวกับที่ app ใช้ — sessionmaker ไม่มีแอตทริบิวต์ .bind
+    # (bind อยู่ใน .kw) ต้องอ้าง engine ของ session.py ตรง ๆ
+    sync_engine = _app_engine.sync_engine
+    event.listen(sync_engine, "before_cursor_execute", _incr)
     yield counter
-    event.remove(engine.sync_engine, "before_cursor_execute", _incr)
+    event.remove(sync_engine, "before_cursor_execute", _incr)
 
 
 @pytest.mark.asyncio
@@ -998,6 +1000,8 @@ class BroadcastDryRunResponse(BaseModel):
 
 
 # ใน create_broadcast (:112-142) ก่อนแตะ service:
+# เพิ่ม import ด้านบนไฟล์: from fastapi.responses import JSONResponse
+# (dry-run ต้องเลี่ยง response_model=BroadcastResponse/201 ของ decorator — คืน JSONResponse ตรง ๆ)
     if payload.dry_run:
         preview = SimpleNamespace(
             id=0, title=payload.title,
@@ -1007,11 +1011,14 @@ class BroadcastDryRunResponse(BaseModel):
         estimated = None
         if payload.target_audience != "all":
             estimated = len((payload.target_filter or {}).get("user_ids", []))
-        return BroadcastDryRunResponse(
-            title=payload.title,
-            message_type=payload.message_type.value,
-            estimated_recipients=estimated,
-            messages_valid=bool(messages),
+        return JSONResponse(
+            status_code=200,
+            content=BroadcastDryRunResponse(
+                title=payload.title,
+                message_type=payload.message_type.value,
+                estimated_recipients=estimated,
+                messages_valid=bool(messages),
+            ).model_dump(mode="json"),
         )
 ```
 
@@ -2708,6 +2715,7 @@ Expected: PASS — ไม่มี type/lint error
 - Modify: `backend/app/api/v1/endpoints/admin_business_hours.py` (PUT gate ด้วย `require_permission`)
 - Reference (verify-only, ห้ามสร้าง endpoint): image-resize เป็น client-side ล้วน (`frontend/app/admin/image-resize/use-image-resize.ts` — canvas ใน browser, ไม่มี backend route)
 - Modify: `frontend/lib/constants/permission-modules.ts` (เติม 2 entries ใน `PERMISSION_REGISTRY` — static mirror ของ backend registry)
+- Modify: `frontend/lib/constants/__tests__/permission-modules.test.ts` (ขยับค่าตายตัวให้ตรง mirror ใหม่ — ดู Step 3)
 - Reference (verify-only): `frontend/app/admin/settings/permissions/page.tsx` (matrix render จาก API + mirror นี้ — ไม่ต้องแก้ page โดยตรง)
 - Test: `backend/tests/test_new_permission_keys.py`
 
@@ -2744,12 +2752,37 @@ async def test_matrix_has_new_keys(test_client):
 
 
 @pytest.mark.asyncio
-async def test_business_hours_put_requires_new_key(test_client):
+async def test_business_hours_put_admin_keeps_access(test_client):
+    # LOCK (ไม่ใช่ red-green — 200 ทั้งก่อนและหลัง):
+    # ADMIN อยู่ใน DEFAULT_POLICY ของ key ใหม่ ({SUPER_ADMIN, ADMIN} ตาม Step 3)
+    # เทสนี้กัน regression ว่า ADMIN ไม่เสียสิทธิ์หลังผูก gate;
+    # RED-GREEN ของ task นี้อยู่ที่ test_matrix_has_new_keys (keys โผล่ใน matrix)
     async def _override():
-        yield SimpleNamespace(id=2, role=UserRole.AGENT, is_active=True)
+        yield SimpleNamespace(id=2, role=UserRole.ADMIN, is_active=True)
 
     # body ครบ 7 วันตาม BusinessHoursUpdate (schemas/business_hours.py:51-52)
-    # เพื่อให้ gate (403) เป็นตัวตอบ ไม่ใช่ body validation (422)
+    # เพื่อให้ gate/200 เป็นตัวตอบ ไม่ใช่ body validation (422)
+    valid_days = [
+        {"day_of_week": i, "is_open": False, "open_time": "08:00", "close_time": "17:00"}
+        for i in range(7)
+    ]
+    app.dependency_overrides[api_deps.get_current_user] = _override
+    try:
+        resp = test_client.put(
+            "/api/v1/admin/settings/business-hours",
+            json={"days": valid_days},
+        )
+        assert resp.status_code == 200
+    finally:
+        app.dependency_overrides.clear()
+
+
+@pytest.mark.asyncio
+async def test_business_hours_put_agent_still_forbidden(test_client):
+    # LOCK (ไม่ใช่ red-green — ผ่านทั้งก่อนและหลัง): AGENT โดน gate เดิมกันอยู่แล้ว
+    async def _override():
+        yield SimpleNamespace(id=3, role=UserRole.AGENT, is_active=True)
+
     valid_days = [
         {"day_of_week": i, "is_open": False, "open_time": "08:00", "close_time": "17:00"}
         for i in range(7)
@@ -2768,7 +2801,7 @@ async def test_business_hours_put_requires_new_key(test_client):
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `python -m pytest tests/test_new_permission_keys.py -v`
-Expected: FAIL — matrix ไม่มี 2 keys ใหม่ และ PUT เป็น AGENT อาจผ่าน gate เดิม
+Expected: FAIL — matrix ไม่มี 2 keys ใหม่ (เทส PUT สองตัวเป็น lock ผ่านทั้งก่อนและหลัง)
 
 - [ ] **Step 3: Write minimal implementation**
 
@@ -2802,11 +2835,35 @@ KEY_EDIT_BUSINESS_HOURS = "edit_business_hours"
 ```
 
 ```ts
-// frontend/lib/constants/permission-modules.ts — กลุ่ม system ต่อจาก image_resize
+// frontend/lib/constants/permission-modules.ts — กลุ่ม system ต่อท้าย access_live_chat
 // (static mirror ของ backend registry + integrity-test source of truth — ดู lib/constants/__tests__/permission-modules.test.ts)
 { key: 'manage_credentials', label: 'จัดการรหัสเชื่อมต่อ (credentials/integrations)', module: 'system', level: 3 },
 { key: 'edit_business_hours', label: 'แก้เวลาทำการ (business hours)', module: 'system', level: 2 },
 ```
+
+```ts
+// frontend/lib/constants/__tests__/permission-modules.test.ts — ขยับค่าตายตัวให้ตรง mirror ใหม่
+// (ไม่แก้ไฟล์นี้ Step 6 จะแดง: registry 22 keys แต่เทสล็อก 20)
+```
+
+```diff
+ // permission-modules.test.ts
+-const BACKEND_KEYS = [ ... 'access_live_chat', ]
++const BACKEND_KEYS = [ ... 'access_live_chat', 'manage_credentials', 'edit_business_hours', ]
+-    expect(PERMISSION_REGISTRY).toHaveLength(20)
++    expect(PERMISSION_REGISTRY).toHaveLength(22)
+-    expect(grouped.system).toHaveLength(11)
++    expect(grouped.system).toHaveLength(13)
+     expect(grouped.system.map((m) => m.key)).toEqual([
+       ...same 11 keys...,
+       'access_live_chat',
++      'manage_credentials',
++      'edit_business_hours',
+     ])
+-    expect(keysForLevel(PERMISSION_REGISTRY, 'system', LEVEL.MANAGE)).toHaveLength(11)
++    expect(keysForLevel(PERMISSION_REGISTRY, 'system', LEVEL.MANAGE)).toHaveLength(13)
+```
+(ชุด View ไม่เปลี่ยน — 2 keys ใหม่เป็น level 3/2; availableLevels/levelForKeys ที่เหลือไม่แตะ)
 
 (`ensure_seed_rows` seed rows ใหม่ตอน startup — ไม่ต้อง migration; page.tsx ไม่ต้องแก้โดยตรง)
 
@@ -2818,7 +2875,7 @@ Expected: PASS
 - [ ] **Step 5: Commit**
 
 ```bash
-git add backend/app/core/permissions.py backend/app/api/v1/endpoints/admin_credentials.py backend/app/api/v1/endpoints/admin_business_hours.py frontend/lib/constants/permission-modules.ts backend/tests/test_new_permission_keys.py
+git add backend/app/core/permissions.py backend/app/api/v1/endpoints/admin_credentials.py backend/app/api/v1/endpoints/admin_business_hours.py frontend/lib/constants/permission-modules.ts frontend/lib/constants/__tests__/permission-modules.test.ts backend/tests/test_new_permission_keys.py
 git commit -m "fix(permissions): credential and business-hours keys with gates"
 ```
 
