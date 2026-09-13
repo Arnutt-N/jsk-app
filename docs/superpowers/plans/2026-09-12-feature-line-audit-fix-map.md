@@ -745,7 +745,7 @@ Expected: PASS — รหัสไม่หาย (verify ด้วย `SELECT c
 - Test: `backend/tests/test_analytics_perf.py`
 
 **Interfaces (verified):**
-- Consumes: `GET /api/v1/analytics/dashboard?days=` (admin_analytics.py:67-74) gated `require_permission(KEY_VIEW_REPORTS)`; `analytics_service.get_dashboard(db, days)` (analytics_service.py:433-451) ประกอบจาก `get_session_volume` (:251) + `get_conversation_funnel` (:302) + `get_peak_hours_heatmap` (:277) + `get_percentiles` (:333-367 — คำนวณใน Python ด้วย `_percentile` :670) — **ไม่มีคอลัมน์** `duration_seconds` ใน `ChatSession`; ช่วงเวลาจริงมาจาก `started_at/first_response_at/closed_at` (chat_session.py:29-33); `redis_client.get/setex/delete` (redis_client.py:77-132)
+- Consumes: `GET /api/v1/admin/analytics/dashboard?days=` (prefix `/admin/analytics` ใน api.py:54 + `@router.get("/dashboard")` ใน admin_analytics.py:67) gated `require_permission(KEY_VIEW_REPORTS)`; `analytics_service.get_dashboard(db, days)` (analytics_service.py:433-451) ประกอบจาก `get_kpi_trends` (:368) + `get_session_volume` (:251) + `get_conversation_funnel` (:302) + `get_peak_hours_heatmap` (:277) + `get_percentiles` (:333-367 — คำนวณใน Python ด้วย `_percentile` :670) — **ไม่มีคอลัมน์** `duration_seconds` ใน `ChatSession`; ช่วงเวลาจริงมาจาก `started_at/first_response_at/closed_at` (chat_session.py:29-33); `redis_client.get/setex/delete` (redis_client.py:77-132)
 - Produces: percentile SQL ผ่าน `func.percentile_cont(...).within_group(func.extract("epoch", ...))`; cache Redis TTL 120s ต่อ `days`; `DashboardResponse` Pydantic ล็อก shape เดิม + `cache_hit: bool`
 
 - [ ] **Step 1: Write the failing test**
@@ -784,13 +784,13 @@ async def test_dashboard_query_budget_and_cache(test_client, query_counter):
     app.dependency_overrides[api_deps.get_current_user] = _override
     try:
         await redis_client.delete("analytics:dashboard:7")
-        r1 = test_client.get("/api/v1/analytics/dashboard?days=7")
+        r1 = test_client.get("/api/v1/admin/analytics/dashboard?days=7")
         assert r1.status_code == 200
         body = r1.json()
-        assert {"trends", "funnel", "heatmap", "percentiles", "generated_at", "cache_hit"} <= set(body)
+        assert {"trends", "session_volume", "peak_hours", "funnel", "percentiles", "generated_at", "cache_hit"} <= set(body)
         first = query_counter.count
         assert first <= 5, f"too many queries: {first}"
-        r2 = test_client.get("/api/v1/analytics/dashboard?days=7")
+        r2 = test_client.get("/api/v1/admin/analytics/dashboard?days=7")
         assert r2.json()["cache_hit"] is True
         assert query_counter.count == first
     finally:
@@ -801,7 +801,7 @@ async def test_dashboard_query_budget_and_cache(test_client, query_counter):
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `python -m pytest tests/test_analytics_perf.py -v`
-Expected: FAIL — ไม่มี field `cache_hit` และ query รวมเกิน 5 (percentile/trends/funnel/heatmap แยกกันหมด + Python percentile)
+Expected: FAIL — ไม่มี field `cache_hit`/`generated_at` และ query รวมเกิน 5 (percentile/trends/session_volume/peak_hours/funnel แยกกันหมด + Python percentile)
 
 - [ ] **Step 3: Write minimal implementation**
 
@@ -814,9 +814,10 @@ from pydantic import BaseModel, ConfigDict
 class DashboardResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    trends: list[dict]
+    trends: dict
+    session_volume: list[dict]
+    peak_hours: list[dict]
     funnel: dict
-    heatmap: list[dict]
     percentiles: dict
     generated_at: datetime
     cache_hit: bool = False
@@ -849,11 +850,12 @@ CACHE_TTL_SECONDS = 120
         )).one()
 
         payload = {
-            "trends": await self.get_session_volume(db, days=days),
+            "trends": await self.get_kpi_trends(db),
+            "session_volume": await self.get_session_volume(db, days=days),
+            "peak_hours": await self.get_peak_hours_heatmap(db, days=days),
             "funnel": await self.get_conversation_funnel(db, days=days),
-            "heatmap": await self.get_peak_hours_heatmap(db, days=days),
             "percentiles": {
-                "first_response": {"p50": round(row[0] or 0, 1), "p90": round(row[1] or 0, 1), "p99": round(row[2] or 0, 1)},
+                "frt": {"p50": round(row[0] or 0, 1), "p90": round(row[1] or 0, 1), "p99": round(row[2] or 0, 1)},
                 "resolution": {"p50": round(row[3] or 0, 1), "p90": round(row[4] or 0, 1), "p99": round(row[5] or 0, 1)},
             },
             "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -863,7 +865,7 @@ CACHE_TTL_SECONDS = 120
         return payload
 ```
 
-(คีย์ `first_response`/`resolution` ตรง shape เดิมของ `get_percentiles` :355-365; Redis ล่ม → `redis_client.get` คืน None → คำนวณตรง ๆ ตามพฤติกรรม redis_client.py:103-111)
+(คีย์ระดับบน + `percentiles.frt`/`resolution` ตรง shape เดิมของ `get_dashboard` (:433-451) และ `DashboardData` ใน `frontend/app/admin/analytics/page.tsx:66-82` — ห้าม rename (frontend ผูก `session_volume`/`peak_hours` อยู่); Redis ล่ม → `redis_client.get` คืน None → คำนวณตรง ๆ ตามพฤติกรรม redis_client.py:103-111)
 
 - [ ] **Step 4: Run test to verify it passes**
 
@@ -1319,13 +1321,14 @@ async def owned_request():
         row = ServiceRequest(description="pytest-delete-audit", source="ADMIN")
         s.add(row)
         await s.commit()
-        yield Session, row.id
+        rid = row.id
+        yield Session, rid
     async with Session() as s:
         for r in (await s.execute(
-            select(AuditLog).where(AuditLog.resource_id == str(row_id))
+            select(AuditLog).where(AuditLog.resource_id == str(rid))
         )).scalars():
             await s.delete(r)
-        left = await s.get(ServiceRequest, row_id)
+        left = await s.get(ServiceRequest, rid)
         if left:
             await s.delete(left)
         await s.commit()
@@ -1781,8 +1784,54 @@ async def test_push_after_transfer_blocked(live_session, monkeypatch):
         async with Session() as db:
             with pytest.raises(HTTPException) as exc:
                 await live_chat_service.send_message(ids["line"], "ผี", ids["op"], db)
-            assert exc.value.status_code == 409
+            # contract ที่ล็อก: pre-check เดิม (_require_active_session_owner,
+            # sessions.py:148-152) ยิงก่อน guard เสมอ → displaced operator ได้ 403
+            # (พฤติกรรมเดิม ห้ามเปลี่ยนเพราะ admin_live_chat ผูกอยู่); 409 เป็นของ
+            # guard สำหรับ TOCTOU race ในเทสถัดไป
+            assert exc.value.status_code == 403
         assert pushed == []  # ไม่มี ghost push ถึงประชาชน
+    finally:
+        async with Session() as db:
+            await db.delete(await db.get(User, other_id))
+            await db.commit()
+
+
+@pytest.mark.asyncio
+async def test_push_race_blocked_409(live_session, monkeypatch):
+    """TOCTOU race: pre-check ผ่านตอนยังเป็นเจ้าของ แล้วเคสถูกโอนก่อนถึง push."""
+    from app.services.live_chat_service import live_chat_service
+
+    Session, ids = live_session
+    pushed = []
+    import app.services.live_chat_service.messaging as messaging_module
+
+    async def _fake_push(line_user_id, messages):
+        pushed.append(line_user_id)
+
+    monkeypatch.setattr(messaging_module.line_service, "push_messages", _fake_push)
+    async with Session() as db:
+        other = User(username="t-ghost-op3", role=UserRole.AGENT, is_active=True)
+        db.add(other)
+        await db.flush()
+        await db.execute(
+            update(ChatSession)
+            .where(ChatSession.id == ids["session"])
+            .values(operator_id=other.id)
+        )
+        await db.commit()
+        other_id = other.id
+
+    # จำลอง pre-check ที่ผ่านไปแล้วก่อนโอน: คืน session ตาม id โดยไม่ตรวจเจ้าของ
+    async def _stale_check(line_user_id, operator_id, db):
+        return await db.get(ChatSession, ids["session"])
+
+    monkeypatch.setattr(live_chat_service, "_require_active_session_owner", _stale_check)
+    try:
+        async with Session() as db:
+            with pytest.raises(HTTPException) as exc:
+                await live_chat_service.send_message(ids["line"], "ผี", ids["op"], db)
+            assert exc.value.status_code == 409  # guard จับได้หลัง save ก่อน push
+        assert pushed == []
     finally:
         async with Session() as db:
             await db.delete(await db.get(User, other_id))
@@ -1823,7 +1872,7 @@ async def test_presence_burst_bounded(monkeypatch):
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `python -m pytest tests/test_livechat_ghost_presence.py -v`
-Expected: FAIL — push หลังโอนยังสำเร็จ (ไม่มี 409) และ zadd ถูกเรียก 100 ครั้ง
+Expected: FAIL — เทส race: push สำเร็จโดยไม่มี 409 (ยังไม่มี guard); เทส contract (403) ผ่านอยู่แล้วเป็นตัวล็อกพฤติกรรมเดิม; และ zadd ถูกเรียก 100 ครั้ง
 
 - [ ] **Step 3: Write minimal implementation**
 
