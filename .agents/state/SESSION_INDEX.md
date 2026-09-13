@@ -1,16 +1,16 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Cross-Platform Session Index (generated)
 
-> **Last generated**: 2026-09-06 22:56 (from newest checkpoint)
+> **Last generated**: 2026-09-13 18:22 (from newest checkpoint)
 
 ## Quick Stats
 
 | Metric | Value |
 |--------|-------|
-| Handoff checkpoints (active) | 260 |
-| Session summaries on disk | 360 |
+| Handoff checkpoints (active) | 261 |
+| Session summaries on disk | 361 |
 | Platforms | 10 (antigravity, claude_code, cline, codex, gemini_cli, kilo_code, kimi_code, open_code, qoder, zcode) |
-| Most recent | 2026-09-06 22:56 — zcode |
+| Most recent | 2026-09-13 18:22 — kilo_code |
 
 > Regenerate after any handoff: `node .agents/scripts/gen-handoff-views.cjs`
 
@@ -95,10 +95,11 @@
 |------|--------|-------|----------|------------|
 | 2026-04-03 12:00 | completed | — | — | `handover-gemini_cli-20260403-1200.json` |
 
-## kilo_code (5)
+## kilo_code (6)
 
 | When | Status | Model | Provider | Checkpoint |
 |------|--------|-------|----------|------------|
+| 2026-09-13 18:22 | completed | deepseek-v4.1-flash | ollama-cloud | `handover-kilo_code-20260913-1822.json` |
 | 2026-07-25 22:57 | completed | — | — | `handover-kilo_code-20260725-2257.json` |
 | 2026-07-25 22:17 | completed | — | — | `handover-kilo_code-20260725-2217.json` |
 | 2026-07-19 08:21 | completed | — | — | `handover-kilo_code-20260719-0821.json` |

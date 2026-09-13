@@ -1,12 +1,21 @@
 {
-  "last_updated": "2026-09-06T22:56:00+07:00",
-  "platform": "zcode",
-  "current_task": "codebase-review-fix on PR #228 CLOSED via PR #229 (squash e63ee9f, CI 4/4, CD success): review found 0 Critical/High; 3 accepted follow-ups all fixed (F1 DateTimePickerTH timeDisabled+invalid-value te",
+  "last_updated": "2026-09-13T18:22:00+07:00",
+  "platform": "kilo_code",
+  "current_task": "Feature-line audit map: PRD + 19-task PRP plan (4 Critical + ~30 High fixes across 19 features); plan revised to clear dual-review FAIL - dead refs, invented signatures, placeholders, missing NOT-Buil",
   "plan_status": "completed",
   "next_steps": [
-    "User smoke unchanged from PR #228 (broadcast schedule, rich-menu period, reply-objects form)"
+    "Re-run dual prp-validate-plan re-check on the revised plan (round-2 reviewer dispatches aborted twice with provider errors - use fresh reviewer agents, judge against docs/superpowers/specs/2026-09-12-feature-line-audit-fix-map.md)",
+    "After READY verdict: implement Wave A on feat/feature-line-audit-fix-map per the plan (A1 LIFF strict no-write, A2 media private token gate, A3 health auth + error hiding)",
+    "Push branch when network is available (github.com DNS resolution was failing this session; branch is local-only so far)"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-09-13T18:22:00+07:00",
+      "platform": "kilo_code",
+      "branch": "feat/feature-line-audit-fix-map",
+      "head": "2a585e6",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-09-06T22:56:00+07:00",
       "platform": "zcode",
@@ -139,13 +148,6 @@
       "branch": "main",
       "head": "391fa9d",
       "status": "completed"
-    },
-    {
-      "timestamp": "2026-08-29T22:44:00+07:00",
-      "platform": "qoder",
-      "branch": "feat/liff-booking-redesign",
-      "head": "2f6fdbd",
-      "status": "completed"
     }
   ],
   "cross_platform_context": {
@@ -155,5 +157,7 @@
       "antigravity/session-summary-20260602-0032.md"
     ],
     "key_insights": "Handoff system redesigned to single-source-of-truth (checkpoints) + generated views (TASK_LOG/SESSION_INDEX via gen-handoff-views.cjs). Use handoff-new.cjs to create handoffs. Stop hook enforces it. Do NOT hand-edit the generated files."
-  }
+  },
+  "model": "deepseek-v4.1-flash",
+  "provider": "ollama-cloud"
 }
