@@ -19,7 +19,7 @@
 - ห้าม return ORM model ตรง ต้องแปลงเป็น Pydantic schema ผ่าน `model_validate`
 - Logging ใช้ `logger = logging.getLogger(__name__)` ระดับ module
 - Branch นี้คือ `feat/feature-line-audit-fix-map` ห้ามแก้ไฟล์เดียวกันขนานกัน (liff.py → A ก่อน C/D3; media.py → A ก่อน C/D; sessions.py + errors.py → B1 เจ้าของคนเดียว; messaging.py → C8; admin_live_chat.py transfer mapping → B1, messages/export routes → D1)
-- Test conventions (ทุก task): `test_client` คือ sync `TestClient` (ห้าม `await test_client.*` — ดู `backend/tests/test_liff_token.py:147-160`); งาน admin ใช้ `app.dependency_overrides[deps.get_current_user]` คืน `SimpleNamespace(id, role=UserRole.*, is_active=True)` แล้ว `clear()` ทุกครั้ง (ดู `backend/tests/test_admin_requests_endpoints.py:89-112`, `backend/tests/test_transfer_session_errors.py:39-59`); งาน DB ใช้ `_fresh_engine()` + NullPool recipe จาก `backend/tests/test_liff_token.py:37-44` (ห้าม reuse pool ของ app ข้าม event loop); ห้าม import helper ข้าม test module (ไม่มี `__init__.py`) — copy สูตรสั้นสั้นไว้ในไฟล์ test นั้นนั้น; `conftest.py` มีแค่ `app/test_client/_reset_http_rate_limits/drain_auth_responses/auth_websocket` (`backend/tests/conftest.py:80-154) — fixture อื่นทุกตัวต้องนิยามเต็มใน task นี้
+- Test conventions (ทุก task): `test_client` คือ sync `TestClient` (ห้าม `await test_client.*` — ดู `backend/tests/test_liff_token.py:147-160`); งาน admin ใช้ `app.dependency_overrides[deps.get_current_user]` คืน `SimpleNamespace(id, role=UserRole.*, is_active=True)` แล้ว `clear()` ทุกครั้ง (ดู `backend/tests/test_admin_requests_endpoints.py:89-112`, `backend/tests/test_transfer_session_errors.py:39-59`); งาน DB ใช้ `_fresh_engine()` + NullPool recipe จาก `backend/tests/test_liff_token.py:37-44` (ห้าม reuse pool ของ app ข้าม event loop); ห้าม import helper ข้าม test module (ไม่มี `__init__.py`) — copy สูตรสั้นสั้นไว้ในไฟล์ test นั้นนั้น; `conftest.py` มีแค่ `app/test_client/_reset_http_rate_limits/drain_auth_responses/auth_websocket` (`backend/tests/conftest.py:80-154) — fixture อื่นทุกตัวต้องนิยามเต็มใน task นี้; fixture ที่เป็น `async def` ต้องใช้ `@pytest_asyncio.fixture` เสมอ (repo ใช้ strict mode ไม่มี `asyncio_mode` — ดู precedent `backend/tests/test_booking_create_concurrency.py:91-97`)
 
 ---
 
@@ -115,7 +115,7 @@ async def require_liff_identity(x_liff_id_token: Optional[str]) -> str:
     source_details = {"source": "LIFF v2"}  # debt-mediation ใช้ {"source": "LIFF"} ตามเดิม (liff.py:283)
 ```
 
-อัปเดต `backend/tests/test_liff_token.py` case1 (`test_case1_flag_off_no_token_uses_body_fallback`, บรรทัด 146-159) ให้ตรงพฤติกรรมใหม่: assert 401 + `await _count_by_description(body["description"]) == 0` (เลิกคาดหวัง 201/body-fallback) — case 2/3/4/5/6/7 เดิมผ่านได้ทั้งหมด
+อัปเดต `backend/tests/test_liff_token.py` case1 (`test_case1_flag_off_no_token_uses_body_fallback`, บรรทัด 147-160) ให้ตรงพฤติกรรมใหม่: assert 401 + `await _count_by_description(body["description"]) == 0` (เลิกคาดหวัง 201/body-fallback) — case 2/3/4/5/6/7 เดิมผ่านได้ทั้งหมด
 
 ```ini
 # backend/.env.development.example + backend/.env.production.example
@@ -157,6 +157,7 @@ Expected: PASS — ฟอร์ม LIFF ทั้งสามยังผ่า�
 # backend/tests/test_media_private_gate.py
 import uuid as uuid_mod
 import pytest
+import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
@@ -169,7 +170,7 @@ def _fresh_engine():
     return create_async_engine(str(settings.DATABASE_URL), poolclass=NullPool)
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def private_media():
     engine = _fresh_engine()
     Session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
@@ -315,7 +316,7 @@ Expected: FAIL — detailed/websocket ได้ 200 โดยไม่ต้อ�
 ```python
 # 1) /health/websocket (บรรทัด 67-68) และ /health/detailed (บรรทัด 82-83) เพิ่ม parameter:
 #    _current_admin: User = Depends(get_current_admin)
-# 2) ลบ str(e) ทุกจุด (บรรทัด 36, 43, 107, 128, 140) แทนด้วย logger.exception เช่น:
+# 2) ลบ str(e) ทุกจุด (บรรทัด 36, 43, 107, 128, 142) แทนด้วย logger.exception เช่น:
 try:
     await db.execute(text("SELECT 1"))
     checks["database"] = True
@@ -364,6 +365,7 @@ Expected: PASS — watchdog ยังตรวจ basic `/api/v1/health` ได�
 # backend/tests/test_transfer_race.py
 import asyncio
 import pytest
+import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
@@ -379,7 +381,7 @@ def _fresh_engine():
     return create_async_engine(str(settings.DATABASE_URL), poolclass=NullPool)
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def seeded():
     engine = _fresh_engine()
     Session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
@@ -449,6 +451,20 @@ Expected: FAIL — สองยกสำเร็จทั้งคู่ (`len(
 TRANSFER_ERR_CONFLICT = "Session was transferred by another operator"
 ```
 
+(Step 1 import `TRANSFER_ERR_CONFLICT` จาก package — ต้อง export ใน `backend/app/services/live_chat_service/__init__.py` ด้วย มิฉะนั้น ImportError; ปัจจุบัน export แค่ 4 constants เดิมที่ :27-31 และ `__all__` ที่ :55-60)
+
+```python
+# backend/app/services/live_chat_service/__init__.py — เติมใน from .errors import (...)
+from .errors import (
+    TRANSFER_ERR_CONFLICT,
+    TRANSFER_ERR_INVALID_TARGET,
+    TRANSFER_ERR_NO_ACTIVE_SESSION,
+    TRANSFER_ERR_NOT_CURRENT_OPERATOR,
+    TRANSFER_ERR_TRANSFER_TO_SELF,
+)
+# และเติม "TRANSFER_ERR_CONFLICT" ใน __all__
+```
+
 ```python
 # backend/app/services/live_chat_service/sessions.py — แทนบล็อก mutation (ปัจจุบัน :276-279)
 # ด้วย conditional UPDATE + rowcount (pattern เดียวกับ claim_session :50-68)
@@ -496,7 +512,7 @@ Expected: PASS
 - [ ] **Step 5: Commit**
 
 ```bash
-git add backend/app/services/live_chat_service/sessions.py backend/app/services/live_chat_service/errors.py backend/app/api/v1/endpoints/admin_live_chat.py backend/tests/test_transfer_race.py
+git add backend/app/services/live_chat_service/sessions.py backend/app/services/live_chat_service/errors.py backend/app/services/live_chat_service/__init__.py backend/app/api/v1/endpoints/admin_live_chat.py backend/tests/test_transfer_race.py
 git commit -m "fix(live-chat): atomic transfer with conditional update"
 ```
 
@@ -615,12 +631,14 @@ SECRET_DENY_LIST: frozenset[str] = frozenset({
 # backend/app/api/v1/endpoints/settings.py
 # update_setting (:334-361): ครอบ SettingsService.set_setting ด้วย
 #     except ValueError as exc: raise HTTPException(status_code=400, detail=str(exc))
-# list_settings (:301-304): mask ก่อนตอบ —
+# list_settings (:301-304) คืน ORM list ตรง ๆ อยู่แล้ว — mask ก่อนตอบ —
     out = []
     for s in result.scalars().all():
         val = "***" if s.key in SECRET_DENY_LIST else s.value
-        out.append(SystemSettingResponse.model_validate(s, update={"value": val}))
+        out.append(SystemSettingResponse.model_validate(s).model_copy(update={"value": val}))
     return out
+# (ห้ามส่ง kwarg ชื่อ update เข้า model_validate — Pydantic V2 ไม่มีพารามิเตอร์นี้;
+# pattern ที่ถูกตรงกับ precedent ใน admin_live_chat.py:142 คือ validate ก่อนแล้วค่อย model_copy)
 ```
 
 ```python
@@ -657,25 +675,26 @@ def upgrade() -> None:
     conn = op.get_bind()
 
     # 1) backup plaintext ไว้ตารางชั่วคราว (ใช้ตอน downgrade เท่านั้น)
+    # `"key"`/`"value"` ต้อง quote เสมอ — `key` เป็น reserved word ของ Postgres
     conn.execute(sa.text(
-        "CREATE TABLE IF NOT EXISTS _secret_migration_backup AS "
-        "SELECT id, key, value FROM system_settings WHERE key = ANY(:keys)"
+        'CREATE TABLE IF NOT EXISTS _secret_migration_backup AS '
+        'SELECT id, "key", "value" FROM system_settings WHERE "key" = ANY(:keys)'
     ), {"keys": list(_DENY)})
 
     # 2) encrypt → insert Credential, 3) verify roundtrip, 4) mask ต้นทาง
     rows = conn.execute(sa.text(
-        "SELECT id, key, value FROM _secret_migration_backup"
+        'SELECT id, "key", "value" FROM _secret_migration_backup'
     )).mappings().all()
     for row in rows:
         enc = cipher.encrypt(str(row["value"]).encode()).decode()
         if cipher.decrypt(enc.encode()).decode() != str(row["value"]):
             raise RuntimeError(f"roundtrip verify failed for {row['key']}")
         conn.execute(sa.text(
-            "INSERT INTO credentials (name, provider, credentials, metadata, is_active, is_default) "
+            'INSERT INTO credentials (name, provider, credentials, metadata, is_active, is_default) '
             "VALUES (:name, :provider, :credentials, NULL, true, false)"
         ), {"name": row["key"], "provider": _provider_for(row["key"]), "credentials": enc})
         conn.execute(sa.text(
-            "UPDATE system_settings SET value = '***MIGRATED***' WHERE id = :id"
+            'UPDATE system_settings SET "value" = \'***MIGRATED***\' WHERE id = :id'
         ), {"id": row["id"]})
 
 
@@ -683,11 +702,11 @@ def downgrade() -> None:
     # restore จาก backup เท่านั้น — ไม่ถอดรหัส Credential กลับเป็น plaintext อัตโนมัติ
     conn = op.get_bind()
     rows = conn.execute(sa.text(
-        "SELECT id, value FROM _secret_migration_backup"
+        'SELECT id, "value" FROM _secret_migration_backup'
     )).mappings().all()
     for row in rows:
         conn.execute(sa.text(
-            "UPDATE system_settings SET value = :value WHERE id = :id"
+            'UPDATE system_settings SET "value" = :value WHERE id = :id'
         ), {"value": row["value"], "id": row["id"]})
     conn.execute(sa.text(
         "DELETE FROM credentials WHERE name = ANY(:keys)"
@@ -1037,7 +1056,7 @@ Expected: PASS — scheduled ข้าม timezone ยังตรง
 - Test: `backend/tests/test_intent_regex_guard.py`
 
 **Interfaces (verified):**
-- Consumes: model จริงคือ `IntentKeyword(category_id, keyword, match_type)` + `MatchType` (exact/contains/regex/starts_with) (backend/app/models/intent.py:8-12, 46-57) — **ไม่มี** ฟิลด์ `pattern`/`priority` และไม่มีไฟล์ `backend/app/services/intent_matcher.py`; matcher จริงคือ `find_intent_keyword` cascade EXACT > STARTS_WITH > CONTAINS > REGEX (intent_matching.py:34-82); REGEX มีกันความยาว 256/1000 อยู่แล้ว (:18-19, 71-76) แต่ compile ใหม่ทุกข้อความ; LIKE branch (:50-64) ไม่ escape `%`/`_` ใน keyword; write path คือ `POST/PUT /api/v1/admin/intents/keywords` (admin_intents.py:161-183)
+- Consumes: model จริงคือ `IntentKeyword(category_id, keyword, match_type)` + `MatchType` (exact/contains/regex/starts_with) (backend/app/models/intent.py:8-12, 46-57) — **ไม่มี** ฟิลด์ `pattern`/`priority` และไม่มีไฟล์ `backend/app/services/intent_matcher.py`; matcher จริงคือ `find_intent_keyword` cascade EXACT > STARTS_WITH > CONTAINS > REGEX (`backend/app/services/message_intake/intent_matching.py:34-82`); REGEX มีกันความยาว 256/1000 อยู่แล้ว (:18-19, 71-76) แต่ compile ใหม่ทุกข้อความ; LIKE branch (:50-64) ไม่ escape `%`/`_` ใน keyword; write path คือ `POST/PUT /api/v1/admin/intents/keywords` (`@router.post("/keywords")` ที่ admin_intents.py:161 + `@router.put("/keywords/{k_id}")` ต่อท้าย บวก router prefix `/admin/intents` ที่ api.py:46)
 - Produces: `compile_intent_keyword(keyword: str) -> re.Pattern` (nested-quantifier reject); `_regex_cache` + `invalidate_intent_regex_cache()`; `_like_safe()` + `ilike(..., escape="\\")` ใน STARTS_WITH/CONTAINS
 
 - [ ] **Step 1: Write the failing test**
@@ -1274,6 +1293,7 @@ Expected: PASS
 # backend/tests/test_request_guards.py
 from types import SimpleNamespace
 import pytest
+import pytest_asyncio
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
@@ -1291,7 +1311,7 @@ def _fresh_engine():
     return create_async_engine(str(settings.DATABASE_URL), poolclass=NullPool)
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def owned_request():
     engine = _fresh_engine()
     Session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
@@ -1535,6 +1555,7 @@ from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 import pytest
+import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
@@ -1550,31 +1571,7 @@ def _fresh_engine():
     return create_async_engine(str(settings.DATABASE_URL), poolclass=NullPool)
 
 
-@pytest.fixture
-async def menu_without_image():
-    engine = _fresh_engine()
-    Session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-    async with Session() as s:
-        row = RichMenu(
-            name="pytest-preview",
-            chat_bar_text="เมนู",
-            config={"size": {"width": 2500, "height": 1686}, "areas": []},
-        )
-        s.add(row)
-        await s.commit()
-        yield row.id
-    async with Session() as s:
-        row = await s.get(RichMenu, row_id_id) if False else await s.get(RichMenu, _last[0])
-        if row:
-            await s.delete(row)
-            await s.commit()
-    await engine.dispose()
-```
-
-(หมายเหตุ cleanup — เขียนให้ถูกต้องเป็นแบบนี้ในไฟล์จริง:)
-
-```python
-@pytest.fixture
+@pytest_asyncio.fixture
 async def menu_without_image():
     engine = _fresh_engine()
     Session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
@@ -1712,6 +1709,7 @@ Expected: PASS
 ```python
 # backend/tests/test_livechat_ghost_presence.py
 import pytest
+import pytest_asyncio
 from fastapi import HTTPException
 from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
@@ -1729,7 +1727,7 @@ def _fresh_engine():
     return create_async_engine(str(settings.DATABASE_URL), poolclass=NullPool)
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def live_session():
     engine = _fresh_engine()
     Session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
@@ -1923,1317 +1921,349 @@ Expected: PASS
 
 **Ordering note:** A1 เป็นเจ้าของ `liff.py` ก่อน D3; A2 เป็นเจ้าของ `media.py` ก่อนงาน preview/sync ใดใดใน C/D; B ขนาน A ได้; C เริ่มบน `liff.py`/`media.py` ได้ก็ต่อเมื่อ A merge แล้วเท่านั้น; B1 เป็นเจ้าของ `sessions.py` + `errors.py` + transfer mapping ใน `admin_live_chat.py`/`ws_session/handlers.py` (C8 แตะแค่ `messaging.py` ขนานได้); C8 (ghost-push) ก่อน D1 export-stream ก็ได้ ไฟล์ไม่ชน
 
-
-
----
-
-## Wave A — Critical security (ทำก่อนทุก Wave บนไฟล์ที่ชน)
-
-### Task A1: LIFF strict default true + ห้ามเขียน DB เมื่อไม่มีตัวตน
+### Task D1: Histories limit clamp + export streaming + PDF ฟอนต์ไทย (PRD stories 20–21)
 
 **Files:**
-- Modify: `backend/app/api/v1/endpoints/liff.py`
-- Modify: `backend/app/core/config.py`
-- Modify: `backend/.env.development.example`
-- Modify: `backend/.env.production.example`
-- Test: `backend/tests/test_liff_strict_no_write.py`
-
-**Interfaces:**
-- Consumes: `settings.LIFF_STRICT_MODE: bool` จาก `backend/app/core/config.py`, `verify_liff_token(id_token: str) -> str` helper เดิมใน `liff.py`
-- Produces: `require_liff_identity(request: Request) -> dict` (คืน line_user_id ที่ยืนยันแล้ว, ไม่มี token + strict=false → raise HTTPException 401 ข้อความไทย ไม่เขียน DB); D3 จะ reuse ฟังก์ชันนี้เพื่อเติม timeout/rate-limit
-
-- [ ] **Step 1: Write the failing test**
-
-```python
-import pytest
-from httpx import AsyncClient
-from app.models.service_request import ServiceRequest
-from sqlalchemy import select, func
-
-@pytest.mark.asyncio
-async def test_liff_no_token_lenient_mode_writes_nothing(test_client: AsyncClient, db_session, monkeypatch):
-    monkeypatch.setattr("app.core.config.settings.LIFF_STRICT_MODE", False)
-    before = (await db_session.execute(select(func.count()).select_from(ServiceRequest))).scalar()
-    resp = await test_client.post("/api/v1/liff/service-requests", json={"topic": "ถนน", "detail": "หลุม", "phone": "0812345678"})
-    assert resp.status_code == 401
-    assert "ยืนยันตัวตน" in resp.text
-    after = (await db_session.execute(select(func.count()).select_from(ServiceRequest))).scalar()
-    assert after == before
-```
-
-- [ ] **Step 2: Run test to verify it fails**
-
-Run: `python -m pytest tests/test_liff_strict_no_write.py -v`
-Expected: FAIL — `assert 201 == 401` หรือ `after == before + 1` (พฤติกรรมเดิมเขียน DB ในโหมดผ่อนผัน)
-
-- [ ] **Step 3: Write minimal implementation**
-
-```python
-import logging
-from fastapi import Request, HTTPException
-from app.core.config import settings
-
-logger = logging.getLogger(__name__)
-
-async def require_liff_identity(request: Request) -> dict:
-    token = request.headers.get("x-liff-id-token", "")
-    if not token:
-        logger.warning("liff_unverified_attempt path=%s strict=%s", request.url.path, settings.LIFF_STRICT_MODE)
-        raise HTTPException(status_code=401, detail="กรุณายืนยันตัวตนผ่าน LINE ก่อนยื่นคำร้อง")
-    return await verify_liff_token(token)
-```
-
-ใน `liff.py` ทั้ง 3 endpoints (`POST /liff/service-requests`, `POST /liff/debt-mediation`, `POST /liff/media`) เรียก `claims = await require_liff_identity(request)` เป็นบรรทัดแรกก่อนแตะ DB ใดใด ลบบล็อก `if not token and not strict: create_row(...)` เดิมทิ้งทั้งหมด
-
-```python
-# backend/app/core/config.py — คงค่านี้ไว้ (ยืนยันว่ามีอยู่แล้ว)
-LIFF_STRICT_MODE: bool = True
-```
-
-```ini
-# backend/.env.development.example และ backend/.env.production.example
-LIFF_STRICT_MODE=true
-# rollback ชั่วคราวช่วงย้ายระบบ: ตั้ง LIFF_STRICT_MODE=false ได้ แต่ระบบจะไม่เขียน DB (ตอบ 401 + log) จนกว่าจะกลับเป็น true
-```
-
-- [ ] **Step 4: Run test to verify it passes**
-
-Run: `python -m pytest tests/test_liff_strict_no_write.py tests/test_liff_token.py tests/test_config_migration_controls.py -v`
-Expected: PASS ทั้งหมด
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add backend/app/api/v1/endpoints/liff.py backend/app/core/config.py backend/.env.development.example backend/.env.production.example backend/tests/test_liff_strict_no_write.py
-git commit -m "fix(liff): deny unauthenticated writes, default strict true"
-```
-
-- [ ] **Step 6: Validation**
-
-Run: `python -m pytest tests/test_liff_media_upload.py tests/test_liff_debt_mediation.py tests/test_service_request_liff_validation.py -v`
-Expected: PASS — 3 ฟอร์ม LIFF เดิมยังผ่านเมื่อมี token ถูกต้อง
-
-### Task A2: Media private token gate — ว่างชนว่างต้องไม่ผ่าน + preview ส่ง token
-
-**Files:**
-- Modify: `backend/app/api/v1/endpoints/media.py`
-- Modify: `frontend/app/admin/files/page.tsx`
-- Test: `backend/tests/test_media_private_gate.py`
-
-**Interfaces:**
-- Consumes: `require_liff_identity` จาก Task A1 เฉพาะ path upload (`POST /liff/media`) — ถ้าแตะ upload path ต้องทำหลัง A1 merge แล้วเท่านั้น ส่วน path serve (`GET /media/{id}`) ทำขนานได้
-- Produces: `check_private_token(stored: str, presented: str) -> bool` (True ก็ต่อเมื่อทั้งสองฝั่ง non-empty และตรงกันแบบ constant-time); frontend `buildMediaUrl(id: string, token: string) => string` ส่ง token ทุกครั้ง
-
-- [ ] **Step 1: Write the failing test**
-
-```python
-import pytest
-from httpx import AsyncClient
-
-@pytest.mark.asyncio
-async def test_private_media_empty_token_denied(test_client: AsyncClient, private_media):
-    for qs in ["", "?token=", "?token=wrong"]:
-        resp = await test_client.get(f"/api/v1/media/{private_media.id}{qs}")
-        assert resp.status_code == 403
-    ok = await test_client.get(f"/api/v1/media/{private_media.id}?token={private_media.public_token}")
-    assert ok.status_code == 200
-```
-
-- [ ] **Step 2: Run test to verify it fails**
-
-Run: `python -m pytest tests/test_media_private_gate.py -v`
-Expected: FAIL — เคส `?token=` หรือไม่มี token ได้ 200 (bypass ว่างชนว่าง)
-
-- [ ] **Step 3: Write minimal implementation**
-
-```python
-import secrets
-import logging
-from fastapi import HTTPException
-
-logger = logging.getLogger(__name__)
-
-def check_private_token(stored: str | None, presented: str | None) -> bool:
-    if not stored or not presented:
-        return False
-    return secrets.compare_digest(stored, presented)
-```
-
-ใน `GET /media/{id}` แทนบล็อก `secrets.compare_digest(row.public_token or "", token or "")` เดิมด้วย:
-
-```python
-if row.is_public:
-    return await serve_file(row)
-if not check_private_token(row.public_token, token):
-    logger.warning("media_forbidden id=%s", media_id)
-    raise HTTPException(status_code=403, detail="ไม่มีสิทธิ์ดูไฟล์นี้")
-return await serve_file(row)
-```
-
-revoke ในทรานแซกชันเดียว:
-
-```python
-row.public_token = None
-row.is_public = False
-await db.commit()
-```
-
-create ใช้ `row.public_token = secrets.token_urlsafe(32)`
-
-frontend `frontend/app/admin/files/page.tsx`:
-
-```tsx
-function buildMediaUrl(id: string, token: string): string {
-  const q = new URLSearchParams({ token });
-  return `/api/v1/media/${id}?${q.toString()}`;
-}
-// ทุก <img>/<a> preview ต้องเรียก buildMediaUrl(id, token) ห้ามแปะ id เปล่าเปล่า
-// ข้อความ error ภาษาไทย: "ไม่มีสิทธิ์ดูไฟล์นี้ กรุณาขอลิงก์ใหม่"
-```
-
-- [ ] **Step 4: Run test to verify it passes**
-
-Run: `python -m pytest tests/test_media_private_gate.py tests/test_media_endpoints.py tests/test_media_upload_allowlist.py -v`
-Expected: PASS
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add backend/app/api/v1/endpoints/media.py frontend/app/admin/files/page.tsx backend/tests/test_media_private_gate.py
-git commit -m "fix(media): deny empty-token private access, send token in preview"
-```
-
-- [ ] **Step 6: Validation**
-
-Run: `python -m pytest tests/test_webhook_media.py tests/test_rich_menu_image_media.py -v`
-Expected: PASS — upload/revoke/thumbnail เดิมไม่พัง
-
-### Task A3: Health auth + ซ่อน error ดิบ + redis ping + watchdog
-
-**Files:**
-- Modify: `backend/app/api/v1/endpoints/health.py`
-- Modify: `backend/app/core/redis_client.py`
-- Test: `backend/tests/test_health_hardening.py`
-
-**Interfaces:**
-- Consumes: `get_current_admin` จาก `backend/app/api/deps.py`, `redis_client.ping()` จาก `backend/app/core/redis_client.py`
-- Produces: `GET /api/v1/health` (public แต่ไม่มีฟิลด์รหัส error ดิบ), `GET /api/v1/health/detailed` + `GET /api/v1/health/websocket` (ต้องผ่าน `get_current_admin` ไม่เช่นนั้น 401/403)
-
-- [ ] **Step 1: Write the failing test**
-
-```python
-import pytest
-from httpx import AsyncClient
-
-async def _boom():
-    raise RuntimeError("boom-secret-host")
-
-@pytest.mark.asyncio
-async def test_detailed_health_requires_admin(test_client: AsyncClient):
-    resp = await test_client.get("/api/v1/health/detailed")
-    assert resp.status_code in (401, 403)
-    assert "Traceback" not in resp.text and "password" not in resp.text.lower()
-
-@pytest.mark.asyncio
-async def test_basic_health_hides_raw_error(test_client: AsyncClient, monkeypatch):
-    monkeypatch.setattr("app.api.v1.endpoints.health.check_database", _boom)
-    resp = await test_client.get("/api/v1/health")
-    assert resp.status_code in (200, 503)
-    assert "boom-secret-host" not in resp.text
-    assert resp.json().get("database") in ("unavailable", "degraded", "ok")
-```
-
-- [ ] **Step 2: Run test to verify it fails**
-
-Run: `python -m pytest tests/test_health_hardening.py -v`
-Expected: FAIL — detailed health ได้ 200 แบบไม่ต้อง auth และ basic health มีข้อความดิบ `boom-secret-host`
-
-- [ ] **Step 3: Write minimal implementation**
-
-```python
-import logging
-from fastapi import Depends
-from app.api.deps import get_current_admin
-from app.models.user import User
-
-logger = logging.getLogger(__name__)
-
-@router.get("")
-async def basic_health():
-    try:
-        db_ok = await check_database()
-    except Exception:
-        logger.exception("health database check failed")
-        db_ok = False
-    try:
-        redis_ok = await check_redis()
-    except Exception:
-        logger.exception("health redis check failed")
-        redis_ok = False
-    if db_ok and redis_ok:
-        status = "ok"
-    else:
-        status = "degraded"
-    return {"status": status, "database": "ok" if db_ok else "unavailable", "redis": "ok" if redis_ok else "unavailable"}
-
-@router.get("/detailed")
-async def detailed_health(admin: User = Depends(get_current_admin)):
-    return await collect_details()
-
-@router.get("/websocket")
-async def websocket_health(admin: User = Depends(get_current_admin)):
-    return await collect_ws_stats()
-```
-
-`backend/app/core/redis_client.py`:
-
-```python
-async def check_redis() -> bool:
-    pong = await redis_client.ping()
-    return bool(pong)
-```
-
-ลบทุก `str(e)` ออกจาก response body คงไว้เฉพาะ `logger.exception` ฝั่ง server
-
-- [ ] **Step 4: Run test to verify it passes**
-
-Run: `python -m pytest tests/test_health_hardening.py tests/test_health_watchdog.py tests/test_main_startup.py -v`
-Expected: PASS
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add backend/app/api/v1/endpoints/health.py backend/app/core/redis_client.py backend/tests/test_health_hardening.py
-git commit -m "fix(health): require admin for detailed health, hide raw errors"
-```
-
-- [ ] **Step 6: Validation**
-
-Run: `python -m pytest tests/test_health_watchdog.py -v`
-Expected: PASS — watchdog ยังตรวจ basic health ได้โดยไม่ต้อง auth
-
-
-
----
-
-## Wave B — Critical correctness (ขนานกับ Wave A ได้ ไฟล์ไม่ชน)
-
-### Task B1: Transfer conditional UPDATE + rowcount + concurrency test
-
-**Files:**
-- Modify: `backend/app/services/live_chat_service/sessions.py`
-- Test: `backend/tests/test_transfer_race.py`
-
-**Interfaces:**
-- Consumes: `ChatSession` model (`backend/app/models/chat_session.py`: `id`, `status`, `operator_id`, `transfer_count`, `transfer_reason`, `last_activity_at`), `SessionStatus.ACTIVE`
-- Produces: `transfer_session(self, line_user_id: str, from_operator_id: int, to_operator_id: int, reason: Optional[str], db: AsyncSession) -> ChatSession` (ชนกัน → HTTPException 409 ข้อความไทย, session ไม่อยู่ → 404); ไม่เปลี่ยน signature `claim_session` / `close_session`
-
-- [ ] **Step 1: Write the failing test**
-
-```python
-import asyncio
-import pytest
-from app.services.live_chat_service.sessions import transfer_session
-
-@pytest.mark.asyncio
-async def test_concurrent_transfer_single_winner(db_session_factory, active_session_owned_by_a):
-    async def attempt():
-        async with db_session_factory() as db:
-            return await transfer_session(db, active_session_owned_by_a, 1, 2, "ฝากดูต่อ")
-    results = await asyncio.gather(attempt(), attempt(), return_exceptions=True)
-    ok = [r for r in results if not isinstance(r, Exception)]
-    conflicts = [r for r in results if getattr(r, "status_code", None) in (404, 409)]
-    assert len(ok) == 1
-    assert len(conflicts) == 1
-```
-
-- [ ] **Step 2: Run test to verify it fails**
-
-Run: `python -m pytest tests/test_transfer_race.py -v`
-Expected: FAIL — `len(ok) == 2` (โอนซ้อนสำเร็จทั้งคู่) และ `transfer_count` เพิ่มเป็น 2
-
-- [ ] **Step 3: Write minimal implementation**
-
-```python
-import logging
-from datetime import datetime, timezone
-from fastapi import HTTPException
-from sqlalchemy import update
-from app.models.chat_session import ChatSession, SessionStatus
-
-logger = logging.getLogger(__name__)
-
-async def transfer_session(self, line_user_id: str, from_operator_id: int, to_operator_id: int, reason: Optional[str], db: AsyncSession) -> ChatSession:
-    now = datetime.now(timezone.utc)
-    stmt = (
-        update(ChatSession)
-        .where(ChatSession.id == session_id)
-        .where(ChatSession.status == SessionStatus.ACTIVE)
-        .where(ChatSession.operator_id == from_operator_id)
-        .values(operator_id=to_operator_id, transfer_count=ChatSession.transfer_count + 1, transfer_reason=reason, last_activity_at=now)
-    )
-    result = await db.execute(stmt)
-    await db.commit()
-    if result.rowcount != 1:
-        existing = await db.get(ChatSession, session_id)
-        if existing is None or existing.status != SessionStatus.ACTIVE:
-            raise HTTPException(status_code=404, detail="ไม่พบห้องแชทนี้แล้ว กรุณารีเฟรช")
-        raise HTTPException(status_code=409, detail="เจ้าหน้าที่อีกคนรับเคสนี้ไปแล้ว กรุณารีเฟรช")
-    logger.info("transfer session=%s from=%s to=%s", session_id, from_operator_id, to_operator_id)
-    refreshed = await db.get(ChatSession, session_id)
-    return refreshed
-```
-
-ลบพารามิเตอร์ `lock` ที่ไม่ถูกใช้ใน `get_active_session` ออก หรือคงไว้แต่ไม่เรียก `with_for_update` หลอก แล้วคอมเมนต์ว่าใช้ conditional UPDATE แทน
-
-- [ ] **Step 4: Run test to verify it passes**
-
-Run: `python -m pytest tests/test_transfer_race.py tests/test_transfer_session_errors.py tests/test_session_claim.py tests/test_operator_takeover.py -v`
-Expected: PASS
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add backend/app/services/live_chat_service/sessions.py backend/tests/test_transfer_race.py
-git commit -m "fix(live-chat): atomic transfer with conditional update"
-```
-
-- [ ] **Step 6: Validation**
-
-Run: `python -m pytest tests/test_session_choreography.py tests/test_multi_operator.py tests/test_live_chat_service.py -v`
-Expected: PASS — claim/close/transfer เดิมไม่พัง
-
-### Task B2: Secrets Credential migration + encrypt + backfill
-
-**Files:**
-- Create: `backend/alembic/versions/20260912_migrate_secrets_to_credential.py`
-- Modify: `backend/app/services/credential_service.py`
-- Modify: `backend/app/services/settings_service.py`
-- Modify: `backend/app/api/v1/endpoints/settings.py`
-- Modify: `backend/app/api/v1/endpoints/admin_credentials.py`
-- Modify: `backend/app/models/system_setting.py`
-- Test: `backend/tests/test_secrets_migration.py`
-
-**Interfaces:**
-- Consumes: `Credential(provider, name, credentials_encrypted, metadata_json, is_active, is_default)` จาก `backend/app/models/credential.py`, `ENCRYPTION_KEY` guard เดิม
-- Produces: `SECRET_DENY_LIST: frozenset[str]` ใน `settings_service.py`, `migrate_secret_key(key: str) -> bool`, `CredentialService.encrypt_credentials(data: dict) -> str` / `CredentialService.decrypt_credentials(encrypted: str) -> dict`; `POST /credentials` รับค่าดิบครั้งเดียว, `GET /settings` mask ค่า secret
-
-- [ ] **Step 1: Write the failing test**
-
-```python
-import pytest
-
-SECRET_KEYS = ["LINE_CHANNEL_ACCESS_TOKEN", "LINE_CHANNEL_SECRET", "TELEGRAM_BOT_TOKEN", "N8N_API_KEY"]
-
-@pytest.mark.asyncio
-async def test_new_secret_rejected_in_system_setting(settings_service):
-    with pytest.raises(ValueError, match="เก็บรหัส"):
-        await settings_service.set("LINE_CHANNEL_SECRET", "plain-value")
-
-@pytest.mark.asyncio
-async def test_credential_roundtrip(credential_service):
-    enc = await credential_service.encrypt("s3cr3t")
-    assert enc != "s3cr3t"
-    assert await credential_service.decrypt(enc) == "s3cr3t"
-```
-
-- [ ] **Step 2: Run test to verify it fails**
-
-Run: `python -m pytest tests/test_secrets_migration.py -v`
-Expected: FAIL — `set` ไม่ raise และ `encrypt` คืนค่าเดิม (ยังไม่มี implementation)
-
-- [ ] **Step 3: Write minimal implementation**
-
-```python
-# backend/app/services/settings_service.py
-SECRET_DENY_LIST: frozenset[str] = frozenset({
-    "LINE_CHANNEL_ACCESS_TOKEN", "LINE_CHANNEL_SECRET",
-    "TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID",
-    "N8N_API_KEY", "N8N_WEBHOOK_SECRET", "ENCRYPTION_KEY",
-})
-
-async def set(self, key: str, value: str) -> SystemSetting:
-    if key in SECRET_DENY_LIST:
-        raise ValueError("ห้ามเก็บรหัสใน SystemSetting กรุณาใช้หน้า Credentials แทน")
-    row = await self._upsert(key, value)
-    return row
-
-def mask_settings(items: list[SystemSetting]) -> list[SettingResponse]:
-    out = []
-    for it in items:
-        if it.key in SECRET_DENY_LIST:
-            v = "***"
-        else:
-            v = it.value
-        out.append(SettingResponse(key=it.key, value=v, description=it.description))
-    return out
-```
-
-```python
-# backend/app/services/credential_service.py
-from cryptography.fernet import Fernet
-from app.core.config import settings
-
-class CredentialService:
-    def encrypt_credentials(self, data: dict) -> str:
-        return Fernet(settings.ENCRYPTION_KEY.encode()).encrypt(raw.encode()).decode()
-
-    def decrypt_credentials(self, encrypted: str) -> dict:
-        return Fernet(settings.ENCRYPTION_KEY.encode()).decrypt(enc.encode()).decode()
-```
-
-```python
-# backend/alembic/versions/20260912_migrate_secrets_to_credential.py
-revision = "20260912_migrate_secrets"
-down_revision = "z1a2b3c4d5e6"
-
-def upgrade() -> None:
-    # 1. backup: copy SystemSetting rows ที่ key ใน DENY_LIST ไปตาราง backup ชั่วคราว
-    # 2. ต่อ key: encrypt value แล้ว insert Credential (provider จาก prefix, name=key)
-    # 3. verify: decrypt กลับแล้วเทียบเท่าเดิมทุก key
-    # 4. mask: update SystemSetting.value เป็น "***MIGRATED***" (ไม่ลบ row กัน FK พัง)
-    pass
-
-def downgrade() -> None:
-    # restore จาก backup เท่านั้น ไม่ถอดรหัสกลับเป็น plaintext อัตโนมัติ
-    pass
-```
-
-`GET /settings` เรียก `mask_settings`, `POST /credentials` เรียก `encrypt` ครั้งเดียวก่อน insert, หน้า admin แสดงคำเตือนไทย "ค่านี้ย้ายไป Credentials แล้ว ห้ามกรอกที่นี่"
-
-- [ ] **Step 4: Run test to verify it passes**
-
-Run: `python -m pytest tests/test_secrets_migration.py tests/test_credential_service.py tests/test_credential_schema.py -v`
-Expected: PASS
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add backend/alembic/versions/20260912_migrate_secrets_to_credential.py backend/app/services/credential_service.py backend/app/services/settings_service.py backend/app/api/v1/endpoints/settings.py backend/app/api/v1/endpoints/admin_credentials.py backend/app/models/system_setting.py backend/tests/test_secrets_migration.py
-git commit -m "fix(secrets): migrate secrets to encrypted credentials"
-```
-
-- [ ] **Step 6: Validation**
-
-Run: `python scripts/db_target.py alembic --target local upgrade head`
-Expected: PASS — migration ขึ้นได้ แล้วรัน `python scripts/db_target.py alembic --target local downgrade -1` และ `upgrade head` ซ้ำอีกหนึ่งรอบโดยไม่ทำรหัสหาย
-
-
-
----
-
-## Wave C — High backend (เริ่มหลัง Wave A merge บนไฟล์ที่ชน: liff.py / media.py)
-
-### Task C1: Analytics gather + cache + percentile SQL + schemas
-
-**Files:**
-- Modify: `backend/app/api/v1/endpoints/admin_analytics.py`
-- Modify: `backend/app/services/analytics_service.py`
-- Create: `backend/app/schemas/analytics.py`
-- Test: `backend/tests/test_analytics_perf.py`
-
-**Interfaces:**
-- Consumes: `redis_client` (`backend/app/core/redis_client.py`), SQLAlchemy `select` + `func`
-- Produces: `GET /analytics/dashboard?days=7 -> DashboardResponse(kpis, trends, funnel, heatmap, percentiles, generated_at, cache_hit)`; `AnalyticsService.get_dashboard(days: int) -> DashboardResponse`
-
-- [ ] **Step 1: Write the failing test**
-
-```python
-import pytest
-from httpx import AsyncClient
-
-@pytest.mark.asyncio
-async def test_dashboard_single_roundtrip_and_cache(test_client: AsyncClient, query_counter):
-    r1 = await test_client.get("/api/v1/analytics/dashboard?days=7")
-    assert r1.status_code == 200
-    assert set(r1.json().keys()) >= {"kpis", "trends", "funnel", "heatmap", "percentiles", "generated_at"}
-    first_queries = query_counter.count
-    assert first_queries <= 3, f"too many queries: {first_queries}"
-    assert r1.json()["percentiles"]["p50"] >= 0.0
-    r2 = await test_client.get("/api/v1/analytics/dashboard?days=7")
-    assert r2.json()["cache_hit"] is True
-    assert query_counter.count == first_queries
-```
-
-- [ ] **Step 2: Run test to verify it fails**
-
-Run: `python -m pytest tests/test_analytics_perf.py -v`
-Expected: FAIL — query count เกิน 3 (เดิมราว 15) และไม่มี field `cache_hit`
-
-- [ ] **Step 3: Write minimal implementation**
-
-```python
-# backend/app/schemas/analytics.py
-from pydantic import BaseModel, ConfigDict
-
-class KpiBlock(BaseModel):
-    model_config = ConfigDict(from_attributes=True, use_enum_values=True)
-    total_sessions: int
-    active_sessions: int
-    p50_seconds: float
-    p95_seconds: float
-
-class DashboardResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True, use_enum_values=True)
-    kpis: KpiBlock
-    trends: list[dict]
-    funnel: list[dict]
-    heatmap: list[dict]
-    percentiles: dict
-    generated_at: str
-    cache_hit: bool = False
-```
-
-```python
-# backend/app/services/analytics_service.py
-import json
-import logging
-from datetime import datetime, timezone
-from sqlalchemy import select, func
-
-logger = logging.getLogger(__name__)
-CACHE_TTL = 120
-
-async def get_dashboard(db: AsyncSession, days: int) -> DashboardResponse:
-    key = f"analytics:dashboard:{days}"
-    cached = await redis_client.get(key)
-    if cached:
-        data = json.loads(cached)
-        data["cache_hit"] = True
-        return DashboardResponse(**data)
-    duration = func.extract("epoch", ChatSession.closed_at - ChatSession.started_at)
-    stmt = select(
-        func.count(ChatSession.id),
-        func.percentile_cont(0.5).within_group(duration),
-        func.percentile_cont(0.95).within_group(duration),
-    ).where(ChatSession.created_at >= days_ago(days))
-    total, p50, p95 = (await db.execute(stmt)).one()
-    resp = DashboardResponse(kpis=KpiBlock(total_sessions=total, active_sessions=0, p50_seconds=float(p50 or 0), p95_seconds=float(p95 or 0)), trends=[], funnel=[], heatmap=[], percentiles={"p50": float(p50 or 0), "p95": float(p95 or 0)}, generated_at=datetime.now(timezone.utc).isoformat(), cache_hit=False)
-    await redis_client.setex(key, CACHE_TTL, resp.model_dump_json())
-    return resp
-```
-
-ใช้ `mget`/pipeline รวม trends/funnel/heatmap ใน query เดียวกัน ไม่ loop N+1
-
-ไม่มีคอลัมน์ `ChatSession.duration_seconds` (ตาม Interfaces ของ Task C1) — duration ต้องคำนวณใน SQL ด้วย `func.extract("epoch", ChatSession.closed_at - ChatSession.started_at)` ตาม pattern จริงที่ใช้อยู่ใน `analytics_service.py`; row ที่ยังไม่ปิด (`closed_at` เป็น NULL) จะถูก `percentile_cont` ตัดออกจากการคำนวณอัตโนมัติ ส่วน `func.count` ยังนับทุก row เป็น total_sessions; ถ้าต้องการ response percentile ให้ใช้ `func.extract("epoch", ChatSession.first_response_at - ChatSession.started_at)` ด้วยสูตรเดียวกัน
-
-- [ ] **Step 4: Run test to verify it passes**
-
-Run: `python -m pytest tests/test_analytics_perf.py tests/test_analytics_service.py -v`
-Expected: PASS
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add backend/app/api/v1/endpoints/admin_analytics.py backend/app/services/analytics_service.py backend/app/schemas/analytics.py backend/tests/test_analytics_perf.py
-git commit -m "perf(analytics): single-query dashboard with cache and sql percentiles"
-```
-
-- [ ] **Step 6: Validation**
-
-Run: `python -m pytest tests/test_analytics_service.py -v`
-Expected: PASS — percentile ตรงกับค่าที่ DB คำนวณ
-
-### Task C2: Broadcast dry-run + TZ + multicast backoff + stats
-
-**Files:**
-- Modify: `backend/app/api/v1/endpoints/admin_broadcast.py`
-- Modify: `backend/app/services/broadcast_service.py`
-- Test: `backend/tests/test_broadcast_dryrun.py`
-
-**Interfaces:**
-- Consumes: `BroadcastCreate(content, targets, scheduled_at, dry_run)` schema, LINE multicast sender เดิม
-- Produces: `POST /broadcasts {content, targets, scheduled_at, dry_run} -> BroadcastPreview | BroadcastResponse`; `resolve_object_ref(ref: str) -> dict`, `send_multicast_with_backoff(tokens: list[str], msg: dict) -> dict`
-
-- [ ] **Step 1: Write the failing test**
-
-```python
-import pytest
-from httpx import AsyncClient
-
-@pytest.mark.asyncio
-async def test_broadcast_dry_run_creates_nothing(test_client: AsyncClient, db_session):
-    before = await count_broadcasts(db_session)
-    resp = await test_client.post("/api/v1/broadcasts", json={"content": "สวัสดี", "targets": ["U1"], "dry_run": True})
-    assert resp.status_code == 200
-    assert "preview" in resp.json()
-    assert await count_broadcasts(db_session) == before
-
-@pytest.mark.asyncio
-async def test_object_ref_without_permission_denied(test_client: AsyncClient, staff_token):
-    resp = await test_client.post("/api/v1/broadcasts", headers={"Authorization": f"Bearer {staff_token}"}, json={"content": "x", "targets": [], "object_ref": "$flex_secret", "dry_run": True})
-    assert resp.status_code in (401, 403)
-```
-
-- [ ] **Step 2: Run test to verify it fails**
-
-Run: `python -m pytest tests/test_broadcast_dryrun.py -v`
-Expected: FAIL — 422 (`dry_run` field ไม่มี) หรือสร้างงานจริงทั้งที่ dry_run=true
-
-- [ ] **Step 3: Write minimal implementation**
-
-```python
-import asyncio
-import logging
-from zoneinfo import ZoneInfo
-from pydantic import BaseModel, ConfigDict
-
-logger = logging.getLogger(__name__)
-BKK = ZoneInfo("Asia_Bangkok")
-
-class BroadcastCreate(BaseModel):
-    model_config = ConfigDict(from_attributes=True, use_enum_values=True)
-    content: str
-    targets: list[str]
-    scheduled_at: str | None = None
-    dry_run: bool = False
-    object_ref: str | None = None
-
-async def create_broadcast(db: AsyncSession, payload: BroadcastCreate):
-    targets = payload.targets
-    if payload.object_ref:
-        targets = await resolve_object_ref(payload.object_ref)
-    if payload.dry_run:
-        return {"preview": {"content": payload.content, "reach": len(targets), "sample": targets[:5]}}
-    sched = to_utc(payload.scheduled_at) if payload.scheduled_at else None
-    row = await persist_broadcast(db, payload.content, targets, sched)
-    return row
-
-async def send_multicast_with_backoff(tokens: list[str], msg: dict) -> dict:
-    sent: list[str] = []
-    failed: list[str] = []
-    for attempt in range(3):
-        try:
-            return await line_multicast(tokens, msg)
-        except Exception:
-            logger.exception("multicast attempt %s failed", attempt + 1)
-            await asyncio.sleep(2 ** attempt)
-    return {"sent": sent, "failed": tokens}
-```
-
-`scheduled_at` เก็บ UTC แสดงผลแปลง `Asia_Bangkok` ฝั่ง UI; stats นับ `sent/failed/read` แยกกัน
-
-- [ ] **Step 4: Run test to verify it passes**
-
-Run: `python -m pytest tests/test_broadcast_dryrun.py tests/test_broadcast_service.py tests/test_broadcast_scheduler.py -v`
-Expected: PASS
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add backend/app/api/v1/endpoints/admin_broadcast.py backend/app/services/broadcast_service.py backend/tests/test_broadcast_dryrun.py
-git commit -m "feat(broadcast): dry-run preview with tz and backoff"
-```
-
-- [ ] **Step 6: Validation**
-
-Run: `python -m pytest tests/test_broadcast_service.py tests/test_broadcast_scheduler.py -v`
-Expected: PASS — scheduled ข้าม timezone ยังตรง
-
-### Task C3: Intent regex compile + escape + order_by
-
-**Files:**
-- Modify: `backend/app/api/v1/endpoints/admin_intents.py`
-- Modify: `backend/app/services/message_intake/intent_matching.py`
-- Test: `backend/tests/test_intent_regex_guard.py`
-
-**Interfaces:**
-- Consumes: `Intent` model (`backend/app/models/intent.py`: `pattern`, `priority`, `created_at`)
-- Produces: `compile_intent(pattern: str) -> re.Pattern`, `wildcard_to_regex(raw: str) -> str`, `IntentMatcher.match(text: str) -> Intent | None` (order `priority DESC, created_at ASC`)
-
-- [ ] **Step 1: Write the failing test**
-
-```python
-import pytest
-from httpx import AsyncClient
-
-@pytest.mark.asyncio
-async def test_redos_pattern_rejected(test_client: AsyncClient):
-    resp = await test_client.post("/api/v1/intents", json={"pattern": "(a+)+$" * 10, "priority": 1, "category": "ทักทาย"})
-    assert resp.status_code == 422
-
-def test_wildcard_escaped():
-    from app.services.message_intake.intent_matching import wildcard_to_regex
-    assert wildcard_to_regex("สวัสดี*") == "สวัสดี.*"
-    assert wildcard_to_regex("a.b") == "a\\.b"
-```
-
-- [ ] **Step 2: Run test to verify it fails**
-
-Run: `python -m pytest tests/test_intent_regex_guard.py -v`
-Expected: FAIL — pattern พิษได้ 201 และ wildcard ไม่ escape จุด
-
-- [ ] **Step 3: Write minimal implementation**
-
-```python
-import re
-import logging
-from sqlalchemy import select
-
-logger = logging.getLogger(__name__)
-MAX_PATTERN_LEN = 200
-
-def wildcard_to_regex(raw: str) -> str:
-    return re.escape(raw).replace("\\*", ".*")
-
-def compile_intent(pattern: str) -> re.Pattern:
-    if len(pattern) > MAX_PATTERN_LEN:
-        raise ValueError("รูปแบบยาวเกินไป กรุณาย่อให้สั้นลง")
-    if re.search("(\\+|\\*){2,}|\\([^)]*\\+[^)]*\\)\\+", pattern):
-        raise ValueError("รูปแบบเสี่ยงค้าง กรุณาเขียนให้เจาะจงขึ้น")
-    return re.compile(pattern, re.IGNORECASE)
-
-async def list_intents_ordered(db: AsyncSession):
-    stmt = select(Intent).order_by(Intent.priority.desc(), Intent.created_at.asc())
-    return (await db.execute(stmt)).scalars().all()
-```
-
-POST `/intents` เรียก `compile_intent` ก่อน insert ถ้า fail → 422 ข้อความไทย; matcher โหลด compile ครั้งเดียวตอน start ไม่ compile ต่อข้อความ
-
-- [ ] **Step 4: Run test to verify it passes**
-
-Run: `python -m pytest tests/test_intent_regex_guard.py tests/test_webhook_intent_matching.py tests/test_detect_category.py -v`
-Expected: PASS
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add backend/app/api/v1/endpoints/admin_intents.py backend/app/services/message_intake/intent_matching.py backend/tests/test_intent_regex_guard.py
-git commit -m "fix(intent): precompile regex with redos guard and ordering"
-```
-
-- [ ] **Step 6: Validation**
-
-Run: `python -m pytest tests/test_webhook_intent_fallthrough.py tests/test_intent_category_readiness.py -v`
-Expected: PASS
-
-### Task C4: Reply $regex + update validation
-
-**Files:**
-- Modify: `backend/app/api/v1/endpoints/admin_reply_objects.py`
-- Modify: `backend/app/models/reply_object.py`
-- Test: `backend/tests/test_reply_object_guard.py`
-
-**Interfaces:**
-- Consumes: `ReplyObject(object_id, payload)` เดิม
-- Produces: `OBJECT_ID_RE = re.compile(r"^\$[A-Za-z][A-Za-z0-9_]{2,39}$")`, `ReplyObjectUpdate` schema (validate เต็มรูปแบบ); `$100` ต้อง 422
-
-- [ ] **Step 1: Write the failing test**
-
-```python
-import pytest
-from httpx import AsyncClient
-
-@pytest.mark.asyncio
-async def test_dollar_name_strict(test_client: AsyncClient):
-    bad = await test_client.post("/api/v1/reply-objects", json={"object_id": "$100", "payload": {"type": "text"}})
-    assert bad.status_code == 422
-    good = await test_client.post("/api/v1/reply-objects", json={"object_id": "$flex_traffic", "payload": {"type": "text"}})
-    assert good.status_code in (200, 201)
-```
-
-- [ ] **Step 2: Run test to verify it fails**
-
-Run: `python -m pytest tests/test_reply_object_guard.py -v`
-Expected: FAIL — `$100` ได้ 201
-
-- [ ] **Step 3: Write minimal implementation**
-
-```python
-import re
-from pydantic import BaseModel, ConfigDict, field_validator
-
-OBJECT_ID_RE = re.compile(r"^\$[A-Za-z][A-Za-z0-9_]{2,39}$")
-
-class ReplyObjectCreate(BaseModel):
-    model_config = ConfigDict(from_attributes=True, use_enum_values=True)
-    object_id: str
-    payload: dict
-
-    @field_validator("object_id")
-    @classmethod
-    def check_name(cls, v: str) -> str:
-        if not OBJECT_ID_RE.match(v):
-            raise ValueError("ชื่อต้องขึ้นต้นด้วย $ ตามด้วยตัวอักษร/ตัวเลข/ขีดล่าง 3-40 ตัว (เช่น $flex_traffic)")
-        return v
-
-class ReplyObjectUpdate(BaseModel):
-    model_config = ConfigDict(from_attributes=True, use_enum_values=True)
-    payload: dict
-    is_active: bool | None = None
-```
-
-PATCH ต้องใช้ `ReplyObjectUpdate` ห้ามอัปเดต `object_id` โดยตรง
-
-- [ ] **Step 4: Run test to verify it passes**
-
-Run: `python -m pytest tests/test_reply_object_guard.py tests/test_reply_object_validation.py tests/test_response_parser.py -v`
-Expected: PASS
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add backend/app/api/v1/endpoints/admin_reply_objects.py backend/app/models/reply_object.py backend/tests/test_reply_object_guard.py
-git commit -m "fix(reply-objects): strict dollar-name validation on create and update"
-```
-
-- [ ] **Step 6: Validation**
-
-Run: `python -m pytest tests/test_reply_object_validation.py tests/test_response_parser_template.py -v`
-Expected: PASS
-
-
-
-### Task C5: Requests guard + audit + enums รวมศูนย์
-
-**Files:**
-- Modify: `backend/app/api/v1/endpoints/admin_requests.py`
-- Modify: `backend/app/models/service_request.py`
-- Reference: `backend/app/models/service_request.py` (reuse `RequestStatus` เดิม `backend/app/models/service_request.py:8-26` ห้ามสร้าง `backend/app/models/service_request.py (reuse enum — no new file)`)
-- Test: `backend/tests/test_request_guards.py`
-
-**Interfaces:**
-- Consumes: `get_current_admin` / `get_current_manager` จาก `backend/app/api/deps.py`, `AuditLog` model
-- Produces: `RequestStatus(str, Enum)` (PENDING/IN_PROGRESS/DONE/CANCELLED — ค่าเดียวทั้ง backend/frontend/DB), assignment guard ใน `PATCH /requests/{id}/assign`
-
-- [ ] **Step 1: Write the failing test**
-
-```python
-import pytest
-from httpx import AsyncClient
-
-@pytest.mark.asyncio
-async def test_assign_by_non_owner_forbidden(test_client: AsyncClient, outsider_token, owned_request):
-    resp = await test_client.patch(f"/api/v1/admin/requests/{owned_request}/assign", headers={"Authorization": f"Bearer {outsider_token}"}, json={"assignee_id": 99})
-    assert resp.status_code == 403
-
-@pytest.mark.asyncio
-async def test_delete_writes_audit(test_client: AsyncClient, admin_token, some_request, db_session):
-    resp = await test_client.delete(f"/api/v1/admin/requests/{some_request}", headers={"Authorization": f"Bearer {admin_token}"})
-    assert resp.status_code in (200, 204)
-    assert await audit_exists(db_session, action="delete_request")
-```
-
-- [ ] **Step 2: Run test to verify it fails**
-
-Run: `python -m pytest tests/test_request_guards.py -v`
-Expected: FAIL — assign ได้ 200 ทั้งที่ไม่ใช่เจ้าของ และ delete ไม่เขียน audit
-
-- [ ] **Step 3: Write minimal implementation**
-
-```python
-# backend/app/models/service_request.py (reuse enum — no new file)
-import enum
-
-class RequestStatus(str, enum.Enum):
-    PENDING = "PENDING"
-    IN_PROGRESS = "IN_PROGRESS"
-    DONE = "DONE"
-    CANCELLED = "CANCELLED"
-```
-
-```python
-# backend/app/api/v1/endpoints/admin_requests.py
-import logging
-from fastapi import Depends, HTTPException
-
-logger = logging.getLogger(__name__)
-
-@router.patch("/requests/{id}/assign")
-async def assign_request(id: int, body: AssignBody, db: AsyncSession = Depends(get_db), admin: User = Depends(get_current_admin)):
-    row = await db.get(ServiceRequest, id)
-    if row is None:
-        raise HTTPException(status_code=404, detail="ไม่พบงานนี้แล้ว")
-    if row.assignee_id != admin.id and admin.role not in ("SUPER_ADMIN", "ADMIN"):
-        raise HTTPException(status_code=403, detail="เฉพาะเจ้าของงานหรือหัวหน้าเท่านั้นที่ย้ายงานได้")
-    row.assignee_id = body.assignee_id
-    await db.commit()
-    return row
-
-@router.delete("/requests/{id}")
-async def delete_request(id: int, db: AsyncSession = Depends(get_db), admin: User = Depends(get_current_admin)):
-    row = await db.get(ServiceRequest, id)
-    if row is None:
-        raise HTTPException(status_code=404, detail="ไม่พบงานนี้แล้ว")
-    await db.delete(row)
-    db.add(AuditLog(actor_id=admin.id, action="delete_request", target=str(id), detail="ลบงานพร้อมบันทึก"))
-    await db.commit()
-    logger.info("request deleted id=%s by=%s", id, admin.id)
-    return {"ok": True}
-```
-
-`service_request.status` ใช้ `RequestStatus` enum เดียวกันทั้ง DB/frontend constants
-
-- [ ] **Step 4: Run test to verify it passes**
-
-Run: `python -m pytest tests/test_request_guards.py tests/test_admin_requests_endpoints.py tests/test_request_workflow.py -v`
-Expected: PASS
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add backend/app/api/v1/endpoints/admin_requests.py backend/app/models/service_request.py backend/app/models/service_request.py (reuse enum — no new file) backend/tests/test_request_guards.py
-git commit -m "fix(requests): assignment guard with audit and unified status enum"
-```
-
-- [ ] **Step 6: Validation**
-
-Run: `python -m pytest tests/test_request_workflow.py tests/test_admin_requests_endpoints.py -v`
-Expected: PASS
-
-### Task C6: Booking cap 62 วัน + terminal + PATCH required
-
-**Files:**
-- Modify: `backend/app/api/v1/endpoints/admin_bookings.py`
-- Modify: `backend/app/api/v1/endpoints/liff_bookings.py`
-- Modify: `backend/app/services/booking_service.py`
-- Test: `backend/tests/test_booking_guards.py`
-
-**Interfaces:**
-- Consumes: `Booking` model (`backend/app/models/booking.py`), `BookingSettings(advance_days)`
-- Produces: `validate_booking_date(d: date, advance_days: int) -> None` (เกิน 62 วันหรือเกิน advance_days → 422 ไทย), terminal set `TERMINAL = frozenset({"CANCELLED", "DONE"})` ย้อนกลับ → 409
-
-- [ ] **Step 1: Write the failing test**
-
-```python
-import pytest
-from httpx import AsyncClient
-from datetime import date, timedelta
-
-@pytest.mark.asyncio
-async def test_booking_beyond_cap_rejected(test_client: AsyncClient):
-    far = (date.today() + timedelta(days=90)).isoformat()
-    resp = await test_client.post("/api/v1/liff/bookings", json={"date": far, "slot": "09:00", "phone": "0812345678"})
-    assert resp.status_code == 422
-    assert "62" in resp.text or "ล่วงหน้า" in resp.text
-
-@pytest.mark.asyncio
-async def test_terminal_cannot_reopen(test_client: AsyncClient, cancelled_booking):
-    resp = await test_client.patch(f"/api/v1/admin/bookings/{cancelled_booking}", json={"status": "CONFIRMED"})
-    assert resp.status_code in (409, 422)
-```
-
-- [ ] **Step 2: Run test to verify it fails**
-
-Run: `python -m pytest tests/test_booking_guards.py -v`
-Expected: FAIL — จอง 90 วันได้ 201 และ terminal ย้อนได้ 200
-
-- [ ] **Step 3: Write minimal implementation**
-
-```python
-# backend/app/services/booking_service.py
-import logging
-from datetime import date
-from fastapi import HTTPException
-
-logger = logging.getLogger(__name__)
-MAX_DAYS = 62
-TERMINAL = frozenset({"CANCELLED", "DONE"})
-
-def validate_booking_date(d: date, advance_days: int) -> None:
-    delta = (d - date.today()).days
-    cap = min(MAX_DAYS, advance_days)
-    if delta < 0 or delta > cap:
-        raise HTTPException(status_code=422, detail=f"จองได้ล่วงหน้าไม่เกิน {cap} วัน กรุณาเลือกวันใหม่")
-
-def guard_transition(old: str, new: str) -> None:
-    if old in TERMINAL and new != old:
-        raise HTTPException(status_code=409, detail="คิวนี้จบแล้ว ไม่สามารถเปลี่ยนย้อนกลับได้")
-```
-
-PATCH schema ใช้ field required (ห้าม None):
-
-```python
-class BookingPatch(BaseModel):
-    model_config = ConfigDict(from_attributes=True, use_enum_values=True)
-    status: str
-    slot: str | None = None
-
-    @field_validator("status")
-    @classmethod
-    def not_none(cls, v):
-        if v is None:
-            raise ValueError("กรุณาระบุสถานะ")
-        return v
-```
-
-- [ ] **Step 4: Run test to verify it passes**
-
-Run: `python -m pytest tests/test_booking_guards.py tests/test_booking_create.py tests/test_booking_update.py -v`
-Expected: PASS
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add backend/app/api/v1/endpoints/admin_bookings.py backend/app/api/v1/endpoints/liff_bookings.py backend/app/services/booking_service.py backend/tests/test_booking_guards.py
-git commit -m "fix(booking): enforce 62-day cap with terminal guard"
-```
-
-- [ ] **Step 6: Validation**
-
-Run: `python -m pytest tests/test_booking_slots.py tests/test_booking_availability_range.py tests/test_booking_create_concurrency.py -v`
-Expected: PASS
-
-### Task C7: Rich menu preview public + scheduler per-menu try + TZ
-
-**Files:**
-- Modify: `backend/app/api/v1/endpoints/rich_menus.py`
-- Modify: `backend/app/services/rich_menu_service.py`
-- Test: `backend/tests/test_richmenu_preview_sched.py`
-
-**Interfaces:**
-- Consumes: `RichMenu` model (`backend/app/models/rich_menu.py`: `image_path`, `schedule_at`)
-- Produces: `GET /rich-menus/{id}/preview -> {image_url | placeholder: true}`, `sync_due_menus() -> {ok: [...], skipped: [...]}` (ล้มทีละเมนู)
-
-- [ ] **Step 1: Write the failing test**
-
-```python
-import pytest
-from httpx import AsyncClient
-
-@pytest.mark.asyncio
-async def test_imageless_preview_ok(test_client: AsyncClient, menu_without_image):
-    resp = await test_client.get(f"/api/v1/rich-menus/{menu_without_image}/preview")
-    assert resp.status_code == 200
-    assert resp.json().get("placeholder") is True
-
-@pytest.mark.asyncio
-async def test_scheduler_isolates_failure(rich_menu_service, db_session):
-    result = await rich_menu_service.sync_due_menus()
-    assert "ok" in result and "skipped" in result
-```
-
-- [ ] **Step 2: Run test to verify it fails**
-
-Run: `python -m pytest tests/test_richmenu_preview_sched.py -v`
-Expected: FAIL — preview ได้ 403 และ scheduler raise ทั้งชุดเมื่อเมนูเดียวพัง
-
-- [ ] **Step 3: Write minimal implementation**
-
-```python
-import logging
-from zoneinfo import ZoneInfo
-from fastapi import HTTPException
-
-logger = logging.getLogger(__name__)
-BKK = ZoneInfo("Asia_Bangkok")
-
-@router.get("/rich-menus/{id}/preview")
-async def preview_menu(id: int, db: AsyncSession = Depends(get_db)):
-    row = await db.get(RichMenu, id)
-    if row is None:
-        raise HTTPException(status_code=404, detail="ไม่พบเมนูนี้")
-    if not row.image_path:
-        return {"placeholder": True, "message": "ยังไม่มีรูป แสดงตัวอย่างแบบร่างก่อนได้"}
-    return {"placeholder": False, "image_url": public_url(row.image_path)}
-
-async def sync_due_menus(db: AsyncSession) -> dict:
-    ok: list[int] = []
-    skipped: list[dict] = []
-    for menu in await due_menus(db):
-        try:
-            if not menu.image_path:
-                skipped.append({"id": menu.id, "reason": "ยังไม่มีรูป ข้ามก่อน"})
-                continue
-            await push_to_line(menu)
-            ok.append(menu.id)
-        except Exception:
-            logger.exception("richmenu sync failed id=%s", menu.id)
-            skipped.append({"id": menu.id, "reason": "ส่งไม่สำเร็จ จะลองใหม่รอบถัดไป"})
-    return {"ok": ok, "skipped": skipped}
-```
-
-`schedule_at` เก็บ UTC แปลงแสดง `Asia_Bangkok` ฝั่ง UI
-
-- [ ] **Step 4: Run test to verify it passes**
-
-Run: `python -m pytest tests/test_richmenu_preview_sched.py tests/test_rich_menu_display_schedule.py tests/test_rich_menu_display_scheduler_db.py -v`
-Expected: PASS
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add backend/app/api/v1/endpoints/rich_menus.py backend/app/services/rich_menu_service.py backend/tests/test_richmenu_preview_sched.py
-git commit -m "fix(rich-menu): imageless placeholder preview with isolated scheduler"
-```
-
-- [ ] **Step 6: Validation**
-
-Run: `python -m pytest tests/test_rich_menu_schema.py tests/test_rich_menu_size.py -v`
-Expected: PASS
-
-
-
----
-
-## Wave D — Admin / frontend (ทำท้ายสุดเมื่อ API นิ่งแล้ว)
-
-### Task D1: Histories pagination + export stream + PDF ฟอนต์ไทย
-
-**Files:**
-- Modify: `backend/app/api/v1/endpoints/admin_live_chat.py`
-- Modify: `backend/app/api/v1/endpoints/admin_export.py`
-- Modify: `frontend/app/admin/chat-histories/page.tsx`
+- Modify: `backend/app/api/v1/endpoints/admin_live_chat.py` (เฉพาะ `get_conversation_messages` — clamp limit ระดับ endpoint)
+- Modify: `backend/app/api/v1/endpoints/admin_export.py` (CSV streaming + PDF ฟอนต์ไทย + RFC 5987 filename)
+- Reference (verify-only, ไม่แก้): `frontend/app/admin/chat-histories/[lineUserId]/page.tsx` (ใช้ cursor `before_id` + `limit=50` อยู่แล้ว — :115, :148)
 - Test: `backend/tests/test_histories_export.py`
 
-**Interfaces:**
-- Consumes: `GET /live-chat/histories` เดิม
-- Produces: `GET /live-chat/histories?cursor=...&limit=... -> {items, next_cursor}`, `GET /export?format=csv|pdf` (StreamingResponse + Content-Disposition encode ไทย)
+**Interfaces (verified):**
+- Consumes: `GET /admin/live-chat/conversations/{line_user_id}/messages` (`before_id` cursor + `limit: int = 50` ไม่มี cap ระดับ endpoint — admin_live_chat.py:125-131; service clamp ภายใน `max(1, min(limit, 100))` อยู่แล้ว — conversations.py:66); `MessagePage(messages, has_more)` (schemas/message.py:50-52); export CSV (:59-96 สร้าง `StringIO` ทั้งก้อน) + PDF (:99-127 ผ่าน `_build_conversation_pdf` ใช้ Helvetica ล้วน ไม่มีฟอนต์ไทย); `_load_conversation` (:40-51 โหลด messages ทั้ง conversation เข้าหน่วยความจำ); header ปัจจุบัน `filename="..."` ธรรมดา (ชื่อไทยถูก sanitize เป็น `_` โดย `_sanitize_filename` :22-25)
+- Produces: endpoint clamp `max(1, min(limit, 100))` (clamp-only — **ไม่ใช้ `Query(le=...)`**: ถ้าใส่ `le=100` FastAPI จะตอบ 422 ก่อนถึง clamp ขัดกับ PRD ที่สั่งให้ clamp); CSV streaming แบบ chunk; PDF ลงทะเบียนฟอนต์ไทยเมื่อมี asset; header `filename*=UTF-8''...`
 
 - [ ] **Step 1: Write the failing test**
 
 ```python
+# backend/tests/test_histories_export.py
 import pytest
-from httpx import AsyncClient
+import pytest_asyncio
+from types import SimpleNamespace
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import NullPool
+
+from app.api import deps as api_deps
+from app.core.config import settings
+from app.main import app
+from app.models.message import Message, MessageDirection, SenderRole
+from app.models.user import User, UserRole
+from app.services.friend_service import friend_service
+
+
+def _fresh_engine():
+    return create_async_engine(str(settings.DATABASE_URL), poolclass=NullPool)
+
+
+@pytest_asyncio.fixture
+async def seeded_conversation():
+    # identity แบบเดียวกับ B1/C8: get_or_create_user เติม HMAC surrogate เอง
+    # (resolve_by_line_id ค้นด้วย hash — user_identity_service.py:81-86)
+    from sqlalchemy import select
+
+    engine = _fresh_engine()
+    Session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    line_id = "Uhistories00000000000001"
+    async with Session() as s:
+        citizen = await friend_service.get_or_create_user(line_id, s, commit=False)
+        await s.flush()
+        for i in range(5):
+            s.add(Message(
+                user_id=citizen.id,
+                direction=MessageDirection.INCOMING,
+                message_type="text",
+                content=f"ข้อความ {i}",
+                sender_role=SenderRole.USER,
+            ))
+        await s.commit()
+        uid = citizen.id
+    yield Session, uid, line_id
+    async with Session() as s:
+        for r in (await s.execute(
+            select(Message).where(Message.user_id == uid)
+        )).scalars().all():
+            await s.delete(r)
+        u = await s.get(User, uid)
+        if u:
+            await s.delete(u)
+        await s.commit()
+    await engine.dispose()
+
 
 @pytest.mark.asyncio
-async def test_histories_limit_clamped(test_client: AsyncClient):
-    resp = await test_client.get("/api/v1/live-chat/histories?limit=9999")
-    assert resp.status_code == 200
-    assert len(resp.json()["items"]) <= 100
+async def test_messages_limit_clamped(test_client, seeded_conversation):
+    Session, uid, line_id = seeded_conversation
+
+    async def _override():
+        yield SimpleNamespace(id=1, role=UserRole.ADMIN, is_active=True)
+
+    app.dependency_overrides[api_deps.get_current_user] = _override
+    try:
+        resp = test_client.get(
+            f"/api/v1/admin/live-chat/conversations/{line_id}/messages?limit=9999"
+        )
+        assert resp.status_code == 200
+        assert len(resp.json()["messages"]) <= 100
+    finally:
+        app.dependency_overrides.clear()
+
 
 @pytest.mark.asyncio
-async def test_csv_streams(test_client: AsyncClient):
-    resp = await test_client.get("/api/v1/export?format=csv&limit=100")
-    assert "text/csv" in resp.headers["content-type"]
-    assert "attachment" in resp.headers["content-disposition"]
+async def test_csv_export_streams_with_rfc5987_filename(test_client, seeded_conversation):
+    Session, uid, line_id = seeded_conversation
 
-@pytest.mark.asyncio
-async def test_presence_burst_bounded(db_session):
-    await fire_heartbeats(db_session, user_id=7, n=100, seconds=10)
-    assert await count_presence_writes(db_session, user_id=7) <= 12
+    async def _override():
+        yield SimpleNamespace(id=1, role=UserRole.ADMIN, is_active=True)
+
+    app.dependency_overrides[api_deps.get_current_user] = _override
+    try:
+        resp = test_client.get(f"/api/v1/admin/export/conversations/{line_id}/csv")
+        assert resp.status_code == 200
+        assert "text/csv" in resp.headers["content-type"]
+        assert "filename*=" in resp.headers["content-disposition"]
+    finally:
+        app.dependency_overrides.clear()
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `python -m pytest tests/test_histories_export.py -v`
-Expected: FAIL — limit 9999 คืนมาทั้งก้อน, export รวม string ทั้งไฟล์, presence เขียน DB ทุก heartbeat
+Expected: FAIL — `limit=9999` ไม่ถูก clamp ระดับ endpoint (service clamp ภายในอย่างเดียว), CSV คืน header `filename="..."` ธรรมดา
 
 - [ ] **Step 3: Write minimal implementation**
 
 ```python
+# backend/app/api/v1/endpoints/admin_live_chat.py — ใน get_conversation_messages (:125-131)
+async def get_conversation_messages(
+    line_user_id: str,
+    before_id: Optional[int] = None,
+    limit: int = 50,
+    ...
+) -> Any:
+    limit = max(1, min(limit, 100))  # clamp-only ตรงนี้ (service :66 มีอยู่แล้ว — ทำให้เป็น contract ระดับ endpoint)
+```
+
+```python
+# backend/app/api/v1/endpoints/admin_export.py
 import logging
-from fastapi import Query, HTTPException
 from fastapi.responses import StreamingResponse
 from urllib.parse import quote
 
 logger = logging.getLogger(__name__)
-MAX_LIMIT = 100
+_EXPORT_CHUNK = 500
 
-@router.get("/live-chat/histories")
-async def list_histories(cursor: str | None = None, limit: int = Query(20, le=100), db: AsyncSession = Depends(get_db)):
-    limit = min(max(limit, 1), MAX_LIMIT)
-    items, next_cursor = await fetch_page(db, cursor, limit)
-    return {"items": items, "next_cursor": next_cursor}
 
-@router.get("/export")
-async def export_chat(format: str, db: AsyncSession = Depends(get_db)):
-    if format not in ("csv", "pdf"):
-        raise HTTPException(status_code=422, detail="รูปแบบต้องเป็น csv หรือ pdf เท่านั้น")
-    if format == "csv":
-        filename = quote("บทสนทนา.csv")
-    else:
-        filename = quote("บทสนทนา.pdf")
-    gen = stream_csv_rows(db) if format == "csv" else stream_pdf_bytes(db)
-    if format == "csv":
-        media = "text/csv; charset=utf-8"
-    else:
-        media = "application/pdf"
-    return StreamingResponse(gen, media_type=media, headers={"Content-Disposition": f"attachment; filename*=UTF-8''{filename}"})
+def _content_disposition(filename: str) -> str:
+    # RFC 5987: ชื่อไฟล์ไทยต้อง encode — ห้ามใช้ filename="..." เปล่าเปล่า
+    return f"attachment; filename*=UTF-8''{quote(filename)}"
+
+
+async def _iter_csv_rows(line_user_id: str, db: AsyncSession):
+    # streaming ทีละ chunk — ไม่โหลดทั้ง conversation แบบ _load_conversation (:40-51) อีก
+    user = await resolve_by_line_id(db, line_user_id)
+    last_id = 0
+    yield "timestamp,line_user_id,direction,sender,message_type,content\n"
+    while True:
+        rows = (await db.execute(
+            select(Message)
+            .where(child_filter(Message, line_user_id, user.id if user else None))
+            .where(Message.id > last_id)
+            .order_by(Message.id.asc())
+            .limit(_EXPORT_CHUNK)
+        )).scalars().all()
+        if not rows:
+            return
+        for m in rows:
+            # คอลัมน์เดียวกับ writer ปัจจุบัน (:73-86) — เปลี่ยนเป็น yield ทีละแถว
+            # (csv/io import อยู่แล้วที่ top ของ admin_export.py)
+            buf = io.StringIO()
+            csv.writer(buf).writerow([
+                m.created_at.isoformat() if m.created_at else "",
+                line_user_id,
+                m.direction.value if hasattr(m.direction, "value") else m.direction,
+                m.sender_role.value if hasattr(m.sender_role, "value") else (m.sender_role or ""),
+                m.message_type or "",
+                m.content or "",
+            ])
+            yield buf.getvalue()
+        last_id = rows[-1].id
+
+
+@router.get("/conversations/{line_user_id}/csv")
+async def export_conversation_csv(...):  # signature เดิม :60-64
+    ...
+    return StreamingResponse(
+        _iter_csv_rows(line_user_id, db),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": _content_disposition(filename)},
+    )
 ```
 
-Note: `filename*=UTF-8''{filename}` ด้านบนคือ RFC 5987 (`filename*=UTF-8` + two single quotes + encoded name) — ในไฟล์จริงต้องเหลือ single quote 2 ตัวติดกันเท่านั้น
+PDF ฟอนต์ไทย — ใน `_build_conversation_pdf` เพิ่ม helper (ใช้ `reportlab.pdfbase.ttfonts.TTFont`):
 
-PDF ฝังฟอนต์ `THSarabunNew.ttf` / `NotoSansThai-Regular.ttf` ใน container assets; frontend `chat-histories/page.tsx` ใช้ cursor pagination + ข้อความไทย "กำลังโหลดเพิ่ม…"; presence ใช้ Redis expiry debounce (heartbeat 100 ครั้ง/10 วิ เขียน DB ไม่เกิน 12 ครั้ง)
+```python
+def _thai_font_name() -> str:
+    """คืนชื่อฟอนต์ไทยถ้ามี asset — ไม่มีให้ fallback Helvetica (test ข้าม assert ไทย)."""
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+    import os
+
+    for path in (
+        "backend/assets/fonts/NotoSansThai-Regular.ttf",
+        "/usr/share/fonts/NotoSansThai-Regular.ttf",
+    ):
+        if os.path.exists(path):
+            pdfmetrics.registerFont(TTFont("Thai", path))
+            return "Thai"
+    return "Helvetica"
+```
+
+(วางไฟล์ `NotoSansThai-Regular.ttf` ใต้ `backend/assets/fonts/` ใน task นี้; ทุก `setFont("Helvetica", ...)` ใน builder เปลี่ยนเป็น `setFont(_thai_font_name(), ...)`)
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `python -m pytest tests/test_histories_export.py -v`
+Run: `python -m pytest tests/test_histories_export.py tests/test_websocket.py -v`
 Expected: PASS
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add backend/app/api/v1/endpoints/admin_live_chat.py backend/app/api/v1/endpoints/admin_export.py frontend/app/admin/chat-histories/page.tsx backend/tests/test_histories_export.py
-git commit -m "fix(histories): server pagination with streaming thai export"
+git add backend/app/api/v1/endpoints/admin_live_chat.py backend/app/api/v1/endpoints/admin_export.py backend/assets/fonts/NotoSansThai-Regular.ttf backend/tests/test_histories_export.py
+git commit -m "fix(histories): clamp message limit with streaming thai export"
 ```
 
 - [ ] **Step 6: Validation**
 
-Run: `python -m pytest tests/test_conversation_detail_last_message.py -v`
-Expected: PASS
+Run: `python -m pytest tests/test_session_choreography.py tests/test_websocket.py -v`
+Expected: PASS — เส้นทาง messages/export เดิมไม่พัง
 
-### Task D2: Canned normalize + 409 + optimistic concurrency
+### Task D2: Canned normalize + 409 + optimistic concurrency (PRD stories 22–23)
 
 **Files:**
 - Modify: `backend/app/api/v1/endpoints/admin_canned_responses.py`
 - Modify: `backend/app/services/canned_response_service.py`
-- Modify: `frontend/app/admin/canned-responses/page.tsx`
+- Modify: `frontend/app/admin/canned-responses/page.tsx` (แสดง 409 พร้อมชื่อรายการที่ชน — ข้อความไทย)
 - Test: `backend/tests/test_canned_dup_guard.py`
 
-**Interfaces:**
-- Consumes: `CannedResponse(title, content, updated_at)` (`backend/app/models/canned_response.py`)
-- Produces: `normalize_text(s: str) -> str` (trim + collapse space + casefold), POST ซ้ำ → 409 `{conflicting_name}`, PATCH ชน version → 409
+**Interfaces (verified):**
+- Consumes: `CannedResponse(shortcut unique, title, content, category, usage_count, created_by, created_at/updated_at)` (models/canned_response.py:9-18); `POST ""` ตรวจ shortcut ซ้ำ → 409 อยู่แล้ว (:52-74) แต่**ไม่ตรวจ content ซ้ำ**; `PUT /{response_id}` (:76-100) — body ว่าง → 400 อยู่แล้ว แต่**ไม่มี version guard**; `CannedResponseCreate/Update` นิยามในไฟล์ endpoint เอง (:15-24 — Update ไม่มี `updated_at`); `service.create` normalize แค่ shortcut (:103-110); `service.update` setattr ตรง ๆ (:112-124)
+- Produces: `normalize_text(s)` (trim + collapse space + casefold) ตรวจ content ซ้ำ → 409 พร้อมชื่อรายการที่ชน; `CannedResponseUpdate.updated_at: Optional[datetime]` + เทียบก่อนเขียน → ชนได้ 409
 
 - [ ] **Step 1: Write the failing test**
 
 ```python
+# backend/tests/test_canned_dup_guard.py
+from types import SimpleNamespace
 import pytest
-from httpx import AsyncClient
+
+from app.api import deps as api_deps
+from app.main import app
+from app.models.user import UserRole
+
 
 @pytest.mark.asyncio
-async def test_duplicate_normalized_rejected(test_client: AsyncClient):
-    await test_client.post("/api/v1/canned", json={"title": "ทักทาย", "content": "สวัสดีค่ะ"})
-    dup = await test_client.post("/api/v1/canned", json={"title": "ทักทาย2", "content": "  สวัสดีค่ะ  "})
-    assert dup.status_code == 409
-    assert "ชน" in dup.text or "ซ้ำ" in dup.text
+async def test_duplicate_normalized_content_rejected(test_client):
+    async def _override():
+        yield SimpleNamespace(id=1, role=UserRole.SUPER_ADMIN, is_active=True)
+
+    app.dependency_overrides[api_deps.get_current_user] = _override
+    try:
+        r1 = test_client.post(
+            "/api/v1/admin/canned-responses",
+            json={"shortcut": "dup-a", "title": "ทักทาย", "content": "สวัสดีค่ะ"},
+        )
+        assert r1.status_code == 200
+        dup = test_client.post(
+            "/api/v1/admin/canned-responses",
+            json={"shortcut": "dup-b", "title": "ทักทาย2", "content": "  สวัสดีค่ะ  "},
+        )
+        assert dup.status_code == 409
+        assert "ทักทาย" in dup.text  # บอกชื่อรายการที่ชน (PRD story 22)
+    finally:
+        # cleanup: dup-b ไม่ถูกสร้าง (409) — ลบแค่ dup-a ผ่าน DELETE /{id}
+        try:
+            rid = r1.json()["id"]
+            test_client.delete(f"/api/v1/admin/canned-responses/{rid}")
+        finally:
+            app.dependency_overrides.clear()
+
+
+@pytest.mark.asyncio
+async def test_stale_updated_at_rejected(test_client):
+    async def _override():
+        yield SimpleNamespace(id=1, role=UserRole.SUPER_ADMIN, is_active=True)
+
+    app.dependency_overrides[api_deps.get_current_user] = _override
+    try:
+        r1 = test_client.post(
+            "/api/v1/admin/canned-responses",
+            json={"shortcut": "dup-c", "title": "นัดหมาย", "content": "นัดหมายล่วงหน้า"},
+        )
+        rid = r1.json()["id"]
+        stale = test_client.put(
+            f"/api/v1/admin/canned-responses/{rid}",
+            json={"content": "แก้ทับ", "updated_at": "2000-01-01T00:00:00+00:00"},
+        )
+        assert stale.status_code == 409
+    finally:
+        try:
+            test_client.delete(f"/api/v1/admin/canned-responses/{r1.json()['id']}")
+        finally:
+            app.dependency_overrides.clear()
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `python -m pytest tests/test_canned_dup_guard.py -v`
-Expected: FAIL — ได้ 201 ทั้งที่ข้อความซ้ำต่างกันแค่ space
+Expected: FAIL — content ซ้ำต่างกันแค่ space ได้ 200 (ตรวจแค่ shortcut)
 
 - [ ] **Step 3: Write minimal implementation**
 
 ```python
-import re
+# backend/app/services/canned_response_service.py
 import logging
-from fastapi import HTTPException
-from sqlalchemy import select
+import re
 
 logger = logging.getLogger(__name__)
 
+
 def normalize_text(s: str) -> str:
-    return re.sub("\\s+", " ", s.strip()).casefold()
-
-async def create_canned(db: AsyncSession, title: str, content: str):
-    norm = normalize_text(content)
-    rows = (await db.execute(select(CannedResponse))).scalars().all()
-    for r in rows:
-        if normalize_text(r.content) == norm:
-            raise HTTPException(status_code=409, detail="ข้อความซ้ำกับรายการ " + r.title + " กรุณาใช้รายการเดิม")
-    row = CannedResponse(title=title, content=content.strip())
-    db.add(row)
-    await db.commit()
-    return row
-
-async def update_canned(db: AsyncSession, id: int, content: str, updated_at: str):
-    row = await db.get(CannedResponse, id)
-    if row is None:
-        raise HTTPException(status_code=404, detail="ไม่พบข้อความนี้แล้ว")
-    if str(row.updated_at) != str(updated_at):
-        raise HTTPException(status_code=409, detail="มีคนแก้ข้อความนี้ไปก่อนแล้ว กรุณารีเฟรช")
-    row.content = content.strip()
-    await db.commit()
-    return row
+    return re.sub(r"\s+", " ", s.strip()).casefold()
 ```
 
-frontend แสดง 409 ด้วยข้อความไทยพร้อมชื่อรายการที่ชน
+```python
+# backend/app/api/v1/endpoints/admin_canned_responses.py — ใน create_canned_response (:52-74) หลังเช็ก shortcut:
+    norm = normalize_text(data.content)
+    for r in await canned_response_service.get_all(db):
+        if normalize_text(r.content or "") == norm:
+            raise HTTPException(
+                status_code=409,
+                detail=f"ข้อความซ้ำกับรายการ {r.title} กรุณาใช้รายการเดิม",
+            )
+```
+
+```python
+# CannedResponseUpdate (:20-24) เพิ่ม field:
+    updated_at: Optional[datetime] = None  # ส่งกลับมาที่อ่านได้ล่าสุด — ใช้กันเขียนทับ
+
+# ใน update_canned_response (:76-100) ก่อนเรียก service.update:
+    if data.updated_at is not None:
+        current = await canned_response_service.get_by_id(response_id, db)
+        if current and current.updated_at and current.updated_at != data.updated_at:
+            raise HTTPException(
+                status_code=409,
+                detail="มีคนแก้ข้อความนี้ไปก่อนแล้ว กรุณารีเฟรช",
+            )
+    update_data = data.model_dump(exclude_unset=True)
+    update_data.pop("updated_at", None)  # ใช้กันชนอย่างเดียว — ห้ามเขียนทับ timestamp จริง
+```
+
+(`from datetime import datetime` เพิ่มใน import ของไฟล์ endpoint; frontend แสดง `detail` ภาษาไทยตรง ๆ)
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `python -m pytest tests/test_canned_dup_guard.py tests/test_canned_response_service.py -v`
+Run: `python -m pytest tests/test_canned_dup_guard.py -v`
 Expected: PASS
 
 - [ ] **Step 5: Commit**
@@ -3245,142 +2275,203 @@ git commit -m "fix(canned): normalize duplicates with 409 and version guard"
 
 - [ ] **Step 6: Validation**
 
-Run: `npm run test:unit -- canned-responses` (workdir `frontend/`)
+Run: `npm run test:unit -- canned` (workdir `frontend/`) + `npm run lint` (workdir `frontend/`)
 Expected: PASS
 
-### Task D3: LIFF timeout + ratelimit + drift (ต่อยอด A1 — ต้องหลัง A1 เท่านั้น)
+### Task D3: LIFF verify timeout + retry + 502 (ต่อยอด A1 — ต้องหลัง A1 เท่านั้น) (PRD stories 24–25)
 
 **Files:**
-- Modify: `backend/app/api/v1/endpoints/liff.py`
+- Modify: `backend/app/api/v1/endpoints/liff.py` (เฉพาะ `verify_liff_token` — เติม timeout/retry/502)
 - Test: `backend/tests/test_liff_hardening.py`
 
-**Interfaces:**
-- Consumes: `require_liff_identity` จาก Task A1 (ห้าม duplicate logic ให้ import มาเติม timeout/429/422)
-- Produces: `verify_liff_token(token) with timeout connect 3s / read 5s + retry 1 ครั้ง` (fail → 502 ไทย), LIFF GET rate-limit, PATCH None → 422
+**Interfaces (verified):**
+- Consumes: `verify_liff_token(id_token: str) -> str` (liff.py:31-52) — เปิด `httpx.AsyncClient()` เปล่าเปล่า (:37) **ไม่มี timeout**; network error ไม่ถูก catch (หลุดเป็น 500); 3 POSTs (`/media` :59, `/service-requests` :118, `/debt-mediation` :250) มี `http_rate_limit` อยู่แล้ว (:65, :127, :259); `require_liff_identity` จาก A1 อยู่ในไฟล์เดียวกัน
+- ขอบเขตที่ตัดทิ้งอย่าง explicit: `liff.py` **ไม่มี** route GET/PATCH (grep `@router.get|patch|put` ได้ค่าว่าง) — งาน "GET rate-limit + PATCH None → 422" จึงไม่มีเป้าในไฟล์นี้; rate-limit ของ POST คงไว้แบบ verify-only; ส่วน PATCH-None อยู่ใน C6 (booking) และ D2 (canned) แล้ว
+- Produces: `httpx.Timeout(connect=3.0, read=5.0)` + retry 1 ครั้งเฉพาะ timeout; timeout/network error → 502 ข้อความไทย (พฤติกรรม 401/503 เดิมคงไว้)
 
 - [ ] **Step 1: Write the failing test**
 
 ```python
-import pytest
+# backend/tests/test_liff_hardening.py
 import httpx
-from httpx import AsyncClient
+import pytest
+
+from app.api.v1.endpoints import liff as liff_module
+
 
 @pytest.mark.asyncio
-async def test_verify_timeout_maps_502(test_client: AsyncClient, monkeypatch):
-    async def boom(*a, **k):
-        raise httpx.ConnectTimeout("slow")
-    monkeypatch.setattr("httpx.AsyncClient.post", boom)
-    resp = await test_client.post("/api/v1/liff/service-requests", headers={"x-liff-id-token": "x"}, json={"topic": "ถนน", "detail": "หลุม", "phone": "0812345678"})
+async def test_verify_timeout_maps_502(test_client, monkeypatch):
+    class _SlowClient:
+        def __init__(self, *a, **k):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *a):
+            return False
+
+        async def post(self, *a, **k):
+            raise httpx.ConnectTimeout("slow")
+
+    monkeypatch.setattr(liff_module.httpx, "AsyncClient", _SlowClient)
+    resp = test_client.post(
+        "/api/v1/liff/service-requests",
+        headers={"x-liff-id-token": "opaque"},
+        json={
+            "prefix": "นาย", "firstname": "ทดสอบ", "lastname": "ระบบ",
+            "phone_number": "0812345678", "topic_category": "ถนน",
+            "description": "pytest-liff-timeout",
+            "line_user_id": "Uunverified000000000000000",
+        },
+    )
     assert resp.status_code == 502
-
-@pytest.mark.asyncio
-async def test_patch_none_422(test_client: AsyncClient, liff_token, my_request):
-    resp = await test_client.patch(f"/api/v1/liff/service-requests/{my_request}", headers={"x-liff-id-token": liff_token}, json={"detail": None})
-    assert resp.status_code == 422
+    assert "ลองใหม่" in resp.text
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `python -m pytest tests/test_liff_hardening.py -v`
-Expected: FAIL — timeout ได้ 500 และ PATCH None ได้ 500 จาก DB
+Expected: FAIL — timeout หลุดเป็น 500 (ไม่มี except) แทน 502
 
 - [ ] **Step 3: Write minimal implementation**
 
 ```python
-import httpx
-import logging
-from fastapi import HTTPException
-
-logger = logging.getLogger(__name__)
-
+# backend/app/api/v1/endpoints/liff.py — แทน verify_liff_token (:31-52)
 async def verify_liff_token(id_token: str) -> str:
+    """Verify a LIFF ID token with LINE and return the LINE user ID (sub)."""
+    if not settings.LINE_LOGIN_CHANNEL_ID.strip():
+        logger.error("LINE_LOGIN_CHANNEL_ID is not configured; cannot verify LIFF ID token")
+        raise HTTPException(status_code=503, detail="LIFF verification unavailable: server misconfiguration")
+
     timeout = httpx.Timeout(connect=3.0, read=5.0, write=5.0, pool=3.0)
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
-            for _ in range(2):
-                try:
-                    r = await client.post("https://api.line.me/oauth2/v2.1/verify", data={"id_token": token, "client_id": settings.LINE_LOGIN_CHANNEL_ID})
-                    r.raise_for_status()
-                    return r.json()
-                except httpx.TimeoutException:
-                    logger.warning("liff verify timeout")
-                    continue
-    except httpx.HTTPError:
-        logger.exception("liff verify failed")
-    raise HTTPException(status_code=502, detail="ยืนยันตัวตนกับ LINE ไม่สำเร็จ กรุณาลองใหม่")
+            try:
+                resp = await client.post(
+                    "https://api.line.me/oauth2/v2.1/verify",
+                    data={"id_token": id_token, "client_id": settings.LINE_LOGIN_CHANNEL_ID},
+                )
+            except httpx.TimeoutException:
+                logger.warning("liff verify timeout, retrying once")
+                resp = await client.post(
+                    "https://api.line.me/oauth2/v2.1/verify",
+                    data={"id_token": id_token, "client_id": settings.LINE_LOGIN_CHANNEL_ID},
+                )
+    except (httpx.TimeoutException, httpx.HTTPError):
+        logger.exception("liff verify network failure")
+        raise HTTPException(status_code=502, detail="ยืนยันตัวตนกับ LINE ไม่สำเร็จ กรุณาลองใหม่")
+    if resp.status_code != 200:
+        logger.warning("LIFF token verification failed: %s", resp.text)
+        raise HTTPException(status_code=401, detail="Invalid LIFF ID token")
+    payload = resp.json()
+    sub = payload.get("sub")
+    if not sub:
+        raise HTTPException(status_code=401, detail="LIFF token missing sub claim")
+    return sub
 ```
-
-GET ใส่ rate-limit decorator เดียวกับ POST; PATCH schema ใช้ explicit None check แล้ว raise 422 ไทย "กรุณากรอกข้อมูลให้ครบ"
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `python -m pytest tests/test_liff_hardening.py tests/test_http_rate_limit.py -v`
+Run: `python -m pytest tests/test_liff_hardening.py tests/test_liff_token.py tests/test_liff_media_upload.py tests/test_liff_debt_mediation.py -v`
 Expected: PASS
 
 - [ ] **Step 5: Commit**
 
 ```bash
 git add backend/app/api/v1/endpoints/liff.py backend/tests/test_liff_hardening.py
-git commit -m "fix(liff): verify timeout with ratelimit and strict patch validation"
+git commit -m "fix(liff): verify timeout with single retry and 502 mapping"
 ```
 
 - [ ] **Step 6: Validation**
 
-Run: `python -m pytest tests/test_liff_token.py tests/test_service_request_liff_validation.py -v`
-Expected: PASS
+Run: `python -m pytest tests/test_service_request_liff_validation.py tests/test_http_rate_limit.py -v`
+Expected: PASS — schema/drift เดิม + rate-limit ของ 3 POSTs ไม่พัง
 
-### Task D4: Friends / users PII + RBAC + pagination
+### Task D4: Friends limit cap + PII masking ตาม role (PRD stories 36–37)
 
 **Files:**
-- Modify: `backend/app/api/v1/endpoints/admin_friends.py`
-- Modify: `backend/app/api/v1/endpoints/admin_users.py`
-- Modify: `frontend/app/admin/friends/page.tsx`
-- Modify: `frontend/app/admin/users/page.tsx`
+- Modify: `backend/app/api/v1/endpoints/admin_friends.py` (cap limit + mask `line_user_id`)
+- Modify: `backend/app/api/v1/endpoints/admin_users.py` (mask `line_user_id` ใน list — `UserOut` ไม่มี password/token อยู่แล้ว :26-38)
+- Modify: `frontend/app/admin/friends/page.tsx` + `frontend/app/admin/users/page.tsx` (รองรับค่าที่ถูก mask — แสดงตามที่ API ส่งมา ห้ามเดาเลขเต็ม)
 - Test: `backend/tests/test_pii_masking.py`
 
-**Interfaces:**
-- Consumes: `get_current_admin/manager/staff` + permission matrix (`access_admin_endpoints`), `FriendEvent` enum
-- Produces: `mask_line_id(v: str, role: str) -> str`, `mask_phone(v: str | None, role: str) -> str | None`; list endpoints บังคับ `limit <= 100` + mask ตาม role
+**Interfaces (verified):**
+- Consumes: `GET /admin/friends` (`limit: int = 100` **ไม่มี cap บน** — admin_friends.py:22-31; คืน decrypted raw LINE ID ให้ทุก admin — :56-64); `GET /admin/users` (`per_page = Query(20, ge=1, le=100)` มี cap แล้ว — admin_users.py:161-167); `escape_ilike` precedent (app/core/query_utils.py:4, ใช้ที่ admin_users.py:181); `FriendEventType` รวมศูนย์อยู่แล้ว (friend_event.py:8-14 — ไม่ต้องสร้างใหม่)
+- Produces: `mask_line_id(v, role)` / `mask_phone(v, role)` ใน `admin_friends.py` (D5 import ต่อ); friends `limit = Query(100, ge=1, le=100)` ตรงกับ users; role ที่เห็นเต็มได้ = SUPER_ADMIN/ADMIN เท่านั้น
 
 - [ ] **Step 1: Write the failing test**
 
 ```python
+# backend/tests/test_pii_masking.py
+from types import SimpleNamespace
 import pytest
-from httpx import AsyncClient
+
+from app.api import deps as api_deps
+from app.api.v1.endpoints.admin_friends import mask_line_id, mask_phone
+from app.main import app
+from app.models.user import UserRole
+
+
+def test_mask_helpers_by_role():
+    assert mask_line_id("U1234567890abcdef", "AGENT") != "U1234567890abcdef"
+    assert "***" in mask_line_id("U1234567890abcdef", "AGENT")
+    assert mask_line_id("U1234567890abcdef", "ADMIN") == "U1234567890abcdef"
+    assert mask_line_id("U1234567890abcdef", "SUPER_ADMIN") == "U1234567890abcdef"
+    assert mask_phone("0812345678", "AGENT") != "0812345678"
+    assert mask_phone(None, "AGENT") is None
+
 
 @pytest.mark.asyncio
-async def test_staff_sees_masked_pii(test_client: AsyncClient, staff_token):
-    resp = await test_client.get("/api/v1/admin/friends?limit=5", headers={"Authorization": f"Bearer {staff_token}"})
-    assert resp.status_code == 200
-    first = resp.json()["items"][0]
-    assert "***" in first["line_user_id"]
-    assert "password_hash" not in resp.text
+async def test_friends_limit_capped(test_client):
+    async def _override():
+        yield SimpleNamespace(id=1, role=UserRole.SUPER_ADMIN, is_active=True)
+
+    app.dependency_overrides[api_deps.get_current_user] = _override
+    try:
+        resp = test_client.get("/api/v1/admin/friends?limit=9999")
+        assert resp.status_code == 422
+    finally:
+        app.dependency_overrides.clear()
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `python -m pytest tests/test_pii_masking.py -v`
-Expected: FAIL — staff เห็น line_user_id เต็มและมี password_hash หลุด
+Expected: FAIL — ไม่มี `mask_line_id` (ImportError) และ `limit=9999` ได้ 200
 
 - [ ] **Step 3: Write minimal implementation**
 
 ```python
-def mask_line_id(v: str, role: str) -> str:
+# backend/app/api/v1/endpoints/admin_friends.py
+def mask_line_id(v: str | None, role: str) -> str | None:
+    if not v:
+        return v
     if role in ("SUPER_ADMIN", "ADMIN"):
         return v
-    if len(v) > 5:
-        return v[:3] + "***" + v[-2:]
-    return "***"
+    return v[:3] + "***" + v[-2:] if len(v) > 5 else "***"
+
 
 def mask_phone(v: str | None, role: str) -> str | None:
-    if v is None:
-        return None
+    if not v:
+        return v
     if role in ("SUPER_ADMIN", "ADMIN"):
         return v
-    return v[:3] + "****" + v[-2:]
+    return v[:3] + "****" + v[-2:] if len(v) > 5 else "***"
 ```
 
-list: `limit = min(max(limit, 1), 100)`; response schema ตัด `password_hash/token` ออกเสมอ; enum event รวมศูนย์ที่ `FriendEventType`
+```python
+# list_friends (:22-31): limit → limit: int = Query(100, ge=1, le=100)
+# (ตรงกับ users per_page le=100 — admin_users.py:167)
+# จุดใส่ raw id (:56-64) เปลี่ยนเป็น:
+        data["line_user_id"] = mask_line_id(raw_id, current_admin.role.value)
+```
+
+```python
+# backend/app/api/v1/endpoints/admin_users.py — ใน list_users หลังได้ users page:
+# mask line_user_id ต่อ row ด้วย mask_line_id (import จาก admin_friends — ห้ามเขียนซ้ำ)
+    from app.api.v1.endpoints.admin_friends import mask_line_id
+```
 
 - [ ] **Step 4: Run test to verify it passes**
 
@@ -3391,78 +2482,92 @@ Expected: PASS
 
 ```bash
 git add backend/app/api/v1/endpoints/admin_friends.py backend/app/api/v1/endpoints/admin_users.py frontend/app/admin/friends/page.tsx frontend/app/admin/users/page.tsx backend/tests/test_pii_masking.py
-git commit -m "fix(pii): mask friends and users by role with pagination"
+git commit -m "fix(pii): cap friends limit with role-based masking"
 ```
 
 - [ ] **Step 6: Validation**
 
-Run: `python -m pytest tests/test_permissions.py tests/test_module_permission_endpoints.py -v`
+Run: `python -m pytest tests/test_module_permission_endpoints.py tests/test_deps_gates.py -v`
 Expected: PASS
 
-
-
-### Task D5: Reports PII + params ตรงกันสองฝั่ง
+### Task D5: Reports CSV PII masking + PDF param alignment (PRD story 39)
 
 **Files:**
-- Modify: `backend/app/api/v1/endpoints/admin_reports.py`
-- Modify: `frontend/app/admin/reports/page.tsx`
+- Modify: `backend/app/api/v1/endpoints/admin_reports.py` (mask LINE ID ใน CSV + PDF รับช่วงวันที่)
+- Reference (verify-only): `frontend/app/admin/reports/page.tsx` (ส่ง `report_type/start_date/end_date` อยู่แล้ว — downloadPDF :183-189)
 - Test: `backend/tests/test_reports_guard.py`
 
-**Interfaces:**
-- Consumes: `mask_phone/mask_line_id` จาก Task D4 (import ตรง ห้ามเขียนซ้ำ)
-- Produces: `GET /reports/export?format=csv|pdf&orientation=portrait|landscape -> stream`, CSV ไม่มี PII ดิบเมื่อ role ไม่พอ
+**Interfaces (verified):**
+- Consumes: `GET /export` (`type` pattern CSV — :157-166) — branch `messages`/`followers` เขียน decrypted raw LINE ID ลง CSV ตรง ๆ (`line_ids.get(r.user_id, "")` — :197 และ :223) ไม่ mask ตาม role; `GET /export/pdf` รับแค่ `report_type + period: int = 30` (:234-242) **ไม่สนใจ `start_date/end_date` ที่ frontend ส่งมา** (:183-189) — เลือกช่วงวันที่แล้ว PDF ใช้ window 30 วันล่าสุดเงียบ ๆ; ทั้งสอง gate `require_permission(KEY_EXPORT_CHAT)`
+- Produces: `_csv_line_id(raw, role)` wrapper เหนือ `mask_line_id` จาก D4 (import ตรง ห้ามเขียนซ้ำ); PDF รับ `start_date/end_date` optional — ส่งมาใช้ช่วงนั้น ไม่ส่งใช้ `period` เหมือนเดิม
 
 - [ ] **Step 1: Write the failing test**
 
 ```python
+# backend/tests/test_reports_guard.py
+from types import SimpleNamespace
 import pytest
-from httpx import AsyncClient
+
+from app.api import deps as api_deps
+from app.api.v1.endpoints.admin_reports import _csv_line_id
+from app.main import app
+from app.models.user import UserRole
+
+
+def test_csv_line_id_masked_by_role():
+    assert _csv_line_id("U1234567890abcdef", "AGENT") != "U1234567890abcdef"
+    assert _csv_line_id("U1234567890abcdef", "ADMIN") == "U1234567890abcdef"
+
 
 @pytest.mark.asyncio
-async def test_csv_no_raw_pii_for_staff(test_client: AsyncClient, staff_token):
-    resp = await test_client.get("/api/v1/reports/export?format=csv", headers={"Authorization": f"Bearer {staff_token}"})
-    assert resp.status_code == 200
-    assert "0812345678" not in resp.text
+async def test_bad_export_type_422(test_client):
+    async def _override():
+        yield SimpleNamespace(id=1, role=UserRole.SUPER_ADMIN, is_active=True)
 
-@pytest.mark.asyncio
-async def test_bad_pdf_param_422(test_client: AsyncClient, admin_token):
-    resp = await test_client.get("/api/v1/reports/export?format=pdf&orientation=diagonal", headers={"Authorization": f"Bearer {admin_token}"})
-    assert resp.status_code == 422
+    app.dependency_overrides[api_deps.get_current_user] = _override
+    try:
+        r1 = test_client.get("/api/v1/admin/reports/export?type=diagonal")
+        assert r1.status_code == 422
+        r2 = test_client.get("/api/v1/admin/reports/export/pdf?report_type=diagonal")
+        assert r2.status_code == 422
+    finally:
+        app.dependency_overrides.clear()
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `python -m pytest tests/test_reports_guard.py -v`
-Expected: FAIL — CSV มีเบอร์ดิบ และ orientation ผิดได้ 200
+Expected: FAIL — ไม่มี `_csv_line_id` (ImportError)
 
 - [ ] **Step 3: Write minimal implementation**
 
 ```python
-from pydantic import BaseModel, ConfigDict, field_validator
-from app.api.v1.endpoints.admin_friends import mask_line_id, mask_phone
+# backend/app/api/v1/endpoints/admin_reports.py
+from app.api.v1.endpoints.admin_friends import mask_line_id  # D4 — ห้ามเขียนซ้ำ
 
-class ReportExportQuery(BaseModel):
-    model_config = ConfigDict(from_attributes=True, use_enum_values=True)
-    format: str
-    orientation: str = "portrait"
-    locale: str = "th-TH"
 
-    @field_validator("format")
-    @classmethod
-    def check_format(cls, v: str) -> str:
-        if v not in ("csv", "pdf"):
-            raise ValueError("รูปแบบต้องเป็น csv หรือ pdf เท่านั้น")
-        return v
-
-    @field_validator("orientation")
-    @classmethod
-    def check_orientation(cls, v: str) -> str:
-        if v not in ("portrait", "landscape"):
-            raise ValueError("ทิศทางต้องเป็น portrait หรือ landscape เท่านั้น")
-        return v
+def _csv_line_id(raw: str, role: str) -> str:
+    return mask_line_id(raw, role) or ""
 ```
 
-CSV writer เรียก `mask_phone`/`mask_line_id` ทุกแถวตาม role; frontend `reports/page.tsx` dropdown ใช้ค่าเดียวกัน (`portrait|landscape`, `th-TH`) ไม่มีค่าที่สาม
+```python
+# ใน export_report — ทุกจุดที่เขียน line id ลง CSV (:197 messages branch, :223 followers branch):
+#   line_ids.get(r.user_id, "")  →  _csv_line_id(line_ids.get(r.user_id, ""), current_admin.role.value)
+```
+
+```python
+# export_report_pdf (:234-242) เพิ่ม params:
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+# แทน window เดิม:
+    if start_date or end_date:
+        start, end = parse_dates(start_date, end_date)  # import อยู่แล้วจาก report_service (:21)
+    else:
+        end_dt = datetime.now(timezone.utc)
+        start_dt = end_dt - timedelta(days=period)
+        start, end = start_dt, end_dt
+    start_iso, end_iso = start.isoformat(), end.isoformat()
+```
 
 - [ ] **Step 4: Run test to verify it passes**
 
@@ -3472,85 +2577,59 @@ Expected: PASS
 - [ ] **Step 5: Commit**
 
 ```bash
-git add backend/app/api/v1/endpoints/admin_reports.py frontend/app/admin/reports/page.tsx backend/tests/test_reports_guard.py
-git commit -m "fix(reports): strip pii from csv with aligned pdf params"
+git add backend/app/api/v1/endpoints/admin_reports.py backend/tests/test_reports_guard.py
+git commit -m "fix(reports): mask line ids in csv with aligned pdf dates"
 ```
 
 - [ ] **Step 6: Validation**
 
-Run: `npm run test:unit -- reports` (workdir `frontend/`)
+Run: `python -m pytest tests/test_admin_reports_helpers.py -v`
 Expected: PASS
 
-### Task D6: Design Button variant-only + tokens รวมศูนย์
+### Task D6: Button variant test + token centralization check (PRD story 40)
 
 **Files:**
-- Modify: `frontend/components/ui/Button.tsx`
-- Modify: `frontend/app/globals.css`
-- Test: `frontend/components/ui/__tests__/button.test.tsx`
+- Modify: `frontend/components/ui/Button.tsx` (เฉพาะจุดที่ยัง hardcode — ถ้าไม่มีให้ verify-only)
+- Modify: `frontend/app/globals.css` (เติม token ที่ขาด — ถ้าครบให้ verify-only)
+- Test: `frontend/components/ui/__tests__/button.test.tsx` (ยังไม่มีไฟล์นี้)
 
-**Interfaces:**
-- Consumes: CSS variables `--skn-primary`, `--skn-danger` จาก `globals.css`
-- Produces: `Button({variant: "primary" | "secondary" | "danger", size, children})` (variant เดิมยัง render เหมือนเดิม — opt-in ไม่แตกทั้งระบบ)
+**Interfaces (verified):**
+- Consumes: `Button`/`buttonVariants` ใช้ `cva` อยู่แล้ว (Button.tsx:180-181 export ทั้งคู่); variants `primary/secondary/outline/ghost/soft/danger/success/warning` อ้าง token classes (`from-brand-500`, `from-danger`, `from-success` — ไม่มี hex hardcode ใน class strings); `defaultVariants: {variant: 'primary', size: 'md'}`; tokens กลางใน `frontend/app/globals.css` (`--color-brand-50…900` :8-16, `--color-danger/danger-light/danger-dark` :35-37)
+- Produces: unit test ล็อก `default → primary` + `danger → danger token` (กัน regression แบบ opt-in — ห้ามเปลี่ยน global class ทีเดียว); ถ้าพบ hex hardcode ใน Button ให้ย้ายเข้า token
 
 - [ ] **Step 1: Write the failing test**
 
 ```tsx
+// frontend/components/ui/__tests__/button.test.tsx
 import { render, screen } from "@testing-library/react";
-import { Button } from "../Button";
+import { Button, buttonVariants } from "../Button";
 
-test("danger variant uses token class", () => {
-  render(<Button variant="danger">ลบ</Button>);
-  expect(screen.getByRole("button", { name: "ลบ" }).className).toMatch(/btn-danger/);
+test("default renders primary variant", () => {
+  render(<Button>ตกลง</Button>);
+  const btn = screen.getByRole("button", { name: "ตกลง" });
+  expect(btn.className).toMatch(/from-brand-500/);
 });
 
-test("default stays primary", () => {
-  render(<Button>ตกลง</Button>);
-  expect(screen.getByRole("button", { name: "ตกลง" }).className).toMatch(/btn-primary/);
+test("danger variant uses danger token, not hardcoded color", () => {
+  render(<Button variant="danger">ลบ</Button>);
+  const btn = screen.getByRole("button", { name: "ลบ" });
+  expect(btn.className).toMatch(/from-danger/);
+  expect(buttonVariants({ variant: "danger" })).not.toMatch(/#[0-9a-fA-F]{3,6}/);
 });
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `npm run test:unit -- button` (workdir `frontend/`)
-Expected: FAIL — `btn-danger` ไม่มี (ปุ่ม danger ใช้สี hardcode) หรือ default ไม่ใช่ primary
+Expected: FAIL — ไม่มีไฟล์ test (suite not found) หรือ variant ไม่ตรง token
 
 - [ ] **Step 3: Write minimal implementation**
 
 ```tsx
-import { cva } from "class-variance-authority";
-import { cn } from "@/lib/utils";
-
-const buttonVariants = cva("btn focus-ring thai-text", {
-  variants: {
-    variant: {
-      primary: "btn-primary",
-      secondary: "btn-secondary",
-      danger: "btn-danger",
-    },
-    size: { sm: "btn-sm", md: "btn-md", lg: "btn-lg" },
-  },
-  defaultVariants: { variant: "primary", size: "md" },
-});
-
-export function Button({ variant, size, className, children, ...rest }: any) {
-  return (
-    <button className={cn(buttonVariants({ variant, size }), className)} {...rest}>
-      {children}
-    </button>
-  );
-}
+// เปลี่ยนเฉพาะจุดที่ test จับได้ — ตัวอย่างถ้า danger ยัง hardcode:
+//   danger: ['bg-[#dc2626]', ...]  →  danger: ['bg-gradient-to-br from-danger to-danger-dark', ...]
+// (ปัจจุบันใช้ token อยู่แล้ว — ถ้า test เขียวตั้งแต่รอบแรก ขั้นนี้คือ verify-only + บันทึกผลไว้ใน PR)
 ```
-
-```css
-:root {
-  --skn-primary: #1d4ed8;
-  --skn-danger: #dc2626;
-}
-.btn-primary { background: var(--skn-primary); }
-.btn-danger { background: var(--skn-danger); }
-```
-
-migrate ทีละหน้า (codemod) ห้ามเปลี่ยน global class เดิมทีเดียว
 
 - [ ] **Step 4: Run test to verify it passes**
 
@@ -3561,7 +2640,7 @@ Expected: PASS
 
 ```bash
 git add frontend/components/ui/Button.tsx frontend/app/globals.css frontend/components/ui/__tests__/button.test.tsx
-git commit -m "fix(ui): variant-only button with centralized tokens"
+git commit -m "fix(ui): lock button variants to centralized tokens"
 ```
 
 - [ ] **Step 6: Validation**
@@ -3569,99 +2648,127 @@ git commit -m "fix(ui): variant-only button with centralized tokens"
 Run: `npm run lint` (workdir `frontend/`)
 Expected: PASS — ไม่มี type/lint error
 
-### Task D7: Credentials / business-hours permissions + image-resize CSRF
+### Task D7: Credentials/business-hours permission keys (PRD story 41) + image-resize verify-only (PRD story 38)
 
 **Files:**
-- Modify: `backend/app/core/permissions.py`
-- Modify: `backend/app/api/v1/endpoints/admin_credentials.py`
-- Modify: `backend/app/api/v1/endpoints/admin_business_hours.py`
-- Verify-only: `frontend/app/admin/image-resize/use-image-resize.ts` (client-side canvas, no backend endpoint — ห้ามสร้าง `admin_image_resize.py`)
-- Modify: `frontend/app/admin/settings/permissions/page.tsx`
-- Test: `backend/tests/test_perm_csrf.py`
+- Modify: `backend/app/core/permissions.py` (2 keys + DEFAULT_POLICY + descriptions + registry — `ensure_seed_rows` seed เอง ไม่ต้อง migration)
+- Modify: `backend/app/api/v1/endpoints/admin_credentials.py` (gate ด้วย `require_permission`)
+- Modify: `backend/app/api/v1/endpoints/admin_business_hours.py` (PUT gate ด้วย `require_permission`)
+- Reference (verify-only, ห้ามสร้าง endpoint): image-resize เป็น client-side ล้วน (`frontend/app/admin/image-resize/use-image-resize.ts` — canvas ใน browser, ไม่มี backend route)
+- Reference (verify-only): `frontend/app/admin/settings/permissions/page.tsx` (matrix render จาก API อัตโนมัติ — 2 แถวใหม่โผล่เองพร้อม label ไทย)
+- Test: `backend/tests/test_new_permission_keys.py`
 
-**Interfaces:**
-- Consumes: permission matrix + `DEFAULT_POLICY` เดิม, `get_current_admin/manager` gates
-- Produces: permission keys `manage_credentials`, `edit_business_hours` (พร้อม DEFAULT_POLICY), `POST /image-resize` ต้องมี auth + CSRF + signed key หมดอายุ
+**Interfaces (verified):**
+- Consumes: `KEY_*` constants (permissions.py:42-76) + `DEFAULT_POLICY: dict[str, frozenset[UserRole]]` (:80 — **type นี้เท่านั้น ห้าม assign list**); entries ตัวอย่าง `KEY_IMAGE_RESIZE: frozenset({SUPER_ADMIN, ADMIN})` (:123); `_SEED_DESCRIPTIONS` (:213) + `ensure_seed_rows` (:241); `PERMISSION_REGISTRY` (`PermissionMeta(key, module, level, label_th)` — :415-440); `GET /api/v1/admin/settings/permissions` (settings router prefix `/admin/settings` — api.py:51; gate `get_current_admin` — settings.py:118-122); business-hours `PUT ""` gate `get_current_admin` อยู่ (admin_business_hours.py:57-62 — ยังไม่ผูก key ใหม่); credentials endpoints ผสม `get_current_admin`/`require_permission(KEY_EDIT_SYSTEM_SETTINGS)` (admin_credentials.py:28, 47, 77, 99, 116)
+- Produces: `KEY_MANAGE_CREDENTIALS = "manage_credentials"` + `KEY_EDIT_BUSINESS_HOURS = "edit_business_hours"` ครบทั้ง 4 จุด (constants, DEFAULT_POLICY, descriptions, registry)
+- ขอบเขตที่ตัดทิ้งอย่าง explicit: **ไม่มี test HTTP ใดยิง `/api/v1/image-resize`** — route นี้ไม่มีอยู่จริง (มีแต่ไฟล์ frontend) test แบบนั้นได้ 404 ตลอดและไม่พิสูจน์อะไร; verify-only = ยืนยันว่าไม่มี `admin_image_resize.py` ใน endpoints + use-image-resize ไม่เรียก backend
 
 - [ ] **Step 1: Write the failing test**
 
 ```python
+# backend/tests/test_new_permission_keys.py
+from types import SimpleNamespace
 import pytest
-from httpx import AsyncClient
+
+from app.api import deps as api_deps
+from app.main import app
+from app.models.user import UserRole
+
 
 @pytest.mark.asyncio
-async def test_perm_matrix_has_new_keys(test_client: AsyncClient, admin_token):
-    resp = await test_client.get("/api/v1/permissions", headers={"Authorization": f"Bearer {admin_token}"})
-    keys = [p["key"] for p in resp.json()]
-    assert "manage_credentials" in keys and "edit_business_hours" in keys
+async def test_matrix_has_new_keys(test_client):
+    async def _override():
+        yield SimpleNamespace(id=1, role=UserRole.SUPER_ADMIN, is_active=True)
+
+    app.dependency_overrides[api_deps.get_current_user] = _override
+    try:
+        resp = test_client.get("/api/v1/admin/settings/permissions")
+        assert resp.status_code == 200
+        assert "manage_credentials" in resp.text
+        assert "edit_business_hours" in resp.text
+    finally:
+        app.dependency_overrides.clear()
+
 
 @pytest.mark.asyncio
-async def test_resize_without_csrf_denied(test_client: AsyncClient, admin_token):
-    resp = await test_client.post("/api/v1/image-resize", headers={"Authorization": f"Bearer {admin_token}"}, json={"url": "https://x/y.jpg", "w": 100})
-    assert resp.status_code in (403, 422)
+async def test_business_hours_put_requires_new_key(test_client):
+    async def _override():
+        yield SimpleNamespace(id=2, role=UserRole.AGENT, is_active=True)
+
+    # body ครบ 7 วันตาม BusinessHoursUpdate (schemas/business_hours.py:51-52)
+    # เพื่อให้ gate (403) เป็นตัวตอบ ไม่ใช่ body validation (422)
+    valid_days = [
+        {"day_of_week": i, "is_open": False, "open_time": "08:00", "close_time": "17:00"}
+        for i in range(7)
+    ]
+    app.dependency_overrides[api_deps.get_current_user] = _override
+    try:
+        resp = test_client.put(
+            "/api/v1/admin/settings/business-hours",
+            json={"days": valid_days},
+        )
+        assert resp.status_code == 403
+    finally:
+        app.dependency_overrides.clear()
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `python -m pytest tests/test_perm_csrf.py -v`
-Expected: FAIL — key ใหม่ไม่มีใน matrix และ resize ผ่านโดยไม่มี CSRF
+Run: `python -m pytest tests/test_new_permission_keys.py -v`
+Expected: FAIL — matrix ไม่มี 2 keys ใหม่ และ PUT เป็น AGENT อาจผ่าน gate เดิม
 
 - [ ] **Step 3: Write minimal implementation**
 
 ```python
-# backend/app/core/permissions.py — ต่อท้าย DEFAULT_POLICY (`backend/app/core/permissions.py:80-150`)
-DEFAULT_POLICY["manage_credentials"] = ["SUPER_ADMIN"]
-DEFAULT_POLICY["edit_business_hours"] = ["SUPER_ADMIN", "ADMIN"]
+# backend/app/core/permissions.py
+KEY_MANAGE_CREDENTIALS = "manage_credentials"  # ต่อท้าย KEY_EDIT_SYSTEM_SETTINGS (:60)
+KEY_EDIT_BUSINESS_HOURS = "edit_business_hours"
+
+# DEFAULT_POLICY (:80) — frozenset เท่านั้น (type คือ dict[str, frozenset[UserRole]]):
+    KEY_MANAGE_CREDENTIALS: frozenset({UserRole.SUPER_ADMIN, UserRole.ADMIN}),
+    KEY_EDIT_BUSINESS_HOURS: frozenset({UserRole.SUPER_ADMIN, UserRole.ADMIN}),
+
+# _SEED_DESCRIPTIONS (:213):
+    KEY_MANAGE_CREDENTIALS: "จัดการรหัสเชื่อมต่อ (credentials/integrations)",
+    KEY_EDIT_BUSINESS_HOURS: "แก้เวลาทำการ (business hours)",
+
+# PERMISSION_REGISTRY — กลุ่ม system ต่อจาก KEY_IMAGE_RESIZE:
+    PermissionMeta(KEY_MANAGE_CREDENTIALS, "system", LEVEL_MANAGE, _SEED_DESCRIPTIONS[KEY_MANAGE_CREDENTIALS]),
+    PermissionMeta(KEY_EDIT_BUSINESS_HOURS, "system", LEVEL_EDIT, _SEED_DESCRIPTIONS[KEY_EDIT_BUSINESS_HOURS]),
 ```
 
 ```python
-# image resize endpoint
-import hashlib
-import hmac
-import logging
-import time
-from fastapi import HTTPException, Request
+# backend/app/api/v1/endpoints/admin_business_hours.py — PUT (:57-62):
+    admin: User = Depends(require_permission(KEY_EDIT_BUSINESS_HOURS)),
+# (GET คง get_current_staff — อ่านได้ทุก staff; เพิ่ม import require_permission +
+# KEY_EDIT_BUSINESS_HOURS — ไฟล์นี้ import แค่ get_current_admin/get_current_staff (:13))
 
-logger = logging.getLogger(__name__)
-
-def verify_csrf(request: Request) -> None:
-    token = request.headers.get("x-csrf-token", "")
-    if not token or token != request.session.get("csrf"):
-        raise HTTPException(status_code=403, detail="คำขอไม่ถูกต้อง กรุณารีเฟรชแล้วลองใหม่")
-
-def verify_signed_key(key: str) -> None:
-    try:
-        raw, exp, sig = key.split(".")
-        if int(exp) < int(time.time()):
-            raise ValueError("expired")
-        good = hmac.new(settings.SECRET_KEY.encode(), f"{raw}.{exp}".encode(), hashlib.sha256).hexdigest()
-        if not hmac.compare_digest(good, sig):
-            raise ValueError("bad sig")
-    except Exception:
-        logger.warning("image resize bad key")
-        raise HTTPException(status_code=403, detail="ลิงก์หมดอายุ กรุณาสร้างใหม่")
+# backend/app/api/v1/endpoints/admin_credentials.py — endpoint ที่ยังใช้ get_current_admin
+# (:28, :77, :99) เปลี่ยนเป็น require_permission(KEY_MANAGE_CREDENTIALS)
+# (จุดที่ใช้ KEY_EDIT_SYSTEM_SETTINGS อยู่แล้วคงไว้)
 ```
 
-frontend `permissions/page.tsx` เพิ่ม 2 แถวภาษาไทย "จัดการรหัสเชื่อมต่อ" / "แก้เวลาทำการ" พร้อมค่า default จาก API
+(frontend matrix ดึง registry จาก API — 2 แถวใหม่ + label ไทยโผล่เอง ไม่ต้องแก้ page; `ensure_seed_rows` seed rows ใหม่ตอน startup — ไม่ต้อง migration)
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `python -m pytest tests/test_perm_csrf.py tests/test_permissions.py -v`
+Run: `python -m pytest tests/test_new_permission_keys.py tests/test_module_permission_endpoints.py tests/test_deps_gates.py -v`
 Expected: PASS
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add backend/app/core/permissions.py backend/app/api/v1/endpoints/admin_credentials.py backend/app/api/v1/endpoints/admin_business_hours.py frontend/app/admin/settings/permissions/page.tsx backend/tests/test_perm_csrf.py
-git commit -m "fix(permissions): credential and hours keys with resize csrf"
+git add backend/app/core/permissions.py backend/app/api/v1/endpoints/admin_credentials.py backend/app/api/v1/endpoints/admin_business_hours.py backend/tests/test_new_permission_keys.py
+git commit -m "fix(permissions): credential and business-hours keys with gates"
 ```
 
 - [ ] **Step 6: Validation**
 
-Run: `python -m pytest tests/test_module_permission_endpoints.py tests/test_deps_gates.py -v`
+Run: `python -m pytest tests/test_module_permission_endpoints.py tests/test_deps_gates.py tests/test_credential_service.py -v`
 Expected: PASS
 
----
+
+
 
 ## NOT Building
 
@@ -3682,7 +2789,7 @@ Expected: PASS
 - **Secrets migration ทำรหัสหาย:** migration ของ B2 ต้องสำรองค่า plaintext ลงตาราง backup ชั่วคราวก่อนเสมอ แล้วค่อย encrypt → verify (ถอดรหัสเทียบ) → mask; `downgrade` ต้อง restore ค่าเดิมจากตาราง backup กลับเข้า SystemSetting แล้วลบ Credential rows ที่สร้างไว้ (re-encrypt กลับเป็น plaintext จาก backup เท่านั้น ห้ามเดา) และห้าม `DROP TABLE` backup ก่อน verify ว่าครบทุก key; ซ้อม upgrade → downgrade → upgrade ครบใน Step 6 ของ B2
 - **Transfer race ตอนโหลดสูง (rowcount=0):** conditional UPDATE ตอบ rowcount=0 ได้ทั้งกรณีถูกแย่งกัน (409) และ session ปิด/หายไปแล้ว (404) — ต้อง re-select แล้วแยกกรณีก่อนตอบตาม B1 Step 3 ห้ามตอบ 409 เฉย ๆ; test ด้วย `asyncio.gather` ให้เห็น winner เดียวเสมอ
 - **Redis ลง:** ทุกจุดที่ใช้ `redis_client.get/setex` ต้อง degrade ตามพฤติกรรมเดิม (redis_client.py:103-111) — analytics (C1) คำนวณตรง ๆ + `cache_hit=false`, presence throttle (C8) ต้องมีทาง fallback ไม่ใช้พังทั้ง WebSocket; Redis ลงต้องไม่กลายเป็น 500
-- **Alembic head ชนกัน:** B1/B2 ขนานกันได้แต่ห้ามสร้าง migration พร้อมกันโดยไม่เช็ก — ก่อนเริ่ม B2 รัน `python scripts/db_target.py alembic --target local heads` ให้แน่ใจว่ามี head เดียว ถ้าหลาย head ต้อง merge ก่อน และตั้ง `down_revision` จาก head จริง ณ วันรัน (อย่า copy ค่าตัวอย่างใน plan ไปใช้ตรง ๆ)
+- **Alembic head ชนกัน:** B1/B2 ขนานกันได้แต่ห้ามสร้าง migration พร้อมกันโดยไม่เช็ก — ก่อนเริ่ม B2 รัน `python scripts/db_target.py alembic --target local heads` ให้แน่ใจว่ามี head เดียวคือ `t1u2v3w4x5y6` (verified 2026-09-13; `z1a2b3c4d5e6` อยู่กลาง chain — `a2b3c4d5e6f7` revises มันแล้ว — ห้ามใช้เป็น `down_revision`) ถ้าหลาย head ต้อง merge ก่อน แล้วตั้ง `down_revision` จาก head จริง ณ วันรัน
 - **CSRF กับ auth แบบ cookie-only:** FastAPI ของ repo นี้ไม่มี `request.session` (ไม่มี session middleware, auth เป็น cookie-only ตาม `backend/app/api/deps.py`) — การเทียบ CSRF token ต้องเป็น double-submit: อ่าน header `x-csrf-token` แล้วเทียบกับ HttpOnly cookie `csrf_token` ด้วย `compare_digest` ตาม pattern ที่ `frontend/lib/csrfStore.ts` ใช้อยู่ (frontend เก็บ token จาก cookie ใน store แล้ว echo กลับผ่าน header และ field `csrf_token` ใน body)
 
 ## Before / After (UX)
@@ -3695,19 +2802,19 @@ Expected: PASS
 ## Edge-Case Checklist
 
 - [ ] ตารางว่างในช่วง `days` → `percentile_cont` คืน NULL → fallback `p50 or 0` ตอบ 0.0 ไม่ 500 (C1)
-- [ ] `limit=0` / ค่าติดลบ → clamp เข้าช่วง min/max ก่อน query (D1 histories, C7 friends, D4)
+- [ ] `limit=0` / ค่าติดลบ → clamp/cap เข้าช่วงก่อน query (D1 messages clamp-only, D4 friends `le=100`)
 - [ ] LIFF token หมดอายุ / LINE ปฏิเสธ → 401 ข้อความไทย ไม่เขียน DB (A1, D3)
-- [ ] PATCH body ว่าง / ฟิลด์เป็น None ทั้งหมด → 422 ไม่ 500 (C6 booking, D2 canned, D3 LIFF)
+- [ ] PATCH/PUT body ว่าง / ฟิลด์เป็น None ทั้งหมด → 422 ไม่ 500 (C6 booking, D2 canned — `liff.py` ไม่มี PATCH จึงไม่มีเคสนี้ใน D3)
 - [ ] โอนสายพร้อมกัน → rowcount=0 → re-select แยก 409 (ถูกแย่ง) กับ 404 (session หาย) (B1)
 - [ ] Redis ลงระหว่างเรียก analytics → cache miss → คำนวณตรง ๆ + `cache_hit=false` ไม่ 500 (C1)
 - [ ] rich-menu sync ที่ยังไม่มีรูป → ข้ามเมนูนั้นพร้อมเหตุผล ไม่ล้มทั้งชุด (C7)
 - [ ] ชื่อไฟล์ส่งออกภาษาไทย → `Content-Disposition` ใช้ `filename*` encode ตาม RFC 5987 ไม่เพี้ยน (D1)
 
-## Self-Review
+## Self-Review (ตรวจซ้ำ 2026-09-13 หลังลบ stale copy — อ้างเฉพาะข้อความที่เหลืออยู่จริง)
 
-**1. Spec coverage (PRD ข้อ → Task):** C2 stories 1–4 → A1; C3 stories 5–6 → A2; C5 stories 7–8 → A3; C1 stories 9–11 → B1; C4 stories 12–14 → B2; stories 15–16 → C1; ghost/presence/pagination (stories 17–20) → B1 (conditional UPDATE ครบทุกทางเปลี่ยนเจ้าของ) + D1 (cursor pagination, ghost-push threshold test, presence-burst test); story 21 → D1; stories 22–23 → D2; stories 24–25 → D3; stories 26–27 → C2; story 28 → C3; story 29 → C4; stories 30–31 → C5; stories 32–33 → C6; stories 34–35 → C7; stories 36–37 → D4; story 38 → D7; story 39 → D5; story 40 → D6; story 41 → D7; stories 42–43 → ทุก task (ข้อความไทย + audit ใน C5/B1). Out-of-scope เคารพครบ (ไม่เปลี่ยน SDK/auth/WS protocol ใหม่). **Gap ที่พบตอน review:** D1 เดิมไม่มี presence-storm threshold test → เติม `test_presence_burst_bounded` ใน Step 1 ของ D1 แล้ว; C2 เดิมไม่มี OBJECT_REF negative test → เติม `test_object_ref_without_permission_denied` ใน Step 1 ของ C2 แล้ว.
+**1. Spec coverage (PRD ข้อ → Task):** C2 stories 1–4 → A1; C3 stories 5–6 → A2; C5 stories 7–8 → A3; C1 stories 9–11 → B1; C4 stories 12–14 → B2; stories 15–16 → C1; story 17 (lock param) → B1 (คง `lock` param + conditional UPDATE); stories 18–19 → C8 (ghost-push guard + presence throttle — `test_push_after_transfer_blocked`, `test_presence_burst_bounded`); story 20 → D1 (endpoint clamp + cursor เดิม); story 21 → D1 (streaming export + Thai font + RFC 5987); stories 22–23 → D2 (normalize 409 + `updated_at` guard); stories 24–25 → D3 (timeout/retry/502 — ไม่มี GET/PATCH ใน `liff.py` จึงไม่มีงาน rate-limit/PATCH-None ในไฟล์นี้); stories 26–27 → C2 (dry-run + backoff); story 28 → C3; story 29 → C4; stories 30–31 → C5; stories 32–33 → C6; stories 34–35 → C7; stories 36–37 → D4; story 38 → D7 (verify-only, ห้ามสร้าง endpoint); story 39 → D5; story 40 → D6 (verify-first, test ล็อก token); story 41 → D7 (2 keys + gates); stories 42–43 → ทุก task (ข้อความไทย + audit ใน C5/B1/D4-D7). Out-of-scope เคารพครบ (ไม่เปลี่ยน SDK/auth/WS protocol ใหม่; ไม่สร้าง `/api/v1/image-resize`).
 
-**2. Placeholder scan:** ค้น `TBD|TODO|implement later|add validation|similar to Task|appropriate error` ในไฟล์นี้ → ไม่พบ (ตรวจด้วย grep ก่อนบันทึก). ทุก step มี code จริง + คำสั่งรัน + expected + commit message แบบ conventional (`fix:/feat:/perf:`). ชื่อฟังก์ชันไม่ใช้คำกำกวม. แก้ไขแล้ว inline ก่อนบันทึก: (a) C4 `OBJECT_ID_RE` ตอนแรก escape เกิน (`r"^\\$"` DOUBLE-BACKSLASH) → แก้เป็น `r"^\$"` ที่ถูกต้อง; (b) C6 เดิมเขียน "ตรวจที่เดียวกัน" ลอย → แทนด้วย `validate_booking_date` + `guard_transition` จริง; (c) D7 เดิมเขียน "กัน CSRF" ลอย → แทนด้วย `verify_csrf` + `verify_signed_key` จริง; (d) D2 409 message ตอนแรกไม่มีชื่อรายการที่ชน → แก้ให้ต่อ `r.title` ใน detail แล้ว; (e) D1 `filename*` ตอนแรก quote ไม่ครบ → แก้เป็น RFC 5987 single-quote คู่ + note กำกับแล้ว.
+**2. Single-definition + banned-string scan (ผล grep จริง 2026-09-13):** `grep -o '^### Task [A-D][0-9]*'` → 20 headings, แต่ละ ID ปรากฏครั้งเดียว (A1–A3, B1–B2, C1–C8, D1–D7); pattern ของ stale copy ไม่เหลือแล้ว — ไม่มี test_client ที่ถูก await, ไม่มี fixture DB กลาง, ไม่มี session-middleware access, ไม่มี PUT head จริง (เหลือแค่ prohibition ใน Global Constraints :22 ที่ห้ามไว้); Pydantic เหลือแค่ prohibition note + `model_copy` ที่ B2; `httpx.AsyncClient` ที่เหลืออยู่ใน D3 เท่านั้น (production class ใต้ test — :2288, :2317, :2349); `pytest_asyncio` ปรากฏ 13 จุด (5 import blocks + 5 async fixtures + Global Constraints + D1 import/fixture).
 
-**3. Type consistency:** `require_liff_identity(request: Request) -> dict` (A1) → D3 import ชื่อเดียวกัน; `check_private_token(stored, presented) -> bool` (A2) ใช้ซ้ำใน revoke/create; `transfer_session(db, session_id, from_operator_id, to_operator_id, reason) -> ChatSession` (B1) ไม่ชน `claim_session/close_session`; `SECRET_DENY_LIST: frozenset[str]` + `encrypt/decrypt` (B2) ใช้ชื่อเดียวกันใน migration; `DashboardResponse.cache_hit: bool` (C1); `BroadcastCreate.dry_run: bool` (C2); `compile_intent/wildcard_to_regex` (C3); `OBJECT_ID_RE` (C4); `RequestStatus` enum (C5); `MAX_DAYS/TERMINAL` (C6); `preview_menu/sync_due_menus` (C7); `normalize_text` (D2); `mask_line_id/mask_phone` D4 → D5 import ตรงจาก `admin_friends`; `ReportExportQuery` (D5); `buttonVariants` (D6); `manage_credentials/edit_business_hours` keys (D7). ทุกชื่อตรวจแล้วว่านิยามก่อนใช้ ไม่มีคู่ชื่อที่สะกดต่างกัน.
+**3. Type consistency (ทุกชื่อมีนิยามในไฟล์นี้ — ผล grep):** `require_liff_identity(x_liff_id_token: Optional[str]) -> str` (A1 นิยาม, D3 reuse); `check_private_token(stored, presented) -> bool` (A2); `TRANSFER_ERR_CONFLICT` (B1: errors.py + export ใน `__init__.py` + map 409; signature `transfer_session` ไม่เปลี่ยน); `SECRET_DENY_LIST: frozenset[str]` (B2 — service + migration + mask ใช้ชื่อเดียวกัน); `DashboardResponse.cache_hit: bool` (C1); `BroadcastCreate.dry_run: bool` + `BroadcastDryRunResponse` (C2); `compile_intent_keyword` + `invalidate_intent_regex_cache` + `_like_safe` (C3); `OBJECT_ID_RE = ^\$[A-Za-z][A-Za-z0-9_]{2,39}$` (C4); `RequestStatus` 6 ค่าเดิม — ห้าม DONE/CANCELLED (C5); `BookingWindowError` + `validate_booking_date` + `MAX_ADVANCE_BOOKING_DAYS = 62` (C6); `preview` route + per-menu try (C7); `normalize_text` (D2); `mask_line_id/mask_phone` นิยามใน D4 (`admin_friends.py`) → D5 ใช้ผ่าน `_csv_line_id` (import ตรง ห้ามเขียนซ้ำ); `buttonVariants` (D6 — test ล็อก primary/danger); `KEY_MANAGE_CREDENTIALS/KEY_EDIT_BUSINESS_HOURS` ครบ 4 จุด (constants, `DEFAULT_POLICY: dict[str, frozenset[UserRole]]`, descriptions, registry — D7). D1 ตัดสินแล้ว: clamp-only ไม่ใช้ `le=` (ใช้ `le` จะได้ 422 ขัด PRD) — test คาด 200 + clamp.
 
