@@ -144,19 +144,14 @@ class TestLiffStrictModeWiring:
     """FR3 matrix — LIFF_STRICT_MODE + ID token verification (P0.2)."""
 
     @pytest.mark.asyncio
-    async def test_case1_flag_off_no_token_uses_body_fallback(self, test_client, monkeypatch):
+    async def test_case1_flag_off_no_token_rejected_no_db_write(self, test_client, monkeypatch):
         monkeypatch.setattr(settings, "LIFF_STRICT_MODE", False)
         body = _service_request_body(line_user_id="Ubodyuser1234567890abcd", marker="case1")
 
         res = test_client.post("/api/v1/liff/service-requests", json=body)
 
-        assert res.status_code == 201
-        data = res.json()
-        assert data["line_user_id"] == "Ubodyuser1234567890abcd"
-
-        line_user_id, details = await _fetch_and_delete(data["id"])
-        assert line_user_id == "Ubodyuser1234567890abcd"
-        assert details == {"source": "LIFF-unverified"}
+        assert res.status_code == 401
+        assert await _count_by_description(body["description"]) == 0
 
     @pytest.mark.asyncio
     async def test_case2_flag_off_valid_token_ignores_forged_body_id(self, test_client, monkeypatch):

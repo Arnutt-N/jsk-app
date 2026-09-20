@@ -52,6 +52,17 @@ async def verify_liff_token(id_token: str) -> str:
     return sub
 
 
+async def require_liff_identity(x_liff_id_token: Optional[str]) -> str:
+    """Reject unauthenticated LIFF submissions before any database write."""
+    if not x_liff_id_token:
+        logger.warning("liff_unverified_attempt strict=%s", settings.LIFF_STRICT_MODE)
+        raise HTTPException(
+            status_code=401,
+            detail="กรุณายืนยันตัวตนผ่าน LINE ก่อนยื่นคำร้อง",
+        )
+    return await verify_liff_token(x_liff_id_token)
+
+
 _LIFF_MEDIA_ALLOWED_MIMES = {"image/jpeg", "image/png", "application/pdf"}
 _LIFF_MEDIA_MAX_BYTES = 10 * 1024 * 1024  # 10 MB
 
@@ -76,11 +87,7 @@ async def upload_liff_media(
     x_liff_id_token: Optional[str] = Header(None),
 ) -> dict:
     """Accept a single file upload from a LIFF wizard page."""
-    # --- LIFF identity verification (same pattern as create_service_request) ---
-    if x_liff_id_token:
-        await verify_liff_token(x_liff_id_token)
-    elif settings.LIFF_STRICT_MODE:
-        raise HTTPException(status_code=401, detail="LIFF ID token required")
+    await require_liff_identity(x_liff_id_token)
 
     # --- Validate MIME type server-side ---
     mime = file.content_type or "application/octet-stream"
@@ -140,23 +147,8 @@ async def create_service_request(
     """
     Create a new service request from LIFF.
     """
-    # Determine the verified LINE user ID and request source
-    if x_liff_id_token:
-        verified_line_user_id = await verify_liff_token(x_liff_id_token)
-        if request.line_user_id and request.line_user_id != verified_line_user_id:
-            logger.warning(
-                "LIFF body line_user_id mismatch with verified token sub %s…; using verified identity",
-                verified_line_user_id[:6],
-            )
-        line_user_id = verified_line_user_id
-        source_details = {"source": "LIFF v2"}
-    elif settings.LIFF_STRICT_MODE:
-        logger.warning("LIFF_token_missing_strict_mode_reject")
-        raise HTTPException(status_code=401, detail="LIFF ID token required")
-    else:
-        logger.warning("LIFF_token_missing_transition_mode")
-        line_user_id = request.line_user_id
-        source_details = {"source": "LIFF-unverified"}
+    line_user_id = await require_liff_identity(x_liff_id_token)
+    source_details = {"source": "LIFF v2"}
 
     # Map Pydantic to SQLAlchemy Model
     # Note: Our Pydantic has 'name', 'phone', 'service_type'
@@ -270,24 +262,8 @@ async def create_debt_mediation_request(
     x_liff_id_token: Optional[str] = Header(None),
 ) -> DebtMediationResponse:
     """Create a new debt mediation request from LIFF (ขอแก้หนี้)."""
-    # Same identity pattern as create_service_request: trust only the verified
-    # LINE token sub, reject unverified submissions in strict mode.
-    if x_liff_id_token:
-        verified_line_user_id = await verify_liff_token(x_liff_id_token)
-        if request.line_user_id and request.line_user_id != verified_line_user_id:
-            logger.warning(
-                "LIFF body line_user_id mismatch with verified token sub %s…; using verified identity",
-                verified_line_user_id[:6],
-            )
-        line_user_id = verified_line_user_id
-        source_details = {"source": "LIFF"}
-    elif settings.LIFF_STRICT_MODE:
-        logger.warning("LIFF_token_missing_strict_mode_reject_debt_mediation")
-        raise HTTPException(status_code=401, detail="LIFF ID token required")
-    else:
-        logger.warning("LIFF_token_missing_transition_mode_debt_mediation")
-        line_user_id = request.line_user_id
-        source_details = {"source": "LIFF-unverified"}
+    line_user_id = await require_liff_identity(x_liff_id_token)
+    source_details = {"source": "LIFF"}
 
     user = None
     if line_user_id:
