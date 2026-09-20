@@ -2,6 +2,20 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+## Summary
+
+ปิดช่องโหว่ Critical C1–C5 และแก้ปัญหา High ที่ระบุใน PRD โดยแบ่งงานเป็น
+Wave A–D และใช้ TDD แบบ red → green → regression ต่อ task.
+
+## Metadata
+
+- **Complexity:** XL — 20 tasks across backend, database migration, admin UI, and frontend.
+- **Source PRD:** `docs/superpowers/specs/2026-09-12-feature-line-audit-fix-map.md`
+- **PRD Phase:** Research-only audit findings → implementation remediation plan.
+- **Branch:** `feat/feature-line-audit-fix-map`.
+- **Execution contract:** every task below has explicit `ACTION`, `IMPLEMENT`,
+  `MIRROR`, `VALIDATE`, and `GOTCHA` fields in addition to its detailed steps.
+
 **Goal:** ปิดรูรั่ว Critical (C1–C5) แล้วแก้ High backend และ admin/frontend ตาม PRD 2026-09-12 ให้ผ่าน test ทุก Wave
 
 **Architecture:** ทำเป็น 4 Wave ตามความเสี่ยง (A security → B correctness → C backend High → D admin/frontend); Wave A เป็นเจ้าของไฟล์ liff.py และ media.py ก่อน ห้ามขนานบนไฟล์เดียวกัน; B ขนานกับ A ได้เพราะไฟล์ไม่ชน; C แบ่ง lane ตามโดเมน; D ทำท้ายสุดเมื่อ API นิ่งแล้ว ทุก task ใช้ TDD (red → green → commit)
@@ -21,13 +35,38 @@
 - Branch นี้คือ `feat/feature-line-audit-fix-map` ห้ามแก้ไฟล์เดียวกันขนานกัน (liff.py → A ก่อน C/D3; media.py → A ก่อน C/D; sessions.py + errors.py → B1 เจ้าของคนเดียว; messaging.py → C8; admin_live_chat.py transfer mapping → B1, messages/export routes → D1)
 - Test conventions (ทุก task): `test_client` คือ sync `TestClient` (ห้าม `await test_client.*` — ดู `backend/tests/test_liff_token.py:147-160`); งาน admin ใช้ `app.dependency_overrides[deps.get_current_user]` คืน `SimpleNamespace(id, role=UserRole.*, is_active=True)` แล้ว `clear()` ทุกครั้ง (ดู `backend/tests/test_module_permission_endpoints.py:83-107` — ไฟล์นี้ override `get_current_user` ตรง ๆ; อย่าอ้าง test_admin_requests_endpoints ซึ่ง override `get_current_admin`/`get_current_manager`); งาน DB ใช้ `_fresh_engine()` + NullPool recipe จาก `backend/tests/test_liff_token.py:37-44` (ห้าม reuse pool ของ app ข้าม event loop); ห้าม import helper ข้าม test module (ไม่มี `__init__.py`) — copy สูตรสั้นสั้นไว้ในไฟล์ test นั้นนั้น; `conftest.py` มีแค่ `app/test_client/_reset_http_rate_limits/drain_auth_responses/auth_websocket` (`backend/tests/conftest.py:80-154) — fixture อื่นทุกตัวต้องนิยามเต็มใน task นี้; fixture ที่เป็น `async def` ต้องใช้ `@pytest_asyncio.fixture` เสมอ (repo ใช้ strict mode ไม่มี `asyncio_mode` — ดู precedent `backend/tests/test_booking_create_concurrency.py:91-97`)
 
+## Global Validation Contract
+
+- **Backend gate:** from `backend/`, run the task Step 4 and Step 6 pytest
+  commands with the repository virtual environment; migration tasks also run
+  the stated Alembic upgrade → downgrade → upgrade cycle.
+- **Frontend gate:** from `frontend/`, run `npm run test:unit`,
+  `npx tsc --noEmit`, `npm run lint`, and `npm run build` after any task that
+  changes frontend code and once again before the Wave D merge.
+- **Static/source gate:** run `git diff --check` and inspect only the files
+  listed by the task's Step 5 `git add`; unrelated dirty/untracked work stays
+  untouched.
+
 ---
+
+## Step-by-Step Tasks
+
+Each task below is self-contained: `ACTION` states the outcome, `IMPLEMENT`
+points to the production change and its detailed step, `MIRROR` identifies the
+existing repository pattern to copy, `VALIDATE` identifies the exact red/green
+and regression commands, and `GOTCHA` records the task-local risk.
 
 ## File Structure
 
 ### Wave A — Critical security (ทำก่อนทุก Wave บนไฟล์ที่ชน)
 
 ### Task A1: LIFF strict default true + ห้ามเขียน DB เมื่อไม่มีตัวตน
+
+**ACTION:** ปฏิเสธ LIFF write ทุกชนิดที่ไม่มี token ที่ยืนยันแล้ว แม้ตั้ง strict=false.
+**IMPLEMENT:** เพิ่ม `require_liff_identity()` ใน `liff.py` และให้ทั้งสาม write route เรียกใช้; ปรับ env examples และ contract tests ตาม Step 3.
+**MIRROR:** ใช้ `verify_liff_token()` และ `_fresh_engine()` จาก `backend/app/api/v1/endpoints/liff.py:31-52` และ `backend/tests/test_liff_token.py:43-44`.
+**VALIDATE:** Step 2 ต้อง RED; Step 4 ต้องผ่าน strict/token/media/debt/config tests; Step 6 ต้องผ่าน LIFF regression suite.
+**GOTCHA:** `LIFF_STRICT_MODE=false` เหลือเพื่อ observability/compatibility เท่านั้น ห้ามคืนพฤติกรรมเขียน DB แบบ `LIFF-unverified`.
 
 **Files:**
 - Modify: `backend/app/api/v1/endpoints/liff.py`
@@ -153,6 +192,12 @@ Expected: PASS — ฟอร์ม LIFF ทั้งสามยังผ่า�
 
 ### Task A2: Media private token gate — ว่างชนว่างต้องไม่ผ่าน + preview ส่ง token
 
+**ACTION:** ทำให้ไฟล์ private ต้องมี token จริงทั้งสองฝั่งและให้ preview ส่ง token ไปด้วย.
+**IMPLEMENT:** เพิ่ม `check_private_token()` ใน `media.py` และรวม token ใน `buildMediaUrl()` ตาม Step 3.
+**MIRROR:** คง `secrets.compare_digest` และ serialization/preview conventions จาก `backend/app/api/v1/endpoints/media.py:137-159`.
+**VALIDATE:** Step 2 ต้องจับ empty-token bypass; Step 4 ต้องผ่าน private-gate/upload tests; Step 6 ต้องผ่าน webhook/rich-menu media regression.
+**GOTCHA:** ห้ามใช้ `or ""` เป็นหลักฐานว่า token ถูกต้อง; private file ที่ไม่มี token ต้อง 403 เสมอ.
+
 **Files:**
 - Modify: `backend/app/api/v1/endpoints/media.py`
 - Modify: `frontend/app/admin/files/page.tsx`
@@ -270,6 +315,12 @@ Expected: PASS — upload/revoke/thumbnail เดิมไม่พัง
 
 ### Task A3: Health auth + ซ่อน error ดิบ
 
+**ACTION:** ล็อก detailed/websocket health ให้ admin-only และไม่ส่งข้อความ exception ดิบออก API.
+**IMPLEMENT:** ใส่ dependency auth ในสอง route และ log exception ฝั่ง server พร้อมข้อความกลางตาม Step 3.
+**MIRROR:** คง public basic health และใช้ gate แบบ `get_current_admin` จาก `pseudonym_gate_status()` ใน `backend/app/api/v1/endpoints/health.py:54-64`.
+**VALIDATE:** Step 2 ต้อง fail เมื่อ anonymous เรียก route; Step 4 และ Step 6 ต้องผ่าน hardening/watchdog/startup tests.
+**GOTCHA:** `/health` basic ยัง public ได้ แต่ห้ามมี `str(e)` หรือ `*_error` ที่เปิดเผย host/password; อย่าล็อก pseudonym gate เดิมซ้ำ.
+
 **Files:**
 - Modify: `backend/app/api/v1/endpoints/health.py`
 - Test: `backend/tests/test_health_hardening.py`
@@ -359,6 +410,12 @@ Expected: PASS — watchdog ยังตรวจ basic `/api/v1/health` ได�
 ## Wave B — Critical correctness (ขนานกับ Wave A ได้ ไฟล์ไม่ชน)
 
 ### Task B1: Transfer conditional UPDATE + rowcount + concurrency test
+
+**ACTION:** ทำให้การโอนแชทแข่งกันมีผู้ชนะได้คนเดียวและแยก 409/404 ถูกต้อง.
+**IMPLEMENT:** เปลี่ยน transfer mutation เป็น conditional `UPDATE ... WHERE` ตรวจ rowcount และ map conflict ตาม Step 3.
+**MIRROR:** ใช้ atomic claim pattern จาก `backend/app/services/live_chat_service/sessions.py:34-68` และ error mapping เดิมใน WS/admin handlers.
+**VALIDATE:** Step 2 ต้องแสดง concurrent winner สองคนก่อนแก้; Step 4/6 ต้องผ่าน race/session choreography/operator tests.
+**GOTCHA:** `rowcount=0` อาจหมายถึงถูกแย่งหรือ session หาย ต้อง re-select ก่อนเลือก 409 หรือ 404; ห้ามตอบ 409 เหมารวม.
 
 **Files:**
 - Modify: `backend/app/services/live_chat_service/sessions.py`
@@ -533,6 +590,12 @@ Run: `python -m pytest tests/test_session_choreography.py tests/test_multi_opera
 Expected: PASS — claim/close/transfer เดิมไม่พัง
 
 ### Task B2: Secrets → Credential migration + deny-list + mask
+
+**ACTION:** ห้ามเก็บ secret ใหม่ใน SystemSetting และย้ายค่าที่มีอยู่ไป Credential แบบถอดกลับตรวจได้.
+**IMPLEMENT:** เพิ่ม deny-list/masking และ migration backup → encrypt → verify → mask พร้อม downgrade restore ตาม Step 3.
+**MIRROR:** ใช้ `credential_service.encrypt_credentials/decrypt_credentials()` ที่ `backend/app/services/credential_service.py:74-82` และ `model_validate().model_copy()` precedent ใน settings/admin responses.
+**VALIDATE:** Step 2 ต้อง RED; Step 4/6 ต้องผ่าน migration/credential tests และ upgrade → downgrade → upgrade cycle.
+**GOTCHA:** ต้องยืนยัน Alembic head ณ เวลารันและเก็บ backup ของค่าดั้งเดิมก่อนเปลี่ยนแปลง; ห้ามแสดง secret ใน output/test log.
 
 **Files:**
 - Create: `backend/alembic/versions/a7b8c9d0e1f2_migrate_secrets_to_credential.py`
@@ -749,6 +812,12 @@ Expected: PASS — รหัสไม่หาย (verify ด้วย `SELECT c
 
 ### Task C1: Analytics cache + percentile ใน SQL + response schema
 
+**ACTION:** ลด query dashboard, ย้าย percentile เข้า SQL, และล็อก response shape พร้อม cache-hit.
+**IMPLEMENT:** รวม cache/SQL percentile/schema ใน analytics service ตาม Step 3 โดยต้อง fallback เมื่อ Redis ล่ม.
+**MIRROR:** ยึด route/service shape เดิมจาก `admin_analytics.py:67` และ `analytics_service.py:433-451`.
+**VALIDATE:** Step 2 ต้องแสดง query/cache gap; Step 4/6 ต้องผ่าน performance/service tests รวม empty-set และ Redis-down cases.
+**GOTCHA:** ห้ามเปลี่ยน route เป็น non-admin; empty percentile ต้องได้ 0 ไม่ใช่ 500 และ cache miss จาก Redis down ต้องไม่ล้ม request.
+
 **Files:**
 - Modify: `backend/app/services/analytics_service.py`
 - Modify: `backend/app/api/v1/endpoints/admin_analytics.py`
@@ -901,6 +970,12 @@ Run: `python -m pytest tests/test_analytics_service.py -v`
 Expected: PASS — ค่า percentile ใกล้เคียงค่าเดิม (ทนต่างได้เพราะเปลี่ยนวิธี interpolate)
 
 ### Task C2: Broadcast dry-run + multicast backoff
+
+**ACTION:** เพิ่ม preview/dry-run ที่ไม่สร้างงานหรือส่ง LINE และทำ multicast retry แบบ bounded backoff.
+**IMPLEMENT:** เพิ่ม request/response dry-run path และ backoff ใน sender/scheduler ตาม Step 3.
+**MIRROR:** ใช้ `resolve_object`, scheduling normalization และ chunking ที่มีอยู่ใน broadcast service ตาม interface refs ของ task.
+**VALIDATE:** Step 2 ต้อง RED; Step 4/6 ต้องผ่าน dry-run/service/scheduler tests รวม timezone และ retry exhaustion.
+**GOTCHA:** dry-run ห้ามสร้าง broadcast jobหรือเรียก push provider; retry ต้องมีเพดานและเก็บ failed token อย่างปลอดภัย.
 
 **Files:**
 - Modify: `backend/app/api/v1/endpoints/admin_broadcast.py`
@@ -1073,6 +1148,12 @@ Run: `python -m pytest tests/test_broadcast_service.py tests/test_broadcast_sche
 Expected: PASS — scheduled ข้าม timezone ยังตรง
 ### Task C3: Intent keyword — REGEX write-guard + LIKE escape + precompile cache
 
+**ACTION:** ปิด ReDoS/LIKE wildcard bypass และไม่ compile regex ซ้ำทุกข้อความ.
+**IMPLEMENT:** เพิ่ม pattern guard, wildcard escaping, compiled cache/invalidation และใช้ order เดิมตาม Step 3.
+**MIRROR:** ยึด matcher ordering/category behavior จาก intent service และ webhook intent tests ที่ระบุใน task.
+**VALIDATE:** Step 2 ต้อง fail กับ dangerous pattern/wildcard; Step 4/6 ต้องผ่าน regex, webhook, category, and fallthrough suites.
+**GOTCHA:** ต้อง escape user wildcard ก่อนแปลง regex, จำกัดความยาว/รูปแบบ และ invalidation ต้องไม่คืน compiled pattern เก่า.
+
 **Files:**
 - Modify: `backend/app/api/v1/endpoints/admin_intents.py`
 - Modify: `backend/app/services/message_intake/intent_matching.py`
@@ -1216,6 +1297,12 @@ Expected: PASS
 
 ### Task C4: Reply object $name เข้ม + update validation
 
+**ACTION:** จำกัด placeholder `$name` ให้ปลอดภัยและบังคับ validation ตอน update เช่นเดียวกับ create.
+**IMPLEMENT:** เพิ่ม strict regex/schema validation และใช้กับ update/response parser ตาม Step 3.
+**MIRROR:** ใช้ Pydantic validation patterns ใน reply-object schemas และ parser tests ที่ task อ้างถึง.
+**VALIDATE:** Step 2 ต้องจับ `$100`/รูปแบบผิด; Step 4/6 ต้องผ่าน guard, validation, parser suites.
+**GOTCHA:** อย่าขยาย regex จนยอมรับ token ที่อาจตีความเป็นราคา/field reference; update ต้องไม่ bypass create rules.
+
 **Files:**
 - Modify: `backend/app/schemas/reply_object.py`
 - Test: `backend/tests/test_reply_object_guard.py`
@@ -1300,6 +1387,12 @@ git commit -m "fix(reply-objects): strict dollar-name validation"
 Run: `python -m pytest tests/test_reply_object_validation.py tests/test_response_parser_template.py -v`
 Expected: PASS
 ### Task C5: Request DELETE audit + enum รวมศูนย์ (ใช้ของเดิม)
+
+**ACTION:** ทุกการลบคำร้องต้องมี audit log และใช้ RequestStatus definition เดียว.
+**IMPLEMENT:** เพิ่ม delete guard/audit และลบ duplicate enum ตาม Step 3 โดยไม่สร้าง status ใหม่.
+**MIRROR:** ใช้ `create_audit_log` และ status values จาก request endpoint/model ที่มีอยู่แล้ว.
+**VALIDATE:** Step 2 ต้อง RED เมื่อ delete ไม่มี audit/enum ซ้ำ; Step 4/6 ต้องผ่าน request guard/workflow/admin endpoint tests.
+**GOTCHA:** fixture teardown ต้องเก็บ row id ก่อน yield; ห้ามใช้ `row_id` ที่ไม่ได้ประกาศหรือเพิ่ม DONE/CANCELLED นอก enum กลาง.
 
 **Files:**
 - Modify: `backend/app/api/v1/endpoints/admin_requests.py`
@@ -1443,6 +1536,12 @@ Expected: PASS
 
 ### Task C6: Booking cap 62 วัน + terminal 409 + PATCH 422
 
+**ACTION:** รวมกติกาวันจองสูงสุด 62 วัน ป้องกัน terminal transition และปฏิเสธ PATCH ว่าง.
+**IMPLEMENT:** ใช้ shared validation/error path ใน schema/endpoint ตาม Step 3.
+**MIRROR:** ใช้ booking guard/create/update/list/slot test conventions ที่มีอยู่ใน backend/tests.
+**VALIDATE:** Step 2 ต้อง RED กับ >62/terminal/None; Step 4/6 ต้องผ่าน booking guard/create/update/list and availability suites.
+**GOTCHA:** terminal state ห้ามย้อนกลับ และ error ต้องเป็น 409/422 ตาม contract ไม่ใช่ 500 หรือการแก้ข้อมูลเงียบ ๆ.
+
 **Files:**
 - Modify: `backend/app/services/booking_service.py`
 - Modify: `backend/app/api/v1/endpoints/liff_bookings.py`
@@ -1561,6 +1660,12 @@ git commit -m "fix(booking): unified advance cap with terminal guard"
 Run: `python -m pytest tests/test_booking_slots.py tests/test_booking_availability_range.py tests/test_booking_create_concurrency.py -v`
 Expected: PASS
 ### Task C7: Rich menu preview + scheduler per-menu try
+
+**ACTION:** preview menu ที่ไม่มีรูปต้องแสดง placeholder และ scheduler ต้องข้ามเมนูเสียโดยไม่ล้มทั้งชุด.
+**IMPLEMENT:** เพิ่ม preview response และแยก try/เหตุผลต่อ menu ตาม Step 3.
+**MIRROR:** ใช้ rich-menu media/display/scheduler paths และ timezone conventions ที่ระบุใน task.
+**VALIDATE:** Step 2 ต้อง RED สำหรับ imageless/one-menu failure; Step 4/6 ต้องผ่าน preview/display/scheduler/schema suites.
+**GOTCHA:** อย่าเปลี่ยน missing image เป็น 403 ทั้งระบบ และอย่าให้ exception เมนูเดียวหยุดการ sync เมนูอื่น.
 
 **Files:**
 - Modify: `backend/app/api/v1/endpoints/rich_menus.py`
@@ -1718,6 +1823,12 @@ Run: `python -m pytest tests/test_rich_menu_schema.py tests/test_rich_menu_size.
 Expected: PASS
 
 ### Task C8: Live-chat runtime — ghost-push guard + presence throttle (PRD stories 18–19)
+
+**ACTION:** ห้าม push ข้อความไป session ที่ปิด/เปลี่ยนเจ้าของ และลด presence burst ที่เขียนซ้ำ.
+**IMPLEMENT:** ตรวจ active owner ก่อน push และ throttle/debounce presence พร้อม Redis fallback ตาม Step 3.
+**MIRROR:** ใช้ owner check จาก live-chat session service และ Redis expiry/presence patterns เดิม.
+**VALIDATE:** Step 2 ต้องจับ ghost push/presence storm; Step 4/6 ต้องผ่าน live-chat, websocket, and Redis tests.
+**GOTCHA:** ต้องกำหนด contract 403/409 ให้สอดคล้องกับ owner pre-check และ guard; Redis down ต้อง fallback ไม่ทำให้ WebSocket ค้าง.
 
 **Files:**
 - Modify: `backend/app/services/live_chat_service/messaging.py`
@@ -1993,6 +2104,12 @@ Expected: PASS
 
 ### Task D1: Histories limit clamp + export streaming + PDF ฟอนต์ไทย (PRD stories 20–21)
 
+**ACTION:** เปิดประวัติแบบจำกัดช่วงและส่งออกไฟล์ใหญ่แบบ stream พร้อมรองรับชื่อไฟล์/ฟอนต์ไทย.
+**IMPLEMENT:** เพิ่ม clamp, async chunk streaming, RFC 5987 filename และ Thai font asset ตาม Step 3.
+**MIRROR:** ใช้ cursor/limit behavior ของ conversations service และ response streaming conventions ที่มีอยู่.
+**VALIDATE:** Step 2 ต้อง RED กับ limit/10k rows/Thai PDF; Step 4/6 ต้องผ่าน histories/export/websocket suites และ frontend build gate.
+**GOTCHA:** ห้ามใช้ `Query(le=...)` หาก PRD ต้องการ clamp; ห้ามรวม CSV/PDF ทั้งก้อนใน memory และต้องมี font asset จริง.
+
 **Files:**
 - Modify: `backend/app/api/v1/endpoints/admin_live_chat.py` (เฉพาะ `get_conversation_messages` — clamp limit ระดับ endpoint)
 - Modify: `backend/app/api/v1/endpoints/admin_export.py` (CSV streaming + PDF ฟอนต์ไทย + RFC 5987 filename)
@@ -2208,7 +2325,16 @@ git commit -m "fix(histories): clamp message limit with streaming thai export"
 Run: `python -m pytest tests/test_session_choreography.py tests/test_websocket.py -v`
 Expected: PASS — เส้นทาง messages/export เดิมไม่พัง
 
+Run: `npx tsc --noEmit` (workdir `frontend/`) + `npm run lint` (workdir `frontend/`) + `npm run build` (workdir `frontend/`)
+Expected: PASS — frontend type-check, lint, and production build ผ่านหลังแก้ contract การส่งออก
+
 ### Task D2: Canned normalize + 409 + optimistic concurrency (PRD stories 22–23)
+
+**ACTION:** ป้องกัน canned response ซ้ำและการ update ชนกันด้วยข้อความไทยที่อ่านรู้เรื่อง.
+**IMPLEMENT:** normalize ก่อน duplicate check และตรวจ version/updated_at ก่อน update ตาม Step 3.
+**MIRROR:** ใช้ existing canned CRUD/schema error conventions และ frontend unit/lint pattern ใน task.
+**VALIDATE:** Step 2 ต้อง RED กับ space/case/version collision; Step 4/6 ต้องผ่าน backend tests, `npm run test:unit -- canned`, lint, typecheck, and build.
+**GOTCHA:** 409 ต้องไม่เขียนข้อมูลทับของเดิม และ normalize ต้องคงความหมายภาษาไทยไม่ลบข้อมูลเกินจำเป็น.
 
 **Files:**
 - Modify: `backend/app/api/v1/endpoints/admin_canned_responses.py`
@@ -2346,9 +2472,17 @@ git commit -m "fix(canned): normalize duplicates with 409 and version guard"
 - [ ] **Step 6: Validation**
 
 Run: `npm run test:unit -- canned` (workdir `frontend/`) + `npm run lint` (workdir `frontend/`)
-Expected: PASS
+Run: `npx tsc --noEmit` (workdir `frontend/`)
+Run: `npm run build` (workdir `frontend/`)
+Expected: PASS — unit, lint, type-check, and production build ผ่าน
 
 ### Task D3: LIFF verify timeout + retry + 502 (ต่อยอด A1 — ต้องหลัง A1 เท่านั้น) (PRD stories 24–25)
+
+**ACTION:** ทำ LINE verification ให้มี timeout/retry ที่จำกัดและแปลง upstream failure เป็น 502.
+**IMPLEMENT:** เติม timeout/exception mapping ใน `verify_liff_token()` และ reuse identity helper จาก A1 ตาม Step 3.
+**MIRROR:** ใช้ `verify_liff_token()`/`require_liff_identity()` ใน `liff.py:31-63` และ rate-limit dependencies เดิม.
+**VALIDATE:** Step 2 ต้อง RED กับ timeout; Step 4/6 ต้องผ่าน hardening, token, media, debt, service-request, and rate-limit tests.
+**GOTCHA:** ต้อง retry แบบ bounded เท่านั้น ไม่ retry 401/invalid token และห้ามทำให้ network failure หลุดเป็น 500.
 
 **Files:**
 - Modify: `backend/app/api/v1/endpoints/liff.py` (เฉพาะ `verify_liff_token` — เติม timeout/retry/502)
@@ -2460,6 +2594,12 @@ Expected: PASS — schema/drift เดิม + rate-limit ของ 3 POSTs ไ�
 
 ### Task D4: Friends limit cap + PII masking ตาม role (PRD stories 36–37)
 
+**ACTION:** จำกัดรายการเพื่อนและ mask LINE ID/เบอร์ตาม role ก่อนส่ง response.
+**IMPLEMENT:** เพิ่ม cap/pagination และ reuse masking helpers ใน friends/users admin routes ตาม Step 3.
+**MIRROR:** ใช้ `mask_line_id`/`mask_phone` จาก `admin_friends.py` และ RBAC dependency conventions.
+**VALIDATE:** Step 2 ต้อง RED กับ limit/role; Step 4/6 ต้องผ่าน PII/friend/admin-user/module-permission suites.
+**GOTCHA:** ห้ามส่ง password hash/token หรือ PII ดิบให้ role ที่ไม่มีสิทธิ์ และอย่าเขียน masking logic ซ้ำใน D5.
+
 **Files:**
 - Modify: `backend/app/api/v1/endpoints/admin_friends.py` (cap limit + mask `line_user_id`)
 - Modify: `backend/app/api/v1/endpoints/admin_users.py` (mask `line_user_id` ใน list — `UserOut` ไม่มี password/token อยู่แล้ว :26-38)
@@ -2560,7 +2700,16 @@ git commit -m "fix(pii): cap friends limit with role-based masking"
 Run: `python -m pytest tests/test_module_permission_endpoints.py tests/test_deps_gates.py -v`
 Expected: PASS
 
+Run: `npx tsc --noEmit` (workdir `frontend/`) + `npm run lint` (workdir `frontend/`) + `npm run build` (workdir `frontend/`)
+Expected: PASS — frontend type-check, lint, and production build ผ่าน
+
 ### Task D5: Reports CSV PII masking + PDF param alignment (PRD story 39)
+
+**ACTION:** เอา PII ดิบออกจาก CSV และทำให้พารามิเตอร์ PDF ตรงกันทั้ง backend/frontend.
+**IMPLEMENT:** ใช้ masking helper จาก D4 ผ่าน `_csv_line_id` และ align PDF params ตาม Step 3.
+**MIRROR:** ใช้ report helper/CSV/PDF conventions ที่มีอยู่ใน `admin_reports` และ D4 masking contract.
+**VALIDATE:** Step 2 ต้อง RED เมื่อ role ต่ำเห็น PII; Step 4/6 ต้องผ่าน reports guard/helper tests และ frontend build gate.
+**GOTCHA:** ห้ามสร้าง `mask_line_id`/`mask_phone` ซ้ำ และต้องตรวจทั้ง CSV output กับ PDF parameter validation.
 
 **Files:**
 - Modify: `backend/app/api/v1/endpoints/admin_reports.py` (mask LINE ID ใน CSV + PDF รับช่วงวันที่)
@@ -2656,7 +2805,16 @@ git commit -m "fix(reports): mask line ids in csv with aligned pdf dates"
 Run: `python -m pytest tests/test_admin_reports_helpers.py -v`
 Expected: PASS
 
+Run: `npx tsc --noEmit` (workdir `frontend/`) + `npm run lint` (workdir `frontend/`) + `npm run build` (workdir `frontend/`)
+Expected: PASS — frontend type-check, lint, and production build ผ่านหลัง align PDF parameters
+
 ### Task D6: Button variant test + token centralization check (PRD story 40)
+
+**ACTION:** ล็อก Button variant ใหม่แบบ opt-in และยืนยัน token สีไม่กระจาย.
+**IMPLEMENT:** เพิ่ม/ปรับ unit test ของ `buttonVariants` และตรวจ token source ตาม Step 3 โดยไม่ redesign ทั้งระบบ.
+**MIRROR:** ใช้ CVA/button test และ design-token conventions ใน frontend ที่มีอยู่แล้ว.
+**VALIDATE:** Step 2 ต้อง RED กับ primary/danger contract; Step 4/6 ต้องผ่าน Vitest, lint, `npx tsc --noEmit`, and `npm run build`.
+**GOTCHA:** ห้ามเปลี่ยน default/global class ของทุกหน้าโดยไม่ตั้งใจ; migration ต้อง opt-in ทีละ component.
 
 **Files:**
 - Modify: `frontend/components/ui/Button.tsx` (เฉพาะจุดที่ยัง hardcode — ถ้าไม่มีให้ verify-only)
@@ -2716,9 +2874,17 @@ git commit -m "fix(ui): lock button variants to centralized tokens"
 - [ ] **Step 6: Validation**
 
 Run: `npm run lint` (workdir `frontend/`)
-Expected: PASS — ไม่มี type/lint error
+Run: `npx tsc --noEmit` (workdir `frontend/`)
+Run: `npm run build` (workdir `frontend/`)
+Expected: PASS — lint, type-check, and production build ผ่านโดยไม่เปลี่ยน default variant
 
 ### Task D7: Credentials/business-hours permission keys (PRD story 41) + image-resize verify-only (PRD story 38)
+
+**ACTION:** เพิ่ม permission keys ใหม่ให้ registry/backend/frontend mirror ตรงกัน และตรวจ image-resize แบบ verify-only.
+**IMPLEMENT:** เพิ่ม constants, DEFAULT_POLICY, seed descriptions, registry, endpoint gates, and mirror tests ตาม Step 3; ห้ามสร้าง image-resize endpoint.
+**MIRROR:** ใช้ `KEY_IMAGE_RESIZE`, `DEFAULT_POLICY`, `_SEED_DESCRIPTIONS`, `PERMISSION_REGISTRY`, และ `require_permission` ที่มีอยู่ใน `backend/app/core/permissions.py`.
+**VALIDATE:** Step 2 ต้อง RED กับ registry mirror; Step 4/6 ต้องผ่าน permission/deps/credential tests, frontend mirror test, typecheck, and build.
+**GOTCHA:** จำนวน registry keys ต้องตรง backend/frontend และ image-resize เป็น verify-only; ห้ามใช้ `request.session` หรือเปิด auth bypass.
 
 **Files:**
 - Modify: `backend/app/core/permissions.py` (2 keys + DEFAULT_POLICY + descriptions + registry — `ensure_seed_rows` seed เอง ไม่ต้อง migration)
@@ -2898,6 +3064,9 @@ Expected: PASS
 Run: `npm run test:unit -- permission-modules` (workdir `frontend/`)
 Expected: PASS — mirror ใหม่ตรง backend registry (`lib/constants/__tests__/permission-modules.test.ts`)
 
+Run: `npx tsc --noEmit` (workdir `frontend/`) + `npm run lint` (workdir `frontend/`) + `npm run build` (workdir `frontend/`)
+Expected: PASS — frontend mirror, type-check, lint, and production build ผ่าน
+
 
 
 
@@ -2941,10 +3110,12 @@ Expected: PASS — mirror ใหม่ตรง backend registry (`lib/constants
 - [ ] rich-menu sync ที่ยังไม่มีรูป → ข้ามเมนูนั้นพร้อมเหตุผล ไม่ล้มทั้งชุด (C7)
 - [ ] ชื่อไฟล์ส่งออกภาษาไทย → `Content-Disposition` ใช้ `filename*` encode ตาม RFC 5987 ไม่เพี้ยน (D1)
 
-## Self-Review (ตรวจซ้ำ 2026-09-13 หลังลบ stale copy — อ้างเฉพาะข้อความที่เหลืออยู่จริง)
+## Self-Review (ตรวจซ้ำ 2026-09-21 หลังแก้ตาม PRP validation review — อ้างเฉพาะข้อความที่เหลืออยู่จริง)
 
 **1. Spec coverage (PRD ข้อ → Task):** C2 stories 1–4 → A1; C3 stories 5–6 → A2; C5 stories 7–8 → A3; C1 stories 9–11 → B1; C4 stories 12–14 → B2; stories 15–16 → C1; story 17 (lock param) → B1 (คง `lock` param + conditional UPDATE); stories 18–19 → C8 (ghost-push guard + presence throttle — `test_push_after_transfer_blocked`, `test_presence_burst_bounded`); story 20 → D1 (endpoint clamp + cursor เดิม); story 21 → D1 (streaming export + Thai font + RFC 5987); stories 22–23 → D2 (normalize 409 + `updated_at` guard); stories 24–25 → D3 (timeout/retry/502 — ไม่มี GET/PATCH ใน `liff.py` จึงไม่มีงาน rate-limit/PATCH-None ในไฟล์นี้); stories 26–27 → C2 (dry-run + backoff); story 28 → C3; story 29 → C4; stories 30–31 → C5; stories 32–33 → C6; stories 34–35 → C7; stories 36–37 → D4; story 38 → D7 (verify-only, ห้ามสร้าง endpoint); story 39 → D5; story 40 → D6 (verify-first, test ล็อก token); story 41 → D7 (2 keys + gates); stories 42–43 → ทุก task (ข้อความไทย + audit ใน C5/B1/D4-D7). Out-of-scope เคารพครบ (ไม่เปลี่ยน SDK/auth/WS protocol ใหม่; ไม่สร้าง `/api/v1/image-resize`).
 
 **2. Single-definition + banned-string scan (ผล grep จริง 2026-09-13):** `grep -o '^### Task [A-D][0-9]*'` → 20 headings, แต่ละ ID ปรากฏครั้งเดียว (A1–A3, B1–B2, C1–C8, D1–D7); pattern ของ stale copy ไม่เหลือแล้ว — ไม่มี test_client ที่ถูก await, ไม่มี fixture DB กลาง, ไม่มี session-middleware access, ไม่มี PUT head จริง (เหลือแค่ prohibition ใน Global Constraints :22 ที่ห้ามไว้); Pydantic เหลือแค่ prohibition note + `model_copy` ที่ B2; `httpx.AsyncClient` ที่เหลืออยู่ใน D3 เท่านั้น (production class ใต้ test — :2288, :2317, :2349); `pytest_asyncio` ปรากฏ 13 จุด (5 import blocks + 5 async fixtures + Global Constraints + D1 import/fixture).
 
 **3. Type consistency (ทุกชื่อมีนิยามในไฟล์นี้ — ผล grep):** `require_liff_identity(x_liff_id_token: Optional[str]) -> str` (A1 นิยาม, D3 reuse); `check_private_token(stored, presented) -> bool` (A2); `TRANSFER_ERR_CONFLICT` (B1: errors.py + export ใน `__init__.py` + map 409; signature `transfer_session` ไม่เปลี่ยน); `SECRET_DENY_LIST: frozenset[str]` (B2 — service + migration + mask ใช้ชื่อเดียวกัน); `DashboardResponse.cache_hit: bool` (C1); `BroadcastCreate.dry_run: bool` + `BroadcastDryRunResponse` (C2); `compile_intent_keyword` + `invalidate_intent_regex_cache` + `_like_safe` (C3); `OBJECT_ID_RE = ^\$[A-Za-z][A-Za-z0-9_]{2,39}$` (C4); `RequestStatus` 6 ค่าเดิม — ห้าม DONE/CANCELLED (C5); `BookingWindowError` + `validate_booking_date` + `MAX_ADVANCE_BOOKING_DAYS = 62` (C6); `preview` route + per-menu try (C7); `normalize_text` (D2); `mask_line_id/mask_phone` นิยามใน D4 (`admin_friends.py`) → D5 ใช้ผ่าน `_csv_line_id` (import ตรง ห้ามเขียนซ้ำ); `buttonVariants` (D6 — test ล็อก primary/danger); `KEY_MANAGE_CREDENTIALS/KEY_EDIT_BUSINESS_HOURS` ครบ 4 จุด (constants, `DEFAULT_POLICY: dict[str, frozenset[UserRole]]`, descriptions, registry — D7). D1 ตัดสินแล้ว: clamp-only ไม่ใช้ `le=` (ใช้ `le` จะได้ 422 ขัด PRD) — test คาด 200 + clamp.
+
+**4. PRP validation correction (2026-09-21):** เพิ่ม `Metadata`, `Step-by-Step Tasks`, global validation contract และฟิลด์ `ACTION`/`IMPLEMENT`/`MIRROR`/`VALIDATE`/`GOTCHA` ให้ครบทั้ง 20 tasks; เพิ่มคำสั่ง frontend `npx tsc --noEmit`, `npm run lint`, และ `npm run build` ใน validation ของงานที่เกี่ยวข้อง.
