@@ -35,6 +35,8 @@
 - Modify: `backend/.env.development.example` (ปัจจุบัน `LIFF_STRICT_MODE=false` บรรทัด 4)
 - Modify: `backend/.env.production.example` (ปัจจุบัน `LIFF_STRICT_MODE=false` บรรทัด 8)
 - Modify: `backend/tests/test_liff_token.py` (case1 เปลี่ยนพฤติกรรมตาม PRD story 3)
+- Modify: `backend/tests/test_liff_media_upload.py` (B1 ข้อความ 401 + B7 strict-off no-token contract)
+- Modify: `backend/tests/test_liff_debt_mediation.py` (missing-token และ transition-mode contract)
 - Test: `backend/tests/test_liff_strict_no_write.py`
 
 **Interfaces (verified):**
@@ -123,22 +125,31 @@ LIFF_STRICT_MODE=true
 # หมายเหตุ: ตั้ง false ก็ยังตอบ 401 (ไม่มีโหมดเขียน DB อีกต่อไป) rollback จริง = redeploy รุ่นก่อน
 ```
 
+อัปเดต contract tests เดิมที่ยังสะท้อน transition mode ก่อน A1 ด้วย:
+
+- `test_liff_media_upload.py::test_b1_strict_on_no_token_returns_401_without_db_write` ต้องคาดหวังข้อความ `กรุณายืนยันตัวตนผ่าน LINE ก่อนยื่นคำร้อง` แทน `LIFF ID token required`.
+- เปลี่ยนชื่อ `test_b7_strict_off_no_token_accepted` เป็น `test_b7_strict_off_no_token_rejected_without_db_write`; เมื่อ `LIFF_STRICT_MODE=false` และไม่มี token ต้องได้ 401 และจำนวน `MediaFile` ต้องไม่เพิ่ม (ลบ assertion การอัปโหลดสำเร็จ/teardown row เดิมออก).
+- `test_liff_debt_mediation.py::test_missing_token_rejected_in_strict_mode` ต้องคาดหวังข้อความ 401 ภาษาไทยเดียวกัน.
+- เปลี่ยนชื่อ `test_unverified_submission_allowed_in_transition_mode` เป็น `test_unverified_submission_rejected_even_in_transition_mode`; ตั้ง strict=false แล้วไม่มี token ต้อง raise `HTTPException(401)`, ไม่เรียก `db.add`, และไม่พึ่งพา `resolve_by_line_id` หรือ `friend_service`.
+
+เหตุผลของการแก้ test contract: A1 เรียก `require_liff_identity()` ในทั้งสาม LIFF write endpoints (`media`, `service-requests`, `debt-mediation`) ดังนั้น flag `LIFF_STRICT_MODE=false` เหลือไว้เพื่อ compatibility/config observability เท่านั้น ไม่อนุญาตให้เขียนข้อมูลโดยไม่มี token อีกต่อไป.
+
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `python -m pytest tests/test_liff_strict_no_write.py tests/test_liff_token.py tests/test_config_migration_controls.py -v`
-Expected: PASS ทั้งหมด (case1 ที่แก้แล้วต้องเขียว)
+Run: `python -m pytest tests/test_liff_strict_no_write.py tests/test_liff_token.py tests/test_liff_media_upload.py tests/test_liff_debt_mediation.py tests/test_config_migration_controls.py -v`
+Expected: PASS ทั้งหมด (case1 และ contract tests ของ media/debt ที่แก้แล้วต้องเขียว)
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add backend/app/api/v1/endpoints/liff.py backend/.env.development.example backend/.env.production.example backend/tests/test_liff_token.py backend/tests/test_liff_strict_no_write.py
+git add backend/app/api/v1/endpoints/liff.py backend/.env.development.example backend/.env.production.example backend/tests/test_liff_token.py backend/tests/test_liff_media_upload.py backend/tests/test_liff_debt_mediation.py backend/tests/test_liff_strict_no_write.py
 git commit -m "fix(liff): deny unauthenticated writes, default strict true"
 ```
 
 - [ ] **Step 6: Validation**
 
 Run: `python -m pytest tests/test_liff_media_upload.py tests/test_liff_debt_mediation.py tests/test_service_request_liff_validation.py -v`
-Expected: PASS — ฟอร์ม LIFF ทั้งสามยังผ่านเมื่อมี token ถูกต้อง
+Expected: PASS — ฟอร์ม LIFF ทั้งสามยังผ่านเมื่อมี token ถูกต้อง และ contract tests ยืนยันว่าไม่มี token จะถูกปฏิเสธทั้ง strict=true และ strict=false โดยไม่เขียน DB
 
 ### Task A2: Media private token gate — ว่างชนว่างต้องไม่ผ่าน + preview ส่ง token
 
@@ -2937,4 +2948,3 @@ Expected: PASS — mirror ใหม่ตรง backend registry (`lib/constants
 **2. Single-definition + banned-string scan (ผล grep จริง 2026-09-13):** `grep -o '^### Task [A-D][0-9]*'` → 20 headings, แต่ละ ID ปรากฏครั้งเดียว (A1–A3, B1–B2, C1–C8, D1–D7); pattern ของ stale copy ไม่เหลือแล้ว — ไม่มี test_client ที่ถูก await, ไม่มี fixture DB กลาง, ไม่มี session-middleware access, ไม่มี PUT head จริง (เหลือแค่ prohibition ใน Global Constraints :22 ที่ห้ามไว้); Pydantic เหลือแค่ prohibition note + `model_copy` ที่ B2; `httpx.AsyncClient` ที่เหลืออยู่ใน D3 เท่านั้น (production class ใต้ test — :2288, :2317, :2349); `pytest_asyncio` ปรากฏ 13 จุด (5 import blocks + 5 async fixtures + Global Constraints + D1 import/fixture).
 
 **3. Type consistency (ทุกชื่อมีนิยามในไฟล์นี้ — ผล grep):** `require_liff_identity(x_liff_id_token: Optional[str]) -> str` (A1 นิยาม, D3 reuse); `check_private_token(stored, presented) -> bool` (A2); `TRANSFER_ERR_CONFLICT` (B1: errors.py + export ใน `__init__.py` + map 409; signature `transfer_session` ไม่เปลี่ยน); `SECRET_DENY_LIST: frozenset[str]` (B2 — service + migration + mask ใช้ชื่อเดียวกัน); `DashboardResponse.cache_hit: bool` (C1); `BroadcastCreate.dry_run: bool` + `BroadcastDryRunResponse` (C2); `compile_intent_keyword` + `invalidate_intent_regex_cache` + `_like_safe` (C3); `OBJECT_ID_RE = ^\$[A-Za-z][A-Za-z0-9_]{2,39}$` (C4); `RequestStatus` 6 ค่าเดิม — ห้าม DONE/CANCELLED (C5); `BookingWindowError` + `validate_booking_date` + `MAX_ADVANCE_BOOKING_DAYS = 62` (C6); `preview` route + per-menu try (C7); `normalize_text` (D2); `mask_line_id/mask_phone` นิยามใน D4 (`admin_friends.py`) → D5 ใช้ผ่าน `_csv_line_id` (import ตรง ห้ามเขียนซ้ำ); `buttonVariants` (D6 — test ล็อก primary/danger); `KEY_MANAGE_CREDENTIALS/KEY_EDIT_BUSINESS_HOURS` ครบ 4 จุด (constants, `DEFAULT_POLICY: dict[str, frozenset[UserRole]]`, descriptions, registry — D7). D1 ตัดสินแล้ว: clamp-only ไม่ใช้ `le=` (ใช้ `le` จะได้ 422 ขัด PRD) — test คาด 200 + clamp.
-
