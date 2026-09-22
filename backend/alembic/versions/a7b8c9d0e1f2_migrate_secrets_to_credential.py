@@ -119,7 +119,7 @@ def upgrade() -> None:
             conn.execute(sa.text(
                 'INSERT INTO credentials (name, provider, credentials, metadata, is_active, is_default) '
                 "VALUES (:name, :provider, :credentials, "
-                "jsonb_build_object('migrated_by', :by), true, false)"
+                "jsonb_build_object('migrated_by', CAST(:by AS TEXT)), true, false)"
             ), {"name": row["key"], "provider": provider,
                 "credentials": enc, "by": _MIGRATED_BY})
         conn.execute(sa.text(
