@@ -69,7 +69,7 @@
 22. As a เจ้าหน้าที่, I want canned response ที่ข้อความซ้ำกันถูก normalize ก่อนตรวจซ้ำ และได้ 409 ที่อ่านรู้เรื่อง, so that ฉันไม่สร้าง shortcut ซ้ำโดยไม่ตั้งใจ
 23. As a เจ้าหน้าที่, I want การอัปเดต canned response พร้อมกันไม่เขียนทับกันเงียบ (collision ถูกตรวจ), so that ข้อความมาตรฐานไม่เพี้ยน
 24. As a ประชาชนผู้ยื่น LIFF, I want การเรียก LINE verify มี timeout และลองใหม่แบบจำกัด, so that กดส่งแล้วไม่ค้างนาน
-25. As a ผู้ดูแลระบบ, I want LIFF GET มี rate-limit และ PATCH ที่ส่ง None ไม่ทำ server 500 แต่ได้ 422 ที่อ่านรู้เรื่อง, so that ระบบทนมือและ debug ง่าย
+25. As a ผู้ดูแลระบบ, I want LIFF GET (ถ้ามี) มี rate-limit และ LIFF PATCH (ถ้ามี) ที่ส่ง None ได้ 422 ที่อ่านรู้เรื่อง, so that ระบบทนมือและ debug ง่าย; ณ inventory ปัจจุบัน `liff.py` มีเฉพาะ POST 3 ทาง จึงไม่สร้าง GET/PATCH ใหม่เพื่อให้ครบข้อความ audit แต่ต้องมี route-inventory test ที่ล้มเมื่อมี GET/PATCH เพิ่มโดยยังไม่มี contract test ของกติกานี้
 26. As a เจ้าหน้าที่ broadcast, I want มีปุ่ม dry-run / ตัวอย่างก่อนส่งจริง และรองรับ OBJECT_REF, so that ไม่ส่งผิดถึงประชาชนทั้งระบบ
 27. As a เจ้าหน้าที่ broadcast, I want สถิติการส่งถูกต้อง, เวลา scheduled_at คิด timezone ตรงกัน, และ multicast ที่ล้มเหลวมี backoff, so that ส่งรอบดึกไม่พลาด
 28. As a แอดมิน chatbot, I want intent regex ถูก compile ล่วงหน้า มีกัน ReDoS มี escape wildcard และเรียงลำดับชัดเจน, so that bot ตอบเร็วและไม่ค้างด้วย pattern พิษ
@@ -147,7 +147,8 @@
 
 -  modules: SystemSetting store, Credential store (Fernet), settings admin API, startup guards
 -  decision: ห้ามเก็บ secret ใหม่ใน SystemSetting.value อีก ให้ SystemSetting เก็บเฉพาะค่าทั่วไป ส่วน secret ทุกชนิดไป Credential.credentials ที่เข้ารหัสแล้ว
--  decision: มี migration ครั้งเดียวที่อ่าน SystemSetting key ที่เป็น secret, เข้ารหัสเข้า Credential, ตรวจว่าอ่านกลับได้, แล้วลบหรือ mask ค่าเดิม พร้อมสำรองข้อมูลก่อนเสมอ
+-  decision: มี migration ครั้งเดียวที่อ่าน SystemSetting key ที่เป็น secret (6 คีย์: LINE_CHANNEL_ACCESS_TOKEN/LINE_CHANNEL_SECRET/TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID/N8N_API_KEY/N8N_WEBHOOK_SECRET), เข้ารหัสเป็น dict-shape ต่อคีย์เข้า Credential (ห้าม bare string), ตรวจ roundtrip ว่าอ่านกลับผ่าน CredentialService ได้, แล้ว mask ค่าเดิม พร้อมสำรองข้อมูลแบบเข้ารหัสก่อนเสมอ (ห้าม plaintext, เข้าดูต้องมีสิทธิ์ + audit log, ลบแบบ explicit เท่านั้น)
+-  decision: ENCRYPTION_KEY / LINE_ID_HMAC_KEY อยู่ env-only ไม่ย้ายเข้า Credential ไม่ backup plaintext ถ้าหลงใน SystemSetting ให้ลบทิ้งโดย operator ยืนยันว่า env มีค่าแล้วก่อนรัน; downgrade ลบเฉพาะ Credential ที่มีป้าย migrated_by ของรอบนี้ ของเก่าต้องอยู่ครบ และไม่ DROP ตารางสำรองเพื่อให้ upgrade → downgrade → upgrade ทำซ้ำได้
 -  decision: ENCRYPTION_KEY ต้องบังคับใน production (มี guard อยู่แล้ว) และมี production guard ห้าม seed secret แบบ plaintext
 -  Schema: Credential(provider, name, credentials_encrypted, metadata_json, is_active, is_default) — SystemSetting ไม่เพิ่มคอลัมน์ใหม่ แต่เพิ่ม validation ฝั่ง service ว่า key ใน deny-list ต้องปฏิเสธ
 -  API contract: GET /settings ซ่อนค่า secret (mask), POST /credentials รับค่าดิบครั้งเดียวแล้วเก็บแบบเข้ารหัส, PATCH ห้ามส่ง secret ผ่าน settings endpoint อีก
@@ -155,7 +156,7 @@
 ### D6 — Analytics perf (High)
 
 -  modules: live-kpis, operator-performance, hourly-stats, dashboard aggregate, Redis cache layer
--  decision: รวม dashboard จาก 15 queries เหลือ query รวมชุดเดียว (aggregate + window function) แล้ว cache ต่อ dashboard+days ด้วย TTL สั้น
+-  decision: รวม dashboard จาก 15 queries เหลือ query รวมชุดเดียว (aggregate + window function) แล้ว cache ต่อ dashboard+days ด้วย TTL 120s; งบ query: data statements ไม่เกิน 2 (1 หลัก + 1 สำรองเมื่อ planner แยก CTE) ไม่รวม auth/ambient
 -  decision: percentile คำนวณใน DB (percentile_cont / percentile_disc) ไม่ดึงทั้งตารางมา sort ใน Python
 -  decision: แก้ Redis N+1 ด้วย pipeline / mget รอบเดียว และกำหนด Pydantic response schema ให้ dashboard เพื่อกัน field งอกไม่รู้ตัว
 -  API contract: GET /analytics/dashboard?days=7 → { kpis, trends, funnel, heatmap, percentiles, generated_at } พร้อม header หรือ field บอก cache hit
@@ -187,7 +188,7 @@
 
 -  modules: verify helper (httpx), rate-limit, validation schemas
 -  decision: httpx ทุกครั้งต้องมี timeout (เช่น connect 3s / read 5s) + จำกัด retry และจับ error เป็น 502 ไม่ใช่ 500
--  decision: LIFF GET ต้องมี rate-limit เหมือน POST, PATCH ที่ได้ None ต้องตอบ 422 ผ่าน Pydantic exclude_none / required check ไม่ปล่อยให้ถึง DB แล้ว 500
+-  decision: ตรวจ full-path/method inventory ของ LIFF ใน `app.routes` ด้วย equality test; ปัจจุบันมี POST 3 ทาง ไม่มี GET/PATCH จึงไม่มี runtime target สำหรับ GET rate-limit/PATCH None. ถ้ามี GET/PATCH เพิ่มในภายหลัง inventory test ต้องล้มก่อน และ task นั้นต้องเพิ่ม GET rate-limit test/PATCH None → 422 test พร้อม implementation; ห้ามสร้าง route ใหม่เพื่อทดสอบอย่างเดียว
 -  decision: ปรับ service_request_liff schema กับ debt_mediation_liff schema ให้ตรงกับ DB (field mapping, phone format, attachments) ลด validation drift
 -  API contract: คง path เดิม เพิ่ม 429 / 502 / 422 ที่ frontend จัดการได้ด้วยข้อความไทย
 
@@ -195,7 +196,7 @@
 
 -  modules: broadcast composer, OBJECT_REF resolver, stats collector, scheduler (scheduled_at), multicast sender
 -  decision: เพิ่ม dry-run ที่ validate + แสดงกลุ่มเป้าหมายโดยไม่ส่งจริง, OBJECT_REF ต้อง resolve + ตรวจสิทธิ์ก่อนส่ง
--  decision: stats นับ sent / failed / read แยกจริง ไม่รวมกันมั่ว, scheduled_at เก็บ UTC และแสดงตาม Asia_Bangkok ฝั่ง UI
+-  decision: stats นับ sent / failed / read แยกจริง ไม่รวมกันมั่ว, scheduled_at เก็บ UTC และแสดงตาม Asia_Bangkok ฝั่ง UI; หน้า UI ต้องมีปุ่มทดลองส่งที่ new/page.tsx (ขั้นตรวจสอบ) + แสดง preview/failed ที่ [id]/page.tsx พร้อม frontend test
 -  decision: multicast ที่ล้มให้ backoff แบบ exponential + จำกัดรอบ แล้วบันทึก failed token เพื่อล้างรอบถัดไป
 -  API contract: POST /broadcasts { content, targets, scheduled_at, dry_run } → dry_run=true ได้ preview ไม่สร้างงานจริง
 
@@ -213,7 +214,7 @@
 -  rich-menu: preview ไม่ใช้ 403 พร่ำเพรื่อ (imageless ได้ placeholder), sync ข้ามเมนูที่ไม่มีรูปพร้อมเหตุผล, scheduler ลองทีละเมนู (per-menu try) ไม่ล้มทั้งชุด, TZ เก็บ UTC แสดง Asia_Bangkok
 -  friends: list มี limit / pagination, mask เบอร์ / LINE ID ตามสิทธิ์, enum event ตรงกัน
 -  users: PII mask ตาม RBAC (ดูเต็มได้เฉพาะ role ที่กำหนด), admin list ไม่ส่ง password hash / token
--  image resize: ต้องมี auth + CSRF + signed key หมดอายุ ไม่ใช่ URL เดาได้
+-  image resize: ต้องมี auth + CSRF + signed key หมดอายุและใช้ซ้ำไม่ได้ ไม่ใช่ URL เดาได้; key ต้องเป็นชนิดเฉพาะที่นำไปใช้เป็น access cookie เพื่อล็อกอินไม่ได้
 -  reports: CSV ตัด PII ดิบออกหรือ mask, พารามิเตอร์ PDF (orientation / font / locale) ตรงกันทั้งสองฝั่ง
 -  design: Button ใหม่ทำแบบ opt-in / codemod ทีละหน้า ไม่เปลี่ยน global ทีเดียว, token สีรวมศูนย์
 -  permissions: เพิ่ม key ขาด (จัดการ credentials, แก้ business-hours) เข้า permission matrix พร้อม DEFAULT_POLICY ชัดเจน
@@ -233,7 +234,7 @@
   -  live-chat: test ghost push (ปิด session แล้ว push ต้องไม่ส่ง), presence burst (heartbeat 100 ครั้งใน 10 วินาทีต้องเขียน DB ไม่เกิน threshold)
   -  histories/export: ขอ limit เกิน max ถูก clamp, export 10k rows ต้อง stream โดยหน่วยความจำไม่พุ่ง, PDF ไทยเปิดอ่านได้
   -  canned: สร้างข้อความซ้ำต่างกันแค่ space/case ต้อง 409, update ชน version ต้อง 409
-  -  LIFF: mock LINE verify ให้ timeout ต้องได้ 502 ไม่ใช่ 500, PATCH None ได้ 422
+  -  LIFF: mock LINE verify ให้ timeout ต้องได้ 502 ไม่ใช่ 500; ยืนยัน route inventory ปัจจุบันเป็น POST 3 ทางแบบ exact equality, และเมื่อเพิ่ม PATCH ในอนาคตต้องมี None → 422 test (รวม GET rate-limit test เมื่อเพิ่ม GET)
   -  broadcast: dry_run ไม่สร้างงานจริง, scheduled_at ข้าม timezone ยังตรง, multicast ล้มมี retry ตาม backoff
   -  intent: pattern อันตราย (เช่น nested quantifier ยาว) ถูกปฏิเสธ 422, wildcard escape ตรง, order_by ตรงกับ matcher
   -  booking: จองเกิน 62 วัน / เกิน advance_days ได้ 422 ข้อความไทย, terminal ย้อนกลับได้ 409/422
