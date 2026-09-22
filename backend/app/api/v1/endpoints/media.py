@@ -1,3 +1,4 @@
+import logging
 import secrets
 import uuid
 import math
@@ -31,7 +32,20 @@ from app.models.user import User
 
 router = APIRouter()
 
+logger = logging.getLogger(__name__)
+
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
+
+
+def check_private_token(stored: Optional[str], presented: Optional[str]) -> bool:
+    """True เฉพาะฝั่งละ non-empty และตรงกันแบบ constant-time.
+
+    ว่างชนว่างต้องไม่ผ่าน: private file ที่ไม่มี token เก็บ ต้อง 403 เสมอ
+    (ห้ามใช้ `or ""` ทั้งสองฝั่งแล้วเทียบ — empty==empty จะกลายเป็นผ่าน).
+    """
+    if not stored or not presented:
+        return False
+    return secrets.compare_digest(stored.encode(), presented.encode())
 
 # Admin uploads must serve-safe: the sniffed magic bytes — NOT the spoofable
 # client Content-Type — decide the stored mime, and only serve-safe types are
@@ -147,10 +161,11 @@ async def get_media(
 
     # Constant-time compare (both sides encoded — compare_digest raises
     # TypeError on non-ASCII str); on mismatch a wrong token still 403s.
-    if not media.is_public and not secrets.compare_digest(
-        (media.public_token or "").encode(), (token or "").encode()
-    ):
-        raise HTTPException(status_code=403, detail="Access denied")
+    # Empty-vs-empty must NOT pass: a private file without a stored token
+    # is never servable via /media (admin link/preview generates one).
+    if not media.is_public and not check_private_token(media.public_token, token):
+        logger.warning("media_forbidden id=%s", media_id)
+        raise HTTPException(status_code=403, detail="ไม่มีสิทธิ์ดูไฟล์นี้")
 
     return Response(
         content=media.data,

@@ -319,16 +319,26 @@ export default function FilesPage() {
   // -----------------------------------------------------------------------
   // File preview URL (internal, for images)
   // -----------------------------------------------------------------------
+  // Private files now 403 without a token — always append the file's
+  // public_token when present (generated via the "สร้างลิงก์สาธารณะ" action).
+  const buildMediaUrl = useCallback(
+    (file: MediaFile): string =>
+      file.public_token
+        ? `${API_BASE}/media/${file.id}?${new URLSearchParams({ token: file.public_token }).toString()}`
+        : `${API_BASE}/media/${file.id}`,
+    []
+  );
+
   const getPreviewUrl = useCallback((file: MediaFile) => {
     if (file.thumbnail_url) return file.thumbnail_url;
     if (file.public_url) return file.public_url;
-    // NOTE: the `/media/{id}` endpoint serves the raw binary; the <img>
-    // tag will still issue a request and may 401/404 for private files
-    // that lack a public token. The render path tracks broken loads in
-    // `brokenIds` and falls back to the category icon.
-    if (isImageMime(file.mime_type)) return `${API_BASE}/media/${file.id}`;
+    // NOTE: the `/media/{id}` endpoint serves the raw binary; private
+    // files need their token appended (buildMediaUrl). The render path
+    // tracks broken loads in `brokenIds` and falls back to the category
+    // icon for files without a token.
+    if (isImageMime(file.mime_type)) return buildMediaUrl(file);
     return null;
-  }, []);
+  }, [buildMediaUrl]);
 
   // -----------------------------------------------------------------------
   // Render
@@ -824,7 +834,7 @@ export default function FilesPage() {
                   </div>
                 ) : (
                   <img
-                    src={getPreviewUrl(previewFile) ?? `${API_BASE}/media/${previewFile.id}`}
+                    src={getPreviewUrl(previewFile) ?? buildMediaUrl(previewFile)}
                     alt={previewFile.filename}
                     className="max-h-[60vh] rounded-xl object-contain"
                     onError={() => markBroken(previewFile.id)}
@@ -835,11 +845,11 @@ export default function FilesPage() {
               <video
                 controls
                 className="w-full max-h-[60vh] rounded-xl"
-                src={`${API_BASE}/media/${previewFile.id}`}
+                src={buildMediaUrl(previewFile)}
               />
             ) : isAudioMime(previewFile.mime_type) ? (
               <div className="flex justify-center py-8">
-                <audio controls src={`${API_BASE}/media/${previewFile.id}`} />
+                <audio controls src={buildMediaUrl(previewFile)} />
               </div>
             ) : (
               <div className="text-center py-12">
