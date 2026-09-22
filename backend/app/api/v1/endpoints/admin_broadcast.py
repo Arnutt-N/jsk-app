@@ -1,7 +1,9 @@
 from datetime import datetime
+from types import SimpleNamespace
 from typing import Optional, List
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -30,6 +32,15 @@ class BroadcastCreate(BaseModel):
     content: dict
     target_audience: str = "all"
     target_filter: Optional[dict] = None
+    dry_run: bool = False
+
+
+class BroadcastDryRunResponse(BaseModel):
+    dry_run: bool = True
+    title: str
+    message_type: str
+    estimated_recipients: Optional[int] = None  # None = ผู้ติดตามทั้งหมด
+    messages_valid: bool
 
 
 class BroadcastUpdate(BaseModel):
@@ -115,6 +126,32 @@ async def create_broadcast(
     db: AsyncSession = Depends(get_db),
     current_admin: User = Depends(require_permission(KEY_MANAGE_BROADCAST)),
 ):
+    if payload.dry_run:
+        # dry-run preview: no DB write, no audit, no provider call.
+        # _build_messages() expects a Broadcast ORM row (broadcast_service.py
+        # :111) — SimpleNamespace with the 4 fields it touches (id only used
+        # in an OBJECT_REF log warning; id=0 is safe).
+        preview = SimpleNamespace(
+            id=0, title=payload.title,
+            message_type=payload.message_type, content=payload.content,
+        )
+        messages = await broadcast_service._build_messages(preview, db)
+        estimated = None
+        if payload.target_audience != "all":
+            estimated = len((payload.target_filter or {}).get("user_ids", []))
+        # JSONResponse directly: bypasses response_model=BroadcastResponse/201
+        # declared on this route's decorator.
+        return JSONResponse(
+            status_code=200,
+            content=BroadcastDryRunResponse(
+                dry_run=True,
+                title=payload.title,
+                message_type=payload.message_type.value,
+                estimated_recipients=estimated,
+                messages_valid=bool(messages),
+            ).model_dump(mode="json"),
+        )
+
     # NOTE: broadcast_service commits internally (shared service, out of this
     # PRD's touch scope) -- the audit row below is a second, immediately-
     # following commit rather than one shared transaction. See
