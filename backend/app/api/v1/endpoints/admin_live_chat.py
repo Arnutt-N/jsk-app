@@ -9,6 +9,7 @@ from typing import Any, List, Optional
 from app.api import deps
 from app.services.live_chat_service import (
     live_chat_service,
+    TRANSFER_ERR_CONFLICT,
     TRANSFER_ERR_NO_ACTIVE_SESSION,
     TRANSFER_ERR_NOT_CURRENT_OPERATOR,
 )
@@ -287,6 +288,8 @@ async def transfer_conversation(
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=detail)
         if detail == TRANSFER_ERR_NOT_CURRENT_OPERATOR:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=detail)
+        if detail == TRANSFER_ERR_CONFLICT:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=detail)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=detail)
 
     if not session:
