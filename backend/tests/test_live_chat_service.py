@@ -260,8 +260,15 @@ class TestTransferSession:
         mock_target = MagicMock()
         mock_target.role = UserRole.ADMIN
 
+        # Atomic transfer: owner/count/reason move via a conditional UPDATE
+        # (rowcount=1 = won), then the row is re-fetched — no in-place
+        # mutation. DB-level single-winner assertions live in
+        # test_transfer_race.py.
+        mock_result = MagicMock()
+        mock_result.rowcount = 1
         mock_db = AsyncMock()
-        mock_db.get.return_value = mock_target
+        mock_db.execute.return_value = mock_result
+        mock_db.get.side_effect = [mock_target, mock_session]
 
         with patch.object(live_chat_service, 'get_active_session', new_callable=AsyncMock) as mock_get:
             mock_get.return_value = mock_session
@@ -274,10 +281,7 @@ class TestTransferSession:
             )
 
         assert result == mock_session
-        assert mock_session.operator_id == 7
-        assert mock_session.transfer_count == 3
-        assert mock_session.transfer_reason == "handoff"
-        assert mock_session.last_activity_at is not None
+        mock_db.commit.assert_awaited_once()
 
     @pytest.mark.asyncio
     async def test_transfer_session_rejects_non_owner(self, live_chat_service):
@@ -367,8 +371,11 @@ class TestTransferSession:
             mock_target = MagicMock()
             mock_target.role = UserRole.DIRECTOR  # now granted via DB
 
+            mock_result = MagicMock()
+            mock_result.rowcount = 1
             mock_db = AsyncMock()
-            mock_db.get.return_value = mock_target
+            mock_db.execute.return_value = mock_result
+            mock_db.get.side_effect = [mock_target, mock_session]
 
             with patch.object(live_chat_service, 'get_active_session', new_callable=AsyncMock) as mock_get:
                 mock_get.return_value = mock_session
@@ -381,7 +388,7 @@ class TestTransferSession:
                 )
 
             assert result == mock_session
-            assert mock_session.operator_id == 7
+            mock_db.commit.assert_awaited_once()
         finally:
             invalidate_cache()  # restore DEFAULT_POLICY for later tests
 
