@@ -21,7 +21,7 @@ from app.core.permissions import (
 from app.models.permission_setting import PermissionSetting
 from app.models.user import User, UserRole
 from app.schemas.rich_menu import SystemSettingBase, SystemSettingResponse
-from app.services.settings_service import SettingsService
+from app.services.settings_service import SECRET_DENY_LIST, SettingsService
 from app.models.system_setting import SystemSetting
 from sqlalchemy import select
 from pydantic import BaseModel, Field
@@ -301,7 +301,13 @@ async def validate_line_token(
 @router.get("", response_model=List[SystemSettingResponse])
 async def list_settings(db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_admin)):
     result = await db.execute(select(SystemSetting))
-    return result.scalars().all()
+    # B2: mask secret values before they leave the API (validate first, then
+    # model_copy — Pydantic V2 model_validate has no `update` kwarg).
+    out = []
+    for s in result.scalars().all():
+        val = "***" if s.key in SECRET_DENY_LIST else s.value
+        out.append(SystemSettingResponse.model_validate(s).model_copy(update={"value": val}))
+    return out
 
 
 # FAIL-CLOSED value redaction for update_system_setting audit rows (FR2).
@@ -337,12 +343,15 @@ async def update_setting(
     db: AsyncSession = Depends(get_db),
     current_admin: User = Depends(require_permission(KEY_EDIT_SYSTEM_SETTINGS))
 ):
-    setting = await SettingsService.set_setting(
-        db,
-        setting_data.key,
-        setting_data.value,
-        setting_data.description
-    )
+    try:
+        setting = await SettingsService.set_setting(
+            db,
+            setting_data.key,
+            setting_data.value,
+            setting_data.description
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
     if _is_secret_setting_key(setting_data.key):
         details = {"key": setting_data.key, "value_changed": True}
