@@ -34,6 +34,7 @@ from app.services.booking_notifications import (
 )
 from app.services.booking_service import (
     BookingNotCancellableError,
+    BookingWindowError,
     DuplicateBookingError,
     MAX_AVAILABILITY_RANGE_DAYS,
     SlotFullError,
@@ -196,6 +197,11 @@ async def create_booking(
         )
     except UnknownServiceTypeError:
         raise HTTPException(status_code=404, detail="ไม่พบบริการที่เลือก")
+    except BookingWindowError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail=f"จองล่วงหน้าได้ไม่เกิน {exc.args[0]} วัน กรุณาเลือกวันใหม่",
+        )
     except SlotUnavailableError:
         raise HTTPException(status_code=400, detail="ช่วงเวลาที่เลือกไม่เปิดให้จอง")
     except SlotFullError:
@@ -272,8 +278,8 @@ async def cancel_my_booking(
     dependencies=[_submit_rate_limit],
 )
 async def update_my_booking(
+    payload: BookingUpdateIn,  # required: missing body -> FastAPI 422
     booking_id: int = Path(ge=1),
-    payload: Optional[BookingUpdateIn] = None,
     db: AsyncSession = Depends(get_db),
     line_user_id: str = Depends(require_line_user_id),
 ):

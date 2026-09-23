@@ -54,6 +54,20 @@ ACTIVE_STATUSES = (BookingStatus.CONFIRMED,)
 # One home for the cap so the endpoint guard and the LIFF app (which reads it
 # back from `/options` as `max_range_days`) can never drift apart.
 MAX_AVAILABILITY_RANGE_DAYS = 62
+MAX_ADVANCE_BOOKING_DAYS = 62
+
+
+class BookingWindowError(BookingError):
+    """booking_date เกิน min(MAX_ADVANCE_BOOKING_DAYS, advance_days) หรือเป็นอดีต."""
+
+
+def validate_booking_date(target: date, advance_days: int, today: date) -> int:
+    """Hard cap of 62 days, tightened further by the per-service advance_days."""
+    cap = min(MAX_ADVANCE_BOOKING_DAYS, advance_days)
+    delta = (target - today).days
+    if delta < 0 or delta > cap:
+        raise BookingWindowError(cap)
+    return cap
 
 
 class ReminderUnit(str, Enum):
@@ -274,6 +288,8 @@ async def create_booking(
     """
     if service_type not in config.service_types:
         raise UnknownServiceTypeError(service_type)
+
+    validate_booking_date(booking_date, config.advance_days, local_now().date())
 
     # Validate the requested time really is a bookable slot *before* touching the
     # database, so a malformed request never takes the day lock. Capacity is left

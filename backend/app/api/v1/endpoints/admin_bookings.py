@@ -79,6 +79,13 @@ async def update_booking_status(
         raise HTTPException(status_code=404, detail="ไม่พบการจอง")
 
     previous = booking.status
+    # A terminal booking cannot be moved back to another state — the seat may
+    # already have been re-taken by someone else.
+    if previous in SETTABLE_STATUSES and status != previous:
+        raise HTTPException(
+            status_code=409,
+            detail="คิวนี้จบสถานะแล้ว เปลี่ยนย้อนกลับไม่ได้",
+        )
     booking.status = status
     if status == BookingStatus.CANCELLED and booking.cancelled_at is None:
         from sqlalchemy import func
