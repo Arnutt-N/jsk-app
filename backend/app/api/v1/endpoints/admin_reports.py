@@ -19,6 +19,11 @@ from app.models.message import Message
 from app.models.service_request import ServiceRequest
 from app.models.user import User
 from app.services.report_service import report_service, parse_dates
+from app.core.pii_masking import mask_line_id  # D4 — central helper, never re-implement
+
+
+def _csv_line_id(raw: str, role: str) -> str:
+    return mask_line_id(raw, role) or ""
 from app.services.user_identity_service import decrypt_line_ids_for_users
 
 router = APIRouter()
@@ -194,7 +199,7 @@ async def export_report(
         )
         for r in rows:
             writer.writerow([
-                r.id, line_ids.get(r.user_id, ""),
+                r.id, _csv_line_id(line_ids.get(r.user_id, ""), current_admin.role.value),
                 r.direction.value if r.direction else "",
                 r.message_type or "",
                 r.sender_role.value if r.sender_role else "",
@@ -220,7 +225,7 @@ async def export_report(
             db, list({r.user_id for r in rows if r.user_id is not None})
         )
         for r in rows:
-            writer.writerow([r.id, line_ids.get(r.user_id, ""), r.event_type, str(r.created_at)])
+            writer.writerow([r.id, _csv_line_id(line_ids.get(r.user_id, ""), current_admin.role.value), r.event_type, str(r.created_at)])
 
     buf.seek(0)
     inclusive_end = end - timedelta(microseconds=1)
@@ -238,16 +243,24 @@ async def export_report_pdf(
         description="Report type: overview, service-requests, messages, operators, followers",
     ),
     period: int = Query(30, ge=1, le=90),
+    start_date: Optional[str] = Query(None, description="ISO start — overrides period"),
+    end_date: Optional[str] = Query(None, description="ISO end — overrides period"),
     db: AsyncSession = Depends(get_db),
     current_admin: User = Depends(require_permission(KEY_EXPORT_CHAT)),
 ):
     """Export report as PDF with Content-Disposition for direct download."""
     from app.services.pdf_report_service import PDFReportService
 
-    end_dt = datetime.now(timezone.utc)
-    start_dt = end_dt - timedelta(days=period)
-    start_iso = start_dt.isoformat()
-    end_iso = end_dt.isoformat()
+    # Frontend sends start_date/end_date (reports page date picker) — honor
+    # them when present; otherwise fall back to the period-day window.
+    if start_date or end_date:
+        start, end = parse_dates(start_date, end_date)
+    else:
+        end_dt = datetime.now(timezone.utc)
+        start_dt = end_dt - timedelta(days=period)
+        start, end = start_dt, end_dt
+    start_iso = start.isoformat()
+    end_iso = end.isoformat()
 
     if report_type == "overview":
         report = await report_overview(db=db, current_admin=current_admin)
