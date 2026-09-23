@@ -1,3 +1,5 @@
+import asyncio
+import hashlib
 import logging
 from datetime import datetime, timezone
 from typing import Optional, List
@@ -12,6 +14,8 @@ from linebot.v3.messaging import (
 )
 from sqlalchemy import select, func, desc
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.broadcast_failed_recipient import BroadcastFailedRecipient
 
 from app.core.line_client import get_line_bot_api
 from app.models.broadcast import Broadcast, BroadcastStatus, BroadcastType
@@ -200,14 +204,33 @@ class BroadcastService:
                     failed = 0
                     for i in range(0, len(user_ids), 500):
                         chunk = user_ids[i : i + 500]
-                        try:
-                            await self.api.multicast(
-                                MulticastRequest(to=chunk, messages=messages)
-                            )
-                            sent += len(chunk)
-                        except Exception as chunk_exc:
-                            failed += len(chunk)
-                            logger.error("Broadcast %s chunk %d failed: %s", broadcast.id, i // 500, chunk_exc)
+                        # bounded retry: 3 attempts with exponential backoff
+                        # (1s, 2s); failed chunk tokens persist to
+                        # broadcast_failed_recipients for later retry/purge
+                        for attempt in range(3):
+                            try:
+                                await self.api.multicast(
+                                    MulticastRequest(to=chunk, messages=messages)
+                                )
+                                sent += len(chunk)
+                                break
+                            except Exception as chunk_exc:
+                                if attempt == 2:
+                                    failed += len(chunk)
+                                    logger.error(
+                                        "Broadcast %s chunk %d failed after 3 attempts: %s",
+                                        broadcast.id, i // 500, chunk_exc,
+                                    )
+                                    # persist failed tokens (idempotent by
+                                    # broadcast_id + token hash)
+                                    for token in chunk:
+                                        db.add(BroadcastFailedRecipient(
+                                            broadcast_id=broadcast.id,
+                                            token_hash=hashlib.sha256(token.encode()).hexdigest(),
+                                            attempt_count=3,
+                                        ))
+                                else:
+                                    await asyncio.sleep(2 ** attempt)
 
                     broadcast.total_recipients = len(user_ids)
                     broadcast.success_count = sent

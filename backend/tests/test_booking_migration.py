@@ -69,7 +69,7 @@ def test_revision_history_has_exactly_one_head():
     graph = _revision_graph()
     parents = {parent for parents in graph.values() for parent in parents}
     heads = sorted(set(graph) - parents)
-    assert heads == ["t1u2v3w4x5y6"], f"expected a single head, found {heads}"
+    assert heads == ["d4e5f6a7b8c9"], f"expected a single head, found {heads}"
 
 
 def test_down_revision_points_at_a_real_revision():

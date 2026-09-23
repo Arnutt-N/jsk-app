@@ -161,10 +161,16 @@ describe('blackout dates', () => {
     fireEvent.input(screen.getByLabelText('เลือกวันหยุดพิเศษ'), { target: { value: '10' } })
     fireEvent.input(screen.getByLabelText('เดือน'), { target: { value: '01' } })
     fireEvent.input(screen.getByLabelText('ปี พ.ศ.'), { target: { value: '2570' } })
-    // Flush the picker's deferred year commit before clicking add.
-    await act(async () => {})
+    // Flush the picker's deferred year commit (queueMicrotask) before add —
+    // a bare act() can starve it on slow CI runners.
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0))
+    })
 
     await user.click(screen.getByLabelText('เพิ่มวันหยุดพิเศษ'))
+    // The new chip (มกราคม) must appear before saving — the seeded fixture
+    // only holds a ธันวาคม date, so this cannot false-positive.
+    await waitFor(() => expect(screen.getByText(/ม\.ค\./)).toBeInTheDocument())
     await user.click(screen.getByRole('button', { name: /บันทึกการตั้งค่า/ }))
     await waitFor(() =>
       expect(savedPayload().blackout_dates).toContain('2027-01-10'),

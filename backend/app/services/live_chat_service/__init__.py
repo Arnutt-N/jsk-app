@@ -25,6 +25,7 @@ from app.services.telegram_service import telegram_service
 from .analytics import AnalyticsMixin
 from .conversations import ConversationsMixin
 from .errors import (
+    TRANSFER_ERR_CONFLICT,
     TRANSFER_ERR_INVALID_TARGET,
     TRANSFER_ERR_NO_ACTIVE_SESSION,
     TRANSFER_ERR_NOT_CURRENT_OPERATOR,
@@ -58,6 +59,7 @@ __all__ = [
     "TRANSFER_ERR_NOT_CURRENT_OPERATOR",
     "TRANSFER_ERR_TRANSFER_TO_SELF",
     "TRANSFER_ERR_INVALID_TARGET",
+    "TRANSFER_ERR_CONFLICT",
     "line_service",
     "telegram_service",
     "sla_service",

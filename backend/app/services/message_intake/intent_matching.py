@@ -18,6 +18,35 @@ logger = logging.getLogger(__name__)
 MAX_REGEX_PATTERN_LENGTH = 256
 MAX_REGEX_TEXT_LENGTH = 1000
 
+# Nested quantifiers like (a+)+ or a++ cause catastrophic backtracking (ReDoS).
+_NESTED_QUANTIFIER_RE = re.compile(r"(\+|\*){2,}|\([^)]*[+*][^)]*\)(\+|\*)")
+
+# Compiled REGEX keywords, keyed by keyword id. Stores (pattern, compiled)
+# so a stale entry whose pattern no longer matches the row is recompiled
+# instead of being reused (also covers tests that reuse ids across rows).
+# Invalidated on every keyword write (POST/PUT/DELETE).
+_regex_cache: dict[int, tuple[str, re.Pattern]] = {}
+
+
+def compile_intent_keyword(keyword: str) -> re.Pattern:
+    """Write-time guard: reject too-long or ReDoS-prone REGEX keywords."""
+    if len(keyword) > MAX_REGEX_PATTERN_LENGTH:
+        raise ValueError("รูปแบบยาวเกินไป กรุณาย่อให้สั้นลง")
+    if _NESTED_QUANTIFIER_RE.search(keyword):
+        raise ValueError("รูปแบบเสี่ยงทำให้ระบบค้าง กรุณาเขียนให้เจาะจงขึ้น")
+    return re.compile(keyword, re.IGNORECASE)
+
+
+def invalidate_intent_regex_cache() -> None:
+    _regex_cache.clear()
+
+
+def _like_safe(col):
+    """Escape LIKE wildcards (\\, %, _) inside a keyword column expression."""
+    return func.replace(
+        func.replace(func.replace(col, "\\", "\\\\"), "%", "\\%"), "_", "\\_"
+    )
+
 
 def _intent_keyword_stmt(*filters):
     return (
@@ -48,7 +77,9 @@ async def find_intent_keyword(text: str, db: AsyncSession) -> IntentKeyword | No
         return match
 
     stmt = _intent_keyword_stmt(
-        literal(text).ilike(func.concat(IntentKeyword.keyword, '%')),
+        literal(text).ilike(
+            func.concat(_like_safe(IntentKeyword.keyword), '%'), escape="\\"
+        ),
         IntentKeyword.match_type == MatchType.STARTS_WITH,
     ).limit(1)
     match = (await db.execute(stmt)).scalars().first()
@@ -56,7 +87,9 @@ async def find_intent_keyword(text: str, db: AsyncSession) -> IntentKeyword | No
         return match
 
     stmt = _intent_keyword_stmt(
-        literal(text).ilike(func.concat('%', IntentKeyword.keyword, '%')),
+        literal(text).ilike(
+            func.concat('%', _like_safe(IntentKeyword.keyword), '%'), escape="\\"
+        ),
         IntentKeyword.match_type == MatchType.CONTAINS,
     ).limit(1)
     match = (await db.execute(stmt)).scalars().first()
@@ -74,11 +107,18 @@ async def find_intent_keyword(text: str, db: AsyncSession) -> IntentKeyword | No
                 f"{MAX_REGEX_PATTERN_LENGTH} chars"
             )
             continue
-        try:
-            if re.search(pattern, probe, re.IGNORECASE):
-                return kw
-        except re.error as exc:
-            logger.warning(f"Skipping invalid REGEX intent keyword {kw.id}: {exc}")
+        cached = _regex_cache.get(kw.id)
+        if cached is not None and cached[0] == pattern:
+            compiled = cached[1]
+        else:
+            try:
+                compiled = re.compile(pattern, re.IGNORECASE)
+            except re.error as exc:
+                logger.warning(f"Skipping invalid REGEX intent keyword {kw.id}: {exc}")
+                continue
+            _regex_cache[kw.id] = (pattern, compiled)
+        if compiled.search(probe):
+            return kw
     return None
 
 

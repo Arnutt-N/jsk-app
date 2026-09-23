@@ -1,21 +1,26 @@
+import logging
 import secrets
 import uuid
 import math
-from typing import Optional
+from datetime import timedelta
+from typing import Annotated, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Response, Query
+from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile, File, Response, Query
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func as sa_func
 from sqlalchemy.orm import defer
 
+from app.core.redis_client import redis_client
+from app.core.security import create_access_token, verify_token
 from app.db.session import AsyncSessionLocal
 from app.models.media_file import MediaFile, FileCategory, detect_category
 from app.api.deps import get_db, get_current_admin, require_permission
 from app.core.audit import create_audit_log
 from app.core.http_rate_limit import http_rate_limit
 from app.core.query_utils import escape_ilike
-from app.core.permissions import KEY_MANAGE_FILES
+from app.core.permissions import KEY_IMAGE_RESIZE, KEY_MANAGE_FILES
+from app.schemas.media import ResizeTicketResponse
 from typing import List
 from pydantic import Field
 
@@ -31,7 +36,20 @@ from app.models.user import User
 
 router = APIRouter()
 
+logger = logging.getLogger(__name__)
+
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
+
+
+def check_private_token(stored: Optional[str], presented: Optional[str]) -> bool:
+    """True เฉพาะฝั่งละ non-empty และตรงกันแบบ constant-time.
+
+    ว่างชนว่างต้องไม่ผ่าน: private file ที่ไม่มี token เก็บ ต้อง 403 เสมอ
+    (ห้ามใช้ `or ""` ทั้งสองฝั่งแล้วเทียบ — empty==empty จะกลายเป็นผ่าน).
+    """
+    if not stored or not presented:
+        return False
+    return secrets.compare_digest(stored.encode(), presented.encode())
 
 # Admin uploads must serve-safe: the sniffed magic bytes — NOT the spoofable
 # client Content-Type — decide the stored mime, and only serve-safe types are
@@ -147,10 +165,11 @@ async def get_media(
 
     # Constant-time compare (both sides encoded — compare_digest raises
     # TypeError on non-ASCII str); on mismatch a wrong token still 403s.
-    if not media.is_public and not secrets.compare_digest(
-        (media.public_token or "").encode(), (token or "").encode()
-    ):
-        raise HTTPException(status_code=403, detail="Access denied")
+    # Empty-vs-empty must NOT pass: a private file without a stored token
+    # is never servable via /media (admin link/preview generates one).
+    if not media.is_public and not check_private_token(media.public_token, token):
+        logger.warning("media_forbidden id=%s", media_id)
+        raise HTTPException(status_code=403, detail="ไม่มีสิทธิ์ดูไฟล์นี้")
 
     return Response(
         content=media.data,
@@ -239,17 +258,12 @@ async def list_media(
     }
 
 
-@router.post("/admin/media", dependencies=[Depends(_upload_rate_limit)])
-async def upload_media(
-    file: UploadFile = File(...),
-    db: AsyncSession = Depends(get_db),
-    _admin=Depends(require_permission(KEY_MANAGE_FILES)),
-):
-    """Upload a file (admin only). Auto-detects category from MIME type.
+async def _validate_media_upload(file: UploadFile) -> tuple[bytes, Optional[str], str]:
+    """Read + size-check + sniff an upload; returns (content, mime, filename).
 
-    Falls back to filename extension when the browser sent a generic
-    ``application/octet-stream`` — otherwise ``.jpg``/``.png`` uploads
-    end up categorised as OTHER.
+    Raises 413 on oversize (before and after buffering) and 422 when the
+    magic bytes are not JPEG/PNG/PDF. Shared by the generic admin upload
+    and the resize upload so both enforce the same limits.
     """
     # Reject on the multipart header BEFORE buffering the body — an oversized
     # upload must not be pulled into memory just to be discarded (the
@@ -267,7 +281,13 @@ async def upload_media(
             status_code=422, detail="Only JPEG, PNG, or PDF files are supported"
         )
     filename = file.filename or "untitled"
+    return content, mime, filename
 
+
+async def _store_media_upload(
+    db: AsyncSession, content: bytes, mime: str, filename: str
+) -> MediaFile:
+    """Build and add (not commit) a MediaFile row; the caller owns the tx."""
     media = MediaFile(
         filename=filename,
         mime_type=mime,
@@ -275,8 +295,25 @@ async def upload_media(
         size_bytes=len(content),
         category=detect_category(mime, filename),
     )
-
     db.add(media)
+    return media
+
+
+@router.post("/admin/media", dependencies=[Depends(_upload_rate_limit)])
+async def upload_media(
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    _admin=Depends(require_permission(KEY_MANAGE_FILES)),
+):
+    """Upload a file (admin only). Auto-detects category from MIME type.
+
+    Falls back to filename extension when the browser sent a generic
+    ``application/octet-stream`` — otherwise ``.jpg``/``.png`` uploads
+    end up categorised as OTHER.
+    """
+    content, mime, filename = await _validate_media_upload(file)
+    media = await _store_media_upload(db, content, mime, filename)
+
     await db.commit()
     await db.refresh(media)
 
@@ -341,6 +378,114 @@ async def update_media_metadata(
         setattr(media, field, value)
 
     await db.commit()
+    await db.refresh(media)
+    return _serialise(media)
+
+
+# ===================================================================
+# Image-resize ticket + upload (D7). Must stay ABOVE the dynamic
+# `GET /admin/media/{media_id}` route — otherwise "resize-ticket" is
+# captured by the UUID path parameter and 422s.
+# ===================================================================
+RESIZE_TICKET_TTL_SECONDS = 300
+
+
+async def _reject_resize(
+    db: AsyncSession, admin_id: int, status_code: int, detail: str, reason: str
+):
+    """Audit a handler-level rejection with a fixed reason code, then 4xx/5xx.
+
+    Never records ticket/nonce/filename. Dependency failures (auth/CSRF/
+    permission) happen before the handler and produce no audit row.
+    """
+    try:
+        await create_audit_log(db, admin_id, "image_resize_upload_rejected", "media_file",
+                               details={"reason": reason})
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise HTTPException(status_code=503, detail="บริการอัปโหลดรูปยังไม่พร้อมใช้งาน")
+    raise HTTPException(status_code=status_code, detail=detail)
+
+
+@router.get("/admin/media/resize-ticket", response_model=ResizeTicketResponse)
+async def issue_resize_ticket(
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(require_permission(KEY_IMAGE_RESIZE)),
+):
+    """Issue a short-lived, single-use upload ticket (JWT, 5 minutes)."""
+    nonce = secrets.token_urlsafe(24)
+    ticket = create_access_token(
+        subject=str(admin.id),
+        expires_delta=timedelta(minutes=5),
+        # create_access_token defaults to type=access; override so this
+        # ticket can never authenticate through the cookie path.
+        additional_claims={"type": "image_resize_ticket",
+                           "purpose": "image_resize", "nonce": nonce},
+    )
+    try:
+        await create_audit_log(db, admin.id, "image_resize_ticket_issued", "media_file",
+                               details={"result": "issued"})
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise HTTPException(status_code=503, detail="บริการอัปโหลดรูปยังไม่พร้อมใช้งาน")
+    return ResizeTicketResponse(ticket=ticket, expires_in=RESIZE_TICKET_TTL_SECONDS)
+
+
+@router.post("/admin/media/resize", dependencies=[Depends(_upload_rate_limit)])
+async def upload_resize_media(
+    ticket: Annotated[str, Form()],
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(require_permission(KEY_IMAGE_RESIZE)),
+):
+    """Upload a resized image using a signed single-use ticket.
+
+    require_permission -> get_current_user enforces cookie/header CSRF for
+    POST. Accepts JPEG/PNG only (the generic media route also allows PDF).
+    """
+    payload = verify_token(ticket)
+    if (not payload or payload.get("type") != "image_resize_ticket"
+            or payload.get("purpose") != "image_resize"):
+        await _reject_resize(db, admin.id, 401,
+                             "ตั๋วอัปโหลดรูปไม่ถูกต้องหรือหมดอายุ", "invalid_ticket")
+    if str(payload.get("sub")) != str(admin.id):
+        await _reject_resize(db, admin.id, 403,
+                             "ตั๋วอัปโหลดรูปไม่ตรงกับผู้ใช้", "wrong_subject")
+    nonce = payload.get("nonce")
+    if not isinstance(nonce, str) or not nonce or len(nonce) > 128:
+        await _reject_resize(db, admin.id, 401,
+                             "ตั๋วอัปโหลดรูปไม่ถูกต้องหรือหมดอายุ", "invalid_ticket")
+    try:
+        content, mime, filename = await _validate_media_upload(file)
+    except HTTPException as exc:
+        if exc.status_code == 413:
+            await _reject_resize(db, admin.id, 413, "ไฟล์ใหญ่เกิน 10 MB", "invalid_file")
+        await _reject_resize(db, admin.id, 422,
+                             "รองรับเฉพาะรูป JPEG หรือ PNG", "invalid_file")
+    if mime not in {"image/jpeg", "image/png"}:
+        await _reject_resize(db, admin.id, 422,
+                             "รองรับเฉพาะรูป JPEG หรือ PNG", "invalid_file")
+    # Consume only after validation; invalid files do not burn the ticket.
+    consumed = await redis_client.set(
+        f"image-resize-ticket:{nonce}", "1", seconds=RESIZE_TICKET_TTL_SECONDS, nx=True
+    )
+    if consumed is False:
+        await _reject_resize(db, admin.id, 409,
+                             "ตั๋วอัปโหลดรูปนี้ถูกใช้แล้ว", "replay")
+    if consumed is not True:
+        await _reject_resize(db, admin.id, 503,
+                             "บริการอัปโหลดรูปยังไม่พร้อมใช้งาน", "redis_unavailable")
+    try:
+        media = await _store_media_upload(db, content, mime, filename)
+        await db.flush()  # assign media.id before it lands in the audit row
+        await create_audit_log(db, admin.id, "image_resize_upload", "media_file",
+                               resource_id=str(media.id), details={"result": "success"})
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise HTTPException(status_code=503, detail="บริการอัปโหลดรูปยังไม่พร้อมใช้งาน")
     await db.refresh(media)
     return _serialise(media)
 

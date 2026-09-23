@@ -237,26 +237,27 @@ async def test_missing_token_rejected_in_strict_mode():
                 DebtMediationCreate(**_debtor_payload()), db=db, x_liff_id_token=None
             )
     assert exc.value.status_code == 401
-    assert exc.value.detail == "LIFF ID token required"
+    assert exc.value.detail == "กรุณายืนยันตัวตนผ่าน LINE ก่อนยื่นคำร้อง"
     db.add.assert_not_called()
 
 
 @pytest.mark.asyncio
-async def test_unverified_submission_allowed_in_transition_mode():
+async def test_unverified_submission_rejected_even_in_transition_mode():
     db = _mock_db()
     with patch.object(liff.settings, "LIFF_STRICT_MODE", False), patch.object(
         liff, "resolve_by_line_id", new=AsyncMock(return_value=None)
     ), patch.object(
         liff.friend_service, "get_or_create_user", new=AsyncMock(return_value=None)
     ):
-        await liff.create_debt_mediation_request(
-            DebtMediationCreate(**_debtor_payload(line_user_id="U-body")),
-            db=db,
-            x_liff_id_token=None,
-        )
-    added = db.add.call_args[0][0]
-    assert added.user_id is None
-    assert added.details == {"source": "LIFF-unverified"}
+        with pytest.raises(HTTPException) as exc:
+            await liff.create_debt_mediation_request(
+                DebtMediationCreate(**_debtor_payload(line_user_id="U-body")),
+                db=db,
+                x_liff_id_token=None,
+            )
+    assert exc.value.status_code == 401
+    assert exc.value.detail == "กรุณายืนยันตัวตนผ่าน LINE ก่อนยื่นคำร้อง"
+    db.add.assert_not_called()
 
 
 @pytest.mark.asyncio

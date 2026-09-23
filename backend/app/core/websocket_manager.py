@@ -40,6 +40,7 @@ class ConnectionManager:
     OPERATOR_ONLINE_PREFIX = "operator:online"
     OPERATOR_AVAILABILITY_PREFIX = "operator:availability"
     PRESENCE_TIMEOUT_SECONDS = 90
+    PRESENCE_THROTTLE_SECONDS = 30  # skip redundant Redis writes within window (C8)
     READ_MARKER_TTL_SECONDS = 60 * 60 * 24 * 30
 
     def __init__(self):
@@ -578,11 +579,23 @@ class ConnectionManager:
         return self._parse_read_timestamp(raw)
 
     async def touch_presence(self, admin_id: str):
-        """Refresh admin presence heartbeat."""
+        """Refresh admin presence heartbeat (throttled)."""
         if admin_id in self.admin_metadata:
             self.admin_metadata[admin_id]["last_ping"] = datetime.now(timezone.utc)
         if redis_client.is_connected and redis_client._redis:
             try:
+                # SET NX marker: only the first call per throttle window writes
+                # the sorted set. Redis down -> set returns None -> fall through
+                # to zadd, whose failure is swallowed below (presence degrades,
+                # the socket never blocks).
+                acquired = await redis_client.set(
+                    f"ws:presence-throttle:{admin_id}",
+                    "1",
+                    seconds=self.PRESENCE_THROTTLE_SECONDS,
+                    nx=True,
+                )
+                if acquired is False:
+                    return  # within throttle window — skip the Redis write
                 await redis_client._redis.zadd(
                     self.REDIS_PRESENCE_KEY,
                     {str(admin_id): time.time()},

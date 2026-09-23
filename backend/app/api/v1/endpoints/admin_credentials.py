@@ -4,7 +4,7 @@ from typing import Any, List
 from app.api import deps
 from app.api.deps import get_current_admin, require_permission
 from app.core.audit import create_audit_log, changed_field_names
-from app.core.permissions import KEY_EDIT_SYSTEM_SETTINGS
+from app.core.permissions import KEY_EDIT_SYSTEM_SETTINGS, KEY_MANAGE_CREDENTIALS
 from app.models.user import User
 from app.services.credential_service import credential_service
 from app.models.credential import Credential, Provider
@@ -25,7 +25,7 @@ router = APIRouter()
 async def list_credentials(
     provider: str = None,
     db: AsyncSession = Depends(deps.get_db),
-    current_admin: User = Depends(get_current_admin)
+    current_admin: User = Depends(require_permission(KEY_MANAGE_CREDENTIALS))
 ) -> Any:
     """List all credentials (secrets masked)"""
     credentials = await credential_service.list_credentials(provider, db)
@@ -74,7 +74,7 @@ async def create_credential(
 @router.get("/line/status")
 async def get_line_bot_status(
     db: AsyncSession = Depends(deps.get_db),
-    current_admin: User = Depends(get_current_admin),
+    current_admin: User = Depends(require_permission(KEY_MANAGE_CREDENTIALS)),
 ) -> Any:
     """Check LINE Bot connection status"""
     try:
@@ -96,7 +96,7 @@ async def get_line_bot_status(
 async def get_credential(
     id: int,
     db: AsyncSession = Depends(deps.get_db),
-    current_admin: User = Depends(get_current_admin)
+    current_admin: User = Depends(require_permission(KEY_MANAGE_CREDENTIALS))
 ) -> Any:
     """Get single credential (secrets masked)"""
     credential = await db.get(Credential, id)

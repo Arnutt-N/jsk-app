@@ -34,14 +34,25 @@ async def verify_liff_token(id_token: str) -> str:
         logger.error("LINE_LOGIN_CHANNEL_ID is not configured; cannot verify LIFF ID token")
         raise HTTPException(status_code=503, detail="LIFF verification unavailable: server misconfiguration")
 
-    async with httpx.AsyncClient() as client:
-        resp = await client.post(
-            "https://api.line.me/oauth2/v2.1/verify",
-            data={
-                "id_token": id_token,
-                "client_id": settings.LINE_LOGIN_CHANNEL_ID,
-            },
-        )
+    timeout = httpx.Timeout(connect=3.0, read=5.0, write=5.0, pool=3.0)
+    verify_data = {"id_token": id_token, "client_id": settings.LINE_LOGIN_CHANNEL_ID}
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            try:
+                resp = await client.post(
+                    "https://api.line.me/oauth2/v2.1/verify",
+                    data=verify_data,
+                )
+            except httpx.TimeoutException:
+                # one bounded retry — never retry a 401 (that is a bad token)
+                logger.warning("liff verify timeout, retrying once")
+                resp = await client.post(
+                    "https://api.line.me/oauth2/v2.1/verify",
+                    data=verify_data,
+                )
+    except (httpx.TimeoutException, httpx.HTTPError):
+        logger.exception("liff verify network failure")
+        raise HTTPException(status_code=502, detail="ยืนยันตัวตนกับ LINE ไม่สำเร็จ กรุณาลองใหม่")
     if resp.status_code != 200:
         logger.warning("LIFF token verification failed: %s", resp.text)
         raise HTTPException(status_code=401, detail="Invalid LIFF ID token")
@@ -50,6 +61,17 @@ async def verify_liff_token(id_token: str) -> str:
     if not sub:
         raise HTTPException(status_code=401, detail="LIFF token missing sub claim")
     return sub
+
+
+async def require_liff_identity(x_liff_id_token: Optional[str]) -> str:
+    """Reject unauthenticated LIFF submissions before any database write."""
+    if not x_liff_id_token:
+        logger.warning("liff_unverified_attempt strict=%s", settings.LIFF_STRICT_MODE)
+        raise HTTPException(
+            status_code=401,
+            detail="กรุณายืนยันตัวตนผ่าน LINE ก่อนยื่นคำร้อง",
+        )
+    return await verify_liff_token(x_liff_id_token)
 
 
 _LIFF_MEDIA_ALLOWED_MIMES = {"image/jpeg", "image/png", "application/pdf"}
@@ -76,11 +98,7 @@ async def upload_liff_media(
     x_liff_id_token: Optional[str] = Header(None),
 ) -> dict:
     """Accept a single file upload from a LIFF wizard page."""
-    # --- LIFF identity verification (same pattern as create_service_request) ---
-    if x_liff_id_token:
-        await verify_liff_token(x_liff_id_token)
-    elif settings.LIFF_STRICT_MODE:
-        raise HTTPException(status_code=401, detail="LIFF ID token required")
+    await require_liff_identity(x_liff_id_token)
 
     # --- Validate MIME type server-side ---
     mime = file.content_type or "application/octet-stream"
@@ -140,23 +158,8 @@ async def create_service_request(
     """
     Create a new service request from LIFF.
     """
-    # Determine the verified LINE user ID and request source
-    if x_liff_id_token:
-        verified_line_user_id = await verify_liff_token(x_liff_id_token)
-        if request.line_user_id and request.line_user_id != verified_line_user_id:
-            logger.warning(
-                "LIFF body line_user_id mismatch with verified token sub %s…; using verified identity",
-                verified_line_user_id[:6],
-            )
-        line_user_id = verified_line_user_id
-        source_details = {"source": "LIFF v2"}
-    elif settings.LIFF_STRICT_MODE:
-        logger.warning("LIFF_token_missing_strict_mode_reject")
-        raise HTTPException(status_code=401, detail="LIFF ID token required")
-    else:
-        logger.warning("LIFF_token_missing_transition_mode")
-        line_user_id = request.line_user_id
-        source_details = {"source": "LIFF-unverified"}
+    line_user_id = await require_liff_identity(x_liff_id_token)
+    source_details = {"source": "LIFF v2"}
 
     # Map Pydantic to SQLAlchemy Model
     # Note: Our Pydantic has 'name', 'phone', 'service_type'
@@ -270,24 +273,8 @@ async def create_debt_mediation_request(
     x_liff_id_token: Optional[str] = Header(None),
 ) -> DebtMediationResponse:
     """Create a new debt mediation request from LIFF (ขอแก้หนี้)."""
-    # Same identity pattern as create_service_request: trust only the verified
-    # LINE token sub, reject unverified submissions in strict mode.
-    if x_liff_id_token:
-        verified_line_user_id = await verify_liff_token(x_liff_id_token)
-        if request.line_user_id and request.line_user_id != verified_line_user_id:
-            logger.warning(
-                "LIFF body line_user_id mismatch with verified token sub %s…; using verified identity",
-                verified_line_user_id[:6],
-            )
-        line_user_id = verified_line_user_id
-        source_details = {"source": "LIFF"}
-    elif settings.LIFF_STRICT_MODE:
-        logger.warning("LIFF_token_missing_strict_mode_reject_debt_mediation")
-        raise HTTPException(status_code=401, detail="LIFF ID token required")
-    else:
-        logger.warning("LIFF_token_missing_transition_mode_debt_mediation")
-        line_user_id = request.line_user_id
-        source_details = {"source": "LIFF-unverified"}
+    line_user_id = await require_liff_identity(x_liff_id_token)
+    source_details = {"source": "LIFF"}
 
     user = None
     if line_user_id:

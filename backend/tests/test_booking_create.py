@@ -19,6 +19,7 @@ from app.models.business_hours import BusinessHours
 from app.services import booking_service
 from app.services.booking_service import (
     BookingConfig,
+    BookingWindowError,
     DuplicateBookingError,
     ReminderUnit,
     SlotFullError,
@@ -224,14 +225,16 @@ async def test_booking_on_a_closed_day_is_rejected(stub_db_calls):
 
 @pytest.mark.asyncio
 async def test_booking_in_the_past_is_rejected(stub_db_calls):
-    with pytest.raises(SlotUnavailableError):
+    # past dates are rejected by the hard booking window (C6) before slot math
+    with pytest.raises(BookingWindowError):
         await _create(booking_date=date(2026, 8, 1))
     assert stub_db_calls == []
 
 
 @pytest.mark.asyncio
 async def test_booking_beyond_the_advance_window_is_rejected(stub_db_calls):
-    with pytest.raises(SlotUnavailableError):
+    # beyond min(62, advance_days) is a window error, not a slot error (C6)
+    with pytest.raises(BookingWindowError):
         await _create(booking_date=date(2026, 9, 30))
     assert stub_db_calls == []
 

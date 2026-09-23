@@ -17,6 +17,7 @@ from app.services.user_identity_service import resolve_by_line_id
 
 from ._deps import get_sla_service
 from .errors import (
+    TRANSFER_ERR_CONFLICT,
     TRANSFER_ERR_INVALID_TARGET,
     TRANSFER_ERR_NO_ACTIVE_SESSION,
     TRANSFER_ERR_NOT_CURRENT_OPERATOR,
@@ -273,13 +274,35 @@ class SessionLifecycleMixin:
         if not to_operator or not can(to_operator.role, KEY_ACCESS_LIVE_CHAT):
             raise ValueError(TRANSFER_ERR_INVALID_TARGET)
 
-        session.operator_id = to_operator_id
-        session.transfer_count = (session.transfer_count or 0) + 1
-        session.transfer_reason = reason
-        session.last_activity_at = datetime.now(timezone.utc)
-
+        # Conditional UPDATE + rowcount (same pattern as claim_session):
+        # concurrent transfers race inside the DB — exactly one UPDATE
+        # matches, the loser sees rowcount=0 and raises CONFLICT.
+        now = datetime.now(timezone.utc)
+        result = await db.execute(
+            update(ChatSession)
+            .where(
+                ChatSession.id == session.id,
+                ChatSession.status == SessionStatus.ACTIVE,
+                ChatSession.operator_id == from_operator_id,
+            )
+            .values(
+                operator_id=to_operator_id,
+                transfer_count=ChatSession.transfer_count + 1,
+                transfer_reason=reason,
+                last_activity_at=now,
+            )
+        )
+        if result.rowcount != 1:
+            # rowcount=0: either lost the race or the session vanished —
+            # re-select before choosing 409 vs 404 (never blanket-409).
+            current = await self.get_active_session(line_user_id, db)
+            if not current:
+                raise ValueError(TRANSFER_ERR_NO_ACTIVE_SESSION)
+            raise ValueError(TRANSFER_ERR_CONFLICT)
+        await db.commit()
+        refreshed = await db.get(ChatSession, session.id)
         logger.info(f"Session {session.id} transferred from operator {from_operator_id} to {to_operator_id}")
-        return session
+        return refreshed
 
     async def get_active_session(self, line_user_id: str, db: AsyncSession, lock: bool = False, user_id: int = None):
         """Get active session for user"""

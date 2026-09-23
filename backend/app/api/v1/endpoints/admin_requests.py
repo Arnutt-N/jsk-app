@@ -673,14 +673,22 @@ async def delete_request(
     db: AsyncSession = Depends(get_db),
     current_admin: User = Depends(get_current_admin)
 ):
-    """Delete a service request permanently."""
+    """Delete a service request permanently (audit-logged)."""
     query = select(ServiceRequest).where(ServiceRequest.id == request_id)
     result = await db.execute(query)
     request = result.scalar_one_or_none()
-    
+
     if not request:
         raise HTTPException(status_code=404, detail="Request not found")
-        
+
+    await create_audit_log(
+        db=db,
+        admin_id=current_admin.id,
+        action="delete_request",
+        resource_type="service_request",
+        resource_id=str(request_id),
+        details={"topic_category": request.topic_category or None},
+    )
     await db.delete(request)
     await db.commit()
     return None

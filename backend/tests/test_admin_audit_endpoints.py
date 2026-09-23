@@ -730,16 +730,21 @@ async def test_update_setting_allowlisted_key_logs_value():
 
 
 @pytest.mark.asyncio
-async def test_update_setting_line_token_value_is_redacted():
-    """The one secret key PROVEN to flow through this endpoint (the LINE
-    settings page POSTs it) never lands in details."""
+async def test_update_setting_unknown_key_value_is_redacted():
+    """A non-allowlisted key never lands its value in details.
+
+    B2 additionally hard-rejects known secret keys (LINE_CHANNEL_ACCESS_TOKEN
+    and friends) with 400 before any audit row — the deny-list guard has its
+    own coverage in test_secrets_migration.py. This test locks the fail-closed
+    redaction for arbitrary (non-allowlisted) keys.
+    """
     db = _RecordingDB(execute_result=None)
     admin = _super_admin(6)
     sentinel = "SENTINEL_LINE_CHANNEL_TOKEN_XYZ"
 
-    await _post_setting(db, admin, "LINE_CHANNEL_ACCESS_TOKEN", sentinel)
+    await _post_setting(db, admin, "LEGACY_WEBHOOK_TOKEN", sentinel)
 
     rows = db.audit_rows()
     assert len(rows) == 1
-    assert rows[0].details == {"key": "LINE_CHANNEL_ACCESS_TOKEN", "value_changed": True}
+    assert rows[0].details == {"key": "LEGACY_WEBHOOK_TOKEN", "value_changed": True}
     assert sentinel not in json.dumps(rows[0].details)

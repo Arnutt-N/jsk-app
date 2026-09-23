@@ -75,6 +75,11 @@ KEY_ACCESS_STAFF_ENDPOINTS = "access_staff_endpoints"
 # gate; access_staff_endpoints is the HTTP gate -- different layers.
 KEY_ACCESS_LIVE_CHAT = "access_live_chat"
 
+# D7 -- granular admin gates: credentials management and business-hours
+# editing move off the broad edit_settings/admin gates onto their own keys.
+KEY_MANAGE_CREDENTIALS = "manage_credentials"
+KEY_EDIT_BUSINESS_HOURS = "edit_business_hours"
+
 # Hardcoded fallback used when the DB row is missing OR the cache hasn't
 # loaded yet. Mirrors the migration seed values.
 DEFAULT_POLICY: dict[str, frozenset[UserRole]] = {
@@ -121,6 +126,8 @@ DEFAULT_POLICY: dict[str, frozenset[UserRole]] = {
     KEY_VIEW_AUDIT_LOG: frozenset({UserRole.SUPER_ADMIN, UserRole.ADMIN}),
     KEY_EDIT_SYSTEM_SETTINGS: frozenset({UserRole.SUPER_ADMIN, UserRole.ADMIN}),
     KEY_IMAGE_RESIZE: frozenset({UserRole.SUPER_ADMIN, UserRole.ADMIN}),
+    KEY_MANAGE_CREDENTIALS: frozenset({UserRole.SUPER_ADMIN, UserRole.ADMIN}),
+    KEY_EDIT_BUSINESS_HOURS: frozenset({UserRole.SUPER_ADMIN, UserRole.ADMIN}),
     # --- P1.2a: Configurable auth gates (deps.py) ---
     # Mirror the hardcoded role sets in get_current_admin/manager/staff
     # so the PR ships dark (zero behavior change). SUPER_ADMIN stays in
@@ -229,6 +236,8 @@ _SEED_DESCRIPTIONS: dict[str, str] = {
     KEY_VIEW_AUDIT_LOG: "ดู Audit Log",
     KEY_EDIT_SYSTEM_SETTINGS: "แก้ไขการตั้งค่าระบบ (credentials/integrations)",
     KEY_IMAGE_RESIZE: "ใช้เครื่องมือ Image Resize",
+    KEY_MANAGE_CREDENTIALS: "จัดการรหัสเชื่อมต่อ (credentials/integrations)",
+    KEY_EDIT_BUSINESS_HOURS: "แก้เวลาทำการ (business hours)",
     # --- P1.2a: Configurable auth gates (deps.py) ---
     KEY_ACCESS_ADMIN_ENDPOINTS: "เข้าใช้งาน admin endpoints (gate เข้า settings UI)",
     KEY_ACCESS_MANAGER_ENDPOINTS: "เข้าใช้งาน manager-level endpoints (request workflow)",
@@ -437,6 +446,9 @@ PERMISSION_REGISTRY: tuple[PermissionMeta, ...] = (
     PermissionMeta(KEY_VIEW_AUDIT_LOG, "system", LEVEL_VIEW, _SEED_DESCRIPTIONS[KEY_VIEW_AUDIT_LOG]),
     PermissionMeta(KEY_EDIT_SYSTEM_SETTINGS, "system", LEVEL_EDIT, _SEED_DESCRIPTIONS[KEY_EDIT_SYSTEM_SETTINGS]),
     PermissionMeta(KEY_IMAGE_RESIZE, "system", LEVEL_EDIT, _SEED_DESCRIPTIONS[KEY_IMAGE_RESIZE]),
+    # D7: granular admin gates — credentials + business hours.
+    PermissionMeta(KEY_MANAGE_CREDENTIALS, "system", LEVEL_MANAGE, _SEED_DESCRIPTIONS[KEY_MANAGE_CREDENTIALS]),
+    PermissionMeta(KEY_EDIT_BUSINESS_HOURS, "system", LEVEL_EDIT, _SEED_DESCRIPTIONS[KEY_EDIT_BUSINESS_HOURS]),
     PermissionMeta(KEY_MANAGE_USERS, "system", LEVEL_MANAGE, _SEED_DESCRIPTIONS[KEY_MANAGE_USERS]),
     PermissionMeta(KEY_MANAGE_FILES, "system", LEVEL_MANAGE, _SEED_DESCRIPTIONS[KEY_MANAGE_FILES]),
     PermissionMeta(KEY_EDIT_SETTINGS, "system", LEVEL_MANAGE, _SEED_DESCRIPTIONS[KEY_EDIT_SETTINGS]),

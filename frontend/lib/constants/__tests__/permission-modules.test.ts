@@ -36,11 +36,14 @@ const BACKEND_KEYS = [
   'access_staff_endpoints',
   // NEW-3: configurable live-chat WebSocket gate.
   'access_live_chat',
+  // D7: granular admin gates — credentials + business hours.
+  'manage_credentials',
+  'edit_business_hours',
 ]
 
 describe('permission-modules registry integrity', () => {
-  it('contains exactly 20 keys', () => {
-    expect(PERMISSION_REGISTRY).toHaveLength(20)
+  it('contains exactly 22 keys', () => {
+    expect(PERMISSION_REGISTRY).toHaveLength(22)
   })
 
   it('has no duplicate keys', () => {
@@ -74,7 +77,7 @@ describe('groupByModule', () => {
     const grouped = groupByModule(PERMISSION_REGISTRY)
     expect(grouped.service_requests).toHaveLength(4)
     expect(grouped.chatbot).toHaveLength(5)
-    expect(grouped.system).toHaveLength(11)
+    expect(grouped.system).toHaveLength(13)
   })
 
   it('preserves registry order within a module', () => {
@@ -91,6 +94,8 @@ describe('groupByModule', () => {
       'access_manager_endpoints',
       'access_staff_endpoints',
       'access_live_chat',
+      'manage_credentials',
+      'edit_business_hours',
     ])
   })
 })
@@ -109,8 +114,8 @@ describe('keysForLevel', () => {
     ])
   })
 
-  it('system Manage → all 11 system keys', () => {
-    expect(keysForLevel(PERMISSION_REGISTRY, 'system', LEVEL.MANAGE)).toHaveLength(11)
+  it('system Manage → all 13 system keys', () => {
+    expect(keysForLevel(PERMISSION_REGISTRY, 'system', LEVEL.MANAGE)).toHaveLength(13)
   })
 
   it('chatbot View → [] (no view-level key exists)', () => {

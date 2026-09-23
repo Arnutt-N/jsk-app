@@ -199,11 +199,23 @@ export function useImageResize({ toast }: ToastFn) {
     }
     setUploading(true);
     try {
+      // D7: short-lived signed ticket first, then a single-use upload.
+      // Both requests go through the AuthProvider-installed fetch
+      // interceptor (credentials + CSRF header); the ticket lives in the
+      // multipart body only — never in a URL or log.
+      const ticketResponse = await fetch('/api/v1/admin/media/resize-ticket', { credentials: 'include' });
+      if (!ticketResponse.ok) {
+        const msg = await readErrorMessage(ticketResponse, 'ขอตั๋วอัปโหลดไม่สำเร็จ');
+        toast({ title: 'อัปโหลดไม่สำเร็จ', description: msg, variant: 'error' });
+        return;
+      }
+      const { ticket } = await ticketResponse.json();
       const filename = buildOutputFilename(sourceFile?.name ?? 'image', parsedWidth, parsedHeight, activeFormat.ext);
       const file = new File([outputBlob], filename, { type: format });
       const form = new FormData();
+      form.append('ticket', ticket);
       form.append('file', file);
-      const res = await fetch('/api/v1/admin/media', { method: 'POST', body: form });
+      const res = await fetch('/api/v1/admin/media/resize', { method: 'POST', body: form, credentials: 'include' });
       if (!res.ok) {
         const msg = await readErrorMessage(res, 'อัปโหลดล้มเหลว');
         toast({ title: 'อัปโหลดไม่สำเร็จ', description: msg, variant: 'error' });

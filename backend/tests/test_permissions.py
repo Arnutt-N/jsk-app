@@ -284,9 +284,9 @@ def test_registry_access_gate_metadata_module_and_level():
     assert staff_meta.level == 1  # LEVEL_VIEW
 
 
-def test_all_permission_keys_count_is_20():
-    """P1.2a brought the registry from 16 to 19; NEW-3 adds access_live_chat -> 20."""
-    assert len(ALL_PERMISSION_KEYS) == 20
+def test_all_permission_keys_count_is_22():
+    """P1.2a brought the registry from 16 to 19; NEW-3 adds access_live_chat -> 20; D7 adds manage_credentials, edit_business_hours -> 22."""
+    assert len(ALL_PERMISSION_KEYS) == 22
 
 
 # ---------------------------------------------------------------------------

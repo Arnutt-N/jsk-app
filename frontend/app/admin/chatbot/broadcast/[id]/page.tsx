@@ -299,6 +299,11 @@ export default function BroadcastDetailPage() {
                                     </span>
                                     <span className="text-sm font-bold text-red-600 dark:text-red-400">{broadcast.failure_count.toLocaleString()}</span>
                                 </div>
+                                {broadcast.failure_count > 0 && (
+                                    <p className="text-[11px] text-text-tertiary">
+                                        รายชื่อที่ล้มเหลว (ลองครบ 3 รอบ) ถูกเก็บไว้เพื่อลองใหม่รอบหน้า
+                                    </p>
+                                )}
                                 {broadcast.total_recipients > 0 && (
                                     <div className="pt-3 border-t border-gray-100 dark:border-gray-700">
                                         <div className="flex items-center justify-between mb-1.5">

@@ -109,6 +109,35 @@ export default function BroadcastCreatePage() {
         }
     };
 
+    const [preview, setPreview] = useState<{ dry_run: boolean; estimated_recipients: number | null; messages_valid: boolean } | null>(null);
+    const [dryRunning, setDryRunning] = useState(false);
+
+    const handleDryRun = async () => {
+        setDryRunning(true);
+        try {
+            const body = {
+                title: draft.title,
+                message_type: draft.message_type,
+                content: buildContent(),
+                target_audience: draft.target_audience,
+                dry_run: true,
+            };
+            const res = await fetch(`${API_BASE}/admin/broadcasts`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+            });
+            if (!res.ok) throw new Error('dry-run failed');
+            setPreview(await res.json());
+            toast({ variant: 'success', title: 'ทดลองส่งสำเร็จ', description: 'ข้อความถูกต้อง ไม่มีการสร้างงานจริง' });
+        } catch (err) {
+            logger.error(err);
+            toast({ variant: 'error', title: 'ทดลองส่งไม่สำเร็จ', description: 'กรุณาตรวจสอบเนื้อหาแล้วลองใหม่' });
+        } finally {
+            setDryRunning(false);
+        }
+    };
+
     const handleSaveDraft = async () => {
         setSaving(true);
         try {
@@ -462,8 +491,23 @@ export default function BroadcastCreatePage() {
                                 )}
                             </div>
 
+                            {/* Dry-run preview */}
+                            {preview && (
+                                <div className="rounded-lg border border-brand-200 dark:border-brand-800 bg-brand-50 dark:bg-brand-950/30 p-4 text-sm">
+                                    <p className="font-medium text-brand-700 dark:text-brand-300">ผลทดลองส่ง (dry-run)</p>
+                                    <ul className="mt-2 space-y-1 text-text-secondary">
+                                        <li>สถานะข้อความ: {preview.messages_valid ? '✓ ถูกต้อง' : '✗ ไม่ถูกต้อง'}</li>
+                                        <li>ผู้รับโดยประมาณ: {preview.estimated_recipients ?? 'ผู้ติดตามทั้งหมด'}</li>
+                                        <li className="text-text-tertiary">ไม่มีการสร้างงานจริง — กด ส่งเลย เพื่อส่งจริง</li>
+                                    </ul>
+                                </div>
+                            )}
+
                             {/* Action buttons */}
                             <div className="flex flex-wrap gap-3 pt-4">
+                                <Button variant="outline" onClick={handleDryRun} disabled={dryRunning || saving} className="gap-2">
+                                    {dryRunning ? 'กำลังตรวจสอบ...' : 'ทดลองส่ง'}
+                                </Button>
                                 <Button variant="outline" onClick={handleSaveDraft} disabled={saving} className="gap-2">
                                     <FileText className="w-4 h-4" />
                                     {saving ? 'กำลังบันทึก...' : 'บันทึกแบบร่าง'}

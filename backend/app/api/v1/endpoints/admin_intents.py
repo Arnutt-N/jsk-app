@@ -158,12 +158,26 @@ async def delete_category(cat_id: int, db: AsyncSession = Depends(get_db), curre
     return None
 
 # --- Keywords ---
+def _guard_regex_keyword(keyword: str | None, match_type) -> None:
+    """Reject ReDoS-prone or too-long REGEX keywords at write time (C3)."""
+    from app.models.intent import MatchType
+    from app.services.message_intake.intent_matching import compile_intent_keyword
+    if match_type == MatchType.REGEX and keyword is not None:
+        try:
+            compile_intent_keyword(keyword)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc))
+
+
 @router.post("/keywords", response_model=IntentKeywordResponse, status_code=status.HTTP_201_CREATED)
 async def create_keyword(data: IntentKeywordCreate, db: AsyncSession = Depends(get_db), current_admin: User = Depends(require_permission(KEY_MANAGE_AUTO_REPLIES))):
+    _guard_regex_keyword(data.keyword, data.match_type)
     keyword = IntentKeyword(**data.model_dump())
     db.add(keyword)
     await db.commit()
     await db.refresh(keyword)
+    from app.services.message_intake.intent_matching import invalidate_intent_regex_cache
+    invalidate_intent_regex_cache()
     return keyword
 
 @router.put("/keywords/{k_id}", response_model=IntentKeywordResponse)
@@ -173,11 +187,20 @@ async def update_keyword(k_id: int, data: IntentKeywordUpdate, db: AsyncSession 
     if not kw:
         raise HTTPException(status_code=404, detail="Keyword not found")
     
-    for field, value in data.model_dump(exclude_unset=True).items():
+    updates = data.model_dump(exclude_unset=True)
+    # Validate the resulting (keyword, match_type) pair — either field may
+    # be updated alone, so check against the merged state.
+    _guard_regex_keyword(
+        updates.get("keyword", kw.keyword),
+        updates.get("match_type", kw.match_type),
+    )
+    for field, value in updates.items():
         setattr(kw, field, value)
-    
+
     await db.commit()
     await db.refresh(kw)
+    from app.services.message_intake.intent_matching import invalidate_intent_regex_cache
+    invalidate_intent_regex_cache()
     return kw
 
 @router.delete("/keywords/{k_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -189,6 +212,8 @@ async def delete_keyword(k_id: int, db: AsyncSession = Depends(get_db), current_
     
     await db.delete(kw)
     await db.commit()
+    from app.services.message_intake.intent_matching import invalidate_intent_regex_cache
+    invalidate_intent_regex_cache()
     return None
 
 # --- Responses ---

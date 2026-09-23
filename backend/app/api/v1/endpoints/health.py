@@ -1,4 +1,5 @@
 """Health check endpoints for monitoring."""
+import logging
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends
@@ -13,6 +14,8 @@ from app.core.pseudonym_gate import get_gate_status
 from app.models.user import User
 
 router = APIRouter()
+
+logger = logging.getLogger(__name__)
 
 
 @router.get("/health")
@@ -32,15 +35,15 @@ async def health_check(db: AsyncSession = Depends(get_db)):
     try:
         await db.execute(text("SELECT 1"))
         checks["database"] = True
-    except Exception as e:
-        checks["database_error"] = str(e)
-    
+    except Exception:
+        logger.exception("health database check failed")
+
     # Check Redis
     try:
         if redis_client.is_connected:
             checks["redis"] = True
-    except Exception as e:
-        checks["redis_error"] = str(e)
+    except Exception:
+        logger.exception("health redis check failed")
     
     # Determine overall status
     if checks["database"] and checks["redis"]:
@@ -65,7 +68,9 @@ async def pseudonym_gate_status(
 
 
 @router.get("/health/websocket")
-async def websocket_health():
+async def websocket_health(
+    _current_admin: User = Depends(get_current_admin),
+):
     """
     WebSocket-specific health check.
     
@@ -80,7 +85,10 @@ async def websocket_health():
 
 
 @router.get("/health/detailed")
-async def detailed_health(db: AsyncSession = Depends(get_db)):
+async def detailed_health(
+    db: AsyncSession = Depends(get_db),
+    _current_admin: User = Depends(get_current_admin),
+):
     """
     Detailed health check with all metrics.
     
@@ -101,10 +109,10 @@ async def detailed_health(db: AsyncSession = Depends(get_db)):
             "status": "healthy",
             "latency_ms": round(db_latency, 2)
         }
-    except Exception as e:
+    except Exception:
+        logger.exception("health detailed database check failed")
         checks["services"]["database"] = {
-            "status": "unhealthy",
-            "error": str(e)
+            "status": "unhealthy"
         }
         checks["status"] = "unhealthy"
     
@@ -122,10 +130,10 @@ async def detailed_health(db: AsyncSession = Depends(get_db)):
             }
             if checks["status"] == "healthy":
                 checks["status"] = "degraded"
-    except Exception as e:
+    except Exception:
+        logger.exception("health detailed redis check failed")
         checks["services"]["redis"] = {
-            "status": "unhealthy",
-            "error": str(e)
+            "status": "unhealthy"
         }
         if checks["status"] == "healthy":
             checks["status"] = "degraded"
@@ -136,10 +144,10 @@ async def detailed_health(db: AsyncSession = Depends(get_db)):
         checks["services"]["websocket"] = ws_health
         if ws_health["status"] != "healthy" and checks["status"] == "healthy":
             checks["status"] = "degraded"
-    except Exception as e:
+    except Exception:
+        logger.exception("health detailed websocket check failed")
         checks["services"]["websocket"] = {
-            "status": "unhealthy",
-            "error": str(e)
+            "status": "unhealthy"
         }
         if checks["status"] == "healthy":
             checks["status"] = "degraded"

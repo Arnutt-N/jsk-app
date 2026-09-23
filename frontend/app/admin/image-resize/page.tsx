@@ -33,7 +33,9 @@ const FORMAT_HELPER_TEXT: Record<OutputFormat, string> = {
 
 export default function ImageResizePage() {
   const { toast } = useToast();
-  const canManageFiles = useHasPermission('manage_files');
+  // D7: the resize upload action is gated by its own permission;
+  // manage_files remains for the general media library.
+  const canResize = useHasPermission('image_resize');
   const r = useImageResize({ toast });
 
   const sizeDelta =
@@ -269,7 +271,7 @@ export default function ImageResizePage() {
               >
                 ดาวน์โหลด
               </Button>
-              {canManageFiles && (
+              {canResize && (
                 <Button
                   variant="outline"
                   className="w-full"

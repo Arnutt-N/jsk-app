@@ -1,8 +1,11 @@
 """Analytics service for calculating KPIs and metrics."""
+import json
 import logging
 from datetime import datetime, timedelta, timezone
-from sqlalchemy import and_, exists, func, literal_column, select
+from sqlalchemy import and_, exists, func, literal_column, select, text
+from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import aliased
 from typing import Optional
 
 from app.models.chat_session import ChatSession, SessionStatus
@@ -14,7 +17,11 @@ from app.core.config import settings
 from app.db.session import AsyncSessionLocal
 from app.services.user_identity_service import child_column
 
+_CLOSED = SessionStatus.CLOSED.value  # asyncpg: string param avoids IndeterminateDatatypeError
+
 logger = logging.getLogger(__name__)
+
+CACHE_TTL_SECONDS = 120  # dashboard Redis cache TTL (plan: C1)
 
 class AnalyticsService:
     """Service for calculating live chat analytics and KPIs."""
@@ -433,22 +440,381 @@ class AnalyticsService:
     async def get_dashboard(self, db: AsyncSession, days: int = 7) -> dict:
         """Aggregated analytics payload for dashboard UI.
 
-        Use the caller's DB session to avoid opening multiple concurrent
-        connections for a single dashboard request.
-        """
-        trends = await self.get_kpi_trends(db)
-        session_volume = await self.get_session_volume(db, days=days)
-        peak_hours = await self.get_peak_hours_heatmap(db, days=days)
-        funnel = await self.get_conversation_funnel(db, days=days)
-        percentiles = await self.get_percentiles(db, days=days)
+        Single data statement + Redis cache (120 s).  When Redis is down or
+        the cache is cold the payload is computed directly without failing.
 
-        return {
-            "trends": trends,
-            "session_volume": session_volume,
-            "peak_hours": peak_hours,
-            "funnel": funnel,
-            "percentiles": percentiles,
+        Helper functions (get_kpi_trends / get_session_volume / ...) are kept
+        for other routes (live-kpis / operator-performance / hourly) — do not
+        remove them.
+        """
+        key = f"analytics:dashboard:{days}"
+        try:
+            cached = await redis_client.get(key)
+        except Exception:
+            cached = None  # Redis-down -> compute without cache (fail-open)
+
+        if cached:
+            data = json.loads(cached)
+            data["cache_hit"] = True
+            return data
+
+        row = await self._get_dashboard_row(db, days)
+        now = datetime.now(timezone.utc)
+        safe_days = max(1, min(days, 30))
+        cutoff = now - timedelta(days=safe_days)
+        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        yesterday_start = today_start - timedelta(days=1)
+
+        def _trend(cur: float, prev: float) -> dict:
+            delta = float(cur or 0) - float(prev or 0)
+            return {
+                "current": round(float(cur or 0), 2),
+                "previous": round(float(prev or 0), 2),
+                "delta": round(delta, 2),
+                "delta_percent": round((delta / prev * 100), 1) if prev else 0.0,
+            }
+
+        def _safe_div(n: float | None, d: float | None) -> float:
+            return (float(n or 0) / float(d)) if d else 0.0
+
+        fcr_today_total = row["fcr_today_total"] or 0
+        fcr_today_ok = row["fcr_today_ok"] or 0
+        fcr_yest_total = row["fcr_yest_total"] or 0
+        fcr_yest_ok = row["fcr_yest_ok"] or 0
+        csat_pct = (float(row["csat_avg"] or 0) / 5) * 100
+        yest_csat_pct = (float(row["yest_csat_avg"] or 0) / 5) * 100
+        abd_today_abandoned = row["abd_today_abandoned"] or 0
+        abd_today_claimed = row["abd_today_claimed"] or 0
+        abd_yest_abandoned = row["abd_yest_abandoned"] or 0
+        abd_yest_claimed = row["abd_yest_claimed"] or 0
+
+        payload = {
+            "trends": {
+                "sessions_today": _trend(row["sessions_today"], row["yesterday_sessions"]),
+                "avg_first_response_seconds": _trend(row["avg_frt"], row["yesterday_frt"]),
+                "avg_resolution_seconds": _trend(row["avg_res"], row["yesterday_res"]),
+                "csat_percentage": _trend(csat_pct, yest_csat_pct),
+                "fcr_rate": _trend(
+                    _safe_div(fcr_today_ok, fcr_today_total) * 100,
+                    _safe_div(fcr_yest_ok, fcr_yest_total) * 100,
+                ),
+                "abandonment_rate": _trend(
+                    _safe_div(abd_today_abandoned, abd_today_abandoned + abd_today_claimed) * 100,
+                    _safe_div(abd_yest_abandoned, abd_yest_abandoned + abd_yest_claimed) * 100,
+                ),
+            },
+            "session_volume": row["volume_json"] or [],
+            "peak_hours": row["heatmap_json"] or [],
+            "funnel": {
+                "bot_entries": row["funnel_bot"] or 0,
+                "human_handoff": row["funnel_human"] or 0,
+                "resolved": row["funnel_resolved"] or 0,
+            },
+            "percentiles": {
+                "frt": {
+                    "p50": round(float(row["frt_p50"] or 0), 1),
+                    "p90": round(float(row["frt_p90"] or 0), 1),
+                    "p99": round(float(row["frt_p99"] or 0), 1),
+                },
+                "resolution": {
+                    "p50": round(float(row["res_p50"] or 0), 1),
+                    "p90": round(float(row["res_p90"] or 0), 1),
+                    "p99": round(float(row["res_p99"] or 0), 1),
+                },
+            },
+            "generated_at": now.isoformat(),
+            "cache_hit": False,
         }
+        try:
+            await redis_client.setex(key, CACHE_TTL_SECONDS, json.dumps(payload, default=str))
+        except Exception:
+            pass  # Redis-down -> do not fail the request
+        return payload
+
+    async def _get_dashboard_row(self, db: AsyncSession, days: int = 7):
+        now = datetime.now(timezone.utc)
+        safe_days = max(1, min(days, 30))
+        cutoff = now - timedelta(days=safe_days)
+        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        yesterday_start = today_start - timedelta(days=1)
+
+        frt_expr = func.extract(
+            "epoch", ChatSession.first_response_at - ChatSession.claimed_at
+        )
+        res_expr = func.extract(
+            "epoch", ChatSession.closed_at - ChatSession.started_at
+        )
+        ClosedA = aliased(ChatSession)
+        ReopenA = aliased(ChatSession)
+        ClosedB = aliased(ChatSession)
+        ReopenB = aliased(ChatSession)
+        vol_day = func.date_trunc(literal_column("'day'"), ChatSession.started_at)
+        vol_sub = (
+            select(vol_day.label("day"), func.count(ChatSession.id).label("sessions"))
+            .where(
+                ChatSession.started_at
+                >= today_start - timedelta(days=safe_days - 1)
+            )
+            .group_by(vol_day)
+            .subquery()
+        )
+        heat_sub = (
+            select(
+                func.extract("dow", Message.created_at).label("dow"),
+                func.extract("hour", Message.created_at).label("hour"),
+                func.count(Message.id).label("message_count"),
+            )
+            .where(Message.created_at >= cutoff)
+            .group_by(
+                func.extract("dow", Message.created_at),
+                func.extract("hour", Message.created_at),
+            )
+            .subquery()
+        )
+
+        # Single scalar-subquery statement.  Postgres planner may split CTEs
+        # internally but SQLAlchemy emits one textual SELECT.
+        stmt = select(
+            select(func.count(ChatSession.id))
+            .where(ChatSession.started_at >= today_start)
+            .scalar_subquery()
+            .label("sessions_today"),
+            select(func.count(ChatSession.id))
+            .where(
+                ChatSession.started_at >= yesterday_start,
+                ChatSession.started_at < today_start,
+            )
+            .scalar_subquery()
+            .label("yesterday_sessions"),
+            select(func.avg(frt_expr))
+            .where(
+                ChatSession.first_response_at.isnot(None),
+                ChatSession.claimed_at >= today_start,
+            )
+            .scalar_subquery()
+            .label("avg_frt"),
+            select(func.avg(frt_expr))
+            .where(
+                ChatSession.first_response_at.isnot(None),
+                ChatSession.claimed_at >= yesterday_start,
+                ChatSession.claimed_at < today_start,
+            )
+            .scalar_subquery()
+            .label("yesterday_frt"),
+            select(func.avg(res_expr))
+            .where(
+                ChatSession.status == _CLOSED,
+                ChatSession.closed_at >= today_start,
+            )
+            .scalar_subquery()
+            .label("avg_res"),
+            select(func.avg(res_expr))
+            .where(
+                ChatSession.status == _CLOSED,
+                ChatSession.closed_at >= yesterday_start,
+                ChatSession.closed_at < today_start,
+            )
+            .scalar_subquery()
+            .label("yesterday_res"),
+            select(func.avg(CsatResponse.score))
+            .where(CsatResponse.created_at >= today_start)
+            .scalar_subquery()
+            .label("csat_avg"),
+            select(func.avg(CsatResponse.score))
+            .where(
+                CsatResponse.created_at >= yesterday_start,
+                CsatResponse.created_at < today_start,
+            )
+            .scalar_subquery()
+            .label("yest_csat_avg"),
+            select(func.count(ClosedA.id))
+            .where(
+                ClosedA.status == _CLOSED,
+                ClosedA.closed_at >= today_start,
+            )
+            .scalar_subquery()
+            .label("fcr_today_total"),
+            select(func.count(ClosedA.id))
+            .where(
+                ClosedA.status == _CLOSED,
+                ClosedA.closed_at >= today_start,
+                ~exists(
+                    select(ReopenA.id).where(
+                        and_(
+                            child_column(ReopenA) == child_column(ClosedA),
+                            ReopenA.started_at > ClosedA.closed_at,
+                            ReopenA.started_at
+                            < ClosedA.closed_at + timedelta(hours=24),
+                        )
+                    )
+                ),
+            )
+            .scalar_subquery()
+            .label("fcr_today_ok"),
+            select(func.count(ClosedB.id))
+            .where(
+                ClosedB.status == _CLOSED,
+                ClosedB.closed_at >= yesterday_start,
+                ClosedB.closed_at < today_start,
+            )
+            .scalar_subquery()
+            .label("fcr_yest_total"),
+            select(func.count(ClosedB.id))
+            .where(
+                ClosedB.status == _CLOSED,
+                ClosedB.closed_at >= yesterday_start,
+                ClosedB.closed_at < today_start,
+                ~exists(
+                    select(ReopenB.id).where(
+                        and_(
+                            child_column(ReopenB) == child_column(ClosedB),
+                            ReopenB.started_at > ClosedB.closed_at,
+                            ReopenB.started_at
+                            < ClosedB.closed_at + timedelta(hours=24),
+                        )
+                    )
+                ),
+            )
+            .scalar_subquery()
+            .label("fcr_yest_ok"),
+            select(func.count(ChatSession.id))
+            .where(
+                ChatSession.closed_at >= today_start,
+                ChatSession.closed_by == "SYSTEM_TIMEOUT",
+            )
+            .scalar_subquery()
+            .label("abd_today_abandoned"),
+            select(func.count(ChatSession.id))
+            .where(
+                ChatSession.claimed_at >= today_start,
+                ChatSession.claimed_at.isnot(None),
+            )
+            .scalar_subquery()
+            .label("abd_today_claimed"),
+            select(func.count(ChatSession.id))
+            .where(
+                ChatSession.closed_at >= yesterday_start,
+                ChatSession.closed_at < today_start,
+                ChatSession.closed_by == "SYSTEM_TIMEOUT",
+            )
+            .scalar_subquery()
+            .label("abd_yest_abandoned"),
+            select(func.count(ChatSession.id))
+            .where(
+                ChatSession.claimed_at >= yesterday_start,
+                ChatSession.claimed_at < today_start,
+                ChatSession.claimed_at.isnot(None),
+            )
+            .scalar_subquery()
+            .label("abd_yest_claimed"),
+            select(func.count(func.distinct(child_column(Message))))
+            .where(
+                Message.created_at >= cutoff,
+                Message.direction == MessageDirection.INCOMING,
+                child_column(Message).isnot(None),
+            )
+            .scalar_subquery()
+            .label("funnel_bot"),
+            select(func.count(ChatSession.id))
+            .where(
+                ChatSession.started_at >= cutoff,
+                ChatSession.claimed_at.isnot(None),
+            )
+            .scalar_subquery()
+            .label("funnel_human"),
+            select(func.count(ChatSession.id))
+            .where(
+                ChatSession.closed_at >= cutoff,
+                ChatSession.status == _CLOSED,
+            )
+            .scalar_subquery()
+            .label("funnel_resolved"),
+            select(
+                func.coalesce(
+                    func.json_agg(
+                        func.json_build_object(
+                            "day", vol_sub.c.day,
+                            "sessions", vol_sub.c.sessions,
+                        )
+                    ),
+                    text("'[]'::json"),
+                )
+            )
+            .select_from(vol_sub)
+            .scalar_subquery()
+            .label("volume_json"),
+            select(
+                func.coalesce(
+                    func.json_agg(
+                        func.json_build_object(
+                            "day_of_week", heat_sub.c.dow,
+                            "hour", heat_sub.c.hour,
+                            "message_count", heat_sub.c.message_count,
+                        )
+                    ),
+                    text("'[]'::json"),
+                )
+            )
+            .select_from(heat_sub)
+            .scalar_subquery()
+            .label("heatmap_json"),
+            select(
+                func.percentile_cont(0.5).within_group(frt_expr)
+            )
+            .where(
+                ChatSession.first_response_at.isnot(None),
+                ChatSession.claimed_at >= cutoff,
+            )
+            .scalar_subquery()
+            .label("frt_p50"),
+            select(
+                func.percentile_cont(0.9).within_group(frt_expr)
+            )
+            .where(
+                ChatSession.first_response_at.isnot(None),
+                ChatSession.claimed_at >= cutoff,
+            )
+            .scalar_subquery()
+            .label("frt_p90"),
+            select(
+                func.percentile_cont(0.99).within_group(frt_expr)
+            )
+            .where(
+                ChatSession.first_response_at.isnot(None),
+                ChatSession.claimed_at >= cutoff,
+            )
+            .scalar_subquery()
+            .label("frt_p99"),
+            select(
+                func.percentile_cont(0.5).within_group(res_expr)
+            )
+            .where(
+                ChatSession.closed_at.isnot(None),
+                ChatSession.closed_at >= cutoff,
+            )
+            .scalar_subquery()
+            .label("res_p50"),
+            select(
+                func.percentile_cont(0.9).within_group(res_expr)
+            )
+            .where(
+                ChatSession.closed_at.isnot(None),
+                ChatSession.closed_at >= cutoff,
+            )
+            .scalar_subquery()
+            .label("res_p90"),
+            select(
+                func.percentile_cont(0.99).within_group(res_expr)
+            )
+            .where(
+                ChatSession.closed_at.isnot(None),
+                ChatSession.closed_at >= cutoff,
+            )
+            .scalar_subquery()
+            .label("res_p99"),
+        )
+
+        return (await db.execute(stmt)).one()._asdict()
 
     async def calculate_sla_breach_events(self, db: AsyncSession, hours: int = 24) -> int:
         """

@@ -1,10 +1,16 @@
 import logging
+import re
 from typing import Optional
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.canned_response import CannedResponse
 
 logger = logging.getLogger(__name__)
+
+
+def normalize_text(s: str) -> str:
+    """Trim, collapse inner whitespace, and casefold — used for duplicate checks."""
+    return re.sub(r"\s+", " ", s.strip()).casefold()
 
 
 def _normalize_shortcut(shortcut: str) -> str:

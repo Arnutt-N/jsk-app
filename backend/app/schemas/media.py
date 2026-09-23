@@ -21,3 +21,8 @@ class MediaFileListResponse(BaseModel):
 class MediaUploadResponse(BaseModel):
     id: UUID
     filename: str
+
+
+class ResizeTicketResponse(BaseModel):
+    ticket: str
+    expires_in: int

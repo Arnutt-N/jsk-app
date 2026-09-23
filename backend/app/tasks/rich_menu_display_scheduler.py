@@ -49,17 +49,22 @@ async def _activate_due(db: AsyncSession, now) -> list[RichMenu]:
     )
     due = result.scalars().all()
     for menu in due:
-        await RichMenuService.set_default_on_line(db, menu.line_rich_menu_id)
-        menu.status = RichMenuStatus.PUBLISHED.value
-        await create_audit_log(
-            db=db,
-            admin_id=None,  # system action
-            action="rich_menu_auto_publish",
-            resource_type="rich_menu",
-            resource_id=str(menu.id),
-            details={"line_rich_menu_id": menu.line_rich_menu_id},
-        )
-        await db.commit()
+        try:
+            await RichMenuService.set_default_on_line(db, menu.line_rich_menu_id)
+            menu.status = RichMenuStatus.PUBLISHED.value
+            await create_audit_log(
+                db=db,
+                admin_id=None,  # system action
+                action="rich_menu_auto_publish",
+                resource_type="rich_menu",
+                resource_id=str(menu.id),
+                details={"line_rich_menu_id": menu.line_rich_menu_id},
+            )
+            await db.commit()
+        except Exception as exc:
+            menu_id = menu.id
+            await db.rollback()
+            logger.error("Display scheduler: menu %s failed, retry next tick: %s", menu_id, exc)
     return due
 
 
@@ -80,24 +85,29 @@ async def _expire_due(db: AsyncSession, now) -> list[RichMenu]:
     )
     due = result.scalars().all()
     for menu in due:
-        still_default = False
-        current = await RichMenuService.get_default_on_line(db)
-        if current and current.get("richMenuId") == menu.line_rich_menu_id:
-            still_default = True
-            await RichMenuService.cancel_default_on_line(db)
-        menu.status = RichMenuStatus.INACTIVE.value
-        await create_audit_log(
-            db=db,
-            admin_id=None,  # system action
-            action="rich_menu_auto_unpublish",
-            resource_type="rich_menu",
-            resource_id=str(menu.id),
-            details={
-                "cancelled_default": still_default,
-                "line_rich_menu_id": menu.line_rich_menu_id,
-            },
-        )
-        await db.commit()
+        try:
+            still_default = False
+            current = await RichMenuService.get_default_on_line(db)
+            if current and current.get("richMenuId") == menu.line_rich_menu_id:
+                still_default = True
+                await RichMenuService.cancel_default_on_line(db)
+            menu.status = RichMenuStatus.INACTIVE.value
+            await create_audit_log(
+                db=db,
+                admin_id=None,  # system action
+                action="rich_menu_auto_unpublish",
+                resource_type="rich_menu",
+                resource_id=str(menu.id),
+                details={
+                    "cancelled_default": still_default,
+                    "line_rich_menu_id": menu.line_rich_menu_id,
+                },
+            )
+            await db.commit()
+        except Exception as exc:
+            menu_id = menu.id
+            await db.rollback()
+            logger.error("Display scheduler: menu %s failed, retry next tick: %s", menu_id, exc)
     return due
 
 

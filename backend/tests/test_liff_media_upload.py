@@ -156,7 +156,7 @@ class TestLiffMediaUploadContract:
         res = test_client.post(MEDIA_ENDPOINT, files=_jpeg_file())
 
         assert res.status_code == 401
-        assert res.json()["detail"] == "LIFF ID token required"
+        assert res.json()["detail"] == "กรุณายืนยันตัวตนผ่าน LINE ก่อนยื่นคำร้อง"
         assert await _count_media_files() == before
 
     @pytest.mark.asyncio
@@ -281,23 +281,17 @@ class TestLiffMediaUploadContract:
                 await _delete_media_file(media_id)
 
     @pytest.mark.asyncio
-    async def test_b7_strict_off_no_token_accepted(self, test_client, monkeypatch):
+    async def test_b7_strict_off_no_token_rejected_without_db_write(
+        self, test_client, monkeypatch
+    ):
         monkeypatch.setattr(settings, "LIFF_STRICT_MODE", False)
+        before = await _count_media_files()
 
-        media_id = None
-        try:
-            res = test_client.post(MEDIA_ENDPOINT, files=_jpeg_file())
+        res = test_client.post(MEDIA_ENDPOINT, files=_jpeg_file())
 
-            assert res.status_code == 200
-            data = res.json()
-            assert data["filename"] == "photo.jpg"
-            media_id = uuid.UUID(data["id"])
-            media = await _fetch_media_file(media_id)
-            assert media is not None
-            assert media.mime_type == "image/jpeg"
-        finally:
-            if media_id is not None:
-                await _delete_media_file(media_id)
+        assert res.status_code == 401
+        assert res.json()["detail"] == "กรุณายืนยันตัวตนผ่าน LINE ก่อนยื่นคำร้อง"
+        assert await _count_media_files() == before
 
     @pytest.mark.asyncio
     async def test_b8_strict_off_invalid_token_still_rejected(

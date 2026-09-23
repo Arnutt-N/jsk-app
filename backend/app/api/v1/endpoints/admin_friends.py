@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Any, Optional
 from app.api import deps
 from app.api.deps import get_current_admin
+from app.core.pii_masking import mask_line_id
 from app.models.user import User
 from app.schemas.friend import FriendListResponse, FriendResponse
 from app.services.friend_service import friend_service
@@ -23,7 +24,7 @@ router = APIRouter()
 async def list_friends(
     status: Optional[str] = None,
     skip: int = 0,
-    limit: int = 100,
+    limit: int = Query(100, ge=1, le=100),
     db: AsyncSession = Depends(deps.get_db),
     current_admin: User = Depends(get_current_admin),
 ) -> Any:
@@ -58,7 +59,7 @@ async def list_friends(
     for friend in friends:
         data = FriendResponse.model_validate(friend).model_dump()
         raw_id = raw_by_user_id.get(friend.id)
-        data["line_user_id"] = raw_id
+        data["line_user_id"] = mask_line_id(raw_id, current_admin.role.value)
         data["refollow_count"] = refollow_counts.get(raw_id, 0)
         link = rich_menu_links.get(friend.id)
         data["rich_menu_id"] = link["rich_menu_id"] if link else None

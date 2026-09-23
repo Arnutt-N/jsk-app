@@ -7,6 +7,7 @@ from app.api.deps import get_db, get_current_admin, require_permission
 from app.core.permissions import KEY_VIEW_REPORTS
 from app.models.user import User
 from app.services.analytics_service import analytics_service
+from app.schemas.analytics import DashboardResponse
 
 router = APIRouter()
 
@@ -64,7 +65,7 @@ async def get_hourly_stats(
     return await analytics_service.get_hourly_stats(db, hours)
 
 
-@router.get("/dashboard")
+@router.get("/dashboard", response_model=DashboardResponse)
 async def get_dashboard(
     days: int = Query(7, ge=1, le=30, description="Number of days to look back"),
     db: AsyncSession = Depends(get_db),
