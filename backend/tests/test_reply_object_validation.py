@@ -142,7 +142,7 @@ def test_legacy_types_pass_through(obj_type, payload):
 def test_schema_rejects_bad_template():
     with pytest.raises(ValidationError):
         ReplyObjectCreate(
-            object_id="tmpl_bad",
+            object_id="$tmpl_bad",
             name="bad",
             object_type="template",
             payload={"template": {"type": "unknown"}},
@@ -151,7 +151,7 @@ def test_schema_rejects_bad_template():
 
 def test_schema_accepts_good_text_v2():
     obj = ReplyObjectCreate(
-        object_id="tv2_ok",
+        object_id="$tv2_ok",
         name="ok",
         object_type="text_v2",
         payload={"text": "สวัสดี"},

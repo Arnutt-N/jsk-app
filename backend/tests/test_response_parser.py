@@ -17,7 +17,7 @@ from app.models.reply_object import ObjectType
 from app.services.response_parser import build_message_from_object
 
 
-def _reply_obj(object_type, payload, alt_text=None, name="test_obj", object_id="test_1"):
+def _reply_obj(object_type, payload, alt_text=None, name="test_obj", object_id="$test_1"):
     """Helper to create a mock ReplyObject."""
     return SimpleNamespace(
         object_id=object_id,

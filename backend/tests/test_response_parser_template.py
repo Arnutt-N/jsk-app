@@ -6,7 +6,7 @@ from app.models.reply_object import ObjectType
 from app.services.response_parser import build_message_from_object
 
 
-def _obj(object_type, payload, *, name="t", alt_text=None, object_id="x"):
+def _obj(object_type, payload, *, name="t", alt_text=None, object_id="$obj_x"):
     return SimpleNamespace(
         object_type=object_type,
         payload=payload,
