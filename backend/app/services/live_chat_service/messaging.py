@@ -4,10 +4,11 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.audit import audit_action
+from app.models.chat_session import ChatSession, SessionStatus
 from app.models.message import MessageDirection
 from app.models.user import ChatMode, User
 from app.schemas.message import message_payload_dict
@@ -35,7 +36,7 @@ class MessagingMixin:
 
         # Persist first, then push to LINE — if save fails the user never
         # receives a ghost message with no record.
-        await line_service.save_message(
+        saved = await line_service.save_message(
             db=db,
             line_user_id=line_user_id,
             direction=MessageDirection.OUTGOING,
@@ -47,11 +48,30 @@ class MessagingMixin:
         )
         await db.flush()
 
+        # Ghost-push guard (C8): re-check ownership atomically right before
+        # touching LINE — the session may have been transferred or closed
+        # between the pre-check above and here (TOCTOU).
+        guard = await db.execute(
+            update(ChatSession)
+            .where(
+                ChatSession.id == session.id,
+                ChatSession.status == SessionStatus.ACTIVE,
+                ChatSession.operator_id == operator_id,
+            )
+            .values(last_activity_at=datetime.now(timezone.utc))
+        )
+        if guard.rowcount != 1:
+            saved.payload = {"delivery_status": "skipped_not_owner"}
+            await db.commit()
+            raise HTTPException(status_code=409, detail="เคสนี้ถูกโอนหรือปิดไปแล้ว กรุณารีเฟรช")
+
         # Push to LINE after persist. On failure the DB record is kept;
         # the caller's commit will still persist it for audit/retry.
         try:
             await line_service.push_messages(line_user_id, [TextMessage(text=text)])
+            saved.payload = {"delivery_status": "sent"}
         except Exception as e:
+            saved.payload = {"delivery_status": "failed"}
             logger.error(f"LINE push failed after persist for {mask_line_id(line_user_id)}: {e}")
 
         session.message_count += 1
