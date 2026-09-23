@@ -34,14 +34,25 @@ async def verify_liff_token(id_token: str) -> str:
         logger.error("LINE_LOGIN_CHANNEL_ID is not configured; cannot verify LIFF ID token")
         raise HTTPException(status_code=503, detail="LIFF verification unavailable: server misconfiguration")
 
-    async with httpx.AsyncClient() as client:
-        resp = await client.post(
-            "https://api.line.me/oauth2/v2.1/verify",
-            data={
-                "id_token": id_token,
-                "client_id": settings.LINE_LOGIN_CHANNEL_ID,
-            },
-        )
+    timeout = httpx.Timeout(connect=3.0, read=5.0, write=5.0, pool=3.0)
+    verify_data = {"id_token": id_token, "client_id": settings.LINE_LOGIN_CHANNEL_ID}
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            try:
+                resp = await client.post(
+                    "https://api.line.me/oauth2/v2.1/verify",
+                    data=verify_data,
+                )
+            except httpx.TimeoutException:
+                # one bounded retry — never retry a 401 (that is a bad token)
+                logger.warning("liff verify timeout, retrying once")
+                resp = await client.post(
+                    "https://api.line.me/oauth2/v2.1/verify",
+                    data=verify_data,
+                )
+    except (httpx.TimeoutException, httpx.HTTPError):
+        logger.exception("liff verify network failure")
+        raise HTTPException(status_code=502, detail="ยืนยันตัวตนกับ LINE ไม่สำเร็จ กรุณาลองใหม่")
     if resp.status_code != 200:
         logger.warning("LIFF token verification failed: %s", resp.text)
         raise HTTPException(status_code=401, detail="Invalid LIFF ID token")
