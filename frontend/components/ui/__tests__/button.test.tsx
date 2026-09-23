@@ -1,13 +1,14 @@
-import { render, screen } from "@testing-library/react";
-import { Button, buttonVariants } from "../Button";
+import { render, screen } from '@testing-library/react';
+import { expect, it } from 'vitest';
+import { Button, buttonVariants } from '../Button';
 
-test("default renders primary variant", () => {
+it('default renders primary variant', () => {
   render(<Button>ตกลง</Button>);
   const btn = screen.getByRole("button", { name: "ตกลง" });
   expect(btn.className).toMatch(/from-brand-500/);
 });
 
-test("danger variant uses danger token, not hardcoded color", () => {
+it("danger variant uses danger token, not hardcoded color", () => {
   render(<Button variant="danger">ลบ</Button>);
   const btn = screen.getByRole("button", { name: "ลบ" });
   expect(btn.className).toMatch(/from-danger/);

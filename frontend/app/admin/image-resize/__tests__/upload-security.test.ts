@@ -4,16 +4,14 @@ import { setCsrfToken } from '@/lib/csrfStore'
 
 declare global {
   interface Window {
-    // eslint-disable-next-line no-var -- test-local global flag from authFetch
-    var __JSK_ADMIN_AUTH_FETCH_INSTALLED__: boolean | undefined
+    __JSK_ADMIN_AUTH_FETCH_INSTALLED__?: boolean
   }
 }
 
 it('uses the installed cookie/CSRF transport for a resize upload', async () => {
   const oldFetch = window.fetch
   const oldInstalled = window.__JSK_ADMIN_AUTH_FETCH_INSTALLED__
-  const native = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
-    new Response('{}', { status: 200 }))
+  const native = vi.fn(async () => new Response('{}', { status: 200 }))
   try {
     window.fetch = native as typeof window.fetch
     window.__JSK_ADMIN_AUTH_FETCH_INSTALLED__ = false
