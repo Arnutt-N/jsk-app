@@ -10,8 +10,9 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_admin, get_current_staff
+from app.api.deps import get_current_admin, get_current_staff, require_permission
 from app.core.audit import create_audit_log
+from app.core.permissions import KEY_EDIT_BUSINESS_HOURS
 from app.db.session import get_db
 from app.models.business_hours import BusinessHours
 from app.models.user import User
@@ -58,7 +59,7 @@ async def get_business_hours(
 async def update_business_hours(
     payload: BusinessHoursUpdate,
     db: AsyncSession = Depends(get_db),
-    admin: User = Depends(get_current_admin),
+    admin: User = Depends(require_permission(KEY_EDIT_BUSINESS_HOURS)),
 ):
     rows = await _rows_by_weekday(db)
     for day in payload.days:

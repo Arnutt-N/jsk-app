@@ -125,6 +125,9 @@ export const PERMISSION_REGISTRY: readonly PermissionKeyMeta[] = [
   // NEW-3: Live-chat WebSocket gate. VIEW-level (access gate, not edit);
   // grouped under 'system' alongside the other access keys.
   { key: 'access_live_chat', label: 'เข้าใช้ Live Chat (WebSocket)', module: 'system', level: 1 },
+  // D7: granular admin gates — credentials + business hours.
+  { key: 'manage_credentials', label: 'จัดการรหัสเชื่อมต่อ (credentials/integrations)', module: 'system', level: 3 },
+  { key: 'edit_business_hours', label: 'แก้เวลาทำการ (business hours)', module: 'system', level: 2 },
 ]
 
 /** Every key the frontend expects the backend to define (drift guard). */
