@@ -1,4 +1,6 @@
 """Admin canned responses API endpoints."""
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
@@ -6,7 +8,7 @@ from pydantic import BaseModel
 
 from app.api.deps import get_db, get_current_admin
 from app.models.user import User
-from app.services.canned_response_service import canned_response_service
+from app.services.canned_response_service import canned_response_service, normalize_text
 
 router = APIRouter()
 
@@ -23,6 +25,7 @@ class CannedResponseUpdate(BaseModel):
     title: Optional[str] = None
     content: Optional[str] = None
     category: Optional[str] = None
+    updated_at: Optional[datetime] = None  # last-read timestamp — collision guard only
 
 
 @router.get("")
@@ -60,6 +63,15 @@ async def create_canned_response(
     if existing:
         raise HTTPException(status_code=409, detail=f"Shortcut '{data.shortcut}' already exists")
 
+    # content duplicate check on normalized text (trim + collapse + casefold)
+    norm = normalize_text(data.content)
+    for r in await canned_response_service.get_all(db):
+        if normalize_text(r.content or "") == norm:
+            raise HTTPException(
+                status_code=409,
+                detail=f"ข้อความซ้ำกับรายการ {r.title} กรุณาใช้รายการเดิม",
+            )
+
     response = await canned_response_service.create(
         {**data.model_dump(), "created_by": current_user.id},
         db
@@ -81,7 +93,16 @@ async def update_canned_response(
     current_user: User = Depends(get_current_admin)
 ):
     """Update a canned response."""
+    # optimistic concurrency: a stale updated_at means someone else wrote first
+    if data.updated_at is not None:
+        current = await canned_response_service.get_by_id(response_id, db)
+        if current and current.updated_at and current.updated_at != data.updated_at:
+            raise HTTPException(
+                status_code=409,
+                detail="มีคนแก้ข้อความนี้ไปก่อนแล้ว กรุณารีเฟรช",
+            )
     update_data = data.model_dump(exclude_unset=True)
+    update_data.pop("updated_at", None)  # guard field only — never overwrite the real timestamp
     if not update_data:
         raise HTTPException(status_code=400, detail="No fields to update")
 
