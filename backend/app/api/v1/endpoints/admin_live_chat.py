@@ -132,6 +132,7 @@ async def get_conversation_messages(
     _current_user: User = Depends(deps.get_current_staff),
 ) -> Any:
     """Get paginated conversation messages with cursor-based pagination."""
+    limit = max(1, min(limit, 100))  # clamp at the endpoint boundary (D1)
     result = await live_chat_service.get_messages_paginated(
         line_user_id=line_user_id,
         before_id=before_id,

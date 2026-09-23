@@ -1,8 +1,19 @@
 from datetime import datetime, timezone
 import csv
 import io
+import logging
 import asyncio
+import os
 from typing import List, Optional
+from urllib.parse import quote
+
+logger = logging.getLogger(__name__)
+_EXPORT_CHUNK = 500
+
+
+def _content_disposition(filename: str) -> str:
+    # RFC 5987: Thai filenames must be percent-encoded, not quoted raw.
+    return f"attachment; filename*=UTF-8''{quote(filename)}"
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response, StreamingResponse
@@ -56,13 +67,42 @@ def _display_name(user: Optional[User], line_user_id: str) -> str:
     return line_user_id
 
 
+async def _iter_csv_rows(line_user_id: str, db: AsyncSession):
+    """Stream CSV one chunk at a time instead of buffering the whole conversation."""
+    user = await resolve_by_line_id(db, line_user_id)
+    last_id = 0
+    yield "timestamp,line_user_id,direction,sender,message_type,content\n"
+    while True:
+        rows = (await db.execute(
+            select(Message)
+            .where(child_filter(Message, line_user_id, user.id if user else None))
+            .where(Message.id > last_id)
+            .order_by(Message.id.asc())
+            .limit(_EXPORT_CHUNK)
+        )).scalars().all()
+        if not rows:
+            return
+        for m in rows:
+            buf = io.StringIO()
+            csv.writer(buf).writerow([
+                m.created_at.isoformat() if m.created_at else "",
+                line_user_id,
+                m.direction.value if hasattr(m.direction, "value") else m.direction,
+                m.sender_role.value if hasattr(m.sender_role, "value") else (m.sender_role or ""),
+                m.message_type or "",
+                m.content or "",
+            ])
+            yield buf.getvalue()
+        last_id = rows[-1].id
+
+
 @router.get("/conversations/{line_user_id}/csv")
 async def export_conversation_csv(
     line_user_id: str,
     db: AsyncSession = Depends(deps.get_db),
     _current_user: User = Depends(require_permission(KEY_EXPORT_CHAT)),
 ):
-    """Export one conversation as CSV."""
+    """Export one conversation as CSV (streamed, RFC 5987 filename)."""
     user, messages = await _load_conversation(line_user_id, db)
     if not messages:
         raise HTTPException(status_code=404, detail="Conversation not found or has no messages")
@@ -70,29 +110,10 @@ async def export_conversation_csv(
     display_name = _display_name(user, line_user_id)
     filename = _build_export_filename(display_name, messages, "csv")
 
-    buffer = io.StringIO()
-    writer = csv.writer(buffer)
-    writer.writerow(["timestamp", "line_user_id", "direction", "sender", "message_type", "content"])
-    for message in messages:
-        sender = (
-            message.sender_role.value if hasattr(message.sender_role, "value") else (message.sender_role or "")
-        )
-        writer.writerow(
-            [
-                message.created_at.isoformat() if message.created_at else "",
-                line_user_id,
-                message.direction.value if hasattr(message.direction, "value") else message.direction,
-                sender,
-                message.message_type or "",
-                message.content or "",
-            ]
-        )
-
-    data = buffer.getvalue().encode("utf-8-sig")
     return StreamingResponse(
-        io.BytesIO(data),
+        _iter_csv_rows(line_user_id, db),
         media_type="text/csv; charset=utf-8",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        headers={"Content-Disposition": _content_disposition(filename)},
     )
 
 
@@ -122,8 +143,24 @@ async def export_conversation_pdf(
     return Response(
         content=data,
         media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        headers={"Content-Disposition": _content_disposition(filename)},
     )
+
+
+def _thai_font_name() -> str:
+    """Thai-capable font when the asset exists, else Helvetica fallback."""
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+
+    for path in (
+        "assets/fonts/NotoSansThai-Regular.ttf",
+        "backend/assets/fonts/NotoSansThai-Regular.ttf",
+        "/usr/share/fonts/NotoSansThai-Regular.ttf",
+    ):
+        if os.path.exists(path):
+            pdfmetrics.registerFont(TTFont("Thai", path))
+            return "Thai"
+    return "Helvetica"
 
 
 def _build_conversation_pdf(
@@ -139,9 +176,9 @@ def _build_conversation_pdf(
     top = height - 36
     line_height = 14
 
-    pdf.setFont("Helvetica-Bold", 12)
+    pdf.setFont(_thai_font_name(), 12)
     pdf.drawString(left, top, f"Conversation Export: {display_name}")
-    pdf.setFont("Helvetica", 9)
+    pdf.setFont(_thai_font_name(), 9)
     pdf.drawString(left, top - line_height, f"LINE User ID: {line_user_id}")
     pdf.drawString(left, top - (line_height * 2), f"Generated UTC: {datetime.now(timezone.utc).isoformat()}")
 
@@ -149,7 +186,7 @@ def _build_conversation_pdf(
     for message in messages:
         if y < 48:
             pdf.showPage()
-            pdf.setFont("Helvetica", 9)
+            pdf.setFont(_thai_font_name(), 9)
             y = height - 48
 
         timestamp = message.created_at.isoformat() if message.created_at else "-"
