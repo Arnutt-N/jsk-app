@@ -9,6 +9,7 @@ from app.db.session import get_db
 from app.api.deps import get_current_admin, get_current_staff, require_permission
 from app.core.audit import create_audit_log
 from app.core.permissions import KEY_MANAGE_USERS
+from app.core.pii_masking import mask_line_id
 from app.models.user import User, UserRole
 from app.models.service_request import ServiceRequest, RequestStatus
 from app.core.security import get_password_hash, get_password_hash_async, verify_password
@@ -212,7 +213,10 @@ async def list_users(
                 picture_url=u.picture_url,
                 role=u.role,
                 is_active=u.is_active,
-                line_user_id=decrypt_user_line_id(u) if u.line_user_id_encrypted else None,
+                line_user_id=mask_line_id(
+                    decrypt_user_line_id(u) if u.line_user_id_encrypted else None,
+                    current_admin.role.value,
+                ),
                 created_at=u.created_at.isoformat() if u.created_at else None,
                 updated_at=u.updated_at.isoformat() if u.updated_at else None,
             )
