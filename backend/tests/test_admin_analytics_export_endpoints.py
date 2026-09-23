@@ -2,7 +2,7 @@
 import pytest
 from datetime import datetime, timezone
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 from fastapi.testclient import TestClient
 
@@ -28,6 +28,9 @@ def test_dashboard_endpoint_returns_aggregated_payload():
         "peak_hours": [{"day_of_week": 1, "hour": 10, "message_count": 8}],
         "funnel": {"bot_entries": 100, "human_handoff": 40, "resolved": 30},
         "percentiles": {"frt": {"p50": 10, "p90": 25, "p99": 90}, "resolution": {"p50": 180, "p90": 500, "p99": 1200}},
+        # C1: the route response_model (DashboardResponse) requires these
+        "generated_at": "2026-09-23T00:00:00+00:00",
+        "cache_hit": False,
     }
 
     app.dependency_overrides[deps.get_db] = _override_get_db
@@ -51,52 +54,72 @@ def test_dashboard_endpoint_returns_aggregated_payload():
 
 
 def test_export_csv_endpoint_streams_file():
-    app.dependency_overrides[deps.get_db] = _override_get_db
     app.dependency_overrides[deps.get_current_admin] = _override_get_current_admin
     # Phase 3: export routes are gated by require_permission(KEY_EXPORT_CHAT),
     # which resolves the user via deps.get_current_user — override that too.
     app.dependency_overrides[deps.get_current_user] = _override_get_current_admin
 
-    original_load = admin_export._load_conversation
     _demo_user = SimpleNamespace(id=1, display_name="Demo User")
-    admin_export._load_conversation = AsyncMock(
-        return_value=(
-            _demo_user,
-            [
-                SimpleNamespace(
-                    id=1,
-                    created_at=datetime(2026, 2, 8, 3, 0, 0, tzinfo=timezone.utc),
-                    user_id=1,
-                    direction=MessageDirection.INCOMING,
-                    sender_role=SenderRole.USER,
-                    message_type="text",
-                    content="hello",
-                ),
-                SimpleNamespace(
-                    id=2,
-                    created_at=datetime(2026, 2, 8, 3, 1, 0, tzinfo=timezone.utc),
-                    user_id=1,
-                    direction=MessageDirection.OUTGOING,
-                    sender_role=SenderRole.ADMIN,
-                    message_type="text",
-                    content="hi",
-                ),
-            ],
-        )
+    _messages = [
+        SimpleNamespace(
+            id=1,
+            created_at=datetime(2026, 2, 8, 3, 0, 0, tzinfo=timezone.utc),
+            user_id=1,
+            direction=MessageDirection.INCOMING,
+            sender_role=SenderRole.USER,
+            message_type="text",
+            content="hello",
+        ),
+        SimpleNamespace(
+            id=2,
+            created_at=datetime(2026, 2, 8, 3, 1, 0, tzinfo=timezone.utc),
+            user_id=1,
+            direction=MessageDirection.OUTGOING,
+            sender_role=SenderRole.ADMIN,
+            message_type="text",
+            content="hi",
+        ),
+    ]
+
+    def _exec_result(scalars_all):
+        r = MagicMock()
+        r.scalars.return_value.all.return_value = scalars_all
+        return r
+
+    # D1: CSV export streams via _iter_csv_rows — resolve identity once, then
+    # db.execute yields one chunk of rows followed by an empty chunk.
+    mock_db = AsyncMock()
+    mock_db.execute = AsyncMock(
+        side_effect=[
+            _exec_result(_messages),  # 404 probe in _load_conversation
+            _exec_result(_messages),  # first streaming chunk
+            _exec_result([]),         # terminator
+        ]
     )
+
+    def _override_streaming_db():
+        yield mock_db
+
+    app.dependency_overrides[deps.get_db] = _override_streaming_db
+    original_resolve = admin_export.resolve_by_line_id
+    original_load = admin_export._load_conversation
+    admin_export.resolve_by_line_id = AsyncMock(return_value=_demo_user)
+    admin_export._load_conversation = AsyncMock(return_value=(_demo_user, _messages))
 
     client = TestClient(app)
     try:
         response = client.get("/api/v1/admin/export/conversations/U123/csv")
     finally:
         client.close()
+        admin_export.resolve_by_line_id = original_resolve
         admin_export._load_conversation = original_load
         app.dependency_overrides.clear()
 
     assert response.status_code == 200
     assert "text/csv" in response.headers["content-type"]
     assert "attachment;" in response.headers["content-disposition"]
-    assert 'filename="Demo_User_20260208-20260208.csv"' in response.headers["content-disposition"]
+    # D1: RFC 5987 percent-encoded filename (Thai-safe)
+    assert "filename*=UTF-8''Demo_User_20260208-20260208.csv" in response.headers["content-disposition"]
     text = response.content.decode("utf-8-sig")
     assert "timestamp,line_user_id,direction,sender,message_type,content" in text
     assert "hello" in text
@@ -144,7 +167,7 @@ def test_export_pdf_endpoint_streams_file():
     assert response.status_code == 200
     assert "application/pdf" in response.headers["content-type"]
     assert "attachment;" in response.headers["content-disposition"]
-    assert 'filename="Demo_User_20260208-20260208.pdf"' in response.headers["content-disposition"]
+    assert "filename*=UTF-8''Demo_User_20260208-20260208.pdf" in response.headers["content-disposition"]
 
 
 def test_refresh_profile_endpoint_returns_updated_user():
