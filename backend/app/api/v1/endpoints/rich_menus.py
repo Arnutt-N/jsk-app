@@ -512,6 +512,21 @@ async def get_rich_menu_insight_daily(
     return data
 
 
+@router.get("/{id}/preview")
+async def preview_rich_menu(
+    id: int,
+    db: AsyncSession = Depends(get_db),
+    _current_admin: User = Depends(get_current_admin),
+):
+    """Preview a menu: placeholder when it has no image yet (C7)."""
+    row = await db.get(RichMenu, id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="ไม่พบเมนูนี้")
+    if row.image_media_id is None:
+        return {"placeholder": True, "message": "ยังไม่มีรูปเมนู แสดงโครงร่างตัวอย่างได้ก่อน"}
+    return {"placeholder": False, "image_url": f"/api/v1/media/{row.image_media_id}"}
+
+
 @router.get("/{id}", response_model=RichMenuResponse)
 async def get_rich_menu(id: int, db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_admin)):
     result = await db.execute(select(RichMenu).where(RichMenu.id == id))
