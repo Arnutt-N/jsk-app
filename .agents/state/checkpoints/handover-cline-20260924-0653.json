@@ -1,0 +1,22 @@
+{
+  "handoff_version": "2.0",
+  "platform": "cline",
+  "agent": "cline",
+  "timestamp": "2026-09-24T06:53:00+07:00",
+  "branch": "main",
+  "head_commit": "aef34db",
+  "status": "completed",
+  "work_summary": "Cline verify-after-deploy session on main aef34db: read kilo_code checkpoint plus 3 cross-platform summaries (claude_code 20260923, cline 20260922, codex 2026-09-22); confirmed local main in sync with origin/main (0 ahead/behind); verified production post-deploy via live endpoints (backend /health healthy database+redis true, /health/detailed + /websocket + /pseudonym-gate all 401 unauthenticated as hardened, frontend 200) and CD run 35861792160 (Run Production DB Migrations + Deploy Frontend/Backend + Smoke Checks all success; latest run 35883085631 correctly skipped for docs-only change); remote DB could not be queried directly from this machine (no backend/.env, alembic not installed in Windows python) so migration verified via CD record; no code changes",
+  "priority_actions": [
+    "Manual LINE test on prod: booking book-edit-cancel flow plus private media preview",
+    "Commit handoff artifacts and refresh stale PROJECT_STATUS (still dated 2026-09-13)",
+    "Keep _secret_migration_backup table; purge only after explicit operator confirmation"
+  ],
+  "context_for_next_agent": "WHAT HAPPENED (user-facing)\nVerify-after-deploy session on main aef34db. User said deploy came from another machine, then PRs continued on this machine. Verified: local main == origin/main (0/0), prod backend /health healthy (db+redis true), /health/detailed + /websocket + /pseudonym-gate all 401 without login (A3 hardening live), frontend 200, CD run 35861792160 all 6 jobs success (migration + deploy + smoke), latest run correctly skipped (docs-only). No code touched.\n\nENV GOTCHAS (this machine)\n- No backend/.env (by design) + alembic missing in Windows python => cannot query remote DB directly; verify via CD runs (gh run view) instead.\n- search_codebase times out on broad queries; use Select-String or gh CLI.\n- handoff-new.cjs prints false validator FAIL (no python in PATH); validate with py launcher or WSL.\n\nDO NOT: purge _secret_migration_backup without operator order; touch unrelated untracked files.",
+  "session_summary": "project-log-md/cline/session-summary-20260924-0653.md",
+  "cross_platform_read": [
+    "claude_code/session-summary-20260923-2248.md",
+    "cline/session-summary-20260922-1700.md",
+    "codex/2026-09-22-feature-line-audit-fix-map-handoff.md"
+  ]
+}
