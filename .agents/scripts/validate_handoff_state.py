@@ -159,6 +159,13 @@ def main() -> int:
             if not handover_ts:
                 errors.append(f"Handover has invalid ISO timestamp '{ts}' in {latest_handover.name}")
 
+        # W3: session context matches checkpoint cross_platform_read?
+        ho_read = ho.get("cross_platform_read") if isinstance(ho, dict) else None
+        cs_read = (cs.get("cross_platform_context") or {}).get("summaries_read") if isinstance(cs, dict) else None
+        if isinstance(ho_read, list) and ho_read and isinstance(cs_read, list):
+            if set(ho_read) != set(cs_read):
+                warnings.append("current-session cross_platform_context.summaries_read differs from newest checkpoint cross_platform_read.")
+
     # Latest session summary for platform
     summary_dir = REPO_ROOT / "project-log-md" / platform
     summaries = list(summary_dir.glob("session-summary-*.md")) if summary_dir.exists() else []
@@ -179,6 +186,24 @@ def main() -> int:
     task_text = task_md.read_text(encoding="utf-8")
     if "Overall Progress:" not in task_text:
         warnings.append("task.md does not contain 'Overall Progress:' marker.")
+
+    # W1: stale single-file handoff retired? Only a redirect stub should remain.
+    stub = REPO_ROOT / ".agents/handoff.md"
+    if stub.exists():
+        stub_text = stub.read_text(encoding="utf-8")
+        if "MOVED" not in stub_text and "retired" not in stub_text:
+            warnings.append(".agents/handoff.md still looks live — retired; only a redirect stub should remain.")
+
+    # W2: task.md freshness vs newest checkpoint (anchor to the Started: line, not any date in history)
+    if handover_ts:
+        m = re.search(r"^\*\*Started\*\*:\s*(\d{4}-\d{2}-\d{2})", task_text, re.MULTILINE)
+        if m:
+            try:
+                task_dt = datetime.strptime(m.group(1), "%Y-%m-%d")
+                if (handover_ts.replace(tzinfo=None) - task_dt).days > 7:
+                    warnings.append(f"task.md date ({m.group(1)}) is >7 days older than newest checkpoint ({handover_ts.date()}).")
+            except ValueError:
+                pass
 
     ps_text = project_status.read_text(encoding="utf-8")
     ps_first_line = next((ln for ln in ps_text.splitlines() if "Last Updated:" in ln), "")
