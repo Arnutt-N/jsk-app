@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-09-24 06:53 by Cline (Cline verify-after-deploy session on main aef34db: read kilo_code checkpoint plus 3 cross-)
+> **Last Updated:** 2026-09-27 00:42 by Cline (Handoff system cleanup: retired stale handoff.md, fixed doc contradictions, refreshed stat)
 
 ## Thai Summary
 **สถานะล่าสุด (2026-09-24)** — ตรวจหลังส่งขึ้นร้านจริงเสร็จ (commit `f54403b` #232): โค้ดตรงกับเซิร์ฟเวอร์, หลังบ้านแข็งแรงดี (database+redis ปกติ), หน้าลับล็อกถูกต้อง (401), หน้าร้านเปิดติด, บันทึกส่งของ CD `35861792160` เขียวครบ 6 งาน — ไม่ได้แก้โค้ด เหลือแค่ลองเล่นด้วยมือ + เก็บเอกสารให้ตรงกัน
@@ -123,6 +123,7 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-09-27 00:42] Cline: Handoff system cleanup: retired stale handoff.md, fixed doc contradictions, refreshed state, extended platform maps, hardened validator (Cline)
 - [2026-09-24 06:53] Cline: Cline verify-after-deploy session on main aef34db: read kilo_code checkpoint plus 3 cross-platform summaries (claude_code 20260923, cline 20260922, codex 2026-09-22); confirmed local main in sync with origin/main (0 ahead/behind); verified  (Cline)
 - [2026-09-13 18:22] Kilo Code: Feature-line audit map: PRD + 19-task PRP plan (4 Critical + ~30 High fixes across 19 features); plan revised to clear dual-review FAIL - dead refs, invented signatures, placeholders, missing NOT-Building/Risks/UX/edge sections and ghost-pu (Kilo Code)
 - [2026-09-06 22:56] Zcode: codebase-review-fix on PR #228 CLOSED via PR #229 (squash e63ee9f, CI 4/4, CD success): review found 0 Critical/High; 3 accepted follow-ups all fixed (F1 DateTimePickerTH timeDisabled+invalid-value tests, F2 reply-objects select bg-surface  (Zcode)
