@@ -152,9 +152,9 @@
   ],
   "cross_platform_context": {
     "summaries_read": [
-      "claude_code/session-summary-20260614-1227.md",
-      "kimi_code/session-summary-20260602-0008.md",
-      "antigravity/session-summary-20260602-0032.md"
+      "claude_code/session-summary-20260923-2248.md",
+      "cline/session-summary-20260922-1700.md",
+      "codex/2026-09-22-feature-line-audit-fix-map-handoff.md"
     ],
     "key_insights": "Handoff system redesigned to single-source-of-truth (checkpoints) + generated views (TASK_LOG/SESSION_INDEX via gen-handoff-views.cjs). Use handoff-new.cjs to create handoffs. Stop hook enforces it. Do NOT hand-edit the generated files."
   }

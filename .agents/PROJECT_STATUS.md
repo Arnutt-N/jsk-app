@@ -3,12 +3,14 @@
 > **Last Updated:** 2026-09-24 06:53 by Cline (Cline verify-after-deploy session on main aef34db: read kilo_code checkpoint plus 3 cross-)
 
 ## Thai Summary
-**สถานะล่าสุด (2026-09-04 09:00)** — งาน **P2 Thai Calendar and Date Standardization & Review Fixes** เสร็จสมบูรณ์ (Gate G1, G2, G3 ผ่านครบ 100%):
+**สถานะล่าสุด (2026-09-24)** — ตรวจหลังส่งขึ้นร้านจริงเสร็จ (commit `f54403b` #232): โค้ดตรงกับเซิร์ฟเวอร์, หลังบ้านแข็งแรงดี (database+redis ปกติ), หน้าลับล็อกถูกต้อง (401), หน้าร้านเปิดติด, บันทึกส่งของ CD `35861792160` เขียวครบ 6 งาน — ไม่ได้แก้โค้ด เหลือแค่ลองเล่นด้วยมือ + เก็บเอกสารให้ตรงกัน
+
+<!-- Previous project summary retained below for historical context. -->
+**สถานะก่อนหน้า (2026-09-04 09:00)** — งาน **P2 Thai Calendar and Date Standardization & Review Fixes** เสร็จสมบูรณ์ (Gate G1, G2, G3 ผ่านครบ 100%):
 - **P2 Reusable DatePicker & Thai Date Format**: พัฒนา `CalendarPickerTH` รองรับ พ.ศ., ตรวจสอบวัน/เดือน/ปีถูกต้อง, ปรับหน้า `/admin/requests`, `/admin/bookings`, `/admin/requests/kanban`, `/admin/requests/[id]`, และระบบกรองวันที่หลังบ้าน ผ่านการทดสอบระดับ Unit Test และ Build ผ่านฉลุย ผสานเข้าสู่ `main` เรียบร้อย (PR #223, commit `f91b12b`)
 - **P1 Login flake:** ผู้ใช้ล็อกอินสำเร็จแต่บางครั้งถูกพากลับหน้า login — งานถัดไปที่ต้องทำ
 - **ถัดไป:** เริ่มงาน P1 Login flake (สร้าง branch, PRD, PRP plan)
 
-<!-- Previous project summary retained below for historical context. -->
 **สถานะล่าสุด (2026-08-23)** — milestone หลักทุกตัวปิดแล้ว เหลือเฉพาะ manual test ฝั่งผู้ใช้:
 
 - **Auth: cookie-only ถาวร (PR #200, squash `f223bd3`, 2026-08-23)** — ลบ `COOKIE_AUTH_MODE` flag + Bearer fallback + legacy stateless refresh; migrate-session/CSRF/DEV_AUTH_BYPASS คงเดิม; deep review 2 รอบ, CI เขียว, prod smoke all-pass
