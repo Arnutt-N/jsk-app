@@ -83,7 +83,7 @@ Confirm:
 If mismatch exists:
 - treat state as stale
 - reconcile all files before coding
-- add a "State Sync Reconciliation" entry to `TASK_LOG.md`
+- fix the checkpoint JSON, then re-run `node .agents/scripts/gen-handoff-views.cjs` to rebuild the views
 
 ---
 
@@ -176,8 +176,7 @@ Starting work now.
 - [ ] latest handover JSON read
 - [ ] `PROJECT_STATUS.md` read
 - [ ] `current-session.json` updated for current agent
-- [ ] **New task entry created in TASK_LOG.md**
-- [ ] **SESSION_INDEX.md updated with new entry**
+- [ ] Read TASK_LOG.md + SESSION_INDEX.md (generated — read-only, never hand-edit)
 - [ ] git branch validated
 - [ ] environment verified
 - [ ] **Confirmation message posted**
@@ -194,8 +193,8 @@ Starting work now.
 
 ### Quick Stats Command
 ```bash
-# Count total tasks
-grep -c "^### Task #" .agents/state/TASK_LOG.md
+# Count total handoff entries (headings are "### WHEN — platform — status")
+grep -c "^### " .agents/state/TASK_LOG.md
 
 # Count summaries per platform
 for dir in project-log-md/*/; do
@@ -206,21 +205,18 @@ done
 # Show recent summaries across all platforms
 ls -lt project-log-md/*/*.md | head -10
 
-# Show tasks by agent
-grep "^\*\*Agent\*\*:" .agents/state/TASK_LOG.md | sort | uniq -c
+# Show handoffs per platform (headings are "### WHEN — platform — status")
+grep "^### " .agents/state/TASK_LOG.md | awk -F'—' '{print $2}' | sort | uniq -c
 ```
 
-### Task Numbering
-- Tasks are numbered sequentially: #1, #2, #3, ...
-- Numbers are permanent and never reused
-- When creating new task: last_number + 1
+> **Note:** `TASK_LOG.md` has no "Task #N" numbering — that convention is retired (see Step 6). The record for your session is created at handoff time via `handoff-new.cjs`.
 
 ---
 
 ## Rule
 Do not start implementation until:
 1. State is coherent across all files
-2. New task entry is created in TASK_LOG.md
+2. Latest checkpoint + TASK_LOG state is coherent
 3. Session ownership is updated in current-session.json
-4. **SESSION_INDEX.md is updated**
+4. **SESSION_INDEX.md is read**
 5. **At least 3 cross-platform summaries have been read**
