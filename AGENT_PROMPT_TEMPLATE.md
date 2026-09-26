@@ -16,8 +16,8 @@ FIRST - READ THESE FILES IN ORDER:
 4. .agents/INDEX.md - Available skills and workflows
 
 THEN - CHECK FOR PENDING HANDOFFS:
-- Look in project-log-md/*/ for handover-* files
-- Read the most recent session-summary-* file
+- Look in `.agents/state/checkpoints/` for `handover-*.json` (latest checkpoint, any platform)
+- Read the most recent `session-summary-*` files in `project-log-md/*/`
 - Check .agents/state/current-session.json
 
 FINALLY - UPDATE PROJECT_STATE:
@@ -25,7 +25,7 @@ FINALLY - UPDATE PROJECT_STATE:
 - Confirm you understand the next task
 - Begin work following the established patterns
 
-PROJECT ROOT: D:/genAI/skn-app
+PROJECT ROOT: D:/genAI/jsk-app
 TECH STACK: FastAPI (backend) + Next.js 16 (frontend) + PostgreSQL + Redis
 ```
 
@@ -117,33 +117,19 @@ STEPS TO FOLLOW:
 
 1. Read .agents/workflows/handoff-to-any.md completely
 
-2. Complete the Mandatory 5-Artifact Handoff:
+2. Create the handoff in ONE command (source of truth = checkpoint JSON):
 
-   Artifact 1: Update PROJECT_STATUS.md
-   - Add timestamp to "Last Updated"
-   - Mark completed tasks in Active Milestones
-   - Add entry to Recent Completions
-   - Update Thai summary
+   ```bash
+   node .agents/scripts/handoff-new.cjs <platform> "<work summary>" ["<next step>" ...]
+   ```
 
-   Artifact 2: Update current-session.json
-   - Set status to "completed" or "in_progress"
-   - Update last_updated timestamp
-   - List all modified files
-   - Add next_steps
+   This writes `.agents/state/checkpoints/handover-[PLATFORM]-[TIME].json` + the
+   `project-log-md/[PLATFORM]/session-summary-[TIME].md` stub, syncs
+   `current-session.json`, refreshes `PROJECT_STATUS.md`, and regenerates
+   `TASK_LOG.md` + `SESSION_INDEX.md` automatically (never hand-edit those two).
+   Then flesh out the summary .md, commit, and push.
 
-   Artifact 3: Update task.md
-   - Check off completed subtasks
-   - Update progress notes
-   - List any blockers
-   - Specify next steps
-
-   Artifact 4: Create handover checkpoint
-   - File: .agents/state/checkpoints/handover-[YOUR_PLATFORM]-[TIMESTAMP].json
-   - Include: summary, completed, in_progress, next_actions, blockers
-
-   Artifact 5: Create session summary
-   - File: project-log-md/[YOUR_PLATFORM]/session-summary-[TIMESTAMP].md
-   - Include: Completed, In Progress, Next Steps (English + Thai)
+   Also update by hand: `PROJECT_STATUS.md` Thai summary, `task.md` progress/notes.
 
 3. Verify all artifacts:
    ```bash
@@ -159,7 +145,7 @@ STEPS TO FOLLOW:
    - Note any blockers or warnings
    - Specify which agent should pick up next (if known)
 
-Report: "Handoff complete, all 5 artifacts created"
+Report: "Handoff complete — checkpoint + summary committed, views regenerated"
 ```
 
 ### Scenario 4: Working on Specific Feature
@@ -270,7 +256,7 @@ Report progress every 30 minutes or at milestones.
    - Updated by every agent at end of session
 
 2. **ALWAYS follow handoff-to-any.md when ending**
-   - 5 artifacts are MANDATORY
+   - checkpoint JSON + session-summary via handoff-new.cjs (TASK_LOG/SESSION_INDEX regenerate automatically)
    - Incomplete handoff = invalid handoff
 
 3. **ALWAYS follow pickup-from-any.md when starting**
@@ -379,4 +365,4 @@ When writing session summaries, include both languages:
 ---
 
 *This template ensures ANY AI agent can successfully collaborate on SknApp.*
-*Version: 1.0 | Last Updated: 2026-02-13*
+*Version: 2.0 (checkpoint system) | Last Updated: 2026-09-26*

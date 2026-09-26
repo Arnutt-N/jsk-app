@@ -28,16 +28,16 @@ const { execFileSync } = require('child_process');
 const CANON = {
   'claude-code': 'claude_code', claude_code: 'claude_code',
   codex: 'codex', codeX: 'codex', kimi: 'kimi_code', kimi_code: 'kimi_code',
-  kilo_code: 'kilo_code', cline: 'cline', antigravity: 'antigravity',
-  gemini_cli: 'gemini_cli', open_code: 'open_code', qwen: 'qwen',
-  qoder: 'qoder', qoder_cli: 'qoder',
+  kilo_code: 'kilo_code', 'kilo-code': 'kilo_code', cline: 'cline', antigravity: 'antigravity',
+  gemini: 'gemini_cli', gemini_cli: 'gemini_cli', open_code: 'open_code', 'open-code': 'open_code', qwen: 'qwen',
+  qoder: 'qoder', qoder_cli: 'qoder', zcode: 'zcode',
 };
 
 const DISPLAY = {
   claude_code: 'Claude Code', codex: 'Codex', kimi_code: 'Kimi Code',
   kilo_code: 'Kilo Code', cline: 'Cline', antigravity: 'Antigravity',
   gemini_cli: 'Gemini CLI', open_code: 'OpenCode', qwen: 'Qwen',
-  qoder: 'Qoder',
+  qoder: 'Qoder', zcode: 'Zcode',
 };
 const displayName = (p) =>
   DISPLAY[p] || p.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());

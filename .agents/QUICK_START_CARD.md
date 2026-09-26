@@ -49,11 +49,11 @@ Update .agents/state/task.md regularly
 UPDATE → CREATE → VERIFY → DONE
 ```
 
-**1. UPDATE (5 files)**
+**1. UPDATE (3 files + handoff command)**
 - [ ] `.agents/PROJECT_STATUS.md`
 - [ ] `.agents/state/current-session.json`
-- [ ] `.agents/state/TASK_LOG.md` ← **APPEND your task entry**
 - [ ] `.agents/state/task.md` (scratchpad)
+- [ ] Run handoff command (writes checkpoint + regenerates TASK_LOG.md/SESSION_INDEX.md automatically)
 
 **2. CREATE (2 files)**
 - [ ] `.agents/state/checkpoints/handover-[PLATFORM]-[TIME].json`
@@ -76,7 +76,7 @@ Report: "Handoff complete"
 |------|-------|
 | Project status | `.agents/PROJECT_STATUS.md` |
 | Session state | `.agents/state/current-session.json` |
-| **Task history** | `.agents/state/TASK_LOG.md` ← **APPEND-ONLY** |
+| **Task history** | `.agents/state/TASK_LOG.md` ← **GENERATED (read-only, never hand-edit)** |
 | Current task | `.agents/state/task.md` |
 | Collaboration guide | `.agents/skills/cross_platform_collaboration/SKILL.md` |
 | Pickup workflow | `.agents/workflows/pickup-from-any.md` |
@@ -90,14 +90,17 @@ Report: "Handoff complete"
 
 | Platform | Code |
 |----------|------|
-| Claude Code | `claude-code` |
+| Claude Code | `claude_code` |
 | Kimi Code | `kimi_code` |
 | CodeX | `codex` |
 | Antigravity | `antigravity` |
-| Gemini | `gemini` |
+| Gemini CLI | `gemini_cli` |
 | Qwen | `qwen` |
-| Open Code | `open-code` |
+| OpenCode | `open_code` |
 | Kilo Code | `kilo_code` |
+| Qoder | `qoder` |
+| Zcode | `zcode` |
+| Cline | `cline` |
 | Other | `other` |
 
 ---
