@@ -559,3 +559,134 @@ class TestUnreadCount:
             "Ubad-marker": 1,
         }
         assert mock_db.execute.call_count == 3
+
+
+class TestBroadcastFanOutUnreadResolution:
+    """F3: broadcast fan-outs must resolve the conversation user once, not
+    once per admin.
+
+    - notify_admins_conversation_update reuses the caller-provided ``user``
+      (zero resolves of its own) and passes it to every per-admin
+      get_unread_count call.
+    - notify_admins_message_sent resolves the user exactly once before the
+      admin loop and reuses it for every admin.
+    - With no connected admins, the fan-out returns before resolving
+      (zero queries).
+    """
+
+    @staticmethod
+    def _make_ws_stub(admin_ids):
+        ws = MagicMock()
+        ws.get_connected_admin_ids.return_value = list(admin_ids)
+        ws.send_to_admin = AsyncMock()
+        ws.get_room_id = MagicMock(return_value="room-1")
+        ws.broadcast_to_room = AsyncMock()
+        return ws
+
+    @pytest.mark.asyncio
+    async def test_conversation_update_uses_caller_user_zero_resolves(self):
+        from app.services.message_intake import broadcast as broadcast_module
+
+        user = SimpleNamespace(
+            id=11, display_name="Test User", picture_url=None, chat_mode=None
+        )
+        saved_message = SimpleNamespace(
+            created_at=datetime(2026, 9, 27, tzinfo=timezone.utc)
+        )
+        db = MagicMock()
+        service = MagicMock()
+        service.get_unread_count = AsyncMock(return_value=3)
+
+        ws = self._make_ws_stub([1, 2, 3])
+        with patch.object(
+            broadcast_module, "get_ws_manager", return_value=ws
+        ), patch.object(
+            broadcast_module, "get_live_chat_service", return_value=service
+        ), patch.object(
+            broadcast_module,
+            "resolve_by_line_id",
+            new=AsyncMock(
+                side_effect=AssertionError("fan-out #1 must not resolve the user")
+            ),
+        ):
+            await broadcast_module.notify_admins_conversation_update(
+                line_user_id="Uabc123",
+                user=user,
+                saved_message=saved_message,
+                content="hello",
+                db=db,
+            )
+
+        assert service.get_unread_count.await_count == 3
+        for call in service.get_unread_count.await_args_list:
+            assert call.kwargs.get("user") is user
+        assert ws.send_to_admin.await_count == 3
+        payload = ws.send_to_admin.await_args_list[0].args[1]
+        assert payload["type"] == "conversation_update"
+        assert payload["payload"]["unread_count"] == 3
+        assert payload["payload"]["line_user_id"] == "Uabc123"
+
+    @pytest.mark.asyncio
+    async def test_message_sent_resolves_user_exactly_once(self):
+        from app.services.message_intake import broadcast as broadcast_module
+
+        user = SimpleNamespace(id=11)
+        db = MagicMock()
+        service = MagicMock()
+        service.get_unread_count = AsyncMock(return_value=5)
+        resolve = AsyncMock(return_value=user)
+
+        ws = self._make_ws_stub([1, 2])
+        with patch.object(
+            broadcast_module, "get_ws_manager", return_value=ws
+        ), patch.object(
+            broadcast_module, "get_live_chat_service", return_value=service
+        ), patch.object(
+            broadcast_module, "resolve_by_line_id", resolve
+        ):
+            await broadcast_module.notify_admins_message_sent(
+                line_user_id="Uabc123",
+                display_name="Test User",
+                picture_url=None,
+                chat_mode="BOT",
+                content="hello",
+                created_at="2026-09-27T00:00:00+00:00",
+                db=db,
+            )
+
+        assert resolve.await_count == 1
+        assert service.get_unread_count.await_count == 2
+        for call in service.get_unread_count.await_args_list:
+            assert call.kwargs.get("user") is user
+        assert ws.send_to_admin.await_count == 2
+
+    @pytest.mark.asyncio
+    async def test_message_sent_no_admins_returns_without_resolving(self):
+        from app.services.message_intake import broadcast as broadcast_module
+
+        db = MagicMock()
+        service = MagicMock()
+        service.get_unread_count = AsyncMock()
+        resolve = AsyncMock()
+
+        ws = self._make_ws_stub([])
+        with patch.object(
+            broadcast_module, "get_ws_manager", return_value=ws
+        ), patch.object(
+            broadcast_module, "get_live_chat_service", return_value=service
+        ), patch.object(
+            broadcast_module, "resolve_by_line_id", resolve
+        ):
+            await broadcast_module.notify_admins_message_sent(
+                line_user_id="Uabc123",
+                display_name="Test User",
+                picture_url=None,
+                chat_mode="BOT",
+                content="hello",
+                created_at="2026-09-27T00:00:00+00:00",
+                db=db,
+            )
+
+        assert resolve.await_count == 0
+        assert service.get_unread_count.await_count == 0
+        assert ws.send_to_admin.await_count == 0
