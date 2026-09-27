@@ -1,0 +1,17 @@
+{
+  "handoff_version": "2.0",
+  "platform": "cline",
+  "agent": "cline",
+  "timestamp": "2026-09-27T11:56:00+07:00",
+  "branch": "main",
+  "head_commit": "c54552c",
+  "status": "completed",
+  "work_summary": "Cline post-merge session on main c54552c: PR #233 merged (handoff cleanup + CI greenlet fix), CI green 7/7, main synced with origin, validator PASS, tree clean",
+  "priority_actions": [
+    "Manual LINE test on prod: booking book-edit-cancel flow plus private media preview",
+    "Keep _secret_migration_backup table; purge only after explicit operator confirmation"
+  ],
+  "context_for_next_agent": "WHAT HAPPENED (user-facing)\nPost-merge session on main c54552c (PR #233 squash-merged: handoff system cleanup + greenlet CI fix). Verified: local main == origin/main, PR #233 MERGED, CI green 7/7 after the sqlalchemy[asyncio] fix, validator PASS, tree clean.\n\nENV GOTCHAS (this machine)\n- Start-Process -ArgumentList splits quoted strings on spaces: pass handoff-new.cjs args as ONE array element per positional, or the summary shatters into word-per-next-step (fixed by hand this time).\n- handoff-new.cjs runs validator + gen-views internally and may time out at 30s; check the created files instead of re-running.\n- WSL bash has no node in PATH (exit 127); use Git-Bash scoop path for .sh scripts.\n\nDO NOT: purge _secret_migration_backup without operator order.",
+  "session_summary": "project-log-md/cline/session-summary-20260927-1156.md",
+  "cross_platform_read": []
+}

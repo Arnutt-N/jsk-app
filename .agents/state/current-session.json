@@ -1,13 +1,20 @@
 {
-  "last_updated": "2026-09-27T00:42:00+07:00",
+  "last_updated": "2026-09-27T11:56:00+07:00",
   "platform": "cline",
-  "current_task": "Handoff system cleanup: retired stale handoff.md, fixed doc contradictions, refreshed state, extended platform maps, hardened validator",
+  "current_task": "Cline post-merge session on main c54552c: PR #233 merged, CI green 7/7, validator PASS",
   "plan_status": "completed",
   "next_steps": [
-    "User reviews PR",
-    "Merge to main after approval"
+    "Manual LINE test on prod: booking book-edit-cancel flow plus private media preview",
+    "Keep _secret_migration_backup table; purge only after explicit operator confirmation"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-09-27T11:56:00+07:00",
+      "platform": "cline",
+      "branch": "main",
+      "head": "c54552c",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-09-27T00:42:00+07:00",
       "platform": "cline",
@@ -139,13 +146,6 @@
       "platform": "cline",
       "branch": "main",
       "head": "18303fa",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-08-30T10:44:00+07:00",
-      "platform": "cline",
-      "branch": "main",
-      "head": "8aa4872",
       "status": "completed"
     }
   ],
