@@ -23,7 +23,7 @@ router = APIRouter()
 @router.get("")
 async def list_friends(
     status: Optional[str] = None,
-    skip: int = 0,
+    skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=100),
     db: AsyncSession = Depends(deps.get_db),
     current_admin: User = Depends(get_current_admin),

@@ -1,7 +1,7 @@
 """
 Admin API endpoints for Reply Objects management
 """
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
 from typing import List
@@ -21,8 +21,8 @@ router = APIRouter()
 
 @router.get("", response_model=List[ReplyObjectResponse])
 async def list_reply_objects(
-    skip: int = 0,
-    limit: int = 100,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=100),
     category: str = None,
     object_type: str = None,
     db: AsyncSession = Depends(get_db),

@@ -404,7 +404,7 @@ async def get_operator_stats(
 async def search_messages(
     q: str,
     line_user_id: Optional[str] = None,
-    limit: int = 20,
+    limit: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(deps.get_db),
     _current_user: User = Depends(deps.get_current_staff),
 ) -> Any:
@@ -426,7 +426,7 @@ async def search_messages(
 class CreateSessionRequest(BaseModel):
     line_user_id: str
     initial_message: Optional[str] = Field(None, max_length=5000)
-    reason: Optional[str] = None
+    reason: Optional[str] = Field(None, max_length=255)
 
     @field_validator("initial_message", mode="before")
     @classmethod

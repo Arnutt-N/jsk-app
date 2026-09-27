@@ -1,13 +1,14 @@
 """
 Admin API endpoints for Auto Replies management
 """
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import List
 
 from app.api.deps import get_db, get_current_admin, require_permission
 from app.core.permissions import KEY_MANAGE_AUTO_REPLIES
+from app.core.query_utils import escape_ilike
 from app.models.auto_reply import AutoReply, MatchType, ReplyType
 from app.models.user import User
 from app.schemas.auto_reply import (
@@ -21,8 +22,8 @@ router = APIRouter()
 
 @router.get("", response_model=List[AutoReplyResponse])
 async def list_auto_replies(
-    skip: int = 0,
-    limit: int = 100,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=100),
     keyword: str = None,
     db: AsyncSession = Depends(get_db),
     current_admin: User = Depends(get_current_admin)
@@ -31,7 +32,9 @@ async def list_auto_replies(
     query = select(AutoReply).order_by(AutoReply.created_at.desc())
     
     if keyword:
-        query = query.filter(AutoReply.keyword.ilike(f"%{keyword}%"))
+        query = query.filter(
+            AutoReply.keyword.ilike(f"%{escape_ilike(keyword)}%", escape="\\")
+        )
     
     query = query.offset(skip).limit(limit)
     result = await db.execute(query)
