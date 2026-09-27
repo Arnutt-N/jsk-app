@@ -21,6 +21,8 @@ metadata:
 node .agents/scripts/handoff-new.cjs <platform> "<work summary>" ["<next step>" ...]
 # example:
 node .agents/scripts/handoff-new.cjs claude_code "Merged PR #114: rich-menu R1/R2" "Smoke test on prod"
+# directed (addressed to one agent — lands in their board queue):
+node .agents/scripts/handoff-new.cjs qoder "Auth fix ready for review" --to cline "Re-test login on staging"
 ```
 
 Canonical platforms: `claude_code`, `codex`, `kimi_code`, `antigravity`, `gemini_cli`,
@@ -32,7 +34,7 @@ Canonical platforms: `claude_code`, `codex`, `kimi_code`, `antigravity`, `gemini
 2. Writes a **session-summary stub** — `project-log-md/<platform>/session-summary-<YYYYMMDD-HHMM>.md`.
 3. Syncs `current-session.json` (prepends `handoff_history`, refreshes `last_updated`).
 4. Refreshes the `PROJECT_STATUS.md` `Last Updated` line + one `Recent Completions` entry.
-5. Regenerates `TASK_LOG.md` + `SESSION_INDEX.md`.
+5. Regenerates `TASK_LOG.md` + `SESSION_INDEX.md` + `HANDOFF_BOARD.md` (status + queue).
 6. Runs `validate_handoff_state.py` and prints PASS / FAIL / skipped.
 
 ## Then, by hand
@@ -43,8 +45,8 @@ Canonical platforms: `claude_code`, `codex`, `kimi_code`, `antigravity`, `gemini
 
 ## Hard rules
 
-- ⛔ **Never hand-edit `TASK_LOG.md` or `SESSION_INDEX.md`** — they are generated from
-  checkpoints; your edits get overwritten. To change them, edit/add a checkpoint and run
+- ⛔ **Never hand-edit `TASK_LOG.md`, `SESSION_INDEX.md`, or `HANDOFF_BOARD.md`** — they are
+  generated from checkpoints; your edits get overwritten. To change them, edit/add a checkpoint and run
   `node .agents/scripts/gen-handoff-views.cjs`.
 - The checkpoint timestamp is local time **with the real UTC offset** (e.g. `+07:00`), never `Z`.
 - A Stop hook (`handoff-stop-check.cjs`) blocks session end until a fresh checkpoint exists

@@ -18,12 +18,13 @@ metadata:
 ## Read, in order
 
 1. `.agents/PROJECT_STATUS.md` — Thai summary, Active Milestones, Latest Pickup Status, Backlog.
-2. `.agents/state/TASK_LOG.md` — newest-first handoff log (generated). Read the top few entries.
-3. `.agents/state/SESSION_INDEX.md` — cross-platform index (generated). **Long file** —
+2. `.agents/state/HANDOFF_BOARD.md` — Handoff Queue section FIRST: items addressed to you (generated).
+3. `.agents/state/TASK_LOG.md` — newest-first handoff log (generated). Read the top few entries.
+4. `.agents/state/SESSION_INDEX.md` — cross-platform index (generated). **Long file** —
    read only the Quick Stats table at the top; the per-platform tables are history and
    rarely needed for pickup.
-4. The latest `project-log-md/<platform>/session-summary-*.md` for full detail.
-5. (Optional) the newest checkpoint JSON in `.agents/state/checkpoints/` for the raw record.
+5. The latest `project-log-md/<platform>/session-summary-*.md` for full detail.
+6. (Optional) the newest checkpoint JSON in `.agents/state/checkpoints/` for the raw record.
 
 ```bash
 # newest handoffs
@@ -34,7 +35,8 @@ ls -t .agents/state/checkpoints/handover-*.json | head -3
 
 `handoff_version`, `platform`, `agent`, `timestamp` (local time **with offset**, e.g.
 `+07:00`), `branch`, `head_commit`, `status`, `work_summary`, `priority_actions`,
-`context_for_next_agent`, `session_summary`, `cross_platform_read`.
+`context_for_next_agent`, `session_summary`, `cross_platform_read`, and optional
+`to_agent` (directed recipient; absent/`all` = broadcast).
 
 (If you find an old checkpoint with `from_platform`/`to_platform`, that's a legacy v1
 record — read it for history, but new handoffs use the schema above.)
@@ -56,8 +58,8 @@ did, and any open blockers. Then start working.
 
 ## Do NOT do these (v1 habits, retired)
 
-- ⛔ Don't pre-create a "Task #N" entry or hand-edit `TASK_LOG.md` / `SESSION_INDEX.md`
-  (generated). The record is written **at handoff** by `handoff-new.cjs`.
+- ⛔ Don't pre-create a "Task #N" entry or hand-edit `TASK_LOG.md` / `SESSION_INDEX.md` /
+  `HANDOFF_BOARD.md` (generated). The record is written **at handoff** by `handoff-new.cjs`.
 - ⛔ Don't hand-edit `current-session.json` to "claim" the session — `handoff-new.cjs`
   maintains it for you when you hand off.
 

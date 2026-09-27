@@ -7,9 +7,11 @@
  * Usage:
  *   node .agents/scripts/handoff-new.cjs <platform> "<work summary>" ["<next step>" ...]
  *   node .agents/scripts/handoff-new.cjs <platform> "<work summary>" --model "GLM-4.5" --provider "Zhipu AI" ["<next step>" ...]
+ *   node .agents/scripts/handoff-new.cjs <platform> "<work summary>" --to <platform|all> ["<next step>" ...]
  * Example:
  *   node .agents/scripts/handoff-new.cjs claude_code "Merged PR #105: fix X" "Deploy to prod" "Re-test on mobile"
  *   node .agents/scripts/handoff-new.cjs cline "Manual test pass" --model "GLM-4.5" --provider "Zhipu AI" "Commit results"
+ *   node .agents/scripts/handoff-new.cjs qoder "Auth fix ready for review" --to cline "Re-test login on staging"
  *
  * Creates:
  *   - .agents/state/checkpoints/handover-<platform>-<YYYYMMDD-HHMM>.json   (source of truth)
@@ -49,6 +51,7 @@ function main() {
   const rawArgs = process.argv.slice(2);
   let model = '';
   let provider = '';
+  let toAgentRaw = '';
   const positional = [];
   for (let i = 0; i < rawArgs.length; i++) {
     const a = rawArgs[i];
@@ -64,6 +67,12 @@ function main() {
         process.stderr.write('Error: --provider requires a non-empty value (e.g. --provider "Zhipu AI").\n');
         process.exit(1);
       }
+    } else if (a === '--to' || a.startsWith('--to=')) {
+      toAgentRaw = a === '--to' ? (i + 1 < rawArgs.length ? rawArgs[++i] : '') : a.slice('--to='.length);
+      if (!toAgentRaw) {
+        process.stderr.write('Error: --to requires a non-empty value (e.g. --to cline, --to all).\n');
+        process.exit(1);
+      }
     } else {
       positional.push(a);
     }
@@ -72,7 +81,7 @@ function main() {
 
   if (!platformArg || !summaryArg) {
     process.stderr.write(
-      'Usage: node .agents/scripts/handoff-new.cjs <platform> "<work summary>" [--model "Model"] [--provider "Provider"] ["<next step>" ...]\n'
+      'Usage: node .agents/scripts/handoff-new.cjs <platform> "<work summary>" [--model "Model"] [--provider "Provider"] [--to <platform>|all] ["<next step>" ...]\n'
     );
     process.exit(1);
   }
@@ -85,6 +94,21 @@ function main() {
   if (!/^[a-z0-9_]+$/.test(platform)) {
     process.stderr.write(
       `Invalid platform name: "${platformArg}" — use only letters, digits, dashes or underscores (e.g. qoder, claude_code).\n`
+    );
+    process.exit(1);
+  }
+  // Directed handoff recipient: canonicalized like the platform. 'all' passes
+  // through as the explicit broadcast marker; 'any' is its legacy alias and is
+  // normalized to 'all' so new data stays clean. Same identifier guard — the value
+  // is JSON-only today but must never become a path/injection vector later.
+  let toAgent = !toAgentRaw ? '' :
+    (Object.prototype.hasOwnProperty.call(CANON, toAgentRaw)
+      ? CANON[toAgentRaw]
+      : toAgentRaw.toLowerCase().replace(/-/g, '_'));
+  if (toAgent === 'any') toAgent = 'all';
+  if (toAgentRaw && !/^[a-z0-9_]+$/.test(toAgent)) {
+    process.stderr.write(
+      `Invalid --to target: "${toAgentRaw}" — use only letters, digits, dashes or underscores (e.g. cline, all).\n`
     );
     process.exit(1);
   }
@@ -147,6 +171,9 @@ function main() {
   // but recommended for cross-platform traceability.
   if (model) checkpoint.model = model;
   if (provider) checkpoint.provider = provider;
+  // Directed recipient (optional): absent = broadcast. The queue + board derive
+  // from this field; see gen-handoff-views.cjs.
+  if (toAgent) checkpoint.to_agent = toAgent;
   fs.writeFileSync(ckPath, JSON.stringify(checkpoint, null, 2) + '\n');
 
   if (!fs.existsSync(sumDir)) fs.mkdirSync(sumDir, { recursive: true });
@@ -154,6 +181,7 @@ function main() {
     `# Session Summary — ${platform}${model ? ` (${model})` : ''} — ${iso}`,
     '',
     `**Branch**: \`${branch || 'main'}\`  **HEAD**: \`${head}\``,
+    ...(toAgent ? [`**To**: \`${toAgent}\` (directed)`] : []),
     `**Checkpoint**: \`.agents/state/checkpoints/handover-${platform}-${ts}.json\``,
   ];
   // Platform Meta table (only if model or provider is specified)

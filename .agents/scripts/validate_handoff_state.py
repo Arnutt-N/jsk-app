@@ -20,6 +20,24 @@ from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
+# Canonical platform map mirrored from the CANON objects in handoff-new.cjs /
+# gen-handoff-views.cjs, plus the broadcast markers. Used by W4/W5 only.
+CANON = {
+    "claude-code": "claude_code", "claude_code": "claude_code",
+    "codex": "codex", "codeX": "codex",
+    "kimi": "kimi_code", "kimi_code": "kimi_code",
+    "kilo_code": "kilo_code", "kilo-code": "kilo_code",
+    "cline": "cline", "antigravity": "antigravity",
+    "gemini": "gemini_cli", "gemini_cli": "gemini_cli",
+    "open_code": "open_code", "open-code": "open_code", "qwen": "qwen",
+    "qoder": "qoder", "qoder_cli": "qoder", "zcode": "zcode",
+}
+KNOWN_PLATFORMS = frozenset(set(CANON.values()) | {"all", "any"})
+
+
+def canon(platform: str) -> str:
+    return CANON.get(platform, platform.lower().replace("-", "_"))
+
 
 def parse_iso(ts: str) -> datetime | None:
     candidate = ts.strip().replace("Z", "+00:00")
@@ -166,6 +184,20 @@ def main() -> int:
             if set(ho_read) != set(cs_read):
                 warnings.append("current-session cross_platform_context.summaries_read differs from newest checkpoint cross_platform_read.")
 
+        # W4: directed handoff target known? Unknown = likely typo, but stay
+        # silent for established custom platforms (own log dir or checkpoints).
+        to_agent = ho.get("to_agent") if isinstance(ho, dict) else None
+        if isinstance(to_agent, str) and to_agent.strip():
+            canon_to = canon(to_agent.strip())
+            if canon_to not in KNOWN_PLATFORMS:
+                has_dir = (REPO_ROOT / "project-log-md" / canon_to).is_dir()
+                has_ck = any(checkpoints_dir.glob(f"handover-{canon_to}-*.json"))
+                if not has_dir and not has_ck:
+                    warnings.append(
+                        f"Handover 'to_agent' target '{to_agent}' is unknown "
+                        f"in {latest_handover.name} (not a known platform, no log dir or checkpoints)."
+                    )
+
     # Latest session summary for platform
     summary_dir = REPO_ROOT / "project-log-md" / platform
     summaries = list(summary_dir.glob("session-summary-*.md")) if summary_dir.exists() else []
@@ -192,7 +224,7 @@ def main() -> int:
     if stub.exists():
         stub_text = stub.read_text(encoding="utf-8")
         if "MOVED" not in stub_text and "retired" not in stub_text:
-            warnings.append(".agents/handoff.md still looks live — retired; only a redirect stub should remain.")
+            warnings.append(".agents/handoff.md still looks live - retired; only a redirect stub should remain.")
 
     # W2: task.md freshness vs newest checkpoint (anchor to the Started: line, not any date in history)
     if handover_ts:
@@ -204,6 +236,67 @@ def main() -> int:
                     warnings.append(f"task.md date ({m.group(1)}) is >7 days older than newest checkpoint ({handover_ts.date()}).")
             except ValueError:
                 pass
+
+    # W5: stale pending directed handoffs? Same queue rule as the board: a
+    # checkpoint with to_agent X is pending while newer than X's own newest
+    # checkpoint. One warning when any pending item is >7 days old.
+    # Filename parsing mirrors gen-handoff-views.cjs parseName exactly (full
+    # timestamp preferred, date-only falls back to 0000, trailing "-any"
+    # stripped) so the board queue and this warning can never disagree.
+    def ck_parts(name: str) -> tuple[str, str] | None:
+        pm = re.match(r"handover-(.+)-(\d{8})-(\d{4})\.json$", name)
+        if pm:
+            raw = re.sub(r"-any$", "", pm.group(1))
+            return (canon(raw), pm.group(2) + pm.group(3))
+        pm = re.match(r"handover-(.+)-(\d{8})\.json$", name)
+        if pm:
+            raw = re.sub(r"-any$", "", pm.group(1))
+            return (canon(raw), pm.group(2) + "0000")
+        return None
+
+    try:
+        ck_files = [p for p in checkpoints_dir.glob("handover-*.json") if p.is_file()]
+        newest_by_plat: dict[str, str] = {}
+        for p in ck_files:
+            parts = ck_parts(p.name)
+            if not parts:
+                continue
+            frm, sk = parts
+            if sk > newest_by_plat.get(frm, ""):
+                newest_by_plat[frm] = sk
+        pending: list[tuple[str, str, str, str]] = []  # (sortkey, from, to, filename)
+        for p in ck_files:
+            parts = ck_parts(p.name)
+            if not parts:
+                continue
+            frm, sk = parts
+            try:
+                jo = json.loads(p.read_text(encoding="utf-8"))
+            except Exception:  # noqa: BLE001 — unparseable reads as broadcast
+                continue
+            to_raw = jo.get("to_agent") if isinstance(jo, dict) else None
+            if not isinstance(to_raw, str):
+                continue
+            to_c = canon(to_raw.strip())
+            if to_c in ("", "all", "any"):
+                continue
+            if sk > newest_by_plat.get(to_c, ""):
+                pending.append((sk, frm, to_c, p.name))
+        if pending:
+            pending.sort()
+            try:
+                oldest_dt = datetime.strptime(pending[0][0], "%Y%m%d%H%M")
+                if (datetime.now() - oldest_dt).days > 7:
+                    warnings.append(
+                        f"{len(pending)} pending directed handoff(s), oldest {oldest_dt.date()} "
+                        # ASCII arrow: this prints to console, and non-ASCII crashes
+                        # Windows cp874/cp1252 consoles (validator must never crash).
+                        f"({pending[0][1]} -> {pending[0][2]}, {pending[0][3]})."
+                    )
+            except ValueError:
+                pass
+    except Exception as ex:  # noqa: BLE001 — fail-open: never fail validation on scan trouble
+        warnings.append(f"Directed-handoff queue scan skipped: {ex}")
 
     ps_text = project_status.read_text(encoding="utf-8")
     ps_first_line = next((ln for ln in ps_text.splitlines() if "Last Updated:" in ln), "")

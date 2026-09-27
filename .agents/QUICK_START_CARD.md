@@ -53,7 +53,7 @@ UPDATE → CREATE → VERIFY → DONE
 - [ ] `.agents/PROJECT_STATUS.md`
 - [ ] `.agents/state/current-session.json`
 - [ ] `.agents/state/task.md` (scratchpad)
-- [ ] Run handoff command (writes checkpoint + regenerates TASK_LOG.md/SESSION_INDEX.md automatically)
+- [ ] Run handoff command (writes checkpoint + regenerates TASK_LOG.md/SESSION_INDEX.md/HANDOFF_BOARD.md automatically; use `--to <platform>` to address one agent)
 
 **2. CREATE (2 files)**
 - [ ] `.agents/state/checkpoints/handover-[PLATFORM]-[TIME].json`
@@ -77,6 +77,7 @@ Report: "Handoff complete"
 | Project status | `.agents/PROJECT_STATUS.md` |
 | Session state | `.agents/state/current-session.json` |
 | **Task history** | `.agents/state/TASK_LOG.md` ← **GENERATED (read-only, never hand-edit)** |
+| **Team board** | `.agents/state/HANDOFF_BOARD.md` ← **GENERATED (status + your queue)** |
 | Current task | `.agents/state/task.md` |
 | Collaboration guide | `.agents/skills/cross_platform_collaboration/SKILL.md` |
 | Pickup workflow | `.agents/workflows/pickup-from-any.md` |
@@ -141,9 +142,10 @@ git log --oneline -5
 ## 🚨 REMEMBER
 
 - ✅ **Always read PROJECT_STATUS.md first**
+- ✅ **Always check HANDOFF_BOARD.md queue for items addressed to you**
 - ✅ **Always read TASK_LOG.md for context**
-- ✅ **Handoff with one command:** `node .agents/scripts/handoff-new.cjs <platform> "<summary>"`
-- ❌ **Never hand-edit TASK_LOG.md or SESSION_INDEX.md** (generated from checkpoints)
+- ✅ **Handoff with one command:** `node .agents/scripts/handoff-new.cjs <platform> "<summary>"` (add `--to <platform>` to direct it)
+- ❌ **Never hand-edit TASK_LOG.md, SESSION_INDEX.md, or HANDOFF_BOARD.md** (generated from checkpoints)
 - ❌ **Never skip the handoff protocol** (a Stop hook enforces it)
 
 ---
