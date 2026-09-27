@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 264 active handoffs, 10 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 265 active handoffs, 10 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-09-27 20:08 — cline — completed
+
+Merged PR 236 codebase-review-fix batch F1-F7: SQL-like escaping pagination bounds broadcast fan-out dedup LINE-ID log masking Pydantic length caps - CI green on main CD deployed to Koyeb
+
+- Checkpoint: `.agents/state/checkpoints/handover-cline-20260927-2008.json`
+- Summary: `project-log-md/cline/session-summary-20260927-2008.md`
+
+---
 
 ### 2026-09-27 11:56 — cline — completed
 
