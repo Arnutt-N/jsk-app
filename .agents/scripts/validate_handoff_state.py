@@ -240,22 +240,36 @@ def main() -> int:
     # W5: stale pending directed handoffs? Same queue rule as the board: a
     # checkpoint with to_agent X is pending while newer than X's own newest
     # checkpoint. One warning when any pending item is >7 days old.
+    # Filename parsing mirrors gen-handoff-views.cjs parseName exactly (full
+    # timestamp preferred, date-only falls back to 0000, trailing "-any"
+    # stripped) so the board queue and this warning can never disagree.
+    def ck_parts(name: str) -> tuple[str, str] | None:
+        pm = re.match(r"handover-(.+)-(\d{8})-(\d{4})\.json$", name)
+        if pm:
+            raw = re.sub(r"-any$", "", pm.group(1))
+            return (canon(raw), pm.group(2) + pm.group(3))
+        pm = re.match(r"handover-(.+)-(\d{8})\.json$", name)
+        if pm:
+            raw = re.sub(r"-any$", "", pm.group(1))
+            return (canon(raw), pm.group(2) + "0000")
+        return None
+
     try:
         ck_files = [p for p in checkpoints_dir.glob("handover-*.json") if p.is_file()]
         newest_by_plat: dict[str, str] = {}
         for p in ck_files:
-            pm = re.match(r"handover-(.+)-(\d{8})-(\d{4})\.json$", p.name)
-            if not pm:
+            parts = ck_parts(p.name)
+            if not parts:
                 continue
-            frm = canon(pm.group(1))
-            sk = pm.group(2) + pm.group(3)
+            frm, sk = parts
             if sk > newest_by_plat.get(frm, ""):
                 newest_by_plat[frm] = sk
         pending: list[tuple[str, str, str, str]] = []  # (sortkey, from, to, filename)
         for p in ck_files:
-            pm = re.match(r"handover-(.+)-(\d{8})-(\d{4})\.json$", p.name)
-            if not pm:
+            parts = ck_parts(p.name)
+            if not parts:
                 continue
+            frm, sk = parts
             try:
                 jo = json.loads(p.read_text(encoding="utf-8"))
             except Exception:  # noqa: BLE001 — unparseable reads as broadcast
@@ -266,9 +280,8 @@ def main() -> int:
             to_c = canon(to_raw.strip())
             if to_c in ("", "all", "any"):
                 continue
-            sk = pm.group(2) + pm.group(3)
             if sk > newest_by_plat.get(to_c, ""):
-                pending.append((sk, pm.group(1), to_c, p.name))
+                pending.append((sk, frm, to_c, p.name))
         if pending:
             pending.sort()
             try:

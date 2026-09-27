@@ -267,6 +267,36 @@ else
   bad "T23 board sections + empty states render"
 fi
 
+# T24: validator W4/W5 regression — warnings fire, exit 0, RESULT: PASS.
+# Guards the warning logic AND the no-crash-on-console contract (a non-ASCII
+# warning string once crashed Windows cp874 consoles with UnicodeEncodeError).
+PYBIN=""
+for c in python3 python py; do
+  if command -v "$c" >/dev/null 2>&1; then PYBIN="$c"; break; fi
+done
+if [ -z "$PYBIN" ]; then
+  ok "T24 validator W4/W5 (skipped: no python)"
+else
+  mkdir -p project-log-md/w24a
+  printf '# PS\n\n> **Last Updated:** %s by T24 (x)\n' "$(date '+%Y-%m-%d %H:%M')" > .agents/PROJECT_STATUS.md
+  printf '# T\n**Started**: %s\n**Overall Progress:** 10%%\n' "$(date '+%Y-%m-%d')" > .agents/state/task.md
+  printf '# s\n' > project-log-md/w24a/session-summary-20200101-0900.md
+  printf '%s' '{"handoff_version":"2.0","platform":"w24a","agent":"w24a","timestamp":"2020-01-01T09:00:00+07:00","branch":"main","head_commit":"abc","status":"completed","work_summary":"w","priority_actions":[],"context_for_next_agent":"","to_agent":"w24_typo"}' \
+    > "$GEN_SB/handover-w24a-20200101-0900.json"
+  printf '%s' '{"to_agent":"w24c"}' > "$GEN_SB/handover-w24b-20200102-0900.json"
+  cp "$SCRIPTS/validate_handoff_state.py" .agents/scripts/
+  VOUT=$("$PYBIN" .agents/scripts/validate_handoff_state.py --platform w24a 2>&1)
+  VRC=$?
+  if [ $VRC -eq 0 ] \
+    && printf '%s' "$VOUT" | grep -q "is unknown" \
+    && printf '%s' "$VOUT" | grep -q "pending directed" \
+    && printf '%s' "$VOUT" | grep -q "RESULT: PASS"; then
+    ok "T24 validator W4+W5 fire, exit 0, PASS (no crash)"
+  else
+    bad "T24 validator W4+W5 fire, exit 0, PASS (exit $VRC)"
+  fi
+fi
+
 # ---------- summary ----------
 echo
 echo "handoff-system golden tests: $PASS passed, $FAIL failed"
