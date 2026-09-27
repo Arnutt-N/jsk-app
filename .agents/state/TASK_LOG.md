@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 263 active handoffs, 10 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 264 active handoffs, 10 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-09-27 11:56 — cline — completed
+
+Cline post-merge session on main c54552c: PR #233 merged (handoff cleanup + CI greenlet fix), CI green 7/7, main synced with origin, validator PASS, tree clean
+
+- Checkpoint: `.agents/state/checkpoints/handover-cline-20260927-1156.json`
+- Summary: `project-log-md/cline/session-summary-20260927-1156.md`
+
+---
 
 ### 2026-09-27 00:42 — cline — completed
 
