@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 262 active handoffs, 10 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 263 active handoffs, 10 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-09-27 00:42 — cline — completed
+
+Handoff system cleanup: retired stale handoff.md, fixed doc contradictions, refreshed state, extended platform maps, hardened validator
+
+- Checkpoint: `.agents/state/checkpoints/handover-cline-20260927-0042.json`
+- Summary: `project-log-md/cline/session-summary-20260927-0042.md`
+
+---
 
 ### 2026-09-24 06:53 — cline — completed
 

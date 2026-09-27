@@ -29,8 +29,9 @@ const CANON = {
   'claude-code': 'claude_code', claude_code: 'claude_code',
   codex: 'codex', codeX: 'codex',
   kimi: 'kimi_code', kimi_code: 'kimi_code',
-  kilo_code: 'kilo_code', cline: 'cline', antigravity: 'antigravity',
-  gemini_cli: 'gemini_cli', open_code: 'open_code', qwen: 'qwen',
+  kilo_code: 'kilo_code', 'kilo-code': 'kilo_code', cline: 'cline', antigravity: 'antigravity',
+  gemini: 'gemini_cli', gemini_cli: 'gemini_cli', open_code: 'open_code', 'open-code': 'open_code', qwen: 'qwen',
+  qoder: 'qoder', qoder_cli: 'qoder', zcode: 'zcode',
 };
 const canon = (p) => CANON[p] || String(p).toLowerCase().replace(/-/g, '_');
 

@@ -11,7 +11,7 @@ description: Universal entry point for ANY AI agent starting work on SknApp
 ## 🎯 One-Line Summary
 
 ```
-Read START_HERE.md → AGENT_PROMPT_TEMPLATE.md → PROJECT_STATUS.md → TASK_LOG.md → SESSION_INDEX.md → Read 3 latest summaries (any platforms) → pickup-from-any.md → Update current-session.json → Create TASK_LOG.md entry → Start working
+Read START_HERE.md → AGENT_PROMPT_TEMPLATE.md → PROJECT_STATUS.md → TASK_LOG.md → SESSION_INDEX.md → Read 3 latest summaries (any platforms) → pickup-from-any.md → Update current-session.json → Start working
 ```
 
 > **🛡️ CRITICAL SAFETY RULE (Prevents Wrong Directory Creation)**:
@@ -210,7 +210,7 @@ cat .agents/state/task.md
   "session_id": "sess-20260213-203000",
   "project": {
     "name": "SknApp",
-    "root": "D:/genAI/skn-app",
+    "root": "D:/genAI/jsk-app",
     "branch": "current-branch"
   },
   "current_task": {
@@ -229,15 +229,18 @@ cat .agents/state/task.md
 }
 ```
 
-**Platform Codes**:
-- `claude-code` - Claude Code
+**Platform Codes** (canonical `lowercase_underscore`):
+- `claude_code` - Claude Code
 - `kimi_code` - Kimi Code
 - `codex` - CodeX
 - `antigravity` - Antigravity/Cursor
-- `gemini` - Gemini CLI
+- `gemini_cli` - Gemini CLI
 - `qwen` - Qwen
-- `open-code` - Open Code
+- `open_code` - OpenCode
 - `kilo_code` - Kilo Code
+- `qoder` - Qoder
+- `zcode` - Zcode
+- `cline` - Cline
 - `other` - Other platforms
 
 ---
@@ -290,19 +293,16 @@ cat .agents/INDEX.md
 cat .agents/workflows/handoff-to-any.md
 ```
 
-**Create 5 mandatory artifacts**:
+**Create via one command** (`node .agents/scripts/handoff-new.cjs <platform> "<summary>"`):
 1. `.agents/PROJECT_STATUS.md` - Update status
 2. `.agents/state/current-session.json` - Mark complete
-3. **`.agents/state/TASK_LOG.md`** - **APPEND your completed task entry**
-4. `.agents/state/checkpoints/handover-[PLATFORM]-[TIME].json` - Handoff checkpoint
-5. `project-log-md/[PLATFORM]/session-summary-[TIME].md` - Session summary
+3. `.agents/state/checkpoints/handover-[PLATFORM]-[TIME].json` - Handoff checkpoint (source of truth)
+4. `project-log-md/[PLATFORM]/session-summary-[TIME].md` - Session summary (flesh out, then commit)
+5. `.agents/state/TASK_LOG.md` + `.agents/state/SESSION_INDEX.md` - Regenerated automatically (never hand-edit)
 
-**Plus 2 cross-platform artifacts**:
-6. **`.agents/state/SESSION_INDEX.md`** - Add your session to the index
-7. **Cross-platform references** - Link to summaries you read
+**Cross-platform references**: record other platforms' summaries you read in the checkpoint's `cross_platform_read` (optional).
 
-> **CRITICAL**: TASK_LOG.md is append-only. Read existing entries, then prepend your new entry.
-> **CRITICAL**: SESSION_INDEX.md must be updated so other agents can find your summary.
+> **CRITICAL**: `TASK_LOG.md`/`SESSION_INDEX.md` are GENERATED — never hand-edit. Read existing entries, then run the handoff command.
 
 **Report**:
 ```
@@ -343,20 +343,18 @@ Next agent can use: .agents/workflows/pickup-from-any.md
 - [ ] **Read 3 latest summaries from ANY platforms**
 - [ ] Follow `.agents/workflows/pickup-from-any.md` (if continuing)
 - [ ] Update `.agents/state/current-session.json` with my platform
-- [ ] Create entry in `.agents/state/TASK_LOG.md`
 
 ### During Work
 - [ ] Read relevant skill from `.agents/INDEX.md`
 - [ ] Update `.agents/state/task.md` every 30 min
-- [ ] Update your TASK_LOG.md entry with progress
+- [ ] Keep notes in task.md; the record is created at handoff
 - [ ] Test changes before marking complete
 - [ ] Document blockers immediately
 
 ### At End
 - [ ] Read `.agents/workflows/handoff-to-any.md`
-- [ ] Update TASK_LOG.md entry to ✅ COMPLETED
-- [ ] Create/update all 5 artifacts
-- [ ] **Update `.agents/state/SESSION_INDEX.md`**
+- [ ] Run handoff-new.cjs (checkpoint + summary + auto views)
+- [ ] Flesh out summary .md, commit, push
 - [ ] Verify all files saved
 - [ ] Report handoff complete
 
@@ -369,12 +367,10 @@ Next agent can use: .agents/workflows/pickup-from-any.md
 cat START_HERE.md AGENT_PROMPT_TEMPLATE.md .agents/PROJECT_STATUS.md .agents/state/TASK_LOG.md
 # Update session
 # Edit .agents/state/current-session.json with your platform
-# Create TASK_LOG.md entry
 # Work
 # Handoff
 cat .agents/workflows/handoff-to-any.md
-# Update TASK_LOG.md to COMPLETED
-# Create 5 artifacts
+# Handoff: handoff-new.cjs, flesh out summary, commit
 ```
 
 ---
