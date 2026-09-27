@@ -179,6 +179,94 @@ git commit -qm "checkpoint commit"
 printf '{"cwd":"%s"}' "$SB" | node "$STOP_CHECK" >/dev/null 2>&1
 check_exit "T17 clean tree with fresh checkpoint passes (exit 0)" 0 $?
 
+# ---------- directed handoff (--to) + board ----------
+
+# T18: --to canonicalizes the recipient like the platform
+# (fresh platforms only below: reusing qoder/cline/codex could hit the
+# same-minute collision guard against T04/T07/T08c artifacts.)
+node "$HANDOFF_NEW" kilo_code "directed work" --to Claude-Code >/dev/null 2>&1
+RC=$?
+CKD="$(ls .agents/state/checkpoints/handover-kilo_code-*.json 2>/dev/null | head -1)"
+if [ $RC -eq 0 ] && [ -n "$CKD" ] && grep -q '"to_agent": "claude_code"' "$CKD"; then
+  ok "T18 --to Claude-Code canonicalized to claude_code in JSON"
+else
+  bad "T18 --to Claude-Code canonicalized to claude_code in JSON (exit $RC)"
+fi
+grep -q '^\*\*To\*\*: `claude_code` (directed)$' project-log-md/kilo_code/session-summary-*.md 2>/dev/null \
+  && ok "T18b summary stub carries **To** line" || bad "T18b summary stub carries **To** line"
+
+# T19: broadcast default (no flag -> no key) + explicit --to all + --to=any alias
+node "$HANDOFF_NEW" zcode "broadcast work" >/dev/null 2>&1
+CKB="$(ls .agents/state/checkpoints/handover-zcode-*.json 2>/dev/null | head -1)"
+if [ -n "$CKB" ] && ! grep -q '"to_agent"' "$CKB"; then
+  ok "T19 no --to flag -> no to_agent key (broadcast)"
+else
+  bad "T19 no --to flag -> no to_agent key (broadcast)"
+fi
+node "$HANDOFF_NEW" antigravity "explicit broadcast" --to all >/dev/null 2>&1
+CKA="$(ls .agents/state/checkpoints/handover-antigravity-*.json 2>/dev/null | head -1)"
+if [ -n "$CKA" ] && grep -q '"to_agent": "all"' "$CKA"; then
+  ok "T19b --to all stored as explicit broadcast marker"
+else
+  bad "T19b --to all stored as explicit broadcast marker"
+fi
+node "$HANDOFF_NEW" open_code "legacy alias" --to=any >/dev/null 2>&1
+CKN="$(ls .agents/state/checkpoints/handover-open_code-*.json 2>/dev/null | head -1)"
+if [ -n "$CKN" ] && grep -q '"to_agent": "all"' "$CKN"; then
+  ok "T19c --to=any normalized to all"
+else
+  bad "T19c --to=any normalized to all"
+fi
+
+# T20: invalid --to values rejected, nothing written
+N_BEFORE=$(ls .agents/state/checkpoints/*.json 2>/dev/null | wc -l)
+node "$HANDOFF_NEW" qoder "x" --to ../../evil >/dev/null 2>&1; check_exit "T20a --to path traversal -> exit 1" 1 $?
+node "$HANDOFF_NEW" qoder "x" --to "" >/dev/null 2>&1; check_exit "T20b empty --to -> exit 1" 1 $?
+node "$HANDOFF_NEW" qoder "work" --to >/dev/null 2>&1; check_exit "T20c dangling --to -> exit 1" 1 $?
+N_AFTER=$(ls .agents/state/checkpoints/*.json 2>/dev/null | wc -l)
+if [ "$N_BEFORE" -eq "$N_AFTER" ] && [ -z "$(find "$SB" -name '*evil*' 2>/dev/null)" ]; then
+  ok "T20d rejections leave no files"
+else
+  bad "T20d rejections leave no files ($N_BEFORE -> $N_AFTER)"
+fi
+
+# T21: directed checkpoint lands in the recipient's board queue
+node "$HANDOFF_NEW" gemini_cli "fix ready for qwen review" --to qwen >/dev/null 2>&1
+RC=$?
+BOARD=.agents/state/HANDOFF_BOARD.md
+if [ $RC -eq 0 ] && [ -f "$BOARD" ] \
+  && grep -q '^### qwen (1 pending)$' "$BOARD" \
+  && grep -q 'fix ready for qwen review' "$BOARD"; then
+  ok "T21 board queues gemini_cli->qwen handoff under qwen"
+else
+  bad "T21 board queues gemini_cli->qwen handoff under qwen (exit $RC)"
+fi
+grep -q '^- To: `qwen` (directed)$' .agents/state/TASK_LOG.md \
+  && ok "T21b TASK_LOG entry carries - To: line" || bad "T21b TASK_LOG entry carries - To: line"
+
+# T22: recipient checkpoint auto-clears the queue (time-based rule)
+node "$HANDOFF_NEW" qwen "reviewed gemini fix" >/dev/null 2>&1
+RC=$?
+if [ $RC -eq 0 ] && ! grep -q '^### qwen (' "$BOARD"; then
+  ok "T22 qwen queue cleared after qwen checkpoint"
+else
+  bad "T22 qwen queue cleared after qwen checkpoint (exit $RC)"
+fi
+# claude_code never checkpointed -> T18 item still pending
+grep -q '^### claude_code (1 pending)$' "$BOARD" \
+  && ok "T22b untouched recipient stays queued" || bad "T22b untouched recipient stays queued"
+
+# T23: board sections render with empty states
+if grep -q '^## Agent Status$' "$BOARD" \
+  && grep -q '^## Handoff Queue$' "$BOARD" \
+  && grep -q '^## Needs attention$' "$BOARD" \
+  && grep -q '^## Recent Activity$' "$BOARD" \
+  && grep -q '_None.*no blocked checkpoints' "$BOARD"; then
+  ok "T23 board sections + empty states render"
+else
+  bad "T23 board sections + empty states render"
+fi
+
 # ---------- summary ----------
 echo
 echo "handoff-system golden tests: $PASS passed, $FAIL failed"

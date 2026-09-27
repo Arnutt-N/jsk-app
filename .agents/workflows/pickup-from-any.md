@@ -27,12 +27,13 @@ ls -lt project-log-md/*/*.md | head -10
 ```
 
 **Read latest from ANY platform** (not just your own):
-1. **Latest handover checkpoint JSON** (newest timestamp, any platform)
-2. **Latest 3 session summaries** (from ANY platforms, not just yours)
-3. **`.agents/state/SESSION_INDEX.md`** - Cross-platform session index
-4. **`.agents/state/TASK_LOG.md`** - Complete task history
-5. **`.agents/state/current-session.json`** - Current session state
-6. **`.agents/PROJECT_STATUS.md`** - Project dashboard
+1. **`.agents/state/HANDOFF_BOARD.md`** - Handoff Queue section: items addressed to YOU (receive these first)
+2. **Latest handover checkpoint JSON** (newest timestamp, any platform)
+3. **Latest 3 session summaries** (from ANY platforms, not just yours)
+4. **`.agents/state/SESSION_INDEX.md`** - Cross-platform session index
+5. **`.agents/state/TASK_LOG.md`** - Complete task history
+6. **`.agents/state/current-session.json`** - Current session state
+7. **`.agents/PROJECT_STATUS.md`** - Project dashboard
 
 > **⚠️ CRITICAL**: You MUST read session summaries from **OTHER platforms**, not just your own. Work history is distributed across all agent platforms.
 
@@ -44,6 +45,7 @@ ls -lt project-log-md/*/*.md | head -10
 
 **A. Quick Overview (3 min)**
 ```bash
+cat .agents/state/HANDOFF_BOARD.md | head -60   # your queue + team status first
 cat .agents/state/TASK_LOG.md | head -100
 cat .agents/state/SESSION_INDEX.md | head -50
 ```
@@ -124,10 +126,11 @@ Add to `handoff_history`:
 ## Step 6: Start Working — No Manual Task Entry Needed
 
 The v2 handoff system has **no manual task entry, no task numbering, and no hand-edited
-index**. `TASK_LOG.md` and `SESSION_INDEX.md` are **generated** from checkpoint JSON.
+index**. `TASK_LOG.md`, `SESSION_INDEX.md`, and `HANDOFF_BOARD.md` are **generated**
+from checkpoint JSON.
 
 - **Do not** create a "Task #N" entry — that convention is retired.
-- **Do not** hand-edit `TASK_LOG.md` or `SESSION_INDEX.md` (your edits get overwritten).
+- **Do not** hand-edit `TASK_LOG.md`, `SESSION_INDEX.md`, or `HANDOFF_BOARD.md` (your edits get overwritten).
 - The record for your session is created **at the end** via the handoff command below.
 
 When your work is done, run the single handoff command (see
@@ -170,13 +173,14 @@ Starting work now.
 
 ## Pickup Checklist
 
+- [ ] **Read HANDOFF_BOARD.md** (your queue items first)
 - [ ] **Read TASK_LOG.md** (last 5 entries)
 - [ ] **Read SESSION_INDEX.md** (find recent summaries)
 - [ ] **Read 3 latest session summaries** (from ANY platforms)
 - [ ] latest handover JSON read
 - [ ] `PROJECT_STATUS.md` read
 - [ ] `current-session.json` updated for current agent
-- [ ] Read TASK_LOG.md + SESSION_INDEX.md (generated — read-only, never hand-edit)
+- [ ] Read TASK_LOG.md + SESSION_INDEX.md + HANDOFF_BOARD.md (generated — read-only, never hand-edit)
 - [ ] git branch validated
 - [ ] environment verified
 - [ ] **Confirmation message posted**
@@ -219,4 +223,5 @@ Do not start implementation until:
 2. Latest checkpoint + TASK_LOG state is coherent
 3. Session ownership is updated in current-session.json
 4. **SESSION_INDEX.md is read**
-5. **At least 3 cross-platform summaries have been read**
+5. **HANDOFF_BOARD.md queue checked for items addressed to you**
+6. **At least 3 cross-platform summaries have been read**

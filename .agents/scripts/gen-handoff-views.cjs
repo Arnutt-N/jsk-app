@@ -6,11 +6,16 @@
  * GENERATED VIEWS (never hand-edit):
  *   - .agents/state/TASK_LOG.md
  *   - .agents/state/SESSION_INDEX.md
+ *   - .agents/state/HANDOFF_BOARD.md   (agent status + directed-handoff queue)
  *
  * Why filename-first: the 11 platforms wrote heterogeneous JSON schemas and one
  * file is even invalid JSON. The filename `handover-<platform>-<YYYYMMDD-HHMM>.json`
  * is the only stable contract, so platform + timestamp come from the filename and
  * JSON internals are read best-effort.
+ *
+ * Queue rule: a checkpoint with `to_agent: X` is PENDING for X while it is newer
+ * than X's own newest checkpoint (pickup requires reading newest state, so a newer
+ * own-checkpoint proves X has cycled since). Missing/empty/"all" = broadcast.
  *
  * Run: node .agents/scripts/gen-handoff-views.cjs
  */
@@ -60,6 +65,17 @@ function summaryOf(j) {
   return '_(no work_summary field)_';
 }
 const statusOf = (j) => (j && (j.status || (j.metadata && j.metadata.status))) || 'unknown';
+// Directed recipient ('' = broadcast). 'all' is the explicit broadcast marker;
+// 'any' is its legacy alias (v1 checkpoints); non-strings render as broadcast.
+const toOf = (j) => {
+  if (!j || typeof j.to_agent !== 'string') return '';
+  const t = canon(j.to_agent.trim());
+  return t === 'all' || t === 'any' ? '' : t;
+};
+const STATUS_LABEL = { completed: 'AVAILABLE', in_progress: 'IN_PROGRESS', blocked: 'BLOCKED' };
+const statusLabel = (s) => STATUS_LABEL[s] || String(s);
+// Table-safe one-liner: collapse whitespace, neutralize pipes, cap length.
+const oneLine = (s, n) => String(s).replace(/\s+/g, ' ').replace(/\|/g, '/').trim().slice(0, n);
 
 function listSummaries() {
   const out = {};
@@ -104,9 +120,24 @@ function main() {
       summary: summaryOf(j),
       model: j && typeof j.model === 'string' ? j.model : '',
       provider: j && typeof j.provider === 'string' ? j.provider : '',
+      to: toOf(j),
     });
   }
   entries.sort((a, b) => b.sortKey.localeCompare(a.sortKey));
+
+  // Newest checkpoint per platform. entries is newest-first, so the first
+  // occurrence per platform wins.
+  const newestByPlatform = {};
+  for (const e of entries) {
+    if (!newestByPlatform[e.platform]) newestByPlatform[e.platform] = e;
+  }
+  // Pending queue per recipient (see Queue rule in the header comment).
+  const isPending = (e) => e.to && (!newestByPlatform[e.to] || e.sortKey > newestByPlatform[e.to].sortKey);
+  const queueByRecipient = {};
+  for (const e of entries) {
+    if (!isPending(e)) continue;
+    (queueByRecipient[e.to] = queueByRecipient[e.to] || []).push(e);
+  }
 
   const platforms = [...new Set(entries.map((e) => e.platform))].sort();
   const totalSummaries = Object.values(summaries).reduce((n, a) => n + a.length, 0);
@@ -129,6 +160,7 @@ function main() {
     const heading = meta ? `${e.when} — ${e.platform} (${meta}) — ${e.status}` : `${e.when} — ${e.platform} — ${e.status}`;
     log.push(`### ${heading}`, '', e.summary, '');
     log.push(`- Checkpoint: \`.agents/state/checkpoints/${e.file}\``);
+    if (e.to) log.push(`- To: \`${e.to}\` (directed)`);
     if (sm) log.push(`- Summary: \`project-log-md/${sm}\``);
     log.push('', '---', '');
   }
@@ -165,9 +197,63 @@ function main() {
   }
   fs.writeFileSync(path.join(ROOT, '.agents', 'state', 'SESSION_INDEX.md'), idx.join('\n'));
 
+  // ---- HANDOFF_BOARD.md ----
+  const queuedTotal = Object.values(queueByRecipient).reduce((n, a) => n + a.length, 0);
+  const board = [
+    banner,
+    '# Handoff Board (generated)',
+    '',
+    `> **Last generated**: ${stamp} (from newest checkpoint)`,
+    `> ${entries.length} active handoffs, ${platforms.length} platforms, ${queuedTotal} queued directed handoff(s).`,
+    '',
+    '> Regenerate after any handoff: `node .agents/scripts/gen-handoff-views.cjs`',
+    '',
+    '## Agent Status',
+    '',
+    '| Platform | Status | Last active | Queued | Last task | Summary |',
+    '|----------|--------|-------------|--------|-----------|---------|',
+  ];
+  for (const p of platforms) {
+    const e = newestByPlatform[p];
+    const sm = findSummary(summaries, e.platform, e.date, e.time);
+    const q = (queueByRecipient[p] || []).length;
+    board.push(`| ${p} | ${statusLabel(e.status)} | ${e.when} | ${q} | ${oneLine(e.summary, 120)} | ${sm ? `\`project-log-md/${sm}\`` : '—'} |`);
+  }
+  board.push('', '## Handoff Queue', '');
+  const recipients = Object.keys(queueByRecipient).sort();
+  if (!recipients.length) {
+    board.push('_Queue empty — no pending directed handoffs._', '');
+  }
+  for (const r of recipients) {
+    const rows = queueByRecipient[r];
+    board.push(`### ${r} (${rows.length} pending)`, '', '| Date | From | Task | Checkpoint |', '|------|------|------|------------|');
+    for (const e of rows) {
+      board.push(`| ${e.when} | ${e.platform} | ${oneLine(e.summary, 140)} | \`${e.file}\` |`);
+    }
+    board.push('');
+  }
+  const blocked = entries.filter((e) => e.status === 'blocked');
+  board.push('## Needs attention', '');
+  if (!blocked.length) {
+    board.push('_None — no blocked checkpoints._', '');
+  } else {
+    board.push('| When | From → To | Task | Checkpoint |', '|------|-----------|------|------------|');
+    for (const e of blocked.slice(0, 10)) {
+      board.push(`| ${e.when} | ${e.platform} → ${e.to || 'all'} | ${oneLine(e.summary, 140)} | \`${e.file}\` |`);
+    }
+    if (blocked.length > 10) board.push(`| … | | | +${blocked.length - 10} older |`);
+    board.push('');
+  }
+  board.push('## Recent Activity', '', '| When | From → To | Task | Checkpoint |', '|------|-----------|------|------------|');
+  for (const e of entries.slice(0, 10)) {
+    board.push(`| ${e.when} | ${e.platform} → ${e.to || 'all'} | ${oneLine(e.summary, 140)} | \`${e.file}\` |`);
+  }
+  board.push('');
+  fs.writeFileSync(path.join(ROOT, '.agents', 'state', 'HANDOFF_BOARD.md'), board.join('\n'));
+
   process.stdout.write(
-    `Generated TASK_LOG.md + SESSION_INDEX.md from ${entries.length} checkpoints ` +
-    `(${platforms.length} platforms, ${totalSummaries} summaries).\n`
+    `Generated TASK_LOG.md + SESSION_INDEX.md + HANDOFF_BOARD.md from ${entries.length} checkpoints ` +
+    `(${platforms.length} platforms, ${totalSummaries} summaries, ${queuedTotal} queued).\n`
   );
 }
 

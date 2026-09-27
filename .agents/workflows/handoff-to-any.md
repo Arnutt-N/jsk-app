@@ -19,6 +19,8 @@ node .agents/scripts/handoff-new.cjs <platform> "<work summary>" --model "GLM-4.
 # example:
 node .agents/scripts/handoff-new.cjs claude_code "Merged PR #114: rich-menu R1/R2" "Smoke test on prod"
 node .agents/scripts/handoff-new.cjs cline "Manual test pass" --model "GLM-4.5" --provider "Zhipu AI" "Commit results"
+# directed handoff (addressed to one agent — lands in their board queue):
+node .agents/scripts/handoff-new.cjs qoder "Auth fix ready for review" --to cline "Re-test login on staging"
 ```
 
 That single command does **everything**:
@@ -28,7 +30,7 @@ That single command does **everything**:
    `handoff-new.cjs`) — older entries disappearing is expected retention, not data loss.
 3. Refreshes `PROJECT_STATUS.md` — only the `Last Updated` line and one prepended
    `Recent Completions` entry (curated sections are left intact — keep those current by hand).
-4. Regenerates `TASK_LOG.md` + `SESSION_INDEX.md` via `gen-handoff-views.cjs`.
+4. Regenerates `TASK_LOG.md` + `SESSION_INDEX.md` + `HANDOFF_BOARD.md` via `gen-handoff-views.cjs`.
 5. Runs `validate_handoff_state.py` automatically and prints PASS / FAIL / skipped.
 
 Then you only:
@@ -42,13 +44,14 @@ exists and the tree is clean, so this can't be silently skipped.
 ```
 .agents/state/checkpoints/handover-<platform>-<YYYYMMDD-HHMM>.json  ← SOURCE OF TRUTH (one/session)
         └─ gen-handoff-views.cjs ─┬─→ .agents/state/TASK_LOG.md      ← GENERATED (do not hand-edit)
-                                  └─→ .agents/state/SESSION_INDEX.md  ← GENERATED (do not hand-edit)
+                                  ├─→ .agents/state/SESSION_INDEX.md  ← GENERATED (do not hand-edit)
+                                  └─→ .agents/state/HANDOFF_BOARD.md  ← GENERATED (status + queue)
 project-log-md/<platform>/session-summary-<YYYYMMDD-HHMM>.md          ← human narrative (linked)
 ```
 
-> **⛔ Never hand-edit `TASK_LOG.md` or `SESSION_INDEX.md`.** They are regenerated from
-> checkpoints and your edits will be overwritten. To change them: edit (or add) a
-> checkpoint JSON, then run `node .agents/scripts/gen-handoff-views.cjs`.
+> **⛔ Never hand-edit `TASK_LOG.md`, `SESSION_INDEX.md`, or `HANDOFF_BOARD.md`.**
+> They are regenerated from checkpoints and your edits will be overwritten. To change
+> them: edit (or add) a checkpoint JSON, then run `node .agents/scripts/gen-handoff-views.cjs`.
 
 Use canonical `lowercase_underscore` platform names: `claude_code`, `codex`,
 `kimi_code`, `antigravity`, `gemini_cli`, `cline`, `kilo_code`, `open_code`, `qwen`.
@@ -73,7 +76,8 @@ The generator normalizes variants (e.g. `codeX` → `codex`).
   "priority_actions": ["…"],       // next steps for the next agent
   "context_for_next_agent": "",     // optional free-text gotchas
   "session_summary": "project-log-md/<platform>/session-summary-<ts>.md",
-  "cross_platform_read": []         // optional: summaries from other platforms you relied on
+  "cross_platform_read": [],        // optional: summaries from other platforms you relied on
+  "to_agent": "cline"               // OPTIONAL — directed recipient (absent/"all" = broadcast)
 }
 ```
 
@@ -84,10 +88,15 @@ The generator normalizes variants (e.g. `codeX` → `codex`).
 **Optional keys** (validator warns if missing, does not fail):
 `model` — the AI model name (e.g. "GLM-4.5", "Claude Sonnet 4", "GPT-4o").
 `provider` — the AI provider/company (e.g. "Zhipu AI", "Anthropic", "OpenAI").
+`to_agent` — directed recipient platform code (e.g. "cline"); pass via `--to`.
+Absent or `"all"` = broadcast. A directed handoff stays in the recipient's board
+queue until they checkpoint. The validator warns (W4) on unknown targets and (W5)
+on queue items older than 7 days.
 
-Pass them via `--model` and `--provider` flags:
+Pass them via `--model`, `--provider`, and `--to` flags:
 ```bash
 node .agents/scripts/handoff-new.cjs cline "Work done" --model "GLM-4.5" --provider "Zhipu AI" "Next step"
+node .agents/scripts/handoff-new.cjs qoder "Auth fix ready for review" --to cline "Re-test login on staging"
 ```
 
 `cross_platform_read` is **optional** — fill it only when work from another platform
@@ -126,10 +135,11 @@ the newest checkpoint.
 ---
 
 ## Picking up (next agent)
-1. Read `.agents/state/TASK_LOG.md` (top few entries — newest first).
-2. Skim `.agents/state/SESSION_INDEX.md` for cross-platform context.
-3. Open the latest `project-log-md/<platform>/session-summary-*.md` for detail.
-4. Follow `.agents/workflows/pickup-from-any.md`.
+1. Check `.agents/state/HANDOFF_BOARD.md` — Handoff Queue section for items addressed to you.
+2. Read `.agents/state/TASK_LOG.md` (top few entries — newest first).
+3. Skim `.agents/state/SESSION_INDEX.md` for cross-platform context.
+4. Open the latest `project-log-md/<platform>/session-summary-*.md` for detail.
+5. Follow `.agents/workflows/pickup-from-any.md`.
 
 ---
 
