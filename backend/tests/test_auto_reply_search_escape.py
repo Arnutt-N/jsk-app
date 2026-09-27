@@ -9,9 +9,17 @@ returns canned rows, so it cannot detect wildcard-vs-literal behavior.
 
 Fixture strategy: insert uniquely-marked rows through a throwaway NullPool
 engine (recipe from test_liff_token.py:37-44), query via the real HTTP
-endpoint (TestClient + auth-gate dependency override only — the app's own
-``get_db`` is left in place so the handler runs against the same Postgres),
-then clean up by marker.
+endpoint with BOTH gates overridden (auth user + ``get_db`` pinned to the
+same throwaway engine), then clean up by marker.
+
+Why not the app's own ``get_db`` / ``TestClient`` lifespan: in a
+full-suite run the shared app engine's asyncpg connections bind to
+whatever event loop first touched them (an earlier test's loop), and the
+``TestClient`` portal thread runs on a different loop — the request then
+dies with "attached to a different loop". Overriding ``get_db`` with the
+test's own NullPool engine (fresh connection per checkout, created in
+the loop that uses it) plus a plain ``TestClient(app)`` (no lifespan, no
+DB bootstrap) keeps the test self-contained regardless of suite order.
 """
 import uuid
 from types import SimpleNamespace
@@ -24,6 +32,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
 
 from app.api.deps import get_current_admin
+from app.api.v1.endpoints import admin_auto_replies as admin_auto_replies_module
 from app.core.config import settings
 from app.main import app
 from app.models.auto_reply import AutoReply, MatchType, ReplyType
@@ -66,29 +75,38 @@ async def test_keyword_percent_and_underscore_match_literal_only():
         )
         await session.commit()
 
-    app.dependency_overrides[get_current_admin] = _fake_user
-    try:
-        with TestClient(app) as client:
-            # Percent: a literal '%' in the term must match only the row that
-            # actually contains '%'. Unescaped, '%{...}100%%' would also
-            # match the '100X' decoy.
-            response = client.get(
-                "/api/v1/admin/auto-replies", params={"keyword": f"{marker}100%"}
-            )
-            assert response.status_code == 200, response.text
-            keywords = [row["keyword"] for row in response.json()]
-            assert keywords == [f"{marker}100%"], keywords
+    async def _fresh_get_db():
+        async with Session() as session:
+            yield session
 
-            # Underscore: a literal '_' must match only the row that actually
-            # contains '_'. Unescaped, '%{...}a_%' would also match 'aXb'.
-            response = client.get(
-                "/api/v1/admin/auto-replies", params={"keyword": f"{marker}a_"}
-            )
-            assert response.status_code == 200, response.text
-            keywords = [row["keyword"] for row in response.json()]
-            assert keywords == [f"{marker}a_b"], keywords
+    app.dependency_overrides[get_current_admin] = _fake_user
+    app.dependency_overrides[admin_auto_replies_module.get_db] = _fresh_get_db
+    try:
+        # Plain TestClient (no lifespan context): avoids the app's DB
+        # bootstrap, whose shared engine is loop-bound in a full-suite run.
+        client = TestClient(app)
+
+        # Percent: a literal '%' in the term must match only the row that
+        # actually contains '%'. Unescaped, '%{...}100%%' would also
+        # match the '100X' decoy.
+        response = client.get(
+            "/api/v1/admin/auto-replies", params={"keyword": f"{marker}100%"}
+        )
+        assert response.status_code == 200, response.text
+        keywords = [row["keyword"] for row in response.json()]
+        assert keywords == [f"{marker}100%"], keywords
+
+        # Underscore: a literal '_' must match only the row that actually
+        # contains '_'. Unescaped, '%{...}a_%' would also match 'aXb'.
+        response = client.get(
+            "/api/v1/admin/auto-replies", params={"keyword": f"{marker}a_"}
+        )
+        assert response.status_code == 200, response.text
+        keywords = [row["keyword"] for row in response.json()]
+        assert keywords == [f"{marker}a_b"], keywords
     finally:
         app.dependency_overrides.pop(get_current_admin, None)
+        app.dependency_overrides.pop(admin_auto_replies_module.get_db, None)
         async with Session() as session:
             await session.execute(
                 delete(AutoReply).where(AutoReply.keyword.like(f"{marker}%"))
