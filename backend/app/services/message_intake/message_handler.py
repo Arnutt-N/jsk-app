@@ -65,7 +65,7 @@ async def handle_message_event(event: MessageEvent, db: AsyncSession):
             logger.info(
                 "Skipping re-delivered LINE message %s for user %s because it is already persisted",
                 line_message_id,
-                line_user_id,
+                mask_line_id(line_user_id),
             )
             return
 
