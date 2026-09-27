@@ -1,13 +1,21 @@
 {
-  "last_updated": "2026-09-27T11:56:00+07:00",
+  "last_updated": "2026-09-27T20:08:00+07:00",
   "platform": "cline",
-  "current_task": "Cline post-merge session on main c54552c: PR #233 merged, CI green 7/7, validator PASS",
+  "current_task": " Merged PR 236 codebase-review-fix batch F1-F7: SQL-like escaping pagination bounds broadcast fan-out dedup LINE-ID log masking Pydantic length caps - CI green on main CD deployed to Koyeb",
   "plan_status": "completed",
   "next_steps": [
-    "Manual LINE test on prod: booking book-edit-cancel flow plus private media preview",
-    "Keep _secret_migration_backup table; purge only after explicit operator confirmation"
+    "Smoke test prod: admin auto-reply search with wildcard chars Kanban board load live chat message flow",
+    "Optional: harden cd.yml Koyeb CLI install step - transient GitHub raw 404 caused one failed CD run passed on rerun",
+    "Optional: run full backend pytest in WSL per AGENTS.md - Windows run hangs at 96 pct pre-existing"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-09-27T20:08:00+07:00",
+      "platform": "cline",
+      "branch": "main",
+      "head": "85d42b7",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-09-27T11:56:00+07:00",
       "platform": "cline",
@@ -139,13 +147,6 @@
       "platform": "zcode",
       "branch": "main",
       "head": "ca25295",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-08-30T14:15:00+07:00",
-      "platform": "cline",
-      "branch": "main",
-      "head": "18303fa",
       "status": "completed"
     }
   ],
