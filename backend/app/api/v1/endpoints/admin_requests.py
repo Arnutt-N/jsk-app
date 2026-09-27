@@ -11,21 +11,18 @@ from app.services.business_hours_service import BANGKOK_TZ
 from app.db.session import get_db
 from app.api.deps import get_current_admin, get_current_manager
 from app.core.audit import create_audit_log
+from app.core.query_utils import escape_ilike
 from app.core.permissions import can_assign, can_self_assign, can_revert_approval, can_edit_request_details
 from app.core.request_workflow import describe_invalid_transition, requires_override
 from app.models.service_request import ServiceRequest, RequestStatus, RequestPriority
 from app.models.media_file import MediaFile
 from app.schemas.service_request_liff import ServiceRequestResponse, RequestCommentCreate, RequestCommentResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from app.models.user import User
 from app.models.request_comment import RequestComment
 
 router = APIRouter()
 
-
-def _escape_ilike(value: str) -> str:
-    """Escape SQL LIKE wildcards and backslash in user-supplied search terms."""
-    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 class RequestStats(BaseModel):
     total: int
@@ -56,22 +53,22 @@ class RequestSource(str, enum.Enum):
 class AdminRequestCreate(BaseModel):
     """Schema สำหรับสร้างคำร้องโดยแอดมิน"""
     # ข้อมูลผู้ร้อง
-    prefix: Optional[str] = None
-    firstname: Optional[str] = None
-    lastname: Optional[str] = None
-    phone_number: Optional[str] = None
-    email: Optional[str] = None
+    prefix: Optional[str] = Field(None, max_length=20)
+    firstname: Optional[str] = Field(None, max_length=100)
+    lastname: Optional[str] = Field(None, max_length=100)
+    phone_number: Optional[str] = Field(None, max_length=20)
+    email: Optional[str] = Field(None, max_length=254)
 
     # ที่อยู่ / หน่วยงาน
-    agency: Optional[str] = None
-    province: Optional[str] = None
-    district: Optional[str] = None
-    sub_district: Optional[str] = None
+    agency: Optional[str] = Field(None, max_length=200)
+    province: Optional[str] = Field(None, max_length=100)
+    district: Optional[str] = Field(None, max_length=100)
+    sub_district: Optional[str] = Field(None, max_length=100)
 
     # หัวข้อ
-    topic_category: Optional[str] = None
-    topic_subcategory: Optional[str] = None
-    description: Optional[str] = None
+    topic_category: Optional[str] = Field(None, max_length=100)
+    topic_subcategory: Optional[str] = Field(None, max_length=100)
+    description: Optional[str] = Field(None, max_length=5000)
 
     # ไฟล์แนบ (UUID strings ของ MediaFile)
     attachment_ids: Optional[list[str]] = None
@@ -271,8 +268,8 @@ async def list_requests(
     search: Optional[str] = Query(None, description="Search by name, phone, or description"),
     start_date: Optional[date] = Query(None, description="Filter requests created on or after this date (YYYY-MM-DD)"),
     end_date: Optional[date] = Query(None, description="Filter requests created on or before this date (YYYY-MM-DD)"),
-    skip: int = 0,
-    limit: int = 100,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=200),
     db: AsyncSession = Depends(get_db),
     current_admin: User = Depends(get_current_manager)
 ):
@@ -305,7 +302,7 @@ async def list_requests(
         query = query.where(ServiceRequest.created_at < end_dt)
     
     if search:
-        escaped = _escape_ilike(search)
+        escaped = escape_ilike(search)
         search_filter = (
             (ServiceRequest.firstname.ilike(f"%{escaped}%", escape="\\")) |
             (ServiceRequest.lastname.ilike(f"%{escaped}%", escape="\\")) |

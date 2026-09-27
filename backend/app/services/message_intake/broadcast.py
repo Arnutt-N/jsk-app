@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.schemas.ws_events import WSEventType
+from app.services.user_identity_service import resolve_by_line_id
 
 from ._deps import get_live_chat_service, get_ws_manager
 
@@ -26,11 +27,16 @@ async def notify_admins_conversation_update(
     """Broadcast CONVERSATION_UPDATE to all connected admins with per-admin unread counts."""
     ws = get_ws_manager()
 
-    for admin_id in ws.get_connected_admin_ids():
+    admins = ws.get_connected_admin_ids()
+    if not admins:
+        return
+
+    for admin_id in admins:
         unread_count = await get_live_chat_service().get_unread_count(
             line_user_id=line_user_id,
             admin_id=admin_id,
             db=db,
+            user=user,
         )
 
         await ws.send_to_admin(admin_id, {
@@ -79,11 +85,17 @@ async def notify_admins_message_sent(
             "timestamp": _utcnow().isoformat(),
         })
 
-    for admin_id in ws.get_connected_admin_ids():
+    admins = ws.get_connected_admin_ids()
+    if not admins:
+        return
+
+    user = await resolve_by_line_id(db, line_user_id)
+    for admin_id in admins:
         unread_count = await get_live_chat_service().get_unread_count(
             line_user_id=line_user_id,
             admin_id=admin_id,
             db=db,
+            user=user,
         )
 
         await ws.send_to_admin(admin_id, {

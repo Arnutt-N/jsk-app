@@ -1,7 +1,7 @@
 """Unread-count helpers for live chat conversations."""
 import logging
 from datetime import datetime
-from typing import Union
+from typing import Any, Union
 
 from sqlalchemy import DateTime, Integer, column, func, select, values
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,8 +20,19 @@ logger = logging.getLogger(__name__)
 
 
 class UnreadCountsMixin:
-    async def get_unread_count(self, line_user_id: str, admin_id: Union[int, str], db: AsyncSession) -> int:
-        """Compute unread incoming messages for one admin and conversation."""
+    async def get_unread_count(
+        self,
+        line_user_id: str,
+        admin_id: Union[int, str],
+        db: AsyncSession,
+        user: Any = None,
+    ) -> int:
+        """Compute unread incoming messages for one admin and conversation.
+
+        ``user`` may be a pre-resolved User row to avoid re-resolving the
+        same line_user_id repeatedly (e.g. once per admin in a broadcast
+        fan-out). When None, it is resolved here — same behavior as before.
+        """
         admin_id_str = str(admin_id)
         raw_read = await redis_client.get(
             ConnectionManager.build_read_key(admin_id_str, line_user_id)
@@ -33,7 +44,8 @@ class UnreadCountsMixin:
             except ValueError:
                 read_at = None
 
-        user = await resolve_by_line_id(db, line_user_id)
+        if user is None:
+            user = await resolve_by_line_id(db, line_user_id)
         unread_stmt = select(func.count(Message.id)).where(
             child_filter(Message, line_user_id, user.id if user else None),
             Message.direction == MessageDirection.INCOMING,

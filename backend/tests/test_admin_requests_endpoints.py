@@ -1333,3 +1333,82 @@ def test_list_requests_invalid_date_bounds_returns_400():
     assert response.status_code == 400
     assert response.json()["detail"] == "start_date must not be after end_date"
 
+
+# ---------------------------------------------------------------------------
+# Codebase-review fix batch (2026-09-27) — F7 + F5 regression tests.
+# ---------------------------------------------------------------------------
+
+
+def test_request_search_escapes_like_wildcards():
+    """F7 regression: ?search= must go through the shared escape_ilike so a
+    literal '%' survives in the compiled ilike pattern. Bind-level proof:
+    the compiled statement's bind parameters must contain the escaped
+    pattern ``%100\\%%`` (the _FakeDB idiom cannot evaluate ilike
+    semantics, so the statement's bind values are asserted instead)."""
+    fake_db = _FakeDB()
+    fake_db._fake_list_rows = []
+
+    async def _override_get_db():
+        yield fake_db
+
+    async def _override_admin():
+        return SimpleNamespace(
+            id=7, username="admin", display_name="Admin", role=UserRole.ADMIN
+        )
+
+    app.dependency_overrides[session_get_db] = _override_get_db
+    app.dependency_overrides[deps.get_current_admin] = _override_admin
+    app.dependency_overrides[deps.get_current_manager] = _override_admin
+
+    client = TestClient(app)
+    try:
+        response = client.get("/api/v1/admin/requests", params={"search": "100%"})
+    finally:
+        client.close()
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200, response.text
+    assert fake_db.last_stmt is not None
+    # Assert on the bind parameters, NOT on literal_binds-rendered SQL:
+    # SQL string-literal rendering double-escapes backslashes ('100\\%'
+    # becomes '100\\\\%'), which would hide the real bind value.
+    compiled = fake_db.last_stmt.compile()
+    pattern_values = [str(v) for v in compiled.params.values()]
+    # The escaped pattern '%100\%%' must be among the binds; an unescaped
+    # '%100%%' (wildcard left raw) must not.
+    assert any("100\\%" in v for v in pattern_values), pattern_values
+    assert not any("100%%" in v and "100\\%" not in v for v in pattern_values), (
+        pattern_values
+    )
+
+
+def test_create_request_rejects_oversize_description():
+    """F5 regression: description longer than 5000 chars must 422 at Pydantic
+    validation, before any handler/DB code runs."""
+    async def _override_get_db():
+        yield _FakeDB()
+
+    async def _override_admin():
+        return SimpleNamespace(
+            id=7, username="admin", display_name="Admin", role=UserRole.ADMIN
+        )
+
+    app.dependency_overrides[session_get_db] = _override_get_db
+    app.dependency_overrides[deps.get_current_admin] = _override_admin
+
+    client = TestClient(app)
+    try:
+        response = client.post(
+            "/api/v1/admin/requests", json={"description": "x" * 5001}
+        )
+    finally:
+        client.close()
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 422, response.text
+    # The 422 must point at the description field specifically.
+    assert any(
+        err.get("loc") == ["body", "description"]
+        for err in response.json().get("detail", [])
+    ), response.text
+

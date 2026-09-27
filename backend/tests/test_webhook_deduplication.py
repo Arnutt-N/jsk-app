@@ -417,3 +417,53 @@ class TestRedisClient:
     async def test_is_connected_property(self, redis_client):
         """Test is_connected property."""
         assert redis_client.is_connected is False
+
+
+class TestRedeliverySkipLogMasking:
+    """F4: the redelivery-skip log must never contain the raw LINE user ID."""
+
+    @pytest.mark.asyncio
+    async def test_redelivery_skip_log_masks_line_user_id(self, monkeypatch, caplog):
+        """The skip log must show mask_line_id's form (first 6 chars + '…'
+        for a 33-char ID — see app/core/logging_utils.py) and the full raw
+        ID must be absent from the captured log text."""
+        import logging
+
+        from app.api.v1.endpoints import webhook as webhook_module
+        from app.core.logging_utils import mask_line_id
+        from app.services import message_intake as mi_pkg
+
+        raw_line_id = "U" + "0123456789abcdef0123456789abcdef"  # 33 chars
+        existing_message = SimpleNamespace(
+            id=99, created_at=datetime.now(timezone.utc)
+        )
+        event = SimpleNamespace(
+            reply_token="reply-token",
+            source=SimpleNamespace(user_id=raw_line_id),
+            message=SimpleNamespace(id="line-msg-456"),
+        )
+        db = AsyncMock()
+
+        monkeypatch.setattr(
+            mi_pkg.line_service,
+            "get_incoming_message_by_line_message_id",
+            AsyncMock(return_value=existing_message),
+        )
+        monkeypatch.setattr(mi_pkg.friend_service, "get_or_create_user", AsyncMock())
+        monkeypatch.setattr(mi_pkg.friend_service, "refresh_profile", AsyncMock())
+        monkeypatch.setattr(mi_pkg.line_service, "save_message", AsyncMock())
+        monkeypatch.setattr(mi_pkg.line_service, "reply_messages", AsyncMock())
+
+        with caplog.at_level(
+            logging.INFO,
+            logger="app.services.message_intake.message_handler",
+        ):
+            await webhook_module.handle_message_event(event, db)
+
+        skip_records = [
+            r for r in caplog.records if "Skipping re-delivered" in r.getMessage()
+        ]
+        assert skip_records, "expected the redelivery-skip log line"
+        logged = skip_records[0].getMessage()
+        assert mask_line_id(raw_line_id) in logged, logged
+        assert raw_line_id not in logged, logged

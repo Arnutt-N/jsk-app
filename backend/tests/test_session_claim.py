@@ -628,3 +628,43 @@ def test_delete_conversation_resets_chat_mode_to_bot(test_client):
         mock_db.commit.assert_awaited()
     finally:
         app.dependency_overrides.clear()
+
+
+def test_create_conversation_rejects_oversize_reason(test_client):
+    """F6 regression: CreateSessionRequest.reason longer than 255 chars must
+    422 at Pydantic validation, before any handler/DB code runs.
+
+    This targets POST /conversations (the create-session schema). The
+    transfer flow is NOT the target: TransferSessionPayload.reason already
+    carries max_length=255 today (app/schemas/ws_events.py:126), so a test
+    there would pass before the fix and prove nothing."""
+    mock_db = AsyncMock()
+    fake_user = SimpleNamespace(id=7)
+
+    async def _override_get_db():
+        yield mock_db
+
+    async def _override_get_current_staff():
+        return fake_user
+
+    app.dependency_overrides[deps.get_db] = _override_get_db
+    app.dependency_overrides[deps.get_current_staff] = _override_get_current_staff
+
+    try:
+        response = test_client.post(
+            "/api/v1/admin/live-chat/conversations",
+            json={
+                "line_user_id": "Uabcdef0123456789abcdef0123456789",
+                "initial_message": "hello",
+                "reason": "x" * 256,
+            },
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 422, response.text
+    # The 422 must point at the reason field specifically.
+    assert any(
+        err.get("loc") == ["body", "reason"]
+        for err in response.json().get("detail", [])
+    ), response.text
