@@ -8,6 +8,7 @@ import { StaggerContainer, StaggerItem } from '@/components/ui/PageTransition';
 import StatsCard from './components/StatsCard';
 import ChartsWrapper from './components/ChartsWrapper';
 import PageHeader from './components/PageHeader';
+import { getHttpStatusMessage } from '@/lib/api-error';
 
 async function fetchWithTimeout(url: string, timeout = 15000) {
     const controller = new AbortController();
@@ -62,6 +63,8 @@ async function getRequestData() {
         }
     } else if (statsResult.status === 'rejected') {
         errorMessage ??= getErrorMessage(statsResult.reason);
+    } else if (statsResult.status === 'fulfilled' && !statsResult.value.ok) {
+        errorMessage ??= getHttpStatusMessage(statsResult.value.status);
     }
 
     // Process monthly data result
@@ -74,10 +77,14 @@ async function getRequestData() {
         }
     } else if (monthlyResult.status === 'rejected') {
         errorMessage ??= getErrorMessage(monthlyResult.reason);
+    } else if (monthlyResult.status === 'fulfilled' && !monthlyResult.value.ok) {
+        errorMessage ??= getHttpStatusMessage(monthlyResult.value.status);
     }
 
     // Only show error if both requests failed
-    const bothFailed = statsResult.status === 'rejected' && monthlyResult.status === 'rejected';
+    const statsFailed = statsResult.status === 'rejected' || (statsResult.status === 'fulfilled' && !statsResult.value.ok);
+    const monthlyFailed = monthlyResult.status === 'rejected' || (monthlyResult.status === 'fulfilled' && !monthlyResult.value.ok);
+    const bothFailed = statsFailed && monthlyFailed;
     const error = bothFailed
         ? errorMessage ?? 'Failed to load service data. Please check if the backend is running.'
         : null;

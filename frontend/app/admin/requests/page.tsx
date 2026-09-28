@@ -88,11 +88,17 @@ interface ServiceRequest {
 }
 
 
+const PAGE_LIMIT = 100;
+
 export default function AdminRequestList() {
     const { toast } = useToast();
     const [requests, setRequests] = useState<ServiceRequest[]>([]);
     const [loading, setLoading] = useState(true);
     const [fetchError, setFetchError] = useState<string | null>(null);
+    const [page, setPage] = useState(0);
+    // Computed from the RAW fetched length (before client-side status splits),
+    // so a heavily filtered full page still offers Next.
+    const [hasMore, setHasMore] = useState(false);
     const [filter, setFilter] = useState({
         status: '',
         category: '',
@@ -124,9 +130,12 @@ export default function AdminRequestList() {
             if (debouncedSearch) query.append('search', debouncedSearch);
             if (filter.startDate) query.append('start_date', filter.startDate);
             if (filter.endDate) query.append('end_date', filter.endDate);
+            query.append('skip', String(page * PAGE_LIMIT));
+            query.append('limit', String(PAGE_LIMIT));
 
             const result = await apiFetch<ServiceRequest[]>(`/admin/requests?${query.toString()}`);
             if (result.ok) {
+                setHasMore(result.data.length >= PAGE_LIMIT);
                 let data = result.data;
                 if (isAwaitingAssignmentFilter) {
                     data = data.filter((r) => !r.assigned_agent_id);
@@ -140,7 +149,7 @@ export default function AdminRequestList() {
         } finally {
             setLoading(false);
         }
-    }, [debouncedSearch, filter.category, filter.status, filter.startDate, filter.endDate]);
+    }, [debouncedSearch, filter.category, filter.status, filter.startDate, filter.endDate, page]);
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -148,6 +157,10 @@ export default function AdminRequestList() {
         }, 500);
         return () => clearTimeout(timer);
     }, [search]);
+
+    useEffect(() => {
+        setPage(0);
+    }, [filter.status, filter.category, debouncedSearch, filter.startDate, filter.endDate]);
 
     useEffect(() => {
         void fetchRequests();
@@ -457,14 +470,13 @@ export default function AdminRequestList() {
                     </table>
                 </div>
 
-                {/* Pagination Placeholder */}
                 <div className="px-6 py-4 border-t border-border-default bg-bg/30 flex items-center justify-between">
-                    <p className="text-xs text-text-tertiary font-medium">Showing {requests.length} requests</p>
+                    <p className="text-xs text-text-tertiary font-medium">Showing {requests.length} requests (page {page + 1})</p>
                     <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm" className="h-8 w-8 p-0" disabled>
+                        <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={page === 0} aria-label="Previous page">
                             <ChevronLeft className="w-4 h-4" />
                         </Button>
-                        <Button variant="outline" size="sm" className="h-8 w-8 p-0" disabled>
+                        <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => setPage((p) => p + 1)} disabled={!hasMore} aria-label="Next page">
                             <ChevronRight className="w-4 h-4" />
                         </Button>
                     </div>

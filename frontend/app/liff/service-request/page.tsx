@@ -228,7 +228,8 @@ export default function LiffServiceRequestV2() {
 
     // Handle File Upload
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (!e.target.files?.length) return
+        const input = e.target;
+        if (!input.files?.length) return
 
         const capMessage = attachmentCapMessage(formData.attachments.length, inflightUploadsRef.current)
         if (capMessage) {
@@ -258,6 +259,7 @@ export default function LiffServiceRequestV2() {
             alert(isSessionExpired(err) ? SESSION_EXPIRED_MESSAGE : failureMessage)
             logger.error(err)
         } finally {
+            input.value = '';
             inflightUploadsRef.current -= 1
         }
     }

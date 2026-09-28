@@ -223,50 +223,45 @@ test.describe('Request detail page -- supervisor view', () => {
     await expect(page.locator('text=เสร็จสิ้น').first()).toBeVisible()
   })
 
-  test('confirming the revert dialog sends PATCH and the page reloads', async ({ page }) => {
+  test('confirming the revert dialog sends PATCH and flips the status pill', async ({ page }) => {
     const detailUrl = await getFirstCompletedRequestDetailUrl(page)
     test.skip(!detailUrl, 'no COMPLETED requests in test DB')
+    const id = detailUrl!.split('/').pop()!
 
-    // Intercept the PATCH so the test does NOT mutate seeded data. We
-    // return a fulfilled response with the new status payload; the
-    // frontend's useGuardedUpdate fires a window.location.reload() on
-    // success, which we observe via a navigation wait.
-    await page.route('**/api/v1/admin/requests/*', async (route) => {
-      if (route.request().method() === 'PATCH') {
-        // Echo the PATCH body back so the page mounts cleanly post-reload.
-        const body = route.request().postDataJSON?.() ?? {}
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({ ok: true, ...body }),
-        })
-        return
-      }
-      await route.continue()
-    })
-
-    await page.goto(detailUrl!)
+    // Baseline: real backend GET on page load; capture BEFORE installing fulfills.
+    const [detailResp] = await Promise.all([
+      page.waitForResponse((r) => r.request().method() === 'GET' && r.url().endsWith(`/api/v1/admin/requests/${id}`)),
+      page.goto(detailUrl!),
+    ])
+    const baseline = await detailResp.json()
     await expect(page.getByRole('button', { name: 'กลับ' })).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('text=เสร็จสิ้น').first()).toBeVisible()
+
+    // Fulfill PATCH (no backend mutation) + the follow-up GET refetch with reverted state.
+    let patchPayload: Record<string, unknown> | null = null
+    await page.route(`**/api/v1/admin/requests/${id}`, async (route) => {
+      const req = route.request()
+      if (req.method() === 'PATCH') {
+        patchPayload = req.postDataJSON?.() ?? {}
+        return route.fulfill({ status: 200, contentType: 'application/json',
+          body: JSON.stringify({ ok: true, ...patchPayload }) })
+      }
+      return route.fulfill({ status: 200, contentType: 'application/json',
+        body: JSON.stringify({ ...baseline, status: 'AWAITING_APPROVAL' }) })
+    })
 
     await page.getByRole('button', { name: 'การจัดการพิเศษ' }).click()
     await page.getByRole('menuitem', { name: /ยกเลิกอนุมัติ.*รออนุมัติ/ }).click()
-
     const dialog = page.getByRole('dialog')
     await expect(dialog).toBeVisible()
 
-    // Wait for the PATCH to be sent when confirm fires.
-    const patchPromise = page.waitForRequest(
-      (req) =>
-        req.method() === 'PATCH' &&
-        /\/api\/v1\/admin\/requests\/\d+$/.test(req.url()),
-    )
-
-    // Confirm button copy is "ยืนยัน" in our canonical ConfirmDialog.
+    const patchRespPromise = page.waitForResponse((r) =>
+      r.request().method() === 'PATCH' && r.url().endsWith(`/api/v1/admin/requests/${id}`))
     await dialog.getByRole('button', { name: /ยืนยัน/ }).click()
-
-    const patchRequest = await patchPromise
-    const payload = patchRequest.postDataJSON?.() as { status?: string } | undefined
-    expect(payload?.status).toBe('AWAITING_APPROVAL')
+    const patchResp = await patchRespPromise
+    expect(patchResp.ok()).toBe(true)
+    expect(patchPayload?.status).toBe('AWAITING_APPROVAL')
+    await expect(page.locator('text=รออนุมัติ').first()).toBeVisible({ timeout: 10_000 })
   })
 
   test('console stays clean -- no unhandled promise rejections on hero card', async ({ page }) => {
