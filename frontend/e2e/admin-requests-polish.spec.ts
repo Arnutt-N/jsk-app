@@ -33,6 +33,23 @@ import { loginAsAdmin } from './utils/auth'
  * the create-link too on some renderings.
  */
 async function getFirstRequestDetailUrl(page: Page): Promise<string | null> {
+  // Wait for row links to render: the table skeleton mounts before the
+  // list API responds, so an immediate scan would see zero rows and
+  // wrongly report an empty DB (cold-start skip flake).
+  try {
+    await page.waitForFunction(
+      () => {
+        const anchors = document.querySelectorAll('a[href*="/admin/requests/"]')
+        return Array.from(anchors).some((a) =>
+          /\/admin\/requests\/\d+$/.test(a.getAttribute('href') || ''),
+        )
+      },
+      null,
+      { timeout: 10_000 },
+    )
+  } catch {
+    return null
+  }
   const links = page.locator('a[href*="/admin/requests/"]')
   const count = await links.count()
   for (let i = 0; i < count; i++) {
@@ -98,7 +115,7 @@ test.describe('Admin Requests UI Polish', () => {
     expect(tabsClasses.some((c) => /text-text-secondary|text-primary/.test(c))).toBe(true)
   })
 
-  test('date picker has w-10 / w-10 / w-24 width proportions (#3)', async ({ page }) => {
+  test('date picker has w-9 / w-9 / w-14 width proportions (#3)', async ({ page }) => {
     await page.goto('/admin/requests')
     await expect(page.locator('table')).toBeVisible({ timeout: 10_000 })
 
@@ -109,9 +126,10 @@ test.describe('Admin Requests UI Polish', () => {
     }
     await page.goto(detailUrl)
 
-    // Navigate to manage tab where the date picker is rendered.
-    const manageTab = page.locator('button:has-text("จัดการ")').first()
-    if (await manageTab.isVisible()) await manageTab.click()
+    // Navigate to manage tab where the date picker is rendered. Click
+    // unconditionally (auto-waits): the old isVisible-guard raced the
+    // detail loading spinner and silently skipped the click.
+    await page.getByRole('tab', { name: /จัดการคำร้อง/ }).click()
 
     // Day / Month / Year inputs — identified by aria-label (stable).
     const dayInput = page.locator('input[aria-label="วันที่"]').first()
@@ -119,9 +137,9 @@ test.describe('Admin Requests UI Polish', () => {
     const yearInput = page.locator('input[aria-label="ปี พ.ศ."]').first()
 
     await expect(dayInput).toBeVisible({ timeout: 5_000 })
-    await expect(dayInput).toHaveClass(/\bw-10\b/)
-    await expect(monthInput).toHaveClass(/\bw-10\b/)
-    await expect(yearInput).toHaveClass(/\bw-24\b/)
+    await expect(dayInput).toHaveClass(/\bw-9\b/)
+    await expect(monthInput).toHaveClass(/\bw-9\b/)
+    await expect(yearInput).toHaveClass(/\bw-14\b/)
   })
 
   test('AssignModal title strips "(Assign Request)" and has no Active Tasks footnote (#7a, #7b)', async ({ page }) => {
