@@ -40,8 +40,10 @@ class _SeqDB:
 
     def __init__(self, results):
         self._results = list(results)
+        self.statements = []
 
     async def execute(self, stmt):
+        self.statements.append(stmt)
         value = self._results.pop(0) if self._results else None
         return _Result(value)
 
@@ -75,6 +77,7 @@ def _override(results):
 
     app.dependency_overrides[session_get_db] = _get_db
     app.dependency_overrides[deps.get_current_admin] = _get_admin
+    return db
 
 
 def _clear():
@@ -98,3 +101,61 @@ def test_list_rich_menus_includes_user_link_count():
     counts = {m["id"]: m["user_link_count"] for m in data}
     assert counts[1] == 3
     assert counts[2] == 0
+
+
+def _literal_sql(stmt):
+    return str(stmt.compile(compile_kwargs={"literal_binds": True}))
+
+
+def test_list_rich_menus_default_returns_all_under_100():
+    menus = [_full_menu(id=i, name=f"M{i}") for i in range(1, 4)]
+    _override(results=[menus, []])
+    client = TestClient(app)
+    try:
+        resp = client.get(BASE)
+    finally:
+        client.close()
+        _clear()
+
+    assert resp.status_code == 200
+    assert len(resp.json()) == 3
+
+
+def test_list_rich_menus_limit_applied_to_query():
+    db = _override(results=[[], []])
+    client = TestClient(app)
+    try:
+        resp = client.get(f"{BASE}?limit=5")
+    finally:
+        client.close()
+        _clear()
+
+    assert resp.status_code == 200
+    assert "LIMIT 5" in _literal_sql(db.statements[0])
+
+
+def test_list_rich_menus_skip_offsets_query():
+    db = _override(results=[[], []])
+    client = TestClient(app)
+    try:
+        resp = client.get(f"{BASE}?skip=10&limit=5")
+    finally:
+        client.close()
+        _clear()
+
+    assert resp.status_code == 200
+    sql = _literal_sql(db.statements[0])
+    assert "LIMIT 5" in sql
+    assert "OFFSET 10" in sql
+
+
+def test_list_rich_menus_limit_over_100_rejected():
+    _override(results=[[], []])
+    client = TestClient(app)
+    try:
+        resp = client.get(f"{BASE}?limit=101")
+    finally:
+        client.close()
+        _clear()
+
+    assert resp.status_code == 422

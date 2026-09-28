@@ -96,8 +96,13 @@ def resolve_rich_menu_size(template_type: str) -> dict:
 
 
 @router.get("", response_model=List[RichMenuResponse])
-async def list_rich_menus(db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_admin)):
-    result = await db.execute(select(RichMenu).order_by(RichMenu.created_at.desc()))
+async def list_rich_menus(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+    current_admin: User = Depends(get_current_admin),
+):
+    result = await db.execute(select(RichMenu).order_by(RichMenu.created_at.desc()).offset(skip).limit(limit))
     menus = result.scalars().all()
 
     # Batch-count per-user links grouped by rich_menu_id in ONE query (avoids
@@ -123,10 +128,12 @@ async def list_rich_menus(db: AsyncSession = Depends(get_db), current_admin: Use
 
 @router.get("/aliases", response_model=List[RichMenuAliasResponse])
 async def list_rich_menu_aliases(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
-    result = await db.execute(select(RichMenuAlias).order_by(RichMenuAlias.created_at.desc()))
+    result = await db.execute(select(RichMenuAlias).order_by(RichMenuAlias.created_at.desc()).offset(skip).limit(limit))
     return result.scalars().all()
 
 @router.post("/aliases", response_model=RichMenuAliasResponse)
