@@ -2,7 +2,7 @@
 
 The REST endpoint POST /api/v1/admin/live-chat/conversations/{id}/transfer
 catches the ValueError raised by LiveChatService.transfer_session and maps it
-to 404 / 403 / 400. transfer_session carries an @audit_action decorator and
+to 404 / 403 / 400. transfer_session writes its audit row explicitly and
 needs a real DB, so the service layer is mocked here -- these tests exercise
 only the endpoint's error mapping, not the transfer business logic itself.
 """

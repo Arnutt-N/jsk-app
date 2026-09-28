@@ -33,6 +33,7 @@ interface AuditStats {
 const ACTION_COLORS: Record<string, string> = {
   "claim_session": "bg-info/12 text-info",
   "close_session": "bg-danger/12 text-danger",
+  "transfer_session": "bg-warning/12 text-warning",
   "send_message": "bg-success/12 text-success",
   "create": "bg-brand-500/12 text-brand-600",
   "update": "bg-warning/12 text-warning",
