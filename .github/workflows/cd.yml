@@ -296,8 +296,29 @@ jobs:
       - name: Install Koyeb CLI
         if: steps.config.outputs.deploy_configured == 'true'
         shell: bash
+        # Pinned tarball + checksum: install.sh alone fetches the latest
+        # binary (moving target), so pin the release assets instead (R3-M27).
+        # Re-verify before any bump:
+        #   gh api repos/koyeb/koyeb-cli/releases/latest \
+        #     --jq "{tag: .tag_name, assets: [.assets[].name]}"
+        env:
+          KOYEB_CLI_VERSION: v5.12.0
         run: |
-          curl -fsSL https://raw.githubusercontent.com/koyeb/koyeb-cli/master/install.sh | sh
+          set -e
+          URL_BASE="https://github.com/koyeb/koyeb-cli/releases/download/${KOYEB_CLI_VERSION}"
+          TARBALL="koyeb-cli_${KOYEB_CLI_VERSION#v}_linux_amd64.tar.gz"
+          mkdir -p /tmp/koyeb-dl && cd /tmp/koyeb-dl
+          for i in 1 2 3; do
+            curl -fsSL -o "$TARBALL" "$URL_BASE/$TARBALL" \
+            && curl -fsSL -o checksums.txt "$URL_BASE/checksums.txt" && break || sleep 10
+          done
+          test -s "$TARBALL" && test -s checksums.txt
+          sha256sum -c --ignore-missing checksums.txt
+          mkdir -p "$HOME/.koyeb/bin" && tar -xzf "$TARBALL" -C "$HOME/.koyeb/bin"
+          BIN="$(find "$HOME/.koyeb/bin" -name koyeb -type f | head -1)"
+          BIN_DIR="$(dirname "$BIN")"
+          if [ "$BIN_DIR" != "$HOME/.koyeb/bin" ]; then mv "$BIN" "$HOME/.koyeb/bin/koyeb"; BIN="$HOME/.koyeb/bin/koyeb"; fi
+          test -x "$BIN" && "$BIN" version
           echo "$HOME/.koyeb/bin" >> "$GITHUB_PATH"
 
       - name: Redeploy Koyeb service
