@@ -299,7 +299,6 @@ class SessionLifecycleMixin:
             if not current:
                 raise ValueError(TRANSFER_ERR_NO_ACTIVE_SESSION)
             raise ValueError(TRANSFER_ERR_CONFLICT)
-        await db.commit()
         refreshed = await db.get(ChatSession, session.id)
         logger.info(f"Session {session.id} transferred from operator {from_operator_id} to {to_operator_id}")
         return refreshed
