@@ -10,6 +10,8 @@ from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from linebot.v3.messaging import FlexContainer, FlexMessage
+
 from app.models.booking import Booking
 from app.services.flex_messages import build_booking_confirmation
 from app.services.line_service import line_service, resolve_raw_for_push
@@ -36,9 +38,10 @@ async def _push_flex(db: AsyncSession, user, alt_text: str, contents: dict) -> b
         logger.warning("No LINE id resolvable for user %s; skipping push", getattr(user, "id", "?"))
         return False
 
+    container = FlexContainer.from_dict(contents)
     await line_service.push_messages(
         raw_line_id,
-        [{"type": "flex", "altText": alt_text, "contents": contents}],
+        [FlexMessage(alt_text=alt_text, contents=container)],
     )
     return True
 

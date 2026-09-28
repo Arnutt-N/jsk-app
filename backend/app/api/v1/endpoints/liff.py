@@ -14,12 +14,13 @@ from app.models.debt_mediation import (
     DebtMediationRequest,
 )
 from app.models.media_file import MediaFile, detect_category
+from app.utils.mime_sniff import sniff_mime
 from app.models.service_request import RequestStatus, ServiceRequest
 from app.schemas.debt_mediation_liff import (
     DebtMediationCreate,
     DebtMediationResponse,
 )
-from app.schemas.service_request_liff import ServiceRequestCreate, ServiceRequestResponse
+from app.schemas.service_request_liff import AttachmentRef, ServiceRequestCreate, ServiceRequestResponse
 from app.services.friend_service import friend_service
 from app.services.user_identity_service import resolve_by_line_id
 
@@ -117,14 +118,20 @@ async def upload_liff_media(
     if len(content) > _LIFF_MEDIA_MAX_BYTES:
         raise HTTPException(status_code=413, detail="ไฟล์มีขนาดใหญ่เกินไป (สูงสุด 10MB)")
 
+    # Magic bytes decide the stored mime — the multipart Content-Type above
+    # is a cheap pre-check only and is trivially spoofed.
+    sniffed = sniff_mime(content)
+    if sniffed is None or sniffed not in _LIFF_MEDIA_ALLOWED_MIMES:
+        raise HTTPException(status_code=422, detail="ไฟล์ไม่ตรงกับประเภทที่รองรับ (JPEG, PNG, PDF เท่านั้น)")
+
     filename = file.filename or "untitled"
 
     media = MediaFile(
         filename=filename,
-        mime_type=mime,
+        mime_type=sniffed,
         data=content,
         size_bytes=len(content),
-        category=detect_category(mime, filename),
+        category=detect_category(sniffed, filename),
     )
     db.add(media)
     await db.commit()
@@ -211,7 +218,12 @@ async def create_service_request(
         
         # Content
         description=request.description,
-        attachments=request.attachments
+        # AttachmentRef models are not JSON-serializable — dump to plain
+        # dicts before storing in the JSONB column.
+        attachments=[
+            a.model_dump() if isinstance(a, AttachmentRef) else a
+            for a in (request.attachments or [])
+        ]
     )
     
     db.add(db_obj)

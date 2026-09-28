@@ -1,8 +1,8 @@
 import logging
 import secrets
-from typing import AsyncGenerator, Optional
+from typing import Optional
 from fastapi import Depends, HTTPException, Request, status
-from app.db.session import AsyncSessionLocal
+from app.db.session import AsyncSessionLocal, get_db
 from app.core.config import settings
 from app.core.cookie_auth import ACCESS_COOKIE, CSRF_COOKIE
 from app.core.permissions import (
@@ -22,9 +22,9 @@ logger = logging.getLogger(__name__)
 # cleanup removed the Bearer path.
 _CSRF_PROTECTED_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 
-async def get_db() -> AsyncGenerator:
-    async with AsyncSessionLocal() as session:
-        yield session
+# get_db is re-exported from app.db.session (single implementation — R3-M26).
+# Both `deps.get_db` and `session.get_db` are the SAME function object, so
+# dependency_overrides keys work no matter which path a test imports.
 
 
 async def get_current_user(

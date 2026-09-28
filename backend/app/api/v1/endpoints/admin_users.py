@@ -3,6 +3,7 @@
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, or_, and_
+from sqlalchemy.exc import IntegrityError
 from typing import List, Optional
 
 from app.db.session import get_db
@@ -12,10 +13,15 @@ from app.core.permissions import KEY_MANAGE_USERS
 from app.core.pii_masking import mask_line_id
 from app.models.user import User, UserRole
 from app.models.service_request import ServiceRequest, RequestStatus
-from app.core.security import get_password_hash, get_password_hash_async, verify_password
+from app.core.security import (
+    assert_bcrypt_compatible,
+    get_password_hash,
+    get_password_hash_async,
+    verify_password,
+)
 from app.services.user_identity_service import decrypt_user_line_id
 from app.core.query_utils import escape_ilike
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 import math
 
 router = APIRouter()
@@ -58,10 +64,15 @@ class UserStatsResponse(BaseModel):
 
 class UserCreateRequest(BaseModel):
     username: str = Field(..., min_length=3, max_length=50)
-    password: str = Field(..., min_length=8)
+    password: str = Field(..., min_length=8, max_length=72)
     display_name: str = Field(..., min_length=1, max_length=100)
     email: Optional[str] = None
     role: UserRole = UserRole.AGENT
+
+    @field_validator("password")
+    @classmethod
+    def _check_password_bytes(cls, v: str) -> str:
+        return assert_bcrypt_compatible(v)
 
 
 class UserUpdateRequest(BaseModel):
@@ -69,11 +80,21 @@ class UserUpdateRequest(BaseModel):
     email: Optional[str] = None
     role: Optional[UserRole] = None
     is_active: Optional[bool] = None
-    password: Optional[str] = Field(None, min_length=8)
+    password: Optional[str] = Field(None, min_length=8, max_length=72)
+
+    @field_validator("password")
+    @classmethod
+    def _check_password_bytes(cls, v: Optional[str]) -> Optional[str]:
+        return assert_bcrypt_compatible(v) if v is not None else v
 
 
 class ResetPasswordRequest(BaseModel):
-    new_password: str = Field(..., min_length=8)
+    new_password: str = Field(..., min_length=8, max_length=72)
+
+    @field_validator("new_password")
+    @classmethod
+    def _check_password_bytes(cls, v: str) -> str:
+        return assert_bcrypt_compatible(v)
 
 
 class UserWorkload(BaseModel):
@@ -559,20 +580,27 @@ async def delete_user(
     username = user.username
     role_value = user.role.value if hasattr(user.role, "value") else str(user.role)
 
-    if hard:
-        await db.delete(user)
-    else:
-        user.is_active = False
+    try:
+        if hard:
+            await db.delete(user)
+        else:
+            user.is_active = False
 
-    await create_audit_log(
-        db=db,
-        admin_id=current_admin.id,
-        action="delete_user",
-        resource_type="user",
-        resource_id=str(user_id),
-        details={"username": username, "role": role_value, "hard": hard},
-    )
-    await db.commit()
+        await create_audit_log(
+            db=db,
+            admin_id=current_admin.id,
+            action="delete_user",
+            resource_type="user",
+            resource_id=str(user_id),
+            details={"username": username, "role": role_value, "hard": hard},
+        )
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Cannot hard-delete: user has related records; deactivate instead",
+        )
     return {"detail": "User deleted successfully", "hard": hard}
 
 

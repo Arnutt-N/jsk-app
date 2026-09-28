@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
+from sqlalchemy.exc import IntegrityError
 
 from app.api import deps
 from app.api.v1.endpoints.admin_users import _check_role_permission
@@ -197,3 +198,59 @@ def test_super_admin_can_profile_edit_director():
     finally:
         app.dependency_overrides.clear()
     assert response.status_code == 200
+
+
+# ── hard delete FK conflict → 409 (R3-M6) ──────────────────────────────
+
+
+def _wire_delete_overrides(current_user, target, db):
+    async def _override_get_db():
+        yield db
+
+    async def _override_get_current_user():
+        return current_user
+
+    app.dependency_overrides[session_get_db] = _override_get_db
+    app.dependency_overrides[deps.get_current_user] = _override_get_current_user
+
+
+def test_hard_delete_referenced_user_returns_409_with_guidance():
+    """FK IntegrityError on hard delete → 409 telling the admin to deactivate."""
+    caller = SimpleNamespace(id=1, username="root", display_name="Root",
+                             role=UserRole.SUPER_ADMIN, is_active=True)
+    target = _target_user(UserRole.AGENT)
+    db = AsyncMock()
+    db.execute = AsyncMock(return_value=_FakeResult(target))
+    db.add = MagicMock()
+    db.commit = AsyncMock(
+        side_effect=IntegrityError("DELETE", {}, Exception("fk violation"))
+    )
+    db.rollback = AsyncMock()
+    _wire_delete_overrides(caller, target, db)
+    client = TestClient(app)
+    try:
+        response = client.delete("/api/v1/admin/users/5?hard=true")
+    finally:
+        app.dependency_overrides.clear()
+    assert response.status_code == 409, response.text
+    assert "deactivate" in response.json()["detail"]
+    db.rollback.assert_awaited_once()
+
+
+def test_soft_delete_still_returns_200():
+    """The soft path never deletes — no FK trip, still 200."""
+    caller = SimpleNamespace(id=1, username="root", display_name="Root",
+                             role=UserRole.SUPER_ADMIN, is_active=True)
+    target = _target_user(UserRole.AGENT)
+    db = AsyncMock()
+    db.execute = AsyncMock(return_value=_FakeResult(target))
+    db.add = MagicMock()
+    db.commit = AsyncMock()
+    _wire_delete_overrides(caller, target, db)
+    client = TestClient(app)
+    try:
+        response = client.delete("/api/v1/admin/users/5")
+    finally:
+        app.dependency_overrides.clear()
+    assert response.status_code == 200, response.text
+    assert target.is_active is False

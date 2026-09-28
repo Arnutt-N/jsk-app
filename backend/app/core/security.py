@@ -20,6 +20,15 @@ def _utcnow() -> datetime:
 
 BCRYPT_ROUNDS = 10
 
+BCRYPT_MAX_PASSWORD_BYTES = 72
+
+
+def assert_bcrypt_compatible(password: str) -> str:
+    """Raise ValueError when the password exceeds raw bcrypt's 72-byte input limit."""
+    if len(password.encode("utf-8")) > BCRYPT_MAX_PASSWORD_BYTES:
+        raise ValueError("Password must be at most 72 bytes")
+    return password
+
 # P1.1a: refresh-token lifetime, extracted from the previous inline
 # `timedelta(days=7)` so auth_session_service.py can compute a matching
 # `auth_sessions.expires_at` without duplicating the literal.
