@@ -239,7 +239,13 @@ async def claim_conversation(
         },
         timestamp=_utcnow_isoformat(),
     )
-    return session
+    return {
+        "success": True,
+        "line_user_id": line_user_id,
+        "session_id": session.id,
+        "status": session_status_value(session),
+        "operator_id": current_user.id,
+    }
 
 @router.post("/conversations/{line_user_id}/close")
 async def close_conversation(
@@ -262,7 +268,11 @@ async def close_conversation(
         },
         timestamp=_utcnow_isoformat(),
     )
-    return session
+    return {
+        "success": True,
+        "line_user_id": line_user_id,
+        "session_id": session.id,
+    }
 
 @router.post("/conversations/{line_user_id}/transfer")
 async def transfer_conversation(
