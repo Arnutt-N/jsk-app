@@ -137,8 +137,8 @@ test.describe('Request detail page -- supervisor view', () => {
     await page.goto(detailUrl!)
     await expect(page.getByRole('button', { name: 'กลับ' })).toBeVisible({ timeout: 10_000 })
 
-    // Switch to manage tab where the pills live.
-    const manageTab = page.getByRole('button', { name: /จัดการคำร้อง/ })
+    // Switch to manage tab where the pills live (tabs use role="tab").
+    const manageTab = page.getByRole('tab', { name: /จัดการคำร้อง/ })
     await manageTab.click()
 
     // Status pills container -- the grid should have 6 buttons that
