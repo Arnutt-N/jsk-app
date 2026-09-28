@@ -27,6 +27,23 @@ import { loginAsAdmin } from './utils/auth'
  * We exclude the `create` link by filtering on the numeric id pattern.
  */
 async function getFirstRequestDetailUrl(page: Page): Promise<string | null> {
+  // Wait for row links to render: the table skeleton mounts before the
+  // list API responds, so an immediate scan would see zero rows and
+  // wrongly report an empty DB (cold-start skip flake).
+  try {
+    await page.waitForFunction(
+      () => {
+        const anchors = document.querySelectorAll('a[href*="/admin/requests/"]')
+        return Array.from(anchors).some((a) =>
+          /\/admin\/requests\/\d+$/.test(a.getAttribute('href') || ''),
+        )
+      },
+      null,
+      { timeout: 10_000 },
+    )
+  } catch {
+    return null
+  }
   const links = page.locator('a[href*="/admin/requests/"]')
   const count = await links.count()
   for (let i = 0; i < count; i++) {
@@ -110,7 +127,7 @@ test.describe('Request detail page -- supervisor view', () => {
 
     // The kebab is hidden on terminal-state requests (COMPLETED/REJECTED).
     // If it isn't there, skip the menu test rather than fail.
-    const kebab = page.getByRole('button', { name: 'การจัดการพิเศษ' })
+    const kebab = page.getByRole('button', { name: 'ตัวเลือกเพิ่มเติม' })
     const kebabVisible = await kebab.isVisible().catch(() => false)
     test.skip(!kebabVisible, 'request is in a terminal state; override kebab is hidden by design')
 
@@ -137,26 +154,35 @@ test.describe('Request detail page -- supervisor view', () => {
     await page.goto(detailUrl!)
     await expect(page.getByRole('button', { name: 'กลับ' })).toBeVisible({ timeout: 10_000 })
 
-    // Switch to manage tab where the pills live.
-    const manageTab = page.getByRole('button', { name: /จัดการคำร้อง/ })
+    // Switch to manage tab where the pills live (tabs use role="tab").
+    const manageTab = page.getByRole('tab', { name: /จัดการคำร้อง/ })
     await manageTab.click()
 
-    // Status pills container -- the grid should have 6 buttons that
-    // collectively don't exceed the viewport width. Pick any pill and
-    // assert its bounding box stays within viewport.
-    const firstStatusPill = page.locator('button', { hasText: 'รอรับเรื่อง' }).last()
-    await expect(firstStatusPill).toBeVisible()
-
-    const box = await firstStatusPill.boundingBox()
-    expect(box).not.toBeNull()
-    if (box) {
-      expect(box.x).toBeGreaterThanOrEqual(0)
-      expect(box.x + box.width).toBeLessThanOrEqual(375)
+    // Status chips must fit inside the manage card (no horizontal
+    // overflow). Assert against the CARD box, not raw viewport
+    // coordinates: the tab click's scrollIntoView can leave the document
+    // scrolled, which shifts viewport-relative boxes without any real
+    // overflow.
+    const panel = page.locator('#panel-manage')
+    await expect(panel).toBeVisible()
+    await page.evaluate(() => window.scrollTo(0, 0))
+    const panelBox = await panel.boundingBox()
+    expect(panelBox).not.toBeNull()
+    const chips = panel.locator('div.flex.flex-wrap').first().locator('button')
+    await expect(chips.first()).toBeVisible()
+    expect(await chips.count()).toBe(6)
+    for (let i = 0; i < 6; i++) {
+      const box = await chips.nth(i).boundingBox()
+      expect(box).not.toBeNull()
+      if (box && panelBox) {
+        expect(box.x).toBeGreaterThanOrEqual(panelBox.x - 1)
+        expect(box.x + box.width).toBeLessThanOrEqual(panelBox.x + panelBox.width + 1)
+      }
     }
   })
 
   // -------------------------------------------------------------------
-  // PRD B: revert-from-COMPLETED via the kebab "การจัดการพิเศษ" menu.
+  // PRD B: revert-from-COMPLETED via the kebab "ตัวเลือกเพิ่มเติม" menu.
   //
   // These tests assume the test DB has at least one COMPLETED request.
   // If not, each test skips rather than fails. The seeded fixtures in
@@ -173,7 +199,7 @@ test.describe('Request detail page -- supervisor view', () => {
     // Kebab MUST be visible on COMPLETED for supervisor (PRD B changed
     // the visibility guard: previously hidden on COMPLETED, now hidden
     // only on REJECTED).
-    const kebab = page.getByRole('button', { name: 'การจัดการพิเศษ' })
+    const kebab = page.getByRole('button', { name: 'ตัวเลือกเพิ่มเติม' })
     await expect(kebab).toBeVisible()
     await kebab.click()
 
@@ -208,7 +234,7 @@ test.describe('Request detail page -- supervisor view', () => {
     const completedPill = page.locator('text=เสร็จสิ้น').first()
     await expect(completedPill).toBeVisible()
 
-    await page.getByRole('button', { name: 'การจัดการพิเศษ' }).click()
+    await page.getByRole('button', { name: 'ตัวเลือกเพิ่มเติม' }).click()
     await page.getByRole('menuitem', { name: /ยกเลิกอนุมัติ.*รออนุมัติ/ }).click()
 
     // ConfirmDialog opens.
@@ -223,50 +249,48 @@ test.describe('Request detail page -- supervisor view', () => {
     await expect(page.locator('text=เสร็จสิ้น').first()).toBeVisible()
   })
 
-  test('confirming the revert dialog sends PATCH and the page reloads', async ({ page }) => {
+  test('confirming the revert dialog sends PATCH and flips the status pill', async ({ page }) => {
     const detailUrl = await getFirstCompletedRequestDetailUrl(page)
     test.skip(!detailUrl, 'no COMPLETED requests in test DB')
+    const id = detailUrl!.split('/').pop()!
 
-    // Intercept the PATCH so the test does NOT mutate seeded data. We
-    // return a fulfilled response with the new status payload; the
-    // frontend's useGuardedUpdate fires a window.location.reload() on
-    // success, which we observe via a navigation wait.
-    await page.route('**/api/v1/admin/requests/*', async (route) => {
-      if (route.request().method() === 'PATCH') {
-        // Echo the PATCH body back so the page mounts cleanly post-reload.
-        const body = route.request().postDataJSON?.() ?? {}
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({ ok: true, ...body }),
-        })
-        return
+    // Baseline: real backend GET on page load; capture BEFORE installing fulfills.
+    const [detailResp] = await Promise.all([
+      page.waitForResponse((r) => r.request().method() === 'GET' && r.url().endsWith(`/api/v1/admin/requests/${id}`)),
+      page.goto(detailUrl!),
+    ])
+    const baseline = await detailResp.json()
+    await expect(page.getByRole('button', { name: 'กลับ' })).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('text=เสร็จสิ้น').first()).toBeVisible()
+
+    // Fulfill PATCH (no backend mutation) + the follow-up GET refetch with reverted state.
+    await page.route(`**/api/v1/admin/requests/${id}`, async (route) => {
+      const req = route.request()
+      if (req.method() === 'PATCH') {
+        const body = req.postDataJSON?.() ?? {}
+        return route.fulfill({ status: 200, contentType: 'application/json',
+          body: JSON.stringify({ ok: true, ...body }) })
       }
-      await route.continue()
+      return route.fulfill({ status: 200, contentType: 'application/json',
+        body: JSON.stringify({ ...baseline, status: 'AWAITING_APPROVAL' }) })
     })
 
-    await page.goto(detailUrl!)
-    await expect(page.getByRole('button', { name: 'กลับ' })).toBeVisible({ timeout: 10_000 })
-
-    await page.getByRole('button', { name: 'การจัดการพิเศษ' }).click()
+    await page.getByRole('button', { name: 'ตัวเลือกเพิ่มเติม' }).click()
     await page.getByRole('menuitem', { name: /ยกเลิกอนุมัติ.*รออนุมัติ/ }).click()
-
     const dialog = page.getByRole('dialog')
     await expect(dialog).toBeVisible()
 
-    // Wait for the PATCH to be sent when confirm fires.
-    const patchPromise = page.waitForRequest(
-      (req) =>
-        req.method() === 'PATCH' &&
-        /\/api\/v1\/admin\/requests\/\d+$/.test(req.url()),
-    )
-
-    // Confirm button copy is "ยืนยัน" in our canonical ConfirmDialog.
+    const patchReqPromise = page.waitForRequest((r) =>
+      r.method() === 'PATCH' && r.url().endsWith(`/api/v1/admin/requests/${id}`))
+    const patchRespPromise = page.waitForResponse((r) =>
+      r.request().method() === 'PATCH' && r.url().endsWith(`/api/v1/admin/requests/${id}`))
     await dialog.getByRole('button', { name: /ยืนยัน/ }).click()
-
-    const patchRequest = await patchPromise
-    const payload = patchRequest.postDataJSON?.() as { status?: string } | undefined
+    const patchReq = await patchReqPromise
+    const patchResp = await patchRespPromise
+    const payload = patchReq.postDataJSON?.() as { status?: string } | undefined
     expect(payload?.status).toBe('AWAITING_APPROVAL')
+    expect(patchResp.ok()).toBe(true)
+    await expect(page.locator('text=รออนุมัติ').first()).toBeVisible({ timeout: 10_000 })
   })
 
   test('console stays clean -- no unhandled promise rejections on hero card', async ({ page }) => {

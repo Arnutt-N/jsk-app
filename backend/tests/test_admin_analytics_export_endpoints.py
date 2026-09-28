@@ -79,6 +79,16 @@ def test_export_csv_endpoint_streams_file():
             message_type="text",
             content="hi",
         ),
+        # R3-M9: formula-leading content must be defused with a quote prefix.
+        SimpleNamespace(
+            id=3,
+            created_at=datetime(2026, 2, 8, 3, 2, 0, tzinfo=timezone.utc),
+            user_id=1,
+            direction=MessageDirection.INCOMING,
+            sender_role=SenderRole.USER,
+            message_type="text",
+            content="=cmd|'/c calc'!A0",
+        ),
     ]
 
     def _exec_result(scalars_all):
@@ -103,7 +113,7 @@ def test_export_csv_endpoint_streams_file():
     original_resolve = admin_export.resolve_by_line_id
     original_bounds = admin_export._conversation_bounds
     admin_export.resolve_by_line_id = AsyncMock(return_value=_demo_user)
-    admin_export._conversation_bounds = AsyncMock(return_value=(_demo_user, _messages[0], _messages[1]))
+    admin_export._conversation_bounds = AsyncMock(return_value=(_demo_user, _messages[0], _messages[2]))
 
     client = TestClient(app)
     try:
@@ -123,6 +133,9 @@ def test_export_csv_endpoint_streams_file():
     assert "timestamp,line_user_id,direction,sender,message_type,content" in text
     assert "hello" in text
     assert "hi" in text
+    # R3-M9: exact defused cell — quote-prefixed, data otherwise intact.
+    assert "'=cmd|'/c calc'!A0" in text
+    assert ",=cmd|" not in text
 
 
 @pytest.mark.skipif(

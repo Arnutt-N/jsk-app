@@ -85,8 +85,8 @@ def client():
     # - auto_replies/intents/reply_objects/friends gate on get_current_admin
     # - requests gates on get_current_manager; messages/search on
     #   get_current_staff
-    # - auto_replies/intents/reply_objects/friends/search use
-    #   app.api.deps.get_db; requests imports get_db from app.db.session
+    # - get_db is unified (R3-M26): deps.get_db IS session.get_db, so both
+    #   override keys below now point at the same function object
     app.dependency_overrides[deps_admin] = _fake_user
     app.dependency_overrides[deps_manager] = _fake_user
     app.dependency_overrides[deps_staff] = _fake_user

@@ -118,3 +118,74 @@ describe('AdminRequestList date filtering', () => {
     });
   });
 });
+
+describe('AdminRequestList pagination (R3-H2)', () => {
+  const row = (i: number) => ({
+    id: String(i),
+    firstname: 'A',
+    lastname: String(i),
+    topic_category: 'x',
+    status: 'COMPLETED',
+    agency: '',
+    province: '',
+    district: '',
+    created_at: '2026-09-03T07:44:00+07:00',
+  });
+  const fullPage = Array.from({ length: 100 }, (_, i) => row(i));
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('sends skip=0&limit=100 on initial load', async () => {
+    mockApiFetch.mockResolvedValue({ ok: true, data: [row(1)] });
+    render(<AdminRequestList />);
+    await screen.findByText('A 1');
+    const firstUrl = mockApiFetch.mock.calls[0][0];
+    expect(firstUrl).toContain('skip=0');
+    expect(firstUrl).toContain('limit=100');
+  });
+
+  it('next page sends skip=100 and prev returns to skip=0', { timeout: 15000 }, async () => {
+    mockApiFetch.mockResolvedValue({ ok: true, data: fullPage });
+    render(<AdminRequestList />);
+    await screen.findByText('A 0');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
+    await waitFor(() => {
+      const lastUrl = mockApiFetch.mock.calls[mockApiFetch.mock.calls.length - 1][0];
+      expect(lastUrl).toContain('skip=100');
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Previous page' }));
+    await waitFor(() => {
+      const lastUrl = mockApiFetch.mock.calls[mockApiFetch.mock.calls.length - 1][0];
+      expect(lastUrl).toContain('skip=0');
+    });
+  });
+
+  it('disables Next on a short page and Previous on page one', async () => {
+    mockApiFetch.mockResolvedValue({ ok: true, data: [row(1)] });
+    render(<AdminRequestList />);
+    await screen.findByText('A 1');
+    expect(screen.getByRole('button', { name: 'Next page' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Previous page' })).toBeDisabled();
+  });
+
+  it('resets to page one when filters change', { timeout: 15000 }, async () => {
+    mockApiFetch.mockResolvedValue({ ok: true, data: fullPage });
+    render(<AdminRequestList />);
+    await screen.findByText('A 0');
+    fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
+    await waitFor(() => {
+      const lastUrl = mockApiFetch.mock.calls[mockApiFetch.mock.calls.length - 1][0];
+      expect(lastUrl).toContain('skip=100');
+    });
+
+    fireEvent.change(screen.getByLabelText('จากวันที่'), { target: { value: '2026-09-01' } });
+    await waitFor(() => {
+      const lastUrl = mockApiFetch.mock.calls[mockApiFetch.mock.calls.length - 1][0];
+      expect(lastUrl).toContain('skip=0');
+    });
+  });
+});

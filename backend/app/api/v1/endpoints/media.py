@@ -21,6 +21,7 @@ from app.core.http_rate_limit import http_rate_limit
 from app.core.query_utils import escape_ilike
 from app.core.permissions import KEY_IMAGE_RESIZE, KEY_MANAGE_FILES
 from app.schemas.media import ResizeTicketResponse
+from app.utils.mime_sniff import sniff_mime
 from typing import List
 from pydantic import Field
 
@@ -54,18 +55,8 @@ def check_private_token(stored: Optional[str], presented: Optional[str]) -> bool
 # Admin uploads must serve-safe: the sniffed magic bytes — NOT the spoofable
 # client Content-Type — decide the stored mime, and only serve-safe types are
 # accepted (parity with the LIFF upload allowlist; review finding M10 — the
-# public endpoints serve these bytes without auth). _sniff_mime below is the
-# single enforcement point; the accepted set is JPEG/PNG/PDF.
-def _sniff_mime(data: bytes) -> Optional[str]:
-    """Real mime from magic bytes, or None when the bytes are neither PNG,
-    JPEG, nor PDF."""
-    if data.startswith(b"\x89PNG\r\n\x1a\n"):
-        return "image/png"
-    if data.startswith(b"\xff\xd8\xff"):
-        return "image/jpeg"
-    if data.startswith(b"%PDF"):
-        return "application/pdf"
-    return None
+# public endpoints serve these bytes without auth). sniff_mime (shared helper)
+# is the single enforcement point; the accepted set is JPEG/PNG/PDF.
 
 # Shared limiter dependencies — one bucket per scope across the routes below.
 _upload_rate_limit = http_rate_limit(
@@ -275,7 +266,7 @@ async def _validate_media_upload(file: UploadFile) -> tuple[bytes, Optional[str]
         raise HTTPException(status_code=413, detail="File too large (max 10MB)")
     # Magic bytes decide the stored mime — the client Content-Type is
     # spoofable and these bytes are served publicly (M10).
-    mime = _sniff_mime(content)
+    mime = sniff_mime(content)
     if mime is None:
         raise HTTPException(
             status_code=422, detail="Only JPEG, PNG, or PDF files are supported"
@@ -660,7 +651,7 @@ async def upload_media_legacy(
         raise HTTPException(status_code=413, detail="File too large (max 10MB)")
     # Magic bytes decide the stored mime — the client Content-Type is
     # spoofable and these bytes are served publicly (M10).
-    mime = _sniff_mime(content)
+    mime = sniff_mime(content)
     if mime is None:
         raise HTTPException(
             status_code=422, detail="Only JPEG, PNG, or PDF files are supported"

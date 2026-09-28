@@ -82,6 +82,13 @@ class _FakeDB:
         # instance is already in self.added (which is what we assert on).
         return None
 
+    async def get(self, model, pk):
+        # Only id 999999 is "unknown" — every other assignee lookup hits
+        # a stub user so the pre-existing assignment tests keep passing.
+        if pk == 999999:
+            return None
+        return SimpleNamespace(id=pk, username=f"user-{pk}")
+
 
 def test_create_comment_ignores_forged_user_id_query_param():
     fake_db = _FakeDB()
@@ -1411,4 +1418,47 @@ def test_create_request_rejects_oversize_description():
         err.get("loc") == ["body", "description"]
         for err in response.json().get("detail", [])
     ), response.text
+
+
+def test_patch_bogus_priority_returns_422():
+    """Free-string priority is now typed as RequestPriority — BOGUS 422s."""
+    fake_db = _FakeDB()
+    fake_db._fake_request = _build_in_progress_request(request_id=92)
+    teardown = _patch_admin_overrides(fake_db)
+
+    client = TestClient(app)
+    try:
+        response = client.patch(
+            "/api/v1/admin/requests/92",
+            json={"priority": "BOGUS"},
+        )
+    finally:
+        client.close()
+        teardown()
+
+    assert response.status_code == 422, response.text
+    assert any(
+        err.get("loc") == ["body", "priority"]
+        for err in response.json().get("detail", [])
+    ), response.text
+
+
+def test_patch_unknown_assignee_returns_404():
+    """Assigning to a nonexistent user id 404s instead of 500ing on flush."""
+    fake_db = _FakeDB()
+    fake_db._fake_request = _build_in_progress_request(request_id=93)
+    teardown = _patch_admin_overrides(fake_db)
+
+    client = TestClient(app)
+    try:
+        response = client.patch(
+            "/api/v1/admin/requests/93",
+            json={"assigned_agent_id": 999999},
+        )
+    finally:
+        client.close()
+        teardown()
+
+    assert response.status_code == 404, response.text
+    assert response.json()["detail"] == "Assigned agent not found"
 

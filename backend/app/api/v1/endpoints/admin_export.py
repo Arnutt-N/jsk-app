@@ -92,6 +92,16 @@ def _display_name(user: Optional[User], line_user_id: str) -> str:
     return line_user_id
 
 
+_FORMULA_LEADERS = ("=", "+", "-", "@", "\t", "\r")
+
+
+def _defuse_csv_cell(value: str) -> str:
+    """Prefix a single quote so spreadsheet apps never execute the cell."""
+    if value[:1] in _FORMULA_LEADERS:
+        return "'" + value
+    return value
+
+
 async def _iter_csv_rows(line_user_id: str, db: AsyncSession):
     """Stream CSV one chunk at a time instead of buffering the whole conversation."""
     user = await resolve_by_line_id(db, line_user_id)
@@ -115,7 +125,7 @@ async def _iter_csv_rows(line_user_id: str, db: AsyncSession):
                 m.direction.value if hasattr(m.direction, "value") else m.direction,
                 m.sender_role.value if hasattr(m.sender_role, "value") else (m.sender_role or ""),
                 m.message_type or "",
-                m.content or "",
+                _defuse_csv_cell(m.content or ""),
             ])
             yield buf.getvalue()
         last_id = rows[-1].id

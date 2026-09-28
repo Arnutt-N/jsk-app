@@ -118,6 +118,12 @@ jobs:
         # actually written and Playwright login times out.
         run: python scripts/seed_admin.py --apply
 
+      - name: Seed E2E requests
+        working-directory: backend
+        # --apply is required: without it the script only prints the plan
+        # and the supervisor specs skip for lack of PENDING/COMPLETED rows.
+        run: python scripts/seed_e2e_requests.py --apply
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:

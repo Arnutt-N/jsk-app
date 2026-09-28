@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from typing import Optional
 from datetime import datetime
 
@@ -7,34 +7,41 @@ def _blank(value: Optional[str]) -> bool:
     """True when a string field is missing or only whitespace."""
     return value is None or not value.strip()
 
+
+class AttachmentRef(BaseModel):
+    id: str = Field(..., max_length=64)
+    url: str = Field(..., max_length=500)
+    name: Optional[str] = Field(None, max_length=255)
+
+
 class ServiceRequestCreate(BaseModel):
     # Personal Info
-    prefix: Optional[str] = None
-    firstname: Optional[str] = None
-    lastname: Optional[str] = None
-    phone_number: Optional[str] = None
-    email: Optional[str] = None
-    
+    prefix: Optional[str] = Field(None, max_length=20)
+    firstname: Optional[str] = Field(None, max_length=100)
+    lastname: Optional[str] = Field(None, max_length=100)
+    phone_number: Optional[str] = Field(None, max_length=20)
+    email: Optional[str] = Field(None, max_length=254)
+
     # Location
-    agency: Optional[str] = None
-    province: Optional[str] = None
-    district: Optional[str] = None
-    sub_district: Optional[str] = None
-    
+    agency: Optional[str] = Field(None, max_length=200)
+    province: Optional[str] = Field(None, max_length=100)
+    district: Optional[str] = Field(None, max_length=100)
+    sub_district: Optional[str] = Field(None, max_length=100)
+
     # Topic
-    topic_category: Optional[str] = None
-    topic_subcategory: Optional[str] = None
-    description: Optional[str] = None
-    
+    topic_category: Optional[str] = Field(None, max_length=100)
+    topic_subcategory: Optional[str] = Field(None, max_length=100)
+    description: Optional[str] = Field(None, max_length=5000)
+
     # Attachments (List of object with id/url)
-    attachments: Optional[list] = []
-    
+    attachments: Optional[list[AttachmentRef]] = Field(default_factory=list, max_length=3)
+
     # User Context
-    line_user_id: Optional[str] = None
-    
+    line_user_id: Optional[str] = Field(None, max_length=100)
+
     # Legacy mapping support (optional)
-    name: Optional[str] = None # Will be constructed from first+last if needed
-    service_type: Optional[str] = None # Will be mapped to topic_category
+    name: Optional[str] = Field(None, max_length=100) # Will be constructed from first+last if needed
+    service_type: Optional[str] = Field(None, max_length=100) # Will be mapped to topic_category
 
     @model_validator(mode="after")
     def _require_content(self) -> "ServiceRequestCreate":

@@ -335,7 +335,7 @@ async def get_request_detail(request_id: int, db: AsyncSession = Depends(get_db)
 class RequestUpdate(BaseModel):
     # Existing fields
     status: Optional[RequestStatus] = None
-    priority: Optional[str] = None
+    priority: Optional[RequestPriority] = None
     due_date: Optional[datetime] = None
     assigned_agent_id: Optional[int] = None
     assigned_by_id: Optional[int] = None
@@ -456,6 +456,14 @@ async def _apply_status_and_assignment(
     request, update_data, db, current_admin, is_revert_from_completed
 ) -> None:
     """Mutate status/priority/due_date/assignment (+ unassign audit row)."""
+    if update_data.assigned_agent_id is not None:
+        agent = await db.get(User, update_data.assigned_agent_id)
+        if not agent:
+            raise HTTPException(status_code=404, detail="Assigned agent not found")
+    if update_data.assigned_by_id is not None:
+        assigner = await db.get(User, update_data.assigned_by_id)
+        if not assigner:
+            raise HTTPException(status_code=404, detail="Assigned-by user not found")
     if update_data.status is not None:
         request.status = update_data.status
         if update_data.status == RequestStatus.COMPLETED:

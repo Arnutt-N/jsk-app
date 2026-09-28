@@ -57,6 +57,9 @@ def _intent_keyword_stmt(*filters):
             )
         )
         .filter(*filters)
+        # Deterministic tiebreak: oldest rule (lowest id) wins when several
+        # keywords match the same branch (R3-M14).
+        .order_by(IntentKeyword.id.asc())
     )
 
 

@@ -33,6 +33,23 @@ import { loginAsAdmin } from './utils/auth'
  * the create-link too on some renderings.
  */
 async function getFirstRequestDetailUrl(page: Page): Promise<string | null> {
+  // Wait for row links to render: the table skeleton mounts before the
+  // list API responds, so an immediate scan would see zero rows and
+  // wrongly report an empty DB (cold-start skip flake).
+  try {
+    await page.waitForFunction(
+      () => {
+        const anchors = document.querySelectorAll('a[href*="/admin/requests/"]')
+        return Array.from(anchors).some((a) =>
+          /\/admin\/requests\/\d+$/.test(a.getAttribute('href') || ''),
+        )
+      },
+      null,
+      { timeout: 10_000 },
+    )
+  } catch {
+    return null
+  }
   const links = page.locator('a[href*="/admin/requests/"]')
   const count = await links.count()
   for (let i = 0; i < count; i++) {
@@ -47,18 +64,20 @@ test.describe('Admin Requests UI Polish', () => {
     await loginAsAdmin(page)
   })
 
-  test('list modal "ดูรายละเอียดเต็ม" button has whitespace-nowrap (#1)', async ({ page }) => {
+  test('list modal "ดูรายละเอียด" button has whitespace-nowrap (#1)', async ({ page }) => {
     await page.goto('/admin/requests')
     await expect(page.locator('table')).toBeVisible({ timeout: 10_000 })
 
     // Open the preview Modal by clicking the "เรียกดู" (Eye) action
     // button on the first row. handleView(req) sets selectedRequest +
-    // viewModalOpen, which renders the modal with the "ดูรายละเอียดเต็ม"
+    // viewModalOpen, which renders the modal with the "ดูรายละเอียด"
     // CTA. We can't click the <tr> reliably — the row click handler isn't
-    // bubbled correctly in the test runner.
+    // bubbled correctly in the test runner. Wait for the button (rows
+    // load after the table skeleton mounts); skip only on timeout.
     const viewButton = page.locator('button[title="เรียกดู"], button[aria-label="เรียกดู"]').first()
-    const viewButtonCount = await viewButton.count()
-    if (viewButtonCount === 0) {
+    try {
+      await viewButton.waitFor({ timeout: 10_000 })
+    } catch {
       test.skip(true, 'No request rows / view action button in test DB')
       return
     }
@@ -66,7 +85,7 @@ test.describe('Admin Requests UI Polish', () => {
 
     // Modal opens — find the navigation button. Next.js Link renders as
     // <a href="..."><button>...</button></a> so the button is inside an a.
-    const fullDetailButton = page.locator('a:has(button) button:has-text("ดูรายละเอียดเต็ม")').first()
+    const fullDetailButton = page.locator('a:has(button) button:has-text("ดูรายละเอียด")').first()
     await expect(fullDetailButton).toBeVisible({ timeout: 5_000 })
     await expect(fullDetailButton).toHaveClass(/whitespace-nowrap/)
   })
@@ -98,7 +117,7 @@ test.describe('Admin Requests UI Polish', () => {
     expect(tabsClasses.some((c) => /text-text-secondary|text-primary/.test(c))).toBe(true)
   })
 
-  test('date picker has w-10 / w-10 / w-24 width proportions (#3)', async ({ page }) => {
+  test('date picker has w-9 / w-9 / w-14 width proportions (#3)', async ({ page }) => {
     await page.goto('/admin/requests')
     await expect(page.locator('table')).toBeVisible({ timeout: 10_000 })
 
@@ -109,9 +128,10 @@ test.describe('Admin Requests UI Polish', () => {
     }
     await page.goto(detailUrl)
 
-    // Navigate to manage tab where the date picker is rendered.
-    const manageTab = page.locator('button:has-text("จัดการ")').first()
-    if (await manageTab.isVisible()) await manageTab.click()
+    // Navigate to manage tab where the date picker is rendered. Click
+    // unconditionally (auto-waits): the old isVisible-guard raced the
+    // detail loading spinner and silently skipped the click.
+    await page.getByRole('tab', { name: /จัดการคำร้อง/ }).click()
 
     // Day / Month / Year inputs — identified by aria-label (stable).
     const dayInput = page.locator('input[aria-label="วันที่"]').first()
@@ -119,9 +139,9 @@ test.describe('Admin Requests UI Polish', () => {
     const yearInput = page.locator('input[aria-label="ปี พ.ศ."]').first()
 
     await expect(dayInput).toBeVisible({ timeout: 5_000 })
-    await expect(dayInput).toHaveClass(/\bw-10\b/)
-    await expect(monthInput).toHaveClass(/\bw-10\b/)
-    await expect(yearInput).toHaveClass(/\bw-24\b/)
+    await expect(dayInput).toHaveClass(/\bw-9\b/)
+    await expect(monthInput).toHaveClass(/\bw-9\b/)
+    await expect(yearInput).toHaveClass(/\bw-14\b/)
   })
 
   test('AssignModal title strips "(Assign Request)" and has no Active Tasks footnote (#7a, #7b)', async ({ page }) => {
@@ -171,17 +191,19 @@ test.describe('Admin Requests UI Polish', () => {
 
     // Look for the delete trigger on a row's action menu. The list page
     // renders an ActionIconButton (Trash2 icon) with title="ลบ" in each
-    // row's action column.
+    // row's action column. Wait for it (rows load after the table
+    // skeleton mounts); skip only on timeout.
     const deleteButton = page.locator('button[title="ลบ"], button[aria-label="ลบ"]').first()
-    const deleteCount = await deleteButton.count()
-    if (deleteCount === 0) {
+    try {
+      await deleteButton.waitFor({ timeout: 10_000 })
+    } catch {
       test.skip(true, 'No delete action visible on rows in test DB')
       return
     }
     await deleteButton.click()
 
     // The delete modal renders the new context-specific copy.
-    await expect(page.locator('text=คำร้องที่ลบไปแล้วจะหายถาวร')).toBeVisible({ timeout: 5_000 })
+    await expect(page.locator('text=คำร้องที่ลบไปแล้วจะไม่สามารถกู้คืนได้')).toBeVisible({ timeout: 5_000 })
 
     // The old generic phrase should NOT appear.
     await expect(page.locator('text=การกระทำนี้ไม่สามารถย้อนกลับได้')).toHaveCount(0)

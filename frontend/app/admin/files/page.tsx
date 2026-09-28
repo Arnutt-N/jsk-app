@@ -21,6 +21,7 @@ import { StaggerContainer, StaggerItem } from '@/components/ui/PageTransition';
 import PageHeader from '../components/PageHeader';
 import { apiFetch } from '@/lib/api-error';
 import { API_BASE } from '@/lib/constants/api';
+import { downloadBlob } from '@/lib/download-blob';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -225,12 +226,7 @@ export default function FilesPage() {
     const result = await apiFetch<Response>(`/admin/media/${file.id}/download`, { raw: true });
     if (result.ok) {
       const blob = await result.data.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = file.filename;
-      a.click();
-      URL.revokeObjectURL(url);
+      downloadBlob(blob, file.filename);
     } else {
       toast({ title: result.message, variant: 'error' });
     }
