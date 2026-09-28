@@ -1,7 +1,7 @@
 """User-initiated commands: status check and phone binding."""
 import logging
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.service_request import ServiceRequest
@@ -16,6 +16,12 @@ logger = logging.getLogger(__name__)
 # message (like "ติดตาม"/"สถานะ" above) rather than as a substring, so an
 # ordinary sentence mentioning a queue still falls through to intent matching.
 BOOKING_QUERY_KEYWORDS = frozenset({"คิว", "คิวของฉัน", "นัดหมาย", "จองคิว", "ดูคิว"})
+
+# Phone-bind bounds: scan a bounded newest-first tuple window and bind at most
+# _PHONE_BIND_LIMIT rows per command. The 1000-row window is 20x the bind limit
+# so counts stay exact in every realistic case.
+_PHONE_BIND_SCAN_LIMIT = 1000
+_PHONE_BIND_LIMIT = 50
 
 
 async def handle_check_booking(line_user_id: str, reply_token: str, db: AsyncSession):
@@ -84,18 +90,36 @@ async def handle_bind_phone(phone_number: str, line_user_id: str, reply_token: s
             await line_svc.reply_text(reply_token, "ขออภัย ไม่พบข้อมูลผู้ใช้ของคุณ กรุณาลองใหม่อีกครั้ง")
             return
 
-        stmt = select(ServiceRequest).where(ServiceRequest.phone_number == phone_number)
+        stmt = (
+            select(ServiceRequest.id, ServiceRequest.user_id, ServiceRequest.created_at)
+            .where(ServiceRequest.phone_number == phone_number)
+            .order_by(ServiceRequest.created_at.desc(), ServiceRequest.id.desc())
+            .limit(_PHONE_BIND_SCAN_LIMIT + 1)
+        )
         result = await db.execute(stmt)
-        requests = result.scalars().all()
+        rows = result.all()
 
-        if not requests:
+        if len(rows) > _PHONE_BIND_SCAN_LIMIT:
+            logger.warning(
+                f"Phone bind: {len(rows)} requests for {mask_phone(phone_number)} "
+                f"exceed scan window {_PHONE_BIND_SCAN_LIMIT}, proceeding with newest rows"
+            )
+            rows = rows[:_PHONE_BIND_SCAN_LIMIT]
+
+        if not rows:
             await line_svc.reply_text(reply_token, f"❌ ไม่พบข้อมูลคำร้องของเบอร์ {phone_number} ครับ")
             return
 
-        bindable = [r for r in requests if r.user_id is None or r.user_id == user_id]
-        already_bound_to_others = len(requests) - len(bindable)
+        already_bound_to_others = sum(1 for _, uid, _ in rows if uid is not None and uid != user_id)
+        bindable_ids = [rid for rid, uid, _ in rows if uid is None or uid == user_id][:_PHONE_BIND_LIMIT]
+        leftover = sum(1 for _, uid, _ in rows if uid is None or uid == user_id) - len(bindable_ids)
+        if leftover > 0:
+            logger.warning(
+                f"Phone bind: {leftover} bindable requests for {mask_phone(phone_number)} "
+                f"exceed bind limit {_PHONE_BIND_LIMIT}, binding newest only"
+            )
 
-        if not bindable:
+        if not bindable_ids:
             await line_svc.reply_text(
                 reply_token,
                 f"คำร้องเบอร์ {phone_number} ถูกผูกกับบัญชี LINE อื่นแล้วครับ "
@@ -103,8 +127,11 @@ async def handle_bind_phone(phone_number: str, line_user_id: str, reply_token: s
             )
             return
 
-        for req in bindable:
-            req.user_id = user_id
+        await db.execute(
+            update(ServiceRequest)
+            .where(ServiceRequest.id.in_(bindable_ids))
+            .values(user_id=user_id)
+        )
         await db.flush()
 
         if already_bound_to_others > 0:
