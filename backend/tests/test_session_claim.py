@@ -470,7 +470,13 @@ def test_claim_conversation_rest_broadcasts_session_claimed(test_client):
             )
 
         assert response.status_code == 200
-        assert response.json()["id"] == 42
+        assert response.json() == {
+            "success": True,
+            "line_user_id": "Uabcdef0123456789abcdef0123456789",
+            "session_id": 42,
+            "status": SessionStatus.ACTIVE.value,
+            "operator_id": 7,
+        }
         mock_claim.assert_awaited_once_with("Uabcdef0123456789abcdef0123456789", 7, mock_db)
         mock_db.commit.assert_awaited_once()
         mock_broadcast.assert_awaited_once()
@@ -515,7 +521,11 @@ def test_close_conversation_rest_broadcasts_session_closed(test_client):
             )
 
         assert response.status_code == 200
-        assert response.json()["id"] == 42
+        assert response.json() == {
+            "success": True,
+            "line_user_id": "Uabcdef0123456789abcdef0123456789",
+            "session_id": 42,
+        }
         mock_close.assert_awaited_once_with(
             "Uabcdef0123456789abcdef0123456789",
             ClosedBy.OPERATOR,

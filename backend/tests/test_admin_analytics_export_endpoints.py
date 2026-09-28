@@ -91,7 +91,6 @@ def test_export_csv_endpoint_streams_file():
     mock_db = AsyncMock()
     mock_db.execute = AsyncMock(
         side_effect=[
-            _exec_result(_messages),  # 404 probe in _load_conversation
             _exec_result(_messages),  # first streaming chunk
             _exec_result([]),         # terminator
         ]
@@ -102,9 +101,9 @@ def test_export_csv_endpoint_streams_file():
 
     app.dependency_overrides[deps.get_db] = _override_streaming_db
     original_resolve = admin_export.resolve_by_line_id
-    original_load = admin_export._load_conversation
+    original_bounds = admin_export._conversation_bounds
     admin_export.resolve_by_line_id = AsyncMock(return_value=_demo_user)
-    admin_export._load_conversation = AsyncMock(return_value=(_demo_user, _messages))
+    admin_export._conversation_bounds = AsyncMock(return_value=(_demo_user, _messages[0], _messages[1]))
 
     client = TestClient(app)
     try:
@@ -112,7 +111,7 @@ def test_export_csv_endpoint_streams_file():
     finally:
         client.close()
         admin_export.resolve_by_line_id = original_resolve
-        admin_export._load_conversation = original_load
+        admin_export._conversation_bounds = original_bounds
         app.dependency_overrides.clear()
 
     assert response.status_code == 200
@@ -131,14 +130,22 @@ def test_export_csv_endpoint_streams_file():
     reason="reportlab not installed",
 )
 def test_export_pdf_endpoint_streams_file():
-    app.dependency_overrides[deps.get_db] = _override_get_db
+    mock_db = AsyncMock()
+    mock_db.scalar = AsyncMock(return_value=5)
+
+    def _override_pdf_db():
+        yield mock_db
+
+    app.dependency_overrides[deps.get_db] = _override_pdf_db
     app.dependency_overrides[deps.get_current_admin] = _override_get_current_admin
     # Phase 3: export routes are gated by require_permission(KEY_EXPORT_CHAT),
     # which resolves the user via deps.get_current_user — override that too.
     app.dependency_overrides[deps.get_current_user] = _override_get_current_admin
 
     original_load = admin_export._load_conversation
+    original_resolve = admin_export.resolve_by_line_id
     _demo_user = SimpleNamespace(id=1, display_name="Demo User")
+    admin_export.resolve_by_line_id = AsyncMock(return_value=_demo_user)
     admin_export._load_conversation = AsyncMock(
         return_value=(
             _demo_user,
@@ -161,6 +168,7 @@ def test_export_pdf_endpoint_streams_file():
         response = client.get("/api/v1/admin/export/conversations/U123/pdf")
     finally:
         client.close()
+        admin_export.resolve_by_line_id = original_resolve
         admin_export._load_conversation = original_load
         app.dependency_overrides.clear()
 
@@ -196,3 +204,91 @@ def test_refresh_profile_endpoint_returns_updated_user():
     assert payload["success"] is True
     assert payload["line_user_id"] == "U123"
     assert payload["display_name"] == "Fresh Name"
+
+
+def test_export_csv_404_when_no_messages():
+    app.dependency_overrides[deps.get_db] = _override_get_db
+    app.dependency_overrides[deps.get_current_admin] = _override_get_current_admin
+    app.dependency_overrides[deps.get_current_user] = _override_get_current_admin
+
+    _demo_user = SimpleNamespace(id=1, display_name="Demo User")
+    original_bounds = admin_export._conversation_bounds
+    admin_export._conversation_bounds = AsyncMock(
+        return_value=(_demo_user, None, None)
+    )
+
+    client = TestClient(app)
+    try:
+        response = client.get("/api/v1/admin/export/conversations/U123/csv")
+    finally:
+        client.close()
+        admin_export._conversation_bounds = original_bounds
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Conversation not found or has no messages"
+
+
+@pytest.mark.skipif(
+    not __import__("importlib").util.find_spec("reportlab"),
+    reason="reportlab not installed",
+)
+def test_export_pdf_413_when_conversation_too_large():
+    mock_db = AsyncMock()
+    mock_db.scalar = AsyncMock(return_value=20001)
+
+    def _override_count_db():
+        yield mock_db
+
+    app.dependency_overrides[deps.get_db] = _override_count_db
+    app.dependency_overrides[deps.get_current_admin] = _override_get_current_admin
+    app.dependency_overrides[deps.get_current_user] = _override_get_current_admin
+
+    _demo_user = SimpleNamespace(id=1, display_name="Demo User")
+    original_resolve = admin_export.resolve_by_line_id
+    admin_export.resolve_by_line_id = AsyncMock(return_value=_demo_user)
+
+    client = TestClient(app)
+    try:
+        response = client.get("/api/v1/admin/export/conversations/U123/pdf")
+    finally:
+        client.close()
+        admin_export.resolve_by_line_id = original_resolve
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 413
+    assert response.json()["detail"] == "Conversation too large"
+
+
+@pytest.mark.skipif(
+    not __import__("importlib").util.find_spec("reportlab"),
+    reason="reportlab not installed",
+)
+def test_export_pdf_404_when_no_messages():
+    mock_db = AsyncMock()
+    mock_db.scalar = AsyncMock(return_value=3)
+
+    def _override_count_db():
+        yield mock_db
+
+    app.dependency_overrides[deps.get_db] = _override_count_db
+    app.dependency_overrides[deps.get_current_admin] = _override_get_current_admin
+    app.dependency_overrides[deps.get_current_user] = _override_get_current_admin
+
+    _demo_user = SimpleNamespace(id=1, display_name="Demo User")
+    original_resolve = admin_export.resolve_by_line_id
+    original_load = admin_export._load_conversation
+    admin_export.resolve_by_line_id = AsyncMock(return_value=_demo_user)
+    admin_export._load_conversation = AsyncMock(return_value=(_demo_user, []))
+
+    client = TestClient(app)
+    try:
+        response = client.get("/api/v1/admin/export/conversations/U123/pdf")
+    finally:
+        client.close()
+        admin_export.resolve_by_line_id = original_resolve
+        admin_export._load_conversation = original_load
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Conversation not found or has no messages"

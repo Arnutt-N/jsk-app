@@ -281,7 +281,6 @@ class TestTransferSession:
             )
 
         assert result == mock_session
-        mock_db.commit.assert_awaited_once()
 
     @pytest.mark.asyncio
     async def test_transfer_session_rejects_non_owner(self, live_chat_service):
@@ -388,7 +387,6 @@ class TestTransferSession:
                 )
 
             assert result == mock_session
-            mock_db.commit.assert_awaited_once()
         finally:
             invalidate_cache()  # restore DEFAULT_POLICY for later tests
 

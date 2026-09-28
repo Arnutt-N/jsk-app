@@ -9,6 +9,7 @@ from urllib.parse import quote
 
 logger = logging.getLogger(__name__)
 _EXPORT_CHUNK = 500
+_EXPORT_MAX_MESSAGES = 20000
 
 
 def _content_disposition(filename: str) -> str:
@@ -17,7 +18,7 @@ def _content_disposition(filename: str) -> str:
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response, StreamingResponse
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api import deps
@@ -59,6 +60,30 @@ async def _load_conversation(
         .order_by(Message.created_at.asc(), Message.id.asc())
     )
     return user, list(result.scalars().all())
+
+
+async def _conversation_bounds(
+    line_user_id: str, db: AsyncSession
+) -> tuple[Optional[User], Optional[Message], Optional[Message]]:
+    """Resolve identity + first/last messages without loading the body."""
+    user = await resolve_by_line_id(db, line_user_id)
+    first = (
+        await db.execute(
+            select(Message)
+            .where(child_filter(Message, line_user_id, user.id if user else None))
+            .order_by(Message.created_at.asc(), Message.id.asc())
+            .limit(1)
+        )
+    ).scalars().first()
+    last = (
+        await db.execute(
+            select(Message)
+            .where(child_filter(Message, line_user_id, user.id if user else None))
+            .order_by(Message.created_at.desc(), Message.id.desc())
+            .limit(1)
+        )
+    ).scalars().first()
+    return user, first, last
 
 
 def _display_name(user: Optional[User], line_user_id: str) -> str:
@@ -103,12 +128,12 @@ async def export_conversation_csv(
     _current_user: User = Depends(require_permission(KEY_EXPORT_CHAT)),
 ):
     """Export one conversation as CSV (streamed, RFC 5987 filename)."""
-    user, messages = await _load_conversation(line_user_id, db)
-    if not messages:
+    user, first, last = await _conversation_bounds(line_user_id, db)
+    if first is None:
         raise HTTPException(status_code=404, detail="Conversation not found or has no messages")
 
     display_name = _display_name(user, line_user_id)
-    filename = _build_export_filename(display_name, messages, "csv")
+    filename = _build_export_filename(display_name, [first, last], "csv")
 
     return StreamingResponse(
         _iter_csv_rows(line_user_id, db),
@@ -128,6 +153,15 @@ async def export_conversation_pdf(
         import reportlab  # noqa: F401 — availability probe
     except Exception as exc:
         raise HTTPException(status_code=500, detail="PDF export dependency not installed") from exc
+
+    user = await resolve_by_line_id(db, line_user_id)
+    count = await db.scalar(
+        select(func.count())
+        .select_from(Message)
+        .where(child_filter(Message, line_user_id, user.id if user else None))
+    )
+    if count > _EXPORT_MAX_MESSAGES:
+        raise HTTPException(status_code=413, detail="Conversation too large")
 
     user, messages = await _load_conversation(line_user_id, db)
     if not messages:

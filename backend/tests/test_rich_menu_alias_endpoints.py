@@ -49,8 +49,10 @@ class _SeqDB:
 
     def __init__(self, results):
         self._results = list(results)
+        self.statements = []
 
     async def execute(self, stmt):
+        self.statements.append(stmt)
         value = self._results.pop(0) if self._results else None
         return _Result(value)
 
@@ -221,3 +223,47 @@ def test_delete_alias_404_when_missing():
         _clear()
 
     assert resp.status_code == 404
+
+
+def _literal_sql(stmt):
+    return str(stmt.compile(compile_kwargs={"literal_binds": True}))
+
+
+def test_aliases_limit_applied_to_query():
+    db = _override(role=UserRole.ADMIN, results=[[]])
+    client = TestClient(app)
+    try:
+        resp = client.get(f"{ALIASES_URL}?limit=5")
+    finally:
+        client.close()
+        _clear()
+
+    assert resp.status_code == 200
+    assert "LIMIT 5" in _literal_sql(db.statements[0])
+
+
+def test_aliases_skip_offsets_query():
+    db = _override(role=UserRole.ADMIN, results=[[]])
+    client = TestClient(app)
+    try:
+        resp = client.get(f"{ALIASES_URL}?skip=10&limit=5")
+    finally:
+        client.close()
+        _clear()
+
+    assert resp.status_code == 200
+    sql = _literal_sql(db.statements[0])
+    assert "LIMIT 5" in sql
+    assert "OFFSET 10" in sql
+
+
+def test_aliases_limit_over_100_rejected():
+    _override(role=UserRole.ADMIN, results=[[]])
+    client = TestClient(app)
+    try:
+        resp = client.get(f"{ALIASES_URL}?limit=101")
+    finally:
+        client.close()
+        _clear()
+
+    assert resp.status_code == 422

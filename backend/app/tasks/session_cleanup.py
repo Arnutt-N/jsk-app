@@ -13,7 +13,7 @@ from app.models.chat_session import ChatSession, SessionStatus
 from app.models.user import ChatMode, User
 from app.services.line_service import line_service
 from app.services.analytics_service import analytics_service
-from app.services.user_identity_service import decrypt_line_id_for_user
+from app.services.user_identity_service import decrypt_line_ids_for_users_tolerant
 from linebot.v3.messaging import TextMessage
 
 logger = logging.getLogger(__name__)
@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 INACTIVE_TIMEOUT_MINUTES = 30
 WAITING_ABANDONMENT_MINUTES = 10
 CLEANUP_INTERVAL_SECONDS = 300
+_CLEANUP_BATCH = 500
 
 
 async def cleanup_inactive_sessions():
@@ -47,8 +48,15 @@ async def _process_inactive_sessions(db: AsyncSession):
             ChatSession.status == SessionStatus.ACTIVE,
             ChatSession.last_activity_at < active_threshold,
         )
+        .order_by(ChatSession.last_activity_at.asc())
+        .limit(_CLEANUP_BATCH + 1)
     )
     inactive_sessions = inactive_result.scalars().all()
+    if len(inactive_sessions) > _CLEANUP_BATCH:
+        logger.warning(
+            f"Cleanup inactive scan exceeded {_CLEANUP_BATCH}: more remain, next tick"
+        )
+        inactive_sessions = inactive_sessions[:_CLEANUP_BATCH]
 
     abandoned_result = await db.execute(
         select(ChatSession).where(
@@ -56,8 +64,15 @@ async def _process_inactive_sessions(db: AsyncSession):
             ChatSession.claimed_at.is_(None),
             ChatSession.started_at < waiting_threshold,
         )
+        .order_by(ChatSession.started_at.asc())
+        .limit(_CLEANUP_BATCH + 1)
     )
     abandoned_sessions = abandoned_result.scalars().all()
+    if len(abandoned_sessions) > _CLEANUP_BATCH:
+        logger.warning(
+            f"Cleanup abandoned scan exceeded {_CLEANUP_BATCH}: more remain, next tick"
+        )
+        abandoned_sessions = abandoned_sessions[:_CLEANUP_BATCH]
 
     if not inactive_sessions and not abandoned_sessions:
         return
@@ -68,17 +83,24 @@ async def _process_inactive_sessions(db: AsyncSession):
         len(abandoned_sessions),
     )
 
+    user_ids = list(dict.fromkeys(uid for s in inactive_sessions + abandoned_sessions if (uid := s.user_id) is not None))
+    raw_line_ids = await decrypt_line_ids_for_users_tolerant(db, user_ids)
+
     for session in inactive_sessions:
-        await _close_inactive_session(session, db)
-
+        await _mutate_close_inactive(session, db)
     for session in abandoned_sessions:
-        await _mark_abandoned_waiting_session(session, db)
-
+        await _mutate_mark_abandoned(session, db)
     await db.commit()
+
+    for session in inactive_sessions:
+        await _announce_close(session, raw_line_ids.get(session.user_id))
+    for session in abandoned_sessions:
+        await _announce_abandoned(session, raw_line_ids.get(session.user_id))
+
     await analytics_service.emit_live_kpis_update(db)
 
 
-async def _close_inactive_session(session: ChatSession, db: AsyncSession):
+async def _mutate_close_inactive(session: ChatSession, db: AsyncSession):
     """Close one active session due to inactivity timeout."""
     session.status = SessionStatus.CLOSED
     session.closed_at = datetime.now(timezone.utc)
@@ -104,12 +126,9 @@ async def _close_inactive_session(session: ChatSession, db: AsyncSession):
         },
     )
 
-    try:
-        raw_line_id = await decrypt_line_id_for_user(db, session.user_id)
-    except Exception as e:
-        logger.error(f"Decrypt failed for cleanup user_id={session.user_id}: {e}")
-        raw_line_id = None
 
+async def _announce_close(session: ChatSession, raw_line_id):
+    """Notify LINE push + WS broadcast for an inactivity close."""
     try:
         if raw_line_id:
             await line_service.push_messages(
@@ -134,7 +153,7 @@ async def _close_inactive_session(session: ChatSession, db: AsyncSession):
         logger.error(f"Failed to broadcast inactivity close: {e}")
 
 
-async def _mark_abandoned_waiting_session(session: ChatSession, db: AsyncSession):
+async def _mutate_mark_abandoned(session: ChatSession, db: AsyncSession):
     """Close one waiting session as abandoned after timeout."""
     session.status = SessionStatus.CLOSED
     session.closed_at = datetime.now(timezone.utc)
@@ -160,12 +179,9 @@ async def _mark_abandoned_waiting_session(session: ChatSession, db: AsyncSession
         },
     )
 
-    try:
-        raw_line_id = await decrypt_line_id_for_user(db, session.user_id)
-    except Exception as e:
-        logger.error(f"Decrypt failed for abandonment user_id={session.user_id}: {e}")
-        raw_line_id = None
 
+async def _announce_abandoned(session: ChatSession, raw_line_id):
+    """Notify LINE push + WS broadcast for an abandonment close."""
     try:
         if raw_line_id:
             await line_service.push_messages(

@@ -55,13 +55,15 @@ async def test_concurrent_transfer_single_winner(seeded):
 
     async def attempt():
         async with Session() as db:
-            return await live_chat_service.transfer_session(
+            result = await live_chat_service.transfer_session(
                 line_user_id=ids["line"],
                 from_operator_id=ids["a"],
                 to_operator_id=ids["b"],
                 reason="ฝากดูต่อ",
                 db=db,
             )
+            await db.commit()  # production callers commit via publish_session_event
+            return result
 
     results = await asyncio.gather(attempt(), attempt(), return_exceptions=True)
     ok = [r for r in results if not isinstance(r, Exception)]
@@ -72,3 +74,23 @@ async def test_concurrent_transfer_single_winner(seeded):
         row = await db.get(ChatSession, ids["session"])
         assert row.operator_id == ids["b"]
         assert row.transfer_count == 1
+
+
+@pytest.mark.asyncio
+async def test_transfer_audit_atomic_with_mutation(seeded):
+    Session, ids = seeded
+
+    async with Session() as db:
+        await live_chat_service.transfer_session(
+            line_user_id=ids["line"],
+            from_operator_id=ids["a"],
+            to_operator_id=ids["b"],
+            reason="atomicity probe",
+            db=db,
+        )
+        await db.rollback()
+
+    async with Session() as db:
+        row = await db.get(ChatSession, ids["session"])
+        assert row.operator_id == ids["a"]
+        assert row.transfer_count == 0

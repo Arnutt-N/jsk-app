@@ -10,6 +10,8 @@ import { useCustomerNotes } from '@/hooks/useCustomerNotes';
 import { PRESENCE_DOT_CLASS, PRESENCE_LABEL, getSessionPresence } from '@/lib/constants/live-chat-presence';
 import { logger } from '@/lib/logger';
 import { maskLineUserId } from '@/lib/mask';
+import { useToast } from '@/components/ui/Toast';
+import { readErrorMessage } from '@/lib/api-error';
 
 export function CustomerPanel({
   currentChat,
@@ -23,6 +25,7 @@ export function CustomerPanel({
   // Hooks must run unconditionally — call before the early return with a
   // nullable id (the hook no-ops persistence when no conversation is selected).
   const { notes, setNotes, saved } = useCustomerNotes(currentChat?.line_user_id ?? null);
+  const { toast } = useToast();
   if (!currentChat) return null;
 
   const encodedLineUserId = encodeURIComponent(currentChat.line_user_id);
@@ -36,7 +39,8 @@ export function CustomerPanel({
     try {
       const response = await fetch(url);
       if (!response.ok) {
-        throw new Error(`Export failed: ${response.status}`);
+        const msg = await readErrorMessage(response, `Export failed: ${response.status}`);
+        throw new Error(msg);
       }
       const blob = await response.blob();
       const objectUrl = URL.createObjectURL(blob);
@@ -52,6 +56,7 @@ export function CustomerPanel({
       URL.revokeObjectURL(objectUrl);
     } catch (error) {
       logger.error(error);
+      toast({ title: 'Export ล้มเหลว', description: error instanceof Error ? error.message : 'เกิดข้อผิดพลาด กรุณาลองใหม่', variant: 'error' });
     }
   };
 
