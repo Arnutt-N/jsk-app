@@ -70,12 +70,14 @@ test.describe('Admin Requests UI Polish', () => {
 
     // Open the preview Modal by clicking the "เรียกดู" (Eye) action
     // button on the first row. handleView(req) sets selectedRequest +
-    // viewModalOpen, which renders the modal with the "ดูรายละเอียดเต็ม"
+    // viewModalOpen, which renders the modal with the "ดูรายละเอียด"
     // CTA. We can't click the <tr> reliably — the row click handler isn't
-    // bubbled correctly in the test runner.
+    // bubbled correctly in the test runner. Wait for the button (rows
+    // load after the table skeleton mounts); skip only on timeout.
     const viewButton = page.locator('button[title="เรียกดู"], button[aria-label="เรียกดู"]').first()
-    const viewButtonCount = await viewButton.count()
-    if (viewButtonCount === 0) {
+    try {
+      await viewButton.waitFor({ timeout: 10_000 })
+    } catch {
       test.skip(true, 'No request rows / view action button in test DB')
       return
     }
@@ -189,10 +191,12 @@ test.describe('Admin Requests UI Polish', () => {
 
     // Look for the delete trigger on a row's action menu. The list page
     // renders an ActionIconButton (Trash2 icon) with title="ลบ" in each
-    // row's action column.
+    // row's action column. Wait for it (rows load after the table
+    // skeleton mounts); skip only on timeout.
     const deleteButton = page.locator('button[title="ลบ"], button[aria-label="ลบ"]').first()
-    const deleteCount = await deleteButton.count()
-    if (deleteCount === 0) {
+    try {
+      await deleteButton.waitFor({ timeout: 10_000 })
+    } catch {
       test.skip(true, 'No delete action visible on rows in test DB')
       return
     }
