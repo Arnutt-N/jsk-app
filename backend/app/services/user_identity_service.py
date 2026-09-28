@@ -173,3 +173,26 @@ async def decrypt_line_ids_for_users(
             )
         mapping[uid] = _decrypt_line_id(token)
     return mapping
+
+
+async def decrypt_line_ids_for_users_tolerant(
+    db: AsyncSession, user_ids: list[int]
+) -> dict[int, str]:
+    """Tolerant variant for cleanup ticks — skips undecryptable rows; do NOT
+    use where the fail-loud contract is required."""
+    if not user_ids:
+        return {}
+    unique_ids = list(dict.fromkeys(user_ids))
+    result = await db.execute(
+        select(User.id, User.line_user_id_encrypted).where(User.id.in_(unique_ids))
+    )
+    mapping: dict[int, str] = {}
+    for uid, token in result.all():
+        if not token:
+            logger.warning(f"cleanup tolerant decrypt: user {uid} has no token, skipping")
+            continue
+        try:
+            mapping[uid] = _decrypt_line_id(token)
+        except Exception as e:
+            logger.warning(f"cleanup tolerant decrypt: user {uid} undecryptable, skipping: {e}")
+    return mapping
