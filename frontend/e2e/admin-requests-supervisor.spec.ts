@@ -27,6 +27,23 @@ import { loginAsAdmin } from './utils/auth'
  * We exclude the `create` link by filtering on the numeric id pattern.
  */
 async function getFirstRequestDetailUrl(page: Page): Promise<string | null> {
+  // Wait for row links to render: the table skeleton mounts before the
+  // list API responds, so an immediate scan would see zero rows and
+  // wrongly report an empty DB (cold-start skip flake).
+  try {
+    await page.waitForFunction(
+      () => {
+        const anchors = document.querySelectorAll('a[href*="/admin/requests/"]')
+        return Array.from(anchors).some((a) =>
+          /\/admin\/requests\/\d+$/.test(a.getAttribute('href') || ''),
+        )
+      },
+      null,
+      { timeout: 10_000 },
+    )
+  } catch {
+    return null
+  }
   const links = page.locator('a[href*="/admin/requests/"]')
   const count = await links.count()
   for (let i = 0; i < count; i++) {
