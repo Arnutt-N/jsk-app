@@ -110,7 +110,7 @@ test.describe('Request detail page -- supervisor view', () => {
 
     // The kebab is hidden on terminal-state requests (COMPLETED/REJECTED).
     // If it isn't there, skip the menu test rather than fail.
-    const kebab = page.getByRole('button', { name: 'การจัดการพิเศษ' })
+    const kebab = page.getByRole('button', { name: 'ตัวเลือกเพิ่มเติม' })
     const kebabVisible = await kebab.isVisible().catch(() => false)
     test.skip(!kebabVisible, 'request is in a terminal state; override kebab is hidden by design')
 
@@ -156,7 +156,7 @@ test.describe('Request detail page -- supervisor view', () => {
   })
 
   // -------------------------------------------------------------------
-  // PRD B: revert-from-COMPLETED via the kebab "การจัดการพิเศษ" menu.
+  // PRD B: revert-from-COMPLETED via the kebab "ตัวเลือกเพิ่มเติม" menu.
   //
   // These tests assume the test DB has at least one COMPLETED request.
   // If not, each test skips rather than fails. The seeded fixtures in
@@ -173,7 +173,7 @@ test.describe('Request detail page -- supervisor view', () => {
     // Kebab MUST be visible on COMPLETED for supervisor (PRD B changed
     // the visibility guard: previously hidden on COMPLETED, now hidden
     // only on REJECTED).
-    const kebab = page.getByRole('button', { name: 'การจัดการพิเศษ' })
+    const kebab = page.getByRole('button', { name: 'ตัวเลือกเพิ่มเติม' })
     await expect(kebab).toBeVisible()
     await kebab.click()
 
@@ -208,7 +208,7 @@ test.describe('Request detail page -- supervisor view', () => {
     const completedPill = page.locator('text=เสร็จสิ้น').first()
     await expect(completedPill).toBeVisible()
 
-    await page.getByRole('button', { name: 'การจัดการพิเศษ' }).click()
+    await page.getByRole('button', { name: 'ตัวเลือกเพิ่มเติม' }).click()
     await page.getByRole('menuitem', { name: /ยกเลิกอนุมัติ.*รออนุมัติ/ }).click()
 
     // ConfirmDialog opens.
@@ -249,7 +249,7 @@ test.describe('Request detail page -- supervisor view', () => {
         body: JSON.stringify({ ...baseline, status: 'AWAITING_APPROVAL' }) })
     })
 
-    await page.getByRole('button', { name: 'การจัดการพิเศษ' }).click()
+    await page.getByRole('button', { name: 'ตัวเลือกเพิ่มเติม' }).click()
     await page.getByRole('menuitem', { name: /ยกเลิกอนุมัติ.*รออนุมัติ/ }).click()
     const dialog = page.getByRole('dialog')
     await expect(dialog).toBeVisible()
