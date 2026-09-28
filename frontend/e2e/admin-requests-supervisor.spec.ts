@@ -141,17 +141,26 @@ test.describe('Request detail page -- supervisor view', () => {
     const manageTab = page.getByRole('tab', { name: /จัดการคำร้อง/ })
     await manageTab.click()
 
-    // Status pills container -- the grid should have 6 buttons that
-    // collectively don't exceed the viewport width. Pick any pill and
-    // assert its bounding box stays within viewport.
-    const firstStatusPill = page.locator('button', { hasText: 'รอรับเรื่อง' }).last()
-    await expect(firstStatusPill).toBeVisible()
-
-    const box = await firstStatusPill.boundingBox()
-    expect(box).not.toBeNull()
-    if (box) {
-      expect(box.x).toBeGreaterThanOrEqual(0)
-      expect(box.x + box.width).toBeLessThanOrEqual(375)
+    // Status chips must fit inside the manage card (no horizontal
+    // overflow). Assert against the CARD box, not raw viewport
+    // coordinates: the tab click's scrollIntoView can leave the document
+    // scrolled, which shifts viewport-relative boxes without any real
+    // overflow.
+    const panel = page.locator('#panel-manage')
+    await expect(panel).toBeVisible()
+    await page.evaluate(() => window.scrollTo(0, 0))
+    const panelBox = await panel.boundingBox()
+    expect(panelBox).not.toBeNull()
+    const chips = panel.locator('div.flex.flex-wrap').first().locator('button')
+    await expect(chips.first()).toBeVisible()
+    expect(await chips.count()).toBe(6)
+    for (let i = 0; i < 6; i++) {
+      const box = await chips.nth(i).boundingBox()
+      expect(box).not.toBeNull()
+      if (box && panelBox) {
+        expect(box.x).toBeGreaterThanOrEqual(panelBox.x - 1)
+        expect(box.x + box.width).toBeLessThanOrEqual(panelBox.x + panelBox.width + 1)
+      }
     }
   })
 

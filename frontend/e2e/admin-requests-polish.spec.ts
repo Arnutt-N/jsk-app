@@ -47,7 +47,7 @@ test.describe('Admin Requests UI Polish', () => {
     await loginAsAdmin(page)
   })
 
-  test('list modal "ดูรายละเอียดเต็ม" button has whitespace-nowrap (#1)', async ({ page }) => {
+  test('list modal "ดูรายละเอียด" button has whitespace-nowrap (#1)', async ({ page }) => {
     await page.goto('/admin/requests')
     await expect(page.locator('table')).toBeVisible({ timeout: 10_000 })
 
@@ -66,7 +66,7 @@ test.describe('Admin Requests UI Polish', () => {
 
     // Modal opens — find the navigation button. Next.js Link renders as
     // <a href="..."><button>...</button></a> so the button is inside an a.
-    const fullDetailButton = page.locator('a:has(button) button:has-text("ดูรายละเอียดเต็ม")').first()
+    const fullDetailButton = page.locator('a:has(button) button:has-text("ดูรายละเอียด")').first()
     await expect(fullDetailButton).toBeVisible({ timeout: 5_000 })
     await expect(fullDetailButton).toHaveClass(/whitespace-nowrap/)
   })
@@ -181,7 +181,7 @@ test.describe('Admin Requests UI Polish', () => {
     await deleteButton.click()
 
     // The delete modal renders the new context-specific copy.
-    await expect(page.locator('text=คำร้องที่ลบไปแล้วจะหายถาวร')).toBeVisible({ timeout: 5_000 })
+    await expect(page.locator('text=คำร้องที่ลบไปแล้วจะไม่สามารถกู้คืนได้')).toBeVisible({ timeout: 5_000 })
 
     // The old generic phrase should NOT appear.
     await expect(page.locator('text=การกระทำนี้ไม่สามารถย้อนกลับได้')).toHaveCount(0)
