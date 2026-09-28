@@ -238,13 +238,12 @@ test.describe('Request detail page -- supervisor view', () => {
     await expect(page.locator('text=เสร็จสิ้น').first()).toBeVisible()
 
     // Fulfill PATCH (no backend mutation) + the follow-up GET refetch with reverted state.
-    let patchPayload: Record<string, unknown> | null = null
     await page.route(`**/api/v1/admin/requests/${id}`, async (route) => {
       const req = route.request()
       if (req.method() === 'PATCH') {
-        patchPayload = req.postDataJSON?.() ?? {}
+        const body = req.postDataJSON?.() ?? {}
         return route.fulfill({ status: 200, contentType: 'application/json',
-          body: JSON.stringify({ ok: true, ...patchPayload }) })
+          body: JSON.stringify({ ok: true, ...body }) })
       }
       return route.fulfill({ status: 200, contentType: 'application/json',
         body: JSON.stringify({ ...baseline, status: 'AWAITING_APPROVAL' }) })
@@ -255,12 +254,16 @@ test.describe('Request detail page -- supervisor view', () => {
     const dialog = page.getByRole('dialog')
     await expect(dialog).toBeVisible()
 
+    const patchReqPromise = page.waitForRequest((r) =>
+      r.method() === 'PATCH' && r.url().endsWith(`/api/v1/admin/requests/${id}`))
     const patchRespPromise = page.waitForResponse((r) =>
       r.request().method() === 'PATCH' && r.url().endsWith(`/api/v1/admin/requests/${id}`))
     await dialog.getByRole('button', { name: /ยืนยัน/ }).click()
+    const patchReq = await patchReqPromise
     const patchResp = await patchRespPromise
+    const payload = patchReq.postDataJSON?.() as { status?: string } | undefined
+    expect(payload?.status).toBe('AWAITING_APPROVAL')
     expect(patchResp.ok()).toBe(true)
-    expect(patchPayload?.status).toBe('AWAITING_APPROVAL')
     await expect(page.locator('text=รออนุมัติ').first()).toBeVisible({ timeout: 10_000 })
   })
 

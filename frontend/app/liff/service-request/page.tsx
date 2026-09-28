@@ -237,7 +237,7 @@ export default function LiffServiceRequestV2() {
             return
         }
 
-        const file = e.target.files[0]
+        const file = input.files[0]
         let failureMessage = 'อัพโหลดไฟล์ไม่สำเร็จ'
         inflightUploadsRef.current += 1
 
