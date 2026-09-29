@@ -9,7 +9,7 @@ from sqlalchemy import desc, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.audit import audit_action
+from app.core.audit import audit_action, create_audit_log
 from app.core.permissions import can, KEY_ACCESS_LIVE_CHAT
 from app.models.chat_session import ChatSession, ClosedBy, SessionStatus
 from app.models.user import ChatMode, User, UserRole
@@ -245,7 +245,6 @@ class SessionLifecycleMixin:
             line_user_id, ClosedBy.OPERATOR, db, operator_id=operator_id
         )
 
-    @audit_action("transfer_session", "chat_session")
     async def transfer_session(
         self,
         line_user_id: str,
@@ -301,6 +300,18 @@ class SessionLifecycleMixin:
             raise ValueError(TRANSFER_ERR_CONFLICT)
         refreshed = await db.get(ChatSession, session.id)
         logger.info(f"Session {session.id} transferred from operator {from_operator_id} to {to_operator_id}")
+        await create_audit_log(
+            db,
+            admin_id=from_operator_id,
+            action="transfer_session",
+            resource_type="chat_session",
+            resource_id=str(session.id),
+            details={
+                "from_operator_id": from_operator_id,
+                "to_operator_id": to_operator_id,
+                "reason": reason,
+            },
+        )
         return refreshed
 
     async def get_active_session(self, line_user_id: str, db: AsyncSession, lock: bool = False, user_id: int = None):

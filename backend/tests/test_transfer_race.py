@@ -1,11 +1,13 @@
 import asyncio
 import pytest
 import pytest_asyncio
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
 
 from app.core.config import settings
+from app.models.audit_log import AuditLog
 from app.models.chat_session import ChatSession, SessionStatus
 from app.models.user import User, UserRole
 from app.services.friend_service import friend_service
@@ -94,3 +96,50 @@ async def test_transfer_audit_atomic_with_mutation(seeded):
         row = await db.get(ChatSession, ids["session"])
         assert row.operator_id == ids["a"]
         assert row.transfer_count == 0
+
+    async with Session() as db:
+        rows = (
+            await db.execute(
+                select(AuditLog).where(
+                    AuditLog.action == "transfer_session",
+                    AuditLog.resource_id == str(ids["session"]),
+                )
+            )
+        ).scalars().all()
+        assert rows == []
+
+
+@pytest.mark.asyncio
+async def test_transfer_emits_audit_row(seeded):
+    Session, ids = seeded
+
+    async with Session() as db:
+        await live_chat_service.transfer_session(
+            line_user_id=ids["line"],
+            from_operator_id=ids["a"],
+            to_operator_id=ids["b"],
+            reason="ฝากดูต่อ",
+            db=db,
+        )
+        await db.commit()
+
+    async with Session() as db:
+        rows = (
+            await db.execute(
+                select(AuditLog).where(
+                    AuditLog.action == "transfer_session",
+                    AuditLog.resource_id == str(ids["session"]),
+                )
+            )
+        ).scalars().all()
+        assert len(rows) == 1
+        row = rows[0]
+        assert row.admin_id == ids["a"]
+        assert row.resource_type == "chat_session"
+        assert row.details == {
+            "from_operator_id": ids["a"],
+            "to_operator_id": ids["b"],
+            "reason": "ฝากดูต่อ",
+        }
+        await db.delete(row)
+        await db.commit()
