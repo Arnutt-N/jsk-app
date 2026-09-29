@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 266 active handoffs, 11 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 267 active handoffs, 11 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-09-29 23:22 — muse_code (Muse Spark / Meta MSL) — completed
+
+Merged PR #239: transfer-audit M-8 fix (explicit audit row on transfer) - rebased onto main, CI green, CD success
+
+- Checkpoint: `.agents/state/checkpoints/handover-muse_code-20260929-2322.json`
+- Summary: `project-log-md/muse_code/session-summary-20260929-2322.md`
+
+---
 
 ### 2026-09-29 07:23 — muse_code (Muse Spark / Meta MSL) — completed
 
