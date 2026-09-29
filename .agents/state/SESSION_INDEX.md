@@ -1,16 +1,16 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Cross-Platform Session Index (generated)
 
-> **Last generated**: 2026-09-29 23:22 (from newest checkpoint)
+> **Last generated**: 2026-09-30 06:37 (from newest checkpoint)
 
 ## Quick Stats
 
 | Metric | Value |
 |--------|-------|
-| Handoff checkpoints (active) | 267 |
-| Session summaries on disk | 371 |
+| Handoff checkpoints (active) | 268 |
+| Session summaries on disk | 372 |
 | Platforms | 11 (antigravity, claude_code, cline, codex, gemini_cli, kilo_code, kimi_code, muse_code, open_code, qoder, zcode) |
-| Most recent | 2026-09-29 23:22 — muse_code |
+| Most recent | 2026-09-30 06:37 — muse_code |
 
 > Regenerate after any handoff: `node .agents/scripts/gen-handoff-views.cjs`
 
@@ -126,10 +126,11 @@
 | 2026-02-06 19:14 | unknown | — | — | `handover-kimi_code-any-20260206-1914.json` |
 | 2026-02-04 20:00 | unknown | — | — | `handover-kimi_code-any-20260204-2000.json` |
 
-## muse_code (2)
+## muse_code (3)
 
 | When | Status | Model | Provider | Checkpoint |
 |------|--------|-------|----------|------------|
+| 2026-09-30 06:37 | completed | Muse Spark | Meta MSL | `handover-muse_code-20260930-0637.json` |
 | 2026-09-29 23:22 | completed | Muse Spark | Meta MSL | `handover-muse_code-20260929-2322.json` |
 | 2026-09-29 07:23 | completed | Muse Spark | Meta MSL | `handover-muse_code-20260929-0723.json` |
 

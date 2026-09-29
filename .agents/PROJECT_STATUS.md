@@ -1,9 +1,9 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-09-29 23:22 by Muse Code (Merged PR #239: transfer-audit M-8 fix explicit audit row on transfer - rebased onto main,)
+> **Last Updated:** 2026-09-30 06:37 by Muse Code (Post-merge verify: PR #239 live on production - CD 6/6 jobs success, backend healthy, fron)
 
 ## Thai Summary
-**สถานะล่าสุด (2026-09-24)** — ตรวจหลังส่งขึ้นร้านจริงเสร็จ (commit `f54403b` #232): โค้ดตรงกับเซิร์ฟเวอร์, หลังบ้านแข็งแรงดี (database+redis ปกติ), หน้าลับล็อกถูกต้อง (401), หน้าร้านเปิดติด, บันทึกส่งของ CD `35861792160` เขียวครบ 6 งาน — ไม่ได้แก้โค้ด เหลือแค่ลองเล่นด้วยมือ + เก็บเอกสารให้ตรงกัน
+**สถานะล่าสุด (2026-09-30)** — รวม PR #239 (แก้บั๊กโอนแชทไม่มีบันทึก M-8) เข้าสายหลักแล้ว (`fd82c7a`) + ตรวจหลังส่งขึ้นร้านจริงเสร็จ: หลังบ้านแข็งแรงดี (database+redis ปกติ), หน้าร้านเปิดติด (HTTP 200), ปุ่มโอนแชทล็อกถูกต้อง (401), บันทึกส่งของ CD `36596610691` เขียวครบ 6 งาน — โค้ดตรงกับเซิร์ฟเวอร์ เหลือ Round-3b (22 ข้อ) + ซ่อมไฟล์ทดสอบ upload-security ที่พังมาก่อน
 
 <!-- Previous project summary retained below for historical context. -->
 **สถานะก่อนหน้า (2026-09-04 09:00)** — งาน **P2 Thai Calendar and Date Standardization & Review Fixes** เสร็จสมบูรณ์ (Gate G1, G2, G3 ผ่านครบ 100%):
@@ -123,6 +123,7 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-09-30 06:37] Muse Code: Post-merge verify: PR #239 live on production - CD 6/6 jobs success, backend healthy, frontend 200, transfer endpoint 401-hardened (Muse Code)
 - [2026-09-29 23:22] Muse Code: Merged PR #239: transfer-audit M-8 fix (explicit audit row on transfer) - rebased onto main, CI green, CD success (Muse Code)
 - [2026-09-29 07:23] Muse Code: Merged PR #240: round-3 batch A (8 High + 10 Medium, T1-T18) + E2E rot fixes (Muse Code)
 - [2026-09-27 20:08] Cline: Merged PR 236 codebase-review-fix batch F1-F7: SQL-like escaping pagination bounds broadcast fan-out dedup LINE-ID log masking Pydantic length caps - CI green on main CD deployed to Koyeb (Cline)
