@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-09-27 20:08 by Cline (Merged PR 236 codebase-review-fix batch F1-F7: SQL-like escaping pagination bounds broadca)
+> **Last Updated:** 2026-09-29 07:23 by Muse Code (Merged PR #240: round-3 batch A 8 High + 10 Medium, T1-T18 + E2E rot fixes)
 
 ## Thai Summary
 **สถานะล่าสุด (2026-09-24)** — ตรวจหลังส่งขึ้นร้านจริงเสร็จ (commit `f54403b` #232): โค้ดตรงกับเซิร์ฟเวอร์, หลังบ้านแข็งแรงดี (database+redis ปกติ), หน้าลับล็อกถูกต้อง (401), หน้าร้านเปิดติด, บันทึกส่งของ CD `35861792160` เขียวครบ 6 งาน — ไม่ได้แก้โค้ด เหลือแค่ลองเล่นด้วยมือ + เก็บเอกสารให้ตรงกัน
@@ -123,6 +123,7 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-09-29 07:23] Muse Code: Merged PR #240: round-3 batch A (8 High + 10 Medium, T1-T18) + E2E rot fixes (Muse Code)
 - [2026-09-27 20:08] Cline: Merged PR 236 codebase-review-fix batch F1-F7: SQL-like escaping pagination bounds broadcast fan-out dedup LINE-ID log masking Pydantic length caps - CI green on main CD deployed to Koyeb (Cline)
 - [2026-09-27 11:56] Cline: Cline post-merge session on main c54552c - PR #233 merged (handoff cleanup + greenlet fix), CI green 7/7, validator PASS (Cline)
 - [2026-09-27 00:42] Cline: Handoff system cleanup: retired stale handoff.md, fixed doc contradictions, refreshed state, extended platform maps, hardened validator (Cline)

@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 265 active handoffs, 10 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 266 active handoffs, 11 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-09-29 07:23 — muse_code (Muse Spark / Meta MSL) — completed
+
+Merged PR #240: round-3 batch A (8 High + 10 Medium, T1-T18) + E2E rot fixes
+
+- Checkpoint: `.agents/state/checkpoints/handover-muse_code-20260929-0723.json`
+- Summary: `project-log-md/muse_code/session-summary-20260929-0723.md`
+
+---
 
 ### 2026-09-27 20:08 — cline — completed
 
