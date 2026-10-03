@@ -109,17 +109,15 @@ class ConversationsMixin:
         latest_session_subquery = session_base.subquery()
         latest_session = aliased(ChatSession, latest_session_subquery)
 
-        # 2. Latest message per user subquery
+        # 2. Latest message per user — DISTINCT ON over
+        # ix_messages_user_created(user_id, created_at DESC): same winner
+        # per user as the row_number() window, index-driven instead of a
+        # full-table sort. (NULL-user_id rows form their own group exactly
+        # as before and still never join.)
         latest_message_subquery = (
-            select(
-                Message,
-                func.row_number()
-                .over(
-                    partition_by=child_column(Message),
-                    order_by=desc(Message.created_at),
-                )
-                .label("rn"),
-            )
+            select(Message)
+            .distinct(Message.user_id)
+            .order_by(Message.user_id, desc(Message.created_at), desc(Message.id))
             .subquery()
         )
         latest_message = aliased(Message, latest_message_subquery)
@@ -128,16 +126,10 @@ class ConversationsMixin:
         # for the sidebar. Outgoing bot/operator messages must not make a
         # customer appear online.
         latest_incoming_subquery = (
-            select(
-                Message,
-                func.row_number()
-                .over(
-                    partition_by=child_column(Message),
-                    order_by=desc(Message.created_at),
-                )
-                .label("rn"),
-            )
+            select(Message)
+            .distinct(Message.user_id)
             .where(Message.direction == MessageDirection.INCOMING)
+            .order_by(Message.user_id, desc(Message.created_at), desc(Message.id))
             .subquery()
         )
         latest_incoming = aliased(Message, latest_incoming_subquery)
@@ -156,14 +148,12 @@ class ConversationsMixin:
                 latest_message,
                 and_(
                     child_join_condition(User, latest_message),
-                    latest_message_subquery.c.rn == 1,
                 ),
             )
             .outerjoin(
                 latest_incoming,
                 and_(
                     child_join_condition(User, latest_incoming),
-                    latest_incoming_subquery.c.rn == 1,
                 ),
             )
             .where(user_identity_filter())
@@ -291,6 +281,22 @@ class ConversationsMixin:
             }
             for message, display_name in rows
         ]
+
+    async def get_conversation_identity(self, line_user_id: str, db: AsyncSession):
+        """Display identity for broadcast/sidebar paths (1 query, no messages).
+
+        Lightweight alternative to get_conversation_detail for callers
+        needing only display_name/picture_url/chat_mode (or a None
+        existence check). Mirrors the WS send path.
+        """
+        user = await resolve_by_line_id(db, line_user_id)
+        if not user:
+            return None
+        return {
+            "display_name": user.display_name,
+            "picture_url": user.picture_url,
+            "chat_mode": user.chat_mode or "BOT",
+        }
 
     async def get_conversation_detail(self, line_user_id: str, db: AsyncSession):
         """Get full chat history with a user"""
