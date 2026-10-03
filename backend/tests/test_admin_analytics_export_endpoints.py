@@ -305,3 +305,179 @@ def test_export_pdf_404_when_no_messages():
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Conversation not found or has no messages"
+
+
+# ── R3-M7: role-based LINE ID masking in exports ────────────────────────
+_EXPORT_RAW_ID = "U1234567890abcdef"  # masked → "U12***ef"
+
+
+async def _override_get_current_agent():
+    return SimpleNamespace(id=2, role=UserRole.AGENT, username="operator")
+
+
+def _csv_messages():
+    return [
+        SimpleNamespace(
+            id=1,
+            created_at=datetime(2026, 2, 8, 3, 0, 0, tzinfo=timezone.utc),
+            user_id=1,
+            direction=MessageDirection.INCOMING,
+            sender_role=SenderRole.USER,
+            message_type="text",
+            content="hello",
+        ),
+    ]
+
+
+def _get_csv_as(role_override, raw_id: str) -> str:
+    """GET the CSV export as a given role; returns the decoded body."""
+    from unittest.mock import patch
+
+    _demo_user = SimpleNamespace(id=1, display_name="Demo User")
+    _messages = _csv_messages()
+
+    def _exec_result(scalars_all):
+        r = MagicMock()
+        r.scalars.return_value.all.return_value = scalars_all
+        return r
+
+    mock_db = AsyncMock()
+    mock_db.execute = AsyncMock(
+        side_effect=[_exec_result(_messages), _exec_result([])]
+    )
+
+    def _override_streaming_db():
+        yield mock_db
+
+    app.dependency_overrides[deps.get_db] = _override_streaming_db
+    app.dependency_overrides[deps.get_current_user] = role_override
+    original_resolve = admin_export.resolve_by_line_id
+    original_bounds = admin_export._conversation_bounds
+    admin_export.resolve_by_line_id = AsyncMock(return_value=_demo_user)
+    admin_export._conversation_bounds = AsyncMock(
+        return_value=(_demo_user, _messages[0], _messages[0])
+    )
+
+    client = TestClient(app)
+    try:
+        with patch("app.core.permissions.can", return_value=True):
+            response = client.get(f"/api/v1/admin/export/conversations/{raw_id}/csv")
+    finally:
+        client.close()
+        admin_export.resolve_by_line_id = original_resolve
+        admin_export._conversation_bounds = original_bounds
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200, response.text
+    return response.content.decode("utf-8-sig")
+
+
+def test_export_csv_admin_sees_raw_line_id():
+    text = _get_csv_as(_override_get_current_admin, _EXPORT_RAW_ID)
+    assert _EXPORT_RAW_ID in text
+
+
+def test_export_csv_agent_sees_masked_line_id_only():
+    text = _get_csv_as(_override_get_current_agent, _EXPORT_RAW_ID)
+    assert "U12***ef" in text
+    assert _EXPORT_RAW_ID not in text
+
+
+@pytest.mark.skipif(
+    not __import__("importlib").util.find_spec("reportlab"),
+    reason="reportlab not installed",
+)
+def test_export_pdf_passes_caller_role_to_builder():
+    from unittest.mock import patch
+
+    mock_db = AsyncMock()
+    mock_db.scalar = AsyncMock(return_value=5)
+
+    def _override_pdf_db():
+        yield mock_db
+
+    app.dependency_overrides[deps.get_db] = _override_pdf_db
+    app.dependency_overrides[deps.get_current_user] = _override_get_current_agent
+
+    _demo_user = SimpleNamespace(id=1, display_name="Demo User")
+    original_resolve = admin_export.resolve_by_line_id
+    original_load = admin_export._load_conversation
+    original_builder = admin_export._build_conversation_pdf
+    admin_export.resolve_by_line_id = AsyncMock(return_value=_demo_user)
+    admin_export._load_conversation = AsyncMock(
+        return_value=(_demo_user, _csv_messages())
+    )
+    capture = MagicMock(return_value=b"%PDF-fake")
+    admin_export._build_conversation_pdf = capture
+
+    client = TestClient(app)
+    try:
+        with patch("app.core.permissions.can", return_value=True):
+            response = client.get(
+                f"/api/v1/admin/export/conversations/{_EXPORT_RAW_ID}/pdf"
+            )
+    finally:
+        client.close()
+        admin_export.resolve_by_line_id = original_resolve
+        admin_export._load_conversation = original_load
+        admin_export._build_conversation_pdf = original_builder
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200, response.text
+    assert capture.call_args.kwargs["role"] == UserRole.AGENT
+
+
+@pytest.mark.skipif(
+    not __import__("importlib").util.find_spec("reportlab"),
+    reason="reportlab not installed",
+)
+def test_pdf_builder_masks_line_id_by_role():
+    from unittest.mock import patch
+
+    msg = SimpleNamespace(
+        created_at=datetime(2026, 2, 8, 3, 0, 0, tzinfo=timezone.utc),
+        direction="INCOMING",
+        sender_role="USER",
+        message_type="text",
+        content="hi",
+    )
+
+    def _drawn_strings(role):
+        with patch(
+            "reportlab.pdfgen.canvas.Canvas.drawString",
+            new=MagicMock(),
+        ) as draw:
+            admin_export._build_conversation_pdf(
+                _EXPORT_RAW_ID, "Ann", [msg], role=role
+            )
+        # MagicMock is not a descriptor: `self` is NOT prepended, so the
+        # drawn text is args[2] (x, y, text).
+        return [call.args[2] for call in draw.call_args_list]
+
+    assert "LINE User ID: U12***ef" in _drawn_strings(UserRole.AGENT)
+    assert f"LINE User ID: {_EXPORT_RAW_ID}" in _drawn_strings(UserRole.ADMIN)
+
+
+def test_display_name_masks_fallback_by_role():
+    assert (
+        admin_export._display_name(None, _EXPORT_RAW_ID, UserRole.AGENT)
+        == "U12***ef"
+    )
+    assert (
+        admin_export._display_name(None, _EXPORT_RAW_ID, UserRole.ADMIN)
+        == _EXPORT_RAW_ID
+    )
+    named = SimpleNamespace(display_name="Ann")
+    assert (
+        admin_export._display_name(named, _EXPORT_RAW_ID, UserRole.AGENT)
+        == "Ann"
+    )
+    assert (
+        admin_export._display_name(named, _EXPORT_RAW_ID, UserRole.ADMIN)
+        == "Ann"
+    )
+    unnamed = SimpleNamespace(display_name=None)
+    assert (
+        admin_export._display_name(unnamed, _EXPORT_RAW_ID, UserRole.AGENT)
+        == "U12***ef"
+    )
