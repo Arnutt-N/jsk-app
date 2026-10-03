@@ -87,6 +87,34 @@ describe('api-error utilities', () => {
       expect(isNetworkError('Failed to fetch')).toBe(false)
       expect(isNetworkError(null)).toBe(false)
     })
+
+    it('should match the interceptor Thai rewrap via the cause chain', () => {
+      const rewrapped = new TypeError(
+        'ไม่สามารถเชื่อมต่อ Backend ได้ (http://x) — กรุณาตรวจสอบว่า Backend เปิดอยู่',
+        { cause: new TypeError('Failed to fetch') }
+      )
+      expect(isNetworkError(rewrapped)).toBe(true)
+    })
+
+    it('should match a 2-deep TypeError cause chain', () => {
+      const root = new TypeError('outer', {
+        cause: new TypeError('middle', { cause: new TypeError('Load failed') }),
+      })
+      expect(isNetworkError(root)).toBe(true)
+    })
+
+    it('should terminate (false) on a cause cycle', () => {
+      const a = new TypeError('a-cycle') as TypeError & { cause?: unknown }
+      const b = new TypeError('b-cycle') as TypeError & { cause?: unknown }
+      a.cause = b
+      b.cause = a
+      expect(isNetworkError(a)).toBe(false)
+    })
+
+    it('should return false for an Error root with a network TypeError cause', () => {
+      const root = new Error('wrapper', { cause: new TypeError('Failed to fetch') })
+      expect(isNetworkError(root)).toBe(false)
+    })
   })
 
   describe('apiFetch', () => {
