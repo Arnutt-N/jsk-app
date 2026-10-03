@@ -213,8 +213,12 @@ async def test_concurrent_create_race_integrity_error():
 
         mock_db.execute = fake_execute
         mock_db.add = MagicMock()
-        mock_db.commit = AsyncMock(side_effect=IntegrityError("stmt", "params", "orig"))
+        mock_db.flush = AsyncMock(side_effect=IntegrityError("stmt", "params", "orig"))
         mock_db.rollback = AsyncMock()
+        nested = AsyncMock()
+        nested.__aenter__ = AsyncMock(return_value=None)
+        nested.__aexit__ = AsyncMock(return_value=False)
+        mock_db.begin_nested = MagicMock(return_value=nested)
 
         mock_api = AsyncMock()
         mock_api.get_profile = AsyncMock(
@@ -224,6 +228,9 @@ async def test_concurrent_create_race_integrity_error():
         user = await service.get_or_create_user("Urace", mock_db)
 
     assert user is existing_user
+    mock_db.begin_nested.assert_called_once()
+    mock_db.rollback.assert_not_awaited()
+    mock_db.commit.assert_not_awaited()
 
 
 # ── 7. resolve_raw_for_push — fail-loud decrypt ───────────────────
