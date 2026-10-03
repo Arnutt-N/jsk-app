@@ -169,7 +169,7 @@ class ConnectionManager:
             self.connections[admin_id].discard(websocket)
             if not self.connections[admin_id]:
                 # Clean up rate limiter when last connection closes
-                ws_rate_limiter.reset(admin_id)
+                await ws_rate_limiter.reset_async(admin_id)
                 del self.connections[admin_id]
                 # Clean up admin metadata to prevent memory leak
                 if admin_id in self.admin_metadata:

@@ -13,6 +13,7 @@ from typing import Dict, List
 import logging
 
 from app.core.config import settings
+from app.core.redis_client import redis_client
 
 logger = logging.getLogger(__name__)
 
@@ -111,6 +112,39 @@ class WebSocketRateLimiter(SlidingWindowLimiter):
     @window.setter
     def window(self, value: int) -> None:
         self.window_seconds = value
+
+    # --- cross-worker async surface (Redis fixed window, in-process fallback)
+    _REDIS_KEY_PREFIX = "ratelimit:ws:"
+
+    def _redis_key(self, client_id: str) -> str:
+        return f"{self._REDIS_KEY_PREFIX}{client_id}"
+
+    async def is_allowed_async(self, client_id: str) -> bool:
+        """Cross-worker check: Redis fixed window, in-process fallback."""
+        allowed = await redis_client.fixed_window_allow(
+            self._redis_key(client_id),
+            max_events=self.max_events,
+            window_seconds=self.window_seconds,
+        )
+        if allowed is None:
+            return self.is_allowed(client_id)
+        return allowed
+
+    async def get_remaining_async(self, client_id: str) -> int:
+        raw = await redis_client.get(self._redis_key(client_id))
+        if raw is None:
+            # Fresh key (full budget) or Redis down (in-process
+            # state) — the sync buckets answer both correctly.
+            return self.get_remaining(client_id)
+        try:
+            used = int(raw)
+        except (TypeError, ValueError):
+            return self.get_remaining(client_id)
+        return max(0, self.max_events - used)
+
+    async def reset_async(self, client_id: str) -> None:
+        await redis_client.delete(self._redis_key(client_id))
+        self.reset(client_id)
 
 
 # Singleton instance
