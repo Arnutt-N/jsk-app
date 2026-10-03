@@ -297,7 +297,7 @@ function LoginForm() {
                       errors.username ? 'text-danger' : 'text-slate-700 dark:text-slate-300'
                     )}
                   >
-                    ชื่อผู้ใช้ <span className="text-danger">*</span>
+                    ชื่อผู้ใช้ <span className="text-danger" aria-hidden="true">*</span>
                   </Label>
                   <div className="relative group">
                     <Input
@@ -318,6 +318,8 @@ function LoginForm() {
                       autoCapitalize="none"
                       autoCorrect="off"
                       spellCheck={false}
+                      aria-invalid={!!errors.username}
+                      aria-describedby={errors.username ? 'username-error' : undefined}
                     />
                     <User
                       className={cn(
@@ -328,6 +330,11 @@ function LoginForm() {
                       )}
                     />
                   </div>
+                  {errors.username && (
+                    <p id="username-error" role="alert" className="text-danger text-xs mt-1 ml-1">
+                      {errors.username}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -338,7 +345,7 @@ function LoginForm() {
                       errors.password ? 'text-danger' : 'text-slate-700 dark:text-slate-300'
                     )}
                   >
-                    รหัสผ่าน <span className="text-danger">*</span>
+                    รหัสผ่าน <span className="text-danger" aria-hidden="true">*</span>
                   </Label>
                   <div className="relative group">
                     <Input
@@ -359,6 +366,8 @@ function LoginForm() {
                       autoCapitalize="none"
                       autoCorrect="off"
                       spellCheck={false}
+                      aria-invalid={!!errors.password}
+                      aria-describedby={errors.password ? 'password-error' : undefined}
                     />
                     <Lock
                       className={cn(
@@ -384,6 +393,11 @@ function LoginForm() {
                       )}
                     </button>
                   </div>
+                  {errors.password && (
+                    <p id="password-error" role="alert" className="text-danger text-xs mt-1 ml-1">
+                      {errors.password}
+                    </p>
+                  )}
                 </div>
 
                 <div className="flex items-center justify-between px-1">
