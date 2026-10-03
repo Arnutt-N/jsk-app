@@ -11,6 +11,7 @@ from app.models.media_file import MediaFile, FileCategory
 from app.models.user import User
 from app.models.user_rich_menu_link import UserRichMenuLink
 from app.services.settings_service import SettingsService
+from app.core.http_timeouts import DEFAULT_TIMEOUT, UPLOAD_TIMEOUT
 from app.core.redis_client import redis_client
 from app.services.user_identity_service import child_column, decrypt_user_line_id
 import os
@@ -162,7 +163,7 @@ class RichMenuService:
     async def create_on_line(db: AsyncSession, rich_menu_config: Dict[str, Any]) -> str:
         """Create rich menu on LINE and return the rich menu ID."""
         headers = await RichMenuService.get_client_headers(db)
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
             response = await client.post(
                 f"{RichMenuService.API_BASE}/richmenu",
                 headers=headers,
@@ -186,7 +187,7 @@ class RichMenuService:
         headers = await RichMenuService.get_client_headers(db)
         headers["Content-Type"] = content_type
         try:
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(timeout=UPLOAD_TIMEOUT) as client:
                 response = await client.post(
                     f"{RichMenuService.DATA_API_BASE}/richmenu/{line_rich_menu_id}/content",
                     headers=headers,
@@ -211,7 +212,7 @@ class RichMenuService:
     async def set_default_on_line(db: AsyncSession, line_rich_menu_id: str):
         """Set rich menu as default for all users."""
         headers = await RichMenuService.get_client_headers(db)
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
             response = await client.post(
                 f"{RichMenuService.API_BASE}/user/all/richmenu/{line_rich_menu_id}",
                 headers=headers
@@ -225,7 +226,7 @@ class RichMenuService:
         when no default is set (404). Used by the display scheduler so an
         expiring menu only cancels a default that still belongs to it."""
         headers = await RichMenuService.get_client_headers(db)
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
             response = await client.get(
                 f"{RichMenuService.API_BASE}/user/all/richmenu",
                 headers=headers
@@ -240,7 +241,7 @@ class RichMenuService:
         """Unset the default rich menu for all users (reverts everyone to no
         menu). Raises on LINE failures — callers decide how to surface them."""
         headers = await RichMenuService.get_client_headers(db)
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
             response = await client.delete(
                 f"{RichMenuService.API_BASE}/user/all/richmenu",
                 headers=headers
@@ -252,7 +253,7 @@ class RichMenuService:
     async def delete_from_line(db: AsyncSession, line_rich_menu_id: str):
         """Delete rich menu from LINE."""
         headers = await RichMenuService.get_client_headers(db)
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
             response = await client.delete(
                 f"{RichMenuService.API_BASE}/richmenu/{line_rich_menu_id}",
                 headers=headers
@@ -266,7 +267,7 @@ class RichMenuService:
     async def list_from_line(db: AsyncSession) -> List[Dict[str, Any]]:
         """List all rich menus from LINE."""
         headers = await RichMenuService.get_client_headers(db)
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
             response = await client.get(
                 f"{RichMenuService.API_BASE}/richmenu/list",
                 headers=headers
@@ -278,7 +279,7 @@ class RichMenuService:
     async def get_from_line(db: AsyncSession, line_rich_menu_id: str) -> Optional[Dict[str, Any]]:
         """Get a specific rich menu from LINE by ID."""
         headers = await RichMenuService.get_client_headers(db)
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
             response = await client.get(
                 f"{RichMenuService.API_BASE}/richmenu/{line_rich_menu_id}",
                 headers=headers
@@ -296,7 +297,7 @@ class RichMenuService:
     ) -> Dict[str, Any]:
         """Create an alias on LINE mapping alias_id -> rich menu (LINE returns empty body)."""
         headers = await RichMenuService.get_client_headers(db)
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
             response = await client.post(
                 f"{RichMenuService.API_BASE}/richmenu/alias",
                 headers=headers,
@@ -315,7 +316,7 @@ class RichMenuService:
         alias_id itself is immutable; only the target rich menu can change.
         """
         headers = await RichMenuService.get_client_headers(db)
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
             response = await client.put(
                 f"{RichMenuService.API_BASE}/richmenu/alias/{alias_id}",
                 headers=headers,
@@ -328,7 +329,7 @@ class RichMenuService:
     async def delete_alias_on_line(db: AsyncSession, alias_id: str) -> int:
         """Delete an alias on LINE. 404 is accepted (already gone)."""
         headers = await RichMenuService.get_client_headers(db)
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
             response = await client.delete(
                 f"{RichMenuService.API_BASE}/richmenu/alias/{alias_id}",
                 headers=headers,
@@ -341,7 +342,7 @@ class RichMenuService:
     async def list_aliases_from_line(db: AsyncSession) -> List[Dict[str, Any]]:
         """List all rich menu aliases from LINE (response shape: {"aliases": [...]})."""
         headers = await RichMenuService.get_client_headers(db)
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
             response = await client.get(
                 f"{RichMenuService.API_BASE}/richmenu/alias/list",
                 headers=headers,
@@ -360,7 +361,7 @@ class RichMenuService:
         Uses the LINE rich menu id (string), NOT the local DB id.
         """
         headers = await RichMenuService.get_client_headers(db)
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
             response = await client.post(
                 f"{RichMenuService.API_BASE}/user/{line_user_id}/richmenu/{line_rich_menu_id}",
                 headers=headers,
@@ -376,7 +377,7 @@ class RichMenuService:
         are on the default), which makes unlinking effectively idempotent.
         """
         headers = await RichMenuService.get_client_headers(db)
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
             response = await client.delete(
                 f"{RichMenuService.API_BASE}/user/{line_user_id}/richmenu",
                 headers=headers,
@@ -391,7 +392,7 @@ class RichMenuService:
     ) -> Optional[Dict[str, Any]]:
         """Get the rich menu currently linked to a user. None if the user has none (404)."""
         headers = await RichMenuService.get_client_headers(db)
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
             response = await client.get(
                 f"{RichMenuService.API_BASE}/user/{line_user_id}/richmenu",
                 headers=headers,
@@ -410,7 +411,7 @@ class RichMenuService:
         Body is a dict: {"richMenuId": ..., "userIds": [...]}.
         """
         headers = await RichMenuService.get_client_headers(db)
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
             response = await client.post(
                 f"{RichMenuService.API_BASE}/richmenu/bulk/link",
                 headers=headers,
@@ -426,7 +427,7 @@ class RichMenuService:
         Body is a dict with userIds only (no richMenuId): {"userIds": [...]}.
         """
         headers = await RichMenuService.get_client_headers(db)
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
             response = await client.post(
                 f"{RichMenuService.API_BASE}/richmenu/bulk/unlink",
                 headers=headers,
@@ -785,7 +786,7 @@ class RichMenuService:
             return json.loads(cached)
 
         headers = await RichMenuService.get_client_headers(db)
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
             response = await client.get(
                 f"{RichMenuService.API_BASE}/insight/richmenu/{line_rich_menu_id}/summary",
                 headers=headers,
@@ -812,7 +813,7 @@ class RichMenuService:
             return json.loads(cached)
 
         headers = await RichMenuService.get_client_headers(db)
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
             response = await client.get(
                 f"{RichMenuService.API_BASE}/insight/richmenu/{line_rich_menu_id}/daily",
                 headers=headers,

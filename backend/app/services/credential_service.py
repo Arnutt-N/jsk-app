@@ -8,6 +8,7 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.http_timeouts import DEFAULT_TIMEOUT
 from app.models.credential import Credential, Provider
 from app.schemas.credential import CredentialCreate, CredentialUpdate
 
@@ -217,7 +218,7 @@ class CredentialService:
 
         if db_obj.provider == Provider.LINE:
             token = creds.get("channel_access_token")
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
                 response = await client.get(
                     "https://api.line.me/v2/bot/info",
                     headers={"Authorization": f"Bearer {token}"}
@@ -228,7 +229,7 @@ class CredentialService:
 
         elif db_obj.provider == Provider.TELEGRAM:
             token = creds.get("bot_token")
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
                 response = await client.get(f"https://api.telegram.org/bot{token}/getMe")
                 if response.status_code == 200:
                     return {"success": True, "message": "Telegram connection verified", "data": response.json()}
