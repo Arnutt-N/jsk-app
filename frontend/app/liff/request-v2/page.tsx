@@ -97,7 +97,8 @@ export default function LiffServiceRequestV2() {
     // Handle Input Change
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target
-        setFormData(prev => ({ ...prev, [name]: value }))
+        const next = name === 'phone' ? value.replace(/\D/g, '') : value
+        setFormData(prev => ({ ...prev, [name]: next }))
     }
 
     // Handle Location Changes
@@ -377,8 +378,8 @@ export default function LiffServiceRequestV2() {
                                 value={formData.phone}
                                 onChange={handleChange}
                                 className="w-full p-2.5 rounded-xl border-gray-200 bg-white text-sm"
-                                placeholder="0xx-xxx-xxxx"
-                                maxLength={10}
+                                placeholder="08xxxxxxxx"
+                                maxLength={12}
                                 required
                             />
                         </div>
