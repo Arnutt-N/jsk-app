@@ -3,8 +3,9 @@
 `resolve_reply_responses` must never let a matched-but-unserviceable intent
 dead-end a message. When an IntentKeyword matches but its category is inactive
 (Bug A) or the category is active with zero active responses (Bug B), the
-resolver must fall through to legacy AutoReply (exact → contains) instead of
-returning nothing — otherwise the bot silently swallows the user's message.
+resolver must fall through to legacy AutoReply (one CASE-prioritized query,
+exact beats contains) instead of returning nothing — otherwise the bot
+silently swallows the user's message.
 
 `keyword_match` in the returned tuple is None whenever the answer comes from
 AutoReply, so the caller labels the reply from the rule (not the dead intent).
@@ -137,11 +138,11 @@ async def test_no_keyword_match_uses_autoreply():
 
 @pytest.mark.asyncio
 async def test_no_keyword_uses_autoreply_contains_fallback():
-    """No intent keyword and no exact AutoReply → contains AutoReply is tried
-    (two DB queries) before giving up."""
+    """No intent keyword → the single CASE-prioritized AutoReply query
+    returns the contains winner (exact beats contains inside one query)."""
     rule = _autoreply(keyword="ยาเสพติด", text="แจ้งเบาะแสได้ที่...")
     db = AsyncMock()
-    db.execute.side_effect = [_result(first=None), _result(first=rule)]
+    db.execute.side_effect = [_result(first=rule)]
 
     with _patch_find(None):
         responses, cat_name, keyword_match = await resolve_reply_responses(
@@ -150,7 +151,7 @@ async def test_no_keyword_uses_autoreply_contains_fallback():
 
     assert cat_name == "Legacy"
     assert responses[0]["text_content"] == "แจ้งเบาะแสได้ที่..."
-    assert db.execute.await_count == 2
+    assert db.execute.await_count == 1
 
 
 @pytest.mark.asyncio
