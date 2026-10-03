@@ -107,4 +107,36 @@ describe('admin auth fetch interceptor — cookie mode', () => {
     expect(onExpired).toHaveBeenCalledTimes(1);
     window.removeEventListener('jsk:auth-expired', onExpired);
   });
+
+  it('bypasses non-API traffic without credentials', async () => {
+    nativeFetch.mockResolvedValueOnce(jsonResponse(200));
+    await window.fetch('https://cdn.example.com/lib.js');
+    expect(nativeFetch).toHaveBeenCalledWith(
+      'https://cdn.example.com/lib.js',
+      undefined
+    );
+  });
+
+  it('does NOT refresh or signal auth-expired on non-API 401', async () => {
+    nativeFetch.mockResolvedValueOnce(jsonResponse(401));
+    const refresh = vi.fn().mockResolvedValue('cookie-refreshed');
+    setAuthRefreshHandler(refresh);
+    const onExpired = vi.fn();
+    window.addEventListener('jsk:auth-expired', onExpired);
+
+    const res = await window.fetch('https://cdn.example.com/lib.js');
+
+    expect(res.status).toBe(401);
+    expect(refresh).not.toHaveBeenCalled();
+    expect(onExpired).not.toHaveBeenCalled();
+    window.removeEventListener('jsk:auth-expired', onExpired);
+  });
+
+  it('rethrows the ORIGINAL network error on non-API traffic (no rewrap)', async () => {
+    const original = new TypeError('Failed to fetch');
+    nativeFetch.mockRejectedValueOnce(original);
+    await expect(window.fetch('https://cdn.example.com/lib.js')).rejects.toBe(
+      original
+    );
+  });
 });
