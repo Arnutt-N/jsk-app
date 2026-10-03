@@ -2,6 +2,7 @@
 import logging
 import re
 from datetime import datetime, timezone
+from functools import partial
 
 from linebot.v3.messaging import TextMessage
 from linebot.v3.webhooks import MessageEvent, TextMessageContent
@@ -11,6 +12,7 @@ from app.models.intent import IntentResponse
 from app.models.message import MessageDirection
 from app.schemas.ws_events import WSEventType
 from app.services.line_service import describe_line_message
+from app.services.outbox import Outbox, drain_outbox, new_outbox
 from app.services.response_parser import parse_response
 from app.core.logging_utils import mask_line_id
 
@@ -41,8 +43,28 @@ def _utcnow_isoformat() -> str:
     return _utcnow().isoformat()
 
 
-async def handle_message_event(event: MessageEvent, db: AsyncSession):
-    """Process an incoming LINE MessageEvent: persist, broadcast, and reply."""
+async def handle_message_event(
+    event: MessageEvent, db: AsyncSession, outbox: Outbox | None = None
+):
+    """Process an incoming LINE MessageEvent: persist, broadcast, and reply.
+
+    When `outbox` is given (webhook path), announces are collected for
+    the caller to drain after commit. When None (direct calls), the
+    handler drains immediately — same sends, backward compatible.
+    """
+    if outbox is None:
+        box = new_outbox()
+        try:
+            await _handle_message_event_inner(event, db, box)
+        except Exception:
+            box.clear()  # mutate failed: announce nothing
+            raise
+        await drain_outbox(box)
+    else:
+        await _handle_message_event_inner(event, db, outbox)
+
+
+async def _handle_message_event_inner(event: MessageEvent, db: AsyncSession, box: Outbox):
     line_svc = get_line_service()
     ws = get_ws_manager()
     friend_svc = get_friend_service()
@@ -95,7 +117,7 @@ async def handle_message_event(event: MessageEvent, db: AsyncSession):
         )
 
         room_id = ws.get_room_id(line_user_id)
-        await ws.broadcast_to_room(room_id, {
+        incoming_payload = {
             "type": WSEventType.NEW_MESSAGE.value,
             "payload": {
                 "id": saved_message.id,
@@ -107,15 +129,16 @@ async def handle_message_event(event: MessageEvent, db: AsyncSession):
                 "created_at": saved_message.created_at.isoformat()
             },
             "timestamp": _utcnow_isoformat()
-        })
+        }
+        box.append(partial(ws.broadcast_to_room, room_id, incoming_payload))
 
-        await notify_admins_conversation_update(line_user_id, user, saved_message, text, db)
+        box.append(partial(notify_admins_conversation_update, line_user_id, user, saved_message, text, db))
 
         if user.chat_mode and user.chat_mode.value == "HUMAN":
             logger.info(f"User {mask_line_id(line_user_id)} in HUMAN mode — skipping bot reply")
             return
 
-        await line_svc.show_loading_animation(line_user_id)
+        box.append(partial(line_svc.show_loading_animation, line_user_id))
 
         if await handoff_svc.check_handoff_keywords(
             text,
@@ -123,19 +146,20 @@ async def handle_message_event(event: MessageEvent, db: AsyncSession):
             event.reply_token,
             db,
             commit=False,
+            outbox=box,
         ):
             return
 
         if text == "ติดตาม" or text == "สถานะ":
-            await handle_check_status(line_user_id, event.reply_token, db)
+            await handle_check_status(line_user_id, event.reply_token, db, outbox=box)
             return
 
         if text in BOOKING_QUERY_KEYWORDS:
-            await handle_check_booking(line_user_id, event.reply_token, db)
+            await handle_check_booking(line_user_id, event.reply_token, db, outbox=box)
             return
 
         if re.match(r"^0\d{9}$", text):
-            await handle_bind_phone(text, line_user_id, event.reply_token, db)
+            await handle_bind_phone(text, line_user_id, event.reply_token, db, outbox=box)
             return
 
         responses, cat_name, keyword_match = await resolve_reply_responses(text, db)
@@ -180,25 +204,28 @@ async def handle_message_event(event: MessageEvent, db: AsyncSession):
                 logger.error(f"Error building response in category {cat_name}: {e}")
 
         if all_messages:
-            try:
-                await line_svc.reply_messages(event.reply_token, all_messages)
+            for sent_message in all_messages:
+                m_type, m_content, m_payload = describe_line_message(sent_message)
+                await line_svc.save_message(
+                    db=db,
+                    line_user_id=line_user_id,
+                    direction=MessageDirection.OUTGOING,
+                    message_type=m_type,
+                    content=m_content,
+                    payload=m_payload,
+                    sender_role="BOT",
+                    commit=False,
+                    user_id=user.id,
+                )
 
-                for sent_message in all_messages:
-                    m_type, m_content, m_payload = describe_line_message(sent_message)
-                    await line_svc.save_message(
-                        db=db,
-                        line_user_id=line_user_id,
-                        direction=MessageDirection.OUTGOING,
-                        message_type=m_type,
-                        content=m_content,
-                        payload=m_payload,
-                        sender_role="BOT",
-                        commit=False,
-                        user_id=user.id,
-                    )
-            except Exception as e:
-                logger.error(f"Failed to send all messages: {e}")
-                await line_svc.reply_text(event.reply_token, "ขออภัย เกิดข้อผิดพลาดในการส่งข้อมูล")
+            async def _reply_all():
+                try:
+                    await line_svc.reply_messages(event.reply_token, all_messages)
+                except Exception as e:
+                    logger.error(f"Failed to send all messages: {e}")
+                    await line_svc.reply_text(event.reply_token, "ขออภัย เกิดข้อผิดพลาดในการส่งข้อมูล")
+
+            box.append(_reply_all)
 
     else:
         message_type, content, payload = await extract_non_text_message(event.message)
@@ -219,7 +246,7 @@ async def handle_message_event(event: MessageEvent, db: AsyncSession):
         )
 
         room_id = ws.get_room_id(line_user_id)
-        await ws.broadcast_to_room(room_id, {
+        incoming_payload = {
             "type": WSEventType.NEW_MESSAGE.value,
             "payload": {
                 "id": saved_message.id,
@@ -232,6 +259,7 @@ async def handle_message_event(event: MessageEvent, db: AsyncSession):
                 "created_at": saved_message.created_at.isoformat()
             },
             "timestamp": _utcnow_isoformat()
-        })
+        }
+        box.append(partial(ws.broadcast_to_room, room_id, incoming_payload))
 
-        await notify_admins_conversation_update(line_user_id, user, saved_message, content, db)
+        box.append(partial(notify_admins_conversation_update, line_user_id, user, saved_message, content, db))

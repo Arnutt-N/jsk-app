@@ -107,6 +107,11 @@ async function handleCookieModeFetch(
   input: RequestInfo | URL,
   init?: RequestInit,
 ): Promise<Response> {
+  // Non-API traffic (CDN, _next static, …) bypasses the interceptor
+  // entirely: no cookies, no refresh, no rewrap (R3-M25).
+  if (!isApiRequest(input)) {
+    return nativeFetch(input, init);
+  }
   const canRetry = !isRefreshRequest(input);
   const needsCsrf =
     isApiRequest(input) && MUTATING_METHODS.has(getRequestMethod(input, init));
@@ -164,6 +169,7 @@ export function installAdminAuthFetchInterceptor(): void {
     try {
       return await handleCookieModeFetch(nativeFetch, input, init);
     } catch (error: unknown) {
+      if (!isApiRequest(input)) throw error;
       const url = getRequestUrl(input);
       if (error instanceof TypeError && (error.message === 'Failed to fetch' || error.message === 'Load failed')) {
         throw new TypeError(

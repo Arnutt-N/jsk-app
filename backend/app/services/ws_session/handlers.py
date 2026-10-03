@@ -19,7 +19,6 @@ from app.schemas.ws_events import (
     JoinRoomPayload,
     TransferSessionPayload,
 )
-from app.schemas.message import message_payload_dict
 from app.services.live_chat_service.choreography import (
     publish_session_event,
     session_status_value,
@@ -146,14 +145,13 @@ async def handle_send_message(
     async with AsyncSessionLocal() as db:
         committed = False
         try:
-            await svc.send_message(line_user_id, text, admin_id_int, db)
+            result = await svc.send_message(line_user_id, text, admin_id_int, db)
             await db.commit()
             committed = True
-            messages = await svc.get_recent_messages(line_user_id, 1, db)
-            if messages:
-                msg_data = message_payload_dict(
-                    messages[0], line_user_id=line_user_id, temp_id=temp_id
-                )
+            sent_message = result.get("message") or {}
+            if sent_message:
+                msg_data = dict(sent_message)
+                msg_data["temp_id"] = temp_id
                 await ws.send_personal(websocket, {
                     "type": WSEventType.MESSAGE_SENT.value,
                     "payload": msg_data,

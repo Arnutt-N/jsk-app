@@ -84,7 +84,10 @@ class MessagingMixin:
         if user:
             user.last_message_at = datetime.now(timezone.utc)
 
-        return {"success": True}
+        return {
+            "success": True,
+            "message": message_payload_dict(saved, line_user_id=line_user_id),
+        }
 
     @audit_action("send_media", "message")
     async def send_media_message(
@@ -184,10 +187,9 @@ class MessagingMixin:
         }
 
     async def set_chat_mode(self, line_user_id: str, mode: ChatMode, db: AsyncSession):
-        """Toggle chat mode"""
+        """Set chat mode. Caller commits — single atomic unit with the session op."""
         user = await resolve_by_line_id(db, line_user_id)
         if user:
             user.chat_mode = mode
-            await db.commit()
             return True
         return False

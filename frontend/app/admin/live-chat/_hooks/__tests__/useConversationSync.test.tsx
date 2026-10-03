@@ -55,11 +55,16 @@ type Mounted = ReturnType<typeof renderHook<ReturnType<typeof useConversationSyn
 let mounted: Mounted | null = null;
 
 function setup(selectedId: string): Mounted {
+  // Stable ref objects (mirrors the production provider's useRef): the
+  // hook's mount effect depends on `wsStatusRef`, so a per-render object
+  // would re-run the effect — and its list fetch — on EVERY render,
+  // livelocking any test whose fetch changes subscribed state (R3-M15's
+  // 200-path test). Pre-existing tests never noticed: their ok:false
+  // stubs only touch unsubscribed flags.
+  const selectedIdRef = ref<string | null>(selectedId);
+  const wsStatusRef = ref<ConnectionState>('connected');
   mounted = renderHook(() =>
-    useConversationSync({
-      selectedIdRef: ref<string | null>(selectedId),
-      wsStatusRef: ref<ConnectionState>('connected'),
-    }),
+    useConversationSync({ selectedIdRef, wsStatusRef }),
   );
   return mounted;
 }
@@ -304,5 +309,56 @@ describe('useConversationSync — sidebar ordering is stable across a join-room 
     }));
 
     expect(useLiveChatStore.getState().conversations[0].unread_count).toBe(0);
+  });
+});
+
+describe('useConversationSync — backendOnline is status-aware (R3-M15)', () => {
+  function stubList(resp: unknown) {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(resp));
+  }
+
+  beforeEach(() => {
+    useLiveChatStore.setState({
+      conversations: [],
+      selectedId: null,
+      currentChat: null,
+      backendOnline: true,
+    });
+  });
+
+  // Teardown (unmount + unstub) is inherited from the file-level afterEach.
+
+  it('stays online on 403 (the backend answered)', async () => {
+    stubList({ ok: false, status: 403 });
+    setup('U1');
+    await act(async () => {});
+    expect(useLiveChatStore.getState().backendOnline).toBe(true);
+  });
+
+  it('reports offline on 500', async () => {
+    stubList({ ok: false, status: 500 });
+    setup('U1');
+    await act(async () => {});
+    expect(useLiveChatStore.getState().backendOnline).toBe(false);
+  });
+
+  it('reports offline on network throw', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')));
+    setup('U1');
+    await act(async () => {});
+    expect(useLiveChatStore.getState().backendOnline).toBe(false);
+  });
+
+  it('stays online on 200 and sets conversations', async () => {
+    stubList({
+      ok: true,
+      status: 200,
+      json: async () => ({ conversations: [conv('U9')] }),
+    });
+    setup('U1');
+    await act(async () => {});
+    const state = useLiveChatStore.getState();
+    expect(state.backendOnline).toBe(true);
+    expect(state.conversations.map((c) => c.line_user_id)).toEqual(['U9']);
   });
 });

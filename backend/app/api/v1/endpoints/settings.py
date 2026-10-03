@@ -25,6 +25,7 @@ from app.services.settings_service import SECRET_DENY_LIST, SettingsService
 from app.models.system_setting import SystemSetting
 from sqlalchemy import select
 from pydantic import BaseModel, Field
+from app.core.http_timeouts import DEFAULT_TIMEOUT
 
 router = APIRouter()
 
@@ -281,7 +282,7 @@ async def validate_line_token(
         )
         await db.commit()
 
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
         try:
             response = await client.get(url, headers=headers)
         except Exception as e:

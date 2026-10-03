@@ -438,3 +438,70 @@ def test_auth_session_and_ws_ticket_expires_at_are_indexed():
     assert AuthSession.expires_at.index is True
     assert WsTicket.expires_at.index is True
 
+
+class TestRedisBackedAsyncSurface:
+    """Cross-worker async limiter: Redis fixed window, in-process fallback."""
+
+    @pytest.mark.asyncio
+    async def test_allow_uses_redis_and_leaves_sync_buckets_empty(self):
+        limiter = WebSocketRateLimiter()
+        with patch(
+            "app.core.rate_limiter.redis_client.fixed_window_allow",
+            new=AsyncMock(return_value=True),
+        ):
+            assert await limiter.is_allowed_async("A") is True
+        assert limiter.buckets == {}
+
+    @pytest.mark.asyncio
+    async def test_deny_from_redis(self):
+        limiter = WebSocketRateLimiter()
+        with patch(
+            "app.core.rate_limiter.redis_client.fixed_window_allow",
+            new=AsyncMock(return_value=False),
+        ):
+            assert await limiter.is_allowed_async("A") is False
+
+    @pytest.mark.asyncio
+    async def test_fallback_to_sync_sliding_when_redis_down(self):
+        limiter = WebSocketRateLimiter()
+        limiter.max_messages = 2
+        with patch(
+            "app.core.rate_limiter.redis_client.fixed_window_allow",
+            new=AsyncMock(return_value=None),
+        ):
+            assert await limiter.is_allowed_async("A") is True
+            assert await limiter.is_allowed_async("A") is True
+            assert await limiter.is_allowed_async("A") is False
+
+    @pytest.mark.asyncio
+    async def test_remaining_from_redis_counter(self):
+        limiter = WebSocketRateLimiter()
+        limiter.max_messages = 10
+        with patch(
+            "app.core.rate_limiter.redis_client.get",
+            new=AsyncMock(return_value="7"),
+        ):
+            assert await limiter.get_remaining_async("A") == 3
+
+    @pytest.mark.asyncio
+    async def test_remaining_falls_back_to_sync_when_key_missing(self):
+        limiter = WebSocketRateLimiter()
+        limiter.max_messages = 10
+        with patch(
+            "app.core.rate_limiter.redis_client.get",
+            new=AsyncMock(return_value=None),
+        ):
+            assert await limiter.get_remaining_async("A") == 10
+
+    @pytest.mark.asyncio
+    async def test_reset_async_clears_redis_and_sync_bucket(self):
+        limiter = WebSocketRateLimiter()
+        limiter.buckets["A"] = [1.0]
+        with patch(
+            "app.core.rate_limiter.redis_client.delete",
+            new=AsyncMock(),
+        ) as mock_delete:
+            await limiter.reset_async("A")
+        mock_delete.assert_awaited_once_with("ratelimit:ws:A")
+        assert "A" not in limiter.buckets
+

@@ -31,7 +31,7 @@ from app.models.user import ChatMode, User
 from app.core.websocket_manager import ReadMarkerPersistenceError, ws_manager
 from app.schemas.ws_events import WSEventType
 from app.schemas.ws_events import TransferSessionPayload
-from app.schemas.message import MessagePage, MessageResponse, message_payload_dict
+from app.schemas.message import MessagePage, MessageResponse
 from app.services.analytics_service import analytics_service
 from app.services.friend_service import friend_service
 from app.services.line_service import line_service
@@ -53,21 +53,17 @@ def _utcnow_isoformat() -> str:
     return _utcnow().isoformat()
 
 
-def _message_payload_from_record(message, line_user_id: str, temp_id: Optional[str] = None) -> dict[str, Any]:
-    return message_payload_dict(message, line_user_id=line_user_id, temp_id=temp_id)
-
-
 async def _broadcast_conversation_update(
     line_user_id: str,
     db: AsyncSession,
     message_payload: dict[str, Any],
 ) -> None:
-    detail = await live_chat_service.get_conversation_detail(line_user_id, db)
+    identity = await live_chat_service.get_conversation_identity(line_user_id, db)
     await notify_admins_message_sent(
         line_user_id=line_user_id,
-        display_name=(detail["display_name"] if detail else None) or "LINE User",
-        picture_url=detail["picture_url"] if detail else None,
-        chat_mode=detail["chat_mode"].value if detail and hasattr(detail["chat_mode"], "value") else (detail["chat_mode"] if detail else "BOT"),
+        display_name=(identity["display_name"] if identity else None) or "LINE User",
+        picture_url=identity["picture_url"] if identity else None,
+        chat_mode=identity["chat_mode"].value if identity and hasattr(identity["chat_mode"], "value") else (identity["chat_mode"] if identity else "BOT"),
         content=message_payload.get("content") or "[Message]",
         created_at=message_payload.get("created_at") or _utcnow_isoformat(),
         db=db,
@@ -108,8 +104,8 @@ async def mark_conversation_read(
     current_user: User = Depends(deps.get_current_staff),
 ) -> Any:
     """Acknowledge messages through an explicit operator read boundary."""
-    detail = await live_chat_service.get_conversation_detail(line_user_id, db)
-    if not detail:
+    identity = await live_chat_service.get_conversation_identity(line_user_id, db)
+    if not identity:
         raise HTTPException(status_code=404, detail="User not found")
 
     read_at = request.read_at or _utcnow()
@@ -164,12 +160,12 @@ async def send_message(
         line_user_id, request.text, current_user.id, db
     )
     await db.commit()
-    recent_messages = await live_chat_service.get_recent_messages(line_user_id, 1, db)
-    if recent_messages:
+    sent_message = result.get("message") or {}
+    if sent_message:
         await _broadcast_conversation_update(
             line_user_id=line_user_id,
             db=db,
-            message_payload=_message_payload_from_record(recent_messages[0], line_user_id),
+            message_payload=sent_message,
         )
     return result
 
@@ -201,12 +197,12 @@ async def send_media(
     sent_message = result.get("message", {})
     created_at = sent_message.get("created_at") or _utcnow_isoformat()
 
-    detail = await live_chat_service.get_conversation_detail(line_user_id, db)
+    identity = await live_chat_service.get_conversation_identity(line_user_id, db)
     await notify_admins_message_sent(
         line_user_id=line_user_id,
-        display_name=(detail["display_name"] if detail else None) or "LINE User",
-        picture_url=detail["picture_url"] if detail else None,
-        chat_mode=detail["chat_mode"].value if detail and hasattr(detail["chat_mode"], "value") else (detail["chat_mode"] if detail else "BOT"),
+        display_name=(identity["display_name"] if identity else None) or "LINE User",
+        picture_url=identity["picture_url"] if identity else None,
+        chat_mode=identity["chat_mode"].value if identity and hasattr(identity["chat_mode"], "value") else (identity["chat_mode"] if identity else "BOT"),
         content=sent_message.get("content") or "[Media]",
         created_at=created_at,
         db=db,

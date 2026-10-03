@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.credential import Provider
 from app.services.credential_service import credential_service
 from app.core.config import settings
+from app.core.http_timeouts import DEFAULT_TIMEOUT
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +69,7 @@ class TelegramService:
         # Send to Telegram
         url = f"https://api.telegram.org/bot{self.bot_token}/sendMessage"
         try:
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
                 response = await client.post(url, json={
                     "chat_id": self.chat_id,
                     "text": text,
@@ -93,7 +94,7 @@ class TelegramService:
 
         url = f"https://api.telegram.org/bot{self.bot_token}/sendMessage"
         try:
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
                 response = await client.post(
                     url,
                     json={

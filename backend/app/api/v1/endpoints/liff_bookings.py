@@ -57,6 +57,13 @@ _submit_rate_limit = Depends(
         window_seconds=settings.LIFF_SUBMIT_RATE_WINDOW,
     )
 )
+_read_rate_limit = Depends(
+    http_rate_limit(
+        "liff-booking-read",
+        max_events=settings.LIFF_BOOKING_READ_RATE_LIMIT,
+        window_seconds=settings.LIFF_BOOKING_READ_RATE_WINDOW,
+    )
+)
 
 
 async def require_line_user_id(x_liff_id_token: Optional[str] = Header(None)) -> str:
@@ -77,6 +84,7 @@ async def _require_booking_enabled(db: AsyncSession):
     "/options",
     response_model=BookingOptionsOut,
     summary="Bookable services and the date window",
+    dependencies=[_read_rate_limit],
 )
 async def get_booking_options(
     db: AsyncSession = Depends(get_db),
@@ -95,6 +103,7 @@ async def get_booking_options(
     "/availability",
     response_model=AvailabilityOut,
     summary="List bookable slots for a service on a date",
+    dependencies=[_read_rate_limit],
 )
 async def get_availability(
     service_type: str = Query(min_length=1, max_length=200),
@@ -130,6 +139,7 @@ async def get_availability(
     "/availability/range",
     response_model=AvailabilityRangeOut,
     summary="Open/full status per day across a date window",
+    dependencies=[_read_rate_limit],
 )
 async def get_availability_range(
     service_type: str = Query(min_length=1, max_length=200),
@@ -225,6 +235,7 @@ async def create_booking(
     "/me",
     response_model=List[BookingOut],
     summary="List my bookings",
+    dependencies=[_read_rate_limit],
 )
 async def list_my_bookings(
     db: AsyncSession = Depends(get_db),

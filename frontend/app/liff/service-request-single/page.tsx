@@ -112,7 +112,8 @@ export default function LiffServiceRequestSingle() {
     // --- HANDLERS ---
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target
-        setFormData(prev => ({ ...prev, [name]: value }))
+        const next = name === 'phone' ? value.replace(/\D/g, '') : value
+        setFormData(prev => ({ ...prev, [name]: next }))
         if (fieldErrors[name]) {
             setFieldErrors(prev => {
                 const newErrors = { ...prev }
@@ -238,9 +239,9 @@ export default function LiffServiceRequestSingle() {
 
     const validateForm = (): boolean => {
         const errors: Record<string, string> = {}
-        if (!formData.prefix) errors.prefix = 'กรุณาระบุ'
-        if (!formData.firstname) errors.firstname = 'กรุณาระบุชื่อ'
-        if (!formData.lastname) errors.lastname = 'กรุณาระบุนามสกุล'
+        if (!formData.prefix.trim()) errors.prefix = 'กรุณาระบุ'
+        if (!formData.firstname.trim()) errors.firstname = 'กรุณาระบุชื่อ'
+        if (!formData.lastname.trim()) errors.lastname = 'กรุณาระบุนามสกุล'
         if (!formData.phone) errors.phone = 'กรุณาระบุหมายเลขโทรศัพท์'
         else if (formData.phone.length < 9) errors.phone = 'หมายเลขโทรศัพท์ไม่ถูกต้อง'
         if (!formData.agency) errors.agency = 'กรุณาเลือกหน่วยงาน'
@@ -249,7 +250,7 @@ export default function LiffServiceRequestSingle() {
         if (!formData.sub_district) errors.sub_district = 'กรุณาเลือกตำบล/แขวง'
         if (!formData.topic_category) errors.topic_category = 'กรุณาเลือกหัวข้อ'
         if (!formData.topic_subcategory) errors.topic_subcategory = 'กรุณาเลือกรายละเอียด'
-        if (!formData.description) errors.description = 'กรุณาระบุรายละเอียด'
+        if (!formData.description.trim()) errors.description = 'กรุณาระบุรายละเอียด'
 
         if (Object.keys(errors).length > 0) {
             setFieldErrors(errors)
@@ -447,8 +448,8 @@ export default function LiffServiceRequestSingle() {
                                         value={formData.phone}
                                         onChange={handleChange}
                                         className={`input-field ${fieldErrors.phone ? 'border-red-500 ring-1 ring-red-500' : ''}`}
-                                        placeholder="0xx-xxx-xxxx"
-                                        maxLength={10}
+                                        placeholder="08xxxxxxxx"
+                                        maxLength={12}
                                         required
                                     />
                                     {fieldErrors.phone && <p className="text-red-500 text-[10px] mt-1">{fieldErrors.phone}</p>}

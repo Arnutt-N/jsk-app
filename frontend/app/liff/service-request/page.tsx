@@ -136,7 +136,8 @@ export default function LiffServiceRequestV2() {
     // Handle Input Change
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target
-        setFormData(prev => ({ ...prev, [name]: value }))
+        const next = name === 'phone_number' ? value.replace(/\D/g, '') : value
+        setFormData(prev => ({ ...prev, [name]: next }))
         if (fieldErrors[name]) {
             setFieldErrors(prev => {
                 const newErrors = { ...prev }
@@ -277,9 +278,9 @@ export default function LiffServiceRequestV2() {
 
         switch (currentStep) {
             case 0: // Personal
-                if (!formData.prefix) errors.prefix = 'กรุณาระบุ'
-                if (!formData.firstname) errors.firstname = 'กรุณาระบุชื่อ'
-                if (!formData.lastname) errors.lastname = 'กรุณาระบุนามสกุล'
+                if (!formData.prefix.trim()) errors.prefix = 'กรุณาระบุ'
+                if (!formData.firstname.trim()) errors.firstname = 'กรุณาระบุชื่อ'
+                if (!formData.lastname.trim()) errors.lastname = 'กรุณาระบุนามสกุล'
                 if (!formData.phone_number) errors.phone_number = 'กรุณาระบุเบอร์โทร'
                 else if (formData.phone_number.length < 9) errors.phone_number = 'เบอร์โทรไม่ถูกต้อง'
                 break
@@ -292,7 +293,7 @@ export default function LiffServiceRequestV2() {
             case 2: // Description
                 if (!formData.topic_category) errors.topic_category = 'กรุณาเลือกหัวข้อ'
                 if (!formData.topic_subcategory) errors.topic_subcategory = 'กรุณาเลือกรายละเอียด'
-                if (!formData.description) errors.description = 'กรุณาระบุรายละเอียด'
+                if (!formData.description.trim()) errors.description = 'กรุณาระบุรายละเอียด'
                 break
         }
 
@@ -641,8 +642,8 @@ export default function LiffServiceRequestV2() {
                                                 onChange={handleChange}
                                                 className={`w-full bg-white border text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block p-2.5 outline-none transition-all ${fieldErrors.phone_number ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-200'
                                                     }`}
-                                                placeholder="0xx-xxx-xxxx"
-                                                maxLength={10}
+                                                placeholder="08xxxxxxxx"
+                                                maxLength={12}
                                                 required
                                             />
                                             {fieldErrors.phone_number && <p className="text-red-500 text-[10px] mt-1">{fieldErrors.phone_number}</p>}

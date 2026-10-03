@@ -55,8 +55,13 @@ export function useConversationSync({ selectedIdRef, wsStatusRef }: UseConversat
         const fetched = data.conversations || data || [];
         getStore().setConversations(fetched);
         getStore().setBackendOnline(true);
-      } else {
+      } else if (res.status >= 500) {
         getStore().setBackendOnline(false);
+      } else {
+        // 4xx (incl. 401/403): the backend answered — it is reachable.
+        // Auth failures are owned by the global fetch interceptor
+        // (jsk:auth-expired → logout); never report them as an outage.
+        getStore().setBackendOnline(true);
       }
     } catch {
       getStore().setBackendOnline(false);

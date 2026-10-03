@@ -50,4 +50,4 @@ async def test_check_handoff_keywords_uses_configured_keywords(monkeypatch):
     result = await service.check_handoff_keywords("Please escalate this case", user, "reply-token", AsyncMock())
 
     assert result is True
-    initiate_handoff.assert_awaited_once_with(user, "reply-token", ANY, commit=True)
+    initiate_handoff.assert_awaited_once_with(user, "reply-token", ANY, commit=True, outbox=ANY)

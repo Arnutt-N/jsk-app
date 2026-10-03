@@ -1,8 +1,9 @@
 """Runtime intent-keyword matching in the LINE webhook (issue #120).
 
-find_intent_keyword must try EXACT > STARTS_WITH > CONTAINS via SQL, then
-evaluate REGEX keywords in Python with ReDoS guards (pattern-length cap,
-probe-length cap, invalid patterns skipped instead of raised).
+find_intent_keyword resolves one CASE-prioritized SQL statement (EXACT >
+STARTS_WITH > CONTAINS), then evaluate REGEX keywords in Python with ReDoS
+guards (pattern-length cap, probe-length cap, invalid patterns skipped
+instead of raised).
 """
 import pytest
 from unittest.mock import AsyncMock, MagicMock
@@ -38,41 +39,43 @@ async def test_exact_match_wins_first():
 
 
 @pytest.mark.asyncio
-async def test_starts_with_checked_after_exact():
+async def test_starts_with_winner_resolves_in_one_query():
     match = MagicMock()
     db = AsyncMock()
-    db.execute.side_effect = [_result(), _result(first=match)]
+    db.execute.side_effect = [_result(first=match)]
 
     assert await find_intent_keyword("สอบถามเรื่องยาเสพติด", db) is match
-    assert db.execute.await_count == 2
+    assert db.execute.await_count == 1
 
 
 @pytest.mark.asyncio
-async def test_contains_checked_third():
+async def test_contains_winner_resolves_in_one_query():
     match = MagicMock()
     db = AsyncMock()
-    db.execute.side_effect = [_result(), _result(), _result(first=match)]
+    db.execute.side_effect = [_result(first=match)]
 
     assert await find_intent_keyword("ขอราคาหน่อยครับ", db) is match
-    assert db.execute.await_count == 3
+    assert db.execute.await_count == 1
 
 
 @pytest.mark.asyncio
 async def test_regex_matches_in_python():
     kw = _regex_kw(r"^สวัสดี")
     db = AsyncMock()
-    db.execute.side_effect = [_result(), _result(), _result(), _result(all_=[kw])]
+    db.execute.side_effect = [_result(), _result(all_=[kw])]
 
     assert await find_intent_keyword("สวัสดีครับ", db) is kw
+    assert db.execute.await_count == 2
 
 
 @pytest.mark.asyncio
 async def test_regex_is_case_insensitive():
     kw = _regex_kw(r"^hello\b")
     db = AsyncMock()
-    db.execute.side_effect = [_result(), _result(), _result(), _result(all_=[kw])]
+    db.execute.side_effect = [_result(), _result(all_=[kw])]
 
     assert await find_intent_keyword("HELLO there", db) is kw
+    assert db.execute.await_count == 2
 
 
 @pytest.mark.asyncio
@@ -80,24 +83,26 @@ async def test_invalid_regex_pattern_is_skipped_not_raised():
     broken = _regex_kw(r"([", kw_id=1)
     valid = _regex_kw(r"ติดต่อ", kw_id=2)
     db = AsyncMock()
-    db.execute.side_effect = [_result(), _result(), _result(), _result(all_=[broken, valid])]
+    db.execute.side_effect = [_result(), _result(all_=[broken, valid])]
 
     assert (await find_intent_keyword("ขอติดต่อหน่อย", db)) is valid
+    assert db.execute.await_count == 2
 
 
 @pytest.mark.asyncio
 async def test_overlong_regex_pattern_is_skipped():
     overlong = _regex_kw("a" * (MAX_REGEX_PATTERN_LENGTH + 1))
     db = AsyncMock()
-    db.execute.side_effect = [_result(), _result(), _result(), _result(all_=[overlong])]
+    db.execute.side_effect = [_result(), _result(all_=[overlong])]
 
     assert await find_intent_keyword("a" * 300, db) is None
+    assert db.execute.await_count == 2
 
 
 @pytest.mark.asyncio
-async def test_no_match_returns_none_after_all_four_stages():
+async def test_no_match_returns_none_after_both_stages():
     db = AsyncMock()
-    db.execute.side_effect = [_result(), _result(), _result(), _result(all_=[])]
+    db.execute.side_effect = [_result(), _result(all_=[])]
 
     assert await find_intent_keyword("ไม่มีคีย์เวิร์ดนี้", db) is None
-    assert db.execute.await_count == 4
+    assert db.execute.await_count == 2
