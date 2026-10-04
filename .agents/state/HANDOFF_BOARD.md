@@ -1,8 +1,8 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Handoff Board (generated)
 
-> **Last generated**: 2026-09-30 06:37 (from newest checkpoint)
-> 268 active handoffs, 11 platforms, 0 queued directed handoff(s).
+> **Last generated**: 2026-10-04 17:24 (from newest checkpoint)
+> 269 active handoffs, 11 platforms, 0 queued directed handoff(s).
 
 > Regenerate after any handoff: `node .agents/scripts/gen-handoff-views.cjs`
 
@@ -17,7 +17,7 @@
 | gemini_cli | AVAILABLE | 2026-04-03 12:00 | 0 | Redesigned the login page to align with the new landing page aesthetic (glassmorphism, shared backgrounds, brand mark).  | — |
 | kilo_code | AVAILABLE | 2026-09-13 18:22 | 0 | Feature-line audit map: PRD + 19-task PRP plan (4 Critical + ~30 High fixes across 19 features); plan revised to clear d | `project-log-md/kilo_code/session-summary-20260913-1822.md` |
 | kimi_code | AVAILABLE | 2026-06-02 01:39 | 0 | Applied all P0–P3 critique fixes on frontend/app/admin/requests/[id]/page.tsx. Destructive actions now have ConfirmDialo | `project-log-md/kimi_code/session-summary-20260602-0139.md` |
-| muse_code | AVAILABLE | 2026-09-30 06:37 | 0 | Post-merge verify: PR #239 live on production - CD 6/6 jobs success, backend healthy, frontend 200, transfer endpoint 40 | `project-log-md/muse_code/session-summary-20260930-0637.md` |
+| muse_code | AVAILABLE | 2026-10-04 17:24 | 0 | Merged PR #241: round-3b (20 Medium + 2 Low) + review follow-ups F1-F17 + F16 endpoint fix - squash 3e7740a, CI green, C | `project-log-md/muse_code/session-summary-20261004-1724.md` |
 | open_code | AVAILABLE | 2026-08-25 07:39 | 0 | LIFF smoke-test plan for PR #202 drafted+reviewed (.scratch/liff-smoke-pr202/smoke-test-plan.md, REV1: 5 findings fixed) | `project-log-md/open_code/session-summary-20260825-0739.md` |
 | qoder | AVAILABLE | 2026-08-29 23:21 | 0 | Merged PR #206 + #207 to main (8ddbda3, beaff04) — resolved #206 generated-state conflicts (kept both 21:58/22:44 record | `project-log-md/qoder/session-summary-20260829-2321.md` |
 | zcode | AVAILABLE | 2026-09-06 22:56 | 0 | codebase-review-fix on PR #228 CLOSED via PR #229 (squash e63ee9f, CI 4/4, CD success): review found 0 Critical/High; 3  | `project-log-md/zcode/session-summary-20260906-2256.md` |
@@ -34,6 +34,7 @@ _None — no blocked checkpoints._
 
 | When | From → To | Task | Checkpoint |
 |------|-----------|------|------------|
+| 2026-10-04 17:24 | muse_code → all | Merged PR #241: round-3b (20 Medium + 2 Low) + review follow-ups F1-F17 + F16 endpoint fix - squash 3e7740a, CI green, CD 6/6, prod healthy | `handover-muse_code-20261004-1724.json` |
 | 2026-09-30 06:37 | muse_code → all | Post-merge verify: PR #239 live on production - CD 6/6 jobs success, backend healthy, frontend 200, transfer endpoint 401-hardened | `handover-muse_code-20260930-0637.json` |
 | 2026-09-29 23:22 | muse_code → all | Merged PR #239: transfer-audit M-8 fix (explicit audit row on transfer) - rebased onto main, CI green, CD success | `handover-muse_code-20260929-2322.json` |
 | 2026-09-29 07:23 | muse_code → all | Merged PR #240: round-3 batch A (8 High + 10 Medium, T1-T18) + E2E rot fixes | `handover-muse_code-20260929-0723.json` |
@@ -43,4 +44,3 @@ _None — no blocked checkpoints._
 | 2026-09-24 06:53 | cline → all | Cline verify-after-deploy session on main aef34db: read kilo_code checkpoint plus 3 cross-platform summaries (claude_code 20260923, cline 20 | `handover-cline-20260924-0653.json` |
 | 2026-09-13 18:22 | kilo_code → all | Feature-line audit map: PRD + 19-task PRP plan (4 Critical + ~30 High fixes across 19 features); plan revised to clear dual-review FAIL - de | `handover-kilo_code-20260913-1822.json` |
 | 2026-09-06 22:56 | zcode → all | codebase-review-fix on PR #228 CLOSED via PR #229 (squash e63ee9f, CI 4/4, CD success): review found 0 Critical/High; 3 accepted follow-ups  | `handover-zcode-20260906-2256.json` |
-| 2026-09-06 17:31 | zcode → all | Backlog batch shipped via PR #228 (squash 249f2c9, CI all green, CD success incl. prod migration): (1) shared DateTimePickerTH component rep | `handover-zcode-20260906-1731.json` |
