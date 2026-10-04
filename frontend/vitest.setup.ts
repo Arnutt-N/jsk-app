@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest'
-import { afterEach } from 'vitest'
+import { afterEach, vi } from 'vitest'
 import { cleanup } from '@testing-library/react'
 
 // Auto-unmount React trees between tests so refs / event listeners /
@@ -9,3 +9,7 @@ import { cleanup } from '@testing-library/react'
 afterEach(() => {
   cleanup()
 })
+
+// jsdom does not implement window.scrollTo (step-transition effects
+// call it); stub globally — a file may overwrite with its own mock.
+window.scrollTo = vi.fn()
