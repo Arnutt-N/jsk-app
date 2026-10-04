@@ -20,6 +20,7 @@ export default function LiffServiceRequestV2() {
     const [submitting, setSubmitting] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState(false)
+    const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
     // LIFF init (script-injected window.liff)
     const { profile, idToken, isInLineApp, initDone } = useLiffInit({
@@ -101,6 +102,13 @@ export default function LiffServiceRequestV2() {
         // pasted +66 number is not corrupted into a wrong digit string (F12).
         const next = name === 'phone' ? value.replace(/^\+66/, '0').replace(/\D/g, '') : value
         setFormData(prev => ({ ...prev, [name]: next }))
+        if (fieldErrors[name]) {
+            setFieldErrors(prev => {
+                const newErrors = { ...prev }
+                delete newErrors[name]
+                return newErrors
+            })
+        }
     }
 
     // Handle Location Changes
@@ -110,6 +118,13 @@ export default function LiffServiceRequestV2() {
 
         // Update Form Data (Name) & Logic ID
         setSelectedProvinceId(provinceId)
+        if (fieldErrors.province) {
+            setFieldErrors(prev => {
+                const newErrors = { ...prev }
+                delete newErrors.province
+                return newErrors
+            })
+        }
         setFormData(prev => ({
             ...prev,
             province: provinceObj?.PROVINCE_THAI || '',
@@ -149,6 +164,13 @@ export default function LiffServiceRequestV2() {
         const districtObj = districts.find(d => d.DISTRICT_ID === districtId)
 
         setSelectedDistrictId(districtId)
+        if (fieldErrors.district) {
+            setFieldErrors(prev => {
+                const newErrors = { ...prev }
+                delete newErrors.district
+                return newErrors
+            })
+        }
         setFormData(prev => ({
             ...prev,
             district: districtObj?.DISTRICT_THAI || '',
@@ -181,6 +203,13 @@ export default function LiffServiceRequestV2() {
         const subObj = subDistricts.find(s => s.SUB_DISTRICT_ID === subDistrictId)
 
         setFormData(prev => ({ ...prev, sub_district: subObj?.SUB_DISTRICT_THAI || '' }))
+        if (fieldErrors.sub_district) {
+            setFieldErrors(prev => {
+                const newErrors = { ...prev }
+                delete newErrors.sub_district
+                return newErrors
+            })
+        }
     }
 
     // Handle File Upload
@@ -226,14 +255,47 @@ export default function LiffServiceRequestV2() {
         }))
     }
 
+    const validateForm = (): boolean => {
+        const errors: Record<string, string> = {}
+        if (!formData.prefix.trim()) errors.prefix = 'กรุณาระบุ'
+        if (!formData.firstname.trim()) errors.firstname = 'กรุณาระบุชื่อ'
+        if (!formData.lastname.trim()) errors.lastname = 'กรุณาระบุนามสกุล'
+        if (!formData.phone) errors.phone = 'กรุณาระบุหมายเลขโทรศัพท์'
+        else if (formData.phone.length < 9 || formData.phone.length > 10) errors.phone = 'หมายเลขโทรศัพท์ไม่ถูกต้อง'
+        if (!formData.agency) errors.agency = 'กรุณาเลือกหน่วยงาน'
+        if (!selectedProvinceId) errors.province = 'กรุณาเลือกจังหวัด'
+        if (!selectedDistrictId) errors.district = 'กรุณาเลือกอำเภอ/เขต'
+        if (!formData.sub_district) errors.sub_district = 'กรุณาเลือกตำบล/แขวง'
+        if (!formData.topic_category) errors.topic_category = 'กรุณาเลือกหัวข้อ'
+        if (!formData.topic_subcategory) errors.topic_subcategory = 'กรุณาเลือกรายละเอียด'
+        if (!formData.description.trim()) errors.description = 'กรุณาระบุรายละเอียด'
+
+        if (Object.keys(errors).length > 0) {
+            setFieldErrors(errors)
+            setError('กรุณากรอกข้อมูลในช่องขอบสีแดงให้ครบถ้วน')
+            return false
+        }
+        setFieldErrors({})
+        setError(null)
+        return true
+    }
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
+        if (!validateForm()) {
+            window.scrollTo(0, 0)
+            return
+        }
         setSubmitting(true)
         setError(null)
 
         try {
+            // Backend reads `phone_number` only — map the form's `phone` and
+            // strip the raw key so the payload carries no dead field (D4).
+            const { phone, ...rest } = formData
             const payload = {
-                ...formData,
+                ...rest,
+                phone_number: phone,
                 line_user_id: profile?.userId || 'GUEST'
             }
 
@@ -332,7 +394,7 @@ export default function LiffServiceRequestV2() {
                                 name="prefix"
                                 value={formData.prefix}
                                 onChange={handleChange}
-                                className="w-full p-2.5 rounded-xl border-gray-200 bg-white text-sm focus:ring-2 focus:ring-black/5"
+                                className={`w-full p-2.5 rounded-xl border-gray-200 bg-white text-sm focus:ring-2 focus:ring-black/5 ${fieldErrors.prefix ? 'border-red-500 ring-1 ring-red-500' : ''}`}
                                 required
                             >
                                 <option value="">เลือก</option>
@@ -340,6 +402,7 @@ export default function LiffServiceRequestV2() {
                                 <option value="นาง">นาง</option>
                                 <option value="นางสาว">นางสาว</option>
                             </select>
+                            {fieldErrors.prefix && <p className="text-red-500 text-[10px] mt-1">{fieldErrors.prefix}</p>}
                         </div>
                         <div className="col-span-2">
                             <label htmlFor="firstname" className="block text-xs font-medium text-gray-700 mb-1">ชื่อ</label>
@@ -349,10 +412,11 @@ export default function LiffServiceRequestV2() {
                                 name="firstname"
                                 value={formData.firstname}
                                 onChange={handleChange}
-                                className="w-full p-2.5 rounded-xl border-gray-200 bg-white text-sm"
+                                className={`w-full p-2.5 rounded-xl border-gray-200 bg-white text-sm ${fieldErrors.firstname ? 'border-red-500 ring-1 ring-red-500' : ''}`}
                                 placeholder="ชื่อจริง"
                                 required
                             />
+                            {fieldErrors.firstname && <p className="text-red-500 text-[10px] mt-1">{fieldErrors.firstname}</p>}
                         </div>
                     </div>
 
@@ -364,10 +428,11 @@ export default function LiffServiceRequestV2() {
                             name="lastname"
                             value={formData.lastname}
                             onChange={handleChange}
-                            className="w-full p-2.5 rounded-xl border-gray-200 bg-white text-sm"
+                            className={`w-full p-2.5 rounded-xl border-gray-200 bg-white text-sm ${fieldErrors.lastname ? 'border-red-500 ring-1 ring-red-500' : ''}`}
                             placeholder="นามสกุล"
                             required
                         />
+                        {fieldErrors.lastname && <p className="text-red-500 text-[10px] mt-1">{fieldErrors.lastname}</p>}
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
@@ -379,11 +444,12 @@ export default function LiffServiceRequestV2() {
                                 name="phone"
                                 value={formData.phone}
                                 onChange={handleChange}
-                                className="w-full p-2.5 rounded-xl border-gray-200 bg-white text-sm"
+                                className={`w-full p-2.5 rounded-xl border-gray-200 bg-white text-sm ${fieldErrors.phone ? 'border-red-500 ring-1 ring-red-500' : ''}`}
                                 placeholder="08xxxxxxxx"
                                 maxLength={12}
                                 required
                             />
+                            {fieldErrors.phone && <p className="text-red-500 text-[10px] mt-1">{fieldErrors.phone}</p>}
                         </div>
                         <div>
                             <label htmlFor="email" className="block text-xs font-medium text-gray-700 mb-1">อีเมล (ถ้ามี)</label>
@@ -416,7 +482,7 @@ export default function LiffServiceRequestV2() {
                             name="agency"
                             value={formData.agency}
                             onChange={handleChange}
-                            className="w-full p-2.5 rounded-xl border-gray-200 bg-white text-sm"
+                            className={`w-full p-2.5 rounded-xl border-gray-200 bg-white text-sm ${fieldErrors.agency ? 'border-red-500 ring-1 ring-red-500' : ''}`}
                             required
                         >
                             <option value="">-- เลือกหน่วยงาน --</option>
@@ -426,6 +492,7 @@ export default function LiffServiceRequestV2() {
                                 </option>
                             ))}
                         </select>
+                        {fieldErrors.agency && <p className="text-red-500 text-[10px] mt-1">{fieldErrors.agency}</p>}
                     </div>
 
                     {/* Cascading Location: Province -> District -> SubDistrict */}
@@ -435,7 +502,7 @@ export default function LiffServiceRequestV2() {
                             id="province"
                             value={selectedProvinceId || ''}
                             onChange={handleProvinceChange}
-                            className="w-full p-2.5 rounded-xl border-gray-200 bg-white text-sm"
+                            className={`w-full p-2.5 rounded-xl border-gray-200 bg-white text-sm ${fieldErrors.province ? 'border-red-500 ring-1 ring-red-500' : ''}`}
                             required
                         >
                             <option value="">-- เลือกจังหวัด --</option>
@@ -445,6 +512,7 @@ export default function LiffServiceRequestV2() {
                                 </option>
                             ))}
                         </select>
+                        {fieldErrors.province && <p className="text-red-500 text-[10px] mt-1">{fieldErrors.province}</p>}
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
@@ -457,7 +525,7 @@ export default function LiffServiceRequestV2() {
                                 value={selectedDistrictId || ''}
                                 onChange={handleDistrictChange}
                                 disabled={!selectedProvinceId}
-                                className="w-full p-2.5 rounded-xl border-gray-200 bg-white text-sm disabled:bg-gray-100 disabled:text-gray-400"
+                                className={`w-full p-2.5 rounded-xl border-gray-200 bg-white text-sm disabled:bg-gray-100 disabled:text-gray-400 ${fieldErrors.district ? 'border-red-500 ring-1 ring-red-500' : ''}`}
                                 required
                             >
                                 <option value="">-- เลือก --</option>
@@ -467,6 +535,7 @@ export default function LiffServiceRequestV2() {
                                     </option>
                                 ))}
                             </select>
+                            {fieldErrors.district && <p className="text-red-500 text-[10px] mt-1">{fieldErrors.district}</p>}
                         </div>
                         <div>
                             <label htmlFor="sub_district" className="block text-xs font-medium text-gray-700 mb-1">
@@ -478,7 +547,7 @@ export default function LiffServiceRequestV2() {
                                 onChange={handleSubDistrictChange}
                                 value={subDistricts.find(s => s.SUB_DISTRICT_THAI === formData.sub_district)?.SUB_DISTRICT_ID || ''}
                                 disabled={!selectedDistrictId}
-                                className="w-full p-2.5 rounded-xl border-gray-200 bg-white text-sm disabled:bg-gray-100 disabled:text-gray-400"
+                                className={`w-full p-2.5 rounded-xl border-gray-200 bg-white text-sm disabled:bg-gray-100 disabled:text-gray-400 ${fieldErrors.sub_district ? 'border-red-500 ring-1 ring-red-500' : ''}`}
                             >
                                 <option value="">-- เลือก --</option>
                                 {subDistricts.map(s => (
@@ -487,6 +556,7 @@ export default function LiffServiceRequestV2() {
                                     </option>
                                 ))}
                             </select>
+                            {fieldErrors.sub_district && <p className="text-red-500 text-[10px] mt-1">{fieldErrors.sub_district}</p>}
                         </div>
                     </div>
                 </section>
@@ -507,7 +577,7 @@ export default function LiffServiceRequestV2() {
                             name="topic_category"
                             value={formData.topic_category}
                             onChange={handleChange}
-                            className="w-full p-2.5 rounded-xl border-gray-200 bg-white text-sm"
+                            className={`w-full p-2.5 rounded-xl border-gray-200 bg-white text-sm ${fieldErrors.topic_category ? 'border-red-500 ring-1 ring-red-500' : ''}`}
                             required
                         >
                             <option value="">-- เลือกหัวข้อ --</option>
@@ -515,6 +585,7 @@ export default function LiffServiceRequestV2() {
                                 <option key={topic} value={topic}>{topic}</option>
                             ))}
                         </select>
+                        {fieldErrors.topic_category && <p className="text-red-500 text-[10px] mt-1">{fieldErrors.topic_category}</p>}
                     </div>
 
                     {formData.topic_category && TOPIC_OPTIONS[formData.topic_category] && (
@@ -525,7 +596,7 @@ export default function LiffServiceRequestV2() {
                                 name="topic_subcategory"
                                 value={formData.topic_subcategory}
                                 onChange={handleChange}
-                                className="w-full p-2.5 rounded-xl border-gray-200 bg-white text-sm"
+                                className={`w-full p-2.5 rounded-xl border-gray-200 bg-white text-sm ${fieldErrors.topic_subcategory ? 'border-red-500 ring-1 ring-red-500' : ''}`}
                                 required
                             >
                                 <option value="">-- เลือกรายละเอียด --</option>
@@ -533,6 +604,7 @@ export default function LiffServiceRequestV2() {
                                     <option key={sub} value={sub}>{sub}</option>
                                 ))}
                             </select>
+                            {fieldErrors.topic_subcategory && <p className="text-red-500 text-[10px] mt-1">{fieldErrors.topic_subcategory}</p>}
                         </div>
                     )}
 
@@ -544,9 +616,10 @@ export default function LiffServiceRequestV2() {
                             value={formData.description}
                             onChange={handleChange}
                             rows={4}
-                            className="w-full p-3 rounded-xl border-gray-200 bg-white text-sm resize-none"
+                            className={`w-full p-3 rounded-xl border-gray-200 bg-white text-sm resize-none ${fieldErrors.description ? 'border-red-500 ring-1 ring-red-500' : ''}`}
                             placeholder="ระบุรายละเอียดเหตุการณ์ หรือความประสงค์..."
                         />
+                        {fieldErrors.description && <p className="text-red-500 text-[10px] mt-1">{fieldErrors.description}</p>}
                     </div>
 
                     {/* File Upload */}
