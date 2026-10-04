@@ -6,10 +6,11 @@ import LoginPage from '../page';
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ replace: vi.fn(), push: vi.fn() }),
 }));
+const loginMock = vi.fn();
 vi.mock('@/contexts/AuthContext', () => ({
   AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   useAuth: () => ({
-    login: vi.fn(),
+    login: loginMock,
     isAuthenticated: false,
     isLoading: false,
   }),
@@ -22,7 +23,7 @@ vi.mock('motion/react', () => ({
   AnimatePresence: ({ children }: React.PropsWithChildren<object>) => <>{children}</>,
 }));
 
-describe('Login form error ARIA wiring (R3-L2)', () => {
+describe('Login form error ARIA wiring (R3-M30)', () => {
   it('wires both error messages to their inputs', async () => {
     const { container } = render(<LoginPage />);
 
@@ -68,5 +69,22 @@ describe('Login form error ARIA wiring (R3-L2)', () => {
     expect(container.querySelector('#username')!.getAttribute('aria-invalid')).toBe('false');
     // aria-describedby={undefined} renders no attribute at all.
     expect(container.querySelector('#username')!.hasAttribute('aria-describedby')).toBe(false);
+  });
+
+  it('submits valid credentials to login with no alerts (F8 / plan T21)', async () => {
+    loginMock.mockClear();
+    const { container } = render(<LoginPage />);
+
+    fireEvent.change(container.querySelector('#username')!, { target: { value: 'admin' } });
+    fireEvent.change(container.querySelector('#password')!, { target: { value: 'secret' } });
+    fireEvent.input(container.querySelector('#username')!);
+    fireEvent.input(container.querySelector('#password')!);
+    fireEvent.click(screen.getByRole('button', { name: 'เข้าสู่ระบบ' }));
+
+    await waitFor(() => {
+      expect(loginMock).toHaveBeenCalledTimes(1);
+    });
+    expect(loginMock).toHaveBeenCalledWith('admin', 'secret');
+    expect(container.querySelectorAll('[role="alert"]').length).toBe(0);
   });
 });

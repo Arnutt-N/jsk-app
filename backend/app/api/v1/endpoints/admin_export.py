@@ -26,7 +26,7 @@ from app.api.deps import require_permission
 from app.core.permissions import KEY_EXPORT_CHAT
 from app.core.pii_masking import mask_line_id
 from app.models.message import Message
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.services.user_identity_service import child_filter, resolve_by_line_id
 
 router = APIRouter()
@@ -87,7 +87,7 @@ async def _conversation_bounds(
     return user, first, last
 
 
-def _display_name(user: Optional[User], line_user_id: str, role) -> str:
+def _display_name(user: Optional[User], line_user_id: str, role: UserRole | str) -> str:
     if user and user.display_name:
         return user.display_name
     return mask_line_id(line_user_id, role)
@@ -103,7 +103,7 @@ def _defuse_csv_cell(value: str) -> str:
     return value
 
 
-async def _iter_csv_rows(line_user_id: str, db: AsyncSession, role):
+async def _iter_csv_rows(line_user_id: str, db: AsyncSession, role: UserRole | str):
     """Stream CSV one chunk at a time instead of buffering the whole conversation."""
     user = await resolve_by_line_id(db, line_user_id)
     last_id = 0
@@ -210,7 +210,8 @@ def _thai_font_name() -> str:
 
 
 def _build_conversation_pdf(
-    line_user_id: str, display_name: str, messages: List[Message], role=None
+    line_user_id: str, display_name: str, messages: List[Message],
+    role: UserRole | str | None = None,
 ) -> bytes:
     from reportlab.lib.pagesizes import A4
     from reportlab.pdfgen import canvas

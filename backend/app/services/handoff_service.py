@@ -142,6 +142,9 @@ class HandoffService:
                 box.append(partial(line_service.reply_text, reply_token, "ขออภัย ไม่สามารถเชื่อมต่อเจ้าหน้าที่ได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง"))
                 if outbox is None:
                     await drain_outbox(box)
+                # Handled (apology queued): the caller must NOT append a
+                # second reply on the same single-use token (F9).
+                return True
             except Exception:
                 pass  # Best-effort notification
             return False

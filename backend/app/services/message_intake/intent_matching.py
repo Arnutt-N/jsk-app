@@ -129,7 +129,9 @@ async def find_intent_keyword(text: str, db: AsyncSession) -> IntentKeyword | No
 async def _find_autoreply_rule(text: str, db: AsyncSession):
     """Legacy AutoReply lookup: active exact keyword, then active contains."""
     _exact = AutoReply.keyword == text
-    _contains = literal(text).ilike(func.concat('%', AutoReply.keyword, '%'))
+    _contains = literal(text).ilike(
+        func.concat('%', _like_safe(AutoReply.keyword), '%'), escape="\\"
+    )
     prio = case((_exact, 0), else_=1)
     stmt = (
         select(AutoReply)

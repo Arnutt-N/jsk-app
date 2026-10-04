@@ -3,12 +3,14 @@ import asyncio
 import logging
 from datetime import datetime, timedelta, timezone
 from functools import partial
+from types import SimpleNamespace
 
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.db.session import AsyncSessionLocal
 from app.models.chat_session import ChatSession, SessionStatus
 from app.models.user import ChatMode, User
 from app.services.business_hours_service import business_hours_service
@@ -139,23 +141,30 @@ class HandoffMixin:
         # 6. Telegram notification (fire-and-forget, non-blocking)
         admin_url = f"{settings.ADMIN_URL}/admin/live-chat?user={raw_line_id}"
 
-        async def _send_telegram(recent_msgs):
+        async def _send_telegram(display_name, picture_url, snippets):
+            # Own session: the spawned task must never query on the shared
+            # webhook `db` (AsyncSession is not concurrency-safe), and it
+            # may outlive that session — plain data only, no ORM (F4).
             try:
-                await telegram_service.send_handoff_notification(
-                    user.display_name or "Unknown",
-                    user.picture_url,
-                    recent_msgs,
-                    admin_url,
-                    db
-                )
+                async with AsyncSessionLocal() as fresh:
+                    await telegram_service.send_handoff_notification(
+                        display_name,
+                        picture_url,
+                        [SimpleNamespace(content=c) for c in snippets],
+                        admin_url,
+                        fresh,
+                    )
             except Exception as e:
                 logger.error(f"Failed to send Telegram handoff notification: {e}")
 
         async def _spawn_telegram():
-            # Serial read at drain time (post-commit, session open):
-            # never concurrent with the webhook loop's session use.
+            # Serial reads at drain time (post-commit, session open):
+            # snapshot plain values so the task needs no ORM access.
             recent_msgs = await self.get_recent_messages(raw_line_id, 3, db)
-            task = asyncio.create_task(_send_telegram(recent_msgs))
+            snippets = [m.content for m in recent_msgs if m.content][:3]
+            task = asyncio.create_task(_send_telegram(
+                user.display_name or "Unknown", user.picture_url, snippets,
+            ))
             _background_tasks.add(task)
             task.add_done_callback(_background_tasks.discard)
 

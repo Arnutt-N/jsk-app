@@ -78,6 +78,25 @@ async def test_race_re_resolves_without_full_rollback():
 
 
 @pytest.mark.asyncio
+async def test_non_race_integrity_error_reraises_original():
+    """F6: re-resolve finds no winner -> original IntegrityError, not RuntimeError."""
+    db, _nested = _db_with_nested()
+
+    async def _flush(*a, **k):
+        raise IntegrityError("stmt", {}, Exception("null-viol"))
+
+    db.flush = _flush
+    profile = SimpleNamespace(display_name="N", picture_url=None)
+    api = SimpleNamespace(get_profile=AsyncMock(return_value=profile))
+    with patch("app.services.user_identity_service.resolve_by_line_id",
+               new=AsyncMock(return_value=None)), patch(
+                   "app.services.user_identity_service.populate_surrogate"), patch(
+                       "app.core.line_client.get_line_bot_api", return_value=api):
+        with pytest.raises(IntegrityError):
+            await friend_service.get_or_create_user("U1", db)
+
+
+@pytest.mark.asyncio
 async def test_happy_path_still_commits_and_refreshes():
     db, _nested = _db_with_nested()
     profile = SimpleNamespace(display_name="N", picture_url=None)

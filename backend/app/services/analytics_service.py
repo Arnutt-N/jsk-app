@@ -24,6 +24,10 @@ logger = logging.getLogger(__name__)
 
 CACHE_TTL_SECONDS = 120  # dashboard Redis cache TTL (plan: C1)
 
+# Bound concurrent KPI sessions: engine pool is 5+3 (session.py), and the
+# webhook path shares it — one dashboard refresh must not hold all 8 (F2).
+_KPI_SEMAPHORE = asyncio.Semaphore(4)
+
 
 async def _kpi_waiting_count(s: AsyncSession):
     return await s.scalar(
@@ -99,8 +103,9 @@ class AnalyticsService:
             Dict with waiting, active, FRT, resolution time, CSAT, FCR
 
         Note: `db` is kept for caller compatibility; the 10 KPI queries run
-        on short-lived sessions (one per query, gathered) so they never
-        share a session concurrently. Results are cached 120s (fail-open).
+        on short-lived sessions (one per query, gathered, max 4 concurrent)
+        so they never share a session concurrently. Results are cached 120s
+        (fail-open).
         """
         key = "analytics:live_kpis"
         try:
@@ -109,9 +114,17 @@ class AnalyticsService:
             cached = None  # Redis-down -> compute without cache (fail-open)
 
         if cached:
-            data = json.loads(cached)
-            data["cache_hit"] = True
-            return data
+            try:
+                data = json.loads(cached)
+            except json.JSONDecodeError:
+                logger.warning("Corrupt live-KPI cache value; recomputing (fail-open)")
+                try:
+                    await redis_client.delete(key)
+                except Exception:
+                    pass
+            else:
+                data["cache_hit"] = True
+                return data
 
         now = datetime.now(timezone.utc)
         hour_ago = now - timedelta(hours=1)
@@ -119,7 +132,7 @@ class AnalyticsService:
         day_ago = now - timedelta(days=1)
 
         async def _use(factory, *args):
-            async with AsyncSessionLocal() as session:
+            async with _KPI_SEMAPHORE, AsyncSessionLocal() as session:
                 return await factory(session, *args)
 
         (waiting, active, avg_frt, avg_resolution, csat_avg, fcr_rate,
@@ -137,6 +150,12 @@ class AnalyticsService:
             _use(_kpi_human_mode_users),
         )
 
+        # func.avg yields Decimal: coerce to float BEFORE round/cache, else
+        # json.dumps(default=str) freezes strings and cache hits change the
+        # value types vs fresh responses (F1; mirrors get_dashboard).
+        avg_frt = float(avg_frt or 0)
+        avg_resolution = float(avg_resolution or 0)
+        csat_avg = float(csat_avg or 0)
         payload = {
             "waiting": waiting or 0,
             "active": active or 0,

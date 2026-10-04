@@ -71,7 +71,18 @@ function getRequestUrl(input: RequestInfo | URL): string {
 }
 
 function isApiRequest(input: RequestInfo | URL): boolean {
-  return getRequestUrl(input).includes('/api/v1/');
+  // Pathname-prefix match (absolute-or-relative safe): a substring check
+  // would also match non-API URLs merely containing '/api/v1/' (F13).
+  // No same-origin gating — prod API is cross-origin by design.
+  const raw = getRequestUrl(input);
+  if (raw.startsWith('/')) {
+    return raw.startsWith('/api/v1/');
+  }
+  try {
+    return new URL(raw).pathname.startsWith('/api/v1/');
+  } catch {
+    return false;
+  }
 }
 
 // Never refresh+retry the refresh call itself (guards against recursion).
@@ -113,8 +124,8 @@ async function handleCookieModeFetch(
     return nativeFetch(input, init);
   }
   const canRetry = !isRefreshRequest(input);
-  const needsCsrf =
-    isApiRequest(input) && MUTATING_METHODS.has(getRequestMethod(input, init));
+  // isApiRequest(input) is guaranteed true here by the early return above (F14).
+  const needsCsrf = MUTATING_METHODS.has(getRequestMethod(input, init));
 
   const cookieRequestInit = (baseInit?: RequestInit): RequestInit => ({
     ...baseInit,

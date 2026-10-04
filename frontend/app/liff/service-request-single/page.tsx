@@ -112,7 +112,9 @@ export default function LiffServiceRequestSingle() {
     // --- HANDLERS ---
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target
-        const next = name === 'phone' ? value.replace(/\D/g, '') : value
+        // Digit-only, with +66 international prefix normalized to 0 so a
+        // pasted +66 number is not corrupted into a wrong digit string (F12).
+        const next = name === 'phone' ? value.replace(/^\+66/, '0').replace(/\D/g, '') : value
         setFormData(prev => ({ ...prev, [name]: next }))
         if (fieldErrors[name]) {
             setFieldErrors(prev => {
@@ -243,7 +245,7 @@ export default function LiffServiceRequestSingle() {
         if (!formData.firstname.trim()) errors.firstname = 'กรุณาระบุชื่อ'
         if (!formData.lastname.trim()) errors.lastname = 'กรุณาระบุนามสกุล'
         if (!formData.phone) errors.phone = 'กรุณาระบุหมายเลขโทรศัพท์'
-        else if (formData.phone.length < 9) errors.phone = 'หมายเลขโทรศัพท์ไม่ถูกต้อง'
+        else if (formData.phone.length < 9 || formData.phone.length > 10) errors.phone = 'หมายเลขโทรศัพท์ไม่ถูกต้อง'
         if (!formData.agency) errors.agency = 'กรุณาเลือกหน่วยงาน'
         if (!selectedProvinceId) errors.province = 'กรุณาเลือกจังหวัด'
         if (!selectedDistrictId) errors.district = 'กรุณาเลือกอำเภอ/เขต'

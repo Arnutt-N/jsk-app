@@ -168,8 +168,11 @@ class ConnectionManager:
         if admin_id in self.connections:
             self.connections[admin_id].discard(websocket)
             if not self.connections[admin_id]:
-                # Clean up rate limiter when last connection closes
-                await ws_rate_limiter.reset_async(admin_id)
+                # Clear only the in-process bucket on disconnect: the Redis
+                # fixed window stays authoritative, so a reconnect cannot
+                # restore a full flood budget (F16). reset_async (Redis DEL)
+                # remains for deliberate admin/test clears.
+                ws_rate_limiter.reset(admin_id)
                 del self.connections[admin_id]
                 # Clean up admin metadata to prevent memory leak
                 if admin_id in self.admin_metadata:

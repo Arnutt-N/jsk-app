@@ -127,4 +127,24 @@ describe('LIFF service-request-single validation (R3-M28-twin)', () => {
     fireEvent.change(phone, { target: { value: '081-234-5678' } });
     expect(phone.value).toBe('0812345678');
   });
+
+  it('rejects over-long phone numbers without opening confirm (F7)', async () => {
+    const { container } = render(<LiffServiceRequestSingle />);
+
+    fireEvent.change(container.querySelector('input[name="phone"]')!, { target: { value: '081234567890' } });
+    fireEvent.submit(container.querySelector('form')!);
+
+    await waitFor(() => {
+      expect(screen.getByText('หมายเลขโทรศัพท์ไม่ถูกต้อง')).toBeTruthy();
+    });
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+    expect(submitMock).not.toHaveBeenCalled();
+  });
+
+  it('normalizes a pasted +66 prefix to 0 (F12)', () => {
+    const { container } = render(<LiffServiceRequestSingle />);
+    const phone = container.querySelector('input[name="phone"]') as HTMLInputElement;
+    fireEvent.change(phone, { target: { value: '+66812345678' } });
+    expect(phone.value).toBe('0812345678');
+  });
 });

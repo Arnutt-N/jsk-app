@@ -42,4 +42,11 @@ describe('LIFF request-v2 phone input (R3-M29)', () => {
     fireEvent.change(phone, { target: { value: '081-234-5678' } });
     expect(phone.value).toBe('0812345678');
   });
+
+  it('normalizes a pasted +66 prefix to 0 (F12)', () => {
+    const { container } = render(<LiffRequestV2 />);
+    const phone = container.querySelector('input[name="phone"]') as HTMLInputElement;
+    fireEvent.change(phone, { target: { value: '+66812345678' } });
+    expect(phone.value).toBe('0812345678');
+  });
 });

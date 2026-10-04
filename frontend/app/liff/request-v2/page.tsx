@@ -97,7 +97,9 @@ export default function LiffServiceRequestV2() {
     // Handle Input Change
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target
-        const next = name === 'phone' ? value.replace(/\D/g, '') : value
+        // Digit-only, with +66 international prefix normalized to 0 so a
+        // pasted +66 number is not corrupted into a wrong digit string (F12).
+        const next = name === 'phone' ? value.replace(/^\+66/, '0').replace(/\D/g, '') : value
         setFormData(prev => ({ ...prev, [name]: next }))
     }
 

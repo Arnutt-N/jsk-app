@@ -244,9 +244,11 @@ class BroadcastService:
             # Client disconnect / task cancel between the SENDING commit
             # and the final commit must not strand the row (R3-L1):
             # record FAILED, then re-raise so cancellation propagates.
+            # Shielded: a second cancel (e.g. worker shutdown mid-cancel)
+            # must not interrupt the mark itself (F3).
             broadcast.status = BroadcastStatus.FAILED
             try:
-                await db.commit()
+                await asyncio.shield(db.commit())
             except Exception as commit_exc:
                 logger.error(
                     "Broadcast %s: FAILED-mark commit failed on cancel: %s",

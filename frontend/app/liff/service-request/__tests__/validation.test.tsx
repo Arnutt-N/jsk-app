@@ -136,4 +136,27 @@ describe('LIFF service-request validation (R3-M28)', () => {
     fireEvent.change(phone, { target: { value: '081-234-5678' } });
     expect(phone.value).toBe('0812345678');
   });
+
+  it('rejects over-long phone numbers (F7)', async () => {
+    const { container } = render(<LiffServiceRequest />);
+
+    fireEvent.change(container.querySelector('input[name="prefix"]')!, { target: { value: 'นาย' } });
+    fireEvent.change(container.querySelector('input[name="firstname"]')!, { target: { value: 'สมชาย' } });
+    fireEvent.change(container.querySelector('input[name="lastname"]')!, { target: { value: 'ใจดี' } });
+    fireEvent.change(container.querySelector('input[name="phone_number"]')!, { target: { value: '081234567890' } });
+    fireEvent.click(screen.getByRole('button', { name: 'ถัดไป' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('เบอร์โทรไม่ถูกต้อง')).toBeTruthy();
+    });
+    // Still on step 0: the phone input is still rendered.
+    expect(container.querySelector('input[name="phone_number"]')).not.toBeNull();
+  });
+
+  it('normalizes a pasted +66 prefix to 0 (F12)', () => {
+    const { container } = render(<LiffServiceRequest />);
+    const phone = container.querySelector('input[name="phone_number"]') as HTMLInputElement;
+    fireEvent.change(phone, { target: { value: '+66812345678' } });
+    expect(phone.value).toBe('0812345678');
+  });
 });
