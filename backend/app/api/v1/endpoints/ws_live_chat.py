@@ -283,7 +283,10 @@ async def websocket_endpoint(
         ws_health_monitor.record_error("websocket_exception")
     finally:
         if admin_id:
-            await ws_rate_limiter.reset_async(admin_id)
+            # In-process bucket only: the Redis fixed window must survive a
+            # routine disconnect, else reconnect restores a full flood
+            # budget (F16 follow-up — manager.disconnect does the same).
+            ws_rate_limiter.reset(admin_id)
         await ws_manager.disconnect(websocket)
         if admin_id:
             await ws_manager.broadcast_presence()

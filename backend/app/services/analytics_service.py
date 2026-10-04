@@ -2,12 +2,14 @@
 import asyncio
 import json
 import logging
+from collections.abc import Awaitable, Callable
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 from sqlalchemy import and_, exists, func, literal_column, select, text
 from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
-from typing import Optional
+from typing import Any, Optional
 
 from app.models.chat_session import ChatSession, SessionStatus
 from app.models.csat_response import CsatResponse
@@ -29,19 +31,19 @@ CACHE_TTL_SECONDS = 120  # dashboard Redis cache TTL (plan: C1)
 _KPI_SEMAPHORE = asyncio.Semaphore(4)
 
 
-async def _kpi_waiting_count(s: AsyncSession):
+async def _kpi_waiting_count(s: AsyncSession) -> int | None:
     return await s.scalar(
         select(func.count()).where(ChatSession.status == SessionStatus.WAITING)
     )
 
 
-async def _kpi_active_count(s: AsyncSession):
+async def _kpi_active_count(s: AsyncSession) -> int | None:
     return await s.scalar(
         select(func.count()).where(ChatSession.status == SessionStatus.ACTIVE)
     )
 
 
-async def _kpi_avg_frt(s: AsyncSession, hour_ago: datetime):
+async def _kpi_avg_frt(s: AsyncSession, hour_ago: datetime) -> Decimal | int:
     result = await s.execute(
         select(
             func.avg(
@@ -55,7 +57,7 @@ async def _kpi_avg_frt(s: AsyncSession, hour_ago: datetime):
     return result.scalar() or 0
 
 
-async def _kpi_avg_resolution(s: AsyncSession, today_start: datetime):
+async def _kpi_avg_resolution(s: AsyncSession, today_start: datetime) -> Decimal | int:
     result = await s.execute(
         select(
             func.avg(
@@ -69,7 +71,7 @@ async def _kpi_avg_resolution(s: AsyncSession, today_start: datetime):
     return result.scalar() or 0
 
 
-async def _kpi_csat_avg(s: AsyncSession, day_ago: datetime):
+async def _kpi_csat_avg(s: AsyncSession, day_ago: datetime) -> Decimal | int:
     result = await s.execute(
         select(func.avg(CsatResponse.score)).where(
             CsatResponse.created_at > day_ago
@@ -78,7 +80,7 @@ async def _kpi_csat_avg(s: AsyncSession, day_ago: datetime):
     return result.scalar() or 0
 
 
-async def _kpi_sessions_today(s: AsyncSession, today_start: datetime):
+async def _kpi_sessions_today(s: AsyncSession, today_start: datetime) -> int | None:
     return await s.scalar(
         select(func.count()).where(
             ChatSession.started_at > today_start
@@ -86,7 +88,7 @@ async def _kpi_sessions_today(s: AsyncSession, today_start: datetime):
     )
 
 
-async def _kpi_human_mode_users(s: AsyncSession):
+async def _kpi_human_mode_users(s: AsyncSession) -> int | None:
     return await s.scalar(
         select(func.count()).where(User.chat_mode == ChatMode.HUMAN)
     )
@@ -131,7 +133,7 @@ class AnalyticsService:
         today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
         day_ago = now - timedelta(days=1)
 
-        async def _use(factory, *args):
+        async def _use(factory: Callable[..., Awaitable[Any]], *args: Any) -> Any:
             async with _KPI_SEMAPHORE, AsyncSessionLocal() as session:
                 return await factory(session, *args)
 

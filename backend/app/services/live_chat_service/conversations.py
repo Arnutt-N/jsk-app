@@ -282,7 +282,7 @@ class ConversationsMixin:
             for message, display_name in rows
         ]
 
-    async def get_conversation_identity(self, line_user_id: str, db: AsyncSession):
+    async def get_conversation_identity(self, line_user_id: str, db: AsyncSession) -> dict | None:
         """Display identity for broadcast/sidebar paths (1 query, no messages).
 
         Lightweight alternative to get_conversation_detail for callers

@@ -18,7 +18,7 @@ from app.core.redis_client import redis_client
 from app.db.session import AsyncSessionLocal
 from app.services.friend_service import friend_service
 from app.services.message_intake.message_handler import handle_message_event as _handle_message_event_impl
-from app.services.outbox import drain_outbox, new_outbox
+from app.services.outbox import Outbox, drain_outbox, new_outbox
 from app.services.message_intake.postback_handler import handle_postback_event
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -133,7 +133,7 @@ async def process_webhook_events(events):
                     await redis_client.release_lock(lock_key, lock_token)
 
 
-async def handle_message_event(event: MessageEvent, db: AsyncSession, outbox=None):
+async def handle_message_event(event: MessageEvent, db: AsyncSession, outbox: Outbox | None = None):
     """Thin wrapper — real logic in message_intake.message_handler."""
     await _handle_message_event_impl(event, db, outbox)
 

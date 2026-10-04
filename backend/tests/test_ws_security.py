@@ -505,3 +505,49 @@ class TestRedisBackedAsyncSurface:
         mock_delete.assert_awaited_once_with("ratelimit:ws:A")
         assert "A" not in limiter.buckets
 
+
+class TestEndpointDisconnectKeepsRedisWindow:
+    """F16 follow-up: the endpoint finally must clear only the in-process
+    bucket — reset_async (Redis DEL) on routine disconnect would hand a
+    reconnecting client a full flood budget."""
+
+    @pytest.mark.asyncio
+    async def test_finally_uses_sync_reset_not_reset_async(self):
+        from fastapi import WebSocketDisconnect
+
+        from app.api.v1.endpoints import ws_live_chat as endpoint_mod
+
+        websocket = MagicMock()
+        websocket.headers = {}
+        websocket.receive_json = AsyncMock(side_effect=WebSocketDisconnect())
+        websocket.close = AsyncMock()
+        fake_manager = SimpleNamespace(
+            connect=AsyncMock(return_value="conn-1"),
+            register=AsyncMock(),
+            send_personal=AsyncMock(),
+            get_online_admins=AsyncMock(return_value=[]),
+            broadcast_presence=AsyncMock(),
+            disconnect=AsyncMock(),
+        )
+        fake_limiter = SimpleNamespace(reset=MagicMock(), reset_async=AsyncMock())
+        fake_health = SimpleNamespace(
+            record_connection=MagicMock(),
+            record_disconnection=MagicMock(),
+            record_error=MagicMock(),
+            record_message_received=MagicMock(),
+        )
+
+        with (
+            patch.object(endpoint_mod, "ws_manager", fake_manager),
+            patch.object(endpoint_mod, "ws_rate_limiter", fake_limiter),
+            patch.object(endpoint_mod, "ws_health_monitor", fake_health),
+            patch.object(
+                endpoint_mod, "authenticate_ws_ticket", new=AsyncMock(return_value="7")
+            ),
+        ):
+            await endpoint_mod.websocket_endpoint(websocket, ticket="t")
+
+        fake_limiter.reset.assert_called_once_with("7")
+        fake_limiter.reset_async.assert_not_awaited()
+        fake_manager.disconnect.assert_awaited_once_with(websocket)
+
