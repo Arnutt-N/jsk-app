@@ -99,6 +99,8 @@ class Settings(BaseSettings):
     TRUST_PROXY_HEADERS: bool = False
     LIFF_SUBMIT_RATE_LIMIT: int = 5        # Service-request submissions per window
     LIFF_SUBMIT_RATE_WINDOW: int = 300     # seconds
+    LIFF_BOOKING_READ_RATE_LIMIT: int = 60     # Booking read (options/availability) hits per window
+    LIFF_BOOKING_READ_RATE_WINDOW: int = 60    # seconds
     MEDIA_UPLOAD_RATE_LIMIT: int = 20      # Uploads per window
     MEDIA_UPLOAD_RATE_WINDOW: int = 60     # seconds
     PUBLIC_FILE_RATE_LIMIT: int = 120      # Public file fetches per window

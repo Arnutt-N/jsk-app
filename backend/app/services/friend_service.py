@@ -43,22 +43,32 @@ class FriendService:
             )
 
         populate_surrogate(user, line_user_id)
-        db.add(user)
         try:
-            if commit:
-                await db.commit()
-                await db.refresh(user)
-            else:
+            async with db.begin_nested():
+                # add INSIDE the savepoint (mirror _add_open_session):
+                # after a savepoint rollback the object is expunged, so the
+                # re-resolve below cannot re-emit the INSERT via autoflush.
+                # (add-outside would re-raise inside the handler and poison
+                # the caller's session — G2 finding, empirically probed.)
+                db.add(user)
                 await db.flush()
         except IntegrityError:
-            await db.rollback()
+            # Lost the create race: only the savepoint rolled back — the
+            # caller's prior writes are untouched. Re-resolve the winner.
+            # (Any IntegrityError is re-resolved; a NON-race failure finds
+            # no winner below and re-raises the ORIGINAL error, preserving
+            # its constraint diagnostics instead of masking them — F6.)
             user = await resolve_by_line_id(db, line_user_id)
             if user is None:
-                raise RuntimeError(
-                    f"Race condition: user creation for {line_user_id} conflicted "
-                    "but re-resolution found no user. Retry the request."
-                ) from None
-
+                raise
+            logger.info(
+                "User creation race resolved to existing user for %s",
+                mask_line_id(line_user_id),  # never log the raw ID (F5)
+            )
+            return user
+        if commit:
+            await db.commit()
+            await db.refresh(user)
         return user
 
     async def refresh_profile(

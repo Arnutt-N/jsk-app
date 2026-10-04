@@ -240,6 +240,21 @@ class BroadcastService:
 
             logger.info("Broadcast %s finished: success=%s, failed=%s", broadcast.id, broadcast.success_count, broadcast.failure_count)
 
+        except asyncio.CancelledError:
+            # Client disconnect / task cancel between the SENDING commit
+            # and the final commit must not strand the row (R3-L1):
+            # record FAILED, then re-raise so cancellation propagates.
+            # Shielded: a second cancel (e.g. worker shutdown mid-cancel)
+            # must not interrupt the mark itself (F3).
+            broadcast.status = BroadcastStatus.FAILED
+            try:
+                await asyncio.shield(db.commit())
+            except Exception as commit_exc:
+                logger.error(
+                    "Broadcast %s: FAILED-mark commit failed on cancel: %s",
+                    broadcast.id, commit_exc,
+                )
+            raise
         except Exception as exc:
             broadcast.status = BroadcastStatus.FAILED
             broadcast.failure_count = (broadcast.failure_count or 0) + 1

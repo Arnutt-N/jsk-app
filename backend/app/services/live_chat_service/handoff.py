@@ -2,16 +2,20 @@
 import asyncio
 import logging
 from datetime import datetime, timedelta, timezone
+from functools import partial
+from types import SimpleNamespace
 
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.db.session import AsyncSessionLocal
 from app.models.chat_session import ChatSession, SessionStatus
 from app.models.user import ChatMode, User
 from app.services.business_hours_service import business_hours_service
 from app.services.line_service import line_service
+from app.services.outbox import Outbox, drain_outbox
 from app.services.telegram_service import telegram_service
 from app.services.user_identity_service import decrypt_user_line_id, resolve_by_line_id
 
@@ -59,6 +63,7 @@ class HandoffMixin:
         db: AsyncSession,
         background_tasks=None, # Kept for compatibility but unused
         commit: bool = True,
+        outbox: Outbox | None = None,
     ):
         """
         Initiate human handoff for a user.
@@ -66,6 +71,7 @@ class HandoffMixin:
         Checks business hours first. If after hours, sends after-hours message
         and creates an offline ticket for follow-up.
         """
+        box = outbox if outbox is not None else []
         raw_line_id = decrypt_user_line_id(user)
 
         existing_session = await self.get_active_session(raw_line_id, db)
@@ -88,7 +94,7 @@ class HandoffMixin:
                 f"กรุณาฝากข้อความไว้ เจ้าหน้าที่จะติดต่อกลับในวันถัดไปค่ะ/ครับ"
             )
 
-            await line_service.reply_text(reply_token, after_hours_msg)
+            box.append(partial(line_service.reply_text, reply_token, after_hours_msg))
 
             # Create offline session (still in WAITING but user notified it's after hours)
             # This allows the user to leave a message that will be handled next business day
@@ -103,6 +109,8 @@ class HandoffMixin:
 
             if created:
                 logger.info(f"After-hours handoff for user {user.id}, next open: {next_open}")
+            if outbox is None:
+                await drain_outbox(box)
             return session
 
         # 2. Create chat session (savepoint-guarded against the open-session race)
@@ -123,37 +131,51 @@ class HandoffMixin:
 
         # 4. Send auto-greeting with queue position
         greeting = "เจ้าหน้าที่จะติดต่อกลับในไม่ช้า กรุณารอสักครู่"
-        await line_service.reply_text(reply_token, greeting)
+        box.append(partial(line_service.reply_text, reply_token, greeting))
 
         # 5. Send queue position info
         queue_info = await self.get_queue_position(raw_line_id, db)
         if queue_info["position"] > 0:
-            await self._send_queue_flex_message(raw_line_id, queue_info)
+            box.append(partial(self._send_queue_flex_message, raw_line_id, queue_info))
 
         # 6. Telegram notification (fire-and-forget, non-blocking)
-        recent_msgs = await self.get_recent_messages(raw_line_id, 3, db)
         admin_url = f"{settings.ADMIN_URL}/admin/live-chat?user={raw_line_id}"
 
-        async def _send_telegram():
+        async def _send_telegram(display_name, picture_url, snippets):
+            # Own session: the spawned task must never query on the shared
+            # webhook `db` (AsyncSession is not concurrency-safe), and it
+            # may outlive that session — plain data only, no ORM (F4).
             try:
-                await telegram_service.send_handoff_notification(
-                    user.display_name or "Unknown",
-                    user.picture_url,
-                    recent_msgs,
-                    admin_url,
-                    db
-                )
+                async with AsyncSessionLocal() as fresh:
+                    await telegram_service.send_handoff_notification(
+                        display_name,
+                        picture_url,
+                        [SimpleNamespace(content=c) for c in snippets],
+                        admin_url,
+                        fresh,
+                    )
             except Exception as e:
                 logger.error(f"Failed to send Telegram handoff notification: {e}")
 
-        task = asyncio.create_task(_send_telegram())
-        _background_tasks.add(task)
-        task.add_done_callback(_background_tasks.discard)
+        async def _spawn_telegram():
+            # Serial reads at drain time (post-commit, session open):
+            # snapshot plain values so the task needs no ORM access.
+            recent_msgs = await self.get_recent_messages(raw_line_id, 3, db)
+            snippets = [m.content for m in recent_msgs if m.content][:3]
+            task = asyncio.create_task(_send_telegram(
+                user.display_name or "Unknown", user.picture_url, snippets,
+            ))
+            _background_tasks.add(task)
+            task.add_done_callback(_background_tasks.discard)
+
+        box.append(_spawn_telegram)
 
         if commit:
             await db.commit()
         else:
             await db.flush()
+        if outbox is None:
+            await drain_outbox(box)
         return session
 
     async def _send_queue_flex_message(self, line_user_id: str, queue_info: dict):

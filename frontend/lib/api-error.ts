@@ -84,11 +84,21 @@ export function getHttpStatusMessage(status: number): string {
  * Check whether an error is a browser network failure
  * (TypeError "Failed to fetch" / "Load failed").
  */
+const NETWORK_MESSAGES = new Set(['Failed to fetch', 'Load failed']);
+
 export function isNetworkError(error: unknown): boolean {
-  return (
-    error instanceof TypeError &&
-    (error.message === 'Failed to fetch' || error.message === 'Load failed')
-  )
+  // Walk the `cause` chain (bounded + cycle-safe): the global fetch
+  // interceptor rethrows network failures as a Thai TypeError with the
+  // original as `cause` (R3-M16). Every level must be a TypeError —
+  // preserving the pinned rule that non-TypeErrors never match.
+  let current: unknown = error;
+  const seen = new Set<unknown>();
+  for (let depth = 0; depth < 5 && current instanceof TypeError && !seen.has(current); depth++) {
+    if (NETWORK_MESSAGES.has(current.message)) return true;
+    seen.add(current);
+    current = current.cause;
+  }
+  return false;
 }
 
 // ── Combined fetch helper ────────────────────────────────────────────

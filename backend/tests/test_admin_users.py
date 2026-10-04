@@ -254,3 +254,111 @@ def test_soft_delete_still_returns_200():
         app.dependency_overrides.clear()
     assert response.status_code == 200, response.text
     assert target.is_active is False
+
+
+# ── role-based LINE ID masking on get/create/update (R3-M7) ────────────
+_RAW_LINE_ID = "U1234567890abcdef1234567890abcdef"  # masked → "U12***ef"
+
+
+def _masked_user_row():
+    from datetime import datetime, timezone
+
+    now = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    return SimpleNamespace(
+        id=9, username="citizen", email="c@example.com",
+        display_name="Cit", picture_url=None, role=UserRole.USER,
+        is_active=True, line_user_id_encrypted="enc",
+        created_at=now, updated_at=now,
+    )
+
+
+def _caller(role: UserRole):
+    return SimpleNamespace(id=1, username="op", role=role)
+
+
+@pytest.mark.asyncio
+async def test_get_user_masks_line_id_for_agent():
+    from unittest.mock import patch
+
+    from app.api.v1.endpoints.admin_users import get_user
+
+    db = AsyncMock()
+    db.execute = AsyncMock(return_value=_FakeResult(_masked_user_row()))
+    with patch(
+        "app.api.v1.endpoints.admin_users.decrypt_user_line_id",
+        return_value=_RAW_LINE_ID,
+    ):
+        out = await get_user(9, db, _caller(UserRole.AGENT))
+    assert out.line_user_id == "U12***ef"
+
+
+@pytest.mark.asyncio
+async def test_get_user_returns_full_line_id_for_admin():
+    from unittest.mock import patch
+
+    from app.api.v1.endpoints.admin_users import get_user
+
+    db = AsyncMock()
+    db.execute = AsyncMock(return_value=_FakeResult(_masked_user_row()))
+    with patch(
+        "app.api.v1.endpoints.admin_users.decrypt_user_line_id",
+        return_value=_RAW_LINE_ID,
+    ):
+        out = await get_user(9, db, _caller(UserRole.ADMIN))
+    assert out.line_user_id == _RAW_LINE_ID
+
+
+@pytest.mark.asyncio
+async def test_update_user_masks_line_id_for_agent():
+    from unittest.mock import patch
+
+    from app.api.v1.endpoints.admin_users import UserUpdateRequest, update_user
+
+    db = AsyncMock()
+    db.execute = AsyncMock(return_value=_FakeResult(_masked_user_row()))
+    with (
+        patch(
+            "app.api.v1.endpoints.admin_users.decrypt_user_line_id",
+            return_value=_RAW_LINE_ID,
+        ),
+        patch(
+            "app.api.v1.endpoints.admin_users.create_audit_log",
+            new=AsyncMock(),
+        ),
+    ):
+        out = await update_user(
+            9, UserUpdateRequest(display_name="N"), db, _caller(UserRole.AGENT)
+        )
+    assert out.display_name == "N"
+    assert out.line_user_id == "U12***ef"
+
+
+@pytest.mark.asyncio
+async def test_create_user_without_line_id_returns_none():
+    from unittest.mock import patch
+
+    from app.api.v1.endpoints.admin_users import UserCreateRequest, create_user
+
+    db = AsyncMock()
+    db.execute = AsyncMock(return_value=_FakeResult(None))  # username free
+    db.add = MagicMock(side_effect=lambda u: setattr(u, "id", 7))
+    with (
+        patch(
+            "app.api.v1.endpoints.admin_users.create_audit_log",
+            new=AsyncMock(),
+        ),
+        patch(
+            "app.api.v1.endpoints.admin_users.get_password_hash_async",
+            new=AsyncMock(return_value="hashed"),
+        ),
+    ):
+        out = await create_user(
+            UserCreateRequest(
+                username="newop", password="password1", display_name="New",
+                role=UserRole.AGENT,
+            ),
+            db,
+            _caller(UserRole.ADMIN),
+        )
+    assert out.id == 7
+    assert out.line_user_id is None

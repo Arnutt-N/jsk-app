@@ -22,6 +22,7 @@ async def extract_non_text_message(message):
             "url": media.get("url"),
             "content_type": media.get("content_type"),
             "size": media.get("size"),
+            "skipped": media.get("skipped"),
         }
 
     if message_type == "sticker":
@@ -48,6 +49,7 @@ async def extract_non_text_message(message):
             "size": media.get("size") if media.get("size") is not None else file_size,
             "url": media.get("url"),
             "content_type": media.get("content_type"),
+            "skipped": media.get("skipped"),
         }
 
     if message_type in {"video", "audio"}:
@@ -60,6 +62,7 @@ async def extract_non_text_message(message):
             "url": media.get("url"),
             "content_type": media.get("content_type"),
             "size": media.get("size"),
+            "skipped": media.get("skipped"),
         }
 
     return None, "", {}

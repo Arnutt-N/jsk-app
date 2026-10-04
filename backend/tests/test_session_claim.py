@@ -18,6 +18,7 @@ from app.core.websocket_manager import ReadMarkerPersistenceError
 
 from app.api import deps
 from app.main import app
+from app.schemas.message import message_payload_dict
 from app.models.chat_session import SessionStatus, ClosedBy
 
 from tests.identity_helpers import make_line_user_fields
@@ -229,17 +230,26 @@ def test_send_message_rest_broadcasts_message_and_conversation_update(test_clien
     try:
         with patch(
             "app.api.v1.endpoints.admin_live_chat.live_chat_service.send_message",
-            new=AsyncMock(return_value={"success": True}),
+            new=AsyncMock(return_value={
+                "success": True,
+                "message": message_payload_dict(
+                    message,
+                    line_user_id="Uabcdef0123456789abcdef0123456789",
+                ),
+            }),
         ) as mock_send, patch(
             "app.api.v1.endpoints.admin_live_chat.live_chat_service.get_recent_messages",
             new=AsyncMock(return_value=[message]),
         ) as mock_recent, patch(
-            "app.api.v1.endpoints.admin_live_chat.live_chat_service.get_conversation_detail",
+            "app.api.v1.endpoints.admin_live_chat.live_chat_service.get_conversation_identity",
             new=AsyncMock(return_value={
                 "display_name": "Alice",
                 "picture_url": "pic",
                 "chat_mode": "BOT",
             }),
+        ) as mock_identity, patch(
+            "app.api.v1.endpoints.admin_live_chat.live_chat_service.get_conversation_detail",
+            new=AsyncMock(),
         ) as mock_detail, patch(
             "app.services.message_intake.live_chat_service.get_unread_count",
             new=AsyncMock(return_value=3),
@@ -265,10 +275,12 @@ def test_send_message_rest_broadcasts_message_and_conversation_update(test_clien
             )
 
         assert response.status_code == 200
-        assert response.json() == {"success": True}
+        assert response.json()["success"] is True
+        assert response.json()["message"]["content"] == "hello"
         mock_send.assert_awaited_once()
-        mock_recent.assert_awaited_once()
-        mock_detail.assert_awaited_once()
+        mock_recent.assert_not_awaited()
+        mock_identity.assert_awaited_once()
+        mock_detail.assert_not_awaited()
         assert mock_unread.await_count == 2
         mock_in_room.assert_not_awaited()
         mock_mark_read.assert_not_awaited()
@@ -302,7 +314,7 @@ def test_mark_conversation_read_uses_explicit_boundary(test_client):
 
     try:
         with patch(
-            "app.api.v1.endpoints.admin_live_chat.live_chat_service.get_conversation_detail",
+            "app.api.v1.endpoints.admin_live_chat.live_chat_service.get_conversation_identity",
             new=AsyncMock(return_value={"line_user_id": line_user_id}),
         ), patch(
             "app.api.v1.endpoints.admin_live_chat.ws_manager.mark_conversation_read",
@@ -340,7 +352,7 @@ def test_mark_conversation_read_returns_503_when_marker_cannot_persist(test_clie
 
     try:
         with patch(
-            "app.api.v1.endpoints.admin_live_chat.live_chat_service.get_conversation_detail",
+            "app.api.v1.endpoints.admin_live_chat.live_chat_service.get_conversation_identity",
             new=AsyncMock(return_value={"line_user_id": line_user_id}),
         ), patch(
             "app.api.v1.endpoints.admin_live_chat.ws_manager.mark_conversation_read",

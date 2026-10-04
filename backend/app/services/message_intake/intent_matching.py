@@ -6,7 +6,7 @@ AutoReply fallback. Pure query logic — no side effects beyond DB reads.
 import logging
 import re
 
-from sqlalchemy import select, func, literal
+from sqlalchemy import case, or_, select, func, literal
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -48,14 +48,16 @@ def _like_safe(col):
     )
 
 
+def _intent_eager_options():
+    return selectinload(IntentKeyword.category).selectinload(
+        IntentCategory.responses.and_(IntentResponse.is_active == True)
+    )
+
+
 def _intent_keyword_stmt(*filters):
     return (
         select(IntentKeyword)
-        .options(
-            selectinload(IntentKeyword.category).selectinload(
-                IntentCategory.responses.and_(IntentResponse.is_active == True)
-            )
-        )
+        .options(_intent_eager_options())
         .filter(*filters)
         # Deterministic tiebreak: oldest rule (lowest id) wins when several
         # keywords match the same branch (R3-M14).
@@ -71,30 +73,29 @@ async def find_intent_keyword(text: str, db: AsyncSession) -> IntentKeyword | No
     are case-insensitive. REGEX is evaluated in Python (not SQL) so an invalid
     pattern degrades to a logged skip instead of failing the whole query.
     """
-    stmt = _intent_keyword_stmt(
-        func.lower(IntentKeyword.keyword) == text.lower(),
-        IntentKeyword.match_type == MatchType.EXACT,
-    ).limit(1)
-    match = (await db.execute(stmt)).scalars().first()
-    if match:
-        return match
-
-    stmt = _intent_keyword_stmt(
+    _exact = (func.lower(IntentKeyword.keyword) == text.lower()) & (
+        IntentKeyword.match_type == MatchType.EXACT
+    )
+    _starts = (
         literal(text).ilike(
             func.concat(_like_safe(IntentKeyword.keyword), '%'), escape="\\"
-        ),
-        IntentKeyword.match_type == MatchType.STARTS_WITH,
-    ).limit(1)
-    match = (await db.execute(stmt)).scalars().first()
-    if match:
-        return match
-
-    stmt = _intent_keyword_stmt(
+        )
+        & (IntentKeyword.match_type == MatchType.STARTS_WITH)
+    )
+    _contains = (
         literal(text).ilike(
             func.concat('%', _like_safe(IntentKeyword.keyword), '%'), escape="\\"
-        ),
-        IntentKeyword.match_type == MatchType.CONTAINS,
-    ).limit(1)
+        )
+        & (IntentKeyword.match_type == MatchType.CONTAINS)
+    )
+    prio = case((_exact, 0), (_starts, 1), (_contains, 2), else_=3)
+    stmt = (
+        select(IntentKeyword)
+        .options(_intent_eager_options())
+        .where(or_(_exact, _starts, _contains))
+        .order_by(prio, IntentKeyword.id.asc())
+        .limit(1)
+    )
     match = (await db.execute(stmt)).scalars().first()
     if match:
         return match
@@ -127,16 +128,22 @@ async def find_intent_keyword(text: str, db: AsyncSession) -> IntentKeyword | No
 
 async def _find_autoreply_rule(text: str, db: AsyncSession):
     """Legacy AutoReply lookup: active exact keyword, then active contains."""
-    stmt = select(AutoReply).filter(
-        AutoReply.keyword == text, AutoReply.is_active == True
+    _exact = AutoReply.keyword == text
+    _contains = literal(text).ilike(
+        func.concat('%', _like_safe(AutoReply.keyword), '%'), escape="\\"
     )
-    rule = (await db.execute(stmt)).scalars().first()
-    if rule:
-        return rule
-    stmt = select(AutoReply).filter(
-        literal(text).ilike(func.concat('%', AutoReply.keyword, '%')),
-        AutoReply.is_active == True,
-    ).limit(1)
+    prio = case((_exact, 0), else_=1)
+    stmt = (
+        select(AutoReply)
+        .where(
+            or_(
+                _exact & (AutoReply.is_active == True),
+                _contains & (AutoReply.is_active == True),
+            )
+        )
+        .order_by(prio, AutoReply.id.asc())
+        .limit(1)
+    )
     return (await db.execute(stmt)).scalars().first()
 
 

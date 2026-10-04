@@ -1,12 +1,14 @@
 import logging
 import re
 import time
+from functools import partial
 from json import JSONDecodeError, loads
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import ChatMode, User
 from app.services.live_chat_service import live_chat_service
+from app.services.outbox import Outbox, drain_outbox
 from app.services.settings_service import SettingsService
 
 logger = logging.getLogger(__name__)
@@ -87,6 +89,7 @@ class HandoffService:
         reply_token: str,
         db: AsyncSession,
         commit: bool = True,
+        outbox: Outbox | None = None,
     ) -> bool:
         """
         Check if message contains handoff keywords.
@@ -125,15 +128,23 @@ class HandoffService:
         logger.info(f"Handoff keyword detected: '{matched_keyword}' for user {user.id}")
         
         # Initiate handoff
+        box = outbox if outbox is not None else []
         try:
-            await live_chat_service.initiate_handoff(user, reply_token, db, commit=commit)
+            await live_chat_service.initiate_handoff(user, reply_token, db, commit=commit, outbox=box)
+            if outbox is None:
+                await drain_outbox(box)
             return True
         except Exception as e:
             logger.error(f"Failed to initiate handoff for user {user.id}: {e}")
             # Try to notify the user that handoff failed
             try:
                 from app.services.line_service import line_service
-                await line_service.reply_text(reply_token, "ขออภัย ไม่สามารถเชื่อมต่อเจ้าหน้าที่ได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง")
+                box.append(partial(line_service.reply_text, reply_token, "ขออภัย ไม่สามารถเชื่อมต่อเจ้าหน้าที่ได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง"))
+                if outbox is None:
+                    await drain_outbox(box)
+                # Handled (apology queued): the caller must NOT append a
+                # second reply on the same single-use token (F9).
+                return True
             except Exception:
                 pass  # Best-effort notification
             return False

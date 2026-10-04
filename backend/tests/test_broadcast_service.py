@@ -1,4 +1,5 @@
 """Tests for BroadcastService state machine and message building."""
+import asyncio
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -87,6 +88,22 @@ async def test_send_broadcast_multicast_partial_failure():
 
     assert result.status == BroadcastStatus.FAILED
     assert result.failure_count == 10
+
+
+@pytest.mark.asyncio
+async def test_cancel_marks_failed_then_reraises():
+    svc = BroadcastService()
+    bc = _broadcast()
+    db = AsyncMock()
+    mock_api = AsyncMock()
+    mock_api.broadcast = AsyncMock(side_effect=asyncio.CancelledError())
+    svc._api = mock_api
+
+    with pytest.raises(asyncio.CancelledError):
+        await svc.send_broadcast(db, bc)
+
+    assert bc.status == BroadcastStatus.FAILED
+    assert db.commit.await_count >= 2  # SENDING commit + FAILED-mark commit
 
 
 @pytest.mark.asyncio

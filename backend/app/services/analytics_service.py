@@ -1,12 +1,15 @@
 """Analytics service for calculating KPIs and metrics."""
+import asyncio
 import json
 import logging
+from collections.abc import Awaitable, Callable
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 from sqlalchemy import and_, exists, func, literal_column, select, text
 from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
-from typing import Optional
+from typing import Any, Optional
 
 from app.models.chat_session import ChatSession, SessionStatus
 from app.models.csat_response import CsatResponse
@@ -23,79 +26,139 @@ logger = logging.getLogger(__name__)
 
 CACHE_TTL_SECONDS = 120  # dashboard Redis cache TTL (plan: C1)
 
+# Bound concurrent KPI sessions: engine pool is 5+3 (session.py), and the
+# webhook path shares it — one dashboard refresh must not hold all 8 (F2).
+_KPI_SEMAPHORE = asyncio.Semaphore(4)
+
+
+async def _kpi_waiting_count(s: AsyncSession) -> int | None:
+    return await s.scalar(
+        select(func.count()).where(ChatSession.status == SessionStatus.WAITING)
+    )
+
+
+async def _kpi_active_count(s: AsyncSession) -> int | None:
+    return await s.scalar(
+        select(func.count()).where(ChatSession.status == SessionStatus.ACTIVE)
+    )
+
+
+async def _kpi_avg_frt(s: AsyncSession, hour_ago: datetime) -> Decimal | int:
+    result = await s.execute(
+        select(
+            func.avg(
+                func.extract('epoch', ChatSession.first_response_at - ChatSession.claimed_at)
+            )
+        ).where(
+            ChatSession.first_response_at.isnot(None),
+            ChatSession.claimed_at > hour_ago
+        )
+    )
+    return result.scalar() or 0
+
+
+async def _kpi_avg_resolution(s: AsyncSession, today_start: datetime) -> Decimal | int:
+    result = await s.execute(
+        select(
+            func.avg(
+                func.extract('epoch', ChatSession.closed_at - ChatSession.started_at)
+            )
+        ).where(
+            ChatSession.status == SessionStatus.CLOSED,
+            ChatSession.closed_at > today_start
+        )
+    )
+    return result.scalar() or 0
+
+
+async def _kpi_csat_avg(s: AsyncSession, day_ago: datetime) -> Decimal | int:
+    result = await s.execute(
+        select(func.avg(CsatResponse.score)).where(
+            CsatResponse.created_at > day_ago
+        )
+    )
+    return result.scalar() or 0
+
+
+async def _kpi_sessions_today(s: AsyncSession, today_start: datetime) -> int | None:
+    return await s.scalar(
+        select(func.count()).where(
+            ChatSession.started_at > today_start
+        )
+    )
+
+
+async def _kpi_human_mode_users(s: AsyncSession) -> int | None:
+    return await s.scalar(
+        select(func.count()).where(User.chat_mode == ChatMode.HUMAN)
+    )
+
+
 class AnalyticsService:
     """Service for calculating live chat analytics and KPIs."""
 
     async def get_live_kpis(self, db: AsyncSession) -> dict:
         """
         Get real-time KPIs for the dashboard.
-        
+
         Returns:
             Dict with waiting, active, FRT, resolution time, CSAT, FCR
+
+        Note: `db` is kept for caller compatibility; the 10 KPI queries run
+        on short-lived sessions (one per query, gathered, max 4 concurrent)
+        so they never share a session concurrently. Results are cached 120s
+        (fail-open).
         """
-        # Waiting/Active counts
-        waiting = await db.scalar(
-            select(func.count()).where(ChatSession.status == SessionStatus.WAITING)
-        )
-        active = await db.scalar(
-            select(func.count()).where(ChatSession.status == SessionStatus.ACTIVE)
+        key = "analytics:live_kpis"
+        try:
+            cached = await redis_client.get(key)
+        except Exception:
+            cached = None  # Redis-down -> compute without cache (fail-open)
+
+        if cached:
+            try:
+                data = json.loads(cached)
+            except json.JSONDecodeError:
+                logger.warning("Corrupt live-KPI cache value; recomputing (fail-open)")
+                try:
+                    await redis_client.delete(key)
+                except Exception:
+                    pass
+            else:
+                data["cache_hit"] = True
+                return data
+
+        now = datetime.now(timezone.utc)
+        hour_ago = now - timedelta(hours=1)
+        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        day_ago = now - timedelta(days=1)
+
+        async def _use(factory: Callable[..., Awaitable[Any]], *args: Any) -> Any:
+            async with _KPI_SEMAPHORE, AsyncSessionLocal() as session:
+                return await factory(session, *args)
+
+        (waiting, active, avg_frt, avg_resolution, csat_avg, fcr_rate,
+         abandonment_rate, sla_breach_events_24h, sessions_today,
+         human_mode_users) = await asyncio.gather(
+            _use(_kpi_waiting_count),
+            _use(_kpi_active_count),
+            _use(_kpi_avg_frt, hour_ago),
+            _use(_kpi_avg_resolution, today_start),
+            _use(_kpi_csat_avg, day_ago),
+            _use(self.calculate_fcr_rate, 7),
+            _use(self.calculate_abandonment_rate, 7),
+            _use(self.calculate_sla_breach_events, 24),
+            _use(_kpi_sessions_today, today_start),
+            _use(_kpi_human_mode_users),
         )
 
-        # Average First Response Time (last hour)
-        hour_ago = datetime.now(timezone.utc) - timedelta(hours=1)
-        avg_frt_result = await db.execute(
-            select(
-                func.avg(
-                    func.extract('epoch', ChatSession.first_response_at - ChatSession.claimed_at)
-                )
-            ).where(
-                ChatSession.first_response_at.isnot(None),
-                ChatSession.claimed_at > hour_ago
-            )
-        )
-        avg_frt = avg_frt_result.scalar() or 0
-
-        # Average Resolution Time (today)
-        today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
-        avg_resolution_result = await db.execute(
-            select(
-                func.avg(
-                    func.extract('epoch', ChatSession.closed_at - ChatSession.started_at)
-                )
-            ).where(
-                ChatSession.status == SessionStatus.CLOSED,
-                ChatSession.closed_at > today_start
-            )
-        )
-        avg_resolution = avg_resolution_result.scalar() or 0
-
-        # CSAT (last 24 hours)
-        day_ago = datetime.now(timezone.utc) - timedelta(days=1)
-        csat_result = await db.execute(
-            select(func.avg(CsatResponse.score)).where(
-                CsatResponse.created_at > day_ago
-            )
-        )
-        csat_avg = csat_result.scalar() or 0
-
-        # FCR Rate (last 7 days)
-        fcr_rate = await self.calculate_fcr_rate(db, days=7)
-        abandonment_rate = await self.calculate_abandonment_rate(db, days=7)
-        sla_breach_events_24h = await self.calculate_sla_breach_events(db, hours=24)
-
-        # Sessions today
-        sessions_today = await db.scalar(
-            select(func.count()).where(
-                ChatSession.started_at > today_start
-            )
-        )
-        
-        # Total users in HUMAN mode
-        human_mode_users = await db.scalar(
-            select(func.count()).where(User.chat_mode == ChatMode.HUMAN)
-        )
-
-        return {
+        # func.avg yields Decimal: coerce to float BEFORE round/cache, else
+        # json.dumps(default=str) freezes strings and cache hits change the
+        # value types vs fresh responses (F1; mirrors get_dashboard).
+        avg_frt = float(avg_frt or 0)
+        avg_resolution = float(avg_resolution or 0)
+        csat_avg = float(csat_avg or 0)
+        payload = {
             "waiting": waiting or 0,
             "active": active or 0,
             "avg_first_response_seconds": round(avg_frt, 1),
@@ -107,8 +170,14 @@ class AnalyticsService:
             "sla_breach_events_24h": int(sla_breach_events_24h),
             "sessions_today": sessions_today or 0,
             "human_mode_users": human_mode_users or 0,
-            "timestamp": datetime.now(timezone.utc).isoformat()
+            "timestamp": now.isoformat(),
+            "cache_hit": False,
         }
+        try:
+            await redis_client.setex(key, CACHE_TTL_SECONDS, json.dumps(payload, default=str))
+        except Exception:
+            pass  # Redis-down -> do not fail the request
+        return payload
 
     async def emit_live_kpis_update(self, db: AsyncSession = None) -> None:
         """Emit live KPI updates to WebSocket analytics subscribers.
@@ -335,41 +404,6 @@ class AnalyticsService:
             "bot_entries": int(bot_entries or 0),
             "human_handoff": int(human_handoff or 0),
             "resolved": int(resolved or 0),
-        }
-
-    async def get_percentiles(self, db: AsyncSession, days: int = 7) -> dict:
-        """Get P50/P90/P99 for FRT and resolution times."""
-        safe_days = max(1, min(days, 30))
-        cutoff = datetime.now(timezone.utc) - timedelta(days=safe_days)
-
-        frt_rows = await db.execute(
-            select(func.extract("epoch", ChatSession.first_response_at - ChatSession.claimed_at))
-            .where(
-                ChatSession.first_response_at.isnot(None),
-                ChatSession.claimed_at >= cutoff,
-            )
-        )
-        resolution_rows = await db.execute(
-            select(func.extract("epoch", ChatSession.closed_at - ChatSession.started_at))
-            .where(
-                ChatSession.closed_at.isnot(None),
-                ChatSession.closed_at >= cutoff,
-            )
-        )
-        frt_values = [float(v[0]) for v in frt_rows.all() if v[0] is not None]
-        resolution_values = [float(v[0]) for v in resolution_rows.all() if v[0] is not None]
-
-        return {
-            "frt": {
-                "p50": round(self._percentile(frt_values, 50), 1),
-                "p90": round(self._percentile(frt_values, 90), 1),
-                "p99": round(self._percentile(frt_values, 99), 1),
-            },
-            "resolution": {
-                "p50": round(self._percentile(resolution_values, 50), 1),
-                "p90": round(self._percentile(resolution_values, 90), 1),
-                "p99": round(self._percentile(resolution_values, 99), 1),
-            },
         }
 
     async def get_kpi_trends(self, db: AsyncSession) -> dict:
@@ -1031,21 +1065,6 @@ class AnalyticsService:
             })
         
         return stats
-
-    @staticmethod
-    def _percentile(values: list[float], percentile: int) -> float:
-        """Calculate percentile using nearest-rank with linear interpolation."""
-        if not values:
-            return 0.0
-        p = max(0, min(percentile, 100)) / 100
-        ordered = sorted(values)
-        if len(ordered) == 1:
-            return ordered[0]
-        idx = p * (len(ordered) - 1)
-        lower = int(idx)
-        upper = min(lower + 1, len(ordered) - 1)
-        weight = idx - lower
-        return ordered[lower] * (1 - weight) + ordered[upper] * weight
 
 
 # Global analytics service instance

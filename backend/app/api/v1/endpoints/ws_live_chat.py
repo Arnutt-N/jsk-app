@@ -155,8 +155,8 @@ async def websocket_endpoint(
 
             # Rate limiting (except ping)
             if msg_type != WSEventType.PING.value:
-                if not ws_rate_limiter.is_allowed(admin_id):
-                    remaining = ws_rate_limiter.get_remaining(admin_id)
+                if not await ws_rate_limiter.is_allowed_async(admin_id):
+                    remaining = await ws_rate_limiter.get_remaining_async(admin_id)
                     await ws_manager.send_personal(websocket, {
                         "type": WSEventType.ERROR.value,
                         "payload": {
@@ -283,6 +283,9 @@ async def websocket_endpoint(
         ws_health_monitor.record_error("websocket_exception")
     finally:
         if admin_id:
+            # In-process bucket only: the Redis fixed window must survive a
+            # routine disconnect, else reconnect restores a full flood
+            # budget (F16 follow-up — manager.disconnect does the same).
             ws_rate_limiter.reset(admin_id)
         await ws_manager.disconnect(websocket)
         if admin_id:

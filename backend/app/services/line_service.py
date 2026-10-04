@@ -32,6 +32,8 @@ from app.models.message import Message, MessageDirection
 
 logger = logging.getLogger(__name__)
 
+MAX_LINE_MEDIA_BYTES = 50 * 1024 * 1024  # 50 MB (R3-M8 decision D2: generous; LINE video can be large)
+
 
 def describe_line_message(message) -> Tuple[str, str, Optional[dict]]:
     """Map a LINE SDK send-message object to a (message_type, content, payload)
@@ -333,6 +335,20 @@ class LineService:
         if not data:
             return {"url": None, "preview_url": None, "content_type": content_type, "size": None}
 
+        if len(data) > MAX_LINE_MEDIA_BYTES:
+            logger.warning(
+                "LINE media %s too large (%d bytes) — skipping persist",
+                message_id, len(data),
+            )
+            return {
+                "url": None,
+                "preview_url": None,
+                "content_type": content_type,
+                "size": len(data),
+                "file_name": None,
+                "skipped": "too_large",
+            }
+
         ext = ""
         guessed = mimetypes.guess_extension(content_type or "") if content_type else None
         if guessed:
@@ -365,6 +381,12 @@ class LineService:
         preview_url = None
         if media_type == "image":
             preview_data, preview_ct = await self.download_message_content(message_id=message_id, preview=True)
+            if preview_data and len(preview_data) > MAX_LINE_MEDIA_BYTES:
+                logger.warning(
+                    "LINE media %s preview too large (%d bytes) — skipping preview",
+                    message_id, len(preview_data),
+                )
+                preview_data = None
             if preview_data:
                 preview_name = f"preview_{uuid4().hex}{mimetypes.guess_extension(preview_ct or '') or '.jpg'}"
                 preview_path = uploads_root / preview_name

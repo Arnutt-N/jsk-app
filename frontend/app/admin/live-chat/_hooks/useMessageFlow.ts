@@ -161,7 +161,7 @@ export function useMessageFlow({
     const s = getStore();
     if (!s.selectedId || !text.trim() || s.sending) return;
     s.setSending(true);
-    const tempId = `temp-${Date.now()}`;
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const optimistic: Message = {
       id: 0,
       line_user_id: s.selectedId,

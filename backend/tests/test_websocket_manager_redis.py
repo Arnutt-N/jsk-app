@@ -1,8 +1,10 @@
 import pytest
 from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 from redis.exceptions import WatchError
 
+from app.core import rate_limiter as rate_limiter_mod
+from app.core import websocket_manager as websocket_manager_mod
 from app.core.redis_client import redis_client
 from app.core.websocket_manager import ConnectionManager, ReadMarkerPersistenceError
 
@@ -158,6 +160,25 @@ async def test_disconnect_keeps_cached_display_name_while_another_tab_open():
     await manager.disconnect(ws2)
     # Last connection gone — now it is pruned.
     assert "5" not in manager.admin_display_names
+
+
+@pytest.mark.asyncio
+async def test_disconnect_keeps_redis_rate_window_but_clears_local_bucket():
+    """F16: last disconnect clears the in-process bucket but keeps the Redis
+    fixed window, so reconnect cannot restore a full flood budget."""
+    manager = ConnectionManager()
+    ws = FakeWebSocket()
+
+    await manager.register(ws, "9")
+    websocket_manager_mod.ws_rate_limiter.buckets["9"] = [1.0]
+
+    with patch.object(
+        rate_limiter_mod.redis_client, "delete", new=AsyncMock()
+    ) as mock_delete:
+        await manager.disconnect(ws)
+
+    assert "9" not in websocket_manager_mod.ws_rate_limiter.buckets
+    mock_delete.assert_not_awaited()
 
 
 @pytest.mark.asyncio

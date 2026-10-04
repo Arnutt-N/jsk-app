@@ -24,8 +24,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api import deps
 from app.api.deps import require_permission
 from app.core.permissions import KEY_EXPORT_CHAT
+from app.core.pii_masking import mask_line_id
 from app.models.message import Message
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.services.user_identity_service import child_filter, resolve_by_line_id
 
 router = APIRouter()
@@ -86,10 +87,10 @@ async def _conversation_bounds(
     return user, first, last
 
 
-def _display_name(user: Optional[User], line_user_id: str) -> str:
+def _display_name(user: Optional[User], line_user_id: str, role: UserRole | str) -> str:
     if user and user.display_name:
         return user.display_name
-    return line_user_id
+    return mask_line_id(line_user_id, role)
 
 
 _FORMULA_LEADERS = ("=", "+", "-", "@", "\t", "\r")
@@ -102,7 +103,7 @@ def _defuse_csv_cell(value: str) -> str:
     return value
 
 
-async def _iter_csv_rows(line_user_id: str, db: AsyncSession):
+async def _iter_csv_rows(line_user_id: str, db: AsyncSession, role: UserRole | str):
     """Stream CSV one chunk at a time instead of buffering the whole conversation."""
     user = await resolve_by_line_id(db, line_user_id)
     last_id = 0
@@ -121,7 +122,7 @@ async def _iter_csv_rows(line_user_id: str, db: AsyncSession):
             buf = io.StringIO()
             csv.writer(buf).writerow([
                 m.created_at.isoformat() if m.created_at else "",
-                line_user_id,
+                mask_line_id(line_user_id, role),
                 m.direction.value if hasattr(m.direction, "value") else m.direction,
                 m.sender_role.value if hasattr(m.sender_role, "value") else (m.sender_role or ""),
                 m.message_type or "",
@@ -135,18 +136,18 @@ async def _iter_csv_rows(line_user_id: str, db: AsyncSession):
 async def export_conversation_csv(
     line_user_id: str,
     db: AsyncSession = Depends(deps.get_db),
-    _current_user: User = Depends(require_permission(KEY_EXPORT_CHAT)),
+    current_user: User = Depends(require_permission(KEY_EXPORT_CHAT)),
 ):
     """Export one conversation as CSV (streamed, RFC 5987 filename)."""
     user, first, last = await _conversation_bounds(line_user_id, db)
     if first is None:
         raise HTTPException(status_code=404, detail="Conversation not found or has no messages")
 
-    display_name = _display_name(user, line_user_id)
+    display_name = _display_name(user, line_user_id, current_user.role)
     filename = _build_export_filename(display_name, [first, last], "csv")
 
     return StreamingResponse(
-        _iter_csv_rows(line_user_id, db),
+        _iter_csv_rows(line_user_id, db, current_user.role),
         media_type="text/csv; charset=utf-8",
         headers={"Content-Disposition": _content_disposition(filename)},
     )
@@ -156,7 +157,7 @@ async def export_conversation_csv(
 async def export_conversation_pdf(
     line_user_id: str,
     db: AsyncSession = Depends(deps.get_db),
-    _current_user: User = Depends(require_permission(KEY_EXPORT_CHAT)),
+    current_user: User = Depends(require_permission(KEY_EXPORT_CHAT)),
 ):
     """Export one conversation as PDF."""
     try:
@@ -177,12 +178,13 @@ async def export_conversation_pdf(
     if not messages:
         raise HTTPException(status_code=404, detail="Conversation not found or has no messages")
 
-    display_name = _display_name(user, line_user_id)
+    display_name = _display_name(user, line_user_id, current_user.role)
     filename = _build_export_filename(display_name, messages, "pdf")
 
     # ReportLab drawing is CPU-bound sync — offload to a thread.
     data = await asyncio.to_thread(
-        _build_conversation_pdf, line_user_id, display_name, messages
+        _build_conversation_pdf, line_user_id, display_name, messages,
+        role=current_user.role,
     )
     return Response(
         content=data,
@@ -208,7 +210,8 @@ def _thai_font_name() -> str:
 
 
 def _build_conversation_pdf(
-    line_user_id: str, display_name: str, messages: List[Message]
+    line_user_id: str, display_name: str, messages: List[Message],
+    role: UserRole | str | None = None,
 ) -> bytes:
     from reportlab.lib.pagesizes import A4
     from reportlab.pdfgen import canvas
@@ -223,7 +226,7 @@ def _build_conversation_pdf(
     pdf.setFont(_thai_font_name(), 12)
     pdf.drawString(left, top, f"Conversation Export: {display_name}")
     pdf.setFont(_thai_font_name(), 9)
-    pdf.drawString(left, top - line_height, f"LINE User ID: {line_user_id}")
+    pdf.drawString(left, top - line_height, f"LINE User ID: {mask_line_id(line_user_id, role)}")
     pdf.drawString(left, top - (line_height * 2), f"Generated UTC: {datetime.now(timezone.utc).isoformat()}")
 
     y = top - (line_height * 4)

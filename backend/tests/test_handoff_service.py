@@ -50,4 +50,26 @@ async def test_check_handoff_keywords_uses_configured_keywords(monkeypatch):
     result = await service.check_handoff_keywords("Please escalate this case", user, "reply-token", AsyncMock())
 
     assert result is True
-    initiate_handoff.assert_awaited_once_with(user, "reply-token", ANY, commit=True)
+    initiate_handoff.assert_awaited_once_with(user, "reply-token", ANY, commit=True, outbox=ANY)
+
+
+@pytest.mark.asyncio
+async def test_check_handoff_keywords_failure_returns_true_with_apology_queued(monkeypatch):
+    """F9: handoff exception queues the apology and claims the token (True),
+    so the caller never appends a second reply on the single-use token."""
+    service = HandoffService()
+    monkeypatch.setattr(
+        "app.services.handoff_service.SettingsService.get_setting",
+        AsyncMock(return_value="escalate"),
+    )
+    initiate_handoff = AsyncMock(side_effect=RuntimeError("boom"))
+    monkeypatch.setattr("app.services.handoff_service.live_chat_service.initiate_handoff", initiate_handoff)
+    user = SimpleNamespace(id=1, chat_mode=ChatMode.BOT, **make_line_user_fields("U123"))
+    box: list = []
+
+    result = await service.check_handoff_keywords(
+        "Please escalate this case", user, "reply-token", AsyncMock(), outbox=box
+    )
+
+    assert result is True
+    assert len(box) == 1

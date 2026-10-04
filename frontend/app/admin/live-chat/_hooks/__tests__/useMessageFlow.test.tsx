@@ -114,6 +114,25 @@ describe('useMessageFlow', () => {
     expect(store().sending).toBe(true); // released only by ack or timeout
   });
 
+  it('generates distinct temp ids under a frozen clock (R3-L2)', async () => {
+    const { view } = setup({ wsStatus: 'connected' });
+
+    await act(async () => {
+      await view.result.current.sendMessage('first');
+    });
+    const first = store().messages[0].temp_id!;
+
+    useLiveChatStore.setState({ sending: false }); // release the guard
+    await act(async () => {
+      await view.result.current.sendMessage('second');
+    });
+    const second = store().messages[1].temp_id!;
+
+    expect(first).toMatch(/^temp-/);
+    expect(second).toMatch(/^temp-/);
+    expect(first).not.toBe(second);
+  });
+
   it('fails the message and releases sending after the 10s ack timeout', async () => {
     const { view } = setup({ wsStatus: 'connected' });
 
