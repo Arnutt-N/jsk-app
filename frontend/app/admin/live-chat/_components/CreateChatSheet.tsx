@@ -14,7 +14,8 @@ import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
 import { logger } from '@/lib/logger';
-import { maskLineUserId } from '@/lib/mask';
+import { maskLineUserIdForRole } from '@/lib/mask';
+import { useAuth } from '@/contexts/AuthContext';
 import { getAvatarFallbackUrl } from '@/lib/constants/live-chat-avatar';
 
 // ---------------------------------------------------------------------------
@@ -38,6 +39,7 @@ interface SearchResult {
 // ---------------------------------------------------------------------------
 
 export function CreateChatSheet({ isOpen, onClose, onCreated }: CreateChatSheetProps) {
+  const { user: authUser } = useAuth();
   // ค้นหาผู้ใช้ LINE
   const [userQuery, setUserQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -81,7 +83,7 @@ export function CreateChatSheet({ isOpen, onClose, onCreated }: CreateChatSheetP
       const items: SearchResult[] = (data.items || data || []).map(
         (item: Record<string, unknown>) => ({
           line_user_id: item.line_user_id as string,
-          display_name: (item.display_name as string) || maskLineUserId(item.line_user_id as string),
+          display_name: (item.display_name as string) || maskLineUserIdForRole(item.line_user_id as string, authUser?.role),
           picture_url: item.picture_url as string | undefined,
         })
       );
@@ -92,7 +94,7 @@ export function CreateChatSheet({ isOpen, onClose, onCreated }: CreateChatSheetP
     } finally {
       setSearching(false);
     }
-  }, [userQuery]);
+  }, [userQuery, authUser?.role]);
 
   // ส่งคำขอสร้างแชทใหม่
   const handleSubmit = useCallback(async () => {
@@ -201,7 +203,7 @@ export function CreateChatSheet({ isOpen, onClose, onCreated }: CreateChatSheetP
                       {user.display_name}
                     </p>
                     <p className="text-xs text-text-tertiary truncate">
-                      {maskLineUserId(user.line_user_id)}
+                      {maskLineUserIdForRole(user.line_user_id, authUser?.role)}
                     </p>
                   </div>
                 </button>
@@ -223,7 +225,7 @@ export function CreateChatSheet({ isOpen, onClose, onCreated }: CreateChatSheetP
                   {selectedUser.display_name}
                 </p>
                 <p className="text-xs text-text-secondary truncate">
-                  {maskLineUserId(selectedUser.line_user_id)}
+                  {maskLineUserIdForRole(selectedUser.line_user_id, authUser?.role)}
                 </p>
               </div>
               <button

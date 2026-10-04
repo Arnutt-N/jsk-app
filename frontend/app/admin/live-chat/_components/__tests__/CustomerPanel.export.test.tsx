@@ -22,6 +22,11 @@ vi.mock('@/components/ui/Toast', () => ({
   useToast: () => ({ toast: mocks.toast }),
 }));
 
+// D1: CustomerPanel reads useAuth().user.role for ID masking — mock the provider.
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({ user: { role: 'ADMIN' } }),
+}));
+
 describe('CustomerPanel export failure toast', () => {
   const originalFetch = global.fetch;
 
