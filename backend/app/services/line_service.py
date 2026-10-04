@@ -18,6 +18,7 @@ from linebot.v3.messaging import (
 from linebot.v3.messaging.exceptions import ApiException
 import mimetypes
 import asyncio
+import httpx
 from pathlib import Path
 from typing import Optional, Tuple
 from uuid import uuid4
@@ -25,6 +26,7 @@ from datetime import datetime, timedelta, timezone
 import logging
 from app.core.line_client import get_line_bot_api
 from app.core.config import settings
+from app.core.http_timeouts import UPLOAD_TIMEOUT
 from app.core.line_client import get_async_api_client
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -33,6 +35,42 @@ from app.models.message import Message, MessageDirection
 logger = logging.getLogger(__name__)
 
 MAX_LINE_MEDIA_BYTES = 50 * 1024 * 1024  # 50 MB (R3-M8 decision D2: generous; LINE video can be large)
+
+
+class _MediaTooLarge(Exception):
+    """Raised when LINE Blob download exceeds MAX_LINE_MEDIA_BYTES mid-stream."""
+
+
+# Pinned from installed line-bot-sdk v3 (messaging_api_blob._hosts /
+# resource_path); preview downloads still use the SDK as a drift canary.
+_LINE_BLOB_PATH = "/v2/bot/message/{mid}/content"
+_LINE_BLOB_HOST = "https://api-data.line.me"
+
+
+async def _stream_line_bytes(
+    client: httpx.AsyncClient, message_id: str, token: str
+) -> Tuple[bytes, Optional[str]]:
+    """Stream LINE Blob bytes with a mid-stream size cap (D3).
+
+    Avoids loading multi-hundred-MB bodies into memory; raises
+    _MediaTooLarge as soon as the cap is exceeded.
+    """
+    chunks: list[bytes] = []
+    total = 0
+    content_type: Optional[str] = None
+    async with client.stream(
+        "GET",
+        _LINE_BLOB_HOST + _LINE_BLOB_PATH.format(mid=message_id),
+        headers={"Authorization": f"Bearer {token}"},
+    ) as resp:
+        resp.raise_for_status()
+        content_type = resp.headers.get("Content-Type")
+        async for chunk in resp.aiter_bytes():
+            total += len(chunk)
+            if total > MAX_LINE_MEDIA_BYTES:
+                raise _MediaTooLarge(message_id)
+            chunks.append(chunk)
+    return b"".join(chunks), content_type
 
 
 def describe_line_message(message) -> Tuple[str, str, Optional[dict]]:
@@ -306,11 +344,15 @@ class LineService:
         try:
             if preview:
                 resp = await self.blob_api.get_message_content_preview_with_http_info(message_id=message_id)
-            else:
-                resp = await self.blob_api.get_message_content_with_http_info(message_id=message_id)
-            data = bytes(resp.data) if resp and resp.data is not None else b""
-            content_type = resp.headers.get("Content-Type") if resp and resp.headers else None
-            return data, content_type
+                data = bytes(resp.data) if resp and resp.data is not None else b""
+                content_type = resp.headers.get("Content-Type") if resp and resp.headers else None
+                return data, content_type
+            async with httpx.AsyncClient(timeout=UPLOAD_TIMEOUT) as client:
+                return await _stream_line_bytes(
+                    client, message_id, settings.LINE_CHANNEL_ACCESS_TOKEN
+                )
+        except _MediaTooLarge:
+            raise
         except ApiException as e:
             logger.warning("Failed to download LINE media %s (ApiException): %s", message_id, e)
             return b"", None
@@ -331,7 +373,21 @@ class LineService:
         uploads_root = Path(__file__).resolve().parents[2] / "uploads" / "line_media"
         uploads_root.mkdir(parents=True, exist_ok=True)
 
-        data, content_type = await self.download_message_content(message_id=message_id, preview=False)
+        try:
+            data, content_type = await self.download_message_content(message_id=message_id, preview=False)
+        except _MediaTooLarge:
+            logger.warning(
+                "LINE media %s exceeds %d bytes mid-stream — skipping persist",
+                message_id, MAX_LINE_MEDIA_BYTES,
+            )
+            return {
+                "url": None,
+                "preview_url": None,
+                "content_type": None,
+                "size": None,
+                "file_name": None,
+                "skipped": "too_large",
+            }
         if not data:
             return {"url": None, "preview_url": None, "content_type": content_type, "size": None}
 
