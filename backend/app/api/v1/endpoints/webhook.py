@@ -93,7 +93,8 @@ async def process_webhook_events(events):
                     box = new_outbox()
                     await handle_message_event(event, db, box)
                 elif isinstance(event, PostbackEvent):
-                    await handle_postback_event(event, db)
+                    box = new_outbox()
+                    await handle_postback_event(event, db, box)
                 elif isinstance(event, FollowEvent):
                     await handle_follow_event(event, db)
                 elif isinstance(event, UnfollowEvent):
