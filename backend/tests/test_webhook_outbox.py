@@ -1,4 +1,5 @@
 """Webhook outbox: mutate → commit → announce (R3-M3). Pure mocks, local."""
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -128,6 +129,103 @@ async def test_webhook_skips_drain_when_handler_raises(monkeypatch):
 
     db.rollback.assert_awaited_once()
     drain.assert_not_awaited()
+
+
+class _FakePostbackEvent:
+    pass
+
+
+def _make_postback_event(data="csat|5|5"):
+    event = _FakePostbackEvent()
+    event.webhook_event_id = "evt-postback"
+    event.source = SimpleNamespace(user_id="U1")
+    event.postback = SimpleNamespace(data=data)
+    event.reply_token = "tok"
+    return event
+
+
+@pytest.mark.asyncio
+async def test_postback_drains_after_commit_in_order(monkeypatch):
+    """D2: postback branch mirrors the message branch (handle → commit → drain)."""
+    from app.api.v1.endpoints import webhook as webhook_module
+
+    calls: list[str] = []
+    handle = AsyncMock(side_effect=lambda *a, **k: calls.append("handle"))
+    drain = AsyncMock(side_effect=lambda *a, **k: calls.append("drain"))
+    db = AsyncMock()
+    db.commit = AsyncMock(side_effect=lambda: calls.append("commit"))
+
+    redis = MagicMock()
+    redis.exists = AsyncMock(return_value=False)
+    redis.set = AsyncMock(return_value=True)
+    redis.setex = AsyncMock()
+    redis.release_lock = AsyncMock(return_value=True)
+
+    monkeypatch.setattr(webhook_module, "PostbackEvent", _FakePostbackEvent)
+    monkeypatch.setattr(webhook_module, "AsyncSessionLocal", lambda: _FakeSessionContext(db))
+    monkeypatch.setattr(webhook_module, "handle_postback_event", handle)
+    monkeypatch.setattr(webhook_module, "drain_outbox", drain)
+    monkeypatch.setattr(webhook_module, "redis_client", redis)
+
+    await process_webhook_events([_make_postback_event()])
+
+    assert calls == ["handle", "commit", "drain"]
+    handle.assert_awaited_once()
+    db.commit.assert_awaited_once()
+    drain.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_csat_thank_you_queued_not_sent():
+    """D2: CSAT thank-you is queued into the shared box, never sent pre-commit."""
+    from app.services.message_intake.postback_handler import handle_csat_response
+    from app.services.outbox import drain_outbox as real_drain
+
+    line_svc = MagicMock()
+    line_svc.reply_text = AsyncMock()
+    box = new_outbox()
+    db = AsyncMock()
+
+    with (
+        patch(
+            "app.services.message_intake.postback_handler.get_line_service",
+            return_value=line_svc,
+        ),
+        patch(
+            "app.services.csat_service.csat_service",
+        ) as csat_svc,
+        patch(
+            "app.services.user_identity_service.resolve_by_line_id",
+            new=AsyncMock(return_value=SimpleNamespace(id=7)),
+        ),
+    ):
+        csat_svc.record_response = AsyncMock()
+        csat_svc.get_thank_you_message = MagicMock(return_value="thanks!")
+        await handle_csat_response("U1", "csat|5|5", "tok", db, outbox=box)
+
+    line_svc.reply_text.assert_not_awaited()
+    assert len(box) == 1
+
+    await real_drain(box)
+    line_svc.reply_text.assert_awaited_once_with("tok", "thanks!")
+
+
+@pytest.mark.asyncio
+async def test_postback_invalid_data_queues_nothing():
+    """D2: malformed/unknown postbacks queue nothing (no ghosts, no crash)."""
+    from app.services.message_intake.postback_handler import handle_postback_event
+
+    line_svc = MagicMock()
+    line_svc.show_loading_animation = AsyncMock()
+
+    for data in ("csat|bad", "action=unknown"):
+        box = new_outbox()
+        with patch(
+            "app.services.message_intake.postback_handler.get_line_service",
+            return_value=line_svc,
+        ):
+            await handle_postback_event(_make_postback_event(data), AsyncMock(), box)
+        assert box == []
 
 
 @pytest.mark.asyncio

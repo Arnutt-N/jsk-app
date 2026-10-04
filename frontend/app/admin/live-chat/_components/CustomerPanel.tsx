@@ -9,7 +9,8 @@ import { useLiveChatContext } from '../_context/LiveChatContext';
 import { useCustomerNotes } from '@/hooks/useCustomerNotes';
 import { PRESENCE_DOT_CLASS, PRESENCE_LABEL, getSessionPresence } from '@/lib/constants/live-chat-presence';
 import { logger } from '@/lib/logger';
-import { maskLineUserId } from '@/lib/mask';
+import { maskLineUserIdForRole } from '@/lib/mask';
+import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/Toast';
 import { readErrorMessage } from '@/lib/api-error';
 
@@ -25,6 +26,7 @@ export function CustomerPanel({
   // Hooks must run unconditionally — call before the early return with a
   // nullable id (the hook no-ops persistence when no conversation is selected).
   const { notes, setNotes, saved } = useCustomerNotes(currentChat?.line_user_id ?? null);
+  const { user } = useAuth();
   const { toast } = useToast();
   if (!currentChat) return null;
 
@@ -138,7 +140,7 @@ export function CustomerPanel({
         {/* LINE ID */}
         <div className="bg-muted rounded-xl p-3">
           <p className="text-2xs text-text-tertiary font-semibold mb-1.5 uppercase tracking-wider">LINE ID</p>
-          <p className="text-xs text-text-secondary font-mono truncate break-words">{maskLineUserId(currentChat.line_user_id)}</p>
+          <p className="text-xs text-text-secondary font-mono truncate break-words">{maskLineUserIdForRole(currentChat.line_user_id, user?.role)}</p>
         </div>
 
         {/* Session Status */}
