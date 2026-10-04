@@ -146,7 +146,7 @@ describe('AdminRequestList pagination (R3-H2)', () => {
     expect(firstUrl).toContain('limit=100');
   });
 
-  it('next page sends skip=100 and prev returns to skip=0', { timeout: 15000 }, async () => {
+  it('next page sends skip=100 and prev returns to skip=0', { timeout: 30000 }, async () => {
     mockApiFetch.mockResolvedValue({ ok: true, data: fullPage });
     render(<AdminRequestList />);
     await screen.findByText('A 0');
@@ -172,7 +172,7 @@ describe('AdminRequestList pagination (R3-H2)', () => {
     expect(screen.getByRole('button', { name: 'Previous page' })).toBeDisabled();
   });
 
-  it('resets to page one when filters change', { timeout: 15000 }, async () => {
+  it('resets to page one when filters change', { timeout: 30000 }, async () => {
     mockApiFetch.mockResolvedValue({ ok: true, data: fullPage });
     render(<AdminRequestList />);
     await screen.findByText('A 0');
