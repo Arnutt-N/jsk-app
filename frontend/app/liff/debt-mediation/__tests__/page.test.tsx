@@ -1,7 +1,11 @@
 // @vitest-environment jsdom
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+// Long wizard flows exceed the 5s default under load (worst measured
+// isolated pass 4.5s); per-file budget, ~3x headroom.
+vi.setConfig({ testTimeout: 15_000 })
 
 import LiffDebtMediationPage from '../page'
 import { SESSION_EXPIRED_MESSAGE } from '@/lib/liff/session-expired'
@@ -52,9 +56,9 @@ async function fillStep2(
   user: ReturnType<typeof userEvent.setup>,
   phone = '0812345678',
 ) {
-  await user.type(screen.getByPlaceholderText('ระบุชื่อ-นามสกุล'), 'สมชาย ใจดี')
-  await user.type(screen.getByPlaceholderText('0xx-xxx-xxxx'), phone)
-  await user.type(screen.getByPlaceholderText('0.00'), '20000')
+  fireEvent.change(screen.getByPlaceholderText('ระบุชื่อ-นามสกุล'), { target: { value: 'สมชาย ใจดี' } })
+  fireEvent.change(screen.getByPlaceholderText('0xx-xxx-xxxx'), { target: { value: phone } })
+  fireEvent.change(screen.getByPlaceholderText('0.00'), { target: { value: '20000' } })
   await user.selectOptions(screen.getByRole('combobox'), 'สกลนคร')
 }
 
@@ -111,8 +115,8 @@ describe('debt mediation wizard', () => {
     // Step 3: creditor info — interest rate visible for the debtor path
     expect(screen.getByText('ข้อมูลเจ้าหนี้')).toBeInTheDocument()
     expect(screen.getByText('อัตราดอกเบี้ย')).toBeInTheDocument()
-    await user.type(screen.getByPlaceholderText('ระบุชื่อเจ้าหนี้ (บุคคลหรือสถาบัน)'), 'นายทุนตลาดทอน')
-    await user.type(screen.getByPlaceholderText('เช่น ร้อยละ 5 ต่อเดือน'), 'ร้อยละ 20 ต่อเดือน')
+    fireEvent.change(screen.getByPlaceholderText('ระบุชื่อเจ้าหนี้ (บุคคลหรือสถาบัน)'), { target: { value: 'นายทุนตลาดทอน' } })
+    fireEvent.change(screen.getByPlaceholderText('เช่น ร้อยละ 5 ต่อเดือน'), { target: { value: 'ร้อยละ 20 ต่อเดือน' } })
     await chooseDebtorIssue(user)
     await user.click(screen.getByRole('button', { name: 'ยื่นคำขอ' }))
 
@@ -158,7 +162,7 @@ describe('debt mediation wizard', () => {
     expect(screen.queryByText('อัตราดอกเบี้ย')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'ลูกหนี้ไม่มีเงินจ่ายหนี้' })).toBeInTheDocument()
 
-    await user.type(screen.getByPlaceholderText('ระบุชื่อลูกหนี้'), 'สมหญิง ก่อหนี้')
+    fireEvent.change(screen.getByPlaceholderText('ระบุชื่อลูกหนี้'), { target: { value: 'สมหญิง ก่อหนี้' } })
     await user.click(screen.getByRole('button', { name: 'ลูกหนี้ปฏิเสธไม่ยอมชำระหนี้' }))
     await user.click(screen.getByRole('button', { name: 'ยื่นคำขอ' }))
     await user.click(screen.getByRole('button', { name: 'ยืนยันคำขอ' }))
@@ -183,8 +187,8 @@ describe('debt mediation wizard', () => {
     await user.click(screen.getByRole('button', { name: /^หนี้นอกระบบ/ }))
     await user.click(screen.getByRole('button', { name: 'ถัดไป' }))
 
-    await user.type(screen.getByPlaceholderText('ระบุชื่อเจ้าหนี้ (บุคคลหรือสถาบัน)'), 'นายทุน')
-    await user.type(screen.getByPlaceholderText('เช่น ร้อยละ 5 ต่อเดือน'), 'ร้อยละ 5')
+    fireEvent.change(screen.getByPlaceholderText('ระบุชื่อเจ้าหนี้ (บุคคลหรือสถาบัน)'), { target: { value: 'นายทุน' } })
+    fireEvent.change(screen.getByPlaceholderText('เช่น ร้อยละ 5 ต่อเดือน'), { target: { value: 'ร้อยละ 5' } })
     await user.click(screen.getByRole('button', { name: /^อื่น ๆ$/ }))
     await user.click(screen.getByRole('button', { name: 'ยื่นคำขอ' }))
 
@@ -206,8 +210,8 @@ describe('debt mediation wizard', () => {
     await fillStep2(user)
     await user.click(screen.getByRole('button', { name: /^หนี้นอกระบบ/ }))
     await user.click(screen.getByRole('button', { name: 'ถัดไป' }))
-    await user.type(screen.getByPlaceholderText('ระบุชื่อเจ้าหนี้ (บุคคลหรือสถาบัน)'), 'นายทุน')
-    await user.type(screen.getByPlaceholderText('เช่น ร้อยละ 5 ต่อเดือน'), 'ร้อยละ 20')
+    fireEvent.change(screen.getByPlaceholderText('ระบุชื่อเจ้าหนี้ (บุคคลหรือสถาบัน)'), { target: { value: 'นายทุน' } })
+    fireEvent.change(screen.getByPlaceholderText('เช่น ร้อยละ 5 ต่อเดือน'), { target: { value: 'ร้อยละ 20' } })
     await chooseDebtorIssue(user)
     await user.click(screen.getByRole('button', { name: 'ยื่นคำขอ' }))
     await user.click(screen.getByRole('button', { name: 'ยืนยันคำขอ' }))
@@ -226,9 +230,9 @@ describe('debt mediation wizard', () => {
     await user.click(screen.getByRole('button', { name: /^ลูกหนี้/ }))
     await user.click(screen.getByRole('button', { name: 'ถัดไป' }))
     await waitFor(() => screen.getByPlaceholderText('ระบุชื่อ-นามสกุล'))
-    await user.type(screen.getByPlaceholderText('ระบุชื่อ-นามสกุล'), 'สมชาย ใจดี')
-    await user.type(screen.getByPlaceholderText('0xx-xxx-xxxx'), 'abcdefghij')
-    await user.type(screen.getByPlaceholderText('0.00'), '20000')
+    fireEvent.change(screen.getByPlaceholderText('ระบุชื่อ-นามสกุล'), { target: { value: 'สมชาย ใจดี' } })
+    fireEvent.change(screen.getByPlaceholderText('0xx-xxx-xxxx'), { target: { value: 'abcdefghij' } })
+    fireEvent.change(screen.getByPlaceholderText('0.00'), { target: { value: '20000' } })
     await user.selectOptions(screen.getByRole('combobox'), 'สกลนคร')
     await user.click(screen.getByRole('button', { name: /^หนี้นอกระบบ/ }))
     await user.click(screen.getByRole('button', { name: 'ถัดไป' }))
@@ -253,8 +257,8 @@ describe('debt mediation wizard', () => {
     await fillStep2(user)
     await user.click(screen.getByRole('button', { name: /^หนี้นอกระบบ/ }))
     await user.click(screen.getByRole('button', { name: 'ถัดไป' }))
-    await user.type(screen.getByPlaceholderText('ระบุชื่อเจ้าหนี้ (บุคคลหรือสถาบัน)'), 'นายทุน')
-    await user.type(screen.getByPlaceholderText('เช่น ร้อยละ 5 ต่อเดือน'), 'ร้อยละ 20')
+    fireEvent.change(screen.getByPlaceholderText('ระบุชื่อเจ้าหนี้ (บุคคลหรือสถาบัน)'), { target: { value: 'นายทุน' } })
+    fireEvent.change(screen.getByPlaceholderText('เช่น ร้อยละ 5 ต่อเดือน'), { target: { value: 'ร้อยละ 20' } })
     await chooseDebtorIssue(user)
     await user.click(screen.getByRole('button', { name: 'ยื่นคำขอ' }))
     await user.click(screen.getByRole('button', { name: 'ยืนยันคำขอ' }))
@@ -278,8 +282,8 @@ describe('debt mediation wizard', () => {
     await user.click(screen.getByRole('button', { name: /^หนี้นอกระบบ/ }))
     await user.click(screen.getByRole('button', { name: 'ถัดไป' }))
 
-    await user.type(screen.getByPlaceholderText('ระบุชื่อเจ้าหนี้ (บุคคลหรือสถาบัน)'), 'นายทุนตลาดทอน')
-    await user.type(screen.getByPlaceholderText('เช่น ร้อยละ 5 ต่อเดือน'), 'ร้อยละ 20 ต่อเดือน')
+    fireEvent.change(screen.getByPlaceholderText('ระบุชื่อเจ้าหนี้ (บุคคลหรือสถาบัน)'), { target: { value: 'นายทุนตลาดทอน' } })
+    fireEvent.change(screen.getByPlaceholderText('เช่น ร้อยละ 5 ต่อเดือน'), { target: { value: 'ร้อยละ 20 ต่อเดือน' } })
     await chooseDebtorIssue(user)
 
     await user.click(screen.getByRole('button', { name: 'กลับ' }))
@@ -321,8 +325,8 @@ describe('debt mediation wizard', () => {
     await user.click(screen.getByRole('button', { name: /^หนี้นอกระบบ/ }))
     await user.click(screen.getByRole('button', { name: 'ถัดไป' }))
 
-    await user.type(screen.getByPlaceholderText('ระบุชื่อเจ้าหนี้ (บุคคลหรือสถาบัน)'), 'นายทุน')
-    await user.type(screen.getByPlaceholderText('เช่น ร้อยละ 5 ต่อเดือน'), 'ร้อยละ 20')
+    fireEvent.change(screen.getByPlaceholderText('ระบุชื่อเจ้าหนี้ (บุคคลหรือสถาบัน)'), { target: { value: 'นายทุน' } })
+    fireEvent.change(screen.getByPlaceholderText('เช่น ร้อยละ 5 ต่อเดือน'), { target: { value: 'ร้อยละ 20' } })
     await chooseDebtorIssue(user)
     await user.click(screen.getByRole('button', { name: 'ยื่นคำขอ' }))
     await user.click(screen.getByRole('button', { name: 'ยืนยันคำขอ' }))
@@ -346,8 +350,8 @@ describe('debt mediation wizard', () => {
     await user.click(screen.getByRole('button', { name: /^หนี้นอกระบบ/ }))
     await user.click(screen.getByRole('button', { name: 'ถัดไป' }))
 
-    await user.type(screen.getByPlaceholderText('ระบุชื่อเจ้าหนี้ (บุคคลหรือสถาบัน)'), 'นายทุน')
-    await user.type(screen.getByPlaceholderText('เช่น ร้อยละ 5 ต่อเดือน'), 'ร้อยละ 20')
+    fireEvent.change(screen.getByPlaceholderText('ระบุชื่อเจ้าหนี้ (บุคคลหรือสถาบัน)'), { target: { value: 'นายทุน' } })
+    fireEvent.change(screen.getByPlaceholderText('เช่น ร้อยละ 5 ต่อเดือน'), { target: { value: 'ร้อยละ 20' } })
     await chooseDebtorIssue(user)
     await user.click(screen.getByRole('button', { name: 'ยื่นคำขอ' }))
     await user.click(screen.getByRole('button', { name: 'ยืนยันคำขอ' }))
@@ -389,8 +393,8 @@ describe('debt mediation wizard', () => {
     await fillStep2(user)
     await user.click(screen.getByRole('button', { name: /^หนี้นอกระบบ/ }))
     await user.click(screen.getByRole('button', { name: 'ถัดไป' }))
-    await user.type(screen.getByPlaceholderText('ระบุชื่อเจ้าหนี้ (บุคคลหรือสถาบัน)'), 'นายทุน')
-    await user.type(screen.getByPlaceholderText('เช่น ร้อยละ 5 ต่อเดือน'), 'ร้อยละ 20')
+    fireEvent.change(screen.getByPlaceholderText('ระบุชื่อเจ้าหนี้ (บุคคลหรือสถาบัน)'), { target: { value: 'นายทุน' } })
+    fireEvent.change(screen.getByPlaceholderText('เช่น ร้อยละ 5 ต่อเดือน'), { target: { value: 'ร้อยละ 20' } })
     await chooseDebtorIssue(user)
     await user.click(screen.getByRole('button', { name: 'ยื่นคำขอ' }))
     await user.click(screen.getByRole('button', { name: 'ยืนยันคำขอ' }))
@@ -419,9 +423,9 @@ describe('debt mediation wizard', () => {
     await user.click(screen.getByRole('button', { name: /^ลูกหนี้/ }))
     await user.click(screen.getByRole('button', { name: 'ถัดไป' }))
     await waitFor(() => screen.getByPlaceholderText('ระบุชื่อ-นามสกุล'))
-    await user.type(screen.getByPlaceholderText('ระบุชื่อ-นามสกุล'), '   ')
-    await user.type(screen.getByPlaceholderText('0xx-xxx-xxxx'), '0812345678')
-    await user.type(screen.getByPlaceholderText('0.00'), '20000')
+    fireEvent.change(screen.getByPlaceholderText('ระบุชื่อ-นามสกุล'), { target: { value: '   ' } })
+    fireEvent.change(screen.getByPlaceholderText('0xx-xxx-xxxx'), { target: { value: '0812345678' } })
+    fireEvent.change(screen.getByPlaceholderText('0.00'), { target: { value: '20000' } })
     await user.selectOptions(screen.getByRole('combobox'), 'สกลนคร')
     await user.click(screen.getByRole('button', { name: /^หนี้นอกระบบ/ }))
     await user.click(screen.getByRole('button', { name: 'ถัดไป' }))
