@@ -310,4 +310,46 @@ describe('EditRichMenuPage — area overlay + sync machine', () => {
             expect(pubIdx).toBeGreaterThan(syncIdx);
         });
     });
+
+    it('shows ตามเวลา badge for a scheduled menu (parity with the list page)', async () => {
+        const menu = editMenuFixture({
+            display_mode: 'SCHEDULED',
+            display_start_at: '2026-11-01T00:00:00+07:00',
+            display_end_at: '2026-11-30T23:59:59+07:00',
+        });
+        const fetchMock = routeFetch({
+            [`GET ${MENU_URL}`]: menu,
+            [`GET ${ALIASES_URL}`]: [],
+        });
+        renderPage(fetchMock);
+
+        await waitFor(() => expect(screen.getByText('ตามเวลา')).toBeInTheDocument());
+    });
+
+    it('shows หมดเวลา badge for an expired scheduled menu', async () => {
+        const menu = editMenuFixture({
+            display_mode: 'SCHEDULED',
+            status: 'INACTIVE',
+            display_start_at: '2026-09-01T00:00:00+07:00',
+            display_end_at: '2026-09-30T23:59:59+07:00',
+        });
+        const fetchMock = routeFetch({
+            [`GET ${MENU_URL}`]: menu,
+            [`GET ${ALIASES_URL}`]: [],
+        });
+        renderPage(fetchMock);
+
+        await waitFor(() => expect(screen.getByText('หมดเวลา')).toBeInTheDocument());
+    });
+
+    it('shows ซ่อน badge for a hidden manual menu', async () => {
+        const menu = editMenuFixture({ display_mode: 'MANUAL' });
+        const fetchMock = routeFetch({
+            [`GET ${MENU_URL}`]: menu,
+            [`GET ${ALIASES_URL}`]: [],
+        });
+        renderPage(fetchMock);
+
+        await waitFor(() => expect(screen.getByText('ซ่อน')).toBeInTheDocument());
+    });
 });
