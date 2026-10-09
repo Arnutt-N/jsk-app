@@ -1,0 +1,19 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-10-10T01:32:00+07:00",
+  "branch": "feat/rich-menu-ui-parity",
+  "head_commit": "5309eb9",
+  "status": "completed",
+  "work_summary": "Updated WSL to 3.0.1 (kernel 6.18) and started pstack-claude global symlinks in Ubuntu-26.04 (Codex failed); symlink result NOT yet verified",
+  "priority_actions": [
+    "Verify symlinks in /root of Ubuntu-26.04 are complete and point to the right targets",
+    "Review working tree (.claude/PRPs, .gemini, .zcode, opencode.json untracked) before any commit"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/claude_code/session-summary-20261010-0132.md",
+  "cross_platform_read": [],
+  "model": "Claude Haiku 5.5",
+  "provider": "Anthropic"
+}

@@ -1,8 +1,26 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 272 active handoffs, 11 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 274 active handoffs, 11 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-10-10 01:58 — muse_code — completed
+
+Merged PR #246: rich-menu new/edit UI parity (badge, header, save buttons)
+
+- Checkpoint: `.agents/state/checkpoints/handover-muse_code-20261010-0158.json`
+- Summary: `project-log-md/muse_code/session-summary-20261010-0158.md`
+
+---
+
+### 2026-10-10 01:32 — claude_code (Claude Haiku 5.5 / Anthropic) — completed
+
+Updated WSL to 3.0.1 (kernel 6.18) and started pstack-claude global symlinks in Ubuntu-26.04 (Codex failed); symlink result NOT yet verified
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20261010-0132.json`
+- Summary: `project-log-md/claude_code/session-summary-20261010-0132.md`
+
+---
 
 ### 2026-10-09 19:58 — muse_code — completed
 

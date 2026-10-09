@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-10-09 19:58 by Muse Code (Merged PR #243 flaky suites + PR #244 upload-security tsc; P1 verified intact, main CI gre)
+> **Last Updated:** 2026-10-10 01:58 by Muse Code (Merged PR #246: rich-menu new/edit UI parity badge, header, save buttons)
 
 ## Thai Summary
 **สถานะล่าสุด (2026-09-30)** — รวม PR #239 (แก้บั๊กโอนแชทไม่มีบันทึก M-8) เข้าสายหลักแล้ว (`fd82c7a`) + ตรวจหลังส่งขึ้นร้านจริงเสร็จ: หลังบ้านแข็งแรงดี (database+redis ปกติ), หน้าร้านเปิดติด (HTTP 200), ปุ่มโอนแชทล็อกถูกต้อง (401), บันทึกส่งของ CD `36596610691` เขียวครบ 6 งาน — โค้ดตรงกับเซิร์ฟเวอร์ เหลือ Round-3b (22 ข้อ) + ซ่อมไฟล์ทดสอบ upload-security ที่พังมาก่อน
@@ -123,6 +123,8 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-10-10 01:58] Muse Code: Merged PR #246: rich-menu new/edit UI parity (badge, header, save buttons) (Muse Code)
+- [2026-10-10 01:32] Claude Code: Updated WSL to 3.0.1 (kernel 6.18) and started pstack-claude global symlinks in Ubuntu-26.04 (Codex failed); symlink result NOT yet verified (Claude Code)
 - [2026-10-09 19:58] Muse Code: Merged PR #243 (flaky suites) + PR #244 (upload-security tsc); P1 verified intact, main CI green (Muse Code)
 - [2026-10-05 00:08] Muse Code: Post-merge verify: PR #242 live on production - CD 6/6, backend healthy, frontend 200 (Muse Code)
 - [2026-10-04 23:40] Muse Code: Merged PR #242: follow-ups D1-D4 (postback outbox, request-v2 gate, role display, capped streaming) (Muse Code)
