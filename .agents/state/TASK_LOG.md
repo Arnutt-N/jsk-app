@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 271 active handoffs, 11 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 272 active handoffs, 11 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-10-09 19:58 — muse_code — completed
+
+Merged PR #243 (flaky suites) + PR #244 (upload-security tsc); P1 verified intact, main CI green
+
+- Checkpoint: `.agents/state/checkpoints/handover-muse_code-20261009-1958.json`
+- Summary: `project-log-md/muse_code/session-summary-20261009-1958.md`
+
+---
 
 ### 2026-10-05 00:08 — muse_code — completed
 
