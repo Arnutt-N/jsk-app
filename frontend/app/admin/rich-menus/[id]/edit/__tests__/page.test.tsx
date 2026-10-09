@@ -352,4 +352,17 @@ describe('EditRichMenuPage — area overlay + sync machine', () => {
 
         await waitFor(() => expect(screen.getByText('ซ่อน')).toBeInTheDocument());
     });
+
+    it('renders the shared header with a back link to the list', async () => {
+        const fetchMock = routeFetch({
+            [`GET ${MENU_URL}`]: editMenuFixture(),
+            [`GET ${ALIASES_URL}`]: [],
+        });
+        renderPage(fetchMock);
+
+        const backLink = await screen.findByRole('link', { name: 'กลับ' });
+        expect(backLink).toBeInTheDocument();
+        expect(backLink.getAttribute('href')).toBe('/admin/rich-menus');
+        expect(screen.getByText('Edit Rich Menu')).toBeInTheDocument();
+    });
 });

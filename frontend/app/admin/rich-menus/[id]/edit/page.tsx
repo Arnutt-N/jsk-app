@@ -3,11 +3,12 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
 import { DateTimePickerTH } from '@/components/ui/DateTimePickerTH';
+import PageHeader from '@/app/admin/components/PageHeader';
 import { logger } from '@/lib/logger';
 import { readErrorMessage } from '@/lib/api-error';
 import { canPublish, ensureRichMenuImage, menuStatusPill, needsResync, parseSyncResult, RichMenuDisplayMode, RichMenuSyncStatus } from '@/lib/rich-menu';
@@ -378,18 +379,15 @@ export default function EditRichMenuPage() {
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
             {/* Header */}
-            <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-100">
-                <div>
-                    <h1 className="text-2xl font-bold text-slate-700">Edit Rich Menu</h1>
-                    <p className="text-sm text-slate-500 mt-1">แก้ไขเมนู: {menu?.name}</p>
-                </div>
+            <PageHeader title="Edit Rich Menu" subtitle={menu ? `แก้ไขเมนู: ${menu.name}` : undefined} className="mb-8">
                 <Link
                     href="/admin/rich-menus"
-                    className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors text-sm font-medium cursor-pointer"
+                    aria-label="กลับ"
+                    className="p-2 rounded-xl hover:bg-surface-hover transition-colors"
                 >
-                    ← กลับ
+                    <ArrowLeft className="w-5 h-5 text-text-secondary" />
                 </Link>
-            </div>
+            </PageHeader>
 
             {/* Form */}
             <div className="bg-white rounded-xl border border-slate-100 p-6 shadow-sm space-y-6">
