@@ -1,0 +1,16 @@
+{
+  "handoff_version": "2.0",
+  "platform": "muse_code",
+  "agent": "muse_code",
+  "timestamp": "2026-10-10T01:58:00+07:00",
+  "branch": "main",
+  "head_commit": "84bb0fa",
+  "status": "completed",
+  "work_summary": "Merged PR #246: rich-menu new/edit UI parity (badge, header, save buttons)",
+  "priority_actions": [
+    "Smoke test rich-menus pages on prod after deploy"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/muse_code/session-summary-20261010-0158.md",
+  "cross_platform_read": []
+}

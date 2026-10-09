@@ -1,16 +1,16 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Cross-Platform Session Index (generated)
 
-> **Last generated**: 2026-10-09 19:58 (from newest checkpoint)
+> **Last generated**: 2026-10-10 01:58 (from newest checkpoint)
 
 ## Quick Stats
 
 | Metric | Value |
 |--------|-------|
-| Handoff checkpoints (active) | 272 |
-| Session summaries on disk | 376 |
+| Handoff checkpoints (active) | 274 |
+| Session summaries on disk | 378 |
 | Platforms | 11 (antigravity, claude_code, cline, codex, gemini_cli, kilo_code, kimi_code, muse_code, open_code, qoder, zcode) |
-| Most recent | 2026-10-09 19:58 — muse_code |
+| Most recent | 2026-10-10 01:58 — muse_code |
 
 > Regenerate after any handoff: `node .agents/scripts/gen-handoff-views.cjs`
 
@@ -24,10 +24,11 @@
 | 2026-04-04 12:04 | completed | — | — | `handover-antigravity-20260404-1204.json` |
 | 2026-02-15 03:20 | completed | — | — | `handover-antigravity-20260215-0320.json` |
 
-## claude_code (159)
+## claude_code (160)
 
 | When | Status | Model | Provider | Checkpoint |
 |------|--------|-------|----------|------------|
+| 2026-10-10 01:32 | completed | Claude Haiku 5.5 | Anthropic | `handover-claude_code-20261010-0132.json` |
 | 2026-08-14 23:06 | completed | Claude Opus 5 | Anthropic | `handover-claude_code-20260814-2306.json` |
 | 2026-08-14 06:49 | completed | Claude Opus 5 | Anthropic | `handover-claude_code-20260814-0649.json` |
 | 2026-08-14 05:42 | completed | Claude Opus 5 | Anthropic | `handover-claude_code-20260814-0542.json` |
@@ -47,8 +48,7 @@
 | 2026-08-02 02:01 | completed | — | — | `handover-claude_code-20260802-0201.json` |
 | 2026-08-02 00:39 | completed | — | — | `handover-claude_code-20260802-0039.json` |
 | 2026-08-01 21:38 | completed | — | — | `handover-claude_code-20260801-2138.json` |
-| 2026-08-01 21:18 | completed | — | — | `handover-claude_code-20260801-2118.json` |
-| … | | | | +139 older |
+| … | | | | +140 older |
 
 ## cline (14)
 
@@ -126,10 +126,11 @@
 | 2026-02-06 19:14 | unknown | — | — | `handover-kimi_code-any-20260206-1914.json` |
 | 2026-02-04 20:00 | unknown | — | — | `handover-kimi_code-any-20260204-2000.json` |
 
-## muse_code (7)
+## muse_code (8)
 
 | When | Status | Model | Provider | Checkpoint |
 |------|--------|-------|----------|------------|
+| 2026-10-10 01:58 | completed | — | — | `handover-muse_code-20261010-0158.json` |
 | 2026-10-09 19:58 | completed | — | — | `handover-muse_code-20261009-1958.json` |
 | 2026-10-05 00:08 | completed | — | — | `handover-muse_code-20261005-0008.json` |
 | 2026-10-04 23:40 | completed | — | — | `handover-muse_code-20261004-2340.json` |
