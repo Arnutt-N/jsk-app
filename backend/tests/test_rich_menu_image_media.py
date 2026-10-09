@@ -225,6 +225,32 @@ def test_upload_creates_media_row_and_returns_media_id():
     assert media_rows[0].size_bytes == len(PNG_MAGIC + b"rest")
 
 
+def test_upload_marks_media_row_public_for_plain_img_access():
+    # The admin UI serves image_url through a bare <img> tag (no auth, no
+    # token), and GET /media/{id} 403s private rows without a token — so a
+    # menu image stored private is an "Image Load Error" on every page.
+    # Menu art is inherently public (synced menus push it to LINE's public
+    # CDN anyway), therefore the stored row must be public at write time.
+    db = _override(role=UserRole.ADMIN, results=[_full_menu(id=1)])
+    with patch.object(
+        RichMenuService, "push_image_to_line", new=AsyncMock(return_value=True)
+    ):
+        client = _client()
+        try:
+            resp = client.post(
+                f"{BASE}/1/upload",
+                files={"file": ("menu.png", PNG_MAGIC + b"rest", "image/png")},
+            )
+        finally:
+            client.close()
+            _clear()
+
+    assert resp.status_code == 200
+    media_rows = [o for o in db.added if type(o).__name__ == "MediaFile"]
+    assert len(media_rows) == 1
+    assert media_rows[0].is_public is True
+
+
 def test_upload_line_push_failure_marks_sync_failed_but_keeps_media_row():
     db = _override(role=UserRole.ADMIN, results=[_full_menu(id=1, line_id="richmenu-live")])
     with patch.object(
@@ -440,6 +466,7 @@ def test_replace_image_deletes_previous_media_row():
     assert menu.image_media_id == media.id
     assert media.mime_type == "image/png"
     assert media.size_bytes == len(PNG_MAGIC)
+    assert media.is_public is True
     assert db.commits >= 1
 
 
