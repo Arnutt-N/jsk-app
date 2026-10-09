@@ -84,6 +84,10 @@ class RichMenuService:
 
         Replaces (deletes) any previous media row so re-uploads never orphan
         bytes. The caller has already validated mime/size; this is pure storage.
+
+        The row is public: menu art is served to unauthenticated <img> tags
+        (GET /media/{id} 403s private rows without a token) and synced menus
+        push these same bytes to LINE's public CDN anyway.
         """
         if rich_menu.image_media_id:
             previous = await db.get(MediaFile, rich_menu.image_media_id)
@@ -95,6 +99,7 @@ class RichMenuService:
             data=data,
             size_bytes=len(data),
             category=FileCategory.IMAGE,
+            is_public=True,
         )
         db.add(media)
         await db.flush()
