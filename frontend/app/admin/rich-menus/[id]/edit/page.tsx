@@ -3,15 +3,29 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
 import { DateTimePickerTH } from '@/components/ui/DateTimePickerTH';
+import PageHeader from '@/app/admin/components/PageHeader';
 import { logger } from '@/lib/logger';
 import { readErrorMessage } from '@/lib/api-error';
-import { canPublish, ensureRichMenuImage, needsResync, parseSyncResult, RichMenuDisplayMode, RichMenuSyncStatus } from '@/lib/rich-menu';
+import { canPublish, ensureRichMenuImage, menuStatusPill, needsResync, parseSyncResult, RichMenuDisplayMode, RichMenuSyncStatus } from '@/lib/rich-menu';
 import type { RichMenuDisplayModeValue } from '@/lib/rich-menu';
+
+// Verbatim copy of the list page pillTone map (rich-menus/page.tsx) —
+// keep identical; menuStatusPill is the ONE resolver for both pages.
+const pillTone: Record<string, string> = {
+    active: 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20',
+    error: 'bg-red-50 text-red-600 border-red-100 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20',
+    pending: 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20',
+    scheduled: 'bg-indigo-50 text-indigo-600 border-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/20',
+    inactive: 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-500/10 dark:text-slate-400 dark:border-slate-500/20',
+    hidden: 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-500/10 dark:text-slate-400 dark:border-slate-500/20',
+    synced: 'bg-brand-50 text-brand-600 border-brand-100 dark:bg-brand-500/10 dark:text-brand-400 dark:border-brand-500/20',
+    draft: 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20',
+};
 
 interface RichMenuArea {
     bounds: { x: number; y: number; width: number; height: number };
@@ -365,18 +379,15 @@ export default function EditRichMenuPage() {
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
             {/* Header */}
-            <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-100">
-                <div>
-                    <h1 className="text-2xl font-bold text-slate-700">Edit Rich Menu</h1>
-                    <p className="text-sm text-slate-500 mt-1">แก้ไขเมนู: {menu?.name}</p>
-                </div>
+            <PageHeader title="Edit Rich Menu" subtitle={menu ? `แก้ไขเมนู: ${menu.name}` : undefined} className="mb-8">
                 <Link
                     href="/admin/rich-menus"
-                    className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors text-sm font-medium cursor-pointer"
+                    aria-label="กลับ"
+                    className="p-2 rounded-xl hover:bg-surface-hover transition-colors"
                 >
-                    ← กลับ
+                    <ArrowLeft className="w-5 h-5 text-text-secondary" />
                 </Link>
-            </div>
+            </PageHeader>
 
             {/* Form */}
             <div className="bg-white rounded-xl border border-slate-100 p-6 shadow-sm space-y-6">
@@ -408,30 +419,17 @@ export default function EditRichMenuPage() {
                             {/* Sync-aware badge (same states as the list page) — a
                                 FAILED sync or LOCAL EDITS must be visible here,
                                 not hidden behind a plain DRAFT/ACTIVE pill. */}
-                            <span
-                                title={menu?.last_sync_error || (pendingResync ? 'แก้ไขในระบบแล้ว ยังไม่ส่งไป LINE' : undefined)}
-                                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold ${menu?.status === 'PUBLISHED' && !pendingResync
-                                    ? 'bg-emerald-50 text-emerald-600'
-                                    : menu?.sync_status === RichMenuSyncStatus.FAILED
-                                        ? 'bg-red-50 text-red-600'
-                                        : pendingResync
-                                            ? 'bg-amber-50 text-amber-600'
-                                            : menu?.line_rich_menu_id
-                                                ? 'bg-brand-50 text-brand-600'
-                                                : 'bg-amber-50 text-amber-600'
-                                    }`}
-                            >
-                                <span className={`w-2 h-2 rounded-full ${menu?.status === 'PUBLISHED' && !pendingResync ? 'bg-emerald-500' : menu?.sync_status === RichMenuSyncStatus.FAILED ? 'bg-red-500' : 'bg-amber-500'}`}></span>
-                                {menu?.status === 'PUBLISHED' && !pendingResync
-                                    ? 'ACTIVE'
-                                    : menu?.sync_status === RichMenuSyncStatus.FAILED
-                                        ? 'SYNC FAILED'
-                                        : pendingResync
-                                            ? 'รอซิงค์'
-                                            : menu?.line_rich_menu_id
-                                                ? 'SYNCED'
-                                                : 'DRAFT'}
-                            </span>
+                            {menu && (() => {
+                                const pill = menuStatusPill(menu);
+                                return (
+                                    <span
+                                        title={pill.title}
+                                        className={`px-2.5 py-1 text-[10px] font-bold rounded-full border ${pillTone[pill.tone]}`}
+                                    >
+                                        {pill.label}
+                                    </span>
+                                );
+                            })()}
                         </div>
                         {/* Display settings — same three modes as the create
                             page; changing them rides along on every save. */}

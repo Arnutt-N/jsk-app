@@ -41,4 +41,11 @@ describe('NewRichMenuPage — display period Thai schedule', () => {
         // P2 closure: no native Gregorian date entry left on the page.
         expect(container.querySelector('input[type="datetime-local"]')).toBeNull();
     });
+
+    it('labels the save buttons in Thai like the edit page', () => {
+        renderPage();
+
+        expect(screen.getByRole('button', { name: 'บันทึกฉบับร่าง' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'บันทึกและซิงค์' })).toBeInTheDocument();
+    });
 });

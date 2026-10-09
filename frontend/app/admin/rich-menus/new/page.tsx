@@ -746,7 +746,7 @@ export default function NewRichMenuPage() {
                                 disabled={isSaving}
                                 className={`w-full py-3 rounded-xl font-bold transition-all border-2 border-slate-200 hover:border-slate-300 text-slate-600 hover:bg-slate-50 disabled:opacity-50`}
                             >
-                                {isSaving ? 'Processing...' : 'Save as Draft Only'}
+                                {isSaving ? 'กำลังบันทึก...' : 'บันทึกฉบับร่าง'}
                             </button>
 
                             <button
@@ -758,11 +758,11 @@ export default function NewRichMenuPage() {
                                 {isSaving ? (
                                     <>
                                         <Loader2 className="h-4 w-4 animate-spin" />
-                                        Processing...
+                                        กำลังบันทึกและซิงค์...
                                     </>
                                 ) : (
                                     <>
-                                        Save & Sync to LINE
+                                        บันทึกและซิงค์
                                         <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                                         </svg>
