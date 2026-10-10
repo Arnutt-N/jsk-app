@@ -1,16 +1,16 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Cross-Platform Session Index (generated)
 
-> **Last generated**: 2026-10-10 01:58 (from newest checkpoint)
+> **Last generated**: 2026-10-10 12:50 (from newest checkpoint)
 
 ## Quick Stats
 
 | Metric | Value |
 |--------|-------|
-| Handoff checkpoints (active) | 274 |
-| Session summaries on disk | 378 |
+| Handoff checkpoints (active) | 275 |
+| Session summaries on disk | 379 |
 | Platforms | 11 (antigravity, claude_code, cline, codex, gemini_cli, kilo_code, kimi_code, muse_code, open_code, qoder, zcode) |
-| Most recent | 2026-10-10 01:58 — muse_code |
+| Most recent | 2026-10-10 12:50 — claude_code |
 
 > Regenerate after any handoff: `node .agents/scripts/gen-handoff-views.cjs`
 
@@ -24,10 +24,11 @@
 | 2026-04-04 12:04 | completed | — | — | `handover-antigravity-20260404-1204.json` |
 | 2026-02-15 03:20 | completed | — | — | `handover-antigravity-20260215-0320.json` |
 
-## claude_code (160)
+## claude_code (161)
 
 | When | Status | Model | Provider | Checkpoint |
 |------|--------|-------|----------|------------|
+| 2026-10-10 12:50 | completed | — | — | `handover-claude_code-20261010-1250.json` |
 | 2026-10-10 01:32 | completed | Claude Haiku 5.5 | Anthropic | `handover-claude_code-20261010-0132.json` |
 | 2026-08-14 23:06 | completed | Claude Opus 5 | Anthropic | `handover-claude_code-20260814-2306.json` |
 | 2026-08-14 06:49 | completed | Claude Opus 5 | Anthropic | `handover-claude_code-20260814-0649.json` |
@@ -47,8 +48,7 @@
 | 2026-08-02 18:01 | completed | — | — | `handover-claude_code-20260802-1801.json` |
 | 2026-08-02 02:01 | completed | — | — | `handover-claude_code-20260802-0201.json` |
 | 2026-08-02 00:39 | completed | — | — | `handover-claude_code-20260802-0039.json` |
-| 2026-08-01 21:38 | completed | — | — | `handover-claude_code-20260801-2138.json` |
-| … | | | | +140 older |
+| … | | | | +141 older |
 
 ## cline (14)
 

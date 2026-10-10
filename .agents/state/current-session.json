@@ -1,12 +1,20 @@
 {
-  "last_updated": "2026-10-10T01:58:00+07:00",
-  "platform": "muse_code",
-  "current_task": "Merged PR #246: rich-menu new/edit UI parity (badge, header, save buttons)",
+  "last_updated": "2026-10-10T12:50:00+07:00",
+  "platform": "claude_code",
+  "current_task": "Diagnosed why Muse Code cannot invoke pstack:poteto-mode / pstack:poteto-help: Muse sees pstack-poteto-mode and pstack-poteto-help as active, validate passes; the colon form is Claude Code plugin name",
   "plan_status": "completed",
   "next_steps": [
-    "Smoke test rich-menus pages on prod after deploy"
+    "Audit each agent's global skill symlink against the pstack-* shared set and fix links that are missing or stale",
+    "Re-test pstack-poteto-mode invocation in Muse Code after link fix"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-10-10T12:50:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "e338aad",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-10-10T01:58:00+07:00",
       "platform": "muse_code",
@@ -138,13 +146,6 @@
       "platform": "zcode",
       "branch": "main",
       "head": "17dad1a",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-09-05T23:26:00+07:00",
-      "platform": "zcode",
-      "branch": "main",
-      "head": "bb30a04",
       "status": "completed"
     }
   ],

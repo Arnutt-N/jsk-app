@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 274 active handoffs, 11 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 275 active handoffs, 11 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-10-10 12:50 — claude_code — completed
+
+Diagnosed why Muse Code cannot invoke pstack:poteto-mode / pstack:poteto-help: Muse sees pstack-poteto-mode and pstack-poteto-help as active, validate passes; the colon form is Claude Code plugin namespace only, non-Claude agents need the hyphen pstack-<name> form (shared set at ~/.agents/skill-packages/pstack-claude/0.9.81-shared/). Audit of global symlinks for the other agents (Antigravity, Kimi, Cline, Kilo, Qwen, Qoder, ZCode, Hermes, OpenCode, Kiro) was reported as incomplete; no fix confirmed. No repo code changed this session.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20261010-1250.json`
+- Summary: `project-log-md/claude_code/session-summary-20261010-1250.md`
+
+---
 
 ### 2026-10-10 01:58 — muse_code — completed
 
