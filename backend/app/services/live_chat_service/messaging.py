@@ -65,14 +65,21 @@ class MessagingMixin:
             await db.commit()
             raise HTTPException(status_code=409, detail="เคสนี้ถูกโอนหรือปิดไปแล้ว กรุณารีเฟรช")
 
-        # Push to LINE after persist. On failure the DB record is kept;
-        # the caller's commit will still persist it for audit/retry.
+        # Push to LINE after persist. On failure the DB record is kept (the
+        # caller's commit still persists it for audit/retry) but the send is
+        # reported as failed: counters, last-message stamps, and SLA must not
+        # move for a message the customer never got (A2).
         try:
             await line_service.push_messages(line_user_id, [TextMessage(text=text)])
             saved.payload = {"delivery_status": "sent"}
         except Exception as e:
             saved.payload = {"delivery_status": "failed"}
             logger.error(f"LINE push failed after persist for {mask_line_id(line_user_id)}: {e}")
+            return {
+                "success": False,
+                "message": message_payload_dict(saved, line_user_id=line_user_id),
+                "error": "LINE push failed",
+            }
 
         session.message_count += 1
         session.last_activity_at = datetime.now(timezone.utc)
@@ -161,8 +168,10 @@ class MessagingMixin:
         )
         await db.flush()
 
-        # Push to LINE after persist. On failure the DB record is kept;
-        # the caller's commit will still persist it for audit/retry.
+        # Push to LINE after persist. On failure the DB record is kept (the
+        # caller's commit still persists it for audit/retry) but the send is
+        # reported as failed: counters and SLA must not move for a message
+        # the customer never got (A2).
         try:
             if media_type == "image":
                 await line_service.push_image_message(
@@ -175,6 +184,15 @@ class MessagingMixin:
                 await line_service.push_messages(line_user_id, [TextMessage(text=text_msg[:5000])])
         except Exception as e:
             logger.error(f"LINE push failed after persist for {mask_line_id(line_user_id)}: {e}")
+            saved_message.payload = {
+                **(saved_message.payload or {}),
+                "delivery_status": "failed",
+            }
+            return {
+                "success": False,
+                "message": message_payload_dict(saved_message, line_user_id=line_user_id),
+                "error": "LINE push failed",
+            }
 
         session.message_count += 1
         session.last_activity_at = datetime.now(timezone.utc)
