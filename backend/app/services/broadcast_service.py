@@ -24,6 +24,16 @@ from app.models.user import User
 logger = logging.getLogger(__name__)
 
 
+class BroadcastClaimConflict(ValueError):
+    """Lost the atomic send claim to a concurrent sender.
+
+    Subclasses ValueError so existing broad catchers (the double-send
+    race test's `except ValueError`, the scheduler's `except Exception`)
+    keep working; the admin send endpoint catches this type first and
+    maps it to HTTP 409.
+    """
+
+
 class BroadcastService:
     def __init__(self):
         self._api = None
@@ -198,7 +208,7 @@ class BroadcastService:
             .values(status=BroadcastStatus.SENDING)
         )
         if claimed.rowcount != 1:
-            raise ValueError(
+            raise BroadcastClaimConflict(
                 f"Cannot send broadcast {broadcast.id}: "
                 "claimed by a concurrent send"
             )

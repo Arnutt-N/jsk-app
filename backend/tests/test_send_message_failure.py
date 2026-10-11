@@ -182,6 +182,54 @@ async def test_send_media_push_failure_returns_failure_and_skips_counters():
     sla.check_frt_on_first_response.assert_not_awaited()
 
 
+@pytest.mark.asyncio
+async def test_send_media_image_push_failure_returns_failure_and_skips_counters():
+    svc = LiveChatService()
+    session = _session()
+    now = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    saved = SimpleNamespace(
+        id=13, direction="OUTGOING", message_type="image", content="[Image]",
+        payload={"url": "https://files.example/a.png"},
+        created_at=now, sender_role="ADMIN", operator_name="Op",
+    )
+    db = AsyncMock()
+    operator_result = MagicMock()
+    operator_result.scalar_one_or_none.return_value = SimpleNamespace(
+        display_name="Op"
+    )
+    db.execute = AsyncMock(return_value=operator_result)
+    line_svc = Mock()
+    line_svc.persist_operator_upload = AsyncMock(return_value={
+        "url": "https://files.example/a.png",
+        "preview_url": "https://files.example/a_preview.png",
+        "file_name": "a.png",
+        "content_type": "image/png",
+        "size": 3,
+    })
+    line_svc.save_message = AsyncMock(return_value=saved)
+    line_svc.push_image_message = AsyncMock(side_effect=Exception("LINE 500"))
+    sla = Mock()
+    sla.check_frt_on_first_response = AsyncMock()
+
+    patches = _service_patches(svc, session, line_svc, sla)
+    for p in patches:
+        p.start()
+    try:
+        result = await svc.send_media_message(
+            "U1", 7, b"123", "a.png", "image/png", db
+        )
+    finally:
+        for p in patches:
+            p.stop()
+
+    line_svc.push_image_message.assert_awaited_once()
+    assert result["success"] is False
+    assert result["message"]["payload"]["delivery_status"] == "failed"
+    assert session.message_count == 4
+    assert session.first_response_at is None
+    sla.check_frt_on_first_response.assert_not_awaited()
+
+
 # ---------------------------------------------------------------------------
 # HTTP endpoints: 502 after commit on push failure
 # ---------------------------------------------------------------------------
@@ -330,5 +378,7 @@ async def test_ws_send_message_push_failure_emits_message_failed():
     frame = ws.send_personal.await_args.args[1]
     assert frame["type"] == WSEventType.MESSAGE_FAILED.value
     assert frame["payload"]["temp_id"] == "t1"
+    assert frame["payload"]["retryable"] is True
+    db.commit.assert_awaited()  # failed record still persisted for audit/retry
     ws.broadcast_to_room.assert_not_awaited()
     health.record_message_sent.assert_not_called()

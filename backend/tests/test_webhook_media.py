@@ -12,8 +12,8 @@ class TestExtractNonTextMessage:
     async def test_image_message_with_media_persistence(self):
         message = SimpleNamespace(type="image", id="123")
         media_payload = {
-            "url": "/uploads/line_media/img.jpg",
-            "preview_url": "/uploads/line_media/preview_img.jpg",
+            "url": "/api/v1/media/11111111-1111-4111-8111-111111111111",
+            "preview_url": "/api/v1/media/22222222-2222-4222-8222-222222222222",
             "content_type": "image/jpeg",
             "size": 2048,
         }
@@ -72,7 +72,7 @@ class TestExtractNonTextMessage:
     async def test_file_message_uses_persisted_filename(self):
         message = SimpleNamespace(type="file", id="file-123", file_name="invoice.pdf", file_size=1234)
         media_payload = {
-            "url": "/uploads/line_media/invoice_saved.pdf",
+            "url": "/api/v1/media/33333333-3333-4333-8333-333333333333",
             "preview_url": None,
             "content_type": "application/pdf",
             "size": 5678,

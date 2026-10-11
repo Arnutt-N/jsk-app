@@ -228,6 +228,48 @@ class TestLiffAttachmentResolution:
                 await engine.dispose()
 
     @pytest.mark.asyncio
+    async def test_malformed_attachment_id_returns_400(self, test_client, monkeypatch):
+        """A non-UUID attachment id is rejected (400) and writes no row."""
+        monkeypatch.setattr(settings, "LIFF_STRICT_MODE", True)
+        _patch_line_verify(monkeypatch)
+
+        body = _service_request_body(
+            "malformed",
+            attachments=[
+                {
+                    "id": "not-a-uuid",
+                    "url": "https://evil.example/phish-login",
+                    "name": "photo.jpg",
+                }
+            ],
+        )
+        try:
+            res = test_client.post(
+                SERVICE_REQUESTS_ENDPOINT,
+                json=body,
+                headers={"x-liff-id-token": "tok-d4"},
+            )
+
+            assert res.status_code == 400
+            assert await _count_by_description(body["description"]) == 0
+        finally:
+            # Self-cleaning: a regressed (201) run must not poison the next run.
+            engine = _fresh_engine()
+            Session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+            try:
+                async with Session() as session:
+                    result = await session.execute(
+                        select(ServiceRequest).where(
+                            ServiceRequest.description == body["description"]
+                        )
+                    )
+                    for row in result.scalars().all():
+                        await session.delete(row)
+                    await session.commit()
+            finally:
+                await engine.dispose()
+
+    @pytest.mark.asyncio
     async def test_honest_upload_round_trips(self, test_client, monkeypatch):
         """The real client flow (upload -> submit id) keeps working."""
         monkeypatch.setattr(settings, "LIFF_STRICT_MODE", True)

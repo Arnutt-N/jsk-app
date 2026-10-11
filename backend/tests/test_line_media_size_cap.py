@@ -46,14 +46,16 @@ def test_cap_is_the_documented_product_decision():
 async def test_oversized_media_skips_persist_but_records_size(monkeypatch):
     monkeypatch.setattr(line_service_mod, "MAX_LINE_MEDIA_BYTES", 10)
     svc = LineService()
+    db = _FakeDB()
     with patch.object(LineService, "download_message_content",
                        new=AsyncMock(return_value=(b"x" * 11, "video/mp4"))), patch(
                            "asyncio.to_thread", new=AsyncMock()) as mock_write:
-        result = await svc.persist_line_media(message_id="m1", media_type="video", db=_FakeDB())
+        result = await svc.persist_line_media(message_id="m1", media_type="video", db=db)
     assert result["url"] is None
     assert result["size"] == 11
     assert result["skipped"] == "too_large"
     assert result["content_type"] == "video/mp4"
+    assert db.added == []
     mock_write.assert_not_called()
 
 
@@ -152,10 +154,11 @@ async def test_persist_maps_midstream_abort_to_skip_shape(monkeypatch):
         return httpx.Response(200, content=b"x" * 64, headers={"Content-Type": "video/mp4"})
 
     svc = LineService()
+    db = _FakeDB()
     with patch.object(line_service_mod.httpx, "AsyncClient",
                        _stream_client_factory(handler, {})), patch(
                            "asyncio.to_thread", new=AsyncMock()) as mock_write:
-        result = await svc.persist_line_media(message_id="m1", media_type="video", db=_FakeDB())
+        result = await svc.persist_line_media(message_id="m1", media_type="video", db=db)
 
     assert result["url"] is None
     assert result["preview_url"] is None
@@ -163,6 +166,7 @@ async def test_persist_maps_midstream_abort_to_skip_shape(monkeypatch):
     assert result["size"] is None
     assert result["content_type"] is None
     assert result["file_name"] is None
+    assert db.added == []
     mock_write.assert_not_called()
 
 

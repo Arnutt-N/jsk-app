@@ -22,7 +22,7 @@ from app.schemas.debt_mediation_liff import (
     DebtMediationCreate,
     DebtMediationResponse,
 )
-from app.schemas.service_request_liff import AttachmentRef, ServiceRequestCreate, ServiceRequestResponse
+from app.schemas.service_request_liff import ServiceRequestCreate, ServiceRequestResponse
 from app.services.friend_service import friend_service
 from app.services.user_identity_service import resolve_by_line_id
 

@@ -46,6 +46,12 @@ def test_empty_line_channel_access_token_blocked_in_production():
         settings.enforce_production_guards()
 
 
+def test_blank_line_channel_access_token_blocked_in_production():
+    settings = _prod_settings(LINE_CHANNEL_ACCESS_TOKEN="   ")
+    with pytest.raises(RuntimeError, match="LINE_CHANNEL_ACCESS_TOKEN"):
+        settings.enforce_production_guards()
+
+
 def test_configured_line_credentials_pass_production_guards():
     settings = _prod_settings()
     assert settings.enforce_production_guards() is settings

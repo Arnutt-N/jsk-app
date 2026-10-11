@@ -112,6 +112,7 @@ class ServiceRequestResponse(BaseModel):
     details: Optional[dict] = None
     assigned_agent_id: Optional[int] = None
     assigned_by_id: Optional[int] = None
+    user_id: Optional[int] = None
     assignee_name: Optional[str] = None
     due_date: Optional[datetime] = None
     completed_at: Optional[datetime] = None

@@ -344,6 +344,8 @@ class RequestUpdate(BaseModel):
 
     # Staff linking: attach a citizen's LINE-bound user to this request (C1).
     user_id: Optional[int] = None
+    # Staff unlinking: detach the linked citizen user (mirrors unassign).
+    unlink_user: bool = False
 
     # NEW: Fields for details tab
     topic_category: Optional[str] = None
@@ -394,6 +396,9 @@ def _check_workflow_guards(update_data, request, current_admin) -> tuple[bool, b
 
     Returns (is_revert_from_completed, is_forced_transition).
     """
+    # Unlinking the citizen user requires can_assign, mirroring unassign.
+    if update_data.unlink_user and not can_assign(current_admin.role):
+        raise HTTPException(status_code=403, detail="คุณไม่มีสิทธิ์ยกเลิกการผูกผู้ใช้กับคำร้อง")
     # Detect revert-from-COMPLETED BEFORE mutating so we can:
     #   1. Reset completed_at symmetrically (it was set to func.now() on entry)
     #   2. Write an audit_log row capturing who unwound the approval
@@ -499,7 +504,20 @@ async def _apply_status_and_assignment(
             request.assigned_by_id = current_admin.id
     if update_data.assigned_by_id is not None:
         request.assigned_by_id = update_data.assigned_by_id
-    if update_data.user_id is not None:
+    if update_data.unlink_user:
+        prior_user_id = request.user_id
+        request.user_id = None
+        await create_audit_log(
+            db=db,
+            admin_id=current_admin.id,
+            action="unlink_request_user",
+            resource_type="service_request",
+            resource_id=str(request.id),
+            details={
+                "from_user_id": prior_user_id,
+            },
+        )
+    elif update_data.user_id is not None:
         linked = await db.get(User, update_data.user_id)
         if not linked:
             raise HTTPException(status_code=404, detail="User not found")

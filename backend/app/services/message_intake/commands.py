@@ -86,11 +86,11 @@ async def handle_check_status(
 async def handle_bind_phone(
     phone_number: str, line_user_id: str, reply_token: str, db: AsyncSession, outbox: Outbox | None = None
 ):
-    """Reply with a masked count of requests using this phone; never auto-bind.
+    """Reply with masked presence (found/not-found, no exact count); never auto-bind.
 
     Self-service claiming by phone number let anyone bind strangers' unbound
-    requests to their own LINE account, so this handler only counts and
-    directs the citizen to staff for verified linking.
+    requests to their own LINE account, so this handler only confirms
+    presence and directs the citizen to staff for verified linking.
     """
     box = outbox if outbox is not None else []
     line_svc = get_line_service()
@@ -120,10 +120,12 @@ async def handle_bind_phone(
         if count == 0:
             box.append(partial(line_svc.reply_text, reply_token, "❌ ไม่พบข้อมูลคำร้องของเบอร์ที่ระบุครับ"))
         else:
+            # Presence only, no exact count: the count let anyone probe how
+            # many cases a phone number has (enumeration oracle).
             box.append(partial(
                 line_svc.reply_text,
                 reply_token,
-                f"พบ {count} คำร้องที่ใช้เบอร์นี้ กรุณาติดต่อเจ้าหน้าที่เพื่อยืนยันรับเรื่อง",
+                "พบคำร้องที่ใช้เบอร์นี้ กรุณาติดต่อเจ้าหน้าที่เพื่อยืนยันรับเรื่อง",
             ))
 
     except Exception as e:

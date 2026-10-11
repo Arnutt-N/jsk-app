@@ -2,9 +2,9 @@
 
 Anyone who messages the OA a 10-digit number must NOT get other people's
 unbound requests bound to their LINE account, and must NOT see their
-details. The handler replies with a masked count in Thai and binds
-nothing; actual linking is a staff action via
-PATCH /api/v1/admin/requests/{id} with {"user_id": ...}.
+details. The handler replies with masked presence (found/not-found, no
+exact count) in Thai and binds nothing; actual linking is a staff action
+via PATCH /api/v1/admin/requests/{id} with {"user_id": ...}.
 """
 import logging
 from types import SimpleNamespace
@@ -108,8 +108,10 @@ async def test_claim_unbound_victims_binds_nothing_and_leaks_nothing(caplog):
     line_svc.reply_flex.assert_not_awaited()
     line_svc.reply_text.assert_awaited_once()
     msg = line_svc.reply_text.await_args.args[1]
-    assert "3" in msg
+    assert "พบ" in msg
+    assert "❌" not in msg
     assert "เจ้าหน้าที่" in msg
+    assert not any(ch.isdigit() for ch in msg)  # no exact count (probing oracle)
     assert VICTIM_PHONE not in msg
     assert VICTIM_NAME not in msg
     assert VICTIM_DETAILS not in msg
@@ -183,7 +185,7 @@ def _build_unbound_request(request_id: int = 42) -> SimpleNamespace:
     )
 
 
-def _patch_admin_overrides(fake_db: _FakeDB):
+def _patch_admin_overrides(fake_db: _FakeDB, role=UserRole.ADMIN):
     async def _override_get_db():
         yield fake_db
 
@@ -192,7 +194,7 @@ def _patch_admin_overrides(fake_db: _FakeDB):
             id=7,
             username="real-admin",
             display_name="Real Admin",
-            role=UserRole.ADMIN,
+            role=role,
         )
 
     app.dependency_overrides[session_get_db] = _override_get_db
@@ -224,6 +226,7 @@ def test_staff_link_request_to_user_sets_user_id():
     assert response.status_code == 200
     assert fake_db.committed is True
     assert fake_request.user_id == 123
+    assert response.json()["user_id"] == 123
     audit_rows = [obj for obj in fake_db.added if isinstance(obj, AuditLog)]
     assert len(audit_rows) == 1
     assert audit_rows[0].action == "link_request_user"
@@ -248,3 +251,52 @@ def test_staff_link_unknown_user_returns_404():
 
     assert response.status_code == 404
     assert fake_request.user_id is None
+
+
+def test_staff_unlink_request_user_clears_user_id_and_audits():
+    fake_db = _FakeDB()
+    fake_request = _build_unbound_request()
+    fake_request.user_id = 123
+    fake_db._fake_request = fake_request
+    teardown = _patch_admin_overrides(fake_db)
+
+    client = TestClient(app)
+    try:
+        response = client.patch(
+            "/api/v1/admin/requests/42",
+            json={"unlink_user": True},
+        )
+    finally:
+        client.close()
+        teardown()
+
+    assert response.status_code == 200
+    assert fake_request.user_id is None
+    assert response.json()["user_id"] is None
+    audit_rows = [obj for obj in fake_db.added if isinstance(obj, AuditLog)]
+    assert len(audit_rows) == 1
+    assert audit_rows[0].action == "unlink_request_user"
+    assert audit_rows[0].resource_id == "42"
+
+
+def test_staff_unlink_without_can_assign_returns_403():
+    fake_db = _FakeDB()
+    fake_request = _build_unbound_request()
+    fake_request.user_id = 123
+    fake_db._fake_request = fake_request
+    teardown = _patch_admin_overrides(fake_db, role=UserRole.AGENT)
+
+    client = TestClient(app)
+    try:
+        response = client.patch(
+            "/api/v1/admin/requests/42",
+            json={"unlink_user": True},
+        )
+    finally:
+        client.close()
+        teardown()
+
+    assert response.status_code == 403
+    assert fake_request.user_id == 123
+    audit_rows = [obj for obj in fake_db.added if isinstance(obj, AuditLog)]
+    assert audit_rows == []
