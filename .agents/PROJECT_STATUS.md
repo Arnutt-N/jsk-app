@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-10-10 12:50 by Claude Code (Diagnosed why Muse Code cannot invoke pstack:poteto-mode / pstack:poteto-help: Muse sees p)
+> **Last Updated:** 2026-10-11 13:53 by Muse Code (Reviewed PR #248 comment, no blockers and implemented all 6 review-round findings, verifie)
 
 ## Thai Summary
 **สถานะล่าสุด (2026-09-30)** — รวม PR #239 (แก้บั๊กโอนแชทไม่มีบันทึก M-8) เข้าสายหลักแล้ว (`fd82c7a`) + ตรวจหลังส่งขึ้นร้านจริงเสร็จ: หลังบ้านแข็งแรงดี (database+redis ปกติ), หน้าร้านเปิดติด (HTTP 200), ปุ่มโอนแชทล็อกถูกต้อง (401), บันทึกส่งของ CD `36596610691` เขียวครบ 6 งาน — โค้ดตรงกับเซิร์ฟเวอร์ เหลือ Round-3b (22 ข้อ) + ซ่อมไฟล์ทดสอบ upload-security ที่พังมาก่อน
@@ -123,6 +123,8 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-10-11 13:53] Muse Code: Reviewed PR #248 (comment, no blockers) and implemented all 6 review-round findings, verified green, pushed c158f88 (Muse Code)
+- [2026-10-11 11:23] Muse Code: Act-on-8 complete: 8 fixes committed + PR #248 opened (no merge); full suite 1428 passed, 2 pre-existing env failures proven on base (Muse Code)
 - [2026-10-10 12:50] Claude Code: Diagnosed why Muse Code cannot invoke pstack:poteto-mode / pstack:poteto-help: Muse sees pstack-poteto-mode and pstack-poteto-help as active, validate passes; the colon form is Claude Code plugin namespace only, non-Claude agents need the h (Claude Code)
 - [2026-10-10 01:58] Muse Code: Merged PR #246: rich-menu new/edit UI parity (badge, header, save buttons) (Muse Code)
 - [2026-10-10 01:32] Claude Code: Updated WSL to 3.0.1 (kernel 6.18) and started pstack-claude global symlinks in Ubuntu-26.04 (Codex failed); symlink result NOT yet verified (Claude Code)
