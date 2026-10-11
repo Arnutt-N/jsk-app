@@ -18,18 +18,19 @@ class TestExtractNonTextMessage:
             "size": 2048,
         }
 
+        db = AsyncMock()
         with patch(
             "app.services.message_intake.line_service.persist_line_media",
             new=AsyncMock(return_value=media_payload),
         ) as mock_persist:
-            message_type, content, payload = await _extract_non_text_message(message)
+            message_type, content, payload = await _extract_non_text_message(message, db)
 
         assert message_type == "image"
         assert content == "[Image]"
         assert payload["line_message_id"] == "123"
         assert payload["url"] == media_payload["url"]
         assert payload["preview_url"] == media_payload["preview_url"]
-        mock_persist.assert_awaited_once_with(message_id="123", media_type="image")
+        mock_persist.assert_awaited_once_with(message_id="123", media_type="image", db=db)
 
     @pytest.mark.asyncio
     async def test_image_message_without_id_returns_null_media_urls(self):
@@ -39,7 +40,7 @@ class TestExtractNonTextMessage:
             "app.services.message_intake.line_service.persist_line_media",
             new=AsyncMock(),
         ) as mock_persist:
-            message_type, content, payload = await _extract_non_text_message(message)
+            message_type, content, payload = await _extract_non_text_message(message, AsyncMock())
 
         assert message_type == "image"
         assert content == "[Image]"
@@ -58,7 +59,7 @@ class TestExtractNonTextMessage:
             sticker_resource_type="ANIMATION",
         )
 
-        message_type, content, payload = await _extract_non_text_message(message)
+        message_type, content, payload = await _extract_non_text_message(message, AsyncMock())
 
         assert message_type == "sticker"
         assert content == "[Sticker 11537/52002734]"
@@ -78,11 +79,12 @@ class TestExtractNonTextMessage:
             "file_name": "invoice_saved.pdf",
         }
 
+        db = AsyncMock()
         with patch(
             "app.services.message_intake.line_service.persist_line_media",
             new=AsyncMock(return_value=media_payload),
         ) as mock_persist:
-            message_type, content, payload = await _extract_non_text_message(message)
+            message_type, content, payload = await _extract_non_text_message(message, db)
 
         assert message_type == "file"
         assert content == "invoice.pdf"
@@ -95,13 +97,14 @@ class TestExtractNonTextMessage:
             message_id="file-123",
             media_type="file",
             file_name="invoice.pdf",
+            db=db,
         )
 
     @pytest.mark.asyncio
     async def test_unsupported_message_returns_none(self):
         message = SimpleNamespace(type="location", id="loc-1")
 
-        message_type, content, payload = await _extract_non_text_message(message)
+        message_type, content, payload = await _extract_non_text_message(message, AsyncMock())
 
         assert message_type is None
         assert content == ""

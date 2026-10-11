@@ -8,8 +8,22 @@ from unittest.mock import AsyncMock, patch
 import httpx
 import pytest
 
+from app.models.media_file import MediaFile
 from app.services import line_service as line_service_mod
 from app.services.line_service import LineService, _MediaTooLarge
+
+
+class _FakeDB:
+    """Minimal session double: sync add (like SQLAlchemy), async flush."""
+
+    def __init__(self):
+        self.added = []
+
+    def add(self, obj):
+        self.added.append(obj)
+
+    async def flush(self):
+        return None
 
 
 def _stream_client_factory(handler, seen):
@@ -35,7 +49,7 @@ async def test_oversized_media_skips_persist_but_records_size(monkeypatch):
     with patch.object(LineService, "download_message_content",
                        new=AsyncMock(return_value=(b"x" * 11, "video/mp4"))), patch(
                            "asyncio.to_thread", new=AsyncMock()) as mock_write:
-        result = await svc.persist_line_media(message_id="m1", media_type="video")
+        result = await svc.persist_line_media(message_id="m1", media_type="video", db=_FakeDB())
     assert result["url"] is None
     assert result["size"] == 11
     assert result["skipped"] == "too_large"
@@ -48,7 +62,7 @@ async def test_empty_download_keeps_existing_shape():
     svc = LineService()
     with patch.object(LineService, "download_message_content",
                        new=AsyncMock(return_value=(b"", None))):
-        result = await svc.persist_line_media(message_id="m1", media_type="image")
+        result = await svc.persist_line_media(message_id="m1", media_type="image", db=_FakeDB())
     assert result["url"] is None and result["size"] is None
 
 
@@ -61,10 +75,15 @@ async def test_oversized_preview_skipped_independently(monkeypatch):
                            (b"a" * 5, "image/jpeg"),
                            (b"b" * 11, "image/jpeg"),
                        ])), patch("asyncio.to_thread", new=AsyncMock()):
-        result = await svc.persist_line_media(message_id="m1", media_type="image")
+        db = _FakeDB()
+        result = await svc.persist_line_media(message_id="m1", media_type="image", db=db)
     assert result["url"] is not None  # main payload persists
     assert result["preview_url"] is None  # oversized preview skipped
     assert "skipped" not in result  # main-path marker untouched
+    assert f"/api/v1/media/{db.added[0].id}" in result["url"]
+    assert isinstance(db.added[0], MediaFile)
+    assert db.added[0].data == b"a" * 5
+    assert db.added[0].is_public is True
 
 
 @pytest.mark.asyncio
@@ -79,7 +98,7 @@ async def test_skipped_marker_propagates_to_image_payload():
     }))
     with patch.object(me_mod, "get_line_service", return_value=line_svc):
         mtype, content, payload = await me_mod.extract_non_text_message(
-            SimpleNamespace(type="image", id="m1")
+            SimpleNamespace(type="image", id="m1"), AsyncMock()
         )
     assert mtype == "image" and content == "[Image]"
     assert payload["url"] is None
@@ -136,7 +155,7 @@ async def test_persist_maps_midstream_abort_to_skip_shape(monkeypatch):
     with patch.object(line_service_mod.httpx, "AsyncClient",
                        _stream_client_factory(handler, {})), patch(
                            "asyncio.to_thread", new=AsyncMock()) as mock_write:
-        result = await svc.persist_line_media(message_id="m1", media_type="video")
+        result = await svc.persist_line_media(message_id="m1", media_type="video", db=_FakeDB())
 
     assert result["url"] is None
     assert result["preview_url"] is None

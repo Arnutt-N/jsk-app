@@ -121,6 +121,7 @@ class MessagingMixin:
             media_type=media_type,
             file_name=file_name,
             content_type=content_type,
+            db=db,
         )
 
         media_url = media.get("url")
