@@ -342,6 +342,9 @@ class RequestUpdate(BaseModel):
     unassign: bool = False
     notes: Optional[str] = None
 
+    # Staff linking: attach a citizen's LINE-bound user to this request (C1).
+    user_id: Optional[int] = None
+
     # NEW: Fields for details tab
     topic_category: Optional[str] = None
     topic_subcategory: Optional[str] = None
@@ -496,6 +499,20 @@ async def _apply_status_and_assignment(
             request.assigned_by_id = current_admin.id
     if update_data.assigned_by_id is not None:
         request.assigned_by_id = update_data.assigned_by_id
+    if update_data.user_id is not None:
+        linked = await db.get(User, update_data.user_id)
+        if not linked:
+            raise HTTPException(status_code=404, detail="User not found")
+        if request.user_id != update_data.user_id:
+            request.user_id = update_data.user_id
+            await create_audit_log(
+                db=db,
+                admin_id=current_admin.id,
+                action="link_request_user",
+                resource_type="service_request",
+                resource_id=str(request.id),
+                details={"user_id": update_data.user_id},
+            )
 
 
 def _apply_detail_contact_fields(request, update_data) -> None:
