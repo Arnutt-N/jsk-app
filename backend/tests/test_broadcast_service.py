@@ -61,6 +61,7 @@ async def test_send_broadcast_transitions_to_completed():
     svc = BroadcastService()
     bc = _broadcast()
     db = AsyncMock()
+    db.execute.return_value.rowcount = 1  # atomic claim succeeds
     mock_api = AsyncMock()
     svc._api = mock_api
 
@@ -80,6 +81,7 @@ async def test_send_broadcast_multicast_partial_failure():
         target_filter={"user_ids": user_ids},
     )
     db = AsyncMock()
+    db.execute.return_value.rowcount = 1  # atomic claim succeeds
     mock_api = AsyncMock()
     mock_api.multicast.side_effect = Exception("chunk fail")
     svc._api = mock_api
@@ -95,6 +97,7 @@ async def test_cancel_marks_failed_then_reraises():
     svc = BroadcastService()
     bc = _broadcast()
     db = AsyncMock()
+    db.execute.return_value.rowcount = 1  # atomic claim succeeds
     mock_api = AsyncMock()
     mock_api.broadcast = AsyncMock(side_effect=asyncio.CancelledError())
     svc._api = mock_api

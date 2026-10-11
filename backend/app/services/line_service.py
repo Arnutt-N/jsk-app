@@ -17,7 +17,6 @@ from linebot.v3.messaging import (
 )
 from linebot.v3.messaging.exceptions import ApiException
 import mimetypes
-import asyncio
 import httpx
 from pathlib import Path
 from typing import Optional, Tuple
@@ -30,6 +29,7 @@ from app.core.http_timeouts import UPLOAD_TIMEOUT
 from app.core.line_client import get_async_api_client
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from app.models.media_file import MediaFile, detect_category
 from app.models.message import Message, MessageDirection
 
 logger = logging.getLogger(__name__)
@@ -360,18 +360,51 @@ class LineService:
             logger.warning("Failed to download LINE media %s: %s", message_id, e)
             return b"", None
 
+    @staticmethod
+    async def _store_media_row(
+        db: AsyncSession, filename: str, mime_type: Optional[str], data: bytes
+    ) -> MediaFile:
+        """Store bytes as a public MediaFile row (C2). Flushes; caller commits.
+
+        Public follows the rich-menu-image precedent: LINE's servers fetch
+        push-image URLs without credentials and admin <img> tags cannot send
+        auth headers. Row ids are unguessable UUIDs, set explicitly so the
+        serving URL is known before commit.
+        """
+        media = MediaFile(
+            id=uuid4(),
+            filename=filename,
+            mime_type=mime_type or "application/octet-stream",
+            data=data,
+            size_bytes=len(data),
+            category=detect_category(
+                mime_type or "application/octet-stream", filename
+            ),
+            is_public=True,
+        )
+        db.add(media)
+        await db.flush()
+        return media
+
+    @staticmethod
+    def _media_file_url(media_id) -> str:
+        base = (settings.SERVER_BASE_URL or "").rstrip("/")
+        relative_url = f"/api/v1/media/{media_id}"
+        return f"{base}{relative_url}" if base else relative_url
+
     async def persist_line_media(
         self,
         message_id: str,
         media_type: str,
         file_name: Optional[str] = None,
+        db: AsyncSession | None = None,
     ) -> dict:
         """
-        Download and persist LINE message binary content into uploads/line_media.
+        Download LINE message binary content into a MediaFile row (C2).
         Returns URL metadata for message payload.
         """
-        uploads_root = Path(__file__).resolve().parents[2] / "uploads" / "line_media"
-        uploads_root.mkdir(parents=True, exist_ok=True)
+        if db is None:
+            raise ValueError("persist_line_media requires a db session")
 
         try:
             data, content_type = await self.download_message_content(message_id=message_id, preview=False)
@@ -423,16 +456,8 @@ class LineService:
         if not Path(safe_name).suffix and ext:
             safe_name = f"{safe_name}{ext}"
 
-        full_path = (uploads_root / safe_name).resolve()
-        if not str(full_path).startswith(str(uploads_root.resolve())):
-            safe_name = f"{media_type}_{uuid4().hex}{ext}"
-            full_path = uploads_root / safe_name
-        # MB-scale media — write off-thread so the event loop is not blocked.
-        await asyncio.to_thread(full_path.write_bytes, data)
-
-        relative_url = f"/uploads/line_media/{safe_name}"
-        base = (settings.SERVER_BASE_URL or "").rstrip("/")
-        absolute_url = f"{base}{relative_url}" if base else relative_url
+        media = await self._store_media_row(db, safe_name, content_type, data)
+        absolute_url = self._media_file_url(media.id)
 
         preview_url = None
         if media_type == "image":
@@ -445,10 +470,10 @@ class LineService:
                 preview_data = None
             if preview_data:
                 preview_name = f"preview_{uuid4().hex}{mimetypes.guess_extension(preview_ct or '') or '.jpg'}"
-                preview_path = uploads_root / preview_name
-                await asyncio.to_thread(preview_path.write_bytes, preview_data)
-                preview_relative = f"/uploads/line_media/{preview_name}"
-                preview_url = f"{base}{preview_relative}" if base else preview_relative
+                preview_media = await self._store_media_row(
+                    db, preview_name, preview_ct, preview_data
+                )
+                preview_url = self._media_file_url(preview_media.id)
 
         return {
             "url": absolute_url,
@@ -464,10 +489,11 @@ class LineService:
         media_type: str,
         file_name: Optional[str] = None,
         content_type: Optional[str] = None,
+        db: AsyncSession | None = None,
     ) -> dict:
-        """Persist operator-uploaded media into uploads/operator_media."""
-        uploads_root = Path(__file__).resolve().parents[2] / "uploads" / "operator_media"
-        uploads_root.mkdir(parents=True, exist_ok=True)
+        """Persist operator-uploaded media as a MediaFile row (C2)."""
+        if db is None:
+            raise ValueError("persist_operator_upload requires a db session")
 
         ext = ""
         guessed = mimetypes.guess_extension(content_type or "") if content_type else None
@@ -483,12 +509,8 @@ class LineService:
             base_name = f"{media_type}_{uuid4().hex}{ext}"
 
         safe_name = f"{uuid4().hex}_{base_name}"
-        full_path = uploads_root / safe_name
-        await asyncio.to_thread(full_path.write_bytes, data)
-
-        relative_url = f"/uploads/operator_media/{safe_name}"
-        base = (settings.SERVER_BASE_URL or "").rstrip("/")
-        absolute_url = f"{base}{relative_url}" if base else relative_url
+        media = await self._store_media_row(db, safe_name, content_type, data)
+        absolute_url = self._media_file_url(media.id)
 
         return {
             "url": absolute_url,

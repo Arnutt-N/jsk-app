@@ -12,7 +12,7 @@ from linebot.v3.messaging import (
     FlexMessage,
     FlexContainer,
 )
-from sqlalchemy import select, func, desc
+from sqlalchemy import select, func, desc, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.broadcast_failed_recipient import BroadcastFailedRecipient
@@ -22,6 +22,16 @@ from app.models.broadcast import Broadcast, BroadcastStatus, BroadcastType
 from app.models.user import User
 
 logger = logging.getLogger(__name__)
+
+
+class BroadcastClaimConflict(ValueError):
+    """Lost the atomic send claim to a concurrent sender.
+
+    Subclasses ValueError so existing broad catchers (the double-send
+    race test's `except ValueError`, the scheduler's `except Exception`)
+    keep working; the admin send endpoint catches this type first and
+    maps it to HTTP 409.
+    """
 
 
 class BroadcastService:
@@ -183,8 +193,27 @@ class BroadcastService:
         if not messages:
             raise ValueError("Broadcast has no valid messages to send")
 
-        broadcast.status = BroadcastStatus.SENDING
+        # Atomic claim: exactly one sender may flip DRAFT/SCHEDULED to
+        # SENDING. A plain attribute check-then-set double-sends on overlap
+        # (double-click, scheduler vs manual). Concurrent losers see
+        # rowcount 0 once the winner commits, even across processes.
+        claimed = await db.execute(
+            update(Broadcast)
+            .where(
+                Broadcast.id == broadcast.id,
+                Broadcast.status.in_(
+                    [BroadcastStatus.DRAFT, BroadcastStatus.SCHEDULED]
+                ),
+            )
+            .values(status=BroadcastStatus.SENDING)
+        )
+        if claimed.rowcount != 1:
+            raise BroadcastClaimConflict(
+                f"Cannot send broadcast {broadcast.id}: "
+                "claimed by a concurrent send"
+            )
         await db.commit()
+        broadcast.status = BroadcastStatus.SENDING
 
         try:
             if broadcast.target_audience == "all":

@@ -1,0 +1,17 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-10-10T12:50:00+07:00",
+  "branch": "main",
+  "head_commit": "e338aad",
+  "status": "completed",
+  "work_summary": "Diagnosed why Muse Code cannot invoke pstack:poteto-mode / pstack:poteto-help: Muse sees pstack-poteto-mode and pstack-poteto-help as active, validate passes; the colon form is Claude Code plugin namespace only, non-Claude agents need the hyphen pstack-<name> form (shared set at ~/.agents/skill-packages/pstack-claude/0.9.81-shared/). Audit of global symlinks for the other agents (Antigravity, Kimi, Cline, Kilo, Qwen, Qoder, ZCode, Hermes, OpenCode, Kiro) was reported as incomplete; no fix confirmed. No repo code changed this session.",
+  "priority_actions": [
+    "Audit each agent's global skill symlink against the pstack-* shared set and fix links that are missing or stale",
+    "Re-test pstack-poteto-mode invocation in Muse Code after link fix"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/claude_code/session-summary-20261010-1250.md",
+  "cross_platform_read": []
+}

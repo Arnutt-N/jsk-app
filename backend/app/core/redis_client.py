@@ -36,7 +36,11 @@ class RedisClient:
     async def connect(self):
         """Connect to Redis."""
         try:
-            self._redis = await redis.from_url(
+            # from_url is a sync factory (A1): use its return value directly
+            # instead of awaiting it. Awaiting works on redis>=5 only because
+            # the client defines __await__ — the direct call is correct on
+            # every version.
+            self._redis = redis.from_url(
                 self._url,
                 encoding='utf-8',
                 decode_responses=True

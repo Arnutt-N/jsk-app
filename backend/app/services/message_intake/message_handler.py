@@ -228,7 +228,7 @@ async def _handle_message_event_inner(event: MessageEvent, db: AsyncSession, box
             box.append(_reply_all)
 
     else:
-        message_type, content, payload = await extract_non_text_message(event.message)
+        message_type, content, payload = await extract_non_text_message(event.message, db)
         if not message_type:
             logger.info("Unsupported non-text message type: %s", getattr(event.message, "type", "unknown"))
             return

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 from app.db.session import get_db
-from app.api.deps import get_current_admin, require_permission
+from app.api.deps import get_current_admin, get_current_user, require_permission
 from app.core.audit import create_audit_log
 from app.core.permissions import (
     can_assign,
@@ -236,23 +236,28 @@ async def update_permissions(
 
 
 @router.get("/permissions/me", response_model=MyPermissions)
-async def get_my_permissions(current_admin: User = Depends(get_current_admin)):
+async def get_my_permissions(current_user: User = Depends(get_current_user)):
     """Return the current user's effective permissions.
 
     Used by the frontend to decide which workflow buttons (มอบหมาย /
     รับเรื่อง / เริ่มดำเนินการ / etc.) to render on the request list and
     detail pages. Centralising this avoids duplicating the role list
     in every component.
+
+    Gated on any authenticated user (D1): non-admin staff need their own
+    capabilities to render request pages. Unlike the matrix endpoints
+    (GET/PATCH /permissions, still admin-gated), this endpoint cannot
+    lock anyone out — it only reads the caller's own capabilities.
     """
-    role_value = current_admin.role.value if hasattr(current_admin.role, "value") else str(current_admin.role)
+    role_value = current_user.role.value if hasattr(current_user.role, "value") else str(current_user.role)
     return MyPermissions(
         role=role_value,
-        can_assign=can_assign(current_admin.role),
-        can_self_assign=can_self_assign(current_admin.role),
-        can_edit_permissions=can_edit_permission_settings(current_admin.role),
-        can_revert_approval=can_revert_approval(current_admin.role),
-        can_edit_request_details=can_edit_request_details(current_admin.role),
-        capabilities=get_effective_capabilities(current_admin.role),
+        can_assign=can_assign(current_user.role),
+        can_self_assign=can_self_assign(current_user.role),
+        can_edit_permissions=can_edit_permission_settings(current_user.role),
+        can_revert_approval=can_revert_approval(current_user.role),
+        can_edit_request_details=can_edit_request_details(current_user.role),
+        capabilities=get_effective_capabilities(current_user.role),
     )
 
 class ValidateLineTokenRequest(BaseModel):

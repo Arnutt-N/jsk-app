@@ -236,15 +236,18 @@ export function useMessageFlow({
         body: formData,
       });
       // A 4xx is a server rejection (e.g. 413 oversized, 422 wrong file type),
-      // not an outage — surface a toast and stay online. Only network failures
-      // and 5xx flip the console offline (review finding M7).
+      // not an outage — surface a toast and stay online. A 502 is a LINE-side
+      // failure (our server is fine, LINE is not), so it takes the same toast
+      // path. Only network failures and other 5xx flip the console offline.
       if (!res.ok) {
-        if (res.status < 500) {
+        if (res.status < 500 || res.status === 502) {
           getStore().addNotification({
             title: 'ส่งไฟล์ไม่สำเร็จ',
             message: res.status === 413
               ? 'ไฟล์มีขนาดใหญ่เกินที่ระบบรองรับ'
-              : 'ไม่สามารถส่งไฟล์นี้ได้ กรุณาตรวจสอบไฟล์แล้วลองใหม่',
+              : res.status === 502
+                ? 'ส่งไฟล์ไป LINE ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง'
+                : 'ไม่สามารถส่งไฟล์นี้ได้ กรุณาตรวจสอบไฟล์แล้วลองใหม่',
             type: 'system',
             variant: 'warning',
           });
