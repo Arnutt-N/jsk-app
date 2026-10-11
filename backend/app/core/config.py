@@ -219,6 +219,18 @@ class Settings(BaseSettings):
                 "resolved via HMAC hash only (PR C pseudonym contract)."
             )
 
+        if not self.LINE_CHANNEL_SECRET.strip():
+            violations.append(
+                "LINE_CHANNEL_SECRET must be set in production — webhook "
+                "signatures are attacker-computable with an empty secret."
+            )
+
+        if not self.LINE_CHANNEL_ACCESS_TOKEN.strip():
+            violations.append(
+                "LINE_CHANNEL_ACCESS_TOKEN must be set in production — LINE API "
+                "calls cannot authenticate without it."
+            )
+
         if violations:
             raise RuntimeError(
                 "Unsafe production configuration:\n"
