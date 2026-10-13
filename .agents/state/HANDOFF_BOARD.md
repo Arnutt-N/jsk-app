@@ -1,8 +1,8 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Handoff Board (generated)
 
-> **Last generated**: 2026-10-14 00:44 (from newest checkpoint)
-> 279 active handoffs, 11 platforms, 0 queued directed handoff(s).
+> **Last generated**: 2026-10-14 00:46 (from newest checkpoint)
+> 279 active handoffs, 12 platforms, 0 queued directed handoff(s).
 
 > Regenerate after any handoff: `node .agents/scripts/gen-handoff-views.cjs`
 
@@ -17,8 +17,9 @@
 | gemini_cli | AVAILABLE | 2026-04-03 12:00 | 0 | Redesigned the login page to align with the new landing page aesthetic (glassmorphism, shared backgrounds, brand mark).  | — |
 | kilo_code | AVAILABLE | 2026-09-13 18:22 | 0 | Feature-line audit map: PRD + 19-task PRP plan (4 Critical + ~30 High fixes across 19 features); plan revised to clear d | `project-log-md/kilo_code/session-summary-20260913-1822.md` |
 | kimi_code | AVAILABLE | 2026-06-02 01:39 | 0 | Applied all P0–P3 critique fixes on frontend/app/admin/requests/[id]/page.tsx. Destructive actions now have ConfirmDialo | `project-log-md/kimi_code/session-summary-20260602-0139.md` |
-| muse_code | AVAILABLE | 2026-10-14 00:44 | 0 | Shipped SakonNakhonBot reuse (PRs #250-253) + prod cutover (61 Q&A live); recorded secrets iron rule in AGENTS.md | `project-log-md/muse_code/session-summary-20261014-0044.md` |
+| muse_code | AVAILABLE | 2026-10-11 15:10 | 0 | Merged PR #248 (act-on-8 fixes + 6 review findings) via guarded squash d5dbef9 after independent PASS+NOTES verdict; del | `project-log-md/muse_code/session-summary-20261011-1510.md` |
 | open_code | AVAILABLE | 2026-08-25 07:39 | 0 | LIFF smoke-test plan for PR #202 drafted+reviewed (.scratch/liff-smoke-pr202/smoke-test-plan.md, REV1: 5 findings fixed) | `project-log-md/open_code/session-summary-20260825-0739.md` |
+| pi | AVAILABLE | 2026-10-14 00:46 | 0 | Shipped SakonNakhonBot reuse (PRs #250-253) + prod cutover (61 Q&A live); recorded secrets iron rule in AGENTS.md | `project-log-md/pi/session-summary-20261014-0046.md` |
 | qoder | AVAILABLE | 2026-08-29 23:21 | 0 | Merged PR #206 + #207 to main (8ddbda3, beaff04) — resolved #206 generated-state conflicts (kept both 21:58/22:44 record | `project-log-md/qoder/session-summary-20260829-2321.md` |
 | zcode | AVAILABLE | 2026-09-06 22:56 | 0 | codebase-review-fix on PR #228 CLOSED via PR #229 (squash e63ee9f, CI 4/4, CD success): review found 0 Critical/High; 3  | `project-log-md/zcode/session-summary-20260906-2256.md` |
 
@@ -34,7 +35,7 @@ _None — no blocked checkpoints._
 
 | When | From → To | Task | Checkpoint |
 |------|-----------|------|------------|
-| 2026-10-14 00:44 | muse_code → all | Shipped SakonNakhonBot reuse (PRs #250-253) + prod cutover (61 Q&A live); recorded secrets iron rule in AGENTS.md | `handover-muse_code-20261014-0044.json` |
+| 2026-10-14 00:46 | pi → all | Shipped SakonNakhonBot reuse (PRs #250-253) + prod cutover (61 Q&A live); recorded secrets iron rule in AGENTS.md | `handover-pi-20261014-0046.json` |
 | 2026-10-11 15:10 | muse_code → all | Merged PR #248 (act-on-8 fixes + 6 review findings) via guarded squash d5dbef9 after independent PASS+NOTES verdict; deleted branch fix/act- | `handover-muse_code-20261011-1510.json` |
 | 2026-10-11 13:53 | muse_code → all | Reviewed PR #248 (comment, no blockers) and implemented all 6 review-round findings, verified green, pushed c158f88 | `handover-muse_code-20261011-1353.json` |
 | 2026-10-11 11:23 | muse_code → all | Act-on-8 complete: 8 fixes committed + PR #248 opened (no merge); full suite 1428 passed, 2 pre-existing env failures proven on base | `handover-muse_code-20261011-1123.json` |

@@ -1,4 +1,4 @@
-# Session summary — muse_code 2026-10-14 00:44 (+07:00)
+# Session summary — pi 2026-10-14 00:46 (+07:00)
 
 ## Iron rule (cite in every handoff — AGENTS.md "Iron Rules — Secrets", 2026-10-13)
 NEVER output key material in chat/summaries/logs or any outside channel. Verify
@@ -11,8 +11,7 @@ reuse analysis → design → 4-phase implementation → prod cutover → secret
 ## What changed
 - `git pull` merge conflicts in 5 agent-state files resolved (kept 15:10 + 13:53
   + 11:23 handoffs); committed as 239e509.
-- Committed pending graft-helper edits (branch chore/…, PR #250 merged), 25 PRP
-  docs (PR #251 merged).
+- Committed pending graft-helper edits (PR #250 merged), 25 PRP docs (PR #251).
 - SakonNakhonBot review (NOT a migration): 100 real Q&A pairs + 28 images +
   flex/carousel/menu/quickreply/follow-handoff mapped to jsk-app homes.
 - Old project is NOT a git repo (never pushed to GitHub); user declined archive.
@@ -45,4 +44,6 @@ reuse analysis → design → 4-phase implementation → prod cutover → secret
 - Docker Desktop must be running for postgres/redis; WSL Ubuntu cold-boots
   slowly — allow generous timeouts. `wsl bash -c` quoting is fragile: prefer
   script files over inline heredocs.
+- This platform is **pi** (supersedes the muse_code checkpoint made minutes
+  earlier by mistake); logs live in `project-log-md/pi/`.
 - Iron rule above applies to everything, including verification output.
