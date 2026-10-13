@@ -50,10 +50,14 @@ function stubFetch(
     onCancel?: (booking: Booking) => Booking
     onUpdate?: (booking: Booking) => Booking
     advanceDays?: number
+    /** Make the options request fail with this status (offline badge scenario). */
+    optionsStatus?: number
     /** Blackout dates to serve from /options (defaults to none). */
     blackouts?: string[]
     /** Range cap to serve from /options as max_range_days (defaults: omit). */
     maxRangeDays?: number
+    /** Make the range request hang (pins the flow on the date step). */
+    rangeHang?: boolean
     /** Per-day override for the /availability/range response. */
     rangeDay?: (iso: string) => { date: string; is_open: boolean; remaining: number }
     /** Make the range request fail with this status (fail-open scenarios). */
@@ -63,6 +67,8 @@ function stubFetch(
   fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     const u = String(url)
     if (u.includes('/options')) {
+      if (overrides.optionsStatus)
+        return jsonResponse({ detail: 'options failed' }, overrides.optionsStatus)
       return jsonResponse({
         service_types: ['ปรึกษากฎหมาย'],
         advance_days: overrides.advanceDays ?? 14,
@@ -75,6 +81,7 @@ function stubFetch(
     // NOTE: the range route must be matched before /availability — its URL
     // contains that substring.
     if (u.includes('/availability/range')) {
+      if (overrides.rangeHang) return new Promise<Response>(() => {})
       if (overrides.rangeStatus) return jsonResponse({ detail: 'range failed' }, overrides.rangeStatus)
       const params = new URL(u, 'http://localhost').searchParams
       const from = params.get('from') as string
@@ -276,6 +283,54 @@ describe('date selection', () => {
     expect(await screen.findByText('ช่วงเช้า')).toBeInTheDocument()
     expect((await dateStrip()).querySelectorAll('button[disabled]')).toHaveLength(0)
     expect(screen.getByRole('button', { name: /วันนี้/ })).toHaveAttribute('aria-pressed', 'true')
+  })
+})
+
+describe('shared form chrome', () => {
+  it('renders a sticky header bar with the platform subtitle and an open badge', async () => {
+    render(<LiffBookingPage />)
+    await userEvent.click(await screen.findByRole('button', { name: 'ปรึกษากฎหมาย' }))
+
+    const banner = screen.getByRole('banner')
+    expect(banner.className).toContain('sticky')
+    expect(within(banner).getByText('จองคิวนัดหมาย')).toBeInTheDocument()
+    expect(
+      within(banner).getByText('จองคิวนัดหมายล่วงหน้า • JSK 4.0 Platform'),
+    ).toBeInTheDocument()
+    expect(within(banner).getByText('เปิดรับจอง')).toBeInTheDocument()
+  })
+
+  it('shows a connecting badge when the options request fails', async () => {
+    stubFetch({ optionsStatus: 500 })
+    render(<LiffBookingPage />)
+
+    const banner = await screen.findByRole('banner')
+    expect(within(banner).getByText('กำลังเชื่อมต่อ…')).toBeInTheDocument()
+  })
+
+  it('keeps the helper sentence under the header bar', async () => {
+    render(<LiffBookingPage />)
+    await screen.findByRole('button', { name: 'ปรึกษากฎหมาย' })
+
+    expect(screen.getByText('เลือกบริการ วันที่ และช่วงเวลาที่สะดวก')).toBeInTheDocument()
+  })
+
+  it('renders the four steps as numbered circles with the current step marked', async () => {
+    // The hung range pins the flow on the date step: the single service
+    // auto-selects, but preselect waits for range data that never lands.
+    stubFetch({ rangeHang: true })
+    render(<LiffBookingPage />)
+    await screen.findByRole('button', { name: 'ปรึกษากฎหมาย' })
+
+    const stepper = screen.getByRole('list', { name: 'ขั้นตอนการจอง' })
+    for (const label of ['บริการ', 'วันที่', 'เวลา', 'ยืนยัน']) {
+      expect(within(stepper).getByText(label)).toBeInTheDocument()
+    }
+    for (const n of ['2', '3', '4']) {
+      expect(within(stepper).getByText(n)).toBeInTheDocument()
+    }
+    expect(within(stepper).getByText('วันที่')).toHaveAttribute('aria-current', 'step')
+    expect(within(stepper).getByText('บริการ')).not.toHaveAttribute('aria-current')
   })
 })
 

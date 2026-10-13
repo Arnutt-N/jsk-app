@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Alert } from '@/components/ui/Alert'
+import { Badge } from '@/components/ui/Badge'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
@@ -41,11 +42,11 @@ interface BookingOptions {
 
 type Step = 'service' | 'date' | 'slot' | 'details' | 'done'
 
-const STEPS: { key: Step; label: string }[] = [
-  { key: 'service', label: 'บริการ' },
-  { key: 'date', label: 'วันที่' },
-  { key: 'slot', label: 'เวลา' },
-  { key: 'details', label: 'ยืนยัน' },
+const STEPS: { key: Step; label: string; icon: React.ReactNode }[] = [
+  { key: 'service', label: 'บริการ', icon: <Users className="h-3 w-3" aria-hidden="true" /> },
+  { key: 'date', label: 'วันที่', icon: <CalendarDays className="h-3 w-3" aria-hidden="true" /> },
+  { key: 'slot', label: 'เวลา', icon: <Clock className="h-3 w-3" aria-hidden="true" /> },
+  { key: 'details', label: 'ยืนยัน', icon: <CheckCircle2 className="h-3 w-3" aria-hidden="true" /> },
 ]
 
 function contactPayload(contactName: string, phoneNumber: string, note: string) {
@@ -56,30 +57,45 @@ function contactPayload(contactName: string, phoneNumber: string, note: string) 
   }
 }
 
-/** Progress rail so the citizen always knows how many taps remain. */
+/** Numbered stepper so the citizen always knows how many taps remain. */
 function StepRail({ current }: { current: Step }) {
   const activeIndex = current === 'done' ? STEPS.length : STEPS.findIndex((s) => s.key === current)
   return (
-    <ol className="mb-5 flex items-center gap-1.5" aria-label="ขั้นตอนการจอง">
+    <ol className="mb-8 flex items-center justify-between px-2" aria-label="ขั้นตอนการจอง">
       {STEPS.map((s, index) => {
-        const state = index < activeIndex ? 'done' : index === activeIndex ? 'current' : 'todo'
+        const done = index < activeIndex
+        const state = done ? 'done' : index === activeIndex ? 'current' : 'todo'
         return (
-          <li key={s.key} className="flex flex-1 flex-col gap-1.5">
+          <li key={s.key} className="relative flex flex-1 flex-col items-center gap-2">
             <span
               className={cn(
-                'h-1 rounded-full transition-colors',
-                state === 'todo' ? 'bg-border-default' : 'bg-brand-500',
+                'z-10 flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold transition-colors',
+                state === 'todo'
+                  ? 'bg-border-default text-text-tertiary'
+                  : 'bg-brand-500 text-white shadow-md',
               )}
-            />
+            >
+              {done ? <CheckCircle2 className="h-5 w-5" aria-hidden="true" /> : index + 1}
+            </span>
             <span
               className={cn(
-                'text-2xs',
-                state === 'current' ? 'font-medium text-brand-text' : 'text-text-tertiary',
+                'flex items-center gap-1 text-[10px] font-semibold',
+                state === 'todo' ? 'text-text-tertiary' : 'text-brand-text',
               )}
               aria-current={state === 'current' ? 'step' : undefined}
             >
+              {s.icon}
               {s.label}
             </span>
+            {index < STEPS.length - 1 && (
+              <span
+                aria-hidden="true"
+                className={cn(
+                  'absolute left-[60%] top-4 h-[2px] w-full',
+                  done ? 'bg-brand-500' : 'bg-border-default',
+                )}
+              />
+            )}
           </li>
         )
       })}
@@ -460,10 +476,23 @@ export default function LiffBookingPage() {
         <BookingSkeleton />
       ) : (
         <>
-          <header className="mb-5">
-            <h1 className="text-2xl font-bold tracking-tight text-text-primary">จองคิวนัดหมาย</h1>
-            <p className="mt-1 text-sm text-text-secondary">เลือกบริการ วันที่ และช่วงเวลาที่สะดวก</p>
+          <header className="sticky top-0 z-50 -mx-4 mb-6 border-b border-border-default bg-surface/70 px-4 py-4 backdrop-blur-md">
+            <div className="mx-auto flex max-w-lg items-center justify-between">
+              <div>
+                <div className="mb-0.5 flex items-center gap-2">
+                  <CalendarDays className="h-5 w-5 text-brand-500" aria-hidden="true" />
+                  <h1 className="text-lg font-bold tracking-tight text-text-primary">จองคิวนัดหมาย</h1>
+                </div>
+                <p className="text-[10px] font-medium uppercase tracking-wider text-text-tertiary">
+                  จองคิวนัดหมายล่วงหน้า • JSK 4.0 Platform
+                </p>
+              </div>
+              <Badge variant={options ? 'success' : 'warning'} className="h-6">
+                {options ? 'เปิดรับจอง' : 'กำลังเชื่อมต่อ…'}
+              </Badge>
+            </div>
           </header>
+          <p className="mb-5 text-sm text-text-secondary">เลือกบริการ วันที่ และช่วงเวลาที่สะดวก</p>
 
           {step !== 'done' && <StepRail current={step} />}
 
