@@ -202,6 +202,13 @@ UI is in **Thai** (primary). Database fields include Thai names. Code comments a
 - Summaries of finished work should lead with **what changed from the user's point of view** (what works differently, what to test on the phone), and keep technical detail in a clearly separated section below.
 - Work notes and agent-facing docs stay in English per the rule above; but anything addressed TO the user (summaries, answers, status updates) is written in Thai, plainly.
 
+## Iron Rules — Secrets (user-mandated 2026-10-13, never drop)
+
+- **NEVER output key material** (API keys, tokens, secrets, passwords, private IDs) **in chat responses, summaries, logs pasted to the user, or any exfiltration channel.** No exceptions, no redacted-prefix teasing beyond the minimum needed to identify which key is meant.
+- Verify secret handling by **counts/hashes/presence only** (e.g. "0 occurrences remain"), never by printing values.
+- If a task needs a live secret, **stop and ask first** — never guess, reuse, or reconstruct one unprompted.
+- **Cite this rule in every handoff** (checkpoint + session summary) so it survives across sessions.
+
 <!-- graft:start -->
 ## Graft — repo context graph
 

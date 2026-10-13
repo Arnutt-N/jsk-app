@@ -1,10 +1,19 @@
 {
-  "last_updated": "2026-10-11T15:10:00+07:00",
+  "last_updated": "2026-10-14T00:44:00+07:00",
   "platform": "muse_code",
-  "current_task": "Merged PR #248 (act-on-8 fixes + 6 review findings) via guarded squash d5dbef9 after independent PASS+NOTES verdict; deleted branch fix/act-on-8-interrogate local+remote",
+  "current_task": "Shipped SakonNakhonBot reuse (PRs #250-253) + prod cutover (61 Q&A live); recorded secrets iron rule in AGENTS.md",
   "plan_status": "completed",
-  "next_steps": [],
+  "next_steps": [
+    "Optional: real-LINE test, PropertiesService migration, prune 11 kept branches"
+  ],
   "handoff_history": [
+    {
+      "timestamp": "2026-10-14T00:44:00+07:00",
+      "platform": "muse_code",
+      "branch": "main",
+      "head": "b32d0a0",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-10-11T15:10:00+07:00",
       "platform": "muse_code",
@@ -136,27 +145,6 @@
       "platform": "zcode",
       "branch": "main",
       "head": "e63ee9f",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-09-06T17:31:00+07:00",
-      "platform": "zcode",
-      "branch": "main",
-      "head": "249f2c9",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-09-06T12:24:00+07:00",
-      "platform": "zcode",
-      "branch": "main",
-      "head": "9747516",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-09-06T12:01:00+07:00",
-      "platform": "zcode",
-      "branch": "main",
-      "head": "0d94f86",
       "status": "completed"
     }
   ],

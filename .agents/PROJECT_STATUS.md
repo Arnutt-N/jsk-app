@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-10-11 15:10 by Muse Code (Merged PR #248 act-on-8 fixes + 6 review findings via guarded squash d5dbef9 after indepen)
+> **Last Updated:** 2026-10-14 00:44 by Muse Code (Shipped SakonNakhonBot reuse PRs #250-253 + prod cutover 61 Q&A live; recorded secrets iro)
 
 ## Thai Summary
 **สถานะล่าสุด (2026-09-30)** — รวม PR #239 (แก้บั๊กโอนแชทไม่มีบันทึก M-8) เข้าสายหลักแล้ว (`fd82c7a`) + ตรวจหลังส่งขึ้นร้านจริงเสร็จ: หลังบ้านแข็งแรงดี (database+redis ปกติ), หน้าร้านเปิดติด (HTTP 200), ปุ่มโอนแชทล็อกถูกต้อง (401), บันทึกส่งของ CD `36596610691` เขียวครบ 6 งาน — โค้ดตรงกับเซิร์ฟเวอร์ เหลือ Round-3b (22 ข้อ) + ซ่อมไฟล์ทดสอบ upload-security ที่พังมาก่อน
@@ -123,6 +123,7 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-10-14 00:44] Muse Code: Shipped SakonNakhonBot reuse (PRs #250-253) + prod cutover (61 Q&A live); recorded secrets iron rule in AGENTS.md (Muse Code)
 - [2026-10-11 15:10] Muse Code: Merged PR #248 (act-on-8 fixes + 6 review findings) via guarded squash d5dbef9 after independent PASS+NOTES verdict; deleted branch fix/act-on-8-interrogate local+remote (Muse Code)
 - [2026-10-11 13:53] Muse Code: Reviewed PR #248 (comment, no blockers) and implemented all 6 review-round findings, verified green, pushed c158f88 (Muse Code)
 - [2026-10-11 11:23] Muse Code: Act-on-8 complete: 8 fixes committed + PR #248 opened (no merge); full suite 1428 passed, 2 pre-existing env failures proven on base (Muse Code)

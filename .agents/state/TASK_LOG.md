@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 278 active handoffs, 11 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 279 active handoffs, 11 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-10-14 00:44 — muse_code — completed
+
+Shipped SakonNakhonBot reuse (PRs #250-253) + prod cutover (61 Q&A live); recorded secrets iron rule in AGENTS.md
+
+- Checkpoint: `.agents/state/checkpoints/handover-muse_code-20261014-0044.json`
+- Summary: `project-log-md/muse_code/session-summary-20261014-0044.md`
+
+---
 
 ### 2026-10-11 15:10 — muse_code — completed
 
