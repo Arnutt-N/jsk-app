@@ -77,6 +77,23 @@ def test_load_rows_reads_csv(tmp_path):
     assert [r.keyword for r in answered] == ["ก"]
 
 
+def test_load_rows_quotes_and_embedded_newlines(tmp_path):
+    """Stray quotes in Thai copy must not split rows (sniffer doublequote trap)."""
+    import csv as _csv
+
+    path = tmp_path / "q.csv"
+    with path.open("w", encoding="utf-8-sig", newline="") as fh:
+        w = _csv.writer(fh)
+        w.writerow(HEADER.strip().split(","))
+        w.writerow(["คดี", 'ตอบ "แบบนี้"\nบรรทัดสอง', "none", "", "", "auto", "", "", "", "", ""])
+        w.writerow(["ต่อไป", "ปกติ", "none", "", "", "auto", "", "", "", "", ""])
+    raws = load_rows(path)
+    assert len(raws) == 2
+    first = classify_row(raws[0])
+    assert isinstance(first, AnsweredRow)
+    assert first.answer == 'ตอบ "แบบนี้"\nบรรทัดสอง'
+
+
 # --- grouping ---
 
 
@@ -116,9 +133,12 @@ def _answered(keyword, answer="ตอบค่ะ"):
 def test_overlap_gate_blocks_and_force_passes():
     plan = build_plan([_answered("ซ้ำ")], 0, 0, {"ซ้ำ"}, set())
     assert plan.overlap and not plan.can_apply()
+    assert plan.overlap_keywords == [("ซ้ำ", "intent")]
     assert plan.can_apply(force_with_overlap=True)
     plan2 = build_plan([_answered("ใหม่")], 0, 0, {"ซ้ำ"}, {"เก่า"})
     assert plan2.can_apply() and not plan2.overlap
+    plan3 = build_plan([_answered("ซ้ำ")], 0, 0, set(), {"ซ้ำ"})
+    assert plan3.overlap_keywords == [("ซ้ำ", "autoreply")]
 
 
 def test_plan_deterministic():
@@ -180,7 +200,200 @@ def test_template_carousel_column_cap():
     assert len(payload["template"]["columns"]) == 10
 
 
-# --- DB integration: apply twice converges ---
+# --- DB integration: supersede + apply twice converges ---
+
+
+@pytest.mark.asyncio
+async def test_supersede_deactivates_stale_overlap():
+    """Overlapping stale rows are deactivated (never deleted), then import wins."""
+    from app.core.config import settings
+    from app.models.auto_reply import AutoReply
+    from app.models.intent import (
+        IntentCategory,
+        IntentKeyword,
+        IntentResponse,
+        MatchType,
+        ReplyType,
+    )
+    from scripts.seed_sakonnakhon_content import apply_plan, build_plan
+
+    tag = uuid.uuid4().hex[:8]
+    keyword = f"pytest-collide-{tag}"
+    engine, Session = _engine_for_test(settings)
+    try:
+        async with Session() as db:
+            stale_cat = IntentCategory(
+                name=f"stale-{tag}", description="Imported from CSV"
+            )
+            db.add(stale_cat)
+            await db.flush()
+            db.add(IntentKeyword(category_id=stale_cat.id, keyword=keyword,
+                                 match_type=MatchType.CONTAINS))
+            db.add(IntentResponse(category_id=stale_cat.id,
+                                  reply_type=ReplyType.TEXT,
+                                  text_content="stale", is_active=True))
+            db.add(AutoReply(keyword=keyword, match_type=MatchType.CONTAINS,
+                             reply_type=ReplyType.TEXT,
+                             text_content="stale auto", is_active=True))
+            await db.commit()
+            stale_cat_id = stale_cat.id
+
+        answered = [_answered(keyword, f"fresh-{tag}")]
+        async with Session() as db:
+            live_kw = {r.lower() for r in await _all_keywords(db)}
+            live_ar = {r.lower() for r in await _all_autoreplies(db)}
+        plan = build_plan(answered, 0, 0, live_kw, live_ar)
+        assert not plan.can_apply()
+        async with Session() as db:
+            report = await apply_plan(plan, db, deactivate_stale=True)
+        assert report.superseded_categories >= 1
+        assert report.superseded_autoreplies >= 1
+        assert report.categories_created == 1
+        async with Session() as db:
+            stale = await db.get(IntentCategory, stale_cat_id)
+            assert stale.is_active is False
+            autos = await _autoreplies_for(db, keyword)
+            assert autos and all(a.is_active is False for a in autos)
+            # Cleanup: remove everything this test created.
+            for cat in await _categories_named(db, (f"stale-{tag}",)):
+                await db.delete(cat)
+            for cat in await _categories_named(db, (keyword,)):
+                await db.delete(cat)
+            for auto_row in await _autoreplies_for(db, keyword):
+                await db.delete(auto_row)
+            await db.commit()
+    finally:
+        await engine.dispose()
+
+
+def _engine_for_test(settings):
+    from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+    from sqlalchemy.orm import sessionmaker
+    from sqlalchemy.pool import NullPool
+
+    engine = create_async_engine(str(settings.DATABASE_URL), poolclass=NullPool)
+    return engine, sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+
+async def _all_keywords(db):
+    from app.models.intent import IntentKeyword
+
+    return (await db.execute(select(IntentKeyword.keyword))).scalars().all()
+
+
+async def _all_autoreplies(db):
+    from app.models.auto_reply import AutoReply
+
+    return (
+        await db.execute(
+            select(AutoReply.keyword).where(AutoReply.is_active == True)  # noqa: E712
+        )
+    ).scalars().all()
+
+
+async def _categories_named(db, names):
+    from app.models.intent import IntentCategory
+
+    return (
+        await db.execute(
+            select(IntentCategory).where(IntentCategory.name.in_(names))
+        )
+    ).scalars().all()
+
+
+async def _autoreplies_for(db, keyword):
+    from sqlalchemy import func
+
+    from app.models.auto_reply import AutoReply
+
+    return (
+        await db.execute(
+            select(AutoReply).where(func.lower(AutoReply.keyword) == keyword.lower())
+        )
+    ).scalars().all()
+
+
+@pytest.mark.asyncio
+async def test_partial_plan_never_sweeps_unseen_pack_categories():
+    """Regression: a single-group apply (tests, dev snippets) must not
+    retire pack categories it did not see. A partial plan once swept all
+    61 pack rows on dev; the sweep is now gated behind full_sync."""
+    from app.core.config import settings
+    from app.models.intent import IntentCategory
+    from scripts.seed_sakonnakhon_content import apply_plan, build_plan
+
+    tag = uuid.uuid4().hex[:8]
+    engine, Session = _engine_for_test(settings)
+    try:
+        async with Session() as db:
+            foreign = IntentCategory(
+                name=f"foreign-pack-{tag}",
+                description="source: sakonnakhon import (other sheet)",
+                is_active=True,
+            )
+            db.add(foreign)
+            await db.commit()
+        plan = build_plan([_answered(f"pytest-only-{tag}")], 0, 0, set(), set())
+        # Snapshot every pack row first: full_sync below retires ALL marked
+        # categories absent from the 1-group plan, so restore them after.
+        # (This test runs on the shared dev DB, not an isolated fixture DB.)
+        from app.models.intent import IntentResponse
+
+        async with Session() as db:
+            marked = (
+                await db.execute(
+                    select(IntentCategory).where(
+                        IntentCategory.description.startswith("source: sakonnakhon")
+                    )
+                )
+            ).scalars().all()
+            snapshot = {}
+            for cat in marked:
+                resp_ids = (
+                    await db.execute(
+                        select(IntentResponse.id).where(
+                            IntentResponse.category_id == cat.id,
+                            IntentResponse.is_active == True,  # noqa: E712
+                        )
+                    )
+                ).scalars().all()
+                snapshot[cat.id] = (cat.is_active, list(resp_ids))
+        try:
+            async with Session() as db:
+                # Default apply (no full_sync): foreign pack row must survive.
+                await apply_plan(plan, db)
+            async with Session() as db:
+                kept = await db.get(IntentCategory, foreign.id)
+                assert kept is not None and kept.is_active is True
+                # Full sync DOES retire it (declared full-sheet convergence).
+                await apply_plan(plan, db, full_sync=True)
+            async with Session() as db:
+                retired = await db.get(IntentCategory, foreign.id)
+                assert retired is not None and retired.is_active is False
+        finally:
+            async with Session() as db:
+                for cat_id, (was_active, resp_ids) in snapshot.items():
+                    cat = await db.get(IntentCategory, cat_id)
+                    if cat is None:
+                        continue
+                    cat.is_active = was_active
+                    if resp_ids:
+                        resps = (
+                            await db.execute(
+                                select(IntentResponse).where(
+                                    IntentResponse.id.in_(resp_ids)
+                                )
+                            )
+                        ).scalars().all()
+                        for resp in resps:
+                            resp.is_active = True
+                for cat in await _categories_named(
+                    db, (f"pytest-only-{tag}", f"foreign-pack-{tag}")
+                ):
+                    await db.delete(cat)
+                await db.commit()
+    finally:
+        await engine.dispose()
 
 
 @pytest.mark.asyncio

@@ -99,34 +99,67 @@ def _fake_event():
 
 @pytest.mark.asyncio
 async def test_follow_handler_sends_welcome_once():
+    """Hermetic: sets its own template (never relies on ambient DB state)."""
     from app.api.v1.endpoints import webhook as webhook_mod
+    from app.models.system_setting import SystemSetting
+    from app.services.settings_service import SettingsService
 
     engine, Session = _engine()
     try:
-        fake_user = SimpleNamespace(display_name="แอด")
-        fake_row = SimpleNamespace(refollow_count=0)
-        with (
-            patch.object(
-                webhook_mod.friend_service, "get_or_create_user",
-                new=AsyncMock(return_value=fake_user),
-            ),
-            patch.object(
-                webhook_mod.friend_service, "handle_follow",
-                new=AsyncMock(return_value=fake_row),
-            ),
-            patch(
-                "app.services.line_service.line_service.reply_text",
-                new=AsyncMock(),
-            ) as reply_mock,
-        ):
+        async with Session() as db:
+            backup = (
+                await db.execute(
+                    select(SystemSetting).where(
+                        SystemSetting.key == WELCOME_TEMPLATE_KEY
+                    )
+                )
+            ).scalar_one_or_none()
+            backup_value = backup.value if backup else None
+            await SettingsService.set_setting(
+                db, WELCOME_TEMPLATE_KEY, "สวัสดีเพื่อนคนที่ {follow_count}"
+            )
+        try:
+            fake_user = SimpleNamespace(display_name="แอด")
+            fake_row = SimpleNamespace(refollow_count=0)
+            with (
+                patch.object(
+                    webhook_mod.friend_service, "get_or_create_user",
+                    new=AsyncMock(return_value=fake_user),
+                ),
+                patch.object(
+                    webhook_mod.friend_service, "handle_follow",
+                    new=AsyncMock(return_value=fake_row),
+                ),
+                patch(
+                    "app.services.line_service.line_service.reply_text",
+                    new=AsyncMock(),
+                ) as reply_mock,
+            ):
+                async with Session() as db:
+                    box = new_outbox()
+                    await webhook_mod.handle_follow_event(_fake_event(), db, box)
+                    assert len(box) == 1
+                    await box[0]()
+                reply_mock.assert_awaited_once()
+                _, text = reply_mock.call_args.args
+                assert text == "สวัสดีเพื่อนคนที่ 1"
+        finally:
             async with Session() as db:
-                box = new_outbox()
-                await webhook_mod.handle_follow_event(_fake_event(), db, box)
-                assert len(box) == 1
-                await box[0]()
-            reply_mock.assert_awaited_once()
-            _, text = reply_mock.call_args.args
-            assert "(เพื่อนคนที่ 1)" in text or "ยินดีต้อนรับ" in text
+                if backup_value is None:
+                    row = (
+                        await db.execute(
+                            select(SystemSetting).where(
+                                SystemSetting.key == WELCOME_TEMPLATE_KEY
+                            )
+                        )
+                    ).scalar_one_or_none()
+                    if row is not None:
+                        await db.delete(row)
+                        await db.commit()
+                else:
+                    await SettingsService.set_setting(
+                        db, WELCOME_TEMPLATE_KEY, backup_value
+                    )
     finally:
         await engine.dispose()
 

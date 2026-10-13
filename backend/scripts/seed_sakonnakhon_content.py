@@ -108,6 +108,9 @@ class ImportPlan:
     silent_skipped: int = 0
     junk_skipped: int = 0
     overlap: list[str] = field(default_factory=list)
+    # Structured twin of `overlap` for the supersede step: (keyword, source)
+    # where source is "intent" (live intent_keywords) or "autoreply".
+    overlap_keywords: list[tuple[str, str]] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
 
     def can_apply(self, *, force_with_overlap: bool = False) -> bool:
@@ -130,6 +133,8 @@ class ImportReport:
     media_hotlinked: int = 0
     media_failed: list[str] = field(default_factory=list)
     settings_set: int = 0
+    superseded_categories: int = 0
+    superseded_autoreplies: int = 0
 
 
 def _norm(text: str | None) -> str:
@@ -149,6 +154,10 @@ def load_rows(source: Path) -> list[dict]:
             dialect = csv.Sniffer().sniff(sample, delimiters=[",", ";"])
         except csv.Error:
             dialect = csv.excel
+        # The sniffer misdetects quoting on Thai text with stray `"`
+        # (doublequote=False splits rows at embedded newlines). Standard
+        # CSV escaping always applies to our exports.
+        dialect.doublequote = True
         reader = csv.DictReader(fh, dialect=dialect)
         if reader.fieldnames and all(
             (h or "").strip() == "" for h in reader.fieldnames
@@ -285,8 +294,10 @@ def build_plan(
             lowered = keyword.lower()
             if lowered in live_keywords:
                 plan.overlap.append(f"keyword {keyword!r} already in intent_keywords")
+                plan.overlap_keywords.append((keyword, "intent"))
             if lowered in live_autoreplies:
                 plan.overlap.append(f"keyword {keyword!r} also matches auto_replies")
+                plan.overlap_keywords.append((keyword, "autoreply"))
         plan.warnings.extend(dollar_warnings(group.answer, group.keywords[0]))
         if group.image_type == "carousel" and len(group.image_urls) > MAX_TEMPLATE_COLUMNS:
             plan.warnings.append(
@@ -389,11 +400,18 @@ def _sniff_mime(data: bytes) -> str | None:
     return sniff_mime(data)
 
 
-async def apply_plan(plan: ImportPlan, db, *, source_label: str = "") -> ImportReport:
+async def apply_plan(plan: ImportPlan, db, *, source_label: str = "",
+                   deactivate_stale: bool = False,
+                   full_sync: bool = False) -> ImportReport:
     """Execute a plan. Idempotent: same plan twice -> second run changes nothing.
 
     Crash-safe: per-row upserts by natural key; re-running converges.
     Never deletes: stale pack rows are deactivated, never removed.
+    With deactivate_stale=True, overlapping live rows NOT owned by this
+    import are deactivated first (audit-logged, reversible via is_active).
+    The pack-owned stale sweep runs ONLY with full_sync=True: a partial plan
+    must never retire categories it did not see (a test/dev single-group
+    apply once swept all 61 pack categories — this flag is the guard).
     """
     from sqlalchemy import select
 
@@ -414,6 +432,11 @@ async def apply_plan(plan: ImportPlan, db, *, source_label: str = "") -> ImportR
     report = ImportReport()
     seen_categories: set[str] = set()
     seen_objects: set[str] = set()
+
+    if deactivate_stale and plan.overlap_keywords:
+        cats, autos = await _supersede_overlap(db, plan)
+        report.superseded_categories += cats
+        report.superseded_autoreplies += autos
 
     for group in plan.groups:
         category = (
@@ -513,9 +536,9 @@ async def apply_plan(plan: ImportPlan, db, *, source_label: str = "") -> ImportR
                     report.media_hosted += 1
                 except Exception as exc:  # per-file isolation: never abort run
                     report.media_failed.append(f"{url}: {exc}")
-            if hosted_url is None and not any(
-                f.startswith(url + ":") for f in report.media_failed
-            ):
+            if hosted_url is None:
+                # Fallback payload still points at the external URL: it is a
+                # hotlink (failures additionally land in media_failed).
                 report.media_hotlinked += 1
             object_id = f"$skn_{group.slug}"
             payload = {"url": hosted_url or url, "preview_url": preview}
@@ -571,8 +594,10 @@ async def apply_plan(plan: ImportPlan, db, *, source_label: str = "") -> ImportR
                     extra.is_active = False
                     report.responses_updated += 1
 
-    # Stale sweep: deactivate pack-owned rows absent from this import.
-    if seen_categories:
+    # Stale sweep (pack-owned only, FULL-SYNC ONLY): deactivate marked
+    # categories absent from this import. Gated because a partial plan
+    # (tests, single-group dev runs) must never retire unseen categories.
+    if full_sync and seen_categories:
         from sqlalchemy import select as _select
 
         stale_cats = (
@@ -622,6 +647,69 @@ async def apply_plan(plan: ImportPlan, db, *, source_label: str = "") -> ImportR
 
     await db.commit()
     return report
+
+
+async def _supersede_overlap(db, plan: ImportPlan) -> tuple[int, int]:
+    """Deactivate (never delete) overlapping live rows not owned by this import.
+
+    Intent categories carrying the source marker are skipped here — the stale
+    sweep below owns them. Everything touched is printed (audit trail) and
+    reversible with an is_active flip.
+    """
+    from sqlalchemy import func, select
+
+    from app.models.auto_reply import AutoReply
+    from app.models.intent import IntentCategory, IntentKeyword, IntentResponse
+
+    cats_done: set[int] = set()
+    autos_done = 0
+    for keyword, where in plan.overlap_keywords:
+        if where == "intent":
+            kw_rows = (
+                await db.execute(
+                    select(IntentKeyword).where(
+                        func.lower(IntentKeyword.keyword) == keyword.lower()
+                    )
+                )
+            ).scalars().all()
+            for kw in kw_rows:
+                cat = await db.get(IntentCategory, kw.category_id)
+                if cat is None or cat.id in cats_done:
+                    continue
+                if (cat.description or "").startswith(SOURCE_MARKER):
+                    continue  # ours: the stale sweep handles it
+                if not cat.is_active:
+                    continue  # already retired: don't recount, don't touch
+                cat.is_active = False
+                cats_done.add(cat.id)
+                resps = (
+                    await db.execute(
+                        select(IntentResponse).where(
+                            IntentResponse.category_id == cat.id,
+                            IntentResponse.is_active == True,  # noqa: E712
+                        )
+                    )
+                ).scalars().all()
+                for resp in resps:
+                    resp.is_active = False
+                print(f"SUPERSEDE: deactivated intent category {cat.name!r} "
+                      f"(id={cat.id}, collided on {keyword!r})")
+        else:
+            auto_rows = (
+                await db.execute(
+                    select(AutoReply).where(
+                        func.lower(AutoReply.keyword) == keyword.lower(),
+                        AutoReply.is_active == True,  # noqa: E712
+                    )
+                )
+            ).scalars().all()
+            for auto_row in auto_rows:
+                auto_row.is_active = False
+                autos_done += 1
+                print(f"SUPERSEDE: deactivated auto_reply id={auto_row.id} "
+                      f"(collided on {keyword!r})")
+    await db.flush()
+    return len(cats_done), autos_done
 
 
 async def _upsert_object(db, ReplyObject, *, object_id, name,
@@ -705,6 +793,16 @@ def build_parser() -> argparse.ArgumentParser:
         "--force-with-overlap", action="store_true",
         help="Apply even when new keywords overlap live rows (audit-logged).",
     )
+    parser.add_argument(
+        "--deactivate-stale-overlap", action="store_true",
+        help="Before applying, deactivate (never delete) overlapping live "
+        "rows not owned by this import. Reversible via is_active.",
+    )
+    parser.add_argument(
+        "--full-sync", action="store_true",
+        help="Retire pack-owned categories absent from this source "
+        "(full-sheet sync only; partial plans must never sweep).",
+    )
     parser.add_argument("--report-out", default=None, help="Write report to file.")
     return parser
 
@@ -758,6 +856,9 @@ def _report_lines(plan: ImportPlan, report: ImportReport | None,
             f"{report.media_hotlinked} hotlinked, "
             f"{len(report.media_failed)} failed",
             f"Settings   : {report.settings_set} set",
+            f"Superseded : {report.superseded_categories} categories, "
+            f"{report.superseded_autoreplies} auto_replies "
+            f"(deactivated, reversible)",
         ]
         for item in report.media_failed:
             lines.append(f"  MEDIA FAIL: {item}")
@@ -765,8 +866,42 @@ def _report_lines(plan: ImportPlan, report: ImportReport | None,
     return lines
 
 
+async def _dry_run_plan(source: Path, answered: list[AnsweredRow],
+                      silent: int, junk: int) -> ImportPlan:
+    """Build a plan with the live keyword snapshot (read-only, zero writes)."""
+    import os as _os
+
+    from dotenv import load_dotenv
+
+    from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+    from sqlalchemy.orm import sessionmaker
+
+    from scripts._script_safety import print_script_header
+
+    env_path, _ = print_script_header(
+        "Import SakonNakhonBot Q&A (preview)", apply=False
+    )
+    # Explicit environment wins (e.g. local DATABASE_URL); the env file
+    # only fills gaps. This lets ops target local-vs-remote without editing files.
+    load_dotenv(env_path, override=False)
+    db_url = _os.getenv("DATABASE_URL")
+    if not db_url:
+        print("DATABASE_URL is required (dry run reads live rows read-only)")
+        return build_plan(answered, silent, junk, set(), set())
+    engine = create_async_engine(db_url, echo=False)
+    Session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    try:
+        async with Session() as db:
+            live_keywords, live_autoreplies = await _live_snapshot(db)
+        return build_plan(answered, silent, junk, live_keywords, live_autoreplies)
+    finally:
+        await engine.dispose()
+
+
 async def run(source: Path, *, apply: bool,
-              force_with_overlap: bool = False) -> int:
+              force_with_overlap: bool = False,
+              deactivate_stale: bool = False,
+              full_sync: bool = False) -> int:
     from dotenv import load_dotenv
 
     from scripts._script_safety import print_dry_run_hint, print_script_header
@@ -796,14 +931,14 @@ async def run(source: Path, *, apply: bool,
         return 1
 
     if not apply:
-        plan = build_plan(answered, silent, junk, set(), set())
+        plan = await _dry_run_plan(source, answered, silent, junk)
         for line in _report_lines(plan, None, apply=False, source=source):
             print(line)
         print_dry_run_hint()
         return 0
 
     env_path, _ = print_script_header("Import SakonNakhonBot Q&A", apply=True)
-    load_dotenv(env_path, override=True)
+    load_dotenv(env_path, override=False)
 
     import os as _os
 
@@ -831,7 +966,10 @@ async def run(source: Path, *, apply: bool,
             if plan.overlap and force_with_overlap:
                 print("AUDIT: applying despite "
                       f"{len(plan.overlap)} overlap items (--force-with-overlap)")
-            report = await apply_plan(plan, db, source_label=source.name)
+            report = await apply_plan(
+                plan, db, source_label=source.name,
+                deactivate_stale=deactivate_stale, full_sync=full_sync,
+            )
             for line in _report_lines(plan, report, apply=True, source=source):
                 print(line)
             return 0
@@ -840,9 +978,15 @@ async def run(source: Path, *, apply: bool,
 
 
 def main(argv: list[str] | None = None) -> int:
-    from scripts._cli_utils import ensure_backend_on_path
+    import sys as _sys
+    from pathlib import Path as _Path
 
-    ensure_backend_on_path()
+    _here = _Path(__file__).resolve().parent
+    if str(_here) not in _sys.path:
+        _sys.path.insert(0, str(_here))  # scripts/ for _cli_utils
+    from _cli_utils import ensure_backend_on_path
+
+    ensure_backend_on_path()  # backend/ for scripts.* + app.*
     args = build_parser().parse_args(argv)
     source = Path(args.source).expanduser()
     if not source.is_absolute():
@@ -851,7 +995,9 @@ def main(argv: list[str] | None = None) -> int:
 
     return _asyncio.run(
         run(source.resolve(), apply=args.apply,
-            force_with_overlap=args.force_with_overlap)
+            force_with_overlap=args.force_with_overlap,
+            deactivate_stale=args.deactivate_stale_overlap,
+            full_sync=args.full_sync)
     )
 
 
