@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Alert } from '@/components/ui/Alert'
 import { Badge } from '@/components/ui/Badge'
+import CalendarPickerTH from '@/components/ui/CalendarPickerTH'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Input } from '@/components/ui/Input'
@@ -25,6 +26,7 @@ import {
   groupSlotsByPeriod,
   parseISODate,
   submitBooking,
+  toISODate,
   updateBookingContact,
   type Availability,
   type Booking,
@@ -283,6 +285,19 @@ export default function LiffBookingPage() {
     if (!options) return []
     return buildDateOptions(new Date(), options.advance_days, options.blackout_dates)
   }, [options])
+
+  // The picker's view of bookability, mirroring the strip's chip rule: days
+  // outside the window are closed, and days with range data showing closed
+  // or full are closed; days without range data stay open (fail-open).
+  const inWindow = useMemo(() => new Set(dateOptions), [dateOptions])
+  const isDateDisabled = useCallback(
+    (iso: string) => {
+      if (!inWindow.has(iso)) return true
+      const info = rangeInfo?.get(iso)
+      return info ? !info.is_open || info.remaining === 0 : false
+    },
+    [inWindow, rangeInfo],
+  )
 
   // One range request per service: which days are closed or full, so the strip
   // can disable them up front. Fail-open — on error the chips stay enabled and
@@ -649,6 +664,21 @@ export default function LiffBookingPage() {
 
               {serviceType && (
                 <Section icon={<CalendarDays className="h-4 w-4" />} title="เลือกวันที่">
+                  <div className="mb-3">
+                    <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-text-secondary">
+                      เลือกจากปฏิทิน
+                    </p>
+                    <CalendarPickerTH
+                      ariaLabel="เลือกวันที่จอง"
+                      value={selectedDate}
+                      onChange={(iso) => {
+                        if (iso) chooseDate(toISODate(new Date(iso)))
+                      }}
+                      isDateDisabled={isDateDisabled}
+                      minDate={dateOptions[0] ?? null}
+                      maxDate={dateOptions[dateOptions.length - 1] ?? null}
+                    />
+                  </div>
                   {/* The strip bleeds to the card edge, but keeps scroll padding so
                       the first and last chip's border is never clipped by the
                       overflow container. */}
