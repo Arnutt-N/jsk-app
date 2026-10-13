@@ -96,7 +96,8 @@ async def process_webhook_events(events):
                     box = new_outbox()
                     await handle_postback_event(event, db, box)
                 elif isinstance(event, FollowEvent):
-                    await handle_follow_event(event, db)
+                    box = new_outbox()
+                    await handle_follow_event(event, db, box)
                 elif isinstance(event, UnfollowEvent):
                     await handle_unfollow_event(event, db)
 
@@ -139,12 +140,33 @@ async def handle_message_event(event: MessageEvent, db: AsyncSession, outbox: Ou
     await _handle_message_event_impl(event, db, outbox)
 
 
-async def handle_follow_event(event: FollowEvent, db: AsyncSession):
+async def handle_follow_event(event: FollowEvent, db: AsyncSession,
+                            box: Outbox | None = None):
     """Handle when a user adds the LINE OA as friend."""
     line_user_id = event.source.user_id
     logger.info(f"User {mask_line_id(line_user_id)} followed the OA")
-    await friend_service.get_or_create_user(line_user_id, db, commit=False)
-    await friend_service.handle_follow(line_user_id, db, commit=False)
+    user = await friend_service.get_or_create_user(line_user_id, db, commit=False)
+    event_row = await friend_service.handle_follow(line_user_id, db, commit=False)
+    # Welcome reply (fail-silent): sent via the event outbox so it is drained
+    # only after db.commit() — same ghost-send discipline as message events.
+    try:
+        from functools import partial
+
+        from app.services.line_service import line_service
+        from app.services.welcome_service import render_welcome
+
+        refollow_count = getattr(event_row, "refollow_count", 0) or 0
+        text = await render_welcome(
+            db,
+            display_name=getattr(user, "display_name", None),
+            follow_count=refollow_count + 1,
+        )
+        if text and box is not None:
+            box.append(partial(line_service.reply_text, event.reply_token, text))
+    except Exception as exc:
+        logger.warning(
+            "Follow welcome skipped for %s: %s", mask_line_id(line_user_id), exc
+        )
 
 
 async def handle_unfollow_event(event: UnfollowEvent, db: AsyncSession):
