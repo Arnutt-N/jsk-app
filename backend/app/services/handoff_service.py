@@ -32,6 +32,23 @@ HANDOFF_KEYWORDS_TH = [
 HANDOFF_KEYWORDS = HANDOFF_KEYWORDS_EN + HANDOFF_KEYWORDS_TH
 HANDOFF_KEYWORDS_SETTING_KEY = "HANDOFF_KEYWORDS"
 HANDOFF_KEYWORDS_CACHE_TTL_SECONDS = 60.0
+ZERO_HANDOFF_ENABLED_KEY = "ZERO_HANDOFF_ENABLED"
+
+
+def validate_handoff_keywords(keywords: list[str]) -> list[str]:
+    """Structural backstop: a bare `"0"` must never enter substring matching.
+
+    `check_handoff_keywords` uses `keyword in text`, so a `"0"` entry would
+    match every message containing the digit 0 (amounts, dates, phone numbers).
+    Exact-`"0"` handoff lives in `check_exact_zero` instead. Drops + loud log.
+    """
+    clean = [k for k in keywords if k.strip() != "0"]
+    if len(clean) != len(keywords):
+        logger.warning(
+            "Dropped bare '0' from HANDOFF_KEYWORDS: exact-'0' handoff is "
+            "handled by check_exact_zero, never by substring matching"
+        )
+    return clean
 
 
 class HandoffService:
@@ -119,14 +136,59 @@ class HandoffService:
         
         if not matched_keyword:
             return False
-        
+
         # Only initiate if user is currently in BOT mode
         if user.chat_mode != ChatMode.BOT:
             logger.debug(f"User {user.id} already in {user.chat_mode} mode, skipping handoff")
             return False
-        
+
         logger.info(f"Handoff keyword detected: '{matched_keyword}' for user {user.id}")
-        
+        return await self._do_handoff(
+            user, reply_token, db, commit=commit, outbox=outbox,
+            matched_label=f"keyword '{matched_keyword}'",
+        )
+
+    async def check_exact_zero(
+        self,
+        text: str,
+        user: User,
+        reply_token: str,
+        db: AsyncSession,
+        commit: bool = True,
+        outbox: Outbox | None = None,
+    ) -> bool:
+        """Exact-`"0"` -> staff handoff (legacy SakonNakhonBot parity).
+
+        Pure exact match (`text.strip() == "0"`), gated by the
+        `ZERO_HANDOFF_ENABLED` setting (`"true"`/anything-else). Never a
+        substring keyword: `"0"` inside `HANDOFF_KEYWORDS` would match every
+        message containing the digit 0. Returns True iff handled (caller
+        returns; single-use reply token discipline).
+        """
+        if not text or text.strip() != "0":
+            return False
+        enabled = await SettingsService.get_setting(db, ZERO_HANDOFF_ENABLED_KEY, "true")
+        if (enabled or "").strip().lower() != "true":
+            return False
+        if user.chat_mode != ChatMode.BOT:
+            logger.debug(f"User {user.id} already in {user.chat_mode} mode, skipping exact-0 handoff")
+            return False
+        logger.info(f"Exact-'0' handoff for user {user.id}")
+        return await self._do_handoff(
+            user, reply_token, db, commit=commit, outbox=outbox,
+            matched_label="exact '0'",
+        )
+
+    async def _do_handoff(
+        self,
+        user: User,
+        reply_token: str,
+        db: AsyncSession,
+        commit: bool,
+        outbox: Outbox | None,
+        matched_label: str,
+    ) -> bool:
+        """Shared initiate + apology path (single-use-token discipline)."""
         # Initiate handoff
         box = outbox if outbox is not None else []
         try:
@@ -135,7 +197,7 @@ class HandoffService:
                 await drain_outbox(box)
             return True
         except Exception as e:
-            logger.error(f"Failed to initiate handoff for user {user.id}: {e}")
+            logger.error(f"Failed to initiate handoff ({matched_label}) for user {user.id}: {e}")
             # Try to notify the user that handoff failed
             try:
                 from app.services.line_service import line_service
@@ -169,6 +231,8 @@ class HandoffService:
 
         if not effective_keywords:
             effective_keywords = self._normalize_keywords(self._default_keywords() + self._runtime_keywords)
+
+        effective_keywords = validate_handoff_keywords(effective_keywords)
 
         self._keywords_cache = effective_keywords
         self._keywords_cache_expires_at = now + HANDOFF_KEYWORDS_CACHE_TTL_SECONDS

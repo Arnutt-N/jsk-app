@@ -140,6 +140,20 @@ async def _handle_message_event_inner(event: MessageEvent, db: AsyncSession, box
 
         box.append(partial(line_svc.show_loading_animation, line_user_id))
 
+        # Legacy exact-"0" handoff (SakonNakhonBot parity): pure exact match,
+        # BEFORE substring handoff keywords and BEFORE the ^0\d{9}$ phone
+        # branch. Bare "0" must NEVER enter HANDOFF_KEYWORDS (substring "0"
+        # would match every message containing the digit 0).
+        if await handoff_svc.check_exact_zero(
+            text,
+            user,
+            event.reply_token,
+            db,
+            commit=False,
+            outbox=box,
+        ):
+            return
+
         if await handoff_svc.check_handoff_keywords(
             text,
             user,
