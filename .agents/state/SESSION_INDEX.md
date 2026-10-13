@@ -7,8 +7,8 @@
 
 | Metric | Value |
 |--------|-------|
-| Handoff checkpoints (active) | 276 |
-| Session summaries on disk | 380 |
+| Handoff checkpoints (active) | 278 |
+| Session summaries on disk | 382 |
 | Platforms | 11 (antigravity, claude_code, cline, codex, gemini_cli, kilo_code, kimi_code, muse_code, open_code, qoder, zcode) |
 | Most recent | 2026-10-11 15:10 — muse_code |
 
@@ -126,11 +126,13 @@
 | 2026-02-06 19:14 | unknown | — | — | `handover-kimi_code-any-20260206-1914.json` |
 | 2026-02-04 20:00 | unknown | — | — | `handover-kimi_code-any-20260204-2000.json` |
 
-## muse_code (9)
+## muse_code (11)
 
 | When | Status | Model | Provider | Checkpoint |
 |------|--------|-------|----------|------------|
 | 2026-10-11 15:10 | completed | — | — | `handover-muse_code-20261011-1510.json` |
+| 2026-10-11 13:53 | completed | — | — | `handover-muse_code-20261011-1353.json` |
+| 2026-10-11 11:23 | completed | — | — | `handover-muse_code-20261011-1123.json` |
 | 2026-10-10 01:58 | completed | — | — | `handover-muse_code-20261010-0158.json` |
 | 2026-10-09 19:58 | completed | — | — | `handover-muse_code-20261009-1958.json` |
 | 2026-10-05 00:08 | completed | — | — | `handover-muse_code-20261005-0008.json` |

@@ -160,6 +160,12 @@ async def send_message(
         line_user_id, request.text, current_user.id, db
     )
     await db.commit()
+    if result.get("success") is False:
+        # A2: the failed record is committed above for audit/retry — report
+        # the upstream LINE failure instead of a 200 "sent".
+        raise HTTPException(
+            status_code=502, detail="ส่งข้อความผ่าน LINE ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง"
+        )
     sent_message = result.get("message") or {}
     if sent_message:
         await _broadcast_conversation_update(
@@ -194,6 +200,12 @@ async def send_media(
         db=db,
     )
     await db.commit()
+    if result.get("success") is False:
+        # A2: the failed record is committed above for audit/retry — report
+        # the upstream LINE failure instead of a 200 "sent".
+        raise HTTPException(
+            status_code=502, detail="ส่งไฟล์ผ่าน LINE ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง"
+        )
     sent_message = result.get("message", {})
     created_at = sent_message.get("created_at") or _utcnow_isoformat()
 

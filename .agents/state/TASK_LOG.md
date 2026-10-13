@@ -1,7 +1,7 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 276 active handoffs, 11 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 278 active handoffs, 11 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
 
 ### 2026-10-11 15:10 — muse_code — completed
@@ -10,6 +10,24 @@ Merged PR #248 (act-on-8 fixes + 6 review findings) via guarded squash d5dbef9 a
 
 - Checkpoint: `.agents/state/checkpoints/handover-muse_code-20261011-1510.json`
 - Summary: `project-log-md/muse_code/session-summary-20261011-1510.md`
+
+---
+
+### 2026-10-11 13:53 — muse_code — completed
+
+Reviewed PR #248 (comment, no blockers) and implemented all 6 review-round findings, verified green, pushed c158f88
+
+- Checkpoint: `.agents/state/checkpoints/handover-muse_code-20261011-1353.json`
+- Summary: `project-log-md/muse_code/session-summary-20261011-1353.md`
+
+---
+
+### 2026-10-11 11:23 — muse_code — completed
+
+Act-on-8 complete: 8 fixes committed + PR #248 opened (no merge); full suite 1428 passed, 2 pre-existing env failures proven on base
+
+- Checkpoint: `.agents/state/checkpoints/handover-muse_code-20261011-1123.json`
+- Summary: `project-log-md/muse_code/session-summary-20261011-1123.md`
 
 ---
 

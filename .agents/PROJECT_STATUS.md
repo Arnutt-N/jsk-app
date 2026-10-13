@@ -124,6 +124,8 @@
 
 ## Recent Completions
 - [2026-10-11 15:10] Muse Code: Merged PR #248 (act-on-8 fixes + 6 review findings) via guarded squash d5dbef9 after independent PASS+NOTES verdict; deleted branch fix/act-on-8-interrogate local+remote (Muse Code)
+- [2026-10-11 13:53] Muse Code: Reviewed PR #248 (comment, no blockers) and implemented all 6 review-round findings, verified green, pushed c158f88 (Muse Code)
+- [2026-10-11 11:23] Muse Code: Act-on-8 complete: 8 fixes committed + PR #248 opened (no merge); full suite 1428 passed, 2 pre-existing env failures proven on base (Muse Code)
 - [2026-10-10 12:50] Claude Code: Diagnosed why Muse Code cannot invoke pstack:poteto-mode / pstack:poteto-help: Muse sees pstack-poteto-mode and pstack-poteto-help as active, validate passes; the colon form is Claude Code plugin namespace only, non-Claude agents need the h (Claude Code)
 - [2026-10-10 01:58] Muse Code: Merged PR #246: rich-menu new/edit UI parity (badge, header, save buttons) (Muse Code)
 - [2026-10-10 01:32] Claude Code: Updated WSL to 3.0.1 (kernel 6.18) and started pstack-claude global symlinks in Ubuntu-26.04 (Codex failed); symlink result NOT yet verified (Claude Code)

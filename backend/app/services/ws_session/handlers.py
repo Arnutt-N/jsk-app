@@ -148,6 +148,17 @@ async def handle_send_message(
             result = await svc.send_message(line_user_id, text, admin_id_int, db)
             await db.commit()
             committed = True
+            if result.get("success") is False:
+                # A2: push failed — the record is committed for audit/retry.
+                # The console already honors MESSAGE_FAILED; retryable=True
+                # because the message never reached LINE (a retry sends a new
+                # message, it cannot duplicate one the customer got).
+                await send_message_failed(
+                    websocket, temp_id,
+                    result.get("error") or "LINE push failed",
+                    timestamp, retryable=True,
+                )
+                return
             sent_message = result.get("message") or {}
             if sent_message:
                 msg_data = dict(sent_message)

@@ -1,8 +1,10 @@
 """Non-text message extraction (image, sticker, file, video, audio)."""
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from ._deps import get_line_service
 
 
-async def extract_non_text_message(message):
+async def extract_non_text_message(message, db: AsyncSession):
     """Extract type, content label, and payload from a non-text LINE message.
 
     Returns (message_type, content, payload) or (None, "", {}) for unsupported types.
@@ -15,6 +17,7 @@ async def extract_non_text_message(message):
         media = await line_svc.persist_line_media(
             message_id=str(line_message_id),
             media_type="image",
+            db=db,
         ) if line_message_id else {"url": None, "preview_url": None, "content_type": None, "size": None}
         return "image", "[Image]", {
             "line_message_id": line_message_id,
@@ -42,6 +45,7 @@ async def extract_non_text_message(message):
             message_id=str(line_message_id),
             media_type="file",
             file_name=file_name,
+            db=db,
         ) if line_message_id else {"url": None, "preview_url": None, "content_type": None, "size": None}
         return "file", file_name or "[File]", {
             "line_message_id": line_message_id,
@@ -56,6 +60,7 @@ async def extract_non_text_message(message):
         media = await line_svc.persist_line_media(
             message_id=str(line_message_id),
             media_type=message_type,
+            db=db,
         ) if line_message_id else {"url": None, "preview_url": None, "content_type": None, "size": None}
         return message_type, "[Video]" if message_type == "video" else "[Audio]", {
             "line_message_id": line_message_id,

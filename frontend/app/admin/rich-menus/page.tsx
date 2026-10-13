@@ -12,7 +12,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/Toast';
 import { logger } from '@/lib/logger';
 import { readErrorMessage } from '@/lib/api-error';
-import { canPublish, menuStatusPill, needsResync, parseSyncResult, RichMenuSyncStatus } from '@/lib/rich-menu';
+import { canPublish, menuStatusPill, needsResync, pillTone, parseSyncResult, RichMenuSyncStatus } from '@/lib/rich-menu';
 
 interface RichMenu {
     id: number;
@@ -215,16 +215,6 @@ export default function RichMenuListPage() {
                                             edit page) so the states can never diverge. */}
                                         {(() => {
                                             const pill = menuStatusPill(menu);
-                                            const pillTone: Record<string, string> = {
-                                                active: 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20',
-                                                error: 'bg-red-50 text-red-600 border-red-100 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20',
-                                                pending: 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20',
-                                                scheduled: 'bg-indigo-50 text-indigo-600 border-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/20',
-                                                inactive: 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-500/10 dark:text-slate-400 dark:border-slate-500/20',
-                                                hidden: 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-500/10 dark:text-slate-400 dark:border-slate-500/20',
-                                                synced: 'bg-brand-50 text-brand-600 border-brand-100 dark:bg-brand-500/10 dark:text-brand-400 dark:border-brand-500/20',
-                                                draft: 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20',
-                                            };
                                             return (
                                                 <span
                                                     title={pill.title}

@@ -150,16 +150,18 @@ async def get_current_admin(
     permission key (P1.2a). DEFAULT_POLICY = {SUPER_ADMIN, ADMIN}
     mirrors the pre-P1.2a hardcoded set, so the PR ships dark.
 
-    Matrix endpoints (settings.py:121,139,232 — GET/PATCH /permissions,
-    GET /permissions/me) still use this gate intentionally. They are NOT
-    converted to `can()` because that would create a self-referential
-    lockout: if SUPER_ADMIN removed themselves from
-    `access_admin_endpoints`, they'd lose access to `PATCH /permissions`
-    — the only endpoint that can re-add them. The existing SUPER_ADMIN
-    lockout safeguard (settings.py:176-180) rejects removing SUPER_ADMIN
-    from any key, but keeping the matrix endpoint on this gate (which
-    reads DEFAULT_POLICY including SUPER_ADMIN) is the second defense
-    layer against direct-DB lockout.
+    Matrix endpoints (settings.py — GET/PATCH /permissions) still use
+    this gate intentionally. They are NOT converted to `can()` because
+    that would create a self-referential lockout: if SUPER_ADMIN removed
+    themselves from `access_admin_endpoints`, they'd lose access to
+    `PATCH /permissions` — the only endpoint that can re-add them. The
+    existing SUPER_ADMIN lockout safeguard (settings.py) rejects removing
+    SUPER_ADMIN from any key, but keeping the matrix endpoint on this gate
+    (which reads DEFAULT_POLICY including SUPER_ADMIN) is the second
+    defense layer against direct-DB lockout.
+    (GET /permissions/me is NOT in this set: since D1 it serves any
+    authenticated user — it only reads the caller's own capabilities, so
+    it cannot lock anyone out.)
     """
     from app.models.user import UserRole
 

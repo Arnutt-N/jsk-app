@@ -1,8 +1,10 @@
 import logging
+import uuid
 from typing import Any, Optional
 
 import httpx
 from fastapi import APIRouter, Depends, File, Header, HTTPException, UploadFile
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -20,7 +22,7 @@ from app.schemas.debt_mediation_liff import (
     DebtMediationCreate,
     DebtMediationResponse,
 )
-from app.schemas.service_request_liff import AttachmentRef, ServiceRequestCreate, ServiceRequestResponse
+from app.schemas.service_request_liff import ServiceRequestCreate, ServiceRequestResponse
 from app.services.friend_service import friend_service
 from app.services.user_identity_service import resolve_by_line_id
 
@@ -168,6 +170,25 @@ async def create_service_request(
     line_user_id = await require_liff_identity(x_liff_id_token)
     source_details = {"source": "LIFF v2"}
 
+    # Resolve attachment ids server-side (mirrors the admin create path).
+    # The client-supplied url is never persisted — staff open these links
+    # from the admin detail page, so a forged url would be a phishing vector.
+    attachments: list[dict] = []
+    for a in (request.attachments or []):
+        try:
+            media_uuid = uuid.UUID(a.id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"ไฟล์แนบไม่ถูกต้อง: {a.id}")
+        result = await db.execute(select(MediaFile).where(MediaFile.id == media_uuid))
+        media = result.scalar_one_or_none()
+        if not media:
+            raise HTTPException(status_code=400, detail=f"ไม่พบไฟล์แนบ: {a.id}")
+        attachments.append({
+            "id": str(media.id),
+            "url": f"/api/v1/media/{media.id}",
+            "name": a.name or media.filename,
+        })
+
     # Map Pydantic to SQLAlchemy Model
     # Note: Our Pydantic has 'name', 'phone', 'service_type'
     # But our DB Model has 'requester_name', 'phone_number', 'category'
@@ -218,12 +239,7 @@ async def create_service_request(
         
         # Content
         description=request.description,
-        # AttachmentRef models are not JSON-serializable — dump to plain
-        # dicts before storing in the JSONB column.
-        attachments=[
-            a.model_dump() if isinstance(a, AttachmentRef) else a
-            for a in (request.attachments or [])
-        ]
+        attachments=attachments
     )
     
     db.add(db_obj)

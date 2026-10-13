@@ -13,7 +13,7 @@ from app.core.audit import create_audit_log
 from app.core.permissions import KEY_MANAGE_BROADCAST
 from app.models.broadcast import BroadcastStatus, BroadcastType
 from app.models.user import User
-from app.services.broadcast_service import broadcast_service
+from app.services.broadcast_service import BroadcastClaimConflict, broadcast_service
 
 router = APIRouter()
 
@@ -234,6 +234,8 @@ async def send_broadcast(
         raise HTTPException(status_code=404, detail="Broadcast not found")
     try:
         broadcast = await broadcast_service.send_broadcast(db, broadcast)
+    except BroadcastClaimConflict as e:
+        raise HTTPException(status_code=409, detail=str(e))
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 

@@ -371,4 +371,21 @@ describe('useMessageFlow', () => {
     expect(store().notifications).toHaveLength(0);
     expect(store().messages).toHaveLength(0); // different room → not appended
   });
+
+  it('sendMedia maps HTTP 502 to a warning toast and stays online', async () => {
+    global.fetch = vi.fn().mockResolvedValue({ ok: false, status: 502 }) as unknown as typeof fetch;
+    const { view } = setup({ wsStatus: 'connected' });
+    useLiveChatStore.setState({ backendOnline: true, notifications: [] });
+
+    await act(async () => {
+      await view.result.current.sendMedia(new File(['x'], 'a.png', { type: 'image/png' }));
+    });
+
+    // 502 is a LINE-side failure, not an outage — toast, don't flip offline.
+    expect(store().backendOnline).toBe(true);
+    expect(store().notifications).toHaveLength(1);
+    expect(store().notifications[0].title).toBe('ส่งไฟล์ไม่สำเร็จ');
+    expect(store().notifications[0].variant).toBe('warning');
+    expect(store().sending).toBe(false);
+  });
 });

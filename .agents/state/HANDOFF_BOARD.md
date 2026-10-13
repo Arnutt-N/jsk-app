@@ -2,7 +2,7 @@
 # Handoff Board (generated)
 
 > **Last generated**: 2026-10-11 15:10 (from newest checkpoint)
-> 276 active handoffs, 11 platforms, 0 queued directed handoff(s).
+> 278 active handoffs, 11 platforms, 0 queued directed handoff(s).
 
 > Regenerate after any handoff: `node .agents/scripts/gen-handoff-views.cjs`
 
@@ -35,6 +35,8 @@ _None — no blocked checkpoints._
 | When | From → To | Task | Checkpoint |
 |------|-----------|------|------------|
 | 2026-10-11 15:10 | muse_code → all | Merged PR #248 (act-on-8 fixes + 6 review findings) via guarded squash d5dbef9 after independent PASS+NOTES verdict; deleted branch fix/act- | `handover-muse_code-20261011-1510.json` |
+| 2026-10-11 13:53 | muse_code → all | Reviewed PR #248 (comment, no blockers) and implemented all 6 review-round findings, verified green, pushed c158f88 | `handover-muse_code-20261011-1353.json` |
+| 2026-10-11 11:23 | muse_code → all | Act-on-8 complete: 8 fixes committed + PR #248 opened (no merge); full suite 1428 passed, 2 pre-existing env failures proven on base | `handover-muse_code-20261011-1123.json` |
 | 2026-10-10 12:50 | claude_code → all | Diagnosed why Muse Code cannot invoke pstack:poteto-mode / pstack:poteto-help: Muse sees pstack-poteto-mode and pstack-poteto-help as active | `handover-claude_code-20261010-1250.json` |
 | 2026-10-10 01:58 | muse_code → all | Merged PR #246: rich-menu new/edit UI parity (badge, header, save buttons) | `handover-muse_code-20261010-0158.json` |
 | 2026-10-10 01:32 | claude_code → all | Updated WSL to 3.0.1 (kernel 6.18) and started pstack-claude global symlinks in Ubuntu-26.04 (Codex failed); symlink result NOT yet verified | `handover-claude_code-20261010-0132.json` |
@@ -42,5 +44,3 @@ _None — no blocked checkpoints._
 | 2026-10-05 00:08 | muse_code → all | Post-merge verify: PR #242 live on production - CD 6/6, backend healthy, frontend 200 | `handover-muse_code-20261005-0008.json` |
 | 2026-10-04 23:40 | muse_code → all | Merged PR #242: follow-ups D1-D4 (postback outbox, request-v2 gate, role display, capped streaming) | `handover-muse_code-20261004-2340.json` |
 | 2026-10-04 17:24 | muse_code → all | Merged PR #241: round-3b (20 Medium + 2 Low) + review follow-ups F1-F17 + F16 endpoint fix - squash 3e7740a, CI green, CD 6/6, prod healthy | `handover-muse_code-20261004-1724.json` |
-| 2026-09-30 06:37 | muse_code → all | Post-merge verify: PR #239 live on production - CD 6/6 jobs success, backend healthy, frontend 200, transfer endpoint 401-hardened | `handover-muse_code-20260930-0637.json` |
-| 2026-09-29 23:22 | muse_code → all | Merged PR #239: transfer-audit M-8 fix (explicit audit row on transfer) - rebased onto main, CI green, CD success | `handover-muse_code-20260929-2322.json` |
