@@ -429,6 +429,10 @@ export default function ReplyObjectsPage() {
                                 />
                             )}
 
+                            <p className="text-[11px] leading-relaxed text-text-tertiary ml-1">
+                                อ้างถึงในคำตอบด้วยรหัส เช่น <code className="font-mono">$skn_menu</code> (วางท้ายข้อความ คั่นด้วยเว้นวรรค) — การ์ด flex ที่อ้างถึงจะส่งทั้งก้อน ไม่ถูกตัด · หลีกเลี่ยงตัวเลขหลัง $ เช่น <code className="font-mono">$100</code> (จะหายไป)
+                            </p>
+
                             <QuickReplyEditor
                                 value={parsedPayload.quickReply as QuickReply | undefined}
                                 onChange={handleQuickReplyChange}
