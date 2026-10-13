@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Alert } from '@/components/ui/Alert'
 import { Badge } from '@/components/ui/Badge'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
@@ -110,23 +111,20 @@ interface SectionProps {
   className?: string
 }
 
-/** One card per step — the single card shape used across the whole flow. */
+/** One card per step — the shared Card rhythm used across the LIFF forms. */
 function Section({ icon, title, children, className }: SectionProps) {
   return (
-    <section
-      className={cn(
-        'rounded-xl border border-border-default bg-surface p-4 shadow-sm',
-        className,
-      )}
-    >
-      <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-text-primary">
-        <span className="text-text-tertiary" aria-hidden="true">
-          {icon}
-        </span>
-        {title}
-      </h2>
-      {children}
-    </section>
+    <Card glass className={cn('overflow-hidden', className)}>
+      <CardHeader className="bg-bg/50 border-b border-border-subtle">
+        <CardTitle className="text-base flex items-center gap-2">
+          <span className="text-text-tertiary" aria-hidden="true">
+            {icon}
+          </span>
+          {title}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="pt-6">{children}</CardContent>
+    </Card>
   )
 }
 
@@ -151,7 +149,7 @@ function ContactFieldsForm({
   return (
     <div className="space-y-3">
       <label className="block">
-        <span className="mb-1.5 block text-xs font-medium text-text-secondary">ชื่อ-นามสกุล</span>
+        <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-text-secondary">ชื่อ-นามสกุล</span>
         <Input
           type="text"
           value={contactName}
@@ -161,7 +159,7 @@ function ContactFieldsForm({
         />
       </label>
       <label className="block">
-        <span className="mb-1.5 block text-xs font-medium text-text-secondary">เบอร์โทรศัพท์</span>
+        <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-text-secondary">เบอร์โทรศัพท์</span>
         <Input
           type="tel"
           inputMode="numeric"
@@ -172,7 +170,7 @@ function ContactFieldsForm({
         />
       </label>
       <label className="block">
-        <span className="mb-1.5 block text-xs font-medium text-text-secondary">
+        <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-text-secondary">
           รายละเอียดเพิ่มเติม (ถ้ามี)
         </span>
         <Textarea
@@ -508,10 +506,15 @@ export default function LiffBookingPage() {
           )}
 
           {step === 'done' && confirmed && (
-            <section className="rounded-xl border border-border-default bg-surface p-6 shadow-sm">
+            <Card glass className="overflow-hidden">
+              <CardHeader className="bg-bg/50 border-b border-border-subtle">
+                <CardTitle className="text-base">
+                  {editing ? 'แก้ไขข้อมูลผู้จอง' : 'จองคิวสำเร็จ'}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-6">
               {editing ? (
                 <>
-                  <h2 className="mb-3 text-lg font-bold text-text-primary">แก้ไขข้อมูลผู้จอง</h2>
                   <ContactFieldsForm
                     contactName={contactName}
                     phoneNumber={phoneNumber}
@@ -539,7 +542,6 @@ export default function LiffBookingPage() {
                     <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-success/10">
                       <CheckCircle2 className="h-8 w-8 text-success" aria-hidden="true" />
                     </span>
-                    <h2 className="mt-3 text-lg font-bold text-text-primary">จองคิวสำเร็จ</h2>
                     <p className="mt-4 text-4xl font-bold tracking-tight text-success-text">
                       {confirmed.queue_number ?? '-'}
                     </p>
@@ -615,7 +617,8 @@ export default function LiffBookingPage() {
                   </div>
                 </>
               )}
-            </section>
+              </CardContent>
+            </Card>
           )}
 
           {step !== 'done' && (

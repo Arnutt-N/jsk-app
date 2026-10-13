@@ -138,8 +138,7 @@ async function bookToDone() {
   render(<LiffBookingPage />)
   await user.click(await screen.findByRole('button', { name: 'ปรึกษากฎหมาย' }))
 
-  const slotSection = (await screen.findByText('เลือกช่วงเวลา')).closest('section') as HTMLElement
-  await user.click(await within(slotSection).findByRole('button', { name: /09:30/ }))
+  await user.click(await screen.findByRole('button', { name: /09:30/ }))
 
   await user.type(screen.getByPlaceholderText('ชื่อสำหรับเรียกคิว'), 'สมชาย ใจดี')
   await user.type(screen.getByPlaceholderText('0812345678'), '0812345678')
@@ -356,6 +355,40 @@ describe('design-system consistency', () => {
     const fullSlot = await screen.findByRole('button', { name: /10:00/ })
     expect(fullSlot).toBeDisabled()
     expect(within(fullSlot).getByText('เต็ม')).toBeInTheDocument()
+  })
+})
+
+describe('shared card rhythm', () => {
+  it('renders step sections as glass Cards with the title in the header', async () => {
+    render(<LiffBookingPage />)
+    await userEvent.click(await screen.findByRole('button', { name: 'ปรึกษากฎหมาย' }))
+
+    for (const title of ['เลือกบริการ', 'เลือกวันที่']) {
+      const heading = screen.getByRole('heading', { name: title })
+      expect(heading.tagName).toBe('H3')
+      expect(heading.closest('.backdrop-blur-xl')).not.toBeNull()
+    }
+  })
+
+  it('renders the confirmation as a Card with its title in the header', async () => {
+    await bookToDone()
+
+    const heading = screen.getByRole('heading', { name: 'จองคิวสำเร็จ' })
+    expect(heading.tagName).toBe('H3')
+    expect(heading.closest('.backdrop-blur-xl')).not.toBeNull()
+  })
+
+  it('keeps the Thai contact labels in the shared label style', async () => {
+    const user = userEvent.setup()
+    render(<LiffBookingPage />)
+    await user.click(await screen.findByRole('button', { name: 'ปรึกษากฎหมาย' }))
+    await user.click(await screen.findByRole('button', { name: /09:30/ }))
+
+    for (const label of ['ชื่อ-นามสกุล', 'เบอร์โทรศัพท์', 'รายละเอียดเพิ่มเติม (ถ้ามี)']) {
+      const el = screen.getByText(label)
+      expect(el.className).toContain('uppercase')
+      expect(el.className).toContain('font-bold')
+    }
   })
 })
 
