@@ -332,6 +332,14 @@ async def test_partial_plan_never_sweeps_unseen_pack_categories():
                 is_active=True,
             )
             db.add(foreign)
+            from app.models.reply_object import ObjectType, ReplyObject
+
+            foreign_obj = ReplyObject(
+                object_id=f"$skn_foreign_{tag}", name=f"foreign {tag}",
+                object_type=ObjectType.TEXT, payload={"text": "x"},
+                is_active=True,
+            )
+            db.add(foreign_obj)
             await db.commit()
         plan = build_plan([_answered(f"pytest-only-{tag}")], 0, 0, set(), set())
         # Snapshot every pack row first: full_sync below retires ALL marked
@@ -365,11 +373,27 @@ async def test_partial_plan_never_sweeps_unseen_pack_categories():
             async with Session() as db:
                 kept = await db.get(IntentCategory, foreign.id)
                 assert kept is not None and kept.is_active is True
+                kept_obj = (
+                    await db.execute(
+                        select(ReplyObject).where(
+                            ReplyObject.object_id == f"$skn_foreign_{tag}"
+                        )
+                    )
+                ).scalar_one()
+                assert kept_obj.is_active is True
                 # Full sync DOES retire it (declared full-sheet convergence).
                 await apply_plan(plan, db, full_sync=True)
             async with Session() as db:
                 retired = await db.get(IntentCategory, foreign.id)
                 assert retired is not None and retired.is_active is False
+                retired_obj = (
+                    await db.execute(
+                        select(ReplyObject).where(
+                            ReplyObject.object_id == f"$skn_foreign_{tag}"
+                        )
+                    )
+                ).scalar_one()
+                assert retired_obj.is_active is False
         finally:
             async with Session() as db:
                 for cat_id, (was_active, resp_ids) in snapshot.items():
@@ -391,6 +415,15 @@ async def test_partial_plan_never_sweeps_unseen_pack_categories():
                     db, (f"pytest-only-{tag}", f"foreign-pack-{tag}")
                 ):
                     await db.delete(cat)
+                doomed = (
+                    await db.execute(
+                        select(ReplyObject).where(
+                            ReplyObject.object_id == f"$skn_foreign_{tag}"
+                        )
+                    )
+                ).scalar_one_or_none()
+                if doomed is not None:
+                    await db.delete(doomed)
                 await db.commit()
     finally:
         await engine.dispose()

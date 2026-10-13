@@ -40,12 +40,9 @@ SOURCE_MARKER = "source: sakonnakhon"
 SETTING_WELCOME_TEMPLATE = "WELCOME_TEMPLATE"
 SETTING_ZERO_HANDOFF = "ZERO_HANDOFF_ENABLED"
 DEFAULT_WELCOME = (
-    "สวัสดีค่ะ ขอบคุณที่ส่งข้อความถึงเรา\n"
-    "👋 ต้องการแชทกับเจ้าหน้าที่พิมพ์ 0\n\n"
-    "หรือติดต่อขอคำปรึกษาเบื้องต้นได้ที่\n"
-    "โทร. 042-713400\n"
-    "ในเวลาราชการ 👉 วันจันทร์-ศุกร์\n"
-    "เวลา 08.30 - 16.30 น. ค่ะ"
+    "ยินดีต้อนรับสู่ LINE Official Account สำนักงานยุติธรรมจังหวัดสกลนคร! 🎉\n\n"
+    "ขอบคุณที่เป็นเพื่อนกับเราค่ะ\n"
+    "หากต้องการความช่วยเหลือ พิมพ์ 'เมนู' หรือ '1' เพื่อดูบริการต่างๆ"
 )
 
 HEADER_ORDER = [
@@ -623,18 +620,18 @@ async def apply_plan(plan: ImportPlan, db, *, source_label: str = "",
                 for resp in resps:
                     resp.is_active = False
                     report.responses_updated += 1
-    stale_objs = (
-        await db.execute(
-            select(ReplyObject).where(
-                ReplyObject.object_id.startswith("$skn_"),
-                ReplyObject.is_active == True,  # noqa: E712
+        stale_objs = (
+            await db.execute(
+                select(ReplyObject).where(
+                    ReplyObject.object_id.startswith("$skn_"),
+                    ReplyObject.is_active == True,  # noqa: E712
+                )
             )
-        )
-    ).scalars().all()
-    for obj in stale_objs:
-        if obj.object_id not in seen_objects:
-            obj.is_active = False
-            report.objects_deactivated += 1
+        ).scalars().all()
+        for obj in stale_objs:
+            if obj.object_id not in seen_objects:
+                obj.is_active = False
+                report.objects_deactivated += 1
 
     await SettingsService.set_setting(
         db, SETTING_WELCOME_TEMPLATE, DEFAULT_WELCOME,
