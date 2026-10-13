@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useMemo, type FormEvent, type ReactNode } 
 import { motion, AnimatePresence } from "motion/react";
 import { Calendar, Check, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { parseThaiDate, toBE, daysInMonth, cn } from "@/lib/utils";
+import { toISODate } from "@/lib/booking";
 import {
   parseDateParts,
   formatThaiDate,
@@ -20,6 +21,11 @@ export interface CalendarPickerTHProps {
   helper?: string;
   required?: boolean;
   className?: string;
+  /** Booking window: days the predicate rejects are non-bookable. */
+  isDateDisabled?: (isoDate: string) => boolean;
+  /** ISO YYYY-MM-DD window edges; navigation clamps into them when both set. */
+  minDate?: string | null;
+  maxDate?: string | null;
 }
 
 const THAI_WEEKDAYS_SHORT = ["จ", "อ", "พ", "พฤ", "ศ", "ส", "อา"] as const;
@@ -57,6 +63,9 @@ export default function CalendarPickerTH({
   helper,
   required,
   className,
+  isDateDisabled,
+  minDate,
+  maxDate,
 }: CalendarPickerTHProps) {
   const dayRef = useRef<HTMLInputElement>(null);
   const monthRef = useRef<HTMLInputElement>(null);
@@ -72,15 +81,31 @@ export default function CalendarPickerTH({
 
   const selectedParts = useMemo(() => parseDateParts(value), [value]);
 
+  // Booking-window clamp helpers. ISO YYYY-MM-DD strings compare
+  // lexicographically, so day checks are plain string bounds; month
+  // navigation compares year/month keys only.
+  const monthKey = (d: Date) => d.getFullYear() * 12 + d.getMonth();
+  const monthKeyOf = (iso: string) => Number(iso.slice(0, 4)) * 12 + Number(iso.slice(5, 7)) - 1;
+  const minMonthKey = minDate ? monthKeyOf(minDate) : null;
+  const maxMonthKey = maxDate ? monthKeyOf(maxDate) : null;
+  const clampMonth = (d: Date): Date => {
+    if (minMonthKey === null || maxMonthKey === null) return d;
+    const key = monthKey(d);
+    if (key < minMonthKey) return firstOfMonth(Math.floor(minMonthKey / 12), minMonthKey % 12);
+    if (key > maxMonthKey) return firstOfMonth(Math.floor(maxMonthKey / 12), maxMonthKey % 12);
+    return d;
+  };
+
   const viewMonth = useMemo<Date>(() => {
-    if (viewMonthOverride) return viewMonthOverride;
+    if (viewMonthOverride) return clampMonth(viewMonthOverride);
     if (value) {
       const parts = parseDateParts(value);
-      if (parts) return firstOfMonth(parts.year, parts.month);
+      if (parts) return clampMonth(firstOfMonth(parts.year, parts.month));
     }
     const now = new Date();
-    return firstOfMonth(now.getFullYear(), now.getMonth());
-  }, [viewMonthOverride, value]);
+    return clampMonth(firstOfMonth(now.getFullYear(), now.getMonth()));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewMonthOverride, value, minDate, maxDate]);
 
   const prevValueRef = useRef(value);
   useEffect(() => {
@@ -170,6 +195,15 @@ export default function CalendarPickerTH({
         setLocalError("วันที่ไม่มีในเดือนนี้");
         return;
       }
+      const isoDay = toISODate(date);
+      if ((minDate && isoDay < minDate) || (maxDate && isoDay > maxDate)) {
+        setLocalError("วันที่อยู่นอกช่วงที่เปิดให้จอง");
+        return;
+      }
+      if (isDateDisabled?.(isoDay)) {
+        setLocalError("วันที่เลือกไม่สามารถจองได้");
+        return;
+      }
       onChange(date.toISOString());
       setViewMonthOverride(null);
       setIsEditing(false);
@@ -217,11 +251,13 @@ export default function CalendarPickerTH({
   const goPrevMonth = () => {
     const next = new Date(viewMonth);
     next.setMonth(next.getMonth() - 1);
+    if (minMonthKey !== null && monthKey(next) < minMonthKey) return;
     setViewMonthOverride(next);
   };
   const goNextMonth = () => {
     const next = new Date(viewMonth);
     next.setMonth(next.getMonth() + 1);
+    if (maxMonthKey !== null && monthKey(next) > maxMonthKey) return;
     setViewMonthOverride(next);
   };
   const openMonthView = () => setCalendarView("month");
@@ -233,15 +269,31 @@ export default function CalendarPickerTH({
   const goPrevYear = () => {
     const next = new Date(viewMonth);
     next.setFullYear(next.getFullYear() - 1);
+    if (minMonthKey !== null && monthKey(next) < minMonthKey) return;
     setViewMonthOverride(next);
   };
   const goNextYear = () => {
     const next = new Date(viewMonth);
     next.setFullYear(next.getFullYear() + 1);
+    if (maxMonthKey !== null && monthKey(next) > maxMonthKey) return;
     setViewMonthOverride(next);
   };
-  const goPrevDecade = () => setYearGridStart((s) => s - 12);
-  const goNextDecade = () => setYearGridStart((s) => s + 12);
+  const goPrevDecade = () =>
+    setYearGridStart((s) => {
+      if (minDate) {
+        const minBE = Number(minDate.slice(0, 4)) + 543;
+        if (s - 1 < minBE) return s;
+      }
+      return s - 12;
+    });
+  const goNextDecade = () =>
+    setYearGridStart((s) => {
+      if (maxDate) {
+        const maxBE = Number(maxDate.slice(0, 4)) + 543;
+        if (s + 12 > maxBE) return s;
+      }
+      return s + 12;
+    });
   // Drill-down: year grid → month grid → day grid. Picking a month returns to
   // the day view; picking a year steps down into the month view so the user
   // keeps narrowing instead of jumping straight back to days.
@@ -281,13 +333,16 @@ export default function CalendarPickerTH({
     for (let d = 1; d <= dayCount; d++) {
       const sel = isSelectedDay(d);
       const tod = isToday(d);
+      const cellISO = toISODate(new Date(year, month, d));
+      const disabled = isDateDisabled?.(cellISO) ?? false;
       cells.push(
         <motion.button
           key={d}
           type="button"
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.95 }}
+          whileHover={disabled ? undefined : { scale: 1.1 }}
+          whileTap={disabled ? undefined : { scale: 0.95 }}
           onClick={() => {
+            if (disabled) return;
             const picked = new Date(year, month, d);
             onChange(picked.toISOString());
             setViewMonthOverride(null);
@@ -298,13 +353,17 @@ export default function CalendarPickerTH({
           }}
           aria-label={`${d} ${THAI_MONTHS_LONG[month]} ${toBE(year)}`}
           aria-current={tod ? "date" : undefined}
+          aria-disabled={disabled || undefined}
+          tabIndex={disabled ? -1 : undefined}
           className={cn(
             "h-10 w-10 rounded-xl text-sm font-medium transition-all duration-150",
-            sel
-              ? "bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md"
-              : tod
-                ? "bg-blue-50 text-blue-600 font-semibold ring-2 ring-blue-200"
-                : "text-text-primary hover:bg-bg dark:text-slate-200 dark:hover:bg-slate-800",
+            disabled
+              ? "opacity-40 cursor-not-allowed text-text-primary"
+              : sel
+                ? "bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md"
+                : tod
+                  ? "bg-blue-50 text-blue-600 font-semibold ring-2 ring-blue-200"
+                  : "text-text-primary hover:bg-bg dark:text-slate-200 dark:hover:bg-slate-800",
           )}
         >
           {d}
@@ -312,7 +371,7 @@ export default function CalendarPickerTH({
       );
     }
     return cells;
-  }, [viewMonth, selectedParts, onChange]);
+  }, [viewMonth, selectedParts, onChange, isDateDisabled]);
 
   const parts = partsFrom(value);
   const hasValue = !!value;
@@ -622,7 +681,18 @@ export default function CalendarPickerTH({
                 type="button"
                 onClick={() => {
                   const today = new Date();
-                  onChange(today.toISOString());
+                  const todayISO = toISODate(today);
+                  const outside =
+                    (minDate && todayISO < minDate) || (maxDate && todayISO > maxDate);
+                  const target =
+                    outside && minDate
+                      ? new Date(
+                          Number(minDate.slice(0, 4)),
+                          Number(minDate.slice(5, 7)) - 1,
+                          Number(minDate.slice(8, 10)),
+                        )
+                      : today;
+                  onChange(target.toISOString());
                   setViewMonthOverride(null);
                   setLocalError("");
                   setIsOpen(false);

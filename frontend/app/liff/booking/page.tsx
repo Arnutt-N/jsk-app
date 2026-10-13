@@ -3,6 +3,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Alert } from '@/components/ui/Alert'
+import { Badge } from '@/components/ui/Badge'
+import CalendarPickerTH from '@/components/ui/CalendarPickerTH'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
@@ -23,6 +26,7 @@ import {
   groupSlotsByPeriod,
   parseISODate,
   submitBooking,
+  toISODate,
   updateBookingContact,
   type Availability,
   type Booking,
@@ -41,11 +45,11 @@ interface BookingOptions {
 
 type Step = 'service' | 'date' | 'slot' | 'details' | 'done'
 
-const STEPS: { key: Step; label: string }[] = [
-  { key: 'service', label: 'บริการ' },
-  { key: 'date', label: 'วันที่' },
-  { key: 'slot', label: 'เวลา' },
-  { key: 'details', label: 'ยืนยัน' },
+const STEPS: { key: Step; label: string; icon: React.ReactNode }[] = [
+  { key: 'service', label: 'บริการ', icon: <Users className="h-3 w-3" aria-hidden="true" /> },
+  { key: 'date', label: 'วันที่', icon: <CalendarDays className="h-3 w-3" aria-hidden="true" /> },
+  { key: 'slot', label: 'เวลา', icon: <Clock className="h-3 w-3" aria-hidden="true" /> },
+  { key: 'details', label: 'ยืนยัน', icon: <CheckCircle2 className="h-3 w-3" aria-hidden="true" /> },
 ]
 
 function contactPayload(contactName: string, phoneNumber: string, note: string) {
@@ -56,30 +60,45 @@ function contactPayload(contactName: string, phoneNumber: string, note: string) 
   }
 }
 
-/** Progress rail so the citizen always knows how many taps remain. */
+/** Numbered stepper so the citizen always knows how many taps remain. */
 function StepRail({ current }: { current: Step }) {
   const activeIndex = current === 'done' ? STEPS.length : STEPS.findIndex((s) => s.key === current)
   return (
-    <ol className="mb-5 flex items-center gap-1.5" aria-label="ขั้นตอนการจอง">
+    <ol className="mb-8 flex items-center justify-between px-2" aria-label="ขั้นตอนการจอง">
       {STEPS.map((s, index) => {
-        const state = index < activeIndex ? 'done' : index === activeIndex ? 'current' : 'todo'
+        const done = index < activeIndex
+        const state = done ? 'done' : index === activeIndex ? 'current' : 'todo'
         return (
-          <li key={s.key} className="flex flex-1 flex-col gap-1.5">
+          <li key={s.key} className="relative flex flex-1 flex-col items-center gap-2">
             <span
               className={cn(
-                'h-1 rounded-full transition-colors',
-                state === 'todo' ? 'bg-border-default' : 'bg-brand-500',
+                'z-10 flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold transition-colors',
+                state === 'todo'
+                  ? 'bg-border-default text-text-tertiary'
+                  : 'bg-brand-500 text-white shadow-md',
               )}
-            />
+            >
+              {done ? <CheckCircle2 className="h-5 w-5" aria-hidden="true" /> : index + 1}
+            </span>
             <span
               className={cn(
-                'text-2xs',
-                state === 'current' ? 'font-medium text-brand-text' : 'text-text-tertiary',
+                'flex items-center gap-1 text-[10px] font-semibold',
+                state === 'todo' ? 'text-text-tertiary' : 'text-brand-text',
               )}
               aria-current={state === 'current' ? 'step' : undefined}
             >
+              {s.icon}
               {s.label}
             </span>
+            {index < STEPS.length - 1 && (
+              <span
+                aria-hidden="true"
+                className={cn(
+                  'absolute left-[60%] top-4 h-[2px] w-full',
+                  done ? 'bg-brand-500' : 'bg-border-default',
+                )}
+              />
+            )}
           </li>
         )
       })}
@@ -94,23 +113,20 @@ interface SectionProps {
   className?: string
 }
 
-/** One card per step — the single card shape used across the whole flow. */
+/** One card per step — the shared Card rhythm used across the LIFF forms. */
 function Section({ icon, title, children, className }: SectionProps) {
   return (
-    <section
-      className={cn(
-        'rounded-xl border border-border-default bg-surface p-4 shadow-sm',
-        className,
-      )}
-    >
-      <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-text-primary">
-        <span className="text-text-tertiary" aria-hidden="true">
-          {icon}
-        </span>
-        {title}
-      </h2>
-      {children}
-    </section>
+    <Card glass className={cn('overflow-hidden', className)}>
+      <CardHeader className="bg-bg/50 border-b border-border-subtle">
+        <CardTitle className="text-base flex items-center gap-2">
+          <span className="text-text-tertiary" aria-hidden="true">
+            {icon}
+          </span>
+          {title}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="pt-6">{children}</CardContent>
+    </Card>
   )
 }
 
@@ -135,7 +151,7 @@ function ContactFieldsForm({
   return (
     <div className="space-y-3">
       <label className="block">
-        <span className="mb-1.5 block text-xs font-medium text-text-secondary">ชื่อ-นามสกุล</span>
+        <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-text-secondary">ชื่อ-นามสกุล</span>
         <Input
           type="text"
           value={contactName}
@@ -145,7 +161,7 @@ function ContactFieldsForm({
         />
       </label>
       <label className="block">
-        <span className="mb-1.5 block text-xs font-medium text-text-secondary">เบอร์โทรศัพท์</span>
+        <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-text-secondary">เบอร์โทรศัพท์</span>
         <Input
           type="tel"
           inputMode="numeric"
@@ -156,7 +172,7 @@ function ContactFieldsForm({
         />
       </label>
       <label className="block">
-        <span className="mb-1.5 block text-xs font-medium text-text-secondary">
+        <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-text-secondary">
           รายละเอียดเพิ่มเติม (ถ้ามี)
         </span>
         <Textarea
@@ -269,6 +285,19 @@ export default function LiffBookingPage() {
     if (!options) return []
     return buildDateOptions(new Date(), options.advance_days, options.blackout_dates)
   }, [options])
+
+  // The picker's view of bookability, mirroring the strip's chip rule: days
+  // outside the window are closed, and days with range data showing closed
+  // or full are closed; days without range data stay open (fail-open).
+  const inWindow = useMemo(() => new Set(dateOptions), [dateOptions])
+  const isDateDisabled = useCallback(
+    (iso: string) => {
+      if (!inWindow.has(iso)) return true
+      const info = rangeInfo?.get(iso)
+      return info ? !info.is_open || info.remaining === 0 : false
+    },
+    [inWindow, rangeInfo],
+  )
 
   // One range request per service: which days are closed or full, so the strip
   // can disable them up front. Fail-open — on error the chips stay enabled and
@@ -460,10 +489,23 @@ export default function LiffBookingPage() {
         <BookingSkeleton />
       ) : (
         <>
-          <header className="mb-5">
-            <h1 className="text-2xl font-bold tracking-tight text-text-primary">จองคิวนัดหมาย</h1>
-            <p className="mt-1 text-sm text-text-secondary">เลือกบริการ วันที่ และช่วงเวลาที่สะดวก</p>
+          <header className="sticky top-0 z-50 -mx-4 mb-6 border-b border-border-default bg-surface/70 px-4 py-4 backdrop-blur-md">
+            <div className="mx-auto flex max-w-lg items-center justify-between">
+              <div>
+                <div className="mb-0.5 flex items-center gap-2">
+                  <CalendarDays className="h-5 w-5 text-brand-500" aria-hidden="true" />
+                  <h1 className="text-lg font-bold tracking-tight text-text-primary">จองคิวนัดหมาย</h1>
+                </div>
+                <p className="text-[10px] font-medium uppercase tracking-wider text-text-tertiary">
+                  จองคิวนัดหมายล่วงหน้า • JSK 4.0 Platform
+                </p>
+              </div>
+              <Badge variant={options ? 'success' : 'warning'} className="h-6">
+                {options ? 'เปิดรับจอง' : 'กำลังเชื่อมต่อ…'}
+              </Badge>
+            </div>
           </header>
+          <p className="mb-5 text-sm text-text-secondary">เลือกบริการ วันที่ และช่วงเวลาที่สะดวก</p>
 
           {step !== 'done' && <StepRail current={step} />}
 
@@ -479,10 +521,15 @@ export default function LiffBookingPage() {
           )}
 
           {step === 'done' && confirmed && (
-            <section className="rounded-xl border border-border-default bg-surface p-6 shadow-sm">
+            <Card glass className="overflow-hidden">
+              <CardHeader className="bg-bg/50 border-b border-border-subtle">
+                <CardTitle className="text-base">
+                  {editing ? 'แก้ไขข้อมูลผู้จอง' : 'จองคิวสำเร็จ'}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-6">
               {editing ? (
                 <>
-                  <h2 className="mb-3 text-lg font-bold text-text-primary">แก้ไขข้อมูลผู้จอง</h2>
                   <ContactFieldsForm
                     contactName={contactName}
                     phoneNumber={phoneNumber}
@@ -510,7 +557,6 @@ export default function LiffBookingPage() {
                     <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-success/10">
                       <CheckCircle2 className="h-8 w-8 text-success" aria-hidden="true" />
                     </span>
-                    <h2 className="mt-3 text-lg font-bold text-text-primary">จองคิวสำเร็จ</h2>
                     <p className="mt-4 text-4xl font-bold tracking-tight text-success-text">
                       {confirmed.queue_number ?? '-'}
                     </p>
@@ -586,7 +632,8 @@ export default function LiffBookingPage() {
                   </div>
                 </>
               )}
-            </section>
+              </CardContent>
+            </Card>
           )}
 
           {step !== 'done' && (
@@ -617,6 +664,21 @@ export default function LiffBookingPage() {
 
               {serviceType && (
                 <Section icon={<CalendarDays className="h-4 w-4" />} title="เลือกวันที่">
+                  <div className="mb-3">
+                    <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-text-secondary">
+                      เลือกจากปฏิทิน
+                    </p>
+                    <CalendarPickerTH
+                      ariaLabel="เลือกวันที่จอง"
+                      value={selectedDate}
+                      onChange={(iso) => {
+                        if (iso) chooseDate(toISODate(new Date(iso)))
+                      }}
+                      isDateDisabled={isDateDisabled}
+                      minDate={dateOptions[0] ?? null}
+                      maxDate={dateOptions[dateOptions.length - 1] ?? null}
+                    />
+                  </div>
                   {/* The strip bleeds to the card edge, but keeps scroll padding so
                       the first and last chip's border is never clipped by the
                       overflow container. */}

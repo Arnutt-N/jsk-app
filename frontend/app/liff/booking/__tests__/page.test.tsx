@@ -3,7 +3,9 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { toISODate, type Booking } from '@/lib/booking'
+import { toISODate, parseISODate, type Booking } from '@/lib/booking'
+import { THAI_MONTHS_LONG } from '@/lib/format-date'
+import { toBE } from '@/lib/utils'
 
 import LiffBookingPage from '../page'
 
@@ -50,10 +52,14 @@ function stubFetch(
     onCancel?: (booking: Booking) => Booking
     onUpdate?: (booking: Booking) => Booking
     advanceDays?: number
+    /** Make the options request fail with this status (offline badge scenario). */
+    optionsStatus?: number
     /** Blackout dates to serve from /options (defaults to none). */
     blackouts?: string[]
     /** Range cap to serve from /options as max_range_days (defaults: omit). */
     maxRangeDays?: number
+    /** Make the range request hang (pins the flow on the date step). */
+    rangeHang?: boolean
     /** Per-day override for the /availability/range response. */
     rangeDay?: (iso: string) => { date: string; is_open: boolean; remaining: number }
     /** Make the range request fail with this status (fail-open scenarios). */
@@ -63,6 +69,8 @@ function stubFetch(
   fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     const u = String(url)
     if (u.includes('/options')) {
+      if (overrides.optionsStatus)
+        return jsonResponse({ detail: 'options failed' }, overrides.optionsStatus)
       return jsonResponse({
         service_types: ['ปรึกษากฎหมาย'],
         advance_days: overrides.advanceDays ?? 14,
@@ -75,6 +83,7 @@ function stubFetch(
     // NOTE: the range route must be matched before /availability — its URL
     // contains that substring.
     if (u.includes('/availability/range')) {
+      if (overrides.rangeHang) return new Promise<Response>(() => {})
       if (overrides.rangeStatus) return jsonResponse({ detail: 'range failed' }, overrides.rangeStatus)
       const params = new URL(u, 'http://localhost').searchParams
       const from = params.get('from') as string
@@ -131,8 +140,7 @@ async function bookToDone() {
   render(<LiffBookingPage />)
   await user.click(await screen.findByRole('button', { name: 'ปรึกษากฎหมาย' }))
 
-  const slotSection = (await screen.findByText('เลือกช่วงเวลา')).closest('section') as HTMLElement
-  await user.click(await within(slotSection).findByRole('button', { name: /09:30/ }))
+  await user.click(await screen.findByRole('button', { name: /09:30/ }))
 
   await user.type(screen.getByPlaceholderText('ชื่อสำหรับเรียกคิว'), 'สมชาย ใจดี')
   await user.type(screen.getByPlaceholderText('0812345678'), '0812345678')
@@ -279,6 +287,54 @@ describe('date selection', () => {
   })
 })
 
+describe('shared form chrome', () => {
+  it('renders a sticky header bar with the platform subtitle and an open badge', async () => {
+    render(<LiffBookingPage />)
+    await userEvent.click(await screen.findByRole('button', { name: 'ปรึกษากฎหมาย' }))
+
+    const banner = screen.getByRole('banner')
+    expect(banner.className).toContain('sticky')
+    expect(within(banner).getByText('จองคิวนัดหมาย')).toBeInTheDocument()
+    expect(
+      within(banner).getByText('จองคิวนัดหมายล่วงหน้า • JSK 4.0 Platform'),
+    ).toBeInTheDocument()
+    expect(within(banner).getByText('เปิดรับจอง')).toBeInTheDocument()
+  })
+
+  it('shows a connecting badge when the options request fails', async () => {
+    stubFetch({ optionsStatus: 500 })
+    render(<LiffBookingPage />)
+
+    const banner = await screen.findByRole('banner')
+    expect(within(banner).getByText('กำลังเชื่อมต่อ…')).toBeInTheDocument()
+  })
+
+  it('keeps the helper sentence under the header bar', async () => {
+    render(<LiffBookingPage />)
+    await screen.findByRole('button', { name: 'ปรึกษากฎหมาย' })
+
+    expect(screen.getByText('เลือกบริการ วันที่ และช่วงเวลาที่สะดวก')).toBeInTheDocument()
+  })
+
+  it('renders the four steps as numbered circles with the current step marked', async () => {
+    // The hung range pins the flow on the date step: the single service
+    // auto-selects, but preselect waits for range data that never lands.
+    stubFetch({ rangeHang: true })
+    render(<LiffBookingPage />)
+    await screen.findByRole('button', { name: 'ปรึกษากฎหมาย' })
+
+    const stepper = screen.getByRole('list', { name: 'ขั้นตอนการจอง' })
+    for (const label of ['บริการ', 'วันที่', 'เวลา', 'ยืนยัน']) {
+      expect(within(stepper).getByText(label)).toBeInTheDocument()
+    }
+    for (const n of ['2', '3', '4']) {
+      expect(within(stepper).getByText(n)).toBeInTheDocument()
+    }
+    expect(within(stepper).getByText('วันที่')).toHaveAttribute('aria-current', 'step')
+    expect(within(stepper).getByText('บริการ')).not.toHaveAttribute('aria-current')
+  })
+})
+
 describe('design-system consistency', () => {
   it('uses brand tokens rather than emerald for selected state', async () => {
     render(<LiffBookingPage />)
@@ -301,6 +357,194 @@ describe('design-system consistency', () => {
     const fullSlot = await screen.findByRole('button', { name: /10:00/ })
     expect(fullSlot).toBeDisabled()
     expect(within(fullSlot).getByText('เต็ม')).toBeInTheDocument()
+  })
+})
+
+describe('shared card rhythm', () => {
+  it('renders step sections as glass Cards with the title in the header', async () => {
+    render(<LiffBookingPage />)
+    await userEvent.click(await screen.findByRole('button', { name: 'ปรึกษากฎหมาย' }))
+
+    for (const title of ['เลือกบริการ', 'เลือกวันที่']) {
+      const heading = screen.getByRole('heading', { name: title })
+      expect(heading.tagName).toBe('H3')
+      expect(heading.closest('.backdrop-blur-xl')).not.toBeNull()
+    }
+  })
+
+  it('renders the confirmation as a Card with its title in the header', async () => {
+    await bookToDone()
+
+    const heading = screen.getByRole('heading', { name: 'จองคิวสำเร็จ' })
+    expect(heading.tagName).toBe('H3')
+    expect(heading.closest('.backdrop-blur-xl')).not.toBeNull()
+  })
+
+  it('keeps the Thai contact labels in the shared label style', async () => {
+    const user = userEvent.setup()
+    render(<LiffBookingPage />)
+    await user.click(await screen.findByRole('button', { name: 'ปรึกษากฎหมาย' }))
+    await user.click(await screen.findByRole('button', { name: /09:30/ }))
+
+    for (const label of ['ชื่อ-นามสกุล', 'เบอร์โทรศัพท์', 'รายละเอียดเพิ่มเติม (ถ้ามี)']) {
+      const el = screen.getByText(label)
+      expect(el.className).toContain('uppercase')
+      expect(el.className).toContain('font-bold')
+    }
+  })
+})
+
+describe('picker-strip sync', () => {
+  /** Accessible name of a picker day cell, mirroring the picker's own label. */
+  function cellName(iso: string): string {
+    const d = parseISODate(iso)
+    return `${d.getDate()} ${THAI_MONTHS_LONG[d.getMonth()]} ${toBE(d.getFullYear())}`
+  }
+
+  /** Click through months until the cell is visible, then return it. */
+  async function navToCell(
+    user: ReturnType<typeof userEvent.setup>,
+    dialog: HTMLElement,
+    name: string,
+  ): Promise<HTMLElement> {
+    for (let i = 0; i < 4; i++) {
+      const cell = within(dialog).queryByLabelText(name)
+      if (cell) return cell
+      await user.click(within(dialog).getByLabelText('เดือนถัดไป'))
+    }
+    throw new Error(`day cell not found: ${name}`)
+  }
+
+  it('B1: tapping a strip chip updates the picker to the same date', async () => {
+    const user = userEvent.setup()
+    render(<LiffBookingPage />)
+    await user.click(await screen.findByRole('button', { name: 'ปรึกษากฎหมาย' }))
+
+    const chips = (await dateStrip()).querySelectorAll('button')
+    await user.click(chips[1])
+
+    const dayInput = screen.getByLabelText('เลือกวันที่จอง') as HTMLInputElement
+    expect(dayInput.value).toBe(String(parseISODate(isoFromToday(1)).getDate()).padStart(2, '0'))
+  })
+
+  it('B2: picking a day in the calendar presses the matching chip and loads its slots', async () => {
+    const user = userEvent.setup()
+    render(<LiffBookingPage />)
+    await user.click(await screen.findByRole('button', { name: 'ปรึกษากฎหมาย' }))
+    await screen.findByText('ช่วงเช้า')
+
+    const targetIso = isoFromToday(1)
+    await user.click(screen.getByLabelText('เปิดปฏิทินเลือกวันที่'))
+    const dialog = await screen.findByRole('dialog')
+    await user.click(await navToCell(user, dialog, cellName(targetIso)))
+
+    const pressed = (await dateStrip()).querySelector('button[aria-pressed="true"]')
+    expect(pressed?.textContent).toContain(String(parseISODate(targetIso).getDate()))
+    await waitFor(() => {
+      const dayCall = fetchMock.mock.calls.find(
+        ([url]) =>
+          String(url).includes('/availability') &&
+          !String(url).includes('/range') &&
+          String(url).includes(`date=${targetIso}`),
+      )
+      expect(dayCall).toBeDefined()
+    })
+  })
+
+  it('B3: disables blackout, closed, and full days in the picker; unknown days stay enabled', async () => {
+    const closedIso = isoFromToday(1)
+    const fullIso = isoFromToday(2)
+    stubFetch({
+      advanceDays: 99,
+      maxRangeDays: 10,
+      blackouts: [isoFromToday(3)],
+      rangeDay: (d) =>
+        d === closedIso
+          ? { date: d, is_open: false, remaining: 0 }
+          : d === fullIso
+            ? { date: d, is_open: true, remaining: 0 }
+            : { date: d, is_open: true, remaining: 5 },
+    })
+    const user = userEvent.setup()
+    render(<LiffBookingPage />)
+    await user.click(await screen.findByRole('button', { name: 'ปรึกษากฎหมาย' }))
+    await user.click(screen.getByLabelText('เปิดปฏิทินเลือกวันที่'))
+    const dialog = await screen.findByRole('dialog')
+
+    for (const iso of [closedIso, fullIso, isoFromToday(3)]) {
+      expect(await navToCell(user, dialog, cellName(iso))).toHaveAttribute(
+        'aria-disabled',
+        'true',
+      )
+    }
+    // Past the range-request clip the picker has no day info, so it stays open.
+    const farIso = isoFromToday(50)
+    expect(await navToCell(user, dialog, cellName(farIso))).not.toHaveAttribute('aria-disabled')
+  })
+
+  it('B4: keeps in-window picker days enabled when the range request fails', async () => {
+    stubFetch({ rangeStatus: 500 })
+    const user = userEvent.setup()
+    render(<LiffBookingPage />)
+    await user.click(await screen.findByRole('button', { name: 'ปรึกษากฎหมาย' }))
+    expect((await dateStrip()).querySelectorAll('button[disabled]')).toHaveLength(0)
+    await user.click(screen.getByLabelText('เปิดปฏิทินเลือกวันที่'))
+    const dialog = await screen.findByRole('dialog')
+    // Fail-open covers the window, not the whole month: days outside the
+    // bookable window stay disabled while in-window days stay enabled.
+    for (const iso of [isoFromToday(0), isoFromToday(1)]) {
+      expect(await navToCell(user, dialog, cellName(iso))).not.toHaveAttribute('aria-disabled')
+    }
+  })
+
+  it('B5: renders the picker unclamped and without crashing when every day is blacked out', async () => {
+    stubFetch({
+      advanceDays: 14,
+      blackouts: Array.from({ length: 15 }, (_, i) => isoFromToday(i)),
+    })
+    const user = userEvent.setup()
+    render(<LiffBookingPage />)
+    await user.click(await screen.findByRole('button', { name: 'ปรึกษากฎหมาย' }))
+    await user.click(screen.getByLabelText('เปิดปฏิทินเลือกวันที่'))
+
+    const dialog = await screen.findByRole('dialog')
+    const headerText = () => within(dialog).getByLabelText('เลือกเดือน').textContent
+    const shown = headerText()
+    await user.click(within(dialog).getByLabelText('เดือนก่อนหน้า'))
+    expect(headerText()).not.toBe(shown)
+    // The open dialog owns the only วันนี้ button, so close it before
+    // asserting the strip itself holds no day chips.
+    await user.keyboard('{Escape}')
+    const card = screen
+      .getByRole('heading', { name: 'เลือกวันที่' })
+      .closest('.backdrop-blur-xl') as HTMLElement
+    const strip = card.querySelector('.overflow-x-auto') as HTMLElement
+    expect(strip.querySelectorAll('button')).toHaveLength(0)
+  })
+
+  it('B6: submits the picked day as a bare YYYY-MM-DD date', async () => {
+    const user = userEvent.setup()
+    render(<LiffBookingPage />)
+    await user.click(await screen.findByRole('button', { name: 'ปรึกษากฎหมาย' }))
+    await screen.findByText('ช่วงเช้า')
+
+    const targetIso = isoFromToday(1)
+    await user.click(screen.getByLabelText('เปิดปฏิทินเลือกวันที่'))
+    const dialog = await screen.findByRole('dialog')
+    await user.click(await navToCell(user, dialog, cellName(targetIso)))
+
+    await user.click(await screen.findByRole('button', { name: /09:30/ }))
+    await user.type(screen.getByPlaceholderText('ชื่อสำหรับเรียกคิว'), 'สมชาย ใจดี')
+    await user.type(screen.getByPlaceholderText('0812345678'), '0812345678')
+    await user.click(screen.getByRole('button', { name: 'ยืนยันการจอง' }))
+    await screen.findByText('จองคิวสำเร็จ')
+
+    const post = fetchMock.mock.calls.find(
+      ([url, init]) => init?.method === 'POST' && !String(url).endsWith('/cancel'),
+    )
+    const body = JSON.parse(String(post?.[1]?.body))
+    expect(body.booking_date).toBe(targetIso)
+    expect(body.booking_date).not.toContain('T')
   })
 })
 
