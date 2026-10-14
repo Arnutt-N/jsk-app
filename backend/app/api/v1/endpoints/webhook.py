@@ -103,10 +103,11 @@ async def process_webhook_events(events):
 
                 await db.commit()
 
+                failures = 0
                 if box is not None:
-                    await drain_outbox(box)
+                    failures = await drain_outbox(box)
 
-                if cache_key:
+                if cache_key and failures == 0:
                     try:
                         await redis_client.setex(
                             cache_key,
@@ -119,6 +120,11 @@ async def process_webhook_events(events):
                             "Failed to set dedup marker for event %s (will allow redelivery): %s",
                             event_id, redis_err,
                         )
+                elif cache_key:
+                    logger.error(
+                        "delivery_failed for event %s: %d outbox send(s) failed (marker skipped, will allow redelivery)",
+                        event_id, failures,
+                    )
             except Exception as e:
                 await db.rollback()
                 event_id = getattr(event, 'webhook_event_id', 'unknown')
