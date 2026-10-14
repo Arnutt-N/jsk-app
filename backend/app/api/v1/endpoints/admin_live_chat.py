@@ -7,6 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Any, List, Optional
 from app.api import deps
+from app.services.outbox import drain_outbox, new_outbox
 from app.services.live_chat_service import (
     live_chat_service,
     TRANSFER_ERR_CONFLICT,
@@ -498,16 +499,21 @@ async def create_conversation(
             detail="User already has an active session",
         ) from exc
 
-    # 5. If initial_message is provided, create Message and send via LINE
+    # 5. If initial_message is provided, persist the Message and queue the
+    # LINE push; the push leaves only after the commit below (no ghosts).
+    box = new_outbox()
     if data.initial_message:
         operator_name = current_user.display_name or "Admin"
-        try:
-            from linebot.v3.messaging import TextMessage
-            await line_service.push_messages(
-                data.line_user_id, [TextMessage(text=data.initial_message)]
+        from functools import partial
+
+        from linebot.v3.messaging import TextMessage
+        box.append(
+            partial(
+                line_service.push_messages,
+                data.line_user_id,
+                [TextMessage(text=data.initial_message)],
             )
-        except Exception as e:
-            logger.warning("Failed to send initial LINE message: %s", e)
+        )
 
         await line_service.save_message(
             db=db,
@@ -524,6 +530,13 @@ async def create_conversation(
 
     await db.commit()
     await db.refresh(session)
+
+    failures = await drain_outbox(box)
+    if failures:
+        logger.warning(
+            "Initial LINE message failed for %s (%d send(s))",
+            data.line_user_id, failures,
+        )
 
     # Announce (not publish): the refresh above has to sit between the
     # commit and the fan-out, so this caller drives the two steps itself.
