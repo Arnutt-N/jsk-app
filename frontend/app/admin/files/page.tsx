@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import Image from 'next/image';
 import {
   Upload, Download, Trash2, Link2, LinkIcon, Search,
   FileText, Image as ImageIcon, Video, Music, File as FileIcon,
@@ -531,15 +532,16 @@ export default function FilesPage() {
 
                         {/* Thumbnail area */}
                         <div
-                          className="aspect-square bg-gray-50 dark:bg-gray-800 flex items-center justify-center cursor-pointer overflow-hidden"
+                          className="aspect-square bg-gray-50 dark:bg-gray-800 flex items-center justify-center cursor-pointer overflow-hidden relative"
                           onClick={() => setPreviewFile(file)}
                         >
                           {showImage ? (
-                            <img
+                            <Image
                               src={preview}
                               alt={file.filename}
-                              className="w-full h-full object-cover"
-                              loading="lazy"
+                              fill
+                              unoptimized
+                              className="object-cover"
                               onError={() => markBroken(file.id)}
                             />
                           ) : (
@@ -829,9 +831,12 @@ export default function FilesPage() {
                     </Button>
                   </div>
                 ) : (
-                  <img
+                  <Image
                     src={getPreviewUrl(previewFile) ?? buildMediaUrl(previewFile)}
                     alt={previewFile.filename}
+                    width={1600}
+                    height={1200}
+                    unoptimized
                     className="max-h-[60vh] rounded-xl object-contain"
                     onError={() => markBroken(previewFile.id)}
                   />

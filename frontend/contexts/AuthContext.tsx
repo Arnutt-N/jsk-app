@@ -191,8 +191,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const meData = await meRes.json();
           if (cancelled) return;
           if (getAuthSnapshot().status !== 'loading') return;
-          if (meData.csrf_token) setCsrfToken(meData.csrf_token);
-          const { csrf_token: _csrf, ...userFields } = meData;
+          const { csrf_token, ...userFields } = meData;
+          if (csrf_token) setCsrfToken(csrf_token);
           setAuthState({ user: userFields, status: 'authenticated' });
         } else {
           setAuthState({ status: 'unauthenticated' });

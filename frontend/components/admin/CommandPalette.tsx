@@ -241,7 +241,7 @@ export function CommandPalette() {
     ];
 
     return [...pageItems, ...actionItems, ...settingsItems, ...helpItems];
-  }, [navigateAndClose, toggleTheme, logout]);
+  }, [navigateAndClose, toggleTheme]);
 
   if (!open) return null;
 

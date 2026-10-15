@@ -61,7 +61,7 @@ export default function RichMenuListPage() {
         } finally {
             setLoading(false);
         }
-    }, [API_BASE]);
+    }, [API_BASE, toast]);
 
     useEffect(() => {
         fetchMenus();

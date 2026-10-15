@@ -70,7 +70,7 @@ export default function LineSettingsPage() {
         } finally {
             setLoading(false);
         }
-    }, [API_BASE]);
+    }, [API_BASE, toast]);
 
     useEffect(() => {
         fetchSettings();

@@ -80,7 +80,7 @@ export default function CustomIntegrationsPage() {
         } finally {
             setLoading(false);
         }
-    }, [API_BASE]);
+    }, [API_BASE, toast]);
 
     useEffect(() => {
         fetchIntegrations();
