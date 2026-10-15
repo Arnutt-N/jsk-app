@@ -177,6 +177,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (cancelled) return;
         }
 
+        // A login/logout/retry that landed mid-bootstrap owns the store —
+        // this stale run must not overwrite it (2026-10-15 login flake:
+        // toast success but stuck on /login until a second attempt).
+        if (getAuthSnapshot().status !== 'loading') return;
+
         if (!meRes || isTransientLoginStatus(meRes.status)) {
           setAuthState({ status: 'bootstrap_error' });
           return;
@@ -185,6 +190,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (meRes.ok) {
           const meData = await meRes.json();
           if (cancelled) return;
+          if (getAuthSnapshot().status !== 'loading') return;
           if (meData.csrf_token) setCsrfToken(meData.csrf_token);
           const { csrf_token: _csrf, ...userFields } = meData;
           setAuthState({ user: userFields, status: 'authenticated' });
@@ -193,7 +199,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (error) {
         console.error('Cookie auth initialization error:', error);
-        if (!cancelled) setAuthState({ status: 'bootstrap_error' });
+        if (!cancelled && getAuthSnapshot().status === 'loading') {
+          setAuthState({ status: 'bootstrap_error' });
+        }
       }
     };
 
