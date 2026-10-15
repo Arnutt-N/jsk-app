@@ -21,8 +21,9 @@
 - [x] Fix race launched per user order: .worktrees/audit-fix-poteto @ fix/audit-f1f4-poteto (agent a1aa96af, poteto-mode only) vs .worktrees/audit-fix-ecc @ fix/audit-f1f4-ecc (agent a9a7b160, ecc-guide + domain skills only). Same tasks F2-prove/F1/F3/F4, one commit per fix, stop at pushed branch, no PRs yet.
 - [x] Race compared (.audit/fix-race-verdict.md): F1/F2/F3 ties, F4 ECC wins (9/9, full green). Wakeup cancelled.
 - [x] Cross-review done: .audit/review-poteto-on-ecc.md (4 APPROVE, F4 notes) + .audit/review-ecc-on-poteto.md (3 APPROVE + F4 APPROVE-WITH-NOTES non-blocking). Committed + pushed.
-- [x] Landed per user go: fix/audit-f1f4 (4 ECC-lane commits rebased onto origin/main, trail included) pushed; PR #258 opened (report + cross-reviews linked). Awaiting review/merge.
-- [ ] Handoff + cleanup worktrees after merge decision
+- [x] Landed per user go: fix/audit-f1f4 pushed; PR #258 reviewed (CI green, diff identical to reviewed lane) and SQUASH-MERGED to main (a9d807c). Main CI+CD+Encoding green post-merge. Prod smoke: backend 200 (one transient 000, retry 200), frontend 200.
+- [x] Cleanup: lane worktrees removed, local+remote lane branches deleted. Report PR #257 still OPEN (audit docs, user decision).
+- [ ] Final handoff
 - [ ] skip: code fixes in this run (report-only until user approves Phase 6)
 
 throughput checkpoint: n/a, read-only investigation
