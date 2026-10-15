@@ -121,7 +121,12 @@ async def test_inbox_equivalence_db(test_client):
         async def _override_staff():
             return SimpleNamespace(id=staff.id, role=UserRole.AGENT)
 
+        async def _override_get_db():
+            async with Session() as db:
+                yield db
+
         app.dependency_overrides[deps.get_current_staff] = _override_staff
+        app.dependency_overrides[deps.get_db] = _override_get_db
         try:
             response = test_client.get("/api/v1/admin/live-chat/conversations")
         finally:

@@ -206,7 +206,7 @@ class ConversationsMixin:
         # 5. Conversations list construction
         conversations = []
         for user, session, last_msg, last_incoming in rows:
-            if user is not None and user.id in quarantined_set:
+            if user is None or user.id not in line_id_map:
                 continue
             raw_line_id = line_id_map.get(user.id)
             unread_count = unread_counts.get(raw_line_id, 0) if raw_line_id else 0
