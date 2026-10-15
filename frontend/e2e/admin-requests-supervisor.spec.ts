@@ -10,12 +10,15 @@ import { loginAsAdmin } from './utils/auth'
  *
  * Strategy:
  *   - Login as the seeded admin (canApprove === true).
+ *   - API-seed one normal + one COMPLETED request per test (beforeEach)
+ *     with unique per-run topic markers; delete them in afterEach.
  *   - Navigate to /admin/requests, find the first row's link, and goto
  *     it directly. We don't click the row because the table row's link
  *     is on a nested cell and `<tr>.click()` doesn't reliably bubble to
  *     a navigation in the test runner.
- *   - If the test DB has zero requests, skip (the list-page spec
- *     already covers empty-state regressions).
+ *   - Seeded rows guarantee at least one normal + one COMPLETED request,
+ *     so no test skips on an empty DB (empty state stays covered by the
+ *     list-page spec).
  */
 
 /**
@@ -83,15 +86,73 @@ async function getFirstCompletedRequestDetailUrl(page: Page): Promise<string | n
 }
 
 test.describe('Request detail page -- supervisor view', () => {
+  // A5 seed: one normal + one COMPLETED request via the admin API so the
+  // journey tests below never skip on an empty DB. The topic marker is
+  // unique per worker process, keeping parallel CI shards from colliding.
+  const runMarker = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`
+  const seededIds: number[] = []
+
+  async function csrfHeaders(page: Page): Promise<Record<string, string>> {
+    // CSRF double-submit (deps.py): state-changing calls need the csrf_token
+    // cookie value mirrored in the x-csrf-token header. page.request shares the
+    // browser cookies, so only the header is missing.
+    const cookies = await page.context().cookies()
+    const csrf = cookies.find((c) => c.name === 'csrf_token')?.value
+    if (!csrf) throw new Error('seed setup failed: no csrf_token cookie after login')
+    return { 'x-csrf-token': csrf }
+  }
+
+  async function seedRequest(page: Page, status: 'PENDING' | 'COMPLETED'): Promise<void> {
+    const headers = await csrfHeaders(page)
+    const topic = `E2E-A5-${runMarker}-${status}`
+    const createResp = await page.request.post('/api/v1/admin/requests', {
+      headers,
+      data: {
+        topic_category: topic,
+        description: `Seeded by admin-requests-supervisor.spec.ts (${runMarker})`,
+        firstname: 'E2E',
+        lastname: status,
+      },
+    })
+    if (!createResp.ok()) {
+      throw new Error(`seed POST failed: ${createResp.status()} ${await createResp.text()}`)
+    }
+    const created = await createResp.json()
+    if (status === 'COMPLETED') {
+      // Admin holds the override grant, so the direct PENDING -> COMPLETED
+      // jump is accepted and recorded as a forced transition.
+      const patchResp = await page.request.patch(`/api/v1/admin/requests/${created.id}`, {
+        headers,
+        data: { status: 'COMPLETED' },
+      })
+      if (!patchResp.ok()) {
+        throw new Error(`seed PATCH failed: ${patchResp.status()} ${await patchResp.text()}`)
+      }
+    }
+    seededIds.push(created.id)
+  }
+
   test.beforeEach(async ({ page }) => {
     await loginAsAdmin(page)
     await page.goto('/admin/requests')
     await expect(page.locator('table')).toBeVisible({ timeout: 10_000 })
+    await seedRequest(page, 'PENDING')
+    await seedRequest(page, 'COMPLETED')
+  })
+
+  test.afterEach(async ({ page }) => {
+    const headers = await csrfHeaders(page).catch(() => null)
+    for (const id of seededIds.splice(0)) {
+      try {
+        await page.request.delete(`/api/v1/admin/requests/${id}`, headers ? { headers } : undefined)
+      } catch {
+        // Best-effort cleanup; a failed delete must not fail the test.
+      }
+    }
   })
 
   test('hero card renders supervisor-tier workflow buttons', async ({ page }) => {
     const detailUrl = await getFirstRequestDetailUrl(page)
-    test.skip(!detailUrl, 'no requests in test DB; supervisor view nothing to render')
     await page.goto(detailUrl!)
 
     // Hero card: title with topic_category + back button + workflow row
@@ -121,7 +182,6 @@ test.describe('Request detail page -- supervisor view', () => {
 
   test('override kebab menu opens and contains escape-hatch items', async ({ page }) => {
     const detailUrl = await getFirstRequestDetailUrl(page)
-    test.skip(!detailUrl, 'no requests in test DB')
     await page.goto(detailUrl!)
     await expect(page.getByRole('button', { name: 'กลับ' })).toBeVisible({ timeout: 10_000 })
 
@@ -150,7 +210,6 @@ test.describe('Request detail page -- supervisor view', () => {
     await page.setViewportSize({ width: 375, height: 800 })
 
     const detailUrl = await getFirstRequestDetailUrl(page)
-    test.skip(!detailUrl, 'no requests in test DB')
     await page.goto(detailUrl!)
     await expect(page.getByRole('button', { name: 'กลับ' })).toBeVisible({ timeout: 10_000 })
 
@@ -184,15 +243,11 @@ test.describe('Request detail page -- supervisor view', () => {
   // -------------------------------------------------------------------
   // PRD B: revert-from-COMPLETED via the kebab "ตัวเลือกเพิ่มเติม" menu.
   //
-  // These tests assume the test DB has at least one COMPLETED request.
-  // If not, each test skips rather than fails. The seeded fixtures in
-  // CI include at least one completed row; locally you may need to run
-  // a request through approval before exercising this path.
+  // beforeEach seeds a COMPLETED row, so these tests always execute.
   // -------------------------------------------------------------------
 
   test('revert kebab shows both revert items on COMPLETED request', async ({ page }) => {
     const detailUrl = await getFirstCompletedRequestDetailUrl(page)
-    test.skip(!detailUrl, 'no COMPLETED requests in test DB; revert flow has nothing to exercise')
     await page.goto(detailUrl!)
     await expect(page.getByRole('button', { name: 'กลับ' })).toBeVisible({ timeout: 10_000 })
 
@@ -226,7 +281,6 @@ test.describe('Request detail page -- supervisor view', () => {
 
   test('cancelling the revert dialog keeps status as COMPLETED', async ({ page }) => {
     const detailUrl = await getFirstCompletedRequestDetailUrl(page)
-    test.skip(!detailUrl, 'no COMPLETED requests in test DB')
     await page.goto(detailUrl!)
     await expect(page.getByRole('button', { name: 'กลับ' })).toBeVisible({ timeout: 10_000 })
 
@@ -251,7 +305,6 @@ test.describe('Request detail page -- supervisor view', () => {
 
   test('confirming the revert dialog sends PATCH and flips the status pill', async ({ page }) => {
     const detailUrl = await getFirstCompletedRequestDetailUrl(page)
-    test.skip(!detailUrl, 'no COMPLETED requests in test DB')
     const id = detailUrl!.split('/').pop()!
 
     // Baseline: real backend GET on page load; capture BEFORE installing fulfills.
@@ -303,7 +356,6 @@ test.describe('Request detail page -- supervisor view', () => {
     })
 
     const detailUrl = await getFirstRequestDetailUrl(page)
-    test.skip(!detailUrl, 'no requests in test DB')
     await page.goto(detailUrl!)
     await expect(page.getByRole('button', { name: 'กลับ' })).toBeVisible({ timeout: 10_000 })
 

@@ -17,10 +17,13 @@ def new_outbox() -> Outbox:
     return []
 
 
-async def drain_outbox(box: Outbox) -> None:
+async def drain_outbox(box: Outbox) -> int:
     """Send every deferred announcement; one failure never blocks the rest."""
+    failures = 0
     for send in box:
         try:
             await send()
         except Exception as exc:
+            failures += 1
             logger.error("Outbox announce failed: %s", exc)
+    return failures
