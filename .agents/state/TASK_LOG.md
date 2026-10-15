@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 282 active handoffs, 12 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 283 active handoffs, 12 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-10-15 20:58 — pi — completed
+
+Opened PR #258 (fix/audit-f1f4: F1-F4 ECC-lane fixes, 4 commits rebased on main, cross-reviewed both directions, all approve). Race verdict: F1/F2/F3 ties, F4 ECC wins. Awaiting review/merge. Iron Rule respected throughout (counts/lengths only).
+
+- Checkpoint: `.agents/state/checkpoints/handover-pi-20261015-2058.json`
+- Summary: `project-log-md/pi/session-summary-20261015-2058.md`
+
+---
 
 ### 2026-10-15 18:40 — pi — completed
 
