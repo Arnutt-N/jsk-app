@@ -1,8 +1,44 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 281 active handoffs, 12 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 285 active handoffs, 12 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-10-15 21:24 — pi — completed
+
+Session close: enterprise audit sweep fully done. PR #258 merged to main, CI+CD green, prod smoke 200/200, lanes cleaned. Only open item: PR #257 (report docs) merge-or-close decision by user. Iron Rule respected throughout (counts/lengths only, no secret values).
+
+- Checkpoint: `.agents/state/checkpoints/handover-pi-20261015-2124.json`
+- Summary: `project-log-md/pi/session-summary-20261015-2124.md`
+
+---
+
+### 2026-10-15 21:13 — pi — completed
+
+PR #258 squash-merged to main (a9d807c). Main CI+CD green. Prod smoke backend 200 frontend 200. Lane worktrees+branches cleaned. Report PR #257 still open. Iron Rule respected throughout.
+
+- Checkpoint: `.agents/state/checkpoints/handover-pi-20261015-2113.json`
+- Summary: `project-log-md/pi/session-summary-20261015-2113.md`
+
+---
+
+### 2026-10-15 20:58 — pi — completed
+
+Opened PR #258 (fix/audit-f1f4: F1-F4 ECC-lane fixes, 4 commits rebased on main, cross-reviewed both directions, all approve). Race verdict: F1/F2/F3 ties, F4 ECC wins. Awaiting review/merge. Iron Rule respected throughout (counts/lengths only).
+
+- Checkpoint: `.agents/state/checkpoints/handover-pi-20261015-2058.json`
+- Summary: `project-log-md/pi/session-summary-20261015-2058.md`
+
+---
+
+### 2026-10-15 18:40 — pi — completed
+
+Enterprise audit sweep report-only done: PR #257 opened (docs only, no code). Backend 1469/2/5, frontend tsc+unit+build green lint-red-generated-only, security+smoke green. Findings F1 (low test-env) F2 (medium unproven, fresh-DB rerun pending) F3 (low eslint config) F4 (info backlog) F5 closed F6 verified. Fix PRs need user go, one per unit. Iron Rule respected: counts/lengths only, no secret values printed.
+
+- Checkpoint: `.agents/state/checkpoints/handover-pi-20261015-1840.json`
+- Summary: `project-log-md/pi/session-summary-20261015-1840.md`
+
+---
 
 ### 2026-10-15 15:01 — pi — completed
 

@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-10-15 15:01 by Pi (Merged PR #256: login redirect flake fix stale bootstrap guard + repro test)
+> **Last Updated:** 2026-10-15 21:24 by Pi (Session close: enterprise audit sweep fully done.)
 
 ## Thai Summary
 **สถานะล่าสุด (2026-09-30)** — รวม PR #239 (แก้บั๊กโอนแชทไม่มีบันทึก M-8) เข้าสายหลักแล้ว (`fd82c7a`) + ตรวจหลังส่งขึ้นร้านจริงเสร็จ: หลังบ้านแข็งแรงดี (database+redis ปกติ), หน้าร้านเปิดติด (HTTP 200), ปุ่มโอนแชทล็อกถูกต้อง (401), บันทึกส่งของ CD `36596610691` เขียวครบ 6 งาน — โค้ดตรงกับเซิร์ฟเวอร์ เหลือ Round-3b (22 ข้อ) + ซ่อมไฟล์ทดสอบ upload-security ที่พังมาก่อน
@@ -123,6 +123,10 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-10-15 21:24] Pi: Session close: enterprise audit sweep fully done. PR #258 merged to main, CI+CD green, prod smoke 200/200, lanes cleaned. Only open item: PR #257 (report docs) merge-or-close decision by user. Iron Rule respected throughout (counts/lengths  (Pi)
+- [2026-10-15 21:13] Pi: PR #258 squash-merged to main (a9d807c). Main CI+CD green. Prod smoke backend 200 frontend 200. Lane worktrees+branches cleaned. Report PR #257 still open. Iron Rule respected throughout. (Pi)
+- [2026-10-15 20:58] Pi: Opened PR #258 (fix/audit-f1f4: F1-F4 ECC-lane fixes, 4 commits rebased on main, cross-reviewed both directions, all approve). Race verdict: F1/F2/F3 ties, F4 ECC wins. Awaiting review/merge. Iron Rule respected throughout (counts/lengths o (Pi)
+- [2026-10-15 18:40] Pi: Enterprise audit sweep report-only done: PR #257 opened (docs only, no code). Backend 1469/2/5, frontend tsc+unit+build green lint-red-generated-only, security+smoke green. Findings F1 (low test-env) F2 (medium unproven, fresh-DB rerun pend (Pi)
 - [2026-10-15 15:01] Pi: Merged PR #256: login redirect flake fix (stale bootstrap guard + repro test) (Pi)
 - [2026-10-14 19:06] Pi: PR254 merged (4e2db66, CD green); review findings 74 recorded; Phase A relaunch needed (3 owners stopped, zero commits) (Pi)
 - [2026-10-14 00:46] Pi: Shipped SakonNakhonBot reuse (PRs #250-253) + prod cutover (61 Q&A live); recorded secrets iron rule in AGENTS.md (Pi)
