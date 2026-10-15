@@ -47,3 +47,15 @@ One commit per fix. IRON RULE honored: no secret values printed anywhere below
   no `.env` file created, modified, or committed (both remain absent/untracked in this checkout).
 - Verification: `pytest tests/test_health_hardening.py -q` → `2 passed` with bypass unset AND
   with `DEV_AUTH_BYPASS=true` exported.
+
+## F3 — eslint red only from generated Playwright bundles
+
+- Skill applied: `senior-frontend` (Next.js config hygiene — generated output excluded from
+  source gates, same class as `.next/`/`out/`/`dist/` ignores already in the flat config).
+- Approach: added the generated report dir to the eslint flat-config `ignores` (one-line class
+  change); no source file touched, no rule relaxed.
+- Diff: `frontend/eslint.config.mjs` — `ignores` gains `"playwright-report-2client/**"`.
+- Verification: `npm run lint` (after a clean `npm ci`; lockfile identical to base) → exit 0,
+  `0 errors, 11 warnings`. Ignore proof: dropped a fatally-broken stub JS file into
+  `playwright-report-2client/trace/`, reran lint → still exit 0 with the same 11 warnings
+  (stub invisible to the gate), then deleted the stub. Working tree holds only the config edit.
