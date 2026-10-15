@@ -148,7 +148,7 @@ export default function FriendHistoryPage() {
         } finally {
             setLoading(false);
         }
-    }, [API_BASE, page, perPage, eventTypeFilter, searchFilter]);
+    }, [API_BASE, page, eventTypeFilter, searchFilter]);
 
     useEffect(() => {
         fetchStats();

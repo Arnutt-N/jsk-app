@@ -1,4 +1,4 @@
-import { expect, it, vi } from 'vitest'
+import { expect, it, vi, type Mock } from 'vitest'
 import { installAdminAuthFetchInterceptor } from '@/lib/authFetch'
 import { setCsrfToken } from '@/lib/csrfStore'
 
@@ -11,7 +11,8 @@ declare global {
 it('uses the installed cookie/CSRF transport for a resize upload', async () => {
   const oldFetch = window.fetch
   const oldInstalled = window.__JSK_ADMIN_AUTH_FETCH_INSTALLED__
-  const native = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => new Response('{}', { status: 200 }))
+  const native: Mock<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>> =
+    vi.fn(async () => new Response('{}', { status: 200 }))
   try {
     window.fetch = native as typeof window.fetch
     window.__JSK_ADMIN_AUTH_FETCH_INSTALLED__ = false

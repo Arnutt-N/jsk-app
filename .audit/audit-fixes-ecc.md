@@ -59,3 +59,38 @@ One commit per fix. IRON RULE honored: no secret values printed anywhere below
   `0 errors, 11 warnings`. Ignore proof: dropped a fatally-broken stub JS file into
   `playwright-report-2client/trace/`, reran lint → still exit 0 with the same 11 warnings
   (stub invisible to the gate), then deleted the stub. Working tree holds only the config edit.
+
+## F4 — 9 first-party warning spots → 0 warnings (behavior-preserving)
+
+- Skills applied: `react_19_patterns` (compiler-era: exact dep arrays, no new manual
+  `useMemo`/`useCallback` bloat — only dep-array corrections) + `senior-frontend` (Next.js
+  `Image` for `<img>`, semantic-preserving component edits).
+- Approach: minimal exact fix per spot; no function bodies changed except the AuthContext
+  destructure reorder (same values, same effect order) and the Image swaps (same src/alt/
+  classes/handlers). No test expectations touched — the one test-file edit only retypes the
+  fetch mock (all 30 assertions intact); the mid-course correction (zero-arg impl broke
+  `tsc` via `never[][]` calls typing) was resolved with an explicit `Mock<...>` annotation
+  instead of touching assertions.
+- Diff (8 files):
+  - `chat-histories/[lineUserId]/page.tsx` — dropped unreferenced `lineUserId` from
+    `handleExport` deps → `[messages, displayName]`.
+  - `friends/history/page.tsx` — dropped module-const `perPage` (= 20, never reactive)
+    from `fetchEvents` deps.
+  - `rich-menus/page.tsx`, `settings/custom/page.tsx`, `settings/line/page.tsx` — added
+    missing `toast` dep (stable `useCallback` in the Toast provider, so no re-render change).
+  - `CommandPalette.tsx` — dropped unreferenced `logout` from the items `useMemo` deps
+    (`logout` still used by the confirm handler outside the memo).
+  - `files/page.tsx` — two `<img>` → `<Image unoptimized>` (same src/alt/class/onError;
+    thumbnail uses `fill` + `relative` parent, modal uses explicit dimensions per repo
+    precedent; `unoptimized` because sources are authenticated/dynamic media URLs the
+    optimizer must not process).
+  - `AuthContext.tsx` — `const { csrf_token, ...userFields }` then `if (csrf_token)
+    setCsrfToken(csrf_token)` (was: use-then-discard-as-`_csrf`); token still stripped
+    from the stored user object, CSRF store write happens before auth-state set, as before.
+  - `image-resize/__tests__/upload-security.test.ts` — mock typed as
+    `Mock<(input, init?) => Promise<Response>>` with an arg-free impl (params were ignored);
+    zero assertion/behavior change.
+- Verification (from `frontend/`): `npm run lint` → exit 0, 0 errors, 0 warnings (was 11);
+  `npx tsc --noEmit` → exit 0; `npm run build` → exit 0, compiled + 49/49 static pages;
+  `npm run test:unit` → 785/785 passed (91 files); targeted
+  `upload-security.test.ts` → 2/2 passed.
