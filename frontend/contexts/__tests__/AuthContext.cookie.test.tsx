@@ -193,6 +193,53 @@ describe('AuthContext — cookie mode', () => {
     expect(snapshot.current?.isLoading).toBe(false);
   });
 
+  it('stale bootstrap in flight does not clobber a login that wins mid-retry', async () => {
+    // Regression: toast-success-but-stuck-on-/login (2026-10-15).
+    // Bootstrap starts while logged out (attempt 1 → transient 503, backs
+    // off); the user logs in during the backoff window; the stale retry
+    // then lands with a pre-login 401. The 401 must not overwrite the
+    // fresh session — the first login attempt has to stick.
+    vi.useFakeTimers();
+    let meCalls = 0;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes('/auth/login')) {
+        return jsonResponse(200, { user: ME_USER, csrf_token: 'csrf-login' });
+      }
+      if (url.includes('/auth/me')) {
+        meCalls += 1;
+        if (meCalls === 1) return jsonResponse(503);
+        return jsonResponse(401);
+      }
+      return jsonResponse(404);
+    });
+    global.fetch = fetchMock;
+    const snapshot = makeSnapshot();
+    render(
+      <AuthProvider>
+        <TestConsumer snapshot={snapshot} />
+      </AuthProvider>,
+    );
+    // Let bootstrap attempt 1 (503) reach its backoff wait.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    // User logs in mid-backoff — this is the attempt that showed toast success.
+    await act(async () => {
+      await snapshot.current?.login('admin', 'password');
+    });
+    expect(snapshot.current?.isAuthenticated).toBe(true);
+    // Let the stale bootstrap retry land.
+    await act(async () => {
+      await vi.runAllTimersAsync();
+    });
+    expect(snapshot.current?.isAuthenticated).toBe(true);
+    expect(snapshot.current?.user).toEqual(ME_USER);
+    expect(snapshot.current?.isLoading).toBe(false);
+    expect(snapshot.current?.bootstrapFailed).toBe(false);
+    expect(hoisted.replace).not.toHaveBeenCalledWith('/login');
+  });
+
   it('migrates legacy Bearer token then bootstraps (FR4)', async () => {
     localStorage.setItem('auth_token', 'legacy-jwt');
     const fetchMock = vi
