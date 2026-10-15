@@ -32,3 +32,18 @@ One commit per fix. IRON RULE honored: no secret values printed anywhere below
   no app code touched, no rows deleted from the shared dev DB.
 - Verification: `pytest tests/test_inbox_distinct_on.py -q` on the fresh DB → `2 passed`.
   (On the stale persistent DB the node still fails by design — that is the documented hazard.)
+
+## F1 — `test_detailed_and_ws_health_require_admin` fails when `DEV_AUTH_BYPASS=true`
+
+- Skill applied: `testing_standards` §1 (test behavior, not implementation) + §2.3 (test DB/env hygiene).
+- Approach: reproduced first — node passes with bypass off, fails with `DEV_AUTH_BYPASS=true`
+  exported (simulating the local `backend/.env` + `backend/app/.env` condition from the audit).
+  The gate under test (`get_current_user` → `get_current_admin` on both health endpoints)
+  reads the `settings.DEV_AUTH_BYPASS` singleton at request time, so the test now pins that
+  precondition instead of inheriting ambient env.
+- Diff: `backend/tests/test_health_hardening.py` — `test_detailed_and_ws_health_require_admin`
+  takes `monkeypatch` (function-scoped, auto-undone) and forces
+  `api_deps.settings.DEV_AUTH_BYPASS` to `False` before asserting 401/403. Test-only change;
+  no `.env` file created, modified, or committed (both remain absent/untracked in this checkout).
+- Verification: `pytest tests/test_health_hardening.py -q` → `2 passed` with bypass unset AND
+  with `DEV_AUTH_BYPASS=true` exported.
