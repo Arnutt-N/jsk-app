@@ -1,4 +1,16 @@
-"""Inbox message windows are index-driven DISTINCT ON (R3-M19)."""
+"""Inbox message windows are index-driven DISTINCT ON (R3-M19).
+
+NOTE (F2, stale-data artifact — proven 2026-10-15): ``test_inbox_equivalence_db``
+reads the shared persistent DB from ``settings.DATABASE_URL`` (local default:
+``skn_app_db``), and ``get_conversations`` fail-loud decrypts every user row in
+the inbox window. Rows encrypted under a *different* ``ENCRYPTION_KEY`` (e.g.
+dev runs with a real key vs the committed pytest dummy key) raise
+``cryptography.fernet.InvalidToken`` even though this test's own nonce rows
+are fine — the test only cleans up its own rows. This is environmental, not a
+code regression (base code identical; green on a fresh DB). To reset: recreate
+the DB, run ``alembic upgrade head`` with the pytest dummy ``ENCRYPTION_KEY``,
+or point ``DATABASE_URL`` at a fresh database before running this node. Never
+delete other rows from the shared dev DB to satisfy this test."""
 import socket
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
