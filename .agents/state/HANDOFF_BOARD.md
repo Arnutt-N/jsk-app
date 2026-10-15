@@ -1,8 +1,8 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Handoff Board (generated)
 
-> **Last generated**: 2026-10-14 19:06 (from newest checkpoint)
-> 280 active handoffs, 12 platforms, 0 queued directed handoff(s).
+> **Last generated**: 2026-10-15 15:01 (from newest checkpoint)
+> 281 active handoffs, 12 platforms, 0 queued directed handoff(s).
 
 > Regenerate after any handoff: `node .agents/scripts/gen-handoff-views.cjs`
 
@@ -19,7 +19,7 @@
 | kimi_code | AVAILABLE | 2026-06-02 01:39 | 0 | Applied all P0–P3 critique fixes on frontend/app/admin/requests/[id]/page.tsx. Destructive actions now have ConfirmDialo | `project-log-md/kimi_code/session-summary-20260602-0139.md` |
 | muse_code | AVAILABLE | 2026-10-11 15:10 | 0 | Merged PR #248 (act-on-8 fixes + 6 review findings) via guarded squash d5dbef9 after independent PASS+NOTES verdict; del | `project-log-md/muse_code/session-summary-20261011-1510.md` |
 | open_code | AVAILABLE | 2026-08-25 07:39 | 0 | LIFF smoke-test plan for PR #202 drafted+reviewed (.scratch/liff-smoke-pr202/smoke-test-plan.md, REV1: 5 findings fixed) | `project-log-md/open_code/session-summary-20260825-0739.md` |
-| pi | AVAILABLE | 2026-10-14 19:06 | 0 | PR254 merged (4e2db66, CD green); review findings 74 recorded; Phase A relaunch needed (3 owners stopped, zero commits) | `project-log-md/pi/session-summary-20261014-1906.md` |
+| pi | AVAILABLE | 2026-10-15 15:01 | 0 | Merged PR #256: login redirect flake fix (stale bootstrap guard + repro test) | `project-log-md/pi/session-summary-20261015-1501.md` |
 | qoder | AVAILABLE | 2026-08-29 23:21 | 0 | Merged PR #206 + #207 to main (8ddbda3, beaff04) — resolved #206 generated-state conflicts (kept both 21:58/22:44 record | `project-log-md/qoder/session-summary-20260829-2321.md` |
 | zcode | AVAILABLE | 2026-09-06 22:56 | 0 | codebase-review-fix on PR #228 CLOSED via PR #229 (squash e63ee9f, CI 4/4, CD success): review found 0 Critical/High; 3  | `project-log-md/zcode/session-summary-20260906-2256.md` |
 
@@ -35,6 +35,7 @@ _None — no blocked checkpoints._
 
 | When | From → To | Task | Checkpoint |
 |------|-----------|------|------------|
+| 2026-10-15 15:01 | pi → all | Merged PR #256: login redirect flake fix (stale bootstrap guard + repro test) | `handover-pi-20261015-1501.json` |
 | 2026-10-14 19:06 | pi → all | PR254 merged (4e2db66, CD green); review findings 74 recorded; Phase A relaunch needed (3 owners stopped, zero commits) | `handover-pi-20261014-1906.json` |
 | 2026-10-14 00:46 | pi → all | Shipped SakonNakhonBot reuse (PRs #250-253) + prod cutover (61 Q&A live); recorded secrets iron rule in AGENTS.md | `handover-pi-20261014-0046.json` |
 | 2026-10-11 15:10 | muse_code → all | Merged PR #248 (act-on-8 fixes + 6 review findings) via guarded squash d5dbef9 after independent PASS+NOTES verdict; deleted branch fix/act- | `handover-muse_code-20261011-1510.json` |
@@ -44,4 +45,3 @@ _None — no blocked checkpoints._
 | 2026-10-10 01:58 | muse_code → all | Merged PR #246: rich-menu new/edit UI parity (badge, header, save buttons) | `handover-muse_code-20261010-0158.json` |
 | 2026-10-10 01:32 | claude_code → all | Updated WSL to 3.0.1 (kernel 6.18) and started pstack-claude global symlinks in Ubuntu-26.04 (Codex failed); symlink result NOT yet verified | `handover-claude_code-20261010-0132.json` |
 | 2026-10-09 19:58 | muse_code → all | Merged PR #243 (flaky suites) + PR #244 (upload-security tsc); P1 verified intact, main CI green | `handover-muse_code-20261009-1958.json` |
-| 2026-10-05 00:08 | muse_code → all | Post-merge verify: PR #242 live on production - CD 6/6, backend healthy, frontend 200 | `handover-muse_code-20261005-0008.json` |
