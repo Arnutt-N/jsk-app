@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 284 active handoffs, 12 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 285 active handoffs, 12 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-10-15 21:24 — pi — completed
+
+Session close: enterprise audit sweep fully done. PR #258 merged to main, CI+CD green, prod smoke 200/200, lanes cleaned. Only open item: PR #257 (report docs) merge-or-close decision by user. Iron Rule respected throughout (counts/lengths only, no secret values).
+
+- Checkpoint: `.agents/state/checkpoints/handover-pi-20261015-2124.json`
+- Summary: `project-log-md/pi/session-summary-20261015-2124.md`
+
+---
 
 ### 2026-10-15 21:13 — pi — completed
 
