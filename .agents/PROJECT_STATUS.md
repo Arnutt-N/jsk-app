@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-10-15 20:58 by Pi (Opened PR #258 fix/audit-f1f4: F1-F4 ECC-lane fixes, 4 commits rebased on main, cross-revi)
+> **Last Updated:** 2026-10-15 21:13 by Pi (PR #258 squash-merged to main a9d807c.)
 
 ## Thai Summary
 **สถานะล่าสุด (2026-09-30)** — รวม PR #239 (แก้บั๊กโอนแชทไม่มีบันทึก M-8) เข้าสายหลักแล้ว (`fd82c7a`) + ตรวจหลังส่งขึ้นร้านจริงเสร็จ: หลังบ้านแข็งแรงดี (database+redis ปกติ), หน้าร้านเปิดติด (HTTP 200), ปุ่มโอนแชทล็อกถูกต้อง (401), บันทึกส่งของ CD `36596610691` เขียวครบ 6 งาน — โค้ดตรงกับเซิร์ฟเวอร์ เหลือ Round-3b (22 ข้อ) + ซ่อมไฟล์ทดสอบ upload-security ที่พังมาก่อน
@@ -123,6 +123,7 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-10-15 21:13] Pi: PR #258 squash-merged to main (a9d807c). Main CI+CD green. Prod smoke backend 200 frontend 200. Lane worktrees+branches cleaned. Report PR #257 still open. Iron Rule respected throughout. (Pi)
 - [2026-10-15 20:58] Pi: Opened PR #258 (fix/audit-f1f4: F1-F4 ECC-lane fixes, 4 commits rebased on main, cross-reviewed both directions, all approve). Race verdict: F1/F2/F3 ties, F4 ECC wins. Awaiting review/merge. Iron Rule respected throughout (counts/lengths o (Pi)
 - [2026-10-15 18:40] Pi: Enterprise audit sweep report-only done: PR #257 opened (docs only, no code). Backend 1469/2/5, frontend tsc+unit+build green lint-red-generated-only, security+smoke green. Findings F1 (low test-env) F2 (medium unproven, fresh-DB rerun pend (Pi)
 - [2026-10-15 15:01] Pi: Merged PR #256: login redirect flake fix (stale bootstrap guard + repro test) (Pi)
