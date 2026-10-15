@@ -48,29 +48,6 @@ def _build_database_startup_error(exc: Exception, *, context: str) -> str:
     return message
 
 
-async def _initialize_database() -> None:
-    from sqlalchemy import text
-
-    from app.db.session import engine
-
-    try:
-        async with engine.begin() as conn:
-            await conn.execute(text("""
-                CREATE TABLE IF NOT EXISTS system_settings (
-                    id SERIAL PRIMARY KEY,
-                    key VARCHAR NOT NULL UNIQUE,
-                    value TEXT,
-                    description VARCHAR,
-                    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-                    updated_at TIMESTAMP WITH TIME ZONE
-                )
-            """))
-            await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_system_settings_key ON system_settings (key)"))
-            logger.info("Database initialized: system_settings table ensured.")
-    except Exception as exc:
-        raise RuntimeError(_build_database_startup_error(exc, context="Database unavailable")) from None
-
-
 async def _initialize_business_hours() -> None:
     from app.db.session import AsyncSessionLocal
 
@@ -136,9 +113,6 @@ async def lifespan(_: FastAPI):
 
     # Initialize WebSocket manager with Pub/Sub
     await ws_manager.initialize()
-
-    # Initialize database
-    await _initialize_database()
 
     # Initialize default business hours
     await _initialize_business_hours()
