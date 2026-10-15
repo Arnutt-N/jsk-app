@@ -92,9 +92,21 @@ test.describe('Request detail page -- supervisor view', () => {
   const runMarker = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`
   const seededIds: number[] = []
 
+  async function csrfHeaders(page: Page): Promise<Record<string, string>> {
+    // CSRF double-submit (deps.py): state-changing calls need the csrf_token
+    // cookie value mirrored in the x-csrf-token header. page.request shares the
+    // browser cookies, so only the header is missing.
+    const cookies = await page.context().cookies()
+    const csrf = cookies.find((c) => c.name === 'csrf_token')?.value
+    if (!csrf) throw new Error('seed setup failed: no csrf_token cookie after login')
+    return { 'x-csrf-token': csrf }
+  }
+
   async function seedRequest(page: Page, status: 'PENDING' | 'COMPLETED'): Promise<void> {
+    const headers = await csrfHeaders(page)
     const topic = `E2E-A5-${runMarker}-${status}`
     const createResp = await page.request.post('/api/v1/admin/requests', {
+      headers,
       data: {
         topic_category: topic,
         description: `Seeded by admin-requests-supervisor.spec.ts (${runMarker})`,
@@ -110,6 +122,7 @@ test.describe('Request detail page -- supervisor view', () => {
       // Admin holds the override grant, so the direct PENDING -> COMPLETED
       // jump is accepted and recorded as a forced transition.
       const patchResp = await page.request.patch(`/api/v1/admin/requests/${created.id}`, {
+        headers,
         data: { status: 'COMPLETED' },
       })
       if (!patchResp.ok()) {
@@ -128,9 +141,10 @@ test.describe('Request detail page -- supervisor view', () => {
   })
 
   test.afterEach(async ({ page }) => {
+    const headers = await csrfHeaders(page).catch(() => null)
     for (const id of seededIds.splice(0)) {
       try {
-        await page.request.delete(`/api/v1/admin/requests/${id}`)
+        await page.request.delete(`/api/v1/admin/requests/${id}`, headers ? { headers } : undefined)
       } catch {
         // Best-effort cleanup; a failed delete must not fail the test.
       }
