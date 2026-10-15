@@ -17,7 +17,7 @@
 - [ ] Phase 3 frontend gates (agent a60f90c3 died of connection error with no file; fresh retry agent a53ddb92 dispatched, writes partial results per step)
 - [x] Phase 4 security scan + Phase 5 prod smoke done (.audit/enterprise-audit-security.md, .audit/enterprise-audit-prod-smoke.md); secret lines re-verified by length (58/39 chars, doc mentions only)
 - [x] Phase 6 triage done (.audit/enterprise-audit-findings.md, report-only): F1 low test-env (DEV_AUTH_BYPASS=true local), F2 medium unproven (InvalidToken, fresh-DB rerun pending), F3 low eslint-generated-dir, F4 info warnings backlog, F5 closed (ceed1ff), F6 verified
-- [ ] Phase 7 handoff: commit + push docs, open report-only PR, user go needed for fix PRs
+- [x] Phase 7 done: docs committed + pushed, report-only PR #257 opened, handoff checkpoint written + views regenerated + pushed. Fix PRs wait for user go.
 - [ ] skip: code fixes in this run (report-only until user approves Phase 6)
 
 throughput checkpoint: n/a, read-only investigation
