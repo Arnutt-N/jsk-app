@@ -51,3 +51,32 @@ async def test_inbox_listing_quarantines_undecryptable_row(monkeypatch):
     assert out["quarantined_count"] == 1
     assert [c["line_user_id"] for c in out["conversations"]] == [RAW_GOOD]
     ConversationList(**out)
+
+
+def _vanished_db():
+    good_token = credential_service.encrypt_line_id(RAW_GOOD)
+    user1 = SimpleNamespace(
+        id=1, display_name="Good", picture_url=None, friend_status=None, chat_mode=None
+    )
+    user2 = SimpleNamespace(
+        id=2, display_name="Gone", picture_url=None, friend_status=None, chat_mode=None
+    )
+    db = AsyncMock()
+    db.execute = AsyncMock(
+        side_effect=[
+            _result([(user1, None, None, None), (user2, None, None, None)]),
+            _result([(1, good_token)]),
+            _result([]),
+        ]
+    )
+    db.scalar = AsyncMock(return_value=0)
+    return db
+
+
+@pytest.mark.asyncio
+async def test_inbox_listing_skips_row_missing_from_decrypt(monkeypatch):
+    monkeypatch.setattr(credential_service, "cipher", None)
+    db = _vanished_db()
+    out = await live_chat_service.get_conversations(None, db, admin_id=None)
+    assert [c["line_user_id"] for c in out["conversations"]] == [RAW_GOOD]
+    ConversationList(**out)
