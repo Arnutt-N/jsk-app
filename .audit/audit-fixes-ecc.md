@@ -71,7 +71,7 @@ One commit per fix. IRON RULE honored: no secret values printed anywhere below
   fetch mock (all 30 assertions intact); the mid-course correction (zero-arg impl broke
   `tsc` via `never[][]` calls typing) was resolved with an explicit `Mock<...>` annotation
   instead of touching assertions.
-- Diff (8 files):
+- Diff (9 code files + this doc):
   - `chat-histories/[lineUserId]/page.tsx` — dropped unreferenced `lineUserId` from
     `handleExport` deps → `[messages, displayName]`.
   - `friends/history/page.tsx` — dropped module-const `perPage` (= 20, never reactive)
@@ -94,3 +94,15 @@ One commit per fix. IRON RULE honored: no secret values printed anywhere below
   `npx tsc --noEmit` → exit 0; `npm run build` → exit 0, compiled + 49/49 static pages;
   `npm run test:unit` → 785/785 passed (91 files); targeted
   `upload-security.test.ts` → 2/2 passed.
+
+## Follow-up (`fix/latest-pr-258-followup-clean`, PR number TBD)
+
+- H1: `test_inbox_equivalence_db` honors `TEST_DATABASE_URL` (CI-safe fallback) + nonce-scoped
+  orphan/staff rows; F2 docstring gains cipher-cache precedence note (M5).
+- H2: inbox listing uses `decrypt_line_ids_for_users_quarantined` (skip + `quarantined_count`
+  + warn-by-uid); `ConversationList` gains additive `quarantined_count: int = 0`;
+  `ConversationSummary` untouched; fail-loud fn untouched for other callers.
+- M1/M2: health admin-gate test renamed `test_detailed_and_http_ws_health_require_admin` +
+  `/api/v1/health/pseudonym-gate` in the loop (old-name grep: only a historical plan doc +
+  pytest cache reference it — no CI `-k` filter).
+- Validation tails live in the follow-up PR body (M7/M8 evidence discipline).

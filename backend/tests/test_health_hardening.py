@@ -5,13 +5,16 @@ from app.main import app
 
 
 @pytest.mark.asyncio
-async def test_detailed_and_ws_health_require_admin(test_client, monkeypatch):
+async def test_detailed_and_http_ws_health_require_admin(test_client, monkeypatch):
+    # M2: HTTP health endpoints only — the live-chat WebSocket gate (access_live_chat)
+    # is a different mechanism and is NOT covered here. M1: pseudonym-gate is also
+    # Depends(get_current_admin) so it joins the same 401/403 loop.
     # F1: local .env files may set DEV_AUTH_BYPASS=true, which would answer
     # these admin endpoints 200 and mask the auth gate. Force the bypass off
     # so the test asserts gate behavior, not ambient env. (.env files are
     # never modified for tests.)
     monkeypatch.setattr(api_deps.settings, "DEV_AUTH_BYPASS", False)
-    for path in ("/api/v1/health/detailed", "/api/v1/health/websocket"):
+    for path in ("/api/v1/health/detailed", "/api/v1/health/websocket", "/api/v1/health/pseudonym-gate"):
         resp = test_client.get(path)
         assert resp.status_code in (401, 403), path
 
