@@ -2,21 +2,13 @@ import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, waitFor, act } from '@testing-library/react';
 
-/**
- * Direct-401 path must verify via /auth/me before clearing — same guard as
- * the broadcast-logout path — or a single unrecovered admin-API 401 evicts
- * a session the server still honours (prod login flake).
- */
+import { AuthProvider, useAuth } from '../AuthContext';
+import { resetAuthStore, setAuthState } from '@/lib/authStore';
 
-// Mock authFetch so the interceptor doesn't install in jsdom. The
-// interceptor's cookie-mode behavior is covered by authFetch.cookie.test.ts.
 vi.mock('@/lib/authFetch', () => ({
   installAdminAuthFetchInterceptor: vi.fn(),
   setAuthRefreshHandler: vi.fn(),
 }));
-
-import { AuthProvider, useAuth } from '../AuthContext';
-import { resetAuthStore, setAuthState } from '@/lib/authStore';
 
 const hoisted = vi.hoisted(() => ({ replace: vi.fn() }));
 vi.mock('next/navigation', () => ({
@@ -52,8 +44,7 @@ describe('AuthContext — direct 401 (jsk:auth-expired) verifies before logout',
 
   beforeEach(() => {
     if (typeof globalThis.BroadcastChannel === 'undefined') {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (globalThis as any).BroadcastChannel = class {
+      (globalThis as unknown as { BroadcastChannel: unknown }).BroadcastChannel = class {
         postMessage() {}
         close() {}
         set onmessage(_: unknown) {}
@@ -73,11 +64,8 @@ describe('AuthContext — direct 401 (jsk:auth-expired) verifies before logout',
   });
 
   it('keeps the session when jsk:auth-expired fires but /auth/me is 200', async () => {
-    // Server still honours the session — the 401 was transient noise.
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse(200, ME_USER));
     global.fetch = fetchMock;
-    // Seed the session via the store so mount stays fetch-free (bootstrap
-    // skip-guard); the only fetch under test is the verify call.
     setAuthState({ user: { ...ME_USER }, status: 'authenticated' });
     const snapshot = makeSnapshot();
     render(
@@ -101,7 +89,6 @@ describe('AuthContext — direct 401 (jsk:auth-expired) verifies before logout',
   });
 
   it('logs out and routes to /login when jsk:auth-expired fires and /auth/me is 401', async () => {
-    // Server confirms the session is gone — the broadcast is about us.
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse(401));
     global.fetch = fetchMock;
     setAuthState({ user: { ...ME_USER }, status: 'authenticated' });
