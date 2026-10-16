@@ -13,7 +13,7 @@ import { CalendarDays, CheckCircle2, Clock, Loader2, RotateCcw, Users } from 'lu
 import { cn } from '@/lib/utils'
 import { logger } from '@/lib/logger'
 import { useLiffInit } from '@/hooks/useLiffInit'
-import DateSection, { type DayState } from '@/components/liff/booking/DateSection'
+import DateSection, { type DayInfo } from '@/components/liff/booking/DateSection'
 import { createDraftStore, type BookingDraft, type DraftAction } from '@/lib/booking/draft'
 import { buildServiceGroups, loadTaxonomy, type TaxonomyTable } from '@/lib/booking/service-mapping'
 import { useToast } from '@/components/ui/Toast'
@@ -344,27 +344,18 @@ export default function LiffBookingPage() {
     [options, taxonomy],
   )
 
-  // The picker's view of bookability, mirroring the strip's chip rule: days
-  // outside the window are closed, and days with range data showing closed
-  // or full are closed; days without range data stay open (fail-open).
+  // One pass over the range data answers both "tappable?" and "how does it
+  // look?" so the strip chip and the picker can never disagree. Days outside
+  // the window are closed, and days without range data stay open (fail-open).
   const inWindow = useMemo(() => new Set(dateOptions), [dateOptions])
-  const isDateDisabled = useCallback(
-    (iso: string) => {
-      if (!inWindow.has(iso)) return true
+  const getDayInfo = useCallback(
+    (iso: string): DayInfo => {
+      if (!inWindow.has(iso)) return { disabled: true, state: 'closed' }
       const info = rangeInfo?.get(iso)
-      return info ? !info.is_open || info.remaining === 0 : false
-    },
-    [inWindow, rangeInfo],
-  )
-
-  const getDayState = useCallback(
-    (iso: string): DayState => {
-      if (!inWindow.has(iso)) return 'closed'
-      const info = rangeInfo?.get(iso)
-      if (!info) return 'open'
-      if (!info.is_open) return 'closed'
-      if (info.remaining === 0) return 'full'
-      return 'open'
+      if (!info) return { disabled: false, state: 'open' }
+      if (!info.is_open) return { disabled: true, state: 'closed' }
+      if (info.remaining === 0) return { disabled: true, state: 'full' }
+      return { disabled: false, state: 'open' }
     },
     [inWindow, rangeInfo],
   )
@@ -793,8 +784,7 @@ export default function LiffBookingPage() {
                     dates={dateOptions}
                     value={selectedDate}
                     onChange={chooseDate}
-                    isDateDisabled={isDateDisabled}
-                    getDayState={getDayState}
+                    getDayInfo={getDayInfo}
                     minDate={dateOptions[0] ?? null}
                     maxDate={dateOptions[dateOptions.length - 1] ?? null}
                   />

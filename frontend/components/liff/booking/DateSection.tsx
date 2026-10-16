@@ -8,12 +8,16 @@ import { formatThaiDate, formatThaiWeekday, parseISODate, toISODate } from '@/li
 
 export type DayState = 'open' | 'full' | 'closed'
 
+export interface DayInfo {
+  disabled: boolean
+  state: DayState
+}
+
 export interface DateSectionProps {
   dates: string[]
   value: string | null
   onChange: (date: string) => void
-  isDateDisabled: (iso: string) => boolean
-  getDayState: (iso: string) => DayState
+  getDayInfo: (iso: string) => DayInfo
   minDate: string | null
   maxDate: string | null
 }
@@ -62,8 +66,7 @@ export default function DateSection({
   dates,
   value,
   onChange,
-  isDateDisabled,
-  getDayState,
+  getDayInfo,
   minDate,
   maxDate,
 }: DateSectionProps) {
@@ -164,8 +167,7 @@ export default function DateSection({
         >
           {visible.map((date) => {
             const isSelected = value === date
-            const disabled = isDateDisabled(date)
-            const state = getDayState(date)
+            const { disabled, state } = getDayInfo(date)
             return (
               <button
                 key={date}
@@ -240,7 +242,7 @@ export default function DateSection({
               ariaLabel="เลือกวันที่จอง"
               value={value}
               onChange={pickFromCalendar}
-              isDateDisabled={isDateDisabled}
+              isDateDisabled={(iso) => getDayInfo(iso).disabled}
               minDate={minDate}
               maxDate={maxDate}
             />
