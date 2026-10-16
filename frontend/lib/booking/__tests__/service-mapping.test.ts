@@ -37,7 +37,6 @@ describe('categorizeService', () => {
   it('covers every subcategory in the taxonomy under its parent', () => {
     for (const [category, topics] of Object.entries(TOPIC_OPTIONS)) {
       for (const topic of topics) {
-        // The shared "อื่นๆ" label has five parents; the rule above owns it.
         if (topic === UNKNOWN_SERVICE_CATEGORY) continue
         expect(categorizeService(topic)).toBe(category)
       }

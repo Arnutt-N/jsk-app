@@ -18,7 +18,6 @@ function renderPage() {
   )
 }
 
-/** Pick the stubbed service through the grouped dropdown. */
 async function chooseService() {
   await userEvent.selectOptions(
     await screen.findByRole('combobox', { name: 'เลือกบริการ' }),
@@ -26,7 +25,6 @@ async function chooseService() {
   )
 }
 
-/** Expand the collapsed calendar disclosure, then open the picker dialog. */
 async function openCalendar(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole('button', { name: 'เลือกจากปฏิทิน' }))
   await user.click(screen.getByLabelText('เปิดปฏิทินเลือกวันที่'))
@@ -195,7 +193,6 @@ describe('date selection', () => {
         ).querySelector('.overflow-x-auto') as HTMLElement
       ).querySelectorAll('button')
 
-    // advance_days = 13 -> 14 days, paged 7 per page under a Thai week label.
     await screen.findByRole('button', { name: /วันนี้/ })
     expect(chips()).toHaveLength(7)
     const firstLabel = screen.getByText(/ – /).textContent
