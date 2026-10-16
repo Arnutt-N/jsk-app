@@ -108,9 +108,11 @@ class TaxonomyService:
         if category is None:
             raise LookupError("Category not found")
 
+        attempted_name: str | None = None
         if name is not None:
             cleaned = _clean_name(name, "Category name")
             category.name = cleaned
+            attempted_name = cleaned
         if sort_order is not None:
             category.sort_order = sort_order
         if is_active is not None:
@@ -120,7 +122,7 @@ class TaxonomyService:
             await db.commit()
         except IntegrityError:
             await db.rollback()
-            raise ValueError(f"Category '{category.name}' already exists") from None
+            raise ValueError(f"Category '{attempted_name}' already exists") from None
         await db.refresh(category)
         self.invalidate()
         # Reload with topics: the instance above never loaded the collection,
@@ -199,9 +201,11 @@ class TaxonomyService:
                 raise LookupError("Category not found")
             topic.category_id = category_id
 
+        attempted_name: str | None = None
         if name is not None:
             cleaned = _clean_name(name, "Topic name")
             topic.name = cleaned
+            attempted_name = cleaned
         if sort_order is not None:
             topic.sort_order = sort_order
         if is_active is not None:
@@ -211,7 +215,7 @@ class TaxonomyService:
             await db.commit()
         except IntegrityError:
             await db.rollback()
-            raise ValueError(f"Topic '{topic.name}' already exists in this category") from None
+            raise ValueError(f"Topic '{attempted_name}' already exists in this category") from None
         await db.refresh(topic)
         self.invalidate()
         return topic

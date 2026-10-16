@@ -44,11 +44,12 @@ vi.mock('@/lib/liff/submit-service-request', () => ({
 const originalFetch = global.fetch;
 
 function mockProvincesFetch() {
-  const resp = new Response(
+  // Fresh Response per call: the page now fetches the shared taxonomy too,
+  // and one body can only be read once — same as a real fetch.
+  global.fetch = vi.fn().mockImplementation(async () => new Response(
     JSON.stringify([{ PROVINCE_ID: 1, PROVINCE_THAI: 'กทม' }]),
     { status: 200, headers: { 'content-type': 'application/json' } },
-  );
-  global.fetch = vi.fn().mockResolvedValue(resp);
+  ));
 }
 
 function changeByName(container: HTMLElement, name: string, value: string) {

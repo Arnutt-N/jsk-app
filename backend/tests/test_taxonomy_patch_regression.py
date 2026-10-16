@@ -90,3 +90,56 @@ async def test_patch_category_returns_200_with_topics():
             await session.commit()
         await engine.dispose()
 
+
+@pytest.mark.asyncio
+async def test_patch_category_duplicate_names_attempted_name():
+    marker = f"dup{uuid.uuid4().hex[:8]}"
+    engine = _fresh_engine()
+    Session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+    async with Session() as session:
+        session.add_all(
+            [
+                TaxonomyCategory(name=f"taken-{marker}", sort_order=0, is_active=True),
+                TaxonomyCategory(name=f"mine-{marker}", sort_order=1, is_active=True),
+            ]
+        )
+        await session.commit()
+        mine_id = (
+            await session.execute(
+                select(TaxonomyCategory.id).where(
+                    TaxonomyCategory.name == f"mine-{marker}"
+                )
+            )
+        ).scalar_one()
+
+    async def _fresh_get_db():
+        async with Session() as session:
+            yield session
+
+    app.dependency_overrides[deps.get_db] = _fresh_get_db
+    app.dependency_overrides[deps.get_current_user] = _admin_user
+    try:
+        client = TestClient(app, raise_server_exceptions=False)
+        try:
+            response = client.patch(
+                f"/api/v1/admin/taxonomy/categories/{mine_id}",
+                json={"name": f"taken-{marker}"},
+            )
+        finally:
+            client.close()
+    finally:
+        app.dependency_overrides.clear()
+
+    try:
+        assert response.status_code == 409
+        assert f"taken-{marker}" in response.json()["detail"]
+    finally:
+        async with Session() as session:
+            await session.execute(
+                delete(TaxonomyCategory).where(
+                    TaxonomyCategory.name.in_([f"taken-{marker}", f"mine-{marker}"])
+                )
+            )
+            await session.commit()
+        await engine.dispose()
