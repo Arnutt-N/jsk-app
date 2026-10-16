@@ -4,7 +4,10 @@ import {
   UNKNOWN_SERVICE_CATEGORY,
   buildServiceGroups,
   categorizeService,
+  loadTaxonomy,
+  parseTaxonomyTable,
   topicCategories,
+  type TaxonomyTable,
 } from '../service-mapping'
 
 describe('categorizeService', () => {
@@ -39,6 +42,65 @@ describe('categorizeService', () => {
         expect(categorizeService(topic)).toBe(category)
       }
     }
+  })
+})
+
+describe('custom taxonomy', () => {
+  const custom: TaxonomyTable = { 'ปรึกษา': ['ก', 'ข'] }
+
+  it('classifies under the injected table, not the hardcoded one', () => {
+    expect(categorizeService('ก', custom)).toBe('ปรึกษา')
+    expect(categorizeService('แพ่ง', custom)).toBe('อื่นๆ')
+  })
+
+  it('buckets under the injected categories with an Others tail', () => {
+    expect(buildServiceGroups(['ก', 'นอกแผน'], custom)).toEqual([
+      { category: 'ปรึกษา', options: [{ value: 'ก', label: 'ก', category: 'ปรึกษา' }] },
+      {
+        category: 'อื่นๆ',
+        options: [{ value: 'นอกแผน', label: 'นอกแผน', category: 'อื่นๆ' }],
+      },
+    ])
+  })
+})
+
+describe('parseTaxonomyTable', () => {
+  it('accepts a category-to-topics record', () => {
+    const table = { 'ปรึกษา': ['ก', 'ข'] }
+    expect(parseTaxonomyTable(table)).toEqual(table)
+  })
+
+  it('rejects empty and misshapen payloads', () => {
+    expect(parseTaxonomyTable({})).toBeNull()
+    expect(parseTaxonomyTable(null)).toBeNull()
+    expect(parseTaxonomyTable({ 'ปรึกษา': 'ก' })).toBeNull()
+    expect(parseTaxonomyTable({ 'ปรึกษา': ['ก', 7] })).toBeNull()
+  })
+})
+
+describe('loadTaxonomy', () => {
+  const okFetch = (body: unknown) => async () => ({ ok: true, json: async () => body })
+
+  it('returns the served table when the endpoint exists', async () => {
+    const served = { 'ปรึกษา': ['ก'] }
+    await expect(loadTaxonomy({ fetchFn: okFetch(served) })).resolves.toEqual(served)
+  })
+
+  it('falls back to TOPIC_OPTIONS when the endpoint is missing or broken', async () => {
+    await expect(
+      loadTaxonomy({ fetchFn: async () => ({ ok: false, json: async () => null }) }),
+    ).resolves.toBe(TOPIC_OPTIONS)
+    await expect(loadTaxonomy({ fetchFn: okFetch({}) })).resolves.toBe(TOPIC_OPTIONS)
+    await expect(loadTaxonomy({ fetchFn: okFetch({ 'ปรึกษา': [7] }) })).resolves.toBe(
+      TOPIC_OPTIONS,
+    )
+    await expect(
+      loadTaxonomy({
+        fetchFn: async () => {
+          throw new Error('offline')
+        },
+      }),
+    ).resolves.toBe(TOPIC_OPTIONS)
   })
 })
 
