@@ -85,11 +85,6 @@ class TaxonomyService:
         is_active: bool = True,
     ) -> TaxonomyCategory:
         cleaned = _clean_name(name, "Category name")
-        existing = await db.execute(
-            select(TaxonomyCategory).where(TaxonomyCategory.name == cleaned)
-        )
-        if existing.scalar_one_or_none() is not None:
-            raise ValueError(f"Category '{cleaned}' already exists")
 
         category = TaxonomyCategory(name=cleaned, sort_order=sort_order, is_active=is_active)
         db.add(category)
@@ -117,14 +112,6 @@ class TaxonomyService:
 
         if name is not None:
             cleaned = _clean_name(name, "Category name")
-            clash = await db.execute(
-                select(TaxonomyCategory).where(
-                    TaxonomyCategory.name == cleaned,
-                    TaxonomyCategory.id != category_id,
-                )
-            )
-            if clash.scalar_one_or_none() is not None:
-                raise ValueError(f"Category '{cleaned}' already exists")
             category.name = cleaned
         if sort_order is not None:
             category.sort_order = sort_order
@@ -135,7 +122,7 @@ class TaxonomyService:
             await db.commit()
         except IntegrityError:
             await db.rollback()
-            raise ValueError("Category name already exists") from None
+            raise ValueError(f"Category '{category.name}' already exists") from None
         await db.refresh(category)
         self.invalidate()
         return category
@@ -168,14 +155,6 @@ class TaxonomyService:
         category = await db.get(TaxonomyCategory, category_id)
         if category is None:
             raise LookupError("Category not found")
-        existing = await db.execute(
-            select(TaxonomyTopic).where(
-                TaxonomyTopic.category_id == category_id,
-                TaxonomyTopic.name == cleaned,
-            )
-        )
-        if existing.scalar_one_or_none() is not None:
-            raise ValueError(f"Topic '{cleaned}' already exists in this category")
 
         topic = TaxonomyTopic(
             category_id=category_id,
@@ -206,25 +185,14 @@ class TaxonomyService:
         if topic is None:
             raise LookupError("Topic not found")
 
-        target_category = topic.category_id
         if category_id is not None and category_id != topic.category_id:
             category = await db.get(TaxonomyCategory, category_id)
             if category is None:
                 raise LookupError("Category not found")
-            target_category = category_id
             topic.category_id = category_id
 
         if name is not None:
             cleaned = _clean_name(name, "Topic name")
-            clash = await db.execute(
-                select(TaxonomyTopic).where(
-                    TaxonomyTopic.category_id == target_category,
-                    TaxonomyTopic.name == cleaned,
-                    TaxonomyTopic.id != topic_id,
-                )
-            )
-            if clash.scalar_one_or_none() is not None:
-                raise ValueError(f"Topic '{cleaned}' already exists in this category")
             topic.name = cleaned
         if sort_order is not None:
             topic.sort_order = sort_order
@@ -235,7 +203,7 @@ class TaxonomyService:
             await db.commit()
         except IntegrityError:
             await db.rollback()
-            raise ValueError("Topic already exists in this category") from None
+            raise ValueError(f"Topic '{topic.name}' already exists in this category") from None
         await db.refresh(topic)
         self.invalidate()
         return topic

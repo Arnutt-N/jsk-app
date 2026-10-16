@@ -191,9 +191,12 @@ class TestCategoryWriters:
 
     @pytest.mark.asyncio
     async def test_create_duplicate_maps_to_409_value_error(self):
-        db = _mock_db(_result([SimpleNamespace(id=1)]))
-        with pytest.raises(ValueError, match="already exists"):
+        db = _mock_db()
+        db.commit = AsyncMock(side_effect=IntegrityError("dup", None, None))
+        db.rollback = AsyncMock()
+        with pytest.raises(ValueError, match="Category 'กองทุน' already exists"):
             await taxonomy_service.create_category(db, "กองทุน")
+        db.rollback.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_create_race_integrity_error_maps_to_409(self):
@@ -214,10 +217,13 @@ class TestCategoryWriters:
     @pytest.mark.asyncio
     async def test_update_duplicate_name_raises(self):
         row = SimpleNamespace(id=2, name="เก่า")
-        db = _mock_db(_result([SimpleNamespace(id=1)]))
+        db = _mock_db()
         db.get = AsyncMock(return_value=row)
+        db.commit = AsyncMock(side_effect=IntegrityError("dup", None, None))
+        db.rollback = AsyncMock()
         with pytest.raises(ValueError, match="already exists"):
             await taxonomy_service.update_category(db, 2, name="ซ้ำ")
+        db.rollback.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_delete_missing_returns_false(self):
@@ -253,10 +259,13 @@ class TestTopicWriters:
 
     @pytest.mark.asyncio
     async def test_create_duplicate_in_category_raises(self):
-        db = _mock_db(_result([SimpleNamespace(id=7)]))
+        db = _mock_db()
         db.get = AsyncMock(return_value=SimpleNamespace(id=3))
+        db.commit = AsyncMock(side_effect=IntegrityError("dup", None, None))
+        db.rollback = AsyncMock()
         with pytest.raises(ValueError, match="already exists"):
             await taxonomy_service.create_topic(db, 3, "ซ้ำ")
+        db.rollback.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_create_same_name_across_categories_allowed(self):
