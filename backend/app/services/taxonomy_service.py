@@ -12,7 +12,6 @@ logger = logging.getLogger(__name__)
 
 _CACHE_TTL_SECONDS = 60.0
 
-_cache_version = 0
 _cached_map: dict[str, list[str]] | None = None
 _cached_at = 0.0
 
@@ -72,8 +71,7 @@ class TaxonomyService:
         return list(cat_rows)
 
     def invalidate(self) -> None:
-        global _cache_version, _cached_map, _cached_at
-        _cache_version += 1
+        global _cached_map, _cached_at
         _cached_map = None
         _cached_at = 0.0
 
