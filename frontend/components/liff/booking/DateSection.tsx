@@ -6,18 +6,13 @@ import CalendarPickerTH from '@/components/ui/CalendarPickerTH'
 import { cn } from '@/lib/utils'
 import { formatThaiDate, formatThaiWeekday, parseISODate, toISODate } from '@/lib/booking'
 
-/** Bookability of one day: open, full (เต็ม), or closed-holiday (หยุด). */
 export type DayState = 'open' | 'full' | 'closed'
 
 export interface DateSectionProps {
-  /** Bookable ISO days in order; the strip pages through them a week at a time. */
   dates: string[]
-  /** Selected ISO day, or null before the citizen picks. */
   value: string | null
-  /** Single path for both the strip and the calendar; always a bare YYYY-MM-DD. */
   onChange: (date: string) => void
   isDateDisabled: (iso: string) => boolean
-  /** Visual state per day; days it does not know render as open (fail-open). */
   getDayState: (iso: string) => DayState
   minDate: string | null
   maxDate: string | null
@@ -95,18 +90,12 @@ export default function DateSection({
     return () => window.removeEventListener('resize', updateEdges)
   }, [visible, updateEdges])
 
-  // A new week starts unscrolled. scrollTo is missing on some embedded
-  // webviews, so the reset is best-effort and never throws.
   useEffect(() => {
     const el = stripRef.current
     if (el && typeof el.scrollTo === 'function') el.scrollTo({ left: 0 })
     updateEdges()
   }, [safePage, updateEdges])
 
-  // Keep a newly arrived selection on screen (calendar pick, draft
-  // restore, preselect) without fighting manual week paging: only a
-  // changed value jumps, a changed page never does. Adjusted during render
-  // (not in an effect) so user paging never triggers it.
   const [prevValue, setPrevValue] = useState<string | null>(null)
   if (value !== prevValue) {
     setPrevValue(value)
@@ -126,7 +115,6 @@ export default function DateSection({
     try {
       window.sessionStorage.setItem(HINT_KEY, 'seen')
     } catch {
-      // A blocked storage just shows the hint again next visit.
     }
   }, [])
 

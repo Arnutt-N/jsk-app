@@ -134,7 +134,6 @@ function Section({ icon, title, children, className, action }: SectionProps) {
   )
 }
 
-/** Per-block clear with the service-request wording and success toast. */
 function SectionClearButton({ onClear }: { onClear: () => void }) {
   const { toast } = useToast()
   return (
@@ -239,9 +238,6 @@ export default function LiffBookingPage() {
   })
 
   const [options, setOptions] = useState<BookingOptions | null>(null)
-  // The draft store is the single writer for every selection; the page only
-  // dispatches. The store restores synchronously, so a reloaded draft is
-  // already in state before the first paint that needs it.
   const [store] = useState(() => createDraftStore())
   const [draft, setDraft] = useState<BookingDraft>(() => store.getDraft())
   const dispatchDraft = useCallback(
@@ -263,8 +259,6 @@ export default function LiffBookingPage() {
     dispatchDraft({ type: 'contact/set', contact: { note: value } })
   const [availability, setAvailability] = useState<Availability | null>(null)
   const [loadingSlots, setLoadingSlots] = useState(false)
-  // The chosen slot reattaches when its day's availability arrives, including
-  // after a reload whose draft names a slotId before any fetch ran.
   const selectedSlot = useMemo(
     () => availability?.slots.find((slot) => slot.time === draft.slotId) ?? null,
     [availability, draft.slotId],
@@ -282,15 +276,8 @@ export default function LiffBookingPage() {
   const [cancelOpen, setCancelOpen] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
 
-  // Availability is immutable enough within one session to reuse when the
-  // citizen taps back and forth between days; a stale slot is re-validated
-  // server-side on submit, and a failed submit refetches the day. The cache
-  // lives in the draft store, so a full reset clears both together, and it
-  // expires on its own — availability is never persisted.
   // H4 race guard: the newest loadSlots request key (service|date)
   const latestSlotKeyRef = useRef<string>("")
-  // Boot-resume guard: one resume fetch per service|date, so a failed resume
-  // never retries itself into a loop.
   const resumedKeyRef = useRef<string | null>(null)
 
   const step: Step = confirmed
@@ -319,9 +306,6 @@ export default function LiffBookingPage() {
         if (cancelled) return
         setError(null)
         setOptions(loaded)
-        // A restored draft already names its service; keep it unless the
-        // backend no longer offers it, and only auto-pick a lone service
-        // when nothing was restored.
         const restored = store.getDraft().service
         if (restored && !loaded.service_types.includes(restored)) {
           dispatchDraft({ type: 'section/clear', section: 'service' })
@@ -344,9 +328,6 @@ export default function LiffBookingPage() {
     return buildDateOptions(new Date(), options.advance_days, options.blackout_dates)
   }, [options])
 
-  // Shared taxonomy for the service dropdown: the backend endpoint when it
-  // exists, TOPIC_OPTIONS until then. A miss keeps the previous table, so
-  // the dropdown never flashes empty while the fetch is in flight.
   const [taxonomy, setTaxonomy] = useState<TaxonomyTable | null>(null)
   useEffect(() => {
     let cancelled = false
@@ -376,9 +357,6 @@ export default function LiffBookingPage() {
     [inWindow, rangeInfo],
   )
 
-  // Three-state day visuals for the strip: out-of-window days (including
-  // blackouts, which buildDateOptions excludes) read as closed-holiday,
-  // and days without range data render as open — the same fail-open rule.
   const getDayState = useCallback(
     (iso: string): DayState => {
       if (!inWindow.has(iso)) return 'closed'
@@ -470,8 +448,6 @@ export default function LiffBookingPage() {
     [dispatchDraft, loadSlots, serviceType],
   )
 
-  // The nearest-day preselect runs once per service: after the citizen
-  // clears the date on purpose, it stays cleared instead of repicking.
   const preselectedServiceRef = useRef<string | null>(null)
 
   // Preselect the nearest bookable day so the slot grid is already on screen
@@ -490,8 +466,6 @@ export default function LiffBookingPage() {
     chooseDate(firstBookable ?? dateOptions[0])
   }, [chooseDate, confirmed, dateOptions, rangeInfo, rangeReady, selectedDate, serviceType])
 
-  // A reloaded draft already names its service and day: resume that day's
-  // slots at boot instead of waiting for the preselect tick above.
   useEffect(() => {
     if (!idToken || !options || confirmed) return
     if (serviceType && selectedDate && !availability && !loadingSlots) {

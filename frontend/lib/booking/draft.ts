@@ -1,22 +1,12 @@
-/**
- * Booking draft: the citizen's in-progress selections, owned by this module.
- *
- * The page dispatches actions and never writes draft fields directly, so the
- * draft has exactly one writer. Storage I/O is validated at this boundary;
- * the reducer itself is pure and runs on typed input only.
- */
 import type { Availability } from '@/lib/booking'
 
 export interface BookingDraft {
   service: string | null
-  /** ISO YYYY-MM-DD day the citizen picked. */
   date: string | null
-  /** Slot time ("HH:MM:SS") chosen for `date`; cleared whenever the day changes. */
   slotId: string | null
   contactName: string
   phoneNumber: string
   note: string
-  /** Epoch ms of the last persist; 0 means never saved. */
   savedAt: number
 }
 
@@ -56,7 +46,6 @@ function clearSection(state: BookingDraft, section: DraftSection): BookingDraft 
   }
 }
 
-/** Pure reducer: downstream picks die with the upstream choice they depend on. */
 export function draftReducer(state: BookingDraft, action: DraftAction): BookingDraft {
   switch (action.type) {
     case 'service/set': {
@@ -111,11 +100,8 @@ export function draftReducer(state: BookingDraft, action: DraftAction): BookingD
   }
 }
 
-// --- Storage boundary -------------------------------------------------------
-
 export const DRAFT_STORAGE_KEY = 'liff-booking-draft'
 export const DRAFT_VERSION = 1
-/** Selections survive a reload for half an hour, then the draft is stale. */
 export const DRAFT_TTL_MS = 30 * 60 * 1000
 
 export interface DraftStorage {
@@ -146,7 +132,6 @@ function isBookingDraft(value: unknown): value is BookingDraft {
   )
 }
 
-/** Read the persisted draft. Stale, versioned-out, or corrupt data reads as empty. Never throws. */
 export function loadDraft(
   storage: DraftStorage | null = sessionStorageLike(),
   now: number = Date.now(),
@@ -166,7 +151,6 @@ export function loadDraft(
   }
 }
 
-/** Persist the draft with a fresh timestamp. A full or blocked storage keeps the session going. Never throws. */
 export function saveDraft(
   draft: BookingDraft,
   storage: DraftStorage | null = sessionStorageLike(),
@@ -178,7 +162,6 @@ export function saveDraft(
       JSON.stringify({ version: DRAFT_VERSION, draft: { ...draft, savedAt: now } }),
     )
   } catch {
-    // Intentionally silent: the draft simply does not survive a reload.
   }
 }
 
@@ -186,13 +169,9 @@ export function clearStoredDraft(storage: DraftStorage | null = sessionStorageLi
   try {
     storage?.removeItem(DRAFT_STORAGE_KEY)
   } catch {
-    // Intentionally silent: see saveDraft.
   }
 }
 
-// --- Slot cache -------------------------------------------------------------
-
-/** Availability lives in memory only and expires quickly; it is never persisted. */
 export const SLOT_CACHE_TTL_MS = 60 * 1000
 
 export interface SlotCache {
@@ -225,15 +204,11 @@ export function createSlotCache(
   }
 }
 
-// --- Store: the single writer ------------------------------------------------
-
 export interface DraftStore {
   getDraft(): BookingDraft
-  /** Apply an action, persist the result, and return the new draft. */
   dispatch(action: DraftAction): BookingDraft
   getSlots(key: string): Availability | null
   setSlots(key: string, value: Availability): void
-  /** Full reset: empty draft plus a cleared slot cache. */
   reset(): BookingDraft
 }
 

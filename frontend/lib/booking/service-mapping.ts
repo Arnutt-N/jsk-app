@@ -1,25 +1,11 @@
-/**
- * Service adapter: groups backend free-text `service_types` under a shared
- * taxonomy for the optgroup dropdown. Unknown strings fall to "อื่นๆ".
- *
- * DB-ready: the taxonomy is a pluggable table. `loadTaxonomy` fetches the
- * shared endpoint when it exists and falls back to the hardcoded
- * TOPIC_OPTIONS otherwise, so frontend units never block on the backend
- * endpoint + admin UI (a stacked follow-up). Unknown input never throws;
- * it just lands in "อื่นๆ" or is skipped.
- */
 import { API_BASE } from '@/lib/constants/api'
 import { TOPIC_OPTIONS } from '@/lib/constants/categories'
 
-/** Category → topics, the same shape the backend endpoint will serve. */
 export type TaxonomyTable = Record<string, string[]>
 
 export interface ServiceOption {
-  /** Exact backend string, sent back verbatim on submit. */
   value: string
-  /** Trimmed display label. */
   label: string
-  /** Taxonomy category key, or UNKNOWN_SERVICE_CATEGORY. */
   category: string
 }
 
@@ -30,18 +16,14 @@ export interface ServiceGroup {
 
 export const UNKNOWN_SERVICE_CATEGORY = 'อื่นๆ'
 
-/** The taxonomy categories, in definition order. */
 export function topicCategories(taxonomy: TaxonomyTable = TOPIC_OPTIONS): string[] {
   return Object.keys(taxonomy)
 }
 
-/** Classify one backend string under its taxonomy category. */
 export function categorizeService(value: unknown, taxonomy: TaxonomyTable = TOPIC_OPTIONS): string {
   if (typeof value !== 'string') return UNKNOWN_SERVICE_CATEGORY
   const name = value.trim()
   if (!name) return UNKNOWN_SERVICE_CATEGORY
-  // The shared "อื่นๆ" sub-label sits under several categories at once, so no
-  // parent owns it; a backend string with that literal meaning is itself other.
   if (name === UNKNOWN_SERVICE_CATEGORY) return UNKNOWN_SERVICE_CATEGORY
   if (taxonomy[name] !== undefined) return name
   for (const [category, topics] of Object.entries(taxonomy)) {
@@ -50,11 +32,6 @@ export function categorizeService(value: unknown, taxonomy: TaxonomyTable = TOPI
   return UNKNOWN_SERVICE_CATEGORY
 }
 
-/**
- * Bucket backend strings into one group per taxonomy category (in
- * definition order) plus a trailing "อื่นๆ" group. Known categories stay
- * present even when empty so coverage over the taxonomy is structural.
- */
 export function buildServiceGroups(
   serviceTypes: readonly unknown[],
   taxonomy: TaxonomyTable = TOPIC_OPTIONS,
@@ -82,9 +59,6 @@ export function buildServiceGroups(
   return groups
 }
 
-// --- Taxonomy boundary -------------------------------------------------------
-
-/** Shared taxonomy endpoint; served by the stacked backend follow-up. */
 export const SHARED_TAXONOMY_URL = `${API_BASE}/taxonomy`
 
 interface TaxonomyResponse {
@@ -96,7 +70,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }
 
-/** Validate a fetched payload into a taxonomy table. Null means "use fallback". Never throws. */
 export function parseTaxonomyTable(value: unknown): TaxonomyTable | null {
   if (!isRecord(value)) return null
   const keys = Object.keys(value)
@@ -115,10 +88,6 @@ export function parseTaxonomyTable(value: unknown): TaxonomyTable | null {
   return table
 }
 
-/**
- * Fetch the shared taxonomy, falling back to TOPIC_OPTIONS when the endpoint
- * is missing, errors, or serves a bad shape. Never throws.
- */
 export async function loadTaxonomy(
   options: {
     url?: string
