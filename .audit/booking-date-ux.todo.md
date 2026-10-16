@@ -15,7 +15,7 @@
 
 ## Task todos (booking fix, design B chosen)
 - [ ] PRD short + PRP plan written and reviewed
-- [ ] Branch feat/booking-date-ux created
+- [x] User locked open decisions (2026-10-16): TTL 30 min; strip 7-day paging; 3-state legend open/full/closed-holiday; single DB-backed taxonomy shared by service-request + booking (DB-ready adapter now, endpoint + admin UI stacked follow-up). Steered impl agent; PRD/PRP updated (c7eaa63).
 - [ ] Unit 1: lib/booking/draft.ts + tests (reducer, TTL, idempotent clear)
 - [ ] Unit 2: lib/booking/service-mapping.ts + mapping test
 - [ ] Unit 3: components/liff/booking/DateSection.tsx (strip-first + affordances)
