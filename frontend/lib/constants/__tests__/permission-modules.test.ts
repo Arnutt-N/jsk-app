@@ -39,11 +39,13 @@ const BACKEND_KEYS = [
   // D7: granular admin gates — credentials + business hours.
   'manage_credentials',
   'edit_business_hours',
+  // Shared taxonomy: admin CRUD over service categories/topics.
+  'manage_taxonomy',
 ]
 
 describe('permission-modules registry integrity', () => {
-  it('contains exactly 22 keys', () => {
-    expect(PERMISSION_REGISTRY).toHaveLength(22)
+  it('contains exactly 23 keys', () => {
+    expect(PERMISSION_REGISTRY).toHaveLength(23)
   })
 
   it('has no duplicate keys', () => {
@@ -77,7 +79,7 @@ describe('groupByModule', () => {
     const grouped = groupByModule(PERMISSION_REGISTRY)
     expect(grouped.service_requests).toHaveLength(4)
     expect(grouped.chatbot).toHaveLength(5)
-    expect(grouped.system).toHaveLength(13)
+    expect(grouped.system).toHaveLength(14)
   })
 
   it('preserves registry order within a module', () => {
@@ -96,6 +98,7 @@ describe('groupByModule', () => {
       'access_live_chat',
       'manage_credentials',
       'edit_business_hours',
+      'manage_taxonomy',
     ])
   })
 })
@@ -114,8 +117,8 @@ describe('keysForLevel', () => {
     ])
   })
 
-  it('system Manage → all 13 system keys', () => {
-    expect(keysForLevel(PERMISSION_REGISTRY, 'system', LEVEL.MANAGE)).toHaveLength(13)
+  it('system Manage → all 14 system keys', () => {
+    expect(keysForLevel(PERMISSION_REGISTRY, 'system', LEVEL.MANAGE)).toHaveLength(14)
   })
 
   it('chatbot View → [] (no view-level key exists)', () => {

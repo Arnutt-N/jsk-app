@@ -13,6 +13,7 @@ import time
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.models.taxonomy import TaxonomyCategory, TaxonomyTopic
 
@@ -68,26 +69,15 @@ class TaxonomyService:
     async def get_admin_taxonomy(self, db: AsyncSession) -> list[TaxonomyCategory]:
         cat_rows = (
             await db.execute(
-                select(TaxonomyCategory).order_by(
+                select(TaxonomyCategory)
+                .options(selectinload(TaxonomyCategory.topics))
+                .order_by(
                     TaxonomyCategory.sort_order.asc(), TaxonomyCategory.id.asc()
                 )
             )
         ).scalars().all()
-        topic_rows = (
-            await db.execute(
-                select(TaxonomyTopic).order_by(
-                    TaxonomyTopic.category_id.asc(),
-                    TaxonomyTopic.sort_order.asc(),
-                    TaxonomyTopic.id.asc(),
-                )
-            )
-        ).scalars().all()
-
-        by_category: dict[int, list[TaxonomyTopic]] = {}
-        for topic in topic_rows:
-            by_category.setdefault(topic.category_id, []).append(topic)
         for category in cat_rows:
-            category.topics = by_category.get(category.id, [])
+            category.topics.sort(key=lambda t: (t.sort_order, t.id))
         return list(cat_rows)
 
     def invalidate(self) -> None:

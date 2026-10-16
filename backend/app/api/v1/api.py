@@ -31,6 +31,8 @@ from app.api.v1.endpoints import (
     admin_integrations,
     admin_broadcast,
     admin_reports,
+    admin_taxonomy,
+    taxonomy,
 )
 
 api_router.include_router(webhook.router, prefix="/line", tags=["line"])
@@ -39,6 +41,7 @@ api_router.include_router(media.router, tags=["media"])
 api_router.include_router(liff.router, prefix="/liff", tags=["liff"])
 api_router.include_router(liff_bookings.router, prefix="/liff/bookings", tags=["liff"])
 api_router.include_router(locations.router, prefix="/locations", tags=["locations"])
+api_router.include_router(taxonomy.router, prefix="/taxonomy", tags=["taxonomy"])
 
 # Admin APIs (auth via get_current_admin dependency on each endpoint)
 api_router.include_router(admin_reply_objects.router, prefix="/admin/reply-objects", tags=["admin"])
@@ -61,6 +64,7 @@ api_router.include_router(admin_friends.router, prefix="/admin/friends", tags=["
 api_router.include_router(admin_integrations.router, prefix="/admin/settings", tags=["admin-settings"])
 api_router.include_router(admin_broadcast.router, prefix="/admin/broadcasts", tags=["admin-broadcast"])
 api_router.include_router(admin_reports.router, prefix="/admin/reports", tags=["admin-reports"])
+api_router.include_router(admin_taxonomy.router, prefix="/admin/taxonomy", tags=["admin"])
 api_router.include_router(ws_live_chat.router, tags=["websocket"])
 api_router.include_router(health.router, tags=["health"])
 

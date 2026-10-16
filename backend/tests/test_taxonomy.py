@@ -274,3 +274,187 @@ class TestSchemas:
         )
         assert read.name == "ก"
         assert read.topics == []
+
+
+# --- Unit 3: endpoints (public map + matrix-gated admin CRUD) ----------------
+
+from fastapi import HTTPException
+from fastapi.testclient import TestClient
+
+from app.api import deps
+from app.main import app
+
+
+def _override_user(role):
+    async def _user():
+        return SimpleNamespace(id=1, username="t", display_name="T", role=role)
+
+    return _user
+
+
+async def _deny_anonymous():
+    raise HTTPException(status_code=401, detail="Not authenticated")
+
+
+async def _fake_db():
+    yield AsyncMock()
+
+
+@pytest.fixture()
+def api_client(monkeypatch):
+    app.dependency_overrides[deps.get_db] = _fake_db
+    client = TestClient(app)
+    yield client
+    client.close()
+    app.dependency_overrides.clear()
+
+
+def _mock_service(monkeypatch, **methods):
+    from app.api.v1.endpoints import admin_taxonomy as admin_module
+    from app.api.v1.endpoints import taxonomy as public_module
+
+    for name, impl in methods.items():
+        target = admin_module if hasattr(admin_module, name) or name != "get_taxonomy_map" else public_module
+        _ = target
+        monkeypatch.setattr(taxonomy_service, name, impl)
+
+
+class TestPublicTaxonomyEndpoint:
+    @pytest.mark.asyncio
+    async def test_returns_bare_map_without_auth(self, api_client, monkeypatch):
+        async def _map(_db):
+            return {"กองทุนยุติธรรม": ["ค่าจ้างทนายความ"]}
+
+        _mock_service(monkeypatch, get_taxonomy_map=_map)
+        response = api_client.get("/api/v1/taxonomy")
+        assert response.status_code == 200
+        assert response.json() == {"กองทุนยุติธรรม": ["ค่าจ้างทนายความ"]}
+
+    @pytest.mark.asyncio
+    async def test_empty_tables_return_empty_object(self, api_client, monkeypatch):
+        async def _map(_db):
+            return {}
+
+        _mock_service(monkeypatch, get_taxonomy_map=_map)
+        response = api_client.get("/api/v1/taxonomy")
+        assert response.status_code == 200
+        assert response.json() == {}
+
+
+class TestAdminTaxonomyEndpoints:
+    def test_list_requires_authentication(self, api_client):
+        app.dependency_overrides[deps.get_current_user] = _deny_anonymous
+        response = api_client.get("/api/v1/admin/taxonomy")
+        assert response.status_code == 401
+
+    def test_list_forbidden_without_matrix_key(self, api_client):
+        app.dependency_overrides[deps.get_current_user] = _override_user(UserRole.AGENT)
+        response = api_client.get("/api/v1/admin/taxonomy")
+        assert response.status_code == 403
+
+    @pytest.mark.asyncio
+    async def test_list_ok_for_admin(self, api_client, monkeypatch):
+        app.dependency_overrides[deps.get_current_user] = _override_user(UserRole.ADMIN)
+        cats = [
+            SimpleNamespace(
+                id=1,
+                name="ก",
+                sort_order=0,
+                is_active=True,
+                topics=[
+                    SimpleNamespace(
+                        id=11, category_id=1, name="ข", sort_order=0, is_active=True
+                    )
+                ],
+            )
+        ]
+
+        async def _list(_db):
+            return cats
+
+        _mock_service(monkeypatch, get_admin_taxonomy=_list)
+        response = api_client.get("/api/v1/admin/taxonomy")
+        assert response.status_code == 200
+        body = response.json()
+        assert body["categories"][0]["name"] == "ก"
+        assert body["categories"][0]["topics"][0]["name"] == "ข"
+
+    @pytest.mark.asyncio
+    async def test_create_duplicate_maps_to_409(self, api_client, monkeypatch):
+        app.dependency_overrides[deps.get_current_user] = _override_user(UserRole.ADMIN)
+
+        async def _dup(*_a, **_k):
+            raise ValueError("Category 'ก' already exists")
+
+        _mock_service(monkeypatch, create_category=_dup)
+        response = api_client.post("/api/v1/admin/taxonomy/categories", json={"name": "ก"})
+        assert response.status_code == 409
+
+    def test_create_invalid_body_maps_to_422(self, api_client):
+        app.dependency_overrides[deps.get_current_user] = _override_user(UserRole.ADMIN)
+        response = api_client.post("/api/v1/admin/taxonomy/categories", json={"name": ""})
+        assert response.status_code == 422
+
+    @pytest.mark.asyncio
+    async def test_update_missing_maps_to_404(self, api_client, monkeypatch):
+        app.dependency_overrides[deps.get_current_user] = _override_user(UserRole.ADMIN)
+
+        async def _missing(*_a, **_k):
+            raise LookupError("Category not found")
+
+        _mock_service(monkeypatch, update_category=_missing)
+        response = api_client.patch(
+            "/api/v1/admin/taxonomy/categories/999", json={"name": "ใหม่"}
+        )
+        assert response.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_delete_missing_maps_to_404(self, api_client, monkeypatch):
+        app.dependency_overrides[deps.get_current_user] = _override_user(UserRole.ADMIN)
+
+        async def _false(*_a, **_k):
+            return False
+
+        _mock_service(monkeypatch, delete_category=_false)
+        response = api_client.delete("/api/v1/admin/taxonomy/categories/999")
+        assert response.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_topic_create_missing_category_maps_to_404(
+        self, api_client, monkeypatch
+    ):
+        app.dependency_overrides[deps.get_current_user] = _override_user(UserRole.ADMIN)
+
+        async def _missing(*_a, **_k):
+            raise LookupError("Category not found")
+
+        _mock_service(monkeypatch, create_topic=_missing)
+        response = api_client.post(
+            "/api/v1/admin/taxonomy/topics", json={"category_id": 999, "name": "ข"}
+        )
+        assert response.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_topic_update_duplicate_maps_to_409(self, api_client, monkeypatch):
+        app.dependency_overrides[deps.get_current_user] = _override_user(UserRole.ADMIN)
+
+        async def _dup(*_a, **_k):
+            raise ValueError("Topic 'ข' already exists in this category")
+
+        _mock_service(monkeypatch, update_topic=_dup)
+        response = api_client.patch("/api/v1/admin/taxonomy/topics/11", json={"name": "ข"})
+        assert response.status_code == 409
+
+    def test_admin_routes_use_matrix_gate_not_broad_admin(self):
+        from pathlib import Path as _Path
+
+        source = (
+            _Path(__file__).resolve().parents[1]
+            / "app"
+            / "api"
+            / "v1"
+            / "endpoints"
+            / "admin_taxonomy.py"
+        ).read_text(encoding="utf-8")
+        assert "require_permission(KEY_MANAGE_TAXONOMY)" in source
+        assert "Depends(get_current_admin)" not in source
