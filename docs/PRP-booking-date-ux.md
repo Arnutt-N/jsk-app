@@ -18,9 +18,9 @@ DateSectionProps { dates, value, onChange, isDateDisabled, minDate, maxDate }
 ```
 
 ## Units (principle-sequence-verifiable-units, each green before next)
-1. draft.ts + tests: expiry, version mismatch, corrupt JSON → EMPTY_DRAFT; clear date also clears slot; double clear is no-op.
-2. service-mapping.ts + tests: known strings classified, unknown → "อื่นๆ", every TOPIC_OPTIONS key covered.
-3. DateSection.tsx: strip on top with affordances, calendar in collapsed disclosure, one onChange.
+1. draft.ts + tests: TTL locked at 30 min; expiry, version mismatch, corrupt JSON → EMPTY_DRAFT; clear date also clears slot; double clear is no-op.
+2. service-mapping.ts + tests: DB-ready client (fetch taxonomy with TOPIC_OPTIONS fallback); known strings classified, unknown → "อื่นๆ", every TOPIC_OPTIONS key covered. Backend endpoint + admin UI is a stacked follow-up, not this unit.
+3. DateSection.tsx: 7-day paging (week label + prev/next-week arrows), three-state legend (open / เต็ม / หยุด) on strip and calendar, strip on top with affordances, calendar in collapsed disclosure, one onChange.
 4. page.tsx rewire: Promise.all boot, loadDraft before paint, SectionClearHeader per block, keep latestSlotKey guard behavior inside getSlots single-flight.
 
 ## Boundaries (principle-boundary-discipline)
@@ -32,7 +32,7 @@ One writer for draft (reducer module). Page dispatches only. Availability cache 
 ## Validation
 - `cd frontend && npm run test:unit -- lib/booking` (new tests)
 - `cd frontend && npm run build`
-- Manual: 360px wide, strip hint shows once, arrows work, calendar collapsed, per-section clear toasts.
+- Manual: 360px wide, strip pages by week with label, hint shows once, arrows work, calendar collapsed with legend, per-section clear toasts, full/closed distinctly styled.
 
 ## Rollback
 Each unit is its own commit. Revert unit 4 first (page rewire), units 1-3 are additive and safe alone.
