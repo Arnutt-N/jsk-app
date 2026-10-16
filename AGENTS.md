@@ -156,6 +156,7 @@ async def get_item(id: int, db: AsyncSession = Depends(get_db), admin: User = De
 | Rule | Enforced by |
 |------|-------------|
 | Comments carry why-only; restatements deleted | `no-comments` review before code review + reviewer triage |
+| Test BroadcastChannel stub uses the shared helper or a typed cast, never `as any` + suppression | Single helper `contexts/__tests__/broadcast-channel-stub.ts` + `no-explicit-any` + reviewer triage |
 
 ---
 
