@@ -6,18 +6,24 @@ import CalendarPickerTH from '@/components/ui/CalendarPickerTH'
 import { cn } from '@/lib/utils'
 import { formatThaiDate, formatThaiWeekday, parseISODate, toISODate } from '@/lib/booking'
 
+/** Bookability of one day: open, full (เต็ม), or closed-holiday (หยุด). */
+export type DayState = 'open' | 'full' | 'closed'
+
 export interface DateSectionProps {
-  /** Bookable ISO days in order; chips render one per entry. */
+  /** Bookable ISO days in order; the strip pages through them a week at a time. */
   dates: string[]
   /** Selected ISO day, or null before the citizen picks. */
   value: string | null
   /** Single path for both the strip and the calendar; always a bare YYYY-MM-DD. */
   onChange: (date: string) => void
   isDateDisabled: (iso: string) => boolean
+  /** Visual state per day; days it does not know render as open (fail-open). */
+  getDayState: (iso: string) => DayState
   minDate: string | null
   maxDate: string | null
 }
 
+const PAGE_SIZE = 7
 const HINT_KEY = 'liff-booking-strip-hint-seen'
 
 function hintSeen(): boolean {
@@ -28,15 +34,49 @@ function hintSeen(): boolean {
   }
 }
 
+function weekLabel(visible: string[]): string {
+  if (visible.length === 0) return ''
+  const first = formatThaiDate(visible[0])
+  const last = formatThaiDate(visible[visible.length - 1])
+  return first === last ? first : `${first} – ${last}`
+}
+
+function DayLegend() {
+  return (
+    <div
+      className="mt-2 flex items-center gap-4 text-xs text-text-tertiary"
+      aria-label="คำอธิบายสถานะวันจอง"
+    >
+      <span className="flex items-center gap-1.5">
+        <span aria-hidden="true" className="h-2.5 w-2.5 rounded-full bg-brand-500" />
+        ว่าง
+      </span>
+      <span className="flex items-center gap-1.5">
+        <span aria-hidden="true" className="h-2.5 w-2.5 rounded-full bg-amber-400" />
+        เต็ม
+      </span>
+      <span className="flex items-center gap-1.5">
+        <span aria-hidden="true" className="h-2.5 w-2.5 rounded-full bg-border-default" />
+        หยุด
+      </span>
+    </div>
+  )
+}
+
 export default function DateSection({
   dates,
   value,
   onChange,
   isDateDisabled,
+  getDayState,
   minDate,
   maxDate,
 }: DateSectionProps) {
   const stripRef = useRef<HTMLDivElement>(null)
+  const maxPage = Math.max(0, Math.ceil(dates.length / PAGE_SIZE) - 1)
+  const [page, setPage] = useState(0)
+  const safePage = Math.min(page, maxPage)
+  const visible = dates.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE)
   const [canLeft, setCanLeft] = useState(false)
   const [canRight, setCanRight] = useState(false)
   const [hintVisible, setHintVisible] = useState(() => dates.length > 4 && !hintSeen())
@@ -53,7 +93,24 @@ export default function DateSection({
     updateEdges()
     window.addEventListener('resize', updateEdges)
     return () => window.removeEventListener('resize', updateEdges)
-  }, [dates, updateEdges])
+  }, [visible, updateEdges])
+
+  // A new week starts unscrolled.
+  useEffect(() => {
+    stripRef.current?.scrollTo({ left: 0 })
+    updateEdges()
+  }, [safePage, updateEdges])
+
+  // Keep the selected day on screen when it arrives from outside the strip
+  // (calendar pick, draft restore) instead of stranding it on another week.
+  useEffect(() => {
+    if (!value) return
+    const index = dates.indexOf(value)
+    if (index < 0) return
+    if (index < safePage * PAGE_SIZE || index >= safePage * PAGE_SIZE + PAGE_SIZE) {
+      setPage(Math.floor(index / PAGE_SIZE))
+    }
+  }, [value, dates, safePage])
 
   const dismissHint = useCallback(() => {
     setHintVisible(false)
@@ -64,10 +121,8 @@ export default function DateSection({
     }
   }, [])
 
-  const scrollBy = (direction: 1 | -1) => {
-    const el = stripRef.current
-    if (!el) return
-    el.scrollBy({ left: direction * Math.max(el.clientWidth * 0.8, 120), behavior: 'smooth' })
+  const goWeek = (direction: 1 | -1) => {
+    setPage((current) => Math.min(maxPage, Math.max(0, current + direction)))
     dismissHint()
   }
 
@@ -78,6 +133,29 @@ export default function DateSection({
 
   return (
     <div>
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <button
+          type="button"
+          onClick={() => goWeek(-1)}
+          disabled={safePage === 0}
+          aria-label="สัปดาห์ก่อนหน้า"
+          className="flex h-8 w-8 items-center justify-center rounded-full border border-border-default bg-surface shadow-sm disabled:opacity-40"
+        >
+          <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+        </button>
+        <p className="text-sm font-semibold text-text-primary" aria-live="polite">
+          {weekLabel(visible)}
+        </p>
+        <button
+          type="button"
+          onClick={() => goWeek(1)}
+          disabled={safePage === maxPage}
+          aria-label="สัปดาห์ถัดไป"
+          className="flex h-8 w-8 items-center justify-center rounded-full border border-border-default bg-surface shadow-sm disabled:opacity-40"
+        >
+          <ChevronRight className="h-4 w-4" aria-hidden="true" />
+        </button>
+      </div>
       <div className="relative">
         <div
           ref={stripRef}
@@ -87,9 +165,10 @@ export default function DateSection({
           }}
           className="-mx-4 flex snap-x snap-mandatory gap-2 overflow-x-auto px-4 py-1 scroll-px-4 [scrollbar-width:none] md:[scrollbar-width:thin] [&::-webkit-scrollbar]:hidden md:[&::-webkit-scrollbar]:block md:[&::-webkit-scrollbar]:h-1.5 md:[&::-webkit-scrollbar-thumb]:rounded-full md:[&::-webkit-scrollbar-thumb]:bg-border-default"
         >
-          {dates.map((date, index) => {
+          {visible.map((date) => {
             const isSelected = value === date
             const disabled = isDateDisabled(date)
+            const state = getDayState(date)
             return (
               <button
                 key={date}
@@ -100,56 +179,42 @@ export default function DateSection({
                   'w-[4.5rem] shrink-0 snap-start rounded-lg border px-2 py-2 text-center transition-colors',
                   isSelected
                     ? 'border-brand-500 bg-brand-50 text-brand-text dark:bg-brand-500/15 dark:text-brand-300'
-                    : 'border-border-default bg-surface text-text-secondary hover:border-border-hover',
-                  disabled && 'opacity-40 hover:border-border-hover hover:bg-surface',
+                    : state === 'full'
+                      ? 'border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700/50 dark:bg-amber-500/10 dark:text-amber-200'
+                      : 'border-border-default bg-surface text-text-secondary hover:border-border-hover',
+                  state === 'closed' && !isSelected && 'opacity-40',
                 )}
                 aria-pressed={isSelected}
                 aria-disabled={disabled}
               >
                 <span className="block text-2xs text-text-tertiary">
-                  {index === 0 ? 'วันนี้' : formatThaiWeekday(date)}
+                  {date === dates[0] ? 'วันนี้' : formatThaiWeekday(date)}
                 </span>
                 <span className="block text-lg font-semibold leading-tight">
                   {parseISODate(date).getDate()}
                 </span>
                 <span className="block text-2xs text-text-tertiary">
-                  {formatThaiDate(date).split(' ')[1]}
+                  {state === 'full'
+                    ? 'เต็ม'
+                    : state === 'closed'
+                      ? 'หยุด'
+                      : formatThaiDate(date).split(' ')[1]}
                 </span>
               </button>
             )
           })}
         </div>
         {canLeft && (
-          <>
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-surface to-transparent"
-            />
-            <button
-              type="button"
-              onClick={() => scrollBy(-1)}
-              aria-label="เลื่อนไปวันก่อนหน้า"
-              className="absolute left-1 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-border-default bg-surface shadow-md"
-            >
-              <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-            </button>
-          </>
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-surface to-transparent"
+          />
         )}
         {canRight && (
-          <>
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-surface to-transparent"
-            />
-            <button
-              type="button"
-              onClick={() => scrollBy(1)}
-              aria-label="เลื่อนไปวันถัดไป"
-              className="absolute right-1 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-border-default bg-surface shadow-md"
-            >
-              <ChevronRight className="h-4 w-4" aria-hidden="true" />
-            </button>
-          </>
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-surface to-transparent"
+          />
         )}
       </div>
       {hintVisible && (
@@ -158,6 +223,7 @@ export default function DateSection({
           ปัดซ้ายเพื่อดูวันอื่น ๆ
         </p>
       )}
+      <DayLegend />
       <div className="mt-3">
         <button
           type="button"
@@ -181,6 +247,7 @@ export default function DateSection({
               minDate={minDate}
               maxDate={maxDate}
             />
+            <DayLegend />
           </div>
         )}
       </div>
