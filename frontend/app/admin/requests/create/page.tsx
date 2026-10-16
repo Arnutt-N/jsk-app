@@ -138,7 +138,6 @@ export default function CreateRequestPage() {
 
     const selectedCategory = watch('topic_category');
 
-    // Category selects follow the shared admin taxonomy; frozen constants keep the form usable when the endpoint is empty/unreachable.
     const [taxonomy, setTaxonomy] = useState<TaxonomyTable | null>(null);
     useEffect(() => {
         let cancelled = false;

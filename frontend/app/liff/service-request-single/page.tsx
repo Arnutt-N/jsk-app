@@ -93,7 +93,6 @@ export default function LiffServiceRequestSingle() {
     const [selectedProvinceId, setSelectedProvinceId] = useState<number | null>(null)
     const [selectedDistrictId, setSelectedDistrictId] = useState<number | null>(null)
 
-    // Categories follow the shared admin taxonomy; frozen fallback keeps the form usable when the endpoint is empty/unreachable.
     const [taxonomy, setTaxonomy] = useState<TaxonomyTable | null>(null)
     useEffect(() => {
         let cancelled = false
