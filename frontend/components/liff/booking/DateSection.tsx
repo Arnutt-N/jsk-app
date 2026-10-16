@@ -95,22 +95,31 @@ export default function DateSection({
     return () => window.removeEventListener('resize', updateEdges)
   }, [visible, updateEdges])
 
-  // A new week starts unscrolled.
+  // A new week starts unscrolled. scrollTo is missing on some embedded
+  // webviews, so the reset is best-effort and never throws.
   useEffect(() => {
-    stripRef.current?.scrollTo({ left: 0 })
+    const el = stripRef.current
+    if (el && typeof el.scrollTo === 'function') el.scrollTo({ left: 0 })
     updateEdges()
   }, [safePage, updateEdges])
 
-  // Keep the selected day on screen when it arrives from outside the strip
-  // (calendar pick, draft restore) instead of stranding it on another week.
-  useEffect(() => {
-    if (!value) return
-    const index = dates.indexOf(value)
-    if (index < 0) return
-    if (index < safePage * PAGE_SIZE || index >= safePage * PAGE_SIZE + PAGE_SIZE) {
-      setPage(Math.floor(index / PAGE_SIZE))
+  // Keep a newly arrived selection on screen (calendar pick, draft
+  // restore, preselect) without fighting manual week paging: only a
+  // changed value jumps, a changed page never does. Adjusted during render
+  // (not in an effect) so user paging never triggers it.
+  const [prevValue, setPrevValue] = useState<string | null>(null)
+  if (value !== prevValue) {
+    setPrevValue(value)
+    if (value) {
+      const index = dates.indexOf(value)
+      if (
+        index >= 0 &&
+        (index < page * PAGE_SIZE || index >= page * PAGE_SIZE + PAGE_SIZE)
+      ) {
+        setPage(Math.floor(index / PAGE_SIZE))
+      }
     }
-  }, [value, dates, safePage])
+  }
 
   const dismissHint = useCallback(() => {
     setHintVisible(false)
