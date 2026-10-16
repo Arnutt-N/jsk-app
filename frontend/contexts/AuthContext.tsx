@@ -370,14 +370,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // /login 401 chain) firing this event must not end up broadcasting
       // logout to every other tab: that broadcast was the P1 login flake.
       if (getAuthSnapshot().status !== 'authenticated') return;
-      logout();
+      // Verify before clearing: a single unrecovered admin-API 401 after a
+      // successful login must not evict a session the server still honours.
+      void verifyThenApplyRemoteLogout();
     };
     window.addEventListener('jsk:auth-expired', onAuthExpired as EventListener);
     return () => {
       setAuthRefreshHandler(null);
       window.removeEventListener('jsk:auth-expired', onAuthExpired as EventListener);
     };
-  }, [refreshAccessToken, logout]);
+  }, [refreshAccessToken, verifyThenApplyRemoteLogout]);
 
   const value = useMemo<AuthContextType>(() => ({
     user,
