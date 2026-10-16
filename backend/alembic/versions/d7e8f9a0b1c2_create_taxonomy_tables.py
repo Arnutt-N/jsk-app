@@ -1,17 +1,4 @@
-"""create taxonomy categories and topics with frozen seed
-
-Revision ID: d7e8f9a0b1c2
-Revises: babccf229c05
-Create Date: 2026-10-16
-
-Two tables encode exactly-two-levels (no parent_id): taxonomy_categories
-1→N taxonomy_topics. Uniqueness per level, explicit sort_order, is_active
-soft-hide. Seed is a literal frozen copy of frontend TOPIC_OPTIONS at
-authoring time (frontend/lib/constants/categories.ts); idempotent via
-name-existence checks so re-running upgrade never duplicates rows.
-History policy: service_requests snapshot names as free text, no FK —
-renames stay prospective-only. Downgrade drops both tables.
-"""
+"""create taxonomy categories and topics with frozen seed"""
 from typing import Sequence, Union
 
 from alembic import op

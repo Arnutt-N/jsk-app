@@ -1,10 +1,3 @@
-"""Request/response schemas for the shared service taxonomy.
-
-The public wire is a bare map (category -> active topic names); the admin
-surface exposes ids, ordering, and active flags. Validation here is shape
-only — service owns semantic checks (trim, uniqueness) so 409s stay in one
-place.
-"""
 from typing import Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, RootModel

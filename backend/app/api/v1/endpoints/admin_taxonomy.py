@@ -1,10 +1,3 @@
-"""Admin taxonomy CRUD (permission-matrix gated).
-
-All seven routes require the `manage_taxonomy` matrix key via
-require_permission (D7 precedent) — never the broad admin gate.
-Validation errors from the service map to 409, missing rows to 404;
-malformed bodies are 422 via Pydantic.
-"""
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException

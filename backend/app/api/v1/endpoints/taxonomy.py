@@ -1,8 +1,3 @@
-"""Public shared-taxonomy endpoint (no auth).
-
-Serves the bare category->topics map every LIFF/booking client follows.
-Empty tables yield {} so callers fall back to their bundled TOPIC_OPTIONS.
-"""
 import logging
 
 from fastapi import APIRouter, Depends

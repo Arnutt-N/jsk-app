@@ -1,12 +1,3 @@
-"""Sole owner of taxonomy reads and writes.
-
-Public LIFF/booking clients read the bare category->topics map through
-`get_taxonomy_map` (60s versioned in-process cache); every writer goes
-through this module and invalidates the cache so admin edits surface
-within a minute at most. Validation lives here at the boundary so
-endpoints stay thin: empty names and duplicates raise ValueError (mapped
-to 409), missing rows raise LookupError (mapped to 404).
-"""
 import logging
 import time
 

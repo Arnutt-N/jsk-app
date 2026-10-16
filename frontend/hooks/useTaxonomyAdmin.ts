@@ -54,7 +54,6 @@ const LOAD_FAILED_MESSAGE = 'โหลดหมวดหมู่ไม่สำ
 const NOT_FOUND_MESSAGE = 'ไม่พบรายการนี้ อาจถูกลบไปแล้ว กรุณารีเฟรช'
 const FORBIDDEN_MESSAGE = 'ไม่มีสิทธิ์จัดการหมวดหมู่ (ต้องได้รับสิทธิ์ manage_taxonomy)'
 
-/** Shown on 409 so operators reactivate instead of duplicating. */
 export const DUPLICATE_CATEGORY_MESSAGE =
   'ชื่อหมวดหมู่นี้มีอยู่แล้ว — หากรายการเดิมถูกปิดใช้งานอยู่ ให้เปิดใช้งานรายการเดิมแทนการสร้างใหม่'
 export const DUPLICATE_TOPIC_MESSAGE =
@@ -116,7 +115,6 @@ async function readDetail(response: Response): Promise<string | null> {
     if (typeof payload.detail === 'string' && payload.detail.trim()) return payload.detail
     if (typeof payload.message === 'string' && payload.message.trim()) return payload.message
   } catch {
-    // Non-JSON body — fall back to status-based messaging below.
   }
   return null
 }
