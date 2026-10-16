@@ -7,6 +7,7 @@ import { Province, District, SubDistrict } from '../../../types/location'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { AGENCIES } from '@/lib/constants/agencies'
 import { TOPIC_OPTIONS } from '@/lib/constants/categories'
+import { loadTaxonomy, type TaxonomyTable } from '@/lib/booking/service-mapping'
 import { logger } from '@/lib/logger';
 import { useLiffInit } from '@/hooks/useLiffInit'
 import { useAutoCloseCountdown } from '@/hooks/useAutoCloseCountdown'
@@ -76,6 +77,18 @@ export default function LiffServiceRequestV2() {
     // Selected IDs for cascading logic (Not submitted)
     const [selectedProvinceId, setSelectedProvinceId] = useState<number | null>(null)
     const [selectedDistrictId, setSelectedDistrictId] = useState<number | null>(null)
+
+    // Categories follow the shared admin taxonomy; frozen fallback keeps the form usable when the endpoint is empty/unreachable.
+    const [taxonomy, setTaxonomy] = useState<TaxonomyTable | null>(null)
+    useEffect(() => {
+        let cancelled = false
+        void loadTaxonomy().then((table) => {
+            if (!cancelled) setTaxonomy(table)
+        })
+        return () => {
+            cancelled = true
+        }
+    }, [])
 
     // --- PROVINCES (initial load) ---
     useEffect(() => {
@@ -581,14 +594,14 @@ export default function LiffServiceRequestV2() {
                             required
                         >
                             <option value="">-- เลือกหัวข้อ --</option>
-                            {Object.keys(TOPIC_OPTIONS).map(topic => (
+                            {Object.keys(taxonomy ?? TOPIC_OPTIONS).map(topic => (
                                 <option key={topic} value={topic}>{topic}</option>
                             ))}
                         </select>
                         {fieldErrors.topic_category && <p className="text-red-500 text-[10px] mt-1">{fieldErrors.topic_category}</p>}
                     </div>
 
-                    {formData.topic_category && TOPIC_OPTIONS[formData.topic_category] && (
+                    {formData.topic_category && (taxonomy ?? TOPIC_OPTIONS)[formData.topic_category] && (
                         <div className="animate-fade-in-up">
                             <label htmlFor="topic_subcategory" className="block text-xs font-medium text-gray-700 mb-1">รายละเอียดเรื่อง</label>
                             <select
@@ -600,7 +613,7 @@ export default function LiffServiceRequestV2() {
                                 required
                             >
                                 <option value="">-- เลือกรายละเอียด --</option>
-                                {TOPIC_OPTIONS[formData.topic_category].map(sub => (
+                                {(taxonomy ?? TOPIC_OPTIONS)[formData.topic_category].map(sub => (
                                     <option key={sub} value={sub}>{sub}</option>
                                 ))}
                             </select>

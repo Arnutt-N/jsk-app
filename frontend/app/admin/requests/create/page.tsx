@@ -14,6 +14,7 @@ import { Select } from '@/components/ui/Select';
 import { Textarea } from '@/components/ui/Textarea';
 import PageHeader from '@/app/admin/components/PageHeader';
 import { TOPIC_OPTIONS, TOPIC_CATEGORY_OPTIONS } from '@/lib/constants/categories';
+import { loadTaxonomy, type TaxonomyTable } from '@/lib/booking/service-mapping';
 import { AGENCIES } from '@/lib/constants/agencies';
 import { ThaiAddressCascade } from '@/components/forms/ThaiAddressCascade';
 import {
@@ -136,6 +137,22 @@ export default function CreateRequestPage() {
     const { register, handleSubmit, trigger, watch, setValue, formState: { errors } } = form;
 
     const selectedCategory = watch('topic_category');
+
+    // Category selects follow the shared admin taxonomy; frozen constants keep the form usable when the endpoint is empty/unreachable.
+    const [taxonomy, setTaxonomy] = useState<TaxonomyTable | null>(null);
+    useEffect(() => {
+        let cancelled = false;
+        void loadTaxonomy().then((table) => {
+            if (!cancelled) setTaxonomy(table);
+        });
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+    const categoryOptions = taxonomy
+        ? Object.keys(taxonomy).map((v) => ({ value: v, label: v }))
+        : TOPIC_CATEGORY_OPTIONS;
+    const topicOptions = (taxonomy ?? TOPIC_OPTIONS)[selectedCategory];
     const selectedSource = watch('source');
     const createdAtValue = watch('created_at');
 
@@ -389,16 +406,16 @@ export default function CreateRequestPage() {
                                         <label className="block text-xs font-medium text-text-secondary mb-1.5">หมวดหมู่</label>
                                         <Select
                                             {...register('topic_category')}
-                                            options={TOPIC_CATEGORY_OPTIONS}
+                                            options={categoryOptions}
                                             state={errors.topic_category ? 'error' : 'default'}
                                             errorMessage={errors.topic_category?.message}
                                         />
                                     </div>
                                     <div>
                                         <label className="block text-xs font-medium text-text-secondary mb-1.5">หมวดหมู่ย่อย</label>
-                                        {TOPIC_OPTIONS[selectedCategory]?.length ? (
+                                        {topicOptions?.length ? (
                                             <Select
-                                                options={TOPIC_OPTIONS[selectedCategory].map((s) => ({ value: s, label: s }))}
+                                                options={topicOptions.map((s) => ({ value: s, label: s }))}
                                                 value={watch('topic_subcategory') || ''}
                                                 onChange={(e) => setValue('topic_subcategory', e.target.value)}
                                                 placeholder="-- เลือกรายละเอียด --"
