@@ -18,6 +18,7 @@ vi.mock('@/lib/authFetch', () => ({
 // Static import — COOKIE_AUTH is true at module load.
 import { AuthProvider, useAuth } from '../AuthContext';
 import { resetAuthStore, setAuthState } from '@/lib/authStore';
+import { stubBroadcastChannel } from './broadcast-channel-stub';
 
 const hoisted = vi.hoisted(() => ({ replace: vi.fn() }));
 vi.mock('next/navigation', () => ({
@@ -55,14 +56,7 @@ describe('AuthContext — cookie mode', () => {
   let originalFetch: typeof global.fetch;
 
   beforeEach(() => {
-    if (typeof globalThis.BroadcastChannel === 'undefined') {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (globalThis as any).BroadcastChannel = class {
-        postMessage() {}
-        close() {}
-        set onmessage(_: unknown) {}
-      };
-    }
+    stubBroadcastChannel();
     originalFetch = global.fetch;
     localStorage.clear();
     resetAuthStore();
@@ -398,8 +392,7 @@ describe('cross-tab logout broadcast (login-flake fix)', () => {
     localStorage.clear();
     hoisted.replace.mockClear();
     MockChannel.instances = [];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (globalThis as any).BroadcastChannel = MockChannel;
+    (globalThis as unknown as { BroadcastChannel: unknown }).BroadcastChannel = MockChannel;
   });
 
   afterEach(() => {
