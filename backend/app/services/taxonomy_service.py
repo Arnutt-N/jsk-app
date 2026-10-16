@@ -123,7 +123,17 @@ class TaxonomyService:
             raise ValueError(f"Category '{category.name}' already exists") from None
         await db.refresh(category)
         self.invalidate()
-        return category
+        # Reload with topics: the instance above never loaded the collection,
+        # so serializing it would lazy-load on AsyncSession (MissingGreenlet).
+        reloaded = (
+            await db.execute(
+                select(TaxonomyCategory)
+                .options(selectinload(TaxonomyCategory.topics))
+                .where(TaxonomyCategory.id == category_id)
+            )
+        ).scalar_one()
+        reloaded.topics.sort(key=lambda t: (t.sort_order, t.id))
+        return reloaded
 
     async def delete_category(self, db: AsyncSession, category_id: int) -> bool:
         category = await db.get(TaxonomyCategory, category_id)
