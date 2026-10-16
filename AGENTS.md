@@ -145,6 +145,20 @@ async def get_item(id: int, db: AsyncSession = Depends(get_db), admin: User = De
 
 ---
 
+## Code Comments — why only, never restatements
+
+- Comments explain a non-obvious *why* the code cannot show. Never restate what the code says.
+- Banned: section banners, docstrings/JSDoc repeating the signature, narrations of the lines below, empty `catch` notes without a reason.
+- Enforcement: run the `no-comments` (comment-sicko) review before code review; a keep survives only with proof, otherwise delete.
+
+## Rule Table (rule → what enforces it)
+
+| Rule | Enforced by |
+|------|-------------|
+| Comments carry why-only; restatements deleted | `no-comments` review before code review + reviewer triage |
+
+---
+
 ## Key Patterns
 
 - **LINE SDK lazy init**: `@property` with `if self._api is None` guard (needs async event loop)
