@@ -1,7 +1,7 @@
 import logging
 import time
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -144,6 +144,13 @@ class TaxonomyService:
         category = await db.get(TaxonomyCategory, category_id)
         if category is None:
             return False
+        topic_count = await db.scalar(
+            select(func.count())
+            .select_from(TaxonomyTopic)
+            .where(TaxonomyTopic.category_id == category_id)
+        )
+        if topic_count:
+            raise ValueError("Category still has topics; deactivate it instead")
         await db.delete(category)
         await db.commit()
         self.invalidate()

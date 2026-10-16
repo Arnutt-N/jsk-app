@@ -225,6 +225,23 @@ class TestCategoryWriters:
         db.get = AsyncMock(return_value=None)
         assert await taxonomy_service.delete_category(db, 999) is False
 
+    @pytest.mark.asyncio
+    async def test_delete_non_empty_category_raises_and_keeps_rows(self):
+        db = _mock_db()
+        db.get = AsyncMock(return_value=SimpleNamespace(id=1, name="ก"))
+        db.scalar = AsyncMock(return_value=2)
+        with pytest.raises(ValueError, match="deactivate"):
+            await taxonomy_service.delete_category(db, 1)
+        db.delete.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_delete_empty_category_succeeds(self):
+        db = _mock_db()
+        db.get = AsyncMock(return_value=SimpleNamespace(id=1, name="ก"))
+        db.scalar = AsyncMock(return_value=0)
+        assert await taxonomy_service.delete_category(db, 1) is True
+        db.delete.assert_called_once()
+
 
 class TestTopicWriters:
     @pytest.mark.asyncio
@@ -418,6 +435,17 @@ class TestAdminTaxonomyEndpoints:
         _mock_service(monkeypatch, delete_category=_false)
         response = api_client.delete("/api/v1/admin/taxonomy/categories/999")
         assert response.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_delete_non_empty_category_maps_to_409(self, api_client, monkeypatch):
+        app.dependency_overrides[deps.get_current_user] = _override_user(UserRole.ADMIN)
+
+        async def _guarded(*_a, **_k):
+            raise ValueError("Category still has topics; deactivate it instead")
+
+        _mock_service(monkeypatch, delete_category=_guarded)
+        response = api_client.delete("/api/v1/admin/taxonomy/categories/1")
+        assert response.status_code == 409
 
     @pytest.mark.asyncio
     async def test_topic_create_missing_category_maps_to_404(

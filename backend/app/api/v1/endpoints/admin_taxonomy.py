@@ -83,7 +83,10 @@ async def delete_category(
     db: AsyncSession = Depends(get_db),
     _admin: User = Depends(Gate),
 ):
-    deleted = await taxonomy_service.delete_category(db, category_id)
+    try:
+        deleted = await taxonomy_service.delete_category(db, category_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     if not deleted:
         raise HTTPException(status_code=404, detail="Category not found")
     return {"status": "deleted", "id": category_id}
