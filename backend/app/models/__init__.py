@@ -28,3 +28,4 @@ from .credential import Credential
 from .friend_event import FriendEvent
 from .system_setting import SystemSetting
 from .chat_analytics import ChatAnalytics
+from .taxonomy import TaxonomyCategory, TaxonomyTopic

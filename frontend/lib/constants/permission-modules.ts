@@ -11,8 +11,9 @@
  * page prefers the live registry served by GET /permissions and falls back
  * to this constant only when the API omits it; an integrity test
  * (permission-modules.test.ts) asserts the key set, module grouping, and
- * level tags here stay aligned with the backend's 20 keys (16 original +
- * 3 P1.2a access-gate keys + 1 NEW-3 live-chat WS gate key).
+ * level tags here stay aligned with the backend's 23 keys (16 original +
+ * 3 P1.2a access-gate keys + 1 NEW-3 live-chat WS gate key + 2 D7 granular
+ * keys + 1 shared-taxonomy key).
  */
 
 export const MODULE = {
@@ -128,6 +129,8 @@ export const PERMISSION_REGISTRY: readonly PermissionKeyMeta[] = [
   // D7: granular admin gates — credentials + business hours.
   { key: 'manage_credentials', label: 'จัดการรหัสเชื่อมต่อ (credentials/integrations)', module: 'system', level: 3 },
   { key: 'edit_business_hours', label: 'แก้เวลาทำการ (business hours)', module: 'system', level: 2 },
+  // Shared taxonomy: admin CRUD over service categories/topics.
+  { key: 'manage_taxonomy', label: 'จัดการหมวดหมู่บริการ (taxonomy)', module: 'system', level: 3 },
 ]
 
 /** Every key the frontend expects the backend to define (drift guard). */

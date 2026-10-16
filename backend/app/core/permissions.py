@@ -80,6 +80,10 @@ KEY_ACCESS_LIVE_CHAT = "access_live_chat"
 KEY_MANAGE_CREDENTIALS = "manage_credentials"
 KEY_EDIT_BUSINESS_HOURS = "edit_business_hours"
 
+# Shared taxonomy (Candidate B): admin CRUD over service categories/topics.
+# Gated via require_permission (D7 precedent); DEFAULT mirrors other MANAGE keys.
+KEY_MANAGE_TAXONOMY = "manage_taxonomy"
+
 # Hardcoded fallback used when the DB row is missing OR the cache hasn't
 # loaded yet. Mirrors the migration seed values.
 DEFAULT_POLICY: dict[str, frozenset[UserRole]] = {
@@ -128,6 +132,7 @@ DEFAULT_POLICY: dict[str, frozenset[UserRole]] = {
     KEY_IMAGE_RESIZE: frozenset({UserRole.SUPER_ADMIN, UserRole.ADMIN}),
     KEY_MANAGE_CREDENTIALS: frozenset({UserRole.SUPER_ADMIN, UserRole.ADMIN}),
     KEY_EDIT_BUSINESS_HOURS: frozenset({UserRole.SUPER_ADMIN, UserRole.ADMIN}),
+    KEY_MANAGE_TAXONOMY: frozenset({UserRole.SUPER_ADMIN, UserRole.ADMIN}),
     # --- P1.2a: Configurable auth gates (deps.py) ---
     # Mirror the hardcoded role sets in get_current_admin/manager/staff
     # so the PR ships dark (zero behavior change). SUPER_ADMIN stays in
@@ -238,6 +243,7 @@ _SEED_DESCRIPTIONS: dict[str, str] = {
     KEY_IMAGE_RESIZE: "ใช้เครื่องมือ Image Resize",
     KEY_MANAGE_CREDENTIALS: "จัดการรหัสเชื่อมต่อ (credentials/integrations)",
     KEY_EDIT_BUSINESS_HOURS: "แก้เวลาทำการ (business hours)",
+    KEY_MANAGE_TAXONOMY: "จัดการหมวดหมู่บริการ (taxonomy)",
     # --- P1.2a: Configurable auth gates (deps.py) ---
     KEY_ACCESS_ADMIN_ENDPOINTS: "เข้าใช้งาน admin endpoints (gate เข้า settings UI)",
     KEY_ACCESS_MANAGER_ENDPOINTS: "เข้าใช้งาน manager-level endpoints (request workflow)",
@@ -461,6 +467,7 @@ PERMISSION_REGISTRY: tuple[PermissionMeta, ...] = (
     # NEW-3: Live-chat WebSocket gate. VIEW-level (access gate, not edit);
     # grouped under "system" alongside the other access keys.
     PermissionMeta(KEY_ACCESS_LIVE_CHAT, "system", LEVEL_VIEW, _SEED_DESCRIPTIONS[KEY_ACCESS_LIVE_CHAT]),
+    PermissionMeta(KEY_MANAGE_TAXONOMY, "system", LEVEL_MANAGE, _SEED_DESCRIPTIONS[KEY_MANAGE_TAXONOMY]),
 )
 
 # Every key (existing + new) must appear in the registry exactly once.

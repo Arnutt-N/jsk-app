@@ -284,9 +284,24 @@ def test_registry_access_gate_metadata_module_and_level():
     assert staff_meta.level == 1  # LEVEL_VIEW
 
 
-def test_all_permission_keys_count_is_22():
-    """P1.2a brought the registry from 16 to 19; NEW-3 adds access_live_chat -> 20; D7 adds manage_credentials, edit_business_hours -> 22."""
-    assert len(ALL_PERMISSION_KEYS) == 22
+def test_all_permission_keys_count_is_23():
+    """P1.2a brought the registry from 16 to 19; NEW-3 adds access_live_chat -> 20; D7 adds manage_credentials, edit_business_hours -> 22; shared taxonomy adds manage_taxonomy -> 23."""
+    assert len(ALL_PERMISSION_KEYS) == 23
+
+
+def test_registry_taxonomy_key_metadata_module_and_level():
+    """manage_taxonomy lands in the 'system' module at LEVEL_MANAGE,
+    defaulting to SUPER_ADMIN + ADMIN only (D7 precedent)."""
+    from app.core.permissions import KEY_MANAGE_TAXONOMY
+
+    meta_by_key = {m.key: m for m in PERMISSION_REGISTRY}
+    meta = meta_by_key[KEY_MANAGE_TAXONOMY]
+    assert meta.module == "system"
+    assert meta.level == 3  # LEVEL_MANAGE
+    assert can(UserRole.SUPER_ADMIN, KEY_MANAGE_TAXONOMY) is True
+    assert can(UserRole.ADMIN, KEY_MANAGE_TAXONOMY) is True
+    assert can(UserRole.DIRECTOR, KEY_MANAGE_TAXONOMY) is False
+    assert can(UserRole.AGENT, KEY_MANAGE_TAXONOMY) is False
 
 
 # ---------------------------------------------------------------------------
