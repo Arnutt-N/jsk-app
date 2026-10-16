@@ -182,7 +182,7 @@ export function useTaxonomyAdmin() {
           await refresh()
           return null
         }
-        if (response.status === 409) return conflictMessage(scope)
+        if (response.status === 409) return (await readDetail(response)) ?? conflictMessage(scope)
         if (response.status === 404) return NOT_FOUND_MESSAGE
         if (response.status === 403) return FORBIDDEN_MESSAGE
         const detail = await readDetail(response)

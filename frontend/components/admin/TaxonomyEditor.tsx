@@ -343,8 +343,8 @@ export default function TaxonomyEditor() {
         description={
           pendingDelete?.kind === 'category' ? (
             <>
-              หมวดหมู่ <b>{pendingDelete?.name}</b> และหัวข้อย่อยทั้งหมดในหมวดหมู่นี้จะถูกลบถาวร
-              หากต้องการซ่อนจากผู้ใช้ชั่วคราว ให้ปิด “แสดงใน LIFF” แทนการลบ
+              หมวดหมู่ <b>{pendingDelete?.name}</b> ที่มีหัวข้อย่อยอยู่ไม่สามารถลบได้
+              หากต้องการซ่อนจากผู้ใช้ ให้ปิด “แสดงใน LIFF” แทนการลบ
             </>
           ) : (
             <>

@@ -81,7 +81,7 @@ describe('TaxonomyEditor', () => {
     fireEvent.change(screen.getByDisplayValue('กองทุนยุติธรรม'), {
       target: { value: 'ชื่อซ้ำ' },
     })
-    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse({ detail: 'exists' }, 409))
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse({}, 409))
     fireEvent.click(screen.getAllByRole('button', { name: 'บันทึก' })[0] as HTMLElement)
 
     await waitFor(() =>
@@ -89,7 +89,7 @@ describe('TaxonomyEditor', () => {
     )
   })
 
-  it('asks for confirmation with the cascade warning before deleting a category', async () => {
+  it('states a non-empty category cannot be deleted and points at deactivation', async () => {
     vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(CATEGORIES_PAYLOAD))
     renderEditor()
     await waitFor(() => expect(screen.getByDisplayValue('กองทุนยุติธรรม')).toBeInTheDocument())
@@ -97,7 +97,8 @@ describe('TaxonomyEditor', () => {
     fireEvent.click(screen.getAllByRole('button', { name: 'ลบ' })[0] as HTMLElement)
 
     await waitFor(() => expect(screen.getByText('ลบหมวดหมู่นี้?')).toBeInTheDocument())
-    expect(screen.getByText(/หัวข้อย่อยทั้งหมดในหมวดหมู่นี้จะถูกลบถาวร/)).toBeInTheDocument()
+    expect(screen.getByText(/ไม่สามารถลบได้/)).toBeInTheDocument()
+    expect(screen.queryByText(/จะถูกลบถาวร/)).not.toBeInTheDocument()
     expect(vi.mocked(fetch)).toHaveBeenCalledTimes(1)
   })
 })

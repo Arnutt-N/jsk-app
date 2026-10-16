@@ -76,7 +76,7 @@ describe('useTaxonomyAdmin — mutations', () => {
   it('suggests reactivation on duplicate category (409)', async () => {
     mockFetchSequence([
       jsonResponse(CATEGORIES_PAYLOAD),
-      jsonResponse({ detail: 'exists' }, 409),
+      jsonResponse({}, 409),
     ])
     const { result } = renderHook(() => useTaxonomyAdmin())
     await waitFor(() => expect(result.current.loading).toBe(false))
@@ -91,7 +91,7 @@ describe('useTaxonomyAdmin — mutations', () => {
   it('suggests reactivation on duplicate topic (409)', async () => {
     mockFetchSequence([
       jsonResponse(CATEGORIES_PAYLOAD),
-      jsonResponse({ detail: 'exists' }, 409),
+      jsonResponse({}, 409),
     ])
     const { result } = renderHook(() => useTaxonomyAdmin())
     await waitFor(() => expect(result.current.loading).toBe(false))
@@ -132,6 +132,22 @@ describe('useTaxonomyAdmin — mutations', () => {
     })
     expect(failure).toBeNull()
     await waitFor(() => expect(result.current.categories).toEqual([]))
+  })
+
+  it('surfaces the server detail when a non-empty category delete is rejected (409)', async () => {
+    const serverDetail = 'Category still has topics; deactivate it instead'
+    mockFetchSequence([
+      jsonResponse(CATEGORIES_PAYLOAD),
+      jsonResponse({ detail: serverDetail }, 409),
+    ])
+    const { result } = renderHook(() => useTaxonomyAdmin())
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    let failure: string | null = null
+    await act(async () => {
+      failure = await result.current.deleteCategory(1)
+    })
+    expect(failure).toBe(serverDetail)
   })
 
   it('maps a network failure to a Thai retry message', async () => {
