@@ -9,23 +9,15 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Input } from '@/components/ui/Input'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { useToast } from '@/components/ui/Toast'
+import { useEditableRow } from '@/hooks/useEditableRow'
 import {
   useTaxonomyAdmin,
   type AdminCategory,
   type AdminTopic,
+  type CategoryPatch,
+  type TopicPatch,
 } from '@/hooks/useTaxonomyAdmin'
 import { cn } from '@/lib/utils'
-
-const NAME_REQUIRED_MESSAGE = 'กรุณากรอกชื่อ'
-const ORDER_INVALID_MESSAGE = 'ลำดับต้องเป็นตัวเลข 0 ขึ้นไป'
-
-function parseOrder(raw: string): number | null {
-  const trimmed = raw.trim()
-  if (!trimmed) return null
-  const parsed = Number.parseInt(trimmed, 10)
-  if (!Number.isInteger(parsed) || parsed < 0) return null
-  return parsed
-}
 
 interface PendingDelete {
   kind: 'category' | 'topic'
@@ -39,41 +31,26 @@ function TopicRow({
   onAskDelete,
 }: {
   topic: AdminTopic
-  onUpdate: (id: number, patch: { name?: string; sort_order?: number; is_active?: boolean }) => Promise<string | null>
+  onUpdate: (id: number, patch: TopicPatch) => Promise<string | null>
   onAskDelete: (target: PendingDelete) => void
 }) {
-  const [name, setName] = useState(topic.name)
-  const [order, setOrder] = useState(String(topic.sort_order))
-  const [active, setActive] = useState(topic.is_active)
-  const [error, setError] = useState<string | null>(null)
-  const [saving, setSaving] = useState(false)
-  const { toast } = useToast()
-
-  const dirty =
-    name.trim() !== topic.name ||
-    order.trim() !== String(topic.sort_order) ||
-    active !== topic.is_active
-
-  const handleSave = async () => {
-    if (!name.trim()) {
-      setError(NAME_REQUIRED_MESSAGE)
-      return
-    }
-    const sortOrder = parseOrder(order)
-    if (sortOrder === null) {
-      setError(ORDER_INVALID_MESSAGE)
-      return
-    }
-    setSaving(true)
-    setError(null)
-    const failure = await onUpdate(topic.id, { name: name.trim(), sort_order: sortOrder, is_active: active })
-    setSaving(false)
-    if (failure) {
-      setError(failure)
-      return
-    }
-    toast({ title: 'บันทึกหัวข้อแล้ว', variant: 'success' })
-  }
+  const {
+    name,
+    setName,
+    order,
+    setOrder,
+    active,
+    setActive,
+    error,
+    saving,
+    dirty,
+    save,
+  } = useEditableRow({
+    initial: { name: topic.name, order: String(topic.sort_order), active: topic.is_active },
+    successTitle: 'บันทึกหัวข้อแล้ว',
+    onSave: (input) =>
+      onUpdate(topic.id, { name: input.name, sort_order: input.sortOrder, is_active: input.active }),
+  })
 
   return (
     <div className="flex flex-col gap-2 rounded-lg border border-border bg-surface px-3 py-2">
@@ -107,7 +84,7 @@ function TopicRow({
           แสดงใน LIFF
         </label>
         {!topic.is_active && <Badge variant="secondary">ปิดใช้งาน</Badge>}
-        <Button size="sm" disabled={!dirty || saving} onClick={() => void handleSave()}>
+        <Button size="sm" disabled={!dirty || saving} onClick={() => void save()}>
           {saving ? 'กำลังบันทึก…' : 'บันทึก'}
         </Button>
         <Button
@@ -124,34 +101,12 @@ function TopicRow({
 }
 
 function AddTopicForm({ categoryId, onCreate }: { categoryId: number; onCreate: (input: { category_id: number; name: string; sort_order: number }) => Promise<string | null> }) {
-  const [name, setName] = useState('')
-  const [order, setOrder] = useState('0')
-  const [error, setError] = useState<string | null>(null)
-  const [saving, setSaving] = useState(false)
-  const { toast } = useToast()
-
-  const handleAdd = async () => {
-    if (!name.trim()) {
-      setError(NAME_REQUIRED_MESSAGE)
-      return
-    }
-    const sortOrder = parseOrder(order)
-    if (sortOrder === null) {
-      setError(ORDER_INVALID_MESSAGE)
-      return
-    }
-    setSaving(true)
-    setError(null)
-    const failure = await onCreate({ category_id: categoryId, name: name.trim(), sort_order: sortOrder })
-    setSaving(false)
-    if (failure) {
-      setError(failure)
-      return
-    }
-    setName('')
-    setOrder('0')
-    toast({ title: 'เพิ่มหัวข้อแล้ว', variant: 'success' })
-  }
+  const { name, setName, order, setOrder, error, saving, save } = useEditableRow({
+    initial: { name: '', order: '0' },
+    successTitle: 'เพิ่มหัวข้อแล้ว',
+    resetOnSuccess: true,
+    onSave: (input) => onCreate({ category_id: categoryId, name: input.name, sort_order: input.sortOrder }),
+  })
 
   return (
     <div className="flex flex-col gap-2">
@@ -172,7 +127,7 @@ function AddTopicForm({ categoryId, onCreate }: { categoryId: number; onCreate: 
           onChange={(event) => setOrder(event.target.value)}
           className="w-20"
         />
-        <Button size="sm" variant="secondary" disabled={saving} onClick={() => void handleAdd()}>
+        <Button size="sm" variant="secondary" disabled={saving} onClick={() => void save()}>
           {saving ? 'กำลังเพิ่ม…' : 'เพิ่มหัวข้อ'}
         </Button>
       </div>
@@ -189,43 +144,28 @@ function CategoryCard({
   onAskDelete,
 }: {
   category: AdminCategory
-  onUpdate: (id: number, patch: { name?: string; sort_order?: number; is_active?: boolean }) => Promise<string | null>
-  onUpdateTopic: (id: number, patch: { name?: string; sort_order?: number; is_active?: boolean }) => Promise<string | null>
+  onUpdate: (id: number, patch: CategoryPatch) => Promise<string | null>
+  onUpdateTopic: (id: number, patch: TopicPatch) => Promise<string | null>
   onCreateTopic: (input: { category_id: number; name: string; sort_order: number }) => Promise<string | null>
   onAskDelete: (target: PendingDelete) => void
 }) {
-  const [name, setName] = useState(category.name)
-  const [order, setOrder] = useState(String(category.sort_order))
-  const [active, setActive] = useState(category.is_active)
-  const [error, setError] = useState<string | null>(null)
-  const [saving, setSaving] = useState(false)
-  const { toast } = useToast()
-
-  const dirty =
-    name.trim() !== category.name ||
-    order.trim() !== String(category.sort_order) ||
-    active !== category.is_active
-
-  const handleSave = async () => {
-    if (!name.trim()) {
-      setError(NAME_REQUIRED_MESSAGE)
-      return
-    }
-    const sortOrder = parseOrder(order)
-    if (sortOrder === null) {
-      setError(ORDER_INVALID_MESSAGE)
-      return
-    }
-    setSaving(true)
-    setError(null)
-    const failure = await onUpdate(category.id, { name: name.trim(), sort_order: sortOrder, is_active: active })
-    setSaving(false)
-    if (failure) {
-      setError(failure)
-      return
-    }
-    toast({ title: 'บันทึกหมวดหมู่แล้ว', variant: 'success' })
-  }
+  const {
+    name,
+    setName,
+    order,
+    setOrder,
+    active,
+    setActive,
+    error,
+    saving,
+    dirty,
+    save,
+  } = useEditableRow({
+    initial: { name: category.name, order: String(category.sort_order), active: category.is_active },
+    successTitle: 'บันทึกหมวดหมู่แล้ว',
+    onSave: (input) =>
+      onUpdate(category.id, { name: input.name, sort_order: input.sortOrder, is_active: input.active }),
+  })
 
   return (
     <section className={cn('rounded-xl border border-border bg-card p-4', !category.is_active && 'opacity-80')}>
@@ -259,7 +199,7 @@ function CategoryCard({
           แสดงใน LIFF
         </label>
         {!category.is_active && <Badge variant="secondary">ปิดใช้งาน</Badge>}
-        <Button size="sm" disabled={!dirty || saving} onClick={() => void handleSave()}>
+        <Button size="sm" disabled={!dirty || saving} onClick={() => void save()}>
           {saving ? 'กำลังบันทึก…' : 'บันทึก'}
         </Button>
         <Button
@@ -287,34 +227,12 @@ function CategoryCard({
 }
 
 function AddCategoryForm({ onCreate }: { onCreate: (input: { name: string; sort_order: number }) => Promise<string | null> }) {
-  const [name, setName] = useState('')
-  const [order, setOrder] = useState('0')
-  const [error, setError] = useState<string | null>(null)
-  const [saving, setSaving] = useState(false)
-  const { toast } = useToast()
-
-  const handleAdd = async () => {
-    if (!name.trim()) {
-      setError(NAME_REQUIRED_MESSAGE)
-      return
-    }
-    const sortOrder = parseOrder(order)
-    if (sortOrder === null) {
-      setError(ORDER_INVALID_MESSAGE)
-      return
-    }
-    setSaving(true)
-    setError(null)
-    const failure = await onCreate({ name: name.trim(), sort_order: sortOrder })
-    setSaving(false)
-    if (failure) {
-      setError(failure)
-      return
-    }
-    setName('')
-    setOrder('0')
-    toast({ title: 'เพิ่มหมวดหมู่แล้ว', variant: 'success' })
-  }
+  const { name, setName, order, setOrder, error, saving, save } = useEditableRow({
+    initial: { name: '', order: '0' },
+    successTitle: 'เพิ่มหมวดหมู่แล้ว',
+    resetOnSuccess: true,
+    onSave: (input) => onCreate({ name: input.name, sort_order: input.sortOrder }),
+  })
 
   return (
     <div className="rounded-xl border border-dashed border-border bg-card p-4">
@@ -338,7 +256,7 @@ function AddCategoryForm({ onCreate }: { onCreate: (input: { name: string; sort_
             className="w-20"
           />
         </label>
-        <Button disabled={saving} onClick={() => void handleAdd()}>
+        <Button disabled={saving} onClick={() => void save()}>
           {saving ? 'กำลังเพิ่ม…' : 'เพิ่มหมวดหมู่'}
         </Button>
       </div>
