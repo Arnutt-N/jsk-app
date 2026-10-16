@@ -157,6 +157,7 @@ async def get_item(id: int, db: AsyncSession = Depends(get_db), admin: User = De
 |------|-------------|
 | Comments carry why-only; restatements deleted | `no-comments` review before code review + reviewer triage |
 | Test BroadcastChannel stub uses the shared helper or a typed cast, never `as any` + suppression | Single helper `contexts/__tests__/broadcast-channel-stub.ts` + `no-explicit-any` + reviewer triage |
+| Endpoint tests covering response serialization use a real session (NullPool + marker cleanup recipe), never a mocked service | Exemplar `backend/tests/test_taxonomy_patch_regression.py` + reviewer triage |
 
 ---
 
