@@ -11,7 +11,7 @@
 - [ ] Verify on the matching surface. "Inconclusive" or wrong-surface is not a pass. Flag it.
 - [ ] Rebase into small, ordered commits. Stack follow-ups. Use the sequence-verifiable-units principle skill, building, verifying, and committing each small unit before the next.
 - [x] If the design is contested, `interrogate` before shipping. (skip: design agreed with user via AskUserQuestion, not contested)
-- [ ] Run Opening a PR.
+- [x] Run Opening a PR. (PR #260, ready, no babysit per playbook)
 - [x] No-comments triage (2026-10-16): sicko proposed deleting all 47 added comment blocks + 9 structural refactors. Owner verdict: KEEP all prose (module docs encode single-writer ownership, fail-open policy, TTL rationale, DB-ready roadmap — an agent copying nearest example needs them; deleting raises reader load). MUST-KILL refactors (unify isDateDisabled/getDayState, branded date types, branded RawServiceString/DisplayLabel) filed as follow-up, out of this PR scope.
 
 ## Task todos (booking fix, design B chosen)
