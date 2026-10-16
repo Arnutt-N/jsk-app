@@ -4,16 +4,19 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Alert } from '@/components/ui/Alert'
 import { Badge } from '@/components/ui/Badge'
-import CalendarPickerTH from '@/components/ui/CalendarPickerTH'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
 import { Skeleton } from '@/components/ui/Skeleton'
-import { CalendarDays, CheckCircle2, Clock, Loader2, Users } from 'lucide-react'
+import { CalendarDays, CheckCircle2, Clock, Loader2, RotateCcw, Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { logger } from '@/lib/logger'
 import { useLiffInit } from '@/hooks/useLiffInit'
+import DateSection, { type DayState } from '@/components/liff/booking/DateSection'
+import { createDraftStore, type BookingDraft, type DraftAction } from '@/lib/booking/draft'
+import { buildServiceGroups, loadTaxonomy, type TaxonomyTable } from '@/lib/booking/service-mapping'
+import { useToast } from '@/components/ui/Toast'
 import {
   buildDateOptions,
   cancelBooking,
@@ -21,19 +24,16 @@ import {
   fetchAvailability,
   fetchAvailabilityRange,
   formatThaiDate,
-  formatThaiWeekday,
   formatTime,
   groupSlotsByPeriod,
-  parseISODate,
   submitBooking,
-  toISODate,
   updateBookingContact,
   type Availability,
   type Booking,
   type DayAvailability,
-  type Slot,
 } from '@/lib/booking'
 import { API_BASE } from '@/lib/constants/api'
+import { TOPIC_OPTIONS } from '@/lib/constants/categories'
 
 interface BookingOptions {
   service_types: string[]
@@ -111,22 +111,46 @@ interface SectionProps {
   title: string
   children: React.ReactNode
   className?: string
+  action?: React.ReactNode
 }
 
 /** One card per step — the shared Card rhythm used across the LIFF forms. */
-function Section({ icon, title, children, className }: SectionProps) {
+function Section({ icon, title, children, className, action }: SectionProps) {
   return (
     <Card glass className={cn('overflow-hidden', className)}>
       <CardHeader className="bg-bg/50 border-b border-border-subtle">
-        <CardTitle className="text-base flex items-center gap-2">
-          <span className="text-text-tertiary" aria-hidden="true">
-            {icon}
-          </span>
-          {title}
-        </CardTitle>
+        <div className="flex items-center justify-between gap-2">
+          <CardTitle className="text-base flex items-center gap-2">
+            <span className="text-text-tertiary" aria-hidden="true">
+              {icon}
+            </span>
+            {title}
+          </CardTitle>
+          {action}
+        </div>
       </CardHeader>
       <CardContent className="pt-6">{children}</CardContent>
     </Card>
+  )
+}
+
+/** Per-block clear with the service-request wording and success toast. */
+function SectionClearButton({ onClear }: { onClear: () => void }) {
+  const { toast } = useToast()
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="sm"
+      onClick={() => {
+        onClear()
+        toast({ variant: 'success', title: 'ล้างข้อมูลแท็บนี้แล้ว' })
+      }}
+      leftIcon={<RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />}
+      className="h-7 shrink-0 px-2 text-xs text-text-tertiary"
+    >
+      ล้างค่า
+    </Button>
   )
 }
 
@@ -215,20 +239,42 @@ export default function LiffBookingPage() {
   })
 
   const [options, setOptions] = useState<BookingOptions | null>(null)
-  const [serviceType, setServiceType] = useState<string | null>(null)
-  const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  // The draft store is the single writer for every selection; the page only
+  // dispatches. The store restores synchronously, so a reloaded draft is
+  // already in state before the first paint that needs it.
+  const [store] = useState(() => createDraftStore())
+  const [draft, setDraft] = useState<BookingDraft>(() => store.getDraft())
+  const dispatchDraft = useCallback(
+    (action: DraftAction) => {
+      setDraft(store.dispatch(action))
+    },
+    [store],
+  )
+  const serviceType = draft.service
+  const selectedDate = draft.date
+  const contactName = draft.contactName
+  const phoneNumber = draft.phoneNumber
+  const note = draft.note
+  const onContactName = (value: string) =>
+    dispatchDraft({ type: 'contact/set', contact: { contactName: value } })
+  const onPhoneNumber = (value: string) =>
+    dispatchDraft({ type: 'contact/set', contact: { phoneNumber: value.replace(/[^\d]/g, '') } })
+  const onNote = (value: string) =>
+    dispatchDraft({ type: 'contact/set', contact: { note: value } })
   const [availability, setAvailability] = useState<Availability | null>(null)
   const [loadingSlots, setLoadingSlots] = useState(false)
-  const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null)
+  // The chosen slot reattaches when its day's availability arrives, including
+  // after a reload whose draft names a slotId before any fetch ran.
+  const selectedSlot = useMemo(
+    () => availability?.slots.find((slot) => slot.time === draft.slotId) ?? null,
+    [availability, draft.slotId],
+  )
 
   // Per-day open/full status for the strip, keyed by ISO date. null until the
   // range request lands (or fails — see rangeReady below).
   const [rangeInfo, setRangeInfo] = useState<Map<string, DayAvailability> | null>(null)
   const [rangeReady, setRangeReady] = useState(false)
 
-  const [contactName, setContactName] = useState('')
-  const [phoneNumber, setPhoneNumber] = useState('')
-  const [note, setNote] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [confirmed, setConfirmed] = useState<Booking | null>(null)
   const [editing, setEditing] = useState(false)
@@ -238,10 +284,14 @@ export default function LiffBookingPage() {
 
   // Availability is immutable enough within one session to reuse when the
   // citizen taps back and forth between days; a stale slot is re-validated
-  // server-side on submit, and a failed submit refetches the day.
-  const slotCache = useRef(new Map<string, Availability>())
+  // server-side on submit, and a failed submit refetches the day. The cache
+  // lives in the draft store, so a full reset clears both together, and it
+  // expires on its own — availability is never persisted.
   // H4 race guard: the newest loadSlots request key (service|date)
   const latestSlotKeyRef = useRef<string>("")
+  // Boot-resume guard: one resume fetch per service|date, so a failed resume
+  // never retries itself into a loop.
+  const resumedKeyRef = useRef<string | null>(null)
 
   const step: Step = confirmed
     ? 'done'
@@ -269,7 +319,15 @@ export default function LiffBookingPage() {
         if (cancelled) return
         setError(null)
         setOptions(loaded)
-        if (loaded.service_types.length === 1) setServiceType(loaded.service_types[0])
+        // A restored draft already names its service; keep it unless the
+        // backend no longer offers it, and only auto-pick a lone service
+        // when nothing was restored.
+        const restored = store.getDraft().service
+        if (restored && !loaded.service_types.includes(restored)) {
+          dispatchDraft({ type: 'section/clear', section: 'service' })
+        } else if (!restored && loaded.service_types.length === 1) {
+          dispatchDraft({ type: 'service/set', service: loaded.service_types[0] })
+        }
       } catch (err) {
         logger.error('Failed to load booking options:', err)
         if (!cancelled) setError(err instanceof Error ? err.message : 'เกิดข้อผิดพลาด')
@@ -279,12 +337,31 @@ export default function LiffBookingPage() {
     return () => {
       cancelled = true
     }
-  }, [idToken])
+  }, [dispatchDraft, idToken, store])
 
   const dateOptions = useMemo(() => {
     if (!options) return []
     return buildDateOptions(new Date(), options.advance_days, options.blackout_dates)
   }, [options])
+
+  // Shared taxonomy for the service dropdown: the backend endpoint when it
+  // exists, TOPIC_OPTIONS until then. A miss keeps the previous table, so
+  // the dropdown never flashes empty while the fetch is in flight.
+  const [taxonomy, setTaxonomy] = useState<TaxonomyTable | null>(null)
+  useEffect(() => {
+    let cancelled = false
+    void loadTaxonomy().then((table) => {
+      if (!cancelled) setTaxonomy(table)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const serviceGroups = useMemo(
+    () => buildServiceGroups(options?.service_types ?? [], taxonomy ?? TOPIC_OPTIONS),
+    [options, taxonomy],
+  )
 
   // The picker's view of bookability, mirroring the strip's chip rule: days
   // outside the window are closed, and days with range data showing closed
@@ -295,6 +372,21 @@ export default function LiffBookingPage() {
       if (!inWindow.has(iso)) return true
       const info = rangeInfo?.get(iso)
       return info ? !info.is_open || info.remaining === 0 : false
+    },
+    [inWindow, rangeInfo],
+  )
+
+  // Three-state day visuals for the strip: out-of-window days (including
+  // blackouts, which buildDateOptions excludes) read as closed-holiday,
+  // and days without range data render as open — the same fail-open rule.
+  const getDayState = useCallback(
+    (iso: string): DayState => {
+      if (!inWindow.has(iso)) return 'closed'
+      const info = rangeInfo?.get(iso)
+      if (!info) return 'open'
+      if (!info.is_open) return 'closed'
+      if (info.remaining === 0) return 'full'
+      return 'open'
     },
     [inWindow, rangeInfo],
   )
@@ -341,7 +433,7 @@ export default function LiffBookingPage() {
       // (cached) slots just rendered.
       latestSlotKeyRef.current = key
       if (!force) {
-        const cached = slotCache.current.get(key)
+        const cached = store.getSlots(key)
         if (cached) {
           setAvailability(cached)
           setLoadingSlots(false)
@@ -355,7 +447,7 @@ export default function LiffBookingPage() {
       setError(null)
       try {
         const loaded = await fetchAvailability(idToken, service, date)
-        slotCache.current.set(key, loaded)
+        store.setSlots(key, loaded)
         if (latestSlotKeyRef.current !== key) return
         setAvailability(loaded)
       } catch (err) {
@@ -367,17 +459,20 @@ export default function LiffBookingPage() {
         if (latestSlotKeyRef.current === key) setLoadingSlots(false)
       }
     },
-    [idToken],
+    [idToken, store],
   )
 
   const chooseDate = useCallback(
     (date: string) => {
-      setSelectedDate(date)
-      setSelectedSlot(null)
+      dispatchDraft({ type: 'date/set', date })
       if (serviceType) void loadSlots(serviceType, date)
     },
-    [loadSlots, serviceType],
+    [dispatchDraft, loadSlots, serviceType],
   )
+
+  // The nearest-day preselect runs once per service: after the citizen
+  // clears the date on purpose, it stays cleared instead of repicking.
+  const preselectedServiceRef = useRef<string | null>(null)
 
   // Preselect the nearest bookable day so the slot grid is already on screen
   // (and its request already in flight) by the time the citizen looks for it.
@@ -386,6 +481,8 @@ export default function LiffBookingPage() {
   useEffect(() => {
     if (!serviceType || selectedDate || confirmed || dateOptions.length === 0) return
     if (!rangeReady) return
+    if (preselectedServiceRef.current === serviceType) return
+    preselectedServiceRef.current = serviceType
     const firstBookable = dateOptions.find((iso) => {
       const info = rangeInfo?.get(iso)
       return Boolean(info?.is_open && info.remaining > 0)
@@ -393,14 +490,45 @@ export default function LiffBookingPage() {
     chooseDate(firstBookable ?? dateOptions[0])
   }, [chooseDate, confirmed, dateOptions, rangeInfo, rangeReady, selectedDate, serviceType])
 
+  // A reloaded draft already names its service and day: resume that day's
+  // slots at boot instead of waiting for the preselect tick above.
+  useEffect(() => {
+    if (!idToken || !options || confirmed) return
+    if (serviceType && selectedDate && !availability && !loadingSlots) {
+      const key = `${serviceType}|${selectedDate}`
+      if (resumedKeyRef.current !== key) {
+        resumedKeyRef.current = key
+        void loadSlots(serviceType, selectedDate)
+      }
+    }
+  }, [availability, confirmed, idToken, loadSlots, loadingSlots, options, selectedDate, serviceType])
+
   const chooseService = (service: string) => {
     if (service === serviceType) return
-    setServiceType(service)
-    setSelectedDate(null)
-    setSelectedSlot(null)
+    dispatchDraft({ type: 'service/set', service })
     setAvailability(null)
     setRangeInfo(null)
     setRangeReady(false)
+  }
+
+  const clearService = () => {
+    dispatchDraft({ type: 'section/clear', section: 'service' })
+    setAvailability(null)
+    setRangeInfo(null)
+    setRangeReady(false)
+  }
+
+  const clearDate = () => {
+    dispatchDraft({ type: 'section/clear', section: 'date' })
+    setAvailability(null)
+  }
+
+  const clearSlot = () => {
+    dispatchDraft({ type: 'section/clear', section: 'slot' })
+  }
+
+  const clearContact = () => {
+    dispatchDraft({ type: 'section/clear', section: 'contact' })
   }
 
   const handleSubmit = async () => {
@@ -422,7 +550,7 @@ export default function LiffBookingPage() {
       // The slot may have filled while the form was open — refresh it so the
       // citizen sees the real state instead of a stale "available" button.
       if (serviceType && selectedDate) void loadSlots(serviceType, selectedDate, { force: true })
-      setSelectedSlot(null)
+      dispatchDraft({ type: 'slot/set', slotId: null })
     } finally {
       setSubmitting(false)
     }
@@ -432,14 +560,15 @@ export default function LiffBookingPage() {
     setConfirmed(null)
     setEditing(false)
     setNotice(null)
-    setServiceType(options?.service_types.length === 1 ? options.service_types[0] : null)
-    setSelectedDate(null)
-    setSelectedSlot(null)
+    store.reset()
+    preselectedServiceRef.current = null
+    if (options?.service_types.length === 1) {
+      store.dispatch({ type: 'service/set', service: options.service_types[0] })
+    }
+    setDraft(store.getDraft())
     setAvailability(null)
-    setContactName('')
-    setPhoneNumber('')
-    setNote('')
-    slotCache.current.clear()
+    setRangeInfo(null)
+    setRangeReady(false)
   }
 
   const handleCancel = async () => {
@@ -534,9 +663,9 @@ export default function LiffBookingPage() {
                     contactName={contactName}
                     phoneNumber={phoneNumber}
                     note={note}
-                    onContactName={setContactName}
-                    onPhoneNumber={setPhoneNumber}
-                    onNote={setNote}
+                    onContactName={onContactName}
+                    onPhoneNumber={onPhoneNumber}
+                    onNote={onNote}
                   />
                   <div className="mt-4 space-y-2">
                     <Button className="w-full" onClick={handleUpdate} disabled={submitting}>
@@ -606,9 +735,14 @@ export default function LiffBookingPage() {
                       variant="secondary"
                       className="w-full"
                       onClick={() => {
-                        setContactName(confirmed.contact_name ?? '')
-                        setPhoneNumber(confirmed.phone_number ?? '')
-                        setNote(confirmed.note ?? '')
+                        dispatchDraft({
+                          type: 'contact/set',
+                          contact: {
+                            contactName: confirmed.contact_name ?? '',
+                            phoneNumber: confirmed.phone_number ?? '',
+                            note: confirmed.note ?? '',
+                          },
+                        })
                         setEditing(true)
                       }}
                     >
@@ -638,92 +772,67 @@ export default function LiffBookingPage() {
 
           {step !== 'done' && (
             <div className="space-y-4">
-              <Section icon={<Users className="h-4 w-4" />} title="เลือกบริการ">
-                <div className="grid gap-2">
-                  {(options?.service_types ?? []).map((service) => (
-                    <button
-                      key={service}
-                      type="button"
-                      onClick={() => chooseService(service)}
-                      className={cn(
-                        'rounded-lg border px-4 py-3 text-left text-sm transition-colors',
-                        serviceType === service
-                          ? 'border-brand-500 bg-brand-50 font-semibold text-brand-text dark:bg-brand-500/15 dark:text-brand-300'
-                          : 'border-border-default bg-surface text-text-secondary hover:border-border-hover hover:bg-bg',
-                      )}
-                      aria-pressed={serviceType === service}
+              <Section
+                icon={<Users className="h-4 w-4" />}
+                title="เลือกบริการ"
+                action={<SectionClearButton onClear={clearService} />}
+              >
+                {serviceGroups.some((group) => group.options.length > 0) ? (
+                  <label className="block">
+                    <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-text-secondary">
+                      บริการ
+                    </span>
+                    <select
+                      aria-label="เลือกบริการ"
+                      value={serviceType ?? ''}
+                      onChange={(e) => {
+                        if (e.target.value) chooseService(e.target.value)
+                      }}
+                      className="w-full rounded-lg border border-border-default bg-surface px-3 py-2.5 text-sm text-text-primary"
                     >
-                      {service}
-                    </button>
-                  ))}
-                  {!options?.service_types?.length && (
-                    <p className="text-sm text-text-tertiary">ยังไม่มีบริการที่เปิดให้จอง</p>
-                  )}
-                </div>
+                      <option value="">-- เลือกบริการ --</option>
+                      {serviceGroups
+                        .filter((group) => group.options.length > 0)
+                        .map((group) => (
+                          <optgroup key={group.category} label={group.category}>
+                            {group.options.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </optgroup>
+                        ))}
+                    </select>
+                  </label>
+                ) : (
+                  <p className="text-sm text-text-tertiary">ยังไม่มีบริการที่เปิดให้จอง</p>
+                )}
               </Section>
 
               {serviceType && (
-                <Section icon={<CalendarDays className="h-4 w-4" />} title="เลือกวันที่">
-                  <div className="mb-3">
-                    <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-text-secondary">
-                      เลือกจากปฏิทิน
-                    </p>
-                    <CalendarPickerTH
-                      ariaLabel="เลือกวันที่จอง"
-                      value={selectedDate}
-                      onChange={(iso) => {
-                        if (iso) chooseDate(toISODate(new Date(iso)))
-                      }}
-                      isDateDisabled={isDateDisabled}
-                      minDate={dateOptions[0] ?? null}
-                      maxDate={dateOptions[dateOptions.length - 1] ?? null}
-                    />
-                  </div>
-                  {/* The strip bleeds to the card edge, but keeps scroll padding so
-                      the first and last chip's border is never clipped by the
-                      overflow container. */}
-                  <div className="-mx-4 flex snap-x snap-mandatory gap-2 overflow-x-auto px-4 py-1 scroll-px-4 [&::-webkit-scrollbar]:hidden">
-                    {dateOptions.map((date, index) => {
-                      const isSelected = selectedDate === date
-                      const info = rangeInfo?.get(date)
-                      // Disabled only on day-level data we actually have — an
-                      // absent entry (request still in flight, or it failed)
-                      // keeps the chip enabled.
-                      const chipDisabled = info ? !info.is_open || info.remaining === 0 : false
-                      return (
-                        <button
-                          key={date}
-                          type="button"
-                          onClick={() => chooseDate(date)}
-                          disabled={chipDisabled}
-                          className={cn(
-                            'w-[4.5rem] shrink-0 snap-start rounded-lg border px-2 py-2 text-center transition-colors',
-                            isSelected
-                              ? 'border-brand-500 bg-brand-50 text-brand-text dark:bg-brand-500/15 dark:text-brand-300'
-                              : 'border-border-default bg-surface text-text-secondary hover:border-border-hover',
-                            chipDisabled && 'opacity-40 hover:border-border-hover hover:bg-surface',
-                          )}
-                          aria-pressed={isSelected}
-                          aria-disabled={chipDisabled}
-                        >
-                          <span className="block text-2xs text-text-tertiary">
-                            {index === 0 ? 'วันนี้' : formatThaiWeekday(date)}
-                          </span>
-                          <span className="block text-lg font-semibold leading-tight">
-                            {parseISODate(date).getDate()}
-                          </span>
-                          <span className="block text-2xs text-text-tertiary">
-                            {formatThaiDate(date).split(' ')[1]}
-                          </span>
-                        </button>
-                      )
-                    })}
-                  </div>
+                <Section
+                  icon={<CalendarDays className="h-4 w-4" />}
+                  title="เลือกวันที่"
+                  action={<SectionClearButton onClear={clearDate} />}
+                >
+                  <DateSection
+                    dates={dateOptions}
+                    value={selectedDate}
+                    onChange={chooseDate}
+                    isDateDisabled={isDateDisabled}
+                    getDayState={getDayState}
+                    minDate={dateOptions[0] ?? null}
+                    maxDate={dateOptions[dateOptions.length - 1] ?? null}
+                  />
                 </Section>
               )}
 
               {selectedDate && (
-                <Section icon={<Clock className="h-4 w-4" />} title="เลือกช่วงเวลา">
+                <Section
+                  icon={<Clock className="h-4 w-4" />}
+                  title="เลือกช่วงเวลา"
+                  action={<SectionClearButton onClear={clearSlot} />}
+                >
                   {loadingSlots ? (
                     <div className="py-6 text-center">
                       <Loader2
@@ -751,7 +860,9 @@ export default function LiffBookingPage() {
                                     key={slot.time}
                                     type="button"
                                     disabled={slot.is_full}
-                                    onClick={() => setSelectedSlot(slot)}
+                                    onClick={() =>
+                                      dispatchDraft({ type: 'slot/set', slotId: slot.time })
+                                    }
                                     aria-pressed={isSelected}
                                     className={cn(
                                       'rounded-lg border px-2 py-2 text-sm transition-colors',
@@ -782,14 +893,18 @@ export default function LiffBookingPage() {
               )}
 
               {selectedSlot && (
-                <Section icon={<Users className="h-4 w-4" />} title="ข้อมูลผู้จอง">
+                <Section
+                  icon={<Users className="h-4 w-4" />}
+                  title="ข้อมูลผู้จอง"
+                  action={<SectionClearButton onClear={clearContact} />}
+                >
                   <ContactFieldsForm
                     contactName={contactName}
                     phoneNumber={phoneNumber}
                     note={note}
-                    onContactName={setContactName}
-                    onPhoneNumber={setPhoneNumber}
-                    onNote={setNote}
+                    onContactName={onContactName}
+                    onPhoneNumber={onPhoneNumber}
+                    onNote={onNote}
                   />
 
                   <div className="mt-4 rounded-lg border border-border-subtle bg-bg p-3 text-sm">
