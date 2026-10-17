@@ -138,6 +138,16 @@ describe('service types', () => {
       screen.getByText('ยังไม่มีบริการ — เพิ่มอย่างน้อย 1 รายการก่อนเปิดใช้งาน'),
     ).toBeInTheDocument()
   })
+
+  it('states who owns the list and warns on a single service', async () => {
+    await renderLoaded()
+    expect(
+      screen.getByText(/รายชื่อนี้คือต้นทางของช่องเลือกบริการในหน้า LIFF/),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText('มีเพียง 1 รายการ — ชาวบ้านจะเห็นตัวเลือกเดียวในหน้า LIFF'),
+    ).toBeInTheDocument()
+  })
 })
 
 describe('blackout dates', () => {
