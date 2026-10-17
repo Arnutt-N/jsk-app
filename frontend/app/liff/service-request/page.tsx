@@ -1,14 +1,15 @@
 "use client"
 
-import { useState, useEffect, useRef } from 'react'
+import { useCallback, useState, useEffect, useRef } from 'react'
 import Head from 'next/head'
 import liff from '@line/liff'
-import { Province, District, SubDistrict } from '../../../types/location'
+import type { Province } from '../../../types/location'
 import { Button } from '@/components/ui/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
-import { Badge } from '@/components/ui/Badge'
+import LiffStatusBadge from '@/components/liff/LiffStatusBadge'
 import { Alert } from '@/components/ui/Alert'
 import { AGENCIES } from '@/lib/constants/agencies'
+import { PREFIX_OPTIONS } from '@/lib/constants/prefixes'
 import {
     User,
     Building2,
@@ -26,11 +27,13 @@ import {
 } from 'lucide-react'
 import { logger } from '@/lib/logger';
 import { useToast } from '@/components/ui/Toast';
+import { Select } from '@/components/ui/Select'
 import { TOPIC_OPTIONS } from '@/lib/constants/categories'
 import { loadTaxonomy, type TaxonomyTable } from '@/lib/booking/service-mapping'
 import { useLiffInit } from '@/hooks/useLiffInit'
+import LiffStepper from '@/components/liff/LiffStepper'
 import { useAutoCloseCountdown } from '@/hooks/useAutoCloseCountdown'
-import { fetchDistricts, fetchSubDistricts } from '@/lib/liff/location-cascade'
+import { useLocationCascade, type LocationSelection } from '@/hooks/useLocationCascade'
 import { submitServiceRequest } from '@/lib/liff/submit-service-request'
 import { uploadLiffMedia, attachmentCapMessage, readErrorDetail } from '@/lib/liff/upload-media'
 import { SESSION_EXPIRED_MESSAGE, isSessionExpired } from '@/lib/liff/session-expired'
@@ -62,23 +65,33 @@ export default function LiffServiceRequestV2() {
         trackInLineApp: true
     })
 
+    // Cascading selects live in the shared hook (stale guards kept there);
+    // this page only maps ids to Thai names in its own form data.
+    const cascade = useLocationCascade(
+        useCallback((patch: Partial<LocationSelection>) => {
+            setFormData((prev) => ({ ...prev, ...patch }))
+            setFieldErrors((prev) => {
+                const next = { ...prev }
+                for (const key of Object.keys(patch)) delete next[key]
+                return next
+            })
+        }, []),
+    )
+    const {
+        districts,
+        subDistricts,
+        loadingDistricts,
+        loadingSubDistricts,
+        selectedProvinceId,
+        selectedDistrictId,
+    } = cascade
     // Uploads started but not yet resolved — counted toward the attachment
     // cap so rapid file picks cannot exceed the shared rate-limit budget.
-    // Latest-request tokens for the cascading selects (H3 race guard)
-    const provinceReqRef = useRef<string | null>(null)
-    const districtReqRef = useRef<string | null>(null)
     const inflightUploadsRef = useRef(0)
 
     // Location Data State
     const [provinces, setProvinces] = useState<Province[]>([])
-    const [districts, setDistricts] = useState<District[]>([])
-    const [subDistricts, setSubDistricts] = useState<SubDistrict[]>([])
 
-    // Loading States for Location
-    const [loadingDistricts, setLoadingDistricts] = useState(false)
-    const [loadingSubDistricts, setLoadingSubDistricts] = useState(false)
-
-    // Form Data
     const INITIAL_FORM_DATA = {
         // Personal
         prefix: '',
@@ -102,10 +115,6 @@ export default function LiffServiceRequestV2() {
         attachments: [] as Array<{ id: string, url: string, name: string }>
     }
     const [formData, setFormData] = useState(INITIAL_FORM_DATA)
-
-    // Selected IDs for cascading logic (Not submitted)
-    const [selectedProvinceId, setSelectedProvinceId] = useState<number | null>(null)
-    const [selectedDistrictId, setSelectedDistrictId] = useState<number | null>(null)
 
     const [taxonomy, setTaxonomy] = useState<TaxonomyTable | null>(null)
     useEffect(() => {
@@ -161,85 +170,15 @@ export default function LiffServiceRequestV2() {
         }
     }
 
-    // Handle Location Changes
-    const handleProvinceChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const provinceId = parseInt(e.target.value)
-        const provinceObj = provinces.find(p => p.PROVINCE_ID === provinceId)
+    // Location changes delegate to the shared cascade hook.
+    const handleProvinceChange = (e: React.ChangeEvent<HTMLSelectElement>) =>
+        cascade.selectProvince(e.target.value, provinces)
 
-        // Update Form Data (Name) & Logic ID
-        setSelectedProvinceId(provinceId)
-        setFormData(prev => ({
-            ...prev,
-            province: provinceObj?.PROVINCE_THAI || '',
-            district: '',
-            sub_district: ''
-        }))
+    const handleDistrictChange = (e: React.ChangeEvent<HTMLSelectElement>) =>
+        cascade.selectDistrict(e.target.value, cascade.districts)
 
-        // Reset sub-levels
-        setDistricts([])
-        setSubDistricts([])
-        setSelectedDistrictId(null)
-
-        // Fetch Districts
-        if (provinceId) {
-            setLoadingDistricts(true)
-            const provinceReqId = String(provinceId)
-            provinceReqRef.current = provinceReqId
-            try {
-                const data = await fetchDistricts(provinceId)
-                // Stale-response guard (review finding H3): the user may have
-                // switched provinces while this fetch was in flight.
-                if (provinceReqRef.current !== provinceReqId) return
-                setDistricts(data)
-            } catch (err) {
-                if (provinceReqRef.current !== provinceReqId) return
-                logger.error(err)
-            } finally {
-                // Only the newest request may clear the spinner — a stale
-                // response resolving later must not clear a newer one's state.
-                if (provinceReqRef.current === provinceReqId) setLoadingDistricts(false)
-            }
-        }
-    }
-
-    const handleDistrictChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const districtId = parseInt(e.target.value)
-        const districtObj = districts.find(d => d.DISTRICT_ID === districtId)
-
-        setSelectedDistrictId(districtId)
-        setFormData(prev => ({
-            ...prev,
-            district: districtObj?.DISTRICT_THAI || '',
-            sub_district: ''
-        }))
-        setSubDistricts([])
-
-        // Fetch SubDistricts
-        if (districtId) {
-            setLoadingSubDistricts(true)
-            const districtReqId = String(districtId)
-            districtReqRef.current = districtReqId
-            try {
-                const data = await fetchSubDistricts(districtId)
-                // Stale-response guard: a slow sub-district response for a
-                // superseded district must not land in the new selection.
-                if (districtReqRef.current !== districtReqId) return
-                setSubDistricts(data)
-            } catch (err) {
-                if (districtReqRef.current !== districtReqId) return
-                logger.error(err)
-            } finally {
-                if (districtReqRef.current === districtReqId) setLoadingSubDistricts(false)
-            }
-        }
-    }
-
-    const handleSubDistrictChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const subDistrictId = parseInt(e.target.value)
-        const subObj = subDistricts.find(s => s.SUB_DISTRICT_ID === subDistrictId)
-
-        setFormData(prev => ({ ...prev, sub_district: subObj?.SUB_DISTRICT_THAI || '' }))
-    }
+    const handleSubDistrictChange = (e: React.ChangeEvent<HTMLSelectElement>) =>
+        cascade.selectSubDistrict(e.target.value, cascade.subDistricts)
 
     // Handle File Upload
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -296,7 +235,7 @@ export default function LiffServiceRequestV2() {
                 if (!formData.firstname.trim()) errors.firstname = 'กรุณาระบุชื่อ'
                 if (!formData.lastname.trim()) errors.lastname = 'กรุณาระบุนามสกุล'
                 if (!formData.phone_number) errors.phone_number = 'กรุณาระบุเบอร์โทร'
-                else if (formData.phone_number.length < 9 || formData.phone_number.length > 10) errors.phone_number = 'เบอร์โทรไม่ถูกต้อง'
+                else if (formData.phone_number.length < 9 || formData.phone_number.length > 10) errors.phone_number = 'หมายเลขโทรศัพท์ไม่ถูกต้อง'
                 break
             case 1: // Agency
                 if (!formData.agency) errors.agency = 'กรุณาเลือกหน่วยงาน'
@@ -392,10 +331,7 @@ export default function LiffServiceRequestV2() {
             setFormData(prev => ({ ...prev, prefix: '', firstname: '', lastname: '', phone_number: '', email: '' }))
         } else if (step === 1) {
             setFormData(prev => ({ ...prev, agency: '', province: '', district: '', sub_district: '' }))
-            setSelectedProvinceId(null)
-            setSelectedDistrictId(null)
-            setDistricts([])
-            setSubDistricts([])
+            cascade.reset()
         } else if (step === 2) {
             setFormData(prev => ({ ...prev, topic_category: '', topic_subcategory: '', description: '' }))
         } else if (step === 3) {
@@ -409,10 +345,7 @@ export default function LiffServiceRequestV2() {
     const resetForm = () => {
         setStep(0)
         setFormData({ ...INITIAL_FORM_DATA, attachments: [] })
-        setSelectedProvinceId(null)
-        setSelectedDistrictId(null)
-        setDistricts([])
-        setSubDistricts([])
+        cascade.reset()
         setFieldErrors({})
         setError(null)
         setShowConfirm(false)
@@ -534,33 +467,17 @@ export default function LiffServiceRequestV2() {
                         </p>
                     </div>
                     <div className="flex items-center gap-2">
-                        <Badge variant={provinces.length > 0 ? "success" : "warning"} className="h-6">
-                            {provinces.length > 0 ? "Online" : "Connecting..."}
-                        </Badge>
+                        <LiffStatusBadge kind="connectivity" state={provinces.length > 0 ? 'online' : 'loading'} />
                     </div>
                 </div>
             </div>
 
             <main className="px-4 max-w-lg mx-auto">
-                {/* Progress Steps */}
-                <div className="mb-8 flex justify-between items-center px-2">
-                    {STEPS.map((s, idx) => (
-                        <div key={idx} className="flex flex-col items-center gap-2 relative flex-1">
-                            <div className={`
-                                w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold z-10 transition-all duration-300
-                                ${idx <= step ? 'bg-primary text-white shadow-md shadow-primary/20' : 'bg-gray-200 text-gray-500'}
-                            `}>
-                                {idx < step ? <CheckCircle2 className="w-5 h-5" /> : s.icon}
-                            </div>
-                            <span className={`text-[10px] font-semibold ${idx <= step ? 'text-primary' : 'text-gray-400'}`}>
-                                {s.title}
-                            </span>
-                            {idx < STEPS.length - 1 && (
-                                <div className={`absolute left-[60%] top-4 w-full h-[2px] -z-0 ${idx < step ? 'bg-primary' : 'bg-gray-200'}`} />
-                            )}
-                        </div>
-                    ))}
-                </div>
+                <LiffStepper
+                    steps={STEPS.map((s) => ({ label: s.title, icon: s.icon }))}
+                    currentIndex={step}
+                    ariaLabel="ขั้นตอนยื่นคำขอรับบริการ"
+                />
 
                 <form onSubmit={handleFormSubmit} className="liff-form space-y-6">
                     {error && (
@@ -596,18 +513,16 @@ export default function LiffServiceRequestV2() {
                                             <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
                                                 คำนำหน้า <span className="text-red-500">*</span>
                                             </label>
-                                            <input
-                                                type="text"
+                                            <Select
                                                 name="prefix"
                                                 value={formData.prefix}
                                                 onChange={handleChange}
-                                                className={`w-full bg-white border text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block p-2.5 outline-none transition-all ${fieldErrors.prefix ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-200'
-                                                    }`}
-                                                placeholder="ระบุพิมพ์"
+                                                options={PREFIX_OPTIONS}
+                                                placeholder="เลือก"
+                                                state={fieldErrors.prefix ? 'error' : 'default'}
                                                 required
                                             />
                                             {fieldErrors.prefix && <p className="text-red-500 text-[10px] mt-1">{fieldErrors.prefix}</p>}
-                                            <p className="text-[9px] text-gray-400 mt-1">*คำนำหน้ายาวให้ย่อ</p>
                                         </div>
                                         <div className="col-span-2">
                                             <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
@@ -684,21 +599,18 @@ export default function LiffServiceRequestV2() {
                                         <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
                                             หน่วยงาน <span className="text-red-500">*</span>
                                         </label>
-                                        <select
+                                        <Select
                                             name="agency"
                                             value={formData.agency}
                                             onChange={handleChange}
-                                            className={`w-full bg-white border text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block p-2.5 outline-none transition-all ${fieldErrors.agency ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-200'
-                                                }`}
+                                            options={AGENCIES.map((agency) => ({
+                                                value: agency.value,
+                                                label: agency.label,
+                                            }))}
+                                            placeholder="-- เลือกหน่วยงานของท่าน --"
+                                            state={fieldErrors.agency ? 'error' : 'default'}
                                             required
-                                        >
-                                            <option value="">-- เลือกหน่วยงานของท่าน --</option>
-                                            {AGENCIES.map(agency => (
-                                                <option key={agency.value} value={agency.value}>
-                                                    {agency.label}
-                                                </option>
-                                            ))}
-                                        </select>
+                                        />
                                         {fieldErrors.agency && <p className="text-red-500 text-[10px] mt-1">{fieldErrors.agency}</p>}
                                     </div>
 
@@ -706,23 +618,17 @@ export default function LiffServiceRequestV2() {
                                         <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
                                             จังหวัด <span className="text-red-500">*</span>
                                         </label>
-                                        <select
+                                        <Select
                                             value={selectedProvinceId || ''}
-                                            onChange={(e) => {
-                                                handleProvinceChange(e)
-                                                setFieldErrors(prev => ({ ...prev, province: '' }))
-                                            }}
-                                            className={`w-full bg-white border text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block p-2.5 outline-none transition-all ${fieldErrors.province ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-200'
-                                                }`}
+                                            onChange={handleProvinceChange}
+                                            options={provinces.map((p) => ({
+                                                value: String(p.PROVINCE_ID),
+                                                label: p.PROVINCE_THAI,
+                                            }))}
+                                            placeholder="-- เลือกจังหวัด --"
+                                            state={fieldErrors.province ? 'error' : 'default'}
                                             required
-                                        >
-                                            <option value="">-- เลือกจังหวัด --</option>
-                                            {provinces.map(p => (
-                                                <option key={p.PROVINCE_ID} value={p.PROVINCE_ID}>
-                                                    {p.PROVINCE_THAI}
-                                                </option>
-                                            ))}
-                                        </select>
+                                        />
                                         {fieldErrors.province && <p className="text-red-500 text-[10px] mt-1">{fieldErrors.province}</p>}
                                     </div>
 
@@ -731,49 +637,37 @@ export default function LiffServiceRequestV2() {
                                             <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide flex items-center gap-1">
                                                 อำเภอ/เขต <span className="text-red-500">*</span> {loadingDistricts && <Loader2 className="h-4 w-4 animate-spin text-brand-500" />}
                                             </label>
-                                            <select
+                                            <Select
                                                 value={selectedDistrictId || ''}
-                                                onChange={(e) => {
-                                                    handleDistrictChange(e)
-                                                    setFieldErrors(prev => ({ ...prev, district: '' }))
-                                                }}
+                                                onChange={handleDistrictChange}
                                                 disabled={!selectedProvinceId}
-                                                className={`w-full bg-white border text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block p-2.5 outline-none transition-all disabled:opacity-50 ${fieldErrors.district ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-200'
-                                                    }`}
+                                                options={districts.map((d) => ({
+                                                    value: String(d.DISTRICT_ID),
+                                                    label: d.DISTRICT_THAI,
+                                                }))}
+                                                placeholder="-- เลือก --"
+                                                state={fieldErrors.district ? 'error' : 'default'}
                                                 required
-                                            >
-                                                <option value="">-- เลือก --</option>
-                                                {districts.map(d => (
-                                                    <option key={d.DISTRICT_ID} value={d.DISTRICT_ID}>
-                                                        {d.DISTRICT_THAI}
-                                                    </option>
-                                                ))}
-                                            </select>
+                                            />
                                             {fieldErrors.district && <p className="text-red-500 text-[10px] mt-1">{fieldErrors.district}</p>}
                                         </div>
                                         <div>
                                             <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide flex items-center gap-1">
                                                 ตำบล/แขวง <span className="text-red-500">*</span> {loadingSubDistricts && <Loader2 className="h-4 w-4 animate-spin text-brand-500" />}
                                             </label>
-                                            <select
+                                            <Select
                                                 name="sub_district"
-                                                onChange={(e) => {
-                                                    handleSubDistrictChange(e)
-                                                    setFieldErrors(prev => ({ ...prev, sub_district: '' }))
-                                                }}
+                                                onChange={handleSubDistrictChange}
                                                 value={subDistricts.find(s => s.SUB_DISTRICT_THAI === formData.sub_district)?.SUB_DISTRICT_ID || ''}
                                                 disabled={!selectedDistrictId}
-                                                className={`w-full bg-white border text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block p-2.5 outline-none transition-all disabled:opacity-50 ${fieldErrors.sub_district ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-200'
-                                                    }`}
+                                                options={subDistricts.map((s) => ({
+                                                    value: String(s.SUB_DISTRICT_ID),
+                                                    label: s.SUB_DISTRICT_THAI,
+                                                }))}
+                                                placeholder="-- เลือก --"
+                                                state={fieldErrors.sub_district ? 'error' : 'default'}
                                                 required
-                                            >
-                                                <option value="">-- เลือก --</option>
-                                                {subDistricts.map(s => (
-                                                    <option key={s.SUB_DISTRICT_ID} value={s.SUB_DISTRICT_ID}>
-                                                        {s.SUB_DISTRICT_THAI}
-                                                    </option>
-                                                ))}
-                                            </select>
+                                            />
                                             {fieldErrors.sub_district && <p className="text-red-500 text-[10px] mt-1">{fieldErrors.sub_district}</p>}
                                         </div>
                                     </div>
@@ -787,19 +681,18 @@ export default function LiffServiceRequestV2() {
                                         <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
                                             เรื่องที่ขอรับความช่วยเหลือ <span className="text-red-500">*</span>
                                         </label>
-                                        <select
+                                        <Select
                                             name="topic_category"
                                             value={formData.topic_category}
                                             onChange={handleChange}
-                                            className={`w-full bg-white border text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block p-2.5 outline-none transition-all ${fieldErrors.topic_category ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-200'
-                                                }`}
+                                            options={Object.keys(taxonomy ?? TOPIC_OPTIONS).map((topic) => ({
+                                                value: topic,
+                                                label: topic,
+                                            }))}
+                                            placeholder="-- เลือกหัวข้อ --"
+                                            state={fieldErrors.topic_category ? 'error' : 'default'}
                                             required
-                                        >
-                                            <option value="">-- เลือกหัวข้อ --</option>
-                                            {Object.keys(taxonomy ?? TOPIC_OPTIONS).map(topic => (
-                                                <option key={topic} value={topic}>{topic}</option>
-                                            ))}
-                                        </select>
+                                        />
                                         {fieldErrors.topic_category && <p className="text-red-500 text-[10px] mt-1">{fieldErrors.topic_category}</p>}
                                     </div>
 
@@ -808,19 +701,18 @@ export default function LiffServiceRequestV2() {
                                             <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
                                                 รายละเอียดเรื่อง <span className="text-red-500">*</span>
                                             </label>
-                                            <select
+                                            <Select
                                                 name="topic_subcategory"
                                                 value={formData.topic_subcategory}
                                                 onChange={handleChange}
-                                                className={`w-full bg-white border text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block p-2.5 outline-none transition-all ${fieldErrors.topic_subcategory ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-200'
-                                                    }`}
+                                                options={(taxonomy ?? TOPIC_OPTIONS)[formData.topic_category].map((sub) => ({
+                                                    value: sub,
+                                                    label: sub,
+                                                }))}
+                                                placeholder="-- เลือกรายละเอียด --"
+                                                state={fieldErrors.topic_subcategory ? 'error' : 'default'}
                                                 required
-                                            >
-                                                <option value="">-- เลือกรายละเอียด --</option>
-                                                {(taxonomy ?? TOPIC_OPTIONS)[formData.topic_category].map(sub => (
-                                                    <option key={sub} value={sub}>{sub}</option>
-                                                ))}
-                                            </select>
+                                            />
                                             {fieldErrors.topic_subcategory && <p className="text-red-500 text-[10px] mt-1">{fieldErrors.topic_subcategory}</p>}
                                         </div>
                                     )}

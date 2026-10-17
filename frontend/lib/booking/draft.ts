@@ -4,7 +4,9 @@ export interface BookingDraft {
   service: string | null
   date: string | null
   slotId: string | null
-  contactName: string
+  prefix: string
+  firstname: string
+  lastname: string
   phoneNumber: string
   note: string
   savedAt: number
@@ -14,7 +16,9 @@ export const EMPTY_DRAFT: BookingDraft = {
   service: null,
   date: null,
   slotId: null,
-  contactName: '',
+  prefix: '',
+  firstname: '',
+  lastname: '',
   phoneNumber: '',
   note: '',
   savedAt: 0,
@@ -28,7 +32,7 @@ export type DraftAction =
   | { type: 'slot/set'; slotId: string | null }
   | {
       type: 'contact/set'
-      contact: { contactName?: string; phoneNumber?: string; note?: string }
+      contact: { prefix?: string; firstname?: string; lastname?: string; phoneNumber?: string; note?: string }
     }
   | { type: 'section/clear'; section: DraftSection }
   | { type: 'draft/reset' }
@@ -42,7 +46,7 @@ function clearSection(state: BookingDraft, section: DraftSection): BookingDraft 
     case 'slot':
       return { ...state, slotId: null }
     case 'contact':
-      return { ...state, contactName: '', phoneNumber: '', note: '' }
+      return { ...state, prefix: '', firstname: '', lastname: '', phoneNumber: '', note: '' }
   }
 }
 
@@ -63,12 +67,16 @@ export function draftReducer(state: BookingDraft, action: DraftAction): BookingD
     case 'contact/set': {
       const next: BookingDraft = {
         ...state,
-        contactName: action.contact.contactName ?? state.contactName,
+        prefix: action.contact.prefix ?? state.prefix,
+        firstname: action.contact.firstname ?? state.firstname,
+        lastname: action.contact.lastname ?? state.lastname,
         phoneNumber: action.contact.phoneNumber ?? state.phoneNumber,
         note: action.contact.note ?? state.note,
       }
       if (
-        next.contactName === state.contactName &&
+        next.prefix === state.prefix &&
+        next.firstname === state.firstname &&
+        next.lastname === state.lastname &&
         next.phoneNumber === state.phoneNumber &&
         next.note === state.note
       ) {
@@ -82,7 +90,9 @@ export function draftReducer(state: BookingDraft, action: DraftAction): BookingD
         next.service === state.service &&
         next.date === state.date &&
         next.slotId === state.slotId &&
-        next.contactName === state.contactName &&
+        next.prefix === state.prefix &&
+        next.firstname === state.firstname &&
+        next.lastname === state.lastname &&
         next.phoneNumber === state.phoneNumber &&
         next.note === state.note
       ) {
@@ -101,7 +111,7 @@ export function draftReducer(state: BookingDraft, action: DraftAction): BookingD
 }
 
 export const DRAFT_STORAGE_KEY = 'liff-booking-draft'
-export const DRAFT_VERSION = 1
+export const DRAFT_VERSION = 2
 export const DRAFT_TTL_MS = 30 * 60 * 1000
 
 export interface DraftStorage {
@@ -125,7 +135,9 @@ function isBookingDraft(value: unknown): value is BookingDraft {
     (value.service === null || typeof value.service === 'string') &&
     (value.date === null || typeof value.date === 'string') &&
     (value.slotId === null || typeof value.slotId === 'string') &&
-    typeof value.contactName === 'string' &&
+    typeof value.prefix === 'string' &&
+    typeof value.firstname === 'string' &&
+    typeof value.lastname === 'string' &&
     typeof value.phoneNumber === 'string' &&
     typeof value.note === 'string' &&
     typeof value.savedAt === 'number'

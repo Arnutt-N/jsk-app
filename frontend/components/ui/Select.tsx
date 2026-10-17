@@ -57,15 +57,21 @@ export interface SelectOption {
   disabled?: boolean;
 }
 
-export interface SelectProps
-  extends Omit<React.SelectHTMLAttributes<HTMLSelectElement>, 'size'>,
-    VariantProps<typeof selectVariants> {
-  options: SelectOption[];
-  placeholder?: string;
-  leftIcon?: React.ReactNode;
-  errorMessage?: string;
-  helperText?: string;
+export interface SelectGroup {
+  label: string
+  options: SelectOption[]
 }
+
+export type SelectProps = Omit<React.SelectHTMLAttributes<HTMLSelectElement>, 'size'> &
+  VariantProps<typeof selectVariants> & {
+    placeholder?: string
+    leftIcon?: React.ReactNode
+    errorMessage?: string
+    helperText?: string
+  } & (
+    | { options: SelectOption[]; groups?: never }
+    | { options?: never; groups: SelectGroup[] }
+  )
 
 const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
   (
@@ -75,6 +81,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
       size,
       state,
       options,
+      groups,
       placeholder,
       leftIcon,
       errorMessage,
@@ -105,15 +112,29 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
                 {placeholder}
               </option>
             )}
-            {options.map((option) => (
-              <option
-                key={option.value}
-                value={option.value}
-                disabled={option.disabled}
-              >
-                {option.label}
-              </option>
-            ))}
+            {groups
+              ? groups.map((group) => (
+                  <optgroup key={group.label} label={group.label}>
+                    {group.options.map((option) => (
+                      <option
+                        key={option.value}
+                        value={option.value}
+                        disabled={option.disabled}
+                      >
+                        {option.label}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))
+              : options.map((option) => (
+                  <option
+                    key={option.value}
+                    value={option.value}
+                    disabled={option.disabled}
+                  >
+                    {option.label}
+                  </option>
+                ))}
           </select>
           <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-tertiary pointer-events-none" />
         </div>

@@ -82,11 +82,7 @@ class ReminderUnit(str, Enum):
 
 @dataclass(frozen=True)
 class BookingConfig:
-    """Admin-editable settings, read fresh rather than cached.
-
-    Frozen because the reminder scheduler re-reads this on every pass; a mutation
-    that leaked between passes would be invisible and long-lived.
-    """
+    """Admin-editable settings shared between callers — never unfreeze."""
 
     enabled: bool
     service_types: Sequence[str]

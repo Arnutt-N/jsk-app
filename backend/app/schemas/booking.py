@@ -7,9 +7,10 @@ database (capacity, duplicates) rather than re-checking field types.
 from datetime import date, time
 from typing import List, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.services.booking_service import ReminderUnit
+from app.schemas.person_name import compose_person_name
 
 
 class SlotOut(BaseModel):
@@ -70,6 +71,11 @@ class ContactFields(BaseModel):
     contact_name: Optional[str] = Field(default=None, max_length=120)
     phone_number: Optional[str] = Field(default=None, max_length=20)
     note: Optional[str] = Field(default=None, max_length=1000)
+    # No new columns: the trio composes into contact_name.
+
+    prefix: Optional[str] = Field(default=None, max_length=20)
+    firstname: Optional[str] = Field(default=None, max_length=100)
+    lastname: Optional[str] = Field(default=None, max_length=100)
 
     @field_validator("phone_number")
     @classmethod
@@ -89,6 +95,14 @@ class ContactFields(BaseModel):
         if value is None:
             return None
         return value.strip() or None
+
+    @model_validator(mode="after")
+    def _compose_contact_name(self) -> "ContactFields":
+        """Trio wins over legacy; oversize rejected, not truncated."""
+        composed = compose_person_name(self.prefix, self.firstname, self.lastname, max_length=120)
+        if composed is not None:
+            self.contact_name = composed
+        return self
 
 
 class BookingCreate(ContactFields):

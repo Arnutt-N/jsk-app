@@ -8,6 +8,7 @@ back to its default and is logged rather than propagated.
 import json
 import logging
 from datetime import date
+from time import monotonic
 from typing import Any, Callable, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -131,7 +132,7 @@ def _coalesce(raw: str, parser: Callable[[str], Any], default: Any) -> Any:
     return default if parsed is None else parsed
 
 
-async def load_booking_config(db: AsyncSession) -> BookingConfig:
+async def _read_booking_config(db: AsyncSession) -> BookingConfig:
     """Build a typed, immutable config from `system_settings`.
 
     Never raises: an unreadable value degrades to its default so the reminder
@@ -182,6 +183,33 @@ async def load_booking_config(db: AsyncSession) -> BookingConfig:
     )
 
 
+_CONFIG_CACHE_TTL_SECONDS = 60.0
+
+_cached_config: Optional[BookingConfig] = None
+_cached_at = 0.0
+
+
+def _invalidate_booking_config_cache() -> None:
+    global _cached_config, _cached_at
+    _cached_config = None
+    _cached_at = 0.0
+
+
+async def load_booking_config(db: AsyncSession, *, fresh: bool = False) -> BookingConfig:
+    global _cached_config, _cached_at
+    now = monotonic()
+    if (
+        not fresh
+        and _cached_config is not None
+        and (now - _cached_at) < _CONFIG_CACHE_TTL_SECONDS
+    ):
+        return _cached_config
+    config = await _read_booking_config(db)
+    _cached_config = config
+    _cached_at = now
+    return config
+
+
 async def save_booking_config(db: AsyncSession, config: BookingConfig) -> BookingConfig:
     """Persist a validated config. Validation belongs to the API schema layer."""
     values = {
@@ -199,4 +227,5 @@ async def save_booking_config(db: AsyncSession, config: BookingConfig) -> Bookin
     }
     for key, value in values.items():
         await SettingsService.set_setting(db, key, value)
+    _invalidate_booking_config_cache()
     return config

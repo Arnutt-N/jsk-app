@@ -123,6 +123,9 @@ export default function BookingSettingsPage() {
       {/* Services */}
       <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
         <h2 className="mb-3 font-medium text-slate-900 dark:text-slate-100">บริการที่เปิดให้จอง</h2>
+        <p className="mb-3 text-xs text-slate-500 dark:text-slate-400">
+          รายชื่อนี้คือต้นทางของช่องเลือกบริการในหน้า LIFF — หมวดหมู่กลาง (taxonomy) มีหน้าที่จัดกลุ่มเท่านั้น
+        </p>
         <ul className="mb-3 space-y-2">
           {settings.service_types.map((service) => (
             <li
@@ -144,6 +147,9 @@ export default function BookingSettingsPage() {
           ))}
           {settings.service_types.length === 0 && (
             <li className="text-sm text-slate-400">ยังไม่มีบริการ — เพิ่มอย่างน้อย 1 รายการก่อนเปิดใช้งาน</li>
+          )}
+          {settings.service_types.length === 1 && (
+            <li className="text-sm text-amber-600 dark:text-amber-400">มีเพียง 1 รายการ — ชาวบ้านจะเห็นตัวเลือกเดียวในหน้า LIFF</li>
           )}
         </ul>
         <div className="flex gap-2">

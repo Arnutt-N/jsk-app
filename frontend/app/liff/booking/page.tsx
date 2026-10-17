@@ -3,18 +3,22 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Alert } from '@/components/ui/Alert'
-import { Badge } from '@/components/ui/Badge'
+import LiffStatusBadge from '@/components/liff/LiffStatusBadge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
 import { Skeleton } from '@/components/ui/Skeleton'
-import { CalendarDays, CheckCircle2, Clock, Loader2, RotateCcw, Users } from 'lucide-react'
+import { Select } from '@/components/ui/Select'
+import { CalendarDays, CheckCircle2, Clock, Loader2, Phone, RotateCcw, Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { logger } from '@/lib/logger'
 import { useLiffInit } from '@/hooks/useLiffInit'
 import DateSection, { type DayInfo } from '@/components/liff/booking/DateSection'
+import LiffStepper from '@/components/liff/LiffStepper'
 import { useBookingStore } from '@/lib/booking/store'
+import { composeContactName, splitContactName, validateBookingContact } from '@/lib/liff/validation'
+import { PREFIX_OPTIONS } from '@/lib/constants/prefixes'
 import { buildServiceGroups, loadTaxonomy, type TaxonomyTable } from '@/lib/booking/service-mapping'
 import { useToast } from '@/components/ui/Toast'
 import {
@@ -28,67 +32,31 @@ import {
 } from '@/lib/booking'
 import { TOPIC_OPTIONS } from '@/lib/constants/categories'
 
-type Step = 'service' | 'date' | 'slot' | 'details' | 'done'
+type WizardStep = (typeof STEP)[keyof typeof STEP]
 
-const STEPS: { key: Step; label: string; icon: React.ReactNode }[] = [
-  { key: 'service', label: 'บริการ', icon: <Users className="h-3 w-3" aria-hidden="true" /> },
-  { key: 'date', label: 'วันที่', icon: <CalendarDays className="h-3 w-3" aria-hidden="true" /> },
-  { key: 'slot', label: 'เวลา', icon: <Clock className="h-3 w-3" aria-hidden="true" /> },
-  { key: 'details', label: 'ยืนยัน', icon: <CheckCircle2 className="h-3 w-3" aria-hidden="true" /> },
+const STEP = {
+  SERVICE: 0,
+  DATETIME: 1,
+  CONTACT: 2,
+  SUMMARY: 3,
+} as const
+
+const STEPS: { label: string; icon: React.ReactNode }[] = [
+  { label: 'บริการ', icon: <Users className="h-4 w-4" aria-hidden="true" /> },
+  { label: 'วันเวลา', icon: <CalendarDays className="h-4 w-4" aria-hidden="true" /> },
+  { label: 'ผู้จอง', icon: <Phone className="h-4 w-4" aria-hidden="true" /> },
+  { label: 'สรุป', icon: <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> },
 ]
 
-function contactPayload(contactName: string, phoneNumber: string, note: string) {
+function contactPayload(prefix: string, firstname: string, lastname: string, phoneNumber: string, note: string) {
   return {
-    contact_name: contactName.trim() || null,
+    contact_name: composeContactName({ prefix, firstname, lastname }) || null,
+    prefix: prefix.trim() || null,
+    firstname: firstname.trim() || null,
+    lastname: lastname.trim() || null,
     phone_number: phoneNumber.trim() || null,
     note: note.trim() || null,
   }
-}
-
-/** Numbered stepper so the citizen always knows how many taps remain. */
-function StepRail({ current }: { current: Step }) {
-  const activeIndex = current === 'done' ? STEPS.length : STEPS.findIndex((s) => s.key === current)
-  return (
-    <ol className="mb-8 flex items-center justify-between px-2" aria-label="ขั้นตอนการจอง">
-      {STEPS.map((s, index) => {
-        const done = index < activeIndex
-        const state = done ? 'done' : index === activeIndex ? 'current' : 'todo'
-        return (
-          <li key={s.key} className="relative flex flex-1 flex-col items-center gap-2">
-            <span
-              className={cn(
-                'z-10 flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold transition-colors',
-                state === 'todo'
-                  ? 'bg-border-default text-text-tertiary'
-                  : 'bg-brand-500 text-white shadow-md',
-              )}
-            >
-              {done ? <CheckCircle2 className="h-5 w-5" aria-hidden="true" /> : index + 1}
-            </span>
-            <span
-              className={cn(
-                'flex items-center gap-1 text-[10px] font-semibold',
-                state === 'todo' ? 'text-text-tertiary' : 'text-brand-text',
-              )}
-              aria-current={state === 'current' ? 'step' : undefined}
-            >
-              {s.icon}
-              {s.label}
-            </span>
-            {index < STEPS.length - 1 && (
-              <span
-                aria-hidden="true"
-                className={cn(
-                  'absolute left-[60%] top-4 h-[2px] w-full',
-                  done ? 'bg-brand-500' : 'bg-border-default',
-                )}
-              />
-            )}
-          </li>
-        )
-      })}
-    </ol>
-  )
 }
 
 interface SectionProps {
@@ -102,8 +70,8 @@ interface SectionProps {
 /** One card per step — the shared Card rhythm used across the LIFF forms. */
 function Section({ icon, title, children, className, action }: SectionProps) {
   return (
-    <Card glass className={cn('overflow-hidden', className)}>
-      <CardHeader className="bg-bg/50 border-b border-border-subtle">
+    <Card glass className={cn('overflow-visible', className)}>
+      <CardHeader className="bg-bg/50 border-b border-border-subtle rounded-t-2xl">
         <div className="flex items-center justify-between gap-2">
           <CardTitle className="text-base flex items-center gap-2">
             <span className="text-text-tertiary" aria-hidden="true">
@@ -138,34 +106,106 @@ function SectionClearButton({ onClear }: { onClear: () => void }) {
   )
 }
 
-interface ContactFieldsFormProps {
-  contactName: string
-  phoneNumber: string
-  note: string
-  onContactName: (value: string) => void
-  onPhoneNumber: (value: string) => void
-  onNote: (value: string) => void
+function WizardNav({ step, onBack, onNext }: { step: WizardStep; onBack: () => void; onNext: () => void }) {
+  return (
+    <div className="mt-4 flex gap-3">
+      {step > STEP.SERVICE && (
+        <Button type="button" variant="secondary" className="flex-1" onClick={onBack}>
+          ย้อนกลับ
+        </Button>
+      )}
+      {step < STEP.SUMMARY && (
+        <Button type="button" className="flex-1" onClick={onNext}>
+          ถัดไป
+        </Button>
+      )}
+    </div>
+  )
 }
 
-/** The name/phone/note trio, shared by the booking step and the edit form. */
+/** Label/value rows shared by the summary step and the done screen. */
+function SummaryRows({ rows }: { rows: Array<{ label: string; value: string | null }> }) {
+  return (
+    <dl className="space-y-2 text-sm">
+      {rows.map((row) =>
+        row.value ? (
+          <div key={row.label} className="flex justify-between gap-4">
+            <dt className="text-text-secondary">{row.label}</dt>
+            <dd className="text-right font-medium text-text-primary">{row.value}</dd>
+          </div>
+        ) : null,
+      )}
+    </dl>
+  )
+}
+
+interface ContactFieldsFormProps {
+  prefix: string
+  firstname: string
+  lastname: string
+  phoneNumber: string
+  note: string
+  onPrefix: (value: string) => void
+  onFirstname: (value: string) => void
+  onLastname: (value: string) => void
+  onPhoneNumber: (value: string) => void
+  onNote: (value: string) => void
+  nameErrors?: { prefix?: string; firstname?: string; lastname?: string }
+  phoneError?: string
+}
+
 function ContactFieldsForm({
-  contactName,
+  prefix,
+  firstname,
+  lastname,
   phoneNumber,
   note,
-  onContactName,
+  onPrefix,
+  onFirstname,
+  onLastname,
   onPhoneNumber,
   onNote,
+  nameErrors,
+  phoneError,
 }: ContactFieldsFormProps) {
   return (
     <div className="space-y-3">
+      <div className="grid grid-cols-3 gap-3">
+        <label className="col-span-1 block">
+          <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-text-secondary">คำนำหน้า</span>
+          <Select
+            aria-label="คำนำหน้า"
+            value={prefix}
+            onChange={(e) => onPrefix(e.target.value)}
+            options={PREFIX_OPTIONS}
+            placeholder="เลือก"
+            state={nameErrors?.prefix ? 'error' : 'default'}
+            errorMessage={nameErrors?.prefix}
+          />
+        </label>
+        <label className="col-span-2 block">
+          <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-text-secondary">ชื่อ</span>
+          <Input
+            type="text"
+            value={firstname}
+            onChange={(e) => onFirstname(e.target.value)}
+            maxLength={100}
+            placeholder="ชื่อจริง"
+            state={nameErrors?.firstname ? 'error' : 'default'}
+            errorMessage={nameErrors?.firstname}
+          />
+        </label>
+      </div>
       <label className="block">
-        <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-text-secondary">ชื่อ-นามสกุล</span>
+        <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-text-secondary">นามสกุล</span>
         <Input
           type="text"
-          value={contactName}
-          onChange={(e) => onContactName(e.target.value)}
-          maxLength={120}
-          placeholder="ชื่อสำหรับเรียกคิว"
+          value={lastname}
+          onChange={(e) => onLastname(e.target.value)}
+          maxLength={100}
+          placeholder="นามสกุล"
+          state={nameErrors?.lastname ? 'error' : 'default'}
+          errorMessage={nameErrors?.lastname}
         />
       </label>
       <label className="block">
@@ -177,6 +217,9 @@ function ContactFieldsForm({
           onChange={(e) => onPhoneNumber(e.target.value.replace(/[^\d]/g, ''))}
           maxLength={20}
           placeholder="0812345678"
+          state={phoneError ? 'error' : 'default'}
+          errorMessage={phoneError}
+          aria-invalid={phoneError ? true : undefined}
         />
       </label>
       <label className="block">
@@ -238,11 +281,17 @@ export default function LiffBookingPage() {
 
   const serviceType = draft.service
   const selectedDate = draft.date
-  const contactName = draft.contactName
+  const prefix = draft.prefix
+  const firstname = draft.firstname
+  const lastname = draft.lastname
   const phoneNumber = draft.phoneNumber
   const note = draft.note
-  const onContactName = (value: string) =>
-    dispatch({ type: 'contact/set', contact: { contactName: value } })
+  const onPrefix = (value: string) =>
+    dispatch({ type: 'contact/set', contact: { prefix: value } })
+  const onFirstname = (value: string) =>
+    dispatch({ type: 'contact/set', contact: { firstname: value } })
+  const onLastname = (value: string) =>
+    dispatch({ type: 'contact/set', contact: { lastname: value } })
   const onPhoneNumber = (value: string) =>
     dispatch({ type: 'contact/set', contact: { phoneNumber: value.replace(/[^\d]/g, '') } })
   const onNote = (value: string) =>
@@ -257,16 +306,72 @@ export default function LiffBookingPage() {
   const [cancelling, setCancelling] = useState(false)
   const [cancelOpen, setCancelOpen] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
+  const [showContactErrors, setShowContactErrors] = useState(false)
+  const [serviceError, setServiceError] = useState<string | null>(null)
+  const [datetimeError, setDatetimeError] = useState<string | null>(null)
 
-  const step: Step = confirmed
-    ? 'done'
-    : selectedSlot
-      ? 'details'
-      : selectedDate
-        ? 'slot'
-        : serviceType
-          ? 'date'
-          : 'service'
+  const contactErrors = validateBookingContact({ prefix, firstname, lastname, phoneNumber })
+  const displayName = composeContactName({ prefix, firstname, lastname })
+  const contactNameError =
+    contactErrors.prefix ?? contactErrors.firstname ?? contactErrors.lastname
+
+  const [wizardStep, setWizardStep] = useState<WizardStep>(() => {
+    if (draft.slotId) return STEP.CONTACT
+    if (draft.date) return STEP.DATETIME
+    return STEP.SERVICE
+  })
+
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [wizardStep])
+
+  const goToStep = useCallback((target: WizardStep) => {
+    setWizardStep(target)
+  }, [])
+
+  const goNext = useCallback(() => {
+    setWizardStep((current) => {
+      if (current === STEP.SERVICE) return STEP.DATETIME
+      if (current === STEP.DATETIME) return STEP.CONTACT
+      if (current === STEP.CONTACT) return STEP.SUMMARY
+      return current
+    })
+  }, [])
+
+  const tryNext = useCallback(() => {
+    if (wizardStep === STEP.SERVICE) {
+      if (!serviceType) {
+        setServiceError('กรุณาเลือกบริการ')
+        return
+      }
+      goNext()
+      return
+    }
+    if (wizardStep === STEP.DATETIME) {
+      if (!selectedDate || !selectedSlot) {
+        setDatetimeError('กรุณาเลือกวันและเวลา')
+        return
+      }
+      goNext()
+      return
+    }
+    if (contactNameError || contactErrors.phoneNumber) {
+      setShowContactErrors(true)
+      return
+    }
+    setShowContactErrors(false)
+    goNext()
+  }, [wizardStep, serviceType, selectedDate, selectedSlot, contactNameError, contactErrors.phoneNumber, goNext])
+
+  const goBack = useCallback(() => {
+    setWizardStep((current) => {
+      if (current === STEP.SUMMARY) return STEP.CONTACT
+      if (current === STEP.CONTACT) return STEP.DATETIME
+      if (current === STEP.DATETIME) return STEP.SERVICE
+      return current
+    })
+  }, [])
+
 
   const [taxonomy, setTaxonomy] = useState<TaxonomyTable | null>(null)
   useEffect(() => {
@@ -302,6 +407,7 @@ export default function LiffBookingPage() {
 
   const chooseDate = useCallback(
     (date: string) => {
+      setDatetimeError(null)
       dispatch({ type: 'date/set', date })
       if (serviceType) void loadSlots(serviceType, date)
     },
@@ -310,6 +416,7 @@ export default function LiffBookingPage() {
 
   const chooseService = (service: string) => {
     if (service === serviceType) return
+    setServiceError(null)
     dispatch({ type: 'service/set', service })
   }
 
@@ -331,6 +438,11 @@ export default function LiffBookingPage() {
 
   const handleSubmit = async () => {
     if (!idToken || !serviceType || !selectedDate || !selectedSlot) return
+    if (contactNameError || contactErrors.phoneNumber) {
+      setShowContactErrors(true)
+      setWizardStep(2)
+      return
+    }
     setSubmitting(true)
     setError(null)
     setNotice(null)
@@ -339,7 +451,7 @@ export default function LiffBookingPage() {
         service_type: serviceType,
         booking_date: selectedDate,
         booking_time: selectedSlot.time,
-        ...contactPayload(contactName, phoneNumber, note),
+        ...contactPayload(prefix, firstname, lastname, phoneNumber, note),
       })
       setConfirmed(booking)
     } catch (err) {
@@ -349,6 +461,7 @@ export default function LiffBookingPage() {
       // citizen sees the real state instead of a stale "available" button.
       if (serviceType && selectedDate) void loadSlots(serviceType, selectedDate, { force: true })
       dispatch({ type: 'slot/set', slotId: null })
+      setWizardStep(STEP.DATETIME)
     } finally {
       setSubmitting(false)
     }
@@ -358,6 +471,7 @@ export default function LiffBookingPage() {
     setConfirmed(null)
     setEditing(false)
     setNotice(null)
+    setWizardStep(STEP.SERVICE)
     dispatch({ type: 'draft/reset' })
     if (options?.service_types.length === 1) {
       dispatch({ type: 'service/set', service: options.service_types[0] })
@@ -383,13 +497,17 @@ export default function LiffBookingPage() {
 
   const handleUpdate = async () => {
     if (!idToken || !confirmed) return
+    if (contactNameError || contactErrors.phoneNumber) {
+      setError(contactNameError ?? contactErrors.phoneNumber ?? 'กรุณากรอกข้อมูลให้ครบถ้วน')
+      return
+    }
     setSubmitting(true)
     setError(null)
     try {
       const updated = await updateBookingContact(
         idToken,
         confirmed.id,
-        contactPayload(contactName, phoneNumber, note),
+        contactPayload(prefix, firstname, lastname, phoneNumber, note),
       )
       setConfirmed(updated)
       setEditing(false)
@@ -422,14 +540,14 @@ export default function LiffBookingPage() {
                   จองคิวนัดหมายล่วงหน้า • JSK 4.0 Platform
                 </p>
               </div>
-              <Badge variant={options ? 'success' : 'warning'} className="h-6">
-                {options ? 'เปิดรับจอง' : 'กำลังเชื่อมต่อ…'}
-              </Badge>
+              <LiffStatusBadge kind="business" state={options ? 'open' : 'loading'} />
             </div>
           </header>
           <p className="mb-5 text-sm text-text-secondary">เลือกบริการ วันที่ และช่วงเวลาที่สะดวก</p>
 
-          {step !== 'done' && <StepRail current={step} />}
+          {!confirmed && (
+            <LiffStepper steps={STEPS} currentIndex={wizardStep} ariaLabel="ขั้นตอนการจอง" />
+          )}
 
           {error && (
             <Alert variant="danger" className="mb-4">
@@ -442,7 +560,7 @@ export default function LiffBookingPage() {
             </Alert>
           )}
 
-          {step === 'done' && confirmed && (
+          {confirmed && (
             <Card glass className="overflow-hidden">
               <CardHeader className="bg-bg/50 border-b border-border-subtle">
                 <CardTitle className="text-base">
@@ -453,12 +571,18 @@ export default function LiffBookingPage() {
               {editing ? (
                 <>
                   <ContactFieldsForm
-                    contactName={contactName}
+                    prefix={prefix}
+                    firstname={firstname}
+                    lastname={lastname}
                     phoneNumber={phoneNumber}
                     note={note}
-                    onContactName={onContactName}
+                    onPrefix={onPrefix}
+                    onFirstname={onFirstname}
+                    onLastname={onLastname}
                     onPhoneNumber={onPhoneNumber}
                     onNote={onNote}
+                    nameErrors={contactErrors}
+                    phoneError={contactErrors.phoneNumber}
                   />
                   <div className="mt-4 space-y-2">
                     <Button className="w-full" onClick={handleUpdate} disabled={submitting}>
@@ -484,42 +608,17 @@ export default function LiffBookingPage() {
                     </p>
                     <p className="text-xs text-text-tertiary">หมายเลขคิวของท่าน</p>
                   </div>
-                  <dl className="mt-5 space-y-2 text-sm">
-                    <div className="flex justify-between gap-4">
-                      <dt className="text-text-secondary">บริการ</dt>
-                      <dd className="text-right font-medium text-text-primary">
-                        {confirmed.service_type}
-                      </dd>
-                    </div>
-                    <div className="flex justify-between gap-4">
-                      <dt className="text-text-secondary">วันที่</dt>
-                      <dd className="text-right font-medium text-text-primary">
-                        {formatThaiDate(confirmed.booking_date)}
-                      </dd>
-                    </div>
-                    <div className="flex justify-between gap-4">
-                      <dt className="text-text-secondary">เวลา</dt>
-                      <dd className="text-right font-medium text-text-primary">
-                        {formatTime(confirmed.booking_time)} น.
-                      </dd>
-                    </div>
-                    {confirmed.contact_name && (
-                      <div className="flex justify-between gap-4">
-                        <dt className="text-text-secondary">ผู้จอง</dt>
-                        <dd className="text-right font-medium text-text-primary">
-                          {confirmed.contact_name}
-                        </dd>
-                      </div>
-                    )}
-                    {confirmed.phone_number && (
-                      <div className="flex justify-between gap-4">
-                        <dt className="text-text-secondary">โทรศัพท์</dt>
-                        <dd className="text-right font-medium text-text-primary">
-                          {confirmed.phone_number}
-                        </dd>
-                      </div>
-                    )}
-                  </dl>
+                  <div className="mt-5">
+                    <SummaryRows
+                      rows={[
+                        { label: 'บริการ', value: confirmed.service_type },
+                        { label: 'วันที่', value: formatThaiDate(confirmed.booking_date) },
+                        { label: 'เวลา', value: `${formatTime(confirmed.booking_time)} น.` },
+                        { label: 'ผู้จอง', value: confirmed.contact_name },
+                        { label: 'โทรศัพท์', value: confirmed.phone_number },
+                      ]}
+                    />
+                  </div>
                   <p className="mt-5 text-center text-xs text-text-tertiary">
                     ระบบได้ส่งรายละเอียดไปยัง LINE ของท่านแล้ว กรุณามาก่อนเวลานัด 10 นาที
                   </p>
@@ -528,10 +627,13 @@ export default function LiffBookingPage() {
                       variant="secondary"
                       className="w-full"
                       onClick={() => {
+                        const split = splitContactName(confirmed.contact_name)
                         dispatch({
                           type: 'contact/set',
                           contact: {
-                            contactName: confirmed.contact_name ?? '',
+                            prefix: split.prefix,
+                            firstname: split.firstname,
+                            lastname: split.lastname,
                             phoneNumber: confirmed.phone_number ?? '',
                             note: confirmed.note ?? '',
                           },
@@ -563,7 +665,7 @@ export default function LiffBookingPage() {
             </Card>
           )}
 
-          {step !== 'done' && (
+          {!confirmed && wizardStep === STEP.SERVICE && (
             <div className="space-y-4">
               <Section
                 icon={<Users className="h-4 w-4" />}
@@ -575,33 +677,33 @@ export default function LiffBookingPage() {
                     <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-text-secondary">
                       บริการ
                     </span>
-                    <select
+                    <Select
                       aria-label="เลือกบริการ"
                       value={serviceType ?? ''}
                       onChange={(e) => {
                         if (e.target.value) chooseService(e.target.value)
                       }}
-                      className="w-full rounded-lg border border-border-default bg-surface px-3 py-2.5 text-sm text-text-primary"
-                    >
-                      <option value="">-- เลือกบริการ --</option>
-                      {serviceGroups
+                      groups={serviceGroups
                         .filter((group) => group.options.length > 0)
-                        .map((group) => (
-                          <optgroup key={group.category} label={group.category}>
-                            {group.options.map((option) => (
-                              <option key={option.value} value={option.value}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </optgroup>
-                        ))}
-                    </select>
+                        .map((group) => ({
+                          label: group.category,
+                          options: group.options,
+                        }))}
+                      placeholder="-- เลือกบริการ --"
+                      state={serviceError ? 'error' : 'default'}
+                      errorMessage={serviceError ?? undefined}
+                    />
                   </label>
                 ) : (
                   <p className="text-sm text-text-tertiary">ยังไม่มีบริการที่เปิดให้จอง</p>
                 )}
               </Section>
+              <WizardNav step={STEP.SERVICE} onBack={goBack} onNext={tryNext} />
+            </div>
+          )}
 
+          {!confirmed && wizardStep === STEP.DATETIME && (
+            <div className="space-y-4">
               {serviceType && (
                 <Section
                   icon={<CalendarDays className="h-4 w-4" />}
@@ -652,9 +754,10 @@ export default function LiffBookingPage() {
                                     key={slot.time}
                                     type="button"
                                     disabled={slot.is_full}
-                                    onClick={() =>
+                                    onClick={() => {
+                                      setDatetimeError(null)
                                       dispatch({ type: 'slot/set', slotId: slot.time })
-                                    }
+                                    }}
                                     aria-pressed={isSelected}
                                     className={cn(
                                       'rounded-lg border px-2 py-2 text-sm transition-colors',
@@ -684,33 +787,105 @@ export default function LiffBookingPage() {
                 </Section>
               )}
 
-              {selectedSlot && (
-                <Section
-                  icon={<Users className="h-4 w-4" />}
-                  title="ข้อมูลผู้จอง"
-                  action={<SectionClearButton onClear={clearContact} />}
-                >
-                  <ContactFieldsForm
-                    contactName={contactName}
-                    phoneNumber={phoneNumber}
-                    note={note}
-                    onContactName={onContactName}
-                    onPhoneNumber={onPhoneNumber}
-                    onNote={onNote}
-                  />
+              {datetimeError && (
+                <p role="alert" className="text-sm text-danger-text">
+                  {datetimeError}
+                </p>
+              )}
+              <WizardNav step={STEP.DATETIME} onBack={goBack} onNext={tryNext} />
+            </div>
+          )}
 
-                  <div className="mt-4 rounded-lg border border-border-subtle bg-bg p-3 text-sm">
-                    <p className="font-medium text-text-primary">{serviceType}</p>
+          {!confirmed && wizardStep === STEP.CONTACT && (
+            <div className="space-y-4">
+              <Section
+                icon={<Users className="h-4 w-4" />}
+                title="ข้อมูลผู้จอง"
+                action={<SectionClearButton onClear={clearContact} />}
+              >
+                <ContactFieldsForm
+                  prefix={prefix}
+                  firstname={firstname}
+                  lastname={lastname}
+                  phoneNumber={phoneNumber}
+                  note={note}
+                  onPrefix={onPrefix}
+                  onFirstname={onFirstname}
+                  onLastname={onLastname}
+                  onPhoneNumber={onPhoneNumber}
+                  onNote={onNote}
+                  nameErrors={showContactErrors ? contactErrors : undefined}
+                  phoneError={showContactErrors ? contactErrors.phoneNumber : undefined}
+                />
+              </Section>
+              <WizardNav step={STEP.CONTACT} onBack={goBack} onNext={tryNext} />
+            </div>
+          )}
+
+          {!confirmed && wizardStep === STEP.SUMMARY && selectedSlot && (
+            <div className="space-y-4">
+              <Section
+                icon={<CheckCircle2 className="h-4 w-4" />}
+                title="สรุปการจอง"
+              >
+                <div className="space-y-4 text-sm">
+                  <div>
+                    <div className="mb-1 flex items-center justify-between gap-2">
+                      <p className="font-medium text-text-primary">บริการ</p>
+                      <button
+                        type="button"
+                        onClick={() => goToStep(STEP.SERVICE)}
+                        className="shrink-0 text-xs font-semibold text-brand-500 hover:underline"
+                      >
+                        แก้ไข
+                      </button>
+                    </div>
+                    <p className="text-text-secondary">{serviceType}</p>
+                  </div>
+                  <div>
+                    <div className="mb-1 flex items-center justify-between gap-2">
+                      <p className="font-medium text-text-primary">วันเวลา</p>
+                      <button
+                        type="button"
+                        onClick={() => goToStep(STEP.DATETIME)}
+                        className="shrink-0 text-xs font-semibold text-brand-500 hover:underline"
+                      >
+                        แก้ไข
+                      </button>
+                    </div>
                     <p className="text-text-secondary">
                       {formatThaiDate(selectedDate ?? '')} เวลา {formatTime(selectedSlot.time)} น.
                     </p>
                   </div>
-
-                  <Button className="mt-4 w-full" onClick={handleSubmit} disabled={submitting}>
-                    {submitting ? 'กำลังจอง...' : 'ยืนยันการจอง'}
-                  </Button>
-                </Section>
-              )}
+                  <div>
+                    <div className="mb-1 flex items-center justify-between gap-2">
+                      <p className="font-medium text-text-primary">ผู้จอง</p>
+                      <button
+                        type="button"
+                        onClick={() => goToStep(STEP.CONTACT)}
+                        className="shrink-0 text-xs font-semibold text-brand-500 hover:underline"
+                      >
+                        แก้ไข
+                      </button>
+                    </div>
+                    {displayName || phoneNumber.trim() || note.trim() ? (
+                      <SummaryRows
+                        rows={[
+                          { label: 'ผู้จอง', value: displayName || null },
+                          { label: 'โทรศัพท์', value: phoneNumber.trim() || null },
+                          { label: 'รายละเอียด', value: note.trim() || null },
+                        ]}
+                      />
+                    ) : (
+                      <p className="text-text-tertiary">ไม่ได้ระบุ</p>
+                    )}
+                  </div>
+                </div>
+                <Button className="mt-4 w-full" onClick={handleSubmit} disabled={submitting}>
+                  {submitting ? 'กำลังจอง...' : 'ยืนยันการจอง'}
+                </Button>
+              </Section>
+              <WizardNav step={STEP.SUMMARY} onBack={goBack} onNext={tryNext} />
             </div>
           )}
         </>
