@@ -23,6 +23,7 @@ import { useLiffInit } from '@/hooks/useLiffInit'
 import LiffStepper from '@/components/liff/LiffStepper'
 import { useAutoCloseCountdown } from '@/hooks/useAutoCloseCountdown'
 import { submitDebtMediation, DebtMediationPayload, formatLiffSubmitError, isValidPhone, normalizePhone } from '@/lib/liff/submit-debt-mediation'
+import { Select } from '@/components/ui/Select'
 
 // --- FORM CONTENT (mirrors the MoJ debt-mediation registration form) ---
 
@@ -556,23 +557,21 @@ export default function LiffDebtMediation() {
                                         <label htmlFor="dm-province" className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
                                             จังหวัดที่อาศัย <span className="text-red-500">*</span>
                                         </label>
-                                        <select
+                                        <Select
                                             id="dm-province"
                                             name="province"
                                             value={formData.province}
                                             onChange={handleChange}
                                             aria-invalid={Boolean(fieldErrors.province) || undefined}
                                             aria-describedby={fieldErrors.province ? 'dm-province-err' : undefined}
-                                            className={`${inputBaseClass} ${fieldErrors.province ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-200'}`}
+                                            options={provinces.map((p) => ({
+                                                value: p.PROVINCE_THAI,
+                                                label: p.PROVINCE_THAI,
+                                            }))}
+                                            placeholder="-- เลือกจังหวัด --"
+                                            state={fieldErrors.province ? 'error' : 'default'}
                                             required
-                                        >
-                                            <option value="">-- เลือกจังหวัด --</option>
-                                            {provinces.map(p => (
-                                                <option key={p.PROVINCE_ID} value={p.PROVINCE_THAI}>
-                                                    {p.PROVINCE_THAI}
-                                                </option>
-                                            ))}
-                                        </select>
+                                        />
                                         {fieldErrors.province && <p id="dm-province-err" className="text-red-500 text-[10px] mt-1">{fieldErrors.province}</p>}
                                     </div>
 

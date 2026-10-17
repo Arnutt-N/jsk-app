@@ -26,6 +26,7 @@ import {
 } from 'lucide-react'
 import { logger } from '@/lib/logger';
 import { useToast } from '@/components/ui/Toast';
+import { Select } from '@/components/ui/Select'
 import { TOPIC_OPTIONS } from '@/lib/constants/categories'
 import { loadTaxonomy, type TaxonomyTable } from '@/lib/booking/service-mapping'
 import { useLiffInit } from '@/hooks/useLiffInit'
@@ -669,21 +670,18 @@ export default function LiffServiceRequestV2() {
                                         <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
                                             หน่วยงาน <span className="text-red-500">*</span>
                                         </label>
-                                        <select
+                                        <Select
                                             name="agency"
                                             value={formData.agency}
                                             onChange={handleChange}
-                                            className={`w-full bg-white border text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block p-2.5 outline-none transition-all ${fieldErrors.agency ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-200'
-                                                }`}
+                                            options={AGENCIES.map((agency) => ({
+                                                value: agency.value,
+                                                label: agency.label,
+                                            }))}
+                                            placeholder="-- เลือกหน่วยงานของท่าน --"
+                                            state={fieldErrors.agency ? 'error' : 'default'}
                                             required
-                                        >
-                                            <option value="">-- เลือกหน่วยงานของท่าน --</option>
-                                            {AGENCIES.map(agency => (
-                                                <option key={agency.value} value={agency.value}>
-                                                    {agency.label}
-                                                </option>
-                                            ))}
-                                        </select>
+                                        />
                                         {fieldErrors.agency && <p className="text-red-500 text-[10px] mt-1">{fieldErrors.agency}</p>}
                                     </div>
 
@@ -691,23 +689,20 @@ export default function LiffServiceRequestV2() {
                                         <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
                                             จังหวัด <span className="text-red-500">*</span>
                                         </label>
-                                        <select
+                                        <Select
                                             value={selectedProvinceId || ''}
                                             onChange={(e) => {
                                                 handleProvinceChange(e)
                                                 setFieldErrors(prev => ({ ...prev, province: '' }))
                                             }}
-                                            className={`w-full bg-white border text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block p-2.5 outline-none transition-all ${fieldErrors.province ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-200'
-                                                }`}
+                                            options={provinces.map((p) => ({
+                                                value: String(p.PROVINCE_ID),
+                                                label: p.PROVINCE_THAI,
+                                            }))}
+                                            placeholder="-- เลือกจังหวัด --"
+                                            state={fieldErrors.province ? 'error' : 'default'}
                                             required
-                                        >
-                                            <option value="">-- เลือกจังหวัด --</option>
-                                            {provinces.map(p => (
-                                                <option key={p.PROVINCE_ID} value={p.PROVINCE_ID}>
-                                                    {p.PROVINCE_THAI}
-                                                </option>
-                                            ))}
-                                        </select>
+                                        />
                                         {fieldErrors.province && <p className="text-red-500 text-[10px] mt-1">{fieldErrors.province}</p>}
                                     </div>
 
@@ -716,31 +711,28 @@ export default function LiffServiceRequestV2() {
                                             <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide flex items-center gap-1">
                                                 อำเภอ/เขต <span className="text-red-500">*</span> {loadingDistricts && <Loader2 className="h-4 w-4 animate-spin text-brand-500" />}
                                             </label>
-                                            <select
+                                            <Select
                                                 value={selectedDistrictId || ''}
                                                 onChange={(e) => {
                                                     handleDistrictChange(e)
                                                     setFieldErrors(prev => ({ ...prev, district: '' }))
                                                 }}
                                                 disabled={!selectedProvinceId}
-                                                className={`w-full bg-white border text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block p-2.5 outline-none transition-all disabled:opacity-50 ${fieldErrors.district ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-200'
-                                                    }`}
+                                                options={districts.map((d) => ({
+                                                    value: String(d.DISTRICT_ID),
+                                                    label: d.DISTRICT_THAI,
+                                                }))}
+                                                placeholder="-- เลือก --"
+                                                state={fieldErrors.district ? 'error' : 'default'}
                                                 required
-                                            >
-                                                <option value="">-- เลือก --</option>
-                                                {districts.map(d => (
-                                                    <option key={d.DISTRICT_ID} value={d.DISTRICT_ID}>
-                                                        {d.DISTRICT_THAI}
-                                                    </option>
-                                                ))}
-                                            </select>
+                                            />
                                             {fieldErrors.district && <p className="text-red-500 text-[10px] mt-1">{fieldErrors.district}</p>}
                                         </div>
                                         <div>
                                             <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide flex items-center gap-1">
                                                 ตำบล/แขวง <span className="text-red-500">*</span> {loadingSubDistricts && <Loader2 className="h-4 w-4 animate-spin text-brand-500" />}
                                             </label>
-                                            <select
+                                            <Select
                                                 name="sub_district"
                                                 onChange={(e) => {
                                                     handleSubDistrictChange(e)
@@ -748,17 +740,14 @@ export default function LiffServiceRequestV2() {
                                                 }}
                                                 value={subDistricts.find(s => s.SUB_DISTRICT_THAI === formData.sub_district)?.SUB_DISTRICT_ID || ''}
                                                 disabled={!selectedDistrictId}
-                                                className={`w-full bg-white border text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block p-2.5 outline-none transition-all disabled:opacity-50 ${fieldErrors.sub_district ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-200'
-                                                    }`}
+                                                options={subDistricts.map((s) => ({
+                                                    value: String(s.SUB_DISTRICT_ID),
+                                                    label: s.SUB_DISTRICT_THAI,
+                                                }))}
+                                                placeholder="-- เลือก --"
+                                                state={fieldErrors.sub_district ? 'error' : 'default'}
                                                 required
-                                            >
-                                                <option value="">-- เลือก --</option>
-                                                {subDistricts.map(s => (
-                                                    <option key={s.SUB_DISTRICT_ID} value={s.SUB_DISTRICT_ID}>
-                                                        {s.SUB_DISTRICT_THAI}
-                                                    </option>
-                                                ))}
-                                            </select>
+                                            />
                                             {fieldErrors.sub_district && <p className="text-red-500 text-[10px] mt-1">{fieldErrors.sub_district}</p>}
                                         </div>
                                     </div>
@@ -772,19 +761,18 @@ export default function LiffServiceRequestV2() {
                                         <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
                                             เรื่องที่ขอรับความช่วยเหลือ <span className="text-red-500">*</span>
                                         </label>
-                                        <select
+                                        <Select
                                             name="topic_category"
                                             value={formData.topic_category}
                                             onChange={handleChange}
-                                            className={`w-full bg-white border text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block p-2.5 outline-none transition-all ${fieldErrors.topic_category ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-200'
-                                                }`}
+                                            options={Object.keys(taxonomy ?? TOPIC_OPTIONS).map((topic) => ({
+                                                value: topic,
+                                                label: topic,
+                                            }))}
+                                            placeholder="-- เลือกหัวข้อ --"
+                                            state={fieldErrors.topic_category ? 'error' : 'default'}
                                             required
-                                        >
-                                            <option value="">-- เลือกหัวข้อ --</option>
-                                            {Object.keys(taxonomy ?? TOPIC_OPTIONS).map(topic => (
-                                                <option key={topic} value={topic}>{topic}</option>
-                                            ))}
-                                        </select>
+                                        />
                                         {fieldErrors.topic_category && <p className="text-red-500 text-[10px] mt-1">{fieldErrors.topic_category}</p>}
                                     </div>
 
@@ -793,19 +781,18 @@ export default function LiffServiceRequestV2() {
                                             <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
                                                 รายละเอียดเรื่อง <span className="text-red-500">*</span>
                                             </label>
-                                            <select
+                                            <Select
                                                 name="topic_subcategory"
                                                 value={formData.topic_subcategory}
                                                 onChange={handleChange}
-                                                className={`w-full bg-white border text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block p-2.5 outline-none transition-all ${fieldErrors.topic_subcategory ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-200'
-                                                    }`}
+                                                options={(taxonomy ?? TOPIC_OPTIONS)[formData.topic_category].map((sub) => ({
+                                                    value: sub,
+                                                    label: sub,
+                                                }))}
+                                                placeholder="-- เลือกรายละเอียด --"
+                                                state={fieldErrors.topic_subcategory ? 'error' : 'default'}
                                                 required
-                                            >
-                                                <option value="">-- เลือกรายละเอียด --</option>
-                                                {(taxonomy ?? TOPIC_OPTIONS)[formData.topic_category].map(sub => (
-                                                    <option key={sub} value={sub}>{sub}</option>
-                                                ))}
-                                            </select>
+                                            />
                                             {fieldErrors.topic_subcategory && <p className="text-red-500 text-[10px] mt-1">{fieldErrors.topic_subcategory}</p>}
                                         </div>
                                     )}

@@ -9,6 +9,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { Select } from '@/components/ui/Select'
 import { CalendarDays, CheckCircle2, Clock, Loader2, RotateCcw, Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { logger } from '@/lib/logger'
@@ -530,27 +531,20 @@ export default function LiffBookingPage() {
                     <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-text-secondary">
                       บริการ
                     </span>
-                    <select
+                    <Select
                       aria-label="เลือกบริการ"
                       value={serviceType ?? ''}
                       onChange={(e) => {
                         if (e.target.value) chooseService(e.target.value)
                       }}
-                      className="w-full rounded-lg border border-border-default bg-surface px-3 py-2.5 text-sm text-text-primary"
-                    >
-                      <option value="">-- เลือกบริการ --</option>
-                      {serviceGroups
+                      groups={serviceGroups
                         .filter((group) => group.options.length > 0)
-                        .map((group) => (
-                          <optgroup key={group.category} label={group.category}>
-                            {group.options.map((option) => (
-                              <option key={option.value} value={option.value}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </optgroup>
-                        ))}
-                    </select>
+                        .map((group) => ({
+                          label: group.category,
+                          options: group.options,
+                        }))}
+                      placeholder="-- เลือกบริการ --"
+                    />
                   </label>
                 ) : (
                   <p className="text-sm text-text-tertiary">ยังไม่มีบริการที่เปิดให้จอง</p>
