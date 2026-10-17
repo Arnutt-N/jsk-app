@@ -62,16 +62,16 @@ export interface SelectGroup {
   options: SelectOption[]
 }
 
-export interface SelectProps
-  extends Omit<React.SelectHTMLAttributes<HTMLSelectElement>, 'size'>,
-    VariantProps<typeof selectVariants> {
-  options?: SelectOption[]
-  groups?: SelectGroup[]
-  placeholder?: string
-  leftIcon?: React.ReactNode
-  errorMessage?: string
-  helperText?: string
-}
+export type SelectProps = Omit<React.SelectHTMLAttributes<HTMLSelectElement>, 'size'> &
+  VariantProps<typeof selectVariants> & {
+    placeholder?: string
+    leftIcon?: React.ReactNode
+    errorMessage?: string
+    helperText?: string
+  } & (
+    | { options: SelectOption[]; groups?: never }
+    | { options?: never; groups: SelectGroup[] }
+  )
 
 const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
   (
@@ -80,7 +80,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
       variant,
       size,
       state,
-      options = [],
+      options,
       groups,
       placeholder,
       leftIcon,
@@ -112,9 +112,21 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
                 {placeholder}
               </option>
             )}
-            {(groups ?? []).map((group) => (
-              <optgroup key={group.label} label={group.label}>
-                {group.options.map((option) => (
+            {groups
+              ? groups.map((group) => (
+                  <optgroup key={group.label} label={group.label}>
+                    {group.options.map((option) => (
+                      <option
+                        key={option.value}
+                        value={option.value}
+                        disabled={option.disabled}
+                      >
+                        {option.label}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))
+              : options.map((option) => (
                   <option
                     key={option.value}
                     value={option.value}
@@ -123,18 +135,6 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
                     {option.label}
                   </option>
                 ))}
-              </optgroup>
-            ))}
-            {!groups &&
-              options.map((option) => (
-                <option
-                  key={option.value}
-                  value={option.value}
-                  disabled={option.disabled}
-                >
-                  {option.label}
-                </option>
-              ))}
           </select>
           <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-tertiary pointer-events-none" />
         </div>
