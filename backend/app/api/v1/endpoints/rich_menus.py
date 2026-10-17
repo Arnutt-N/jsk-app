@@ -760,8 +760,6 @@ async def publish_rich_menu(id: int, db: AsyncSession = Depends(get_db), current
         )
 
     rich_menu.status = RichMenuStatus.PUBLISHED
-    # Audit BEFORE commit: create_audit_log only flushes, so anything added
-    # after the commit below would never be persisted.
     await create_audit_log(
         db,
         admin_id=current_admin.id,
@@ -812,7 +810,6 @@ async def delete_rich_menu(id: int, db: AsyncSession = Depends(get_db), current_
     # delete still raises IntegrityError — surface it as a 409, not a 500.
     deleted_name = rich_menu.name
     try:
-        # Audit BEFORE commit: create_audit_log only flushes (see publish).
         await create_audit_log(
             db,
             admin_id=current_admin.id,
