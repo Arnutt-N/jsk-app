@@ -25,7 +25,7 @@ describe('validateBookingContact', () => {
 
   it('rejects a filled-but-undiallable phone in the debt form wording', () => {
     expect(validateBookingContact({ contactName: 'ก', phoneNumber: '123' })).toEqual({
-      phoneNumber: 'เบอร์โทรไม่ถูกต้อง',
+      phoneNumber: 'หมายเลขโทรศัพท์ไม่ถูกต้อง',
     })
   })
 

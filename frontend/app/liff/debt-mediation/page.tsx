@@ -171,7 +171,7 @@ export default function LiffDebtMediation() {
             case 1: // Debt info
                 if (blank(formData.full_name)) errors.full_name = 'กรุณาระบุชื่อ-สกุล'
                 if (blank(formData.phone_number)) errors.phone_number = 'กรุณาระบุหมายเลขโทรศัพท์'
-                else if (!isValidPhone(formData.phone_number)) errors.phone_number = 'เบอร์โทรไม่ถูกต้อง'
+                else if (!isValidPhone(formData.phone_number)) errors.phone_number = 'หมายเลขโทรศัพท์ไม่ถูกต้อง'
                 if (blank(formData.province)) errors.province = 'กรุณาเลือกจังหวัดที่อาศัย'
                 if (!formData.debt_amount || Number(formData.debt_amount) <= 0) errors.debt_amount = 'กรุณาระบุยอดหนี้สิน'
                 if (!formData.debt_type) errors.debt_type = 'กรุณาเลือกประเภทหนี้'

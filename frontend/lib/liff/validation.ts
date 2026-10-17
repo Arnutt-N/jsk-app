@@ -22,10 +22,10 @@ export interface BookingContactErrors {
 
 /**
  * Booking contact stays optional (backend contract), but a filled phone
- * must be diallable. Same wording as the debt form so citizens see one voice.
+ * must be diallable. Formal wording shared by every LIFF form.
  */
 export function validateBookingContact(input: BookingContactInput): BookingContactErrors {
   if (!input.phoneNumber.trim()) return {}
-  if (!isValidPhone(input.phoneNumber)) return { phoneNumber: 'เบอร์โทรไม่ถูกต้อง' }
+  if (!isValidPhone(input.phoneNumber)) return { phoneNumber: 'หมายเลขโทรศัพท์ไม่ถูกต้อง' }
   return {}
 }

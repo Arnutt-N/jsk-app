@@ -147,7 +147,7 @@ describe('LIFF service-request validation (R3-M28)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'ถัดไป' }));
 
     await waitFor(() => {
-      expect(screen.getByText('เบอร์โทรไม่ถูกต้อง')).toBeTruthy();
+      expect(screen.getByText('หมายเลขโทรศัพท์ไม่ถูกต้อง')).toBeTruthy();
     });
     // Still on step 0: the phone input is still rendered.
     expect(container.querySelector('input[name="phone_number"]')).not.toBeNull();

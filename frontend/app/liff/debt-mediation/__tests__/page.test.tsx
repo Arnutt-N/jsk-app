@@ -237,7 +237,7 @@ describe('debt mediation wizard', () => {
     await user.click(screen.getByRole('button', { name: /^หนี้นอกระบบ/ }))
     await user.click(screen.getByRole('button', { name: 'ถัดไป' }))
 
-    expect(screen.getByText('เบอร์โทรไม่ถูกต้อง')).toBeInTheDocument()
+    expect(screen.getByText('หมายเลขโทรศัพท์ไม่ถูกต้อง')).toBeInTheDocument()
     expect(screen.getByPlaceholderText('ระบุชื่อ-นามสกุล')).toBeInTheDocument()
   })
 

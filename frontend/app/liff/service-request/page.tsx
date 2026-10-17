@@ -298,7 +298,7 @@ export default function LiffServiceRequestV2() {
                 if (!formData.firstname.trim()) errors.firstname = 'กรุณาระบุชื่อ'
                 if (!formData.lastname.trim()) errors.lastname = 'กรุณาระบุนามสกุล'
                 if (!formData.phone_number) errors.phone_number = 'กรุณาระบุเบอร์โทร'
-                else if (formData.phone_number.length < 9 || formData.phone_number.length > 10) errors.phone_number = 'เบอร์โทรไม่ถูกต้อง'
+                else if (formData.phone_number.length < 9 || formData.phone_number.length > 10) errors.phone_number = 'หมายเลขโทรศัพท์ไม่ถูกต้อง'
                 break
             case 1: // Agency
                 if (!formData.agency) errors.agency = 'กรุณาเลือกหน่วยงาน'

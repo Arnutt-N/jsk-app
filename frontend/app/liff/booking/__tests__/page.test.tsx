@@ -872,7 +872,7 @@ describe('contact validation', () => {
     const user = await walkToContact()
     await user.type(screen.getByPlaceholderText('0812345678'), '123')
     await user.click(screen.getByRole('button', { name: 'ถัดไป' }))
-    expect(screen.getByText('เบอร์โทรไม่ถูกต้อง')).toBeInTheDocument()
+    expect(screen.getByText('หมายเลขโทรศัพท์ไม่ถูกต้อง')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'ข้อมูลผู้จอง' })).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'สรุปการจอง' })).not.toBeInTheDocument()
   })
@@ -897,7 +897,7 @@ describe('contact validation', () => {
     await user.clear(phoneInput)
     await user.type(phoneInput, '123')
     await user.click(screen.getByRole('button', { name: 'บันทึกการแก้ไข' }))
-    expect(screen.getAllByText('เบอร์โทรไม่ถูกต้อง').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('หมายเลขโทรศัพท์ไม่ถูกต้อง').length).toBeGreaterThanOrEqual(1)
     expect(
       fetchMock.mock.calls.filter(([, init]) => init?.method === 'PATCH'),
     ).toHaveLength(0)
