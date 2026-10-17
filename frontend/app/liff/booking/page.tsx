@@ -123,6 +123,22 @@ function WizardNav({ step, onBack, onNext }: { step: WizardStep; onBack: () => v
   )
 }
 
+/** Label/value rows shared by the summary step and the done screen. */
+function SummaryRows({ rows }: { rows: Array<{ label: string; value: string | null }> }) {
+  return (
+    <dl className="space-y-2 text-sm">
+      {rows.map((row) =>
+        row.value ? (
+          <div key={row.label} className="flex justify-between gap-4">
+            <dt className="text-text-secondary">{row.label}</dt>
+            <dd className="text-right font-medium text-text-primary">{row.value}</dd>
+          </div>
+        ) : null,
+      )}
+    </dl>
+  )
+}
+
 interface ContactFieldsFormProps {
   prefix: string
   firstname: string
@@ -592,42 +608,17 @@ export default function LiffBookingPage() {
                     </p>
                     <p className="text-xs text-text-tertiary">หมายเลขคิวของท่าน</p>
                   </div>
-                  <dl className="mt-5 space-y-2 text-sm">
-                    <div className="flex justify-between gap-4">
-                      <dt className="text-text-secondary">บริการ</dt>
-                      <dd className="text-right font-medium text-text-primary">
-                        {confirmed.service_type}
-                      </dd>
-                    </div>
-                    <div className="flex justify-between gap-4">
-                      <dt className="text-text-secondary">วันที่</dt>
-                      <dd className="text-right font-medium text-text-primary">
-                        {formatThaiDate(confirmed.booking_date)}
-                      </dd>
-                    </div>
-                    <div className="flex justify-between gap-4">
-                      <dt className="text-text-secondary">เวลา</dt>
-                      <dd className="text-right font-medium text-text-primary">
-                        {formatTime(confirmed.booking_time)} น.
-                      </dd>
-                    </div>
-                    {confirmed.contact_name && (
-                      <div className="flex justify-between gap-4">
-                        <dt className="text-text-secondary">ผู้จอง</dt>
-                        <dd className="text-right font-medium text-text-primary">
-                          {confirmed.contact_name}
-                        </dd>
-                      </div>
-                    )}
-                    {confirmed.phone_number && (
-                      <div className="flex justify-between gap-4">
-                        <dt className="text-text-secondary">โทรศัพท์</dt>
-                        <dd className="text-right font-medium text-text-primary">
-                          {confirmed.phone_number}
-                        </dd>
-                      </div>
-                    )}
-                  </dl>
+                  <div className="mt-5">
+                    <SummaryRows
+                      rows={[
+                        { label: 'บริการ', value: confirmed.service_type },
+                        { label: 'วันที่', value: formatThaiDate(confirmed.booking_date) },
+                        { label: 'เวลา', value: `${formatTime(confirmed.booking_time)} น.` },
+                        { label: 'ผู้จอง', value: confirmed.contact_name },
+                        { label: 'โทรศัพท์', value: confirmed.phone_number },
+                      ]}
+                    />
+                  </div>
                   <p className="mt-5 text-center text-xs text-text-tertiary">
                     ระบบได้ส่งรายละเอียดไปยัง LINE ของท่านแล้ว กรุณามาก่อนเวลานัด 10 นาที
                   </p>
@@ -878,26 +869,13 @@ export default function LiffBookingPage() {
                       </button>
                     </div>
                     {displayName || phoneNumber.trim() || note.trim() ? (
-                      <dl className="space-y-1">
-                        {displayName && (
-                          <div className="flex justify-between gap-4">
-                            <dt className="text-text-secondary">ชื่อ</dt>
-                            <dd className="text-right font-medium text-text-primary">{displayName}</dd>
-                          </div>
-                        )}
-                        {phoneNumber.trim() && (
-                          <div className="flex justify-between gap-4">
-                            <dt className="text-text-secondary">โทรศัพท์</dt>
-                            <dd className="text-right font-medium text-text-primary">{phoneNumber}</dd>
-                          </div>
-                        )}
-                        {note.trim() && (
-                          <div className="flex justify-between gap-4">
-                            <dt className="text-text-secondary">รายละเอียด</dt>
-                            <dd className="text-right font-medium text-text-primary">{note}</dd>
-                          </div>
-                        )}
-                      </dl>
+                      <SummaryRows
+                        rows={[
+                          { label: 'ผู้จอง', value: displayName || null },
+                          { label: 'โทรศัพท์', value: phoneNumber.trim() || null },
+                          { label: 'รายละเอียด', value: note.trim() || null },
+                        ]}
+                      />
                     ) : (
                       <p className="text-text-tertiary">ไม่ได้ระบุ</p>
                     )}
