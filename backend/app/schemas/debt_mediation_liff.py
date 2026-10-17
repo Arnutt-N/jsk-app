@@ -51,7 +51,13 @@ def _blank(value: Optional[str]) -> bool:
 
 class DebtMediationCreate(BaseModel):
     submitter_type: SubmitterType
-    full_name: str = Field(min_length=1, max_length=200)
+    # Legacy single string (kept for backward compat) vs structured trio
+    # (LIFF wizard). The model validator composes full_name from the trio
+    # when present; stored column never changes.
+    full_name: Optional[str] = Field(default=None, max_length=200)
+    prefix: Optional[str] = Field(default=None, max_length=20)
+    firstname: Optional[str] = Field(default=None, max_length=100)
+    lastname: Optional[str] = Field(default=None, max_length=100)
     # Raw input may include dashes/spaces; the field validator strips them and
     # then enforces 9–15 digits (optional leading +). Keep the raw cap loose.
     phone_number: str = Field(min_length=1, max_length=20)
@@ -97,6 +103,9 @@ class DebtMediationCreate(BaseModel):
         # values that were whitespace-only.
         for field in (
             "full_name",
+            "prefix",
+            "firstname",
+            "lastname",
             "phone_number",
             "province",
             "counterparty_name",
@@ -112,8 +121,17 @@ class DebtMediationCreate(BaseModel):
                 else:
                     setattr(self, field, stripped or value)
 
-        # Optional sub_district / issue_other that are whitespace-only become
-        # NULL; required fields must not be blank after stripping.
+        # Structured trio wins over the legacy string: all-or-nothing, then
+        # compose. Legacy full_name-only payloads still pass (compat).
+        trio = [getattr(self, field) for field in ("prefix", "firstname", "lastname")]
+        if any(trio):
+            cleaned = [(value or "").strip() for value in trio]
+            if any(not part for part in cleaned):
+                raise ValueError("prefix, firstname and lastname are required together.")
+            composed = " ".join(cleaned)
+            if len(composed) > 200:
+                raise ValueError("composed full_name exceeds 200 characters.")
+            self.full_name = composed
         for field in ("full_name", "phone_number", "province", "issue_category", "counterparty_name"):
             if _blank(getattr(self, field)):
                 raise ValueError(f"{field} must not be blank.")
@@ -152,7 +170,9 @@ class DebtMediationCreate(BaseModel):
         json_schema_extra={
             "example": {
                 "submitter_type": "DEBTOR",
-                "full_name": "สมชาย ใจดี",
+                "prefix": "นาย",
+                "firstname": "สมชาย",
+                "lastname": "ใจดี",
                 "phone_number": "0812345678",
                 "province": "สกลนคร",
                 "sub_district": "ธาตุเชิงชุม",

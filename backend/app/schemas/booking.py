@@ -7,7 +7,7 @@ database (capacity, duplicates) rather than re-checking field types.
 from datetime import date, time
 from typing import List, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.services.booking_service import ReminderUnit
 
@@ -70,6 +70,13 @@ class ContactFields(BaseModel):
     contact_name: Optional[str] = Field(default=None, max_length=120)
     phone_number: Optional[str] = Field(default=None, max_length=20)
     note: Optional[str] = Field(default=None, max_length=1000)
+    # Structured name (LIFF wizard): prefix dropdown + firstname + lastname.
+    # Stored only as the composed contact_name — no new columns — so admin,
+    # notifications, and existing rows keep working unchanged.
+
+    prefix: Optional[str] = Field(default=None, max_length=20)
+    firstname: Optional[str] = Field(default=None, max_length=100)
+    lastname: Optional[str] = Field(default=None, max_length=100)
 
     @field_validator("phone_number")
     @classmethod
@@ -89,6 +96,28 @@ class ContactFields(BaseModel):
         if value is None:
             return None
         return value.strip() or None
+
+    @model_validator(mode="after")
+    def _compose_contact_name(self) -> "ContactFields":
+        """Prefer the structured trio over the legacy single string.
+
+        All-or-nothing: any of prefix/firstname/lastname present requires all
+        three, otherwise the legacy contact_name stands (it may stay empty —
+        contact is optional on booking). The composed value must fit the
+        contact_name column; oversize trios are rejected, not truncated.
+        """
+        prefix = (self.prefix or "").strip() or None
+        firstname = (self.firstname or "").strip() or None
+        lastname = (self.lastname or "").strip() or None
+        self.prefix, self.firstname, self.lastname = prefix, firstname, lastname
+        if prefix is not None or firstname is not None or lastname is not None:
+            if not prefix or not firstname or not lastname:
+                raise ValueError("prefix, firstname and lastname are required together.")
+            composed = f"{prefix} {firstname} {lastname}"
+            if len(composed) > 120:
+                raise ValueError("composed contact_name exceeds 120 characters.")
+            self.contact_name = composed
+        return self
 
 
 class BookingCreate(ContactFields):
