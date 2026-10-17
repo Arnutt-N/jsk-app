@@ -12,8 +12,22 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from app.services import booking_settings
+from app.services import booking_settings
 from app.services.booking_settings import DEFAULTS, load_booking_config
 from app.services.booking_service import ReminderUnit
+
+
+@pytest.fixture(autouse=True)
+def _fresh_config_cache():
+    """These tests read through the real loader with per-test stubs.
+
+    The 60s production cache would leak one test's values into the next,
+    so every test starts cold. Cache behaviour itself is covered in
+    test_booking_config_cache.py.
+    """
+    booking_settings._invalidate_booking_config_cache()
+    yield
+    booking_settings._invalidate_booking_config_cache()
 
 
 def _stub_settings(values):
@@ -89,10 +103,14 @@ async def test_boolean_parsing_accepts_what_admins_actually_type(raw, expected):
 
 
 @pytest.mark.asyncio
-async def test_reminder_lead_converts_to_a_timedelta():
+async def test_reminder_lead_converts_days_to_a_timedelta():
     day = await _load({"booking_reminder_lead_value": "1", "booking_reminder_lead_unit": "DAY"})
-    hour = await _load({"booking_reminder_lead_value": "3", "booking_reminder_lead_unit": "HOUR"})
     assert day.reminder_lead == timedelta(days=1)
+
+
+@pytest.mark.asyncio
+async def test_reminder_lead_converts_hours_to_a_timedelta():
+    hour = await _load({"booking_reminder_lead_value": "3", "booking_reminder_lead_unit": "HOUR"})
     assert hour.reminder_lead == timedelta(hours=3)
 
 
