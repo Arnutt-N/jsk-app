@@ -29,6 +29,7 @@ import { useToast } from '@/components/ui/Toast';
 import { TOPIC_OPTIONS } from '@/lib/constants/categories'
 import { loadTaxonomy, type TaxonomyTable } from '@/lib/booking/service-mapping'
 import { useLiffInit } from '@/hooks/useLiffInit'
+import LiffStepper from '@/components/liff/LiffStepper'
 import { useAutoCloseCountdown } from '@/hooks/useAutoCloseCountdown'
 import { fetchDistricts, fetchSubDistricts } from '@/lib/liff/location-cascade'
 import { submitServiceRequest } from '@/lib/liff/submit-service-request'
@@ -542,25 +543,11 @@ export default function LiffServiceRequestV2() {
             </div>
 
             <main className="px-4 max-w-lg mx-auto">
-                {/* Progress Steps */}
-                <div className="mb-8 flex justify-between items-center px-2">
-                    {STEPS.map((s, idx) => (
-                        <div key={idx} className="flex flex-col items-center gap-2 relative flex-1">
-                            <div className={`
-                                w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold z-10 transition-all duration-300
-                                ${idx <= step ? 'bg-primary text-white shadow-md shadow-primary/20' : 'bg-gray-200 text-gray-500'}
-                            `}>
-                                {idx < step ? <CheckCircle2 className="w-5 h-5" /> : s.icon}
-                            </div>
-                            <span className={`text-[10px] font-semibold ${idx <= step ? 'text-primary' : 'text-gray-400'}`}>
-                                {s.title}
-                            </span>
-                            {idx < STEPS.length - 1 && (
-                                <div className={`absolute left-[60%] top-4 w-full h-[2px] -z-0 ${idx < step ? 'bg-primary' : 'bg-gray-200'}`} />
-                            )}
-                        </div>
-                    ))}
-                </div>
+                <LiffStepper
+                    steps={STEPS.map((s) => ({ label: s.title, icon: s.icon }))}
+                    currentIndex={step}
+                    ariaLabel="ขั้นตอนยื่นคำขอรับบริการ"
+                />
 
                 <form onSubmit={handleFormSubmit} className="liff-form space-y-6">
                     {error && (

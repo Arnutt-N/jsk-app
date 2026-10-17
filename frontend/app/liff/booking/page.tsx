@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils'
 import { logger } from '@/lib/logger'
 import { useLiffInit } from '@/hooks/useLiffInit'
 import DateSection, { type DayInfo } from '@/components/liff/booking/DateSection'
+import LiffStepper from '@/components/liff/LiffStepper'
 import { useBookingStore } from '@/lib/booking/store'
 import { buildServiceGroups, loadTaxonomy, type TaxonomyTable } from '@/lib/booking/service-mapping'
 import { useToast } from '@/components/ui/Toast'
@@ -43,52 +44,6 @@ function contactPayload(contactName: string, phoneNumber: string, note: string) 
     phone_number: phoneNumber.trim() || null,
     note: note.trim() || null,
   }
-}
-
-/** Numbered stepper so the citizen always knows how many taps remain. */
-function StepRail({ current }: { current: Step }) {
-  const activeIndex = current === 'done' ? STEPS.length : STEPS.findIndex((s) => s.key === current)
-  return (
-    <ol className="mb-8 flex items-center justify-between px-2" aria-label="ขั้นตอนการจอง">
-      {STEPS.map((s, index) => {
-        const done = index < activeIndex
-        const state = done ? 'done' : index === activeIndex ? 'current' : 'todo'
-        return (
-          <li key={s.key} className="relative flex flex-1 flex-col items-center gap-2">
-            <span
-              className={cn(
-                'z-10 flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold transition-colors',
-                state === 'todo'
-                  ? 'bg-border-default text-text-tertiary'
-                  : 'bg-brand-500 text-white shadow-md',
-              )}
-            >
-              {done ? <CheckCircle2 className="h-5 w-5" aria-hidden="true" /> : index + 1}
-            </span>
-            <span
-              className={cn(
-                'flex items-center gap-1 text-[10px] font-semibold',
-                state === 'todo' ? 'text-text-tertiary' : 'text-brand-text',
-              )}
-              aria-current={state === 'current' ? 'step' : undefined}
-            >
-              {s.icon}
-              {s.label}
-            </span>
-            {index < STEPS.length - 1 && (
-              <span
-                aria-hidden="true"
-                className={cn(
-                  'absolute left-[60%] top-4 h-[2px] w-full',
-                  done ? 'bg-brand-500' : 'bg-border-default',
-                )}
-              />
-            )}
-          </li>
-        )
-      })}
-    </ol>
-  )
 }
 
 interface SectionProps {
@@ -268,6 +223,8 @@ export default function LiffBookingPage() {
           ? 'date'
           : 'service'
 
+  const activeIndex = step === 'done' ? STEPS.length : STEPS.findIndex((s) => s.key === step)
+
   const [taxonomy, setTaxonomy] = useState<TaxonomyTable | null>(null)
   useEffect(() => {
     let cancelled = false
@@ -429,7 +386,7 @@ export default function LiffBookingPage() {
           </header>
           <p className="mb-5 text-sm text-text-secondary">เลือกบริการ วันที่ และช่วงเวลาที่สะดวก</p>
 
-          {step !== 'done' && <StepRail current={step} />}
+          {step !== 'done' && <LiffStepper steps={STEPS} currentIndex={activeIndex} ariaLabel="ขั้นตอนการจอง" />}
 
           {error && (
             <Alert variant="danger" className="mb-4">
