@@ -4,6 +4,7 @@ import { render, waitFor, act } from '@testing-library/react';
 
 import { AuthProvider, useAuth } from '../AuthContext';
 import { resetAuthStore, setAuthState } from '@/lib/authStore';
+import { stubBroadcastChannel } from './broadcast-channel-stub';
 
 vi.mock('@/lib/authFetch', () => ({
   installAdminAuthFetchInterceptor: vi.fn(),
@@ -43,13 +44,7 @@ describe('AuthContext — direct 401 (jsk:auth-expired) verifies before logout',
   let originalFetch: typeof global.fetch;
 
   beforeEach(() => {
-    if (typeof globalThis.BroadcastChannel === 'undefined') {
-      (globalThis as unknown as { BroadcastChannel: unknown }).BroadcastChannel = class {
-        postMessage() {}
-        close() {}
-        set onmessage(_: unknown) {}
-      };
-    }
+    stubBroadcastChannel();
     originalFetch = global.fetch;
     localStorage.clear();
     resetAuthStore();
