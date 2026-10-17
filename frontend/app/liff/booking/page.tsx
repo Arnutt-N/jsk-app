@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { Select } from '@/components/ui/Select'
-import { CalendarDays, CheckCircle2, Clock, Loader2, RotateCcw, Users } from 'lucide-react'
+import { CalendarDays, CheckCircle2, Clock, Loader2, Phone, RotateCcw, Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { logger } from '@/lib/logger'
 import { useLiffInit } from '@/hooks/useLiffInit'
@@ -30,13 +30,13 @@ import {
 } from '@/lib/booking'
 import { TOPIC_OPTIONS } from '@/lib/constants/categories'
 
-type Step = 'service' | 'date' | 'slot' | 'details' | 'done'
+type WizardStep = 0 | 1 | 2 | 3
 
-const STEPS: { key: Step; label: string; icon: React.ReactNode }[] = [
-  { key: 'service', label: 'บริการ', icon: <Users className="h-4 w-4" aria-hidden="true" /> },
-  { key: 'date', label: 'วันที่', icon: <CalendarDays className="h-4 w-4" aria-hidden="true" /> },
-  { key: 'slot', label: 'เวลา', icon: <Clock className="h-4 w-4" aria-hidden="true" /> },
-  { key: 'details', label: 'ยืนยัน', icon: <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> },
+const STEPS: { label: string; icon: React.ReactNode }[] = [
+  { label: 'บริการ', icon: <Users className="h-4 w-4" aria-hidden="true" /> },
+  { label: 'วันเวลา', icon: <CalendarDays className="h-4 w-4" aria-hidden="true" /> },
+  { label: 'ผู้จอง', icon: <Phone className="h-4 w-4" aria-hidden="true" /> },
+  { label: 'สรุป', icon: <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> },
 ]
 
 function contactPayload(contactName: string, phoneNumber: string, note: string) {
@@ -91,6 +91,24 @@ function SectionClearButton({ onClear }: { onClear: () => void }) {
     >
       ล้างค่า
     </Button>
+  )
+}
+
+/** Back/Next row shared by every wizard step. Next gates on the step data. */
+function WizardNav({ step, canNext, onBack, onNext }: { step: WizardStep; canNext: boolean; onBack: () => void; onNext: () => void }) {
+  return (
+    <div className="mt-4 flex gap-3">
+      {step > 0 && (
+        <Button type="button" variant="secondary" className="flex-1" onClick={onBack}>
+          ย้อนกลับ
+        </Button>
+      )}
+      {step < 3 && (
+        <Button type="button" className="flex-1" onClick={onNext} disabled={!canNext}>
+          ถัดไป
+        </Button>
+      )}
+    </div>
   )
 }
 
@@ -214,17 +232,38 @@ export default function LiffBookingPage() {
   const [cancelOpen, setCancelOpen] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
 
-  const step: Step = confirmed
-    ? 'done'
-    : selectedSlot
-      ? 'details'
-      : selectedDate
-        ? 'slot'
-        : serviceType
-          ? 'date'
-          : 'service'
+  const [wizardStep, setWizardStep] = useState<WizardStep>(() => {
+    if (draft.slotId) return 2
+    if (draft.date) return 1
+    return 0
+  })
 
-  const activeIndex = step === 'done' ? STEPS.length : STEPS.findIndex((s) => s.key === step)
+  const goNext = useCallback(() => {
+    setWizardStep((current) => {
+      if (current === 0) return 1
+      if (current === 1) return 2
+      if (current === 2) return 3
+      return current
+    })
+    window.scrollTo(0, 0)
+  }, [])
+
+  const goBack = useCallback(() => {
+    setWizardStep((current) => {
+      if (current === 3) return 2
+      if (current === 2) return 1
+      if (current === 1) return 0
+      return current
+    })
+    window.scrollTo(0, 0)
+  }, [])
+
+  const canNext = [
+    !!serviceType,
+    !!selectedDate && !!selectedSlot,
+    true,
+    false,
+  ][wizardStep]
 
   const [taxonomy, setTaxonomy] = useState<TaxonomyTable | null>(null)
   useEffect(() => {
@@ -307,6 +346,8 @@ export default function LiffBookingPage() {
       // citizen sees the real state instead of a stale "available" button.
       if (serviceType && selectedDate) void loadSlots(serviceType, selectedDate, { force: true })
       dispatch({ type: 'slot/set', slotId: null })
+      // The summary step needs a slot — send the citizen back to pick a new one.
+      setWizardStep(1)
     } finally {
       setSubmitting(false)
     }
@@ -316,6 +357,7 @@ export default function LiffBookingPage() {
     setConfirmed(null)
     setEditing(false)
     setNotice(null)
+    setWizardStep(0)
     dispatch({ type: 'draft/reset' })
     if (options?.service_types.length === 1) {
       dispatch({ type: 'service/set', service: options.service_types[0] })
@@ -385,7 +427,9 @@ export default function LiffBookingPage() {
           </header>
           <p className="mb-5 text-sm text-text-secondary">เลือกบริการ วันที่ และช่วงเวลาที่สะดวก</p>
 
-          {step !== 'done' && <LiffStepper steps={STEPS} currentIndex={activeIndex} ariaLabel="ขั้นตอนการจอง" />}
+          {!confirmed && (
+            <LiffStepper steps={STEPS} currentIndex={wizardStep} ariaLabel="ขั้นตอนการจอง" />
+          )}
 
           {error && (
             <Alert variant="danger" className="mb-4">
@@ -398,7 +442,7 @@ export default function LiffBookingPage() {
             </Alert>
           )}
 
-          {step === 'done' && confirmed && (
+          {confirmed && (
             <Card glass className="overflow-hidden">
               <CardHeader className="bg-bg/50 border-b border-border-subtle">
                 <CardTitle className="text-base">
@@ -519,7 +563,7 @@ export default function LiffBookingPage() {
             </Card>
           )}
 
-          {step !== 'done' && (
+          {!confirmed && wizardStep === 0 && (
             <div className="space-y-4">
               <Section
                 icon={<Users className="h-4 w-4" />}
@@ -550,7 +594,12 @@ export default function LiffBookingPage() {
                   <p className="text-sm text-text-tertiary">ยังไม่มีบริการที่เปิดให้จอง</p>
                 )}
               </Section>
+              <WizardNav step={0} canNext={canNext} onBack={goBack} onNext={goNext} />
+            </div>
+          )}
 
+          {!confirmed && wizardStep === 1 && (
+            <div className="space-y-4">
               {serviceType && (
                 <Section
                   icon={<CalendarDays className="h-4 w-4" />}
@@ -633,33 +682,77 @@ export default function LiffBookingPage() {
                 </Section>
               )}
 
-              {selectedSlot && (
-                <Section
-                  icon={<Users className="h-4 w-4" />}
-                  title="ข้อมูลผู้จอง"
-                  action={<SectionClearButton onClear={clearContact} />}
-                >
-                  <ContactFieldsForm
-                    contactName={contactName}
-                    phoneNumber={phoneNumber}
-                    note={note}
-                    onContactName={onContactName}
-                    onPhoneNumber={onPhoneNumber}
-                    onNote={onNote}
-                  />
+              <WizardNav step={1} canNext={canNext} onBack={goBack} onNext={goNext} />
+            </div>
+          )}
 
-                  <div className="mt-4 rounded-lg border border-border-subtle bg-bg p-3 text-sm">
-                    <p className="font-medium text-text-primary">{serviceType}</p>
-                    <p className="text-text-secondary">
-                      {formatThaiDate(selectedDate ?? '')} เวลา {formatTime(selectedSlot.time)} น.
-                    </p>
+          {!confirmed && wizardStep === 2 && (
+            <div className="space-y-4">
+              <Section
+                icon={<Users className="h-4 w-4" />}
+                title="ข้อมูลผู้จอง"
+                action={<SectionClearButton onClear={clearContact} />}
+              >
+                <ContactFieldsForm
+                  contactName={contactName}
+                  phoneNumber={phoneNumber}
+                  note={note}
+                  onContactName={onContactName}
+                  onPhoneNumber={onPhoneNumber}
+                  onNote={onNote}
+                />
+              </Section>
+              <WizardNav step={2} canNext={canNext} onBack={goBack} onNext={goNext} />
+            </div>
+          )}
+
+          {!confirmed && wizardStep === 3 && selectedSlot && (
+            <div className="space-y-4">
+              <Section
+                icon={<CheckCircle2 className="h-4 w-4" />}
+                title="สรุปการจอง"
+              >
+                <dl className="space-y-2 text-sm">
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-text-secondary">บริการ</dt>
+                    <dd className="text-right font-medium text-text-primary">{serviceType}</dd>
                   </div>
-
-                  <Button className="mt-4 w-full" onClick={handleSubmit} disabled={submitting}>
-                    {submitting ? 'กำลังจอง...' : 'ยืนยันการจอง'}
-                  </Button>
-                </Section>
-              )}
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-text-secondary">วันที่</dt>
+                    <dd className="text-right font-medium text-text-primary">
+                      {formatThaiDate(selectedDate ?? '')}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-text-secondary">เวลา</dt>
+                    <dd className="text-right font-medium text-text-primary">
+                      {formatTime(selectedSlot.time)} น.
+                    </dd>
+                  </div>
+                  {contactName.trim() && (
+                    <div className="flex justify-between gap-4">
+                      <dt className="text-text-secondary">ผู้จอง</dt>
+                      <dd className="text-right font-medium text-text-primary">{contactName}</dd>
+                    </div>
+                  )}
+                  {phoneNumber.trim() && (
+                    <div className="flex justify-between gap-4">
+                      <dt className="text-text-secondary">โทรศัพท์</dt>
+                      <dd className="text-right font-medium text-text-primary">{phoneNumber}</dd>
+                    </div>
+                  )}
+                  {note.trim() && (
+                    <div className="flex justify-between gap-4">
+                      <dt className="text-text-secondary">รายละเอียด</dt>
+                      <dd className="text-right font-medium text-text-primary">{note}</dd>
+                    </div>
+                  )}
+                </dl>
+                <Button className="mt-4 w-full" onClick={handleSubmit} disabled={submitting}>
+                  {submitting ? 'กำลังจอง...' : 'ยืนยันการจอง'}
+                </Button>
+              </Section>
+              <WizardNav step={3} canNext={canNext} onBack={goBack} onNext={goNext} />
             </div>
           )}
         </>

@@ -25,6 +25,14 @@ async function chooseService() {
   )
 }
 
+async function goNext() {
+  await userEvent.click(await screen.findByRole('button', { name: 'ถัดไป' }))
+}
+
+async function goBack() {
+  await userEvent.click(await screen.findByRole('button', { name: 'ย้อนกลับ' }))
+}
+
 async function openCalendar(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole('button', { name: 'เลือกจากปฏิทิน' }))
   await user.click(screen.getByLabelText('เปิดปฏิทินเลือกวันที่'))
@@ -85,6 +93,8 @@ function stubFetch(
     rangeDay?: (iso: string) => { date: string; is_open: boolean; remaining: number }
     /** Make the range request fail with this status (fail-open scenarios). */
     rangeStatus?: number
+    /** Make the booking POST fail with this status (submit-failure path). */
+    submitStatus?: number
   } = {},
 ) {
   fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
@@ -144,6 +154,8 @@ function stubFetch(
       )
     }
     // POST booking
+    if (init?.method === 'POST' && overrides.submitStatus)
+      return jsonResponse({ detail: 'slot just filled' }, overrides.submitStatus)
     return jsonResponse(CONFIRMED)
   })
   vi.stubGlobal('fetch', fetchMock)
@@ -160,11 +172,14 @@ async function bookToDone() {
   const user = userEvent.setup()
   renderPage()
   await chooseService()
+  await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
 
   await user.click(await screen.findByRole('button', { name: /09:30/ }))
+  await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
 
   await user.type(screen.getByPlaceholderText('ชื่อสำหรับเรียกคิว'), 'สมชาย ใจดี')
   await user.type(screen.getByPlaceholderText('0812345678'), '0812345678')
+  await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
   await user.click(screen.getByRole('button', { name: 'ยืนยันการจอง' }))
   await screen.findByText('จองคิวสำเร็จ')
   return user
@@ -183,6 +198,7 @@ describe('date selection', () => {
     stubFetch({ advanceDays: 13 })
     renderPage()
     await chooseService()
+    await goNext()
 
     const chips = () =>
       (
@@ -209,6 +225,7 @@ describe('date selection', () => {
   it('scroll-pads the strip so the edge chips keep their full border', async () => {
     renderPage()
     await chooseService()
+    await goNext()
 
     const strip = await dateStrip()
     expect(strip.className).toContain('overflow-x-auto')
@@ -219,6 +236,7 @@ describe('date selection', () => {
   it('preselects the nearest day and loads its slots without another tap', async () => {
     renderPage()
     await chooseService()
+    await goNext()
 
     expect(await screen.findByText('ช่วงเช้า')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /วันนี้/ })).toHaveAttribute('aria-pressed', 'true')
@@ -228,6 +246,7 @@ describe('date selection', () => {
     const user = userEvent.setup()
     renderPage()
     await chooseService()
+    await goNext()
     await screen.findByText('ช่วงเช้า')
 
     const availabilityCalls = () =>
@@ -251,6 +270,7 @@ describe('date selection', () => {
     })
     renderPage()
     await chooseService()
+    await goNext()
 
     const strip = await dateStrip()
     await waitFor(() => expect(strip.querySelectorAll('button[disabled]')).toHaveLength(1))
@@ -266,6 +286,7 @@ describe('date selection', () => {
     })
     renderPage()
     await chooseService()
+    await goNext()
 
     // The slot grid loaded — meaning some day was preselected — but not today.
     expect(await screen.findByText('ช่วงเช้า')).toBeInTheDocument()
@@ -320,6 +341,7 @@ describe('date selection', () => {
     stubFetch({ rangeStatus: 500 })
     renderPage()
     await chooseService()
+    await goNext()
 
     expect(await screen.findByText('ช่วงเช้า')).toBeInTheDocument()
     expect((await dateStrip()).querySelectorAll('button[disabled]')).toHaveLength(0)
@@ -337,6 +359,7 @@ describe('date selection', () => {
     })
     renderPage()
     await chooseService()
+    await goNext()
 
     const strip = await dateStrip()
     await waitFor(() => expect(strip.querySelectorAll('button[disabled]')).toHaveLength(2))
@@ -375,22 +398,22 @@ describe('shared form chrome', () => {
     expect(screen.getByText('เลือกบริการ วันที่ และช่วงเวลาที่สะดวก')).toBeInTheDocument()
   })
 
-  it('renders the four steps as icon circles with the current step marked', async () => {
-    // The hung range pins the flow on the date step: the single service
-    // auto-selects, but preselect waits for range data that never lands.
-    stubFetch({ rangeHang: true })
+  it('renders the four wizard steps as icon circles with the current step marked', async () => {
     const { container } = renderPage()
-    await screen.findByRole('combobox', { name: 'เลือกบริการ' })
+    await chooseService()
 
     const stepper = screen.getByRole('list', { name: 'ขั้นตอนการจอง' })
-    for (const label of ['บริการ', 'วันที่', 'เวลา', 'ยืนยัน']) {
+    for (const label of ['บริการ', 'วันเวลา', 'ผู้จอง', 'สรุป']) {
       expect(within(stepper).getByText(label)).toBeInTheDocument()
     }
     for (const n of ['2', '3', '4']) {
       expect(within(stepper).queryByText(n)).not.toBeInTheDocument()
     }
     expect(container.querySelectorAll('li > span:first-child svg')).toHaveLength(4)
-    expect(within(stepper).getByText('วันที่')).toHaveAttribute('aria-current', 'step')
+    expect(within(stepper).getByText('บริการ')).toHaveAttribute('aria-current', 'step')
+
+    await goNext()
+    expect(within(stepper).getByText('วันเวลา')).toHaveAttribute('aria-current', 'step')
     expect(within(stepper).getByText('บริการ')).not.toHaveAttribute('aria-current')
   })
 })
@@ -402,6 +425,7 @@ describe('design-system consistency', () => {
 
     const select = await screen.findByRole('combobox', { name: 'เลือกบริการ' })
     expect(select).toHaveValue('ปรึกษากฎหมาย')
+    await goNext()
 
     const today = screen.getByRole('button', { name: /วันนี้/ })
     expect(today.className).toContain('border-brand-500')
@@ -411,6 +435,7 @@ describe('design-system consistency', () => {
   it('disables a full slot and labels it เต็ม', async () => {
     renderPage()
     await chooseService()
+    await goNext()
 
     const fullSlot = await screen.findByRole('button', { name: /10:00/ })
     expect(fullSlot).toBeDisabled()
@@ -419,20 +444,27 @@ describe('design-system consistency', () => {
 })
 
 describe('shared card rhythm', () => {
-  it('renders step sections as glass Cards with the title in the header', async () => {
+  it('shows one wizard step at a time as glass Cards', async () => {
     renderPage()
     await chooseService()
 
-    for (const title of ['เลือกบริการ', 'เลือกวันที่']) {
+    const serviceHeading = screen.getByRole('heading', { name: 'เลือกบริการ' })
+    expect(serviceHeading.tagName).toBe('H3')
+    expect(serviceHeading.closest('.backdrop-blur-xl')).not.toBeNull()
+    expect(screen.queryByRole('heading', { name: 'เลือกวันที่' })).not.toBeInTheDocument()
+
+    await goNext()
+    for (const title of ['เลือกวันที่', 'เลือกช่วงเวลา']) {
       const heading = screen.getByRole('heading', { name: title })
-      expect(heading.tagName).toBe('H3')
       expect(heading.closest('.backdrop-blur-xl')).not.toBeNull()
     }
+    expect(screen.queryByRole('heading', { name: 'ข้อมูลผู้จอง' })).not.toBeInTheDocument()
   })
 
   it('lets the date card overflow so the calendar popup escapes instead of clipping', async () => {
     renderPage()
     await chooseService()
+    await goNext()
 
     const toggle = await screen.findByRole('button', { name: 'เลือกจากปฏิทิน' })
     expect(toggle.closest('.overflow-visible')).not.toBeNull()
@@ -451,7 +483,9 @@ describe('shared card rhythm', () => {
     const user = userEvent.setup()
     renderPage()
     await chooseService()
+    await goNext()
     await user.click(await screen.findByRole('button', { name: /09:30/ }))
+    await goNext()
 
     for (const label of ['ชื่อ-นามสกุล', 'เบอร์โทรศัพท์', 'รายละเอียดเพิ่มเติม (ถ้ามี)']) {
       const el = screen.getByText(label)
@@ -486,6 +520,7 @@ describe('picker-strip sync', () => {
     const user = userEvent.setup()
     renderPage()
     await chooseService()
+    await goNext()
     await user.click(screen.getByRole('button', { name: 'เลือกจากปฏิทิน' }))
 
     const chips = (await dateStrip()).querySelectorAll('button')
@@ -499,6 +534,7 @@ describe('picker-strip sync', () => {
     const user = userEvent.setup()
     renderPage()
     await chooseService()
+    await goNext()
     await screen.findByText('ช่วงเช้า')
 
     const targetIso = isoFromToday(1)
@@ -536,6 +572,7 @@ describe('picker-strip sync', () => {
     const user = userEvent.setup()
     renderPage()
     await chooseService()
+    await goNext()
     await openCalendar(user)
     const dialog = await screen.findByRole('dialog')
 
@@ -555,6 +592,7 @@ describe('picker-strip sync', () => {
     const user = userEvent.setup()
     renderPage()
     await chooseService()
+    await goNext()
     expect((await dateStrip()).querySelectorAll('button[disabled]')).toHaveLength(0)
     await openCalendar(user)
     const dialog = await screen.findByRole('dialog')
@@ -573,6 +611,7 @@ describe('picker-strip sync', () => {
     const user = userEvent.setup()
     renderPage()
     await chooseService()
+    await goNext()
     await openCalendar(user)
 
     const dialog = await screen.findByRole('dialog')
@@ -594,6 +633,7 @@ describe('picker-strip sync', () => {
     const user = userEvent.setup()
     renderPage()
     await chooseService()
+    await goNext()
     await screen.findByText('ช่วงเช้า')
 
     const targetIso = isoFromToday(1)
@@ -602,8 +642,8 @@ describe('picker-strip sync', () => {
     await user.click(await navToCell(user, dialog, cellName(targetIso)))
 
     await user.click(await screen.findByRole('button', { name: /09:30/ }))
-    await user.type(screen.getByPlaceholderText('ชื่อสำหรับเรียกคิว'), 'สมชาย ใจดี')
-    await user.type(screen.getByPlaceholderText('0812345678'), '0812345678')
+    await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
+    await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
     await user.click(screen.getByRole('button', { name: 'ยืนยันการจอง' }))
     await screen.findByText('จองคิวสำเร็จ')
 
@@ -688,6 +728,7 @@ describe('section clear', () => {
     const user = userEvent.setup()
     renderPage()
     await chooseService()
+    await goNext()
     await screen.findByText('ช่วงเช้า')
 
     const card = screen
@@ -702,7 +743,7 @@ describe('section clear', () => {
 })
 
 describe('draft restore', () => {
-  it('restores service, date, and slot on cold open without another tap', async () => {
+  it('resumes a restored draft at the contact step without another tap', async () => {
     const target = isoFromToday(1)
     window.sessionStorage.setItem(
       'liff-booking-draft',
@@ -721,11 +762,65 @@ describe('draft restore', () => {
     )
     renderPage()
 
-    expect(await screen.findByRole('combobox', { name: 'เลือกบริการ' })).toHaveValue(
-      'ปรึกษากฎหมาย',
-    )
-    expect(await screen.findByText('ช่วงเช้า')).toBeInTheDocument()
+    expect(await screen.findByPlaceholderText('ชื่อสำหรับเรียกคิว')).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'เลือกบริการ' })).not.toBeInTheDocument()
+
+    await goBack()
     const pressed = (await dateStrip()).querySelector('button[aria-pressed="true"]')
     expect(pressed?.textContent).toContain(String(parseISODate(target).getDate()))
+  })
+})
+
+describe('wizard navigation', () => {
+  it('walks service → datetime → contact → summary and back again', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await chooseService()
+
+    expect(screen.getByRole('heading', { name: 'เลือกบริการ' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'เลือกวันที่' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'ย้อนกลับ' })).not.toBeInTheDocument()
+
+    await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
+    expect(screen.getByRole('heading', { name: 'เลือกวันที่' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'เลือกช่วงเวลา' })).toBeInTheDocument()
+
+    await user.click(await screen.findByRole('button', { name: /09:30/ }))
+    await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
+    expect(screen.getByRole('heading', { name: 'ข้อมูลผู้จอง' })).toBeInTheDocument()
+
+    await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
+    expect(screen.getByRole('heading', { name: 'สรุปการจอง' })).toBeInTheDocument()
+    expect(screen.getByText('ปรึกษากฎหมาย')).toBeInTheDocument()
+
+    await user.click(await screen.findByRole('button', { name: 'ย้อนกลับ' }))
+    expect(screen.getByRole('heading', { name: 'ข้อมูลผู้จอง' })).toBeInTheDocument()
+  })
+
+  it('locks Next on the datetime step until a slot is picked', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await chooseService()
+    await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
+
+    await screen.findByText('ช่วงเช้า')
+    expect(screen.getByRole('button', { name: 'ถัดไป' })).toBeDisabled()
+
+    await user.click(await screen.findByRole('button', { name: /09:30/ }))
+    expect(screen.getByRole('button', { name: 'ถัดไป' })).toBeEnabled()
+  })
+
+  it('sends the citizen back to datetime when the slot fills during submit', async () => {
+    stubFetch({ submitStatus: 409 })
+    const user = userEvent.setup()
+    renderPage()
+    await chooseService()
+    await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
+    await user.click(await screen.findByRole('button', { name: /09:30/ }))
+    await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
+    await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
+    await user.click(screen.getByRole('button', { name: 'ยืนยันการจอง' }))
+
+    expect(await screen.findByRole('heading', { name: 'เลือกวันที่' })).toBeInTheDocument()
   })
 })
