@@ -82,10 +82,12 @@ class ReminderUnit(str, Enum):
 
 @dataclass(frozen=True)
 class BookingConfig:
-    """Admin-editable settings, read fresh rather than cached.
+    """Admin-editable settings, cached 60s on the LIFF read path.
 
-    Frozen because the reminder scheduler re-reads this on every pass; a mutation
-    that leaked between passes would be invisible and long-lived.
+    Frozen because one cached instance is shared between concurrent callers;
+    a mutation that leaked between requests would be invisible and long-lived.
+    The reminder scheduler bypasses the cache (`fresh=True`) and re-reads on
+    every pass.
     """
 
     enabled: bool

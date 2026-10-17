@@ -18,7 +18,7 @@ Stepper state is `{steps, currentIndex}` — pages keep step derivation, compone
 3. R1U3 select swap per page (booking → debt → service-request → request-v2 → service-request-single), existing validation tests green each time; `tsc --noEmit` clean (shared Select extended additively).
 4. R4 doc + admin hint (no behavior change).
 5. R3 spec → admin approval gate, code later.
-6. R2 cache + waterfall change + trunk/head timing (backend pytest + frontend tests + measured numbers).
+6. R2 cache: TTL + invalidate + fresh bypass + read-count measurement (9 vs 27). No wall-time claim without a live DB; remaining cost is 3 serial LINE verifies (out of scope, security).
 7. Wizard conversion (user-approved): STEPS 4 items, wizardStep state init from draft, per-step Next gating + Back, summary step with confirm, submit-failure step-back, booking page tests rewritten to walk the wizard.
 8. Shared validation: NEW `lib/liff/validation.ts` (isValidPhone/normalizePhone/validateBookingContact) + debt re-export compat + booking step-2/edit/summary gating + unit + page tests.
 

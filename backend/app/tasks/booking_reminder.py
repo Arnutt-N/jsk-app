@@ -56,7 +56,7 @@ async def run_booking_reminders():
 
 async def _process_due_reminders(db: AsyncSession):
     """Claim and send every reminder that is currently due."""
-    config = await load_booking_config(db)
+    config = await load_booking_config(db, fresh=True)
     if not config.enabled or not config.reminder_enabled:
         return
 
