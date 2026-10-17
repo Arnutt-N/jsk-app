@@ -168,7 +168,7 @@ function ContactFieldsForm({
             type="text"
             value={firstname}
             onChange={(e) => onFirstname(e.target.value)}
-            maxLength={60}
+            maxLength={100}
             placeholder="ชื่อจริง"
             state={nameErrors?.firstname ? 'error' : 'default'}
             errorMessage={nameErrors?.firstname}
@@ -181,7 +181,7 @@ function ContactFieldsForm({
           type="text"
           value={lastname}
           onChange={(e) => onLastname(e.target.value)}
-          maxLength={60}
+          maxLength={100}
           placeholder="นามสกุล"
           state={nameErrors?.lastname ? 'error' : 'default'}
           errorMessage={nameErrors?.lastname}
