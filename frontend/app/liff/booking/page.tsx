@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Alert } from '@/components/ui/Alert'
-import { Badge } from '@/components/ui/Badge'
+import LiffStatusBadge from '@/components/liff/LiffStatusBadge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Input } from '@/components/ui/Input'
@@ -379,9 +379,7 @@ export default function LiffBookingPage() {
                   จองคิวนัดหมายล่วงหน้า • JSK 4.0 Platform
                 </p>
               </div>
-              <Badge variant={options ? 'success' : 'warning'} className="h-6">
-                {options ? 'เปิดรับจอง' : 'กำลังเชื่อมต่อ…'}
-              </Badge>
+              <LiffStatusBadge kind="business" state={options ? 'open' : 'loading'} />
             </div>
           </header>
           <p className="mb-5 text-sm text-text-secondary">เลือกบริการ วันที่ และช่วงเวลาที่สะดวก</p>

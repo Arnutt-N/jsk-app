@@ -5,7 +5,7 @@ import Head from 'next/head'
 import { Province } from '../../../types/location'
 import { Button } from '@/components/ui/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
-import { Badge } from '@/components/ui/Badge'
+import LiffStatusBadge from '@/components/liff/LiffStatusBadge'
 import { Alert } from '@/components/ui/Alert'
 import {
     User,
@@ -388,12 +388,10 @@ export default function LiffDebtMediation() {
                         </p>
                     </div>
                     <div className="flex items-center gap-2">
-                        <Badge
-                            variant={provinceLoad === 'ok' ? 'success' : provinceLoad === 'failed' ? 'danger' : 'warning'}
-                            className="h-6"
-                        >
-                            {provinceLoad === 'ok' ? 'Online' : provinceLoad === 'failed' ? 'โหลดไม่สำเร็จ' : 'Connecting...'}
-                        </Badge>
+                        <LiffStatusBadge
+                            kind="connectivity"
+                            state={provinceLoad === 'ok' ? 'online' : provinceLoad === 'failed' ? 'offline' : 'loading'}
+                        />
                         {provinceLoad === 'failed' && (
                             <Button type="button" variant="outline" size="sm" onClick={() => void loadProvinces()}>
                                 ลองใหม่

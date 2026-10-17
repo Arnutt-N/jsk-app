@@ -6,7 +6,7 @@ import liff from '@line/liff'
 import { Province, District, SubDistrict } from '../../../types/location'
 import { Button } from '@/components/ui/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
-import { Badge } from '@/components/ui/Badge'
+import LiffStatusBadge from '@/components/liff/LiffStatusBadge'
 import { Alert } from '@/components/ui/Alert'
 import { AGENCIES } from '@/lib/constants/agencies'
 import {
@@ -535,9 +535,7 @@ export default function LiffServiceRequestV2() {
                         </p>
                     </div>
                     <div className="flex items-center gap-2">
-                        <Badge variant={provinces.length > 0 ? "success" : "warning"} className="h-6">
-                            {provinces.length > 0 ? "Online" : "Connecting..."}
-                        </Badge>
+                        <LiffStatusBadge kind="connectivity" state={provinces.length > 0 ? 'online' : 'loading'} />
                     </div>
                 </div>
             </div>
