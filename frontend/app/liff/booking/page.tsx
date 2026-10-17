@@ -32,9 +32,14 @@ import {
 } from '@/lib/booking'
 import { TOPIC_OPTIONS } from '@/lib/constants/categories'
 
-type WizardStep = 0 | 1 | 2 | 3
+type WizardStep = (typeof STEP)[keyof typeof STEP]
 
-const DATETIME_STEP: WizardStep = 1
+const STEP = {
+  SERVICE: 0,
+  DATETIME: 1,
+  CONTACT: 2,
+  SUMMARY: 3,
+} as const
 
 const STEPS: { label: string; icon: React.ReactNode }[] = [
   { label: 'บริการ', icon: <Users className="h-4 w-4" aria-hidden="true" /> },
@@ -101,16 +106,16 @@ function SectionClearButton({ onClear }: { onClear: () => void }) {
   )
 }
 
-function WizardNav({ step, canNext, onBack, onNext }: { step: WizardStep; canNext: boolean; onBack: () => void; onNext: () => void }) {
+function WizardNav({ step, onBack, onNext }: { step: WizardStep; onBack: () => void; onNext: () => void }) {
   return (
     <div className="mt-4 flex gap-3">
-      {step > 0 && (
+      {step > STEP.SERVICE && (
         <Button type="button" variant="secondary" className="flex-1" onClick={onBack}>
           ย้อนกลับ
         </Button>
       )}
-      {step < 3 && (
-        <Button type="button" className="flex-1" onClick={onNext} disabled={!canNext}>
+      {step < STEP.SUMMARY && (
+        <Button type="button" className="flex-1" onClick={onNext}>
           ถัดไป
         </Button>
       )}
@@ -286,6 +291,8 @@ export default function LiffBookingPage() {
   const [cancelOpen, setCancelOpen] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
   const [showContactErrors, setShowContactErrors] = useState(false)
+  const [serviceError, setServiceError] = useState<string | null>(null)
+  const [datetimeError, setDatetimeError] = useState<string | null>(null)
 
   const contactErrors = validateBookingContact({ prefix, firstname, lastname, phoneNumber })
   const displayName = composeContactName({ prefix, firstname, lastname })
@@ -293,51 +300,62 @@ export default function LiffBookingPage() {
     contactErrors.prefix ?? contactErrors.firstname ?? contactErrors.lastname
 
   const [wizardStep, setWizardStep] = useState<WizardStep>(() => {
-    if (draft.slotId) return 2
-    if (draft.date) return 1
-    return 0
+    if (draft.slotId) return STEP.CONTACT
+    if (draft.date) return STEP.DATETIME
+    return STEP.SERVICE
   })
 
-  const goNext = useCallback(() => {
-    setWizardStep((current) => {
-      if (current === 0) return 1
-      if (current === 1) return 2
-      if (current === 2) return 3
-      return current
-    })
+  useEffect(() => {
     window.scrollTo(0, 0)
-  }, [])
+  }, [wizardStep])
 
   const goToStep = useCallback((target: WizardStep) => {
     setWizardStep(target)
-    window.scrollTo(0, 0)
   }, [])
 
-  const tryNextFromContact = useCallback(() => {
+  const goNext = useCallback(() => {
+    setWizardStep((current) => {
+      if (current === STEP.SERVICE) return STEP.DATETIME
+      if (current === STEP.DATETIME) return STEP.CONTACT
+      if (current === STEP.CONTACT) return STEP.SUMMARY
+      return current
+    })
+  }, [])
+
+  const tryNext = useCallback(() => {
+    if (wizardStep === STEP.SERVICE) {
+      if (!serviceType) {
+        setServiceError('กรุณาเลือกบริการ')
+        return
+      }
+      goNext()
+      return
+    }
+    if (wizardStep === STEP.DATETIME) {
+      if (!selectedDate || !selectedSlot) {
+        setDatetimeError('กรุณาเลือกวันและเวลา')
+        return
+      }
+      goNext()
+      return
+    }
     if (contactNameError || contactErrors.phoneNumber) {
       setShowContactErrors(true)
       return
     }
     setShowContactErrors(false)
     goNext()
-  }, [contactNameError, contactErrors.phoneNumber, goNext])
+  }, [wizardStep, serviceType, selectedDate, selectedSlot, contactNameError, contactErrors.phoneNumber, goNext])
 
   const goBack = useCallback(() => {
     setWizardStep((current) => {
-      if (current === 3) return 2
-      if (current === 2) return 1
-      if (current === 1) return 0
+      if (current === STEP.SUMMARY) return STEP.CONTACT
+      if (current === STEP.CONTACT) return STEP.DATETIME
+      if (current === STEP.DATETIME) return STEP.SERVICE
       return current
     })
-    window.scrollTo(0, 0)
   }, [])
 
-  const canNext = [
-    !!serviceType,
-    !!selectedDate && !!selectedSlot,
-    true,
-    false,
-  ][wizardStep]
 
   const [taxonomy, setTaxonomy] = useState<TaxonomyTable | null>(null)
   useEffect(() => {
@@ -373,6 +391,7 @@ export default function LiffBookingPage() {
 
   const chooseDate = useCallback(
     (date: string) => {
+      setDatetimeError(null)
       dispatch({ type: 'date/set', date })
       if (serviceType) void loadSlots(serviceType, date)
     },
@@ -381,6 +400,7 @@ export default function LiffBookingPage() {
 
   const chooseService = (service: string) => {
     if (service === serviceType) return
+    setServiceError(null)
     dispatch({ type: 'service/set', service })
   }
 
@@ -425,7 +445,7 @@ export default function LiffBookingPage() {
       // citizen sees the real state instead of a stale "available" button.
       if (serviceType && selectedDate) void loadSlots(serviceType, selectedDate, { force: true })
       dispatch({ type: 'slot/set', slotId: null })
-      setWizardStep(DATETIME_STEP)
+      setWizardStep(STEP.DATETIME)
     } finally {
       setSubmitting(false)
     }
@@ -435,7 +455,7 @@ export default function LiffBookingPage() {
     setConfirmed(null)
     setEditing(false)
     setNotice(null)
-    setWizardStep(0)
+    setWizardStep(STEP.SERVICE)
     dispatch({ type: 'draft/reset' })
     if (options?.service_types.length === 1) {
       dispatch({ type: 'service/set', service: options.service_types[0] })
@@ -654,7 +674,7 @@ export default function LiffBookingPage() {
             </Card>
           )}
 
-          {!confirmed && wizardStep === 0 && (
+          {!confirmed && wizardStep === STEP.SERVICE && (
             <div className="space-y-4">
               <Section
                 icon={<Users className="h-4 w-4" />}
@@ -679,17 +699,19 @@ export default function LiffBookingPage() {
                           options: group.options,
                         }))}
                       placeholder="-- เลือกบริการ --"
+                      state={serviceError ? 'error' : 'default'}
+                      errorMessage={serviceError ?? undefined}
                     />
                   </label>
                 ) : (
                   <p className="text-sm text-text-tertiary">ยังไม่มีบริการที่เปิดให้จอง</p>
                 )}
               </Section>
-              <WizardNav step={0} canNext={canNext} onBack={goBack} onNext={goNext} />
+              <WizardNav step={STEP.SERVICE} onBack={goBack} onNext={tryNext} />
             </div>
           )}
 
-          {!confirmed && wizardStep === 1 && (
+          {!confirmed && wizardStep === STEP.DATETIME && (
             <div className="space-y-4">
               {serviceType && (
                 <Section
@@ -741,9 +763,10 @@ export default function LiffBookingPage() {
                                     key={slot.time}
                                     type="button"
                                     disabled={slot.is_full}
-                                    onClick={() =>
+                                    onClick={() => {
+                                      setDatetimeError(null)
                                       dispatch({ type: 'slot/set', slotId: slot.time })
-                                    }
+                                    }}
                                     aria-pressed={isSelected}
                                     className={cn(
                                       'rounded-lg border px-2 py-2 text-sm transition-colors',
@@ -773,11 +796,16 @@ export default function LiffBookingPage() {
                 </Section>
               )}
 
-              <WizardNav step={1} canNext={canNext} onBack={goBack} onNext={goNext} />
+              {datetimeError && (
+                <p role="alert" className="text-sm text-danger-text">
+                  {datetimeError}
+                </p>
+              )}
+              <WizardNav step={STEP.DATETIME} onBack={goBack} onNext={tryNext} />
             </div>
           )}
 
-          {!confirmed && wizardStep === 2 && (
+          {!confirmed && wizardStep === STEP.CONTACT && (
             <div className="space-y-4">
               <Section
                 icon={<Users className="h-4 w-4" />}
@@ -799,11 +827,11 @@ export default function LiffBookingPage() {
                   phoneError={showContactErrors ? contactErrors.phoneNumber : undefined}
                 />
               </Section>
-              <WizardNav step={2} canNext={canNext} onBack={goBack} onNext={tryNextFromContact} />
+              <WizardNav step={STEP.CONTACT} onBack={goBack} onNext={tryNext} />
             </div>
           )}
 
-          {!confirmed && wizardStep === 3 && selectedSlot && (
+          {!confirmed && wizardStep === STEP.SUMMARY && selectedSlot && (
             <div className="space-y-4">
               <Section
                 icon={<CheckCircle2 className="h-4 w-4" />}
@@ -815,7 +843,7 @@ export default function LiffBookingPage() {
                       <p className="font-medium text-text-primary">บริการ</p>
                       <button
                         type="button"
-                        onClick={() => goToStep(0)}
+                        onClick={() => goToStep(STEP.SERVICE)}
                         className="shrink-0 text-xs font-semibold text-brand-500 hover:underline"
                       >
                         แก้ไข
@@ -828,7 +856,7 @@ export default function LiffBookingPage() {
                       <p className="font-medium text-text-primary">วันเวลา</p>
                       <button
                         type="button"
-                        onClick={() => goToStep(1)}
+                        onClick={() => goToStep(STEP.DATETIME)}
                         className="shrink-0 text-xs font-semibold text-brand-500 hover:underline"
                       >
                         แก้ไข
@@ -843,7 +871,7 @@ export default function LiffBookingPage() {
                       <p className="font-medium text-text-primary">ผู้จอง</p>
                       <button
                         type="button"
-                        onClick={() => goToStep(2)}
+                        onClick={() => goToStep(STEP.CONTACT)}
                         className="shrink-0 text-xs font-semibold text-brand-500 hover:underline"
                       >
                         แก้ไข
@@ -879,7 +907,7 @@ export default function LiffBookingPage() {
                   {submitting ? 'กำลังจอง...' : 'ยืนยันการจอง'}
                 </Button>
               </Section>
-              <WizardNav step={3} canNext={canNext} onBack={goBack} onNext={goNext} />
+              <WizardNav step={STEP.SUMMARY} onBack={goBack} onNext={tryNext} />
             </div>
           )}
         </>

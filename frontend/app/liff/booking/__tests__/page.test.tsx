@@ -801,17 +801,31 @@ describe('wizard navigation', () => {
     expect(screen.getByRole('heading', { name: 'ข้อมูลผู้จอง' })).toBeInTheDocument()
   })
 
-  it('locks Next on the datetime step until a slot is picked', async () => {
+  it('asks for day and time when Next is tapped with no slot', async () => {
     const user = userEvent.setup()
     renderPage()
     await chooseService()
     await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
 
     await screen.findByText('ช่วงเช้า')
-    expect(screen.getByRole('button', { name: 'ถัดไป' })).toBeDisabled()
+    await user.click(screen.getByRole('button', { name: 'ถัดไป' }))
+    expect(screen.getByText('กรุณาเลือกวันและเวลา')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'เลือกวันที่' })).toBeInTheDocument()
 
     await user.click(await screen.findByRole('button', { name: /09:30/ }))
-    expect(screen.getByRole('button', { name: 'ถัดไป' })).toBeEnabled()
+    await user.click(screen.getByRole('button', { name: 'ถัดไป' }))
+    expect(screen.getByRole('heading', { name: 'ข้อมูลผู้จอง' })).toBeInTheDocument()
+  })
+
+  it('asks for a service when Next is tapped with none picked', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await chooseService()
+    await user.click(screen.getByRole('button', { name: 'ล้างค่า' }))
+    await user.click(screen.getByRole('button', { name: 'ถัดไป' }))
+    expect(screen.getByText('กรุณาเลือกบริการ')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'เลือกบริการ' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'เลือกวันที่' })).not.toBeInTheDocument()
   })
 
   it('sends the citizen back to datetime when the slot fills during submit', async () => {
