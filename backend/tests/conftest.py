@@ -142,6 +142,21 @@ def _reset_http_rate_limits():
     yield
 
 
+@pytest.fixture(autouse=True)
+def _reset_booking_config_cache():
+    """Start every test with a cold booking-config cache.
+
+    The 60s production cache would otherwise leak one test's settings into
+    the next whenever a test stubs SettingsService per-test and calls the
+    real loader (e.g. endpoint guard tests).
+    """
+    from app.services import booking_settings
+
+    booking_settings._invalidate_booking_config_cache()
+    yield
+    booking_settings._invalidate_booking_config_cache()
+
+
 def drain_auth_responses(websocket):
     """Helper to drain auth_success and presence_update after auth"""
     websocket.receive_json()  # auth_success
