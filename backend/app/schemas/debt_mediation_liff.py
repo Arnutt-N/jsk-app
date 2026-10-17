@@ -6,6 +6,8 @@ import re
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from app.schemas.person_name import compose_person_name
+
 ISSUE_OTHER_LABEL = "อื่น ๆ"
 
 _PHONE_PATTERN = re.compile(r"^\+?[0-9]{9,15}$")
@@ -122,12 +124,9 @@ class DebtMediationCreate(BaseModel):
         # Legacy full_name-only payloads still pass (compat).
         trio = [getattr(self, field) for field in ("prefix", "firstname", "lastname")]
         if any(trio):
-            cleaned = [(value or "").strip() for value in trio]
-            if any(not part for part in cleaned):
+            composed = compose_person_name(self.prefix, self.firstname, self.lastname, max_length=200)
+            if composed is None:
                 raise ValueError("prefix, firstname and lastname are required together.")
-            composed = " ".join(cleaned)
-            if len(composed) > 200:
-                raise ValueError("composed full_name exceeds 200 characters.")
             self.full_name = composed
         for field in ("full_name", "phone_number", "province", "issue_category", "counterparty_name"):
             if _blank(getattr(self, field)):

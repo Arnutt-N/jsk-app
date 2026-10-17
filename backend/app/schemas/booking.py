@@ -10,6 +10,7 @@ from typing import List, Optional
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.services.booking_service import ReminderUnit
+from app.schemas.person_name import compose_person_name
 
 
 class SlotOut(BaseModel):
@@ -98,16 +99,8 @@ class ContactFields(BaseModel):
     @model_validator(mode="after")
     def _compose_contact_name(self) -> "ContactFields":
         """Trio wins over legacy; oversize rejected, not truncated."""
-        prefix = (self.prefix or "").strip() or None
-        firstname = (self.firstname or "").strip() or None
-        lastname = (self.lastname or "").strip() or None
-        self.prefix, self.firstname, self.lastname = prefix, firstname, lastname
-        if prefix is not None or firstname is not None or lastname is not None:
-            if not prefix or not firstname or not lastname:
-                raise ValueError("prefix, firstname and lastname are required together.")
-            composed = f"{prefix} {firstname} {lastname}"
-            if len(composed) > 120:
-                raise ValueError("composed contact_name exceeds 120 characters.")
+        composed = compose_person_name(self.prefix, self.firstname, self.lastname, max_length=120)
+        if composed is not None:
             self.contact_name = composed
         return self
 
