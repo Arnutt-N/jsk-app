@@ -248,6 +248,11 @@ export default function LiffBookingPage() {
     window.scrollTo(0, 0)
   }, [])
 
+  const goToStep = useCallback((target: WizardStep) => {
+    setWizardStep(target)
+    window.scrollTo(0, 0)
+  }, [])
+
   const goBack = useCallback(() => {
     setWizardStep((current) => {
       if (current === 3) return 2
@@ -712,42 +717,72 @@ export default function LiffBookingPage() {
                 icon={<CheckCircle2 className="h-4 w-4" />}
                 title="สรุปการจอง"
               >
-                <dl className="space-y-2 text-sm">
-                  <div className="flex justify-between gap-4">
-                    <dt className="text-text-secondary">บริการ</dt>
-                    <dd className="text-right font-medium text-text-primary">{serviceType}</dd>
-                  </div>
-                  <div className="flex justify-between gap-4">
-                    <dt className="text-text-secondary">วันที่</dt>
-                    <dd className="text-right font-medium text-text-primary">
-                      {formatThaiDate(selectedDate ?? '')}
-                    </dd>
-                  </div>
-                  <div className="flex justify-between gap-4">
-                    <dt className="text-text-secondary">เวลา</dt>
-                    <dd className="text-right font-medium text-text-primary">
-                      {formatTime(selectedSlot.time)} น.
-                    </dd>
-                  </div>
-                  {contactName.trim() && (
-                    <div className="flex justify-between gap-4">
-                      <dt className="text-text-secondary">ผู้จอง</dt>
-                      <dd className="text-right font-medium text-text-primary">{contactName}</dd>
+                <div className="space-y-4 text-sm">
+                  <div>
+                    <div className="mb-1 flex items-center justify-between gap-2">
+                      <p className="font-medium text-text-primary">บริการ</p>
+                      <button
+                        type="button"
+                        onClick={() => goToStep(0)}
+                        className="shrink-0 text-xs font-semibold text-brand-500 hover:underline"
+                      >
+                        แก้ไข
+                      </button>
                     </div>
-                  )}
-                  {phoneNumber.trim() && (
-                    <div className="flex justify-between gap-4">
-                      <dt className="text-text-secondary">โทรศัพท์</dt>
-                      <dd className="text-right font-medium text-text-primary">{phoneNumber}</dd>
+                    <p className="text-text-secondary">{serviceType}</p>
+                  </div>
+                  <div>
+                    <div className="mb-1 flex items-center justify-between gap-2">
+                      <p className="font-medium text-text-primary">วันเวลา</p>
+                      <button
+                        type="button"
+                        onClick={() => goToStep(1)}
+                        className="shrink-0 text-xs font-semibold text-brand-500 hover:underline"
+                      >
+                        แก้ไข
+                      </button>
                     </div>
-                  )}
-                  {note.trim() && (
-                    <div className="flex justify-between gap-4">
-                      <dt className="text-text-secondary">รายละเอียด</dt>
-                      <dd className="text-right font-medium text-text-primary">{note}</dd>
+                    <p className="text-text-secondary">
+                      {formatThaiDate(selectedDate ?? '')} เวลา {formatTime(selectedSlot.time)} น.
+                    </p>
+                  </div>
+                  <div>
+                    <div className="mb-1 flex items-center justify-between gap-2">
+                      <p className="font-medium text-text-primary">ผู้จอง</p>
+                      <button
+                        type="button"
+                        onClick={() => goToStep(2)}
+                        className="shrink-0 text-xs font-semibold text-brand-500 hover:underline"
+                      >
+                        แก้ไข
+                      </button>
                     </div>
-                  )}
-                </dl>
+                    {contactName.trim() || phoneNumber.trim() || note.trim() ? (
+                      <dl className="space-y-1">
+                        {contactName.trim() && (
+                          <div className="flex justify-between gap-4">
+                            <dt className="text-text-secondary">ชื่อ</dt>
+                            <dd className="text-right font-medium text-text-primary">{contactName}</dd>
+                          </div>
+                        )}
+                        {phoneNumber.trim() && (
+                          <div className="flex justify-between gap-4">
+                            <dt className="text-text-secondary">โทรศัพท์</dt>
+                            <dd className="text-right font-medium text-text-primary">{phoneNumber}</dd>
+                          </div>
+                        )}
+                        {note.trim() && (
+                          <div className="flex justify-between gap-4">
+                            <dt className="text-text-secondary">รายละเอียด</dt>
+                            <dd className="text-right font-medium text-text-primary">{note}</dd>
+                          </div>
+                        )}
+                      </dl>
+                    ) : (
+                      <p className="text-text-tertiary">ไม่ได้ระบุ</p>
+                    )}
+                  </div>
+                </div>
                 <Button className="mt-4 w-full" onClick={handleSubmit} disabled={submitting}>
                   {submitting ? 'กำลังจอง...' : 'ยืนยันการจอง'}
                 </Button>

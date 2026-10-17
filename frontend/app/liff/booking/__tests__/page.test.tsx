@@ -823,4 +823,35 @@ describe('wizard navigation', () => {
 
     expect(await screen.findByRole('heading', { name: 'เลือกวันที่' })).toBeInTheDocument()
   })
+
+  it('jumps back to the right step from each summary edit link', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await chooseService()
+    await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
+    await user.click(await screen.findByRole('button', { name: /09:30/ }))
+    await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
+    await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
+    expect(screen.getByRole('heading', { name: 'สรุปการจอง' })).toBeInTheDocument()
+
+    const edits = screen.getAllByRole('button', { name: 'แก้ไข' })
+    expect(edits).toHaveLength(3)
+
+    await user.click(edits[0])
+    expect(screen.getByRole('heading', { name: 'เลือกบริการ' })).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'เลือกบริการ' })).toHaveValue('ปรึกษากฎหมาย')
+
+    await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
+    await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
+    await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
+    expect(screen.getByRole('heading', { name: 'สรุปการจอง' })).toBeInTheDocument()
+
+    await user.click(screen.getAllByRole('button', { name: 'แก้ไข' })[1])
+    expect(screen.getByRole('heading', { name: 'เลือกวันที่' })).toBeInTheDocument()
+
+    await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
+    await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
+    await user.click(screen.getAllByRole('button', { name: 'แก้ไข' })[2])
+    expect(screen.getByRole('heading', { name: 'ข้อมูลผู้จอง' })).toBeInTheDocument()
+  })
 })
