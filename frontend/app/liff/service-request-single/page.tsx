@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Head from 'next/head'
 import Script from 'next/script'
-import { Province, District, SubDistrict } from '../../../types/location'
+import type { Province } from '../../../types/location'
 import { Button } from '@/components/ui/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
@@ -27,7 +27,7 @@ import { PREFIX_OPTIONS } from '@/lib/constants/prefixes'
 import { loadTaxonomy, type TaxonomyTable } from '@/lib/booking/service-mapping'
 import { useLiffInit } from '@/hooks/useLiffInit'
 import { useAutoCloseCountdown } from '@/hooks/useAutoCloseCountdown'
-import { fetchDistricts, fetchSubDistricts } from '@/lib/liff/location-cascade'
+import { useLocationCascade } from '@/hooks/useLocationCascade'
 import { submitServiceRequest } from '@/lib/liff/submit-service-request'
 import { uploadLiffMedia, attachmentCapMessage, readErrorDetail } from '@/lib/liff/upload-media'
 import { SESSION_EXPIRED_MESSAGE, isSessionExpired } from '@/lib/liff/session-expired'
@@ -53,19 +53,10 @@ export default function LiffServiceRequestSingle() {
 
     // Uploads started but not yet resolved — counted toward the attachment
     // cap so rapid file picks cannot exceed the shared rate-limit budget.
-    // Latest-request tokens for the cascading selects (H3 race guard)
-    const provinceReqRef = useRef<string | null>(null)
-    const districtReqRef = useRef<string | null>(null)
     const inflightUploadsRef = useRef(0)
 
     // Location Data State
     const [provinces, setProvinces] = useState<Province[]>([])
-    const [districts, setDistricts] = useState<District[]>([])
-    const [subDistricts, setSubDistricts] = useState<SubDistrict[]>([])
-
-    // Loading States for Location
-    const [loadingDistricts, setLoadingDistricts] = useState(false)
-    const [loadingSubDistricts, setLoadingSubDistricts] = useState(false)
 
     // Form Data
     const [formData, setFormData] = useState({
@@ -91,9 +82,25 @@ export default function LiffServiceRequestSingle() {
         attachments: [] as Array<{ id: string, url: string, name: string }>
     })
 
-    // Selected IDs for cascading logic (Not submitted)
-    const [selectedProvinceId, setSelectedProvinceId] = useState<number | null>(null)
-    const [selectedDistrictId, setSelectedDistrictId] = useState<number | null>(null)
+
+    // Cascading selects live in the shared hook; this page only maps ids
+    // to Thai names in its own form data.
+    const cascade = useLocationCascade((patch) => {
+        setFormData((prev) => ({ ...prev, ...patch }))
+        setFieldErrors((prev) => {
+            const next = { ...prev }
+            for (const key of Object.keys(patch)) delete next[key]
+            return next
+        })
+    })
+    const {
+        districts,
+        subDistricts,
+        loadingDistricts,
+        loadingSubDistricts,
+        selectedProvinceId,
+        selectedDistrictId,
+    } = cascade
 
     const [taxonomy, setTaxonomy] = useState<TaxonomyTable | null>(null)
     useEffect(() => {
@@ -139,79 +146,15 @@ export default function LiffServiceRequestSingle() {
         }
     }
 
-    const handleProvinceChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const provinceId = parseInt(e.target.value)
-        const provinceObj = provinces.find(p => p.PROVINCE_ID === provinceId)
+    // Location changes delegate to the shared cascade hook.
+    const handleProvinceChange = (e: React.ChangeEvent<HTMLSelectElement>) =>
+        cascade.selectProvince(e.target.value, provinces)
 
-        setSelectedProvinceId(provinceId)
-        setFormData(prev => ({
-            ...prev,
-            province: provinceObj?.PROVINCE_THAI || '',
-            district: '',
-            sub_district: ''
-        }))
+    const handleDistrictChange = (e: React.ChangeEvent<HTMLSelectElement>) =>
+        cascade.selectDistrict(e.target.value, cascade.districts)
 
-        setDistricts([])
-        setSubDistricts([])
-        setSelectedDistrictId(null)
-
-        if (provinceId) {
-            setLoadingDistricts(true)
-            const provinceReqId = String(provinceId)
-            provinceReqRef.current = provinceReqId
-            try {
-                const data = await fetchDistricts(provinceId)
-                // Stale-response guard (review finding H3): the user may have
-                // switched provinces while this fetch was in flight.
-                if (provinceReqRef.current !== provinceReqId) return
-                setDistricts(data)
-            } catch (err) {
-                if (provinceReqRef.current !== provinceReqId) return
-                logger.error(err)
-            } finally {
-                // Only the newest request may clear the spinner — a stale
-                // response resolving later must not clear a newer one's state.
-                if (provinceReqRef.current === provinceReqId) setLoadingDistricts(false)
-            }
-        }
-    }
-
-    const handleDistrictChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const districtId = parseInt(e.target.value)
-        const districtObj = districts.find(d => d.DISTRICT_ID === districtId)
-
-        setSelectedDistrictId(districtId)
-        setFormData(prev => ({
-            ...prev,
-            district: districtObj?.DISTRICT_THAI || '',
-            sub_district: ''
-        }))
-        setSubDistricts([])
-
-        if (districtId) {
-            setLoadingSubDistricts(true)
-            const districtReqId = String(districtId)
-            districtReqRef.current = districtReqId
-            try {
-                const data = await fetchSubDistricts(districtId)
-                // Stale-response guard: a slow sub-district response for a
-                // superseded district must not land in the new selection.
-                if (districtReqRef.current !== districtReqId) return
-                setSubDistricts(data)
-            } catch (err) {
-                if (districtReqRef.current !== districtReqId) return
-                logger.error(err)
-            } finally {
-                if (districtReqRef.current === districtReqId) setLoadingSubDistricts(false)
-            }
-        }
-    }
-
-    const handleSubDistrictChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const subDistrictId = parseInt(e.target.value)
-        const subObj = subDistricts.find(s => s.SUB_DISTRICT_ID === subDistrictId)
-        setFormData(prev => ({ ...prev, sub_district: subObj?.SUB_DISTRICT_THAI || '' }))
-    }
+    const handleSubDistrictChange = (e: React.ChangeEvent<HTMLSelectElement>) =>
+        cascade.selectSubDistrict(e.target.value, cascade.subDistricts)
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files?.length) return
