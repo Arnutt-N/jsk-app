@@ -47,16 +47,17 @@ class _Result:
 class _SeqDB:
     def __init__(self, results):
         self._results = list(results)
+        self.events = []
 
     async def execute(self, stmt):
         value = self._results.pop(0) if self._results else None
         return _Result(value)
 
     def add(self, obj):
-        pass
+        self.events.append(("add", type(obj).__name__))
 
     async def commit(self):
-        pass
+        self.events.append(("commit",))
 
     async def refresh(self, obj):
         pass
@@ -202,7 +203,7 @@ def test_delete_409_when_user_links_depend():
 
 def test_delete_succeeds_when_no_dependencies():
     # menu (no LINE id, no image), aliases (none), user_count (0) -> deletes
-    _override(role=UserRole.ADMIN, results=[_menu(), [], 0])
+    db = _override(role=UserRole.ADMIN, results=[_menu(), [], 0])
     client = TestClient(app)
     try:
         resp = client.delete(f"{BASE}/1")
@@ -211,3 +212,11 @@ def test_delete_succeeds_when_no_dependencies():
         _clear()
 
     assert resp.status_code == 200
+    # Same ordering contract as publish: audit add must precede the commit.
+    audit_adds = [
+        i for i, event in enumerate(db.events)
+        if event[0] == "add" and event[1] == "AuditLog"
+    ]
+    commits = [i for i, event in enumerate(db.events) if event[0] == "commit"]
+    assert audit_adds, "delete must write an audit row"
+    assert commits and min(audit_adds) < min(commits)

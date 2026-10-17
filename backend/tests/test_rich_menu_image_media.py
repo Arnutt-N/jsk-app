@@ -81,6 +81,7 @@ class _SeqDB:
         self.added = []
         self.deleted = []
         self.commits = 0
+        self.events = []
 
     async def execute(self, stmt):
         value = self._results.pop(0) if self._results else None
@@ -91,6 +92,7 @@ class _SeqDB:
 
     def add(self, obj):
         self.added.append(obj)
+        self.events.append(("add", type(obj).__name__))
 
     async def delete(self, obj):
         self.deleted.append(obj)
@@ -100,6 +102,7 @@ class _SeqDB:
 
     async def commit(self):
         self.commits += 1
+        self.events.append(("commit",))
 
     async def refresh(self, obj):
         pass
@@ -422,6 +425,15 @@ def test_publish_success_marks_published_and_audits():
     assert resp.status_code == 200
     assert menu.status == RichMenuStatus.PUBLISHED.value or menu.status == "PUBLISHED"
     assert db.commits >= 1
+    # The audit row must be added BEFORE the commit: create_audit_log only
+    # flushes, so an add after the commit would never be persisted.
+    audit_adds = [
+        i for i, event in enumerate(db.events)
+        if event[0] == "add" and event[1] == "AuditLog"
+    ]
+    commits = [i for i, event in enumerate(db.events) if event[0] == "commit"]
+    assert audit_adds, "publish must write an audit row"
+    assert commits and min(audit_adds) < min(commits)
 
 
 # ---------------------------------------------------------------------------
