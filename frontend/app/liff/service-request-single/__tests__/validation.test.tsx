@@ -86,7 +86,7 @@ describe('LIFF service-request-single validation (R3-M28-twin)', () => {
     try {
       const { container } = render(<LiffServiceRequestSingle />);
 
-      fireEvent.change(container.querySelector('input[name="prefix"]')!, { target: { value: 'นาย' } });
+      fireEvent.change(container.querySelector('select[name="prefix"]')!, { target: { value: 'นาย' } });
       fireEvent.change(container.querySelector('input[name="firstname"]')!, { target: { value: 'สมชาย' } });
       fireEvent.change(container.querySelector('input[name="lastname"]')!, { target: { value: 'ใจดี' } });
       fireEvent.change(container.querySelector('input[name="phone"]')!, { target: { value: '0812345679' } });

@@ -7,6 +7,7 @@ import { Province, District, SubDistrict } from '../../../types/location'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { Select } from '@/components/ui/Select'
 import { AGENCIES } from '@/lib/constants/agencies'
+import { PREFIX_OPTIONS } from '@/lib/constants/prefixes'
 import { TOPIC_OPTIONS } from '@/lib/constants/categories'
 import { loadTaxonomy, type TaxonomyTable } from '@/lib/booking/service-mapping'
 import { logger } from '@/lib/logger';
@@ -407,11 +408,7 @@ export default function LiffServiceRequestV2() {
                                 name="prefix"
                                 value={formData.prefix}
                                 onChange={handleChange}
-                                options={[
-                                    { value: 'นาย', label: 'นาย' },
-                                    { value: 'นาง', label: 'นาง' },
-                                    { value: 'นางสาว', label: 'นางสาว' },
-                                ]}
+                                options={PREFIX_OPTIONS}
                                 placeholder="เลือก"
                                 state={fieldErrors.prefix ? 'error' : 'default'}
                                 required

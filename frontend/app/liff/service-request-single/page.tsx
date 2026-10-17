@@ -23,6 +23,7 @@ import {
 } from 'lucide-react'
 import { logger } from '@/lib/logger';
 import { TOPIC_OPTIONS } from '@/lib/constants/categories'
+import { PREFIX_OPTIONS } from '@/lib/constants/prefixes'
 import { loadTaxonomy, type TaxonomyTable } from '@/lib/booking/service-mapping'
 import { useLiffInit } from '@/hooks/useLiffInit'
 import { useAutoCloseCountdown } from '@/hooks/useAutoCloseCountdown'
@@ -411,18 +412,17 @@ export default function LiffServiceRequestSingle() {
                             <div className="grid grid-cols-3 gap-3">
                                 <div className="col-span-1">
                                     <label htmlFor="prefix" className="label-text">คำนำหน้า <span className="text-red-500">*</span></label>
-                                    <input
+                                    <Select
                                         id="prefix"
-                                        type="text"
                                         name="prefix"
                                         value={formData.prefix}
                                         onChange={handleChange}
-                                        className={`input-field ${fieldErrors.prefix ? 'border-red-500 ring-1 ring-red-500' : ''}`}
-                                        placeholder="ระบุพิมพ์"
+                                        options={PREFIX_OPTIONS}
+                                        placeholder="เลือก"
+                                        state={fieldErrors.prefix ? 'error' : 'default'}
                                         required
                                     />
                                     {fieldErrors.prefix && <p className="text-red-500 text-[10px] mt-1">{fieldErrors.prefix}</p>}
-                                    <p className="text-[9px] text-gray-400 mt-1">*คำนำหน้ายาวให้ย่อ</p>
                                 </div>
                                 <div className="col-span-2">
                                     <label htmlFor="firstname" className="label-text">ชื่อ <span className="text-red-500">*</span></label>

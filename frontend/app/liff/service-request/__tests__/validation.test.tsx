@@ -64,7 +64,7 @@ describe('LIFF service-request validation (R3-M28)', () => {
   it('rejects whitespace-only firstname with inline guidance', async () => {
     const { container } = render(<LiffServiceRequest />);
 
-    fireEvent.change(container.querySelector('input[name="prefix"]')!, { target: { value: 'นาย' } });
+    fireEvent.change(container.querySelector('select[name="prefix"]')!, { target: { value: 'นาย' } });
     fireEvent.change(container.querySelector('input[name="firstname"]')!, { target: { value: '   ' } });
     fireEvent.change(container.querySelector('input[name="lastname"]')!, { target: { value: 'ใจดี' } });
     fireEvent.change(container.querySelector('input[name="phone_number"]')!, { target: { value: '0812345679' } });
@@ -83,7 +83,7 @@ describe('LIFF service-request validation (R3-M28)', () => {
       const { container } = render(<LiffServiceRequest />);
 
       // Step 0: valid personal info.
-      fireEvent.change(container.querySelector('input[name="prefix"]')!, { target: { value: 'นาย' } });
+      fireEvent.change(container.querySelector('select[name="prefix"]')!, { target: { value: 'นาย' } });
       fireEvent.change(container.querySelector('input[name="firstname"]')!, { target: { value: 'สมชาย' } });
       fireEvent.change(container.querySelector('input[name="lastname"]')!, { target: { value: 'ใจดี' } });
       fireEvent.change(container.querySelector('input[name="phone_number"]')!, { target: { value: '0812345679' } });
@@ -140,7 +140,7 @@ describe('LIFF service-request validation (R3-M28)', () => {
   it('rejects over-long phone numbers (F7)', async () => {
     const { container } = render(<LiffServiceRequest />);
 
-    fireEvent.change(container.querySelector('input[name="prefix"]')!, { target: { value: 'นาย' } });
+    fireEvent.change(container.querySelector('select[name="prefix"]')!, { target: { value: 'นาย' } });
     fireEvent.change(container.querySelector('input[name="firstname"]')!, { target: { value: 'สมชาย' } });
     fireEvent.change(container.querySelector('input[name="lastname"]')!, { target: { value: 'ใจดี' } });
     fireEvent.change(container.querySelector('input[name="phone_number"]')!, { target: { value: '081234567890' } });

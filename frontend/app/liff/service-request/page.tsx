@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import LiffStatusBadge from '@/components/liff/LiffStatusBadge'
 import { Alert } from '@/components/ui/Alert'
 import { AGENCIES } from '@/lib/constants/agencies'
+import { PREFIX_OPTIONS } from '@/lib/constants/prefixes'
 import {
     User,
     Building2,
@@ -582,18 +583,16 @@ export default function LiffServiceRequestV2() {
                                             <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
                                                 คำนำหน้า <span className="text-red-500">*</span>
                                             </label>
-                                            <input
-                                                type="text"
+                                            <Select
                                                 name="prefix"
                                                 value={formData.prefix}
                                                 onChange={handleChange}
-                                                className={`w-full bg-white border text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block p-2.5 outline-none transition-all ${fieldErrors.prefix ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-200'
-                                                    }`}
-                                                placeholder="ระบุพิมพ์"
+                                                options={PREFIX_OPTIONS}
+                                                placeholder="เลือก"
+                                                state={fieldErrors.prefix ? 'error' : 'default'}
                                                 required
                                             />
                                             {fieldErrors.prefix && <p className="text-red-500 text-[10px] mt-1">{fieldErrors.prefix}</p>}
-                                            <p className="text-[9px] text-gray-400 mt-1">*คำนำหน้ายาวให้ย่อ</p>
                                         </div>
                                         <div className="col-span-2">
                                             <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
