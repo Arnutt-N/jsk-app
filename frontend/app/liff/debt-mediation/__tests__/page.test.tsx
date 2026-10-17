@@ -56,10 +56,12 @@ async function fillStep2(
   user: ReturnType<typeof userEvent.setup>,
   phone = '0812345678',
 ) {
-  fireEvent.change(screen.getByPlaceholderText('ระบุชื่อ-นามสกุล'), { target: { value: 'สมชาย ใจดี' } })
+  await user.selectOptions(screen.getByLabelText(/คำนำหน้า/), 'นาย')
+  fireEvent.change(screen.getByPlaceholderText('ระบุชื่อจริง'), { target: { value: 'สมชาย' } })
+  fireEvent.change(screen.getByPlaceholderText('ระบุนามสกุล'), { target: { value: 'ใจดี' } })
   fireEvent.change(screen.getByPlaceholderText('0xx-xxx-xxxx'), { target: { value: phone } })
   fireEvent.change(screen.getByPlaceholderText('0.00'), { target: { value: '20000' } })
-  await user.selectOptions(screen.getByRole('combobox'), 'สกลนคร')
+  await user.selectOptions(screen.getByLabelText(/จังหวัดที่อาศัย/), 'สกลนคร')
 }
 
 /** Choose the first issue option (debtor path). */
@@ -107,7 +109,7 @@ describe('debt mediation wizard', () => {
     await user.click(screen.getByRole('button', { name: 'ถัดไป' }))
 
     // Step 2: personal + debt info
-    await waitFor(() => screen.getByPlaceholderText('ระบุชื่อ-นามสกุล'))
+    await waitFor(() => screen.getByPlaceholderText('ระบุชื่อจริง'))
     await fillStep2(user)
     await user.click(screen.getByRole('button', { name: /^หนี้นอกระบบ/ }))
     await user.click(screen.getByRole('button', { name: 'ถัดไป' }))
@@ -133,7 +135,10 @@ describe('debt mediation wizard', () => {
     const payload = JSON.parse(String(call![1].body))
     expect(payload).toMatchObject({
       submitter_type: 'DEBTOR',
-      full_name: 'สมชาย ใจดี',
+      prefix: 'นาย',
+      firstname: 'สมชาย',
+      lastname: 'ใจดี',
+      full_name: 'นาย สมชาย ใจดี',
       phone_number: '0812345678',
       province: 'สกลนคร',
       debt_amount: '20000',
@@ -229,16 +234,17 @@ describe('debt mediation wizard', () => {
 
     await user.click(screen.getByRole('button', { name: /^ลูกหนี้/ }))
     await user.click(screen.getByRole('button', { name: 'ถัดไป' }))
-    await waitFor(() => screen.getByPlaceholderText('ระบุชื่อ-นามสกุล'))
-    fireEvent.change(screen.getByPlaceholderText('ระบุชื่อ-นามสกุล'), { target: { value: 'สมชาย ใจดี' } })
+    await waitFor(() => screen.getByPlaceholderText('ระบุชื่อจริง'))
+    fireEvent.change(screen.getByPlaceholderText('ระบุชื่อจริง'), { target: { value: 'สมชาย' } })
+    fireEvent.change(screen.getByPlaceholderText('ระบุนามสกุล'), { target: { value: 'ใจดี' } })
     fireEvent.change(screen.getByPlaceholderText('0xx-xxx-xxxx'), { target: { value: 'abcdefghij' } })
     fireEvent.change(screen.getByPlaceholderText('0.00'), { target: { value: '20000' } })
-    await user.selectOptions(screen.getByRole('combobox'), 'สกลนคร')
+    await user.selectOptions(screen.getByLabelText(/จังหวัดที่อาศัย/), 'สกลนคร')
     await user.click(screen.getByRole('button', { name: /^หนี้นอกระบบ/ }))
     await user.click(screen.getByRole('button', { name: 'ถัดไป' }))
 
     expect(screen.getByText('หมายเลขโทรศัพท์ไม่ถูกต้อง')).toBeInTheDocument()
-    expect(screen.getByPlaceholderText('ระบุชื่อ-นามสกุล')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('ระบุชื่อจริง')).toBeInTheDocument()
   })
 
   it('shows a Thai fallback instead of dumping a 422 array', async () => {
@@ -277,7 +283,7 @@ describe('debt mediation wizard', () => {
 
     await user.click(screen.getByRole('button', { name: /^ลูกหนี้/ }))
     await user.click(screen.getByRole('button', { name: 'ถัดไป' }))
-    await waitFor(() => screen.getByPlaceholderText('ระบุชื่อ-นามสกุล'))
+    await waitFor(() => screen.getByPlaceholderText('ระบุชื่อจริง'))
     await fillStep2(user)
     await user.click(screen.getByRole('button', { name: /^หนี้นอกระบบ/ }))
     await user.click(screen.getByRole('button', { name: 'ถัดไป' }))
@@ -320,7 +326,7 @@ describe('debt mediation wizard', () => {
 
     await user.click(screen.getByRole('button', { name: /^ลูกหนี้/ }))
     await user.click(screen.getByRole('button', { name: 'ถัดไป' }))
-    await waitFor(() => screen.getByPlaceholderText('ระบุชื่อ-นามสกุล'))
+    await waitFor(() => screen.getByPlaceholderText('ระบุชื่อจริง'))
     await fillStep2(user, '081-234-5678')
     await user.click(screen.getByRole('button', { name: /^หนี้นอกระบบ/ }))
     await user.click(screen.getByRole('button', { name: 'ถัดไป' }))
@@ -345,7 +351,7 @@ describe('debt mediation wizard', () => {
 
     await user.click(screen.getByRole('button', { name: /^ลูกหนี้/ }))
     await user.click(screen.getByRole('button', { name: 'ถัดไป' }))
-    await waitFor(() => screen.getByPlaceholderText('ระบุชื่อ-นามสกุล'))
+    await waitFor(() => screen.getByPlaceholderText('ระบุชื่อจริง'))
     await fillStep2(user, '+66812345678')
     await user.click(screen.getByRole('button', { name: /^หนี้นอกระบบ/ }))
     await user.click(screen.getByRole('button', { name: 'ถัดไป' }))
@@ -389,7 +395,7 @@ describe('debt mediation wizard', () => {
 
     await user.click(screen.getByRole('button', { name: /^ลูกหนี้/ }))
     await user.click(screen.getByRole('button', { name: 'ถัดไป' }))
-    await waitFor(() => screen.getByPlaceholderText('ระบุชื่อ-นามสกุล'))
+    await waitFor(() => screen.getByPlaceholderText('ระบุชื่อจริง'))
     await fillStep2(user)
     await user.click(screen.getByRole('button', { name: /^หนี้นอกระบบ/ }))
     await user.click(screen.getByRole('button', { name: 'ถัดไป' }))
@@ -412,25 +418,27 @@ describe('debt mediation wizard', () => {
     expect(screen.getByRole('button', { name: /^ลูกหนี้/ })).toHaveAttribute('aria-pressed', 'true')
 
     await user.click(screen.getByRole('button', { name: 'ถัดไป' }))
-    expect(screen.getByLabelText(/ชื่อ-สกุล/)).toBeInTheDocument()
+    expect(screen.getByLabelText(/นามสกุล/)).toBeInTheDocument()
   })
 
-  it('blocks whitespace-only full name on step 1 (F11)', async () => {
+  it('blocks whitespace-only names on step 1 (F11)', async () => {
     const user = userEvent.setup()
     render(<LiffDebtMediationPage />)
     await screen.findByText('สถานะของผู้ยื่นคำขอ')
 
     await user.click(screen.getByRole('button', { name: /^ลูกหนี้/ }))
     await user.click(screen.getByRole('button', { name: 'ถัดไป' }))
-    await waitFor(() => screen.getByPlaceholderText('ระบุชื่อ-นามสกุล'))
-    fireEvent.change(screen.getByPlaceholderText('ระบุชื่อ-นามสกุล'), { target: { value: '   ' } })
+    await waitFor(() => screen.getByPlaceholderText('ระบุชื่อจริง'))
+    fireEvent.change(screen.getByPlaceholderText('ระบุชื่อจริง'), { target: { value: '   ' } })
     fireEvent.change(screen.getByPlaceholderText('0xx-xxx-xxxx'), { target: { value: '0812345678' } })
     fireEvent.change(screen.getByPlaceholderText('0.00'), { target: { value: '20000' } })
-    await user.selectOptions(screen.getByRole('combobox'), 'สกลนคร')
+    await user.selectOptions(screen.getByLabelText(/จังหวัดที่อาศัย/), 'สกลนคร')
     await user.click(screen.getByRole('button', { name: /^หนี้นอกระบบ/ }))
     await user.click(screen.getByRole('button', { name: 'ถัดไป' }))
 
-    expect(screen.getByText('กรุณาระบุชื่อ-สกุล')).toBeInTheDocument()
-    expect(screen.getByPlaceholderText('ระบุชื่อ-นามสกุล')).toBeInTheDocument()
+    expect(screen.getByText('กรุณาเลือกคำนำหน้า')).toBeInTheDocument()
+    expect(screen.getByText('กรุณาระบุชื่อ')).toBeInTheDocument()
+    expect(screen.getByText('กรุณาระบุนามสกุล')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('ระบุชื่อจริง')).toBeInTheDocument()
   })
 })

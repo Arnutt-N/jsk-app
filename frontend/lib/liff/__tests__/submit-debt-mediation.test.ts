@@ -21,7 +21,10 @@ function jsonResponse(status: number, body: unknown = {}): Response {
 
 const payload = {
   submitter_type: 'DEBTOR' as const,
-  full_name: 'สมชาย ใจดี',
+  prefix: 'นาย',
+  firstname: 'สมชาย',
+  lastname: 'ใจดี',
+  full_name: 'นาย สมชาย ใจดี',
   phone_number: '0812345678',
   province: 'สกลนคร',
   sub_district: null,

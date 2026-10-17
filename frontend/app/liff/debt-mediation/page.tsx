@@ -23,6 +23,8 @@ import { useLiffInit } from '@/hooks/useLiffInit'
 import LiffStepper from '@/components/liff/LiffStepper'
 import { useAutoCloseCountdown } from '@/hooks/useAutoCloseCountdown'
 import { submitDebtMediation, DebtMediationPayload, formatLiffSubmitError, isValidPhone, normalizePhone } from '@/lib/liff/submit-debt-mediation'
+import { composeContactName } from '@/lib/liff/validation'
+import { PREFIX_OPTIONS } from '@/lib/constants/prefixes'
 import { Select } from '@/components/ui/Select'
 
 // --- FORM CONTENT (mirrors the MoJ debt-mediation registration form) ---
@@ -74,7 +76,9 @@ const STEPS = [
 
 const INITIAL_FORM_DATA = {
     submitter_type: '' as SubmitterType | '',
-    full_name: '',
+    prefix: '',
+    firstname: '',
+    lastname: '',
     phone_number: '',
     province: '',
     sub_district: '',
@@ -169,7 +173,9 @@ export default function LiffDebtMediation() {
                 if (!formData.submitter_type) errors.submitter_type = 'กรุณาเลือกสถานะผู้ยื่นคำขอ'
                 break
             case 1: // Debt info
-                if (blank(formData.full_name)) errors.full_name = 'กรุณาระบุชื่อ-สกุล'
+                if (blank(formData.prefix)) errors.prefix = 'กรุณาเลือกคำนำหน้า'
+                if (blank(formData.firstname)) errors.firstname = 'กรุณาระบุชื่อ'
+                if (blank(formData.lastname)) errors.lastname = 'กรุณาระบุนามสกุล'
                 if (blank(formData.phone_number)) errors.phone_number = 'กรุณาระบุหมายเลขโทรศัพท์'
                 else if (!isValidPhone(formData.phone_number)) errors.phone_number = 'หมายเลขโทรศัพท์ไม่ถูกต้อง'
                 if (blank(formData.province)) errors.province = 'กรุณาเลือกจังหวัดที่อาศัย'
@@ -217,7 +223,14 @@ export default function LiffDebtMediation() {
 
     const buildPayload = (): DebtMediationPayload => ({
         submitter_type: formData.submitter_type as SubmitterType,
-        full_name: formData.full_name.trim(),
+        prefix: formData.prefix.trim(),
+        firstname: formData.firstname.trim(),
+        lastname: formData.lastname.trim(),
+        full_name: composeContactName({
+            prefix: formData.prefix,
+            firstname: formData.firstname,
+            lastname: formData.lastname,
+        }),
         phone_number: normalizePhone(formData.phone_number),
         province: formData.province.trim(),
         sub_district: formData.sub_district.trim() || null,
@@ -269,7 +282,7 @@ export default function LiffDebtMediation() {
         if (step === 0) {
             setFormData(prev => ({ ...prev, submitter_type: '' }))
         } else if (step === 1) {
-            setFormData(prev => ({ ...prev, full_name: '', phone_number: '', province: '', sub_district: '', debt_amount: '', debt_type: '' }))
+            setFormData(prev => ({ ...prev, prefix: '', firstname: '', lastname: '', phone_number: '', province: '', sub_district: '', debt_amount: '', debt_type: '' }))
         } else if (step === 2) {
             setFormData(prev => ({ ...prev, counterparty_name: '', interest_rate: '', issue_category: '', issue_other: '' }))
         }
@@ -490,24 +503,64 @@ export default function LiffDebtMediation() {
                             {/* Step 2: Submitter info + debt */}
                             {step === 1 && (
                                 <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+                                    <div className="grid grid-cols-3 gap-3">
+                                        <div className="col-span-1">
+                                            <label htmlFor="dm-prefix" className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
+                                                คำนำหน้า <span className="text-red-500">*</span>
+                                            </label>
+                                            <Select
+                                                id="dm-prefix"
+                                                name="prefix"
+                                                value={formData.prefix}
+                                                onChange={handleChange}
+                                                aria-invalid={Boolean(fieldErrors.prefix) || undefined}
+                                                aria-describedby={fieldErrors.prefix ? 'dm-prefix-err' : undefined}
+                                                options={PREFIX_OPTIONS}
+                                                placeholder="เลือก"
+                                                state={fieldErrors.prefix ? 'error' : 'default'}
+                                                required
+                                            />
+                                            {fieldErrors.prefix && <p id="dm-prefix-err" className="text-red-500 text-[10px] mt-1">{fieldErrors.prefix}</p>}
+                                        </div>
+                                        <div className="col-span-2">
+                                            <label htmlFor="dm-firstname" className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
+                                                ชื่อ <span className="text-red-500">*</span>
+                                            </label>
+                                            <input
+                                                id="dm-firstname"
+                                                type="text"
+                                                name="firstname"
+                                                value={formData.firstname}
+                                                onChange={handleChange}
+                                                maxLength={100}
+                                                aria-invalid={Boolean(fieldErrors.firstname) || undefined}
+                                                aria-describedby={fieldErrors.firstname ? 'dm-firstname-err' : undefined}
+                                                className={`${inputBaseClass} ${fieldErrors.firstname ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-200'}`}
+                                                placeholder="ระบุชื่อจริง"
+                                                required
+                                            />
+                                            {fieldErrors.firstname && <p id="dm-firstname-err" className="text-red-500 text-[10px] mt-1">{fieldErrors.firstname}</p>}
+                                        </div>
+                                    </div>
+
                                     <div>
-                                        <label htmlFor="dm-full-name" className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
-                                            ชื่อ-สกุล <span className="text-red-500">*</span>
+                                        <label htmlFor="dm-lastname" className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
+                                            นามสกุล <span className="text-red-500">*</span>
                                         </label>
                                         <input
-                                            id="dm-full-name"
+                                            id="dm-lastname"
                                             type="text"
-                                            name="full_name"
-                                            value={formData.full_name}
+                                            name="lastname"
+                                            value={formData.lastname}
                                             onChange={handleChange}
-                                            maxLength={200}
-                                            aria-invalid={Boolean(fieldErrors.full_name) || undefined}
-                                            aria-describedby={fieldErrors.full_name ? 'dm-full-name-err' : undefined}
-                                            className={`${inputBaseClass} ${fieldErrors.full_name ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-200'}`}
-                                            placeholder="ระบุชื่อ-นามสกุล"
+                                            maxLength={100}
+                                            aria-invalid={Boolean(fieldErrors.lastname) || undefined}
+                                            aria-describedby={fieldErrors.lastname ? 'dm-lastname-err' : undefined}
+                                            className={`${inputBaseClass} ${fieldErrors.lastname ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-200'}`}
+                                            placeholder="ระบุนามสกุล"
                                             required
                                         />
-                                        {fieldErrors.full_name && <p id="dm-full-name-err" className="text-red-500 text-[10px] mt-1">{fieldErrors.full_name}</p>}
+                                        {fieldErrors.lastname && <p id="dm-lastname-err" className="text-red-500 text-[10px] mt-1">{fieldErrors.lastname}</p>}
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-4">

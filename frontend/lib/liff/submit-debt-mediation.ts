@@ -20,6 +20,9 @@ export function formatLiffSubmitError(body: unknown): string {
 /** Mirrors the backend `DebtMediationCreate` schema. */
 export interface DebtMediationPayload {
   submitter_type: 'DEBTOR' | 'CREDITOR'
+  prefix: string
+  firstname: string
+  lastname: string
   full_name: string
   phone_number: string
   province: string
