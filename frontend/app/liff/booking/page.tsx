@@ -17,7 +17,8 @@ import { useLiffInit } from '@/hooks/useLiffInit'
 import DateSection, { type DayInfo } from '@/components/liff/booking/DateSection'
 import LiffStepper from '@/components/liff/LiffStepper'
 import { useBookingStore } from '@/lib/booking/store'
-import { validateBookingContact } from '@/lib/liff/validation'
+import { composeContactName, splitContactName, validateBookingContact } from '@/lib/liff/validation'
+import { PREFIX_OPTIONS } from '@/lib/constants/prefixes'
 import { buildServiceGroups, loadTaxonomy, type TaxonomyTable } from '@/lib/booking/service-mapping'
 import { useToast } from '@/components/ui/Toast'
 import {
@@ -40,9 +41,12 @@ const STEPS: { label: string; icon: React.ReactNode }[] = [
   { label: 'สรุป', icon: <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> },
 ]
 
-function contactPayload(contactName: string, phoneNumber: string, note: string) {
+function contactPayload(prefix: string, firstname: string, lastname: string, phoneNumber: string, note: string) {
   return {
-    contact_name: contactName.trim() || null,
+    contact_name: composeContactName({ prefix, firstname, lastname }) || null,
+    prefix: prefix.trim() || null,
+    firstname: firstname.trim() || null,
+    lastname: lastname.trim() || null,
     phone_number: phoneNumber.trim() || null,
     note: note.trim() || null,
   }
@@ -114,35 +118,73 @@ function WizardNav({ step, canNext, onBack, onNext }: { step: WizardStep; canNex
 }
 
 interface ContactFieldsFormProps {
-  contactName: string
+  prefix: string
+  firstname: string
+  lastname: string
   phoneNumber: string
   note: string
-  onContactName: (value: string) => void
+  onPrefix: (value: string) => void
+  onFirstname: (value: string) => void
+  onLastname: (value: string) => void
   onPhoneNumber: (value: string) => void
   onNote: (value: string) => void
+  nameErrors?: { prefix?: string; firstname?: string; lastname?: string }
   phoneError?: string
 }
 
-/** The name/phone/note trio, shared by the booking step and the edit form. */
+/** Prefix dropdown + firstname + lastname, shared by the booking step and the edit form. */
 function ContactFieldsForm({
-  contactName,
+  prefix,
+  firstname,
+  lastname,
   phoneNumber,
   note,
-  onContactName,
+  onPrefix,
+  onFirstname,
+  onLastname,
   onPhoneNumber,
   onNote,
+  nameErrors,
   phoneError,
 }: ContactFieldsFormProps) {
   return (
     <div className="space-y-3">
+      <div className="grid grid-cols-3 gap-3">
+        <label className="col-span-1 block">
+          <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-text-secondary">คำนำหน้า</span>
+          <Select
+            aria-label="คำนำหน้า"
+            value={prefix}
+            onChange={(e) => onPrefix(e.target.value)}
+            options={PREFIX_OPTIONS}
+            placeholder="เลือก"
+            state={nameErrors?.prefix ? 'error' : 'default'}
+            errorMessage={nameErrors?.prefix}
+          />
+        </label>
+        <label className="col-span-2 block">
+          <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-text-secondary">ชื่อ</span>
+          <Input
+            type="text"
+            value={firstname}
+            onChange={(e) => onFirstname(e.target.value)}
+            maxLength={60}
+            placeholder="ชื่อจริง"
+            state={nameErrors?.firstname ? 'error' : 'default'}
+            errorMessage={nameErrors?.firstname}
+          />
+        </label>
+      </div>
       <label className="block">
-        <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-text-secondary">ชื่อ-นามสกุล</span>
+        <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-text-secondary">นามสกุล</span>
         <Input
           type="text"
-          value={contactName}
-          onChange={(e) => onContactName(e.target.value)}
-          maxLength={120}
-          placeholder="ชื่อสำหรับเรียกคิว"
+          value={lastname}
+          onChange={(e) => onLastname(e.target.value)}
+          maxLength={60}
+          placeholder="นามสกุล"
+          state={nameErrors?.lastname ? 'error' : 'default'}
+          errorMessage={nameErrors?.lastname}
         />
       </label>
       <label className="block">
@@ -218,11 +260,17 @@ export default function LiffBookingPage() {
 
   const serviceType = draft.service
   const selectedDate = draft.date
-  const contactName = draft.contactName
+  const prefix = draft.prefix
+  const firstname = draft.firstname
+  const lastname = draft.lastname
   const phoneNumber = draft.phoneNumber
   const note = draft.note
-  const onContactName = (value: string) =>
-    dispatch({ type: 'contact/set', contact: { contactName: value } })
+  const onPrefix = (value: string) =>
+    dispatch({ type: 'contact/set', contact: { prefix: value } })
+  const onFirstname = (value: string) =>
+    dispatch({ type: 'contact/set', contact: { firstname: value } })
+  const onLastname = (value: string) =>
+    dispatch({ type: 'contact/set', contact: { lastname: value } })
   const onPhoneNumber = (value: string) =>
     dispatch({ type: 'contact/set', contact: { phoneNumber: value.replace(/[^\d]/g, '') } })
   const onNote = (value: string) =>
@@ -239,7 +287,10 @@ export default function LiffBookingPage() {
   const [notice, setNotice] = useState<string | null>(null)
   const [showContactErrors, setShowContactErrors] = useState(false)
 
-  const contactErrors = validateBookingContact({ contactName, phoneNumber })
+  const contactErrors = validateBookingContact({ prefix, firstname, lastname, phoneNumber })
+  const displayName = composeContactName({ prefix, firstname, lastname })
+  const contactNameError =
+    contactErrors.prefix ?? contactErrors.firstname ?? contactErrors.lastname
 
   const [wizardStep, setWizardStep] = useState<WizardStep>(() => {
     if (draft.slotId) return 2
@@ -263,13 +314,13 @@ export default function LiffBookingPage() {
   }, [])
 
   const tryNextFromContact = useCallback(() => {
-    if (contactErrors.phoneNumber) {
+    if (contactNameError || contactErrors.phoneNumber) {
       setShowContactErrors(true)
       return
     }
     setShowContactErrors(false)
     goNext()
-  }, [contactErrors.phoneNumber, goNext])
+  }, [contactNameError, contactErrors.phoneNumber, goNext])
 
   const goBack = useCallback(() => {
     setWizardStep((current) => {
@@ -351,7 +402,7 @@ export default function LiffBookingPage() {
 
   const handleSubmit = async () => {
     if (!idToken || !serviceType || !selectedDate || !selectedSlot) return
-    if (contactErrors.phoneNumber) {
+    if (contactNameError || contactErrors.phoneNumber) {
       setShowContactErrors(true)
       setWizardStep(2)
       return
@@ -364,7 +415,7 @@ export default function LiffBookingPage() {
         service_type: serviceType,
         booking_date: selectedDate,
         booking_time: selectedSlot.time,
-        ...contactPayload(contactName, phoneNumber, note),
+        ...contactPayload(prefix, firstname, lastname, phoneNumber, note),
       })
       setConfirmed(booking)
     } catch (err) {
@@ -411,8 +462,8 @@ export default function LiffBookingPage() {
 
   const handleUpdate = async () => {
     if (!idToken || !confirmed) return
-    if (contactErrors.phoneNumber) {
-      setError(contactErrors.phoneNumber)
+    if (contactNameError || contactErrors.phoneNumber) {
+      setError(contactNameError ?? contactErrors.phoneNumber ?? 'กรุณากรอกข้อมูลให้ครบถ้วน')
       return
     }
     setSubmitting(true)
@@ -421,7 +472,7 @@ export default function LiffBookingPage() {
       const updated = await updateBookingContact(
         idToken,
         confirmed.id,
-        contactPayload(contactName, phoneNumber, note),
+        contactPayload(prefix, firstname, lastname, phoneNumber, note),
       )
       setConfirmed(updated)
       setEditing(false)
@@ -485,12 +536,17 @@ export default function LiffBookingPage() {
               {editing ? (
                 <>
                   <ContactFieldsForm
-                    contactName={contactName}
+                    prefix={prefix}
+                    firstname={firstname}
+                    lastname={lastname}
                     phoneNumber={phoneNumber}
                     note={note}
-                    onContactName={onContactName}
+                    onPrefix={onPrefix}
+                    onFirstname={onFirstname}
+                    onLastname={onLastname}
                     onPhoneNumber={onPhoneNumber}
                     onNote={onNote}
+                    nameErrors={contactErrors}
                     phoneError={contactErrors.phoneNumber}
                   />
                   <div className="mt-4 space-y-2">
@@ -561,10 +617,13 @@ export default function LiffBookingPage() {
                       variant="secondary"
                       className="w-full"
                       onClick={() => {
+                        const split = splitContactName(confirmed.contact_name)
                         dispatch({
                           type: 'contact/set',
                           contact: {
-                            contactName: confirmed.contact_name ?? '',
+                            prefix: split.prefix,
+                            firstname: split.firstname,
+                            lastname: split.lastname,
                             phoneNumber: confirmed.phone_number ?? '',
                             note: confirmed.note ?? '',
                           },
@@ -727,12 +786,17 @@ export default function LiffBookingPage() {
                 action={<SectionClearButton onClear={clearContact} />}
               >
                 <ContactFieldsForm
-                  contactName={contactName}
+                  prefix={prefix}
+                  firstname={firstname}
+                  lastname={lastname}
                   phoneNumber={phoneNumber}
                   note={note}
-                  onContactName={onContactName}
+                  onPrefix={onPrefix}
+                  onFirstname={onFirstname}
+                  onLastname={onLastname}
                   onPhoneNumber={onPhoneNumber}
                   onNote={onNote}
+                  nameErrors={showContactErrors ? contactErrors : undefined}
                   phoneError={showContactErrors ? contactErrors.phoneNumber : undefined}
                 />
               </Section>
@@ -786,12 +850,12 @@ export default function LiffBookingPage() {
                         แก้ไข
                       </button>
                     </div>
-                    {contactName.trim() || phoneNumber.trim() || note.trim() ? (
+                    {displayName || phoneNumber.trim() || note.trim() ? (
                       <dl className="space-y-1">
-                        {contactName.trim() && (
+                        {displayName && (
                           <div className="flex justify-between gap-4">
                             <dt className="text-text-secondary">ชื่อ</dt>
-                            <dd className="text-right font-medium text-text-primary">{contactName}</dd>
+                            <dd className="text-right font-medium text-text-primary">{displayName}</dd>
                           </div>
                         )}
                         {phoneNumber.trim() && (

@@ -177,7 +177,9 @@ async function bookToDone() {
   await user.click(await screen.findByRole('button', { name: /09:30/ }))
   await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
 
-  await user.type(screen.getByPlaceholderText('ชื่อสำหรับเรียกคิว'), 'สมชาย ใจดี')
+  await userEvent.selectOptions(await screen.findByRole('combobox', { name: 'คำนำหน้า' }), 'นาย')
+  await user.type(screen.getByPlaceholderText('ชื่อจริง'), 'สมชาย')
+  await user.type(screen.getByPlaceholderText('นามสกุล'), 'ใจดี')
   await user.type(screen.getByPlaceholderText('0812345678'), '0812345678')
   await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
   await user.click(screen.getByRole('button', { name: 'ยืนยันการจอง' }))
@@ -487,7 +489,7 @@ describe('shared card rhythm', () => {
     await user.click(await screen.findByRole('button', { name: /09:30/ }))
     await goNext()
 
-    for (const label of ['ชื่อ-นามสกุล', 'เบอร์โทรศัพท์', 'รายละเอียดเพิ่มเติม (ถ้ามี)']) {
+    for (const label of ['คำนำหน้า', 'ชื่อ', 'นามสกุล', 'เบอร์โทรศัพท์', 'รายละเอียดเพิ่มเติม (ถ้ามี)']) {
       const el = screen.getByText(label)
       expect(el.className).toContain('uppercase')
       expect(el.className).toContain('font-bold')
@@ -698,7 +700,8 @@ describe('post-booking actions', () => {
     const user = await bookToDone()
 
     await user.click(screen.getByRole('button', { name: 'แก้ไขข้อมูล' }))
-    const nameInput = screen.getByPlaceholderText('ชื่อสำหรับเรียกคิว')
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'คำนำหน้า' }), 'นาย')
+    const nameInput = screen.getByPlaceholderText('ชื่อจริง')
     await user.clear(nameInput)
     await user.type(nameInput, 'ชื่อใหม่')
     await user.click(screen.getByRole('button', { name: 'บันทึกการแก้ไข' }))
@@ -748,12 +751,14 @@ describe('draft restore', () => {
     window.sessionStorage.setItem(
       'liff-booking-draft',
       JSON.stringify({
-        version: 1,
+        version: 2,
         draft: {
           service: 'ปรึกษากฎหมาย',
           date: target,
           slotId: '09:30:00',
-          contactName: '',
+          prefix: '',
+          firstname: '',
+          lastname: '',
           phoneNumber: '',
           note: '',
           savedAt: Date.now(),
@@ -762,7 +767,7 @@ describe('draft restore', () => {
     )
     renderPage()
 
-    expect(await screen.findByPlaceholderText('ชื่อสำหรับเรียกคิว')).toBeInTheDocument()
+    expect(await screen.findByPlaceholderText('ชื่อจริง')).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'เลือกบริการ' })).not.toBeInTheDocument()
 
     await goBack()
@@ -888,6 +893,26 @@ describe('contact validation', () => {
     await user.type(screen.getByPlaceholderText('0812345678'), '0812345678')
     await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
     expect(screen.getByRole('heading', { name: 'สรุปการจอง' })).toBeInTheDocument()
+  })
+
+  it('asks for the missing trio parts before leaving the contact step', async () => {
+    const user = await walkToContact()
+    await user.type(screen.getByPlaceholderText('ชื่อจริง'), 'สมชาย')
+    await user.click(screen.getByRole('button', { name: 'ถัดไป' }))
+    expect(screen.getByText('กรุณาเลือกคำนำหน้า')).toBeInTheDocument()
+    expect(screen.getByText('กรุณาระบุนามสกุล')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'ข้อมูลผู้จอง' })).toBeInTheDocument()
+  })
+
+  it('asks for a prefix when the stored name has none', async () => {
+    const user = await bookToDone()
+
+    await user.click(screen.getByRole('button', { name: 'แก้ไขข้อมูล' }))
+    await user.click(screen.getByRole('button', { name: 'บันทึกการแก้ไข' }))
+    expect(screen.getAllByText('กรุณาเลือกคำนำหน้า').length).toBeGreaterThanOrEqual(1)
+    expect(
+      fetchMock.mock.calls.filter(([, init]) => init?.method === 'PATCH'),
+    ).toHaveLength(0)
   })
 
   it('blocks the edit-save with the same wording and no PATCH', async () => {

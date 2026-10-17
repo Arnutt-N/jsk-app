@@ -36,7 +36,9 @@ const SAVED: BookingDraft = {
   service: 'ไกล่เกลี่ยระงับข้อพิพาท',
   date: '2026-09-02',
   slotId: '09:30:00',
-  contactName: 'สมชาย ใจดี',
+  prefix: 'นาย',
+  firstname: 'สมชาย',
+  lastname: 'ใจดี',
   phoneNumber: '0812345678',
   note: 'มาก่อนเวลานัด',
   savedAt: 1_000_000,
@@ -46,7 +48,9 @@ const EMPTY_LITERAL = {
   service: null,
   date: null,
   slotId: null,
-  contactName: '',
+  prefix: '',
+  firstname: '',
+  lastname: '',
   phoneNumber: '',
   note: '',
   savedAt: 0,
@@ -80,13 +84,27 @@ describe('loadDraft', () => {
     expect(loadDraft(storage, SAVED.savedAt + 1_000)).toEqual(EMPTY_LITERAL)
   })
 
+  it('ignores v1 drafts that still carry the single contactName string', () => {
+    const legacy = {
+      service: 'ปรึกษากฎหมาย',
+      date: null,
+      slotId: null,
+      contactName: 'สมชาย ใจดี',
+      phoneNumber: '',
+      note: '',
+      savedAt: 1_000_000,
+    }
+    const storage = memoryStorage(stored(legacy, 1))
+    expect(loadDraft(storage, 1_001_000)).toEqual(EMPTY_LITERAL)
+  })
+
   it('reads empty on corrupt JSON', () => {
     const storage = memoryStorage({ [DRAFT_STORAGE_KEY]: '{oops' })
     expect(loadDraft(storage, 1_000_000)).toEqual(EMPTY_LITERAL)
   })
 
   it('reads empty when the shape is wrong', () => {
-    const bad = { ...SAVED, contactName: 42, savedAt: 'yesterday' }
+    const bad = { ...SAVED, firstname: 42, savedAt: 'yesterday' }
     const storage = memoryStorage(stored(bad))
     expect(loadDraft(storage, 1_000_000)).toEqual(EMPTY_LITERAL)
   })
@@ -129,7 +147,7 @@ describe('draftReducer', () => {
 
   it('clears the contact section to blank strings', () => {
     const next = draftReducer(SAVED, { type: 'section/clear', section: 'contact' })
-    expect(next).toEqual({ ...SAVED, contactName: '', phoneNumber: '', note: '' })
+    expect(next).toEqual({ ...SAVED, prefix: '', firstname: '', lastname: '', phoneNumber: '', note: '' })
   })
 
   it('clearing the date twice is a no-op the second time', () => {
