@@ -16,7 +16,6 @@ interface LiffStepperProps {
   className?: string
 }
 
-/** Shared LIFF wizard stepper. Pages own step derivation and pass it in. */
 export default function LiffStepper({ steps, currentIndex, ariaLabel, className }: LiffStepperProps) {
   return (
     <ol className={cn('mb-8 flex items-center justify-between px-2', className)} aria-label={ariaLabel}>

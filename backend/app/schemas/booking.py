@@ -70,9 +70,7 @@ class ContactFields(BaseModel):
     contact_name: Optional[str] = Field(default=None, max_length=120)
     phone_number: Optional[str] = Field(default=None, max_length=20)
     note: Optional[str] = Field(default=None, max_length=1000)
-    # Structured name (LIFF wizard): prefix dropdown + firstname + lastname.
-    # Stored only as the composed contact_name — no new columns — so admin,
-    # notifications, and existing rows keep working unchanged.
+    # No new columns: the trio composes into contact_name.
 
     prefix: Optional[str] = Field(default=None, max_length=20)
     firstname: Optional[str] = Field(default=None, max_length=100)
@@ -99,13 +97,7 @@ class ContactFields(BaseModel):
 
     @model_validator(mode="after")
     def _compose_contact_name(self) -> "ContactFields":
-        """Prefer the structured trio over the legacy single string.
-
-        All-or-nothing: any of prefix/firstname/lastname present requires all
-        three, otherwise the legacy contact_name stands (it may stay empty —
-        contact is optional on booking). The composed value must fit the
-        contact_name column; oversize trios are rejected, not truncated.
-        """
+        """Trio wins over legacy; oversize rejected, not truncated."""
         prefix = (self.prefix or "").strip() or None
         firstname = (self.firstname or "").strip() or None
         lastname = (self.lastname or "").strip() or None

@@ -34,6 +34,8 @@ import { TOPIC_OPTIONS } from '@/lib/constants/categories'
 
 type WizardStep = 0 | 1 | 2 | 3
 
+const DATETIME_STEP: WizardStep = 1
+
 const STEPS: { label: string; icon: React.ReactNode }[] = [
   { label: 'บริการ', icon: <Users className="h-4 w-4" aria-hidden="true" /> },
   { label: 'วันเวลา', icon: <CalendarDays className="h-4 w-4" aria-hidden="true" /> },
@@ -99,7 +101,6 @@ function SectionClearButton({ onClear }: { onClear: () => void }) {
   )
 }
 
-/** Back/Next row shared by every wizard step. Next gates on the step data. */
 function WizardNav({ step, canNext, onBack, onNext }: { step: WizardStep; canNext: boolean; onBack: () => void; onNext: () => void }) {
   return (
     <div className="mt-4 flex gap-3">
@@ -132,7 +133,6 @@ interface ContactFieldsFormProps {
   phoneError?: string
 }
 
-/** Prefix dropdown + firstname + lastname, shared by the booking step and the edit form. */
 function ContactFieldsForm({
   prefix,
   firstname,
@@ -425,8 +425,7 @@ export default function LiffBookingPage() {
       // citizen sees the real state instead of a stale "available" button.
       if (serviceType && selectedDate) void loadSlots(serviceType, selectedDate, { force: true })
       dispatch({ type: 'slot/set', slotId: null })
-      // The summary step needs a slot — send the citizen back to pick a new one.
-      setWizardStep(1)
+      setWizardStep(DATETIME_STEP)
     } finally {
       setSubmitting(false)
     }

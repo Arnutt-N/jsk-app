@@ -51,9 +51,7 @@ def _blank(value: Optional[str]) -> bool:
 
 class DebtMediationCreate(BaseModel):
     submitter_type: SubmitterType
-    # Legacy single string (kept for backward compat) vs structured trio
-    # (LIFF wizard). The model validator composes full_name from the trio
-    # when present; stored column never changes.
+    # Stored column never changes; the validator composes it from the trio.
     full_name: Optional[str] = Field(default=None, max_length=200)
     prefix: Optional[str] = Field(default=None, max_length=20)
     firstname: Optional[str] = Field(default=None, max_length=100)
@@ -121,8 +119,7 @@ class DebtMediationCreate(BaseModel):
                 else:
                     setattr(self, field, stripped or value)
 
-        # Structured trio wins over the legacy string: all-or-nothing, then
-        # compose. Legacy full_name-only payloads still pass (compat).
+        # Legacy full_name-only payloads still pass (compat).
         trio = [getattr(self, field) for field in ("prefix", "firstname", "lastname")]
         if any(trio):
             cleaned = [(value or "").strip() for value in trio]

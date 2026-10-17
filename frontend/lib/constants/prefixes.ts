@@ -1,5 +1,3 @@
-/** คำนำหน้าชื่อ — fixed dropdown shared by every LIFF form. */
-
 export const NAME_PREFIXES = [
   'นาย',
   'นาง',

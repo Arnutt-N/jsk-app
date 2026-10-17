@@ -196,12 +196,6 @@ def _invalidate_booking_config_cache() -> None:
 
 
 async def load_booking_config(db: AsyncSession, *, fresh: bool = False) -> BookingConfig:
-    """Return the booking config, cached for 60 seconds unless `fresh`.
-
-    The frozen config is safe to share between callers. Admin writes go
-    through `save_booking_config`, which invalidates the cache, and the
-    reminder scheduler passes `fresh=True` to keep its every-pass re-read.
-    """
     global _cached_config, _cached_at
     now = monotonic()
     if (

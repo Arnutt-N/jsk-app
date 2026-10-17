@@ -1,9 +1,4 @@
-"""Structured citizen names: prefix/firstname/lastname compose the stored string.
-
-Both LIFF flows keep their single stored column (booking.contact_name,
-debt.full_name) — the trio is composed at the schema boundary, so admin,
-notifications, and existing rows never change. Pure pydantic, no DB.
-"""
+"""Trio-composition contract for both LIFF flows."""
 from datetime import date, time
 
 import pytest

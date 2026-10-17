@@ -18,7 +18,6 @@ const CONNECTIVITY_COPY = {
   loading: { variant: 'warning', text: 'Connecting...' },
 } as const
 
-/** Shared LIFF header status. Business and connectivity never share one boolean. */
 export default function LiffStatusBadge(props: LiffStatusBadgeProps) {
   const copy = props.kind === 'business' ? BUSINESS_COPY[props.state] : CONNECTIVITY_COPY[props.state]
   return (

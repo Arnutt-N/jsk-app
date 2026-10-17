@@ -93,7 +93,6 @@ function stubFetch(
     rangeDay?: (iso: string) => { date: string; is_open: boolean; remaining: number }
     /** Make the range request fail with this status (fail-open scenarios). */
     rangeStatus?: number
-    /** Make the booking POST fail with this status (submit-failure path). */
     submitStatus?: number
   } = {},
 ) {
