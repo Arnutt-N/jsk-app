@@ -58,8 +58,8 @@ interface SectionProps {
 /** One card per step — the shared Card rhythm used across the LIFF forms. */
 function Section({ icon, title, children, className, action }: SectionProps) {
   return (
-    <Card glass className={cn('overflow-hidden', className)}>
-      <CardHeader className="bg-bg/50 border-b border-border-subtle">
+    <Card glass className={cn('overflow-visible', className)}>
+      <CardHeader className="bg-bg/50 border-b border-border-subtle rounded-t-2xl">
         <div className="flex items-center justify-between gap-2">
           <CardTitle className="text-base flex items-center gap-2">
             <span className="text-text-tertiary" aria-hidden="true">

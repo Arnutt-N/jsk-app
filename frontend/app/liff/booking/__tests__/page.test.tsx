@@ -430,6 +430,15 @@ describe('shared card rhythm', () => {
     }
   })
 
+  it('lets the date card overflow so the calendar popup escapes instead of clipping', async () => {
+    renderPage()
+    await chooseService()
+
+    const toggle = await screen.findByRole('button', { name: 'เลือกจากปฏิทิน' })
+    expect(toggle.closest('.overflow-visible')).not.toBeNull()
+    expect(toggle.closest('.overflow-hidden')).toBeNull()
+  })
+
   it('renders the confirmation as a Card with its title in the header', async () => {
     await bookToDone()
 
