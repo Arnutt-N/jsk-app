@@ -1,19 +1,10 @@
 import { SessionExpiredError } from './session-expired'
 
+export { isValidPhone, normalizePhone } from './validation'
+
 const DEBT_MEDIATION_ENDPOINT = '/api/v1/liff/debt-mediation'
 
-/** Optional +, then 9–15 digits — matches backend `_PHONE_PATTERN`. */
-const PHONE_DIGITS = /^\+?[0-9]{9,15}$/
-
 const GENERIC_SUBMIT_ERROR = 'ไม่สามารถส่งคำขอได้ กรุณาตรวจสอบข้อมูลแล้วลองอีกครั้ง'
-
-export function normalizePhone(raw: string): string {
-  return raw.trim().replace(/[-\s]/g, '')
-}
-
-export function isValidPhone(raw: string): boolean {
-  return PHONE_DIGITS.test(normalizePhone(raw))
-}
 
 /** Surface a string `detail`; never dump FastAPI 422 arrays as JSON. */
 export function formatLiffSubmitError(body: unknown): string {

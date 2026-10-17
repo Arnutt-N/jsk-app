@@ -20,6 +20,7 @@ Stepper state is `{steps, currentIndex}` — pages keep step derivation, compone
 5. R3 spec → admin approval gate, code later.
 6. R2 cache + waterfall change + trunk/head timing (backend pytest + frontend tests + measured numbers).
 7. Wizard conversion (user-approved): STEPS 4 items, wizardStep state init from draft, per-step Next gating + Back, summary step with confirm, submit-failure step-back, booking page tests rewritten to walk the wizard.
+8. Shared validation: NEW `lib/liff/validation.ts` (isValidPhone/normalizePhone/validateBookingContact) + debt re-export compat + booking step-2/edit/summary gating + unit + page tests.
 
 ## Boundaries
 Validate at component props (bad kind/state rejected by types); pages keep data derivation. Endpoints thin; cache lives in service with writer-invalidate. Never re-export ORM details. No new deps.

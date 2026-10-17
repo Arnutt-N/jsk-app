@@ -855,3 +855,51 @@ describe('wizard navigation', () => {
     expect(screen.getByRole('heading', { name: 'ข้อมูลผู้จอง' })).toBeInTheDocument()
   })
 })
+
+describe('contact validation', () => {
+  async function walkToContact() {
+    const user = userEvent.setup()
+    renderPage()
+    await chooseService()
+    await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
+    await user.click(await screen.findByRole('button', { name: /09:30/ }))
+    await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
+    expect(screen.getByRole('heading', { name: 'ข้อมูลผู้จอง' })).toBeInTheDocument()
+    return user
+  }
+
+  it('stops Next and shows the shared wording for an undiallable phone', async () => {
+    const user = await walkToContact()
+    await user.type(screen.getByPlaceholderText('0812345678'), '123')
+    await user.click(screen.getByRole('button', { name: 'ถัดไป' }))
+    expect(screen.getByText('เบอร์โทรไม่ถูกต้อง')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'ข้อมูลผู้จอง' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'สรุปการจอง' })).not.toBeInTheDocument()
+  })
+
+  it('lets an empty phone through — contact stays optional', async () => {
+    await walkToContact()
+    await userEvent.click(await screen.findByRole('button', { name: 'ถัดไป' }))
+    expect(screen.getByRole('heading', { name: 'สรุปการจอง' })).toBeInTheDocument()
+  })
+
+  it('lets a diallable phone through to the summary', async () => {
+    const user = await walkToContact()
+    await user.type(screen.getByPlaceholderText('0812345678'), '0812345678')
+    await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
+    expect(screen.getByRole('heading', { name: 'สรุปการจอง' })).toBeInTheDocument()
+  })
+
+  it('blocks the edit-save with the same wording and no PATCH', async () => {
+    const user = await bookToDone()
+    await user.click(screen.getByRole('button', { name: 'แก้ไขข้อมูล' }))
+    const phoneInput = screen.getByPlaceholderText('0812345678')
+    await user.clear(phoneInput)
+    await user.type(phoneInput, '123')
+    await user.click(screen.getByRole('button', { name: 'บันทึกการแก้ไข' }))
+    expect(screen.getAllByText('เบอร์โทรไม่ถูกต้อง').length).toBeGreaterThanOrEqual(1)
+    expect(
+      fetchMock.mock.calls.filter(([, init]) => init?.method === 'PATCH'),
+    ).toHaveLength(0)
+  })
+})

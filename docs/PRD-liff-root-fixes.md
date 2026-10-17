@@ -6,6 +6,9 @@ Three LIFF pages (booking, debt-mediation, service-request) plus request-v2 drif
 ## Decision (user 2026-10-17)
 Fix in root order R1 → R4 → R3 → R2. R3 stops at spec for admin decision. R2 needs before/after measurement, no guessed ratios.
 
+## Locked addition (user 2026-10-17, validation)
+- Shared `frontend/lib/liff/validation.ts` owns phone truth (9–15 digits, backend debt pattern); debt re-exports it with zero behavior change; service-request keeps its local 9–10 rule (documented follow-up). Booking contact stays optional but a filled phone must validate — step-2 Next, summary confirm, and edit-save all gate on it with the debt wording.
+
 ## Locked addition (user 2026-10-17, wizard)
 - Booking becomes a 4-step wizard with Next/Back like debt/service-request: 1 บริการ → 2 วันเวลา (date+slot stay one decision) → 3 ผู้จอง → 4 สรุป → done. Order is dependency-driven (service before date before slot) with typing last to cut drop-off. Contact stays optional (backend contract unchanged). Submit failure with cleared slot returns to step 2 (index 1). Restored drafts resume at the deepest filled step.
 

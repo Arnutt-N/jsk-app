@@ -17,6 +17,7 @@ import { useLiffInit } from '@/hooks/useLiffInit'
 import DateSection, { type DayInfo } from '@/components/liff/booking/DateSection'
 import LiffStepper from '@/components/liff/LiffStepper'
 import { useBookingStore } from '@/lib/booking/store'
+import { validateBookingContact } from '@/lib/liff/validation'
 import { buildServiceGroups, loadTaxonomy, type TaxonomyTable } from '@/lib/booking/service-mapping'
 import { useToast } from '@/components/ui/Toast'
 import {
@@ -119,6 +120,7 @@ interface ContactFieldsFormProps {
   onContactName: (value: string) => void
   onPhoneNumber: (value: string) => void
   onNote: (value: string) => void
+  phoneError?: string
 }
 
 /** The name/phone/note trio, shared by the booking step and the edit form. */
@@ -129,6 +131,7 @@ function ContactFieldsForm({
   onContactName,
   onPhoneNumber,
   onNote,
+  phoneError,
 }: ContactFieldsFormProps) {
   return (
     <div className="space-y-3">
@@ -151,6 +154,9 @@ function ContactFieldsForm({
           onChange={(e) => onPhoneNumber(e.target.value.replace(/[^\d]/g, ''))}
           maxLength={20}
           placeholder="0812345678"
+          state={phoneError ? 'error' : 'default'}
+          errorMessage={phoneError}
+          aria-invalid={phoneError ? true : undefined}
         />
       </label>
       <label className="block">
@@ -231,6 +237,9 @@ export default function LiffBookingPage() {
   const [cancelling, setCancelling] = useState(false)
   const [cancelOpen, setCancelOpen] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
+  const [showContactErrors, setShowContactErrors] = useState(false)
+
+  const contactErrors = validateBookingContact({ contactName, phoneNumber })
 
   const [wizardStep, setWizardStep] = useState<WizardStep>(() => {
     if (draft.slotId) return 2
@@ -252,6 +261,15 @@ export default function LiffBookingPage() {
     setWizardStep(target)
     window.scrollTo(0, 0)
   }, [])
+
+  const tryNextFromContact = useCallback(() => {
+    if (contactErrors.phoneNumber) {
+      setShowContactErrors(true)
+      return
+    }
+    setShowContactErrors(false)
+    goNext()
+  }, [contactErrors.phoneNumber, goNext])
 
   const goBack = useCallback(() => {
     setWizardStep((current) => {
@@ -333,6 +351,11 @@ export default function LiffBookingPage() {
 
   const handleSubmit = async () => {
     if (!idToken || !serviceType || !selectedDate || !selectedSlot) return
+    if (contactErrors.phoneNumber) {
+      setShowContactErrors(true)
+      setWizardStep(2)
+      return
+    }
     setSubmitting(true)
     setError(null)
     setNotice(null)
@@ -388,6 +411,10 @@ export default function LiffBookingPage() {
 
   const handleUpdate = async () => {
     if (!idToken || !confirmed) return
+    if (contactErrors.phoneNumber) {
+      setError(contactErrors.phoneNumber)
+      return
+    }
     setSubmitting(true)
     setError(null)
     try {
@@ -464,6 +491,7 @@ export default function LiffBookingPage() {
                     onContactName={onContactName}
                     onPhoneNumber={onPhoneNumber}
                     onNote={onNote}
+                    phoneError={contactErrors.phoneNumber}
                   />
                   <div className="mt-4 space-y-2">
                     <Button className="w-full" onClick={handleUpdate} disabled={submitting}>
@@ -705,9 +733,10 @@ export default function LiffBookingPage() {
                   onContactName={onContactName}
                   onPhoneNumber={onPhoneNumber}
                   onNote={onNote}
+                  phoneError={showContactErrors ? contactErrors.phoneNumber : undefined}
                 />
               </Section>
-              <WizardNav step={2} canNext={canNext} onBack={goBack} onNext={goNext} />
+              <WizardNav step={2} canNext={canNext} onBack={goBack} onNext={tryNextFromContact} />
             </div>
           )}
 
