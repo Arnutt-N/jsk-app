@@ -17,14 +17,15 @@ describe('LiffStepper', () => {
     expect(screen.getByRole('list', { name: 'ขั้นตอนการจอง' })).toBeInTheDocument()
   })
 
-  it('marks only the current label with aria-current and numbers unfinished steps', () => {
-    render(<LiffStepper steps={STEPS} currentIndex={1} ariaLabel="ขั้นตอนการจอง" />)
+  it('shows each step icon in its circle and numbers nowhere', () => {
+    const { container } = render(<LiffStepper steps={STEPS} currentIndex={1} ariaLabel="ขั้นตอนการจอง" />)
     const stepper = screen.getByRole('list', { name: 'ขั้นตอนการจอง' })
     expect(within(stepper).getByText('วันที่')).toHaveAttribute('aria-current', 'step')
     expect(within(stepper).getByText('บริการ')).not.toHaveAttribute('aria-current')
     expect(within(stepper).getByText('เวลา')).not.toHaveAttribute('aria-current')
-    expect(within(stepper).getByText('2')).toBeInTheDocument()
-    expect(within(stepper).getByText('3')).toBeInTheDocument()
+    expect(within(stepper).queryByText('2')).not.toBeInTheDocument()
+    expect(within(stepper).queryByText('3')).not.toBeInTheDocument()
+    expect(container.querySelectorAll('li > span:first-child svg')).toHaveLength(STEPS.length)
   })
 
   it('draws one connector between each pair of steps', () => {

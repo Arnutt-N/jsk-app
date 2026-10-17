@@ -32,10 +32,10 @@ import { TOPIC_OPTIONS } from '@/lib/constants/categories'
 type Step = 'service' | 'date' | 'slot' | 'details' | 'done'
 
 const STEPS: { key: Step; label: string; icon: React.ReactNode }[] = [
-  { key: 'service', label: 'บริการ', icon: <Users className="h-3 w-3" aria-hidden="true" /> },
-  { key: 'date', label: 'วันที่', icon: <CalendarDays className="h-3 w-3" aria-hidden="true" /> },
-  { key: 'slot', label: 'เวลา', icon: <Clock className="h-3 w-3" aria-hidden="true" /> },
-  { key: 'details', label: 'ยืนยัน', icon: <CheckCircle2 className="h-3 w-3" aria-hidden="true" /> },
+  { key: 'service', label: 'บริการ', icon: <Users className="h-4 w-4" aria-hidden="true" /> },
+  { key: 'date', label: 'วันที่', icon: <CalendarDays className="h-4 w-4" aria-hidden="true" /> },
+  { key: 'slot', label: 'เวลา', icon: <Clock className="h-4 w-4" aria-hidden="true" /> },
+  { key: 'details', label: 'ยืนยัน', icon: <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> },
 ]
 
 function contactPayload(contactName: string, phoneNumber: string, note: string) {

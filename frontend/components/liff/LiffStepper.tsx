@@ -33,7 +33,7 @@ export default function LiffStepper({ steps, currentIndex, ariaLabel, className 
                   : 'bg-brand-500 text-white shadow-md',
               )}
             >
-              {done ? <CheckCircle2 className="h-5 w-5" aria-hidden="true" /> : index + 1}
+              {done ? <CheckCircle2 className="h-5 w-5" aria-hidden="true" /> : s.icon}
             </span>
             <span
               className={cn(

@@ -375,11 +375,11 @@ describe('shared form chrome', () => {
     expect(screen.getByText('เลือกบริการ วันที่ และช่วงเวลาที่สะดวก')).toBeInTheDocument()
   })
 
-  it('renders the four steps as numbered circles with the current step marked', async () => {
+  it('renders the four steps as icon circles with the current step marked', async () => {
     // The hung range pins the flow on the date step: the single service
     // auto-selects, but preselect waits for range data that never lands.
     stubFetch({ rangeHang: true })
-    renderPage()
+    const { container } = renderPage()
     await screen.findByRole('combobox', { name: 'เลือกบริการ' })
 
     const stepper = screen.getByRole('list', { name: 'ขั้นตอนการจอง' })
@@ -387,8 +387,9 @@ describe('shared form chrome', () => {
       expect(within(stepper).getByText(label)).toBeInTheDocument()
     }
     for (const n of ['2', '3', '4']) {
-      expect(within(stepper).getByText(n)).toBeInTheDocument()
+      expect(within(stepper).queryByText(n)).not.toBeInTheDocument()
     }
+    expect(container.querySelectorAll('li > span:first-child svg')).toHaveLength(4)
     expect(within(stepper).getByText('วันที่')).toHaveAttribute('aria-current', 'step')
     expect(within(stepper).getByText('บริการ')).not.toHaveAttribute('aria-current')
   })
