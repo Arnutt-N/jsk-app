@@ -15,12 +15,13 @@ import {
     CheckCircle2,
     ChevronRight,
     ChevronLeft,
-    AlertTriangle,
     RotateCcw,
     X
 } from 'lucide-react'
 import { logger } from '@/lib/logger';
 import { useLiffInit } from '@/hooks/useLiffInit'
+import { useLiffLeave } from '@/hooks/useLiffLeave'
+import { LeaveConfirmDialog } from '@/components/liff/LeaveConfirmDialog'
 import LiffStepper from '@/components/liff/LiffStepper'
 import { useAutoCloseCountdown } from '@/hooks/useAutoCloseCountdown'
 import { submitDebtMediation, DebtMediationPayload, formatLiffSubmitError, isValidPhone, normalizePhone } from '@/lib/liff/submit-debt-mediation'
@@ -103,7 +104,7 @@ export default function LiffDebtMediation() {
     const [success, setSuccess] = useState(false)
     const [showConfirm, setShowConfirm] = useState(false)
     const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
-    const [showLeaveConfirm, setShowLeaveConfirm] = useState(false)
+    const { leaveOpen, requestLeave, cancelLeave, confirmLeave } = useLiffLeave()
     const [provinces, setProvinces] = useState<Province[]>([])
     type ProvinceLoad = 'loading' | 'ok' | 'failed'
     const [provinceLoad, setProvinceLoad] = useState<ProvinceLoad>('loading')
@@ -311,19 +312,6 @@ export default function LiffDebtMediation() {
     }
 
     const { timeLeft, resetCountdown } = useAutoCloseCountdown(success && isInLineApp, handleClose)
-
-    const requestCancel = () => {
-        setShowLeaveConfirm(true)
-    }
-
-    const confirmLeave = () => {
-        setShowLeaveConfirm(false)
-        if (getLiff()?.isInClient()) {
-            handleClose()
-        } else {
-            window.location.href = '/'
-        }
-    }
 
     if (success) {
         return (
@@ -828,7 +816,7 @@ export default function LiffDebtMediation() {
                             type="button"
                             variant="ghost"
                             className="w-full py-2 h-auto text-xs text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 font-medium"
-                            onClick={requestCancel}
+                            onClick={requestLeave}
                             leftIcon={<X className="w-3.5 h-3.5" />}
                         >
                             ยกเลิกรายการ
@@ -877,43 +865,12 @@ export default function LiffDebtMediation() {
                     </div>
                 )}
 
-                {/* Leave / cancel confirmation */}
-                {showLeaveConfirm && (
-                    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200" role="dialog" aria-modal="true" aria-labelledby="cancel-dialog-title">
-                        <Card className="w-full max-w-sm shadow-2xl">
-                            <CardHeader className="text-center pb-2">
-                                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-red-600">
-                                    <AlertTriangle className="w-6 h-6" />
-                                </div>
-                                <CardTitle id="cancel-dialog-title" className="text-lg">
-                                    {isInLineApp ? 'ปิดแบบฟอร์มนี้?' : 'ออกจากหน้านี้?'}
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="text-center space-y-4">
-                                <p className="text-sm text-gray-500">
-                                    ข้อมูลที่กรอกไว้ทั้งหมดจะหายไป<br />
-                                    และไม่สามารถกู้คืนได้
-                                </p>
-                                <div className="flex gap-3 pt-2">
-                                    <Button
-                                        variant="ghost"
-                                        className="flex-1"
-                                        onClick={() => setShowLeaveConfirm(false)}
-                                    >
-                                        ไม่ใช่
-                                    </Button>
-                                    <Button
-                                        variant="danger"
-                                        className="flex-1"
-                                        onClick={confirmLeave}
-                                    >
-                                        ยืนยัน
-                                    </Button>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
-                )}
+                <LeaveConfirmDialog
+                    isOpen={leaveOpen}
+                    isInLineApp={isInLineApp}
+                    onClose={cancelLeave}
+                    onConfirm={confirmLeave}
+                />
             </main>
         </div>
     )

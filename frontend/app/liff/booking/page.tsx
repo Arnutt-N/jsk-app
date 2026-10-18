@@ -6,6 +6,8 @@ import { Alert } from '@/components/ui/Alert'
 import LiffStatusBadge from '@/components/liff/LiffStatusBadge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { useLiffLeave } from '@/hooks/useLiffLeave'
+import { LeaveConfirmDialog } from '@/components/liff/LeaveConfirmDialog'
 import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
 import { Skeleton } from '@/components/ui/Skeleton'
@@ -343,7 +345,7 @@ export default function LiffBookingPage() {
   const [editing, setEditing] = useState(false)
   const [cancelling, setCancelling] = useState(false)
   const [cancelOpen, setCancelOpen] = useState(false)
-  const [leaveOpen, setLeaveOpen] = useState(false)
+  const { leaveOpen, requestLeave, cancelLeave, confirmLeave } = useLiffLeave()
   const [notice, setNotice] = useState<string | null>(null)
   const [showContactErrors, setShowContactErrors] = useState(false)
   const [serviceError, setServiceError] = useState<string | null>(null)
@@ -514,18 +516,6 @@ export default function LiffBookingPage() {
     dispatch({ type: 'draft/reset' })
     if (options?.service_types.length === 1) {
       dispatch({ type: 'service/set', service: options.service_types[0] })
-    }
-  }
-
-  // "ยกเลิกรายการ": drop the draft and leave. Inside LINE the LIFF window
-  // closes; an external browser tab cannot be closed by script, so go home.
-  const handleLeave = () => {
-    setLeaveOpen(false)
-    resetFlow()
-    if (window.liff?.isInClient?.()) {
-      window.liff.closeWindow?.()
-    } else {
-      window.location.href = '/'
     }
   }
 
@@ -762,7 +752,7 @@ export default function LiffBookingPage() {
                   <p className="text-sm text-text-tertiary">ยังไม่มีบริการที่เปิดให้จอง</p>
                 )}
               </Section>
-              <WizardNav step={STEP.SERVICE} onBack={goBack} onNext={tryNext} onCancel={() => setLeaveOpen(true)} />
+              <WizardNav step={STEP.SERVICE} onBack={goBack} onNext={tryNext} onCancel={requestLeave} />
             </div>
           )}
 
@@ -857,7 +847,7 @@ export default function LiffBookingPage() {
                   {datetimeError}
                 </p>
               )}
-              <WizardNav step={STEP.DATETIME} onBack={goBack} onNext={tryNext} onCancel={() => setLeaveOpen(true)} />
+              <WizardNav step={STEP.DATETIME} onBack={goBack} onNext={tryNext} onCancel={requestLeave} />
             </div>
           )}
 
@@ -884,7 +874,7 @@ export default function LiffBookingPage() {
                   showNote={false}
                 />
               </Section>
-              <WizardNav step={STEP.CONTACT} onBack={goBack} onNext={tryNext} onCancel={() => setLeaveOpen(true)} />
+              <WizardNav step={STEP.CONTACT} onBack={goBack} onNext={tryNext} onCancel={requestLeave} />
             </div>
           )}
 
@@ -958,21 +948,20 @@ export default function LiffBookingPage() {
                   </Button>
                 </div>
               </Section>
-              <WizardNav step={STEP.SUMMARY} onBack={goBack} onNext={tryNext} onCancel={() => setLeaveOpen(true)} />
+              <WizardNav step={STEP.SUMMARY} onBack={goBack} onNext={tryNext} onCancel={requestLeave} />
             </div>
           )}
         </>
       )}
 
-      <ConfirmDialog
+      <LeaveConfirmDialog
         isOpen={leaveOpen}
-        onClose={() => setLeaveOpen(false)}
-        onConfirm={handleLeave}
-        title="ยกเลิกรายการ"
-        description="ข้อมูลที่กรอกไว้ทั้งหมดจะหายไปและไม่สามารถกู้คืนได้ ต้องการยกเลิกรายการนี้หรือไม่?"
-        confirmText="ยืนยันยกเลิก"
-        cancelText="กลับไปจองต่อ"
-        variant="danger"
+        isInLineApp={window.liff?.isInClient?.() ?? false}
+        onClose={cancelLeave}
+        onConfirm={() => {
+          resetFlow()
+          confirmLeave()
+        }}
       />
 
       <ConfirmDialog
