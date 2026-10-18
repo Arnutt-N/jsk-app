@@ -206,6 +206,7 @@ export default function LiffBookingPage() {
     getLiff: () => (typeof window !== 'undefined' ? window.liff : undefined),
     requireLiffId: true,
     redirectLogin: true,
+    trackInLineApp: true,
     warnWhenSdkMissing: true,
     fetchProfile: false,
     onError: () => setError('ไม่สามารถเชื่อมต่อ LINE ได้ กรุณาเปิดหน้านี้จากแอป LINE'),
