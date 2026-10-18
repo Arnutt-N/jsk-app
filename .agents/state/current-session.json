@@ -1,13 +1,20 @@
 {
-  "last_updated": "2026-10-18T13:04:00+07:00",
+  "last_updated": "2026-10-18T14:33:00+07:00",
   "platform": "pi",
-  "current_task": "Merged PRs #265 (LIFF roots: wizard, shared kit, trio, cache), #266 (rich-menu audit order), #267 (phone 9-15 rule); rich-menu ALWAYS investigation with live LINE checks",
+  "current_task": "Merged PR #268: rich-menu show-expanded via selected=true (ALWAYS/SCHEDULED expand, MANUAL collapsed)",
   "plan_status": "completed",
   "next_steps": [
-    "Re-publish menu #1 from admin and verify on phone",
-    "Decide LINE verify caching if load still slow"
+    "Manual phone test: edit old ALWAYS menu, save-and-sync, verify expanded on LINE",
+    "Press sync again, expect no-op Already synced (no perpetual drift)"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-10-18T14:33:00+07:00",
+      "platform": "pi",
+      "branch": "main",
+      "head": "e305389",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-10-18T13:04:00+07:00",
       "platform": "pi",
@@ -139,13 +146,6 @@
       "platform": "muse_code",
       "branch": "main",
       "head": "43c920d",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-10-04T17:24:00+07:00",
-      "platform": "muse_code",
-      "branch": "main",
-      "head": "3e7740a",
       "status": "completed"
     }
   ],

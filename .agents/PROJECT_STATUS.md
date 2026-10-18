@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-10-18 13:04 by Pi (Merged PRs #265 LIFF roots: wizard, shared kit, trio, cache, #266 rich-menu audit order, #)
+> **Last Updated:** 2026-10-18 14:33 by Pi (Merged PR #268: rich-menu show-expanded via selected=true ALWAYS/SCHEDULED expand, MANUAL )
 
 ## Thai Summary
 **สถานะล่าสุด (2026-09-30)** — รวม PR #239 (แก้บั๊กโอนแชทไม่มีบันทึก M-8) เข้าสายหลักแล้ว (`fd82c7a`) + ตรวจหลังส่งขึ้นร้านจริงเสร็จ: หลังบ้านแข็งแรงดี (database+redis ปกติ), หน้าร้านเปิดติด (HTTP 200), ปุ่มโอนแชทล็อกถูกต้อง (401), บันทึกส่งของ CD `36596610691` เขียวครบ 6 งาน — โค้ดตรงกับเซิร์ฟเวอร์ เหลือ Round-3b (22 ข้อ) + ซ่อมไฟล์ทดสอบ upload-security ที่พังมาก่อน
@@ -123,6 +123,7 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-10-18 14:33] Pi: Merged PR #268: rich-menu show-expanded via selected=true (ALWAYS/SCHEDULED expand, MANUAL collapsed) (Pi)
 - [2026-10-18 13:04] Pi: Merged PRs #265 (LIFF roots: wizard, shared kit, trio, cache), #266 (rich-menu audit order), #267 (phone 9-15 rule); rich-menu ALWAYS investigation with live LINE checks (Pi)
 - [2026-10-17 07:20] Pi: Merged PRs 259-264: booking UX, login verify-before-logout, shared taxonomy, agent rules (Pi)
 - [2026-10-16 10:33] Pi: PR #259 review fixes done (option A), CI green, ready to merge (Pi)
