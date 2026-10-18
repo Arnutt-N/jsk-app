@@ -45,7 +45,7 @@ const STEPS: { label: string; icon: React.ReactNode }[] = [
   { label: 'บริการ', icon: <Users className="h-4 w-4" aria-hidden="true" /> },
   { label: 'วันเวลา', icon: <CalendarDays className="h-4 w-4" aria-hidden="true" /> },
   { label: 'ผู้จอง', icon: <Phone className="h-4 w-4" aria-hidden="true" /> },
-  { label: 'สรุป', icon: <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> },
+  { label: 'ยืนยัน', icon: <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> },
 ]
 
 function contactPayload(prefix: string, firstname: string, lastname: string, phoneNumber: string, note: string) {
@@ -848,7 +848,7 @@ export default function LiffBookingPage() {
             <div className="space-y-4">
               <Section
                 icon={<CheckCircle2 className="h-4 w-4" />}
-                title="สรุปการจอง"
+                title="ตรวจสอบและยืนยันการจอง"
               >
                 <div className="space-y-4 text-sm">
                   <div>
