@@ -327,6 +327,7 @@ export default function LiffServiceRequestV2() {
         }
     }
 
+    // Clear only the fields belonging to the current step ("ล้างค่า" per tab).
     const clearStep = () => {
         if (step === 0) {
             setFormData(prev => ({ ...prev, prefix: '', firstname: '', lastname: '', phone_number: '', email: '' }))
