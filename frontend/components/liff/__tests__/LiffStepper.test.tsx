@@ -28,6 +28,11 @@ describe('LiffStepper', () => {
     expect(container.querySelectorAll('li > span:first-child svg')).toHaveLength(STEPS.length)
   })
 
+  it('puts no icon in front of the step label (the circle already has one)', () => {
+    const { container } = render(<LiffStepper steps={STEPS} currentIndex={1} ariaLabel="ขั้นตอนการจอง" />)
+    expect(container.querySelectorAll('li > span:nth-child(2) svg')).toHaveLength(0)
+  })
+
   it('draws one connector between each pair of steps', () => {
     const { container } = render(<LiffStepper steps={STEPS} currentIndex={0} ariaLabel="ขั้นตอนการจอง" />)
     const connectors = container.querySelectorAll('span[aria-hidden="true"].absolute')

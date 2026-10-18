@@ -16,6 +16,7 @@ import {
     ChevronRight,
     ChevronLeft,
     AlertTriangle,
+    RotateCcw,
     X
 } from 'lucide-react'
 import { logger } from '@/lib/logger';
@@ -443,6 +444,7 @@ export default function LiffDebtMediation() {
                                     variant="ghost"
                                     size="sm"
                                     onClick={clearStep}
+                                    leftIcon={<RotateCcw className="w-3.5 h-3.5" aria-hidden="true" />}
                                     className="h-7 px-2 text-xs text-gray-500 dark:text-gray-400 shrink-0"
                                 >
                                     ล้างค่า
