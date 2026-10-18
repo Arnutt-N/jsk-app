@@ -36,12 +36,11 @@ export default function LiffStepper({ steps, currentIndex, ariaLabel, className 
             </span>
             <span
               className={cn(
-                'flex items-center gap-1 text-[10px] font-semibold',
+                'text-[10px] font-semibold',
                 state === 'todo' ? 'text-text-tertiary' : 'text-brand-text',
               )}
               aria-current={state === 'current' ? 'step' : undefined}
             >
-              {s.icon}
               {s.label}
             </span>
             {index < steps.length - 1 && (

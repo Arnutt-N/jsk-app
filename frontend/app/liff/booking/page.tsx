@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { Select } from '@/components/ui/Select'
-import { CalendarDays, CheckCircle2, Clock, Loader2, Phone, RotateCcw, Users } from 'lucide-react'
+import { CalendarDays, CheckCircle2, Clock, Loader2, Phone, RotateCcw, Users, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { logger } from '@/lib/logger'
 import { useLiffInit } from '@/hooks/useLiffInit'
@@ -261,6 +261,7 @@ export default function LiffBookingPage() {
     requireLiffId: true,
     redirectLogin: true,
     warnWhenSdkMissing: true,
+    fetchProfile: false,
     onError: () => setError('ไม่สามารถเชื่อมต่อ LINE ได้ กรุณาเปิดหน้านี้จากแอป LINE'),
   })
   const [confirmed, setConfirmed] = useState<Booking | null>(null)
@@ -305,6 +306,7 @@ export default function LiffBookingPage() {
   const [editing, setEditing] = useState(false)
   const [cancelling, setCancelling] = useState(false)
   const [cancelOpen, setCancelOpen] = useState(false)
+  const [discardOpen, setDiscardOpen] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
   const [showContactErrors, setShowContactErrors] = useState(false)
   const [serviceError, setServiceError] = useState<string | null>(null)
@@ -882,15 +884,41 @@ export default function LiffBookingPage() {
                     )}
                   </div>
                 </div>
-                <Button className="mt-4 w-full" onClick={handleSubmit} disabled={submitting}>
-                  {submitting ? 'กำลังจอง...' : 'ยืนยันการจอง'}
-                </Button>
+                <div className="mt-4 space-y-2">
+                  <Button className="w-full" onClick={handleSubmit} disabled={submitting}>
+                    {submitting ? 'กำลังจอง...' : 'ยืนยันการจอง'}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="w-full"
+                    onClick={() => setDiscardOpen(true)}
+                    disabled={submitting}
+                    leftIcon={<X className="h-4 w-4" aria-hidden="true" />}
+                  >
+                    ยกเลิก
+                  </Button>
+                </div>
               </Section>
               <WizardNav step={STEP.SUMMARY} onBack={goBack} onNext={tryNext} />
             </div>
           )}
         </>
       )}
+
+      <ConfirmDialog
+        isOpen={discardOpen}
+        onClose={() => setDiscardOpen(false)}
+        onConfirm={() => {
+          setDiscardOpen(false)
+          resetFlow()
+        }}
+        title="ยกเลิกการจอง"
+        description="ข้อมูลที่กรอกไว้จะถูกล้างและกลับไปเริ่มใหม่ ต้องการยกเลิกหรือไม่?"
+        confirmText="ยืนยันยกเลิก"
+        cancelText="กลับไปจองต่อ"
+        variant="danger"
+      />
 
       <ConfirmDialog
         isOpen={cancelOpen}

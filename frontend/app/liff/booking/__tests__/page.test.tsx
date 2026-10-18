@@ -657,6 +657,28 @@ describe('picker-strip sync', () => {
   })
 })
 
+describe('summary step cancel', () => {
+  it('lets the citizen discard the draft from the summary step', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await chooseService()
+    await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
+    await user.click(await screen.findByRole('button', { name: /09:30/ }))
+    await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
+    await userEvent.selectOptions(await screen.findByRole('combobox', { name: 'คำนำหน้า' }), 'นาย')
+    await user.type(screen.getByPlaceholderText('ชื่อจริง'), 'สมชาย')
+    await user.type(screen.getByPlaceholderText('นามสกุล'), 'ใจดี')
+    await user.type(screen.getByPlaceholderText('0812345678'), '0812345678')
+    await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
+
+    await user.click(await screen.findByRole('button', { name: 'ยกเลิก' }))
+    await user.click(await screen.findByRole('button', { name: 'ยืนยันยกเลิก' }))
+
+    expect(screen.queryByRole('button', { name: 'ยืนยันการจอง' })).not.toBeInTheDocument()
+    expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(false)
+  })
+})
+
 describe('post-booking actions', () => {
   it('offers cancel and edit buttons on the confirmation screen', async () => {
     await bookToDone()
