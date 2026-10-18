@@ -40,13 +40,13 @@ export type DraftAction =
 function clearSection(state: BookingDraft, section: DraftSection): BookingDraft {
   switch (section) {
     case 'service':
-      return { ...state, service: null, date: null, slotId: null }
+      return { ...state, service: null, date: null, slotId: null, note: '' }
     case 'date':
       return { ...state, date: null, slotId: null }
     case 'slot':
       return { ...state, slotId: null }
     case 'contact':
-      return { ...state, prefix: '', firstname: '', lastname: '', phoneNumber: '', note: '' }
+      return { ...state, prefix: '', firstname: '', lastname: '', phoneNumber: '' }
   }
 }
 

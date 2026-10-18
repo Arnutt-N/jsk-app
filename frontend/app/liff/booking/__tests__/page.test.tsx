@@ -404,7 +404,7 @@ describe('shared form chrome', () => {
     await chooseService()
 
     const stepper = screen.getByRole('list', { name: 'ขั้นตอนการจอง' })
-    for (const label of ['บริการ', 'วันเวลา', 'ผู้จอง', 'สรุป']) {
+    for (const label of ['บริการ', 'วันเวลา', 'ผู้จอง', 'ยืนยัน']) {
       expect(within(stepper).getByText(label)).toBeInTheDocument()
     }
     for (const n of ['2', '3', '4']) {
@@ -488,7 +488,7 @@ describe('shared card rhythm', () => {
     await user.click(await screen.findByRole('button', { name: /09:30/ }))
     await goNext()
 
-    for (const label of ['คำนำหน้า', 'ชื่อ', 'นามสกุล', 'เบอร์โทรศัพท์', 'รายละเอียดเพิ่มเติม (ถ้ามี)']) {
+    for (const label of ['คำนำหน้า', 'ชื่อ', 'นามสกุล', 'เบอร์โทรศัพท์']) {
       const el = screen.getByText(label)
       expect(el.className).toContain('uppercase')
       expect(el.className).toContain('font-bold')
@@ -657,6 +657,29 @@ describe('picker-strip sync', () => {
   })
 })
 
+describe('note field placement', () => {
+  it('asks for the optional note on the service step, not the contact step', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await chooseService()
+    const note = await screen.findByLabelText('รายละเอียดเพิ่มเติม (ถ้ามี)')
+    await user.type(note, 'ขอเจ้าหน้าที่ผู้หญิง')
+    await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
+    await user.click(await screen.findByRole('button', { name: /09:30/ }))
+    await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
+
+    await screen.findByRole('combobox', { name: 'คำนำหน้า' })
+    expect(screen.queryByText('รายละเอียดเพิ่มเติม (ถ้ามี)')).not.toBeInTheDocument()
+
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'คำนำหน้า' }), 'นาย')
+    await user.type(screen.getByPlaceholderText('ชื่อจริง'), 'สมชาย')
+    await user.type(screen.getByPlaceholderText('นามสกุล'), 'ใจดี')
+    await user.type(screen.getByPlaceholderText('0812345678'), '0812345678')
+    await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
+    expect(await screen.findByText('ขอเจ้าหน้าที่ผู้หญิง')).toBeInTheDocument()
+  })
+})
+
 describe('summary step cancel', () => {
   it('lets the citizen discard the draft from the summary step', async () => {
     const user = userEvent.setup()
@@ -816,7 +839,7 @@ describe('wizard navigation', () => {
     expect(screen.getByRole('heading', { name: 'ข้อมูลผู้จอง' })).toBeInTheDocument()
 
     await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
-    expect(screen.getByRole('heading', { name: 'สรุปการจอง' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'ตรวจสอบและยืนยันการจอง' })).toBeInTheDocument()
     expect(screen.getByText('ปรึกษากฎหมาย')).toBeInTheDocument()
 
     await user.click(await screen.findByRole('button', { name: 'ย้อนกลับ' }))
@@ -872,7 +895,7 @@ describe('wizard navigation', () => {
     await user.click(await screen.findByRole('button', { name: /09:30/ }))
     await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
     await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
-    expect(screen.getByRole('heading', { name: 'สรุปการจอง' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'ตรวจสอบและยืนยันการจอง' })).toBeInTheDocument()
 
     const edits = screen.getAllByRole('button', { name: 'แก้ไข' })
     expect(edits).toHaveLength(3)
@@ -884,7 +907,7 @@ describe('wizard navigation', () => {
     await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
     await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
     await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
-    expect(screen.getByRole('heading', { name: 'สรุปการจอง' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'ตรวจสอบและยืนยันการจอง' })).toBeInTheDocument()
 
     await user.click(screen.getAllByRole('button', { name: 'แก้ไข' })[1])
     expect(screen.getByRole('heading', { name: 'เลือกวันที่' })).toBeInTheDocument()
@@ -914,20 +937,20 @@ describe('contact validation', () => {
     await user.click(screen.getByRole('button', { name: 'ถัดไป' }))
     expect(screen.getByText('หมายเลขโทรศัพท์ไม่ถูกต้อง')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'ข้อมูลผู้จอง' })).toBeInTheDocument()
-    expect(screen.queryByRole('heading', { name: 'สรุปการจอง' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'ตรวจสอบและยืนยันการจอง' })).not.toBeInTheDocument()
   })
 
   it('lets an empty phone through — contact stays optional', async () => {
     await walkToContact()
     await userEvent.click(await screen.findByRole('button', { name: 'ถัดไป' }))
-    expect(screen.getByRole('heading', { name: 'สรุปการจอง' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'ตรวจสอบและยืนยันการจอง' })).toBeInTheDocument()
   })
 
   it('lets a diallable phone through to the summary', async () => {
     const user = await walkToContact()
     await user.type(screen.getByPlaceholderText('0812345678'), '0812345678')
     await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
-    expect(screen.getByRole('heading', { name: 'สรุปการจอง' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'ตรวจสอบและยืนยันการจอง' })).toBeInTheDocument()
   })
 
   it('asks for the missing trio parts before leaving the contact step', async () => {
