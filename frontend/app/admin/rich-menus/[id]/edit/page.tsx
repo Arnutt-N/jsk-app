@@ -247,10 +247,9 @@ export default function EditRichMenuPage() {
                 } else {
                     const outcome = parseSyncResult(await res.json());
                     if (outcome.ok) {
-                        // แสดงตลอดเวลา = keep it live: (re)publish right after the
-                        // sync. A SCHEDULED menu's default is owned by the
-                        // backend scheduler; MANUAL never auto-publishes.
-                        if (displayMode === RichMenuDisplayMode.ALWAYS && menu?.status !== 'PUBLISHED') {
+                        // Set-default is idempotent, so ALWAYS re-ensures it
+                        // instead of trusting the pre-save status snapshot.
+                        if (displayMode === RichMenuDisplayMode.ALWAYS) {
                             const pubRes = await fetch(`${API_BASE}/admin/rich-menus/${menuId}/publish`, { method: 'POST' });
                             if (pubRes.ok) {
                                 toast({ variant: 'success', title: 'อัปเดตและเผยแพร่สำเร็จ', description: 'แก้ไขถึง LINE แล้วและเมนูกำลังใช้งานเป็นเมนูหลัก' });

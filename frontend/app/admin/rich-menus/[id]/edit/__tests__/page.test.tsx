@@ -311,6 +311,29 @@ describe('EditRichMenuPage — area overlay + sync machine', () => {
         });
     });
 
+    it('save-and-sync on an ALWAYS, already-published menu still ensures default (no stale-status skip)', async () => {
+        const menu = editMenuFixture({ display_mode: 'ALWAYS', status: 'PUBLISHED' });
+        const fetchMock = routeFetch({
+            [`GET ${MENU_URL}`]: menu,
+            [`GET ${ALIASES_URL}`]: [],
+            [`PUT ${MENU_URL}`]: { ...menu, sync_status: 'PENDING' },
+            [`POST ${MENU_URL}/sync`]: { success: true, message: 'Sync ok' },
+            [`POST ${MENU_URL}/publish`]: { message: 'Rich Menu is now default' },
+        });
+        renderPage(fetchMock);
+
+        await waitFor(() => expect(screen.getByAltText('Preview')).toBeInTheDocument());
+        screen.getByRole('button', { name: 'บันทึกและซิงค์' }).click();
+
+        await waitFor(() => {
+            const calls = fetchMock.mock.calls.map((c) => `${(c[1] as RequestInit | undefined)?.method ?? 'GET'} ${c[0]}`);
+            const syncIdx = calls.findIndex((c) => c.includes(`POST ${MENU_URL}/sync`));
+            const pubIdx = calls.findIndex((c) => c.includes(`POST ${MENU_URL}/publish`));
+            expect(syncIdx).toBeGreaterThan(-1);
+            expect(pubIdx).toBeGreaterThan(syncIdx);
+        });
+    });
+
     it('shows ตามเวลา badge for a scheduled menu (parity with the list page)', async () => {
         const menu = editMenuFixture({
             display_mode: 'SCHEDULED',

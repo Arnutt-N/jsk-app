@@ -24,6 +24,7 @@ from app.schemas.rich_menu import (
     BulkUnlinkRequest,
     RichMenuInsightSummaryResponse,
     RichMenuInsightDailyResponse,
+    selected_for_display_mode,
 )
 from app.models.rich_menu_alias import RichMenuAlias
 from app.models.user_rich_menu_link import UserRichMenuLink
@@ -560,7 +561,7 @@ async def update_rich_menu(id: int, data: RichMenuUpdate, db: AsyncSession = Dep
     existing_size = (rich_menu.config or {}).get("size") or resolve_rich_menu_size("")
     line_config = {
         "size": existing_size,
-        "selected": False,
+        "selected": selected_for_display_mode(data.display_mode),
         "name": data.name,
         "chatBarText": data.chat_bar_text,
         "areas": [area.model_dump() for area in data.areas]
@@ -591,7 +592,7 @@ async def create_rich_menu(
     # Construct LINE config object
     line_config = {
         "size": resolve_rich_menu_size(data.template_type),
-        "selected": False,
+        "selected": selected_for_display_mode(data.display_mode),
         "name": data.name,
         "chatBarText": data.chat_bar_text,
         "areas": [area.model_dump() for area in data.areas]

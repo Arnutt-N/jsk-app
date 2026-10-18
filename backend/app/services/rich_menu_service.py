@@ -460,13 +460,11 @@ class RichMenuService:
 
     @staticmethod
     def _config_projection(config: Dict[str, Any]) -> Dict[str, Any]:
-        """Project a rich-menu config down to exactly the fields LINE stores,
-        so a local config and LINE's copy of it compare by value (dict key
-        order and purely local keys like `selected` are irrelevant)."""
         if not isinstance(config, dict):
             return {}
         return {
             "size": config.get("size"),
+            "selected": config.get("selected"),
             "name": config.get("name"),
             "chatBarText": config.get("chatBarText"),
             "areas": config.get("areas"),
@@ -476,8 +474,9 @@ class RichMenuService:
     def _needs_recreate(rich_menu: RichMenu, line_menu: Dict[str, Any]) -> bool:
         """True when the LINE copy can no longer represent local state.
 
-        LINE has no rich-menu update endpoint: size/name/chatBarText/areas are
-        immutable per richMenuId and the image uploads exactly once (PR #214).
+        LINE has no rich-menu update endpoint: size/selected/name/chatBarText/
+        areas are immutable per richMenuId and the image uploads exactly once
+        (PR #214).
         So recreation is required when the projections differ, or when the last
         sync never completed (PENDING = local edit flagged by PUT/upload —
         covers a replaced image, which the config compare cannot see; FAILED =
