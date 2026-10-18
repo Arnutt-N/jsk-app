@@ -1,0 +1,17 @@
+{
+  "handoff_version": "2.0",
+  "platform": "pi",
+  "agent": "pi",
+  "timestamp": "2026-10-19T02:28:00+07:00",
+  "branch": "main",
+  "head_commit": "c33a928",
+  "status": "completed",
+  "work_summary": "Merged PRs 272-278: LIFF cancel-everywhere, 4 shared components, booking in-LINE title fix, comment cleanup",
+  "priority_actions": [
+    "Phone-test booking, debt, service-request in LINE",
+    "Decide docs PR 257: merge or leave open"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/pi/session-summary-20261019-0228.md",
+  "cross_platform_read": []
+}

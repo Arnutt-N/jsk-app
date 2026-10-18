@@ -1,15 +1,20 @@
 {
-  "last_updated": "2026-10-18T10:26:00+00:00",
-  "platform": "claude_code",
-  "current_task": "LIFF polish: merged #269 (booking date picker no longer covered), #270 (stepper label icons, booking cancel + faster load, debt clear icon), #271 (booking note moved to service step, summary step rena",
+  "last_updated": "2026-10-19T02:28:00+07:00",
+  "platform": "pi",
+  "current_task": "Merged PRs 272-278: LIFF cancel-everywhere, 4 shared components, booking in-LINE title fix, comment cleanup",
   "plan_status": "completed",
   "next_steps": [
-    "Phone-test PR #272 then merge it (checks: nav row on all 4 steps, confirm closes LIFF, กลับไปจองต่อ keeps data)",
-    "Verify #269-#271 changes on a real phone in LINE (date picker, stepper, note on service step, ยืนยัน step)",
-    "Refactor to shared LIFF components in separate PRs from main after #272: 1 useLiffLeave+LeaveConfirmDialog, 2 LiffClearButton, 3 LiffWizardNav, 4 LiffStepCard (semantic tokens; compare screenshots)",
-    "Optional: measure booking page load time; remaining waterfall is options -> range -> first-day slots"
+    "Phone-test booking, debt, service-request in LINE",
+    "Decide docs PR 257: merge or leave open"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-10-19T02:28:00+07:00",
+      "platform": "pi",
+      "branch": "main",
+      "head": "c33a928",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-10-18T10:26:00+00:00",
       "platform": "claude_code",
@@ -141,13 +146,6 @@
       "platform": "muse_code",
       "branch": "main",
       "head": "ceed1ff",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-10-05T00:08:00+07:00",
-      "platform": "muse_code",
-      "branch": "main",
-      "head": "5050571",
       "status": "completed"
     }
   ],
