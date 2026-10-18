@@ -82,6 +82,7 @@ def selected_for_display_mode(display_mode: str) -> bool:
         RichMenuDisplayMode.SCHEDULED.value,
     )
 
+
 class RichMenuConfig(BaseModel):
     size: Dict[str, int] # e.g. {"width": 2500, "height": 1686}
     selected: bool = False
