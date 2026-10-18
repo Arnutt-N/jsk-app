@@ -131,7 +131,7 @@ describe('LIFF service-request-single validation (R3-M28-twin)', () => {
   it('rejects over-long phone numbers without opening confirm (F7)', async () => {
     const { container } = render(<LiffServiceRequestSingle />);
 
-    fireEvent.change(container.querySelector('input[name="phone"]')!, { target: { value: '081234567890' } });
+    fireEvent.change(container.querySelector('input[name="phone"]')!, { target: { value: '0812345678901234' } });
     fireEvent.submit(container.querySelector('form')!);
 
     await waitFor(() => {

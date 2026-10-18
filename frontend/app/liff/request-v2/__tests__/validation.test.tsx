@@ -86,7 +86,7 @@ describe('LIFF request-v2 validation (D4)', () => {
   it('rejects over-long phone numbers without submitting (D4/F7 parity)', async () => {
     const { container } = render(<LiffRequestV2 />);
 
-    changeByName(container, 'phone', '081234567890');
+    changeByName(container, 'phone', '0812345678901234');
     fireEvent.submit(container.querySelector('form')!);
 
     await waitFor(() => {
