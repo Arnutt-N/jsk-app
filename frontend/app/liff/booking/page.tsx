@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { Select } from '@/components/ui/Select'
-import { CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Clock, Loader2, Phone, RotateCcw, Users, X } from 'lucide-react'
+import { CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Clock, Loader2, Phone, Users, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { logger } from '@/lib/logger'
 import { useLiffInit } from '@/hooks/useLiffInit'
@@ -22,6 +22,7 @@ import { useBookingStore } from '@/lib/booking/store'
 import { composeContactName, splitContactName, validateBookingContact } from '@/lib/liff/validation'
 import { PREFIX_OPTIONS } from '@/lib/constants/prefixes'
 import { buildServiceGroups, loadTaxonomy, type TaxonomyTable } from '@/lib/booking/service-mapping'
+import { LiffClearButton } from '@/components/liff/LiffClearButton'
 import { useToast } from '@/components/ui/Toast'
 import {
   cancelBooking,
@@ -86,25 +87,6 @@ function Section({ icon, title, children, className, action }: SectionProps) {
       </CardHeader>
       <CardContent className="pt-6">{children}</CardContent>
     </Card>
-  )
-}
-
-function SectionClearButton({ onClear }: { onClear: () => void }) {
-  const { toast } = useToast()
-  return (
-    <Button
-      type="button"
-      variant="ghost"
-      size="sm"
-      onClick={() => {
-        onClear()
-        toast({ variant: 'success', title: 'ล้างข้อมูลแท็บนี้แล้ว' })
-      }}
-      leftIcon={<RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />}
-      className="h-7 shrink-0 px-2 text-xs text-text-tertiary"
-    >
-      ล้างค่า
-    </Button>
   )
 }
 
@@ -347,6 +329,7 @@ export default function LiffBookingPage() {
   const [cancelOpen, setCancelOpen] = useState(false)
   const { leaveOpen, requestLeave, cancelLeave, confirmLeave } = useLiffLeave()
   const [notice, setNotice] = useState<string | null>(null)
+  const { toast } = useToast()
   const [showContactErrors, setShowContactErrors] = useState(false)
   const [serviceError, setServiceError] = useState<string | null>(null)
   const [datetimeError, setDatetimeError] = useState<string | null>(null)
@@ -463,18 +446,22 @@ export default function LiffBookingPage() {
 
   const clearService = () => {
     dispatch({ type: 'section/clear', section: 'service' })
+    toast({ variant: 'success', title: 'ล้างข้อมูลแท็บนี้แล้ว' })
   }
 
   const clearDate = () => {
     dispatch({ type: 'section/clear', section: 'date' })
+    toast({ variant: 'success', title: 'ล้างข้อมูลแท็บนี้แล้ว' })
   }
 
   const clearSlot = () => {
     dispatch({ type: 'section/clear', section: 'slot' })
+    toast({ variant: 'success', title: 'ล้างข้อมูลแท็บนี้แล้ว' })
   }
 
   const clearContact = () => {
     dispatch({ type: 'section/clear', section: 'contact' })
+    toast({ variant: 'success', title: 'ล้างข้อมูลแท็บนี้แล้ว' })
   }
 
   const handleSubmit = async () => {
@@ -711,7 +698,7 @@ export default function LiffBookingPage() {
               <Section
                 icon={<Users className="h-4 w-4" />}
                 title="เลือกบริการ"
-                action={<SectionClearButton onClear={clearService} />}
+                action={<LiffClearButton onClear={clearService} />}
               >
                 {serviceGroups.some((group) => group.options.length > 0) ? (
                   <>
@@ -763,7 +750,7 @@ export default function LiffBookingPage() {
                   icon={<CalendarDays className="h-4 w-4" />}
                   title="เลือกวันที่"
                   className="relative z-20"
-                  action={<SectionClearButton onClear={clearDate} />}
+                  action={<LiffClearButton onClear={clearDate} />}
                 >
                   <DateSection
                     dates={dateOptions}
@@ -780,7 +767,7 @@ export default function LiffBookingPage() {
                 <Section
                   icon={<Clock className="h-4 w-4" />}
                   title="เลือกช่วงเวลา"
-                  action={<SectionClearButton onClear={clearSlot} />}
+                  action={<LiffClearButton onClear={clearSlot} />}
                 >
                   {loadingSlots ? (
                     <div className="py-6 text-center">
@@ -856,7 +843,7 @@ export default function LiffBookingPage() {
               <Section
                 icon={<Users className="h-4 w-4" />}
                 title="ข้อมูลผู้จอง"
-                action={<SectionClearButton onClear={clearContact} />}
+                action={<LiffClearButton onClear={clearContact} />}
               >
                 <ContactFieldsForm
                   prefix={prefix}

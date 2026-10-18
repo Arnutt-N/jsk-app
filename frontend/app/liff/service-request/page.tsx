@@ -22,8 +22,7 @@ import {
     Upload,
     X,
     Shield,
-    Loader2,
-    RotateCcw
+    Loader2
 } from 'lucide-react'
 import { logger } from '@/lib/logger';
 import { useToast } from '@/components/ui/Toast';
@@ -33,6 +32,7 @@ import { loadTaxonomy, type TaxonomyTable } from '@/lib/booking/service-mapping'
 import { useLiffInit } from '@/hooks/useLiffInit'
 import { useLiffLeave } from '@/hooks/useLiffLeave'
 import { LeaveConfirmDialog } from '@/components/liff/LeaveConfirmDialog'
+import { LiffClearButton } from '@/components/liff/LiffClearButton'
 import LiffStepper from '@/components/liff/LiffStepper'
 import { useAutoCloseCountdown } from '@/hooks/useAutoCloseCountdown'
 import { useLocationCascade, type LocationSelection } from '@/hooks/useLocationCascade'
@@ -472,16 +472,7 @@ export default function LiffServiceRequestV2() {
                                 <CardTitle className="text-base flex items-center gap-2">
                                     {STEPS[step].icon} {STEPS[step].title}
                                 </CardTitle>
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={clearStep}
-                                    leftIcon={<RotateCcw className="w-3.5 h-3.5" />}
-                                    className="h-7 px-2 text-xs text-gray-500 dark:text-gray-400 shrink-0"
-                                >
-                                    ล้างค่า
-                                </Button>
+                                <LiffClearButton onClear={clearStep} />
                             </div>
                         </CardHeader>
                         <CardContent className="pt-6">
