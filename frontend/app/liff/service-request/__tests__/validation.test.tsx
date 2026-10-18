@@ -143,7 +143,7 @@ describe('LIFF service-request validation (R3-M28)', () => {
     fireEvent.change(container.querySelector('select[name="prefix"]')!, { target: { value: 'นาย' } });
     fireEvent.change(container.querySelector('input[name="firstname"]')!, { target: { value: 'สมชาย' } });
     fireEvent.change(container.querySelector('input[name="lastname"]')!, { target: { value: 'ใจดี' } });
-    fireEvent.change(container.querySelector('input[name="phone_number"]')!, { target: { value: '081234567890' } });
+    fireEvent.change(container.querySelector('input[name="phone_number"]')!, { target: { value: '0812345678901234' } });
     fireEvent.click(screen.getByRole('button', { name: 'ถัดไป' }));
 
     await waitFor(() => {
@@ -151,6 +151,20 @@ describe('LIFF service-request validation (R3-M28)', () => {
     });
     // Still on step 0: the phone input is still rendered.
     expect(container.querySelector('input[name="phone_number"]')).not.toBeNull();
+  });
+
+  it('accepts 11-15 digit numbers under the shared rule', async () => {
+    const { container } = render(<LiffServiceRequest />);
+
+    fireEvent.change(container.querySelector('select[name="prefix"]')!, { target: { value: 'นาย' } });
+    fireEvent.change(container.querySelector('input[name="firstname"]')!, { target: { value: 'สมชาย' } });
+    fireEvent.change(container.querySelector('input[name="lastname"]')!, { target: { value: 'ใจดี' } });
+    fireEvent.change(container.querySelector('input[name="phone_number"]')!, { target: { value: '081234567890' } });
+    fireEvent.click(screen.getByRole('button', { name: 'ถัดไป' }));
+
+    await waitFor(() => {
+      expect(screen.queryByText('หมายเลขโทรศัพท์ไม่ถูกต้อง')).toBeNull();
+    });
   });
 
   it('normalizes a pasted +66 prefix to 0 (F12)', () => {

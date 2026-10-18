@@ -10,6 +10,7 @@ import LiffStatusBadge from '@/components/liff/LiffStatusBadge'
 import { Alert } from '@/components/ui/Alert'
 import { AGENCIES } from '@/lib/constants/agencies'
 import { PREFIX_OPTIONS } from '@/lib/constants/prefixes'
+import { isValidPhone } from '@/lib/liff/validation'
 import {
     User,
     Building2,
@@ -234,8 +235,8 @@ export default function LiffServiceRequestV2() {
                 if (!formData.prefix.trim()) errors.prefix = 'กรุณาระบุ'
                 if (!formData.firstname.trim()) errors.firstname = 'กรุณาระบุชื่อ'
                 if (!formData.lastname.trim()) errors.lastname = 'กรุณาระบุนามสกุล'
-                if (!formData.phone_number) errors.phone_number = 'กรุณาระบุเบอร์โทร'
-                else if (formData.phone_number.length < 9 || formData.phone_number.length > 10) errors.phone_number = 'หมายเลขโทรศัพท์ไม่ถูกต้อง'
+                if (!formData.phone_number) errors.phone_number = 'กรุณาระบุหมายเลขโทรศัพท์'
+                else if (!isValidPhone(formData.phone_number)) errors.phone_number = 'หมายเลขโทรศัพท์ไม่ถูกต้อง'
                 break
             case 1: // Agency
                 if (!formData.agency) errors.agency = 'กรุณาเลือกหน่วยงาน'

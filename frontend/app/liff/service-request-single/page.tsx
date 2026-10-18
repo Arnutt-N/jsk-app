@@ -24,6 +24,7 @@ import {
 import { logger } from '@/lib/logger';
 import { TOPIC_OPTIONS } from '@/lib/constants/categories'
 import { PREFIX_OPTIONS } from '@/lib/constants/prefixes'
+import { isValidPhone } from '@/lib/liff/validation'
 import { loadTaxonomy, type TaxonomyTable } from '@/lib/booking/service-mapping'
 import { useLiffInit } from '@/hooks/useLiffInit'
 import { useAutoCloseCountdown } from '@/hooks/useAutoCloseCountdown'
@@ -202,7 +203,7 @@ export default function LiffServiceRequestSingle() {
         if (!formData.firstname.trim()) errors.firstname = 'กรุณาระบุชื่อ'
         if (!formData.lastname.trim()) errors.lastname = 'กรุณาระบุนามสกุล'
         if (!formData.phone) errors.phone = 'กรุณาระบุหมายเลขโทรศัพท์'
-        else if (formData.phone.length < 9 || formData.phone.length > 10) errors.phone = 'หมายเลขโทรศัพท์ไม่ถูกต้อง'
+        else if (!isValidPhone(formData.phone)) errors.phone = 'หมายเลขโทรศัพท์ไม่ถูกต้อง'
         if (!formData.agency) errors.agency = 'กรุณาเลือกหน่วยงาน'
         if (!selectedProvinceId) errors.province = 'กรุณาเลือกจังหวัด'
         if (!selectedDistrictId) errors.district = 'กรุณาเลือกอำเภอ/เขต'
