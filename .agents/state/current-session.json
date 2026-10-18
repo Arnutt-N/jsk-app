@@ -1,13 +1,20 @@
 {
-  "last_updated": "2026-10-17T07:20:00+07:00",
+  "last_updated": "2026-10-18T13:04:00+07:00",
   "platform": "pi",
-  "current_task": "Merged PRs 259-264: booking UX, login verify-before-logout, shared taxonomy, agent rules",
+  "current_task": "Merged PRs #265 (LIFF roots: wizard, shared kit, trio, cache), #266 (rich-menu audit order), #267 (phone 9-15 rule); rich-menu ALWAYS investigation with live LINE checks",
   "plan_status": "completed",
   "next_steps": [
-    "Watch prod for login flake recurrence",
-    "Taxonomy Consider items: worker cache bound, empty-vs-fallback, role gate narrow"
+    "Re-publish menu #1 from admin and verify on phone",
+    "Decide LINE verify caching if load still slow"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-10-18T13:04:00+07:00",
+      "platform": "pi",
+      "branch": "main",
+      "head": "7827c4a",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-10-17T07:20:00+07:00",
       "platform": "pi",
@@ -139,13 +146,6 @@
       "platform": "muse_code",
       "branch": "main",
       "head": "3e7740a",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-09-30T06:37:00+07:00",
-      "platform": "muse_code",
-      "branch": "main",
-      "head": "6b42f18",
       "status": "completed"
     }
   ],

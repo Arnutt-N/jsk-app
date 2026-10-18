@@ -1,8 +1,8 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Handoff Board (generated)
 
-> **Last generated**: 2026-10-17 07:20 (from newest checkpoint)
-> 283 active handoffs, 12 platforms, 0 queued directed handoff(s).
+> **Last generated**: 2026-10-18 13:04 (from newest checkpoint)
+> 284 active handoffs, 12 platforms, 0 queued directed handoff(s).
 
 > Regenerate after any handoff: `node .agents/scripts/gen-handoff-views.cjs`
 
@@ -19,7 +19,7 @@
 | kimi_code | AVAILABLE | 2026-06-02 01:39 | 0 | Applied all P0–P3 critique fixes on frontend/app/admin/requests/[id]/page.tsx. Destructive actions now have ConfirmDialo | `project-log-md/kimi_code/session-summary-20260602-0139.md` |
 | muse_code | AVAILABLE | 2026-10-11 15:10 | 0 | Merged PR #248 (act-on-8 fixes + 6 review findings) via guarded squash d5dbef9 after independent PASS+NOTES verdict; del | `project-log-md/muse_code/session-summary-20261011-1510.md` |
 | open_code | AVAILABLE | 2026-08-25 07:39 | 0 | LIFF smoke-test plan for PR #202 drafted+reviewed (.scratch/liff-smoke-pr202/smoke-test-plan.md, REV1: 5 findings fixed) | `project-log-md/open_code/session-summary-20260825-0739.md` |
-| pi | AVAILABLE | 2026-10-17 07:20 | 0 | Merged PRs 259-264: booking UX, login verify-before-logout, shared taxonomy, agent rules | `project-log-md/pi/session-summary-20261017-0720.md` |
+| pi | AVAILABLE | 2026-10-18 13:04 | 0 | Merged PRs #265 (LIFF roots: wizard, shared kit, trio, cache), #266 (rich-menu audit order), #267 (phone 9-15 rule); ric | `project-log-md/pi/session-summary-20261018-1304.md` |
 | qoder | AVAILABLE | 2026-08-29 23:21 | 0 | Merged PR #206 + #207 to main (8ddbda3, beaff04) — resolved #206 generated-state conflicts (kept both 21:58/22:44 record | `project-log-md/qoder/session-summary-20260829-2321.md` |
 | zcode | AVAILABLE | 2026-09-06 22:56 | 0 | codebase-review-fix on PR #228 CLOSED via PR #229 (squash e63ee9f, CI 4/4, CD success): review found 0 Critical/High; 3  | `project-log-md/zcode/session-summary-20260906-2256.md` |
 
@@ -35,6 +35,7 @@ _None — no blocked checkpoints._
 
 | When | From → To | Task | Checkpoint |
 |------|-----------|------|------------|
+| 2026-10-18 13:04 | pi → all | Merged PRs #265 (LIFF roots: wizard, shared kit, trio, cache), #266 (rich-menu audit order), #267 (phone 9-15 rule); rich-menu ALWAYS invest | `handover-pi-20261018-1304.json` |
 | 2026-10-17 07:20 | pi → all | Merged PRs 259-264: booking UX, login verify-before-logout, shared taxonomy, agent rules | `handover-pi-20261017-0720.json` |
 | 2026-10-16 10:33 | pi → all | PR #259 review fixes done (option A), CI green, ready to merge | `handover-pi-20261016-1033.json` |
 | 2026-10-15 15:01 | pi → all | Merged PR #256: login redirect flake fix (stale bootstrap guard + repro test) | `handover-pi-20261015-1501.json` |
@@ -44,4 +45,3 @@ _None — no blocked checkpoints._
 | 2026-10-11 13:53 | muse_code → all | Reviewed PR #248 (comment, no blockers) and implemented all 6 review-round findings, verified green, pushed c158f88 | `handover-muse_code-20261011-1353.json` |
 | 2026-10-11 11:23 | muse_code → all | Act-on-8 complete: 8 fixes committed + PR #248 opened (no merge); full suite 1428 passed, 2 pre-existing env failures proven on base | `handover-muse_code-20261011-1123.json` |
 | 2026-10-10 12:50 | claude_code → all | Diagnosed why Muse Code cannot invoke pstack:poteto-mode / pstack:poteto-help: Muse sees pstack-poteto-mode and pstack-poteto-help as active | `handover-claude_code-20261010-1250.json` |
-| 2026-10-10 01:58 | muse_code → all | Merged PR #246: rich-menu new/edit UI parity (badge, header, save buttons) | `handover-muse_code-20261010-0158.json` |

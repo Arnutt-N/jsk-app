@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 283 active handoffs, 12 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 284 active handoffs, 12 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-10-18 13:04 — pi — completed
+
+Merged PRs #265 (LIFF roots: wizard, shared kit, trio, cache), #266 (rich-menu audit order), #267 (phone 9-15 rule); rich-menu ALWAYS investigation with live LINE checks
+
+- Checkpoint: `.agents/state/checkpoints/handover-pi-20261018-1304.json`
+- Summary: `project-log-md/pi/session-summary-20261018-1304.md`
+
+---
 
 ### 2026-10-17 07:20 — pi — completed
 
