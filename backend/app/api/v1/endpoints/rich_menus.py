@@ -760,7 +760,6 @@ async def publish_rich_menu(id: int, db: AsyncSession = Depends(get_db), current
         )
 
     rich_menu.status = RichMenuStatus.PUBLISHED
-    await db.commit()
     await create_audit_log(
         db,
         admin_id=current_admin.id,
@@ -769,6 +768,7 @@ async def publish_rich_menu(id: int, db: AsyncSession = Depends(get_db), current
         resource_id=str(id),
         details={"line_rich_menu_id": rich_menu.line_rich_menu_id},
     )
+    await db.commit()
 
     return {"message": "Rich Menu is now default on LINE Official Account"}
 
@@ -810,6 +810,14 @@ async def delete_rich_menu(id: int, db: AsyncSession = Depends(get_db), current_
     # delete still raises IntegrityError — surface it as a 409, not a 500.
     deleted_name = rich_menu.name
     try:
+        await create_audit_log(
+            db,
+            admin_id=current_admin.id,
+            action="rich_menu_delete",
+            resource_type="rich_menu",
+            resource_id=str(id),
+            details={"name_masked": (deleted_name or "")[:2] + "…"},
+        )
         await db.delete(rich_menu)
         await db.commit()
     except IntegrityError:
@@ -818,14 +826,5 @@ async def delete_rich_menu(id: int, db: AsyncSession = Depends(get_db), current_
             status_code=409,
             detail="Rich menu has dependencies; cannot delete",
         )
-
-    await create_audit_log(
-        db,
-        admin_id=current_admin.id,
-        action="rich_menu_delete",
-        resource_type="rich_menu",
-        resource_id=str(id),
-        details={"name_masked": (deleted_name or "")[:2] + "…"},
-    )
 
     return {"message": "Rich Menu deleted"}
