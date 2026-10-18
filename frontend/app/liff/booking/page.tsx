@@ -295,7 +295,7 @@ function BookingSkeleton() {
 }
 
 export default function LiffBookingPage() {
-  const { idToken, initDone } = useLiffInit({
+  const { idToken, initDone, isInLineApp } = useLiffInit({
     getLiff: () => (typeof window !== 'undefined' ? window.liff : undefined),
     requireLiffId: true,
     redirectLogin: true,
@@ -956,7 +956,7 @@ export default function LiffBookingPage() {
 
       <LeaveConfirmDialog
         isOpen={leaveOpen}
-        isInLineApp={window.liff?.isInClient?.() ?? false}
+        isInLineApp={isInLineApp}
         onClose={cancelLeave}
         onConfirm={() => {
           resetFlow()
