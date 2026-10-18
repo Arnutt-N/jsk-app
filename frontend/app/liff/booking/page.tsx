@@ -708,6 +708,7 @@ export default function LiffBookingPage() {
                 <Section
                   icon={<CalendarDays className="h-4 w-4" />}
                   title="เลือกวันที่"
+                  className="relative z-20"
                   action={<SectionClearButton onClear={clearDate} />}
                 >
                   <DateSection
