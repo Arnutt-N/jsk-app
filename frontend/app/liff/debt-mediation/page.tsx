@@ -422,7 +422,6 @@ export default function LiffDebtMediation() {
                         title={step === 2 && formData.submitter_type ? (isDebtor ? 'ข้อมูลเจ้าหนี้' : 'ข้อมูลลูกหนี้') : STEPS[step].title}
                         action={<LiffClearButton onClear={clearStep} />}
                     >
-                            {/* Step 1: Submitter */}
                             {step === 0 && (
                                 <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
                                     <p className="text-xs font-bold text-gray-600 uppercase tracking-wide">
@@ -472,7 +471,6 @@ export default function LiffDebtMediation() {
                                 </div>
                             )}
 
-                            {/* Step 2: Submitter info + debt */}
                             {step === 1 && (
                                 <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
                                     <div className="grid grid-cols-3 gap-3">
@@ -649,7 +647,6 @@ export default function LiffDebtMediation() {
                                 </div>
                             )}
 
-                            {/* Step 3: Counterparty */}
                             {step === 2 && (
                                 <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
                                     <div>
@@ -753,7 +750,6 @@ export default function LiffDebtMediation() {
                             )}
                         </LiffStepCard>
 
-                    {/* Navigation Buttons */}
                     <div className="pt-8 border-t border-gray-100 flex flex-col gap-3">
                         <LiffWizardNav
                             onCancel={requestLeave}

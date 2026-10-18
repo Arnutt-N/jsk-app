@@ -471,7 +471,6 @@ export default function LiffServiceRequestV2() {
                         title={STEPS[step].title}
                         action={<LiffClearButton onClear={clearStep} />}
                     >
-                            {/* Step 1: Personal */}
                             {step === 0 && (
                                 <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
                                     <div className="grid grid-cols-3 gap-4">
@@ -558,7 +557,6 @@ export default function LiffServiceRequestV2() {
                                 </div>
                             )}
 
-                            {/* Step 2: Location / Agency */}
                             {step === 1 && (
                                 <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
                                     <div>
@@ -640,7 +638,6 @@ export default function LiffServiceRequestV2() {
                                 </div>
                             )}
 
-                            {/* Step 3: Description */}
                             {step === 2 && (
                                 <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
                                     <div>
@@ -701,7 +698,6 @@ export default function LiffServiceRequestV2() {
                                 </div>
                             )}
 
-                            {/* Step 4: Attachments */}
                             {step === 3 && (
                                 <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
                                     <div className="flex flex-wrap gap-4 items-center justify-center py-6 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50/50">
@@ -750,9 +746,7 @@ export default function LiffServiceRequestV2() {
                             )}
                         </LiffStepCard>
 
-                    {/* Navigation Buttons (Static) */}
                     <div className="pt-8 border-t border-gray-100 flex flex-col gap-3">
-                        {/* Row 1: Navigation (Back / Next) */}
                         <LiffWizardNav
                             onCancel={requestLeave}
                             back={step > 0 ? { label: 'กลับ', onClick: prevStep } : undefined}
