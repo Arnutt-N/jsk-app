@@ -15,13 +15,13 @@ import {
     CheckCircle2,
     ChevronRight,
     ChevronLeft,
-    RotateCcw,
     X
 } from 'lucide-react'
 import { logger } from '@/lib/logger';
 import { useLiffInit } from '@/hooks/useLiffInit'
 import { useLiffLeave } from '@/hooks/useLiffLeave'
 import { LeaveConfirmDialog } from '@/components/liff/LeaveConfirmDialog'
+import { LiffClearButton } from '@/components/liff/LiffClearButton'
 import LiffStepper from '@/components/liff/LiffStepper'
 import { useAutoCloseCountdown } from '@/hooks/useAutoCloseCountdown'
 import { submitDebtMediation, DebtMediationPayload, formatLiffSubmitError, isValidPhone, normalizePhone } from '@/lib/liff/submit-debt-mediation'
@@ -427,16 +427,7 @@ export default function LiffDebtMediation() {
                                         ? (isDebtor ? 'ข้อมูลเจ้าหนี้' : 'ข้อมูลลูกหนี้')
                                         : STEPS[step].title}
                                 </CardTitle>
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={clearStep}
-                                    leftIcon={<RotateCcw className="w-3.5 h-3.5" aria-hidden="true" />}
-                                    className="h-7 px-2 text-xs text-gray-500 dark:text-gray-400 shrink-0"
-                                >
-                                    ล้างค่า
-                                </Button>
+                                <LiffClearButton onClear={clearStep} />
                             </div>
                         </CardHeader>
                         <CardContent className="pt-6">
