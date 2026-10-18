@@ -724,6 +724,14 @@ describe('cancel the whole form (ยกเลิกรายการ)', () => {
     expect(window.liff?.closeWindow).not.toHaveBeenCalled()
     expect(screen.getByRole('button', { name: 'ถัดไป' })).toBeInTheDocument()
   })
+
+  it('titles the leave dialog for the LINE client', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await chooseService()
+    await user.click(await screen.findByRole('button', { name: 'ยกเลิกรายการ' }))
+    expect(await screen.findByText('ปิดแบบฟอร์มนี้?')).toBeInTheDocument()
+  })
 })
 
 describe('post-booking actions', () => {
