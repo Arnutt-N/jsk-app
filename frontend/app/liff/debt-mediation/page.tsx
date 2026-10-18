@@ -20,6 +20,7 @@ import { useLiffLeave } from '@/hooks/useLiffLeave'
 import { LeaveConfirmDialog } from '@/components/liff/LeaveConfirmDialog'
 import { LiffClearButton } from '@/components/liff/LiffClearButton'
 import { LiffWizardNav } from '@/components/liff/LiffWizardNav'
+import { LiffStepCard } from '@/components/liff/LiffStepCard'
 import LiffStepper from '@/components/liff/LiffStepper'
 import { useAutoCloseCountdown } from '@/hooks/useAutoCloseCountdown'
 import { submitDebtMediation, DebtMediationPayload, formatLiffSubmitError, isValidPhone, normalizePhone } from '@/lib/liff/submit-debt-mediation'
@@ -416,19 +417,11 @@ export default function LiffDebtMediation() {
                         </Alert>
                     )}
 
-                    <Card glass className="overflow-hidden">
-                        <CardHeader className="bg-gray-50/50 border-b border-gray-100">
-                            <div className="flex items-center justify-between gap-2">
-                                <CardTitle className="text-base flex items-center gap-2">
-                                    {STEPS[step].icon}{' '}
-                                    {step === 2 && formData.submitter_type
-                                        ? (isDebtor ? 'ข้อมูลเจ้าหนี้' : 'ข้อมูลลูกหนี้')
-                                        : STEPS[step].title}
-                                </CardTitle>
-                                <LiffClearButton onClear={clearStep} />
-                            </div>
-                        </CardHeader>
-                        <CardContent className="pt-6">
+                    <LiffStepCard
+                        icon={STEPS[step].icon}
+                        title={step === 2 && formData.submitter_type ? (isDebtor ? 'ข้อมูลเจ้าหนี้' : 'ข้อมูลลูกหนี้') : STEPS[step].title}
+                        action={<LiffClearButton onClear={clearStep} />}
+                    >
                             {/* Step 1: Submitter */}
                             {step === 0 && (
                                 <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
@@ -758,8 +751,7 @@ export default function LiffDebtMediation() {
                                     </div>
                                 </div>
                             )}
-                        </CardContent>
-                    </Card>
+                        </LiffStepCard>
 
                     {/* Navigation Buttons */}
                     <div className="pt-8 border-t border-gray-100 flex flex-col gap-3">

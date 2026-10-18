@@ -24,6 +24,7 @@ import { PREFIX_OPTIONS } from '@/lib/constants/prefixes'
 import { buildServiceGroups, loadTaxonomy, type TaxonomyTable } from '@/lib/booking/service-mapping'
 import { LiffClearButton } from '@/components/liff/LiffClearButton'
 import { LiffWizardNav } from '@/components/liff/LiffWizardNav'
+import { LiffStepCard } from '@/components/liff/LiffStepCard'
 import { useToast } from '@/components/ui/Toast'
 import {
   cancelBooking,
@@ -61,34 +62,6 @@ function contactPayload(prefix: string, firstname: string, lastname: string, pho
     phone_number: phoneNumber.trim() || null,
     note: note.trim() || null,
   }
-}
-
-interface SectionProps {
-  icon: React.ReactNode
-  title: string
-  children: React.ReactNode
-  className?: string
-  action?: React.ReactNode
-}
-
-/** One card per step — the shared Card rhythm used across the LIFF forms. */
-function Section({ icon, title, children, className, action }: SectionProps) {
-  return (
-    <Card glass className={cn('overflow-visible', className)}>
-      <CardHeader className="bg-bg/50 border-b border-border-subtle rounded-t-2xl">
-        <div className="flex items-center justify-between gap-2">
-          <CardTitle className="text-base flex items-center gap-2">
-            <span className="text-text-tertiary" aria-hidden="true">
-              {icon}
-            </span>
-            {title}
-          </CardTitle>
-          {action}
-        </div>
-      </CardHeader>
-      <CardContent className="pt-6">{children}</CardContent>
-    </Card>
-  )
 }
 
 /** Label/value rows shared by the summary step and the done screen. */
@@ -647,7 +620,7 @@ export default function LiffBookingPage() {
 
           {!confirmed && wizardStep === STEP.SERVICE && (
             <div className="space-y-4">
-              <Section
+              <LiffStepCard
                 icon={<Users className="h-4 w-4" />}
                 title="เลือกบริการ"
                 action={<LiffClearButton onClear={clearService} />}
@@ -690,7 +663,7 @@ export default function LiffBookingPage() {
                 ) : (
                   <p className="text-sm text-text-tertiary">ยังไม่มีบริการที่เปิดให้จอง</p>
                 )}
-              </Section>
+              </LiffStepCard>
               <LiffWizardNav onCancel={requestLeave} next={{ label: 'ถัดไป', onClick: tryNext }} />
             </div>
           )}
@@ -698,7 +671,7 @@ export default function LiffBookingPage() {
           {!confirmed && wizardStep === STEP.DATETIME && (
             <div className="space-y-4">
               {serviceType && (
-                <Section
+                <LiffStepCard
                   icon={<CalendarDays className="h-4 w-4" />}
                   title="เลือกวันที่"
                   className="relative z-20"
@@ -712,11 +685,11 @@ export default function LiffBookingPage() {
                     minDate={dateOptions[0] ?? null}
                     maxDate={dateOptions[dateOptions.length - 1] ?? null}
                   />
-                </Section>
+                </LiffStepCard>
               )}
 
               {selectedDate && (
-                <Section
+                <LiffStepCard
                   icon={<Clock className="h-4 w-4" />}
                   title="เลือกช่วงเวลา"
                   action={<LiffClearButton onClear={clearSlot} />}
@@ -778,7 +751,7 @@ export default function LiffBookingPage() {
                       วันที่เลือกไม่มีช่วงเวลาให้จอง กรุณาเลือกวันอื่น
                     </p>
                   )}
-                </Section>
+                </LiffStepCard>
               )}
 
               {datetimeError && (
@@ -792,7 +765,7 @@ export default function LiffBookingPage() {
 
           {!confirmed && wizardStep === STEP.CONTACT && (
             <div className="space-y-4">
-              <Section
+              <LiffStepCard
                 icon={<Users className="h-4 w-4" />}
                 title="ข้อมูลผู้จอง"
                 action={<LiffClearButton onClear={clearContact} />}
@@ -812,14 +785,14 @@ export default function LiffBookingPage() {
                   phoneError={showContactErrors ? contactErrors.phoneNumber : undefined}
                   showNote={false}
                 />
-              </Section>
+              </LiffStepCard>
               <LiffWizardNav onCancel={requestLeave} back={{ label: 'กลับ', onClick: goBack }} next={{ label: 'ถัดไป', onClick: tryNext }} />
             </div>
           )}
 
           {!confirmed && wizardStep === STEP.SUMMARY && selectedSlot && (
             <div className="space-y-4">
-              <Section
+              <LiffStepCard
                 icon={<CheckCircle2 className="h-4 w-4" />}
                 title="ตรวจสอบและยืนยันการจอง"
               >
@@ -886,7 +859,7 @@ export default function LiffBookingPage() {
                     {submitting ? 'กำลังจอง...' : 'ยืนยันการจอง'}
                   </Button>
                 </div>
-              </Section>
+              </LiffStepCard>
               <LiffWizardNav onCancel={requestLeave} back={{ label: 'กลับ', onClick: goBack }} />
             </div>
           )}
