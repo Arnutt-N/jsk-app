@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { Select } from '@/components/ui/Select'
-import { CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Clock, Loader2, Phone, Users, X } from 'lucide-react'
+import { CalendarDays, CheckCircle2, Clock, Loader2, Phone, Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { logger } from '@/lib/logger'
 import { useLiffInit } from '@/hooks/useLiffInit'
@@ -23,6 +23,7 @@ import { composeContactName, splitContactName, validateBookingContact } from '@/
 import { PREFIX_OPTIONS } from '@/lib/constants/prefixes'
 import { buildServiceGroups, loadTaxonomy, type TaxonomyTable } from '@/lib/booking/service-mapping'
 import { LiffClearButton } from '@/components/liff/LiffClearButton'
+import { LiffWizardNav } from '@/components/liff/LiffWizardNav'
 import { useToast } from '@/components/ui/Toast'
 import {
   cancelBooking,
@@ -87,55 +88,6 @@ function Section({ icon, title, children, className, action }: SectionProps) {
       </CardHeader>
       <CardContent className="pt-6">{children}</CardContent>
     </Card>
-  )
-}
-
-function WizardNav({
-  step,
-  onBack,
-  onNext,
-  onCancel,
-}: {
-  step: WizardStep
-  onBack: () => void
-  onNext: () => void
-  onCancel: () => void
-}) {
-  return (
-    <div className="mt-4 flex flex-col gap-3">
-      <div className="flex w-full gap-3">
-        {step > STEP.SERVICE && (
-          <Button
-            type="button"
-            variant="outline"
-            className="h-auto flex-1 py-3"
-            onClick={onBack}
-            leftIcon={<ChevronLeft className="h-4 w-4" aria-hidden="true" />}
-          >
-            กลับ
-          </Button>
-        )}
-        {step < STEP.SUMMARY && (
-          <Button
-            type="button"
-            className="h-auto flex-[2] py-3"
-            onClick={onNext}
-            rightIcon={<ChevronRight className="h-4 w-4" aria-hidden="true" />}
-          >
-            ถัดไป
-          </Button>
-        )}
-      </div>
-      <Button
-        type="button"
-        variant="ghost"
-        className="h-auto w-full py-2 text-xs font-medium text-red-700 hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-900/20"
-        onClick={onCancel}
-        leftIcon={<X className="h-3.5 w-3.5" aria-hidden="true" />}
-      >
-        ยกเลิกรายการ
-      </Button>
-    </div>
   )
 }
 
@@ -739,7 +691,7 @@ export default function LiffBookingPage() {
                   <p className="text-sm text-text-tertiary">ยังไม่มีบริการที่เปิดให้จอง</p>
                 )}
               </Section>
-              <WizardNav step={STEP.SERVICE} onBack={goBack} onNext={tryNext} onCancel={requestLeave} />
+              <LiffWizardNav onCancel={requestLeave} next={{ label: 'ถัดไป', onClick: tryNext }} />
             </div>
           )}
 
@@ -834,7 +786,7 @@ export default function LiffBookingPage() {
                   {datetimeError}
                 </p>
               )}
-              <WizardNav step={STEP.DATETIME} onBack={goBack} onNext={tryNext} onCancel={requestLeave} />
+              <LiffWizardNav onCancel={requestLeave} back={{ label: 'กลับ', onClick: goBack }} next={{ label: 'ถัดไป', onClick: tryNext }} />
             </div>
           )}
 
@@ -861,7 +813,7 @@ export default function LiffBookingPage() {
                   showNote={false}
                 />
               </Section>
-              <WizardNav step={STEP.CONTACT} onBack={goBack} onNext={tryNext} onCancel={requestLeave} />
+              <LiffWizardNav onCancel={requestLeave} back={{ label: 'กลับ', onClick: goBack }} next={{ label: 'ถัดไป', onClick: tryNext }} />
             </div>
           )}
 
@@ -935,7 +887,7 @@ export default function LiffBookingPage() {
                   </Button>
                 </div>
               </Section>
-              <WizardNav step={STEP.SUMMARY} onBack={goBack} onNext={tryNext} onCancel={requestLeave} />
+              <LiffWizardNav onCancel={requestLeave} back={{ label: 'กลับ', onClick: goBack }} />
             </div>
           )}
         </>
