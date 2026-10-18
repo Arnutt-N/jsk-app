@@ -1,7 +1,7 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 285 active handoffs, 12 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 286 active handoffs, 12 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
 
 ### 2026-10-18 14:33 — pi — completed
@@ -19,6 +19,15 @@ Merged PRs #265 (LIFF roots: wizard, shared kit, trio, cache), #266 (rich-menu a
 
 - Checkpoint: `.agents/state/checkpoints/handover-pi-20261018-1304.json`
 - Summary: `project-log-md/pi/session-summary-20261018-1304.md`
+
+---
+
+### 2026-10-18 10:26 — claude_code — completed
+
+LIFF polish: merged #269 (booking date picker no longer covered), #270 (stepper label icons, booking cancel + faster load, debt clear icon), #271 (booking note moved to service step, summary step renamed ยืนยัน); opened #272 (ยกเลิกรายการ on every booking step); designed shared LIFF components
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20261018-1026.json`
+- Summary: `project-log-md/claude_code/session-summary-20261018-1026.md`
 
 ---
 
