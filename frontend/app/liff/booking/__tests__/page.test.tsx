@@ -709,7 +709,7 @@ describe('cancel the whole form (ยกเลิกรายการ)', () => {
 
     await user.click(screen.getByRole('button', { name: 'ยกเลิกรายการ' }))
     expect(window.liff?.closeWindow).not.toHaveBeenCalled()
-    await user.click(await screen.findByRole('button', { name: 'ยืนยันยกเลิก' }))
+    await user.click(await screen.findByRole('button', { name: 'ยืนยัน' }))
 
     expect(window.liff?.closeWindow).toHaveBeenCalled()
     expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(false)
@@ -720,7 +720,7 @@ describe('cancel the whole form (ยกเลิกรายการ)', () => {
     renderPage()
     await chooseService()
     await user.click(await screen.findByRole('button', { name: 'ยกเลิกรายการ' }))
-    await user.click(await screen.findByRole('button', { name: 'กลับไปจองต่อ' }))
+    await user.click(await screen.findByRole('button', { name: 'ไม่ใช่' }))
     expect(window.liff?.closeWindow).not.toHaveBeenCalled()
     expect(screen.getByRole('button', { name: 'ถัดไป' })).toBeInTheDocument()
   })
