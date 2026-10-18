@@ -30,7 +30,7 @@ async function goNext() {
 }
 
 async function goBack() {
-  await userEvent.click(await screen.findByRole('button', { name: 'ย้อนกลับ' }))
+  await userEvent.click(await screen.findByRole('button', { name: 'กลับ' }))
 }
 
 async function openCalendar(user: ReturnType<typeof userEvent.setup>) {
@@ -680,8 +680,20 @@ describe('note field placement', () => {
   })
 })
 
-describe('summary step cancel', () => {
-  it('lets the citizen discard the draft from the summary step', async () => {
+describe('cancel the whole form (ยกเลิกรายการ)', () => {
+  it('is offered on every wizard step, below back/next', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await chooseService()
+    expect(await screen.findByRole('button', { name: 'ยกเลิกรายการ' })).toBeInTheDocument()
+    await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
+    expect(await screen.findByRole('button', { name: 'ยกเลิกรายการ' })).toBeInTheDocument()
+    await user.click(await screen.findByRole('button', { name: /09:30/ }))
+    await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
+    expect(await screen.findByRole('button', { name: 'ยกเลิกรายการ' })).toBeInTheDocument()
+  })
+
+  it('asks for confirmation, drops the draft and closes the LIFF window', async () => {
     const user = userEvent.setup()
     renderPage()
     await chooseService()
@@ -693,12 +705,24 @@ describe('summary step cancel', () => {
     await user.type(screen.getByPlaceholderText('นามสกุล'), 'ใจดี')
     await user.type(screen.getByPlaceholderText('0812345678'), '0812345678')
     await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
+    await screen.findByRole('heading', { name: 'ตรวจสอบและยืนยันการจอง' })
 
-    await user.click(await screen.findByRole('button', { name: 'ยกเลิก' }))
+    await user.click(screen.getByRole('button', { name: 'ยกเลิกรายการ' }))
+    expect(window.liff?.closeWindow).not.toHaveBeenCalled()
     await user.click(await screen.findByRole('button', { name: 'ยืนยันยกเลิก' }))
 
-    expect(screen.queryByRole('button', { name: 'ยืนยันการจอง' })).not.toBeInTheDocument()
+    expect(window.liff?.closeWindow).toHaveBeenCalled()
     expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(false)
+  })
+
+  it('keeps the form when the citizen chooses to go back', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await chooseService()
+    await user.click(await screen.findByRole('button', { name: 'ยกเลิกรายการ' }))
+    await user.click(await screen.findByRole('button', { name: 'กลับไปจองต่อ' }))
+    expect(window.liff?.closeWindow).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: 'ถัดไป' })).toBeInTheDocument()
   })
 })
 
@@ -828,7 +852,7 @@ describe('wizard navigation', () => {
 
     expect(screen.getByRole('heading', { name: 'เลือกบริการ' })).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'เลือกวันที่' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'ย้อนกลับ' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'กลับ' })).not.toBeInTheDocument()
 
     await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
     expect(screen.getByRole('heading', { name: 'เลือกวันที่' })).toBeInTheDocument()
@@ -842,7 +866,7 @@ describe('wizard navigation', () => {
     expect(screen.getByRole('heading', { name: 'ตรวจสอบและยืนยันการจอง' })).toBeInTheDocument()
     expect(screen.getByText('ปรึกษากฎหมาย')).toBeInTheDocument()
 
-    await user.click(await screen.findByRole('button', { name: 'ย้อนกลับ' }))
+    await user.click(await screen.findByRole('button', { name: 'กลับ' }))
     expect(screen.getByRole('heading', { name: 'ข้อมูลผู้จอง' })).toBeInTheDocument()
   })
 

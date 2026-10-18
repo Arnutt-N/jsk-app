@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { Select } from '@/components/ui/Select'
-import { CalendarDays, CheckCircle2, Clock, Loader2, Phone, RotateCcw, Users, X } from 'lucide-react'
+import { CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Clock, Loader2, Phone, RotateCcw, Users, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { logger } from '@/lib/logger'
 import { useLiffInit } from '@/hooks/useLiffInit'
@@ -106,19 +106,51 @@ function SectionClearButton({ onClear }: { onClear: () => void }) {
   )
 }
 
-function WizardNav({ step, onBack, onNext }: { step: WizardStep; onBack: () => void; onNext: () => void }) {
+function WizardNav({
+  step,
+  onBack,
+  onNext,
+  onCancel,
+}: {
+  step: WizardStep
+  onBack: () => void
+  onNext: () => void
+  onCancel: () => void
+}) {
   return (
-    <div className="mt-4 flex gap-3">
-      {step > STEP.SERVICE && (
-        <Button type="button" variant="secondary" className="flex-1" onClick={onBack}>
-          ย้อนกลับ
-        </Button>
-      )}
-      {step < STEP.SUMMARY && (
-        <Button type="button" className="flex-1" onClick={onNext}>
-          ถัดไป
-        </Button>
-      )}
+    <div className="mt-4 flex flex-col gap-3">
+      <div className="flex w-full gap-3">
+        {step > STEP.SERVICE && (
+          <Button
+            type="button"
+            variant="outline"
+            className="h-auto flex-1 py-3"
+            onClick={onBack}
+            leftIcon={<ChevronLeft className="h-4 w-4" aria-hidden="true" />}
+          >
+            กลับ
+          </Button>
+        )}
+        {step < STEP.SUMMARY && (
+          <Button
+            type="button"
+            className="h-auto flex-[2] py-3"
+            onClick={onNext}
+            rightIcon={<ChevronRight className="h-4 w-4" aria-hidden="true" />}
+          >
+            ถัดไป
+          </Button>
+        )}
+      </div>
+      <Button
+        type="button"
+        variant="ghost"
+        className="h-auto w-full py-2 text-xs font-medium text-red-700 hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-900/20"
+        onClick={onCancel}
+        leftIcon={<X className="h-3.5 w-3.5" aria-hidden="true" />}
+      >
+        ยกเลิกรายการ
+      </Button>
     </div>
   )
 }
@@ -311,7 +343,7 @@ export default function LiffBookingPage() {
   const [editing, setEditing] = useState(false)
   const [cancelling, setCancelling] = useState(false)
   const [cancelOpen, setCancelOpen] = useState(false)
-  const [discardOpen, setDiscardOpen] = useState(false)
+  const [leaveOpen, setLeaveOpen] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
   const [showContactErrors, setShowContactErrors] = useState(false)
   const [serviceError, setServiceError] = useState<string | null>(null)
@@ -482,6 +514,18 @@ export default function LiffBookingPage() {
     dispatch({ type: 'draft/reset' })
     if (options?.service_types.length === 1) {
       dispatch({ type: 'service/set', service: options.service_types[0] })
+    }
+  }
+
+  // "ยกเลิกรายการ": drop the draft and leave. Inside LINE the LIFF window
+  // closes; an external browser tab cannot be closed by script, so go home.
+  const handleLeave = () => {
+    setLeaveOpen(false)
+    resetFlow()
+    if (window.liff?.isInClient?.()) {
+      window.liff.closeWindow?.()
+    } else {
+      window.location.href = '/'
     }
   }
 
@@ -718,7 +762,7 @@ export default function LiffBookingPage() {
                   <p className="text-sm text-text-tertiary">ยังไม่มีบริการที่เปิดให้จอง</p>
                 )}
               </Section>
-              <WizardNav step={STEP.SERVICE} onBack={goBack} onNext={tryNext} />
+              <WizardNav step={STEP.SERVICE} onBack={goBack} onNext={tryNext} onCancel={() => setLeaveOpen(true)} />
             </div>
           )}
 
@@ -813,7 +857,7 @@ export default function LiffBookingPage() {
                   {datetimeError}
                 </p>
               )}
-              <WizardNav step={STEP.DATETIME} onBack={goBack} onNext={tryNext} />
+              <WizardNav step={STEP.DATETIME} onBack={goBack} onNext={tryNext} onCancel={() => setLeaveOpen(true)} />
             </div>
           )}
 
@@ -840,7 +884,7 @@ export default function LiffBookingPage() {
                   showNote={false}
                 />
               </Section>
-              <WizardNav step={STEP.CONTACT} onBack={goBack} onNext={tryNext} />
+              <WizardNav step={STEP.CONTACT} onBack={goBack} onNext={tryNext} onCancel={() => setLeaveOpen(true)} />
             </div>
           )}
 
@@ -912,33 +956,20 @@ export default function LiffBookingPage() {
                   <Button className="w-full" onClick={handleSubmit} disabled={submitting}>
                     {submitting ? 'กำลังจอง...' : 'ยืนยันการจอง'}
                   </Button>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="w-full"
-                    onClick={() => setDiscardOpen(true)}
-                    disabled={submitting}
-                    leftIcon={<X className="h-4 w-4" aria-hidden="true" />}
-                  >
-                    ยกเลิก
-                  </Button>
                 </div>
               </Section>
-              <WizardNav step={STEP.SUMMARY} onBack={goBack} onNext={tryNext} />
+              <WizardNav step={STEP.SUMMARY} onBack={goBack} onNext={tryNext} onCancel={() => setLeaveOpen(true)} />
             </div>
           )}
         </>
       )}
 
       <ConfirmDialog
-        isOpen={discardOpen}
-        onClose={() => setDiscardOpen(false)}
-        onConfirm={() => {
-          setDiscardOpen(false)
-          resetFlow()
-        }}
-        title="ยกเลิกการจอง"
-        description="ข้อมูลที่กรอกไว้จะถูกล้างและกลับไปเริ่มใหม่ ต้องการยกเลิกหรือไม่?"
+        isOpen={leaveOpen}
+        onClose={() => setLeaveOpen(false)}
+        onConfirm={handleLeave}
+        title="ยกเลิกรายการ"
+        description="ข้อมูลที่กรอกไว้ทั้งหมดจะหายไปและไม่สามารถกู้คืนได้ ต้องการยกเลิกรายการนี้หรือไม่?"
         confirmText="ยืนยันยกเลิก"
         cancelText="กลับไปจองต่อ"
         variant="danger"
