@@ -12,16 +12,14 @@ import {
     Wallet,
     Handshake,
     Scale,
-    CheckCircle2,
-    ChevronRight,
-    ChevronLeft,
-    X
+    CheckCircle2
 } from 'lucide-react'
 import { logger } from '@/lib/logger';
 import { useLiffInit } from '@/hooks/useLiffInit'
 import { useLiffLeave } from '@/hooks/useLiffLeave'
 import { LeaveConfirmDialog } from '@/components/liff/LeaveConfirmDialog'
 import { LiffClearButton } from '@/components/liff/LiffClearButton'
+import { LiffWizardNav } from '@/components/liff/LiffWizardNav'
 import LiffStepper from '@/components/liff/LiffStepper'
 import { useAutoCloseCountdown } from '@/hooks/useAutoCloseCountdown'
 import { submitDebtMediation, DebtMediationPayload, formatLiffSubmitError, isValidPhone, normalizePhone } from '@/lib/liff/submit-debt-mediation'
@@ -765,53 +763,12 @@ export default function LiffDebtMediation() {
 
                     {/* Navigation Buttons */}
                     <div className="pt-8 border-t border-gray-100 flex flex-col gap-3">
-                        <div className="flex gap-3 w-full">
-                            {step > 0 && (
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    className="flex-1 py-3 h-auto"
-                                    onClick={prevStep}
-                                    leftIcon={<ChevronLeft className="w-4 h-4" />}
-                                >
-                                    กลับ
-                                </Button>
-                            )}
-
-                            {step < STEPS.length - 1 ? (
-                                <Button
-                                    type="button"
-                                    variant="primary"
-                                    className="flex-[2] py-3 h-auto"
-                                    onClick={nextStep}
-                                    rightIcon={<ChevronRight className="w-4 h-4" />}
-                                >
-                                    ถัดไป
-                                </Button>
-                            ) : (
-                                <Button
-                                    type="button"
-                                    variant="primary"
-                                    onClick={() => {
-                                        if (validateStep(step)) setShowConfirm(true)
-                                    }}
-                                    disabled={submitting}
-                                    className="flex-[2] py-3 h-auto font-bold"
-                                >
-                                    ยื่นคำขอ
-                                </Button>
-                            )}
-                        </div>
-
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            className="w-full py-2 h-auto text-xs text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 font-medium"
-                            onClick={requestLeave}
-                            leftIcon={<X className="w-3.5 h-3.5" />}
-                        >
-                            ยกเลิกรายการ
-                        </Button>
+                        <LiffWizardNav
+                            onCancel={requestLeave}
+                            back={step > 0 ? { label: 'กลับ', onClick: prevStep } : undefined}
+                            next={step < STEPS.length - 1 ? { label: 'ถัดไป', onClick: nextStep } : undefined}
+                            submit={step === STEPS.length - 1 ? { label: 'ยื่นคำขอ', onClick: () => { if (validateStep(step)) setShowConfirm(true) }, disabled: submitting } : undefined}
+                        />
 
                         <p className="text-center text-[10px] text-gray-600 dark:text-gray-400 mt-4 px-4 leading-relaxed">
                             ข้อมูลของท่านจะถูกใช้เพื่อการวิเคราะห์และดำเนินการให้ความช่วยเหลือโดยบุคลากรของรัฐที่เกี่ยวข้องเท่านั้น ภายใต้กฎหมายคุ้มครองข้อมูลส่วนบุคคล (PDPA)
