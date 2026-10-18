@@ -488,7 +488,7 @@ describe('shared card rhythm', () => {
     await user.click(await screen.findByRole('button', { name: /09:30/ }))
     await goNext()
 
-    for (const label of ['คำนำหน้า', 'ชื่อ', 'นามสกุล', 'เบอร์โทรศัพท์', 'รายละเอียดเพิ่มเติม (ถ้ามี)']) {
+    for (const label of ['คำนำหน้า', 'ชื่อ', 'นามสกุล', 'เบอร์โทรศัพท์']) {
       const el = screen.getByText(label)
       expect(el.className).toContain('uppercase')
       expect(el.className).toContain('font-bold')
@@ -654,6 +654,29 @@ describe('picker-strip sync', () => {
     const body = JSON.parse(String(post?.[1]?.body))
     expect(body.booking_date).toBe(targetIso)
     expect(body.booking_date).not.toContain('T')
+  })
+})
+
+describe('note field placement', () => {
+  it('asks for the optional note on the service step, not the contact step', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await chooseService()
+    const note = await screen.findByLabelText('รายละเอียดเพิ่มเติม (ถ้ามี)')
+    await user.type(note, 'ขอเจ้าหน้าที่ผู้หญิง')
+    await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
+    await user.click(await screen.findByRole('button', { name: /09:30/ }))
+    await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
+
+    await screen.findByRole('combobox', { name: 'คำนำหน้า' })
+    expect(screen.queryByText('รายละเอียดเพิ่มเติม (ถ้ามี)')).not.toBeInTheDocument()
+
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'คำนำหน้า' }), 'นาย')
+    await user.type(screen.getByPlaceholderText('ชื่อจริง'), 'สมชาย')
+    await user.type(screen.getByPlaceholderText('นามสกุล'), 'ใจดี')
+    await user.type(screen.getByPlaceholderText('0812345678'), '0812345678')
+    await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
+    expect(await screen.findByText('ขอเจ้าหน้าที่ผู้หญิง')).toBeInTheDocument()
   })
 })
 

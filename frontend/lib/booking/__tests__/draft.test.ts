@@ -145,9 +145,9 @@ describe('draftReducer', () => {
     expect(next).toEqual({ ...SAVED, date: '2026-09-03', slotId: null })
   })
 
-  it('clears the contact section to blank strings', () => {
+  it('clears the contact section to blank strings and keeps the service-step note', () => {
     const next = draftReducer(SAVED, { type: 'section/clear', section: 'contact' })
-    expect(next).toEqual({ ...SAVED, prefix: '', firstname: '', lastname: '', phoneNumber: '', note: '' })
+    expect(next).toEqual({ ...SAVED, prefix: '', firstname: '', lastname: '', phoneNumber: '' })
   })
 
   it('clearing the date twice is a no-op the second time', () => {
@@ -156,9 +156,9 @@ describe('draftReducer', () => {
     expect(draftReducer(once, { type: 'section/clear', section: 'date' })).toBe(once)
   })
 
-  it('clearing the service cascades to the date and slot', () => {
+  it('clearing the service cascades to the date and slot and clears its note', () => {
     const next = draftReducer(SAVED, { type: 'section/clear', section: 'service' })
-    expect(next).toEqual({ ...SAVED, service: null, date: null, slotId: null })
+    expect(next).toEqual({ ...SAVED, service: null, date: null, slotId: null, note: '' })
   })
 
   it('resets to the empty draft', () => {

@@ -152,6 +152,8 @@ interface ContactFieldsFormProps {
   onNote: (value: string) => void
   nameErrors?: { prefix?: string; firstname?: string; lastname?: string }
   phoneError?: string
+  /** The note belongs to the service step; only the post-booking edit form shows it here. */
+  showNote?: boolean
 }
 
 function ContactFieldsForm({
@@ -167,6 +169,7 @@ function ContactFieldsForm({
   onNote,
   nameErrors,
   phoneError,
+  showNote = true,
 }: ContactFieldsFormProps) {
   return (
     <div className="space-y-3">
@@ -222,17 +225,19 @@ function ContactFieldsForm({
           aria-invalid={phoneError ? true : undefined}
         />
       </label>
-      <label className="block">
-        <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-text-secondary">
-          รายละเอียดเพิ่มเติม (ถ้ามี)
-        </span>
-        <Textarea
-          value={note}
-          onChange={(e) => onNote(e.target.value)}
-          maxLength={1000}
-          rows={3}
-        />
-      </label>
+      {showNote && (
+        <label className="block">
+          <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-text-secondary">
+            รายละเอียดเพิ่มเติม (ถ้ามี)
+          </span>
+          <Textarea
+            value={note}
+            onChange={(e) => onNote(e.target.value)}
+            maxLength={1000}
+            rows={3}
+          />
+        </label>
+      )}
     </div>
   )
 }
@@ -675,27 +680,40 @@ export default function LiffBookingPage() {
                 action={<SectionClearButton onClear={clearService} />}
               >
                 {serviceGroups.some((group) => group.options.length > 0) ? (
-                  <label className="block">
-                    <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-text-secondary">
-                      บริการ
-                    </span>
-                    <Select
-                      aria-label="เลือกบริการ"
-                      value={serviceType ?? ''}
-                      onChange={(e) => {
-                        if (e.target.value) chooseService(e.target.value)
-                      }}
-                      groups={serviceGroups
-                        .filter((group) => group.options.length > 0)
-                        .map((group) => ({
-                          label: group.category,
-                          options: group.options,
-                        }))}
-                      placeholder="-- เลือกบริการ --"
-                      state={serviceError ? 'error' : 'default'}
-                      errorMessage={serviceError ?? undefined}
-                    />
-                  </label>
+                  <>
+                    <label className="block">
+                      <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-text-secondary">
+                        บริการ
+                      </span>
+                      <Select
+                        aria-label="เลือกบริการ"
+                        value={serviceType ?? ''}
+                        onChange={(e) => {
+                          if (e.target.value) chooseService(e.target.value)
+                        }}
+                        groups={serviceGroups
+                          .filter((group) => group.options.length > 0)
+                          .map((group) => ({
+                            label: group.category,
+                            options: group.options,
+                          }))}
+                        placeholder="-- เลือกบริการ --"
+                        state={serviceError ? 'error' : 'default'}
+                        errorMessage={serviceError ?? undefined}
+                      />
+                    </label>
+                    <label className="mt-4 block">
+                      <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-text-secondary">
+                        รายละเอียดเพิ่มเติม (ถ้ามี)
+                      </span>
+                      <Textarea
+                        value={note}
+                        onChange={(e) => onNote(e.target.value)}
+                        maxLength={1000}
+                        rows={3}
+                      />
+                    </label>
+                  </>
                 ) : (
                   <p className="text-sm text-text-tertiary">ยังไม่มีบริการที่เปิดให้จอง</p>
                 )}
@@ -819,6 +837,7 @@ export default function LiffBookingPage() {
                   onNote={onNote}
                   nameErrors={showContactErrors ? contactErrors : undefined}
                   phoneError={showContactErrors ? contactErrors.phoneNumber : undefined}
+                  showNote={false}
                 />
               </Section>
               <WizardNav step={STEP.CONTACT} onBack={goBack} onNext={tryNext} />
@@ -844,6 +863,12 @@ export default function LiffBookingPage() {
                       </button>
                     </div>
                     <p className="text-text-secondary">{serviceType}</p>
+                    {note.trim() && (
+                      <p className="mt-1 whitespace-pre-wrap text-text-secondary">
+                        <span className="text-text-tertiary">รายละเอียด: </span>
+                        {note.trim()}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <div className="mb-1 flex items-center justify-between gap-2">
@@ -871,12 +896,11 @@ export default function LiffBookingPage() {
                         แก้ไข
                       </button>
                     </div>
-                    {displayName || phoneNumber.trim() || note.trim() ? (
+                    {displayName || phoneNumber.trim() ? (
                       <SummaryRows
                         rows={[
                           { label: 'ผู้จอง', value: displayName || null },
                           { label: 'โทรศัพท์', value: phoneNumber.trim() || null },
-                          { label: 'รายละเอียด', value: note.trim() || null },
                         ]}
                       />
                     ) : (
