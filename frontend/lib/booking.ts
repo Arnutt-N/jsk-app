@@ -62,6 +62,8 @@ export interface BookingSettings {
   reminder_enabled: boolean
   reminder_lead_value: number
   reminder_lead_unit: ReminderUnit
+  // Absent in payloads saved before Phase 1 — treat missing as enabled.
+  walkin_enabled?: boolean
 }
 
 export const BOOKING_STATUS_LABELS: Record<BookingStatus, string> = {
@@ -323,6 +325,50 @@ export async function updateBookingStatus(
     method: 'PATCH',
   })
   if (!res.ok) throw new Error(await readError(res, 'อัปเดตสถานะไม่สำเร็จ'))
+  return res.json()
+}
+
+export async function createWalkinBooking(payload: {
+  service_type: string
+  booking_date: string
+  booking_time: string
+  contact_name?: string | null
+  phone_number?: string | null
+  note?: string | null
+}): Promise<Booking> {
+  const res = await fetch(ADMIN_BASE, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  if (!res.ok) throw new Error(await readError(res, 'เพิ่มคิวนอกไม่สำเร็จ'))
+  return res.json()
+}
+
+export async function updateAdminBookingContact(
+  bookingId: number,
+  payload: {
+    contact_name?: string | null
+    phone_number?: string | null
+    note?: string | null
+  },
+): Promise<Booking> {
+  const res = await fetch(`${ADMIN_BASE}/${bookingId}/contact`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  if (!res.ok) throw new Error(await readError(res, 'แก้ไขข้อมูลไม่สำเร็จ'))
+  return res.json()
+}
+
+export async function fetchAdminAvailability(
+  serviceType: string,
+  date: string,
+): Promise<Availability> {
+  const query = new URLSearchParams({ service_type: serviceType, date })
+  const res = await fetch(`${ADMIN_BASE}/availability?${query}`)
+  if (!res.ok) throw new Error(await readError(res, 'ไม่สามารถโหลดช่วงเวลาที่ว่างได้'))
   return res.json()
 }
 

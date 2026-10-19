@@ -7,13 +7,15 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { Select } from '@/components/ui/Select'
-import { CalendarDays, Phone, RefreshCw } from 'lucide-react'
+import { CalendarDays, Pencil, Phone, Plus, RefreshCw } from 'lucide-react'
 import { logger } from '@/lib/logger'
 import { formatThaiDate } from '@/lib/format-date'
 import { isoToYMD } from '@/lib/utils'
+import { EditContactDialog, WalkinBookingDialog } from '@/components/admin/WalkinBookingDialog'
 import {
   BOOKING_STATUS_LABELS,
   fetchAdminBookings,
+  fetchBookingSettings,
   formatTime,
   updateBookingStatus,
   type Booking,
@@ -52,6 +54,11 @@ export default function AdminBookingsPage() {
   const [loading, setLoading] = useState(true)
   const [updatingId, setUpdatingId] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
+  // Missing in older saved settings means enabled (Phase 1 default).
+  const [walkinEnabled, setWalkinEnabled] = useState(true)
+  const [serviceTypes, setServiceTypes] = useState<string[]>([])
+  const [walkinOpen, setWalkinOpen] = useState(false)
+  const [editing, setEditing] = useState<Booking | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -74,6 +81,19 @@ export default function AdminBookingsPage() {
   useEffect(() => {
     void load()
   }, [load])
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const settings = await fetchBookingSettings()
+        setWalkinEnabled(settings.walkin_enabled ?? true)
+        setServiceTypes(settings.service_types ?? [])
+      } catch (err) {
+        logger.error('Failed to load booking settings:', err)
+      }
+    }
+    void loadSettings()
+  }, [])
 
   const handleStatus = async (booking: Booking, status: BookingStatus) => {
     setUpdatingId(booking.id)
@@ -140,6 +160,12 @@ export default function AdminBookingsPage() {
             <RefreshCw className="mr-1 h-4 w-4" aria-hidden="true" />
             รีเฟรช
           </Button>
+          {walkinEnabled && (
+            <Button onClick={() => setWalkinOpen(true)}>
+              <Plus className="mr-1 h-4 w-4" aria-hidden="true" />
+              เพิ่มคิวนอก
+            </Button>
+          )}
         </div>
       </header>
 
@@ -191,6 +217,18 @@ export default function AdminBookingsPage() {
 
               {booking.status === 'CONFIRMED' && (
                 <div className="flex gap-1">
+                  {walkinEnabled && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={updatingId === booking.id}
+                      onClick={() => setEditing(booking)}
+                      aria-label={`แก้ไขข้อมูลผู้จองคิว ${booking.queue_number ?? booking.id}`}
+                    >
+                      <Pencil className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
+                      แก้ข้อมูล
+                    </Button>
+                  )}
                   {ACTIONS.map((action) => (
                     <Button
                       key={action.status}
@@ -212,6 +250,23 @@ export default function AdminBookingsPage() {
       <p className="text-xs text-slate-400">
         แสดงรายการ{date ? `ของวันที่ ${formatThaiDate(date, { yearFormat: 'numeric' })}` : 'ทุกวัน'}
       </p>
+
+      {walkinEnabled && (
+        <WalkinBookingDialog
+          open={walkinOpen}
+          serviceTypes={serviceTypes}
+          initialDate={date}
+          onClose={() => setWalkinOpen(false)}
+          onCreated={() => void load()}
+        />
+      )}
+      <EditContactDialog
+        booking={walkinEnabled ? editing : null}
+        onClose={() => setEditing(null)}
+        onUpdated={(updated) =>
+          setBookings((current) => current.map((b) => (b.id === updated.id ? updated : b)))
+        }
+      />
     </div>
   )
 }

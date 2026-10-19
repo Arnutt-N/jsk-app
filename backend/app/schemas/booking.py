@@ -153,6 +153,9 @@ class BookingSettingsIn(BaseModel):
     reminder_enabled: bool
     reminder_lead_value: int = Field(ge=1, le=90)
     reminder_lead_unit: ReminderUnit
+    # Defaulted so older payloads (and the counter UI before its update)
+    # keep validating; the settings page always sends the stored value.
+    walkin_enabled: bool = True
 
     @field_validator("service_types")
     @classmethod

@@ -93,6 +93,10 @@ class BookingConfig:
     reminder_enabled: bool
     reminder_lead_value: int
     reminder_lead_unit: ReminderUnit
+    # Counter walk-ins bypass the public master switch (the counter works even
+    # when online booking is closed), so they need their own kill switch.
+    # Defaulted last so existing BookingConfig(...) call sites keep working.
+    walkin_enabled: bool = True
 
     @property
     def reminder_lead(self) -> timedelta:

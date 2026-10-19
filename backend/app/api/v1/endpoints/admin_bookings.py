@@ -16,8 +16,27 @@ from app.api.deps import get_current_admin, get_current_staff
 from app.core.audit import create_audit_log
 from app.db.session import get_db
 from app.models.booking import Booking, BookingStatus
-from app.schemas.booking import BookingOut, BookingSettingsIn, BookingSettingsOut
-from app.services.booking_service import BookingConfig
+from app.models.user import User
+from app.schemas.booking import (
+    AvailabilityOut,
+    BookingCreate,
+    BookingOut,
+    BookingSettingsIn,
+    BookingSettingsOut,
+    BookingUpdateIn,
+    SlotOut,
+)
+from app.services import booking_service
+from app.services.booking_notifications import notify_staff_new_booking
+from app.services.booking_service import (
+    BookingConfig,
+    BookingNotCancellableError,
+    BookingWindowError,
+    DuplicateBookingError,
+    SlotFullError,
+    SlotUnavailableError,
+    UnknownServiceTypeError,
+)
 from app.services.booking_settings import load_booking_config, save_booking_config
 
 logger = logging.getLogger(__name__)
@@ -58,6 +77,171 @@ async def list_bookings(
     )
     result = await db.execute(stmt)
     return [BookingOut.model_validate(b) for b in result.scalars().all()]
+
+
+@router.get(
+    "/availability",
+    response_model=AvailabilityOut,
+    summary="Slots for one service on one day (counter)",
+)
+async def counter_availability(
+    service_type: str = Query(max_length=200),
+    booking_date: date_type = Query(alias="date"),
+    db: AsyncSession = Depends(get_db),
+    _staff=Depends(get_current_staff),
+):
+    """Same engine as the LIFF strip, minus the LINE token requirement."""
+    config = await load_booking_config(db)
+    try:
+        slots = await booking_service.get_availability(
+            db, service_type=service_type, target_date=booking_date, config=config
+        )
+    except UnknownServiceTypeError:
+        raise HTTPException(status_code=404, detail="ไม่พบบริการที่เลือก")
+    return AvailabilityOut(
+        service_type=service_type,
+        date=booking_date,
+        slots=[
+            SlotOut(
+                time=s.start,
+                capacity=s.capacity,
+                booked=s.booked,
+                remaining=s.remaining,
+                is_full=s.is_full,
+            )
+            for s in slots
+        ],
+    )
+
+
+@router.post(
+    "",
+    response_model=BookingOut,
+    status_code=201,
+    summary="Create a walk-in booking at the counter",
+)
+async def create_walkin_booking(
+    payload: BookingCreate,
+    db: AsyncSession = Depends(get_db),
+    staff=Depends(get_current_staff),
+):
+    """Counter staff book on behalf of a citizen standing in front of them.
+
+    Deliberately bypasses the public master switch: the counter works even
+    when online booking is closed. Slot rules (service, window, capacity,
+    no-duplicate) still apply — the seat accounting stays sound. Each
+    walk-in gets its own bare User row (no LINE identity), so the
+    per-user duplicate guard can never false-fire across strangers, and no
+    LINE confirmation goes out (there is nobody to push to); staff still get
+    the Telegram alert.
+    """
+    config = await load_booking_config(db, fresh=True)
+    if not config.walkin_enabled:
+        raise HTTPException(status_code=403, detail="ปิดรับคิวนอกไว้ในการตั้งค่า")
+
+    day_hours = await booking_service.load_day_hours(db, payload.booking_date.weekday())
+    user = User(display_name=payload.contact_name or "ผู้มาติดต่อ")
+    db.add(user)
+    await db.flush()
+
+    try:
+        booking = await booking_service.create_booking(
+            db,
+            user_id=user.id,
+            service_type=payload.service_type,
+            booking_date=payload.booking_date,
+            booking_time=payload.booking_time,
+            contact_name=payload.contact_name,
+            phone_number=payload.phone_number,
+            note=payload.note,
+            config=config,
+            day_hours=day_hours,
+        )
+    except UnknownServiceTypeError:
+        raise HTTPException(status_code=404, detail="ไม่พบบริการที่เลือก")
+    except BookingWindowError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail=f"จองล่วงหน้าได้ไม่เกิน {exc.args[0]} วัน กรุณาเลือกวันใหม่",
+        )
+    except SlotUnavailableError:
+        raise HTTPException(status_code=400, detail="ช่วงเวลาที่เลือกไม่เปิดให้จอง")
+    except SlotFullError:
+        raise HTTPException(status_code=409, detail="ช่วงเวลานี้เต็มแล้ว กรุณาเลือกเวลาอื่น")
+    except DuplicateBookingError:
+        raise HTTPException(status_code=409, detail="ช่วงเวลานี้ถูกจองแล้ว")
+
+    await db.commit()
+    await db.refresh(booking)
+
+    await notify_staff_new_booking(db, booking)
+
+    await create_audit_log(
+        db=db,
+        admin_id=staff.id,
+        action="create_booking_walkin",
+        resource_type="booking",
+        resource_id=str(booking.id),
+        details={
+            "service_type": booking.service_type,
+            "date": booking.booking_date.isoformat(),
+            "time": booking.booking_time.isoformat(),
+            "queue_number": booking.queue_number,
+        },
+    )
+    await db.commit()
+    await db.refresh(booking)
+    return BookingOut.model_validate(booking)
+
+
+@router.patch(
+    "/{booking_id}/contact",
+    response_model=BookingOut,
+    summary="Edit a booking's contact details",
+)
+async def update_booking_contact_info(
+    payload: BookingUpdateIn,
+    booking_id: int = Path(ge=1),
+    db: AsyncSession = Depends(get_db),
+    staff=Depends(get_current_staff),
+):
+    """Fix a typo in the name or phone number without cancelling the seat."""
+    config = await load_booking_config(db, fresh=True)
+    if not config.walkin_enabled:
+        raise HTTPException(status_code=403, detail="ปิดการจัดการคิวนอกไว้ในการตั้งค่า")
+
+    booking = await db.get(Booking, booking_id)
+    if booking is None:
+        raise HTTPException(status_code=404, detail="ไม่พบการจอง")
+
+    try:
+        await booking_service.update_booking_contact(
+            db,
+            booking,
+            contact_name=payload.contact_name,
+            phone_number=payload.phone_number,
+            note=payload.note,
+        )
+    except BookingNotCancellableError:
+        raise HTTPException(
+            status_code=409,
+            detail="การจองนี้เลยเวลาแก้ไขแล้ว (รองรับเฉพาะคิวที่ยืนยันและยังไม่ถึงเวลา)",
+        )
+
+    await create_audit_log(
+        db=db,
+        admin_id=staff.id,
+        action="update_booking_contact",
+        resource_type="booking",
+        resource_id=str(booking_id),
+        details={
+            "contact_name": payload.contact_name,
+            "phone_number": payload.phone_number,
+        },
+    )
+    await db.commit()
+    await db.refresh(booking)
+    return BookingOut.model_validate(booking)
 
 
 @router.patch(
@@ -128,6 +312,7 @@ async def get_booking_settings(
         reminder_enabled=config.reminder_enabled,
         reminder_lead_value=config.reminder_lead_value,
         reminder_lead_unit=config.reminder_lead_unit,
+        walkin_enabled=config.walkin_enabled,
     )
 
 
@@ -151,6 +336,7 @@ async def update_booking_settings(
         reminder_enabled=payload.reminder_enabled,
         reminder_lead_value=payload.reminder_lead_value,
         reminder_lead_unit=payload.reminder_lead_unit,
+        walkin_enabled=payload.walkin_enabled,
     )
     await save_booking_config(db, config)
     await create_audit_log(

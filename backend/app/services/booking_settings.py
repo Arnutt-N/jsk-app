@@ -28,6 +28,7 @@ KEY_BLACKOUT_DATES = "booking_blackout_dates"
 KEY_REMINDER_ENABLED = "booking_reminder_enabled"
 KEY_REMINDER_LEAD_VALUE = "booking_reminder_lead_value"
 KEY_REMINDER_LEAD_UNIT = "booking_reminder_lead_unit"
+KEY_WALKIN_ENABLED = "booking_walkin_enabled"
 
 ALL_KEYS = (
     KEY_ENABLED,
@@ -39,6 +40,7 @@ ALL_KEYS = (
     KEY_REMINDER_ENABLED,
     KEY_REMINDER_LEAD_VALUE,
     KEY_REMINDER_LEAD_UNIT,
+    KEY_WALKIN_ENABLED,
 )
 
 # Booking starts switched off with no services listed: a half-configured feature
@@ -53,6 +55,7 @@ DEFAULTS = BookingConfig(
     reminder_enabled=False,
     reminder_lead_value=1,
     reminder_lead_unit=ReminderUnit.DAY,
+    walkin_enabled=True,
 )
 
 _TRUTHY = {"true", "1", "yes", "on"}
@@ -180,6 +183,9 @@ async def _read_booking_config(db: AsyncSession) -> BookingConfig:
         reminder_lead_unit=_coalesce(
             await get(KEY_REMINDER_LEAD_UNIT), _parse_reminder_unit, DEFAULTS.reminder_lead_unit
         ),
+        walkin_enabled=_coalesce(
+            await get(KEY_WALKIN_ENABLED), _parse_bool, DEFAULTS.walkin_enabled
+        ),
     )
 
 
@@ -224,6 +230,7 @@ async def save_booking_config(db: AsyncSession, config: BookingConfig) -> Bookin
         KEY_REMINDER_ENABLED: "true" if config.reminder_enabled else "false",
         KEY_REMINDER_LEAD_VALUE: str(config.reminder_lead_value),
         KEY_REMINDER_LEAD_UNIT: config.reminder_lead_unit.value,
+        KEY_WALKIN_ENABLED: "true" if config.walkin_enabled else "false",
     }
     for key, value in values.items():
         await SettingsService.set_setting(db, key, value)
