@@ -56,6 +56,7 @@ function booking(overrides: Partial<Booking> = {}): Booking {
     note: null,
     reminder_sent_at: null,
     assigned_staff_id: null,
+    email: null,
     ...overrides,
   }
 }
@@ -165,6 +166,18 @@ describe('the day list', () => {
       const lastCall = fetchMock.mock.calls[fetchMock.mock.calls.length - 1]
       expect(String(lastCall[0])).not.toContain('date=')
     })
+  })
+})
+
+describe('notification channel badge', () => {
+  it('shows the email channel when an address is on file', async () => {
+    await renderLoaded([booking({ email: 'citizen@example.com' })])
+    expect((await list()).getByText('อีเมล')).toBeInTheDocument()
+  })
+
+  it('shows the LINE channel otherwise', async () => {
+    await renderLoaded()
+    expect((await list()).getByText('LINE')).toBeInTheDocument()
   })
 })
 

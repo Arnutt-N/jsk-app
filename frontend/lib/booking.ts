@@ -52,6 +52,7 @@ export interface Booking {
   note: string | null
   reminder_sent_at: string | null
   assigned_staff_id: number | null
+  email: string | null
 }
 
 export interface BookingSettings {
@@ -69,6 +70,7 @@ export interface BookingSettings {
   calendar_enabled?: boolean
   resend_enabled?: boolean
   assign_enabled?: boolean
+  email_enabled?: boolean
 }
 
 export const BOOKING_STATUS_LABELS: Record<BookingStatus, string> = {
@@ -275,6 +277,7 @@ export async function submitBooking(
     contact_name?: string | null
     phone_number?: string | null
     note?: string | null
+    email?: string | null
   },
 ): Promise<Booking> {
   const res = await fetch(LIFF_BASE, {
@@ -308,6 +311,7 @@ export async function updateBookingContact(
     contact_name?: string | null
     phone_number?: string | null
     note?: string | null
+    email?: string | null
   },
 ): Promise<Booking> {
   const res = await fetch(`${LIFF_BASE}/${bookingId}`, {
@@ -399,6 +403,7 @@ export async function createWalkinBooking(payload: {
   contact_name?: string | null
   phone_number?: string | null
   note?: string | null
+  email?: string | null
 }): Promise<Booking> {
   const res = await fetch(ADMIN_BASE, {
     method: 'POST',
@@ -415,6 +420,7 @@ export async function updateAdminBookingContact(
     contact_name?: string | null
     phone_number?: string | null
     note?: string | null
+    email?: string | null
   },
 ): Promise<Booking> {
   const res = await fetch(`${ADMIN_BASE}/${bookingId}/contact`, {

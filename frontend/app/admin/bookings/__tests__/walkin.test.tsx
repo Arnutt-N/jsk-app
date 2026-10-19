@@ -56,6 +56,7 @@ function booking(overrides: Partial<Booking> = {}): Booking {
     note: null,
     reminder_sent_at: null,
     assigned_staff_id: null,
+    email: null,
     ...overrides,
   }
 }
@@ -145,6 +146,27 @@ describe('walk-in dialog', () => {
       expect(post).toBeTruthy()
       expect(String(post![0])).toBe('/api/v1/admin/bookings')
       expect(JSON.parse(String(post![1]?.body)).service_type).toBe('ปรึกษากฎหมาย')
+    })
+  })
+
+  it('sends the typed email with the walk-in payload', async () => {
+    const user = userEvent.setup()
+    const dialog = await openWalkinDialog(user)
+
+    const serviceSelect = dialog.getByText('บริการ').parentElement!.querySelector('select')!
+    await user.selectOptions(serviceSelect, 'ปรึกษากฎหมาย')
+    await user.type(dialog.getByLabelText('วันที่นัด'), '2026-08-19')
+
+    const timeSelect = dialog.getByText('เวลา').parentElement!.querySelector('select')!
+    await waitFor(() => expect(timeSelect.querySelectorAll('option').length).toBeGreaterThan(1))
+    await user.selectOptions(timeSelect, '09:30:00')
+    await user.type(dialog.getByPlaceholderText('name@example.com'), 'citizen@example.com')
+    await user.click(dialog.getByRole('button', { name: 'บันทึกคิว' }))
+
+    await waitFor(() => {
+      const post = fetchMock.mock.calls.find(([, init]) => init?.method === 'POST')
+      expect(post).toBeTruthy()
+      expect(JSON.parse(String(post![1]?.body)).email).toBe('citizen@example.com')
     })
   })
 

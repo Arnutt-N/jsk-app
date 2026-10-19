@@ -61,6 +61,9 @@ const CONFIRMED: Booking = {
   contact_name: 'สมชาย ใจดี',
   phone_number: '0812345678',
   note: null,
+  reminder_sent_at: null,
+  assigned_staff_id: null,
+  email: null,
 }
 
 let fetchMock: ReturnType<typeof vi.fn>
@@ -827,7 +830,7 @@ describe('draft restore', () => {
     window.sessionStorage.setItem(
       'liff-booking-draft',
       JSON.stringify({
-        version: 2,
+        version: 3,
         draft: {
           service: 'ปรึกษากฎหมาย',
           date: target,
@@ -837,6 +840,7 @@ describe('draft restore', () => {
           lastname: '',
           phoneNumber: '',
           note: '',
+          email: '',
           savedAt: Date.now(),
         },
       }),
@@ -983,6 +987,30 @@ describe('contact validation', () => {
     await user.type(screen.getByPlaceholderText('0812345678'), '0812345678')
     await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
     expect(screen.getByRole('heading', { name: 'ตรวจสอบและยืนยันการจอง' })).toBeInTheDocument()
+  })
+
+  it('stops Next and shows the shared wording for a malformed email', async () => {
+    const user = await walkToContact()
+    await user.type(screen.getByPlaceholderText('name@example.com'), 'not-an-email')
+    await user.click(screen.getByRole('button', { name: 'ถัดไป' }))
+    expect(screen.getByText('อีเมลไม่ถูกต้อง')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'ข้อมูลผู้จอง' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'ตรวจสอบและยืนยันการจอง' })).not.toBeInTheDocument()
+  })
+
+  it('lets an empty email through — email stays optional', async () => {
+    await walkToContact()
+    await userEvent.click(await screen.findByRole('button', { name: 'ถัดไป' }))
+    expect(screen.getByRole('heading', { name: 'ตรวจสอบและยืนยันการจอง' })).toBeInTheDocument()
+  })
+
+  it('carries a valid email to the summary', async () => {
+    const user = await walkToContact()
+    await user.type(screen.getByPlaceholderText('name@example.com'), 'citizen@example.com')
+    await user.click(screen.getByRole('button', { name: 'ถัดไป' }))
+    expect(screen.getByRole('heading', { name: 'ตรวจสอบและยืนยันการจอง' })).toBeInTheDocument()
+    expect(screen.getByText('อีเมล')).toBeInTheDocument()
+    expect(screen.getByText('citizen@example.com')).toBeInTheDocument()
   })
 
   it('asks for the missing trio parts before leaving the contact step', async () => {

@@ -41,6 +41,7 @@ const SAVED: BookingDraft = {
   lastname: 'ใจดี',
   phoneNumber: '0812345678',
   note: 'มาก่อนเวลานัด',
+  email: '',
   savedAt: 1_000_000,
 }
 
@@ -53,6 +54,7 @@ const EMPTY_LITERAL = {
   lastname: '',
   phoneNumber: '',
   note: '',
+  email: '',
   savedAt: 0,
 }
 

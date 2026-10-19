@@ -100,6 +100,7 @@ class BookingConfig:
     calendar_enabled: bool = True
     resend_enabled: bool = True
     assign_enabled: bool = False
+    email_enabled: bool = True
 
     @property
     def reminder_lead(self) -> timedelta:
@@ -281,6 +282,7 @@ async def create_booking(
     contact_name: Optional[str],
     phone_number: Optional[str],
     note: Optional[str],
+    email: Optional[str] = None,
     config: BookingConfig,
     day_hours: Optional[BusinessHours],
 ) -> Booking:
@@ -324,6 +326,7 @@ async def create_booking(
         contact_name=contact_name,
         phone_number=phone_number,
         note=note,
+        email=email,
         status=BookingStatus.CONFIRMED,
         queue_number=await _next_queue_number(db, booking_date),
     )
@@ -492,7 +495,7 @@ async def cancel_booking(db: AsyncSession, booking: Booking) -> Booking:
 
 
 async def update_booking_contact(
-    db: AsyncSession, booking: Booking, *, contact_name, phone_number, note
+    db: AsyncSession, booking: Booking, *, contact_name, phone_number, note, email=None
 ) -> Booking:
     """Edit a citizen's contact fields on a still-editable booking.
 
@@ -513,6 +516,8 @@ async def update_booking_contact(
         booking.phone_number = phone_number
     if note is not None:
         booking.note = note
+    if email is not None:
+        booking.email = email
     await db.flush()
     return booking
 

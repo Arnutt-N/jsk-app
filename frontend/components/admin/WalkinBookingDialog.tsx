@@ -39,6 +39,7 @@ export function WalkinBookingDialog({ open, serviceTypes, initialDate, onClose, 
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [note, setNote] = useState('')
+  const [email, setEmail] = useState('')
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -52,6 +53,7 @@ export function WalkinBookingDialog({ open, serviceTypes, initialDate, onClose, 
       setName('')
       setPhone('')
       setNote('')
+      setEmail('')
       setError(null)
     }
   }, [open, initialDate])
@@ -105,6 +107,7 @@ export function WalkinBookingDialog({ open, serviceTypes, initialDate, onClose, 
         contact_name: name.trim() || null,
         phone_number: phone.trim() || null,
         note: note.trim() || null,
+        email: email.trim() || null,
       })
       onCreated(booking)
       onClose()
@@ -180,6 +183,18 @@ export function WalkinBookingDialog({ open, serviceTypes, initialDate, onClose, 
           <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="เพิ่มเติม (ถ้ามี)" maxLength={1000} />
         </label>
 
+        <label className="block">
+          <span className="mb-1 block text-sm font-medium text-text-primary">อีเมล (ถ้ามี)</span>
+          <Input
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="name@example.com"
+            inputMode="email"
+            maxLength={254}
+            helperText="ใส่ไว้รับการยืนยันและเตือนทางอีเมล"
+          />
+        </label>
+
         {error && <p className="text-sm text-danger-text dark:text-danger-light">{error}</p>}
 
         {/* Padded action row: breathing room from the dialog edges on purpose. */}
@@ -210,6 +225,7 @@ export function EditContactDialog({ booking, onClose, onUpdated }: EditContactDi
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [note, setNote] = useState('')
+  const [email, setEmail] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -217,6 +233,7 @@ export function EditContactDialog({ booking, onClose, onUpdated }: EditContactDi
     setName(booking?.contact_name ?? '')
     setPhone(booking?.phone_number ?? '')
     setNote(booking?.note ?? '')
+    setEmail(booking?.email ?? '')
     setError(null)
   }, [booking])
 
@@ -229,6 +246,7 @@ export function EditContactDialog({ booking, onClose, onUpdated }: EditContactDi
         contact_name: name.trim() || null,
         phone_number: phone.trim() || null,
         note: note.trim() || null,
+        email: email.trim() || null,
       })
       onUpdated(updated)
       onClose()
@@ -238,7 +256,7 @@ export function EditContactDialog({ booking, onClose, onUpdated }: EditContactDi
     } finally {
       setSaving(false)
     }
-  }, [booking, name, phone, note, onUpdated, onClose])
+  }, [booking, name, phone, note, email, onUpdated, onClose])
 
   return (
     <Modal
@@ -259,6 +277,16 @@ export function EditContactDialog({ booking, onClose, onUpdated }: EditContactDi
         <label className="block">
           <span className="mb-1 block text-sm font-medium text-text-primary">หมายเหตุ</span>
           <Input value={note} onChange={(e) => setNote(e.target.value)} maxLength={1000} />
+        </label>
+        <label className="block">
+          <span className="mb-1 block text-sm font-medium text-text-primary">อีเมล (ถ้ามี)</span>
+          <Input
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            maxLength={254}
+            inputMode="email"
+            helperText="ใส่ไว้รับการยืนยันและเตือนทางอีเมล"
+          />
         </label>
 
         {error && <p className="text-sm text-danger-text dark:text-danger-light">{error}</p>}

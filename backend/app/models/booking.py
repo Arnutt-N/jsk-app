@@ -43,6 +43,7 @@ class Booking(Base):
     contact_name = Column(String(120), nullable=True)
     phone_number = Column(String(20), nullable=True)
     note = Column(Text, nullable=True)
+    email = Column(String(254), nullable=True)
 
     # Claim marker for the advance-reminder scheduler. Must stay NULL on insert:
     # the guard is `UPDATE ... WHERE reminder_sent_at IS NULL`, so any default

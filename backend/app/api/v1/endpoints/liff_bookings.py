@@ -189,6 +189,8 @@ async def create_booking(
     line_user_id: str = Depends(require_line_user_id),
 ):
     config = await _require_booking_enabled(db)
+    if payload.email and not config.email_enabled:
+        raise HTTPException(status_code=422, detail="ปิดรับอีเมลไว้ในการตั้งค่า")
     user = await friend_service.get_or_create_user(line_user_id, db, commit=False)
     day_hours = await booking_service.load_day_hours(db, payload.booking_date.weekday())
 
@@ -202,6 +204,7 @@ async def create_booking(
             contact_name=payload.contact_name,
             phone_number=payload.phone_number,
             note=payload.note,
+            email=payload.email,
             config=config,
             day_hours=day_hours,
         )
@@ -304,6 +307,11 @@ async def update_my_booking(
     if booking is None or booking.user_id != user.id:
         raise HTTPException(status_code=404, detail="ไม่พบการจอง")
 
+    if payload.email:
+        config = await load_booking_config(db, fresh=True)
+        if not config.email_enabled:
+            raise HTTPException(status_code=422, detail="ปิดรับอีเมลไว้ในการตั้งค่า")
+
     try:
         await booking_service.update_booking_contact(
             db,
@@ -311,6 +319,7 @@ async def update_my_booking(
             contact_name=payload.contact_name,
             phone_number=payload.phone_number,
             note=payload.note,
+            email=payload.email,
         )
     except BookingNotCancellableError:
         raise HTTPException(status_code=409, detail="การจองนี้แก้ไขไม่ได้แล้ว")

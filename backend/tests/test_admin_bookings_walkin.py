@@ -152,7 +152,7 @@ async def test_contact_edit_disabled_is_rejected():
     ):
         with pytest.raises(HTTPException) as exc:
             await admin_bookings.update_booking_contact_info(
-                SimpleNamespace(contact_name="ใหม่", phone_number=None, note=None),
+                SimpleNamespace(contact_name="ใหม่", phone_number=None, note=None, email=None),
                 booking_id=11,
                 db=db,
                 staff=SimpleNamespace(id=2),
@@ -178,7 +178,7 @@ async def test_contact_edit_applies_and_audits():
         admin_bookings, "create_audit_log", new=AsyncMock()
     ) as audit:
         result = await admin_bookings.update_booking_contact_info(
-            SimpleNamespace(contact_name="สมศรี ใจดี", phone_number=None, note=None),
+            SimpleNamespace(contact_name="สมศรี ใจดี", phone_number=None, note=None, email=None),
             booking_id=11,
             db=db,
             staff=SimpleNamespace(id=2),
@@ -202,7 +202,7 @@ async def test_contact_edit_on_a_finished_booking_is_rejected():
     ):
         with pytest.raises(HTTPException) as exc:
             await admin_bookings.update_booking_contact_info(
-                SimpleNamespace(contact_name="ใหม่", phone_number=None, note=None),
+                SimpleNamespace(contact_name="ใหม่", phone_number=None, note=None, email=None),
                 booking_id=11,
                 db=db,
                 staff=SimpleNamespace(id=2),
@@ -219,7 +219,7 @@ async def test_contact_edit_missing_booking_returns_404():
     ):
         with pytest.raises(HTTPException) as exc:
             await admin_bookings.update_booking_contact_info(
-                SimpleNamespace(contact_name="ใหม่", phone_number=None, note=None),
+                SimpleNamespace(contact_name="ใหม่", phone_number=None, note=None, email=None),
                 booking_id=999,
                 db=db,
                 staff=SimpleNamespace(id=2),

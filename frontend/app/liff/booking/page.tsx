@@ -53,7 +53,7 @@ const STEPS: { label: string; icon: React.ReactNode }[] = [
   { label: 'ยืนยัน', icon: <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> },
 ]
 
-function contactPayload(prefix: string, firstname: string, lastname: string, phoneNumber: string, note: string) {
+function contactPayload(prefix: string, firstname: string, lastname: string, phoneNumber: string, note: string, email: string) {
   return {
     contact_name: composeContactName({ prefix, firstname, lastname }) || null,
     prefix: prefix.trim() || null,
@@ -61,6 +61,7 @@ function contactPayload(prefix: string, firstname: string, lastname: string, pho
     lastname: lastname.trim() || null,
     phone_number: phoneNumber.trim() || null,
     note: note.trim() || null,
+    email: email.trim() || null,
   }
 }
 
@@ -86,13 +87,16 @@ interface ContactFieldsFormProps {
   lastname: string
   phoneNumber: string
   note: string
+  email: string
   onPrefix: (value: string) => void
   onFirstname: (value: string) => void
   onLastname: (value: string) => void
   onPhoneNumber: (value: string) => void
   onNote: (value: string) => void
+  onEmail: (value: string) => void
   nameErrors?: { prefix?: string; firstname?: string; lastname?: string }
   phoneError?: string
+  emailError?: string
   /** The note belongs to the service step; only the post-booking edit form shows it here. */
   showNote?: boolean
 }
@@ -103,13 +107,16 @@ function ContactFieldsForm({
   lastname,
   phoneNumber,
   note,
+  email,
   onPrefix,
   onFirstname,
   onLastname,
   onPhoneNumber,
   onNote,
+  onEmail,
   nameErrors,
   phoneError,
+  emailError,
   showNote = true,
 }: ContactFieldsFormProps) {
   return (
@@ -165,6 +172,21 @@ function ContactFieldsForm({
           errorMessage={phoneError}
           aria-invalid={phoneError ? true : undefined}
         />
+      </label>
+      <label className="block">
+        <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-text-secondary">อีเมล (ถ้ามี)</span>
+        <Input
+          type="email"
+          inputMode="email"
+          value={email}
+          onChange={(e) => onEmail(e.target.value)}
+          maxLength={254}
+          placeholder="name@example.com"
+          state={emailError ? 'error' : 'default'}
+          errorMessage={emailError}
+          aria-invalid={emailError ? true : undefined}
+        />
+        <span className="mt-1 block text-xs text-text-tertiary">ใส่ไว้รับเตือนทางอีเมล ไม่เปลืองโควต้า LINE</span>
       </label>
       {showNote && (
         <label className="block">
@@ -234,6 +256,7 @@ export default function LiffBookingPage() {
   const lastname = draft.lastname
   const phoneNumber = draft.phoneNumber
   const note = draft.note
+  const email = draft.email
   const onPrefix = (value: string) =>
     dispatch({ type: 'contact/set', contact: { prefix: value } })
   const onFirstname = (value: string) =>
@@ -244,6 +267,8 @@ export default function LiffBookingPage() {
     dispatch({ type: 'contact/set', contact: { phoneNumber: value.replace(/[^\d]/g, '') } })
   const onNote = (value: string) =>
     dispatch({ type: 'contact/set', contact: { note: value } })
+  const onEmail = (value: string) =>
+    dispatch({ type: 'contact/set', contact: { email: value } })
   const selectedSlot = useMemo(
     () => availability?.slots.find((slot) => slot.time === draft.slotId) ?? null,
     [availability, draft.slotId],
@@ -260,7 +285,7 @@ export default function LiffBookingPage() {
   const [serviceError, setServiceError] = useState<string | null>(null)
   const [datetimeError, setDatetimeError] = useState<string | null>(null)
 
-  const contactErrors = validateBookingContact({ prefix, firstname, lastname, phoneNumber })
+  const contactErrors = validateBookingContact({ prefix, firstname, lastname, phoneNumber, email })
   const displayName = composeContactName({ prefix, firstname, lastname })
   const contactNameError =
     contactErrors.prefix ?? contactErrors.firstname ?? contactErrors.lastname
@@ -305,13 +330,13 @@ export default function LiffBookingPage() {
       goNext()
       return
     }
-    if (contactNameError || contactErrors.phoneNumber) {
+    if (contactNameError || contactErrors.phoneNumber || contactErrors.email) {
       setShowContactErrors(true)
       return
     }
     setShowContactErrors(false)
     goNext()
-  }, [wizardStep, serviceType, selectedDate, selectedSlot, contactNameError, contactErrors.phoneNumber, goNext])
+  }, [wizardStep, serviceType, selectedDate, selectedSlot, contactNameError, contactErrors.phoneNumber, contactErrors.email, goNext])
 
   const goBack = useCallback(() => {
     setWizardStep((current) => {
@@ -392,7 +417,7 @@ export default function LiffBookingPage() {
 
   const handleSubmit = async () => {
     if (!idToken || !serviceType || !selectedDate || !selectedSlot) return
-    if (contactNameError || contactErrors.phoneNumber) {
+    if (contactNameError || contactErrors.phoneNumber || contactErrors.email) {
       setShowContactErrors(true)
       setWizardStep(2)
       return
@@ -405,7 +430,7 @@ export default function LiffBookingPage() {
         service_type: serviceType,
         booking_date: selectedDate,
         booking_time: selectedSlot.time,
-        ...contactPayload(prefix, firstname, lastname, phoneNumber, note),
+        ...contactPayload(prefix, firstname, lastname, phoneNumber, note, email),
       })
       setConfirmed(booking)
     } catch (err) {
@@ -451,8 +476,8 @@ export default function LiffBookingPage() {
 
   const handleUpdate = async () => {
     if (!idToken || !confirmed) return
-    if (contactNameError || contactErrors.phoneNumber) {
-      setError(contactNameError ?? contactErrors.phoneNumber ?? 'กรุณากรอกข้อมูลให้ครบถ้วน')
+    if (contactNameError || contactErrors.phoneNumber || contactErrors.email) {
+      setError(contactNameError ?? contactErrors.phoneNumber ?? contactErrors.email ?? 'กรุณากรอกข้อมูลให้ครบถ้วน')
       return
     }
     setSubmitting(true)
@@ -461,7 +486,7 @@ export default function LiffBookingPage() {
       const updated = await updateBookingContact(
         idToken,
         confirmed.id,
-        contactPayload(prefix, firstname, lastname, phoneNumber, note),
+        contactPayload(prefix, firstname, lastname, phoneNumber, note, email),
       )
       setConfirmed(updated)
       setEditing(false)
@@ -530,13 +555,16 @@ export default function LiffBookingPage() {
                     lastname={lastname}
                     phoneNumber={phoneNumber}
                     note={note}
+                    email={email}
                     onPrefix={onPrefix}
                     onFirstname={onFirstname}
                     onLastname={onLastname}
                     onPhoneNumber={onPhoneNumber}
                     onNote={onNote}
+                    onEmail={onEmail}
                     nameErrors={contactErrors}
                     phoneError={contactErrors.phoneNumber}
+                    emailError={contactErrors.email}
                   />
                   <div className="mt-4 space-y-2">
                     <Button className="w-full" onClick={handleUpdate} disabled={submitting}>
@@ -570,11 +598,14 @@ export default function LiffBookingPage() {
                         { label: 'เวลา', value: `${formatTime(confirmed.booking_time)} น.` },
                         { label: 'ผู้จอง', value: confirmed.contact_name },
                         { label: 'โทรศัพท์', value: confirmed.phone_number },
+                        { label: 'อีเมล', value: confirmed.email },
                       ]}
                     />
                   </div>
                   <p className="mt-5 text-center text-xs text-text-tertiary">
-                    ระบบได้ส่งรายละเอียดไปยัง LINE ของท่านแล้ว กรุณามาก่อนเวลานัด 10 นาที
+                    {confirmed.email
+                      ? 'ระบบได้ส่งรายละเอียดไปยังอีเมลของท่านแล้ว กรุณามาก่อนเวลานัด 10 นาที'
+                      : 'ระบบได้ส่งรายละเอียดไปยัง LINE ของท่านแล้ว กรุณามาก่อนเวลานัด 10 นาที'}
                   </p>
                   <div className="mt-5 space-y-2">
                     <Button
@@ -777,13 +808,16 @@ export default function LiffBookingPage() {
                   lastname={lastname}
                   phoneNumber={phoneNumber}
                   note={note}
+                  email={email}
                   onPrefix={onPrefix}
                   onFirstname={onFirstname}
                   onLastname={onLastname}
                   onPhoneNumber={onPhoneNumber}
                   onNote={onNote}
+                  onEmail={onEmail}
                   nameErrors={showContactErrors ? contactErrors : undefined}
                   phoneError={showContactErrors ? contactErrors.phoneNumber : undefined}
+                  emailError={showContactErrors ? contactErrors.email : undefined}
                   showNote={false}
                 />
               </LiffStepCard>
@@ -843,11 +877,12 @@ export default function LiffBookingPage() {
                         แก้ไข
                       </button>
                     </div>
-                    {displayName || phoneNumber.trim() ? (
+                    {displayName || phoneNumber.trim() || email.trim() ? (
                       <SummaryRows
                         rows={[
                           { label: 'ผู้จอง', value: displayName || null },
                           { label: 'โทรศัพท์', value: phoneNumber.trim() || null },
+                          { label: 'อีเมล', value: email.trim() || null },
                         ]}
                       />
                     ) : (

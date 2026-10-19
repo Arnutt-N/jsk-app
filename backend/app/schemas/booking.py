@@ -4,6 +4,7 @@ Validation here is the outer boundary: anything reaching the service layer has
 already been shape-checked, so the service can focus on the rules that need a
 database (capacity, duplicates) rather than re-checking field types.
 """
+import re
 from datetime import date, datetime, time
 from typing import List, Optional
 
@@ -11,6 +12,8 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 from app.services.booking_service import ReminderUnit
 from app.schemas.person_name import compose_person_name
+
+_EMAIL_RE = re.compile(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$")
 
 
 class SlotOut(BaseModel):
@@ -71,6 +74,7 @@ class ContactFields(BaseModel):
     contact_name: Optional[str] = Field(default=None, max_length=120)
     phone_number: Optional[str] = Field(default=None, max_length=20)
     note: Optional[str] = Field(default=None, max_length=1000)
+    email: Optional[str] = Field(default=None, max_length=254)
     # No new columns: the trio composes into contact_name.
 
     prefix: Optional[str] = Field(default=None, max_length=20)
@@ -87,6 +91,18 @@ class ContactFields(BaseModel):
             return None
         if not cleaned.isdigit():
             raise ValueError("phone_number must contain digits only")
+        return cleaned
+
+    @field_validator("email")
+    @classmethod
+    def _valid_email(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        cleaned = value.strip()
+        if not cleaned:
+            return None
+        if len(cleaned) > 254 or not _EMAIL_RE.match(cleaned):
+            raise ValueError("email must be a valid address")
         return cleaned
 
     @field_validator("contact_name", "note")
@@ -125,6 +141,7 @@ class BookingOut(BaseModel):
     note: Optional[str]
     reminder_sent_at: Optional[datetime] = None
     assigned_staff_id: Optional[int] = None
+    email: Optional[str] = None
 
     @field_validator("status", mode="before")
     @classmethod
@@ -169,6 +186,7 @@ class BookingSettingsIn(BaseModel):
     calendar_enabled: bool = True
     resend_enabled: bool = True
     assign_enabled: bool = False
+    email_enabled: bool = True
 
     @field_validator("service_types")
     @classmethod

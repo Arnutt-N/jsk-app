@@ -74,6 +74,7 @@ export default function AdminBookingsPage() {
   const [calendarEnabled, setCalendarEnabled] = useState(true)
   const [resendEnabled, setResendEnabled] = useState(true)
   const [resending, setResending] = useState<Booking | null>(null)
+  const [emailEnabled, setEmailEnabled] = useState(true)
   const [assignEnabled, setAssignEnabled] = useState(false)
   const [unassignedOnly, setUnassignedOnly] = useState(false)
   const [staffNames, setStaffNames] = useState<Map<number, string>>(new Map())
@@ -130,6 +131,7 @@ export default function AdminBookingsPage() {
         setWalkinEnabled(settings.walkin_enabled ?? true)
         setCalendarEnabled(settings.calendar_enabled ?? true)
         setResendEnabled(settings.resend_enabled ?? true)
+        setEmailEnabled(settings.email_enabled ?? true)
         const assignOn = settings.assign_enabled ?? false
         setAssignEnabled(assignOn)
         setServiceTypes(settings.service_types ?? [])
@@ -456,6 +458,9 @@ export default function AdminBookingsPage() {
 
               <Badge variant={STATUS_VARIANT[booking.status]}>
                 {BOOKING_STATUS_LABELS[booking.status]}
+              </Badge>
+              <Badge variant={booking.email && emailEnabled ? 'info' : 'secondary'}>
+                {booking.email && emailEnabled ? 'อีเมล' : 'LINE'}
               </Badge>
 
               {booking.status === 'CONFIRMED' && (

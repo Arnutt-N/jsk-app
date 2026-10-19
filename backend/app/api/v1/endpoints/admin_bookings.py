@@ -196,6 +196,8 @@ async def create_walkin_booking(
     config = await load_booking_config(db, fresh=True)
     if not config.walkin_enabled:
         raise HTTPException(status_code=403, detail="ปิดรับคิวนอกไว้ในการตั้งค่า")
+    if payload.email and not config.email_enabled:
+        raise HTTPException(status_code=422, detail="ปิดรับอีเมลไว้ในการตั้งค่า")
 
     day_hours = await booking_service.load_day_hours(db, payload.booking_date.weekday())
     user = User(display_name=payload.contact_name or "ผู้มาติดต่อ")
@@ -212,6 +214,7 @@ async def create_walkin_booking(
             contact_name=payload.contact_name,
             phone_number=payload.phone_number,
             note=payload.note,
+            email=payload.email,
             config=config,
             day_hours=day_hours,
         )
@@ -267,6 +270,8 @@ async def update_booking_contact_info(
     config = await load_booking_config(db, fresh=True)
     if not config.walkin_enabled:
         raise HTTPException(status_code=403, detail="ปิดการจัดการคิวนอกไว้ในการตั้งค่า")
+    if payload.email and not config.email_enabled:
+        raise HTTPException(status_code=422, detail="ปิดรับอีเมลไว้ในการตั้งค่า")
 
     booking = await db.get(Booking, booking_id)
     if booking is None:
@@ -279,6 +284,7 @@ async def update_booking_contact_info(
             contact_name=payload.contact_name,
             phone_number=payload.phone_number,
             note=payload.note,
+            email=payload.email,
         )
     except BookingNotCancellableError:
         raise HTTPException(
@@ -479,6 +485,7 @@ async def get_booking_settings(
         calendar_enabled=config.calendar_enabled,
         resend_enabled=config.resend_enabled,
         assign_enabled=config.assign_enabled,
+        email_enabled=config.email_enabled,
     )
 
 
@@ -506,6 +513,7 @@ async def update_booking_settings(
         calendar_enabled=payload.calendar_enabled,
         resend_enabled=payload.resend_enabled,
         assign_enabled=payload.assign_enabled,
+        email_enabled=payload.email_enabled,
     )
     await save_booking_config(db, config)
     await create_audit_log(
