@@ -6,6 +6,7 @@ reminders go out at all — is an administrator action and is audit-logged.
 """
 import logging
 from datetime import date as date_type
+from datetime import datetime, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
@@ -30,7 +31,7 @@ from app.schemas.booking import (
     SlotOut,
 )
 from app.services import booking_service
-from app.services.booking_notifications import notify_staff_new_booking
+from app.services.booking_notifications import notify_staff_new_booking, send_booking_reminder
 from app.services.booking_service import (
     BookingConfig,
     BookingNotCancellableError,
@@ -295,6 +296,58 @@ async def update_booking_contact_info(
     return BookingOut.model_validate(booking)
 
 
+RESEND_COOLDOWN_SECONDS = 60
+
+
+@router.post(
+    "/{booking_id}/remind",
+    response_model=BookingOut,
+    summary="Resend the advance reminder for one booking",
+)
+async def resend_booking_reminder(
+    booking_id: int = Path(ge=1),
+    db: AsyncSession = Depends(get_db),
+    staff=Depends(get_current_staff),
+):
+    config = await load_booking_config(db, fresh=True)
+    if not config.resend_enabled:
+        raise HTTPException(status_code=403, detail="ปิดการส่งเตือนซ้ำไว้ในการตั้งค่า")
+
+    booking = await booking_service.load_booking_for_reminder(db, booking_id)
+    if booking is None:
+        raise HTTPException(status_code=404, detail="ไม่พบการจอง")
+    if booking.status != BookingStatus.CONFIRMED:
+        raise HTTPException(status_code=409, detail="ส่งเตือนซ้ำได้เฉพาะคิวที่ยืนยันแล้ว")
+    if booking.reminder_sent_at is not None:
+        sent_at = booking.reminder_sent_at
+        if sent_at.tzinfo is None:
+            sent_at = sent_at.replace(tzinfo=timezone.utc)
+        elapsed = (datetime.now(timezone.utc) - sent_at).total_seconds()
+        if elapsed < RESEND_COOLDOWN_SECONDS:
+            raise HTTPException(
+                status_code=429, detail="เพิ่งส่งเตือนไป กรุณารอครู่แล้วลองใหม่"
+            )
+
+    sent = await send_booking_reminder(db, booking, booking.user)
+    if not sent:
+        raise HTTPException(
+            status_code=502, detail="ส่งเตือนทาง LINE ไม่สำเร็จ กรุณาลองใหม่"
+        )
+
+    booking.reminder_sent_at = datetime.now(timezone.utc)
+    await create_audit_log(
+        db=db,
+        admin_id=staff.id,
+        action="resend_booking_reminder",
+        resource_type="booking",
+        resource_id=str(booking_id),
+        details={"queue_number": booking.queue_number},
+    )
+    await db.commit()
+    await db.refresh(booking)
+    return BookingOut.model_validate(booking)
+
+
 @router.patch(
     "/{booking_id}/status",
     response_model=BookingOut,
@@ -365,6 +418,7 @@ async def get_booking_settings(
         reminder_lead_unit=config.reminder_lead_unit,
         walkin_enabled=config.walkin_enabled,
         calendar_enabled=config.calendar_enabled,
+        resend_enabled=config.resend_enabled,
     )
 
 
@@ -390,6 +444,7 @@ async def update_booking_settings(
         reminder_lead_unit=payload.reminder_lead_unit,
         walkin_enabled=payload.walkin_enabled,
         calendar_enabled=payload.calendar_enabled,
+        resend_enabled=payload.resend_enabled,
     )
     await save_booking_config(db, config)
     await create_audit_log(

@@ -8,10 +8,11 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { Select } from '@/components/ui/Select'
-import { CalendarDays, ChevronLeft, ChevronRight, LayoutList, Pencil, Phone, Plus, RefreshCw, Search } from 'lucide-react'
+import { CalendarDays, BellRing, ChevronLeft, ChevronRight, LayoutList, Pencil, Phone, Plus, RefreshCw, Search } from 'lucide-react'
 import { logger } from '@/lib/logger'
-import { formatThaiDate } from '@/lib/format-date'
+import { formatThaiDate, formatThaiDateTime } from '@/lib/format-date'
 import { isoToYMD } from '@/lib/utils'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { EditContactDialog, WalkinBookingDialog } from '@/components/admin/WalkinBookingDialog'
 import BookingMonthCalendar from '@/components/admin/BookingMonthCalendar'
 import {
@@ -20,6 +21,7 @@ import {
   fetchAdminBookings,
   fetchBookingSettings,
   formatTime,
+  resendBookingReminder,
   updateBookingStatus,
   type Booking,
   type BookingStatus,
@@ -67,6 +69,8 @@ export default function AdminBookingsPage() {
   // Missing in older saved settings means enabled (walkin, calendar).
   const [walkinEnabled, setWalkinEnabled] = useState(true)
   const [calendarEnabled, setCalendarEnabled] = useState(true)
+  const [resendEnabled, setResendEnabled] = useState(true)
+  const [resending, setResending] = useState<Booking | null>(null)
   const [view, setView] = useState<'list' | 'calendar'>('list')
   const [rangeByDate, setRangeByDate] = useState<Map<string, DayAvailability>>(new Map())
   const [loadingRange, setLoadingRange] = useState(false)
@@ -116,6 +120,7 @@ export default function AdminBookingsPage() {
         const settings = await fetchBookingSettings()
         setWalkinEnabled(settings.walkin_enabled ?? true)
         setCalendarEnabled(settings.calendar_enabled ?? true)
+        setResendEnabled(settings.resend_enabled ?? true)
         setServiceTypes(settings.service_types ?? [])
       } catch (err) {
         logger.error('Failed to load booking settings:', err)
@@ -135,6 +140,21 @@ export default function AdminBookingsPage() {
       setError(err instanceof Error ? err.message : 'อัปเดตสถานะไม่สำเร็จ')
     } finally {
       setUpdatingId(null)
+    }
+  }
+
+  const handleResend = async (booking: Booking) => {
+    setUpdatingId(booking.id)
+    setError(null)
+    try {
+      const updated = await resendBookingReminder(booking.id)
+      setBookings((current) => current.map((b) => (b.id === updated.id ? updated : b)))
+    } catch (err) {
+      logger.error('Failed to resend booking reminder:', err)
+      setError(err instanceof Error ? err.message : 'ส่งเตือนซ้ำไม่สำเร็จ')
+    } finally {
+      setUpdatingId(null)
+      setResending(null)
     }
   }
 
@@ -343,6 +363,11 @@ export default function AdminBookingsPage() {
                 </p>
                 <p className="text-sm text-slate-500">{booking.service_type}</p>
                 {booking.note && <p className="mt-1 text-xs text-slate-400">{booking.note}</p>}
+                <p className="mt-1 text-xs text-slate-400">
+                  {booking.reminder_sent_at
+                    ? `เตือนแล้ว ${formatThaiDateTime(booking.reminder_sent_at)}`
+                    : 'ยังไม่เคยเตือน'}
+                </p>
               </div>
 
               {booking.phone_number && (
@@ -361,6 +386,18 @@ export default function AdminBookingsPage() {
 
               {booking.status === 'CONFIRMED' && (
                 <div className="flex gap-1">
+                  {resendEnabled && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={updatingId === booking.id}
+                      onClick={() => setResending(booking)}
+                      aria-label={`ส่งเตือนซ้ำคิว ${booking.queue_number ?? booking.id}`}
+                    >
+                      <BellRing className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
+                      ส่งเตือนซ้ำ
+                    </Button>
+                  )}
                   {walkinEnabled && (
                     <Button
                       size="sm"
@@ -437,6 +474,21 @@ export default function AdminBookingsPage() {
         onUpdated={(updated) =>
           setBookings((current) => current.map((b) => (b.id === updated.id ? updated : b)))
         }
+      />
+      <ConfirmDialog
+        isOpen={resending !== null}
+        onClose={() => setResending(null)}
+        onConfirm={() => {
+          if (resending) void handleResend(resending)
+        }}
+        title="ส่งเตือนซ้ำ"
+        description={
+          resending
+            ? `ส่งข้อความเตือนทาง LINE ให้${resending.contact_name || 'ผู้จอง'} (คิว ${resending.queue_number ?? resending.id}) อีกครั้งหรือไม่?`
+            : undefined
+        }
+        confirmText="ส่งเตือน"
+        isLoading={resending !== null && updatingId === resending.id}
       />
     </div>
   )

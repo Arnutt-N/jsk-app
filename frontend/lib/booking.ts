@@ -50,6 +50,7 @@ export interface Booking {
   contact_name: string | null
   phone_number: string | null
   note: string | null
+  reminder_sent_at: string | null
 }
 
 export interface BookingSettings {
@@ -65,6 +66,7 @@ export interface BookingSettings {
   // Absent in payloads saved before the toggle existed — treat missing as enabled.
   walkin_enabled?: boolean
   calendar_enabled?: boolean
+  resend_enabled?: boolean
 }
 
 export const BOOKING_STATUS_LABELS: Record<BookingStatus, string> = {
@@ -343,6 +345,14 @@ export async function updateBookingStatus(
     method: 'PATCH',
   })
   if (!res.ok) throw new Error(await readError(res, 'อัปเดตสถานะไม่สำเร็จ'))
+  return res.json()
+}
+
+export async function resendBookingReminder(bookingId: number): Promise<Booking> {
+  const res = await fetch(`${ADMIN_BASE}/${bookingId}/remind`, {
+    method: 'POST',
+  })
+  if (!res.ok) throw new Error(await readError(res, 'ส่งเตือนซ้ำไม่สำเร็จ'))
   return res.json()
 }
 

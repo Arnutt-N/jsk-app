@@ -31,6 +31,7 @@ KEY_REMINDER_LEAD_VALUE = "booking_reminder_lead_value"
 KEY_REMINDER_LEAD_UNIT = "booking_reminder_lead_unit"
 KEY_WALKIN_ENABLED = "booking_walkin_enabled"
 KEY_CALENDAR_ENABLED = "booking_calendar_enabled"
+KEY_RESEND_ENABLED = "booking_resend_enabled"
 
 ALL_KEYS = (
     KEY_ENABLED,
@@ -44,8 +45,8 @@ ALL_KEYS = (
     KEY_REMINDER_LEAD_UNIT,
     KEY_WALKIN_ENABLED,
     KEY_CALENDAR_ENABLED,
+    KEY_RESEND_ENABLED,
 )
-
 # Booking starts switched off with no services listed: a half-configured feature
 # must not quietly start accepting public appointments.
 DEFAULTS = BookingConfig(
@@ -60,6 +61,7 @@ DEFAULTS = BookingConfig(
     reminder_lead_unit=ReminderUnit.DAY,
     walkin_enabled=True,
     calendar_enabled=True,
+    resend_enabled=True,
 )
 
 _TRUTHY = {"true", "1", "yes", "on"}
@@ -193,6 +195,9 @@ async def _read_booking_config(db: AsyncSession) -> BookingConfig:
         calendar_enabled=_coalesce(
             await get(KEY_CALENDAR_ENABLED), _parse_bool, DEFAULTS.calendar_enabled
         ),
+        resend_enabled=_coalesce(
+            await get(KEY_RESEND_ENABLED), _parse_bool, DEFAULTS.resend_enabled
+        ),
     )
 
 
@@ -239,6 +244,7 @@ async def save_booking_config(db: AsyncSession, config: BookingConfig) -> Bookin
         KEY_REMINDER_LEAD_UNIT: config.reminder_lead_unit.value,
         KEY_WALKIN_ENABLED: "true" if config.walkin_enabled else "false",
         KEY_CALENDAR_ENABLED: "true" if config.calendar_enabled else "false",
+        KEY_RESEND_ENABLED: "true" if config.resend_enabled else "false",
     }
     for key, value in values.items():
         await SettingsService.set_setting(db, key, value)

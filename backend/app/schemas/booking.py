@@ -4,7 +4,7 @@ Validation here is the outer boundary: anything reaching the service layer has
 already been shape-checked, so the service can focus on the rules that need a
 database (capacity, duplicates) rather than re-checking field types.
 """
-from datetime import date, time
+from datetime import date, datetime, time
 from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -123,6 +123,7 @@ class BookingOut(BaseModel):
     contact_name: Optional[str]
     phone_number: Optional[str]
     note: Optional[str]
+    reminder_sent_at: Optional[datetime] = None
 
     @field_validator("status", mode="before")
     @classmethod
@@ -157,6 +158,7 @@ class BookingSettingsIn(BaseModel):
     # keep validating; the settings page always sends the stored value.
     walkin_enabled: bool = True
     calendar_enabled: bool = True
+    resend_enabled: bool = True
 
     @field_validator("service_types")
     @classmethod
