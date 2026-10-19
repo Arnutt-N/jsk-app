@@ -148,7 +148,6 @@ async def counter_availability_range(
     db: AsyncSession = Depends(get_db),
     _staff=Depends(get_current_staff),
 ):
-    """Same engine as the LIFF strip, minus the LINE token requirement."""
     config = await load_booking_config(db, fresh=True)
     if not config.calendar_enabled:
         raise HTTPException(status_code=403, detail="ปิดมุมมองปฏิทินไว้ในการตั้งค่า")

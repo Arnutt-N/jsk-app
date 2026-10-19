@@ -1,7 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { loginAsAdmin } from './utils/auth'
 
-/** /admin/bookings calendar tab: month grid, day-click filters the list. */
 test.describe('Bookings calendar view', () => {
   test.beforeEach(async ({ page }) => {
     await loginAsAdmin(page)

@@ -161,8 +161,6 @@ class BookingUpdateIn(ContactFields):
 
 
 class BookingAssignIn(BaseModel):
-    """Counter assignment change. Null unassigns."""
-
     model_config = ConfigDict(extra="forbid")
 
     assigned_staff_id: Optional[int] = None

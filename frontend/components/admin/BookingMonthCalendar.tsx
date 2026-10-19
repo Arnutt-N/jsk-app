@@ -8,7 +8,6 @@ import { parseISODate, toISODate, type DayAvailability } from '@/lib/booking'
 
 const THAI_WEEKDAYS_SHORT = ['จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส', 'อา'] as const
 
-/** Monday-first cells, matching the Thai work-week order used across the app. */
 export function buildMonthCells(year: number, monthZeroBased: number): (string | null)[] {
   const firstDow = (new Date(year, monthZeroBased, 1).getDay() + 6) % 7
   const dayCount = new Date(year, monthZeroBased + 1, 0).getDate()

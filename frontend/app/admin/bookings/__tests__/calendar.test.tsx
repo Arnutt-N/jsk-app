@@ -133,7 +133,6 @@ describe('calendar view', () => {
   })
 
   it('treats a missing toggle in old settings as enabled', async () => {
-    // undefined serializes away: the page gets pre-Phase-3 settings.
     mockFetch({ settings: { ...SETTINGS, calendar_enabled: undefined } })
     render(<AdminBookingsPage />)
     await screen.findByRole('list')

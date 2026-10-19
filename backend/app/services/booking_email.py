@@ -1,6 +1,4 @@
-"""Best-effort SMTP email for booking confirmations and reminders.
-
-smtplib is synchronous, so the network call runs in a worker thread and
+"""smtplib is synchronous, so the network call runs in a worker thread and
 never blocks the event loop.
 """
 import asyncio

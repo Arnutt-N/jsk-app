@@ -209,7 +209,6 @@ export default function AdminBookingsPage() {
     }
   }
 
-  // Fail-open like the LIFF strip: no fullness, still a usable date picker.
   const rangeService = serviceTypeFilter || serviceTypes[0] || ''
 
   const handleVisibleMonthChange = useCallback(

@@ -1,4 +1,3 @@
-"""Admin availability range: month-calendar fullness without a LINE token."""
 from datetime import date
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
