@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-10-19 08:58 by Pi (Booking full-option phase 1+2 done on feat/booking-full-option walk-in create, contact edi)
+> **Last Updated:** 2026-10-19 15:03 by Pi (Booking full-option phase 3 done on feat/booking-full-option month calendar, range wrapper)
 
 ## Thai Summary
 **สถานะล่าสุด (2026-09-30)** — รวม PR #239 (แก้บั๊กโอนแชทไม่มีบันทึก M-8) เข้าสายหลักแล้ว (`fd82c7a`) + ตรวจหลังส่งขึ้นร้านจริงเสร็จ: หลังบ้านแข็งแรงดี (database+redis ปกติ), หน้าร้านเปิดติด (HTTP 200), ปุ่มโอนแชทล็อกถูกต้อง (401), บันทึกส่งของ CD `36596610691` เขียวครบ 6 งาน — โค้ดตรงกับเซิร์ฟเวอร์ เหลือ Round-3b (22 ข้อ) + ซ่อมไฟล์ทดสอบ upload-security ที่พังมาก่อน
@@ -123,6 +123,8 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-10-19 15:03] Pi: Booking full-option phase 3 done on feat/booking-full-option (month calendar, range wrapper, toggle; 6f76209 pushed, no PR yet) (Pi)
+- [2026-10-19 15:02] Pi: Booking full-option phase 3 done on feat/booking-full-option (month calendar, range wrapper, toggle; 6f76209 pushed, no PR yet) (Pi)
 - [2026-10-19 08:58] Pi: Booking full-option phase 1+2 done on feat/booking-full-option (walk-in create, contact edit, search, pagination) (Pi)
 - [2026-10-19 02:28] Pi: Merged PRs 272-278: LIFF cancel-everywhere, 4 shared components, booking in-LINE title fix, comment cleanup (Pi)
 - [2026-10-18 10:26] Claude Code: LIFF polish: merged #269 (booking date picker no longer covered), #270 (stepper label icons, booking cancel + faster load, debt clear icon), #271 (booking note moved to service step, summary step renamed ยืนยัน); opened #272 (ยกเลิกรายการ o (Claude Code)

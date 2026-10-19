@@ -1,13 +1,26 @@
 {
-  "last_updated": "2026-10-19T08:58:00+07:00",
+  "last_updated": "2026-10-19T15:03:00+07:00",
   "platform": "pi",
-  "current_task": "Booking full-option phase 1+2 done on feat/booking-full-option (walk-in create, contact edit, search, pagination)",
+  "current_task": "Booking full-option phase 3 done on feat/booking-full-option (month calendar, range wrapper, toggle; 6f76209 pushed, no PR yet)",
   "plan_status": "completed",
   "next_steps": [
-    "Continue phase 3: admin month calendar view",
-    "Later phases: reminder resend, staff assignment, email channel, then single PR"
+    "Continue phase 4: reminder status + resend"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-10-19T15:03:00+07:00",
+      "platform": "pi",
+      "branch": "feat/booking-full-option",
+      "head": "6f76209",
+      "status": "completed"
+    },
+    {
+      "timestamp": "2026-10-19T15:02:00+07:00",
+      "platform": "pi",
+      "branch": "feat/booking-full-option",
+      "head": "6f76209",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-10-19T08:58:00+07:00",
       "platform": "pi",
@@ -132,20 +145,6 @@
       "platform": "claude_code",
       "branch": "main",
       "head": "e338aad",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-10-10T01:58:00+07:00",
-      "platform": "muse_code",
-      "branch": "main",
-      "head": "84bb0fa",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-10-10T01:32:00+07:00",
-      "platform": "claude_code",
-      "branch": "feat/rich-menu-ui-parity",
-      "head": "5309eb9",
       "status": "completed"
     }
   ],
