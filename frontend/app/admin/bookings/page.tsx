@@ -5,9 +5,10 @@ import dynamic from 'next/dynamic'
 import { Alert } from '@/components/ui/Alert'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { Select } from '@/components/ui/Select'
-import { CalendarDays, Pencil, Phone, Plus, RefreshCw } from 'lucide-react'
+import { CalendarDays, ChevronLeft, ChevronRight, Pencil, Phone, Plus, RefreshCw, Search } from 'lucide-react'
 import { logger } from '@/lib/logger'
 import { formatThaiDate } from '@/lib/format-date'
 import { isoToYMD } from '@/lib/utils'
@@ -39,7 +40,9 @@ const STATUS_VARIANT: Record<BookingStatus, 'success' | 'danger' | 'info' | 'war
   NOSHOW: 'warning',
 }
 
-// Only terminal states can be set from here — re-confirming a cancelled booking
+// One full page from the API. "Next" shows when the page came back full —
+// the same heuristic as the requests list.
+const PAGE_SIZE = 100
 // would silently re-take a seat another citizen may already hold.
 const ACTIONS: { status: BookingStatus; label: string }[] = [
   { status: 'COMPLETED', label: 'มาแล้ว' },
@@ -50,6 +53,10 @@ const ACTIONS: { status: BookingStatus; label: string }[] = [
 export default function AdminBookingsPage() {
   const [date, setDate] = useState('') // '' = all days; must not default to today
   const [statusFilter, setStatusFilter] = useState<BookingStatus | ''>('')
+  const [serviceTypeFilter, setServiceTypeFilter] = useState('')
+  const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [page, setPage] = useState(0)
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
   const [updatingId, setUpdatingId] = useState<number | null>(null)
@@ -68,6 +75,10 @@ export default function AdminBookingsPage() {
         await fetchAdminBookings({
           date,
           status: statusFilter || undefined,
+          serviceType: serviceTypeFilter || undefined,
+          search: debouncedSearch.trim() || undefined,
+          limit: PAGE_SIZE,
+          offset: page * PAGE_SIZE || undefined,
         }),
       )
     } catch (err) {
@@ -76,7 +87,17 @@ export default function AdminBookingsPage() {
     } finally {
       setLoading(false)
     }
-  }, [date, statusFilter])
+  }, [date, statusFilter, serviceTypeFilter, debouncedSearch, page])
+
+  // Same 500ms debounce as the requests list — each keystroke must not
+  // become an API call. A filter change always restarts from the first page.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search)
+      setPage(0)
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [search])
 
   useEffect(() => {
     void load()
@@ -130,7 +151,10 @@ export default function AdminBookingsPage() {
             <div className="w-48">
               <CalendarPickerTH
                 value={date ? new Date(`${date}T00:00:00`).toISOString() : null}
-                onChange={(iso) => setDate(iso ? isoToYMD(iso) : '')}
+                onChange={(iso) => {
+                  setDate(iso ? isoToYMD(iso) : '')
+                  setPage(0)
+                }}
               />
             </div>
             {!date && (
@@ -141,7 +165,10 @@ export default function AdminBookingsPage() {
                 type="button"
                 variant="ghost"
                 size="sm"
-                onClick={() => setDate('')}
+                onClick={() => {
+                  setDate('')
+                  setPage(0)
+                }}
                 className="text-xs text-text-tertiary hover:text-text-primary"
               >
                 ล้างวันที่
@@ -151,10 +178,29 @@ export default function AdminBookingsPage() {
               <Select
                 size="sm"
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as BookingStatus | '')}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value as BookingStatus | '')
+                  setPage(0)
+                }}
                 options={STATUS_FILTER_OPTIONS}
               />
             </div>
+            {serviceTypes.length > 0 && (
+              <div className="w-44">
+                <Select
+                  size="sm"
+                  value={serviceTypeFilter}
+                  onChange={(e) => {
+                    setServiceTypeFilter(e.target.value)
+                    setPage(0)
+                  }}
+                  options={[
+                    { value: '', label: 'ทุกบริการ' },
+                    ...serviceTypes.map((type) => ({ value: type, label: type })),
+                  ]}
+                />
+              </div>
+            )}
           </div>
           <Button variant="secondary" onClick={() => void load()} disabled={loading}>
             <RefreshCw className="mr-1 h-4 w-4" aria-hidden="true" />
@@ -169,6 +215,21 @@ export default function AdminBookingsPage() {
         </div>
       </header>
 
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="w-64">
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="ค้นชื่อ เบอร์ หรือเลขคิว"
+            aria-label="ค้นหาการจอง"
+            leftIcon={<Search className="h-4 w-4" aria-hidden="true" />}
+          />
+        </div>
+        {debouncedSearch && (
+          <span className="text-xs text-slate-400">ค้นหา: {debouncedSearch}</span>
+        )}
+      </div>
+
       {error && <Alert variant="danger">{error}</Alert>}
 
       {loading ? (
@@ -177,7 +238,11 @@ export default function AdminBookingsPage() {
         </div>
       ) : bookings.length === 0 ? (
         <p className="rounded-xl border border-dashed border-slate-200 py-16 text-center text-sm text-slate-400 dark:border-slate-700">
-          {date ? 'ไม่มีการจองในวันที่เลือก' : 'ไม่มีการจอง'}
+          {debouncedSearch
+            ? 'ไม่พบรายการที่ตรงกับที่ค้นหา'
+            : date
+              ? 'ไม่มีการจองในวันที่เลือก'
+              : 'ไม่มีการจอง'}
         </p>
       ) : (
         <ul className="space-y-2">
@@ -247,9 +312,36 @@ export default function AdminBookingsPage() {
         </ul>
       )}
 
-      <p className="text-xs text-slate-400">
-        แสดงรายการ{date ? `ของวันที่ ${formatThaiDate(date, { yearFormat: 'numeric' })}` : 'ทุกวัน'}
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs text-slate-400">
+          แสดงรายการ{date ? `ของวันที่ ${formatThaiDate(date, { yearFormat: 'numeric' })}` : 'ทุกวัน'}
+        </p>
+        {(page > 0 || bookings.length >= PAGE_SIZE) && (
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={page === 0 || loading}
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              aria-label="หน้าก่อน"
+            >
+              <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+            </Button>
+            <span className="text-xs text-slate-500">หน้า {page + 1}</span>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={bookings.length < PAGE_SIZE || loading}
+              onClick={() => setPage((p) => p + 1)}
+              aria-label="หน้าถัดไป"
+            >
+              <ChevronRight className="h-4 w-4" aria-hidden="true" />
+            </Button>
+          </div>
+        )}
+      </div>
 
       {walkinEnabled && (
         <WalkinBookingDialog

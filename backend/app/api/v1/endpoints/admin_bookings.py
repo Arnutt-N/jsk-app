@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_admin, get_current_staff
 from app.core.audit import create_audit_log
+from app.core.query_utils import escape_ilike
 from app.db.session import get_db
 from app.models.booking import Booking, BookingStatus
 from app.models.user import User
@@ -57,6 +58,8 @@ async def list_bookings(
     booking_date: Optional[date_type] = Query(default=None, alias="date"),
     status: Optional[BookingStatus] = Query(default=None),
     service_type: Optional[str] = Query(default=None, max_length=200),
+    search: Optional[str] = Query(default=None, alias="q", max_length=120,
+                                   description="Search by name, phone, or queue number"),
     limit: int = Query(default=100, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
     db: AsyncSession = Depends(get_db),
@@ -69,6 +72,15 @@ async def list_bookings(
         stmt = stmt.where(Booking.status == status)
     if service_type:
         stmt = stmt.where(Booking.service_type == service_type)
+    if search:
+        # Same wildcard escaping as the requests list: a literal % or _ in a
+        # phone number must not turn into a wildcard.
+        escaped = escape_ilike(search)
+        stmt = stmt.where(
+            (Booking.contact_name.ilike(f"%{escaped}%", escape="\\")) |
+            (Booking.phone_number.ilike(f"%{escaped}%", escape="\\")) |
+            (Booking.queue_number.ilike(f"%{escaped}%", escape="\\"))
+        )
 
     stmt = (
         stmt.order_by(Booking.booking_date.asc(), Booking.booking_time.asc())

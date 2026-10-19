@@ -307,11 +307,17 @@ export async function fetchAdminBookings(params: {
   date?: string
   status?: BookingStatus
   serviceType?: string
+  search?: string
+  limit?: number
+  offset?: number
 }): Promise<Booking[]> {
   const query = new URLSearchParams()
   if (params.date) query.set('date', params.date)
   if (params.status) query.set('status', params.status)
   if (params.serviceType) query.set('service_type', params.serviceType)
+  if (params.search) query.set('q', params.search)
+  if (params.limit !== undefined) query.set('limit', String(params.limit))
+  if (params.offset) query.set('offset', String(params.offset))
   const res = await fetch(`${ADMIN_BASE}?${query}`)
   if (!res.ok) throw new Error(await readError(res, 'ไม่สามารถโหลดรายการจองได้'))
   return res.json()

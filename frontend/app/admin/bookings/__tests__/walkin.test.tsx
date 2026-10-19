@@ -82,7 +82,8 @@ const SLOTS = {
 
 let fetchMock: ReturnType<typeof vi.fn>
 
-function mockFetch({ settings = SETTINGS }: { settings?: unknown } = {}) {
+function mockFetch({ settings = SETTINGS, rows }: { settings?: unknown; rows?: Booking[] } = {}) {
+  const list = rows ?? [booking()]
   fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     const path = String(url)
     if (path.endsWith('/settings')) return jsonResponse(settings)
@@ -91,7 +92,7 @@ function mockFetch({ settings = SETTINGS }: { settings?: unknown } = {}) {
     if (init?.method === 'PATCH' && path.includes('/contact')) {
       return jsonResponse(booking({ contact_name: 'สมศรี ใจดี' }))
     }
-    return jsonResponse([booking()])
+    return jsonResponse(list)
   })
   vi.stubGlobal('fetch', fetchMock)
 }
@@ -160,6 +161,73 @@ describe('walk-in dialog', () => {
   })
 })
 
+describe('search, service filter and pagination', () => {
+  it('sends the typed text as q after a pause', async () => {
+    const user = userEvent.setup()
+    mockFetch()
+    render(<AdminBookingsPage />)
+    await screen.findByRole('list')
+
+    await user.type(screen.getByLabelText('ค้นหาการจอง'), '081')
+
+    await waitFor(() => {
+      const call = fetchMock.mock.calls.find(([url]) => String(url).includes('q=081'))
+      expect(call).toBeTruthy()
+    })
+  })
+
+  it('says so plainly when nothing matches', async () => {
+    const user = userEvent.setup()
+    mockFetch({ rows: [] })
+    render(<AdminBookingsPage />)
+    await screen.findByText('ไม่มีการจอง')
+
+    await user.type(screen.getByLabelText('ค้นหาการจอง'), 'ไม่มีคนนี้')
+
+    expect(await screen.findByText('ไม่พบรายการที่ตรงกับที่ค้นหา')).toBeInTheDocument()
+  })
+
+  it('sends the chosen service type', async () => {
+    const user = userEvent.setup()
+    mockFetch()
+    render(<AdminBookingsPage />)
+    await screen.findByRole('list')
+
+    const selects = screen.getAllByRole('combobox')
+    const serviceSelect = selects[selects.length - 1]
+    await user.selectOptions(serviceSelect, 'ปรึกษากฎหมาย')
+
+    await waitFor(() => {
+      const call = fetchMock.mock.calls.find(([url]) =>
+        String(url).includes(`service_type=${encodeURIComponent('ปรึกษากฎหมาย')}`),
+      )
+      expect(call).toBeTruthy()
+    })
+  })
+
+  it('pages forward through a full page of results', async () => {
+    const user = userEvent.setup()
+    const rows = Array.from({ length: 100 }, (_, i) => booking({ id: 100 + i }))
+    mockFetch({ rows })
+    render(<AdminBookingsPage />)
+    await screen.findByRole('list')
+
+    await user.click(await screen.findByRole('button', { name: 'หน้าถัดไป' }))
+
+    await waitFor(() => {
+      const call = fetchMock.mock.calls.find(([url]) => String(url).includes('offset=100'))
+      expect(call).toBeTruthy()
+    })
+    expect(await screen.findByText('หน้า 2')).toBeInTheDocument()
+  })
+
+  it('hides paging when the list fits on one page', async () => {
+    mockFetch()
+    render(<AdminBookingsPage />)
+    await screen.findByRole('list')
+    expect(screen.queryByRole('button', { name: 'หน้าถัดไป' })).not.toBeInTheDocument()
+  })
+})
 describe('edit-contact dialog', () => {
   it('saves the new name through the contact endpoint', async () => {
     const user = userEvent.setup()

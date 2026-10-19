@@ -193,7 +193,7 @@ async def test_list_orders_soonest_first():
     db.execute.return_value = result
 
     await admin_bookings.list_bookings(
-        db=db, _staff=SimpleNamespace(id=1), limit=100, offset=0
+        db=db, _staff=SimpleNamespace(id=1), search=None, limit=100, offset=0
     )
 
     stmt = db.execute.call_args.args[0]

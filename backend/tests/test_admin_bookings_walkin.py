@@ -266,6 +266,50 @@ async def test_counter_availability_unknown_service_returns_404():
     assert exc.value.status_code == 404
 
 
+# --- search (q) ---
+
+
+@pytest.mark.asyncio
+async def test_search_filters_name_phone_and_queue_with_escaped_wildcards():
+    """A literal % in the query must not become a wildcard — same rule as requests."""
+    from unittest.mock import MagicMock
+    from sqlalchemy.dialects import postgresql
+
+    db = AsyncMock()
+    result = MagicMock()
+    result.scalars.return_value.all.return_value = []
+    db.execute.return_value = result
+
+    await admin_bookings.list_bookings(
+        search="081%", db=db, _staff=SimpleNamespace(id=1), limit=100, offset=0
+    )
+
+    stmt = db.execute.call_args.args[0]
+    sql = str(stmt.compile(dialect=postgresql.dialect()))
+    assert "bookings.contact_name ILIKE" in sql
+    assert "bookings.phone_number ILIKE" in sql
+    assert "bookings.queue_number ILIKE" in sql
+    assert "ESCAPE" in sql
+
+
+@pytest.mark.asyncio
+async def test_blank_search_adds_no_filter():
+    from unittest.mock import MagicMock
+    from sqlalchemy.dialects import postgresql
+
+    db = AsyncMock()
+    result = MagicMock()
+    result.scalars.return_value.all.return_value = []
+    db.execute.return_value = result
+
+    await admin_bookings.list_bookings(
+        search="", db=db, _staff=SimpleNamespace(id=1), limit=100, offset=0
+    )
+
+    stmt = db.execute.call_args.args[0]
+    assert "ILIKE" not in str(stmt.compile(dialect=postgresql.dialect()))
+
+
 # --- settings carry the new toggle ---
 
 
