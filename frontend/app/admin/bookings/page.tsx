@@ -8,19 +8,22 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { Select } from '@/components/ui/Select'
-import { CalendarDays, ChevronLeft, ChevronRight, Pencil, Phone, Plus, RefreshCw, Search } from 'lucide-react'
+import { CalendarDays, ChevronLeft, ChevronRight, LayoutList, Pencil, Phone, Plus, RefreshCw, Search } from 'lucide-react'
 import { logger } from '@/lib/logger'
 import { formatThaiDate } from '@/lib/format-date'
 import { isoToYMD } from '@/lib/utils'
 import { EditContactDialog, WalkinBookingDialog } from '@/components/admin/WalkinBookingDialog'
+import BookingMonthCalendar from '@/components/admin/BookingMonthCalendar'
 import {
   BOOKING_STATUS_LABELS,
+  fetchAdminAvailabilityRange,
   fetchAdminBookings,
   fetchBookingSettings,
   formatTime,
   updateBookingStatus,
   type Booking,
   type BookingStatus,
+  type DayAvailability,
 } from '@/lib/booking'
 
 const CalendarPickerTH = dynamic(() => import('@/components/ui/CalendarPickerTH'), { ssr: false })
@@ -61,8 +64,12 @@ export default function AdminBookingsPage() {
   const [loading, setLoading] = useState(true)
   const [updatingId, setUpdatingId] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
-  // Missing in older saved settings means enabled (Phase 1 default).
+  // Missing in older saved settings means enabled (walkin, calendar).
   const [walkinEnabled, setWalkinEnabled] = useState(true)
+  const [calendarEnabled, setCalendarEnabled] = useState(true)
+  const [view, setView] = useState<'list' | 'calendar'>('list')
+  const [rangeByDate, setRangeByDate] = useState<Map<string, DayAvailability>>(new Map())
+  const [loadingRange, setLoadingRange] = useState(false)
   const [serviceTypes, setServiceTypes] = useState<string[]>([])
   const [walkinOpen, setWalkinOpen] = useState(false)
   const [editing, setEditing] = useState<Booking | null>(null)
@@ -108,6 +115,7 @@ export default function AdminBookingsPage() {
       try {
         const settings = await fetchBookingSettings()
         setWalkinEnabled(settings.walkin_enabled ?? true)
+        setCalendarEnabled(settings.calendar_enabled ?? true)
         setServiceTypes(settings.service_types ?? [])
       } catch (err) {
         logger.error('Failed to load booking settings:', err)
@@ -129,6 +137,38 @@ export default function AdminBookingsPage() {
       setUpdatingId(null)
     }
   }
+
+  // Fail-open like the LIFF strip: no fullness, still a usable date picker.
+  const rangeService = serviceTypeFilter || serviceTypes[0] || ''
+
+  const handleVisibleMonthChange = useCallback(
+    async (year: number, monthZeroBased: number) => {
+      if (!rangeService) {
+        setRangeByDate(new Map())
+        return
+      }
+      const first = `${year}-${`${monthZeroBased + 1}`.padStart(2, '0')}-01`
+      const lastDay = new Date(year, monthZeroBased + 1, 0).getDate()
+      const last = `${year}-${`${monthZeroBased + 1}`.padStart(2, '0')}-${`${lastDay}`.padStart(2, '0')}`
+      setLoadingRange(true)
+      try {
+        const range = await fetchAdminAvailabilityRange(rangeService, first, last)
+        setRangeByDate(new Map(range.days.map((day) => [day.date, day])))
+      } catch (err) {
+        logger.error('Failed to load calendar fullness:', err)
+        setRangeByDate(new Map())
+      } finally {
+        setLoadingRange(false)
+      }
+    },
+    [rangeService],
+  )
+
+  const handleSelectDay = useCallback((iso: string) => {
+    setDate(iso)
+    setPage(0)
+    setView('list')
+  }, [])
 
   const counts = useMemo(() => {
     const total = bookings.length
@@ -216,6 +256,34 @@ export default function AdminBookingsPage() {
       </header>
 
       <div className="flex flex-wrap items-center gap-2">
+        {calendarEnabled && (
+          <div className="flex rounded-lg border border-slate-200 p-0.5 dark:border-slate-700" role="tablist" aria-label="มุมมองคิวนัดหมาย">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={view === 'list'}
+              onClick={() => setView('list')}
+              className={view === 'list'
+                ? 'flex items-center gap-1 rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white dark:bg-slate-100 dark:text-slate-900'
+                : 'flex items-center gap-1 rounded-md px-3 py-1.5 text-xs text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'}
+            >
+              <LayoutList className="h-3.5 w-3.5" aria-hidden="true" />
+              รายการ
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={view === 'calendar'}
+              onClick={() => setView('calendar')}
+              className={view === 'calendar'
+                ? 'flex items-center gap-1 rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white dark:bg-slate-100 dark:text-slate-900'
+                : 'flex items-center gap-1 rounded-md px-3 py-1.5 text-xs text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'}
+            >
+              <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
+              ปฏิทิน
+            </button>
+          </div>
+        )}
         <div className="w-64">
           <Input
             value={search}
@@ -232,7 +300,18 @@ export default function AdminBookingsPage() {
 
       {error && <Alert variant="danger">{error}</Alert>}
 
-      {loading ? (
+      {calendarEnabled && view === 'calendar' && (
+        <BookingMonthCalendar
+          selectedDate={date}
+          rangeByDate={rangeByDate}
+          loadingRange={loadingRange}
+          rangeServiceLabel={rangeService || null}
+          onSelectDay={handleSelectDay}
+          onVisibleMonthChange={handleVisibleMonthChange}
+        />
+      )}
+
+      {(view === 'list' || !calendarEnabled) && (loading ? (
         <div className="py-16 text-center">
           <LoadingSpinner />
         </div>
@@ -310,7 +389,7 @@ export default function AdminBookingsPage() {
             </li>
           ))}
         </ul>
-      )}
+      ))}
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs text-slate-400">

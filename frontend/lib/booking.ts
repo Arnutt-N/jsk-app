@@ -62,8 +62,9 @@ export interface BookingSettings {
   reminder_enabled: boolean
   reminder_lead_value: number
   reminder_lead_unit: ReminderUnit
-  // Absent in payloads saved before Phase 1 — treat missing as enabled.
+  // Absent in payloads saved before the toggle existed — treat missing as enabled.
   walkin_enabled?: boolean
+  calendar_enabled?: boolean
 }
 
 export const BOOKING_STATUS_LABELS: Record<BookingStatus, string> = {
@@ -247,6 +248,17 @@ export async function fetchAvailabilityRange(
     headers: liffHeaders(idToken),
   })
   if (!res.ok) throw new Error(await readError(res, 'ไม่สามารถโหลดวันที่เปิดให้จองได้'))
+  return res.json()
+}
+
+export async function fetchAdminAvailabilityRange(
+  serviceType: string,
+  from: string,
+  to: string,
+): Promise<AvailabilityRange> {
+  const query = new URLSearchParams({ service_type: serviceType, from, to })
+  const res = await fetch(`${ADMIN_BASE}/availability/range?${query}`)
+  if (!res.ok) throw new Error(await readError(res, 'ไม่สามารถโหลดความเต็มของปฏิทินได้'))
   return res.json()
 }
 

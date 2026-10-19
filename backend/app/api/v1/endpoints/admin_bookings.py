@@ -20,11 +20,13 @@ from app.models.booking import Booking, BookingStatus
 from app.models.user import User
 from app.schemas.booking import (
     AvailabilityOut,
+    AvailabilityRangeOut,
     BookingCreate,
     BookingOut,
     BookingSettingsIn,
     BookingSettingsOut,
     BookingUpdateIn,
+    DayAvailabilityOut,
     SlotOut,
 )
 from app.services import booking_service
@@ -34,6 +36,7 @@ from app.services.booking_service import (
     BookingNotCancellableError,
     BookingWindowError,
     DuplicateBookingError,
+    MAX_AVAILABILITY_RANGE_DAYS,
     SlotFullError,
     SlotUnavailableError,
     UnknownServiceTypeError,
@@ -123,6 +126,42 @@ async def counter_availability(
             )
             for s in slots
         ],
+    )
+
+
+@router.get(
+    "/availability/range",
+    response_model=AvailabilityRangeOut,
+    summary="Open/full status per day across a window (counter)",
+)
+async def counter_availability_range(
+    service_type: str = Query(max_length=200),
+    range_start: date_type = Query(alias="from"),
+    range_end: date_type = Query(alias="to"),
+    db: AsyncSession = Depends(get_db),
+    _staff=Depends(get_current_staff),
+):
+    """Same engine as the LIFF strip, minus the LINE token requirement."""
+    config = await load_booking_config(db, fresh=True)
+    if not config.calendar_enabled:
+        raise HTTPException(status_code=403, detail="ปิดมุมมองปฏิทินไว้ในการตั้งค่า")
+    if range_start > range_end:
+        raise HTTPException(status_code=422, detail="ช่วงวันที่ไม่ถูกต้อง")
+    if (range_end - range_start).days > MAX_AVAILABILITY_RANGE_DAYS:
+        raise HTTPException(status_code=422, detail="ช่วงวันที่ยาวเกินไป")
+    try:
+        days = await booking_service.get_availability_range(
+            db,
+            service_type=service_type,
+            start_date=range_start,
+            end_date=range_end,
+            config=config,
+        )
+    except UnknownServiceTypeError:
+        raise HTTPException(status_code=404, detail="ไม่พบบริการที่เลือก")
+    return AvailabilityRangeOut(
+        service_type=service_type,
+        days=[DayAvailabilityOut.model_validate(day) for day in days],
     )
 
 
@@ -325,6 +364,7 @@ async def get_booking_settings(
         reminder_lead_value=config.reminder_lead_value,
         reminder_lead_unit=config.reminder_lead_unit,
         walkin_enabled=config.walkin_enabled,
+        calendar_enabled=config.calendar_enabled,
     )
 
 
@@ -349,6 +389,7 @@ async def update_booking_settings(
         reminder_lead_value=payload.reminder_lead_value,
         reminder_lead_unit=payload.reminder_lead_unit,
         walkin_enabled=payload.walkin_enabled,
+        calendar_enabled=payload.calendar_enabled,
     )
     await save_booking_config(db, config)
     await create_audit_log(

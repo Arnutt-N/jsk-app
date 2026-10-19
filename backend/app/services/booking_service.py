@@ -97,6 +97,7 @@ class BookingConfig:
     # when online booking is closed), so they need their own kill switch.
     # Defaulted last so existing BookingConfig(...) call sites keep working.
     walkin_enabled: bool = True
+    calendar_enabled: bool = True
 
     @property
     def reminder_lead(self) -> timedelta:

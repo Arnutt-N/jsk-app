@@ -141,6 +141,25 @@ export default function BookingSettingsPage() {
         </label>
       </section>
 
+      <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
+        <label className="flex items-center justify-between gap-4">
+          <span>
+            <span className="block font-medium text-slate-900 dark:text-slate-100">
+              แสดงปฏิทินรายเดือน
+            </span>
+            <span className="block text-sm text-slate-500">
+              ปิดไว้แถบสลับมุมมองปฏิทินจะหายจากหน้าคิวนัดหมาย และการเรียก API ตรงจะถูกปฏิเสธ
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            checked={settings.calendar_enabled ?? true}
+            onChange={(e) => update('calendar_enabled', e.target.checked)}
+            className="h-5 w-5 accent-emerald-600"
+          />
+        </label>
+      </section>
+
       {/* Services */}
       <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
         <h2 className="mb-3 font-medium text-slate-900 dark:text-slate-100">บริการที่เปิดให้จอง</h2>

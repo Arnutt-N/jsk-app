@@ -156,6 +156,7 @@ class BookingSettingsIn(BaseModel):
     # Defaulted so older payloads (and the counter UI before its update)
     # keep validating; the settings page always sends the stored value.
     walkin_enabled: bool = True
+    calendar_enabled: bool = True
 
     @field_validator("service_types")
     @classmethod
