@@ -26,6 +26,7 @@ function booking(overrides: Partial<Booking> = {}): Booking {
     note: null,
     reminder_sent_at: null,
     assigned_staff_id: null,
+    email: null,
     ...overrides,
   }
 }
