@@ -99,6 +99,7 @@ class BookingConfig:
     walkin_enabled: bool = True
     calendar_enabled: bool = True
     resend_enabled: bool = True
+    assign_enabled: bool = False
 
     @property
     def reminder_lead(self) -> timedelta:

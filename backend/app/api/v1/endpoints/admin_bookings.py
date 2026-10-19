@@ -22,6 +22,7 @@ from app.models.user import User
 from app.schemas.booking import (
     AvailabilityOut,
     AvailabilityRangeOut,
+    BookingAssignIn,
     BookingCreate,
     BookingOut,
     BookingSettingsIn,
@@ -30,6 +31,7 @@ from app.schemas.booking import (
     DayAvailabilityOut,
     SlotOut,
 )
+from app.core.permissions import can_assign, can_self_assign
 from app.services import booking_service
 from app.services.booking_notifications import notify_staff_new_booking, send_booking_reminder
 from app.services.booking_service import (
@@ -64,6 +66,7 @@ async def list_bookings(
     service_type: Optional[str] = Query(default=None, max_length=200),
     search: Optional[str] = Query(default=None, alias="q", max_length=120,
                                    description="Search by name, phone, or queue number"),
+    unassigned_only: bool = Query(default=False, description="Only bookings with no assignee"),
     limit: int = Query(default=100, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
     db: AsyncSession = Depends(get_db),
@@ -85,6 +88,9 @@ async def list_bookings(
             (Booking.phone_number.ilike(f"%{escaped}%", escape="\\")) |
             (Booking.queue_number.ilike(f"%{escaped}%", escape="\\"))
         )
+
+    if unassigned_only:
+        stmt = stmt.where(Booking.assigned_staff_id.is_(None))
 
     stmt = (
         stmt.order_by(Booking.booking_date.asc(), Booking.booking_time.asc())
@@ -396,6 +402,59 @@ async def update_booking_status(
     return BookingOut.model_validate(booking)
 
 
+@router.patch(
+    "/{booking_id}/assignment",
+    response_model=BookingOut,
+    summary="Assign a booking to a staff member",
+)
+async def assign_booking_staff(
+    payload: BookingAssignIn,
+    booking_id: int = Path(ge=1),
+    db: AsyncSession = Depends(get_db),
+    staff=Depends(get_current_staff),
+):
+    config = await load_booking_config(db, fresh=True)
+    if not config.assign_enabled:
+        raise HTTPException(status_code=403, detail="ปิดการมอบหมายคิวไว้ในการตั้งค่า")
+
+    booking = await db.get(Booking, booking_id)
+    if booking is None:
+        raise HTTPException(status_code=404, detail="ไม่พบการจอง")
+
+    target_id = payload.assigned_staff_id
+    if target_id == booking.assigned_staff_id:
+        return BookingOut.model_validate(booking)
+
+    if target_id is None:
+        if not can_assign(staff.role):
+            raise HTTPException(status_code=403, detail="คุณไม่มีสิทธิ์ถอนการมอบหมายงาน")
+    elif target_id == staff.id:
+        if not can_self_assign(staff.role):
+            raise HTTPException(
+                status_code=403, detail="คุณไม่มีสิทธิ์รับคิวด้วยตนเอง"
+            )
+    else:
+        if not can_assign(staff.role):
+            raise HTTPException(status_code=403, detail="คุณไม่มีสิทธิ์มอบหมายงานให้ผู้อื่น")
+        target = await db.get(User, target_id)
+        if target is None:
+            raise HTTPException(status_code=404, detail="ไม่พบเจ้าหน้าที่")
+
+    previous = booking.assigned_staff_id
+    booking.assigned_staff_id = target_id
+    await create_audit_log(
+        db=db,
+        admin_id=staff.id,
+        action="assign_booking",
+        resource_type="booking",
+        resource_id=str(booking_id),
+        details={"from": previous, "to": target_id},
+    )
+    await db.commit()
+    await db.refresh(booking)
+    return BookingOut.model_validate(booking)
+
+
 @router.get(
     "/settings",
     response_model=BookingSettingsOut,
@@ -419,6 +478,7 @@ async def get_booking_settings(
         walkin_enabled=config.walkin_enabled,
         calendar_enabled=config.calendar_enabled,
         resend_enabled=config.resend_enabled,
+        assign_enabled=config.assign_enabled,
     )
 
 
@@ -445,6 +505,7 @@ async def update_booking_settings(
         walkin_enabled=payload.walkin_enabled,
         calendar_enabled=payload.calendar_enabled,
         resend_enabled=payload.resend_enabled,
+        assign_enabled=payload.assign_enabled,
     )
     await save_booking_config(db, config)
     await create_audit_log(

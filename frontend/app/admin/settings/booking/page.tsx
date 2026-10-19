@@ -179,6 +179,25 @@ export default function BookingSettingsPage() {
         </label>
       </section>
 
+      <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
+        <label className="flex items-center justify-between gap-4">
+          <span>
+            <span className="block font-medium text-slate-900 dark:text-slate-100">
+              เคาน์เตอร์มอบหมายคิวได้
+            </span>
+            <span className="block text-sm text-slate-500">
+              ปิดไว้คอลัมน์ผู้รับผิดชอบกับปุ่ม “มอบหมาย” จะหายจากหน้าคิวนัดหมาย และการเรียก API ตรงจะถูกปฏิเสธ เปิดเมื่อพร้อมผังเจ้าหน้าที่แล้วเท่านั้น
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            checked={settings.assign_enabled ?? false}
+            onChange={(e) => update('assign_enabled', e.target.checked)}
+            className="h-5 w-5 accent-emerald-600"
+          />
+        </label>
+      </section>
+
       {/* Services */}
       <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
         <h2 className="mb-3 font-medium text-slate-900 dark:text-slate-100">บริการที่เปิดให้จอง</h2>

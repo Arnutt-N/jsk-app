@@ -27,7 +27,7 @@ class Booking(Base):
     id = Column(Integer, primary_key=True, index=True)
 
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    user = relationship("User", back_populates="bookings")
+    user = relationship("User", back_populates="bookings", foreign_keys=[user_id])
 
     service_type = Column(String, nullable=False)
     booking_date = Column(Date, nullable=False)
@@ -50,6 +50,10 @@ class Booking(Base):
     reminder_sent_at = Column(DateTime(timezone=True), nullable=True)
 
     cancelled_at = Column(DateTime(timezone=True), nullable=True)
+
+    assigned_staff_id = Column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

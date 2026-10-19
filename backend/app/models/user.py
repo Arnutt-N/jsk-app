@@ -71,7 +71,7 @@ class User(Base):
 
     requests = relationship("ServiceRequest", back_populates="requester", foreign_keys="ServiceRequest.requester_id")
     assigned_requests = relationship("ServiceRequest", back_populates="assignee", foreign_keys="ServiceRequest.assigned_agent_id")
-    bookings = relationship("Booking", back_populates="user")
+    bookings = relationship("Booking", back_populates="user", foreign_keys="Booking.user_id")
     chat_sessions = relationship("ChatSession", back_populates="operator", foreign_keys="ChatSession.operator_id")
     audit_logs = relationship("AuditLog", back_populates="admin")
     tags = relationship("Tag", secondary="user_tags", back_populates="users", overlaps="tag_links,user_links,user,tag")

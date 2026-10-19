@@ -8,18 +8,21 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { Select } from '@/components/ui/Select'
-import { CalendarDays, BellRing, ChevronLeft, ChevronRight, LayoutList, Pencil, Phone, Plus, RefreshCw, Search } from 'lucide-react'
+import { CalendarDays, BellRing, ChevronLeft, ChevronRight, LayoutList, Pencil, Phone, Plus, RefreshCw, Search, UserMinus, UserPlus } from 'lucide-react'
 import { logger } from '@/lib/logger'
 import { formatThaiDate, formatThaiDateTime } from '@/lib/format-date'
 import { isoToYMD } from '@/lib/utils'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { AssignModal } from '@/components/admin/AssignModal'
 import { EditContactDialog, WalkinBookingDialog } from '@/components/admin/WalkinBookingDialog'
 import BookingMonthCalendar from '@/components/admin/BookingMonthCalendar'
 import {
   BOOKING_STATUS_LABELS,
+  assignBooking,
   fetchAdminAvailabilityRange,
   fetchAdminBookings,
   fetchBookingSettings,
+  fetchStaffDirectory,
   formatTime,
   resendBookingReminder,
   updateBookingStatus,
@@ -71,6 +74,11 @@ export default function AdminBookingsPage() {
   const [calendarEnabled, setCalendarEnabled] = useState(true)
   const [resendEnabled, setResendEnabled] = useState(true)
   const [resending, setResending] = useState<Booking | null>(null)
+  const [assignEnabled, setAssignEnabled] = useState(false)
+  const [unassignedOnly, setUnassignedOnly] = useState(false)
+  const [staffNames, setStaffNames] = useState<Map<number, string>>(new Map())
+  const [assigning, setAssigning] = useState<Booking | null>(null)
+  const [unassigning, setUnassigning] = useState<Booking | null>(null)
   const [view, setView] = useState<'list' | 'calendar'>('list')
   const [rangeByDate, setRangeByDate] = useState<Map<string, DayAvailability>>(new Map())
   const [loadingRange, setLoadingRange] = useState(false)
@@ -88,6 +96,7 @@ export default function AdminBookingsPage() {
           status: statusFilter || undefined,
           serviceType: serviceTypeFilter || undefined,
           search: debouncedSearch.trim() || undefined,
+          unassignedOnly: unassignedOnly || undefined,
           limit: PAGE_SIZE,
           offset: page * PAGE_SIZE || undefined,
         }),
@@ -98,7 +107,7 @@ export default function AdminBookingsPage() {
     } finally {
       setLoading(false)
     }
-  }, [date, statusFilter, serviceTypeFilter, debouncedSearch, page])
+  }, [date, statusFilter, serviceTypeFilter, debouncedSearch, unassignedOnly, page])
 
   // Same 500ms debounce as the requests list — each keystroke must not
   // become an API call. A filter change always restarts from the first page.
@@ -121,7 +130,17 @@ export default function AdminBookingsPage() {
         setWalkinEnabled(settings.walkin_enabled ?? true)
         setCalendarEnabled(settings.calendar_enabled ?? true)
         setResendEnabled(settings.resend_enabled ?? true)
+        const assignOn = settings.assign_enabled ?? false
+        setAssignEnabled(assignOn)
         setServiceTypes(settings.service_types ?? [])
+        if (assignOn) {
+          try {
+            const directory = await fetchStaffDirectory()
+            setStaffNames(new Map(directory.map((entry) => [entry.id, entry.display_name])))
+          } catch (err) {
+            logger.error('Failed to load staff directory:', err)
+          }
+        }
       } catch (err) {
         logger.error('Failed to load booking settings:', err)
       }
@@ -155,6 +174,36 @@ export default function AdminBookingsPage() {
     } finally {
       setUpdatingId(null)
       setResending(null)
+    }
+  }
+
+  const handleAssign = async (bookingId: number, staffId: number) => {
+    setUpdatingId(bookingId)
+    setError(null)
+    try {
+      const updated = await assignBooking(bookingId, staffId)
+      setBookings((current) => current.map((b) => (b.id === updated.id ? updated : b)))
+    } catch (err) {
+      logger.error('Failed to assign booking:', err)
+      setError(err instanceof Error ? err.message : 'มอบหมายคิวไม่สำเร็จ')
+    } finally {
+      setUpdatingId(null)
+      setAssigning(null)
+    }
+  }
+
+  const handleUnassign = async (booking: Booking) => {
+    setUpdatingId(booking.id)
+    setError(null)
+    try {
+      const updated = await assignBooking(booking.id, null)
+      setBookings((current) => current.map((b) => (b.id === updated.id ? updated : b)))
+    } catch (err) {
+      logger.error('Failed to unassign booking:', err)
+      setError(err instanceof Error ? err.message : 'ถอนการมอบหมายไม่สำเร็จ')
+    } finally {
+      setUpdatingId(null)
+      setUnassigning(null)
     }
   }
 
@@ -316,6 +365,21 @@ export default function AdminBookingsPage() {
         {debouncedSearch && (
           <span className="text-xs text-slate-400">ค้นหา: {debouncedSearch}</span>
         )}
+        {assignEnabled && (
+          <button
+            type="button"
+            onClick={() => {
+              setUnassignedOnly((v) => !v)
+              setPage(0)
+            }}
+            aria-pressed={unassignedOnly}
+            className={unassignedOnly
+              ? 'rounded-full bg-slate-900 px-3 py-1.5 text-xs font-medium text-white dark:bg-slate-100 dark:text-slate-900'
+              : 'rounded-full border border-slate-200 px-3 py-1.5 text-xs text-slate-500 hover:text-slate-900 dark:border-slate-700 dark:hover:text-slate-100'}
+          >
+            ไร้ผู้รับ
+          </button>
+        )}
       </div>
 
       {error && <Alert variant="danger">{error}</Alert>}
@@ -380,12 +444,46 @@ export default function AdminBookingsPage() {
                 </a>
               )}
 
+              {assignEnabled && (
+                <p className="text-xs text-slate-500">
+                  ผู้รับผิดชอบ: {
+                    booking.assigned_staff_id === null || booking.assigned_staff_id === undefined
+                      ? 'ยังไม่มอบหมาย'
+                      : (staffNames.get(booking.assigned_staff_id) ?? `เจ้าหน้าที่ #${booking.assigned_staff_id}`)
+                  }
+                </p>
+              )}
+
               <Badge variant={STATUS_VARIANT[booking.status]}>
                 {BOOKING_STATUS_LABELS[booking.status]}
               </Badge>
 
               {booking.status === 'CONFIRMED' && (
                 <div className="flex gap-1">
+                  {assignEnabled && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={updatingId === booking.id}
+                      onClick={() => setAssigning(booking)}
+                      aria-label={`มอบหมายคิว ${booking.queue_number ?? booking.id}`}
+                    >
+                      <UserPlus className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
+                      มอบหมาย
+                    </Button>
+                  )}
+                  {assignEnabled && booking.assigned_staff_id !== null && booking.assigned_staff_id !== undefined && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={updatingId === booking.id}
+                      onClick={() => setUnassigning(booking)}
+                      aria-label={`ถอนการมอบหมายคิว ${booking.queue_number ?? booking.id}`}
+                    >
+                      <UserMinus className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
+                      ถอน
+                    </Button>
+                  )}
                   {resendEnabled && (
                     <Button
                       size="sm"
@@ -489,6 +587,29 @@ export default function AdminBookingsPage() {
         }
         confirmText="ส่งเตือน"
         isLoading={resending !== null && updatingId === resending.id}
+      />
+      {assignEnabled && assigning !== null && (
+        <AssignModal
+          isOpen
+          onClose={() => setAssigning(null)}
+          onAssign={(staffId) => handleAssign(assigning.id, staffId)}
+          currentAssigneeId={assigning.assigned_staff_id ?? undefined}
+        />
+      )}
+      <ConfirmDialog
+        isOpen={unassigning !== null}
+        onClose={() => setUnassigning(null)}
+        onConfirm={() => {
+          if (unassigning) void handleUnassign(unassigning)
+        }}
+        title="ถอนการมอบหมาย"
+        description={
+          unassigning
+            ? `ถอนผู้รับผิดชอบคิว ${unassigning.queue_number ?? unassigning.id} หรือไม่?`
+            : undefined
+        }
+        confirmText="ถอน"
+        isLoading={unassigning !== null && updatingId === unassigning.id}
       />
     </div>
   )

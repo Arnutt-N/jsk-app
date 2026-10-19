@@ -51,6 +51,7 @@ export interface Booking {
   phone_number: string | null
   note: string | null
   reminder_sent_at: string | null
+  assigned_staff_id: number | null
 }
 
 export interface BookingSettings {
@@ -67,6 +68,7 @@ export interface BookingSettings {
   walkin_enabled?: boolean
   calendar_enabled?: boolean
   resend_enabled?: boolean
+  assign_enabled?: boolean
 }
 
 export const BOOKING_STATUS_LABELS: Record<BookingStatus, string> = {
@@ -322,6 +324,7 @@ export async function fetchAdminBookings(params: {
   status?: BookingStatus
   serviceType?: string
   search?: string
+  unassignedOnly?: boolean
   limit?: number
   offset?: number
 }): Promise<Booking[]> {
@@ -330,6 +333,7 @@ export async function fetchAdminBookings(params: {
   if (params.status) query.set('status', params.status)
   if (params.serviceType) query.set('service_type', params.serviceType)
   if (params.search) query.set('q', params.search)
+  if (params.unassignedOnly) query.set('unassigned_only', 'true')
   if (params.limit !== undefined) query.set('limit', String(params.limit))
   if (params.offset) query.set('offset', String(params.offset))
   const res = await fetch(`${ADMIN_BASE}?${query}`)
@@ -346,6 +350,38 @@ export async function updateBookingStatus(
   })
   if (!res.ok) throw new Error(await readError(res, 'อัปเดตสถานะไม่สำเร็จ'))
   return res.json()
+}
+
+export async function assignBooking(
+  bookingId: number,
+  staffId: number | null,
+): Promise<Booking> {
+  const res = await fetch(`${ADMIN_BASE}/${bookingId}/assignment`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ assigned_staff_id: staffId }),
+  })
+  if (!res.ok) throw new Error(await readError(res, 'มอบหมายคิวไม่สำเร็จ'))
+  return res.json()
+}
+
+export interface StaffDirectoryEntry {
+  id: number
+  display_name: string
+}
+
+function isStaffDirectoryEntry(value: unknown): value is StaffDirectoryEntry {
+  if (typeof value !== 'object' || value === null) return false
+  const entry = value as Record<string, unknown>
+  return typeof entry.id === 'number' && typeof entry.display_name === 'string'
+}
+
+export async function fetchStaffDirectory(): Promise<StaffDirectoryEntry[]> {
+  const res = await fetch(`${API_BASE}/admin/users/workload`)
+  if (!res.ok) throw new Error(await readError(res, 'ไม่สามารถโหลดรายชื่อเจ้าหน้าที่ได้'))
+  const body: unknown = await res.json()
+  if (!Array.isArray(body)) throw new Error('ไม่สามารถโหลดรายชื่อเจ้าหน้าที่ได้')
+  return body.filter(isStaffDirectoryEntry)
 }
 
 export async function resendBookingReminder(bookingId: number): Promise<Booking> {

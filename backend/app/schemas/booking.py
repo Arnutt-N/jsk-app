@@ -124,6 +124,7 @@ class BookingOut(BaseModel):
     phone_number: Optional[str]
     note: Optional[str]
     reminder_sent_at: Optional[datetime] = None
+    assigned_staff_id: Optional[int] = None
 
     @field_validator("status", mode="before")
     @classmethod
@@ -140,6 +141,14 @@ class BookingUpdateIn(ContactFields):
     """
 
     model_config = ConfigDict(extra="forbid")
+
+
+class BookingAssignIn(BaseModel):
+    """Counter assignment change. Null unassigns."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    assigned_staff_id: Optional[int] = None
 
 
 class BookingSettingsIn(BaseModel):
@@ -159,6 +168,7 @@ class BookingSettingsIn(BaseModel):
     walkin_enabled: bool = True
     calendar_enabled: bool = True
     resend_enabled: bool = True
+    assign_enabled: bool = False
 
     @field_validator("service_types")
     @classmethod
