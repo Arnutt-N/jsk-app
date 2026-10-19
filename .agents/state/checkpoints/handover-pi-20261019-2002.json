@@ -1,0 +1,16 @@
+{
+  "handoff_version": "2.0",
+  "platform": "pi",
+  "agent": "pi",
+  "timestamp": "2026-10-19T20:02:00+07:00",
+  "branch": "feat/booking-full-option",
+  "head_commit": "d302446",
+  "status": "completed",
+  "work_summary": "Booking full-option phase 5 done on feat/booking-full-option (assignment migration live-tested, endpoint + gates, column/modal/chip, toggle OFF; d302446 pushed, no PR yet)",
+  "priority_actions": [
+    "Continue phase 6: email channel"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/pi/session-summary-20261019-2002.md",
+  "cross_platform_read": []
+}

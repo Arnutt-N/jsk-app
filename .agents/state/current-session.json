@@ -1,12 +1,19 @@
 {
-  "last_updated": "2026-10-19T17:03:00+07:00",
+  "last_updated": "2026-10-19T20:02:00+07:00",
   "platform": "pi",
-  "current_task": "Booking full-option phase 4 done on feat/booking-full-option (reminder status column, resend endpoint + guard, toggle; 492070c pushed, no PR yet)",
+  "current_task": "Booking full-option phase 5 done on feat/booking-full-option (assignment migration live-tested, endpoint + gates, column/modal/chip, toggle OFF; d302446 pushed, no PR yet)",
   "plan_status": "completed",
   "next_steps": [
-    "Continue phase 5: staff assignment"
+    "Continue phase 6: email channel"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-10-19T20:02:00+07:00",
+      "platform": "pi",
+      "branch": "feat/booking-full-option",
+      "head": "d302446",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-10-19T17:03:00+07:00",
       "platform": "pi",
@@ -138,13 +145,6 @@
       "platform": "muse_code",
       "branch": "fix/act-on-8-interrogate",
       "head": "c158f88",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-10-11T11:23:00+07:00",
-      "platform": "muse_code",
-      "branch": "fix/act-on-8-interrogate",
-      "head": "9db2bfe",
       "status": "completed"
     }
   ],
