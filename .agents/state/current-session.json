@@ -1,13 +1,20 @@
 {
-  "last_updated": "2026-10-19T02:28:00+07:00",
+  "last_updated": "2026-10-19T08:58:00+07:00",
   "platform": "pi",
-  "current_task": "Merged PRs 272-278: LIFF cancel-everywhere, 4 shared components, booking in-LINE title fix, comment cleanup",
+  "current_task": "Booking full-option phase 1+2 done on feat/booking-full-option (walk-in create, contact edit, search, pagination)",
   "plan_status": "completed",
   "next_steps": [
-    "Phone-test booking, debt, service-request in LINE",
-    "Decide docs PR 257: merge or leave open"
+    "Continue phase 3: admin month calendar view",
+    "Later phases: reminder resend, staff assignment, email channel, then single PR"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-10-19T08:58:00+07:00",
+      "platform": "pi",
+      "branch": "feat/booking-full-option",
+      "head": "ed62bd4",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-10-19T02:28:00+07:00",
       "platform": "pi",
@@ -139,13 +146,6 @@
       "platform": "claude_code",
       "branch": "feat/rich-menu-ui-parity",
       "head": "5309eb9",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-10-09T19:58:00+07:00",
-      "platform": "muse_code",
-      "branch": "main",
-      "head": "ceed1ff",
       "status": "completed"
     }
   ],

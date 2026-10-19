@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 287 active handoffs, 12 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 288 active handoffs, 12 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-10-19 08:58 — pi — completed
+
+Booking full-option phase 1+2 done on feat/booking-full-option (walk-in create, contact edit, search, pagination)
+
+- Checkpoint: `.agents/state/checkpoints/handover-pi-20261019-0858.json`
+- Summary: `project-log-md/pi/session-summary-20261019-0858.md`
+
+---
 
 ### 2026-10-19 02:28 — pi — completed
 
