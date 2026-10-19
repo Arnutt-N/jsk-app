@@ -4,21 +4,21 @@
 > Source of truth: `.agents/state/checkpoints/*.json` — 290 active handoffs, 12 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
 
+### 2026-10-19 17:03 — pi — completed
+
+Booking full-option phase 4 done on feat/booking-full-option (reminder status column, resend endpoint + guard, toggle; 492070c pushed, no PR yet)
+
+- Checkpoint: `.agents/state/checkpoints/handover-pi-20261019-1703.json`
+- Summary: `project-log-md/pi/session-summary-20261019-1703.md`
+
+---
+
 ### 2026-10-19 15:03 — pi — completed
 
 Booking full-option phase 3 done on feat/booking-full-option (month calendar, range wrapper, toggle; 6f76209 pushed, no PR yet)
 
 - Checkpoint: `.agents/state/checkpoints/handover-pi-20261019-1503.json`
 - Summary: `project-log-md/pi/session-summary-20261019-1503.md`
-
----
-
-### 2026-10-19 15:02 — pi — completed
-
-Booking full-option phase 3 done on feat/booking-full-option (month calendar, range wrapper, toggle; 6f76209 pushed, no PR yet)
-
-- Checkpoint: `.agents/state/checkpoints/handover-pi-20261019-1502.json`
-- Summary: `project-log-md/pi/session-summary-20261019-1502.md`
 
 ---
 
