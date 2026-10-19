@@ -16,6 +16,7 @@ def _booking():
         booking_date=date(2026, 1, 15),
         booking_time=time(10, 30),
         contact_name="Ann",
+        email=None,
     )
 
 
