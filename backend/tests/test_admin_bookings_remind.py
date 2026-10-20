@@ -1,6 +1,6 @@
-from datetime import date, datetime, time, timezone
+from datetime import date, time
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import HTTPException
@@ -33,7 +33,10 @@ def _stored_booking(**overrides):
     return SimpleNamespace(**values)
 
 
-def _patches(db, booking, sent=True):
+def _patches(db, booking, sent=True, claimed=1):
+    claim = MagicMock()
+    claim.rowcount = claimed
+    db.execute.return_value = claim
     config = patch.object(
         admin_bookings, "load_booking_config", new=AsyncMock(return_value=_config())
     )
@@ -70,14 +73,14 @@ async def test_resend_sends_pushes_and_audits():
 
 
 @pytest.mark.asyncio
-async def test_resend_within_a_minute_is_rejected():
+async def test_resend_losing_the_claim_race_is_rejected():
     db = AsyncMock()
-    booking = _stored_booking(reminder_sent_at=datetime.now(timezone.utc))
-    config, loader, sender, audit = _patches(db, booking)
-    with config, loader, sender, audit:
-        with pytest.raises(HTTPException) as exc:
-            await _call(db)
+    booking = _stored_booking()
+    config, loader, sender, audit = _patches(db, booking, claimed=0)
+    with config, loader, sender as push, audit, pytest.raises(HTTPException) as exc:
+        await _call(db)
     assert exc.value.status_code == 429
+    push.assert_not_awaited()
 
 
 @pytest.mark.asyncio
@@ -85,9 +88,8 @@ async def test_resend_needs_a_confirmed_booking():
     db = AsyncMock()
     booking = _stored_booking(status=BookingStatus.CANCELLED)
     config, loader, sender, audit = _patches(db, booking)
-    with config, loader, sender as push, audit:
-        with pytest.raises(HTTPException) as exc:
-            await _call(db)
+    with config, loader, sender as push, audit, pytest.raises(HTTPException) as exc:
+        await _call(db)
     assert exc.value.status_code == 409
     push.assert_not_awaited()
 
@@ -99,9 +101,8 @@ async def test_resend_disabled_is_rejected_before_touching_the_database():
         admin_bookings,
         "load_booking_config",
         new=AsyncMock(return_value=_config(resend_enabled=False)),
-    ):
-        with pytest.raises(HTTPException) as exc:
-            await _call(db)
+    ), pytest.raises(HTTPException) as exc:
+        await _call(db)
     assert exc.value.status_code == 403
     db.execute.assert_not_called()
 
@@ -115,19 +116,18 @@ async def test_resend_unknown_booking_is_404():
         admin_bookings.booking_service,
         "load_booking_for_reminder",
         new=AsyncMock(return_value=None),
-    ):
-        with pytest.raises(HTTPException) as exc:
-            await _call(db, booking_id=999)
+    ), pytest.raises(HTTPException) as exc:
+        await _call(db, booking_id=999)
     assert exc.value.status_code == 404
 
 
 @pytest.mark.asyncio
-async def test_resend_push_failure_is_502_without_a_stamp():
+async def test_resend_push_failure_rolls_back_the_claim():
     db = AsyncMock()
     config, loader, sender, audit = _patches(db, _stored_booking(), sent=False)
-    with config, loader, sender, audit as log:
-        with pytest.raises(HTTPException) as exc:
-            await _call(db)
+    with config, loader, sender, audit as log, pytest.raises(HTTPException) as exc:
+        await _call(db)
     assert exc.value.status_code == 502
     log.assert_not_awaited()
+    db.rollback.assert_awaited_once()
     db.commit.assert_not_awaited()

@@ -90,6 +90,8 @@ function stubFetch(
     blackouts?: string[]
     /** Range cap to serve from /options as max_range_days (defaults: omit). */
     maxRangeDays?: number
+    /** Email channel flag to serve from /options as email_enabled (defaults: omit = off). */
+    emailEnabled?: boolean
     /** Make the range request hang (pins the flow on the date step). */
     rangeHang?: boolean
     /** Per-day override for the /availability/range response. */
@@ -110,6 +112,9 @@ function stubFetch(
         blackout_dates: overrides.blackouts ?? [],
         ...(overrides.maxRangeDays !== undefined && {
           max_range_days: overrides.maxRangeDays,
+        }),
+        ...(overrides.emailEnabled !== undefined && {
+          email_enabled: overrides.emailEnabled,
         }),
       })
     }
@@ -194,7 +199,7 @@ beforeEach(() => {
   window.sessionStorage.clear()
   process.env.NEXT_PUBLIC_LIFF_ID = 'test-liff-id'
   stubLiff()
-  stubFetch()
+  stubFetch({ emailEnabled: true })
 })
 
 describe('date selection', () => {

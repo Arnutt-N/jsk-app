@@ -1,6 +1,6 @@
 from datetime import date, time
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import HTTPException
@@ -131,6 +131,27 @@ async def test_smtp_failure_is_a_clean_false():
         assert await send_booking_email("a@b.co", "s", "b") is False
 
 
+@pytest.mark.asyncio
+async def test_broken_quit_after_a_good_send_still_reports_success():
+    server = MagicMock()
+    server.quit.side_effect = OSError("quit failed")
+    with patch.object(booking_email, "settings", _smtp_settings()), patch(
+        "smtplib.SMTP", return_value=server
+    ):
+        assert await send_booking_email("a@b.co", "s", "b") is True
+
+
+@pytest.mark.asyncio
+async def test_broken_quit_after_a_failed_send_reports_the_send_error():
+    server = MagicMock()
+    server.send_message.side_effect = OSError("send failed")
+    server.quit.side_effect = OSError("quit failed")
+    with patch.object(booking_email, "settings", _smtp_settings()), patch(
+        "smtplib.SMTP", return_value=server
+    ):
+        assert await send_booking_email("a@b.co", "s", "b") is False
+
+
 def test_templates_render_buddhist_era_dates():
     subject, body = build_confirmation_email(_booking())
     assert "261019-002" in subject
@@ -176,6 +197,10 @@ def _create_payload(**overrides):
 def test_create_rejects_a_bad_email_with_422_shape():
     with pytest.raises(ValidationError):
         _create_payload(email="not-an-email")
+
+
+def test_create_trims_padding_around_a_good_email():
+    assert _create_payload(email="  citizen@example.com\n").email == "citizen@example.com"
 
 
 def test_create_accepts_a_blank_email_as_none():

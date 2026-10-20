@@ -67,7 +67,7 @@ DEFAULTS = BookingConfig(
     calendar_enabled=True,
     resend_enabled=True,
     assign_enabled=False,
-    email_enabled=True,
+    email_enabled=False,
 )
 
 _TRUTHY = {"true", "1", "yes", "on"}

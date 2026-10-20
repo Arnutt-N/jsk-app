@@ -99,6 +99,8 @@ interface ContactFieldsFormProps {
   emailError?: string
   /** The note belongs to the service step; only the post-booking edit form shows it here. */
   showNote?: boolean
+  /** The email field follows the advertised email channel; hidden when off. */
+  showEmail?: boolean
 }
 
 function ContactFieldsForm({
@@ -118,6 +120,7 @@ function ContactFieldsForm({
   phoneError,
   emailError,
   showNote = true,
+  showEmail = true,
 }: ContactFieldsFormProps) {
   return (
     <div className="space-y-3">
@@ -173,21 +176,23 @@ function ContactFieldsForm({
           aria-invalid={phoneError ? true : undefined}
         />
       </label>
-      <label className="block">
-        <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-text-secondary">อีเมล (ถ้ามี)</span>
-        <Input
-          type="email"
-          inputMode="email"
-          value={email}
-          onChange={(e) => onEmail(e.target.value)}
-          maxLength={254}
-          placeholder="name@example.com"
-          state={emailError ? 'error' : 'default'}
-          errorMessage={emailError}
-          aria-invalid={emailError ? true : undefined}
-        />
-        <span className="mt-1 block text-xs text-text-tertiary">ใส่ไว้รับเตือนทางอีเมล ไม่เปลืองโควต้า LINE</span>
-      </label>
+      {showEmail && (
+        <label className="block">
+          <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-text-secondary">อีเมล (ถ้ามี)</span>
+          <Input
+            type="email"
+            inputMode="email"
+            value={email}
+            onChange={(e) => onEmail(e.target.value)}
+            maxLength={254}
+            placeholder="name@example.com"
+            state={emailError ? 'error' : 'default'}
+            errorMessage={emailError}
+            aria-invalid={emailError ? true : undefined}
+          />
+          <span className="mt-1 block text-xs text-text-tertiary">ใส่ไว้รับเตือนทางอีเมล ไม่เปลืองโควต้า LINE</span>
+        </label>
+      )}
       {showNote && (
         <label className="block">
           <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-text-secondary">
@@ -565,6 +570,7 @@ export default function LiffBookingPage() {
                     nameErrors={contactErrors}
                     phoneError={contactErrors.phoneNumber}
                     emailError={contactErrors.email}
+                    showEmail={options?.email_enabled ?? false}
                   />
                   <div className="mt-4 space-y-2">
                     <Button className="w-full" onClick={handleUpdate} disabled={submitting}>
@@ -818,6 +824,7 @@ export default function LiffBookingPage() {
                   nameErrors={showContactErrors ? contactErrors : undefined}
                   phoneError={showContactErrors ? contactErrors.phoneNumber : undefined}
                   emailError={showContactErrors ? contactErrors.email : undefined}
+                  showEmail={options?.email_enabled ?? false}
                   showNote={false}
                 />
               </LiffStepCard>

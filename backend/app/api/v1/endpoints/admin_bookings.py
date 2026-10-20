@@ -6,11 +6,11 @@ reminders go out at all — is an administrator action and is audit-logged.
 """
 import logging
 from datetime import date as date_type
-from datetime import datetime, timezone
+from datetime import timedelta
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
-from sqlalchemy import select
+from sqlalchemy import func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_admin, get_current_staff
@@ -18,7 +18,7 @@ from app.core.audit import create_audit_log
 from app.core.query_utils import escape_ilike
 from app.db.session import get_db
 from app.models.booking import Booking, BookingStatus
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.schemas.booking import (
     AvailabilityOut,
     AvailabilityRangeOut,
@@ -33,7 +33,11 @@ from app.schemas.booking import (
 )
 from app.core.permissions import can_assign, can_self_assign
 from app.services import booking_service
-from app.services.booking_notifications import notify_staff_new_booking, send_booking_reminder
+from app.services.booking_notifications import (
+    notify_booking_confirmed,
+    notify_staff_new_booking,
+    send_booking_reminder,
+)
 from app.services.booking_service import (
     BookingConfig,
     BookingNotCancellableError,
@@ -93,7 +97,7 @@ async def list_bookings(
         stmt = stmt.where(Booking.assigned_staff_id.is_(None))
 
     stmt = (
-        stmt.order_by(Booking.booking_date.asc(), Booking.booking_time.asc())
+        stmt.order_by(Booking.booking_date.asc(), Booking.booking_time.asc(), Booking.id.asc())
         .limit(limit)
         .offset(offset)
     )
@@ -113,7 +117,9 @@ async def counter_availability(
     _staff=Depends(get_current_staff),
 ):
     """Same engine as the LIFF strip, minus the LINE token requirement."""
-    config = await load_booking_config(db)
+    config = await load_booking_config(db, fresh=True)
+    if not config.calendar_enabled:
+        raise HTTPException(status_code=403, detail="ปิดมุมมองปฏิทินไว้ในการตั้งค่า")
     try:
         slots = await booking_service.get_availability(
             db, service_type=service_type, target_date=booking_date, config=config
@@ -188,9 +194,9 @@ async def create_walkin_booking(
     when online booking is closed. Slot rules (service, window, capacity,
     no-duplicate) still apply — the seat accounting stays sound. Each
     walk-in gets its own bare User row (no LINE identity), so the
-    per-user duplicate guard can never false-fire across strangers, and no
-    LINE confirmation goes out (there is nobody to push to); staff still get
-    the Telegram alert.
+    per-user duplicate guard can never false-fire across strangers, and
+    confirmations go by email when one is on file (there is no LINE identity
+    to push to); staff still get the Telegram alert.
     """
     config = await load_booking_config(db, fresh=True)
     if not config.walkin_enabled:
@@ -234,6 +240,7 @@ async def create_walkin_booking(
     await db.commit()
     await db.refresh(booking)
 
+    await notify_booking_confirmed(db, booking, user)
     await notify_staff_new_booking(db, booking)
 
     await create_audit_log(
@@ -329,23 +336,31 @@ async def resend_booking_reminder(
         raise HTTPException(status_code=404, detail="ไม่พบการจอง")
     if booking.status != BookingStatus.CONFIRMED:
         raise HTTPException(status_code=409, detail="ส่งเตือนซ้ำได้เฉพาะคิวที่ยืนยันแล้ว")
-    if booking.reminder_sent_at is not None:
-        sent_at = booking.reminder_sent_at
-        if sent_at.tzinfo is None:
-            sent_at = sent_at.replace(tzinfo=timezone.utc)
-        elapsed = (datetime.now(timezone.utc) - sent_at).total_seconds()
-        if elapsed < RESEND_COOLDOWN_SECONDS:
-            raise HTTPException(
-                status_code=429, detail="เพิ่งส่งเตือนไป กรุณารอครู่แล้วลองใหม่"
+
+    claimed = await db.execute(
+        update(Booking)
+        .where(Booking.id == booking_id)
+        .where(
+            or_(
+                Booking.reminder_sent_at.is_(None),
+                Booking.reminder_sent_at
+                < func.now() - timedelta(seconds=RESEND_COOLDOWN_SECONDS),
             )
+        )
+        .values(reminder_sent_at=func.now())
+    )
+    if claimed.rowcount == 0:
+        raise HTTPException(
+            status_code=429, detail="เพิ่งส่งเตือนไป กรุณารอครู่แล้วลองใหม่"
+        )
 
     sent = await send_booking_reminder(db, booking, booking.user)
     if not sent:
+        await db.rollback()
         raise HTTPException(
-            status_code=502, detail="ส่งเตือนทาง LINE ไม่สำเร็จ กรุณาลองใหม่"
+            status_code=502, detail="ส่งเตือนไม่สำเร็จ กรุณาลองใหม่"
         )
 
-    booking.reminder_sent_at = datetime.now(timezone.utc)
     await create_audit_log(
         db=db,
         admin_id=staff.id,
@@ -444,6 +459,8 @@ async def assign_booking_staff(
         target = await db.get(User, target_id)
         if target is None:
             raise HTTPException(status_code=404, detail="ไม่พบเจ้าหน้าที่")
+        if target.role == UserRole.USER or not target.is_active:
+            raise HTTPException(status_code=422, detail="เจ้าหน้าที่ที่เลือกไม่สามารถรับมอบหมายได้")
 
     previous = booking.assigned_staff_id
     booking.assigned_staff_id = target_id

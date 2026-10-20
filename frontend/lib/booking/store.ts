@@ -19,6 +19,8 @@ export interface BookingOptions {
   blackout_dates: string[]
   /** Range cap the backend advertises; the local 62 is only the fallback. */
   max_range_days?: number
+  /** Email channel advertised; missing means OFF (fail-closed). */
+  email_enabled?: boolean
 }
 
 export type FetchStatus = 'idle' | 'loading' | 'ready' | 'failed'

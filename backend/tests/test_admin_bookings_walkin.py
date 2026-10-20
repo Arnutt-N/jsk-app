@@ -18,7 +18,7 @@ from app.services.booking_service import (
 
 
 def _config(**overrides):
-    values = dict(walkin_enabled=True, service_types=["ปรึกษากฎหมาย"])
+    values = dict(walkin_enabled=True, calendar_enabled=True, service_types=["ปรึกษากฎหมาย"])
     values.update(overrides)
     return SimpleNamespace(**values)
 
@@ -80,6 +80,8 @@ async def test_walkin_creates_a_counter_user_and_notifies_staff():
     ), patch.object(
         admin_bookings.booking_service, "create_booking", new=AsyncMock(return_value=stored)
     ) as create, patch.object(
+        admin_bookings, "notify_booking_confirmed", new=AsyncMock(return_value=True)
+    ) as confirm, patch.object(
         admin_bookings, "notify_staff_new_booking", new=AsyncMock(return_value=True)
     ) as notify, patch.object(
         admin_bookings, "create_audit_log", new=AsyncMock()
@@ -91,6 +93,7 @@ async def test_walkin_creates_a_counter_user_and_notifies_staff():
     created_user = db.add.call_args.args[0]
     assert created_user.display_name == "สมชาย ใจดี"
     create.assert_awaited_once()
+    confirm.assert_awaited_once()
     notify.assert_awaited_once()
     assert audit.await_args.kwargs["action"] == "create_booking_walkin"
     assert audit.await_args.kwargs["admin_id"] == 2
@@ -109,6 +112,8 @@ async def test_walkin_without_a_name_still_gets_a_counter_user():
         admin_bookings.booking_service,
         "create_booking",
         new=AsyncMock(return_value=_stored_booking()),
+    ), patch.object(
+        admin_bookings, "notify_booking_confirmed", new=AsyncMock(return_value=True)
     ), patch.object(
         admin_bookings, "notify_staff_new_booking", new=AsyncMock(return_value=True)
     ), patch.object(admin_bookings, "create_audit_log", new=AsyncMock()):
@@ -264,6 +269,21 @@ async def test_counter_availability_unknown_service_returns_404():
                 _staff=SimpleNamespace(id=2),
             )
     assert exc.value.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_counter_availability_disabled_is_rejected():
+    db = AsyncMock()
+    with patch.object(
+        admin_bookings,
+        "load_booking_config",
+        new=AsyncMock(return_value=_config(calendar_enabled=False)),
+    ), pytest.raises(HTTPException) as exc:
+        await admin_bookings.counter_availability(
+            service_type="ปรึกษากฎหมาย", booking_date=date(2026, 8, 19), db=db,
+            _staff=SimpleNamespace(id=2),
+        )
+    assert exc.value.status_code == 403
 
 
 # --- search (q) ---

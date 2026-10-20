@@ -96,6 +96,7 @@ async def get_booking_options(
         advance_days=config.advance_days,
         blackout_dates=sorted(config.blackout_dates),
         max_range_days=MAX_AVAILABILITY_RANGE_DAYS,
+        email_enabled=config.email_enabled,
     )
 
 

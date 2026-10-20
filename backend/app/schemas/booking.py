@@ -39,6 +39,7 @@ class BookingOptionsOut(BaseModel):
     advance_days: int
     blackout_dates: List[date]
     max_range_days: int
+    email_enabled: bool
 
 
 class AvailabilityOut(BaseModel):
@@ -101,7 +102,7 @@ class ContactFields(BaseModel):
         cleaned = value.strip()
         if not cleaned:
             return None
-        if len(cleaned) > 254 or not _EMAIL_RE.match(cleaned):
+        if len(cleaned) > 254 or not _EMAIL_RE.fullmatch(cleaned):
             raise ValueError("email must be a valid address")
         return cleaned
 
@@ -184,7 +185,7 @@ class BookingSettingsIn(BaseModel):
     calendar_enabled: bool = True
     resend_enabled: bool = True
     assign_enabled: bool = False
-    email_enabled: bool = True
+    email_enabled: bool = False
 
     @field_validator("service_types")
     @classmethod

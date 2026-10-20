@@ -150,6 +150,21 @@ function isBookingDraft(value: unknown): value is BookingDraft {
   )
 }
 
+function isBookingDraftV2(value: unknown): value is Omit<BookingDraft, 'email'> {
+  if (!isRecord(value)) return false
+  return (
+    (value.service === null || typeof value.service === 'string') &&
+    (value.date === null || typeof value.date === 'string') &&
+    (value.slotId === null || typeof value.slotId === 'string') &&
+    typeof value.prefix === 'string' &&
+    typeof value.firstname === 'string' &&
+    typeof value.lastname === 'string' &&
+    typeof value.phoneNumber === 'string' &&
+    typeof value.note === 'string' &&
+    typeof value.savedAt === 'number'
+  )
+}
+
 export function loadDraft(
   storage: DraftStorage | null = sessionStorageLike(),
   now: number = Date.now(),
@@ -159,11 +174,16 @@ export function loadDraft(
     if (!raw) return EMPTY_DRAFT
     const parsed: unknown = JSON.parse(raw)
     if (!isRecord(parsed)) return EMPTY_DRAFT
-    if (parsed.version !== DRAFT_VERSION) return EMPTY_DRAFT
-    if (!isBookingDraft(parsed.draft)) return EMPTY_DRAFT
-    if (!Number.isFinite(parsed.draft.savedAt)) return EMPTY_DRAFT
-    if (now - parsed.draft.savedAt > DRAFT_TTL_MS) return EMPTY_DRAFT
-    return parsed.draft
+    let draft: unknown = parsed.draft
+    if (parsed.version === 2 && isBookingDraftV2(parsed.draft)) {
+      draft = { ...parsed.draft, email: '' }
+    } else if (parsed.version !== DRAFT_VERSION) {
+      return EMPTY_DRAFT
+    }
+    if (!isBookingDraft(draft)) return EMPTY_DRAFT
+    if (!Number.isFinite(draft.savedAt)) return EMPTY_DRAFT
+    if (now - draft.savedAt > DRAFT_TTL_MS) return EMPTY_DRAFT
+    return draft
   } catch {
     return EMPTY_DRAFT
   }

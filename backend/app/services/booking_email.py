@@ -63,7 +63,7 @@ def _send_sync(to: str, subject: str, body: str) -> None:
                 server.login(settings.SMTP_USERNAME, settings.SMTP_PASSWORD)
             server.send_message(message)
         finally:
-            server.quit()
+            _quit_quietly(server)
     else:
         server = smtplib.SMTP_SSL(settings.SMTP_HOST, settings.SMTP_PORT, timeout=_SMTP_TIMEOUT_SECONDS)
         try:
@@ -71,7 +71,14 @@ def _send_sync(to: str, subject: str, body: str) -> None:
                 server.login(settings.SMTP_USERNAME, settings.SMTP_PASSWORD)
             server.send_message(message)
         finally:
-            server.quit()
+            _quit_quietly(server)
+
+
+def _quit_quietly(server) -> None:
+    try:
+        server.quit()
+    except Exception as exc:
+        logger.debug("SMTP quit failed (teardown noise): %s", exc)
 
 
 async def send_booking_email(to: str, subject: str, body: str) -> bool:

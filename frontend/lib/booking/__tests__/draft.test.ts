@@ -86,6 +86,13 @@ describe('loadDraft', () => {
     expect(loadDraft(storage, SAVED.savedAt + 1_000)).toEqual(EMPTY_LITERAL)
   })
 
+  it('upgrades a v2 draft by defaulting the missing email', () => {
+    const { email: _dropped, ...v2 } = SAVED
+    void _dropped
+    const storage = memoryStorage(stored(v2, 2))
+    expect(loadDraft(storage, SAVED.savedAt + 1_000)).toEqual({ ...v2, email: '' })
+  })
+
   it('ignores v1 drafts that still carry the single contactName string', () => {
     const legacy = {
       service: 'ปรึกษากฎหมาย',

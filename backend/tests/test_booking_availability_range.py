@@ -264,12 +264,14 @@ async def test_endpoint_options_advertise_the_range_cap():
         service_types=(SERVICE,),
         advance_days=14,
         blackout_dates=frozenset(),
+        email_enabled=True,
     )
     with patch.object(liff_bookings, "load_booking_config", new=AsyncMock(return_value=config)):
         result = await liff_bookings.get_booking_options(db=AsyncMock(), _line_user_id="U1")
 
     assert result.max_range_days == liff_bookings.MAX_AVAILABILITY_RANGE_DAYS
     assert result.max_range_days == 62
+    assert result.email_enabled is True
 
 
 @pytest.mark.asyncio

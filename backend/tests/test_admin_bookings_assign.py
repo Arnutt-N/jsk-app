@@ -51,7 +51,7 @@ def _call(db, payload, booking_id=11, staff=None):
 async def test_assign_to_another_staff_member():
     db = AsyncMock()
     booking = _stored_booking()
-    target = SimpleNamespace(id=5)
+    target = SimpleNamespace(id=5, role="ADMIN", is_active=True)
     db.get = AsyncMock(side_effect=[booking, target])
     with patch.object(
         admin_bookings, "load_booking_config", new=AsyncMock(return_value=_config())
@@ -63,6 +63,34 @@ async def test_assign_to_another_staff_member():
     assert audit.await_args.kwargs["admin_id"] == 2
     assert result.assigned_staff_id == 5
     db.commit.assert_awaited()
+
+
+@pytest.mark.asyncio
+async def test_assign_to_a_citizen_is_rejected():
+    db = AsyncMock()
+    booking = _stored_booking()
+    db.get = AsyncMock(
+        side_effect=[booking, SimpleNamespace(id=9, role="USER", is_active=True)]
+    )
+    with patch.object(
+        admin_bookings, "load_booking_config", new=AsyncMock(return_value=_config())
+    ), pytest.raises(HTTPException) as exc:
+        await _call(db, BookingAssignIn(assigned_staff_id=9))
+    assert exc.value.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_assign_to_an_inactive_account_is_rejected():
+    db = AsyncMock()
+    booking = _stored_booking()
+    db.get = AsyncMock(
+        side_effect=[booking, SimpleNamespace(id=9, role="AGENT", is_active=False)]
+    )
+    with patch.object(
+        admin_bookings, "load_booking_config", new=AsyncMock(return_value=_config())
+    ), pytest.raises(HTTPException) as exc:
+        await _call(db, BookingAssignIn(assigned_staff_id=9))
+    assert exc.value.status_code == 422
 
 
 @pytest.mark.asyncio

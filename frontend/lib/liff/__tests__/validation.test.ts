@@ -51,6 +51,7 @@ describe('validateBookingContact', () => {
     expect(validateBookingContact({ ...base, email: 'not-an-email' })).toEqual({
       email: 'อีเมลไม่ถูกต้อง',
     })
+    expect(validateBookingContact({ ...base, email: '  citizen@example.com\n' })).toEqual({})
   })
 })
 
