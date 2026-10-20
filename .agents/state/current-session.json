@@ -1,12 +1,31 @@
 {
-  "last_updated": "2026-10-19T23:15:00+07:00",
+  "last_updated": "2026-10-21T06:03:00+07:00",
   "platform": "pi",
-  "current_task": "Booking full-option program COMPLETE: phases 1-6 on feat/booking-full-option, single PR #279 opened (merged 4b5222b+71888e2, SMTP live-send deferred by operator)",
+  "current_task": "PR #280 booking LINE notify merged to main, CD green; line_enabled defaults OFF, awaiting admin opt-in",
   "plan_status": "completed",
-  "next_steps": [
-    "Review + merge PR #279; configure SMTP for live email"
-  ],
+  "next_steps": [],
   "handoff_history": [
+    {
+      "timestamp": "2026-10-21T06:03:00+07:00",
+      "platform": "pi",
+      "branch": "main",
+      "head": "add13bc",
+      "status": "completed"
+    },
+    {
+      "timestamp": "2026-10-21T06:00:00+07:00",
+      "platform": "pi",
+      "branch": "main",
+      "head": "add13bc",
+      "status": "completed"
+    },
+    {
+      "timestamp": "2026-10-21T05:59:00+07:00",
+      "platform": "pi",
+      "branch": "main",
+      "head": "add13bc",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-10-19T23:15:00+07:00",
       "platform": "pi",
@@ -124,27 +143,6 @@
       "platform": "pi",
       "branch": "fix/codebase-review-20261013",
       "head": "e6e4421",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-10-14T00:46:00+07:00",
-      "platform": "pi",
-      "branch": "main",
-      "head": "250422e",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-10-14T00:44:00+07:00",
-      "platform": "muse_code",
-      "branch": "main",
-      "head": "b32d0a0",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-10-11T15:10:00+07:00",
-      "platform": "muse_code",
-      "branch": "main",
-      "head": "a22022c",
       "status": "completed"
     }
   ],

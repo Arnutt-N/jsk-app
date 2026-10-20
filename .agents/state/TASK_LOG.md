@@ -1,8 +1,35 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 292 active handoffs, 12 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 295 active handoffs, 12 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-10-21 06:03 — pi — completed
+
+PR #280 booking LINE notify merged to main, CD green; line_enabled defaults OFF, awaiting admin opt-in
+
+- Checkpoint: `.agents/state/checkpoints/handover-pi-20261021-0603.json`
+- Summary: `project-log-md/pi/session-summary-20261021-0603.md`
+
+---
+
+### 2026-10-21 06:00 — pi — completed
+
+PR #280 booking LINE notify merged to main, CD green; line_enabled defaults OFF, awaiting admin opt-in
+
+- Checkpoint: `.agents/state/checkpoints/handover-pi-20261021-0600.json`
+- Summary: `project-log-md/pi/session-summary-20261021-0600.md`
+
+---
+
+### 2026-10-21 05:59 — pi — completed
+
+PR #280 booking LINE notify merged to main, CD green; line_enabled defaults OFF, awaiting admin opt-in
+
+- Checkpoint: `.agents/state/checkpoints/handover-pi-20261021-0559.json`
+- Summary: `project-log-md/pi/session-summary-20261021-0559.md`
+
+---
 
 ### 2026-10-19 23:15 — pi — completed
 
