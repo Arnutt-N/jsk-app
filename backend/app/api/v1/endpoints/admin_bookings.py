@@ -193,6 +193,15 @@ def _same_booking_request(booking: Booking, payload: BookingCreate) -> bool:
     )
 
 
+def _replay_booking(found: Booking, payload: BookingCreate) -> BookingOut:
+    if not _same_booking_request(found, payload):
+        raise HTTPException(
+            status_code=422,
+            detail="คีย์นี้ถูกใช้กับรายละเอียดอื่นแล้ว กรุณารีเฟรชเพื่อรับคีย์ใหม่",
+        )
+    return BookingOut.model_validate(found)
+
+
 @router.post(
     "",
     response_model=BookingOut,
@@ -225,12 +234,7 @@ async def create_walkin_booking(
     if payload.idempotency_key:
         found = await _find_by_idempotency_key(db, payload.idempotency_key)
         if found is not None:
-            if not _same_booking_request(found, payload):
-                raise HTTPException(
-                    status_code=422,
-                    detail="คีย์นี้ถูกใช้กับรายละเอียดอื่นแล้ว กรุณารีเฟรชเพื่อรับคีย์ใหม่",
-                )
-            return BookingOut.model_validate(found)
+            return _replay_booking(found, payload)
 
     user = User(display_name=payload.contact_name or "ผู้มาติดต่อ")
     db.add(user)
@@ -277,12 +281,7 @@ async def create_walkin_booking(
             # double-submit must replay-or-retry, never mint a second row.
             found = await _find_by_idempotency_key(db, payload.idempotency_key)
             if found is not None:
-                if not _same_booking_request(found, payload):
-                    raise HTTPException(
-                        status_code=422,
-                        detail="คีย์นี้ถูกใช้กับรายละเอียดอื่นแล้ว กรุณารีเฟรชเพื่อรับคีย์ใหม่",
-                    )
-                return BookingOut.model_validate(found)
+                return _replay_booking(found, payload)
         raise HTTPException(status_code=409, detail="บันทึกล้มเหลว กรุณารีเฟรชแล้วลองใหม่")
 
     await db.commit()
@@ -481,6 +480,15 @@ async def update_booking_status(
     return BookingOut.model_validate(booking)
 
 
+ASSIGNABLE_ROLES = (
+    UserRole.SUPER_ADMIN,
+    UserRole.ADMIN,
+    UserRole.DIRECTOR,
+    UserRole.HEAD,
+    UserRole.AGENT,
+)
+
+
 @router.patch(
     "/{booking_id}/assignment",
     response_model=BookingOut,
@@ -506,13 +514,7 @@ async def assign_booking_staff(
             legacy = await db.get(User, target_id)
             if legacy is None:
                 raise HTTPException(status_code=404, detail="ไม่พบเจ้าหน้าที่")
-            if legacy.role not in (
-                UserRole.SUPER_ADMIN,
-                UserRole.ADMIN,
-                UserRole.DIRECTOR,
-                UserRole.HEAD,
-                UserRole.AGENT,
-            ) or not legacy.is_active:
+            if legacy.role not in ASSIGNABLE_ROLES or not legacy.is_active:
                 raise HTTPException(status_code=422, detail="เจ้าหน้าที่ที่เลือกไม่สามารถรับมอบหมายได้")
         return BookingOut.model_validate(booking)
 
@@ -533,13 +535,7 @@ async def assign_booking_staff(
         target = await db.get(User, target_id)
         if target is None:
             raise HTTPException(status_code=404, detail="ไม่พบเจ้าหน้าที่")
-        if target.role not in (
-            UserRole.SUPER_ADMIN,
-            UserRole.ADMIN,
-            UserRole.DIRECTOR,
-            UserRole.HEAD,
-            UserRole.AGENT,
-        ) or not target.is_active:
+        if target.role not in ASSIGNABLE_ROLES or not target.is_active:
             raise HTTPException(status_code=422, detail="เจ้าหน้าที่ที่เลือกไม่สามารถรับมอบหมายได้")
 
     previous = booking.assigned_staff_id
