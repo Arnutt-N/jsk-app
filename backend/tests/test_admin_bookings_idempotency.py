@@ -1,16 +1,3 @@
-"""Real-session proof that a retried counter POST mints one booking, not two.
-
-Why a real session: the unit doubles (AsyncMock) never run the UNIQUE index,
-so they cannot see the concurrent-insert race the idempotency key exists
-for. This test replays the same key twice through real HTTP against a real
-database and counts the rows.
-
-Isolation recipe (from test_taxonomy_patch_regression.py): a throwaway
-NullPool engine from settings.DATABASE_URL — which conftest defaults to
-the docker test DB, never the dev database — a uuid-marked idempotency
-key, real HTTP via TestClient with get_db + get_current_staff
-overridden, marker cleanup afterwards (bookings, bare users, audit rows).
-"""
 import uuid
 from datetime import timedelta
 from types import SimpleNamespace
