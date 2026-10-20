@@ -262,6 +262,8 @@ export default function LiffBookingPage() {
   const phoneNumber = draft.phoneNumber
   const note = draft.note
   const email = draft.email
+  const emailEnabled = options?.email_enabled ?? false
+  const effectiveEmail = emailEnabled ? email : ''
   const onPrefix = (value: string) =>
     dispatch({ type: 'contact/set', contact: { prefix: value } })
   const onFirstname = (value: string) =>
@@ -290,7 +292,7 @@ export default function LiffBookingPage() {
   const [serviceError, setServiceError] = useState<string | null>(null)
   const [datetimeError, setDatetimeError] = useState<string | null>(null)
 
-  const contactErrors = validateBookingContact({ prefix, firstname, lastname, phoneNumber, email })
+  const contactErrors = validateBookingContact({ prefix, firstname, lastname, phoneNumber, email: effectiveEmail })
   const displayName = composeContactName({ prefix, firstname, lastname })
   const contactNameError =
     contactErrors.prefix ?? contactErrors.firstname ?? contactErrors.lastname
@@ -435,7 +437,7 @@ export default function LiffBookingPage() {
         service_type: serviceType,
         booking_date: selectedDate,
         booking_time: selectedSlot.time,
-        ...contactPayload(prefix, firstname, lastname, phoneNumber, note, email),
+        ...contactPayload(prefix, firstname, lastname, phoneNumber, note, effectiveEmail),
       })
       setConfirmed(booking)
     } catch (err) {
@@ -491,7 +493,7 @@ export default function LiffBookingPage() {
       const updated = await updateBookingContact(
         idToken,
         confirmed.id,
-        contactPayload(prefix, firstname, lastname, phoneNumber, note, email),
+        contactPayload(prefix, firstname, lastname, phoneNumber, note, effectiveEmail),
       )
       setConfirmed(updated)
       setEditing(false)
@@ -884,12 +886,12 @@ export default function LiffBookingPage() {
                         แก้ไข
                       </button>
                     </div>
-                    {displayName || phoneNumber.trim() || email.trim() ? (
+                    {displayName || phoneNumber.trim() || effectiveEmail.trim() ? (
                       <SummaryRows
                         rows={[
                           { label: 'ผู้จอง', value: displayName || null },
                           { label: 'โทรศัพท์', value: phoneNumber.trim() || null },
-                          { label: 'อีเมล', value: email.trim() || null },
+                          { label: 'อีเมล', value: effectiveEmail.trim() || null },
                         ]}
                       />
                     ) : (

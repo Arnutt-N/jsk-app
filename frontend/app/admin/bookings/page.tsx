@@ -587,7 +587,7 @@ export default function AdminBookingsPage() {
         title="ส่งเตือนซ้ำ"
         description={
           resending
-            ? `ส่งข้อความเตือนทาง ${resending.email && emailEnabled ? 'อีเมล' : 'LINE'} ให้${resending.contact_name || 'ผู้จอง'} (คิว ${resending.queue_number ?? resending.id}) อีกครั้งหรือไม่?`
+            ? `ส่งข้อความเตือนให้${resending.contact_name || 'ผู้จอง'} (คิว ${resending.queue_number ?? resending.id}) อีกครั้งหรือไม่?`
             : undefined
         }
         confirmText="ส่งเตือน"

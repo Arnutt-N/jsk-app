@@ -318,18 +318,21 @@ async def test_counter_availability_unknown_service_returns_404():
 
 
 @pytest.mark.asyncio
-async def test_counter_availability_disabled_is_rejected():
+async def test_counter_availability_ignores_the_calendar_toggle():
     db = AsyncMock()
+    slot = SimpleNamespace(start=time(9, 0), capacity=3, booked=1, remaining=2, is_full=False)
     with patch.object(
         admin_bookings,
         "load_booking_config",
         new=AsyncMock(return_value=_config(calendar_enabled=False)),
-    ), pytest.raises(HTTPException) as exc:
-        await admin_bookings.counter_availability(
+    ), patch.object(
+        admin_bookings.booking_service, "get_availability", new=AsyncMock(return_value=[slot])
+    ):
+        result = await admin_bookings.counter_availability(
             service_type="ปรึกษากฎหมาย", booking_date=date(2026, 8, 19), db=db,
             _staff=SimpleNamespace(id=2),
         )
-    assert exc.value.status_code == 403
+    assert result.slots[0].remaining == 2
 
 
 # --- search (q) ---

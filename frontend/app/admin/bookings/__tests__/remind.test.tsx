@@ -97,7 +97,7 @@ describe('reminder resend', () => {
     await screen.findByRole('list')
     await user.click(screen.getByRole('button', { name: 'ส่งเตือนซ้ำคิว 261019-001' }))
     const dialog = await screen.findByRole('dialog')
-    expect(within(dialog).getByText(/ส่งข้อความเตือนทาง LINE/)).toBeInTheDocument()
+    expect(within(dialog).getByText(/ส่งข้อความเตือนให้สมชาย.*อีกครั้งหรือไม่/)).toBeInTheDocument()
     await user.click(within(dialog).getByRole('button', { name: 'ส่งเตือน' }))
     await waitFor(() => expect(remindCalls()).toHaveLength(1))
     expect(remindCalls()[0]).toContain('POST')

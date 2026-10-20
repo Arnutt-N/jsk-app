@@ -119,8 +119,6 @@ async def counter_availability(
 ):
     """Same engine as the LIFF strip, minus the LINE token requirement."""
     config = await load_booking_config(db, fresh=True)
-    if not config.calendar_enabled:
-        raise HTTPException(status_code=403, detail="ปิดมุมมองปฏิทินไว้ในการตั้งค่า")
     try:
         slots = await booking_service.get_availability(
             db, service_type=service_type, target_date=booking_date, config=config
@@ -178,6 +176,11 @@ async def counter_availability_range(
     )
 
 
+async def _find_by_idempotency_key(db: AsyncSession, key: str) -> Booking | None:
+    result = await db.execute(select(Booking).where(Booking.idempotency_key == key))
+    return result.scalar_one_or_none()
+
+
 @router.post(
     "",
     response_model=BookingOut,
@@ -208,10 +211,7 @@ async def create_walkin_booking(
     day_hours = await booking_service.load_day_hours(db, payload.booking_date.weekday())
 
     if payload.idempotency_key:
-        existing = await db.execute(
-            select(Booking).where(Booking.idempotency_key == payload.idempotency_key)
-        )
-        found = existing.scalar_one_or_none()
+        found = await _find_by_idempotency_key(db, payload.idempotency_key)
         if found is not None:
             return BookingOut.model_validate(found)
 
@@ -250,10 +250,9 @@ async def create_walkin_booking(
     except IntegrityError:
         await db.rollback()
         if payload.idempotency_key:
-            retry = await db.execute(
-                select(Booking).where(Booking.idempotency_key == payload.idempotency_key)
-            )
-            found = retry.scalar_one_or_none()
+            # Deliberately any integrity failure, not only the key: a counter
+            # double-submit must replay-or-retry, never mint a second row.
+            found = await _find_by_idempotency_key(db, payload.idempotency_key)
             if found is not None:
                 return BookingOut.model_validate(found)
         raise HTTPException(status_code=409, detail="บันทึกล้มเหลว กรุณารีเฟรชแล้วลองใหม่")

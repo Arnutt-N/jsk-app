@@ -117,6 +117,22 @@ async def test_email_toggle_off_falls_back_to_push():
     push.assert_awaited_once()
 
 
+@pytest.mark.asyncio
+async def test_failed_email_falls_back_to_line_push():
+    db = AsyncMock()
+    booking = _booking(email="citizen@example.com")
+    with patch.object(
+        booking_notifications, "load_booking_config", new=AsyncMock(return_value=_config())
+    ), patch.object(
+        booking_notifications, "send_booking_email", new=AsyncMock(return_value=False)
+    ) as mail, patch.object(
+        booking_notifications, "_push_flex", new=AsyncMock(return_value=True)
+    ) as push:
+        assert await booking_notifications.send_booking_reminder(db, booking, SimpleNamespace()) is True
+    mail.assert_awaited_once()
+    push.assert_awaited_once()
+
+
 
 @pytest.mark.asyncio
 async def test_unconfigured_smtp_is_a_clean_false():

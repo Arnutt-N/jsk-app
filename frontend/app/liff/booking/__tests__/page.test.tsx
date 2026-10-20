@@ -1018,6 +1018,44 @@ describe('contact validation', () => {
     expect(screen.getByText('citizen@example.com')).toBeInTheDocument()
   })
 
+  it('strips a stored email when the channel is off — no unfixable 422', async () => {
+    stubFetch({})
+    window.sessionStorage.setItem(
+      'liff-booking-draft',
+      JSON.stringify({
+        version: 3,
+        draft: {
+          service: 'ปรึกษากฎหมาย',
+          date: isoFromToday(1),
+          slotId: '09:30:00',
+          prefix: 'นาย',
+          firstname: 'สมชาย',
+          lastname: 'ใจดี',
+          phoneNumber: '0812345678',
+          note: '',
+          email: 'stale@example.com',
+          savedAt: Date.now(),
+        },
+      }),
+    )
+    const user = userEvent.setup()
+    renderPage()
+    expect(await screen.findByRole('heading', { name: 'ข้อมูลผู้จอง' })).toBeInTheDocument()
+    expect(screen.queryByPlaceholderText('name@example.com')).not.toBeInTheDocument()
+    const nextName = 'ถัดไป'
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: nextName })).toBeEnabled(),
+    )
+    await user.click(screen.getByRole('button', { name: nextName }))
+    expect(screen.getByRole('heading', { name: 'ตรวจสอบและยืนยันการจอง' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'ยืนยันการจอง' }))
+    await screen.findByText('จองคิวสำเร็จ')
+    const post = fetchMock.mock.calls.find(
+      ([url, init]) => init?.method === 'POST' && !String(url).endsWith('/cancel'),
+    )
+    expect(JSON.parse(String(post?.[1]?.body)).email).toBe('')
+  })
+
   it('asks for the missing trio parts before leaving the contact step', async () => {
     const user = await walkToContact()
     await user.type(screen.getByPlaceholderText('ชื่อจริง'), 'สมชาย')
