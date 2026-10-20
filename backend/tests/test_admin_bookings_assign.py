@@ -167,6 +167,23 @@ async def test_agent_cannot_unassign():
 
 
 @pytest.mark.asyncio
+async def test_agent_can_release_their_own_queue_with_self_assign_grant():
+    db = AsyncMock()
+    booking = _stored_booking(assigned_staff_id=2)
+    db.get = AsyncMock(side_effect=[booking])
+    with patch.object(
+        admin_bookings, "load_booking_config", new=AsyncMock(return_value=_config())
+    ), patch.object(
+        admin_bookings, "can_self_assign", new=MagicMock(return_value=True)
+    ):
+        result = await _call(
+            db, BookingAssignIn(assigned_staff_id=None), staff=_staff(role="AGENT")
+        )
+    assert result.assigned_staff_id is None
+    db.commit.assert_awaited()
+
+
+@pytest.mark.asyncio
 async def test_assign_disabled_is_rejected_before_touching_the_database():
     db = AsyncMock()
     with patch.object(

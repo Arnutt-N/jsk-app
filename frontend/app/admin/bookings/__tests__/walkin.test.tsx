@@ -273,4 +273,24 @@ describe('edit-contact dialog', () => {
       expect(String(patch![0])).toBe('/api/v1/admin/bookings/10/contact')
     })
   })
+
+  it('clears the email when the field is emptied', async () => {
+    const user = userEvent.setup()
+    mockFetch({ rows: [booking({ email: 'citizen@example.com' })] })
+    render(<AdminBookingsPage />)
+    await user.click(await screen.findByRole('button', { name: /แก้ไขข้อมูลผู้จองคิว/ }))
+
+    const dialog = within(await screen.findByRole('dialog'))
+    const inputs = dialog.getAllByRole('textbox')
+    await user.clear(inputs[3])
+    await user.click(dialog.getByRole('button', { name: 'บันทึก' }))
+
+    await waitFor(() => {
+      const patch = fetchMock.mock.calls.find(
+        ([url, init]) => init?.method === 'PATCH' && String(url).includes('/contact'),
+      )
+      expect(patch).toBeTruthy()
+      expect(JSON.parse(String(patch![1]?.body)).email).toBe('')
+    })
+  })
 })

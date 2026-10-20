@@ -1,7 +1,7 @@
 """Admin walk-in bookings: counter create, contact edit, counter availability."""
 from datetime import date, time
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import HTTPException
@@ -99,6 +99,52 @@ async def test_walkin_creates_a_counter_user_and_notifies_staff():
     assert audit.await_args.kwargs["admin_id"] == 2
     assert result.queue_number == "260819-002"
     db.commit.assert_awaited()
+
+
+@pytest.mark.asyncio
+async def test_walkin_replay_with_seen_key_returns_the_first_booking():
+    db = AsyncMock()
+    stored = _stored_booking()
+    found = MagicMock()
+    found.scalar_one_or_none.return_value = stored
+    db.execute = AsyncMock(return_value=found)
+    with patch.object(
+        admin_bookings, "load_booking_config", new=AsyncMock(return_value=_config())
+    ), patch.object(
+        admin_bookings.booking_service, "create_booking", new=AsyncMock()
+    ) as create:
+        result = await admin_bookings.create_walkin_booking(
+            _payload(idempotency_key="key-1"), db=db, staff=SimpleNamespace(id=2)
+        )
+    create.assert_not_awaited()
+    assert result.queue_number == "260819-002"
+    db.commit.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_walkin_passes_a_new_key_to_create():
+    db = AsyncMock()
+    stored = _stored_booking()
+    missing = MagicMock()
+    missing.scalar_one_or_none.return_value = None
+    db.execute = AsyncMock(return_value=missing)
+    with patch.object(
+        admin_bookings, "load_booking_config", new=AsyncMock(return_value=_config())
+    ), patch.object(
+        admin_bookings.booking_service, "load_day_hours", new=AsyncMock(return_value=None)
+    ), patch.object(
+        admin_bookings.booking_service, "create_booking", new=AsyncMock(return_value=stored)
+    ) as create, patch.object(
+        admin_bookings, "notify_booking_confirmed", new=AsyncMock(return_value=True)
+    ), patch.object(
+        admin_bookings, "notify_staff_new_booking", new=AsyncMock(return_value=True)
+    ), patch.object(
+        admin_bookings, "create_audit_log", new=AsyncMock()
+    ):
+        await admin_bookings.create_walkin_booking(
+            _payload(idempotency_key="key-9"), db=db, staff=SimpleNamespace(id=2)
+        )
+    assert create.await_args.kwargs["idempotency_key"] == "key-9"
 
 
 @pytest.mark.asyncio

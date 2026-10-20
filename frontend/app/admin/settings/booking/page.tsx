@@ -191,7 +191,7 @@ export default function BookingSettingsPage() {
           </span>
           <input
             type="checkbox"
-            checked={settings.email_enabled ?? true}
+            checked={settings.email_enabled ?? false}
             onChange={(e) => update('email_enabled', e.target.checked)}
             className="h-5 w-5 accent-emerald-600"
           />

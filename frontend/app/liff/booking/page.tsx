@@ -61,7 +61,7 @@ function contactPayload(prefix: string, firstname: string, lastname: string, pho
     lastname: lastname.trim() || null,
     phone_number: phoneNumber.trim() || null,
     note: note.trim() || null,
-    email: email.trim() || null,
+    email: email.trim(),
   }
 }
 

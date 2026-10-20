@@ -6,11 +6,12 @@ reminders go out at all — is an administrator action and is audit-logged.
 """
 import logging
 from datetime import date as date_type
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from sqlalchemy import func, or_, select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_admin, get_current_staff
@@ -205,6 +206,15 @@ async def create_walkin_booking(
         raise HTTPException(status_code=422, detail="ปิดรับอีเมลไว้ในการตั้งค่า")
 
     day_hours = await booking_service.load_day_hours(db, payload.booking_date.weekday())
+
+    if payload.idempotency_key:
+        existing = await db.execute(
+            select(Booking).where(Booking.idempotency_key == payload.idempotency_key)
+        )
+        found = existing.scalar_one_or_none()
+        if found is not None:
+            return BookingOut.model_validate(found)
+
     user = User(display_name=payload.contact_name or "ผู้มาติดต่อ")
     db.add(user)
     await db.flush()
@@ -220,6 +230,7 @@ async def create_walkin_booking(
             phone_number=payload.phone_number,
             note=payload.note,
             email=payload.email,
+            idempotency_key=payload.idempotency_key,
             config=config,
             day_hours=day_hours,
         )
@@ -236,6 +247,16 @@ async def create_walkin_booking(
         raise HTTPException(status_code=409, detail="ช่วงเวลานี้เต็มแล้ว กรุณาเลือกเวลาอื่น")
     except DuplicateBookingError:
         raise HTTPException(status_code=409, detail="ช่วงเวลานี้ถูกจองแล้ว")
+    except IntegrityError:
+        await db.rollback()
+        if payload.idempotency_key:
+            retry = await db.execute(
+                select(Booking).where(Booking.idempotency_key == payload.idempotency_key)
+            )
+            found = retry.scalar_one_or_none()
+            if found is not None:
+                return BookingOut.model_validate(found)
+        raise HTTPException(status_code=409, detail="บันทึกล้มเหลว กรุณารีเฟรชแล้วลองใหม่")
 
     await db.commit()
     await db.refresh(booking)
@@ -307,6 +328,8 @@ async def update_booking_contact_info(
         details={
             "contact_name": payload.contact_name,
             "phone_number": payload.phone_number,
+            "note": payload.note,
+            "email": payload.email,
         },
     )
     await db.commit()
@@ -336,6 +359,9 @@ async def resend_booking_reminder(
         raise HTTPException(status_code=404, detail="ไม่พบการจอง")
     if booking.status != BookingStatus.CONFIRMED:
         raise HTTPException(status_code=409, detail="ส่งเตือนซ้ำได้เฉพาะคิวที่ยืนยันแล้ว")
+    appointment_at = datetime.combine(booking.booking_date, booking.booking_time)
+    if appointment_at <= booking_service.local_now():
+        raise HTTPException(status_code=409, detail="คิวเลยเวลาแล้ว ส่งเตือนไม่ได้")
 
     claimed = await db.execute(
         update(Booking)
@@ -446,7 +472,10 @@ async def assign_booking_staff(
         return BookingOut.model_validate(booking)
 
     if target_id is None:
-        if not can_assign(staff.role):
+        if booking.assigned_staff_id == staff.id:
+            if not (can_assign(staff.role) or can_self_assign(staff.role)):
+                raise HTTPException(status_code=403, detail="คุณไม่มีสิทธิ์ถอนการมอบหมายงาน")
+        elif not can_assign(staff.role):
             raise HTTPException(status_code=403, detail="คุณไม่มีสิทธิ์ถอนการมอบหมายงาน")
     elif target_id == staff.id:
         if not can_self_assign(staff.role):

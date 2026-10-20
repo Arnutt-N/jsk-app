@@ -1,4 +1,4 @@
-from datetime import date, time
+from datetime import date, time, timedelta
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -7,6 +7,7 @@ from fastapi import HTTPException
 from pydantic import ValidationError
 
 from app.api.v1.endpoints import admin_bookings
+from app.models.booking import BookingStatus
 from app.schemas.booking import BookingCreate, BookingSettingsIn
 from app.services import booking_email, booking_notifications
 from app.services.booking_email import (
@@ -14,7 +15,7 @@ from app.services.booking_email import (
     build_reminder_email,
     send_booking_email,
 )
-from app.services.booking_service import ReminderUnit
+from app.services.booking_service import ReminderUnit, local_now, update_booking_contact
 
 
 def _booking(**overrides):
@@ -199,12 +200,64 @@ def test_create_rejects_a_bad_email_with_422_shape():
         _create_payload(email="not-an-email")
 
 
+SHARED_EMAIL_VECTORS = [
+    ("citizen@example.com", True),
+    ("first.last+tag@sub.example.co.th", True),
+    ("USER@EXAMPLE.COM", True),
+    ("a@b.co", True),
+    ("not-an-email", False),
+    ("a@b", False),
+    ("a@b.c", False),
+    ("a b@c.com", False),
+]
+
+
+def test_shared_email_vectors_match_the_frontend():
+    for address, valid in SHARED_EMAIL_VECTORS:
+        if valid:
+            assert _create_payload(email=address).email == address
+        else:
+            with pytest.raises(ValidationError):
+                _create_payload(email=address)
+
+
 def test_create_trims_padding_around_a_good_email():
     assert _create_payload(email="  citizen@example.com\n").email == "citizen@example.com"
 
 
-def test_create_accepts_a_blank_email_as_none():
-    assert _create_payload(email="  ").email is None
+def test_create_passes_blank_email_through_for_service_semantics():
+    assert _create_payload(email="  ").email == ""
+
+
+def _editable_booking(**overrides):
+    values = {
+        "id": 11,
+        "status": BookingStatus.CONFIRMED,
+        "booking_date": local_now().date() + timedelta(days=30),
+        "booking_time": time(9, 30),
+        "contact_name": None,
+        "phone_number": None,
+        "note": None,
+        "email": "old@example.com",
+    }
+    values.update(overrides)
+    return SimpleNamespace(**values)
+
+
+@pytest.mark.asyncio
+async def test_update_with_blank_email_clears_the_channel():
+    db = AsyncMock()
+    booking = _editable_booking()
+    await update_booking_contact(db, booking, contact_name=None, phone_number=None, note=None, email="")
+    assert booking.email is None
+
+
+@pytest.mark.asyncio
+async def test_update_without_email_keeps_the_channel():
+    db = AsyncMock()
+    booking = _editable_booking()
+    await update_booking_contact(db, booking, contact_name=None, phone_number=None, note=None, email=None)
+    assert booking.email == "old@example.com"
 
 
 @pytest.mark.asyncio

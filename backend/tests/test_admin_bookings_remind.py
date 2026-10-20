@@ -1,4 +1,4 @@
-from datetime import date, time
+from datetime import time, timedelta
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -7,6 +7,7 @@ from fastapi import HTTPException
 
 from app.api.v1.endpoints import admin_bookings
 from app.models.booking import BookingStatus
+from app.services.booking_service import local_now
 
 
 def _config(**overrides):
@@ -19,7 +20,7 @@ def _stored_booking(**overrides):
     values = {
         "id": 11,
         "service_type": "ปรึกษากฎหมาย",
-        "booking_date": date(2026, 10, 19),
+        "booking_date": local_now().date() + timedelta(days=30),
         "booking_time": time(9, 30),
         "queue_number": "261019-002",
         "status": BookingStatus.CONFIRMED,
@@ -87,6 +88,19 @@ async def test_resend_losing_the_claim_race_is_rejected():
 async def test_resend_needs_a_confirmed_booking():
     db = AsyncMock()
     booking = _stored_booking(status=BookingStatus.CANCELLED)
+    config, loader, sender, audit = _patches(db, booking)
+    with config, loader, sender as push, audit, pytest.raises(HTTPException) as exc:
+        await _call(db)
+    assert exc.value.status_code == 409
+    push.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_resend_past_appointment_is_rejected():
+    db = AsyncMock()
+    booking = _stored_booking(
+        booking_date=local_now().date() - timedelta(days=1),
+    )
     config, loader, sender, audit = _patches(db, booking)
     with config, loader, sender as push, audit, pytest.raises(HTTPException) as exc:
         await _call(db)

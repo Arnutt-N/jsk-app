@@ -83,8 +83,8 @@ def test_past_date_has_no_slots():
     assert _slots(target_date=date(2026, 8, 11)) == []
 
 
-def test_booking_disabled_yields_no_slots():
-    assert _slots(config=_config(enabled=False)) == []
+def test_booking_disabled_still_computes_slots():
+    assert _slots(config=_config(enabled=False)) != []
 
 
 # --- the booking window ---

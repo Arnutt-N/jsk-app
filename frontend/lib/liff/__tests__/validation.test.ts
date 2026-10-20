@@ -53,6 +53,25 @@ describe('validateBookingContact', () => {
     })
     expect(validateBookingContact({ ...base, email: '  citizen@example.com\n' })).toEqual({})
   })
+
+  it('matches the backend on shared email vectors', () => {
+    const base = { prefix: 'นาย', firstname: 'สมชาย', lastname: 'ใจดี', phoneNumber: '0812345678' }
+    const vectors: Array<[string, boolean]> = [
+      ['citizen@example.com', true],
+      ['first.last+tag@sub.example.co.th', true],
+      ['USER@EXAMPLE.COM', true],
+      ['a@b.co', true],
+      ['not-an-email', false],
+      ['a@b', false],
+      ['a@b.c', false],
+      ['a b@c.com', false],
+    ]
+    for (const [address, valid] of vectors) {
+      const errors = validateBookingContact({ ...base, email: address })
+      if (valid) expect(errors).toEqual({})
+      else expect(errors).toEqual({ email: 'อีเมลไม่ถูกต้อง' })
+    }
+  })
 })
 
 describe('composeContactName', () => {

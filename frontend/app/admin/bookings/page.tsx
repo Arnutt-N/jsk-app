@@ -131,7 +131,7 @@ export default function AdminBookingsPage() {
         setWalkinEnabled(settings.walkin_enabled ?? true)
         setCalendarEnabled(settings.calendar_enabled ?? true)
         setResendEnabled(settings.resend_enabled ?? true)
-        setEmailEnabled(settings.email_enabled ?? true)
+        setEmailEnabled(settings.email_enabled ?? false)
         const assignOn = settings.assign_enabled ?? false
         setAssignEnabled(assignOn)
         setServiceTypes(settings.service_types ?? [])
@@ -387,6 +387,7 @@ export default function AdminBookingsPage() {
 
       {calendarEnabled && view === 'calendar' && (
         <BookingMonthCalendar
+          key={date ? date.slice(0, 7) : 'all'}
           selectedDate={date}
           rangeByDate={rangeByDate}
           loadingRange={loadingRange}
@@ -586,7 +587,7 @@ export default function AdminBookingsPage() {
         title="ส่งเตือนซ้ำ"
         description={
           resending
-            ? `ส่งข้อความเตือนทาง LINE ให้${resending.contact_name || 'ผู้จอง'} (คิว ${resending.queue_number ?? resending.id}) อีกครั้งหรือไม่?`
+            ? `ส่งข้อความเตือนทาง ${resending.email && emailEnabled ? 'อีเมล' : 'LINE'} ให้${resending.contact_name || 'ผู้จอง'} (คิว ${resending.queue_number ?? resending.id}) อีกครั้งหรือไม่?`
             : undefined
         }
         confirmText="ส่งเตือน"

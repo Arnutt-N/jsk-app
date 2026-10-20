@@ -101,7 +101,7 @@ class ContactFields(BaseModel):
             return None
         cleaned = value.strip()
         if not cleaned:
-            return None
+            return ""
         if len(cleaned) > 254 or not _EMAIL_RE.fullmatch(cleaned):
             raise ValueError("email must be a valid address")
         return cleaned
@@ -126,6 +126,7 @@ class BookingCreate(ContactFields):
     service_type: str = Field(min_length=1, max_length=200)
     booking_date: date
     booking_time: time
+    idempotency_key: Optional[str] = Field(default=None, max_length=36)
 
 
 class BookingOut(BaseModel):

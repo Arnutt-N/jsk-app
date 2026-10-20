@@ -154,9 +154,10 @@ def compute_slots(
     ``day_hours`` is the business-hours row for that date's weekday (or None when
     none is configured). ``booked_counts`` maps a slot start time to the number
     of active bookings already held in it.
+
+    The public master switch lives at the API boundary (LIFF endpoints gate
+    on it; the counter deliberately bypasses it), never in the slot math.
     """
-    if not config.enabled:
-        return []
     if day_hours is None or not day_hours.is_open:
         return []
     if target_date in config.blackout_dates:
@@ -283,6 +284,7 @@ async def create_booking(
     phone_number: Optional[str],
     note: Optional[str],
     email: Optional[str] = None,
+    idempotency_key: Optional[str] = None,
     config: BookingConfig,
     day_hours: Optional[BusinessHours],
 ) -> Booking:
@@ -326,7 +328,8 @@ async def create_booking(
         contact_name=contact_name,
         phone_number=phone_number,
         note=note,
-        email=email,
+        email=email or None,
+        idempotency_key=idempotency_key,
         status=BookingStatus.CONFIRMED,
         queue_number=await _next_queue_number(db, booking_date),
     )
@@ -523,7 +526,7 @@ async def update_booking_contact(
     if note is not None:
         booking.note = note
     if email is not None:
-        booking.email = email
+        booking.email = email or None
     await db.flush()
     return booking
 

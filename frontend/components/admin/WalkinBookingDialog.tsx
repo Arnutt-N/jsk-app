@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -40,6 +40,7 @@ export function WalkinBookingDialog({ open, serviceTypes, initialDate, onClose, 
   const [phone, setPhone] = useState('')
   const [note, setNote] = useState('')
   const [email, setEmail] = useState('')
+  const idempotencyKey = useRef(crypto.randomUUID())
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -54,6 +55,7 @@ export function WalkinBookingDialog({ open, serviceTypes, initialDate, onClose, 
       setPhone('')
       setNote('')
       setEmail('')
+      idempotencyKey.current = crypto.randomUUID()
       setError(null)
     }
   }, [open, initialDate])
@@ -107,7 +109,8 @@ export function WalkinBookingDialog({ open, serviceTypes, initialDate, onClose, 
         contact_name: name.trim() || null,
         phone_number: phone.trim() || null,
         note: note.trim() || null,
-        email: email.trim() || null,
+        email: email.trim(),
+        idempotency_key: idempotencyKey.current,
       })
       onCreated(booking)
       onClose()
@@ -246,7 +249,7 @@ export function EditContactDialog({ booking, onClose, onUpdated }: EditContactDi
         contact_name: name.trim() || null,
         phone_number: phone.trim() || null,
         note: note.trim() || null,
-        email: email.trim() || null,
+        email: email.trim(),
       })
       onUpdated(updated)
       onClose()

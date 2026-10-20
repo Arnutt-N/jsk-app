@@ -2,6 +2,7 @@
 never blocks the event loop.
 """
 import asyncio
+import hashlib
 import logging
 import smtplib
 from email.message import EmailMessage
@@ -82,12 +83,13 @@ def _quit_quietly(server) -> None:
 
 
 async def send_booking_email(to: str, subject: str, body: str) -> bool:
+    digest = hashlib.sha256(to.encode("utf-8")).hexdigest()[:12]
     if not settings.SMTP_HOST or not settings.SMTP_FROM:
-        logger.error("SMTP not configured; cannot email %s", to)
+        logger.error("SMTP not configured; cannot email %s", digest)
         return False
     try:
         await asyncio.to_thread(_send_sync, to, subject, body)
         return True
     except Exception as exc:
-        logger.error("Booking email to %s failed: %s", to, exc)
+        logger.error("Booking email to %s failed: %s", digest, exc)
         return False

@@ -404,6 +404,7 @@ export async function createWalkinBooking(payload: {
   phone_number?: string | null
   note?: string | null
   email?: string | null
+  idempotency_key?: string | null
 }): Promise<Booking> {
   const res = await fetch(ADMIN_BASE, {
     method: 'POST',

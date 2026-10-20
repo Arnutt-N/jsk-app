@@ -61,10 +61,11 @@ async def _push_flex(db: AsyncSession, user, alt_text: str, contents: dict) -> b
 
 async def notify_booking_confirmed(db: AsyncSession, booking: Booking, user) -> bool:
     """Confirmation bubble to the citizen. Never raises."""
-    if await _email_channel(db, booking):
-        subject, body = build_confirmation_email(booking)
-        return await send_booking_email(booking.email, subject, body)
     try:
+        if await _email_channel(db, booking):
+            subject, body = build_confirmation_email(booking)
+            if await send_booking_email(booking.email, subject, body):
+                return True
         return await _push_flex(
             db,
             user,
@@ -78,10 +79,11 @@ async def notify_booking_confirmed(db: AsyncSession, booking: Booking, user) -> 
 
 async def send_booking_reminder(db: AsyncSession, booking: Booking, user) -> bool:
     """Advance-reminder bubble to the citizen. Never raises."""
-    if await _email_channel(db, booking):
-        subject, body = build_reminder_email(booking)
-        return await send_booking_email(booking.email, subject, body)
     try:
+        if await _email_channel(db, booking):
+            subject, body = build_reminder_email(booking)
+            if await send_booking_email(booking.email, subject, body):
+                return True
         return await _push_flex(
             db,
             user,
