@@ -21,19 +21,19 @@ describe('shared phone validation', () => {
 describe('validateBookingContact', () => {
   it('allows a fully empty contact — booking contact stays optional', () => {
     expect(
-      validateBookingContact({ prefix: '', firstname: '', lastname: '', phoneNumber: '' }),
+      validateBookingContact({ prefix: '', firstname: '', lastname: '', phoneNumber: '', email: '' }),
     ).toEqual({})
   })
 
   it('requires the whole trio once any name part is filled', () => {
     expect(
-      validateBookingContact({ prefix: '', firstname: 'สมชาย', lastname: '', phoneNumber: '' }),
+      validateBookingContact({ prefix: '', firstname: 'สมชาย', lastname: '', phoneNumber: '', email: '' }),
     ).toEqual({ prefix: 'กรุณาเลือกคำนำหน้า', lastname: 'กรุณาระบุนามสกุล' })
   })
 
   it('rejects a filled-but-undiallable phone in the shared wording', () => {
     expect(
-      validateBookingContact({ prefix: 'นาย', firstname: 'สมชาย', lastname: 'ใจดี', phoneNumber: '123' }),
+      validateBookingContact({ prefix: 'นาย', firstname: 'สมชาย', lastname: 'ใจดี', phoneNumber: '123', email: '' }),
     ).toEqual({
       phoneNumber: 'หมายเลขโทรศัพท์ไม่ถูกต้อง',
     })
@@ -41,8 +41,36 @@ describe('validateBookingContact', () => {
 
   it('accepts a complete contact', () => {
     expect(
-      validateBookingContact({ prefix: 'นาย', firstname: 'สมชาย', lastname: 'ใจดี', phoneNumber: '0812345678' }),
+      validateBookingContact({ prefix: 'นาย', firstname: 'สมชาย', lastname: 'ใจดี', phoneNumber: '0812345678', email: '' }),
     ).toEqual({})
+  })
+
+  it('accepts a well-formed optional email and rejects a bad one', () => {
+    const base = { prefix: 'นาย', firstname: 'สมชาย', lastname: 'ใจดี', phoneNumber: '0812345678' }
+    expect(validateBookingContact({ ...base, email: 'citizen@example.com' })).toEqual({})
+    expect(validateBookingContact({ ...base, email: 'not-an-email' })).toEqual({
+      email: 'อีเมลไม่ถูกต้อง',
+    })
+    expect(validateBookingContact({ ...base, email: '  citizen@example.com\n' })).toEqual({})
+  })
+
+  it('matches the backend on shared email vectors', () => {
+    const base = { prefix: 'นาย', firstname: 'สมชาย', lastname: 'ใจดี', phoneNumber: '0812345678' }
+    const vectors: Array<[string, boolean]> = [
+      ['citizen@example.com', true],
+      ['first.last+tag@sub.example.co.th', true],
+      ['USER@EXAMPLE.COM', true],
+      ['a@b.co', true],
+      ['not-an-email', false],
+      ['a@b', false],
+      ['a@b.c', false],
+      ['a b@c.com', false],
+    ]
+    for (const [address, valid] of vectors) {
+      const errors = validateBookingContact({ ...base, email: address })
+      if (valid) expect(errors).toEqual({})
+      else expect(errors).toEqual({ email: 'อีเมลไม่ถูกต้อง' })
+    }
   })
 })
 

@@ -9,7 +9,8 @@ import json
 import logging
 from datetime import date
 from time import monotonic
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -28,6 +29,11 @@ KEY_BLACKOUT_DATES = "booking_blackout_dates"
 KEY_REMINDER_ENABLED = "booking_reminder_enabled"
 KEY_REMINDER_LEAD_VALUE = "booking_reminder_lead_value"
 KEY_REMINDER_LEAD_UNIT = "booking_reminder_lead_unit"
+KEY_WALKIN_ENABLED = "booking_walkin_enabled"
+KEY_CALENDAR_ENABLED = "booking_calendar_enabled"
+KEY_RESEND_ENABLED = "booking_resend_enabled"
+KEY_ASSIGN_ENABLED = "booking_assign_enabled"
+KEY_EMAIL_ENABLED = "booking_email_enabled"
 
 ALL_KEYS = (
     KEY_ENABLED,
@@ -39,8 +45,12 @@ ALL_KEYS = (
     KEY_REMINDER_ENABLED,
     KEY_REMINDER_LEAD_VALUE,
     KEY_REMINDER_LEAD_UNIT,
+    KEY_WALKIN_ENABLED,
+    KEY_CALENDAR_ENABLED,
+    KEY_RESEND_ENABLED,
+    KEY_ASSIGN_ENABLED,
+    KEY_EMAIL_ENABLED,
 )
-
 # Booking starts switched off with no services listed: a half-configured feature
 # must not quietly start accepting public appointments.
 DEFAULTS = BookingConfig(
@@ -53,6 +63,11 @@ DEFAULTS = BookingConfig(
     reminder_enabled=False,
     reminder_lead_value=1,
     reminder_lead_unit=ReminderUnit.DAY,
+    walkin_enabled=True,
+    calendar_enabled=True,
+    resend_enabled=True,
+    assign_enabled=False,
+    email_enabled=False,
 )
 
 _TRUTHY = {"true", "1", "yes", "on"}
@@ -66,7 +81,7 @@ def _parse_bool(raw: str) -> bool:
     return raw.strip().lower() in _TRUTHY
 
 
-def _parse_int(raw: str, *, key: str, default: int, minimum: int) -> int:
+def _parse_int(raw: str | int, *, key: str, default: int, minimum: int) -> int:
     try:
         value = int(str(raw).strip())
     except (TypeError, ValueError):
@@ -180,6 +195,21 @@ async def _read_booking_config(db: AsyncSession) -> BookingConfig:
         reminder_lead_unit=_coalesce(
             await get(KEY_REMINDER_LEAD_UNIT), _parse_reminder_unit, DEFAULTS.reminder_lead_unit
         ),
+        walkin_enabled=_coalesce(
+            await get(KEY_WALKIN_ENABLED), _parse_bool, DEFAULTS.walkin_enabled
+        ),
+        calendar_enabled=_coalesce(
+            await get(KEY_CALENDAR_ENABLED), _parse_bool, DEFAULTS.calendar_enabled
+        ),
+        resend_enabled=_coalesce(
+            await get(KEY_RESEND_ENABLED), _parse_bool, DEFAULTS.resend_enabled
+        ),
+        assign_enabled=_coalesce(
+            await get(KEY_ASSIGN_ENABLED), _parse_bool, DEFAULTS.assign_enabled
+        ),
+        email_enabled=_coalesce(
+            await get(KEY_EMAIL_ENABLED), _parse_bool, DEFAULTS.email_enabled
+        ),
     )
 
 
@@ -224,6 +254,11 @@ async def save_booking_config(db: AsyncSession, config: BookingConfig) -> Bookin
         KEY_REMINDER_ENABLED: "true" if config.reminder_enabled else "false",
         KEY_REMINDER_LEAD_VALUE: str(config.reminder_lead_value),
         KEY_REMINDER_LEAD_UNIT: config.reminder_lead_unit.value,
+        KEY_WALKIN_ENABLED: "true" if config.walkin_enabled else "false",
+        KEY_CALENDAR_ENABLED: "true" if config.calendar_enabled else "false",
+        KEY_RESEND_ENABLED: "true" if config.resend_enabled else "false",
+        KEY_ASSIGN_ENABLED: "true" if config.assign_enabled else "false",
+        KEY_EMAIL_ENABLED: "true" if config.email_enabled else "false",
     }
     for key, value in values.items():
         await SettingsService.set_setting(db, key, value)

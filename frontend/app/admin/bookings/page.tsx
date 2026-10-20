@@ -5,19 +5,30 @@ import dynamic from 'next/dynamic'
 import { Alert } from '@/components/ui/Alert'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { Select } from '@/components/ui/Select'
-import { CalendarDays, Phone, RefreshCw } from 'lucide-react'
+import { CalendarDays, BellRing, ChevronLeft, ChevronRight, LayoutList, Pencil, Phone, Plus, RefreshCw, Search, UserMinus, UserPlus } from 'lucide-react'
 import { logger } from '@/lib/logger'
-import { formatThaiDate } from '@/lib/format-date'
+import { formatThaiDate, formatThaiDateTime } from '@/lib/format-date'
 import { isoToYMD } from '@/lib/utils'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { AssignModal } from '@/components/admin/AssignModal'
+import { EditContactDialog, WalkinBookingDialog } from '@/components/admin/WalkinBookingDialog'
+import BookingMonthCalendar from '@/components/admin/BookingMonthCalendar'
 import {
   BOOKING_STATUS_LABELS,
+  assignBooking,
+  fetchAdminAvailabilityRange,
   fetchAdminBookings,
+  fetchBookingSettings,
+  fetchStaffDirectory,
   formatTime,
+  resendBookingReminder,
   updateBookingStatus,
   type Booking,
   type BookingStatus,
+  type DayAvailability,
 } from '@/lib/booking'
 
 const CalendarPickerTH = dynamic(() => import('@/components/ui/CalendarPickerTH'), { ssr: false })
@@ -37,7 +48,9 @@ const STATUS_VARIANT: Record<BookingStatus, 'success' | 'danger' | 'info' | 'war
   NOSHOW: 'warning',
 }
 
-// Only terminal states can be set from here — re-confirming a cancelled booking
+// One full page from the API. "Next" shows when the page came back full —
+// the same heuristic as the requests list.
+const PAGE_SIZE = 100
 // would silently re-take a seat another citizen may already hold.
 const ACTIONS: { status: BookingStatus; label: string }[] = [
   { status: 'COMPLETED', label: 'มาแล้ว' },
@@ -48,10 +61,31 @@ const ACTIONS: { status: BookingStatus; label: string }[] = [
 export default function AdminBookingsPage() {
   const [date, setDate] = useState('') // '' = all days; must not default to today
   const [statusFilter, setStatusFilter] = useState<BookingStatus | ''>('')
+  const [serviceTypeFilter, setServiceTypeFilter] = useState('')
+  const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [page, setPage] = useState(0)
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
   const [updatingId, setUpdatingId] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
+  // Missing in older saved settings means enabled (walkin, calendar).
+  const [walkinEnabled, setWalkinEnabled] = useState(true)
+  const [calendarEnabled, setCalendarEnabled] = useState(true)
+  const [resendEnabled, setResendEnabled] = useState(true)
+  const [resending, setResending] = useState<Booking | null>(null)
+  const [emailEnabled, setEmailEnabled] = useState(true)
+  const [assignEnabled, setAssignEnabled] = useState(false)
+  const [unassignedOnly, setUnassignedOnly] = useState(false)
+  const [staffNames, setStaffNames] = useState<Map<number, string>>(new Map())
+  const [assigning, setAssigning] = useState<Booking | null>(null)
+  const [unassigning, setUnassigning] = useState<Booking | null>(null)
+  const [view, setView] = useState<'list' | 'calendar'>('list')
+  const [rangeByDate, setRangeByDate] = useState<Map<string, DayAvailability>>(new Map())
+  const [loadingRange, setLoadingRange] = useState(false)
+  const [serviceTypes, setServiceTypes] = useState<string[]>([])
+  const [walkinOpen, setWalkinOpen] = useState(false)
+  const [editing, setEditing] = useState<Booking | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -61,6 +95,11 @@ export default function AdminBookingsPage() {
         await fetchAdminBookings({
           date,
           status: statusFilter || undefined,
+          serviceType: serviceTypeFilter || undefined,
+          search: debouncedSearch.trim() || undefined,
+          unassignedOnly: unassignedOnly || undefined,
+          limit: PAGE_SIZE,
+          offset: page * PAGE_SIZE || undefined,
         }),
       )
     } catch (err) {
@@ -69,11 +108,47 @@ export default function AdminBookingsPage() {
     } finally {
       setLoading(false)
     }
-  }, [date, statusFilter])
+  }, [date, statusFilter, serviceTypeFilter, debouncedSearch, unassignedOnly, page])
+
+  // Same 500ms debounce as the requests list — each keystroke must not
+  // become an API call. A filter change always restarts from the first page.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search)
+      setPage(0)
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [search])
 
   useEffect(() => {
     void load()
   }, [load])
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const settings = await fetchBookingSettings()
+        setWalkinEnabled(settings.walkin_enabled ?? true)
+        setCalendarEnabled(settings.calendar_enabled ?? true)
+        setResendEnabled(settings.resend_enabled ?? true)
+        setEmailEnabled(settings.email_enabled ?? false)
+        const assignOn = settings.assign_enabled ?? false
+        setAssignEnabled(assignOn)
+        setServiceTypes(settings.service_types ?? [])
+        if (assignOn) {
+          try {
+            const directory = await fetchStaffDirectory()
+            setStaffNames(new Map(directory.map((entry) => [entry.id, entry.display_name])))
+          } catch (err) {
+            logger.error('Failed to load staff directory:', err)
+          }
+        }
+      } catch (err) {
+        logger.error('Failed to load booking settings:', err)
+      }
+    }
+    void loadSettings()
+  }, [])
 
   const handleStatus = async (booking: Booking, status: BookingStatus) => {
     setUpdatingId(booking.id)
@@ -88,6 +163,82 @@ export default function AdminBookingsPage() {
       setUpdatingId(null)
     }
   }
+
+  const handleResend = async (booking: Booking) => {
+    setUpdatingId(booking.id)
+    setError(null)
+    try {
+      const updated = await resendBookingReminder(booking.id)
+      setBookings((current) => current.map((b) => (b.id === updated.id ? updated : b)))
+    } catch (err) {
+      logger.error('Failed to resend booking reminder:', err)
+      setError(err instanceof Error ? err.message : 'ส่งเตือนซ้ำไม่สำเร็จ')
+    } finally {
+      setUpdatingId(null)
+      setResending(null)
+    }
+  }
+
+  const handleAssign = async (bookingId: number, staffId: number) => {
+    setUpdatingId(bookingId)
+    setError(null)
+    try {
+      const updated = await assignBooking(bookingId, staffId)
+      setBookings((current) => current.map((b) => (b.id === updated.id ? updated : b)))
+    } catch (err) {
+      logger.error('Failed to assign booking:', err)
+      setError(err instanceof Error ? err.message : 'มอบหมายคิวไม่สำเร็จ')
+    } finally {
+      setUpdatingId(null)
+      setAssigning(null)
+    }
+  }
+
+  const handleUnassign = async (booking: Booking) => {
+    setUpdatingId(booking.id)
+    setError(null)
+    try {
+      const updated = await assignBooking(booking.id, null)
+      setBookings((current) => current.map((b) => (b.id === updated.id ? updated : b)))
+    } catch (err) {
+      logger.error('Failed to unassign booking:', err)
+      setError(err instanceof Error ? err.message : 'ถอนการมอบหมายไม่สำเร็จ')
+    } finally {
+      setUpdatingId(null)
+      setUnassigning(null)
+    }
+  }
+
+  const rangeService = serviceTypeFilter || serviceTypes[0] || ''
+
+  const handleVisibleMonthChange = useCallback(
+    async (year: number, monthZeroBased: number) => {
+      if (!rangeService) {
+        setRangeByDate(new Map())
+        return
+      }
+      const first = `${year}-${`${monthZeroBased + 1}`.padStart(2, '0')}-01`
+      const lastDay = new Date(year, monthZeroBased + 1, 0).getDate()
+      const last = `${year}-${`${monthZeroBased + 1}`.padStart(2, '0')}-${`${lastDay}`.padStart(2, '0')}`
+      setLoadingRange(true)
+      try {
+        const range = await fetchAdminAvailabilityRange(rangeService, first, last)
+        setRangeByDate(new Map(range.days.map((day) => [day.date, day])))
+      } catch (err) {
+        logger.error('Failed to load calendar fullness:', err)
+        setRangeByDate(new Map())
+      } finally {
+        setLoadingRange(false)
+      }
+    },
+    [rangeService],
+  )
+
+  const handleSelectDay = useCallback((iso: string) => {
+    setDate(iso)
+    setPage(0)
+    setView('list')
+  }, [])
 
   const counts = useMemo(() => {
     const total = bookings.length
@@ -110,7 +261,10 @@ export default function AdminBookingsPage() {
             <div className="w-48">
               <CalendarPickerTH
                 value={date ? new Date(`${date}T00:00:00`).toISOString() : null}
-                onChange={(iso) => setDate(iso ? isoToYMD(iso) : '')}
+                onChange={(iso) => {
+                  setDate(iso ? isoToYMD(iso) : '')
+                  setPage(0)
+                }}
               />
             </div>
             {!date && (
@@ -121,7 +275,10 @@ export default function AdminBookingsPage() {
                 type="button"
                 variant="ghost"
                 size="sm"
-                onClick={() => setDate('')}
+                onClick={() => {
+                  setDate('')
+                  setPage(0)
+                }}
                 className="text-xs text-text-tertiary hover:text-text-primary"
               >
                 ล้างวันที่
@@ -131,27 +288,126 @@ export default function AdminBookingsPage() {
               <Select
                 size="sm"
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as BookingStatus | '')}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value as BookingStatus | '')
+                  setPage(0)
+                }}
                 options={STATUS_FILTER_OPTIONS}
               />
             </div>
+            {serviceTypes.length > 0 && (
+              <div className="w-44">
+                <Select
+                  size="sm"
+                  value={serviceTypeFilter}
+                  onChange={(e) => {
+                    setServiceTypeFilter(e.target.value)
+                    setPage(0)
+                  }}
+                  options={[
+                    { value: '', label: 'ทุกบริการ' },
+                    ...serviceTypes.map((type) => ({ value: type, label: type })),
+                  ]}
+                />
+              </div>
+            )}
           </div>
           <Button variant="secondary" onClick={() => void load()} disabled={loading}>
             <RefreshCw className="mr-1 h-4 w-4" aria-hidden="true" />
             รีเฟรช
           </Button>
+          {walkinEnabled && (
+            <Button onClick={() => setWalkinOpen(true)}>
+              <Plus className="mr-1 h-4 w-4" aria-hidden="true" />
+              เพิ่มคิวนอก
+            </Button>
+          )}
         </div>
       </header>
 
+      <div className="flex flex-wrap items-center gap-2">
+        {calendarEnabled && (
+          <div className="flex rounded-lg border border-slate-200 p-0.5 dark:border-slate-700" role="tablist" aria-label="มุมมองคิวนัดหมาย">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={view === 'list'}
+              onClick={() => setView('list')}
+              className={view === 'list'
+                ? 'flex items-center gap-1 rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white dark:bg-slate-100 dark:text-slate-900'
+                : 'flex items-center gap-1 rounded-md px-3 py-1.5 text-xs text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'}
+            >
+              <LayoutList className="h-3.5 w-3.5" aria-hidden="true" />
+              รายการ
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={view === 'calendar'}
+              onClick={() => setView('calendar')}
+              className={view === 'calendar'
+                ? 'flex items-center gap-1 rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white dark:bg-slate-100 dark:text-slate-900'
+                : 'flex items-center gap-1 rounded-md px-3 py-1.5 text-xs text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'}
+            >
+              <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
+              ปฏิทิน
+            </button>
+          </div>
+        )}
+        <div className="w-64">
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="ค้นชื่อ เบอร์ หรือเลขคิว"
+            aria-label="ค้นหาการจอง"
+            leftIcon={<Search className="h-4 w-4" aria-hidden="true" />}
+          />
+        </div>
+        {debouncedSearch && (
+          <span className="text-xs text-slate-400">ค้นหา: {debouncedSearch}</span>
+        )}
+        {assignEnabled && (
+          <button
+            type="button"
+            onClick={() => {
+              setUnassignedOnly((v) => !v)
+              setPage(0)
+            }}
+            aria-pressed={unassignedOnly}
+            className={unassignedOnly
+              ? 'rounded-full bg-slate-900 px-3 py-1.5 text-xs font-medium text-white dark:bg-slate-100 dark:text-slate-900'
+              : 'rounded-full border border-slate-200 px-3 py-1.5 text-xs text-slate-500 hover:text-slate-900 dark:border-slate-700 dark:hover:text-slate-100'}
+          >
+            ไร้ผู้รับ
+          </button>
+        )}
+      </div>
+
       {error && <Alert variant="danger">{error}</Alert>}
 
-      {loading ? (
+      {calendarEnabled && view === 'calendar' && (
+        <BookingMonthCalendar
+          key={date ? date.slice(0, 7) : 'all'}
+          selectedDate={date}
+          rangeByDate={rangeByDate}
+          loadingRange={loadingRange}
+          rangeServiceLabel={rangeService || null}
+          onSelectDay={handleSelectDay}
+          onVisibleMonthChange={handleVisibleMonthChange}
+        />
+      )}
+
+      {(view === 'list' || !calendarEnabled) && (loading ? (
         <div className="py-16 text-center">
           <LoadingSpinner />
         </div>
       ) : bookings.length === 0 ? (
         <p className="rounded-xl border border-dashed border-slate-200 py-16 text-center text-sm text-slate-400 dark:border-slate-700">
-          {date ? 'ไม่มีการจองในวันที่เลือก' : 'ไม่มีการจอง'}
+          {debouncedSearch
+            ? 'ไม่พบรายการที่ตรงกับที่ค้นหา'
+            : date
+              ? 'ไม่มีการจองในวันที่เลือก'
+              : 'ไม่มีการจอง'}
         </p>
       ) : (
         <ul className="space-y-2">
@@ -173,6 +429,11 @@ export default function AdminBookingsPage() {
                 </p>
                 <p className="text-sm text-slate-500">{booking.service_type}</p>
                 {booking.note && <p className="mt-1 text-xs text-slate-400">{booking.note}</p>}
+                <p className="mt-1 text-xs text-slate-400">
+                  {booking.reminder_sent_at
+                    ? `เตือนแล้ว ${formatThaiDateTime(booking.reminder_sent_at)}`
+                    : 'ยังไม่เคยเตือน'}
+                </p>
               </div>
 
               {booking.phone_number && (
@@ -185,12 +446,73 @@ export default function AdminBookingsPage() {
                 </a>
               )}
 
+              {assignEnabled && (
+                <p className="text-xs text-slate-500">
+                  ผู้รับผิดชอบ: {
+                    booking.assigned_staff_id === null || booking.assigned_staff_id === undefined
+                      ? 'ยังไม่มอบหมาย'
+                      : (staffNames.get(booking.assigned_staff_id) ?? `เจ้าหน้าที่ #${booking.assigned_staff_id}`)
+                  }
+                </p>
+              )}
+
               <Badge variant={STATUS_VARIANT[booking.status]}>
                 {BOOKING_STATUS_LABELS[booking.status]}
+              </Badge>
+              <Badge variant={booking.email && emailEnabled ? 'info' : 'secondary'}>
+                {booking.email && emailEnabled ? 'อีเมล' : 'LINE'}
               </Badge>
 
               {booking.status === 'CONFIRMED' && (
                 <div className="flex gap-1">
+                  {assignEnabled && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={updatingId === booking.id}
+                      onClick={() => setAssigning(booking)}
+                      aria-label={`มอบหมายคิว ${booking.queue_number ?? booking.id}`}
+                    >
+                      <UserPlus className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
+                      มอบหมาย
+                    </Button>
+                  )}
+                  {assignEnabled && booking.assigned_staff_id !== null && booking.assigned_staff_id !== undefined && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={updatingId === booking.id}
+                      onClick={() => setUnassigning(booking)}
+                      aria-label={`ถอนการมอบหมายคิว ${booking.queue_number ?? booking.id}`}
+                    >
+                      <UserMinus className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
+                      ถอน
+                    </Button>
+                  )}
+                  {resendEnabled && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={updatingId === booking.id}
+                      onClick={() => setResending(booking)}
+                      aria-label={`ส่งเตือนซ้ำคิว ${booking.queue_number ?? booking.id}`}
+                    >
+                      <BellRing className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
+                      ส่งเตือนซ้ำ
+                    </Button>
+                  )}
+                  {walkinEnabled && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={updatingId === booking.id}
+                      onClick={() => setEditing(booking)}
+                      aria-label={`แก้ไขข้อมูลผู้จองคิว ${booking.queue_number ?? booking.id}`}
+                    >
+                      <Pencil className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
+                      แก้ข้อมูล
+                    </Button>
+                  )}
                   {ACTIONS.map((action) => (
                     <Button
                       key={action.status}
@@ -207,11 +529,95 @@ export default function AdminBookingsPage() {
             </li>
           ))}
         </ul>
-      )}
+      ))}
 
-      <p className="text-xs text-slate-400">
-        แสดงรายการ{date ? `ของวันที่ ${formatThaiDate(date, { yearFormat: 'numeric' })}` : 'ทุกวัน'}
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs text-slate-400">
+          แสดงรายการ{date ? `ของวันที่ ${formatThaiDate(date, { yearFormat: 'numeric' })}` : 'ทุกวัน'}
+        </p>
+        {(page > 0 || bookings.length >= PAGE_SIZE) && (
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={page === 0 || loading}
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              aria-label="หน้าก่อน"
+            >
+              <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+            </Button>
+            <span className="text-xs text-slate-500">หน้า {page + 1}</span>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={bookings.length < PAGE_SIZE || loading}
+              onClick={() => setPage((p) => p + 1)}
+              aria-label="หน้าถัดไป"
+            >
+              <ChevronRight className="h-4 w-4" aria-hidden="true" />
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {walkinEnabled && (
+        <WalkinBookingDialog
+          open={walkinOpen}
+          serviceTypes={serviceTypes}
+          initialDate={date}
+          emailEnabled={emailEnabled}
+          onClose={() => setWalkinOpen(false)}
+          onCreated={() => void load()}
+        />
+      )}
+      <EditContactDialog
+        booking={walkinEnabled ? editing : null}
+        emailEnabled={emailEnabled}
+        onClose={() => setEditing(null)}
+        onUpdated={(updated) =>
+          setBookings((current) => current.map((b) => (b.id === updated.id ? updated : b)))
+        }
+      />
+      <ConfirmDialog
+        isOpen={resending !== null}
+        onClose={() => setResending(null)}
+        onConfirm={() => {
+          if (resending) void handleResend(resending)
+        }}
+        title="ส่งเตือนซ้ำ"
+        description={
+          resending
+            ? `ส่งข้อความเตือนให้${resending.contact_name || 'ผู้จอง'} (คิว ${resending.queue_number ?? resending.id}) อีกครั้งหรือไม่?`
+            : undefined
+        }
+        confirmText="ส่งเตือน"
+        isLoading={resending !== null && updatingId === resending.id}
+      />
+      {assignEnabled && assigning !== null && (
+        <AssignModal
+          isOpen
+          onClose={() => setAssigning(null)}
+          onAssign={(staffId) => handleAssign(assigning.id, staffId)}
+          currentAssigneeId={assigning.assigned_staff_id ?? undefined}
+        />
+      )}
+      <ConfirmDialog
+        isOpen={unassigning !== null}
+        onClose={() => setUnassigning(null)}
+        onConfirm={() => {
+          if (unassigning) void handleUnassign(unassigning)
+        }}
+        title="ถอนการมอบหมาย"
+        description={
+          unassigning
+            ? `ถอนผู้รับผิดชอบคิว ${unassigning.queue_number ?? unassigning.id} หรือไม่?`
+            : undefined
+        }
+        confirmText="ถอน"
+        isLoading={unassigning !== null && updatingId === unassigning.id}
+      />
     </div>
   )
 }

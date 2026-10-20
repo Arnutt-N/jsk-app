@@ -54,14 +54,18 @@ function booking(overrides: Partial<Booking> = {}): Booking {
     contact_name: 'สมชาย ใจดี',
     phone_number: '0812345678',
     note: null,
+    reminder_sent_at: null,
+    assigned_staff_id: null,
+    email: null,
     ...overrides,
   }
 }
 
 let fetchMock: ReturnType<typeof vi.fn>
 
-function mockFetch(list: Booking[]) {
+function mockFetch(list: Booking[], settings: unknown = {}) {
   fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+    if (String(url).includes('/settings')) return jsonResponse(settings)
     if (init?.method === 'PATCH') {
       const status = new URL(url, 'http://test').searchParams.get('status')
       return jsonResponse(booking({ status: status as Booking['status'] }))
@@ -71,8 +75,8 @@ function mockFetch(list: Booking[]) {
   vi.stubGlobal('fetch', fetchMock)
 }
 
-async function renderLoaded(list: Booking[] = [booking()]) {
-  mockFetch(list)
+async function renderLoaded(list: Booking[] = [booking()], settings: unknown = {}) {
+  mockFetch(list, settings)
   render(<AdminBookingsPage />)
   await waitFor(() => expect(fetchMock).toHaveBeenCalled())
 }
@@ -163,6 +167,18 @@ describe('the day list', () => {
       const lastCall = fetchMock.mock.calls[fetchMock.mock.calls.length - 1]
       expect(String(lastCall[0])).not.toContain('date=')
     })
+  })
+})
+
+describe('notification channel badge', () => {
+  it('shows the email channel when an address is on file', async () => {
+    await renderLoaded([booking({ email: 'citizen@example.com' })], { email_enabled: true })
+    expect((await list()).getByText('อีเมล')).toBeInTheDocument()
+  })
+
+  it('shows the LINE channel otherwise', async () => {
+    await renderLoaded()
+    expect((await list()).getByText('LINE')).toBeInTheDocument()
   })
 })
 

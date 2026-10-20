@@ -13,6 +13,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from linebot.v3.messaging import FlexContainer, FlexMessage
 
 from app.models.booking import Booking
+from app.services.booking_email import (
+    build_confirmation_email,
+    build_reminder_email,
+    send_booking_email,
+)
+from app.services.booking_settings import load_booking_config
 from app.services.flex_messages import build_booking_confirmation
 from app.services.line_service import line_service, resolve_raw_for_push
 from app.services.telegram_service import telegram_service
@@ -25,6 +31,13 @@ def _describe(booking: Booking) -> str:
         f"{booking.queue_number or '-'} · {booking.service_type or '-'} · "
         f"{booking.booking_date} {booking.booking_time}"
     )
+
+
+async def _email_channel(db: AsyncSession, booking: Booking) -> bool:
+    if not booking.email:
+        return False
+    config = await load_booking_config(db)
+    return config.email_enabled
 
 
 async def _push_flex(db: AsyncSession, user, alt_text: str, contents: dict) -> bool:
@@ -49,6 +62,10 @@ async def _push_flex(db: AsyncSession, user, alt_text: str, contents: dict) -> b
 async def notify_booking_confirmed(db: AsyncSession, booking: Booking, user) -> bool:
     """Confirmation bubble to the citizen. Never raises."""
     try:
+        if await _email_channel(db, booking):
+            subject, body = build_confirmation_email(booking)
+            if await send_booking_email(booking.email, subject, body):
+                return True
         return await _push_flex(
             db,
             user,
@@ -63,6 +80,10 @@ async def notify_booking_confirmed(db: AsyncSession, booking: Booking, user) -> 
 async def send_booking_reminder(db: AsyncSession, booking: Booking, user) -> bool:
     """Advance-reminder bubble to the citizen. Never raises."""
     try:
+        if await _email_channel(db, booking):
+            subject, body = build_reminder_email(booking)
+            if await send_booking_email(booking.email, subject, body):
+                return True
         return await _push_flex(
             db,
             user,

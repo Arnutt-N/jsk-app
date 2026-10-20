@@ -1,8 +1,53 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 287 active handoffs, 12 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 292 active handoffs, 12 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-10-19 23:15 — pi — completed
+
+Booking full-option program COMPLETE: phases 1-6 on feat/booking-full-option, single PR #279 opened (merged 4b5222b+71888e2, SMTP live-send deferred by operator)
+
+- Checkpoint: `.agents/state/checkpoints/handover-pi-20261019-2315.json`
+- Summary: `project-log-md/pi/session-summary-20261019-2315.md`
+
+---
+
+### 2026-10-19 20:02 — pi — completed
+
+Booking full-option phase 5 done on feat/booking-full-option (assignment migration live-tested, endpoint + gates, column/modal/chip, toggle OFF; d302446 pushed, no PR yet)
+
+- Checkpoint: `.agents/state/checkpoints/handover-pi-20261019-2002.json`
+- Summary: `project-log-md/pi/session-summary-20261019-2002.md`
+
+---
+
+### 2026-10-19 17:03 — pi — completed
+
+Booking full-option phase 4 done on feat/booking-full-option (reminder status column, resend endpoint + guard, toggle; 492070c pushed, no PR yet)
+
+- Checkpoint: `.agents/state/checkpoints/handover-pi-20261019-1703.json`
+- Summary: `project-log-md/pi/session-summary-20261019-1703.md`
+
+---
+
+### 2026-10-19 15:03 — pi — completed
+
+Booking full-option phase 3 done on feat/booking-full-option (month calendar, range wrapper, toggle; 6f76209 pushed, no PR yet)
+
+- Checkpoint: `.agents/state/checkpoints/handover-pi-20261019-1503.json`
+- Summary: `project-log-md/pi/session-summary-20261019-1503.md`
+
+---
+
+### 2026-10-19 08:58 — pi — completed
+
+Booking full-option phase 1+2 done on feat/booking-full-option (walk-in create, contact edit, search, pagination)
+
+- Checkpoint: `.agents/state/checkpoints/handover-pi-20261019-0858.json`
+- Summary: `project-log-md/pi/session-summary-20261019-0858.md`
+
+---
 
 ### 2026-10-19 02:28 — pi — completed
 

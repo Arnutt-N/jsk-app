@@ -61,6 +61,9 @@ const CONFIRMED: Booking = {
   contact_name: 'สมชาย ใจดี',
   phone_number: '0812345678',
   note: null,
+  reminder_sent_at: null,
+  assigned_staff_id: null,
+  email: null,
 }
 
 let fetchMock: ReturnType<typeof vi.fn>
@@ -87,6 +90,8 @@ function stubFetch(
     blackouts?: string[]
     /** Range cap to serve from /options as max_range_days (defaults: omit). */
     maxRangeDays?: number
+    /** Email channel flag to serve from /options as email_enabled (defaults: omit = off). */
+    emailEnabled?: boolean
     /** Make the range request hang (pins the flow on the date step). */
     rangeHang?: boolean
     /** Per-day override for the /availability/range response. */
@@ -107,6 +112,9 @@ function stubFetch(
         blackout_dates: overrides.blackouts ?? [],
         ...(overrides.maxRangeDays !== undefined && {
           max_range_days: overrides.maxRangeDays,
+        }),
+        ...(overrides.emailEnabled !== undefined && {
+          email_enabled: overrides.emailEnabled,
         }),
       })
     }
@@ -191,7 +199,7 @@ beforeEach(() => {
   window.sessionStorage.clear()
   process.env.NEXT_PUBLIC_LIFF_ID = 'test-liff-id'
   stubLiff()
-  stubFetch()
+  stubFetch({ emailEnabled: true })
 })
 
 describe('date selection', () => {
@@ -827,7 +835,7 @@ describe('draft restore', () => {
     window.sessionStorage.setItem(
       'liff-booking-draft',
       JSON.stringify({
-        version: 2,
+        version: 3,
         draft: {
           service: 'ปรึกษากฎหมาย',
           date: target,
@@ -837,6 +845,7 @@ describe('draft restore', () => {
           lastname: '',
           phoneNumber: '',
           note: '',
+          email: '',
           savedAt: Date.now(),
         },
       }),
@@ -983,6 +992,97 @@ describe('contact validation', () => {
     await user.type(screen.getByPlaceholderText('0812345678'), '0812345678')
     await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
     expect(screen.getByRole('heading', { name: 'ตรวจสอบและยืนยันการจอง' })).toBeInTheDocument()
+  })
+
+  it('stops Next and shows the shared wording for a malformed email', async () => {
+    const user = await walkToContact()
+    await user.type(screen.getByPlaceholderText('name@example.com'), 'not-an-email')
+    await user.click(screen.getByRole('button', { name: 'ถัดไป' }))
+    expect(screen.getByText('อีเมลไม่ถูกต้อง')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'ข้อมูลผู้จอง' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'ตรวจสอบและยืนยันการจอง' })).not.toBeInTheDocument()
+  })
+
+  it('lets an empty email through — email stays optional', async () => {
+    await walkToContact()
+    await userEvent.click(await screen.findByRole('button', { name: 'ถัดไป' }))
+    expect(screen.getByRole('heading', { name: 'ตรวจสอบและยืนยันการจอง' })).toBeInTheDocument()
+  })
+
+  it('carries a valid email to the summary', async () => {
+    const user = await walkToContact()
+    await user.type(screen.getByPlaceholderText('name@example.com'), 'citizen@example.com')
+    await user.click(screen.getByRole('button', { name: 'ถัดไป' }))
+    expect(screen.getByRole('heading', { name: 'ตรวจสอบและยืนยันการจอง' })).toBeInTheDocument()
+    expect(screen.getByText('อีเมล')).toBeInTheDocument()
+    expect(screen.getByText('citizen@example.com')).toBeInTheDocument()
+  })
+
+  it('sends null (keep) for email when editing while the channel is off', async () => {
+    stubFetch({})
+    const user = await bookToDone()
+    await user.click(screen.getByRole('button', { name: 'แก้ไขข้อมูล' }))
+    await userEvent.selectOptions(await screen.findByRole('combobox', { name: 'คำนำหน้า' }), 'นาย')
+    await user.click(screen.getByRole('button', { name: 'บันทึกการแก้ไข' }))
+    await screen.findByText('แก้ไขข้อมูลเรียบร้อย')
+    const patch = fetchMock.mock.calls.find(([, init]) => init?.method === 'PATCH')
+    expect(JSON.parse(String(patch?.[1]?.body)).email).toBeNull()
+  })
+
+  it('sends the typed email when editing while the channel is on', async () => {
+    const user = await walkToContact()
+    await userEvent.selectOptions(await screen.findByRole('combobox', { name: 'คำนำหน้า' }), 'นาย')
+    await user.type(screen.getByPlaceholderText('ชื่อจริง'), 'สมชาย')
+    await user.type(screen.getByPlaceholderText('นามสกุล'), 'ใจดี')
+    await user.type(screen.getByPlaceholderText('0812345678'), '0812345678')
+    await user.type(screen.getByPlaceholderText('name@example.com'), 'citizen@example.com')
+    await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
+    await user.click(screen.getByRole('button', { name: 'ยืนยันการจอง' }))
+    await screen.findByText('จองคิวสำเร็จ')
+    await user.click(screen.getByRole('button', { name: 'แก้ไขข้อมูล' }))
+    await userEvent.selectOptions(await screen.findByRole('combobox', { name: 'คำนำหน้า' }), 'นาย')
+    await user.click(screen.getByRole('button', { name: 'บันทึกการแก้ไข' }))
+    await screen.findByText('แก้ไขข้อมูลเรียบร้อย')
+    const patch = fetchMock.mock.calls.find(([, init]) => init?.method === 'PATCH')
+    expect(JSON.parse(String(patch?.[1]?.body)).email).toBe('citizen@example.com')
+  })
+
+  it('strips a stored email when the channel is off — no unfixable 422', async () => {
+    stubFetch({})
+    window.sessionStorage.setItem(
+      'liff-booking-draft',
+      JSON.stringify({
+        version: 3,
+        draft: {
+          service: 'ปรึกษากฎหมาย',
+          date: isoFromToday(1),
+          slotId: '09:30:00',
+          prefix: 'นาย',
+          firstname: 'สมชาย',
+          lastname: 'ใจดี',
+          phoneNumber: '0812345678',
+          note: '',
+          email: 'stale@example.com',
+          savedAt: Date.now(),
+        },
+      }),
+    )
+    const user = userEvent.setup()
+    renderPage()
+    expect(await screen.findByRole('heading', { name: 'ข้อมูลผู้จอง' })).toBeInTheDocument()
+    expect(screen.queryByPlaceholderText('name@example.com')).not.toBeInTheDocument()
+    const nextName = 'ถัดไป'
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: nextName })).toBeEnabled(),
+    )
+    await user.click(screen.getByRole('button', { name: nextName }))
+    expect(screen.getByRole('heading', { name: 'ตรวจสอบและยืนยันการจอง' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'ยืนยันการจอง' }))
+    await screen.findByText('จองคิวสำเร็จ')
+    const post = fetchMock.mock.calls.find(
+      ([url, init]) => init?.method === 'POST' && !String(url).endsWith('/cancel'),
+    )
+    expect(JSON.parse(String(post?.[1]?.body)).email).toBe('')
   })
 
   it('asks for the missing trio parts before leaving the contact step', async () => {

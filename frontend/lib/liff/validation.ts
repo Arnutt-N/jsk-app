@@ -2,6 +2,13 @@ import { isNamePrefix } from '@/lib/constants/prefixes'
 
 const PHONE_DIGITS = /^\+?[0-9]{9,15}$/
 
+const EMAIL_PATTERN = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/
+
+export function isValidEmail(raw: string): boolean {
+  const cleaned = raw.trim()
+  return cleaned.length > 0 && cleaned.length <= 254 && EMAIL_PATTERN.test(cleaned)
+}
+
 export function normalizePhone(raw: string): string {
   return raw.trim().replace(/[-\s]/g, '')
 }
@@ -15,6 +22,7 @@ export interface BookingContactInput {
   firstname: string
   lastname: string
   phoneNumber: string
+  email: string
 }
 
 export interface BookingContactErrors {
@@ -22,6 +30,7 @@ export interface BookingContactErrors {
   firstname?: string
   lastname?: string
   phoneNumber?: string
+  email?: string
 }
 
 export function composeContactName(parts: {
@@ -59,6 +68,7 @@ export function validateBookingContact(input: BookingContactInput): BookingConta
   const firstname = input.firstname.trim()
   const lastname = input.lastname.trim()
   const phoneNumber = input.phoneNumber.trim()
+  const email = input.email.trim()
   if (prefix || firstname || lastname) {
     if (!prefix) errors.prefix = 'กรุณาเลือกคำนำหน้า'
     if (!firstname) errors.firstname = 'กรุณาระบุชื่อ'
@@ -66,5 +76,7 @@ export function validateBookingContact(input: BookingContactInput): BookingConta
   }
   if (phoneNumber && !isValidPhone(phoneNumber))
     errors.phoneNumber = 'หมายเลขโทรศัพท์ไม่ถูกต้อง'
+  if (email && !isValidEmail(email))
+    errors.email = 'อีเมลไม่ถูกต้อง'
   return errors
 }

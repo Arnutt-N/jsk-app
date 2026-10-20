@@ -130,6 +130,15 @@ class Settings(BaseSettings):
     SLA_MAX_QUEUE_WAIT_SECONDS: int = 300
     SLA_ALERT_TELEGRAM_ENABLED: bool = False
 
+    # Outbound email for booking confirmations/reminders (quota saver).
+    # An empty host disables the email channel; sends fall back to LINE push.
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USERNAME: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM: str = ""
+    SMTP_USE_TLS: bool = True
+
     model_config = SettingsConfigDict(
         env_ignore_empty=True,
         extra="ignore"

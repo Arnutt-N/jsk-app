@@ -41,6 +41,7 @@ const SAVED: BookingDraft = {
   lastname: 'ใจดี',
   phoneNumber: '0812345678',
   note: 'มาก่อนเวลานัด',
+  email: '',
   savedAt: 1_000_000,
 }
 
@@ -53,6 +54,7 @@ const EMPTY_LITERAL = {
   lastname: '',
   phoneNumber: '',
   note: '',
+  email: '',
   savedAt: 0,
 }
 
@@ -82,6 +84,13 @@ describe('loadDraft', () => {
   it('reads empty on a version mismatch', () => {
     const storage = memoryStorage(stored(SAVED, DRAFT_VERSION + 1))
     expect(loadDraft(storage, SAVED.savedAt + 1_000)).toEqual(EMPTY_LITERAL)
+  })
+
+  it('upgrades a v2 draft by defaulting the missing email', () => {
+    const { email: _dropped, ...v2 } = SAVED
+    void _dropped
+    const storage = memoryStorage(stored(v2, 2))
+    expect(loadDraft(storage, SAVED.savedAt + 1_000)).toEqual({ ...v2, email: '' })
   })
 
   it('ignores v1 drafts that still carry the single contactName string', () => {

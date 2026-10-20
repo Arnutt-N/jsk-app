@@ -93,6 +93,14 @@ class BookingConfig:
     reminder_enabled: bool
     reminder_lead_value: int
     reminder_lead_unit: ReminderUnit
+    # Counter walk-ins bypass the public master switch (the counter works even
+    # when online booking is closed), so they need their own kill switch.
+    # Defaulted last so existing BookingConfig(...) call sites keep working.
+    walkin_enabled: bool = True
+    calendar_enabled: bool = True
+    resend_enabled: bool = True
+    assign_enabled: bool = False
+    email_enabled: bool = False
 
     @property
     def reminder_lead(self) -> timedelta:
@@ -140,14 +148,19 @@ def compute_slots(
     config: BookingConfig,
     booked_counts: Mapping[time, int],
     now_local: datetime,
+    enforce_enabled: bool = True,
 ) -> list[SlotAvailability]:
     """Return the bookable slots for ``target_date``, with remaining capacity.
 
     ``day_hours`` is the business-hours row for that date's weekday (or None when
     none is configured). ``booked_counts`` maps a slot start time to the number
     of active bookings already held in it.
+
+    The public master switch defaults to enforced here so a future caller that
+    forgets the API-boundary gate still fails closed; the counter passes
+    ``enforce_enabled=False`` for its deliberate bypass.
     """
-    if not config.enabled:
+    if enforce_enabled and not config.enabled:
         return []
     if day_hours is None or not day_hours.is_open:
         return []
@@ -274,8 +287,11 @@ async def create_booking(
     contact_name: Optional[str],
     phone_number: Optional[str],
     note: Optional[str],
+    email: Optional[str] = None,
+    idempotency_key: Optional[str] = None,
     config: BookingConfig,
     day_hours: Optional[BusinessHours],
+    enforce_enabled: bool = True,
 ) -> Booking:
     """Create a CONFIRMED booking, or raise a `BookingError` subclass.
 
@@ -296,6 +312,7 @@ async def create_booking(
         config=config,
         booked_counts={},
         now_local=local_now(),
+        enforce_enabled=enforce_enabled,
     )
     if booking_time not in {slot.start for slot in available}:
         raise SlotUnavailableError(f"{booking_date} {booking_time}")
@@ -317,6 +334,8 @@ async def create_booking(
         contact_name=contact_name,
         phone_number=phone_number,
         note=note,
+        email=email or None,
+        idempotency_key=idempotency_key or None,
         status=BookingStatus.CONFIRMED,
         queue_number=await _next_queue_number(db, booking_date),
     )
@@ -353,7 +372,12 @@ async def get_booked_counts(
 
 
 async def get_availability(
-    db: AsyncSession, *, service_type: str, target_date: date, config: BookingConfig
+    db: AsyncSession,
+    *,
+    service_type: str,
+    target_date: date,
+    config: BookingConfig,
+    enforce_enabled: bool = True,
 ) -> list[SlotAvailability]:
     """Slots and remaining capacity for one service on one day."""
     if service_type not in config.service_types:
@@ -367,6 +391,7 @@ async def get_availability(
         config=config,
         booked_counts=booked_counts,
         now_local=local_now(),
+        enforce_enabled=enforce_enabled,
     )
 
 
@@ -485,7 +510,13 @@ async def cancel_booking(db: AsyncSession, booking: Booking) -> Booking:
 
 
 async def update_booking_contact(
-    db: AsyncSession, booking: Booking, *, contact_name, phone_number, note
+    db: AsyncSession,
+    booking: Booking,
+    *,
+    contact_name: Optional[str],
+    phone_number: Optional[str],
+    note: Optional[str],
+    email: Optional[str] = None,
 ) -> Booking:
     """Edit a citizen's contact fields on a still-editable booking.
 
@@ -506,6 +537,8 @@ async def update_booking_contact(
         booking.phone_number = phone_number
     if note is not None:
         booking.note = note
+    if email is not None:
+        booking.email = email or None
     await db.flush()
     return booking
 

@@ -50,6 +50,9 @@ export interface Booking {
   contact_name: string | null
   phone_number: string | null
   note: string | null
+  reminder_sent_at: string | null
+  assigned_staff_id: number | null
+  email: string | null
 }
 
 export interface BookingSettings {
@@ -62,6 +65,12 @@ export interface BookingSettings {
   reminder_enabled: boolean
   reminder_lead_value: number
   reminder_lead_unit: ReminderUnit
+  // Absent in payloads saved before the toggle existed — treat missing as enabled.
+  walkin_enabled?: boolean
+  calendar_enabled?: boolean
+  resend_enabled?: boolean
+  assign_enabled?: boolean
+  email_enabled?: boolean
 }
 
 export const BOOKING_STATUS_LABELS: Record<BookingStatus, string> = {
@@ -248,6 +257,17 @@ export async function fetchAvailabilityRange(
   return res.json()
 }
 
+export async function fetchAdminAvailabilityRange(
+  serviceType: string,
+  from: string,
+  to: string,
+): Promise<AvailabilityRange> {
+  const query = new URLSearchParams({ service_type: serviceType, from, to })
+  const res = await fetch(`${ADMIN_BASE}/availability/range?${query}`)
+  if (!res.ok) throw new Error(await readError(res, 'ไม่สามารถโหลดความเต็มของปฏิทินได้'))
+  return res.json()
+}
+
 export async function submitBooking(
   idToken: string,
   payload: {
@@ -257,6 +277,7 @@ export async function submitBooking(
     contact_name?: string | null
     phone_number?: string | null
     note?: string | null
+    email?: string | null
   },
 ): Promise<Booking> {
   const res = await fetch(LIFF_BASE, {
@@ -290,6 +311,7 @@ export async function updateBookingContact(
     contact_name?: string | null
     phone_number?: string | null
     note?: string | null
+    email?: string | null
   },
 ): Promise<Booking> {
   const res = await fetch(`${LIFF_BASE}/${bookingId}`, {
@@ -305,11 +327,19 @@ export async function fetchAdminBookings(params: {
   date?: string
   status?: BookingStatus
   serviceType?: string
+  search?: string
+  unassignedOnly?: boolean
+  limit?: number
+  offset?: number
 }): Promise<Booking[]> {
   const query = new URLSearchParams()
   if (params.date) query.set('date', params.date)
   if (params.status) query.set('status', params.status)
   if (params.serviceType) query.set('service_type', params.serviceType)
+  if (params.search) query.set('q', params.search)
+  if (params.unassignedOnly) query.set('unassigned_only', 'true')
+  if (params.limit !== undefined) query.set('limit', String(params.limit))
+  if (params.offset) query.set('offset', String(params.offset))
   const res = await fetch(`${ADMIN_BASE}?${query}`)
   if (!res.ok) throw new Error(await readError(res, 'ไม่สามารถโหลดรายการจองได้'))
   return res.json()
@@ -323,6 +353,93 @@ export async function updateBookingStatus(
     method: 'PATCH',
   })
   if (!res.ok) throw new Error(await readError(res, 'อัปเดตสถานะไม่สำเร็จ'))
+  return res.json()
+}
+
+export async function assignBooking(
+  bookingId: number,
+  staffId: number | null,
+): Promise<Booking> {
+  const res = await fetch(`${ADMIN_BASE}/${bookingId}/assignment`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ assigned_staff_id: staffId }),
+  })
+  if (!res.ok) throw new Error(await readError(res, 'มอบหมายคิวไม่สำเร็จ'))
+  return res.json()
+}
+
+export interface StaffDirectoryEntry {
+  id: number
+  display_name: string
+}
+
+function isStaffDirectoryEntry(value: unknown): value is StaffDirectoryEntry {
+  if (typeof value !== 'object' || value === null) return false
+  const entry = value as Record<string, unknown>
+  return typeof entry.id === 'number' && typeof entry.display_name === 'string'
+}
+
+export async function fetchStaffDirectory(): Promise<StaffDirectoryEntry[]> {
+  const res = await fetch(`${API_BASE}/admin/users/workload`)
+  if (!res.ok) throw new Error(await readError(res, 'ไม่สามารถโหลดรายชื่อเจ้าหน้าที่ได้'))
+  const body: unknown = await res.json()
+  if (!Array.isArray(body)) throw new Error('ไม่สามารถโหลดรายชื่อเจ้าหน้าที่ได้')
+  return body.filter(isStaffDirectoryEntry)
+}
+
+export async function resendBookingReminder(bookingId: number): Promise<Booking> {
+  const res = await fetch(`${ADMIN_BASE}/${bookingId}/remind`, {
+    method: 'POST',
+  })
+  if (!res.ok) throw new Error(await readError(res, 'ส่งเตือนซ้ำไม่สำเร็จ'))
+  return res.json()
+}
+
+export async function createWalkinBooking(payload: {
+  service_type: string
+  booking_date: string
+  booking_time: string
+  contact_name?: string | null
+  phone_number?: string | null
+  note?: string | null
+  email?: string | null
+  idempotency_key?: string | null
+}): Promise<Booking> {
+  const res = await fetch(ADMIN_BASE, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  if (!res.ok) throw new Error(await readError(res, 'เพิ่มคิวนอกไม่สำเร็จ'))
+  return res.json()
+}
+
+export async function updateAdminBookingContact(
+  bookingId: number,
+  payload: {
+    contact_name?: string | null
+    phone_number?: string | null
+    note?: string | null
+    email?: string | null
+  },
+): Promise<Booking> {
+  const res = await fetch(`${ADMIN_BASE}/${bookingId}/contact`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  if (!res.ok) throw new Error(await readError(res, 'แก้ไขข้อมูลไม่สำเร็จ'))
+  return res.json()
+}
+
+export async function fetchAdminAvailability(
+  serviceType: string,
+  date: string,
+): Promise<Availability> {
+  const query = new URLSearchParams({ service_type: serviceType, date })
+  const res = await fetch(`${ADMIN_BASE}/availability?${query}`)
+  if (!res.ok) throw new Error(await readError(res, 'ไม่สามารถโหลดช่วงเวลาที่ว่างได้'))
   return res.json()
 }
 

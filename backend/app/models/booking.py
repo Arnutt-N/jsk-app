@@ -27,7 +27,7 @@ class Booking(Base):
     id = Column(Integer, primary_key=True, index=True)
 
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    user = relationship("User", back_populates="bookings")
+    user = relationship("User", back_populates="bookings", foreign_keys=[user_id])
 
     service_type = Column(String, nullable=False)
     booking_date = Column(Date, nullable=False)
@@ -43,6 +43,7 @@ class Booking(Base):
     contact_name = Column(String(120), nullable=True)
     phone_number = Column(String(20), nullable=True)
     note = Column(Text, nullable=True)
+    email = Column(String(254), nullable=True)
 
     # Claim marker for the advance-reminder scheduler. Must stay NULL on insert:
     # the guard is `UPDATE ... WHERE reminder_sent_at IS NULL`, so any default
@@ -50,6 +51,11 @@ class Booking(Base):
     reminder_sent_at = Column(DateTime(timezone=True), nullable=True)
 
     cancelled_at = Column(DateTime(timezone=True), nullable=True)
+
+    assigned_staff_id = Column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    idempotency_key = Column(String(36), unique=True, index=True, nullable=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

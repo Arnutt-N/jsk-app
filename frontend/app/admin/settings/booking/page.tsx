@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Alert } from '@/components/ui/Alert'
 import { Button } from '@/components/ui/Button'
+import { Select } from '@/components/ui/Select'
 import CalendarPickerTH from '@/components/ui/CalendarPickerTH'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { Plus, Save, X } from 'lucide-react'
@@ -115,6 +116,102 @@ export default function BookingSettingsPage() {
             type="checkbox"
             checked={settings.enabled}
             onChange={(e) => update('enabled', e.target.checked)}
+            className="h-5 w-5 accent-emerald-600"
+          />
+        </label>
+      </section>
+
+      {/* Counter walk-ins */}
+      <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
+        <label className="flex items-center justify-between gap-4">
+          <span>
+            <span className="block font-medium text-slate-900 dark:text-slate-100">
+              เคาน์เตอร์เพิ่มคิวนอกได้
+            </span>
+            <span className="block text-sm text-slate-500">
+              ปิดไว้ปุ่ม “เพิ่มคิวนอก” กับ “แก้ข้อมูล” จะหายจากหน้าคิวนัดหมาย และการเรียก API ตรงจะถูกปฏิเสธ
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            checked={settings.walkin_enabled ?? true}
+            onChange={(e) => update('walkin_enabled', e.target.checked)}
+            className="h-5 w-5 accent-emerald-600"
+          />
+        </label>
+      </section>
+
+      <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
+        <label className="flex items-center justify-between gap-4">
+          <span>
+            <span className="block font-medium text-slate-900 dark:text-slate-100">
+              แสดงปฏิทินรายเดือน
+            </span>
+            <span className="block text-sm text-slate-500">
+              ปิดไว้แถบสลับมุมมองปฏิทินจะหายจากหน้าคิวนัดหมาย และการดูความเต็มรายเดือนจะถูกปฏิเสธ (ช่องว่างรายวันของคิวนอกยังใช้ได้)
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            checked={settings.calendar_enabled ?? true}
+            onChange={(e) => update('calendar_enabled', e.target.checked)}
+            className="h-5 w-5 accent-emerald-600"
+          />
+        </label>
+      </section>
+
+      <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
+        <label className="flex items-center justify-between gap-4">
+          <span>
+            <span className="block font-medium text-slate-900 dark:text-slate-100">
+              เคาน์เตอร์ส่งเตือนซ้ำได้
+            </span>
+            <span className="block text-sm text-slate-500">
+              ปิดไว้ปุ่ม “ส่งเตือนซ้ำ” จะหายจากหน้าคิวนัดหมาย และการเรียก API ตรงจะถูกปฏิเสธ
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            checked={settings.resend_enabled ?? true}
+            onChange={(e) => update('resend_enabled', e.target.checked)}
+            className="h-5 w-5 accent-emerald-600"
+          />
+        </label>
+      </section>
+
+      <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
+        <label className="flex items-center justify-between gap-4">
+          <span>
+            <span className="block font-medium text-slate-900 dark:text-slate-100">
+              รับการยืนยันและเตือนทางอีเมล
+            </span>
+            <span className="block text-sm text-slate-500">
+              ปิดไว้ช่องกรอกอีเมลจะหายจากหน้าจอง และการส่งจะกลับไปทาง LINE ทั้งหมด
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            checked={settings.email_enabled ?? false}
+            onChange={(e) => update('email_enabled', e.target.checked)}
+            className="h-5 w-5 accent-emerald-600"
+          />
+        </label>
+      </section>
+
+      <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
+        <label className="flex items-center justify-between gap-4">
+          <span>
+            <span className="block font-medium text-slate-900 dark:text-slate-100">
+              เคาน์เตอร์มอบหมายคิวได้
+            </span>
+            <span className="block text-sm text-slate-500">
+              ปิดไว้คอลัมน์ผู้รับผิดชอบกับปุ่ม “มอบหมาย” จะหายจากหน้าคิวนัดหมาย และการเรียก API ตรงจะถูกปฏิเสธ เปิดเมื่อพร้อมผังเจ้าหน้าที่แล้วเท่านั้น
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            checked={settings.assign_enabled ?? false}
+            onChange={(e) => update('assign_enabled', e.target.checked)}
             className="h-5 w-5 accent-emerald-600"
           />
         </label>
@@ -280,14 +377,14 @@ export default function BookingSettingsPage() {
             </label>
             <label className="block">
               <span className="mb-1 block text-sm text-slate-500">หน่วย</span>
-              <select
+              <Select
                 value={settings.reminder_lead_unit}
                 onChange={(e) => update('reminder_lead_unit', e.target.value as ReminderUnit)}
-                className="rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800"
-              >
-                <option value="DAY">วัน</option>
-                <option value="HOUR">ชั่วโมง</option>
-              </select>
+                options={[
+                  { value: 'DAY', label: 'วัน' },
+                  { value: 'HOUR', label: 'ชั่วโมง' },
+                ]}
+              />
             </label>
           </div>
         )}

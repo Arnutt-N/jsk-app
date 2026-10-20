@@ -9,6 +9,7 @@ export interface BookingDraft {
   lastname: string
   phoneNumber: string
   note: string
+  email: string
   savedAt: number
 }
 
@@ -21,6 +22,7 @@ export const EMPTY_DRAFT: BookingDraft = {
   lastname: '',
   phoneNumber: '',
   note: '',
+  email: '',
   savedAt: 0,
 }
 
@@ -32,7 +34,7 @@ export type DraftAction =
   | { type: 'slot/set'; slotId: string | null }
   | {
       type: 'contact/set'
-      contact: { prefix?: string; firstname?: string; lastname?: string; phoneNumber?: string; note?: string }
+      contact: { prefix?: string; firstname?: string; lastname?: string; phoneNumber?: string; note?: string; email?: string }
     }
   | { type: 'section/clear'; section: DraftSection }
   | { type: 'draft/reset' }
@@ -46,7 +48,7 @@ function clearSection(state: BookingDraft, section: DraftSection): BookingDraft 
     case 'slot':
       return { ...state, slotId: null }
     case 'contact':
-      return { ...state, prefix: '', firstname: '', lastname: '', phoneNumber: '' }
+      return { ...state, prefix: '', firstname: '', lastname: '', phoneNumber: '', email: '' }
   }
 }
 
@@ -72,13 +74,15 @@ export function draftReducer(state: BookingDraft, action: DraftAction): BookingD
         lastname: action.contact.lastname ?? state.lastname,
         phoneNumber: action.contact.phoneNumber ?? state.phoneNumber,
         note: action.contact.note ?? state.note,
+        email: action.contact.email ?? state.email,
       }
       if (
         next.prefix === state.prefix &&
         next.firstname === state.firstname &&
         next.lastname === state.lastname &&
         next.phoneNumber === state.phoneNumber &&
-        next.note === state.note
+        next.note === state.note &&
+        next.email === state.email
       ) {
         return state
       }
@@ -94,7 +98,8 @@ export function draftReducer(state: BookingDraft, action: DraftAction): BookingD
         next.firstname === state.firstname &&
         next.lastname === state.lastname &&
         next.phoneNumber === state.phoneNumber &&
-        next.note === state.note
+        next.note === state.note &&
+        next.email === state.email
       ) {
         return state
       }
@@ -111,7 +116,7 @@ export function draftReducer(state: BookingDraft, action: DraftAction): BookingD
 }
 
 export const DRAFT_STORAGE_KEY = 'liff-booking-draft'
-export const DRAFT_VERSION = 2
+export const DRAFT_VERSION = 3
 export const DRAFT_TTL_MS = 30 * 60 * 1000
 
 export interface DraftStorage {
@@ -140,6 +145,22 @@ function isBookingDraft(value: unknown): value is BookingDraft {
     typeof value.lastname === 'string' &&
     typeof value.phoneNumber === 'string' &&
     typeof value.note === 'string' &&
+    typeof value.email === 'string' &&
+    typeof value.savedAt === 'number'
+  )
+}
+
+function isBookingDraftV2(value: unknown): value is Omit<BookingDraft, 'email'> {
+  if (!isRecord(value)) return false
+  return (
+    (value.service === null || typeof value.service === 'string') &&
+    (value.date === null || typeof value.date === 'string') &&
+    (value.slotId === null || typeof value.slotId === 'string') &&
+    typeof value.prefix === 'string' &&
+    typeof value.firstname === 'string' &&
+    typeof value.lastname === 'string' &&
+    typeof value.phoneNumber === 'string' &&
+    typeof value.note === 'string' &&
     typeof value.savedAt === 'number'
   )
 }
@@ -153,11 +174,16 @@ export function loadDraft(
     if (!raw) return EMPTY_DRAFT
     const parsed: unknown = JSON.parse(raw)
     if (!isRecord(parsed)) return EMPTY_DRAFT
-    if (parsed.version !== DRAFT_VERSION) return EMPTY_DRAFT
-    if (!isBookingDraft(parsed.draft)) return EMPTY_DRAFT
-    if (!Number.isFinite(parsed.draft.savedAt)) return EMPTY_DRAFT
-    if (now - parsed.draft.savedAt > DRAFT_TTL_MS) return EMPTY_DRAFT
-    return parsed.draft
+    let draft: unknown = parsed.draft
+    if (parsed.version === 2 && isBookingDraftV2(parsed.draft)) {
+      draft = { ...parsed.draft, email: '' }
+    } else if (parsed.version !== DRAFT_VERSION) {
+      return EMPTY_DRAFT
+    }
+    if (!isBookingDraft(draft)) return EMPTY_DRAFT
+    if (!Number.isFinite(draft.savedAt)) return EMPTY_DRAFT
+    if (now - draft.savedAt > DRAFT_TTL_MS) return EMPTY_DRAFT
+    return draft
   } catch {
     return EMPTY_DRAFT
   }
