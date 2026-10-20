@@ -7,6 +7,7 @@ reminders go out at all — is an administrator action and is audit-logged.
 import logging
 from datetime import date as date_type
 from datetime import datetime, timedelta
+from time import monotonic
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
@@ -30,6 +31,7 @@ from app.schemas.booking import (
     BookingSettingsOut,
     BookingUpdateIn,
     DayAvailabilityOut,
+    LineQuotaOut,
     SlotOut,
 )
 from app.core.permissions import can_assign, can_self_assign
@@ -50,6 +52,7 @@ from app.services.booking_service import (
     UnknownServiceTypeError,
 )
 from app.services.booking_settings import load_booking_config, save_booking_config
+from app.services.line_service import line_service
 
 logger = logging.getLogger(__name__)
 
@@ -578,7 +581,44 @@ async def get_booking_settings(
         resend_enabled=config.resend_enabled,
         assign_enabled=config.assign_enabled,
         email_enabled=config.email_enabled,
+        line_enabled=config.line_enabled,
     )
+
+
+_QUOTA_CACHE_TTL_SECONDS = 300.0
+
+_cached_quota: LineQuotaOut | None = None
+_cached_quota_at = 0.0
+
+
+@router.get(
+    "/line-quota",
+    response_model=LineQuotaOut,
+    summary="Read LINE push-message quota",
+)
+async def get_line_quota(
+    db: AsyncSession = Depends(get_db),
+    _staff=Depends(get_current_staff),
+):
+    """Quota / consumption / remaining for LINE 1:1 pushes.
+
+    Read-only and informational: the toggles stay the control. Cached briefly
+    so every settings-page visit does not hit the LINE API; an upstream
+    failure surfaces as 502 with a Thai detail (never a silent blank that
+    looks like zero quota).
+    """
+    global _cached_quota, _cached_quota_at
+    now = monotonic()
+    if _cached_quota is not None and (now - _cached_quota_at) < _QUOTA_CACHE_TTL_SECONDS:
+        return _cached_quota
+    try:
+        quota_data = await line_service.get_push_quota()
+    except Exception as exc:
+        logger.error("LINE quota read failed: %s", exc)
+        raise HTTPException(status_code=502, detail="อ่านโควต้า LINE ไม่สำเร็จ กรุณาลองใหม่") from exc
+    _cached_quota = LineQuotaOut(**quota_data)
+    _cached_quota_at = now
+    return _cached_quota
 
 
 @router.put(
@@ -609,6 +649,9 @@ async def update_booking_settings(
         email_enabled=payload.email_enabled
         if payload.email_enabled is not None
         else stored.email_enabled,
+        line_enabled=payload.line_enabled
+        if payload.line_enabled is not None
+        else stored.line_enabled,
     )
     await save_booking_config(db, config)
     await create_audit_log(
@@ -626,5 +669,9 @@ async def update_booking_settings(
     )
     await db.commit()
     return BookingSettingsOut(
-        **{**payload.model_dump(), "email_enabled": config.email_enabled}
+        **{
+            **payload.model_dump(),
+            "email_enabled": config.email_enabled,
+            "line_enabled": config.line_enabled,
+        }
     )

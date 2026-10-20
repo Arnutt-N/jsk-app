@@ -249,6 +249,29 @@ class LineService:
             ),
         )
 
+    async def get_push_quota(self) -> dict:
+        """Monthly push-message quota, consumption, and remainder.
+
+        Pure read used by the admin quota display. `quota`/`remaining` are
+        None on an unlimited plan (LINE returns no value then). Raises on
+        upstream failure so the endpoint can map it to a 502.
+        """
+        quota_resp = await self._call_with_circuit(
+            "get_message_quota",
+            lambda: self.api.get_message_quota(),
+        )
+        consumption_resp = await self._call_with_circuit(
+            "get_message_quota_consumption",
+            lambda: self.api.get_message_quota_consumption(),
+        )
+        quota = getattr(quota_resp, "value", None)
+        used = getattr(consumption_resp, "total_usage", 0) or 0
+        return {
+            "quota": quota,
+            "consumption": used,
+            "remaining": (quota - used) if quota is not None else None,
+        }
+
     async def show_loading_animation(self, chat_id: str, loading_seconds: int = 20):
         try:
             await self._call_with_circuit(
