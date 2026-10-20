@@ -127,7 +127,9 @@ async def test_unassign_clears_the_holder():
 async def test_reassigning_the_same_holder_is_a_no_op():
     db = AsyncMock()
     booking = _stored_booking(assigned_staff_id=5)
-    db.get = AsyncMock(side_effect=[booking])
+    db.get = AsyncMock(
+        side_effect=[booking, SimpleNamespace(id=5, role="AGENT", is_active=True)]
+    )
     with patch.object(
         admin_bookings, "load_booking_config", new=AsyncMock(return_value=_config())
     ), patch.object(admin_bookings, "create_audit_log", new=AsyncMock()) as audit:
@@ -138,6 +140,22 @@ async def test_reassigning_the_same_holder_is_a_no_op():
     assert result.assigned_staff_id == 5
     audit.assert_not_awaited()
     db.commit.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_reassigning_a_legacy_invalid_holder_is_flagged():
+    db = AsyncMock()
+    booking = _stored_booking(assigned_staff_id=9)
+    db.get = AsyncMock(
+        side_effect=[booking, SimpleNamespace(id=9, role="USER", is_active=True)]
+    )
+    with patch.object(
+        admin_bookings, "load_booking_config", new=AsyncMock(return_value=_config())
+    ), pytest.raises(HTTPException) as exc:
+        await _call(
+            db, BookingAssignIn(assigned_staff_id=9), staff=_staff(role="AGENT")
+        )
+    assert exc.value.status_code == 422
 
 
 @pytest.mark.asyncio

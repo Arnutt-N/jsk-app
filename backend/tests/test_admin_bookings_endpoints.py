@@ -158,13 +158,15 @@ async def test_settings_update_is_persisted_and_audit_logged():
     db = AsyncMock()
     payload = BookingSettingsIn(**_settings_payload(reminder_lead_value=3, reminder_lead_unit=ReminderUnit.HOUR))
 
-    with patch.object(admin_bookings, "save_booking_config", new=AsyncMock()) as save, \
+    with patch.object(admin_bookings, "load_booking_config", new=AsyncMock(return_value=SimpleNamespace(email_enabled=True))), \
+         patch.object(admin_bookings, "save_booking_config", new=AsyncMock()) as save, \
          patch.object(admin_bookings, "create_audit_log", new=AsyncMock()) as audit:
         result = await admin_bookings.update_booking_settings(
             payload, db=db, admin=SimpleNamespace(id=5)
         )
 
     saved_config = save.await_args.args[1]
+    assert saved_config.email_enabled is True
     assert saved_config.reminder_lead_value == 3
     assert saved_config.reminder_lead_unit is ReminderUnit.HOUR
     assert saved_config.blackout_dates == frozenset({date(2026, 12, 5)})
@@ -174,6 +176,22 @@ async def test_settings_update_is_persisted_and_audit_logged():
     assert kwargs["details"]["reminder_lead"] == "3 HOUR"
     assert result.reminder_lead_value == 3
     db.commit.assert_awaited()
+
+
+@pytest.mark.asyncio
+async def test_settings_update_with_explicit_email_choice_is_honored():
+    db = AsyncMock()
+    payload = BookingSettingsIn(**_settings_payload(email_enabled=False))
+
+    with patch.object(admin_bookings, "load_booking_config", new=AsyncMock(return_value=SimpleNamespace(email_enabled=True))), \
+         patch.object(admin_bookings, "save_booking_config", new=AsyncMock()) as save, \
+         patch.object(admin_bookings, "create_audit_log", new=AsyncMock()):
+        result = await admin_bookings.update_booking_settings(
+            payload, db=db, admin=SimpleNamespace(id=5)
+        )
+
+    assert save.await_args.args[1].email_enabled is False
+    assert result.email_enabled is False
 
 
 # --- list ordering ---

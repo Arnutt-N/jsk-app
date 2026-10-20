@@ -121,7 +121,11 @@ async def counter_availability(
     config = await load_booking_config(db, fresh=True)
     try:
         slots = await booking_service.get_availability(
-            db, service_type=service_type, target_date=booking_date, config=config
+            db,
+            service_type=service_type,
+            target_date=booking_date,
+            config=config,
+            enforce_enabled=False,
         )
     except UnknownServiceTypeError:
         raise HTTPException(status_code=404, detail="ไม่พบบริการที่เลือก")
@@ -181,6 +185,14 @@ async def _find_by_idempotency_key(db: AsyncSession, key: str) -> Booking | None
     return result.scalar_one_or_none()
 
 
+def _same_booking_request(booking: Booking, payload: BookingCreate) -> bool:
+    return (
+        booking.service_type == payload.service_type
+        and booking.booking_date == payload.booking_date
+        and booking.booking_time == payload.booking_time
+    )
+
+
 @router.post(
     "",
     response_model=BookingOut,
@@ -213,6 +225,11 @@ async def create_walkin_booking(
     if payload.idempotency_key:
         found = await _find_by_idempotency_key(db, payload.idempotency_key)
         if found is not None:
+            if not _same_booking_request(found, payload):
+                raise HTTPException(
+                    status_code=422,
+                    detail="คีย์นี้ถูกใช้กับรายละเอียดอื่นแล้ว กรุณารีเฟรชเพื่อรับคีย์ใหม่",
+                )
             return BookingOut.model_validate(found)
 
     user = User(display_name=payload.contact_name or "ผู้มาติดต่อ")
@@ -233,6 +250,7 @@ async def create_walkin_booking(
             idempotency_key=payload.idempotency_key,
             config=config,
             day_hours=day_hours,
+            enforce_enabled=False,
         )
     except UnknownServiceTypeError:
         raise HTTPException(status_code=404, detail="ไม่พบบริการที่เลือก")
@@ -248,19 +266,33 @@ async def create_walkin_booking(
     except DuplicateBookingError:
         raise HTTPException(status_code=409, detail="ช่วงเวลานี้ถูกจองแล้ว")
     except IntegrityError:
+        logger.warning(
+            "walkin booking integrity failure (key=%r)",
+            payload.idempotency_key,
+            exc_info=True,
+        )
         await db.rollback()
         if payload.idempotency_key:
             # Deliberately any integrity failure, not only the key: a counter
             # double-submit must replay-or-retry, never mint a second row.
             found = await _find_by_idempotency_key(db, payload.idempotency_key)
             if found is not None:
+                if not _same_booking_request(found, payload):
+                    raise HTTPException(
+                        status_code=422,
+                        detail="คีย์นี้ถูกใช้กับรายละเอียดอื่นแล้ว กรุณารีเฟรชเพื่อรับคีย์ใหม่",
+                    )
                 return BookingOut.model_validate(found)
         raise HTTPException(status_code=409, detail="บันทึกล้มเหลว กรุณารีเฟรชแล้วลองใหม่")
 
     await db.commit()
     await db.refresh(booking)
 
-    await notify_booking_confirmed(db, booking, user)
+    citizen_notified = await notify_booking_confirmed(db, booking, user)
+    if not citizen_notified:
+        logger.warning(
+            "walkin booking %s created without citizen confirmation", booking.id
+        )
     await notify_staff_new_booking(db, booking)
 
     await create_audit_log(
@@ -274,6 +306,7 @@ async def create_walkin_booking(
             "date": booking.booking_date.isoformat(),
             "time": booking.booking_time.isoformat(),
             "queue_number": booking.queue_number,
+            "confirmation_sent": citizen_notified,
         },
     )
     await db.commit()
@@ -365,6 +398,7 @@ async def resend_booking_reminder(
     claimed = await db.execute(
         update(Booking)
         .where(Booking.id == booking_id)
+        .where(Booking.status == BookingStatus.CONFIRMED)
         .where(
             or_(
                 Booking.reminder_sent_at.is_(None),
@@ -468,6 +502,18 @@ async def assign_booking_staff(
 
     target_id = payload.assigned_staff_id
     if target_id == booking.assigned_staff_id:
+        if target_id is not None:
+            legacy = await db.get(User, target_id)
+            if legacy is None:
+                raise HTTPException(status_code=404, detail="ไม่พบเจ้าหน้าที่")
+            if legacy.role not in (
+                UserRole.SUPER_ADMIN,
+                UserRole.ADMIN,
+                UserRole.DIRECTOR,
+                UserRole.HEAD,
+                UserRole.AGENT,
+            ) or not legacy.is_active:
+                raise HTTPException(status_code=422, detail="เจ้าหน้าที่ที่เลือกไม่สามารถรับมอบหมายได้")
         return BookingOut.model_validate(booking)
 
     if target_id is None:
@@ -487,7 +533,13 @@ async def assign_booking_staff(
         target = await db.get(User, target_id)
         if target is None:
             raise HTTPException(status_code=404, detail="ไม่พบเจ้าหน้าที่")
-        if target.role == UserRole.USER or not target.is_active:
+        if target.role not in (
+            UserRole.SUPER_ADMIN,
+            UserRole.ADMIN,
+            UserRole.DIRECTOR,
+            UserRole.HEAD,
+            UserRole.AGENT,
+        ) or not target.is_active:
             raise HTTPException(status_code=422, detail="เจ้าหน้าที่ที่เลือกไม่สามารถรับมอบหมายได้")
 
     previous = booking.assigned_staff_id
@@ -543,6 +595,7 @@ async def update_booking_settings(
     db: AsyncSession = Depends(get_db),
     admin=Depends(get_current_admin),
 ):
+    stored = await load_booking_config(db)
     config = BookingConfig(
         enabled=payload.enabled,
         service_types=tuple(payload.service_types),
@@ -557,7 +610,9 @@ async def update_booking_settings(
         calendar_enabled=payload.calendar_enabled,
         resend_enabled=payload.resend_enabled,
         assign_enabled=payload.assign_enabled,
-        email_enabled=payload.email_enabled,
+        email_enabled=payload.email_enabled
+        if payload.email_enabled is not None
+        else stored.email_enabled,
     )
     await save_booking_config(db, config)
     await create_audit_log(
@@ -574,4 +629,6 @@ async def update_booking_settings(
         },
     )
     await db.commit()
-    return BookingSettingsOut(**payload.model_dump())
+    return BookingSettingsOut(
+        **{**payload.model_dump(), "email_enabled": config.email_enabled}
+    )

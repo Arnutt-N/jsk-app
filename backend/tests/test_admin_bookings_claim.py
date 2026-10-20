@@ -6,6 +6,7 @@ the send, and the audit commit atomically — a failed send burns no
 cooldown, so the admin can retry at once; a successful send holds the
 60-second cooldown against double-taps.
 """
+import threading
 import uuid
 from datetime import time, timedelta
 from types import SimpleNamespace
@@ -25,6 +26,7 @@ from app.main import app
 from app.models.audit_log import AuditLog
 from app.models.booking import Booking, BookingStatus
 from app.models.user import User, UserRole
+from app.services import booking_notifications
 from app.services.booking_service import local_now
 
 
@@ -32,7 +34,7 @@ def _fresh_engine():
     return create_async_engine(str(settings.DATABASE_URL), poolclass=NullPool)
 
 
-async def _seed(Session):
+async def _seed(Session, email=None):
     marker = f"pc{uuid.uuid4().hex[:8]}"
     async with Session() as session:
         target = local_now().date() + timedelta(days=7)
@@ -53,6 +55,7 @@ async def _seed(Session):
             booking_time=time(9, 30),
             contact_name="PC Citizen",
             phone_number="0800000000",
+            email=email,
             queue_number=f"PC-{marker}",
             status=BookingStatus.CONFIRMED,
         )
@@ -124,13 +127,18 @@ async def test_successful_resend_holds_the_cooldown():
 async def test_failed_resend_burns_no_cooldown():
     engine = _fresh_engine()
     Session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-    booking_id, user_id, admin_id = await _seed(Session)
+    booking_id, user_id, admin_id = await _seed(Session, email="citizen@example.com")
     _overrides(Session, admin_id)
     try:
         client = TestClient(app, raise_server_exceptions=False)
         try:
-            first = client.post(f"/api/v1/admin/bookings/{booking_id}/remind")
-            second = client.post(f"/api/v1/admin/bookings/{booking_id}/remind")
+            with patch.object(
+                booking_notifications,
+                "send_booking_email",
+                new=AsyncMock(return_value=False),
+            ):
+                first = client.post(f"/api/v1/admin/bookings/{booking_id}/remind")
+                second = client.post(f"/api/v1/admin/bookings/{booking_id}/remind")
         finally:
             client.close()
     finally:
@@ -139,6 +147,52 @@ async def test_failed_resend_burns_no_cooldown():
     try:
         assert first.status_code == 502, first.text
         assert second.status_code == 502, second.text
+        async with Session() as session:
+            stamp = (
+                await session.execute(
+                    select(Booking.reminder_sent_at).where(Booking.id == booking_id)
+                )
+            ).scalar_one()
+            assert stamp is None
+    finally:
+        await _cleanup(Session, booking_id, user_id, admin_id)
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_concurrent_resends_yield_exactly_one_success():
+    engine = _fresh_engine()
+    Session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    booking_id, user_id, admin_id = await _seed(Session)
+    _overrides(Session, admin_id)
+    try:
+        barrier = threading.Barrier(5)
+        statuses = []
+
+        def _fire():
+            client = TestClient(app, raise_server_exceptions=False)
+            try:
+                barrier.wait(timeout=30)
+                response = client.post(f"/api/v1/admin/bookings/{booking_id}/remind")
+                statuses.append(response.status_code)
+            finally:
+                client.close()
+
+        with patch.object(
+            admin_bookings,
+            "send_booking_reminder",
+            new=AsyncMock(return_value=True),
+        ):
+            workers = [threading.Thread(target=_fire) for _ in range(5)]
+            for worker in workers:
+                worker.start()
+            for worker in workers:
+                worker.join(timeout=120)
+    finally:
+        app.dependency_overrides.clear()
+
+    try:
+        assert sorted(statuses) == [200, 429, 429, 429, 429]
     finally:
         await _cleanup(Session, booking_id, user_id, admin_id)
         await engine.dispose()

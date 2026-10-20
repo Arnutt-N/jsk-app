@@ -206,7 +206,6 @@ async def create_booking(
             phone_number=payload.phone_number,
             note=payload.note,
             email=payload.email,
-            idempotency_key=payload.idempotency_key,
             config=config,
             day_hours=day_hours,
         )

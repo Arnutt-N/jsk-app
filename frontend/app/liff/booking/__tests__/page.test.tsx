@@ -1018,6 +1018,35 @@ describe('contact validation', () => {
     expect(screen.getByText('citizen@example.com')).toBeInTheDocument()
   })
 
+  it('sends null (keep) for email when editing while the channel is off', async () => {
+    stubFetch({})
+    const user = await bookToDone()
+    await user.click(screen.getByRole('button', { name: 'แก้ไขข้อมูล' }))
+    await userEvent.selectOptions(await screen.findByRole('combobox', { name: 'คำนำหน้า' }), 'นาย')
+    await user.click(screen.getByRole('button', { name: 'บันทึกการแก้ไข' }))
+    await screen.findByText('แก้ไขข้อมูลเรียบร้อย')
+    const patch = fetchMock.mock.calls.find(([, init]) => init?.method === 'PATCH')
+    expect(JSON.parse(String(patch?.[1]?.body)).email).toBeNull()
+  })
+
+  it('sends the typed email when editing while the channel is on', async () => {
+    const user = await walkToContact()
+    await userEvent.selectOptions(await screen.findByRole('combobox', { name: 'คำนำหน้า' }), 'นาย')
+    await user.type(screen.getByPlaceholderText('ชื่อจริง'), 'สมชาย')
+    await user.type(screen.getByPlaceholderText('นามสกุล'), 'ใจดี')
+    await user.type(screen.getByPlaceholderText('0812345678'), '0812345678')
+    await user.type(screen.getByPlaceholderText('name@example.com'), 'citizen@example.com')
+    await user.click(await screen.findByRole('button', { name: 'ถัดไป' }))
+    await user.click(screen.getByRole('button', { name: 'ยืนยันการจอง' }))
+    await screen.findByText('จองคิวสำเร็จ')
+    await user.click(screen.getByRole('button', { name: 'แก้ไขข้อมูล' }))
+    await userEvent.selectOptions(await screen.findByRole('combobox', { name: 'คำนำหน้า' }), 'นาย')
+    await user.click(screen.getByRole('button', { name: 'บันทึกการแก้ไข' }))
+    await screen.findByText('แก้ไขข้อมูลเรียบร้อย')
+    const patch = fetchMock.mock.calls.find(([, init]) => init?.method === 'PATCH')
+    expect(JSON.parse(String(patch?.[1]?.body)).email).toBe('citizen@example.com')
+  })
+
   it('strips a stored email when the channel is off — no unfixable 422', async () => {
     stubFetch({})
     window.sessionStorage.setItem(

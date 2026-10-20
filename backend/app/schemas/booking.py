@@ -128,6 +128,13 @@ class BookingCreate(ContactFields):
     booking_time: time
     idempotency_key: Optional[str] = Field(default=None, max_length=36)
 
+    @field_validator("idempotency_key")
+    @classmethod
+    def _strip_key(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        return value.strip() or None
+
 
 class BookingOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -186,7 +193,9 @@ class BookingSettingsIn(BaseModel):
     calendar_enabled: bool = True
     resend_enabled: bool = True
     assign_enabled: bool = False
-    email_enabled: bool = False
+    # None means "not sent": the settings endpoint keeps the stored value,
+    # so a stale client that omits the field can never flip the channel.
+    email_enabled: Optional[bool] = None
 
     @field_validator("service_types")
     @classmethod

@@ -51,13 +51,14 @@ def _config(**overrides):
     return BookingConfig(**defaults)
 
 
-def _slots(target_date=None, day_hours=..., config=None, booked_counts=None, now=NOW):
+def _slots(target_date=None, day_hours=..., config=None, booked_counts=None, now=NOW, enforce_enabled=True):
     return compute_slots(
         target_date=target_date or date(2026, 8, 19),  # a week out, avoids "today"
         day_hours=_hours() if day_hours is ... else day_hours,
         config=config or _config(),
         booked_counts=booked_counts or {},
         now_local=now,
+        enforce_enabled=enforce_enabled,
     )
 
 
@@ -83,8 +84,12 @@ def test_past_date_has_no_slots():
     assert _slots(target_date=date(2026, 8, 11)) == []
 
 
-def test_booking_disabled_still_computes_slots():
-    assert _slots(config=_config(enabled=False)) != []
+def test_booking_disabled_yields_no_slots():
+    assert _slots(config=_config(enabled=False)) == []
+
+
+def test_counter_bypass_lists_slots_while_disabled():
+    assert _slots(config=_config(enabled=False), enforce_enabled=False) != []
 
 
 # --- the booking window ---

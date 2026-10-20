@@ -241,7 +241,13 @@ async def test_booking_beyond_the_advance_window_is_rejected(stub_db_calls):
 
 @pytest.mark.asyncio
 async def test_booking_succeeds_while_disabled_for_counter_paths(stub_db_calls):
-    booking = await _create(config=_config(enabled=False))
+    booking = await _create(config=_config(enabled=False), enforce_enabled=False)
     assert booking.service_type == "ปรึกษากฎหมาย"
     assert booking.booking_date == TARGET
     assert booking.booking_time == SLOT
+
+
+@pytest.mark.asyncio
+async def test_booking_rejected_while_disabled_by_default(stub_db_calls):
+    with pytest.raises(SlotUnavailableError):
+        await _create(config=_config(enabled=False))

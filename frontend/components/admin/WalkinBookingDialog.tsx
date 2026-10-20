@@ -27,11 +27,12 @@ interface WalkinDialogProps {
   open: boolean
   serviceTypes: string[]
   initialDate: string
+  emailEnabled: boolean
   onClose: () => void
   onCreated: (booking: Booking) => void
 }
 
-export function WalkinBookingDialog({ open, serviceTypes, initialDate, onClose, onCreated }: WalkinDialogProps) {
+export function WalkinBookingDialog({ open, serviceTypes, initialDate, emailEnabled, onClose, onCreated }: WalkinDialogProps) {
   const [service, setService] = useState('')
   const [date, setDate] = useState(initialDate)
   const [slots, setSlots] = useState<Slot[]>([])
@@ -109,7 +110,7 @@ export function WalkinBookingDialog({ open, serviceTypes, initialDate, onClose, 
         contact_name: name.trim() || null,
         phone_number: phone.trim() || null,
         note: note.trim() || null,
-        email: email.trim(),
+        email: emailEnabled ? email.trim() : '',
         idempotency_key: idempotencyKey.current,
       })
       onCreated(booking)
@@ -186,17 +187,19 @@ export function WalkinBookingDialog({ open, serviceTypes, initialDate, onClose, 
           <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="เพิ่มเติม (ถ้ามี)" maxLength={1000} />
         </label>
 
-        <label className="block">
-          <span className="mb-1 block text-sm font-medium text-text-primary">อีเมล (ถ้ามี)</span>
-          <Input
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="name@example.com"
-            inputMode="email"
-            maxLength={254}
-            helperText="ใส่ไว้รับการยืนยันและเตือนทางอีเมล"
-          />
-        </label>
+        {emailEnabled && (
+          <label className="block">
+            <span className="mb-1 block text-sm font-medium text-text-primary">อีเมล (ถ้ามี)</span>
+            <Input
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="name@example.com"
+              inputMode="email"
+              maxLength={254}
+              helperText="ใส่ไว้รับการยืนยันและเตือนทางอีเมล"
+            />
+          </label>
+        )}
 
         {error && <p className="text-sm text-danger-text dark:text-danger-light">{error}</p>}
 
@@ -220,11 +223,12 @@ export function WalkinBookingDialog({ open, serviceTypes, initialDate, onClose, 
 
 interface EditContactDialogProps {
   booking: Booking | null
+  emailEnabled: boolean
   onClose: () => void
   onUpdated: (booking: Booking) => void
 }
 
-export function EditContactDialog({ booking, onClose, onUpdated }: EditContactDialogProps) {
+export function EditContactDialog({ booking, emailEnabled, onClose, onUpdated }: EditContactDialogProps) {
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [note, setNote] = useState('')
@@ -249,7 +253,7 @@ export function EditContactDialog({ booking, onClose, onUpdated }: EditContactDi
         contact_name: name.trim() || null,
         phone_number: phone.trim() || null,
         note: note.trim() || null,
-        email: email.trim(),
+        email: emailEnabled ? email.trim() : '',
       })
       onUpdated(updated)
       onClose()
@@ -259,7 +263,7 @@ export function EditContactDialog({ booking, onClose, onUpdated }: EditContactDi
     } finally {
       setSaving(false)
     }
-  }, [booking, name, phone, note, email, onUpdated, onClose])
+  }, [booking, name, phone, note, email, emailEnabled, onUpdated, onClose])
 
   return (
     <Modal
@@ -281,16 +285,18 @@ export function EditContactDialog({ booking, onClose, onUpdated }: EditContactDi
           <span className="mb-1 block text-sm font-medium text-text-primary">หมายเหตุ</span>
           <Input value={note} onChange={(e) => setNote(e.target.value)} maxLength={1000} />
         </label>
-        <label className="block">
-          <span className="mb-1 block text-sm font-medium text-text-primary">อีเมล (ถ้ามี)</span>
-          <Input
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            maxLength={254}
-            inputMode="email"
-            helperText="ใส่ไว้รับการยืนยันและเตือนทางอีเมล"
-          />
-        </label>
+        {emailEnabled && (
+          <label className="block">
+            <span className="mb-1 block text-sm font-medium text-text-primary">อีเมล (ถ้ามี)</span>
+            <Input
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              maxLength={254}
+              inputMode="email"
+              helperText="ใส่ไว้รับการยืนยันและเตือนทางอีเมล"
+            />
+          </label>
+        )}
 
         {error && <p className="text-sm text-danger-text dark:text-danger-light">{error}</p>}
 

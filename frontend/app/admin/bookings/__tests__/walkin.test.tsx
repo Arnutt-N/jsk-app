@@ -72,6 +72,7 @@ const SETTINGS = {
   reminder_lead_value: 1,
   reminder_lead_unit: 'DAY',
   walkin_enabled: true,
+  email_enabled: true,
 }
 
 const SLOTS = {

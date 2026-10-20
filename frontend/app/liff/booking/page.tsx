@@ -53,7 +53,7 @@ const STEPS: { label: string; icon: React.ReactNode }[] = [
   { label: 'ยืนยัน', icon: <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> },
 ]
 
-function contactPayload(prefix: string, firstname: string, lastname: string, phoneNumber: string, note: string, email: string) {
+function contactPayload(prefix: string, firstname: string, lastname: string, phoneNumber: string, note: string, email: string | null) {
   return {
     contact_name: composeContactName({ prefix, firstname, lastname }) || null,
     prefix: prefix.trim() || null,
@@ -61,7 +61,7 @@ function contactPayload(prefix: string, firstname: string, lastname: string, pho
     lastname: lastname.trim() || null,
     phone_number: phoneNumber.trim() || null,
     note: note.trim() || null,
-    email: email.trim(),
+    email: email === null ? null : email.trim(),
   }
 }
 
@@ -493,7 +493,7 @@ export default function LiffBookingPage() {
       const updated = await updateBookingContact(
         idToken,
         confirmed.id,
-        contactPayload(prefix, firstname, lastname, phoneNumber, note, effectiveEmail),
+        contactPayload(prefix, firstname, lastname, phoneNumber, note, emailEnabled ? effectiveEmail : null),
       )
       setConfirmed(updated)
       setEditing(false)

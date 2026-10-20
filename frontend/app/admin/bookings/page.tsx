@@ -567,12 +567,14 @@ export default function AdminBookingsPage() {
           open={walkinOpen}
           serviceTypes={serviceTypes}
           initialDate={date}
+          emailEnabled={emailEnabled}
           onClose={() => setWalkinOpen(false)}
           onCreated={() => void load()}
         />
       )}
       <EditContactDialog
         booking={walkinEnabled ? editing : null}
+        emailEnabled={emailEnabled}
         onClose={() => setEditing(null)}
         onUpdated={(updated) =>
           setBookings((current) => current.map((b) => (b.id === updated.id ? updated : b)))

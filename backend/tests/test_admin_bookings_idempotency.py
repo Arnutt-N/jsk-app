@@ -126,7 +126,6 @@ async def test_walkin_replay_with_seen_key_returns_the_first_booking():
         assert second.status_code == 201, second.text
         assert first.json()["id"] == second.json()["id"]
         assert first.json()["queue_number"] == second.json()["queue_number"]
-    finally:
         async with Session() as session:
             booking_ids = (
                 await session.execute(
@@ -134,6 +133,13 @@ async def test_walkin_replay_with_seen_key_returns_the_first_booking():
                 )
             ).scalars().all()
             assert len(booking_ids) == 1
+    finally:
+        async with Session() as session:
+            leftover_ids = (
+                await session.execute(
+                    select(Booking.id).where(Booking.idempotency_key == key)
+                )
+            ).scalars().all()
             user_ids = (
                 await session.execute(
                     select(Booking.user_id).where(Booking.idempotency_key == key)
@@ -141,7 +147,7 @@ async def test_walkin_replay_with_seen_key_returns_the_first_booking():
             ).scalars().all()
             await session.execute(
                 delete(AuditLog).where(
-                    AuditLog.resource_id.in_([str(i) for i in booking_ids])
+                    AuditLog.resource_id.in_([str(i) for i in leftover_ids])
                 )
             )
             await session.execute(

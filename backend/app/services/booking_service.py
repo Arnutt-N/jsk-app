@@ -148,6 +148,7 @@ def compute_slots(
     config: BookingConfig,
     booked_counts: Mapping[time, int],
     now_local: datetime,
+    enforce_enabled: bool = True,
 ) -> list[SlotAvailability]:
     """Return the bookable slots for ``target_date``, with remaining capacity.
 
@@ -155,9 +156,12 @@ def compute_slots(
     none is configured). ``booked_counts`` maps a slot start time to the number
     of active bookings already held in it.
 
-    The public master switch lives at the API boundary (LIFF endpoints gate
-    on it; the counter deliberately bypasses it), never in the slot math.
+    The public master switch defaults to enforced here so a future caller that
+    forgets the API-boundary gate still fails closed; the counter passes
+    ``enforce_enabled=False`` for its deliberate bypass.
     """
+    if enforce_enabled and not config.enabled:
+        return []
     if day_hours is None or not day_hours.is_open:
         return []
     if target_date in config.blackout_dates:
@@ -287,6 +291,7 @@ async def create_booking(
     idempotency_key: Optional[str] = None,
     config: BookingConfig,
     day_hours: Optional[BusinessHours],
+    enforce_enabled: bool = True,
 ) -> Booking:
     """Create a CONFIRMED booking, or raise a `BookingError` subclass.
 
@@ -307,6 +312,7 @@ async def create_booking(
         config=config,
         booked_counts={},
         now_local=local_now(),
+        enforce_enabled=enforce_enabled,
     )
     if booking_time not in {slot.start for slot in available}:
         raise SlotUnavailableError(f"{booking_date} {booking_time}")
@@ -329,7 +335,7 @@ async def create_booking(
         phone_number=phone_number,
         note=note,
         email=email or None,
-        idempotency_key=idempotency_key,
+        idempotency_key=idempotency_key or None,
         status=BookingStatus.CONFIRMED,
         queue_number=await _next_queue_number(db, booking_date),
     )
@@ -366,7 +372,12 @@ async def get_booked_counts(
 
 
 async def get_availability(
-    db: AsyncSession, *, service_type: str, target_date: date, config: BookingConfig
+    db: AsyncSession,
+    *,
+    service_type: str,
+    target_date: date,
+    config: BookingConfig,
+    enforce_enabled: bool = True,
 ) -> list[SlotAvailability]:
     """Slots and remaining capacity for one service on one day."""
     if service_type not in config.service_types:
@@ -380,6 +391,7 @@ async def get_availability(
         config=config,
         booked_counts=booked_counts,
         now_local=local_now(),
+        enforce_enabled=enforce_enabled,
     )
 
 

@@ -122,6 +122,34 @@ async def test_walkin_replay_with_seen_key_returns_the_first_booking():
 
 
 @pytest.mark.asyncio
+async def test_walkin_replay_with_changed_slot_is_rejected():
+    db = AsyncMock()
+    stored = _stored_booking(booking_time=time(10, 0))
+    with patch.object(
+        admin_bookings, "load_booking_config", new=AsyncMock(return_value=_config())
+    ), patch.object(
+        admin_bookings, "_find_by_idempotency_key", new=AsyncMock(return_value=stored)
+    ), patch.object(
+        admin_bookings.booking_service, "create_booking", new=AsyncMock()
+    ) as create:
+        with pytest.raises(HTTPException) as exc:
+            await admin_bookings.create_walkin_booking(
+                _payload(idempotency_key="key-1"), db=db, staff=SimpleNamespace(id=2)
+            )
+    assert exc.value.status_code == 422
+    create.assert_not_awaited()
+
+
+def test_blank_idempotency_key_normalizes_to_none():
+    assert _payload(idempotency_key="").idempotency_key is None
+    assert _payload(idempotency_key="   ").idempotency_key is None
+
+
+def test_padded_idempotency_key_is_stripped():
+    assert _payload(idempotency_key=" key-1 ").idempotency_key == "key-1"
+
+
+@pytest.mark.asyncio
 async def test_walkin_passes_a_new_key_to_create():
     db = AsyncMock()
     stored = _stored_booking()
