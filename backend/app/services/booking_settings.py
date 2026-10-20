@@ -34,6 +34,7 @@ KEY_CALENDAR_ENABLED = "booking_calendar_enabled"
 KEY_RESEND_ENABLED = "booking_resend_enabled"
 KEY_ASSIGN_ENABLED = "booking_assign_enabled"
 KEY_EMAIL_ENABLED = "booking_email_enabled"
+KEY_LINE_ENABLED = "booking_line_enabled"
 
 ALL_KEYS = (
     KEY_ENABLED,
@@ -50,6 +51,7 @@ ALL_KEYS = (
     KEY_RESEND_ENABLED,
     KEY_ASSIGN_ENABLED,
     KEY_EMAIL_ENABLED,
+    KEY_LINE_ENABLED,
 )
 # Booking starts switched off with no services listed: a half-configured feature
 # must not quietly start accepting public appointments.
@@ -68,6 +70,7 @@ DEFAULTS = BookingConfig(
     resend_enabled=True,
     assign_enabled=False,
     email_enabled=False,
+    line_enabled=False,
 )
 
 _TRUTHY = {"true", "1", "yes", "on"}
@@ -210,6 +213,9 @@ async def _read_booking_config(db: AsyncSession) -> BookingConfig:
         email_enabled=_coalesce(
             await get(KEY_EMAIL_ENABLED), _parse_bool, DEFAULTS.email_enabled
         ),
+        line_enabled=_coalesce(
+            await get(KEY_LINE_ENABLED), _parse_bool, DEFAULTS.line_enabled
+        ),
     )
 
 
@@ -259,6 +265,7 @@ async def save_booking_config(db: AsyncSession, config: BookingConfig) -> Bookin
         KEY_RESEND_ENABLED: "true" if config.resend_enabled else "false",
         KEY_ASSIGN_ENABLED: "true" if config.assign_enabled else "false",
         KEY_EMAIL_ENABLED: "true" if config.email_enabled else "false",
+        KEY_LINE_ENABLED: "true" if config.line_enabled else "false",
     }
     for key, value in values.items():
         await SettingsService.set_setting(db, key, value)

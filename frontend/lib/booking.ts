@@ -71,6 +71,8 @@ export interface BookingSettings {
   resend_enabled?: boolean
   assign_enabled?: boolean
   email_enabled?: boolean
+  // Same opt-in sentinel as email_enabled — absent payloads predate the toggle.
+  line_enabled?: boolean
 }
 
 export const BOOKING_STATUS_LABELS: Record<BookingStatus, string> = {
@@ -447,6 +449,24 @@ export async function fetchBookingSettings(): Promise<BookingSettings> {
   const res = await fetch(`${ADMIN_BASE}/settings`)
   if (!res.ok) throw new Error(await readError(res, 'ไม่สามารถโหลดการตั้งค่าได้'))
   return res.json()
+}
+
+export interface LineQuota {
+  quota: number | null
+  consumption: number
+  remaining: number | null
+}
+
+export async function fetchLineQuota(): Promise<LineQuota> {
+  const res = await fetch(`${ADMIN_BASE}/line-quota`)
+  if (!res.ok) throw new Error(await readError(res, 'ไม่สามารถอ่านโควต้า LINE ได้'))
+  return res.json()
+}
+
+export function describeQuota(quota: LineQuota | null): string {
+  if (!quota) return ''
+  if (quota.quota == null || quota.remaining == null) return 'โควต้า LINE: ไม่จำกัด'
+  return `โควต้า LINE คงเหลือ ${quota.remaining} / ${quota.quota}`
 }
 
 export async function saveBookingSettings(settings: BookingSettings): Promise<BookingSettings> {

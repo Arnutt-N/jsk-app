@@ -32,7 +32,7 @@ def _booking(**overrides):
 
 
 def _config(**overrides):
-    values = {"email_enabled": True}
+    values = {"email_enabled": True, "line_enabled": True}
     values.update(overrides)
     return SimpleNamespace(**values)
 
@@ -52,7 +52,9 @@ def _smtp_settings(**overrides):
 
 
 @pytest.mark.asyncio
-async def test_confirmation_with_email_skips_line_push():
+async def test_confirmation_with_email_also_pushes_to_line():
+    """Independent channels (operator decision 2026-10-21): email success no
+    longer skips the LINE bubble — both go out."""
     db = AsyncMock()
     booking = _booking(email="citizen@example.com")
     with patch.object(
@@ -60,11 +62,11 @@ async def test_confirmation_with_email_skips_line_push():
     ), patch.object(
         booking_notifications, "send_booking_email", new=AsyncMock(return_value=True)
     ) as mail, patch.object(
-        booking_notifications, "_push_flex", new=AsyncMock()
+        booking_notifications, "_push_flex", new=AsyncMock(return_value=True)
     ) as push:
         assert await booking_notifications.notify_booking_confirmed(db, booking, SimpleNamespace()) is True
     mail.assert_awaited_once()
-    push.assert_not_awaited()
+    push.assert_awaited_once()
 
 
 @pytest.mark.asyncio
@@ -84,7 +86,9 @@ async def test_confirmation_without_email_pushes_to_line():
 
 
 @pytest.mark.asyncio
-async def test_reminder_with_email_skips_line_push():
+async def test_reminder_with_email_also_pushes_to_line():
+    """Independent channels (operator decision 2026-10-21): email success no
+    longer skips the LINE bubble — both go out."""
     db = AsyncMock()
     booking = _booking(email="citizen@example.com")
     with patch.object(
@@ -92,11 +96,11 @@ async def test_reminder_with_email_skips_line_push():
     ), patch.object(
         booking_notifications, "send_booking_email", new=AsyncMock(return_value=True)
     ) as mail, patch.object(
-        booking_notifications, "_push_flex", new=AsyncMock()
+        booking_notifications, "_push_flex", new=AsyncMock(return_value=True)
     ) as push:
         assert await booking_notifications.send_booking_reminder(db, booking, SimpleNamespace()) is True
     mail.assert_awaited_once()
-    push.assert_not_awaited()
+    push.assert_awaited_once()
 
 
 @pytest.mark.asyncio

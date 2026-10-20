@@ -40,6 +40,11 @@ async def _email_channel(db: AsyncSession, booking: Booking) -> bool:
     return config.email_enabled
 
 
+async def _line_channel(db: AsyncSession) -> bool:
+    config = await load_booking_config(db)
+    return config.line_enabled
+
+
 async def _push_flex(db: AsyncSession, user, alt_text: str, contents: dict) -> bool:
     """Resolve the push target from the user record and send one Flex bubble.
 
@@ -49,6 +54,9 @@ async def _push_flex(db: AsyncSession, user, alt_text: str, contents: dict) -> b
     raw_line_id = await resolve_raw_for_push(db, user)
     if not raw_line_id:
         logger.warning("No LINE id resolvable for user %s; skipping push", getattr(user, "id", "?"))
+        return False
+    if not await _line_channel(db):
+        logger.info("LINE booking push skipped: booking_line_enabled is OFF")
         return False
 
     container = FlexContainer.from_dict(contents)
@@ -60,36 +68,47 @@ async def _push_flex(db: AsyncSession, user, alt_text: str, contents: dict) -> b
 
 
 async def notify_booking_confirmed(db: AsyncSession, booking: Booking, user) -> bool:
-    """Confirmation bubble to the citizen. Never raises."""
+    """Confirmation to the citizen over each enabled channel. Never raises.
+
+    Channels are independent (operator decision 2026-10-21): a booking with
+    both LINE enabled and an email address gets both messages. Overall
+    success means at least one channel delivered.
+    """
     try:
+        sent = False
         if await _email_channel(db, booking):
             subject, body = build_confirmation_email(booking)
             if await send_booking_email(booking.email, subject, body):
-                return True
-        return await _push_flex(
+                sent = True
+        if await _push_flex(
             db,
             user,
             alt_text=f"จองคิวสำเร็จ {booking.queue_number or ''}".strip(),
             contents=build_booking_confirmation(booking),
-        )
+        ):
+            sent = True
+        return sent
     except Exception as exc:
         logger.error("Booking confirmation push failed for %s: %s", _describe(booking), exc)
         return False
 
 
 async def send_booking_reminder(db: AsyncSession, booking: Booking, user) -> bool:
-    """Advance-reminder bubble to the citizen. Never raises."""
+    """Advance reminder over each enabled channel. Never raises."""
     try:
+        sent = False
         if await _email_channel(db, booking):
             subject, body = build_reminder_email(booking)
             if await send_booking_email(booking.email, subject, body):
-                return True
-        return await _push_flex(
+                sent = True
+        if await _push_flex(
             db,
             user,
             alt_text=f"เตือนนัดหมาย {booking.queue_number or ''}".strip(),
             contents=build_booking_confirmation(booking, title="🔔 เตือนนัดหมาย"),
-        )
+        ):
+            sent = True
+        return sent
     except Exception as exc:
         logger.error("Booking reminder push failed for %s: %s", _describe(booking), exc)
         return False

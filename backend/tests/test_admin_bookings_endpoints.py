@@ -158,7 +158,7 @@ async def test_settings_update_is_persisted_and_audit_logged():
     db = AsyncMock()
     payload = BookingSettingsIn(**_settings_payload(reminder_lead_value=3, reminder_lead_unit=ReminderUnit.HOUR))
 
-    with patch.object(admin_bookings, "load_booking_config", new=AsyncMock(return_value=SimpleNamespace(email_enabled=True))), \
+    with patch.object(admin_bookings, "load_booking_config", new=AsyncMock(return_value=SimpleNamespace(email_enabled=True, line_enabled=True))), \
          patch.object(admin_bookings, "save_booking_config", new=AsyncMock()) as save, \
          patch.object(admin_bookings, "create_audit_log", new=AsyncMock()) as audit:
         result = await admin_bookings.update_booking_settings(
@@ -183,7 +183,7 @@ async def test_settings_update_with_explicit_email_choice_is_honored():
     db = AsyncMock()
     payload = BookingSettingsIn(**_settings_payload(email_enabled=False))
 
-    with patch.object(admin_bookings, "load_booking_config", new=AsyncMock(return_value=SimpleNamespace(email_enabled=True))), \
+    with patch.object(admin_bookings, "load_booking_config", new=AsyncMock(return_value=SimpleNamespace(email_enabled=True, line_enabled=True))), \
          patch.object(admin_bookings, "save_booking_config", new=AsyncMock()) as save, \
          patch.object(admin_bookings, "create_audit_log", new=AsyncMock()):
         result = await admin_bookings.update_booking_settings(
