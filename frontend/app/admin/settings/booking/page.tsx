@@ -10,11 +10,14 @@ import { Plus, Save, X } from 'lucide-react'
 import { isoToYMD } from '@/lib/utils'
 import { logger } from '@/lib/logger'
 import {
+  describeQuota,
   describeReminder,
   fetchBookingSettings,
+  fetchLineQuota,
   formatThaiDate,
   saveBookingSettings,
   type BookingSettings,
+  type LineQuota,
   type ReminderUnit,
 } from '@/lib/booking'
 
@@ -24,6 +27,7 @@ export default function BookingSettingsPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
+  const [quota, setQuota] = useState<LineQuota | null>(null)
 
   const [newService, setNewService] = useState('')
   const [newBlackout, setNewBlackout] = useState('')
@@ -39,7 +43,16 @@ export default function BookingSettingsPage() {
         setLoading(false)
       }
     }
+    // Informational only — a quota failure must never block the settings form.
+    const loadQuota = async () => {
+      try {
+        setQuota(await fetchLineQuota())
+      } catch (err) {
+        logger.error('Failed to load LINE quota:', err)
+      }
+    }
     void load()
+    void loadQuota()
   }, [])
 
   // Every updater returns a new object — the settings object is rendered from
@@ -177,6 +190,40 @@ export default function BookingSettingsPage() {
             className="h-5 w-5 accent-emerald-600"
           />
         </label>
+      </section>
+
+      <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
+        <label className="flex items-center justify-between gap-4">
+          <span>
+            <span className="block font-medium text-slate-900 dark:text-slate-100">
+              แจ้งเตือนทาง LINE
+            </span>
+            <span className="block text-sm text-slate-500">
+              เปิดไว้จะส่งยืนยันและเตือนเป็นฟองข้อความใน LINE (ใช้โควต้าพุช) ปิดไว้จะไม่ส่ง LINE เหลือเฉพาะอีเมลถ้าเปิดไว้
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            checked={settings.line_enabled ?? false}
+            onChange={(e) => update('line_enabled', e.target.checked)}
+            className="h-5 w-5 accent-emerald-600"
+          />
+        </label>
+
+        <p className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+          {describeQuota(quota) || 'ยังอ่านโควต้า LINE ไม่ได้'}{' '}
+          <button
+            type="button"
+            onClick={() => {
+              void fetchLineQuota()
+                .then(setQuota)
+                .catch((err: unknown) => logger.error('Failed to refresh LINE quota:', err))
+            }}
+            className="underline"
+          >
+            รีเฟรช
+          </button>
+        </p>
       </section>
 
       <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
