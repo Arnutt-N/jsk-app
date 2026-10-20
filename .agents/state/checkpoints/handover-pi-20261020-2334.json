@@ -1,0 +1,17 @@
+{
+  "handoff_version": "2.0",
+  "platform": "pi",
+  "agent": "pi",
+  "timestamp": "2026-10-20T23:34:00+07:00",
+  "branch": "feat/booking-full-option",
+  "head_commit": "d2e80c4",
+  "status": "completed",
+  "work_summary": "Merged PR #279 booking-full-option to main, CD green on prod",
+  "priority_actions": [
+    "Provide SMTP sandbox for live mail test",
+    "Phone-test booking flow in LINE"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/pi/session-summary-20261020-2334.md",
+  "cross_platform_read": []
+}

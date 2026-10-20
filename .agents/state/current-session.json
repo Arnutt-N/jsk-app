@@ -1,12 +1,20 @@
 {
-  "last_updated": "2026-10-19T23:15:00+07:00",
+  "last_updated": "2026-10-20T23:34:00+07:00",
   "platform": "pi",
-  "current_task": "Booking full-option program COMPLETE: phases 1-6 on feat/booking-full-option, single PR #279 opened (merged 4b5222b+71888e2, SMTP live-send deferred by operator)",
+  "current_task": "Merged PR #279 booking-full-option to main, CD green on prod",
   "plan_status": "completed",
   "next_steps": [
-    "Review + merge PR #279; configure SMTP for live email"
+    "Provide SMTP sandbox for live mail test",
+    "Phone-test booking flow in LINE"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-10-20T23:34:00+07:00",
+      "platform": "pi",
+      "branch": "feat/booking-full-option",
+      "head": "d2e80c4",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-10-19T23:15:00+07:00",
       "platform": "pi",
@@ -138,13 +146,6 @@
       "platform": "muse_code",
       "branch": "main",
       "head": "b32d0a0",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-10-11T15:10:00+07:00",
-      "platform": "muse_code",
-      "branch": "main",
-      "head": "a22022c",
       "status": "completed"
     }
   ],
