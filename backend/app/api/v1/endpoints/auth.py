@@ -1,4 +1,6 @@
-from datetime import timedelta
+import hashlib
+import secrets
+from datetime import datetime, timedelta, timezone
 from typing import Optional, NoReturn
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
@@ -20,17 +22,24 @@ from app.core.rate_limiter import SlidingWindowLimiter
 from app.core.redis_client import redis_client
 from app.core.security import (
     create_access_token,
+    get_password_hash_async,
     verify_password_async,
     verify_token,
 )
+from app.models.access_request import AccessRequest, AccessRequestStatus
+from app.models.password_reset_token import PasswordResetToken
 from app.models.user import User, UserRole
+from app.schemas.access_request import AccessRequestCreate
 from app.schemas.auth import (
     AuthUserResponse,
+    ForgotPasswordRequest,
     LoginRequest,
     LoginResponse,
+    ResetPasswordConfirm,
     TokenResponse,
     WsTicketResponse,
 )
+from app.services.booking_email import send_booking_email
 from app.services.auth_session_service import (
     RotationOutcome,
     WS_TICKET_TTL_SECONDS,
@@ -211,6 +220,166 @@ async def login(
         csrf_token=csrf_token,
         user=_to_auth_user(user),
     )
+
+
+# Roles a stranger may ask for through the public form. SUPER_ADMIN and
+# ADMIN are never requestable -- the first admin comes from seeding only.
+REQUESTABLE_ROLES = frozenset({UserRole.AGENT, UserRole.DIRECTOR, UserRole.HEAD})
+
+# Self-service reset links live this long and work exactly once.
+RESET_TOKEN_TTL_MINUTES = 30
+
+
+def _hash_reset_token(raw: str) -> str:
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
+@router.post("/request-access", status_code=status.HTTP_201_CREATED)
+async def request_access(
+    payload: AccessRequestCreate,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Public intake for staff-login requests. Creates a PENDING row only --
+    no User row, so a request can never sign in before an admin approves it."""
+    ip = request.client.host if request.client else "unknown"
+    if await _auth_rate_limit_exceeded(f"request-access:{ip}"):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="ส่งคำขอถี่เกินไป กรุณาลองใหม่ภายหลัง",
+        )
+    if payload.requested_role not in REQUESTABLE_ROLES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="บทบาทนี้ต้องให้แอดมินสร้างให้โดยตรง",
+        )
+    req = AccessRequest(
+        display_name=payload.display_name.strip(),
+        username=payload.username.strip(),
+        email=payload.email.strip().lower() if payload.email else None,
+        phone_number=payload.phone_number.strip() if payload.phone_number else None,
+        requested_role=payload.requested_role,
+        reason=payload.reason.strip() if payload.reason else None,
+        status=AccessRequestStatus.PENDING,
+    )
+    db.add(req)
+    await create_audit_log(
+        db,
+        admin_id=None,
+        action="access_requested",
+        resource_type="access_request",
+        resource_id=None,
+        details={
+            "username_masked": _mask_username(req.username),
+            "role": req.requested_role.value,
+        },
+    )
+    await db.commit()
+    await db.refresh(req)
+    return {"detail": "ส่งคำขอแล้ว รอแอดมินอนุมัติ", "request_id": req.id}
+
+
+@router.post("/forgot-password")
+async def forgot_password(
+    payload: ForgotPasswordRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Email a one-time reset link. Always answers success, even when nothing
+    matches, so the response never reveals whether an account exists."""
+    ip = request.client.host if request.client else "unknown"
+    if await _auth_rate_limit_exceeded(f"forgot-password:{ip}"):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="ส่งคำขอถี่เกินไป กรุณาลองใหม่ภายหลัง",
+        )
+    identifier = payload.identifier
+    user = await _find_admin_by_identifier(db, identifier)
+    if user is not None and user.is_active and getattr(user, "email", None):
+        raw = secrets.token_urlsafe(32)
+        expires = datetime.now(timezone.utc) + timedelta(minutes=RESET_TOKEN_TTL_MINUTES)
+        db.add(
+            PasswordResetToken(
+                user_id=user.id,
+                token_hash=_hash_reset_token(raw),
+                expires_at=expires,
+            )
+        )
+        link = None
+        if settings.PUBLIC_APP_URL:
+            link = f"{settings.PUBLIC_APP_URL.rstrip('/')}/reset-password?token={raw}"
+            subject = "ตั้งรหัสผ่านใหม่"
+            body = (
+                f"สวัสดี {user.display_name or user.username}\n\n"
+                "กดลิงก์นี้เพื่อตั้งรหัสผ่านใหม่ "
+                f"(ใช้ได้ {RESET_TOKEN_TTL_MINUTES} นาที ใช้ได้ครั้งเดียว)\n"
+                f"{link}\n\n"
+                "ถ้าไม่ได้ขอเอง ไม่ต้องทำอะไร\n"
+                "ข้อความนี้ส่งอัตโนมัติ กรุณาอย่าตอบกลับ"
+            )
+            await send_booking_email(user.email, subject, body)
+        await create_audit_log(
+            db,
+            admin_id=user.id,
+            action="password_reset_requested",
+            resource_type="auth",
+            resource_id=str(user.id),
+            details={"emailed": bool(link)},
+        )
+        await db.commit()
+    else:
+        await create_audit_log(
+            db,
+            admin_id=None,
+            action="password_reset_requested",
+            resource_type="auth",
+            resource_id=None,
+            details={"username_masked": _mask_username(identifier)},
+        )
+        await db.commit()
+    return {"detail": "ถ้ามีบัญชีที่ตรงกัน ระบบส่งลิงก์ไปทางอีเมลแล้ว"}
+
+
+@router.post("/reset-password")
+async def reset_password(
+    payload: ResetPasswordConfirm,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Consume a reset token and set a new password. One generic error for
+    every failure so tokens cannot be probed."""
+    result = await db.execute(
+        select(PasswordResetToken).where(
+            PasswordResetToken.token_hash == _hash_reset_token(payload.token)
+        )
+    )
+    record = result.scalar_one_or_none()
+    now = datetime.now(timezone.utc)
+    expires = record.expires_at if record else None
+    if expires is not None and expires.tzinfo is None:
+        expires = expires.replace(tzinfo=timezone.utc)
+    if record is None or record.used_at is not None or expires is None or expires <= now:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="ลิงก์ไม่ถูกต้องหรือหมดอายุแล้ว",
+        )
+    user = await _load_admin_user(db, record.user_id)
+    if user is None or not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="ลิงก์ไม่ถูกต้องหรือหมดอายุแล้ว",
+        )
+    user.hashed_password = await get_password_hash_async(payload.new_password)
+    record.used_at = now
+    await create_audit_log(
+        db,
+        admin_id=user.id,
+        action="password_reset_completed",
+        resource_type="auth",
+        resource_id=str(user.id),
+        details={},
+    )
+    await db.commit()
+    return {"detail": "ตั้งรหัสผ่านใหม่แล้ว เข้าสู่ระบบได้เลย"}
 
 
 @router.post("/refresh", response_model=TokenResponse)

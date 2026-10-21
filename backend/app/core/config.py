@@ -88,6 +88,10 @@ class Settings(BaseSettings):
     # Set this to your ngrok/public domain, e.g., "https://abc123.ngrok.io"
     SERVER_BASE_URL: str = ""
 
+    # Public web app URL (for links emailed to staff, e.g. password reset).
+    # Empty means emailed links are disabled -- requests still succeed silently.
+    PUBLIC_APP_URL: str = ""
+
     # WebSocket Rate Limiting
     WS_RATE_LIMIT_MESSAGES: int = 30   # Max messages per window
     WS_RATE_LIMIT_WINDOW: int = 60     # Window in seconds

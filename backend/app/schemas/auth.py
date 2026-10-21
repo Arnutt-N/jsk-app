@@ -22,6 +22,26 @@ class LoginRequest(BaseModel):
         return assert_bcrypt_compatible(value)
 
 
+class ForgotPasswordRequest(BaseModel):
+    # Username OR email -- same identifier as login.
+    identifier: str
+
+    @field_validator("identifier")
+    @classmethod
+    def normalize_identifier(cls, value: str) -> str:
+        return value.strip()
+
+
+class ResetPasswordConfirm(BaseModel):
+    token: str = Field(..., min_length=16)
+    new_password: str = Field(..., min_length=8, max_length=72)
+
+    @field_validator("new_password")
+    @classmethod
+    def _check_password_bytes(cls, v: str) -> str:
+        return assert_bcrypt_compatible(v)
+
+
 class AuthUserResponse(BaseModel):
     id: int
     username: Optional[str] = None
