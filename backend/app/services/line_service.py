@@ -124,6 +124,10 @@ class LineService:
         self._cb_open_until: Optional[datetime] = None
         self._cb_failure_threshold = 5
         self._cb_recovery_timeout_seconds = 30
+        # Read-only quota calls get their own breaker: an informational
+        # readout must never trip (or be tripped by) citizen pushes.
+        self._quota_cb_failures = 0
+        self._quota_cb_open_until: Optional[datetime] = None
 
     @property
     def api(self) -> AsyncMessagingApi:
@@ -140,8 +144,20 @@ class LineService:
         return self._blob_api
 
     async def _call_with_circuit(self, operation: str, call):
+        return await self._call_with_breaker(
+            operation, call, "_cb_failures", "_cb_open_until"
+        )
+
+    async def _call_with_quota_circuit(self, operation: str, call):
+        return await self._call_with_breaker(
+            operation, call, "_quota_cb_failures", "_quota_cb_open_until"
+        )
+
+    async def _call_with_breaker(
+        self, operation: str, call, failures_attr: str, open_attr: str
+    ):
         now = datetime.now(timezone.utc)
-        open_until = self._cb_open_until
+        open_until = getattr(self, open_attr)
         # Legacy tests/data may still set naive UTC datetimes.
         if open_until and open_until.tzinfo is None:
             open_until = open_until.replace(tzinfo=timezone.utc)
@@ -156,29 +172,34 @@ class LineService:
         try:
             result = await call()
         except Exception as exc:
-            self._cb_failures += 1
-            if self._cb_failures >= self._cb_failure_threshold:
-                self._cb_open_until = datetime.now(timezone.utc) + timedelta(seconds=self._cb_recovery_timeout_seconds)
+            failures = getattr(self, failures_attr) + 1
+            setattr(self, failures_attr, failures)
+            if failures >= self._cb_failure_threshold:
+                setattr(
+                    self,
+                    open_attr,
+                    datetime.now(timezone.utc) + timedelta(seconds=self._cb_recovery_timeout_seconds),
+                )
                 logger.error(
                     "LINE circuit opened after %s failures; operation=%s error=%s",
-                    self._cb_failures,
+                    failures,
                     operation,
                     exc,
                 )
             else:
                 logger.warning(
                     "LINE API failure %s/%s; operation=%s error=%s",
-                    self._cb_failures,
+                    failures,
                     self._cb_failure_threshold,
                     operation,
                     exc,
                 )
             raise
 
-        if self._cb_failures > 0 or self._cb_open_until:
+        if getattr(self, failures_attr) > 0 or getattr(self, open_attr):
             logger.info("LINE circuit closed after successful operation=%s", operation)
-        self._cb_failures = 0
-        self._cb_open_until = None
+        setattr(self, failures_attr, 0)
+        setattr(self, open_attr, None)
         return result
 
     async def reply_text(self, reply_token: str, text: str):
@@ -250,26 +271,23 @@ class LineService:
         )
 
     async def get_push_quota(self) -> dict:
-        """Monthly push-message quota, consumption, and remainder.
-
-        Pure read used by the admin quota display. `quota`/`remaining` are
-        None on an unlimited plan (LINE returns no value then). Raises on
-        upstream failure so the endpoint can map it to a 502.
-        """
-        quota_resp = await self._call_with_circuit(
+        """`quota`/`remaining` are None on an unlimited plan. Raises on upstream
+        failure so the endpoint can map it to a 502."""
+        quota_resp = await self._call_with_quota_circuit(
             "get_message_quota",
             lambda: self.api.get_message_quota(),
         )
-        consumption_resp = await self._call_with_circuit(
+        consumption_resp = await self._call_with_quota_circuit(
             "get_message_quota_consumption",
             lambda: self.api.get_message_quota_consumption(),
         )
-        quota = getattr(quota_resp, "value", None)
-        used = getattr(consumption_resp, "total_usage", 0) or 0
+        quota_raw = getattr(quota_resp, "value", None)
+        quota = int(quota_raw) if quota_raw is not None else None
+        used = int(getattr(consumption_resp, "total_usage", 0) or 0)
         return {
             "quota": quota,
             "consumption": used,
-            "remaining": (quota - used) if quota is not None else None,
+            "remaining": (max(0, quota - used) if quota is not None else None),
         }
 
     async def show_loading_animation(self, chat_id: str, loading_seconds: int = 20):

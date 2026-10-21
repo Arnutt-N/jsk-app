@@ -33,6 +33,9 @@ def _config(**overrides):
         reminder_enabled=True,
         reminder_lead_value=1,
         reminder_lead_unit=ReminderUnit.DAY,
+        # The claim/send mechanics tests predate per-channel switches; LINE
+        # stays the active channel so the scheduler reaches the send step.
+        line_enabled=True,
     )
     defaults.update(overrides)
     return BookingConfig(**defaults)
@@ -151,6 +154,20 @@ async def test_disabled_reminders_short_circuit_before_querying():
             booking_reminder, "load_booking_config", new=AsyncMock(return_value=_config(reminder_enabled=False))
         ):
             await booking_reminder._process_due_reminders(AsyncMock())
+    mock_query.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_both_channels_off_skips_without_claiming():
+    with (
+        patch.object(booking_reminder, "get_due_reminders", new=AsyncMock()) as mock_query,
+        patch.object(
+            booking_reminder,
+            "load_booking_config",
+            new=AsyncMock(return_value=_config(email_enabled=False, line_enabled=False)),
+        ),
+    ):
+        await booking_reminder._process_due_reminders(AsyncMock())
     mock_query.assert_not_awaited()
 
 

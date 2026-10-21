@@ -27,7 +27,9 @@ async def test_confirm_pushes_flex_message_object():
             booking_notifications, "resolve_raw_for_push", AsyncMock(return_value="U1")
         ),
         patch.object(
-            booking_notifications, "_line_channel", AsyncMock(return_value=True)
+            booking_notifications,
+            "load_booking_config",
+            new=AsyncMock(return_value=SimpleNamespace(line_enabled=True, email_enabled=False)),
         ),
         patch.object(
             booking_notifications.line_service, "push_messages", AsyncMock()

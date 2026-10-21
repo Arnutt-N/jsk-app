@@ -597,16 +597,10 @@ _cached_quota_at = 0.0
     summary="Read LINE push-message quota",
 )
 async def get_line_quota(
-    db: AsyncSession = Depends(get_db),
     _staff=Depends(get_current_staff),
 ):
-    """Quota / consumption / remaining for LINE 1:1 pushes.
-
-    Read-only and informational: the toggles stay the control. Cached briefly
-    so every settings-page visit does not hit the LINE API; an upstream
-    failure surfaces as 502 with a Thai detail (never a silent blank that
-    looks like zero quota).
-    """
+    """Upstream failure surfaces as 502 with a Thai detail (never a silent
+    blank that looks like zero quota)."""
     global _cached_quota, _cached_quota_at
     now = monotonic()
     if _cached_quota is not None and (now - _cached_quota_at) < _QUOTA_CACHE_TTL_SECONDS:
@@ -665,6 +659,8 @@ async def update_booking_settings(
             "reminder_enabled": payload.reminder_enabled,
             "reminder_lead": f"{payload.reminder_lead_value} {payload.reminder_lead_unit.value}",
             "slot_capacity": payload.slot_capacity,
+            "email_enabled": config.email_enabled,
+            "line_enabled": config.line_enabled,
         },
     )
     await db.commit()

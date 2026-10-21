@@ -43,7 +43,6 @@ export default function BookingSettingsPage() {
         setLoading(false)
       }
     }
-    // Informational only — a quota failure must never block the settings form.
     const loadQuota = async () => {
       try {
         setQuota(await fetchLineQuota())
@@ -199,7 +198,7 @@ export default function BookingSettingsPage() {
               แจ้งเตือนทาง LINE
             </span>
             <span className="block text-sm text-slate-500">
-              เปิดไว้จะส่งยืนยันและเตือนเป็นฟองข้อความใน LINE (ใช้โควต้าพุช) ปิดไว้จะไม่ส่ง LINE เหลือเฉพาะอีเมลถ้าเปิดไว้
+              เปิดไว้จะส่งยืนยันและเตือนเป็นฟองข้อความใน LINE (ใช้โควต้าพุช) ปิดไว้จะไม่ส่ง LINE เหลือเฉพาะอีเมลถ้าเปิดไว้ การเปลี่ยนมีผลภายในประมาณ 1 นาที
             </span>
           </span>
           <input
@@ -217,7 +216,10 @@ export default function BookingSettingsPage() {
             onClick={() => {
               void fetchLineQuota()
                 .then(setQuota)
-                .catch((err: unknown) => logger.error('Failed to refresh LINE quota:', err))
+                .catch((err: unknown) => {
+                  logger.error('Failed to refresh LINE quota:', err)
+                  setQuota(null)
+                })
             }}
             className="underline"
           >
