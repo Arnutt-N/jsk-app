@@ -101,9 +101,6 @@ class BookingConfig:
     resend_enabled: bool = True
     assign_enabled: bool = False
     email_enabled: bool = False
-    # LINE push kill switch. Default OFF by operator decision (2026-10-21):
-    # the admin flips it ON in the settings menu once push quota is confirmed.
-    # A missing row reads False, so LINE booking pushes pause until then.
     line_enabled: bool = False
 
     @property

@@ -44,7 +44,7 @@ class BookingOptionsOut(BaseModel):
 
 
 class LineQuotaOut(BaseModel):
-    """LINE push-message quota as the admin sees it. All counts, not percents.
+    """All counts, not percents.
 
     `quota`/`remaining` are None on an unlimited plan (LINE returns no value).
     """
@@ -208,8 +208,6 @@ class BookingSettingsIn(BaseModel):
     # None means "not sent": the settings endpoint keeps the stored value,
     # so a stale client that omits the field can never flip the channel.
     email_enabled: Optional[bool] = None
-    # Same sentinel as email_enabled. Default OFF by operator decision
-    # (2026-10-21): the admin opts in from the settings menu.
     line_enabled: bool | None = None
 
     @field_validator("service_types")

@@ -71,7 +71,6 @@ export interface BookingSettings {
   resend_enabled?: boolean
   assign_enabled?: boolean
   email_enabled?: boolean
-  // Same opt-in sentinel as email_enabled — absent payloads predate the toggle.
   line_enabled?: boolean
 }
 
