@@ -1,8 +1,8 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Handoff Board (generated)
 
-> **Last generated**: 2026-10-21 08:39 (from newest checkpoint)
-> 296 active handoffs, 12 platforms, 0 queued directed handoff(s).
+> **Last generated**: 2026-10-21 08:48 (from newest checkpoint)
+> 297 active handoffs, 12 platforms, 0 queued directed handoff(s).
 
 > Regenerate after any handoff: `node .agents/scripts/gen-handoff-views.cjs`
 
@@ -19,7 +19,7 @@
 | kimi_code | AVAILABLE | 2026-06-02 01:39 | 0 | Applied all P0–P3 critique fixes on frontend/app/admin/requests/[id]/page.tsx. Destructive actions now have ConfirmDialo | `project-log-md/kimi_code/session-summary-20260602-0139.md` |
 | muse_code | AVAILABLE | 2026-10-11 15:10 | 0 | Merged PR #248 (act-on-8 fixes + 6 review findings) via guarded squash d5dbef9 after independent PASS+NOTES verdict; del | `project-log-md/muse_code/session-summary-20261011-1510.md` |
 | open_code | AVAILABLE | 2026-08-25 07:39 | 0 | LIFF smoke-test plan for PR #202 drafted+reviewed (.scratch/liff-smoke-pr202/smoke-test-plan.md, REV1: 5 findings fixed) | `project-log-md/open_code/session-summary-20260825-0739.md` |
-| pi | AVAILABLE | 2026-10-21 08:39 | 0 | PR #281 review fixes merged to main, CD green; kept line OFF default per operator; admin must flip LINE toggle ON to res | `project-log-md/pi/session-summary-20261021-0839.md` |
+| pi | AVAILABLE | 2026-10-21 08:48 | 0 | Session complete: PR #280 LINE toggle+quota and PR #281 review fixes both merged, CD green; pstack 6-skill review synthe | `project-log-md/pi/session-summary-20261021-0848.md` |
 | qoder | AVAILABLE | 2026-08-29 23:21 | 0 | Merged PR #206 + #207 to main (8ddbda3, beaff04) — resolved #206 generated-state conflicts (kept both 21:58/22:44 record | `project-log-md/qoder/session-summary-20260829-2321.md` |
 | zcode | AVAILABLE | 2026-09-06 22:56 | 0 | codebase-review-fix on PR #228 CLOSED via PR #229 (squash e63ee9f, CI 4/4, CD success): review found 0 Critical/High; 3  | `project-log-md/zcode/session-summary-20260906-2256.md` |
 
@@ -35,6 +35,7 @@ _None — no blocked checkpoints._
 
 | When | From → To | Task | Checkpoint |
 |------|-----------|------|------------|
+| 2026-10-21 08:48 | pi → all | Session complete: PR #280 LINE toggle+quota and PR #281 review fixes both merged, CD green; pstack 6-skill review synthesized and applied | `handover-pi-20261021-0848.json` |
 | 2026-10-21 08:39 | pi → all | PR #281 review fixes merged to main, CD green; kept line OFF default per operator; admin must flip LINE toggle ON to resume pushes | `handover-pi-20261021-0839.json` |
 | 2026-10-21 06:03 | pi → all | PR #280 booking LINE notify merged to main, CD green; line_enabled defaults OFF, awaiting admin opt-in | `handover-pi-20261021-0603.json` |
 | 2026-10-21 06:00 | pi → all | PR #280 booking LINE notify merged to main, CD green; line_enabled defaults OFF, awaiting admin opt-in | `handover-pi-20261021-0600.json` |
@@ -44,4 +45,3 @@ _None — no blocked checkpoints._
 | 2026-10-19 17:03 | pi → all | Booking full-option phase 4 done on feat/booking-full-option (reminder status column, resend endpoint + guard, toggle; 492070c pushed, no PR | `handover-pi-20261019-1703.json` |
 | 2026-10-19 15:03 | pi → all | Booking full-option phase 3 done on feat/booking-full-option (month calendar, range wrapper, toggle; 6f76209 pushed, no PR yet) | `handover-pi-20261019-1503.json` |
 | 2026-10-19 08:58 | pi → all | Booking full-option phase 1+2 done on feat/booking-full-option (walk-in create, contact edit, search, pagination) | `handover-pi-20261019-0858.json` |
-| 2026-10-19 02:28 | pi → all | Merged PRs 272-278: LIFF cancel-everywhere, 4 shared components, booking in-LINE title fix, comment cleanup | `handover-pi-20261019-0228.json` |

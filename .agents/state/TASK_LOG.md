@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 296 active handoffs, 12 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 297 active handoffs, 12 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-10-21 08:48 — pi — completed
+
+Session complete: PR #280 LINE toggle+quota and PR #281 review fixes both merged, CD green; pstack 6-skill review synthesized and applied
+
+- Checkpoint: `.agents/state/checkpoints/handover-pi-20261021-0848.json`
+- Summary: `project-log-md/pi/session-summary-20261021-0848.md`
+
+---
 
 ### 2026-10-21 08:39 — pi — completed
 
