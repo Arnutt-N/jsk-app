@@ -1,10 +1,17 @@
 {
-  "last_updated": "2026-10-21T06:03:00+07:00",
+  "last_updated": "2026-10-21T08:39:00+07:00",
   "platform": "pi",
-  "current_task": "PR #280 booking LINE notify merged to main, CD green; line_enabled defaults OFF, awaiting admin opt-in",
+  "current_task": "PR #281 review fixes merged to main, CD green; kept line OFF default per operator; admin must flip LINE toggle ON to resume pushes",
   "plan_status": "completed",
   "next_steps": [],
   "handoff_history": [
+    {
+      "timestamp": "2026-10-21T08:39:00+07:00",
+      "platform": "pi",
+      "branch": "main",
+      "head": "6fca4f3",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-10-21T06:03:00+07:00",
       "platform": "pi",
@@ -136,13 +143,6 @@
       "platform": "pi",
       "branch": "main",
       "head": "80dc9b9",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-10-14T19:06:00+07:00",
-      "platform": "pi",
-      "branch": "fix/codebase-review-20261013",
-      "head": "e6e4421",
       "status": "completed"
     }
   ],

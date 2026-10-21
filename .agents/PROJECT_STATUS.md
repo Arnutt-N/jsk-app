@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-10-21 06:03 by Pi (PR #280 booking LINE notify merged to main, CD green; line_enabled defaults OFF, awaiting )
+> **Last Updated:** 2026-10-21 08:39 by Pi (PR #281 review fixes merged to main, CD green; kept line OFF default per operator; admin m)
 
 ## Thai Summary
 **สถานะล่าสุด (2026-09-30)** — รวม PR #239 (แก้บั๊กโอนแชทไม่มีบันทึก M-8) เข้าสายหลักแล้ว (`fd82c7a`) + ตรวจหลังส่งขึ้นร้านจริงเสร็จ: หลังบ้านแข็งแรงดี (database+redis ปกติ), หน้าร้านเปิดติด (HTTP 200), ปุ่มโอนแชทล็อกถูกต้อง (401), บันทึกส่งของ CD `36596610691` เขียวครบ 6 งาน — โค้ดตรงกับเซิร์ฟเวอร์ เหลือ Round-3b (22 ข้อ) + ซ่อมไฟล์ทดสอบ upload-security ที่พังมาก่อน
@@ -123,6 +123,7 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-10-21 08:39] Pi: PR #281 review fixes merged to main, CD green; kept line OFF default per operator; admin must flip LINE toggle ON to resume pushes (Pi)
 - [2026-10-21 06:03] Pi: PR #280 booking LINE notify merged to main, CD green; line_enabled defaults OFF, awaiting admin opt-in (Pi)
 - [2026-10-21 06:00] Pi: PR #280 booking LINE notify merged to main, CD green; line_enabled defaults OFF, awaiting admin opt-in (Pi)
 - [2026-10-21 05:59] Pi: PR #280 booking LINE notify merged to main, CD green; line_enabled defaults OFF, awaiting admin opt-in (Pi)
