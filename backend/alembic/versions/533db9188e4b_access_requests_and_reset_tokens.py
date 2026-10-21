@@ -1,20 +1,8 @@
-"""access requests + password reset tokens.
-
-Revision ID: 533db9188e4b
-Revises: h8i9j0k1l2m4
-Create Date: 2026-10-21
-
-Two new tables for the access-request approval flow and self-service
-password reset. Both are standalone (only FK is to users.id) and safe to
-drop on downgrade -- no seed data involved.
-"""
-
 from typing import Sequence, Union
 
 import sqlalchemy as sa
 from alembic import op
 
-# revision identifiers, used by Alembic.
 revision: str = "533db9188e4b"
 down_revision: Union[str, None] = "h8i9j0k1l2m4"
 branch_labels: Union[str, Sequence[str], None] = None

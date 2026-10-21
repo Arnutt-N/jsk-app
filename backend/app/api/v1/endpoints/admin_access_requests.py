@@ -1,9 +1,3 @@
-"""Access-request review queue for the admin dashboard.
-
-The public submits wishes through POST /auth/request-access (no account
-created); SUPER_ADMIN/ADMIN triage them here. Approval mints the User row.
-"""
-
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -16,7 +10,7 @@ from app.core.audit import create_audit_log
 from app.core.permissions import KEY_MANAGE_USERS
 from app.core.security import get_password_hash_async
 from app.models.access_request import AccessRequest, AccessRequestStatus
-from app.models.user import User, UserRole
+from app.models.user import User
 from app.schemas.access_request import (
     AccessRequestApprove,
     AccessRequestOut,
@@ -44,7 +38,6 @@ async def list_requests(
     db: AsyncSession = Depends(get_db),
     current_admin: User = Depends(require_permission(KEY_MANAGE_USERS)),
 ):
-    """Pending-first queue of access requests."""
     filters = []
     if req_status is not None:
         filters.append(AccessRequest.status == req_status)
@@ -76,11 +69,8 @@ async def approve_request(
     db: AsyncSession = Depends(get_db),
     current_admin: User = Depends(require_permission(KEY_MANAGE_USERS)),
 ):
-    """Approve a request: mint the User account with the given initial password."""
     req = await _load_pending(db, request_id)
 
-    # Same privilege rule as editing users: an ADMIN may only approve
-    # Operator accounts; Director/Head need a SUPER_ADMIN.
     _check_role_permission(current_admin, req.requested_role)
 
     existing = await db.execute(select(User).where(User.username == req.username))
@@ -124,7 +114,6 @@ async def reject_request(
     db: AsyncSession = Depends(get_db),
     current_admin: User = Depends(require_permission(KEY_MANAGE_USERS)),
 ):
-    """Reject a request with an optional note. No account is created."""
     req = await _load_pending(db, request_id)
 
     req.status = AccessRequestStatus.REJECTED
@@ -143,6 +132,3 @@ async def reject_request(
     await db.refresh(req)
     return _to_out(req)
 
-
-# Re-export for the role guard: DIRECTOR/HEAD approvals need SUPER_ADMIN.
-ADMIN_ONLY_ROLES = frozenset({UserRole.DIRECTOR, UserRole.HEAD})

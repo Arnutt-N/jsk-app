@@ -29,8 +29,6 @@ class AccessRequestOut(BaseModel):
 
 
 class AccessRequestApprove(BaseModel):
-    """Initial password the new account starts with (admin sets it at approval)."""
-
     password: str = Field(..., min_length=8, max_length=72)
 
     @field_validator("password")

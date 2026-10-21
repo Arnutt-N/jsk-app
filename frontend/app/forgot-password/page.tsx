@@ -29,7 +29,7 @@ export default function ForgotPasswordPage() {
       const res = await fetch('/api/v1/auth/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier: identifier.trim() }),
+        body: JSON.stringify({ username_or_email: identifier.trim() }),
       });
       if (!res.ok) {
         const msg = await readErrorMessage(res, 'ส่งคำขอไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');

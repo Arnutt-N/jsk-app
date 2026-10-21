@@ -23,12 +23,11 @@ class LoginRequest(BaseModel):
 
 
 class ForgotPasswordRequest(BaseModel):
-    # Username OR email -- same identifier as login.
-    identifier: str
+    username_or_email: str
 
-    @field_validator("identifier")
+    @field_validator("username_or_email")
     @classmethod
-    def normalize_identifier(cls, value: str) -> str:
+    def normalize_username_or_email(cls, value: str) -> str:
         return value.strip()
 
 

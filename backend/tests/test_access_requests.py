@@ -1,13 +1,12 @@
-"""Tests for the public access-request intake and the admin review queue."""
-
 from datetime import datetime, timezone
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 from unittest.mock import AsyncMock, patch
 
 import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api import deps
 from app.api.v1.endpoints import admin_access_requests as ar_endpoints
@@ -15,7 +14,7 @@ from app.api.v1.endpoints import auth as auth_endpoints
 from app.core.permissions import invalidate_cache
 from app.main import app
 from app.models.access_request import AccessRequestStatus
-from app.models.user import UserRole
+from app.models.user import User, UserRole
 from app.schemas.access_request import AccessRequestApprove, AccessRequestReject
 
 
@@ -28,8 +27,6 @@ class _Result:
 
 
 class _FakeDB:
-    """Minimal stand-in: captures added rows, replays queued SELECT results."""
-
     def __init__(self, selects=None):
         self.added = []
         self.selects = list(selects or [])
@@ -159,7 +156,7 @@ async def test_approve_mints_user_and_marks_approved():
     admin = SimpleNamespace(id=99, role=UserRole.SUPER_ADMIN)
 
     out = await ar_endpoints.approve_request(
-        7, AccessRequestApprove(password="secret1234"), db, admin  # type: ignore[arg-type]
+        7, AccessRequestApprove(password="secret1234"), cast(AsyncSession, db), cast(User, admin)
     )
 
     users = [o for o in db.added if type(o).__name__ == "User"]
@@ -177,7 +174,7 @@ async def test_admin_cannot_approve_director_request():
 
     with pytest.raises(HTTPException) as exc_info:
         await ar_endpoints.approve_request(
-            7, AccessRequestApprove(password="secret1234"), db, admin  # type: ignore[arg-type]
+            7, AccessRequestApprove(password="secret1234"), cast(AsyncSession, db), cast(User, admin)
         )
     assert exc_info.value.status_code == 403
 
@@ -189,7 +186,7 @@ async def test_approve_rejects_taken_username():
 
     with pytest.raises(HTTPException) as exc_info:
         await ar_endpoints.approve_request(
-            7, AccessRequestApprove(password="secret1234"), db, admin  # type: ignore[arg-type]
+            7, AccessRequestApprove(password="secret1234"), cast(AsyncSession, db), cast(User, admin)
         )
     assert exc_info.value.status_code == 409
 
@@ -200,7 +197,7 @@ async def test_reject_marks_rejected_without_user():
     admin = SimpleNamespace(id=99, role=UserRole.ADMIN)
 
     out = await ar_endpoints.reject_request(
-        7, AccessRequestReject(note="ตำแหน่งเต็ม"), db, admin  # type: ignore[arg-type]
+        7, AccessRequestReject(note="ตำแหน่งเต็ม"), cast(AsyncSession, db), cast(User, admin)
     )
 
     assert out.status == AccessRequestStatus.REJECTED

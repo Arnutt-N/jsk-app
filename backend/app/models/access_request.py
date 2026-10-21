@@ -14,12 +14,6 @@ class AccessRequestStatus(str, enum.Enum):
 
 
 class AccessRequest(Base):
-    """A request for a staff login, approved by an admin before any account exists.
-
-    No User row is created until approval, so a pending request can never sign in.
-    Requestable roles are limited to AGENT/DIRECTOR/HEAD at the API layer --
-    SUPER_ADMIN/ADMIN can never be requested through this form.
-    """
 
     __tablename__ = "access_requests"
 

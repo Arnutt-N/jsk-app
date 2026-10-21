@@ -222,11 +222,9 @@ async def login(
     )
 
 
-# Roles a stranger may ask for through the public form. SUPER_ADMIN and
-# ADMIN are never requestable -- the first admin comes from seeding only.
+# The first admin comes from seeding, so the form can never mint owners.
 REQUESTABLE_ROLES = frozenset({UserRole.AGENT, UserRole.DIRECTOR, UserRole.HEAD})
 
-# Self-service reset links live this long and work exactly once.
 RESET_TOKEN_TTL_MINUTES = 30
 
 
@@ -240,8 +238,7 @@ async def request_access(
     request: Request,
     db: AsyncSession = Depends(get_db),
 ) -> dict:
-    """Public intake for staff-login requests. Creates a PENDING row only --
-    no User row, so a request can never sign in before an admin approves it."""
+    """A request is not an account: nothing here can sign in."""
     ip = request.client.host if request.client else "unknown"
     if await _auth_rate_limit_exceeded(f"request-access:{ip}"):
         raise HTTPException(
@@ -293,7 +290,7 @@ async def forgot_password(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail="ส่งคำขอถี่เกินไป กรุณาลองใหม่ภายหลัง",
         )
-    identifier = payload.identifier
+    identifier = payload.username_or_email
     user = await _find_admin_by_identifier(db, identifier)
     if user is not None and user.is_active and getattr(user, "email", None):
         raw = secrets.token_urlsafe(32)

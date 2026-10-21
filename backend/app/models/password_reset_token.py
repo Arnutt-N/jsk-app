@@ -5,11 +5,7 @@ from app.db.base import Base
 
 
 class PasswordResetToken(Base):
-    """Single-use, expiring token for self-service password reset.
-
-    Only the SHA-256 hash is stored -- the raw token is emailed once and never
-    persisted, so a database read alone cannot reset anyone's password.
-    """
+    """Only the hash is stored: a database read alone cannot reset a password."""
 
     __tablename__ = "password_reset_tokens"
 
