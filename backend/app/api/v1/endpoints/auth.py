@@ -3,7 +3,7 @@ from typing import Optional, NoReturn
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy import select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_db
@@ -116,6 +116,26 @@ async def _load_admin_user(db: AsyncSession, user_id: int) -> Optional[User]:
     return result.scalar_one_or_none()
 
 
+async def _find_admin_by_identifier(
+    db: AsyncSession, identifier: str
+) -> Optional[User]:
+    """Find a console user by username OR email (case-insensitive).
+
+    The login field accepts either value so staff can sign in with whichever
+    they remember. Email comparison is lowercased on both sides; rows with a
+    NULL email never match the email branch."""
+    result = await db.execute(
+        select(User).where(
+            User.role.in_(_ADMIN_AUTH_ROLES),
+            or_(
+                User.username == identifier,
+                func.lower(User.email) == identifier.lower(),
+            ),
+        )
+    )
+    return result.scalar_one_or_none()
+
+
 async def _login_failed(db: AsyncSession, username_masked: str) -> NoReturn:
     """Audit + reject any failed login. Never reveals which check failed."""
     await create_audit_log(
@@ -154,13 +174,7 @@ async def login(
             detail="Too many login attempts, try again later",
         )
 
-    result = await db.execute(
-        select(User).where(
-            User.username == payload.username,
-            User.role.in_(_ADMIN_AUTH_ROLES),
-        )
-    )
-    user = result.scalar_one_or_none()
+    user = await _find_admin_by_identifier(db, payload.username)
     if not user or not user.hashed_password:
         await _login_failed(db, username_masked)
 

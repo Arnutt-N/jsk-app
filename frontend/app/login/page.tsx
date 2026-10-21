@@ -152,7 +152,7 @@ function LoginForm() {
     const nextErrors: { username?: string; password?: string } = {};
 
     if (!username) {
-      nextErrors.username = 'กรุณากรอกชื่อผู้ใช้';
+      nextErrors.username = 'กรุณากรอกชื่อผู้ใช้หรืออีเมล';
     }
 
     if (!password) {
@@ -297,7 +297,7 @@ function LoginForm() {
                       errors.username ? 'text-danger' : 'text-slate-700 dark:text-slate-300'
                     )}
                   >
-                    ชื่อผู้ใช้ <span className="text-danger" aria-hidden="true">*</span>
+                    ชื่อผู้ใช้หรืออีเมล <span className="text-danger" aria-hidden="true">*</span>
                   </Label>
                   <div className="relative group">
                     <Input
@@ -305,7 +305,7 @@ function LoginForm() {
                       id="username"
                       name="username"
                       type="text"
-                      placeholder="กรอกชื่อผู้ใช้ของคุณ"
+                      placeholder="กรอกชื่อผู้ใช้หรืออีเมลของคุณ"
                       onInput={() => clearFieldError('username')}
                       className={cn(
                         'pl-11 h-12 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border-slate-200 dark:border-white/10 transition-all',

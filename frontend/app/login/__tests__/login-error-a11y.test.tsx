@@ -32,7 +32,7 @@ describe('Login form error ARIA wiring (R3-M30)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'เข้าสู่ระบบ' }));
 
     await waitFor(() => {
-      expect(screen.getByText('กรุณากรอกชื่อผู้ใช้')).toBeTruthy();
+      expect(screen.getByText('กรุณากรอกชื่อผู้ใช้หรืออีเมล')).toBeTruthy();
       expect(screen.getByText('กรุณากรอกรหัสผ่าน')).toBeTruthy();
     });
 
@@ -54,7 +54,7 @@ describe('Login form error ARIA wiring (R3-M30)', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'เข้าสู่ระบบ' }));
     await waitFor(() => {
-      expect(screen.getByText('กรุณากรอกชื่อผู้ใช้')).toBeTruthy();
+      expect(screen.getByText('กรุณากรอกชื่อผู้ใช้หรืออีเมล')).toBeTruthy();
     });
 
     fireEvent.change(container.querySelector('#username')!, { target: { value: 'admin' } });
@@ -63,7 +63,7 @@ describe('Login form error ARIA wiring (R3-M30)', () => {
     fireEvent.input(container.querySelector('#password')!);
 
     await waitFor(() => {
-      expect(screen.queryByText('กรุณากรอกชื่อผู้ใช้')).toBeNull();
+      expect(screen.queryByText('กรุณากรอกชื่อผู้ใช้หรืออีเมล')).toBeNull();
       expect(screen.queryByText('กรุณากรอกรหัสผ่าน')).toBeNull();
     });
     expect(container.querySelector('#username')!.getAttribute('aria-invalid')).toBe('false');
