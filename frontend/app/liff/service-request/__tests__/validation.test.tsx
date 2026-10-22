@@ -3,7 +3,6 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import LiffServiceRequest from '../page';
 
-vi.mock('@line/liff', () => ({ __esModule: true, default: {} }));
 vi.mock('@/hooks/useLiffInit', () => ({
   useLiffInit: () => ({ idToken: 'tok', initDone: true, profile: null, isInLineApp: true }),
 }));

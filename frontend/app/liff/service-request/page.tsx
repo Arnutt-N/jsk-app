@@ -2,7 +2,6 @@
 
 import { useCallback, useState, useEffect, useRef } from 'react'
 import Head from 'next/head'
-import liff from '@line/liff'
 import type { Province } from '../../../types/location'
 import { Button } from '@/components/ui/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
@@ -59,9 +58,9 @@ export default function LiffServiceRequestV2() {
     const { leaveOpen, requestLeave, cancelLeave, confirmLeave } = useLiffLeave()
     const { toast } = useToast()
 
-    // LIFF init (profile / idToken / in-LINE detection)
+    // LIFF init (script-injected window.liff via liff/layout.tsx; same as other LIFF pages)
     const { profile, idToken, isInLineApp, setIsInLineApp } = useLiffInit({
-        getLiff: () => liff,
+        getLiff: () => (typeof window !== 'undefined' ? window.liff : undefined),
         requireLiffId: true,
         redirectLogin: true,
         trackInLineApp: true
@@ -316,7 +315,7 @@ export default function LiffServiceRequestV2() {
             window.scrollTo(0, 0)
             // Re-sync in-client status when success shows so the auto-close
             // below fires reliably even if liff.init() lagged on mobile.
-            try { setIsInLineApp(liff.isInClient()) } catch { /* not in LINE */ }
+            try { setIsInLineApp(window.liff?.isInClient() ?? false) } catch { /* not in LINE */ }
         } catch (err: unknown) {
             logger.error("Submit Error:", err)
             setError(err instanceof Error ? err.message : 'Failed to submit')
@@ -359,7 +358,7 @@ export default function LiffServiceRequestV2() {
     // Close the LIFF window. Only meaningful inside the LINE in-app browser.
     const handleClose = () => {
         try {
-            liff.closeWindow()
+            window.liff?.closeWindow()
         } catch (e) {
             logger.error('Close window failed:', e)
         }
