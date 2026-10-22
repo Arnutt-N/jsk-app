@@ -1,13 +1,20 @@
 {
-  "last_updated": "2026-10-22T08:18:00+07:00",
+  "last_updated": "2026-10-23T02:09:00+07:00",
   "platform": "pi",
-  "current_task": "Merged PR stack to main: #282 user-create roles, #283 login by username-or-email, #284 access-request form + approval queue + password reset (review fixes included)",
+  "current_task": "Merged datepicker redesign PRs #285/#286/#287 (Portal popup, slim input, touch hardening, touch e2e)",
   "plan_status": "completed",
   "next_steps": [
-    "Prod config: set PUBLIC_APP_URL + SMTP for reset emails",
-    "Optional follow-ups in PR #284: router split, user-creation service, rate-limit dependency, frontend shell"
+    "Verify on real phone via production URL",
+    "PR #257 enterprise-audit docs untouched, awaiting decision"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-10-23T02:09:00+07:00",
+      "platform": "pi",
+      "branch": "main",
+      "head": "333cfdc",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-10-22T08:18:00+07:00",
       "platform": "pi",
@@ -139,13 +146,6 @@
       "platform": "pi",
       "branch": "fix/latest-pr-258-followup-clean",
       "head": "ef7a24e",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-10-15T21:24:00+07:00",
-      "platform": "pi",
-      "branch": "feat/enterprise-audit-sweep",
-      "head": "5d59322",
       "status": "completed"
     }
   ],
