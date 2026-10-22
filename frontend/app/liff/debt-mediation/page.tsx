@@ -15,7 +15,7 @@ import {
     CheckCircle2
 } from 'lucide-react'
 import { logger } from '@/lib/logger';
-import { useLiffInit } from '@/hooks/useLiffInit'
+import { useLiffInit, getWindowLiff as getLiff } from '@/hooks/useLiffInit'
 import { useLiffLeave } from '@/hooks/useLiffLeave'
 import { LeaveConfirmDialog } from '@/components/liff/LeaveConfirmDialog'
 import { LiffClearButton } from '@/components/liff/LiffClearButton'
@@ -94,8 +94,6 @@ const INITIAL_FORM_DATA = {
 const inputBaseClass =
     'w-full bg-white border text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block p-2.5 outline-none transition-all'
 
-const getLiff = () => (typeof window !== 'undefined' ? window.liff : undefined)
-
 export default function LiffDebtMediation() {
     const [step, setStep] = useState(0)
     const [submitting, setSubmitting] = useState(false)
@@ -109,7 +107,7 @@ export default function LiffDebtMediation() {
     const [provinceLoad, setProvinceLoad] = useState<ProvinceLoad>('loading')
 
     const { profile, idToken, isInLineApp, setIsInLineApp } = useLiffInit({
-        getLiff: () => getLiff(),
+        getLiff,
         requireLiffId: true,
         redirectLogin: true,
         trackInLineApp: true
@@ -304,7 +302,7 @@ export default function LiffDebtMediation() {
 
     const handleClose = () => {
         try {
-            getLiff()?.closeWindow()
+            window.liff?.closeWindow?.()
         } catch (e) {
             logger.error('Close window failed:', e)
         }

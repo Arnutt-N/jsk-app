@@ -15,7 +15,7 @@ import { Select } from '@/components/ui/Select'
 import { CalendarDays, CheckCircle2, Clock, Loader2, Phone, Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { logger } from '@/lib/logger'
-import { useLiffInit } from '@/hooks/useLiffInit'
+import { useLiffInit, getWindowLiff } from '@/hooks/useLiffInit'
 import DateSection, { type DayInfo } from '@/components/liff/booking/DateSection'
 import LiffStepper from '@/components/liff/LiffStepper'
 import { useBookingStore } from '@/lib/booking/store'
@@ -230,7 +230,7 @@ function BookingSkeleton() {
 
 export default function LiffBookingPage() {
   const { idToken, initDone, isInLineApp } = useLiffInit({
-    getLiff: () => (typeof window !== 'undefined' ? window.liff : undefined),
+    getLiff: getWindowLiff,
     requireLiffId: true,
     redirectLogin: true,
     trackInLineApp: true,

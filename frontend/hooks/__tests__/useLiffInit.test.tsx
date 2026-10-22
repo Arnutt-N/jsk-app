@@ -179,7 +179,7 @@ describe('useLiffInit', () => {
   })
 
   it('stays silent about a missing SDK by default', async () => {
-    // Arrange — bundled-import page relies on liffError alone
+    // Arrange — the hook stays silent only when the caller opts out of the warning
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
     const getLiff = vi.fn<() => LiffSdk | null>().mockReturnValue(null)
     const { result } = renderHook(() => useLiffInit({ getLiff }))

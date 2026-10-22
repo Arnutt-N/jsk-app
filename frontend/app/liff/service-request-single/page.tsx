@@ -26,7 +26,7 @@ import { TOPIC_OPTIONS } from '@/lib/constants/categories'
 import { PREFIX_OPTIONS } from '@/lib/constants/prefixes'
 import { isValidPhone } from '@/lib/liff/validation'
 import { loadTaxonomy, type TaxonomyTable } from '@/lib/booking/service-mapping'
-import { useLiffInit } from '@/hooks/useLiffInit'
+import { useLiffInit, getWindowLiff } from '@/hooks/useLiffInit'
 import { useAutoCloseCountdown } from '@/hooks/useAutoCloseCountdown'
 import { useLocationCascade } from '@/hooks/useLocationCascade'
 import { submitServiceRequest } from '@/lib/liff/submit-service-request'
@@ -45,7 +45,7 @@ export default function LiffServiceRequestSingle() {
 
     // LIFF init (script-injected window.liff; skip silently when absent)
     const { profile, idToken, isInLineApp, initDone } = useLiffInit({
-        getLiff: () => (typeof window !== 'undefined' ? window.liff : undefined),
+        getLiff: getWindowLiff,
         requireLiffId: false,
         redirectLogin: false,
         trackInLineApp: true
