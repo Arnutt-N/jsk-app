@@ -50,8 +50,19 @@ test.describe('datepicker touch behaviour', () => {
     await page.getByLabel('เปิดปฏิทินเลือกวันที่').first().tap({ force: true })
     const dialog = page.getByRole('dialog', { name: 'ปฏิทิน พ.ศ.' })
     await expect(dialog).toBeVisible()
-    const parentTag = await dialog.evaluate((el) => (el.parentElement as HTMLElement).tagName)
-    expect(parentTag).toBe('BODY')
+    // Escape-proof: Radix Portal wraps content in a plain div, so the
+    // direct parent is a DIV. What matters is that no clipping ancestor
+    // (overflow hidden/clip/scroll/auto) sits between the popup and BODY.
+    const clipped = await dialog.evaluate((el) => {
+      let n = el.parentElement
+      while (n && n.tagName !== 'BODY') {
+        const overflow = getComputedStyle(n).overflow
+        if (overflow !== 'visible') return true
+        n = n.parentElement
+      }
+      return false
+    })
+    expect(clipped).toBe(false)
 
     await page.keyboard.press('Escape')
     await clear.tap()
