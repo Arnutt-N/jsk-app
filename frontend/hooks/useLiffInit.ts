@@ -8,20 +8,27 @@ export interface LiffProfile {
 }
 
 /**
- * Structural subset of the LIFF SDK used by the init flow. Both the bundled
- * `@line/liff` default export and the script-injected `window.liff` satisfy it.
+ * SDK surface the init flow drives, derived from the single loader
+ * (`window.liff` injected by `liff/layout.tsx`). `getProfile` stays narrowed
+ * to the one field forms read so callers are not coupled to LINE's full shape.
  */
-export interface LiffSdk {
-  init(options: { liffId: string }): Promise<void>;
-  isLoggedIn(): boolean;
-  isInClient(): boolean;
-  login(): void;
+export type LiffSdk = Pick<
+  NonNullable<Window['liff']>,
+  'init' | 'isLoggedIn' | 'isInClient' | 'login' | 'getIDToken'
+> & {
   getProfile(): Promise<LiffProfile>;
-  getIDToken(): string | null;
+};
+
+/**
+ * Shared loader for every LIFF page: the edge script in `liff/layout.tsx`
+ * populates `window.liff`; a blocked/slow script (or SSR) means undefined.
+ */
+export function getWindowLiff(): LiffSdk | undefined {
+  return typeof window !== 'undefined' ? window.liff : undefined;
 }
 
 export interface UseLiffInitOptions {
-  /** Returns the LIFF SDK to drive (bundled import or `window.liff`). */
+  /** Returns the LIFF SDK to drive (normally `getWindowLiff`). */
   getLiff: () => LiffSdk | null | undefined;
   /** Throw (surfaced via `liffError`) when NEXT_PUBLIC_LIFF_ID is missing; when false, skip silently. */
   requireLiffId?: boolean;
