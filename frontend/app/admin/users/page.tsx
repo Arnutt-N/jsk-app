@@ -81,13 +81,13 @@ const STATUS_OPTIONS: SelectOption[] = [
     { value: 'false', label: 'ปิดใช้งาน' },
 ];
 
-// Roles an admin can CREATE. Intentionally unchanged in Phase 2 (DIRECTOR/HEAD
-// creation is a permission concern for Phase 3) — only AGENT's label is renamed.
-const CREATE_ROLE_OPTIONS: SelectOption[] = [
-    { value: ROLE.AGENT, label: getRoleOptionLabel(ROLE.AGENT) },
-    { value: ROLE.ADMIN, label: getRoleOptionLabel(ROLE.ADMIN) },
-    { value: ROLE.SUPER_ADMIN, label: getRoleOptionLabel(ROLE.SUPER_ADMIN) },
-];
+// Roles offered in the create-user modal (SUPER_ADMIN view). ADMIN callers are
+// further restricted to AGENT-only by allowedCreateRoles below. Covers all
+// five staff roles — USER (LINE customers) is never creatable here.
+const CREATE_ROLE_OPTIONS: SelectOption[] = STAFF_ROLES.map((r) => ({
+    value: r,
+    label: getRoleOptionLabel(r),
+}));
 
 const PER_PAGE = 20;
 
