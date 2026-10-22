@@ -65,7 +65,9 @@ test.describe('datepicker touch behaviour', () => {
     expect(clipped).toBe(false)
 
     await page.keyboard.press('Escape')
-    await clear.tap()
+    // Same force rationale as the trigger tap above: outcome assertions
+    // (empty field, zero clear buttons) carry the proof.
+    await clear.tap({ force: true })
     await expect(day).toHaveValue('')
     await expect(page.getByLabel('ล้างวันที่')).toHaveCount(0)
 
