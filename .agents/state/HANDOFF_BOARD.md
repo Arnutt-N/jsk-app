@@ -1,8 +1,8 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Handoff Board (generated)
 
-> **Last generated**: 2026-10-21 18:42 (from newest checkpoint)
-> 298 active handoffs, 12 platforms, 0 queued directed handoff(s).
+> **Last generated**: 2026-10-22 08:18 (from newest checkpoint)
+> 299 active handoffs, 12 platforms, 0 queued directed handoff(s).
 
 > Regenerate after any handoff: `node .agents/scripts/gen-handoff-views.cjs`
 
@@ -19,7 +19,7 @@
 | kimi_code | AVAILABLE | 2026-06-02 01:39 | 0 | Applied all P0–P3 critique fixes on frontend/app/admin/requests/[id]/page.tsx. Destructive actions now have ConfirmDialo | `project-log-md/kimi_code/session-summary-20260602-0139.md` |
 | muse_code | AVAILABLE | 2026-10-11 15:10 | 0 | Merged PR #248 (act-on-8 fixes + 6 review findings) via guarded squash d5dbef9 after independent PASS+NOTES verdict; del | `project-log-md/muse_code/session-summary-20261011-1510.md` |
 | open_code | AVAILABLE | 2026-08-25 07:39 | 0 | LIFF smoke-test plan for PR #202 drafted+reviewed (.scratch/liff-smoke-pr202/smoke-test-plan.md, REV1: 5 findings fixed) | `project-log-md/open_code/session-summary-20260825-0739.md` |
-| pi | AVAILABLE | 2026-10-21 18:42 | 0 | Graphs refreshed after review-fix session: graft rebuild and graphify update both green, tree clean | `project-log-md/pi/session-summary-20261021-1842.md` |
+| pi | AVAILABLE | 2026-10-22 08:18 | 0 | Merged PR stack to main: #282 user-create roles, #283 login by username-or-email, #284 access-request form + approval qu | `project-log-md/pi/session-summary-20261022-0818.md` |
 | qoder | AVAILABLE | 2026-08-29 23:21 | 0 | Merged PR #206 + #207 to main (8ddbda3, beaff04) — resolved #206 generated-state conflicts (kept both 21:58/22:44 record | `project-log-md/qoder/session-summary-20260829-2321.md` |
 | zcode | AVAILABLE | 2026-09-06 22:56 | 0 | codebase-review-fix on PR #228 CLOSED via PR #229 (squash e63ee9f, CI 4/4, CD success): review found 0 Critical/High; 3  | `project-log-md/zcode/session-summary-20260906-2256.md` |
 
@@ -35,6 +35,7 @@ _None — no blocked checkpoints._
 
 | When | From → To | Task | Checkpoint |
 |------|-----------|------|------------|
+| 2026-10-22 08:18 | pi → all | Merged PR stack to main: #282 user-create roles, #283 login by username-or-email, #284 access-request form + approval queue + password reset | `handover-pi-20261022-0818.json` |
 | 2026-10-21 18:42 | pi → all | Graphs refreshed after review-fix session: graft rebuild and graphify update both green, tree clean | `handover-pi-20261021-1842.json` |
 | 2026-10-21 08:48 | pi → all | Session complete: PR #280 LINE toggle+quota and PR #281 review fixes both merged, CD green; pstack 6-skill review synthesized and applied | `handover-pi-20261021-0848.json` |
 | 2026-10-21 08:39 | pi → all | PR #281 review fixes merged to main, CD green; kept line OFF default per operator; admin must flip LINE toggle ON to resume pushes | `handover-pi-20261021-0839.json` |
@@ -44,4 +45,3 @@ _None — no blocked checkpoints._
 | 2026-10-19 23:15 | pi → all | Booking full-option program COMPLETE: phases 1-6 on feat/booking-full-option, single PR #279 opened (merged 4b5222b+71888e2, SMTP live-send  | `handover-pi-20261019-2315.json` |
 | 2026-10-19 20:02 | pi → all | Booking full-option phase 5 done on feat/booking-full-option (assignment migration live-tested, endpoint + gates, column/modal/chip, toggle  | `handover-pi-20261019-2002.json` |
 | 2026-10-19 17:03 | pi → all | Booking full-option phase 4 done on feat/booking-full-option (reminder status column, resend endpoint + guard, toggle; 492070c pushed, no PR | `handover-pi-20261019-1703.json` |
-| 2026-10-19 15:03 | pi → all | Booking full-option phase 3 done on feat/booking-full-option (month calendar, range wrapper, toggle; 6f76209 pushed, no PR yet) | `handover-pi-20261019-1503.json` |

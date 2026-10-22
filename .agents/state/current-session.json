@@ -1,13 +1,20 @@
 {
-  "last_updated": "2026-10-21T18:42:00+07:00",
+  "last_updated": "2026-10-22T08:18:00+07:00",
   "platform": "pi",
-  "current_task": "Graphs refreshed after review-fix session: graft rebuild and graphify update both green, tree clean",
+  "current_task": "Merged PR stack to main: #282 user-create roles, #283 login by username-or-email, #284 access-request form + approval queue + password reset (review fixes included)",
   "plan_status": "completed",
   "next_steps": [
-    "Admin flips LINE toggle ON when ready",
-    "Phone-test booking flow in LINE"
+    "Prod config: set PUBLIC_APP_URL + SMTP for reset emails",
+    "Optional follow-ups in PR #284: router split, user-creation service, rate-limit dependency, frontend shell"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-10-22T08:18:00+07:00",
+      "platform": "pi",
+      "branch": "main",
+      "head": "f84c367",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-10-21T18:42:00+07:00",
       "platform": "pi",
@@ -139,13 +146,6 @@
       "platform": "pi",
       "branch": "feat/enterprise-audit-sweep",
       "head": "5d59322",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-10-15T21:13:00+07:00",
-      "platform": "pi",
-      "branch": "feat/enterprise-audit-sweep",
-      "head": "d11e7d6",
       "status": "completed"
     }
   ],
