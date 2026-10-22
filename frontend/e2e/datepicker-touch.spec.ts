@@ -21,6 +21,11 @@ test.describe('datepicker touch behaviour', () => {
   })
 
   test('tap opens calendar, tap X clears, groups span full width', async ({ page }) => {
+    // Let stats/table streams settle: the tap below needs a stable target,
+    // and skeleton-to-content swaps above the filter row move it around.
+    await page.waitForLoadState('networkidle')
+    await expect(page.getByRole('table')).toBeVisible()
+
     const day = page.getByLabel('จากวันที่')
     await day.fill('15')
     // The from-date picker mounts first, so its month/year inputs are .first().
@@ -29,6 +34,11 @@ test.describe('datepicker touch behaviour', () => {
 
     const clear = page.getByLabel('ล้างวันที่').first()
     await expect(clear).toBeVisible()
+
+    // Drop focus from the year input and let the refetch settle, so the
+    // trigger stops moving before the tap's stability check runs.
+    await page.getByLabel('ปี พ.ศ.').first().evaluate((el) => (el as HTMLElement).blur())
+    await page.waitForLoadState('networkidle')
 
     // The calendar icon must still be tappable with a value present --
     // the tap has to open the dialog, not clear the field.
