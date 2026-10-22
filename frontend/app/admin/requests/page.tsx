@@ -279,7 +279,7 @@ export default function AdminRequestList() {
                             <div className="mt-4 pt-4 border-t border-border-default flex flex-wrap items-center gap-4">
                                 <div className="flex w-full items-center gap-2 sm:w-auto">
                                     <span className="text-xs font-medium text-text-secondary whitespace-nowrap">จากวันที่:</span>
-                                    <div className="w-full sm:w-52">
+                                    <div className="w-full sm:w-auto">
                                         <CalendarPickerTH
                                             ariaLabel="จากวันที่"
                                             value={filter.startDate ? new Date(`${filter.startDate}T00:00:00`).toISOString() : null}
@@ -292,7 +292,7 @@ export default function AdminRequestList() {
                                 </div>
                                 <div className="flex w-full items-center gap-2 sm:w-auto">
                                     <span className="text-xs font-medium text-text-secondary whitespace-nowrap">ถึงวันที่:</span>
-                                    <div className="w-full sm:w-52">
+                                    <div className="w-full sm:w-auto">
                                         <CalendarPickerTH
                                             ariaLabel="ถึงวันที่"
                                             value={filter.endDate ? new Date(`${filter.endDate}T00:00:00`).toISOString() : null}

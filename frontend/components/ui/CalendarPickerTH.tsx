@@ -423,7 +423,7 @@ export default function CalendarPickerTH({
           className="w-14 px-1 py-1.5 text-center text-sm font-medium bg-transparent text-text-primary focus:outline-none placeholder:text-gray-300"
         />
 
-        <div className="relative ml-auto flex shrink-0 items-center">
+        <div className="relative ml-auto flex shrink-0 items-center gap-1">
           <PopoverTrigger asChild>
             <button
               type="button"
@@ -454,7 +454,7 @@ export default function CalendarPickerTH({
                 if (yearRef.current) yearRef.current.value = "";
               }}
               aria-label="ล้างวันที่"
-              className="absolute inset-0 flex items-center justify-center rounded-lg bg-surface text-text-tertiary opacity-0 pointer-events-none transition-opacity hover:text-text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto focus-visible:opacity-100 focus-visible:pointer-events-auto [@media(hover:none)]:static [@media(hover:none)]:opacity-100 [@media(hover:none)]:pointer-events-auto"
+              className="absolute inset-0 flex shrink-0 items-center justify-center rounded-lg bg-surface text-text-tertiary opacity-0 pointer-events-none transition-opacity hover:text-text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto focus-visible:opacity-100 focus-visible:pointer-events-auto [@media(hover:none)]:static [@media(hover:none)]:h-8 [@media(hover:none)]:w-8 [@media(hover:none)]:opacity-100 [@media(hover:none)]:pointer-events-auto [@media(pointer:coarse)]:static [@media(pointer:coarse)]:h-8 [@media(pointer:coarse)]:w-8 [@media(pointer:coarse)]:opacity-100 [@media(pointer:coarse)]:pointer-events-auto"
             >
               <X size={16} />
             </button>
