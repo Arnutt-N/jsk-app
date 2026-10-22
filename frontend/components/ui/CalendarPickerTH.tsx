@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo, type FormEvent, type ReactNode } from "react";
-import { motion, AnimatePresence } from "motion/react";
-import { Calendar, Check, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { motion } from "motion/react";
+import { Calendar, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { parseThaiDate, toBE, daysInMonth, cn } from "@/lib/utils";
 import { toISODate } from "@/lib/booking";
+import { Popover, PopoverTrigger, PopoverContent } from "./Popover";
 import {
   parseDateParts,
   formatThaiDate,
@@ -129,30 +130,8 @@ export default function CalendarPickerTH({
     }
   }, [value, isEditing]);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setIsOpen(false);
-        setCalendarView("date");
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen]);
-
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-        setCalendarView("date");
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [isOpen]);
+  // Radix Popover (Portal) handles Esc + outside-dismiss natively,
+  // so no manual keydown/mousedown listeners are needed here.
 
   const validateAndUpdate = () => {
     const day = dayRef.current?.value ?? "";
@@ -377,6 +356,13 @@ export default function CalendarPickerTH({
   const hasValue = !!value;
 
   return (
+    <Popover
+      open={isOpen}
+      onOpenChange={(next) => {
+        setIsOpen(next);
+        setCalendarView("date");
+      }}
+    >
     <div className={cn("w-full relative", className)} ref={containerRef}>
       {label && (
         <label className="block text-sm font-medium text-text-secondary mb-2">
@@ -387,7 +373,7 @@ export default function CalendarPickerTH({
 
       {/* Input Container */}
       <div className={cn(
-        "relative flex items-center pl-1 pr-3 py-1 rounded-xl border-2 bg-surface transition-all duration-200",
+        "group relative flex items-center pl-1 pr-3 py-1 rounded-xl border-2 bg-surface transition-all duration-200",
         error || localError
           ? "border-red-300 focus-within:border-red-500"
           : "border-border-default hover:border-text-tertiary focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100"
@@ -438,16 +424,28 @@ export default function CalendarPickerTH({
           className="w-14 px-1 py-1.5 text-center text-sm font-medium bg-transparent text-text-primary focus:outline-none placeholder:text-gray-300"
         />
 
-        {/* Action Buttons */}
-        <div className="ml-auto flex items-center gap-1">
-          {hasValue && (
-            <span
-              className="p-1 text-emerald-600 dark:text-emerald-400"
-              title={formatDisplayDate(value)}
+        {/* Single icon slot: the calendar button opens the popup; the clear
+            button overlays it on hover/focus only when a value exists, so
+            clearing costs zero extra width. Touch screens (hover: none)
+            always show it, since there is no hover there. */}
+        <div className="relative ml-auto shrink-0">
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              aria-haspopup="dialog"
+              aria-expanded={isOpen}
+              aria-label="เปิดปฏิทินเลือกวันที่"
+              title="เปิดปฏิทิน (หรือพิมพ์วันที่ในช่องด้านซ้าย)"
+              className={cn(
+                "p-1.5 rounded-lg transition-all duration-200 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400",
+                isOpen
+                  ? "bg-blue-500 text-white"
+                  : "text-text-tertiary hover:bg-bg hover:text-text-primary"
+              )}
             >
-              <Check size={16} strokeWidth={3} />
-            </span>
-          )}
+              <Calendar size={18} />
+            </button>
+          </PopoverTrigger>
 
           {hasValue && (
             <button
@@ -460,51 +458,25 @@ export default function CalendarPickerTH({
                 if (monthRef.current) monthRef.current.value = "";
                 if (yearRef.current) yearRef.current.value = "";
               }}
-              className="p-1.5 rounded-lg text-text-tertiary hover:text-text-primary hover:bg-bg transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
               aria-label="ล้างวันที่"
+              className="absolute inset-0 flex items-center justify-center rounded-lg bg-surface text-text-tertiary opacity-0 pointer-events-none transition-opacity hover:text-text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto focus-visible:opacity-100 focus-visible:pointer-events-auto [@media(hover:none)]:opacity-100 [@media(hover:none)]:pointer-events-auto"
             >
               <X size={16} />
             </button>
           )}
-
-          <button
-            type="button"
-            onClick={() =>
-              setIsOpen((v) => {
-                const next = !v;
-                if (next) setCalendarView("date");
-                return next;
-              })
-            }
-            aria-haspopup="dialog"
-            aria-expanded={isOpen}
-            aria-label="เปิดปฏิทินเลือกวันที่"
-            title="เปิดปฏิทิน (หรือพิมพ์วันที่ในช่องด้านซ้าย)"
-            className={cn(
-              "p-1.5 rounded-lg transition-all duration-200 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400",
-              isOpen
-                ? "bg-blue-500 text-white"
-                : "text-text-tertiary hover:bg-bg hover:text-text-primary"
-            )}
-          >
-            <Calendar size={18} />
-          </button>
         </div>
       </div>
 
-      {/* Calendar Popup */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -8, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -8, scale: 0.96 }}
-            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            role="dialog"
-            aria-modal="true"
-            aria-label="ปฏิทิน พ.ศ."
-            className="absolute z-50 mt-2 left-0 sm:left-auto sm:right-0 bg-surface rounded-2xl border border-border-default shadow-xl p-4 w-[340px] max-w-[calc(100vw-32px)]"
-          >
+      {/* Calendar popup — rendered in a Portal on document.body with collision
+          handling, so overflow-hidden ancestors (cards, tables) can never clip it. */}
+      <PopoverContent
+        role="dialog"
+        aria-label="ปฏิทิน พ.ศ."
+        align="start"
+        side="bottom"
+        collisionPadding={8}
+        className="w-[calc(100vw-32px)] max-w-[340px]"
+      >
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
               <button
@@ -703,9 +675,7 @@ export default function CalendarPickerTH({
                 วันนี้ ({formatDisplayDate(new Date().toISOString())})
               </button>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      </PopoverContent>
 
       {/* Error/Helper Messages */}
       {(error || localError) && (
@@ -718,5 +688,6 @@ export default function CalendarPickerTH({
         <p className="mt-1.5 text-sm text-text-tertiary">{helper}</p>
       )}
     </div>
+    </Popover>
   );
 }
