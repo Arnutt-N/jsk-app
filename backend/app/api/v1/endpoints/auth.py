@@ -1,11 +1,12 @@
 import hashlib
+import logging
 import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Optional, NoReturn
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy import func, or_, select
+from sqlalchemy import delete, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_db
@@ -45,11 +46,14 @@ from app.services.auth_session_service import (
     WS_TICKET_TTL_SECONDS,
     create_session_family,
     mint_ws_ticket,
+    revoke_all_user_sessions,
     revoke_family,
     rotate_refresh_session,
 )
 
 router = APIRouter()
+
+logger = logging.getLogger(__name__)
 
 # Roles allowed to authenticate into the admin console. DIRECTOR and HEAD were
 # added 2026-05-04 alongside the request workflow split; they share ADMIN-level
@@ -292,9 +296,21 @@ async def forgot_password(
         )
     identifier = payload.username_or_email
     user = await _find_admin_by_identifier(db, identifier)
-    if user is not None and user.is_active and getattr(user, "email", None):
+    if (
+        user is not None
+        and user.is_active
+        and user.email
+        and settings.PUBLIC_APP_URL
+    ):
+        now = datetime.now(timezone.utc)
+        await db.execute(
+            delete(PasswordResetToken).where(
+                PasswordResetToken.user_id == user.id,
+                PasswordResetToken.expires_at < now,
+            )
+        )
         raw = secrets.token_urlsafe(32)
-        expires = datetime.now(timezone.utc) + timedelta(minutes=RESET_TOKEN_TTL_MINUTES)
+        expires = now + timedelta(minutes=RESET_TOKEN_TTL_MINUTES)
         db.add(
             PasswordResetToken(
                 user_id=user.id,
@@ -302,26 +318,26 @@ async def forgot_password(
                 expires_at=expires,
             )
         )
-        link = None
-        if settings.PUBLIC_APP_URL:
-            link = f"{settings.PUBLIC_APP_URL.rstrip('/')}/reset-password?token={raw}"
-            subject = "ตั้งรหัสผ่านใหม่"
-            body = (
-                f"สวัสดี {user.display_name or user.username}\n\n"
-                "กดลิงก์นี้เพื่อตั้งรหัสผ่านใหม่ "
-                f"(ใช้ได้ {RESET_TOKEN_TTL_MINUTES} นาที ใช้ได้ครั้งเดียว)\n"
-                f"{link}\n\n"
-                "ถ้าไม่ได้ขอเอง ไม่ต้องทำอะไร\n"
-                "ข้อความนี้ส่งอัตโนมัติ กรุณาอย่าตอบกลับ"
-            )
-            await send_booking_email(user.email, subject, body)
+        link = f"{settings.PUBLIC_APP_URL.rstrip('/')}/reset-password?token={raw}"
+        subject = "ตั้งรหัสผ่านใหม่"
+        body = (
+            f"สวัสดี {user.display_name or user.username}\n\n"
+            "กดลิงก์นี้เพื่อตั้งรหัสผ่านใหม่ "
+            f"(ใช้ได้ {RESET_TOKEN_TTL_MINUTES} นาที ใช้ได้ครั้งเดียว)\n"
+            f"{link}\n\n"
+            "ถ้าไม่ได้ขอเอง ไม่ต้องทำอะไร\n"
+            "ข้อความนี้ส่งอัตโนมัติ กรุณาอย่าตอบกลับ"
+        )
+        sent = await send_booking_email(user.email, subject, body)
+        if not sent:
+            logger.error("password reset email failed for user_id=%s", user.id)
         await create_audit_log(
             db,
             admin_id=user.id,
             action="password_reset_requested",
             resource_type="auth",
             resource_id=str(user.id),
-            details={"emailed": bool(link)},
+            details={"emailed": sent},
         )
         await db.commit()
     else:
@@ -340,25 +356,48 @@ async def forgot_password(
 @router.post("/reset-password")
 async def reset_password(
     payload: ResetPasswordConfirm,
+    request: Request,
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     """Consume a reset token and set a new password. One generic error for
     every failure so tokens cannot be probed."""
-    result = await db.execute(
-        select(PasswordResetToken).where(
-            PasswordResetToken.token_hash == _hash_reset_token(payload.token)
+    ip = request.client.host if request.client else "unknown"
+    if await _auth_rate_limit_exceeded(f"reset-password:{ip}"):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="ส่งคำขอถี่เกินไป กรุณาลองใหม่ภายหลัง",
         )
-    )
-    record = result.scalar_one_or_none()
     now = datetime.now(timezone.utc)
-    expires = record.expires_at if record else None
-    if expires is not None and expires.tzinfo is None:
-        expires = expires.replace(tzinfo=timezone.utc)
-    if record is None or record.used_at is not None or expires is None or expires <= now:
+    claimed = await db.execute(
+        update(PasswordResetToken)
+        .where(
+            PasswordResetToken.token_hash == _hash_reset_token(payload.token),
+            PasswordResetToken.used_at.is_(None),
+            PasswordResetToken.expires_at > now,
+        )
+        .values(used_at=now)
+    )
+    if (claimed.rowcount or 0) == 0:
+        await create_audit_log(
+            db,
+            admin_id=None,
+            action="password_reset_failed",
+            resource_type="auth",
+            resource_id=None,
+            details={},
+        )
+        await db.commit()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="ลิงก์ไม่ถูกต้องหรือหมดอายุแล้ว",
         )
+    record = (
+        await db.execute(
+            select(PasswordResetToken).where(
+                PasswordResetToken.token_hash == _hash_reset_token(payload.token)
+            )
+        )
+    ).scalar_one()
     user = await _load_admin_user(db, record.user_id)
     if user is None or not user.is_active:
         raise HTTPException(
@@ -366,7 +405,15 @@ async def reset_password(
             detail="ลิงก์ไม่ถูกต้องหรือหมดอายุแล้ว",
         )
     user.hashed_password = await get_password_hash_async(payload.new_password)
-    record.used_at = now
+    await db.execute(
+        update(PasswordResetToken)
+        .where(
+            PasswordResetToken.user_id == user.id,
+            PasswordResetToken.used_at.is_(None),
+        )
+        .values(used_at=now)
+    )
+    await revoke_all_user_sessions(db, user.id)
     await create_audit_log(
         db,
         admin_id=user.id,

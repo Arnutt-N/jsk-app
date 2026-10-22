@@ -18,7 +18,9 @@ interface AccessRequest {
   display_name: string | null;
   username: string | null;
   email: string | null;
+  phone_number: string | null;
   requested_role: string;
+  reason: string | null;
   status: string;
   created_at: string | null;
 }
@@ -35,6 +37,7 @@ export default function AccessRequestsPage() {
   const [loading, setLoading] = useState(true);
   const [approveReq, setApproveReq] = useState<AccessRequest | null>(null);
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [approveLoading, setApproveLoading] = useState(false);
   const [approveError, setApproveError] = useState('');
   const [rejectReq, setRejectReq] = useState<AccessRequest | null>(null);
@@ -66,6 +69,10 @@ export default function AccessRequestsPage() {
       setApproveError('รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร');
       return;
     }
+    if (password !== confirmPassword) {
+      setApproveError('รหัสผ่านทั้งสองช่องไม่ตรงกัน');
+      return;
+    }
     setApproveLoading(true);
     const result = await apiFetch(`/admin/access-requests/${approveReq.id}/approve`, {
       method: 'POST',
@@ -74,8 +81,13 @@ export default function AccessRequestsPage() {
     if (result.ok) {
       setApproveReq(null);
       setPassword('');
+      setConfirmPassword('');
       setAlert({ type: 'success', title: 'สำเร็จ', message: `อนุมัติ ${approveReq.display_name || approveReq.username} แล้ว เข้าสู่ระบบได้ทันที` });
-      fetchRequests();
+      try {
+        await fetchRequests();
+      } catch {
+        setAlert({ type: 'error', title: 'ไม่สำเร็จ', message: 'อนุมัติแล้ว แต่โหลดรายการใหม่ไม่สำเร็จ กรุณารีเฟรชหน้า' });
+      }
     } else {
       setApproveError(result.message);
     }
@@ -93,7 +105,11 @@ export default function AccessRequestsPage() {
       setRejectReq(null);
       setRejectNote('');
       setAlert({ type: 'success', title: 'สำเร็จ', message: 'ปฏิเสธคำขอแล้ว' });
-      fetchRequests();
+      try {
+        await fetchRequests();
+      } catch {
+        setAlert({ type: 'error', title: 'ไม่สำเร็จ', message: 'ปฏิเสธแล้ว แต่โหลดรายการใหม่ไม่สำเร็จ กรุณารีเฟรชหน้า' });
+      }
     } else {
       setRejectReq(null);
       setAlert({ type: 'error', title: 'ไม่สำเร็จ', message: result.message });
@@ -126,6 +142,8 @@ export default function AccessRequestsPage() {
                 <th className="px-6 py-3 text-left">ผู้ขอ</th>
                 <th className="px-6 py-3 text-left">ชื่อผู้ใช้ที่ขอ</th>
                 <th className="px-6 py-3 text-left">ตำแหน่งที่ขอ</th>
+                <th className="px-6 py-3 text-left">เหตุผล</th>
+                <th className="px-6 py-3 text-left">วันที่ขอ</th>
                 <th className="px-6 py-3 text-left">สถานะ</th>
                 <th className="px-6 py-3 text-right">การดำเนินการ</th>
               </tr>
@@ -133,13 +151,13 @@ export default function AccessRequestsPage() {
             <tbody className="divide-y divide-border-default">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-16 text-center">
+                  <td colSpan={7} className="px-6 py-16 text-center">
                     <LoadingSpinner size="sm" label="กำลังโหลด..." fullPage={false} />
                   </td>
                 </tr>
               ) : requests.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-16 text-center text-text-secondary">
+                  <td colSpan={7} className="px-6 py-16 text-center text-text-secondary">
                     <ShieldCheck className="w-12 h-12 mx-auto mb-2 text-text-tertiary" />
                     <p>ไม่มีคำขอ</p>
                   </td>
@@ -155,6 +173,8 @@ export default function AccessRequestsPage() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <Badge variant="info" size="sm">{getRoleOptionLabel(r.requested_role)}</Badge>
                     </td>
+                    <td className="px-6 py-4 text-sm text-text-secondary max-w-55 truncate" title={r.reason || ''}>{r.reason || '-'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-text-secondary">{r.created_at ? new Date(r.created_at).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' }) : '-'}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">{STATUS_LABEL[r.status] || r.status}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">
                       {r.status === 'PENDING' && (
@@ -163,7 +183,7 @@ export default function AccessRequestsPage() {
                             variant="primary"
                             size="sm"
                             leftIcon={<Check className="w-4 h-4" />}
-                            onClick={() => { setApproveReq(r); setPassword(''); setApproveError(''); }}
+                            onClick={() => { setApproveReq(r); setPassword(''); setConfirmPassword(''); setApproveError(''); }}
                           >
                             อนุมัติ
                           </Button>
@@ -208,6 +228,15 @@ export default function AccessRequestsPage() {
                 onChange={(e) => setPassword(e.target.value)}
               />
               {password && <PasswordStrengthMeter password={password} />}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-text-primary mb-1.5">ยืนยันรหัสผ่าน *</label>
+              <Input
+                type="password"
+                placeholder="พิมพ์รหัสผ่านอีกครั้ง"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+              />
             </div>
             {approveError && (
               <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg px-3 py-2">{approveError}</p>

@@ -23,7 +23,7 @@ class LoginRequest(BaseModel):
 
 
 class ForgotPasswordRequest(BaseModel):
-    username_or_email: str
+    username_or_email: str = Field(..., min_length=1, max_length=255)
 
     @field_validator("username_or_email")
     @classmethod

@@ -29,6 +29,8 @@ def upgrade() -> None:
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=True),
     )
     op.create_index("ix_access_requests_id", "access_requests", ["id"])
+    op.create_index("ix_access_requests_status", "access_requests", ["status"])
+    op.create_index("ix_access_requests_username", "access_requests", ["username"])
 
     op.create_table(
         "password_reset_tokens",
@@ -49,6 +51,8 @@ def downgrade() -> None:
     op.drop_index("ix_password_reset_tokens_user_id", table_name="password_reset_tokens")
     op.drop_index("ix_password_reset_tokens_id", table_name="password_reset_tokens")
     op.drop_table("password_reset_tokens")
+    op.drop_index("ix_access_requests_username", table_name="access_requests")
+    op.drop_index("ix_access_requests_status", table_name="access_requests")
     op.drop_index("ix_access_requests_id", table_name="access_requests")
     op.drop_table("access_requests")
     op.execute("DROP TYPE IF EXISTS accessrequeststatus")

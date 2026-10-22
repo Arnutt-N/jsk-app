@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from types import SimpleNamespace
-from typing import Any, cast
-from unittest.mock import AsyncMock, patch
+from typing import cast
+from unittest.mock import patch
 
 import pytest
 from fastapi import HTTPException
@@ -21,9 +21,16 @@ from app.schemas.access_request import AccessRequestApprove, AccessRequestReject
 class _Result:
     def __init__(self, value):
         self._value = value
+        self.rowcount = value if isinstance(value, int) else 1
 
     def scalar_one_or_none(self):
-        return self._value
+        return None if isinstance(self._value, int) else self._value
+
+    def scalar_one(self):
+        value = self.scalar_one_or_none()
+        if value is None:
+            raise ValueError("no row")
+        return value
 
 
 class _FakeDB:
@@ -31,9 +38,12 @@ class _FakeDB:
         self.added = []
         self.selects = list(selects or [])
         self.committed = False
+        self.statements = []
 
     async def execute(self, stmt):
-        return _Result(self.selects.pop(0) if self.selects else None)
+        self.statements.append(stmt)
+        popped = self.selects.pop(0) if self.selects else None
+        return _Result(popped)
 
     def add(self, obj):
         if getattr(obj, "id", None) is None:
@@ -41,6 +51,9 @@ class _FakeDB:
         self.added.append(obj)
 
     async def flush(self):
+        pass
+
+    async def rollback(self):
         pass
 
     async def commit(self):
@@ -189,6 +202,19 @@ async def test_approve_rejects_taken_username():
             7, AccessRequestApprove(password="secret1234"), cast(AsyncSession, db), cast(User, admin)
         )
     assert exc_info.value.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_approve_rejects_taken_email():
+    db = _FakeDB(selects=[_request_row(), None, SimpleNamespace(id=9)])
+    admin = SimpleNamespace(id=99, role=UserRole.SUPER_ADMIN)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await ar_endpoints.approve_request(
+            7, AccessRequestApprove(password="secret1234"), cast(AsyncSession, db), cast(User, admin)
+        )
+    assert exc_info.value.status_code == 409
+    assert "อีเมล" in exc_info.value.detail
 
 
 @pytest.mark.asyncio
