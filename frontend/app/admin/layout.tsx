@@ -11,7 +11,7 @@ import {
   Menu, Search, LogOut, ChevronLeft, ChevronRight, X,
   LayoutDashboard, FileText, Bot, MessageCircle,
   Reply, MessageSquareReply, MessageSquareText, PanelTop, Users,
-  UserCog, BarChart3, Megaphone, FolderOpen,
+  UserCog, UserPlus, BarChart3, Megaphone, FolderOpen,
   Settings, Palette, Shield, History, Scaling, Activity, CalendarCheck,
 } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
@@ -205,6 +205,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
       title: 'System and Utilities',
       items: [
         { name: 'User Management', href: '/admin/users', icon: UserCog, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
+        { name: 'Access Requests', href: '/admin/access-requests', icon: UserPlus, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
         { name: 'File Management', href: '/admin/files', icon: FolderOpen, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
         { name: 'Image Resize', href: '/admin/image-resize', icon: Scaling, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
         { name: 'Reports', href: '/admin/reports', icon: BarChart3, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },

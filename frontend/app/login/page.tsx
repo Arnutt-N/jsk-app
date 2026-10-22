@@ -416,12 +416,12 @@ function LoginForm() {
                     </label>
                   </div>
 
-                  <span
-                    className="text-xs text-gray-400 dark:text-gray-500 cursor-default"
-                    title="ติดต่อผู้ดูแลระบบเพื่อรีเซ็ตรหัสผ่าน"
+                  <Link
+                    href="/forgot-password"
+                    className="text-xs font-bold text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
                   >
-                    ลืมรหัสผ่าน? ติดต่อผู้ดูแลระบบ
-                  </span>
+                    ลืมรหัสผ่าน?
+                  </Link>
                 </div>
 
                 <Button

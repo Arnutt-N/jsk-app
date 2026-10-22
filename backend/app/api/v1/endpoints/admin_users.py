@@ -7,7 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from typing import List, Optional
 
 from app.db.session import get_db
-from app.api.deps import get_current_admin, get_current_staff, require_permission
+from app.api.deps import check_role_permission, get_current_admin, get_current_staff, require_permission
 from app.core.audit import create_audit_log
 from app.core.permissions import KEY_MANAGE_USERS
 from app.core.pii_masking import mask_line_id
@@ -114,38 +114,8 @@ class UserWorkload(BaseModel):
     pending_tasks: int
 
 
-# ── Helpers ──────────────────────────────────────────────────────────
-
-
-def _check_role_permission(current_user: User, target_role: UserRole) -> None:
-    """Check if current user can manage users of the given role."""
-    if target_role == UserRole.SUPER_ADMIN:
-        if current_user.role != UserRole.SUPER_ADMIN:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Only SUPER_ADMIN can manage SUPER_ADMIN users",
-            )
-    elif target_role == UserRole.ADMIN:
-        if current_user.role != UserRole.SUPER_ADMIN:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Only SUPER_ADMIN can manage ADMIN users",
-            )
-    elif target_role == UserRole.AGENT:
-        if current_user.role not in (UserRole.SUPER_ADMIN, UserRole.ADMIN):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Only ADMIN or SUPER_ADMIN can manage AGENT users",
-            )
-    elif target_role in (UserRole.DIRECTOR, UserRole.HEAD):
-        # DIRECTOR/HEAD previously fell through with NO check — an ADMIN
-        # (manage_users) could create/modify them, escalating into roles that
-        # carry access_manager_endpoints/access_staff_endpoints.
-        if current_user.role != UserRole.SUPER_ADMIN:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Only SUPER_ADMIN can manage DIRECTOR or HEAD users",
-            )
+# Role check lives in app.api.deps (canonical home shared with the
+# access-request review queue) -- see check_role_permission.
 
 
 # ── Endpoints ────────────────────────────────────────────────────────
@@ -365,7 +335,7 @@ async def create_user(
     current_admin: User = Depends(require_permission(KEY_MANAGE_USERS)),
 ):
     """Create a new admin/agent user."""
-    _check_role_permission(current_admin, body.role)
+    check_role_permission(current_admin, body.role)
 
     # Check username uniqueness
     existing = await db.execute(select(User).where(User.username == body.username))
@@ -451,11 +421,11 @@ async def update_user(
     # accounts (display name, email, is_active) by omitting the role field.
     # Editing your own account is always allowed.
     if user.id != current_admin.id:
-        _check_role_permission(current_admin, user.role)
+        check_role_permission(current_admin, user.role)
 
     # Check permission for target role changes
     if body.role is not None:
-        _check_role_permission(current_admin, body.role)
+        check_role_permission(current_admin, body.role)
 
     # Snapshot prior values for the audit diff -- captured before mutation.
     prior_display_name = user.display_name
@@ -567,7 +537,7 @@ async def delete_user(
         )
 
     # Check permission for the user's role
-    _check_role_permission(current_admin, user.role)
+    check_role_permission(current_admin, user.role)
 
     # Cannot delete the last SUPER_ADMIN
     if user.role == UserRole.SUPER_ADMIN:

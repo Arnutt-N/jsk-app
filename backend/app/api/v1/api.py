@@ -16,6 +16,7 @@ from app.api.v1.endpoints import (
     admin_business_hours,
     admin_requests,
     admin_users,
+    admin_access_requests,
     rich_menus,
     settings,
     admin_live_chat,
@@ -50,6 +51,7 @@ api_router.include_router(admin_intents.router, prefix="/admin/intents", tags=["
 api_router.include_router(admin_requests.router, prefix="/admin/requests", tags=["admin"])
 api_router.include_router(admin_bookings.router, prefix="/admin/bookings", tags=["admin"])
 api_router.include_router(admin_users.router, prefix="/admin/users", tags=["admin"])
+api_router.include_router(admin_access_requests.router, prefix="/admin/access-requests", tags=["admin"])
 api_router.include_router(rich_menus.router, prefix="/admin/rich-menus", tags=["admin"])
 api_router.include_router(settings.router, prefix="/admin/settings", tags=["admin"])
 api_router.include_router(admin_business_hours.router, prefix="/admin/settings/business-hours", tags=["admin"])

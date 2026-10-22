@@ -29,3 +29,5 @@ from .friend_event import FriendEvent
 from .system_setting import SystemSetting
 from .chat_analytics import ChatAnalytics
 from .taxonomy import TaxonomyCategory, TaxonomyTopic
+from .access_request import AccessRequest, AccessRequestStatus
+from .password_reset_token import PasswordResetToken
