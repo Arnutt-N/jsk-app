@@ -371,7 +371,6 @@ export default function CalendarPickerTH({
         </label>
       )}
 
-      {/* Input Container */}
       <div className={cn(
         "group relative flex items-center pl-1 pr-3 py-1 rounded-xl border-2 bg-surface transition-all duration-200",
         error || localError
