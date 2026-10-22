@@ -1,11 +1,17 @@
 from types import SimpleNamespace
+from typing import Any, cast
 from unittest.mock import AsyncMock
 
 import pytest
-from fastapi import HTTPException, Response
+from fastapi import HTTPException, Request, Response
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.endpoints.auth import _ADMIN_AUTH_ROLES, login
-from app.core.security import verify_password
+from app.api.v1.endpoints.auth import (
+    _ADMIN_AUTH_ROLES,
+    _find_admin_by_identifier,
+    login,
+)
+from app.core.security import get_password_hash, verify_password
 from app.models.user import UserRole
 from app.schemas.auth import LoginRequest
 
@@ -47,6 +53,91 @@ def test_login_request_trims_username() -> None:
     assert payload.username == "admin"
 
 
+def test_login_request_accepts_email_shaped_identifier() -> None:
+    # The same field carries usernames and emails -- no format rejection here.
+    payload = LoginRequest(username="  Admin@Example.com  ", password="admin1234")
+
+    assert payload.username == "Admin@Example.com"
+
+
+class _CaptureDb:
+    """Fake session capturing the issued statement for SQL-shape assertions."""
+
+    def __init__(self, value):
+        self._value = value
+        self.statements = []
+
+    async def execute(self, stmt: Any) -> Any:
+        self.statements.append(stmt)
+        return _ScalarResult(self._value)
+
+    def last_sql(self) -> str:
+        [stmt] = self.statements
+        return str(stmt.compile(compile_kwargs={"literal_binds": True}))
+
+
+def _admin_row(**overrides):
+    base = {
+        "id": 1,
+        "username": "admin",
+        "role": UserRole.ADMIN,
+        "display_name": "Administrator",
+        "hashed_password": "hashed",
+    }
+    base.update(overrides)
+    return SimpleNamespace(**base)
+
+
+@pytest.mark.asyncio
+async def test_find_admin_by_identifier_matches_username() -> None:
+    db = _CaptureDb(_admin_row())
+
+    user = await _find_admin_by_identifier(cast(AsyncSession, db), "admin")
+
+    assert user is not None
+    assert getattr(user, "username") == "admin"
+    assert "admin" in db.last_sql()
+
+
+@pytest.mark.asyncio
+async def test_find_admin_by_identifier_matches_email_case_insensitively() -> None:
+    db = _CaptureDb(_admin_row(email="Admin@Example.com"))
+
+    user = await _find_admin_by_identifier(cast(AsyncSession, db), "admin@example.com")
+
+    assert user is not None
+    assert getattr(user, "username") == "admin"
+    sql = db.last_sql().lower()
+    # The query must consult the email column with the identifier normalized.
+    assert "email" in sql
+    assert "admin@example.com" in sql
+
+
+@pytest.mark.asyncio
+async def test_login_succeeds_with_email_identifier() -> None:
+    db = AsyncMock()
+    db.execute.return_value = _ScalarResult(
+        _admin_row(
+            email="admin@example.com",
+            hashed_password=get_password_hash("secret1234"),
+        )
+    )
+    db.commit = AsyncMock()
+
+    with pytest.raises(HTTPException) as exc_info:
+        await login(
+            LoginRequest(username="admin@example.com", password="wrongpass"),
+            Response(),
+            cast(Request, _FakeRequest()),
+            db,
+        )
+
+    # Found by email, rejected on password -- proves the identifier reached
+    # verification instead of failing the lookup.
+    assert exc_info.value.status_code == 401
+    assert exc_info.value.detail == "Invalid username or password"
+
+
 @pytest.mark.asyncio
 async def test_login_returns_401_for_invalid_stored_hash() -> None:
     db = AsyncMock()
@@ -69,7 +160,7 @@ async def test_login_returns_401_for_invalid_stored_hash() -> None:
         await login(
             LoginRequest(username="admin", password="admin1234"),
             Response(),
-            _FakeRequest(),
+            cast(Request, _FakeRequest()),
             db,
         )
 

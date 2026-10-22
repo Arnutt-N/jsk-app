@@ -6,6 +6,8 @@ from app.models.user import UserRole
 
 
 class LoginRequest(BaseModel):
+    # Kept named `username` for API compatibility -- accepts a username OR
+    # an email address (matched case-insensitively, see _find_admin_by_identifier).
     username: str
     password: str = Field(..., max_length=72)
 
