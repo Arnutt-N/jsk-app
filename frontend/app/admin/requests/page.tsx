@@ -277,7 +277,7 @@ export default function AdminRequestList() {
 
                             {/* Date Range Filter Row */}
                             <div className="mt-4 pt-4 border-t border-border-default flex flex-wrap items-center gap-4">
-                                <div className="flex items-center gap-2">
+                                <div className="flex w-full items-center gap-2 sm:w-auto">
                                     <span className="text-xs font-medium text-text-secondary whitespace-nowrap">จากวันที่:</span>
                                     <div className="w-full sm:w-52">
                                         <CalendarPickerTH
@@ -290,7 +290,7 @@ export default function AdminRequestList() {
                                         />
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-2">
+                                <div className="flex w-full items-center gap-2 sm:w-auto">
                                     <span className="text-xs font-medium text-text-secondary whitespace-nowrap">ถึงวันที่:</span>
                                     <div className="w-full sm:w-52">
                                         <CalendarPickerTH
