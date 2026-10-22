@@ -42,7 +42,12 @@ test.describe('datepicker touch behaviour', () => {
 
     // The calendar icon must still be tappable with a value present --
     // the tap has to open the dialog, not clear the field.
-    await page.getByLabel('เปิดปฏิทินเลือกวันที่').first().tap()
+    // force: the admin shell keeps reflowing on small viewports (stats/
+    // fonts/streaming rows), so the stability check never settles; the
+    // assertions below carry the proof instead. If the old overlay bug
+    // returned, this tap would land on the X, clear the value, and the
+    // dialog assertion would fail.
+    await page.getByLabel('เปิดปฏิทินเลือกวันที่').first().tap({ force: true })
     const dialog = page.getByRole('dialog', { name: 'ปฏิทิน พ.ศ.' })
     await expect(dialog).toBeVisible()
     const parentTag = await dialog.evaluate((el) => (el.parentElement as HTMLElement).tagName)
