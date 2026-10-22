@@ -423,10 +423,6 @@ export default function CalendarPickerTH({
           className="w-14 px-1 py-1.5 text-center text-sm font-medium bg-transparent text-text-primary focus:outline-none placeholder:text-gray-300"
         />
 
-        {/* Single icon slot: the calendar button opens the popup; the clear
-            button overlays it on hover/focus only when a value exists, so
-            clearing costs zero extra width. Touch screens (hover: none)
-            always show it, since there is no hover there. */}
         <div className="relative ml-auto shrink-0">
           <PopoverTrigger asChild>
             <button
@@ -466,8 +462,6 @@ export default function CalendarPickerTH({
         </div>
       </div>
 
-      {/* Calendar popup — rendered in a Portal on document.body with collision
-          handling, so overflow-hidden ancestors (cards, tables) can never clip it. */}
       <PopoverContent
         role="dialog"
         aria-label="ปฏิทิน พ.ศ."

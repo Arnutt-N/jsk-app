@@ -252,14 +252,6 @@ describe('CalendarPickerTH booking window', () => {
   });
 });
 
-/**
- * Slim-input + Portal-popup contract (PRD-datepicker-redesign, Option A):
- *  1. No ✓ status icon — the date text itself is the confirmation.
- *  2. ✕ clear lives in the SAME slot as the calendar icon (zero extra width),
- *     hidden until hover/focus, and absent entirely when empty.
- *  3. The calendar popup renders in a Portal (document.body), so
- *     overflow-hidden ancestors (cards, tables) can never clip it.
- */
 describe('CalendarPickerTH slim input + Portal popup', () => {
   const FILLED = '2024-01-15T00:00:00.000Z';
 
