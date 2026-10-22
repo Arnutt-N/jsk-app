@@ -26,7 +26,7 @@ import { useToast } from '@/components/ui/Toast';
 import { Select } from '@/components/ui/Select'
 import { TOPIC_OPTIONS } from '@/lib/constants/categories'
 import { loadTaxonomy, type TaxonomyTable } from '@/lib/booking/service-mapping'
-import { useLiffInit } from '@/hooks/useLiffInit'
+import { useLiffInit, getWindowLiff } from '@/hooks/useLiffInit'
 import { useLiffLeave } from '@/hooks/useLiffLeave'
 import { LeaveConfirmDialog } from '@/components/liff/LeaveConfirmDialog'
 import { LiffClearButton } from '@/components/liff/LiffClearButton'
@@ -58,12 +58,14 @@ export default function LiffServiceRequestV2() {
     const { leaveOpen, requestLeave, cancelLeave, confirmLeave } = useLiffLeave()
     const { toast } = useToast()
 
-    // LIFF init (script-injected window.liff via liff/layout.tsx; same as other LIFF pages)
+    // LIFF init (SDK comes from the layout edge script; surface a banner when it never loads)
     const { profile, idToken, isInLineApp, setIsInLineApp } = useLiffInit({
-        getLiff: () => (typeof window !== 'undefined' ? window.liff : undefined),
+        getLiff: getWindowLiff,
         requireLiffId: true,
         redirectLogin: true,
-        trackInLineApp: true
+        trackInLineApp: true,
+        warnWhenSdkMissing: true,
+        onError: () => setError('ไม่สามารถเชื่อมต่อ LINE ได้ กรุณาเปิดในแอป LINE แล้วลองใหม่')
     })
 
     // Cascading selects live in the shared hook (stale guards kept there);
@@ -315,7 +317,7 @@ export default function LiffServiceRequestV2() {
             window.scrollTo(0, 0)
             // Re-sync in-client status when success shows so the auto-close
             // below fires reliably even if liff.init() lagged on mobile.
-            try { setIsInLineApp(window.liff?.isInClient() ?? false) } catch { /* not in LINE */ }
+            try { const sdk = window.liff; if (sdk) setIsInLineApp(sdk.isInClient()) } catch { /* not in LINE */ }
         } catch (err: unknown) {
             logger.error("Submit Error:", err)
             setError(err instanceof Error ? err.message : 'Failed to submit')
@@ -358,7 +360,8 @@ export default function LiffServiceRequestV2() {
     // Close the LIFF window. Only meaningful inside the LINE in-app browser.
     const handleClose = () => {
         try {
-            window.liff?.closeWindow()
+            if (isInLineApp) window.liff?.closeWindow?.()
+            else window.close()
         } catch (e) {
             logger.error('Close window failed:', e)
         }
