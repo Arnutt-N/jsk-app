@@ -4,7 +4,8 @@ import { describe, it, expect, vi } from 'vitest';
 import LiffServiceRequestV2 from '../page';
 
 vi.mock('@/hooks/useLiffInit', () => ({
-  useLiffInit: () => ({ idToken: 'tok', initDone: true, profile: null, isInLineApp: true }),
+  useLiffInit: () => ({ idToken: 'tok', initDone: true, profile: null, isInLineApp: true, setIsInLineApp: vi.fn() }),
+  getWindowLiff: () => undefined,
 }));
 vi.mock('@/hooks/useAutoCloseCountdown', () => ({
   useAutoCloseCountdown: () => ({}),
