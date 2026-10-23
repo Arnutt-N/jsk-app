@@ -1,10 +1,6 @@
 """Real-session test: DELETE intent category soft-hides, keeps children.
 
-Policy (user decision 2026-10-23): admin delete buttons only hide
-(`is_active=False`); hidden rows must be restorable via PUT. Children
-(keywords/responses) stay untouched — a flag flip never triggers the
-`delete-orphan` cascade. Recipe from
-test_taxonomy_patch_regression.py:1-60 (real session, never mocked).
+Policy: user decision 2026-10-23, see .agents/PRPs/2026-10-23-leave-confirm-soft-delete.prd.md.
 """
 import uuid
 from types import SimpleNamespace
