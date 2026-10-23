@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Index, Integer, String, UniqueConstraint
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Index, Integer, String, text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -24,7 +24,14 @@ class TaxonomyCategory(Base):
     )
 
     __table_args__ = (
-        UniqueConstraint("name", name="uq_taxonomy_categories_name"),
+        # Uniqueness enforced only among visible rows so a hidden category
+        # never squats its name (see migration c3d4e5f6a7b8).
+        Index(
+            "uq_taxonomy_categories_name_active",
+            "name",
+            unique=True,
+            postgresql_where=text("is_active"),
+        ),
         Index("ix_taxonomy_categories_name", "name"),
         Index("ix_taxonomy_categories_sort_order", "sort_order"),
     )
@@ -46,7 +53,14 @@ class TaxonomyTopic(Base):
     category = relationship("TaxonomyCategory", back_populates="topics")
 
     __table_args__ = (
-        UniqueConstraint("category_id", "name", name="uq_taxonomy_topics_category_name"),
+        # Same partial-uniqueness rule as categories (see migration c3d4e5f6a7b8).
+        Index(
+            "uq_taxonomy_topics_category_name_active",
+            "category_id",
+            "name",
+            unique=True,
+            postgresql_where=text("is_active"),
+        ),
         Index("ix_taxonomy_topics_category_id", "category_id"),
         Index("ix_taxonomy_topics_sort_order", "sort_order"),
     )
