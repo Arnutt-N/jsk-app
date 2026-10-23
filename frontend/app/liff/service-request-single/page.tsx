@@ -27,6 +27,8 @@ import { PREFIX_OPTIONS } from '@/lib/constants/prefixes'
 import { isValidPhone } from '@/lib/liff/validation'
 import { loadTaxonomy, type TaxonomyTable } from '@/lib/booking/service-mapping'
 import { useLiffInit, getWindowLiff } from '@/hooks/useLiffInit'
+import { useLiffLeave } from '@/hooks/useLiffLeave'
+import { LeaveConfirmDialog } from '@/components/liff/LeaveConfirmDialog'
 import { useAutoCloseCountdown } from '@/hooks/useAutoCloseCountdown'
 import { useLocationCascade } from '@/hooks/useLocationCascade'
 import { submitServiceRequest } from '@/lib/liff/submit-service-request'
@@ -51,6 +53,7 @@ export default function LiffServiceRequestSingle() {
         trackInLineApp: true
     })
     const loading = !initDone
+    const { leaveOpen, requestLeave, cancelLeave, confirmLeave } = useLiffLeave()
 
     // Uploads started but not yet resolved — counted toward the attachment
     // cap so rapid file picks cannot exceed the shared rate-limit budget.
@@ -617,7 +620,7 @@ export default function LiffServiceRequestSingle() {
                             type="button"
                             variant="outline"
                             className="flex-1 py-6 text-lg font-medium border-2"
-                            onClick={handleClose}
+                            onClick={requestLeave}
                         >
                             ยกเลิก
                         </Button>
@@ -631,6 +634,12 @@ export default function LiffServiceRequestSingle() {
                         </Button>
                     </div>
                 </form>
+            <LeaveConfirmDialog
+                isOpen={leaveOpen}
+                isInLineApp={isInLineApp}
+                onClose={cancelLeave}
+                onConfirm={confirmLeave}
+            />
             </main>
 
             {/* Confirmation Dialog */}
