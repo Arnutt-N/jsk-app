@@ -161,6 +161,7 @@ async def get_item(id: int, db: AsyncSession = Depends(get_db), admin: User = De
 | Admin date filters use Bangkok half-open UTC windows via `app.core.date_windows` (never naive `datetime(y,m,d)`) | Shared helper + `backend/tests/test_date_windows.py` (pure unit, no DB) + reviewer triage |
 | Frontend mocks of a module must re-export every named export the code imports (`getWindowLiff`-class breakage) | Vitest fails loudly naming the missing export (`No "X" export is defined on the "..." mock`) + reviewer triage |
 | Endpoint route changes must keep decorators (a dropped `@router.put` 405s) | Backend Pytest per-endpoint suites in CI + reviewer triage |
+| New soft-delete endpoint tests use `tests/soft_delete_harness.py` (real session), never a hand-rolled NullPool setup | Shared harness + exemplar `backend/tests/test_auto_replies_delete_soft.py` + reviewer triage |
 
 ---
 
