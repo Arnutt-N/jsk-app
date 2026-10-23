@@ -334,7 +334,7 @@ export default function AdminBookingsPage() {
               aria-selected={view === 'list'}
               onClick={() => setView('list')}
               className={view === 'list'
-                ? 'flex items-center gap-1 rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white dark:bg-slate-100 dark:text-slate-900'
+                ? 'flex items-center gap-1 rounded-md bg-brand-500 px-3 py-1.5 text-xs font-medium text-white'
                 : 'flex items-center gap-1 rounded-md px-3 py-1.5 text-xs text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'}
             >
               <LayoutList className="h-3.5 w-3.5" aria-hidden="true" />
@@ -346,7 +346,7 @@ export default function AdminBookingsPage() {
               aria-selected={view === 'calendar'}
               onClick={() => setView('calendar')}
               className={view === 'calendar'
-                ? 'flex items-center gap-1 rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white dark:bg-slate-100 dark:text-slate-900'
+                ? 'flex items-center gap-1 rounded-md bg-brand-500 px-3 py-1.5 text-xs font-medium text-white'
                 : 'flex items-center gap-1 rounded-md px-3 py-1.5 text-xs text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'}
             >
               <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />

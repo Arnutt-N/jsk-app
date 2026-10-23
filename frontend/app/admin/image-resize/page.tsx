@@ -77,7 +77,7 @@ export default function ImageResizePage() {
               maxSize={MAX_SOURCE_BYTES}
               onFilesSelected={(files) => r.selectFile(files[0])}
               onFilesRejected={() =>
-                toast({ title: 'ไฟล์ไม่รองรับหรือใหญ่เกินไป', description: 'รองรับ PNG, JPEG, WebP, GIF สูงสุด 25MB', variant: 'error' })
+                toast({ title: 'ไฟล์ไม่รองรับหรือใหญ่เกินไป', description: 'รองรับ PNG, JPEG, WebP, GIF, AVIF, SVG สูงสุด 25MB', variant: 'error' })
               }
             >
               <div className="flex flex-col items-center gap-3 py-8">
@@ -86,7 +86,7 @@ export default function ImageResizePage() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-text-primary">ลากไฟล์มาวาง หรือคลิกเพื่อเลือกรูปภาพ</p>
-                  <p className="text-xs text-text-tertiary mt-1">PNG, JPEG, WebP, GIF — สูงสุด 25MB</p>
+                  <p className="text-xs text-text-tertiary mt-1">PNG, JPEG, WebP, GIF, AVIF, SVG — สูงสุด 25MB</p>
                 </div>
               </div>
             </FileUploadZone>

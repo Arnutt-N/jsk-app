@@ -40,6 +40,7 @@ import {
   Clock,
   TrendingUp,
   Calendar,
+  RotateCcw,
 } from 'lucide-react';
 import { apiFetch } from '@/lib/api-error';
 
@@ -344,6 +345,17 @@ export default function ReportsPage() {
             />
           </div>
         </div>
+      )}
+      {(datePreset !== '30d' || customStart !== '' || customEnd !== '' || period !== 'daily') && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => { setDatePreset('30d'); setCustomStart(''); setCustomEnd(''); setPeriod('daily'); }}
+          leftIcon={<RotateCcw className="w-4 h-4" />}
+          className="text-xs"
+        >
+          ล้างตัวกรอง
+        </Button>
       )}
     </div>
   );

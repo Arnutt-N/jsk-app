@@ -2,9 +2,10 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import {
     Users, Shield, UserCog, User, UserPlus,
-    Search, SquarePen, Trash2, Key,
+    Search, SquarePen, Trash2, Key, Eye,
     ToggleLeft, ToggleRight, ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -95,6 +96,7 @@ const PER_PAGE = 20;
 
 export default function UsersPage() {
     const { user: currentUser } = useAuth();
+    const router = useRouter();
 
     const [users, setUsers] = useState<UserRecord[]>([]);
     const [stats, setStats] = useState<UserStats | null>(null);
@@ -451,6 +453,12 @@ export default function UsersPage() {
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-right">
                                                 <div className="flex items-center justify-end gap-1">
+                                                    <ActionIconButton
+                                                        icon={<Eye className="w-4 h-4" />}
+                                                        label="ดูรายละเอียด"
+                                                        variant="default"
+                                                        onClick={() => router.push(`/admin/users/${u.id}`)}
+                                                    />
                                                     <ActionIconButton
                                                         icon={<SquarePen className="w-4 h-4" />}
                                                         label="แก้ไข"

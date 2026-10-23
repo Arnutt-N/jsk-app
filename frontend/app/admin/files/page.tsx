@@ -6,7 +6,7 @@ import {
   Upload, Download, Trash2, Link2, LinkIcon, Search,
   FileText, Image as ImageIcon, Video, Music, File as FileIcon,
   Grid3X3, List, Copy, Check, Eye, ExternalLink,
-  ChevronLeft, ChevronRight, AlertTriangle,
+  ChevronLeft, ChevronRight, AlertTriangle, SquarePen,
 } from 'lucide-react';
 import {
   Button, Card, Badge, Input, Modal,
@@ -14,6 +14,7 @@ import {
   Checkbox,
 } from '@/components/ui';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { RenameFileModal } from '@/components/admin/RenameFileModal';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { useToast } from '@/components/ui/Toast';
 import { ActionIconButton } from '@/components/ui/ActionIconButton';
@@ -131,6 +132,8 @@ export default function FilesPage() {
   const [publicLinkFile, setPublicLinkFile] = useState<MediaFile | null>(null);
   const [previewFile, setPreviewFile] = useState<MediaFile | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ ids: string[]; show: boolean }>({ ids: [], show: false });
+  const [renameTarget, setRenameTarget] = useState<MediaFile | null>(null);
+  const [renaming, setRenaming] = useState(false);
   const [copied, setCopied] = useState(false);
 
   // Track files whose <img> failed to load so we can show the category icon
@@ -255,6 +258,26 @@ export default function FilesPage() {
       toast({ title: result.message, variant: 'error' });
     }
   }, [toast, fetchStats]);
+
+  const saveRename = useCallback(async (filename: string) => {
+    if (!renameTarget || renaming) return;
+    setRenaming(true);
+    try {
+      const result = await apiFetch<MediaFile>(`/admin/media/${renameTarget.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ filename }),
+      });
+      if (result.ok) {
+        setFiles(prev => prev.map(f => f.id === result.data.id ? result.data : f));
+        setRenameTarget(null);
+        toast({ title: 'เปลี่ยนชื่อไฟล์แล้ว', variant: 'success' });
+      } else {
+        toast({ title: result.message, variant: 'error' });
+      }
+    } finally {
+      setRenaming(false);
+    }
+  }, [renameTarget, renaming, toast]);
 
   const deleteFiles = useCallback(async (ids: string[]) => {
     const result = ids.length === 1
@@ -588,6 +611,12 @@ export default function FilesPage() {
                               onClick={() => setPreviewFile(file)}
                             />
                             <ActionIconButton
+                              icon={<SquarePen className="w-4 h-4" />}
+                              label="แก้ไขชื่อ"
+                              variant="default"
+                              onClick={() => setRenameTarget(file)}
+                            />
+                            <ActionIconButton
                               icon={<Trash2 className="w-4 h-4" />}
                               label="ลบ"
                               variant="danger"
@@ -677,6 +706,12 @@ export default function FilesPage() {
                             label="สร้างลิงก์"
                             variant="default"
                             onClick={() => file.is_public ? setPublicLinkFile(file) : createPublicLink(file)}
+                          />
+                          <ActionIconButton
+                            icon={<SquarePen className="w-4 h-4" />}
+                            label="แก้ไขชื่อ"
+                            variant="default"
+                            onClick={() => setRenameTarget(file)}
                           />
                           <ActionIconButton
                             icon={<Trash2 className="w-4 h-4" />}
@@ -916,6 +951,14 @@ export default function FilesPage() {
           </div>
         )}
       </Modal>
+
+      <RenameFileModal
+        key={renameTarget?.id ?? 'none'}
+        filename={renameTarget?.filename ?? null}
+        saving={renaming}
+        onClose={() => setRenameTarget(null)}
+        onSave={saveRename}
+      />
 
       {/* ================================================================= */}
       {/* Delete Confirmation                                                */}
