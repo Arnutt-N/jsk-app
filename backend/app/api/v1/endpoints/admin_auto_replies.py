@@ -119,14 +119,14 @@ async def delete_auto_reply(
     db: AsyncSession = Depends(get_db),
     current_admin: User = Depends(require_permission(KEY_MANAGE_AUTO_REPLIES))
 ):
-    """Delete an auto-reply rule."""
+    """Soft-delete an auto-reply rule (hide only; restorable via PUT)."""
     result = await db.execute(
         select(AutoReply).filter(AutoReply.id == reply_id)
     )
     rule = result.scalars().first()
     if not rule:
         raise HTTPException(status_code=404, detail=f"Auto-reply rule {reply_id} not found")
-    
-    await db.delete(rule)
+
+    rule.is_active = False
     await db.commit()
     return None

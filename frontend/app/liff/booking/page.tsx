@@ -464,6 +464,31 @@ export default function LiffBookingPage() {
     }
   }
 
+  const handleSuccessClose = () => {
+    const liff = window.liff
+    try {
+      if (liff?.isInClient?.()) {
+        liff.closeWindow()
+        return
+      }
+      if (liff?.closeWindow) {
+        liff.closeWindow()
+        return
+      }
+    } catch {
+      logger.error('Close window failed')
+    }
+    try {
+      window.close()
+    } catch {
+      logger.error('Window close failed')
+    }
+    const liffId = process.env.NEXT_PUBLIC_LIFF_ID
+    if (liffId) {
+      window.location.href = `https://line.me/R/app/${liffId}`
+    }
+  }
+
   const handleCancel = async () => {
     if (!idToken || !confirmed) return
     setCancelling(true)
@@ -647,7 +672,7 @@ export default function LiffBookingPage() {
                     <Button
                       variant="ghost"
                       className="w-full"
-                      onClick={() => window.liff?.closeWindow?.()}
+                      onClick={handleSuccessClose}
                     >
                       ปิดหน้าต่าง
                     </Button>

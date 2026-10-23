@@ -147,4 +147,11 @@ describe('LIFF service-request-single validation (R3-M28-twin)', () => {
     fireEvent.change(phone, { target: { value: '+66812345678' } });
     expect(phone.value).toBe('0812345678');
   });
+
+  it('cancel asks before leaving (leave-confirm)', async () => {
+    render(<LiffServiceRequestSingle />);
+    fireEvent.click(screen.getByRole('button', { name: 'ยกเลิก' }));
+    expect(await screen.findByText('ปิดแบบฟอร์มนี้?')).toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
 });

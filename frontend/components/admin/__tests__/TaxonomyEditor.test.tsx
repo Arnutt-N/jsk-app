@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
 
 import TaxonomyEditor from '../TaxonomyEditor'
@@ -89,16 +89,30 @@ describe('TaxonomyEditor', () => {
     )
   })
 
-  it('states a non-empty category cannot be deleted and points at deactivation', async () => {
+  it('states a non-empty category cannot be deactivated and points at the toggle', async () => {
     vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(CATEGORIES_PAYLOAD))
     renderEditor()
     await waitFor(() => expect(screen.getByDisplayValue('กองทุนยุติธรรม')).toBeInTheDocument())
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'ลบ' })[0] as HTMLElement)
+    fireEvent.click(screen.getAllByRole('button', { name: 'ปิดใช้งาน' })[0] as HTMLElement)
 
-    await waitFor(() => expect(screen.getByText('ลบหมวดหมู่นี้?')).toBeInTheDocument())
-    expect(screen.getByText(/ไม่สามารถลบได้/)).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByText('ปิดใช้งานหมวดหมู่นี้?')).toBeInTheDocument())
+    expect(screen.getByText(/ไม่สามารถปิดใช้งานได้/)).toBeInTheDocument()
     expect(screen.queryByText(/จะถูกลบถาวร/)).not.toBeInTheDocument()
     expect(vi.mocked(fetch)).toHaveBeenCalledTimes(1)
+  })
+
+  it('delete modal says hide-restorable, not permanent', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(CATEGORIES_PAYLOAD))
+    renderEditor()
+    await waitFor(() => expect(screen.getByDisplayValue('ค่าจ้างทนายความ')).toBeInTheDocument())
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'ปิดใช้งาน' })[1] as HTMLElement)
+
+    await waitFor(() => expect(screen.getByText('ปิดใช้งานหัวข้อนี้?')).toBeInTheDocument())
+    expect(screen.getByText(/ซ่อนไว้/)).toBeInTheDocument()
+    const dialog = screen.getByRole('dialog')
+    expect(within(dialog).getByRole('button', { name: 'ปิดใช้งาน' })).toBeInTheDocument();
+    expect(screen.queryByText(/จะถูกลบถาวร/)).not.toBeInTheDocument()
   })
 })

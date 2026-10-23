@@ -797,6 +797,18 @@ describe('post-booking actions', () => {
     expect(await screen.findByText('แก้ไขข้อมูลเรียบร้อย')).toBeInTheDocument()
     expect(screen.getByText('ชื่อใหม่')).toBeInTheDocument()
   })
+
+  it('falls back outside LINE on the success screen', async () => {
+    await bookToDone()
+    vi.stubGlobal('liff', undefined)
+    const closeSpy = vi.spyOn(window, 'close').mockImplementation(() => {})
+    try {
+      await userEvent.click(screen.getByRole('button', { name: 'ปิดหน้าต่าง' }))
+      expect(closeSpy).toHaveBeenCalled()
+    } finally {
+      closeSpy.mockRestore()
+    }
+  })
 })
 
 describe('service dropdown', () => {
