@@ -15,6 +15,7 @@ import {
 } from '@/components/ui';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { RenameFileModal } from '@/components/admin/RenameFileModal';
+import { ViewToggle } from '@/components/admin/ViewToggle';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { useToast } from '@/components/ui/Toast';
 import { ActionIconButton } from '@/components/ui/ActionIconButton';
@@ -460,28 +461,15 @@ export default function FilesPage() {
           )}
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          <button
-            onClick={() => setViewMode('grid')}
-            className={cn(
-              'p-2 rounded-lg transition-colors',
-              viewMode === 'grid'
-                ? 'bg-brand-100 text-brand-600 dark:bg-brand-900/40 dark:text-brand-400'
-                : 'text-text-tertiary hover:bg-gray-100 dark:hover:bg-gray-700',
-            )}
-          >
-            <Grid3X3 className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => setViewMode('list')}
-            className={cn(
-              'p-2 rounded-lg transition-colors',
-              viewMode === 'list'
-                ? 'bg-brand-100 text-brand-600 dark:bg-brand-900/40 dark:text-brand-400'
-                : 'text-text-tertiary hover:bg-gray-100 dark:hover:bg-gray-700',
-            )}
-          >
-            <List className="w-4 h-4" />
-          </button>
+          <ViewToggle
+            options={[
+              { value: 'grid', label: 'มุมมองกริด', icon: <Grid3X3 className="w-4 h-4" /> },
+              { value: 'list', label: 'มุมมองตาราง', icon: <List className="w-4 h-4" /> },
+            ]}
+            value={viewMode}
+            onChange={setViewMode}
+            ariaLabel="มุมมองไฟล์"
+          />
         </div>
       </div>
 

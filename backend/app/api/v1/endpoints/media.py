@@ -26,7 +26,7 @@ from fastapi import (
     Response,
     UploadFile,
 )
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import func as sa_func
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -84,6 +84,16 @@ _public_file_rate_limit = http_rate_limit(
 class MediaMetadataUpdate(BaseModel):
     filename: str | None = Field(default=None, min_length=1)
     category: FileCategory | None = None
+
+    @field_validator("filename")
+    @classmethod
+    def _strip_filename(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        stripped = v.strip()
+        if not stripped:
+            raise ValueError("filename must not be blank")
+        return stripped
 
 
 # ---------------------------------------------------------------------------
