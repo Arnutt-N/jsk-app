@@ -176,7 +176,11 @@ class TestGetTaxonomyMap:
 class TestCategoryWriters:
     @pytest.mark.asyncio
     async def test_create_trims_name(self):
-        db = _mock_db(_result([]))
+        reloaded = SimpleNamespace(id=1, name="กองทุน", sort_order=0, is_active=True)
+        exec_result = MagicMock()
+        exec_result.scalar_one.return_value = reloaded
+        db = _mock_db()
+        db.execute = AsyncMock(return_value=exec_result)
         db.get = AsyncMock(return_value=None)
         created = await taxonomy_service.create_category(db, "  กองทุน  ")
         assert created.name == "กองทุน"
@@ -400,7 +404,7 @@ class TestAdminTaxonomyEndpoints:
             )
         ]
 
-        async def _list(_db):
+        async def _list(_db, include_inactive=False):
             return cats
 
         _mock_service(monkeypatch, get_admin_taxonomy=_list)
