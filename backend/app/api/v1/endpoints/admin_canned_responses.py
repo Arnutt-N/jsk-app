@@ -84,6 +84,9 @@ async def create_canned_response(
         "category": response.category,
         "is_active": response.is_active,
     }
+
+
+@router.put("/{response_id}")
 async def update_canned_response(
     response_id: int,
     data: CannedResponseUpdate,
