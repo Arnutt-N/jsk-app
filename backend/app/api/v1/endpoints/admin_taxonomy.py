@@ -24,6 +24,22 @@ router = APIRouter()
 Gate = require_permission(KEY_MANAGE_TAXONOMY)
 
 
+def _duplicate_guidance(name: str | None) -> str:
+    # Hide-only policy: a duplicate name usually means a hidden row still
+    # reserves it. Point at restore instead of leaving the admin stuck.
+    label = f" '{name}'" if name else ""
+    return (
+        f"ชื่อ{label} ถูกใช้แล้ว "
+        "(อาจเป็นรายการที่ปิดใช้งานอยู่ ให้เปิดใช้งานรายการเดิมแทนการสร้างใหม่)"
+    )
+
+
+def _conflict_detail(exc: ValueError, name: str | None) -> str:
+    if "already exists" in str(exc):
+        return _duplicate_guidance(name)
+    return str(exc)
+
+
 @router.get("", response_model=AdminTaxonomyRead, summary="Admin taxonomy list")
 async def list_taxonomy(
     db: AsyncSession = Depends(get_db),
@@ -51,7 +67,7 @@ async def create_category(
             is_active=payload.is_active,
         )
     except ValueError as exc:
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
+        raise HTTPException(status_code=409, detail=_conflict_detail(exc, payload.name)) from exc
     return CategoryRead.model_validate(category)
 
 
@@ -73,23 +89,20 @@ async def update_category(
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
+        raise HTTPException(status_code=409, detail=_conflict_detail(exc, payload.name)) from exc
     return CategoryRead.model_validate(category)
 
 
-@router.delete("/categories/{category_id}", summary="Delete category")
+@router.delete("/categories/{category_id}", summary="Hide category")
 async def delete_category(
     category_id: int,
     db: AsyncSession = Depends(get_db),
     _admin: User = Depends(Gate),
 ):
-    try:
-        deleted = await taxonomy_service.delete_category(db, category_id)
-    except ValueError as exc:
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    deleted = await taxonomy_service.delete_category(db, category_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Category not found")
-    return {"status": "deleted", "id": category_id}
+    return {"status": "hidden", "id": category_id}
 
 
 @router.post("/topics", response_model=TopicRead, status_code=201, summary="Create topic")
@@ -109,7 +122,7 @@ async def create_topic(
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
+        raise HTTPException(status_code=409, detail=_conflict_detail(exc, payload.name)) from exc
     return TopicRead.model_validate(topic)
 
 
@@ -132,11 +145,11 @@ async def update_topic(
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
+        raise HTTPException(status_code=409, detail=_conflict_detail(exc, payload.name)) from exc
     return TopicRead.model_validate(topic)
 
 
-@router.delete("/topics/{topic_id}", summary="Delete topic")
+@router.delete("/topics/{topic_id}", summary="Hide topic")
 async def delete_topic(
     topic_id: int,
     db: AsyncSession = Depends(get_db),
@@ -145,4 +158,4 @@ async def delete_topic(
     deleted = await taxonomy_service.delete_topic(db, topic_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Topic not found")
-    return {"status": "deleted", "id": topic_id}
+    return {"status": "hidden", "id": topic_id}

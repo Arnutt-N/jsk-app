@@ -64,12 +64,15 @@ async def create_auto_reply(
     current_admin: User = Depends(require_permission(KEY_MANAGE_AUTO_REPLIES))
 ):
     """Create a new auto-reply rule."""
-    # Check if keyword already exists
+    # Check if keyword already exists (including hidden rows: names stay reserved)
     existing = await db.execute(
         select(AutoReply).filter(AutoReply.keyword == data.keyword)
     )
     if existing.scalars().first():
-        raise HTTPException(status_code=400, detail=f"Keyword '{data.keyword}' already exists")
+        raise HTTPException(
+            status_code=400,
+            detail=f"คีย์เวิร์ด '{data.keyword}' ถูกใช้แล้ว (อาจเป็นรายการที่ปิดใช้งานอยู่ ให้เปิดใช้งานรายการเดิมแทนการสร้างใหม่)",
+        )
     
     rule = AutoReply(
         keyword=data.keyword,
@@ -101,6 +104,19 @@ async def update_auto_reply(
     
     # Update only provided fields
     update_data = data.model_dump(exclude_unset=True)
+    new_keyword = update_data.get("keyword", rule.keyword)
+    if isinstance(new_keyword, str) and new_keyword != rule.keyword:
+        clash = await db.execute(
+            select(AutoReply.id).filter(
+                AutoReply.keyword == new_keyword,
+                AutoReply.id != reply_id,
+            )
+        )
+        if clash.scalars().first() is not None:
+            raise HTTPException(
+                status_code=409,
+                detail=f"คีย์เวิร์ด '{new_keyword}' ถูกใช้แล้ว (อาจเป็นรายการที่ปิดใช้งานอยู่ ให้เปิดใช้งานรายการเดิมแทนการสร้างใหม่)",
+            )
     for field, value in update_data.items():
         if field == "match_type" and value:
             value = MatchType(value)

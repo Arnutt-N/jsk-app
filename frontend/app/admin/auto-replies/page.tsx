@@ -23,6 +23,7 @@ interface IntentCategory {
     is_active: boolean;
     keyword_count: number;
     response_count: number;
+    active_response_count: number;
     keywords_preview: string[];
 }
 
@@ -165,7 +166,7 @@ export default function IntentsPage() {
     };
 
     const handleToggleStatus = async (category: IntentCategory, isActive: boolean) => {
-        if (isActive && (category.keyword_count === 0 || category.response_count === 0)) {
+        if (isActive && (category.keyword_count === 0 || category.active_response_count === 0)) {
             toast({
                 title: INCOMPLETE_CATEGORY_MESSAGE,
                 variant: 'warning',
@@ -181,6 +182,11 @@ export default function IntentsPage() {
 
         if (res.ok) {
             fetchCategories();
+        } else {
+            toast({
+                title: 'เปิดใช้งานไม่สำเร็จ — หมวดนี้ต้องมีข้อความตอบกลับที่เปิดใช้งานอย่างน้อย 1 รายการก่อน',
+                variant: 'error',
+            });
         }
     };
 
@@ -347,7 +353,7 @@ export default function IntentsPage() {
                                                     </Link>
                                                     <ActionIconButton
                                                         icon={<Trash2 className="w-4 h-4" />}
-                                                        label="ลบ"
+                                                        label="ปิดใช้งาน"
                                                         variant="danger"
                                                         onClick={() => setConfirmDelete({open: true, id: category.id})}
                                                     />
@@ -366,9 +372,9 @@ export default function IntentsPage() {
                 isOpen={confirmDelete.open}
                 onClose={() => setConfirmDelete({open: false, id: null})}
                 onConfirm={() => { handleDelete(confirmDelete.id!); setConfirmDelete({open: false, id: null}); }}
-                title="ยืนยันการลบ"
-                description="ต้องการลบ Category นี้หรือไม่?"
-                confirmText="ลบ"
+                title="ปิดใช้งานหมวดหมู่นี้?"
+                description="หมวดหมู่จะถูกซ่อนไว้ กู้คืนได้ด้วยการเปิดสวิตช์อีกครั้ง"
+                confirmText="ปิดใช้งาน"
                 variant="danger"
             />
         </div>

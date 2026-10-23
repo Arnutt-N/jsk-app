@@ -55,9 +55,17 @@ def _intent_eager_options():
 
 
 def _intent_keyword_stmt(*filters):
+    # Serviceable gate at SQL time: only active keywords of active categories
+    # can match, so a soft-deleted row cannot shadow a live one in the LIMIT 1
+    # pick. (resolve_reply_responses keeps its per-row check as defense in depth.)
     return (
         select(IntentKeyword)
         .options(_intent_eager_options())
+        .join(IntentKeyword.category)
+        .where(
+            IntentKeyword.is_active.is_(True),
+            IntentCategory.is_active.is_(True),
+        )
         .filter(*filters)
         # Deterministic tiebreak: oldest rule (lowest id) wins when several
         # keywords match the same branch (R3-M14).
@@ -92,6 +100,11 @@ async def find_intent_keyword(text: str, db: AsyncSession) -> IntentKeyword | No
     stmt = (
         select(IntentKeyword)
         .options(_intent_eager_options())
+        .join(IntentKeyword.category)
+        .where(
+            IntentKeyword.is_active.is_(True),
+            IntentCategory.is_active.is_(True),
+        )
         .where(or_(_exact, _starts, _contains))
         .order_by(prio, IntentKeyword.id.asc())
         .limit(1)

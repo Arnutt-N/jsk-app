@@ -19,7 +19,7 @@ import {
 } from '@/hooks/useTaxonomyAdmin'
 import { cn } from '@/lib/utils'
 
-interface PendingDelete {
+interface PendingHide {
   kind: 'category' | 'topic'
   id: number
   name: string
@@ -28,11 +28,11 @@ interface PendingDelete {
 function TopicRow({
   topic,
   onUpdate,
-  onAskDelete,
+  onAskHide,
 }: {
   topic: AdminTopic
   onUpdate: (id: number, patch: TopicPatch) => Promise<string | null>
-  onAskDelete: (target: PendingDelete) => void
+  onAskHide: (target: PendingHide) => void
 }) {
   const {
     name,
@@ -90,7 +90,7 @@ function TopicRow({
         <Button
           size="sm"
           variant="ghost"
-          onClick={() => onAskDelete({ kind: 'topic', id: topic.id, name: topic.name }) }
+          onClick={() => onAskHide({ kind: 'topic', id: topic.id, name: topic.name }) }
         >
           ปิดใช้งาน
         </Button>
@@ -141,13 +141,13 @@ function CategoryCard({
   onUpdate,
   onUpdateTopic,
   onCreateTopic,
-  onAskDelete,
+  onAskHide,
 }: {
   category: AdminCategory
   onUpdate: (id: number, patch: CategoryPatch) => Promise<string | null>
   onUpdateTopic: (id: number, patch: TopicPatch) => Promise<string | null>
   onCreateTopic: (input: { category_id: number; name: string; sort_order: number }) => Promise<string | null>
-  onAskDelete: (target: PendingDelete) => void
+  onAskHide: (target: PendingHide) => void
 }) {
   const {
     name,
@@ -205,7 +205,7 @@ function CategoryCard({
         <Button
           size="sm"
           variant="ghost"
-          onClick={() => onAskDelete({ kind: 'category', id: category.id, name: category.name })}
+          onClick={() => onAskHide({ kind: 'category', id: category.id, name: category.name })}
         >
           ปิดใช้งาน
         </Button>
@@ -217,7 +217,7 @@ function CategoryCard({
             key={`${topic.id}-${topic.name}-${topic.sort_order}-${topic.is_active}`}
             topic={topic}
             onUpdate={onUpdateTopic}
-            onAskDelete={onAskDelete}
+            onAskHide={onAskHide}
           />
         ))}
         <AddTopicForm categoryId={category.id} onCreate={onCreateTopic} />
@@ -278,23 +278,23 @@ export default function TaxonomyEditor() {
     updateTopic,
     deleteTopic,
   } = useTaxonomyAdmin()
-  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null)
-  const [deleting, setDeleting] = useState(false)
+  const [pendingHide, setPendingHide] = useState<PendingHide | null>(null)
+  const [isHiding, setIsHiding] = useState(false)
   const { toast } = useToast()
 
-  const handleConfirmDelete = async () => {
-    if (!pendingDelete) return
-    setDeleting(true)
+  const handleConfirmHide = async () => {
+    if (!pendingHide) return
+    setIsHiding(true)
     const failure =
-      pendingDelete.kind === 'category'
-        ? await deleteCategory(pendingDelete.id)
-        : await deleteTopic(pendingDelete.id)
-    setDeleting(false)
+      pendingHide.kind === 'category'
+        ? await deleteCategory(pendingHide.id)
+        : await deleteTopic(pendingHide.id)
+    setIsHiding(false)
     if (failure) {
       toast({ title: 'ปิดใช้งานไม่สำเร็จ', description: failure, variant: 'error' })
       return
     }
-    setPendingDelete(null)
+    setPendingHide(null)
     toast({ title: 'ปิดใช้งานแล้ว (เปิดสวิตช์เพื่อกู้คืน)', variant: 'success' })
   }
 
@@ -330,31 +330,31 @@ export default function TaxonomyEditor() {
               onUpdate={updateCategory}
               onUpdateTopic={updateTopic}
               onCreateTopic={createTopic}
-              onAskDelete={setPendingDelete}
+              onAskHide={setPendingHide}
             />
           ))}
         </div>
       )}
       <ConfirmDialog
-        isOpen={pendingDelete !== null}
-        onClose={() => setPendingDelete(null)}
-        onConfirm={() => void handleConfirmDelete()}
-        title={pendingDelete?.kind === 'category' ? 'ปิดใช้งานหมวดหมู่นี้?' : 'ปิดใช้งานหัวข้อนี้?'}
+        isOpen={pendingHide !== null}
+        onClose={() => setPendingHide(null)}
+        onConfirm={() => void handleConfirmHide()}
+        title={pendingHide?.kind === 'category' ? 'ปิดใช้งานหมวดหมู่นี้?' : 'ปิดใช้งานหัวข้อนี้?'}
         description={
-          pendingDelete?.kind === 'category' ? (
+          pendingHide?.kind === 'category' ? (
             <>
-              หมวดหมู่ <b>{pendingDelete?.name}</b> ที่มีหัวข้อย่อยอยู่ไม่สามารถปิดใช้งานได้
-              หากต้องการซ่อนจากผู้ใช้ ให้ปิด “แสดงใน LIFF” แทน
+              หมวดหมู่ <b>{pendingHide?.name}</b> และหัวข้อย่อยทั้งหมดจะถูกซ่อนไว้
+              กู้คืนได้ด้วยการเปิดสวิตช์ “แสดงใน LIFF” (หมวดก่อน แล้วค่อยหัวข้อ)
             </>
           ) : (
             <>
-              หัวข้อ <b>{pendingDelete?.name}</b> จะถูกซ่อนไว้ กู้คืนได้ด้วยการเปิดสวิตช์ “แสดงใน LIFF”
+              หัวข้อ <b>{pendingHide?.name}</b> จะถูกซ่อนไว้ กู้คืนได้ด้วยการเปิดสวิตช์ “แสดงใน LIFF”
             </>
           )
         }
         confirmText="ปิดใช้งาน"
         variant="danger"
-        isLoading={deleting}
+        isLoading={isHiding}
       />
     </div>
   )

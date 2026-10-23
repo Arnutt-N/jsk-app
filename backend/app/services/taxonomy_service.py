@@ -1,7 +1,7 @@
 import logging
 import time
 
-from sqlalchemy import func, select
+from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -141,16 +141,16 @@ class TaxonomyService:
         category = await db.get(TaxonomyCategory, category_id)
         if category is None:
             return False
-        topic_count = await db.scalar(
-            select(func.count())
-            .select_from(TaxonomyTopic)
-            .where(
-                TaxonomyTopic.category_id == category_id,
-                TaxonomyTopic.is_active.is_(True),
-            )
+        if not category.is_active:
+            return True
+        # Cascade-hide: user decision 2026-10-23 — hiding a category hides its
+        # topics in the same commit so no active topic is stranded invisible.
+        # Restore is per-row via PATCH (category first, then its topics).
+        await db.execute(
+            update(TaxonomyTopic)
+            .where(TaxonomyTopic.category_id == category_id)
+            .values(is_active=False)
         )
-        if topic_count:
-            raise ValueError("Category still has topics; deactivate it instead")
         category.is_active = False
         await db.commit()
         self.invalidate()
@@ -168,6 +168,10 @@ class TaxonomyService:
         category = await db.get(TaxonomyCategory, category_id)
         if category is None:
             raise LookupError("Category not found")
+        if not category.is_active:
+            raise ValueError(
+                f"หมวด '{category.name}' ปิดใช้งานอยู่ ให้เปิดใช้งานก่อนเพิ่มหัวข้อ"
+            )
 
         topic = TaxonomyTopic(
             category_id=category_id,
@@ -202,6 +206,10 @@ class TaxonomyService:
             category = await db.get(TaxonomyCategory, category_id)
             if category is None:
                 raise LookupError("Category not found")
+            if not category.is_active:
+                raise ValueError(
+                    f"หมวด '{category.name}' ปิดใช้งานอยู่ ให้เปิดใช้งานก่อนย้ายหัวข้อ"
+                )
             topic.category_id = category_id
 
         attempted_name: str | None = None
@@ -227,6 +235,8 @@ class TaxonomyService:
         topic = await db.get(TaxonomyTopic, topic_id)
         if topic is None:
             return False
+        if not topic.is_active:
+            return True
         topic.is_active = False
         await db.commit()
         self.invalidate()

@@ -285,7 +285,7 @@ export default function LiffBookingPage() {
   const [editing, setEditing] = useState(false)
   const [cancelling, setCancelling] = useState(false)
   const [cancelOpen, setCancelOpen] = useState(false)
-  const { leaveOpen, requestLeave, cancelLeave, confirmLeave } = useLiffLeave()
+  const { leaveOpen, requestLeave, cancelLeave, confirmLeave, closeWindow } = useLiffLeave()
   const [notice, setNotice] = useState<string | null>(null)
   const { toast } = useToast()
   const [showContactErrors, setShowContactErrors] = useState(false)
@@ -461,31 +461,6 @@ export default function LiffBookingPage() {
     dispatch({ type: 'draft/reset' })
     if (options?.service_types.length === 1) {
       dispatch({ type: 'service/set', service: options.service_types[0] })
-    }
-  }
-
-  const handleSuccessClose = () => {
-    const liff = window.liff
-    try {
-      if (liff?.isInClient?.()) {
-        liff.closeWindow()
-        return
-      }
-      if (liff?.closeWindow) {
-        liff.closeWindow()
-        return
-      }
-    } catch {
-      logger.error('Close window failed')
-    }
-    try {
-      window.close()
-    } catch {
-      logger.error('Window close failed')
-    }
-    const liffId = process.env.NEXT_PUBLIC_LIFF_ID
-    if (liffId) {
-      window.location.href = `https://line.me/R/app/${liffId}`
     }
   }
 
@@ -672,7 +647,7 @@ export default function LiffBookingPage() {
                     <Button
                       variant="ghost"
                       className="w-full"
-                      onClick={handleSuccessClose}
+                      onClick={() => closeWindow()}
                     >
                       ปิดหน้าต่าง
                     </Button>
