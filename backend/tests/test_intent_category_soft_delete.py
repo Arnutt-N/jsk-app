@@ -180,3 +180,80 @@ async def test_reactivate_category_without_active_response_is_400():
             )
             await session.commit()
         await engine.dispose()
+
+@pytest.mark.asyncio
+async def test_live_keyword_wins_over_hidden_shadow():
+    from app.services.message_intake.intent_matching import resolve_reply_responses
+
+    marker = f"shadow{uuid.uuid4().hex[:8]}"
+    engine = _fresh_engine()
+    Session = async_sessionmaker(engine, expire_on_commit=False)
+
+    async with Session() as session:
+        session.add(IntentCategory(name=f"hidden-{marker}", is_active=False))
+        await session.flush()
+        hidden_id = (
+            await session.execute(
+                select(IntentCategory.id).where(
+                    IntentCategory.name == f"hidden-{marker}"
+                )
+            )
+        ).scalar_one()
+        session.add(
+            IntentKeyword(
+                category_id=hidden_id, keyword=f"kw-{marker}", is_active=True
+            )
+        )
+        session.add(
+            IntentCategory(name=f"live-{marker}", is_active=True)
+        )
+        await session.flush()
+        live_id = (
+            await session.execute(
+                select(IntentCategory.id).where(
+                    IntentCategory.name == f"live-{marker}"
+                )
+            )
+        ).scalar_one()
+        session.add(
+            IntentKeyword(
+                category_id=live_id, keyword=f"kw-{marker}", is_active=True
+            )
+        )
+        session.add(
+            IntentResponse(
+                category_id=live_id,
+                reply_type=ReplyType.TEXT,
+                text_content=f"resp-{marker}",
+                is_active=True,
+            )
+        )
+        await session.commit()
+
+    try:
+        async with Session() as session:
+            responses, category_name, keyword_match = await resolve_reply_responses(
+                f"kw-{marker}", session
+            )
+            assert keyword_match is not None
+            assert category_name == f"live-{marker}"
+            assert [r.text_content for r in responses] == [f"resp-{marker}"]
+    finally:
+        async with Session() as session:
+            await session.execute(
+                delete(IntentKeyword).where(
+                    IntentKeyword.keyword == f"kw-{marker}"
+                )
+            )
+            await session.execute(
+                delete(IntentResponse).where(
+                    IntentResponse.category_id == live_id
+                )
+            )
+            await session.execute(
+                delete(IntentCategory).where(
+                    IntentCategory.id.in_([hidden_id, live_id])
+                )
+            )
+            await session.commit()
+        await engine.dispose()
