@@ -1,10 +1,6 @@
 """Real-session test: DELETE auto-reply rule soft-hides instead of removing.
 
-Policy (user decision 2026-10-23): admin delete buttons only hide
-(`is_active=False`); nothing is permanently deleted and every hidden row
-must be restorable via PUT. Uses the throwaway NullPool engine + marker
-cleanup recipe from test_taxonomy_patch_regression.py:1-60 (never mocks
-the service layer).
+Policy: user decision 2026-10-23, see .agents/PRPs/2026-10-23-leave-confirm-soft-delete.prd.md.
 """
 import uuid
 from types import SimpleNamespace
