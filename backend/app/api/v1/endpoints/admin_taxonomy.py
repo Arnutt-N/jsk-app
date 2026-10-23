@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db, require_permission
@@ -25,13 +25,8 @@ Gate = require_permission(KEY_MANAGE_TAXONOMY)
 
 
 def _duplicate_guidance(name: str | None) -> str:
-    # Hide-only policy: a duplicate name usually means a hidden row still
-    # reserves it. Point at restore instead of leaving the admin stuck.
     label = f" '{name}'" if name else ""
-    return (
-        f"ชื่อ{label} ถูกใช้แล้ว "
-        "(อาจเป็นรายการที่ปิดใช้งานอยู่ ให้เปิดใช้งานรายการเดิมแทนการสร้างใหม่)"
-    )
+    return f"ชื่อ{label} ถูกใช้แล้ว"
 
 
 def _conflict_detail(exc: ValueError, name: str | None) -> str:
@@ -44,8 +39,9 @@ def _conflict_detail(exc: ValueError, name: str | None) -> str:
 async def list_taxonomy(
     db: AsyncSession = Depends(get_db),
     _admin: User = Depends(Gate),
+    include_inactive: bool = Query(False),
 ):
-    categories = await taxonomy_service.get_admin_taxonomy(db)
+    categories = await taxonomy_service.get_admin_taxonomy(db, include_inactive)
     return AdminTaxonomyRead(
         categories=[CategoryRead.model_validate(c) for c in categories]
     )

@@ -23,11 +23,14 @@ router = APIRouter()
 async def list_categories(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=100),
+    include_inactive: bool = Query(False),
     db: AsyncSession = Depends(get_db),
     current_admin: User = Depends(get_current_admin)
 ):
     """List all intent categories with row counts."""
     stmt = select(IntentCategory).order_by(IntentCategory.name).offset(skip).limit(limit)
+    if not include_inactive:
+        stmt = stmt.where(IntentCategory.is_active.is_(True))
     result = await db.execute(stmt)
     categories = result.scalars().all()
 
@@ -93,12 +96,13 @@ async def list_categories(
 
 @router.post("/categories", response_model=IntentCategoryResponse, status_code=status.HTTP_201_CREATED)
 async def create_category(data: IntentCategoryCreate, db: AsyncSession = Depends(get_db), current_admin: User = Depends(require_permission(KEY_MANAGE_AUTO_REPLIES))):
-    # Check uniqueness
-    existing = await db.execute(select(IntentCategory).filter(IntentCategory.name == data.name))
+    # Check uniqueness (active rows only — hidden rows no longer reserve
+    # their name since the partial unique policy).
+    existing = await db.execute(select(IntentCategory).filter(IntentCategory.name == data.name, IntentCategory.is_active.is_(True)))
     if existing.scalars().first():
         raise HTTPException(
             status_code=400,
-            detail=f"ชื่อหมวด '{data.name}' ถูกใช้แล้ว (อาจเป็นรายการที่ปิดใช้งานอยู่ ให้เปิดใช้งานรายการเดิมแทนการสร้างใหม่)",
+            detail=f"ชื่อหมวด '{data.name}' ถูกใช้แล้ว",
         )
     
     cat = IntentCategory(**data.model_dump())
@@ -152,7 +156,7 @@ async def update_category(cat_id: int, data: IntentCategoryUpdate, db: AsyncSess
         await db.rollback()
         raise HTTPException(
             status_code=409,
-            detail="ชื่อหมวดนี้ถูกใช้แล้ว (อาจเป็นรายการที่ปิดใช้งานอยู่ ให้เปิดใช้งานรายการเดิมแทนการสร้างใหม่)",
+            detail="ชื่อหมวดนี้ถูกใช้แล้ว",
         )
     await db.refresh(cat)
     return cat
