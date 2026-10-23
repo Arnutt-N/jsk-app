@@ -241,12 +241,14 @@ class TestCategoryWriters:
         db.delete.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_delete_empty_category_succeeds(self):
+    async def test_delete_empty_category_soft_hides(self):
         db = _mock_db()
-        db.get = AsyncMock(return_value=SimpleNamespace(id=1, name="ก"))
+        category = SimpleNamespace(id=1, name="ก", is_active=True)
+        db.get = AsyncMock(return_value=category)
         db.scalar = AsyncMock(return_value=0)
         assert await taxonomy_service.delete_category(db, 1) is True
-        db.delete.assert_called_once()
+        db.delete.assert_not_called()
+        assert category.is_active is False
 
 
 class TestTopicWriters:

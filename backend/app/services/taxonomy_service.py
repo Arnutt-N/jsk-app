@@ -144,11 +144,14 @@ class TaxonomyService:
         topic_count = await db.scalar(
             select(func.count())
             .select_from(TaxonomyTopic)
-            .where(TaxonomyTopic.category_id == category_id)
+            .where(
+                TaxonomyTopic.category_id == category_id,
+                TaxonomyTopic.is_active.is_(True),
+            )
         )
         if topic_count:
             raise ValueError("Category still has topics; deactivate it instead")
-        await db.delete(category)
+        category.is_active = False
         await db.commit()
         self.invalidate()
         return True
@@ -224,7 +227,7 @@ class TaxonomyService:
         topic = await db.get(TaxonomyTopic, topic_id)
         if topic is None:
             return False
-        await db.delete(topic)
+        topic.is_active = False
         await db.commit()
         self.invalidate()
         return True
