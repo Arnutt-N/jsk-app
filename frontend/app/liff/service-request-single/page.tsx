@@ -53,7 +53,7 @@ export default function LiffServiceRequestSingle() {
         trackInLineApp: true
     })
     const loading = !initDone
-    const { leaveOpen, requestLeave, cancelLeave, confirmLeave } = useLiffLeave()
+    const { leaveOpen, requestLeave, cancelLeave, confirmLeave, closeWindow } = useLiffLeave()
 
     // Uploads started but not yet resolved — counted toward the attachment
     // cap so rapid file picks cannot exceed the shared rate-limit budget.
@@ -267,25 +267,8 @@ export default function LiffServiceRequestSingle() {
         }
     }
 
-    const handleClose = () => {
-        const liff = window.liff
-        try {
-            if (liff?.isInClient()) {
-                liff.closeWindow()
-            } else {
-                window.close()
-                const liffId = process.env.NEXT_PUBLIC_LIFF_ID
-                if (liffId) {
-                    window.location.href = `https://line.me/R/app/${liffId}`
-                }
-            }
-        } catch (e) {
-            logger.error('Close window failed:', e)
-        }
-    }
-
     // Auto-close countdown on the success screen.
-    const { timeLeft } = useAutoCloseCountdown(success && isInLineApp, handleClose)
+    const { timeLeft } = useAutoCloseCountdown(success && isInLineApp, () => closeWindow())
 
     if (loading) {
         return (
@@ -309,7 +292,7 @@ export default function LiffServiceRequestSingle() {
                             เราจะดำเนินการตรวจสอบโดยเร็วที่สุด<br />
                             <span className="text-xs text-gray-400 mt-2 block">(ปิดหน้าต่างอัตโนมัติใน {timeLeft} วินาที)</span>
                         </p>
-                        <Button variant="primary" className="w-full py-4 text-lg" onClick={handleClose}>
+                        <Button variant="primary" className="w-full py-4 text-lg" onClick={() => closeWindow()}>
                             ปิดหน้าต่าง
                         </Button>
                     </CardContent>

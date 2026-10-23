@@ -8,6 +8,7 @@ export interface LiffLeave {
   requestLeave: () => void;
   cancelLeave: () => void;
   confirmLeave: () => void;
+  closeWindow: (fallbackUrl?: string) => void;
 }
 
 export function useLiffLeave(homePath = '/'): LiffLeave {
@@ -29,5 +30,31 @@ export function useLiffLeave(homePath = '/'): LiffLeave {
     window.location.href = homePath;
   }, [homePath]);
 
-  return { leaveOpen, requestLeave, cancelLeave, confirmLeave };
+  // Shared success-screen close: in-LINE closes the client; outside LINE
+  // tries window.close() then an explicit fallback URL (unlike confirmLeave
+  // above, which navigates home for the mid-form cancel flow).
+  const closeWindow = useCallback((fallbackUrl?: string) => {
+    if (typeof window === 'undefined') return;
+    try {
+      if (window.liff?.isInClient?.()) {
+        window.liff.closeWindow();
+        return;
+      }
+    } catch (e) {
+      logger.error('Close window failed:', e);
+    }
+    try {
+      window.close();
+    } catch (e) {
+      logger.error('Window close failed:', e);
+    }
+    const target =
+      fallbackUrl ??
+      (process.env.NEXT_PUBLIC_LIFF_ID
+        ? `https://line.me/R/app/${process.env.NEXT_PUBLIC_LIFF_ID}`
+        : undefined);
+    if (target) window.location.href = target;
+  }, []);
+
+  return { leaveOpen, requestLeave, cancelLeave, confirmLeave, closeWindow };
 }

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import LiffServiceRequestSingle from '../page';
 
@@ -152,6 +152,11 @@ describe('LIFF service-request-single validation (R3-M28-twin)', () => {
     render(<LiffServiceRequestSingle />);
     fireEvent.click(screen.getByRole('button', { name: 'ยกเลิก' }));
     expect(await screen.findByText('ปิดแบบฟอร์มนี้?')).toBeInTheDocument();
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'ยืนยัน' }));
+    await waitFor(() => {
+      expect(screen.queryByText('ปิดแบบฟอร์มนี้?')).not.toBeInTheDocument();
+    });
   });
 });

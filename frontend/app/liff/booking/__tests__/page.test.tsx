@@ -809,6 +809,20 @@ describe('post-booking actions', () => {
       closeSpy.mockRestore()
     }
   })
+
+  it('skips closeWindow when the SDK is present but outside the client', async () => {
+    await bookToDone()
+    const closeWindow = vi.fn()
+    vi.stubGlobal('liff', { isInClient: () => false, closeWindow })
+    const closeSpy = vi.spyOn(window, 'close').mockImplementation(() => {})
+    try {
+      await userEvent.click(screen.getByRole('button', { name: 'ปิดหน้าต่าง' }))
+      expect(closeWindow).not.toHaveBeenCalled()
+      expect(closeSpy).toHaveBeenCalled()
+    } finally {
+      closeSpy.mockRestore()
+    }
+  })
 })
 
 describe('service dropdown', () => {
