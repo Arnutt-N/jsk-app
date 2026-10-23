@@ -31,7 +31,7 @@ class IntentCategory(Base):
     # unique index under a different name.
     name = Column(String, nullable=False)
     description = Column(Text, nullable=True)
-    is_active = Column(Boolean, default=True)
+    is_active = Column(Boolean, nullable=False, server_default="true", default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
@@ -50,6 +50,7 @@ class IntentKeyword(Base):
     category_id = Column(Integer, ForeignKey("intent_categories.id", ondelete="CASCADE"), nullable=False)
     keyword = Column(String, index=True, nullable=False)
     match_type = Column(Enum(MatchType), default=MatchType.CONTAINS, nullable=False)
+    is_active = Column(Boolean, nullable=False, server_default="true", default=True)
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
@@ -70,8 +71,8 @@ class IntentResponse(Base):
     
     # Ordering if we want multiple responses in sequence
     order = Column(Integer, default=0)
-    
-    is_active = Column(Boolean, default=True)
+
+    is_active = Column(Boolean, nullable=False, server_default="true", default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

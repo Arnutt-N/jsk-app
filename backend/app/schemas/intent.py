@@ -15,10 +15,12 @@ class IntentKeywordCreate(IntentKeywordBase):
 class IntentKeywordUpdate(BaseModel):
     keyword: Optional[str] = None
     match_type: Optional[MatchType] = None
+    is_active: Optional[bool] = None
 
 class IntentKeywordResponse(IntentKeywordBase):
     id: int
     category_id: int
+    is_active: bool
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True, use_enum_values=True)
