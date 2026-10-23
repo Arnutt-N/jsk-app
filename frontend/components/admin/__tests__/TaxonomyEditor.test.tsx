@@ -73,7 +73,7 @@ describe('TaxonomyEditor', () => {
     })
   })
 
-  it('shows the reactivate hint on 409', async () => {
+  it('shows the restore guidance on duplicate-name 409 with server detail', async () => {
     vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(CATEGORIES_PAYLOAD))
     renderEditor()
     await waitFor(() => expect(screen.getByDisplayValue('กองทุนยุติธรรม')).toBeInTheDocument())
@@ -81,7 +81,9 @@ describe('TaxonomyEditor', () => {
     fireEvent.change(screen.getByDisplayValue('กองทุนยุติธรรม'), {
       target: { value: 'ชื่อซ้ำ' },
     })
-    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse({}, 409))
+    vi.mocked(fetch).mockResolvedValueOnce(
+      jsonResponse({ detail: "ชื่อ 'ชื่อซ้ำ' ถูกใช้แล้ว (อาจเป็นรายการที่ปิดใช้งานอยู่ ให้เปิดใช้งานรายการเดิมแทนการสร้างใหม่)" }, 409)
+    )
     fireEvent.click(screen.getAllByRole('button', { name: 'บันทึก' })[0] as HTMLElement)
 
     await waitFor(() =>
@@ -89,7 +91,7 @@ describe('TaxonomyEditor', () => {
     )
   })
 
-  it('states a non-empty category cannot be deactivated and points at the toggle', async () => {
+  it('hides a category with topics in one confirm (cascade)', async () => {
     vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(CATEGORIES_PAYLOAD))
     renderEditor()
     await waitFor(() => expect(screen.getByDisplayValue('กองทุนยุติธรรม')).toBeInTheDocument())
@@ -97,9 +99,21 @@ describe('TaxonomyEditor', () => {
     fireEvent.click(screen.getAllByRole('button', { name: 'ปิดใช้งาน' })[0] as HTMLElement)
 
     await waitFor(() => expect(screen.getByText('ปิดใช้งานหมวดหมู่นี้?')).toBeInTheDocument())
-    expect(screen.getByText(/ไม่สามารถปิดใช้งานได้/)).toBeInTheDocument()
+    expect(screen.getByText(/หัวข้อย่อยทั้งหมดจะถูกซ่อนไว้/)).toBeInTheDocument()
     expect(screen.queryByText(/จะถูกลบถาวร/)).not.toBeInTheDocument()
-    expect(vi.mocked(fetch)).toHaveBeenCalledTimes(1)
+
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(jsonResponse({ status: 'hidden', id: 1 }))
+      .mockResolvedValueOnce(jsonResponse(CATEGORIES_PAYLOAD))
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'ปิดใช้งาน' }))
+
+    await waitFor(() => {
+      const delCall = vi.mocked(fetch).mock.calls.find((call) => call[1]?.method === 'DELETE')
+      expect(delCall?.[0]).toContain('/api/v1/admin/taxonomy/categories/1')
+    })
+    await waitFor(() =>
+      expect(screen.getByText(/ปิดใช้งานแล้ว.*กู้คืน/)).toBeInTheDocument(),
+    )
   })
 
   it('delete modal says hide-restorable, not permanent', async () => {
@@ -114,5 +128,15 @@ describe('TaxonomyEditor', () => {
     const dialog = screen.getByRole('dialog')
     expect(within(dialog).getByRole('button', { name: 'ปิดใช้งาน' })).toBeInTheDocument();
     expect(screen.queryByText(/จะถูกลบถาวร/)).not.toBeInTheDocument()
+
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(jsonResponse({ status: 'hidden', id: 11 }))
+      .mockResolvedValueOnce(jsonResponse(CATEGORIES_PAYLOAD))
+    fireEvent.click(within(dialog).getByRole('button', { name: 'ปิดใช้งาน' }))
+
+    await waitFor(() => {
+      const delCall = vi.mocked(fetch).mock.calls.find((call) => call[1]?.method === 'DELETE')
+      expect(delCall?.[0]).toContain('/api/v1/admin/taxonomy/topics/11')
+    })
   })
 })
