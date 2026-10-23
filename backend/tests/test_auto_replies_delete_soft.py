@@ -12,8 +12,8 @@ from types import SimpleNamespace
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import delete, select
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
 from sqlalchemy.pool import NullPool
 
 from app.api import deps
@@ -40,7 +40,7 @@ async def test_delete_auto_reply_soft_hides_and_restores():
     marker = f"soft{uuid.uuid4().hex[:8]}"
     keyword = f"{marker}-rule"
     engine = _fresh_engine()
-    Session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    Session = async_sessionmaker(engine, expire_on_commit=False)
 
     async with Session() as session:
         session.add(
@@ -81,7 +81,7 @@ async def test_delete_auto_reply_soft_hides_and_restores():
                 await session.execute(
                     select(AutoReply.id).where(
                         AutoReply.keyword == keyword,
-                        AutoReply.is_active == True,
+                        AutoReply.is_active.is_(True),
                     )
                 )
             ).scalar_one_or_none()
@@ -97,7 +97,7 @@ async def test_delete_auto_reply_soft_hides_and_restores():
                 await session.execute(
                     select(AutoReply.id).where(
                         AutoReply.keyword == keyword,
-                        AutoReply.is_active == True,
+                        AutoReply.is_active.is_(True),
                     )
                 )
             ).scalar_one_or_none()
