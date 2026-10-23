@@ -152,8 +152,10 @@ async def delete_category(cat_id: int, db: AsyncSession = Depends(get_db), curre
     cat = result.scalars().first()
     if not cat:
         raise HTTPException(status_code=404, detail="Category not found")
-    
-    await db.delete(cat)
+
+    # Soft-delete only: hidden from public matching, restorable via PUT.
+    # Children stay untouched (flag flip never triggers delete-orphan).
+    cat.is_active = False
     await db.commit()
     return None
 
