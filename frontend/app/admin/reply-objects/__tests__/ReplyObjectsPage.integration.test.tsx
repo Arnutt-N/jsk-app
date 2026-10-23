@@ -1,6 +1,12 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import ReplyObjectsPage from '../page';
+import NewReplyObjectPage from '../new/page';
+
+const { pushMock } = vi.hoisted(() => ({ pushMock: vi.fn() }));
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: pushMock, replace: vi.fn() }),
+}));
 
 // useToast needs a provider in real use; mock it and capture the toast fn.
 const { toastMock } = vi.hoisted(() => ({ toastMock: vi.fn() }));
@@ -23,16 +29,14 @@ afterEach(() => {
 });
 
 describe('ReplyObjectsPage — integration: save → reload round-trip', () => {
-  it('serializes payload as an object (not a string) and refetches the list after a successful save', async () => {
+  it('serializes payload as an object (not a string) and navigates back after a successful save', async () => {
     const fetchMock = vi.fn((_url: string, opts?: RequestInit) => {
       if (opts?.method === 'POST') return jsonResponse({ id: 1 }, true, 201);
       return jsonResponse([]); // GET (initial + post-save refetch)
     });
     vi.stubGlobal('fetch', fetchMock);
 
-    render(<ReplyObjectsPage />);
-
-    fireEvent.click(screen.getByText('+ New Template'));
+    render(<NewReplyObjectPage />);
 
     // getByLabelText only resolves if the a11y-2 label/htmlFor association is correct.
     fireEvent.change(screen.getByLabelText('Universal ID *'), { target: { value: 'flex_welcome' } });
@@ -51,8 +55,10 @@ describe('ReplyObjectsPage — integration: save → reload round-trip', () => {
       expect(body.object_id).toBe('flex_welcome');
     });
 
-    // List refetched after save: GET (initial) + POST + GET (refetch) = at least 3 calls.
-    expect(fetchMock.mock.calls.length).toBeGreaterThanOrEqual(3);
+    // Navigates back to the list after save.
+    await waitFor(() => {
+      expect(pushMock).toHaveBeenCalledWith('/admin/reply-objects');
+    });
   });
 
   it('reloads a saved template payload back into the form when editing (round-trip prefill)', async () => {
@@ -104,9 +110,8 @@ describe('ReplyObjectsPage — integration: save → reload round-trip', () => {
     });
     vi.stubGlobal('fetch', fetchMock);
 
-    render(<ReplyObjectsPage />);
+    render(<NewReplyObjectPage />);
 
-    fireEvent.click(screen.getByText('+ New Template'));
     fireEvent.change(screen.getByLabelText('Universal ID *'), { target: { value: 'bad' } });
     fireEvent.change(screen.getByLabelText('Internal Name *'), { target: { value: 'Bad' } });
     fireEvent.change(screen.getByPlaceholderText('{ ... }'), { target: { value: '{}' } });
@@ -169,9 +174,8 @@ describe('ReplyObjectsPage — integration: save → reload round-trip', () => {
     const fetchMock = vi.fn(() => jsonResponse([]));
     vi.stubGlobal('fetch', fetchMock);
 
-    render(<ReplyObjectsPage />);
+    render(<NewReplyObjectPage />);
 
-    fireEvent.click(screen.getByText('+ New Template'));
     fireEvent.change(screen.getByLabelText('Universal ID *'), { target: { value: 'evil' } });
     fireEvent.change(screen.getByLabelText('Internal Name *'), { target: { value: 'Evil' } });
     fireEvent.change(screen.getByPlaceholderText('{ ... }'), {
