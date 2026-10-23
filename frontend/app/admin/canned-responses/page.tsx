@@ -30,6 +30,7 @@ interface CannedResponse {
   content: string;
   category: string;
   is_active?: boolean;
+  updated_at?: string;
   usage_count?: number;
 }
 
@@ -53,9 +54,10 @@ interface FormState {
   title: string;
   content: string;
   category: string;
+  updatedAt: string | null;
 }
 
-const EMPTY_FORM: FormState = { shortcut: '', title: '', content: '', category: 'info' };
+const EMPTY_FORM: FormState = { shortcut: '', title: '', content: '', category: 'info', updatedAt: null };
 
 const DUPLICATE_SHORTCUT_MESSAGE = 'ชอร์ตคัตนี้ถูกใช้แล้ว กรุณาเลือกคำอื่น';
 const INCOMPLETE_FORM_MESSAGE = 'กรุณากรอกชอร์ตคัต ชื่อ และข้อความให้ครบ';
@@ -73,6 +75,7 @@ export default function CannedResponsesPage() {
     open: false,
     id: null,
   });
+  const [togglingId, setTogglingId] = useState<number | null>(null);
   const [viewRow, setViewRow] = useState<CannedResponse | null>(null);
   const shortcutInputRef = useRef<HTMLInputElement>(null);
 
@@ -88,7 +91,7 @@ export default function CannedResponsesPage() {
   const fetchResponses = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/admin/canned-responses`);
+      const res = await fetch(`${API_BASE}/admin/canned-responses?include_inactive=true`);
       if (res.ok) {
         const data = await res.json();
         setResponses(Array.isArray(data.items) ? data.items : []);
@@ -121,6 +124,7 @@ export default function CannedResponsesPage() {
       title: row.title,
       content: row.content,
       category: row.category || 'info',
+      updatedAt: row.updated_at ?? null,
     });
     setFormError(null);
     setShowForm(true);
@@ -151,10 +155,12 @@ export default function CannedResponsesPage() {
       const url = editingId
         ? `${API_BASE}/admin/canned-responses/${editingId}`
         : `${API_BASE}/admin/canned-responses`;
+      const body: Record<string, unknown> = { shortcut, title, content, category: formData.category };
+      if (editingId && formData.updatedAt) body.updated_at = formData.updatedAt;
       const res = await fetch(url, {
         method: editingId ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ shortcut, title, content, category: formData.category }),
+        body: JSON.stringify(body),
       });
 
       if (res.ok) {
@@ -168,9 +174,18 @@ export default function CannedResponsesPage() {
       }
 
       // 409 = duplicate shortcut → keep the modal open and point at the field.
+      // A stale-write 409 ("มีคนแก้") closes the modal so the user refetches.
       if (res.status === 409) {
-        setFormError(DUPLICATE_SHORTCUT_MESSAGE);
-        shortcutInputRef.current?.focus();
+        const errBody = await res.json().catch(() => ({} as { detail?: unknown }));
+        const detail = typeof errBody.detail === 'string' ? errBody.detail : '';
+        if (detail.includes('มีคนแก้')) {
+          closeForm();
+          await fetchResponses();
+          toast({ title: 'มีคนแก้ข้อความนี้ไปก่อนแล้ว ดึงข้อมูลล่าสุดแล้ว กรุณาตรวจสอบอีกครั้ง', variant: 'error' });
+        } else {
+          setFormError(DUPLICATE_SHORTCUT_MESSAGE);
+          shortcutInputRef.current?.focus();
+        }
         return;
       }
       setFormError(getHttpStatusMessage(res.status));
@@ -183,6 +198,8 @@ export default function CannedResponsesPage() {
   };
 
   const handleToggleActive = async (row: CannedResponse) => {
+    if (togglingId !== null) return;
+    setTogglingId(row.id);
     try {
       const res = await fetch(`${API_BASE}/admin/canned-responses/${row.id}`, {
         method: 'PUT',
@@ -198,6 +215,8 @@ export default function CannedResponsesPage() {
     } catch (error) {
       logger.error('Error toggling canned response:', error);
       toast({ title: 'ผิดพลาด', description: 'อัปเดตไม่สำเร็จ กรุณาลองใหม่อีกครั้ง', variant: 'error' });
+    } finally {
+      setTogglingId(null);
     }
   };
 
@@ -403,6 +422,7 @@ export default function CannedResponsesPage() {
                         <Switch
                           checked={row.is_active ?? true}
                           onCheckedChange={() => { void handleToggleActive(row); }}
+                          disabled={togglingId === row.id}
                           aria-label={`เปิดใช้งาน ${row.title}`}
                         />
                         <ActionIconButton

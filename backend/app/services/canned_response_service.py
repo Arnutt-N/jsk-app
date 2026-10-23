@@ -1,9 +1,9 @@
 import logging
 import re
 
+from app.models.canned_response import CannedResponse
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.models.canned_response import CannedResponse
 
 logger = logging.getLogger(__name__)
 
@@ -99,13 +99,11 @@ class CannedResponseService:
         result = await db.execute(select(CannedResponse).where(CannedResponse.id == id))
         return result.scalar_one_or_none()
 
-    async def get_by_shortcut(self, shortcut: str, db: AsyncSession) -> CannedResponse | None:
-        result = await db.execute(
-            select(CannedResponse).where(
-                CannedResponse.shortcut == shortcut,
-                CannedResponse.is_active
-            )
-        )
+    async def get_by_shortcut(self, shortcut: str, db: AsyncSession, active_only: bool = True) -> CannedResponse | None:
+        stmt = select(CannedResponse).where(CannedResponse.shortcut == shortcut)
+        if active_only:
+            stmt = stmt.where(CannedResponse.is_active)
+        result = await db.execute(stmt)
         return result.scalar_one_or_none()
 
     async def create(self, data: dict, db: AsyncSession) -> CannedResponse:

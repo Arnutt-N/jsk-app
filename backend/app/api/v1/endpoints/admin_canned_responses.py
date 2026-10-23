@@ -30,11 +30,12 @@ class CannedResponseUpdate(BaseModel):
 @router.get("")
 async def list_canned_responses(
     category: str | None = Query(None, description="Filter by category"),
+    include_inactive: bool = Query(False, description="Admin toggle view also needs disabled rows"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
-    """List all canned responses (including inactive — admin needs the toggle)."""
-    items = await canned_response_service.get_all(db, category=category, active_only=False)
+    """List canned responses (active only by default; admin passes include_inactive)."""
+    items = await canned_response_service.get_all(db, category=category, active_only=not include_inactive)
     return {
         "items": [
             {
@@ -44,6 +45,7 @@ async def list_canned_responses(
                 "content": r.content,
                 "category": r.category,
                 "is_active": r.is_active,
+                "updated_at": r.updated_at.isoformat() if r.updated_at is not None else None,
                 "usage_count": r.usage_count,
             }
             for r in items
@@ -59,13 +61,14 @@ async def create_canned_response(
     current_user: User = Depends(get_current_admin)
 ):
     """Create a new canned response."""
-    existing = await canned_response_service.get_by_shortcut(data.shortcut, db)
+    existing = await canned_response_service.get_by_shortcut(data.shortcut, db, active_only=False)
     if existing:
         raise HTTPException(status_code=409, detail=f"Shortcut '{data.shortcut}' already exists")
 
     # content duplicate check on normalized text (trim + collapse + casefold)
+    # — spans inactive rows too, or recreating a disabled template 500s on the unique constraint.
     norm = normalize_text(data.content)
-    for r in await canned_response_service.get_all(db):
+    for r in await canned_response_service.get_all(db, active_only=False):
         if normalize_text(str(r.content or "")) == norm:
             raise HTTPException(
                 status_code=409,

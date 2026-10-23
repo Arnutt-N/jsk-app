@@ -37,7 +37,7 @@ function renderPage() {
 
 async function waitForInitialFetch(fetchMock: ReturnType<typeof vi.fn>) {
   await waitFor(() =>
-    expect(fetchMock).toHaveBeenCalledWith('/api/v1/admin/canned-responses')
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/admin/canned-responses?include_inactive=true')
   );
 }
 
