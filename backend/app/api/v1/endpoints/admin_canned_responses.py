@@ -1,14 +1,12 @@
 """Admin canned responses API endpoints."""
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Optional
-from pydantic import BaseModel
-
-from app.api.deps import get_db, get_current_admin
+from app.api.deps import get_current_admin, get_db
 from app.models.user import User
 from app.services.canned_response_service import canned_response_service, normalize_text
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
 
@@ -21,21 +19,22 @@ class CannedResponseCreate(BaseModel):
 
 
 class CannedResponseUpdate(BaseModel):
-    shortcut: Optional[str] = None
-    title: Optional[str] = None
-    content: Optional[str] = None
-    category: Optional[str] = None
-    updated_at: Optional[datetime] = None  # last-read timestamp — collision guard only
+    shortcut: str | None = None
+    title: str | None = None
+    content: str | None = None
+    category: str | None = None
+    is_active: bool | None = None
+    updated_at: datetime | None = None  # last-read timestamp — collision guard only
 
 
 @router.get("")
 async def list_canned_responses(
-    category: Optional[str] = Query(None, description="Filter by category"),
+    category: str | None = Query(None, description="Filter by category"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
-    """List all active canned responses."""
-    items = await canned_response_service.get_all(db, category=category)
+    """List all canned responses (including inactive — admin needs the toggle)."""
+    items = await canned_response_service.get_all(db, category=category, active_only=False)
     return {
         "items": [
             {
@@ -44,6 +43,7 @@ async def list_canned_responses(
                 "title": r.title,
                 "content": r.content,
                 "category": r.category,
+                "is_active": r.is_active,
                 "usage_count": r.usage_count,
             }
             for r in items
@@ -66,7 +66,7 @@ async def create_canned_response(
     # content duplicate check on normalized text (trim + collapse + casefold)
     norm = normalize_text(data.content)
     for r in await canned_response_service.get_all(db):
-        if normalize_text(r.content or "") == norm:
+        if normalize_text(str(r.content or "")) == norm:
             raise HTTPException(
                 status_code=409,
                 detail=f"ข้อความซ้ำกับรายการ {r.title} กรุณาใช้รายการเดิม",
@@ -82,10 +82,8 @@ async def create_canned_response(
         "title": response.title,
         "content": response.content,
         "category": response.category,
+        "is_active": response.is_active,
     }
-
-
-@router.put("/{response_id}")
 async def update_canned_response(
     response_id: int,
     data: CannedResponseUpdate,
@@ -96,7 +94,8 @@ async def update_canned_response(
     # optimistic concurrency: a stale updated_at means someone else wrote first
     if data.updated_at is not None:
         current = await canned_response_service.get_by_id(response_id, db)
-        if current and current.updated_at and current.updated_at != data.updated_at:
+        stored_updated_at: datetime | None = getattr(current, "updated_at", None)
+        if current is not None and stored_updated_at is not None and stored_updated_at != data.updated_at:
             raise HTTPException(
                 status_code=409,
                 detail="มีคนแก้ข้อความนี้ไปก่อนแล้ว กรุณารีเฟรช",
@@ -116,6 +115,7 @@ async def update_canned_response(
         "title": response.title,
         "content": response.content,
         "category": response.category,
+        "is_active": response.is_active,
     }
 
 

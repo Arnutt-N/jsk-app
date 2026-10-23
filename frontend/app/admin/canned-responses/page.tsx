@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Plus, SquarePen, Trash2 } from 'lucide-react';
+import { Plus, SquarePen, Trash2, Eye } from 'lucide-react';
 import { AdminTableHead, type AdminTableHeadColumn } from '@/components/admin/AdminTableHead';
 import PageHeader from '@/app/admin/components/PageHeader';
 import { Button } from '@/components/ui/Button';
@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { ActionIconButton } from '@/components/ui/ActionIconButton';
+import { Switch } from '@/components/ui/Switch';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/Toast';
 import { getHttpStatusMessage } from '@/lib/api-error';
@@ -28,6 +29,7 @@ interface CannedResponse {
   title: string;
   content: string;
   category: string;
+  is_active?: boolean;
   usage_count?: number;
 }
 
@@ -71,12 +73,14 @@ export default function CannedResponsesPage() {
     open: false,
     id: null,
   });
+  const [viewRow, setViewRow] = useState<CannedResponse | null>(null);
   const shortcutInputRef = useRef<HTMLInputElement>(null);
 
   const tableColumns: AdminTableHeadColumn[] = [
     { key: 'shortcut', label: 'ชอร์ตคัต' },
     { key: 'content', label: 'ข้อความ' },
     { key: 'category', label: 'หมวดหมู่', align: 'center' },
+    { key: 'status', label: 'สถานะ', align: 'center' },
     { key: 'usage', label: 'ใช้ไป', align: 'center' },
     { key: 'actions', label: 'จัดการ', align: 'center' },
   ];
@@ -175,6 +179,25 @@ export default function CannedResponsesPage() {
       setFormError(getHttpStatusMessage(0));
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleToggleActive = async (row: CannedResponse) => {
+    try {
+      const res = await fetch(`${API_BASE}/admin/canned-responses/${row.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_active: !(row.is_active ?? true) }),
+      });
+      if (res.ok) {
+        await fetchResponses();
+        toast({ title: 'อัปเดตสถานะแล้ว', variant: 'success' });
+      } else {
+        toast({ title: 'ผิดพลาด', description: getHttpStatusMessage(res.status), variant: 'error' });
+      }
+    } catch (error) {
+      logger.error('Error toggling canned response:', error);
+      toast({ title: 'ผิดพลาด', description: 'อัปเดตไม่สำเร็จ กรุณาลองใหม่อีกครั้ง', variant: 'error' });
     }
   };
 
@@ -318,10 +341,14 @@ export default function CannedResponsesPage() {
                       <div className="mx-auto h-5 w-16 bg-muted rounded-full"></div>
                     </td>
                     <td className="px-5 py-4 text-center">
+                      <div className="mx-auto h-5 w-16 bg-muted rounded-full"></div>
+                    </td>
+                    <td className="px-5 py-4 text-center">
                       <div className="mx-auto h-4 w-8 bg-muted/50 rounded"></div>
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex items-center justify-center gap-1">
+                        <div className="h-8 w-8 bg-muted/50 rounded-lg"></div>
                         <div className="h-8 w-8 bg-muted/50 rounded-lg"></div>
                         <div className="h-8 w-8 bg-muted/50 rounded-lg"></div>
                       </div>
@@ -330,7 +357,7 @@ export default function CannedResponsesPage() {
                 ))
               ) : responses.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-5 py-10 text-center text-text-tertiary text-sm">
+                  <td colSpan={6} className="px-5 py-10 text-center text-text-tertiary text-sm">
                     ยังไม่มีข้อความสำเร็จรูป — กด “เพิ่มข้อความ” เพื่อเริ่มต้น
                   </td>
                 </tr>
@@ -351,16 +378,32 @@ export default function CannedResponsesPage() {
                         {CATEGORY_LABEL[row.category] ?? row.category}
                       </Badge>
                     </td>
+                    <td className="px-5 py-4 text-center">
+                      <Badge variant={(row.is_active ?? true) ? 'success' : 'gray'} size="sm" className="thai-no-break">
+                        {(row.is_active ?? true) ? 'ใช้งานอยู่' : 'ปิดใช้งาน'}
+                      </Badge>
+                    </td>
                     <td className="px-5 py-4 text-center text-sm text-text-secondary">
                       {row.usage_count ?? 0}
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex items-center justify-center gap-1">
                         <ActionIconButton
+                          icon={<Eye className="w-4 h-4" />}
+                          label="ดูรายละเอียด"
+                          variant="muted"
+                          onClick={() => setViewRow(row)}
+                        />
+                        <ActionIconButton
                           icon={<SquarePen className="w-4 h-4" />}
                           label="แก้ไข"
                           variant="muted"
                           onClick={() => openEdit(row)}
+                        />
+                        <Switch
+                          checked={row.is_active ?? true}
+                          onCheckedChange={() => { void handleToggleActive(row); }}
+                          aria-label={`เปิดใช้งาน ${row.title}`}
                         />
                         <ActionIconButton
                           icon={<Trash2 className="w-4 h-4" />}
@@ -377,6 +420,38 @@ export default function CannedResponsesPage() {
           </table>
         </div>
       </div>
+
+      <Modal
+        isOpen={viewRow !== null}
+        onClose={() => setViewRow(null)}
+        title="รายละเอียดข้อความสำเร็จรูป"
+      >
+        {viewRow && (
+          <div className="space-y-3">
+            <div>
+              <p className="text-xs text-text-tertiary mb-1">ชอร์ตคัต</p>
+              <p className="font-mono font-semibold text-brand-600 dark:text-brand-400">/{viewRow.shortcut}</p>
+            </div>
+            <div>
+              <p className="text-xs text-text-tertiary mb-1">ชื่อ</p>
+              <p className="font-medium text-text-primary">{viewRow.title}</p>
+            </div>
+            <div>
+              <p className="text-xs text-text-tertiary mb-1">ข้อความ</p>
+              <p className="text-sm text-text-primary whitespace-pre-wrap">{viewRow.content}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" size="sm">{CATEGORY_LABEL[viewRow.category] ?? viewRow.category}</Badge>
+              <Badge variant={(viewRow.is_active ?? true) ? 'success' : 'gray'} size="sm">
+                {(viewRow.is_active ?? true) ? 'ใช้งานอยู่' : 'ปิดใช้งาน'}
+              </Badge>
+            </div>
+            <div className="flex justify-end">
+              <Button variant="outline" onClick={() => setViewRow(null)}>ปิด</Button>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       <ConfirmDialog
         isOpen={confirmDelete.open}

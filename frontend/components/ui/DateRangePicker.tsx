@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { CalendarDays } from 'lucide-react';
-import { format, subDays } from 'date-fns';
+import { format, subDays, startOfYear } from 'date-fns';
 import { th } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { Calendar } from './Calendar';
@@ -11,7 +11,10 @@ import type { DateRange } from 'react-day-picker';
 
 interface Preset {
   label: string;
-  days: number;
+  /** Fixed lookback in days; ignored when `getRange` is set. */
+  days?: number;
+  /** Custom range (e.g. year-to-date); wins over `days`. */
+  getRange?: () => DateRange;
 }
 
 interface DateRangePickerProps {
@@ -22,11 +25,20 @@ interface DateRangePickerProps {
   className?: string;
 }
 
-const defaultPresets: Preset[] = [
+export const standardDatePresets: Preset[] = [
   { label: '7 วัน', days: 7 },
   { label: '30 วัน', days: 30 },
   { label: '90 วัน', days: 90 },
+  {
+    label: 'ปีนี้',
+    getRange: () => {
+      const to = new Date();
+      return { from: startOfYear(to), to };
+    },
+  },
 ];
+
+const defaultPresets: Preset[] = standardDatePresets;
 
 export function DateRangePicker({
   value,
@@ -37,10 +49,13 @@ export function DateRangePicker({
 }: DateRangePickerProps) {
   const [open, setOpen] = useState(false);
 
-  const handlePreset = (days: number) => {
-    const to = new Date();
-    const from = subDays(to, days);
-    onChange({ from, to });
+  const handlePreset = (preset: Preset) => {
+    if (preset.getRange) {
+      onChange(preset.getRange());
+    } else {
+      const to = new Date();
+      onChange({ from: subDays(to, preset.days ?? 30), to });
+    }
     setOpen(false);
   };
 
@@ -73,8 +88,8 @@ export function DateRangePicker({
           <div className="flex flex-col gap-1 p-3 border-r border-border-default">
             {presets.map((preset) => (
               <button
-                key={preset.days}
-                onClick={() => handlePreset(preset.days)}
+                key={preset.label}
+                onClick={() => handlePreset(preset)}
                 className="px-3 py-1.5 text-xs font-medium text-text-secondary rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-left whitespace-nowrap"
               >
                 {preset.label}

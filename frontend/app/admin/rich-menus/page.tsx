@@ -2,11 +2,12 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Plus, SquarePen, Trash2, Link2, Users, BarChart3 } from 'lucide-react';
+import { Plus, SquarePen, Trash2, Link2, Users, BarChart3, Eye } from 'lucide-react';
 import { AdminTableHead, type AdminTableHeadColumn } from '@/components/admin/AdminTableHead';
 import PageHeader from '@/app/admin/components/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { ActionIconButton } from '@/components/ui/ActionIconButton';
+import { Modal } from '@/components/ui/Modal';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/Toast';
@@ -36,6 +37,7 @@ export default function RichMenuListPage() {
     const [loading, setLoading] = useState(true);
     const [syncingId, setSyncingId] = useState<number | null>(null);
     const [confirmDelete, setConfirmDelete] = useState<{open: boolean; id: number | null}>({open: false, id: null});
+    const [viewMenu, setViewMenu] = useState<RichMenu | null>(null);
     const { toast } = useToast();
     const tableColumns: AdminTableHeadColumn[] = [
         { key: 'preview', label: 'Preview', align: 'center', className: 'w-40' },
@@ -280,6 +282,12 @@ export default function RichMenuListPage() {
                                                         />
                                                     </Link>
                                                 )}
+                                                <ActionIconButton
+                                                    icon={<Eye className="w-4 h-4" />}
+                                                    label="ดูรายละเอียด"
+                                                    variant="default"
+                                                    onClick={() => setViewMenu(menu)}
+                                                />
                                                 <Link href={`/admin/rich-menus/${menu.id}/edit`}>
                                                     <ActionIconButton
                                                         icon={<SquarePen className="w-4 h-4" />}
@@ -305,7 +313,50 @@ export default function RichMenuListPage() {
                 </div>
             )}
 
-            <ConfirmDialog
+            <Modal
+        isOpen={viewMenu !== null}
+        onClose={() => setViewMenu(null)}
+        title="รายละเอียดริชเมนู"
+        maxWidth="lg"
+      >
+        {viewMenu && (
+          <div className="space-y-4">
+            {viewMenu.image_url && (
+              <img src={viewMenu.image_url} alt={viewMenu.name} className="w-full rounded-lg border border-border-default" />
+            )}
+            <div>
+              <p className="text-xs text-text-tertiary mb-1">ชื่อเมนู</p>
+              <p className="font-semibold text-text-primary">{viewMenu.name}</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <p className="text-xs text-text-tertiary mb-1">ข้อความแถบแชท</p>
+                <p className="text-text-primary italic">&quot;{viewMenu.chat_bar_text}&quot;</p>
+              </div>
+              <div>
+                <p className="text-xs text-text-tertiary mb-1">LINE Rich Menu ID</p>
+                <p className="font-mono text-xs text-text-primary">{viewMenu.line_rich_menu_id || 'LOCAL_ONLY'}</p>
+              </div>
+              <div>
+                <p className="text-xs text-text-tertiary mb-1">ช่วงเวลาแสดงผล</p>
+                <p className="text-text-primary">{[viewMenu.display_start_at, viewMenu.display_end_at].filter(Boolean).join(' – ') || 'ตลอดเวลา'}</p>
+              </div>
+              <div>
+                <p className="text-xs text-text-tertiary mb-1">ผู้ใช้ที่ผูกเมนูนี้</p>
+                <p className="text-text-primary">{viewMenu.user_link_count ?? 0} คน</p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Link href={`/admin/rich-menus/${viewMenu.id}/edit`}>
+                <Button variant="outline" size="sm">แก้ไข</Button>
+              </Link>
+              <Button variant="primary" size="sm" onClick={() => setViewMenu(null)}>ปิด</Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      <ConfirmDialog
                 isOpen={confirmDelete.open}
                 onClose={() => setConfirmDelete({open: false, id: null})}
                 onConfirm={() => { handleDelete(confirmDelete.id!); setConfirmDelete({open: false, id: null}); }}

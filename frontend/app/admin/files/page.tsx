@@ -6,7 +6,7 @@ import {
   Upload, Download, Trash2, Link2, LinkIcon, Search,
   FileText, Image as ImageIcon, Video, Music, File as FileIcon,
   Grid3X3, List, Copy, Check, Eye, ExternalLink,
-  ChevronLeft, ChevronRight, AlertTriangle,
+  ChevronLeft, ChevronRight, AlertTriangle, SquarePen,
 } from 'lucide-react';
 import {
   Button, Card, Badge, Input, Modal,
@@ -131,6 +131,8 @@ export default function FilesPage() {
   const [publicLinkFile, setPublicLinkFile] = useState<MediaFile | null>(null);
   const [previewFile, setPreviewFile] = useState<MediaFile | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ ids: string[]; show: boolean }>({ ids: [], show: false });
+  const [renameFile, setRenameFile] = useState<MediaFile | null>(null);
+  const [renameName, setRenameName] = useState('');
   const [copied, setCopied] = useState(false);
 
   // Track files whose <img> failed to load so we can show the category icon
@@ -255,6 +257,26 @@ export default function FilesPage() {
       toast({ title: result.message, variant: 'error' });
     }
   }, [toast, fetchStats]);
+
+  const saveRename = useCallback(async () => {
+    if (!renameFile) return;
+    const filename = renameName.trim();
+    if (!filename) {
+      toast({ title: 'กรุณาใส่ชื่อไฟล์', variant: 'error' });
+      return;
+    }
+    const result = await apiFetch<MediaFile>(`/admin/media/${renameFile.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ filename }),
+    });
+    if (result.ok) {
+      setFiles(prev => prev.map(f => f.id === result.data.id ? result.data : f));
+      setRenameFile(null);
+      toast({ title: 'เปลี่ยนชื่อไฟล์แล้ว', variant: 'success' });
+    } else {
+      toast({ title: result.message, variant: 'error' });
+    }
+  }, [renameFile, renameName, toast]);
 
   const deleteFiles = useCallback(async (ids: string[]) => {
     const result = ids.length === 1
@@ -588,6 +610,12 @@ export default function FilesPage() {
                               onClick={() => setPreviewFile(file)}
                             />
                             <ActionIconButton
+                              icon={<SquarePen className="w-4 h-4" />}
+                              label="แก้ไขชื่อ"
+                              variant="default"
+                              onClick={() => { setRenameFile(file); setRenameName(file.filename); }}
+                            />
+                            <ActionIconButton
                               icon={<Trash2 className="w-4 h-4" />}
                               label="ลบ"
                               variant="danger"
@@ -677,6 +705,12 @@ export default function FilesPage() {
                             label="สร้างลิงก์"
                             variant="default"
                             onClick={() => file.is_public ? setPublicLinkFile(file) : createPublicLink(file)}
+                          />
+                          <ActionIconButton
+                            icon={<SquarePen className="w-4 h-4" />}
+                            label="แก้ไขชื่อ"
+                            variant="default"
+                            onClick={() => { setRenameFile(file); setRenameName(file.filename); }}
                           />
                           <ActionIconButton
                             icon={<Trash2 className="w-4 h-4" />}
@@ -912,6 +946,33 @@ export default function FilesPage() {
                 <Link2 className="w-4 h-4 mr-1.5" />
                 {previewFile.is_public ? 'ดูลิงก์สาธารณะ' : 'สร้างลิงก์สาธารณะ'}
               </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Rename Modal */}
+      <Modal
+        isOpen={!!renameFile}
+        onClose={() => setRenameFile(null)}
+        title="แก้ไขชื่อไฟล์"
+        maxWidth="md"
+      >
+        {renameFile && (
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="rename-filename" className="block text-sm font-medium text-text-secondary mb-1">ชื่อไฟล์</label>
+              <Input
+                id="rename-filename"
+                value={renameName}
+                onChange={(e) => setRenameName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') saveRename(); }}
+                autoFocus
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setRenameFile(null)}>ยกเลิก</Button>
+              <Button variant="primary" onClick={saveRename}>บันทึก</Button>
             </div>
           </div>
         )}
