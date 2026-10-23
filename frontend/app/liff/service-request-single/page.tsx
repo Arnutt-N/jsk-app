@@ -106,6 +106,11 @@ export default function LiffServiceRequestSingle() {
         selectedDistrictId,
     } = cascade
 
+    // Pristine form: nothing to lose, leave at once without the confirm dialog.
+    const isPristine =
+        Object.values(formData).every((v) => (Array.isArray(v) ? v.length === 0 : !v)) &&
+        !selectedProvinceId
+
     const [taxonomy, setTaxonomy] = useState<TaxonomyTable | null>(null)
     useEffect(() => {
         let cancelled = false
@@ -603,7 +608,7 @@ export default function LiffServiceRequestSingle() {
                             type="button"
                             variant="outline"
                             className="flex-1 py-6 text-lg font-medium border-2"
-                            onClick={requestLeave}
+                            onClick={() => (isPristine ? confirmLeave() : requestLeave())}
                         >
                             ยกเลิก
                         </Button>

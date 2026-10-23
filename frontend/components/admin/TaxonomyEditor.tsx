@@ -271,6 +271,8 @@ export default function TaxonomyEditor() {
     loading,
     loadError,
     refresh,
+    showHidden,
+    setShowHidden,
     createCategory,
     updateCategory,
     deleteCategory,
@@ -304,6 +306,15 @@ export default function TaxonomyEditor() {
         title="หมวดหมู่บริการ"
         subtitle="จัดการหมวดหมู่และหัวข้อย่อยที่ LIFF และงานจองใช้อ้างอิงร่วมกัน — ลำดับกำหนดด้วยตัวเลข ยิ่งน้อยยิ่งขึ้นก่อน"
       />
+      <label className="flex items-center gap-2 text-sm text-text-secondary thai-text">
+        <input
+          type="checkbox"
+          checked={showHidden}
+          onChange={(e) => setShowHidden(e.target.checked)}
+          className="h-4 w-4 accent-brand-500"
+        />
+        แสดงรายการที่ปิดใช้งาน
+      </label>
       {loading ? (
         <div className="flex min-h-64 items-center justify-center">
           <LoadingSpinner />

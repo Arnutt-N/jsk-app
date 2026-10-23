@@ -79,17 +79,22 @@ export default function IntentsPage() {
         setCreateError(null);
     };
 
+    const [showHidden, setShowHidden] = useState(false);
+
     const fetchCategories = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await fetch(`${API_BASE}/admin/intents/categories`);
+            const url = showHidden
+                ? `${API_BASE}/admin/intents/categories?include_inactive=true`
+                : `${API_BASE}/admin/intents/categories`;
+            const res = await fetch(url);
             if (res.ok) setCategories(await res.json());
         } catch (error) {
             logger.error('Error fetching categories:', error);
         } finally {
             setLoading(false);
         }
-    }, [API_BASE]);
+    }, [API_BASE, showHidden]);
 
     useEffect(() => {
         const timer = window.setTimeout(() => {
@@ -193,6 +198,15 @@ export default function IntentsPage() {
     return (
         <div className="space-y-6 animate-in fade-in duration-500 thai-text">
             <PageHeader title="Intent Categories" subtitle="จัดการหมวดหมู่การตอบกลับอัตโนมัติ">
+                <label className="flex items-center gap-2 text-sm text-text-secondary">
+                    <input
+                        type="checkbox"
+                        checked={showHidden}
+                        onChange={(e) => setShowHidden(e.target.checked)}
+                        className="h-4 w-4"
+                    />
+                    แสดงที่ปิดใช้งาน
+                </label>
                 <Button size="sm" onClick={() => setShowAddForm(true)}>
                     + New Category
                 </Button>

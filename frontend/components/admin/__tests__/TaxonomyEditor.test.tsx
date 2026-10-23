@@ -73,7 +73,7 @@ describe('TaxonomyEditor', () => {
     })
   })
 
-  it('shows the restore guidance on duplicate-name 409 with server detail', async () => {
+  it('shows the server duplicate-name detail on 409', async () => {
     vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(CATEGORIES_PAYLOAD))
     renderEditor()
     await waitFor(() => expect(screen.getByDisplayValue('กองทุนยุติธรรม')).toBeInTheDocument())
@@ -82,12 +82,12 @@ describe('TaxonomyEditor', () => {
       target: { value: 'ชื่อซ้ำ' },
     })
     vi.mocked(fetch).mockResolvedValueOnce(
-      jsonResponse({ detail: "ชื่อ 'ชื่อซ้ำ' ถูกใช้แล้ว (อาจเป็นรายการที่ปิดใช้งานอยู่ ให้เปิดใช้งานรายการเดิมแทนการสร้างใหม่)" }, 409)
+      jsonResponse({ detail: "ชื่อ 'ชื่อซ้ำ' ถูกใช้แล้ว" }, 409)
     )
     fireEvent.click(screen.getAllByRole('button', { name: 'บันทึก' })[0] as HTMLElement)
 
     await waitFor(() =>
-      expect(screen.getByText(/เปิดใช้งานรายการเดิมแทนการสร้างใหม่/)).toBeInTheDocument(),
+      expect(screen.getByText(/ชื่อ 'ชื่อซ้ำ' ถูกใช้แล้ว/)).toBeInTheDocument(),
     )
   })
 

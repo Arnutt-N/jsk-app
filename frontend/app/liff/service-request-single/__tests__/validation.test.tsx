@@ -148,8 +148,9 @@ describe('LIFF service-request-single validation (R3-M28-twin)', () => {
     expect(phone.value).toBe('0812345678');
   });
 
-  it('cancel asks before leaving (leave-confirm)', async () => {
-    render(<LiffServiceRequestSingle />);
+  it('cancel asks before leaving when the form is dirty (leave-confirm)', async () => {
+    const { container } = render(<LiffServiceRequestSingle />);
+    fireEvent.change(container.querySelector('input[name="firstname"]')!, { target: { value: 'สมชาย' } });
     fireEvent.click(screen.getByRole('button', { name: 'ยกเลิก' }));
     expect(await screen.findByText('ปิดแบบฟอร์มนี้?')).toBeInTheDocument();
     const dialog = screen.getByRole('dialog');
@@ -158,5 +159,14 @@ describe('LIFF service-request-single validation (R3-M28-twin)', () => {
     await waitFor(() => {
       expect(screen.queryByText('ปิดแบบฟอร์มนี้?')).not.toBeInTheDocument();
     });
+  });
+
+  it('cancel on a pristine form leaves at once without asking', async () => {
+    render(<LiffServiceRequestSingle />);
+    fireEvent.click(screen.getByRole('button', { name: 'ยกเลิก' }));
+    await waitFor(() => {
+      expect(screen.queryByText('ปิดแบบฟอร์มนี้?')).not.toBeInTheDocument();
+    });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });
