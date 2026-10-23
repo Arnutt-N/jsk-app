@@ -35,6 +35,8 @@ export const ACCEPTED_TYPES: Record<string, string[]> = {
   'image/jpeg': ['.jpg', '.jpeg'],
   'image/webp': ['.webp'],
   'image/gif': ['.gif'],
+  'image/avif': ['.avif'],
+  'image/svg+xml': ['.svg'],
 };
 
 export const MAX_SOURCE_BYTES = 25 * 1024 * 1024;
