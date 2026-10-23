@@ -37,9 +37,6 @@ export default function ReplyObjectsPage() {
     const { toast } = useToast();
     const API_BASE = '/api/v1';
 
-    // Parsed payload — single source of truth stays the JSON string in formData.
-    // (moved to ReplyObjectForm; list page keeps no form state)
-
     const fetchObjects = useCallback(async () => {
         try {
             const res = await fetch(`${API_BASE}/admin/reply-objects`);
@@ -108,8 +105,6 @@ export default function ReplyObjectsPage() {
     };
 
     const editInitial: ReplyObjectFormData | null = editingObj ? (() => {
-        // Loaded payloads predate internal editor keys — the shared form
-        // re-tags list items internally, so pass the raw stored payload here.
         const p = editingObj.payload;
         const isPlainObject = p !== null && typeof p === 'object' && !Array.isArray(p);
         return {
@@ -264,7 +259,6 @@ export default function ReplyObjectsPage() {
                 variant="danger"
             />
 
-            {/* Edit Modal — same shared form as the full new page */}
             <Modal
                 isOpen={editingObj !== null}
                 onClose={closeEdit}
@@ -283,7 +277,6 @@ export default function ReplyObjectsPage() {
                 )}
             </Modal>
 
-            {/* View Modal — read-only details */}
             <Modal
                 isOpen={viewObj !== null}
                 onClose={() => setViewObj(null)}

@@ -56,7 +56,7 @@ export default function NewReplyObjectPage() {
                 <ReplyObjectForm
                     initial={EMPTY_REPLY_OBJECT_FORM}
                     lockObjectId={false}
-                    submitLabel="Initialize Template"
+                    submitLabel="สร้างเทมเพลต"
                     onSave={handleSave}
                     onCancel={() => router.push('/admin/reply-objects')}
                 />

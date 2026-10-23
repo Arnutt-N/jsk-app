@@ -102,29 +102,26 @@ export default function ServiceDashboard() {
 
     const fetchDashboardData = useCallback(async () => {
         setLoading(true);
-        try {
-            const data = await getRequestData();
-            setRequestStats(data.requestStats);
-            setMonthlyData(data.monthlyData);
-            setError(data.error);
-        } catch {
-            setRequestStats(null);
-            setMonthlyData([]);
-            setError('Failed to load service data. Please try again.');
-        } finally {
-            setLoading(false);
-        }
-        try {
-            const res = await fetchWithTimeout('/api/v1/health/detailed');
-            if (res.ok) {
-                const h = await res.json();
-                const level = String(h.status ?? '').toLowerCase();
-                setHealth(level === 'healthy' || level === 'ok' ? 'healthy' : level === 'degraded' ? 'degraded' : 'unhealthy');
-            } else {
-                setHealth('unhealthy');
-            }
-        } catch {
+        const [data, healthRes] = await Promise.all([
+            getRequestData().catch(() => ({ requestStats: null, monthlyData: [], error: 'Failed to load service data. Please try again.' })),
+            fetchWithTimeout('/api/v1/health/detailed').catch(() => null),
+        ]);
+        setRequestStats(data.requestStats);
+        setMonthlyData(data.monthlyData);
+        setError(data.error);
+        setLoading(false);
+        if (!healthRes) {
             setHealth('unknown');
+        } else if (healthRes.ok) {
+            const h = await healthRes.json().catch(() => ({}));
+            const level = String(h.status ?? '').toLowerCase();
+            setHealth(level === 'healthy' || level === 'ok' ? 'healthy' : level === 'degraded' ? 'degraded' : 'unhealthy');
+        } else if (healthRes.status === 401 || healthRes.status === 403) {
+            // Signed out (or forbidden) is not an outage — leave the
+            // banner neutral instead of crying red.
+            setHealth('unknown');
+        } else {
+            setHealth('unhealthy');
         }
     }, []);
 

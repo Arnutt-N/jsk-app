@@ -79,7 +79,6 @@ describe('ServiceDashboard fetch failures (R3-H3)', () => {
       );
     }) as unknown as typeof fetch;
     render(<ServiceDashboard />);
-    // 4 original cards + 4 queue cards.
     await waitFor(() => {
       expect(screen.queryAllByTestId('stats-card').length).toBe(8);
     });

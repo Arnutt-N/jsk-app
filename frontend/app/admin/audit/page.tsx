@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Select, type SelectOption } from "@/components/ui/Select";
-import { DateRangePicker } from "@/components/ui/DateRangePicker";
+import { DateRangePicker, standardDatePresets } from "@/components/ui/DateRangePicker";
 import { RefreshCw, ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
 import { StaggerContainer, StaggerItem } from "@/components/ui/PageTransition";
 import PageHeader from "../components/PageHeader";
@@ -71,6 +71,13 @@ export default function AuditLogPage() {
   });
 
   const toYMD = (d: Date) => format(d, "yyyy-MM-dd");
+  const DEFAULT_RANGE_DAYS = 7;
+  const isDefaultRange = (r: DateRange | undefined) => {
+    if (!r?.from || !r.to) return false;
+    const to = new Date();
+    const diffDays = Math.round((to.getTime() - r.from.getTime()) / 86400000);
+    return diffDays === DEFAULT_RANGE_DAYS && toYMD(r.to) === toYMD(to);
+  };
 
   const fetchLogs = useCallback(async () => {
     setLoading(true);
@@ -79,16 +86,19 @@ export default function AuditLogPage() {
         limit: String(limit),
         offset: String(offset),
       });
+      const statsParams = new URLSearchParams();
       if (range?.from) {
         params.append("start_date", toYMD(range.from));
         params.append("end_date", toYMD(range.to ?? range.from));
+        statsParams.append("start_date", toYMD(range.from));
+        statsParams.append("end_date", toYMD(range.to ?? range.from));
       }
       if (filter.action) params.append("action", filter.action);
       if (filter.resource_type) params.append("resource_type", filter.resource_type);
 
       const [logsRes, statsRes] = await Promise.all([
         fetch(`/api/v1/admin/audit/logs?${params}`),
-        fetch(`/api/v1/admin/audit/stats?${params}`)
+        fetch(`/api/v1/admin/audit/stats?${statsParams}`)
       ]);
 
       if (logsRes.ok) {
@@ -120,7 +130,7 @@ export default function AuditLogPage() {
     { value: "", label: "ทุกประเภท" },
     ...Object.keys(stats?.resource_breakdown ?? {}).sort((a, b) => a.localeCompare(b)).map((r) => ({ value: r, label: r })),
   ];
-  const hasActiveFilter = filter.action !== "" || filter.resource_type !== "";
+  const hasActiveFilter = filter.action !== "" || filter.resource_type !== "" || !isDefaultRange(range);
 
   const clearFilters = () => {
     setFilter({ action: "", resource_type: "" });
@@ -136,7 +146,7 @@ export default function AuditLogPage() {
     <div className="space-y-6">
       <PageHeader title="Audit Logs">
         <div className="flex flex-wrap items-center gap-2">
-          <DateRangePicker value={range} onChange={(r) => { setRange(r); setOffset(0); }} />
+          <DateRangePicker value={range} presets={standardDatePresets} onChange={(r) => { setRange(r); setOffset(0); }} />
           {hasActiveFilter && (
             <Button variant="ghost" size="sm" onClick={clearFilters} leftIcon={<RotateCcw className="w-4 h-4" />}>
               ล้างตัวกรอง

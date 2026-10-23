@@ -80,8 +80,13 @@ export async function decodeDimensions(file: File): Promise<{ width: number; hei
     const url = URL.createObjectURL(file);
     const img = new Image();
     img.onload = () => {
-      resolve({ width: img.naturalWidth, height: img.naturalHeight });
       URL.revokeObjectURL(url);
+      // SVG without intrinsic dimensions decodes as 0x0 — unusable as a resize source.
+      if (!img.naturalWidth || !img.naturalHeight) {
+        reject(new Error('ไฟล์ SVG นี้ไม่มีขนาดในตัว กรุณาใช้ไฟล์ที่มี width/height'));
+        return;
+      }
+      resolve({ width: img.naturalWidth, height: img.naturalHeight });
     };
     img.onerror = () => {
       URL.revokeObjectURL(url);

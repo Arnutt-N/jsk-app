@@ -44,7 +44,7 @@ describe('ReplyObjectsPage — integration: save → reload round-trip', () => {
     // default type = flex -> raw JSON textarea
     fireEvent.change(screen.getByPlaceholderText('{ ... }'), { target: { value: '{"type":"bubble"}' } });
 
-    fireEvent.click(screen.getByText('Initialize Template'));
+    fireEvent.click(screen.getByText('สร้างเทมเพลต'));
 
     await waitFor(() => {
       const postCall = fetchMock.mock.calls.find(([, opts]) => (opts as RequestInit | undefined)?.method === 'POST');
@@ -55,7 +55,6 @@ describe('ReplyObjectsPage — integration: save → reload round-trip', () => {
       expect(body.object_id).toBe('flex_welcome');
     });
 
-    // Navigates back to the list after save.
     await waitFor(() => {
       expect(pushMock).toHaveBeenCalledWith('/admin/reply-objects');
     });
@@ -115,7 +114,7 @@ describe('ReplyObjectsPage — integration: save → reload round-trip', () => {
     fireEvent.change(screen.getByLabelText('Universal ID *'), { target: { value: 'bad' } });
     fireEvent.change(screen.getByLabelText('Internal Name *'), { target: { value: 'Bad' } });
     fireEvent.change(screen.getByPlaceholderText('{ ... }'), { target: { value: '{}' } });
-    fireEvent.click(screen.getByText('Initialize Template'));
+    fireEvent.click(screen.getByText('สร้างเทมเพลต'));
 
     await waitFor(() => {
       expect(toastMock).toHaveBeenCalled();
@@ -190,7 +189,7 @@ describe('ReplyObjectsPage — integration: save → reload round-trip', () => {
         }),
       },
     });
-    fireEvent.click(screen.getByText('Initialize Template'));
+    fireEvent.click(screen.getByText('สร้างเทมเพลต'));
 
     await waitFor(() => {
       expect(toastMock).toHaveBeenCalled();

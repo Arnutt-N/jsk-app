@@ -14,6 +14,7 @@ import {
   Checkbox,
 } from '@/components/ui';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { RenameFileModal } from '@/components/admin/RenameFileModal';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { useToast } from '@/components/ui/Toast';
 import { ActionIconButton } from '@/components/ui/ActionIconButton';
@@ -131,8 +132,8 @@ export default function FilesPage() {
   const [publicLinkFile, setPublicLinkFile] = useState<MediaFile | null>(null);
   const [previewFile, setPreviewFile] = useState<MediaFile | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ ids: string[]; show: boolean }>({ ids: [], show: false });
-  const [renameFile, setRenameFile] = useState<MediaFile | null>(null);
-  const [renameName, setRenameName] = useState('');
+  const [renameTarget, setRenameTarget] = useState<MediaFile | null>(null);
+  const [renaming, setRenaming] = useState(false);
   const [copied, setCopied] = useState(false);
 
   // Track files whose <img> failed to load so we can show the category icon
@@ -258,25 +259,25 @@ export default function FilesPage() {
     }
   }, [toast, fetchStats]);
 
-  const saveRename = useCallback(async () => {
-    if (!renameFile) return;
-    const filename = renameName.trim();
-    if (!filename) {
-      toast({ title: 'กรุณาใส่ชื่อไฟล์', variant: 'error' });
-      return;
+  const saveRename = useCallback(async (filename: string) => {
+    if (!renameTarget || renaming) return;
+    setRenaming(true);
+    try {
+      const result = await apiFetch<MediaFile>(`/admin/media/${renameTarget.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ filename }),
+      });
+      if (result.ok) {
+        setFiles(prev => prev.map(f => f.id === result.data.id ? result.data : f));
+        setRenameTarget(null);
+        toast({ title: 'เปลี่ยนชื่อไฟล์แล้ว', variant: 'success' });
+      } else {
+        toast({ title: result.message, variant: 'error' });
+      }
+    } finally {
+      setRenaming(false);
     }
-    const result = await apiFetch<MediaFile>(`/admin/media/${renameFile.id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ filename }),
-    });
-    if (result.ok) {
-      setFiles(prev => prev.map(f => f.id === result.data.id ? result.data : f));
-      setRenameFile(null);
-      toast({ title: 'เปลี่ยนชื่อไฟล์แล้ว', variant: 'success' });
-    } else {
-      toast({ title: result.message, variant: 'error' });
-    }
-  }, [renameFile, renameName, toast]);
+  }, [renameTarget, renaming, toast]);
 
   const deleteFiles = useCallback(async (ids: string[]) => {
     const result = ids.length === 1
@@ -613,7 +614,7 @@ export default function FilesPage() {
                               icon={<SquarePen className="w-4 h-4" />}
                               label="แก้ไขชื่อ"
                               variant="default"
-                              onClick={() => { setRenameFile(file); setRenameName(file.filename); }}
+                              onClick={() => setRenameTarget(file)}
                             />
                             <ActionIconButton
                               icon={<Trash2 className="w-4 h-4" />}
@@ -710,7 +711,7 @@ export default function FilesPage() {
                             icon={<SquarePen className="w-4 h-4" />}
                             label="แก้ไขชื่อ"
                             variant="default"
-                            onClick={() => { setRenameFile(file); setRenameName(file.filename); }}
+                            onClick={() => setRenameTarget(file)}
                           />
                           <ActionIconButton
                             icon={<Trash2 className="w-4 h-4" />}
@@ -951,32 +952,13 @@ export default function FilesPage() {
         )}
       </Modal>
 
-      {/* Rename Modal */}
-      <Modal
-        isOpen={!!renameFile}
-        onClose={() => setRenameFile(null)}
-        title="แก้ไขชื่อไฟล์"
-        maxWidth="md"
-      >
-        {renameFile && (
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="rename-filename" className="block text-sm font-medium text-text-secondary mb-1">ชื่อไฟล์</label>
-              <Input
-                id="rename-filename"
-                value={renameName}
-                onChange={(e) => setRenameName(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') saveRename(); }}
-                autoFocus
-              />
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setRenameFile(null)}>ยกเลิก</Button>
-              <Button variant="primary" onClick={saveRename}>บันทึก</Button>
-            </div>
-          </div>
-        )}
-      </Modal>
+      <RenameFileModal
+        key={renameTarget?.id ?? 'none'}
+        filename={renameTarget?.filename ?? null}
+        saving={renaming}
+        onClose={() => setRenameTarget(null)}
+        onSave={saveRename}
+      />
 
       {/* ================================================================= */}
       {/* Delete Confirmation                                                */}

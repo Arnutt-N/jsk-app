@@ -60,7 +60,7 @@ export function useImageResize({ toast }: ToastFn) {
   const selectFile = useCallback(
     async (file: File) => {
       if (!Object.keys(ACCEPTED_TYPES).includes(file.type)) {
-        toast({ title: 'ไฟล์ไม่รองรับ', description: 'รองรับเฉพาะ PNG, JPEG, WebP และ GIF เท่านั้น (ไม่รองรับ SVG)', variant: 'error' });
+        toast({ title: 'ไฟล์ไม่รองรับ', description: 'รองรับเฉพาะ PNG, JPEG, WebP, GIF, AVIF และ SVG เท่านั้น', variant: 'error' });
         return;
       }
       try {

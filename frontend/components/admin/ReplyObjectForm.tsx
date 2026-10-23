@@ -78,7 +78,22 @@ interface ReplyObjectFormProps {
  */
 export function ReplyObjectForm({ initial, lockObjectId, submitLabel, onSave, onCancel }: ReplyObjectFormProps) {
     const { toast } = useToast();
-    const [formData, setFormData] = useState<ReplyObjectFormData>(initial);
+    // Tag editor list items once at mount so structured editors get stable
+    // React keys immediately (same tagging raw mode re-applies on toggle).
+    const [formData, setFormData] = useState<ReplyObjectFormData>(() => ({
+        ...initial,
+        payload: (() => {
+            try {
+                const parsed = JSON.parse(initial.payload);
+                if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                    return JSON.stringify(ensureEditorKeys(parsed as Record<string, unknown>), null, 2);
+                }
+            } catch {
+                // leave invalid JSON untouched — submit validation reports it
+            }
+            return initial.payload;
+        })(),
+    }));
     const [rawMode, setRawMode] = useState(false);
     const [saving, setSaving] = useState(false);
 

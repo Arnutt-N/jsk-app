@@ -16,7 +16,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/Toast';
 import type { SelectOption } from '@/components/ui/Select';
 import { AdminSearchFilterBar } from '@/components/admin/AdminSearchFilterBar';
-import { DateRangePicker } from '@/components/ui/DateRangePicker';
+import { DateRangePicker, standardDatePresets } from '@/components/ui/DateRangePicker';
 import { AdminTableHead, type AdminTableHeadColumn } from '@/components/admin/AdminTableHead';
 import {
     RichMenuAssignModal,
@@ -334,7 +334,7 @@ export default function FriendsPage() {
                     showCategory={false}
                 />
                 <div className="flex flex-wrap items-center gap-2">
-                    <DateRangePicker value={range} onChange={(r) => { setRange(r); clearSelection(); }} />
+                    <DateRangePicker value={range} presets={standardDatePresets} onChange={(r) => { setRange(r); clearSelection(); }} />
                     {(statusFilter !== null || filter !== '' || range !== undefined) && (
                         <Button
                             variant="ghost"
