@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 301 active handoffs, 12 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 302 active handoffs, 12 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-10-24 00:06 — pi — completed
+
+pstack pipeline complete: #293 hardening merged (CD green), #294 harness merged; interrogate+thermos findings actioned; user decisions Q1-keep Q2-cascade Q3-hide-children recorded
+
+- Checkpoint: `.agents/state/checkpoints/handover-pi-20261024-0006.json`
+- Summary: `project-log-md/pi/session-summary-20261024-0006.md`
+
+---
 
 ### 2026-10-23 19:25 — pi — completed
 

@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-10-23 19:25 by Pi (PR #291 merged squash c319a45: LIFF leave-confirm unified + admin soft-delete; CI all gree)
+> **Last Updated:** 2026-10-24 00:06 by Pi (pstack pipeline complete: #293 hardening merged CD green, #294 harness merged; interrogate)
 
 ## Thai Summary
 **สถานะล่าสุด (2026-09-30)** — รวม PR #239 (แก้บั๊กโอนแชทไม่มีบันทึก M-8) เข้าสายหลักแล้ว (`fd82c7a`) + ตรวจหลังส่งขึ้นร้านจริงเสร็จ: หลังบ้านแข็งแรงดี (database+redis ปกติ), หน้าร้านเปิดติด (HTTP 200), ปุ่มโอนแชทล็อกถูกต้อง (401), บันทึกส่งของ CD `36596610691` เขียวครบ 6 งาน — โค้ดตรงกับเซิร์ฟเวอร์ เหลือ Round-3b (22 ข้อ) + ซ่อมไฟล์ทดสอบ upload-security ที่พังมาก่อน
@@ -123,6 +123,7 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-10-24 00:06] Pi: pstack pipeline complete: #293 hardening merged (CD green), #294 harness merged; interrogate+thermos findings actioned; user decisions Q1-keep Q2-cascade Q3-hide-children recorded (Pi)
 - [2026-10-23 19:25] Pi: PR #291 merged (squash c319a45): LIFF leave-confirm unified + admin soft-delete; CI all green (Pi)
 - [2026-10-23 02:09] Pi: Merged datepicker redesign PRs #285/#286/#287 (Portal popup, slim input, touch hardening, touch e2e) (Pi)
 - [2026-10-22 08:18] Pi: Merged PR stack to main: #282 user-create roles, #283 login by username-or-email, #284 access-request form + approval queue + password reset (review fixes included) (Pi)

@@ -1,10 +1,17 @@
 {
-  "last_updated": "2026-10-23T19:25:00+07:00",
+  "last_updated": "2026-10-24T00:06:00+07:00",
   "platform": "pi",
-  "current_task": "PR #291 merged (squash c319a45): LIFF leave-confirm unified + admin soft-delete; CI all green",
+  "current_task": "pstack pipeline complete: #293 hardening merged (CD green), #294 harness merged; interrogate+thermos findings actioned; user decisions Q1-keep Q2-cascade Q3-hide-children recorded",
   "plan_status": "completed",
   "next_steps": [],
   "handoff_history": [
+    {
+      "timestamp": "2026-10-24T00:06:00+07:00",
+      "platform": "pi",
+      "branch": "main",
+      "head": "14ead1f",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-10-23T19:25:00+07:00",
       "platform": "pi",
@@ -136,13 +143,6 @@
       "platform": "pi",
       "branch": "main",
       "head": "7827c4a",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-10-17T07:20:00+07:00",
-      "platform": "pi",
-      "branch": "main",
-      "head": "bbfdece",
       "status": "completed"
     }
   ],
