@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 300 active handoffs, 12 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 301 active handoffs, 12 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-10-23 19:25 — pi — completed
+
+PR #291 merged (squash c319a45): LIFF leave-confirm unified + admin soft-delete; CI all green
+
+- Checkpoint: `.agents/state/checkpoints/handover-pi-20261023-1925.json`
+- Summary: `project-log-md/pi/session-summary-20261023-1925.md`
+
+---
 
 ### 2026-10-23 02:09 — pi — completed
 

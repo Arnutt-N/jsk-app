@@ -1,13 +1,17 @@
 {
-  "last_updated": "2026-10-23T02:09:00+07:00",
+  "last_updated": "2026-10-23T19:25:00+07:00",
   "platform": "pi",
-  "current_task": "Merged datepicker redesign PRs #285/#286/#287 (Portal popup, slim input, touch hardening, touch e2e)",
+  "current_task": "PR #291 merged (squash c319a45): LIFF leave-confirm unified + admin soft-delete; CI all green",
   "plan_status": "completed",
-  "next_steps": [
-    "Verify on real phone via production URL",
-    "PR #257 enterprise-audit docs untouched, awaiting decision"
-  ],
+  "next_steps": [],
   "handoff_history": [
+    {
+      "timestamp": "2026-10-23T19:25:00+07:00",
+      "platform": "pi",
+      "branch": "main",
+      "head": "c319a45",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-10-23T02:09:00+07:00",
       "platform": "pi",
@@ -139,13 +143,6 @@
       "platform": "pi",
       "branch": "main",
       "head": "bbfdece",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-10-16T10:33:00+07:00",
-      "platform": "pi",
-      "branch": "fix/latest-pr-258-followup-clean",
-      "head": "ef7a24e",
       "status": "completed"
     }
   ],
