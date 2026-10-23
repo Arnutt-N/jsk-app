@@ -1,25 +1,32 @@
 import enum
 import uuid
+from datetime import UTC, date, datetime, time, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
-from typing import List, Optional
-from datetime import datetime, date, time, timezone, timedelta
-from app.services.business_hours_service import BANGKOK_TZ
-
-from app.db.session import get_db
 from app.api.deps import get_current_admin, get_current_manager
 from app.core.audit import create_audit_log
+from app.core.permissions import (
+    can_assign,
+    can_edit_request_details,
+    can_revert_approval,
+    can_self_assign,
+)
 from app.core.query_utils import escape_ilike
-from app.core.permissions import can_assign, can_self_assign, can_revert_approval, can_edit_request_details
 from app.core.request_workflow import describe_invalid_transition, requires_override
-from app.models.service_request import ServiceRequest, RequestStatus, RequestPriority
+from app.db.session import get_db
 from app.models.media_file import MediaFile
-from app.schemas.service_request_liff import ServiceRequestResponse, RequestCommentCreate, RequestCommentResponse
-from pydantic import BaseModel, Field
-from app.models.user import User
 from app.models.request_comment import RequestComment
+from app.models.service_request import RequestPriority, RequestStatus, ServiceRequest
+from app.models.user import User
+from app.schemas.service_request_liff import (
+    RequestCommentCreate,
+    RequestCommentResponse,
+    ServiceRequestResponse,
+)
+from app.services.business_hours_service import BANGKOK_TZ
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, Field
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
 
@@ -33,10 +40,11 @@ class RequestStats(BaseModel):
     awaiting_approval: int  # AWAITING_APPROVAL -- "รออนุมัติ"
     completed: int          # COMPLETED -- "เสร็จสิ้น"
     rejected: int           # REJECTED -- "ปฏิเสธ"
+    today: int              # created today (any status) -- "เข้ามาวันนี้"
 
 class StatusUpdate(BaseModel):
     status: RequestStatus
-    assigned_agent_id: Optional[int] = None
+    assigned_agent_id: int | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -53,32 +61,32 @@ class RequestSource(str, enum.Enum):
 class AdminRequestCreate(BaseModel):
     """Schema สำหรับสร้างคำร้องโดยแอดมิน"""
     # ข้อมูลผู้ร้อง
-    prefix: Optional[str] = Field(None, max_length=20)
-    firstname: Optional[str] = Field(None, max_length=100)
-    lastname: Optional[str] = Field(None, max_length=100)
-    phone_number: Optional[str] = Field(None, max_length=20)
-    email: Optional[str] = Field(None, max_length=254)
+    prefix: str | None = Field(None, max_length=20)
+    firstname: str | None = Field(None, max_length=100)
+    lastname: str | None = Field(None, max_length=100)
+    phone_number: str | None = Field(None, max_length=20)
+    email: str | None = Field(None, max_length=254)
 
     # ที่อยู่ / หน่วยงาน
-    agency: Optional[str] = Field(None, max_length=200)
-    province: Optional[str] = Field(None, max_length=100)
-    district: Optional[str] = Field(None, max_length=100)
-    sub_district: Optional[str] = Field(None, max_length=100)
+    agency: str | None = Field(None, max_length=200)
+    province: str | None = Field(None, max_length=100)
+    district: str | None = Field(None, max_length=100)
+    sub_district: str | None = Field(None, max_length=100)
 
     # หัวข้อ
-    topic_category: Optional[str] = Field(None, max_length=100)
-    topic_subcategory: Optional[str] = Field(None, max_length=100)
-    description: Optional[str] = Field(None, max_length=5000)
+    topic_category: str | None = Field(None, max_length=100)
+    topic_subcategory: str | None = Field(None, max_length=100)
+    description: str | None = Field(None, max_length=5000)
 
     # ไฟล์แนบ (UUID strings ของ MediaFile)
-    attachment_ids: Optional[list[str]] = None
+    attachment_ids: list[str] | None = None
 
     # แหล่งที่มาและลำดับความสำคัญ
     source: RequestSource = RequestSource.ADMIN
     priority: RequestPriority = RequestPriority.MEDIUM
 
     # มอบหมายให้เจ้าหน้าที่ (ถ้ามี)
-    assigned_agent_id: Optional[int] = None
+    assigned_agent_id: int | None = None
 
 
 @router.post("", response_model=ServiceRequestResponse)
@@ -162,6 +170,8 @@ async def get_request_stats(db: AsyncSession = Depends(get_db), current_admin: U
         (ServiceRequest.status == RequestStatus.PENDING) & (ServiceRequest.assigned_agent_id.isnot(None))
     )
 
+    today_start = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
+
     query = select(
         func.count(ServiceRequest.id).label("total"),
         func.count(ServiceRequest.id).filter(pending_no_assignee).label("pending"),
@@ -171,6 +181,7 @@ async def get_request_stats(db: AsyncSession = Depends(get_db), current_admin: U
         func.count(ServiceRequest.id).filter(ServiceRequest.status == RequestStatus.AWAITING_APPROVAL).label("awaiting_approval"),
         func.count(ServiceRequest.id).filter(ServiceRequest.status == RequestStatus.COMPLETED).label("completed"),
         func.count(ServiceRequest.id).filter(ServiceRequest.status == RequestStatus.REJECTED).label("rejected"),
+        func.count(ServiceRequest.id).filter(ServiceRequest.created_at >= today_start).label("today"),
     )
     result = await db.execute(query)
     row = result.one()
@@ -180,7 +191,7 @@ class MonthlyStats(BaseModel):
     month: str
     count: int
 
-@router.get("/stats/monthly", response_model=List[MonthlyStats])
+@router.get("/stats/monthly", response_model=list[MonthlyStats])
 async def get_monthly_stats(db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_manager)):
     """Get request counts grouped by month (last 12 months)."""
     # Using text() for the order by to reference the alias
@@ -208,7 +219,7 @@ class WorkloadStats(BaseModel):
     in_progress_count: int         # IN_PROGRESS ("กำลังดำเนินการ")
     awaiting_approval_count: int   # AWAITING_APPROVAL ("รออนุมัติ")
 
-@router.get("/stats/workload", response_model=List[WorkloadStats])
+@router.get("/stats/workload", response_model=list[WorkloadStats])
 async def get_workload_stats(db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_manager)):
     """Get workload distribution across agents.
 
@@ -261,13 +272,13 @@ async def get_performance_stats(db: AsyncSession = Depends(get_db), current_admi
     return PerformanceStats(avg_cycle_time_days=round(avg_ct, 2), on_time_percentage=round(ot_percent, 1))
 
 
-@router.get("", response_model=List[ServiceRequestResponse])
+@router.get("", response_model=list[ServiceRequestResponse])
 async def list_requests(
-    status: Optional[RequestStatus] = None,
-    category: Optional[str] = None,
-    search: Optional[str] = Query(None, description="Search by name, phone, or description"),
-    start_date: Optional[date] = Query(None, description="Filter requests created on or after this date (YYYY-MM-DD)"),
-    end_date: Optional[date] = Query(None, description="Filter requests created on or before this date (YYYY-MM-DD)"),
+    status: RequestStatus | None = None,
+    category: str | None = None,
+    search: str | None = Query(None, description="Search by name, phone, or description"),
+    start_date: date | None = Query(None, description="Filter requests created on or after this date (YYYY-MM-DD)"),
+    end_date: date | None = Query(None, description="Filter requests created on or before this date (YYYY-MM-DD)"),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=200),
     db: AsyncSession = Depends(get_db),
@@ -293,12 +304,12 @@ async def list_requests(
     
     if start_date:
         start_naive = datetime.combine(start_date, time.min)
-        start_dt = BANGKOK_TZ.localize(start_naive).astimezone(timezone.utc)
+        start_dt = BANGKOK_TZ.localize(start_naive).astimezone(UTC)
         query = query.where(ServiceRequest.created_at >= start_dt)
     if end_date:
         next_day = end_date + timedelta(days=1)
         next_naive = datetime.combine(next_day, time.min)
-        end_dt = BANGKOK_TZ.localize(next_naive).astimezone(timezone.utc)
+        end_dt = BANGKOK_TZ.localize(next_naive).astimezone(UTC)
         query = query.where(ServiceRequest.created_at < end_dt)
     
     if search:
@@ -334,34 +345,34 @@ async def get_request_detail(request_id: int, db: AsyncSession = Depends(get_db)
 
 class RequestUpdate(BaseModel):
     # Existing fields
-    status: Optional[RequestStatus] = None
-    priority: Optional[RequestPriority] = None
-    due_date: Optional[datetime] = None
-    assigned_agent_id: Optional[int] = None
-    assigned_by_id: Optional[int] = None
+    status: RequestStatus | None = None
+    priority: RequestPriority | None = None
+    due_date: datetime | None = None
+    assigned_agent_id: int | None = None
+    assigned_by_id: int | None = None
     unassign: bool = False
-    notes: Optional[str] = None
+    notes: str | None = None
 
     # Staff linking: attach a citizen's LINE-bound user to this request (C1).
-    user_id: Optional[int] = None
+    user_id: int | None = None
     # Staff unlinking: detach the linked citizen user (mirrors unassign).
     unlink_user: bool = False
 
     # NEW: Fields for details tab
-    topic_category: Optional[str] = None
-    topic_subcategory: Optional[str] = None
-    description: Optional[str] = None
+    topic_category: str | None = None
+    topic_subcategory: str | None = None
+    description: str | None = None
 
     # NEW: Fields for contact tab
-    prefix: Optional[str] = None
-    firstname: Optional[str] = None
-    lastname: Optional[str] = None
-    phone_number: Optional[str] = None
-    email: Optional[str] = None
-    sub_district: Optional[str] = None
-    district: Optional[str] = None
-    province: Optional[str] = None
-    agency: Optional[str] = None
+    prefix: str | None = None
+    firstname: str | None = None
+    lastname: str | None = None
+    phone_number: str | None = None
+    email: str | None = None
+    sub_district: str | None = None
+    district: str | None = None
+    province: str | None = None
+    agency: str | None = None
 
 
 # Fields gated by the edit_request_details permission (details + contact tabs).
@@ -731,7 +742,6 @@ async def delete_request(
     )
     await db.delete(request)
     await db.commit()
-    return None
 
 @router.post("/{request_id}/comments", response_model=RequestCommentResponse)
 async def create_comment(
@@ -765,7 +775,7 @@ async def create_comment(
         display_name=current_admin.display_name or current_admin.username
     )
 
-@router.get("/{request_id}/comments", response_model=List[RequestCommentResponse])
+@router.get("/{request_id}/comments", response_model=list[RequestCommentResponse])
 async def list_comments(request_id: int, db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_manager)):
     """List all internal comments for a specific request."""
     query = (
