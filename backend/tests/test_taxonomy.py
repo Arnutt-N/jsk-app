@@ -265,7 +265,7 @@ class TestTopicWriters:
     @pytest.mark.asyncio
     async def test_create_duplicate_in_category_raises(self):
         db = _mock_db()
-        db.get = AsyncMock(return_value=SimpleNamespace(id=3))
+        db.get = AsyncMock(return_value=SimpleNamespace(id=3, is_active=True))
         db.commit = AsyncMock(side_effect=IntegrityError("dup", None, None))
         db.rollback = AsyncMock()
         with pytest.raises(ValueError, match="already exists"):
@@ -275,7 +275,7 @@ class TestTopicWriters:
     @pytest.mark.asyncio
     async def test_create_same_name_across_categories_allowed(self):
         db = _mock_db(_result([]))
-        db.get = AsyncMock(return_value=SimpleNamespace(id=3))
+        db.get = AsyncMock(return_value=SimpleNamespace(id=3, is_active=True))
         topic = await taxonomy_service.create_topic(db, 3, "อื่นๆ")
         assert topic.name == "อื่นๆ"
         assert topic.category_id == 3
@@ -284,7 +284,7 @@ class TestTopicWriters:
     async def test_update_move_to_missing_category_raises(self):
         db = _mock_db()
         db.get = AsyncMock(
-            side_effect=lambda _model, _id: SimpleNamespace(id=5, category_id=1)
+            side_effect=lambda _model, _id: SimpleNamespace(id=5, category_id=1, is_active=True)
             if _id == 5
             else None
         )

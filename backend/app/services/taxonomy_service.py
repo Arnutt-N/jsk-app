@@ -1,7 +1,7 @@
 import logging
 import time
 
-from sqlalchemy import func, select, update
+from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -168,6 +168,10 @@ class TaxonomyService:
         category = await db.get(TaxonomyCategory, category_id)
         if category is None:
             raise LookupError("Category not found")
+        if not category.is_active:
+            raise ValueError(
+                f"หมวด '{category.name}' ปิดใช้งานอยู่ ให้เปิดใช้งานก่อนเพิ่มหัวข้อ"
+            )
 
         topic = TaxonomyTopic(
             category_id=category_id,
@@ -202,6 +206,10 @@ class TaxonomyService:
             category = await db.get(TaxonomyCategory, category_id)
             if category is None:
                 raise LookupError("Category not found")
+            if not category.is_active:
+                raise ValueError(
+                    f"หมวด '{category.name}' ปิดใช้งานอยู่ ให้เปิดใช้งานก่อนย้ายหัวข้อ"
+                )
             topic.category_id = category_id
 
         attempted_name: str | None = None
