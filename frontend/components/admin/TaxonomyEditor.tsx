@@ -90,9 +90,9 @@ function TopicRow({
         <Button
           size="sm"
           variant="ghost"
-          onClick={() => onAskDelete({ kind: 'topic', id: topic.id, name: topic.name })}
+          onClick={() => onAskDelete({ kind: 'topic', id: topic.id, name: topic.name }) }
         >
-          ลบ
+          ปิดใช้งาน
         </Button>
       </div>
       {error && <p className="text-xs text-danger">{error}</p>}
@@ -207,7 +207,7 @@ function CategoryCard({
           variant="ghost"
           onClick={() => onAskDelete({ kind: 'category', id: category.id, name: category.name })}
         >
-          ลบ
+          ปิดใช้งาน
         </Button>
       </div>
       {error && <p className="mt-2 text-xs text-danger">{error}</p>}
@@ -291,11 +291,11 @@ export default function TaxonomyEditor() {
         : await deleteTopic(pendingDelete.id)
     setDeleting(false)
     if (failure) {
-      toast({ title: 'ลบไม่สำเร็จ', description: failure, variant: 'error' })
+      toast({ title: 'ปิดใช้งานไม่สำเร็จ', description: failure, variant: 'error' })
       return
     }
     setPendingDelete(null)
-    toast({ title: 'ลบแล้ว', variant: 'success' })
+    toast({ title: 'ปิดใช้งานแล้ว (เปิดสวิตช์เพื่อกู้คืน)', variant: 'success' })
   }
 
   return (
@@ -339,21 +339,20 @@ export default function TaxonomyEditor() {
         isOpen={pendingDelete !== null}
         onClose={() => setPendingDelete(null)}
         onConfirm={() => void handleConfirmDelete()}
-        title={pendingDelete?.kind === 'category' ? 'ลบหมวดหมู่นี้?' : 'ลบหัวข้อนี้?'}
+        title={pendingDelete?.kind === 'category' ? 'ปิดใช้งานหมวดหมู่นี้?' : 'ปิดใช้งานหัวข้อนี้?'}
         description={
           pendingDelete?.kind === 'category' ? (
             <>
-              หมวดหมู่ <b>{pendingDelete?.name}</b> ที่มีหัวข้อย่อยอยู่ไม่สามารถลบได้
-              หากต้องการซ่อนจากผู้ใช้ ให้ปิด “แสดงใน LIFF” แทนการลบ
+              หมวดหมู่ <b>{pendingDelete?.name}</b> ที่มีหัวข้อย่อยอยู่ไม่สามารถปิดใช้งานได้
+              หากต้องการซ่อนจากผู้ใช้ ให้ปิด “แสดงใน LIFF” แทน
             </>
           ) : (
             <>
-              หัวข้อ <b>{pendingDelete?.name}</b> จะถูกลบถาวร
-              หากต้องการซ่อนจากผู้ใช้ชั่วคราว ให้ปิด “แสดงใน LIFF” แทนการลบ
+              หัวข้อ <b>{pendingDelete?.name}</b> จะถูกซ่อนไว้ กู้คืนได้ด้วยการเปิดสวิตช์ “แสดงใน LIFF”
             </>
           )
         }
-        confirmText="ลบ"
+        confirmText="ปิดใช้งาน"
         variant="danger"
         isLoading={deleting}
       />
