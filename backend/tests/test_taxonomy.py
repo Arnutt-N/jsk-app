@@ -232,17 +232,20 @@ class TestCategoryWriters:
         assert await taxonomy_service.delete_category(db, 999) is False
 
     @pytest.mark.asyncio
-    async def test_delete_non_empty_category_raises_and_keeps_rows(self):
+    async def test_delete_category_cascade_hides_topics(self):
         db = _mock_db()
-        db.get = AsyncMock(return_value=SimpleNamespace(id=1, name="ก"))
-        db.scalar = AsyncMock(return_value=2)
-        with pytest.raises(ValueError, match="deactivate"):
-            await taxonomy_service.delete_category(db, 1)
+        db.execute = AsyncMock()
+        category = SimpleNamespace(id=1, name="ก", is_active=True)
+        db.get = AsyncMock(return_value=category)
+        assert await taxonomy_service.delete_category(db, 1) is True
+        assert db.execute.called
         db.delete.assert_not_called()
+        assert category.is_active is False
 
     @pytest.mark.asyncio
     async def test_delete_empty_category_soft_hides(self):
         db = _mock_db()
+        db.execute = AsyncMock()
         category = SimpleNamespace(id=1, name="ก", is_active=True)
         db.get = AsyncMock(return_value=category)
         db.scalar = AsyncMock(return_value=0)
@@ -448,15 +451,16 @@ class TestAdminTaxonomyEndpoints:
         assert response.status_code == 404
 
     @pytest.mark.asyncio
-    async def test_delete_non_empty_category_maps_to_409(self, api_client, monkeypatch):
+    async def test_delete_category_cascade_maps_to_hidden(self, api_client, monkeypatch):
         app.dependency_overrides[deps.get_current_user] = _override_user(UserRole.ADMIN)
 
-        async def _guarded(*_a, **_k):
-            raise ValueError("Category still has topics; deactivate it instead")
+        async def _hidden(*_a, **_k):
+            return True
 
-        _mock_service(monkeypatch, delete_category=_guarded)
+        _mock_service(monkeypatch, delete_category=_hidden)
         response = api_client.delete("/api/v1/admin/taxonomy/categories/1")
-        assert response.status_code == 409
+        assert response.status_code == 200
+        assert response.json() == {"status": "hidden", "id": 1}
 
     @pytest.mark.asyncio
     async def test_topic_create_missing_category_maps_to_404(

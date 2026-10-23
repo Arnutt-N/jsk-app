@@ -15,7 +15,7 @@ from types import SimpleNamespace
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
@@ -267,8 +267,8 @@ async def test_delete_empty_category_soft_hides():
 
 
 @pytest.mark.asyncio
-async def test_delete_category_with_active_topics_still_409():
-    marker = f"soft409{uuid.uuid4().hex[:8]}"
+async def test_delete_category_cascade_hides_topics():
+    marker = f"softcasc{uuid.uuid4().hex[:8]}"
     engine = _fresh_engine()
     Session = async_sessionmaker(engine, expire_on_commit=False)
 
@@ -282,10 +282,11 @@ async def test_delete_category_with_active_topics_still_409():
                 )
             )
         ).scalar_one()
-        session.add(
-            TaxonomyTopic(
-                category_id=cat_id, name=f"top-{marker}", sort_order=0, is_active=True
-            )
+        session.add_all(
+            [
+                TaxonomyTopic(category_id=cat_id, name=f"top-a-{marker}", sort_order=0, is_active=True),
+                TaxonomyTopic(category_id=cat_id, name=f"top-b-{marker}", sort_order=1, is_active=True),
+            ]
         )
         await session.commit()
 
@@ -307,11 +308,23 @@ async def test_delete_category_with_active_topics_still_409():
         app.dependency_overrides.clear()
 
     try:
-        assert response.status_code == 409, response.text
+        assert response.status_code == 200, response.text
+        assert response.json()["status"] == "hidden"
         async with Session() as session:
-            row = await session.get(TaxonomyCategory, cat_id)
-            assert row is not None
-            assert row.is_active is True
+            cat = await session.get(TaxonomyCategory, cat_id)
+            assert cat is not None
+            assert cat.is_active is False
+            visible_topics = (
+                await session.execute(
+                    select(func.count())
+                    .select_from(TaxonomyTopic)
+                    .where(
+                        TaxonomyTopic.category_id == cat_id,
+                        TaxonomyTopic.is_active.is_(True),
+                    )
+                )
+            ).scalar()
+            assert visible_topics == 0
     finally:
         async with Session() as session:
             await session.execute(
