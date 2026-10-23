@@ -1,43 +1,54 @@
-from fastapi import APIRouter, Depends, Query
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Any, Optional
+import math
+from datetime import date, datetime, timedelta
+from typing import Any
+
 from app.api import deps
 from app.api.deps import get_current_admin
 from app.core.pii_masking import mask_line_id
 from app.models.user import User
-from app.schemas.friend import FriendListResponse, FriendResponse
-from app.services.friend_service import friend_service
-from app.services.rich_menu_service import RichMenuService
+from app.schemas.friend import FriendResponse
 from app.schemas.friend_event import (
     FriendEventListResponse,
     FriendEventListWithUserResponse,
     FriendEventResponse,
     FriendStatsResponse,
 )
-import math
+from app.services.friend_service import friend_service
+from app.services.rich_menu_service import RichMenuService
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
 
 
 @router.get("")
 async def list_friends(
-    status: Optional[str] = None,
+    status: str | None = None,
+    start_date: date | None = None,
+    end_date: date | None = None,
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=100),
     db: AsyncSession = Depends(deps.get_db),
     current_admin: User = Depends(get_current_admin),
 ) -> Any:
     """List all friends with status"""
-    friends = await friend_service.list_friends(status, db, skip, limit)
+    friends = await friend_service.list_friends(status, db, skip, limit, start_date, end_date)
 
     # Get total count for pagination
-    from sqlalchemy import func as sa_func
     from app.models.user import User as UserModel
-    from app.services.user_identity_service import decrypt_line_ids_for_users, user_identity_filter
+    from app.services.user_identity_service import (
+        decrypt_line_ids_for_users,
+        user_identity_filter,
+    )
+    from sqlalchemy import func as sa_func
     count_query = select(sa_func.count(UserModel.id)).where(user_identity_filter())
     if status:
         count_query = count_query.where(UserModel.friend_status == status)
+    if start_date:
+        count_query = count_query.where(UserModel.friend_since >= datetime(start_date.year, start_date.month, start_date.day))
+    if end_date:
+        count_query = count_query.where(UserModel.friend_since < datetime(end_date.year, end_date.month, end_date.day) + timedelta(days=1))
     total_result = await db.execute(count_query)
     total = total_result.scalar() or 0
 
@@ -73,8 +84,8 @@ async def list_friends(
 
 @router.get("/history", response_model=FriendEventListWithUserResponse)
 async def list_friend_history(
-    line_user_id: Optional[str] = Query(None, description="Filter by LINE user ID"),
-    event_type: Optional[str] = Query(None, description="Filter by event type (FOLLOW, UNFOLLOW, BLOCK, REFOLLOW)"),
+    line_user_id: str | None = Query(None, description="Filter by LINE user ID"),
+    event_type: str | None = Query(None, description="Filter by event type (FOLLOW, UNFOLLOW, BLOCK, REFOLLOW)"),
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(deps.get_db),
