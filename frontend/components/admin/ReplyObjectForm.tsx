@@ -73,8 +73,7 @@ interface ReplyObjectFormProps {
 }
 
 /**
- * Shared create/edit form for reply objects. Used by the full `new` page and
- * the edit modal so both stay identical without duplicating 150 lines.
+ * Shared create/edit form for reply objects.
  */
 export function ReplyObjectForm({ initial, lockObjectId, submitLabel, onSave, onCancel }: ReplyObjectFormProps) {
     const { toast } = useToast();
@@ -97,7 +96,7 @@ export function ReplyObjectForm({ initial, lockObjectId, submitLabel, onSave, on
     const [rawMode, setRawMode] = useState(false);
     const [saving, setSaving] = useState(false);
 
-    // Parsed payload — single source of truth stays the JSON string in formData.
+    // Parsed payload stays the JSON string in formData.
     const parsedPayload = useMemo(() => safeParsePayload(formData.payload), [formData.payload]);
     const isStructured = STRUCTURED_TYPES.has(formData.object_type);
     const showStructuredEditor = isStructured && !rawMode;
@@ -110,17 +109,13 @@ export function ReplyObjectForm({ initial, lockObjectId, submitLabel, onSave, on
         setFormData(prev => {
             const prevPayload = safeParsePayload(prev.payload);
             const next = defaultPayloadForType(newType);
-            // Carry the quick-reply modifier across a type switch.
             if (prevPayload.quickReply) next.quickReply = prevPayload.quickReply;
-            // Tag editor list items with stable internal keys (react-2).
             return { ...prev, object_type: newType, payload: JSON.stringify(ensureEditorKeys(next), null, 2) };
         });
         setRawMode(false);
     };
 
-    // Entering raw mode strips internal `_key` tags so the JSON matches the
-    // exact LINE payload shape; returning to the form re-tags list items so
-    // React keys stay stable (react-2).
+    // Raw mode shows the exact LINE JSON (no _key tags); form mode re-tags for stable keys.
     const handleToggleRawMode = () => {
         setFormData(prev => {
             const parsed = safeParsePayload(prev.payload);
@@ -158,8 +153,6 @@ export function ReplyObjectForm({ initial, lockObjectId, submitLabel, onSave, on
         try {
             const ok = await onSave({
                 ...formData,
-                // Strip internal editor keys so the saved LINE payload shape
-                // never changes (react-2 backward-compatibility guarantee).
                 payload: JSON.stringify(stripEditorKeys(parsed)),
             });
             if (!ok) setSaving(false);

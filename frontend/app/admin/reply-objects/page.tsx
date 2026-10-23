@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Package, Trash2, SquarePen, Eye, LayoutGrid, List } from 'lucide-react';
 import PageHeader from '@/app/admin/components/PageHeader';
+import { ViewToggle } from '@/components/admin/ViewToggle';
+import { DetailModal } from '@/components/admin/DetailModal';
 import { ActionIconButton } from '@/components/ui/ActionIconButton';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
@@ -121,26 +123,15 @@ export default function ReplyObjectsPage() {
         <div className="space-y-6 animate-in fade-in duration-500 thai-text">
             <PageHeader title="Reply Objects" subtitle="Manage reusable message templates">
                 <div className="flex items-center gap-2">
-                    <div className="flex items-center rounded-lg border border-border-default p-0.5" role="tablist" aria-label="มุมมอง">
-                        <button
-                            role="tab"
-                            aria-selected={viewMode === 'grid'}
-                            onClick={() => setViewMode('grid')}
-                            className={`p-1.5 rounded-md transition-colors ${viewMode === 'grid' ? 'bg-brand-500 text-white' : 'text-text-tertiary hover:text-text-primary'}`}
-                            aria-label="มุมมองการ์ด"
-                        >
-                            <LayoutGrid className="w-4 h-4" />
-                        </button>
-                        <button
-                            role="tab"
-                            aria-selected={viewMode === 'list'}
-                            onClick={() => setViewMode('list')}
-                            className={`p-1.5 rounded-md transition-colors ${viewMode === 'list' ? 'bg-brand-500 text-white' : 'text-text-tertiary hover:text-text-primary'}`}
-                            aria-label="มุมมองตาราง"
-                        >
-                            <List className="w-4 h-4" />
-                        </button>
-                    </div>
+                    <ViewToggle
+                        options={[
+                            { value: 'grid', label: 'มุมมองการ์ด', icon: <LayoutGrid className="w-4 h-4" /> },
+                            { value: 'list', label: 'มุมมองตาราง', icon: <List className="w-4 h-4" /> },
+                        ]}
+                        value={viewMode}
+                        onChange={setViewMode}
+                        ariaLabel="มุมมอง"
+                    />
                     <Link href="/admin/reply-objects/new">
                         <Button>+ New Template</Button>
                     </Link>
@@ -277,45 +268,29 @@ export default function ReplyObjectsPage() {
                 )}
             </Modal>
 
-            <Modal
-                isOpen={viewObj !== null}
-                onClose={() => setViewObj(null)}
+            <DetailModal
                 title="รายละเอียดเทมเพลต"
-                maxWidth="lg"
-            >
-                {viewObj && (
-                    <div className="space-y-4">
-                        <div>
-                            <p className="text-xs text-text-tertiary mb-1">รหัส</p>
-                            <p className="font-mono font-semibold text-brand-600 dark:text-brand-400">${viewObj.object_id}</p>
-                        </div>
-                        <div>
-                            <p className="text-xs text-text-tertiary mb-1">ชื่อ</p>
-                            <p className="font-medium text-text-primary">{viewObj.name}</p>
-                        </div>
-                        <div className="grid grid-cols-2 gap-3 text-sm">
-                            <div>
-                                <p className="text-xs text-text-tertiary mb-1">ประเภท</p>
-                                <p className="text-text-primary uppercase">{viewObj.object_type}</p>
-                            </div>
-                            <div>
-                                <p className="text-xs text-text-tertiary mb-1">หมวดหมู่</p>
-                                <p className="text-text-primary">{viewObj.category || '-'}</p>
-                            </div>
-                        </div>
-                        <div>
-                            <p className="text-xs text-text-tertiary mb-1">JSON</p>
-                            <pre className="max-h-64 overflow-auto rounded-xl bg-gray-900 p-4 font-mono text-xs text-green-400 overscroll-contain">
-                                {JSON.stringify(viewObj.payload, null, 2)}
-                            </pre>
-                        </div>
-                        <div className="flex justify-end gap-2">
-                            <Button variant="outline" size="sm" onClick={() => { setViewObj(null); openEdit(viewObj); }}>แก้ไข</Button>
-                            <Button variant="primary" size="sm" onClick={() => setViewObj(null)}>ปิด</Button>
-                        </div>
+                open={viewObj !== null}
+                onClose={() => setViewObj(null)}
+                rows={viewObj ? [
+                    { label: 'รหัส', value: <span className="font-mono font-semibold text-brand-600 dark:text-brand-400">${viewObj.object_id}</span> },
+                    { label: 'ชื่อ', value: viewObj.name },
+                    { label: 'ประเภท', value: <span className="uppercase">{viewObj.object_type}</span> },
+                    { label: 'หมวดหมู่', value: viewObj.category || '-' },
+                ] : []}
+                renderExtra={viewObj ? (
+                    <div>
+                        <p className="text-xs text-text-tertiary mb-1">JSON</p>
+                        <pre className="max-h-64 overflow-auto rounded-xl bg-gray-900 p-4 font-mono text-xs text-green-400 overscroll-contain">
+                            {JSON.stringify(viewObj.payload, null, 2)}
+                        </pre>
                     </div>
-                )}
-            </Modal>
+                ) : undefined}
+                actions={viewObj ? [
+                    { label: 'แก้ไข', onClick: () => { const o = viewObj; setViewObj(null); openEdit(o); }, variant: 'outline' },
+                    { label: 'ปิด', onClick: () => setViewObj(null), variant: 'primary' },
+                ] : undefined}
+            />
         </div>
     );
 }

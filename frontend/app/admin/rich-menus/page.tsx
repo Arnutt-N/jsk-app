@@ -7,7 +7,8 @@ import { AdminTableHead, type AdminTableHeadColumn } from '@/components/admin/Ad
 import PageHeader from '@/app/admin/components/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { ActionIconButton } from '@/components/ui/ActionIconButton';
-import { Modal } from '@/components/ui/Modal';
+import { DetailModal } from '@/components/admin/DetailModal';
+import { useRouter } from 'next/navigation';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/Toast';
@@ -33,6 +34,7 @@ interface RichMenu {
 }
 
 export default function RichMenuListPage() {
+    const router = useRouter();
     const [menus, setMenus] = useState<RichMenu[]>([]);
     const [loading, setLoading] = useState(true);
     const [syncingId, setSyncingId] = useState<number | null>(null);
@@ -313,48 +315,25 @@ export default function RichMenuListPage() {
                 </div>
             )}
 
-            <Modal
-        isOpen={viewMenu !== null}
-        onClose={() => setViewMenu(null)}
-        title="รายละเอียดริชเมนู"
-        maxWidth="lg"
-      >
-        {viewMenu && (
-          <div className="space-y-4">
-            {viewMenu.image_url && (
-              <img src={viewMenu.image_url} alt={viewMenu.name} className="w-full rounded-lg border border-border-default" />
-            )}
-            <div>
-              <p className="text-xs text-text-tertiary mb-1">ชื่อเมนู</p>
-              <p className="font-semibold text-text-primary">{viewMenu.name}</p>
-            </div>
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div>
-                <p className="text-xs text-text-tertiary mb-1">ข้อความแถบแชท</p>
-                <p className="text-text-primary italic">&quot;{viewMenu.chat_bar_text}&quot;</p>
-              </div>
-              <div>
-                <p className="text-xs text-text-tertiary mb-1">LINE Rich Menu ID</p>
-                <p className="font-mono text-xs text-text-primary">{viewMenu.line_rich_menu_id || 'LOCAL_ONLY'}</p>
-              </div>
-              <div>
-                <p className="text-xs text-text-tertiary mb-1">ช่วงเวลาแสดงผล</p>
-                <p className="text-text-primary">{[viewMenu.display_start_at, viewMenu.display_end_at].filter(Boolean).join(' – ') || 'ตลอดเวลา'}</p>
-              </div>
-              <div>
-                <p className="text-xs text-text-tertiary mb-1">ผู้ใช้ที่ผูกเมนูนี้</p>
-                <p className="text-text-primary">{viewMenu.user_link_count ?? 0} คน</p>
-              </div>
-            </div>
-            <div className="flex justify-end gap-2">
-              <Link href={`/admin/rich-menus/${viewMenu.id}/edit`}>
-                <Button variant="outline" size="sm">แก้ไข</Button>
-              </Link>
-              <Button variant="primary" size="sm" onClick={() => setViewMenu(null)}>ปิด</Button>
-            </div>
-          </div>
-        )}
-      </Modal>
+            <DetailModal
+                title="รายละเอียดริชเมนู"
+                open={viewMenu !== null}
+                onClose={() => setViewMenu(null)}
+                rows={viewMenu ? [
+                    { label: 'ชื่อเมนู', value: viewMenu.name },
+                    { label: 'ข้อความแถบแชท', value: <span className="italic">&quot;{viewMenu.chat_bar_text}&quot;</span> },
+                    { label: 'LINE Rich Menu ID', value: <span className="font-mono text-xs">{viewMenu.line_rich_menu_id || 'LOCAL_ONLY'}</span> },
+                    { label: 'ช่วงเวลาแสดงผล', value: [viewMenu.display_start_at, viewMenu.display_end_at].filter(Boolean).join(' – ') || 'ตลอดเวลา' },
+                    { label: 'ผู้ใช้ที่ผูกเมนูนี้', value: `${viewMenu.user_link_count ?? 0} คน` },
+                ] : []}
+                renderExtra={viewMenu?.image_url ? (
+                    <img src={viewMenu.image_url} alt={viewMenu.name} className="w-full rounded-lg border border-border-default" />
+                ) : undefined}
+                actions={viewMenu ? [
+                    { label: 'แก้ไข', onClick: () => { const m = viewMenu; setViewMenu(null); router.push(`/admin/rich-menus/${m.id}/edit`); }, variant: 'outline' },
+                    { label: 'ปิด', onClick: () => setViewMenu(null), variant: 'primary' },
+                ] : undefined}
+            />
 
       <ConfirmDialog
                 isOpen={confirmDelete.open}

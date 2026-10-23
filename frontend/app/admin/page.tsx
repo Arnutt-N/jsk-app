@@ -158,7 +158,6 @@ export default function ServiceDashboard() {
                 </span>
             </PageHeader>
 
-            {/* Stats Cards Row */}
             <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
                 <StaggerItem>
                     <StatsCard
@@ -201,7 +200,6 @@ export default function ServiceDashboard() {
                 </StaggerItem>
             </StaggerContainer>
 
-            {/* Actionable queues — needs attention today */}
             <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
                 <StaggerItem>
                     <StatsCard
@@ -245,7 +243,6 @@ export default function ServiceDashboard() {
                 </StaggerItem>
             </StaggerContainer>
 
-            {/* System status */}
             <div className={`flex items-center gap-3 rounded-2xl border px-5 py-4 text-sm font-medium ${health === 'healthy'
                 ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400'
                 : health === 'degraded'
@@ -263,7 +260,6 @@ export default function ServiceDashboard() {
                 <a href="/admin/health" className="ml-auto underline underline-offset-2">ดูรายละเอียด</a>
             </div>
 
-            {/* Analytics Charts */}
             <ChartsWrapper statusData={statusData} monthlyData={monthlyData} />
 
         </div>

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { Select } from '@/components/ui/Select'
+import { ViewToggle } from '@/components/admin/ViewToggle'
 import { CalendarDays, BellRing, ChevronLeft, ChevronRight, LayoutList, Pencil, Phone, Plus, RefreshCw, Search, UserMinus, UserPlus } from 'lucide-react'
 import { logger } from '@/lib/logger'
 import { formatThaiDate, formatThaiDateTime } from '@/lib/format-date'
@@ -327,32 +328,15 @@ export default function AdminBookingsPage() {
 
       <div className="flex flex-wrap items-center gap-2">
         {calendarEnabled && (
-          <div className="flex rounded-lg border border-slate-200 p-0.5 dark:border-slate-700" role="tablist" aria-label="มุมมองคิวนัดหมาย">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={view === 'list'}
-              onClick={() => setView('list')}
-              className={view === 'list'
-                ? 'flex items-center gap-1 rounded-md bg-brand-500 px-3 py-1.5 text-xs font-medium text-white'
-                : 'flex items-center gap-1 rounded-md px-3 py-1.5 text-xs text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'}
-            >
-              <LayoutList className="h-3.5 w-3.5" aria-hidden="true" />
-              รายการ
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={view === 'calendar'}
-              onClick={() => setView('calendar')}
-              className={view === 'calendar'
-                ? 'flex items-center gap-1 rounded-md bg-brand-500 px-3 py-1.5 text-xs font-medium text-white'
-                : 'flex items-center gap-1 rounded-md px-3 py-1.5 text-xs text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'}
-            >
-              <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
-              ปฏิทิน
-            </button>
-          </div>
+          <ViewToggle
+            options={[
+              { value: 'list', label: 'รายการ', icon: <LayoutList className="h-3.5 w-3.5" aria-hidden="true" /> },
+              { value: 'calendar', label: 'ปฏิทิน', icon: <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" /> },
+            ]}
+            value={view}
+            onChange={setView}
+            ariaLabel="มุมมองคิวนัดหมาย"
+          />
         )}
         <div className="w-64">
           <Input

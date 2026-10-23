@@ -9,11 +9,6 @@ import { logger } from '@/lib/logger';
 import ReplyObjectForm, { EMPTY_REPLY_OBJECT_FORM, formatErrorDetail, type ReplyObjectFormData } from '@/components/admin/ReplyObjectForm';
 
 const API_BASE = '/api/v1';
-
-/**
- * Full-page create form for reply objects (same shared form as the edit
- * modal, with room for the JSON editor + live preview side by side).
- */
 export default function NewReplyObjectPage() {
     const router = useRouter();
     const { toast } = useToast();

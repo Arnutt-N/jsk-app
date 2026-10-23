@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { ActionIconButton } from '@/components/ui/ActionIconButton';
+import { DetailModal } from '@/components/admin/DetailModal';
 import { Switch } from '@/components/ui/Switch';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/Toast';
@@ -441,37 +442,27 @@ export default function CannedResponsesPage() {
         </div>
       </div>
 
-      <Modal
-        isOpen={viewRow !== null}
-        onClose={() => setViewRow(null)}
+      <DetailModal
         title="รายละเอียดข้อความสำเร็จรูป"
-      >
-        {viewRow && (
-          <div className="space-y-3">
-            <div>
-              <p className="text-xs text-text-tertiary mb-1">ชอร์ตคัต</p>
-              <p className="font-mono font-semibold text-brand-600 dark:text-brand-400">/{viewRow.shortcut}</p>
-            </div>
-            <div>
-              <p className="text-xs text-text-tertiary mb-1">ชื่อ</p>
-              <p className="font-medium text-text-primary">{viewRow.title}</p>
-            </div>
-            <div>
-              <p className="text-xs text-text-tertiary mb-1">ข้อความ</p>
-              <p className="text-sm text-text-primary whitespace-pre-wrap">{viewRow.content}</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge variant="secondary" size="sm">{CATEGORY_LABEL[viewRow.category] ?? viewRow.category}</Badge>
-              <Badge variant={(viewRow.is_active ?? true) ? 'success' : 'gray'} size="sm">
-                {(viewRow.is_active ?? true) ? 'ใช้งานอยู่' : 'ปิดใช้งาน'}
-              </Badge>
-            </div>
-            <div className="flex justify-end">
-              <Button variant="outline" onClick={() => setViewRow(null)}>ปิด</Button>
-            </div>
-          </div>
-        )}
-      </Modal>
+        open={viewRow !== null}
+        onClose={() => setViewRow(null)}
+        rows={viewRow ? [
+          { label: 'ชอร์ตคัต', value: <span className="font-mono font-semibold text-brand-600 dark:text-brand-400">/{viewRow.shortcut}</span> },
+          { label: 'ชื่อ', value: viewRow.title },
+          { label: 'ข้อความ', value: <span className="whitespace-pre-wrap">{viewRow.content}</span> },
+          {
+            label: 'สถานะ',
+            value: (
+              <span className="flex items-center gap-2">
+                <Badge variant="secondary" size="sm">{CATEGORY_LABEL[viewRow.category] ?? viewRow.category}</Badge>
+                <Badge variant={(viewRow.is_active ?? true) ? 'success' : 'gray'} size="sm">
+                  {(viewRow.is_active ?? true) ? 'ใช้งานอยู่' : 'ปิดใช้งาน'}
+                </Badge>
+              </span>
+            ),
+          },
+        ] : []}
+      />
 
       <ConfirmDialog
         isOpen={confirmDelete.open}
