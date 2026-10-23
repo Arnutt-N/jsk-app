@@ -1,6 +1,7 @@
 import logging
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime
 
+from app.core.date_windows import resolve_range
 from app.core.logging_utils import mask_line_id
 from app.models.friend_event import EventSource, FriendEvent, FriendEventType
 from app.models.user import User
@@ -377,6 +378,39 @@ class FriendService:
         user_to_id = {user_id: raw for raw, user_id in id_to_user.items()}
         return {user_to_id.get(row[0], row[0]): row.max_refollow for row in result.all()}
 
+    def _friend_filter_clauses(
+        self,
+        status: str | None,
+        start_date: date | None,
+        end_date: date | None,
+    ) -> list:
+        """Shared WHERE clauses for list + count so pagination never diverges."""
+        from app.services.user_identity_service import user_identity_filter
+
+        clauses = [user_identity_filter()]
+        if status:
+            clauses.append(User.friend_status == status)
+        if start_date or end_date:
+            start, end = resolve_range(start_date, end_date, 36500)
+            clauses.append(User.friend_since >= start)
+            clauses.append(User.friend_since < end)
+        return clauses
+
+    async def count_friends(
+        self,
+        status: str | None,
+        db: AsyncSession,
+        start_date: date | None = None,
+        end_date: date | None = None,
+    ) -> int:
+        """Total matching friends (same filters as list_friends)."""
+        from sqlalchemy import func as sa_func
+
+        query = select(sa_func.count(User.id))
+        for clause in self._friend_filter_clauses(status, start_date, end_date):
+            query = query.where(clause)
+        return await db.scalar(query) or 0
+
     async def list_friends(
         self,
         status: str | None,
@@ -387,15 +421,9 @@ class FriendService:
         end_date: date | None = None,
     ) -> list[User]:
         """List users who are friends"""
-        from app.services.user_identity_service import user_identity_filter
-
-        query = select(User).where(user_identity_filter())
-        if status:
-            query = query.where(User.friend_status == status)
-        if start_date:
-            query = query.where(User.friend_since >= datetime(start_date.year, start_date.month, start_date.day))
-        if end_date:
-            query = query.where(User.friend_since < datetime(end_date.year, end_date.month, end_date.day) + timedelta(days=1))
+        query = select(User)
+        for clause in self._friend_filter_clauses(status, start_date, end_date):
+            query = query.where(clause)
 
         query = query.order_by(desc(User.last_message_at)).offset(skip).limit(limit)
         result = await db.execute(query)

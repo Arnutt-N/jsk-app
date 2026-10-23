@@ -1,35 +1,23 @@
 """Admin audit log API endpoints."""
-from datetime import UTC, date, datetime, timedelta
+from datetime import date
 
 from app.api.deps import get_db, require_permission
+from app.core.date_windows import InvertedRangeError, resolve_range
 from app.core.permissions import KEY_VIEW_AUDIT_LOG
 from app.models.audit_log import AuditLog
 from app.models.user import User
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
 
 
-class _Window:
-    """Half-open UTC window (start, end] for audit queries."""
-    def __init__(self, start: datetime, end: datetime):
-        self.start = start
-        self.end = end
-
-
-def resolve_window(start_date: date | None, end_date: date | None, days: int) -> _Window:
-    """Explicit YYYY-MM-DD range wins; otherwise fall back to last-N-days."""
-    end = (
-        datetime(end_date.year, end_date.month, end_date.day, 23, 59, 59, tzinfo=UTC)
-        if end_date else datetime.now(UTC)
-    )
-    start = (
-        datetime(start_date.year, start_date.month, start_date.day, tzinfo=UTC)
-        if start_date else end - timedelta(days=days)
-    )
-    return _Window(start, end)
+def _window_or_422(start_date: date | None, end_date: date | None, days: int) -> tuple:  # type: ignore[no-untyped-def]
+    try:
+        return resolve_range(start_date, end_date, days)
+    except InvertedRangeError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @router.get("/logs")
@@ -56,10 +44,10 @@ async def get_audit_logs(
         - limit: Applied limit
         - offset: Applied offset
     """
-    window = resolve_window(start_date, end_date, days)
+    start, end = _window_or_422(start_date, end_date, days)
 
     # Build query
-    query = select(AuditLog).where(AuditLog.created_at > window.start, AuditLog.created_at <= window.end)
+    query = select(AuditLog).where(AuditLog.created_at >= start, AuditLog.created_at < end)
 
     if admin_id:
         query = query.where(AuditLog.admin_id == admin_id)
@@ -83,7 +71,7 @@ async def get_audit_logs(
     logs = result.scalars().all()
 
     # Enrich with admin names — single batched query (avoids N+1 per log row)
-    admin_ids = {log.admin_id for log in logs if log.admin_id}
+    admin_ids = {log.admin_id for log in logs if log.admin_id is not None}
     user_map: dict = {}
     if admin_ids:
         users_result = await db.execute(select(User).where(User.id.in_(admin_ids)))
@@ -92,7 +80,7 @@ async def get_audit_logs(
     enriched_logs = []
     for log in logs:
         admin_name = None
-        if log.admin_id:
+        if log.admin_id is not None:
             admin_name = user_map.get(log.admin_id) or f"Admin {log.admin_id}"
 
         enriched_logs.append({
@@ -105,7 +93,7 @@ async def get_audit_logs(
             "details": log.details,
             "ip_address": log.ip_address,
             "user_agent": log.user_agent,
-            "created_at": log.created_at.isoformat() if log.created_at else None
+            "created_at": log.created_at.isoformat() if log.created_at is not None else None
         })
 
     return {
@@ -132,18 +120,18 @@ async def get_audit_stats(
         - action_breakdown: Counts by action type
         - resource_breakdown: Counts by resource type
     """
-    window = resolve_window(start_date, end_date, days)
+    start, end = _window_or_422(start_date, end_date, days)
 
     # Total actions
     total = await db.scalar(
         select(func.count())
-        .where(AuditLog.created_at > window.start, AuditLog.created_at <= window.end)
+        .where(AuditLog.created_at >= start, AuditLog.created_at < end)
     )
 
     # Action breakdown
     action_result = await db.execute(
         select(AuditLog.action, func.count())
-        .where(AuditLog.created_at > window.start, AuditLog.created_at <= window.end)
+        .where(AuditLog.created_at >= start, AuditLog.created_at < end)
         .group_by(AuditLog.action)
     )
     action_breakdown = {row.action: row.count for row in action_result.all()}
@@ -151,7 +139,7 @@ async def get_audit_stats(
     # Resource breakdown
     resource_result = await db.execute(
         select(AuditLog.resource_type, func.count())
-        .where(AuditLog.created_at > window.start, AuditLog.created_at <= window.end)
+        .where(AuditLog.created_at >= start, AuditLog.created_at < end)
         .group_by(AuditLog.resource_type)
     )
     resource_breakdown = {row.resource_type: row.count for row in resource_result.all()}

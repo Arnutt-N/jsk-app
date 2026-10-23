@@ -1,9 +1,10 @@
 import math
-from datetime import date, datetime, timedelta
+from datetime import date
 from typing import Any
 
 from app.api import deps
 from app.api.deps import get_current_admin
+from app.core.date_windows import InvertedRangeError
 from app.core.pii_masking import mask_line_id
 from app.models.user import User
 from app.schemas.friend import FriendResponse
@@ -15,8 +16,8 @@ from app.schemas.friend_event import (
 )
 from app.services.friend_service import friend_service
 from app.services.rich_menu_service import RichMenuService
-from fastapi import APIRouter, Depends, Query
-from sqlalchemy import select
+from app.services.user_identity_service import decrypt_line_ids_for_users
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
@@ -33,28 +34,20 @@ async def list_friends(
     current_admin: User = Depends(get_current_admin),
 ) -> Any:
     """List all friends with status"""
-    friends = await friend_service.list_friends(status, db, skip, limit, start_date, end_date)
+    try:
+        friends = await friend_service.list_friends(status, db, skip, limit, start_date, end_date)
+    except InvertedRangeError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
-    # Get total count for pagination
-    from app.models.user import User as UserModel
-    from app.services.user_identity_service import (
-        decrypt_line_ids_for_users,
-        user_identity_filter,
-    )
-    from sqlalchemy import func as sa_func
-    count_query = select(sa_func.count(UserModel.id)).where(user_identity_filter())
-    if status:
-        count_query = count_query.where(UserModel.friend_status == status)
-    if start_date:
-        count_query = count_query.where(UserModel.friend_since >= datetime(start_date.year, start_date.month, start_date.day))
-    if end_date:
-        count_query = count_query.where(UserModel.friend_since < datetime(end_date.year, end_date.month, end_date.day) + timedelta(days=1))
-    total_result = await db.execute(count_query)
-    total = total_result.scalar() or 0
+    # Total count for pagination (same filters as the list — never diverge)
+    try:
+        total = await friend_service.count_friends(status, db, start_date, end_date)
+    except InvertedRangeError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     # Batch-decrypt the raw LINE IDs for this page (friends are User rows).
     raw_by_user_id = await decrypt_line_ids_for_users(
-        db, [f.id for f in friends if f.line_user_id_hash]
+        db, [f.id for f in friends if f.line_user_id_hash is not None]
     )
 
     # Scope refollow counts to current page only (result keyed by raw LINE id).

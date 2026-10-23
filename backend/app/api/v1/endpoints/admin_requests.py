@@ -4,6 +4,7 @@ from datetime import UTC, date, datetime, time, timedelta
 
 from app.api.deps import get_current_admin, get_current_manager
 from app.core.audit import create_audit_log
+from app.core.date_windows import bangkok_today_start_utc
 from app.core.permissions import (
     can_assign,
     can_edit_request_details,
@@ -170,7 +171,7 @@ async def get_request_stats(db: AsyncSession = Depends(get_db), current_admin: U
         (ServiceRequest.status == RequestStatus.PENDING) & (ServiceRequest.assigned_agent_id.isnot(None))
     )
 
-    today_start = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
+    today_start = bangkok_today_start_utc()
 
     query = select(
         func.count(ServiceRequest.id).label("total"),
