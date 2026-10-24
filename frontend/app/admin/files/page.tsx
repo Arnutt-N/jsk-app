@@ -30,14 +30,6 @@ import AuthenticatedFileImage, {
   useAuthenticatedMediaUrl,
   type PreviewCategory as Category,
 } from '@/components/admin/AuthenticatedFileImage';
-import AuthenticatedFileImage, {
-  CATEGORY_META,
-  PRIVATE_PREVIEW_REASON,
-  getCategoryIcon,
-  getDirectMediaUrl,
-  useAuthenticatedMediaUrl,
-  type PreviewCategory as Category,
-} from '@/components/admin/AuthenticatedFileImage';
 import { apiFetch } from '@/lib/api-error';
 import { API_BASE } from '@/lib/constants/api';
 import { downloadBlob } from '@/lib/download-blob';
