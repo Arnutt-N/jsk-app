@@ -228,7 +228,7 @@ export default function AuditLogPage() {
 
       {/* Filters */}
       <div className="bg-surface rounded-2xl border border-border-default p-4 shadow-sm">
-        <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex flex-col sm:flex-row flex-wrap sm:items-center gap-4">
           <Select
             value={filter.action}
             onChange={(e) => {
@@ -237,7 +237,7 @@ export default function AuditLogPage() {
             }}
             options={actionOptions}
             placeholder="กรองตามการกระทำ..."
-            className="w-full sm:w-48"
+            wrapperClassName="w-full sm:w-48"
           />
           <Select
             value={filter.resource_type}
@@ -247,8 +247,13 @@ export default function AuditLogPage() {
             }}
             options={resourceOptions}
             placeholder="กรองตามประเภททรัพยากร..."
-            className="w-full sm:w-48"
+            wrapperClassName="w-full sm:w-48"
           />
+          {hasActiveFilter && (
+            <Button variant="ghost" size="sm" onClick={clearFilters} leftIcon={<RotateCcw className="w-4 h-4" />}>
+              ล้างตัวกรอง
+            </Button>
+          )}
         </div>
       </div>
 
