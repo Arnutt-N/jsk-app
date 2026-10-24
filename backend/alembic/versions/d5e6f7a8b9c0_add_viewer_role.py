@@ -1,15 +1,7 @@
 """add VIEWER role + grant it view_reports
 
-- Adds 'VIEWER' to the PostgreSQL `userrole` ENUM (read-only observer role
-  for the admin demo login; menus 1-5 GET only).
-- Appends VIEWER to the `view_reports` row in permission_settings so
-  existing databases (whose row predates app/core/permissions.py including
-  VIEWER in DEFAULT_POLICY) grant the reports pages. Fresh databases get
-  the same row from ensure_seed_rows / the Phase-3 seed.
-
-Follows the alembic/versions/m3n4o5p6q7r8 precedent: ALTER TYPE ...
-ADD VALUE cannot run inside a transaction block, so COMMIT first, then
-run the jsonb update.
+ALTER TYPE ... ADD VALUE cannot run inside a transaction block, so COMMIT
+first, then run the jsonb update.
 
 Revision ID: d5e6f7a8b9c0
 Revises: c3d4e5f6a7b8

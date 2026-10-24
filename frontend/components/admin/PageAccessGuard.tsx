@@ -9,9 +9,6 @@ import { useAuth } from '@/contexts/AuthContext';
 // never an admin). DIRECTOR + HEAD added 2026-05-04 for the request
 // workflow split -- they share AGENT-equivalent fallback behaviour
 // since they are mid-tier supervisors, not top-level operators.
-// VIEWER added for the read-only observer role (menus 1-5): allowed pages
-// list VIEWER in allowedRoles, closed pages omit it so VIEWER bounces to
-// the '/admin' default below.
 type AllowedRole = 'SUPER_ADMIN' | 'ADMIN' | 'DIRECTOR' | 'HEAD' | 'AGENT' | 'VIEWER';
 
 interface PageAccessGuardProps {

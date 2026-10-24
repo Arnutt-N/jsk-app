@@ -1,8 +1,4 @@
-"""rename skn_menu seed to jsk_menu
-
-- The $$skn_menu "SKN 6-zone service menu" card lives in DB data, not in
-  source (no code hit for skn_menu). Rename the row so the demo shows JSK.
-- Idempotent: only touches the row when the old id exists; keeps payload.
+"""rename skn_menu seed to jsk_menu (DB data fix, idempotent)
 
 Revision ID: e7f8a9b0c1d2
 Revises: d5e6f7a8b9c0

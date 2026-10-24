@@ -104,10 +104,6 @@ function isAudioMime(mime: string) {
   return mime.startsWith('audio/');
 }
 
-// ---------------------------------------------------------------------------
-// Authenticated media preview (private files have no token for `<img>`).
-// ---------------------------------------------------------------------------
-
 // Shown when a private file has no token the browser could use directly.
 const PRIVATE_PREVIEW_REASON = 'ไฟล์ส่วนตัว — กดสร้างลิงก์สาธารณะเพื่อดู';
 
@@ -127,16 +123,10 @@ type AuthenticatedMediaState =
   | { kind: 'ready'; url: string }
   | { kind: 'failed' };
 
-// Resolve a viewable URL for a file the admin may access. Public files (and
-// private files carrying a token) already have a direct URL; otherwise the
-// bytes are fetched with the admin session (cookies via apiFetch) and
-// exposed as an object URL, since `<img>`/`<video>` cannot attach auth
-// headers on their own.
+// Object URL because `<img>`/`<video>` cannot attach auth headers on their own.
 function useAuthenticatedMediaUrl(fileId: string | null, directUrl: string | null): AuthenticatedMediaState {
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
-  // Reset cached fetch state when the target changes (render-phase update:
-  // the effect below only ever moves loading -> ready/failed forward).
   const [prevKey, setPrevKey] = useState<string | null>(null);
   const key = fileId && !directUrl ? fileId : null;
   if (prevKey !== key) {
@@ -177,9 +167,6 @@ function useAuthenticatedMediaUrl(fileId: string | null, directUrl: string | nul
   return { kind: 'loading' };
 }
 
-// Thumbnail that can show private images: falls back to the category icon
-// plus the Thai private-file reason when no viewable URL exists, and
-// reports failures through `onLoadFailed` (the parent `markBroken`).
 function AuthenticatedFileImage({
   file,
   directUrl,
@@ -198,7 +185,6 @@ function AuthenticatedFileImage({
   const state = useAuthenticatedMediaUrl(file.id, directUrl);
   const [imgBroken, setImgBroken] = useState(false);
 
-  // A new file (or a new direct URL) gets a fresh error flag.
   const [prevSrcKey, setPrevSrcKey] = useState('');
   const srcKey = `${file.id}|${directUrl ?? ''}`;
   if (prevSrcKey !== srcKey) {
@@ -494,14 +480,10 @@ export default function FilesPage() {
   );
 
   const getPreviewUrl = useCallback((file: MediaFile) => {
-    // Tokenless private files 403 on `/media/{id}` — return null so the
-    // render path fetches the bytes with the admin session instead.
     if (!isImageMime(file.mime_type)) return null;
     return getDirectMediaUrl(file, buildMediaUrl);
   }, [buildMediaUrl]);
 
-  // Viewable URL for the modal file: direct when public/tokenized, else an
-  // admin-session object URL (same hook the grid thumbnails use).
   const modalDirectUrl = previewFile ? getDirectMediaUrl(previewFile, buildMediaUrl) : null;
   const modalMedia = useAuthenticatedMediaUrl(previewFile ? previewFile.id : null, modalDirectUrl);
 

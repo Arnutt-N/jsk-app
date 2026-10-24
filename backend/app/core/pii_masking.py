@@ -42,7 +42,6 @@ def mask_email(v: str | None, role: UserRole | str) -> str | None:
 
 
 def is_readonly_viewer(role: UserRole | str | None) -> bool:
-    """Whether `role` is the read-only VIEWER observer role."""
     if role is None:
         return False
     value = role.value if isinstance(role, UserRole) else role
