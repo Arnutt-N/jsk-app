@@ -12,6 +12,7 @@ from app.core.permissions import (
     KEY_ACCESS_STAFF_ENDPOINTS,
 )
 from app.core.security import verify_token
+from app.models.user import UserRole
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -233,68 +234,27 @@ async def get_current_staff(
     return current_user
 
 
-async def get_current_admin_or_viewer(
-    current_user=Depends(get_current_user),
-):
-    """Admin gate that also admits the read-only VIEWER role.
+def _gate_or_viewer(key: str):
+    """Shared VIEWER-or-key gate; use ONLY on explicit allow-listed GET routes.
 
-    Use ONLY on explicit allow-listed GET routes (VIEWER menus 1-5:
-    reply-objects, rich-menus, intent categories). VIEWER is in no
-    MANAGE/access key, so every write endpoint keeps denying it via its
-    own gate -- opting a GET in here never opens a write.
+    VIEWER is admitted without a permission check; every other role must
+    hold `key`. Write endpoints keep their plain gates, so opting a GET in
+    here never opens a write.
     """
-    from app.models.user import UserRole
-
-    if current_user.role == UserRole.VIEWER:
+    async def gate(current_user=Depends(get_current_user)):
+        if current_user.role == UserRole.VIEWER:
+            return current_user
+        if not can(current_user.role, key):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Insufficient permissions"
+            )
         return current_user
-    if not can(current_user.role, KEY_ACCESS_ADMIN_ENDPOINTS):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions"
-        )
-    return current_user
+    return gate
 
-
-async def get_current_manager_or_viewer(
-    current_user=Depends(get_current_user),
-):
-    """Manager gate that also admits the read-only VIEWER role.
-
-    Use ONLY on explicit allow-listed GET routes (service-request reads).
-    Request writes (assign/comment/delete) keep the plain manager/admin
-    gates, so VIEWER stays 403 there.
-    """
-    from app.models.user import UserRole
-
-    if current_user.role == UserRole.VIEWER:
-        return current_user
-    if not can(current_user.role, KEY_ACCESS_MANAGER_ENDPOINTS):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions"
-        )
-    return current_user
-
-
-async def get_current_staff_or_viewer(
-    current_user=Depends(get_current_user),
-):
-    """Staff gate that also admits the read-only VIEWER role.
-
-    Use ONLY on explicit allow-listed GET routes (booking list +
-    counter availability). Booking writes and the live-chat HTTP gate keep
-    the plain staff gate, so VIEWER stays 403 there.
-    """
-    from app.models.user import UserRole
-
-    if current_user.role == UserRole.VIEWER:
-        return current_user
-    if not can(current_user.role, KEY_ACCESS_STAFF_ENDPOINTS):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions"
-        )
-    return current_user
+get_current_admin_or_viewer = _gate_or_viewer(KEY_ACCESS_ADMIN_ENDPOINTS)
+get_current_manager_or_viewer = _gate_or_viewer(KEY_ACCESS_MANAGER_ENDPOINTS)
+get_current_staff_or_viewer = _gate_or_viewer(KEY_ACCESS_STAFF_ENDPOINTS)
 
 
 def require_permission(key: str):

@@ -166,6 +166,7 @@ def test_viewer_get_allowed_routes_200():
             "/api/v1/admin/reports/overview?start_date=2026-01-01&end_date=2026-01-02",
             "/api/v1/admin/reply-objects?limit=1",
             "/api/v1/admin/rich-menus?limit=1",
+            "/api/v1/admin/canned-responses?limit=1",
             "/api/v1/admin/intents/categories?limit=1",
         ):
             response = client.get(path)

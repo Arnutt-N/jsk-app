@@ -48,7 +48,8 @@ function isViewerPathAllowed(pathname: string): boolean {
     pathname === '/admin/reports' ||
     pathname === '/admin/bookings' ||
     pathname === '/admin/reply-objects' ||
-    pathname === '/admin/rich-menus'
+    pathname === '/admin/rich-menus' ||
+    pathname === '/admin/canned-responses'
   ) {
     return true;
   }
@@ -232,7 +233,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
         { name: 'Broadcast', href: '/admin/chatbot/broadcast', icon: Megaphone, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
         { name: 'Auto-Replies', href: '/admin/auto-replies', icon: Reply, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
         { name: 'Reply Objects', href: '/admin/reply-objects', icon: MessageSquareReply, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'VIEWER'] },
-        { name: 'Canned Responses', href: '/admin/canned-responses', icon: MessageSquareText, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
+        { name: 'Canned Responses', href: '/admin/canned-responses', icon: MessageSquareText, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'VIEWER'] },
         { name: 'Rich Menus', href: '/admin/rich-menus', icon: PanelTop, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'VIEWER'] },
         { name: 'Friend Histories', href: '/admin/friends', icon: Users, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
       ]

@@ -4,15 +4,17 @@ import { isNavItemVisible } from '../nav-access';
 
 // Role lists copied from app/admin/layout.tsx menuGroups so the test
 // reflects the real nav config. VIEWER (read-only observer) is listed
-// on the 5 allowed menus only:
+// on the 6 allowed menus only:
 //   1. Dashboard, 2. Chatbot Overview, 3. Reports,
-//   4. Manage Requests + Appointments, 5. Reply Objects + Rich Menus.
+//   4. Manage Requests + Appointments, 5. Reply Objects + Rich Menus,
+//   6. Canned Responses (view-only).
 const DASHBOARD_ROLES = ['SUPER_ADMIN', 'ADMIN', 'DIRECTOR', 'HEAD', 'VIEWER'];
 const BOOKINGS_ROLES = ['SUPER_ADMIN', 'ADMIN', 'DIRECTOR', 'HEAD', 'AGENT', 'VIEWER'];
 const CHATBOT_OVERVIEW_ROLES = ['SUPER_ADMIN', 'ADMIN', 'VIEWER'];
 const REPORTS_ROLES = ['SUPER_ADMIN', 'ADMIN', 'VIEWER'];
 const REPLY_OBJECTS_ROLES = ['SUPER_ADMIN', 'ADMIN', 'VIEWER'];
 const RICH_MENUS_ROLES = ['SUPER_ADMIN', 'ADMIN', 'VIEWER'];
+const CANNED_ROLES = ['SUPER_ADMIN', 'ADMIN', 'VIEWER'];
 const CLOSED_ROLES = ['SUPER_ADMIN', 'ADMIN']; // Broadcast, Live Chat, Users, Access Requests, Settings, Health, Design System, ...
 
 const VIEWER_ALLOWED = [
@@ -22,6 +24,7 @@ const VIEWER_ALLOWED = [
   REPORTS_ROLES,
   REPLY_OBJECTS_ROLES,
   RICH_MENUS_ROLES,
+  CANNED_ROLES,
 ];
 
 describe('isNavItemVisible', () => {
@@ -62,7 +65,7 @@ describe('isNavItemVisible', () => {
     expect(isNavItemVisible('AGENT', DASHBOARD_ROLES)).toBe(false);
   });
 
-  it('shows VIEWER exactly the 5 allowed menus', () => {
+  it('shows VIEWER exactly the 6 allowed menus', () => {
     for (const roles of VIEWER_ALLOWED) {
       expect(isNavItemVisible('VIEWER', roles)).toBe(true);
     }
