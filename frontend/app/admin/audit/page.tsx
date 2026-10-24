@@ -63,7 +63,7 @@ export default function AuditLogPage() {
   const [limit] = useState(50);
   const [range, setRange] = useState<DateRange | undefined>(() => {
     const to = new Date();
-    return { from: subDays(to, 7), to };
+    return { from: subDays(to, 30), to };
   });
   const [filter, setFilter] = useState({
     action: "",
@@ -71,7 +71,7 @@ export default function AuditLogPage() {
   });
 
   const toYMD = (d: Date) => format(d, "yyyy-MM-dd");
-  const DEFAULT_RANGE_DAYS = 7;
+  const DEFAULT_RANGE_DAYS = 30;
   const isDefaultRange = (r: DateRange | undefined) => {
     if (!r?.from || !r.to) return false;
     const to = new Date();
@@ -135,7 +135,7 @@ export default function AuditLogPage() {
   const clearFilters = () => {
     setFilter({ action: "", resource_type: "" });
     const to = new Date();
-    setRange({ from: subDays(to, 7), to });
+    setRange({ from: subDays(to, 30), to });
     setOffset(0);
   };
 
