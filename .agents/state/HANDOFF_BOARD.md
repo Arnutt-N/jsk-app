@@ -1,8 +1,8 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Handoff Board (generated)
 
-> **Last generated**: 2026-10-24 07:17 (from newest checkpoint)
-> 309 active handoffs, 12 platforms, 0 queued directed handoff(s).
+> **Last generated**: 2026-10-24 11:26 (from newest checkpoint)
+> 310 active handoffs, 12 platforms, 0 queued directed handoff(s).
 
 > Regenerate after any handoff: `node .agents/scripts/gen-handoff-views.cjs`
 
@@ -19,7 +19,7 @@
 | kimi_code | AVAILABLE | 2026-06-02 01:39 | 0 | Applied all P0–P3 critique fixes on frontend/app/admin/requests/[id]/page.tsx. Destructive actions now have ConfirmDialo | `project-log-md/kimi_code/session-summary-20260602-0139.md` |
 | muse_code | AVAILABLE | 2026-10-11 15:10 | 0 | Merged PR #248 (act-on-8 fixes + 6 review findings) via guarded squash d5dbef9 after independent PASS+NOTES verdict; del | `project-log-md/muse_code/session-summary-20261011-1510.md` |
 | open_code | AVAILABLE | 2026-08-25 07:39 | 0 | LIFF smoke-test plan for PR #202 drafted+reviewed (.scratch/liff-smoke-pr202/smoke-test-plan.md, REV1: 5 findings fixed) | `project-log-md/open_code/session-summary-20260825-0739.md` |
-| pi | AVAILABLE | 2026-10-24 07:17 | 0 | Session closeout after follow-ups: PR 295 merged + CD green, main at 02fef0c, tree clean, no pending code work | `project-log-md/pi/session-summary-20261024-0717.md` |
+| pi | AVAILABLE | 2026-10-24 11:26 | 0 | PR 257 merged after conflict resolution (4 generated files took main, views regenerated); main healthy, CD correctly ski | `project-log-md/pi/session-summary-20261024-1126.md` |
 | qoder | AVAILABLE | 2026-08-29 23:21 | 0 | Merged PR #206 + #207 to main (8ddbda3, beaff04) — resolved #206 generated-state conflicts (kept both 21:58/22:44 record | `project-log-md/qoder/session-summary-20260829-2321.md` |
 | zcode | AVAILABLE | 2026-09-06 22:56 | 0 | codebase-review-fix on PR #228 CLOSED via PR #229 (squash e63ee9f, CI 4/4, CD success): review found 0 Critical/High; 3  | `project-log-md/zcode/session-summary-20260906-2256.md` |
 
@@ -35,6 +35,7 @@ _None — no blocked checkpoints._
 
 | When | From → To | Task | Checkpoint |
 |------|-----------|------|------------|
+| 2026-10-24 11:26 | pi → all | PR 257 merged after conflict resolution (4 generated files took main, views regenerated); main healthy, CD correctly skipped deploy for docs | `handover-pi-20261024-1126.json` |
 | 2026-10-24 07:17 | pi → all | Session closeout after follow-ups: PR 295 merged + CD green, main at 02fef0c, tree clean, no pending code work | `handover-pi-20261024-0717.json` |
 | 2026-10-24 07:11 | pi → all | Follow-up batch done: PR 295 merged, CD green incl prod migration c3d4e5f6a7b8; user asked about pending items and confirmed all three; main | `handover-pi-20261024-0711.json` |
 | 2026-10-24 02:21 | pi → all | Session closeout: pstack pipeline done, PRs 291-294 merged green, follow-ups proposed, PR 257 merge question pending user | `handover-pi-20261024-0221.json` |
@@ -44,4 +45,3 @@ _None — no blocked checkpoints._
 | 2026-10-22 08:18 | pi → all | Merged PR stack to main: #282 user-create roles, #283 login by username-or-email, #284 access-request form + approval queue + password reset | `handover-pi-20261022-0818.json` |
 | 2026-10-21 18:42 | pi → all | Graphs refreshed after review-fix session: graft rebuild and graphify update both green, tree clean | `handover-pi-20261021-1842.json` |
 | 2026-10-21 08:48 | pi → all | Session complete: PR #280 LINE toggle+quota and PR #281 review fixes both merged, CD green; pstack 6-skill review synthesized and applied | `handover-pi-20261021-0848.json` |
-| 2026-10-21 08:39 | pi → all | PR #281 review fixes merged to main, CD green; kept line OFF default per operator; admin must flip LINE toggle ON to resume pushes | `handover-pi-20261021-0839.json` |
