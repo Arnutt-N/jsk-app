@@ -148,6 +148,7 @@ def test_view_reports_includes_director_and_head():
             UserRole.ADMIN,
             UserRole.DIRECTOR,
             UserRole.HEAD,
+            UserRole.VIEWER,
         }
     )
 

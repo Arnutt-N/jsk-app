@@ -77,6 +77,7 @@ def _override(results):
 
     app.dependency_overrides[session_get_db] = _get_db
     app.dependency_overrides[deps.get_current_admin] = _get_admin
+    app.dependency_overrides[deps.get_current_admin_or_viewer] = _get_admin
     return db
 
 

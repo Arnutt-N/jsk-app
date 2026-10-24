@@ -28,8 +28,11 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.api.deps import get_current_admin as deps_admin
+from app.api.deps import get_current_admin_or_viewer as deps_admin_or_viewer
 from app.api.deps import get_current_manager as deps_manager
+from app.api.deps import get_current_manager_or_viewer as deps_manager_or_viewer
 from app.api.deps import get_current_staff as deps_staff
+from app.api.deps import get_current_staff_or_viewer as deps_staff_or_viewer
 from app.api.deps import get_db as deps_get_db
 from app.db.session import get_db as session_get_db
 from app.main import app
@@ -90,6 +93,9 @@ def client():
     app.dependency_overrides[deps_admin] = _fake_user
     app.dependency_overrides[deps_manager] = _fake_user
     app.dependency_overrides[deps_staff] = _fake_user
+    app.dependency_overrides[deps_admin_or_viewer] = _fake_user
+    app.dependency_overrides[deps_manager_or_viewer] = _fake_user
+    app.dependency_overrides[deps_staff_or_viewer] = _fake_user
     app.dependency_overrides[deps_get_db] = _stub_db
     app.dependency_overrides[session_get_db] = _stub_db
     # Plain TestClient without the lifespan context manager: none of these
@@ -100,6 +106,9 @@ def client():
     app.dependency_overrides.pop(deps_admin, None)
     app.dependency_overrides.pop(deps_manager, None)
     app.dependency_overrides.pop(deps_staff, None)
+    app.dependency_overrides.pop(deps_admin_or_viewer, None)
+    app.dependency_overrides.pop(deps_manager_or_viewer, None)
+    app.dependency_overrides.pop(deps_staff_or_viewer, None)
     app.dependency_overrides.pop(deps_get_db, None)
     app.dependency_overrides.pop(session_get_db, None)
 
