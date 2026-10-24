@@ -1,15 +1,11 @@
-"""VIEWER role: read-only observer (menus 1-5 GET only).
+"""VIEWER role gates (read-only observer, menus 1-5).
 
-Unit tests (no DB): enum membership, permission matrix, PII masking.
-Integration tests (need Postgres+Redis): VIEWER GET 200 on allow-listed
-routes, 403 on writes and closed routes. Integration tests skip gracefully
-when services are unreachable (local runs without docker).
-
-Isolation recipe: same as test_taxonomy_patch_regression.py -- throwaway
-NullPool engine, real HTTP via TestClient with get_db + get_current_user
-overridden. No fixture rows needed: empty tables still prove the gates.
+Isolation recipe mirrors test_taxonomy_patch_regression.py (NullPool + TestClient overrides).
 """
+import asyncio
 import socket
+from dataclasses import replace
+from datetime import date, timedelta
 from types import SimpleNamespace
 from urllib.parse import urlparse
 
@@ -45,6 +41,7 @@ from app.core.pii_masking import (
     mask_viewer_contacts,
 )
 from app.main import app
+from app.services.booking_settings import DEFAULTS, save_booking_config
 from app.models.user import UserRole
 
 
@@ -78,8 +75,6 @@ def _client_with_viewer(Session):
     app.dependency_overrides[deps.get_current_user] = _viewer_user
     return TestClient(app, raise_server_exceptions=False)
 
-
-# --- Unit: enum + permission matrix (no DB) -------------------------------
 
 
 def test_viewer_in_user_role_enum():
@@ -148,12 +143,18 @@ def test_mask_viewer_contacts_only_for_viewer():
     assert untouched == payload
 
 
-# --- Integration: gates (needs DB) ---------------------------------------
-
 
 @needs_db
 def test_viewer_get_allowed_routes_200():
     Session = _fresh_session_factory()
+    probe_service = "viewer-probe"
+    probe_date = (date.today() + timedelta(days=7)).isoformat()
+
+    async def _seed_booking_config():
+        async with Session() as session:
+            await save_booking_config(session, replace(DEFAULTS, service_types=(probe_service,)))
+
+    asyncio.run(_seed_booking_config())
     client = _client_with_viewer(Session)
     try:
         for path in (
@@ -161,7 +162,7 @@ def test_viewer_get_allowed_routes_200():
             "/api/v1/admin/requests/stats/monthly",
             "/api/v1/admin/requests?limit=1",
             "/api/v1/admin/bookings?limit=1",
-            "/api/v1/admin/bookings/availability?service_type=x&date=2026-01-01",
+            f"/api/v1/admin/bookings/availability?service_type={probe_service}&date={probe_date}",
             "/api/v1/admin/reports/overview?start_date=2026-01-01&end_date=2026-01-02",
             "/api/v1/admin/reply-objects?limit=1",
             "/api/v1/admin/rich-menus?limit=1",
