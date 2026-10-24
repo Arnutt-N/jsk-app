@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-10-24 02:21 by Pi (Session closeout: pstack pipeline done, PRs 291-294 merged green, follow-ups proposed, PR )
+> **Last Updated:** 2026-10-24 07:11 by Pi (Follow-up batch done: PR 295 merged, CD green incl prod migration c3d4e5f6a7b8; user asked)
 
 ## Thai Summary
 **สถานะล่าสุด (2026-09-30)** — รวม PR #239 (แก้บั๊กโอนแชทไม่มีบันทึก M-8) เข้าสายหลักแล้ว (`fd82c7a`) + ตรวจหลังส่งขึ้นร้านจริงเสร็จ: หลังบ้านแข็งแรงดี (database+redis ปกติ), หน้าร้านเปิดติด (HTTP 200), ปุ่มโอนแชทล็อกถูกต้อง (401), บันทึกส่งของ CD `36596610691` เขียวครบ 6 งาน — โค้ดตรงกับเซิร์ฟเวอร์ เหลือ Round-3b (22 ข้อ) + ซ่อมไฟล์ทดสอบ upload-security ที่พังมาก่อน
@@ -123,6 +123,7 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-10-24 07:11] Pi: Follow-up batch done: PR 295 merged, CD green incl prod migration c3d4e5f6a7b8; user asked about pending items and confirmed all three; main at 96d1849 (Pi)
 - [2026-10-24 02:21] Pi: Session closeout: pstack pipeline done, PRs 291-294 merged green, follow-ups proposed, PR 257 merge question pending user (Pi)
 - [2026-10-24 00:06] Pi: pstack pipeline complete: #293 hardening merged (CD green), #294 harness merged; interrogate+thermos findings actioned; user decisions Q1-keep Q2-cascade Q3-hide-children recorded (Pi)
 - [2026-10-23 19:25] Pi: PR #291 merged (squash c319a45): LIFF leave-confirm unified + admin soft-delete; CI all green (Pi)

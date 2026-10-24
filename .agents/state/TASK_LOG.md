@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 303 active handoffs, 12 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 304 active handoffs, 12 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-10-24 07:11 — pi — completed
+
+Follow-up batch done: PR 295 merged, CD green incl prod migration c3d4e5f6a7b8; user asked about pending items and confirmed all three; main at 96d1849
+
+- Checkpoint: `.agents/state/checkpoints/handover-pi-20261024-0711.json`
+- Summary: `project-log-md/pi/session-summary-20261024-0711.md`
+
+---
 
 ### 2026-10-24 02:21 — pi — completed
 

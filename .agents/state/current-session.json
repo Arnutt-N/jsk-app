@@ -1,13 +1,20 @@
 {
-  "last_updated": "2026-10-24T02:21:00+07:00",
+  "last_updated": "2026-10-24T07:11:00+07:00",
   "platform": "pi",
-  "current_task": "Session closeout: pstack pipeline done, PRs 291-294 merged green, follow-ups proposed, PR 257 merge question pending user",
+  "current_task": "Follow-up batch done: PR 295 merged, CD green incl prod migration c3d4e5f6a7b8; user asked about pending items and confirmed all three; main at 96d1849",
   "plan_status": "completed",
   "next_steps": [
-    "Verify nothing pending merge",
-    "Await user decision on PR 257 and follow-up batch"
+    "Verify nothing pending",
+    "Await user next task or device-test results"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-10-24T07:11:00+07:00",
+      "platform": "pi",
+      "branch": "main",
+      "head": "96d1849",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-10-24T02:21:00+07:00",
       "platform": "pi",
@@ -139,13 +146,6 @@
       "platform": "claude_code",
       "branch": "ccr-9338243d-v9lk0m",
       "head": "58ed0cc",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-10-18T14:33:00+07:00",
-      "platform": "pi",
-      "branch": "main",
-      "head": "e305389",
       "status": "completed"
     }
   ],
