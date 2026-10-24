@@ -15,8 +15,9 @@ from sqlalchemy import func, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_admin, get_current_staff
+from app.api.deps import get_current_admin, get_current_staff, get_current_staff_or_viewer
 from app.core.audit import create_audit_log
+from app.core.pii_masking import mask_viewer_contacts
 from app.core.query_utils import escape_ilike
 from app.db.session import get_db
 from app.models.booking import Booking, BookingStatus
@@ -78,7 +79,7 @@ async def list_bookings(
     limit: int = Query(default=100, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
     db: AsyncSession = Depends(get_db),
-    _staff=Depends(get_current_staff),
+    _staff=Depends(get_current_staff_or_viewer),
 ):
     stmt = select(Booking)
     if booking_date is not None:
@@ -106,7 +107,10 @@ async def list_bookings(
         .offset(offset)
     )
     result = await db.execute(stmt)
-    return [BookingOut.model_validate(b) for b in result.scalars().all()]
+    return [
+        mask_viewer_contacts(BookingOut.model_validate(b).model_dump(), _staff.role)
+        for b in result.scalars().all()
+    ]
 
 
 @router.get(
@@ -118,7 +122,7 @@ async def counter_availability(
     service_type: str = Query(max_length=200),
     booking_date: date_type = Query(alias="date"),
     db: AsyncSession = Depends(get_db),
-    _staff=Depends(get_current_staff),
+    _staff=Depends(get_current_staff_or_viewer),
 ):
     """Same engine as the LIFF strip, minus the LINE token requirement."""
     config = await load_booking_config(db, fresh=True)
@@ -158,7 +162,7 @@ async def counter_availability_range(
     range_start: date_type = Query(alias="from"),
     range_end: date_type = Query(alias="to"),
     db: AsyncSession = Depends(get_db),
-    _staff=Depends(get_current_staff),
+    _staff=Depends(get_current_staff_or_viewer),
 ):
     config = await load_booking_config(db, fresh=True)
     if not config.calendar_enabled:

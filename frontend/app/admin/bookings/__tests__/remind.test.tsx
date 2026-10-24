@@ -6,6 +6,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import AdminBookingsPage from '../page'
 import type { Booking } from '@/lib/booking'
 
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({ user: { role: 'ADMIN' } }),
+}))
+
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,

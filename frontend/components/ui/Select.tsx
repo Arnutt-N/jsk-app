@@ -68,6 +68,7 @@ export type SelectProps = Omit<React.SelectHTMLAttributes<HTMLSelectElement>, 's
     leftIcon?: React.ReactNode
     errorMessage?: string
     helperText?: string
+    wrapperClassName?: string
   } & (
     | { options: SelectOption[]; groups?: never }
     | { options?: never; groups: SelectGroup[] }
@@ -77,6 +78,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
   (
     {
       className,
+      wrapperClassName,
       variant,
       size,
       state,
@@ -91,7 +93,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     ref
   ) => {
     return (
-      <div className="w-full">
+      <div className={cn('w-full', wrapperClassName)}>
         <div className="relative">
           {leftIcon && (
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary transition-colors duration-200 pointer-events-none">

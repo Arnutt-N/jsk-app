@@ -2,10 +2,15 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import ReplyObjectsPage from '../page';
 import NewReplyObjectPage from '../new/page';
+import EditReplyObjectPage from '../[object_id]/edit/page';
 
-const { pushMock } = vi.hoisted(() => ({ pushMock: vi.fn() }));
+const { pushMock, paramsMock } = vi.hoisted(() => ({
+  pushMock: vi.fn(),
+  paramsMock: { object_id: 'tmpl_promo' } as Record<string, string | string[]>,
+}));
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: pushMock, replace: vi.fn() }),
+  useParams: () => paramsMock,
 }));
 
 // useToast needs a provider in real use; mock it and capture the toast fn.
@@ -14,6 +19,9 @@ vi.mock('@/components/ui/Toast', () => ({
   useToast: () => ({ toast: toastMock }),
 }));
 vi.mock('@/lib/logger', () => ({ logger: { error: vi.fn(), info: vi.fn() } }));
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({ user: { role: 'ADMIN' } }),
+}));
 
 function jsonResponse(body: unknown, ok = true, status = 200): Promise<Response> {
   return Promise.resolve({
@@ -60,7 +68,7 @@ describe('ReplyObjectsPage — integration: save → reload round-trip', () => {
     });
   });
 
-  it('reloads a saved template payload back into the form when editing (round-trip prefill)', async () => {
+  it('navigates to the full edit page when editing (round-trip prefill)', async () => {
     const saved = {
       id: 7,
       object_id: 'tmpl_promo',
@@ -84,9 +92,15 @@ describe('ReplyObjectsPage — integration: save → reload round-trip', () => {
     await screen.findByText('Promo Card');
 
     fireEvent.click(screen.getByRole('button', { name: 'แก้ไข' }));
+    expect(pushMock).toHaveBeenCalledWith('/admin/reply-objects/tmpl_promo/edit');
+
+    // The edit page preloads the same object and prefills the form.
+    paramsMock.object_id = 'tmpl_promo';
+    vi.stubGlobal('fetch', vi.fn(() => jsonResponse(saved)));
+    render(<EditReplyObjectPage />);
 
     // Header text + identity fields prefilled from the saved object.
-    expect((screen.getByLabelText('Universal ID *') as HTMLInputElement).value).toBe('tmpl_promo');
+    expect((await screen.findByLabelText('Universal ID *') as HTMLInputElement).value).toBe('tmpl_promo');
     expect((screen.getByLabelText('Internal Name *') as HTMLInputElement).value).toBe('Promo Card');
 
     // The saved payload round-trips through JSON.stringify -> form -> TemplateEditor:
@@ -145,16 +159,16 @@ describe('ReplyObjectsPage — integration: save → reload round-trip', () => {
     };
     const fetchMock = vi.fn((_url: string, opts?: RequestInit) => {
       if (opts?.method === 'PUT') return jsonResponse({ id: 7 });
-      return jsonResponse([saved]);
+      return jsonResponse(saved);
     });
     vi.stubGlobal('fetch', fetchMock);
+    paramsMock.object_id = 'tmpl_promo';
 
-    render(<ReplyObjectsPage />);
-    await screen.findByText('Promo Card');
+    render(<EditReplyObjectPage />);
+    await screen.findByLabelText('Universal ID *');
 
     // handleEdit tags editor list items with internal `_key`s for stable React keys…
-    fireEvent.click(screen.getByRole('button', { name: 'แก้ไข' }));
-    fireEvent.click(screen.getByText('Save Modifications'));
+    fireEvent.click(screen.getByText('บันทึกการแก้ไข'));
 
     // …but the serialized payload must keep the exact LINE shape (no `_key`).
     await waitFor(() => {
@@ -286,7 +300,7 @@ describe('ReplyObjectsPage — integration: delete error handling (ts-4)', () =>
 });
 
 describe('ReplyObjectsPage — integration: legacy payload backward-compat (tcq-9)', () => {
-  it('opens the edit form for a legacy text object with a null payload without crashing', async () => {
+  it('opens the edit page for a legacy text object with a null payload without crashing', async () => {
     const legacy = {
       id: 11,
       object_id: 'legacy_text',
@@ -296,14 +310,12 @@ describe('ReplyObjectsPage — integration: legacy payload backward-compat (tcq-
       is_active: true,
       created_at: '2025-01-01T00:00:00Z',
     };
-    vi.stubGlobal('fetch', vi.fn(() => jsonResponse([legacy])));
+    paramsMock.object_id = 'legacy_text';
+    vi.stubGlobal('fetch', vi.fn(() => jsonResponse(legacy)));
 
-    render(<ReplyObjectsPage />);
-    await screen.findByText('Legacy Text');
+    render(<EditReplyObjectPage />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'แก้ไข' }));
-
-    expect((screen.getByLabelText('Universal ID *') as HTMLInputElement).value).toBe('legacy_text');
+    expect((await screen.findByLabelText('Universal ID *') as HTMLInputElement).value).toBe('legacy_text');
     // Null payload degrades to the empty-object skeleton in the raw editor.
     expect((screen.getByPlaceholderText('{ ... }') as HTMLTextAreaElement).value).toBe('{}');
   });
@@ -321,14 +333,12 @@ describe('ReplyObjectsPage — integration: legacy payload backward-compat (tcq-
       is_active: true,
       created_at: '2025-01-01T00:00:00Z',
     };
-    vi.stubGlobal('fetch', vi.fn(() => jsonResponse([legacy])));
+    paramsMock.object_id = 'legacy_flex';
+    vi.stubGlobal('fetch', vi.fn(() => jsonResponse(legacy)));
 
-    render(<ReplyObjectsPage />);
-    await screen.findByText('Legacy Flex');
+    render(<EditReplyObjectPage />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'แก้ไข' }));
-
-    const textarea = screen.getByPlaceholderText('{ ... }') as HTMLTextAreaElement;
+    const textarea = await screen.findByPlaceholderText('{ ... }') as HTMLTextAreaElement;
     expect(textarea.value).toContain('"type": "bubble"');
     // A flex payload has no editor-managed lists, so no internal keys are injected.
     expect(textarea.value).not.toContain('_key');
@@ -356,15 +366,13 @@ describe('ReplyObjectsPage — integration: legacy payload backward-compat (tcq-
       is_active: true,
       created_at: '2025-01-01T00:00:00Z',
     };
-    vi.stubGlobal('fetch', vi.fn(() => jsonResponse([legacy])));
+    paramsMock.object_id = 'legacy_confirm';
+    vi.stubGlobal('fetch', vi.fn(() => jsonResponse(legacy)));
 
-    render(<ReplyObjectsPage />);
-    await screen.findByText('Legacy Confirm');
-
-    fireEvent.click(screen.getByRole('button', { name: 'แก้ไข' }));
+    render(<EditReplyObjectPage />);
 
     // Structured editor opens on the confirm subtype with the legacy text intact.
-    expect(screen.getByRole('button', { name: 'Confirm' })).toHaveAttribute('aria-pressed', 'true');
+    expect(await screen.findByRole('button', { name: 'Confirm' })).toHaveAttribute('aria-pressed', 'true');
     expect((screen.getByPlaceholderText('คำถามให้ผู้ใช้ยืนยัน') as HTMLTextAreaElement).value).toBe(
       'ยืนยันหรือไม่',
     );

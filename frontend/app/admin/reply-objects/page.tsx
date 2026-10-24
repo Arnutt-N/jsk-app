@@ -2,19 +2,22 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Package, Trash2, SquarePen, Eye, LayoutGrid, List } from 'lucide-react';
 import PageHeader from '@/app/admin/components/PageHeader';
 import { ViewToggle } from '@/components/admin/ViewToggle';
 import { DetailModal } from '@/components/admin/DetailModal';
 import { ActionIconButton } from '@/components/ui/ActionIconButton';
+import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { Modal } from '@/components/ui/Modal';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import ReplyObjectForm, { formatErrorDetail, type ReplyObjectFormData } from '@/components/admin/ReplyObjectForm';
+import { Switch } from '@/components/ui/Switch';
+import { formatErrorDetail } from '@/components/admin/ReplyObjectForm';
 import { StaggerContainer, StaggerItem } from '@/components/ui/PageTransition';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/Toast';
 import { logger } from '@/lib/logger';
+import { ViewerHide, useIsViewer } from '@/components/admin/ViewerHide';
 
 interface ReplyObject {
     id: number;
@@ -29,10 +32,12 @@ interface ReplyObject {
 }
 
 export default function ReplyObjectsPage() {
+    const router = useRouter();
+    const isViewer = useIsViewer();
     const [objects, setObjects] = useState<ReplyObject[]>([]);
     const [loading, setLoading] = useState(true);
-    const [editingObj, setEditingObj] = useState<ReplyObject | null>(null);
     const [viewObj, setViewObj] = useState<ReplyObject | null>(null);
+    const [togglingId, setTogglingId] = useState<number | null>(null);
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
     const [confirmDelete, setConfirmDelete] = useState<{open: boolean; objectId: string | null}>({open: false, objectId: null});
@@ -57,30 +62,28 @@ export default function ReplyObjectsPage() {
         return () => window.clearTimeout(timer);
     }, [fetchObjects]);
 
-    const openEdit = (obj: ReplyObject) => setEditingObj(obj);
-    const closeEdit = () => setEditingObj(null);
+    const openEdit = (obj: ReplyObject) => router.push(`/admin/reply-objects/${obj.object_id}/edit`);
 
-    const handleSaveEdit = async (data: ReplyObjectFormData): Promise<boolean> => {
-        if (!editingObj) return false;
+    const handleToggleActive = async (obj: ReplyObject) => {
+        if (togglingId !== null) return;
+        setTogglingId(obj.id);
         try {
-            const res = await fetch(`${API_BASE}/admin/reply-objects/${editingObj.object_id}`, {
+            const res = await fetch(`${API_BASE}/admin/reply-objects/${obj.object_id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...data, payload: JSON.parse(data.payload) }),
+                body: JSON.stringify({ is_active: !obj.is_active }),
             });
             if (res.ok) {
-                toast({ title: 'บันทึกการแก้ไขแล้ว', variant: 'success' });
-                closeEdit();
+                toast({ title: 'อัปเดตสถานะแล้ว', variant: 'success' });
                 await fetchObjects();
-                return true;
+            } else {
+                toast({ title: 'ผิดพลาด', description: formatErrorDetail(undefined, 'อัปเดตไม่สำเร็จ กรุณาลองใหม่อีกครั้ง'), variant: 'error' });
             }
-            const error = await res.json().catch(() => ({} as { detail?: unknown }));
-            toast({ title: 'ผิดพลาด', description: formatErrorDetail(error.detail), variant: 'error' });
-            return false;
         } catch (error) {
-            logger.error('Error saving reply object:', error);
-            toast({ title: 'ผิดพลาด', description: formatErrorDetail(undefined), variant: 'error' });
-            return false;
+            logger.error('Error toggling reply object:', error);
+            toast({ title: 'ผิดพลาด', description: 'อัปเดตไม่สำเร็จ กรุณาลองใหม่อีกครั้ง', variant: 'error' });
+        } finally {
+            setTogglingId(null);
         }
     };
 
@@ -106,19 +109,6 @@ export default function ReplyObjectsPage() {
         }
     };
 
-    const editInitial: ReplyObjectFormData | null = editingObj ? (() => {
-        const p = editingObj.payload;
-        const isPlainObject = p !== null && typeof p === 'object' && !Array.isArray(p);
-        return {
-            object_id: editingObj.object_id,
-            name: editingObj.name,
-            category: editingObj.category || '',
-            object_type: editingObj.object_type,
-            payload: isPlainObject ? JSON.stringify(p, null, 2) : p ? JSON.stringify(p, null, 2) : '{}',
-            alt_text: editingObj.alt_text || '',
-        };
-    })() : null;
-
     return (
         <div className="space-y-6 animate-in fade-in duration-500 thai-text">
             <PageHeader title="Reply Objects" subtitle="Manage reusable message templates">
@@ -132,9 +122,11 @@ export default function ReplyObjectsPage() {
                         onChange={setViewMode}
                         ariaLabel="มุมมอง"
                     />
-                    <Link href="/admin/reply-objects/new">
-                        <Button>+ New Template</Button>
-                    </Link>
+                    <ViewerHide>
+                        <Link href="/admin/reply-objects/new">
+                            <Button>+ New Template</Button>
+                        </Link>
+                    </ViewerHide>
                 </div>
             </PageHeader>
 
@@ -180,6 +172,22 @@ export default function ReplyObjectsPage() {
                                     </div>
                                 )}
 
+                                <div className="flex items-center justify-between gap-2 mb-4">
+                                    <div className="flex items-center gap-2">
+                                        <Badge variant={obj.is_active ? 'success' : 'gray'} size="sm" className="thai-no-break">
+                                            {obj.is_active ? 'ใช้งานอยู่' : 'ปิดใช้งาน'}
+                                        </Badge>
+                                        <ViewerHide>
+                                            <Switch
+                                                checked={obj.is_active}
+                                                onCheckedChange={() => { void handleToggleActive(obj); }}
+                                                disabled={togglingId === obj.id}
+                                                aria-label={`${obj.is_active ? 'ปิดใช้งาน' : 'เปิดใช้งาน'} ${obj.name}`}
+                                            />
+                                        </ViewerHide>
+                                    </div>
+                                </div>
+
                                 <div className="flex gap-2 h-10 items-center justify-end">
                                     <ActionIconButton
                                         icon={<Eye className="w-4 h-4" />}
@@ -187,18 +195,22 @@ export default function ReplyObjectsPage() {
                                         variant="default"
                                         onClick={() => setViewObj(obj)}
                                     />
-                                    <ActionIconButton
-                                        icon={<SquarePen className="w-4 h-4" />}
-                                        label="แก้ไข"
-                                        variant="default"
-                                        onClick={() => openEdit(obj)}
-                                    />
-                                    <ActionIconButton
-                                        icon={<Trash2 className="w-4 h-4" />}
-                                        label="ลบ"
-                                        variant="danger"
-                                        onClick={() => setConfirmDelete({open: true, objectId: obj.object_id})}
-                                    />
+                                    <ViewerHide>
+                                        <>
+                                            <ActionIconButton
+                                                icon={<SquarePen className="w-4 h-4" />}
+                                                label="แก้ไข"
+                                                variant="default"
+                                                onClick={() => openEdit(obj)}
+                                            />
+                                            <ActionIconButton
+                                                icon={<Trash2 className="w-4 h-4" />}
+                                                label="ลบ"
+                                                variant="danger"
+                                                onClick={() => setConfirmDelete({open: true, objectId: obj.object_id})}
+                                            />
+                                        </>
+                                    </ViewerHide>
                                 </div>
                             </div>
                         </div>
@@ -215,6 +227,7 @@ export default function ReplyObjectsPage() {
                                     <th className="px-5 py-3 text-xs font-semibold text-text-tertiary">ชื่อ</th>
                                     <th className="px-5 py-3 text-xs font-semibold text-text-tertiary text-center">ประเภท</th>
                                     <th className="px-5 py-3 text-xs font-semibold text-text-tertiary">หมวดหมู่</th>
+                                    <th className="px-5 py-3 text-xs font-semibold text-text-tertiary text-center">สถานะ</th>
                                     <th className="px-5 py-3 text-xs font-semibold text-text-tertiary text-center">จัดการ</th>
                                 </tr>
                             </thead>
@@ -226,10 +239,29 @@ export default function ReplyObjectsPage() {
                                         <td className="px-5 py-3 text-center"><span className="text-[10px] font-bold uppercase tracking-widest text-text-secondary">{obj.object_type}</span></td>
                                         <td className="px-5 py-3 text-sm text-text-tertiary">{obj.category || '-'}</td>
                                         <td className="px-5 py-3">
+                                            <div className="flex flex-col items-center gap-2">
+                                                <Badge variant={obj.is_active ? 'success' : 'gray'} size="sm" className="thai-no-break">
+                                                    {obj.is_active ? 'ใช้งานอยู่' : 'ปิดใช้งาน'}
+                                                </Badge>
+                                                <ViewerHide>
+                                                    <Switch
+                                                        checked={obj.is_active}
+                                                        onCheckedChange={() => { void handleToggleActive(obj); }}
+                                                        disabled={togglingId === obj.id}
+                                                        aria-label={`${obj.is_active ? 'ปิดใช้งาน' : 'เปิดใช้งาน'} ${obj.name}`}
+                                                    />
+                                                </ViewerHide>
+                                            </div>
+                                        </td>
+                                        <td className="px-5 py-3">
                                             <div className="flex items-center justify-center gap-1">
                                                 <ActionIconButton icon={<Eye className="w-4 h-4" />} label="ดูรายละเอียด" variant="default" onClick={() => setViewObj(obj)} />
-                                                <ActionIconButton icon={<SquarePen className="w-4 h-4" />} label="แก้ไข" variant="default" onClick={() => openEdit(obj)} />
-                                                <ActionIconButton icon={<Trash2 className="w-4 h-4" />} label="ลบ" variant="danger" onClick={() => setConfirmDelete({ open: true, objectId: obj.object_id })} />
+                                                <ViewerHide>
+                                                    <>
+                                                        <ActionIconButton icon={<SquarePen className="w-4 h-4" />} label="แก้ไข" variant="default" onClick={() => openEdit(obj)} />
+                                                        <ActionIconButton icon={<Trash2 className="w-4 h-4" />} label="ลบ" variant="danger" onClick={() => setConfirmDelete({ open: true, objectId: obj.object_id })} />
+                                                    </>
+                                                </ViewerHide>
                                             </div>
                                         </td>
                                     </tr>
@@ -250,24 +282,6 @@ export default function ReplyObjectsPage() {
                 variant="danger"
             />
 
-            <Modal
-                isOpen={editingObj !== null}
-                onClose={closeEdit}
-                title="Edit Object"
-                maxWidth="4xl"
-            >
-                {editInitial && (
-                    <ReplyObjectForm
-                        key={editingObj?.object_id}
-                        initial={editInitial}
-                        lockObjectId
-                        submitLabel="Save Modifications"
-                        onSave={handleSaveEdit}
-                        onCancel={closeEdit}
-                    />
-                )}
-            </Modal>
-
             <DetailModal
                 title="รายละเอียดเทมเพลต"
                 open={viewObj !== null}
@@ -277,6 +291,11 @@ export default function ReplyObjectsPage() {
                     { label: 'ชื่อ', value: viewObj.name },
                     { label: 'ประเภท', value: <span className="uppercase">{viewObj.object_type}</span> },
                     { label: 'หมวดหมู่', value: viewObj.category || '-' },
+                    { label: 'สถานะ', value: (
+                        <Badge variant={viewObj.is_active ? 'success' : 'gray'} size="sm">
+                            {viewObj.is_active ? 'ใช้งานอยู่' : 'ปิดใช้งาน'}
+                        </Badge>
+                    ) },
                 ] : []}
                 renderExtra={viewObj ? (
                     <div>
@@ -287,7 +306,7 @@ export default function ReplyObjectsPage() {
                     </div>
                 ) : undefined}
                 actions={viewObj ? [
-                    { label: 'แก้ไข', onClick: () => { const o = viewObj; setViewObj(null); openEdit(o); }, variant: 'outline' },
+                    ...(!isViewer ? [{ label: 'แก้ไข', onClick: () => { const o = viewObj; setViewObj(null); openEdit(o); }, variant: 'outline' as const }] : []),
                     { label: 'ปิด', onClick: () => setViewObj(null), variant: 'primary' },
                 ] : undefined}
             />

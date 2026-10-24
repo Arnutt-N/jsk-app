@@ -5,7 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 from typing import List
 
-from app.api.deps import get_db, get_current_admin, require_permission
+from app.api.deps import get_db, get_current_admin, get_current_admin_or_viewer, require_permission
 from app.core.permissions import KEY_MANAGE_AUTO_REPLIES
 from app.models.intent import IntentCategory, IntentKeyword, IntentResponse, MatchType, ReplyType
 from app.models.user import User
@@ -25,7 +25,7 @@ async def list_categories(
     limit: int = Query(100, ge=1, le=100),
     include_inactive: bool = Query(False),
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin)
+    current_admin: User = Depends(get_current_admin_or_viewer)
 ):
     """List all intent categories with row counts."""
     stmt = select(IntentCategory).order_by(IntentCategory.name).offset(skip).limit(limit)

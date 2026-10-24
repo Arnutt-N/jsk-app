@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { subDays, format } from "date-fns";
 import type { DateRange } from "react-day-picker";
+import { defaultDateRange, isDefaultRange, toYMD } from "@/lib/date-range";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -61,23 +61,11 @@ export default function AuditLogPage() {
   const [total, setTotal] = useState(0);
   const [offset, setOffset] = useState(0);
   const [limit] = useState(50);
-  const [range, setRange] = useState<DateRange | undefined>(() => {
-    const to = new Date();
-    return { from: subDays(to, 7), to };
-  });
+  const [range, setRange] = useState<DateRange | undefined>(() => defaultDateRange());
   const [filter, setFilter] = useState({
     action: "",
     resource_type: ""
   });
-
-  const toYMD = (d: Date) => format(d, "yyyy-MM-dd");
-  const DEFAULT_RANGE_DAYS = 7;
-  const isDefaultRange = (r: DateRange | undefined) => {
-    if (!r?.from || !r.to) return false;
-    const to = new Date();
-    const diffDays = Math.round((to.getTime() - r.from.getTime()) / 86400000);
-    return diffDays === DEFAULT_RANGE_DAYS && toYMD(r.to) === toYMD(to);
-  };
 
   const fetchLogs = useCallback(async () => {
     setLoading(true);
@@ -134,8 +122,7 @@ export default function AuditLogPage() {
 
   const clearFilters = () => {
     setFilter({ action: "", resource_type: "" });
-    const to = new Date();
-    setRange({ from: subDays(to, 7), to });
+    setRange(defaultDateRange());
     setOffset(0);
   };
 
@@ -228,7 +215,7 @@ export default function AuditLogPage() {
 
       {/* Filters */}
       <div className="bg-surface rounded-2xl border border-border-default p-4 shadow-sm">
-        <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex flex-col sm:flex-row flex-wrap sm:items-center gap-4">
           <Select
             value={filter.action}
             onChange={(e) => {
@@ -237,7 +224,7 @@ export default function AuditLogPage() {
             }}
             options={actionOptions}
             placeholder="กรองตามการกระทำ..."
-            className="w-full sm:w-48"
+            wrapperClassName="w-full sm:w-48"
           />
           <Select
             value={filter.resource_type}
@@ -247,8 +234,13 @@ export default function AuditLogPage() {
             }}
             options={resourceOptions}
             placeholder="กรองตามประเภททรัพยากร..."
-            className="w-full sm:w-48"
+            wrapperClassName="w-full sm:w-48"
           />
+          {hasActiveFilter && (
+            <Button variant="ghost" size="sm" onClick={clearFilters} leftIcon={<RotateCcw className="w-4 h-4" />}>
+              ล้างตัวกรอง
+            </Button>
+          )}
         </div>
       </div>
 

@@ -5,7 +5,7 @@ import logging
 import os
 import httpx
 from app.db.session import get_db
-from app.api.deps import get_current_admin, require_permission
+from app.api.deps import get_current_admin_or_viewer, require_permission
 from app.core.permissions import KEY_MANAGE_RICH_MENUS
 from app.core.audit import create_audit_log
 from app.core.http_rate_limit import http_rate_limit
@@ -101,7 +101,7 @@ async def list_rich_menus(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin),
+    current_admin: User = Depends(get_current_admin_or_viewer),
 ):
     result = await db.execute(select(RichMenu).order_by(RichMenu.created_at.desc()).offset(skip).limit(limit))
     menus = result.scalars().all()
@@ -132,7 +132,7 @@ async def list_rich_menu_aliases(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin),
+    current_admin: User = Depends(get_current_admin_or_viewer),
 ):
     result = await db.execute(select(RichMenuAlias).order_by(RichMenuAlias.created_at.desc()).offset(skip).limit(limit))
     return result.scalars().all()
@@ -401,7 +401,7 @@ async def get_user_rich_menu_assignment(
     id: int,
     user_id: str = Path(pattern=LINE_USER_ID_PATTERN),
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin),
+    current_admin: User = Depends(get_current_admin_or_viewer),
 ):
     # `id` is an existence/consistency anchor; the returned assignment is the
     # user's actual LINE menu (may differ from `id`).
@@ -420,7 +420,7 @@ async def get_user_rich_menu_assignment(
 async def get_rich_menu_dependencies(
     id: int,
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin),
+    current_admin: User = Depends(get_current_admin_or_viewer),
 ):
     """List what depends on this menu (aliases + per-user link count).
 
@@ -470,7 +470,7 @@ async def get_rich_menu_insight_summary(
     from_date: str = Query(..., alias="from", pattern=r"^\d{8}$"),
     to_date: str = Query(..., alias="to", pattern=r"^\d{8}$"),
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin),
+    current_admin: User = Depends(get_current_admin_or_viewer),
 ):
     result = await db.execute(select(RichMenu).where(RichMenu.id == id))
     rich_menu = result.scalar_one_or_none()
@@ -498,7 +498,7 @@ async def get_rich_menu_insight_daily(
     from_date: str = Query(..., alias="from", pattern=r"^\d{8}$"),
     to_date: str = Query(..., alias="to", pattern=r"^\d{8}$"),
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin),
+    current_admin: User = Depends(get_current_admin_or_viewer),
 ):
     result = await db.execute(select(RichMenu).where(RichMenu.id == id))
     rich_menu = result.scalar_one_or_none()
@@ -524,7 +524,7 @@ async def get_rich_menu_insight_daily(
 async def preview_rich_menu(
     id: int,
     db: AsyncSession = Depends(get_db),
-    _current_admin: User = Depends(get_current_admin),
+    _current_admin: User = Depends(get_current_admin_or_viewer),
 ):
     """Preview a menu: placeholder when it has no image yet (C7)."""
     row = await db.get(RichMenu, id)
@@ -536,7 +536,7 @@ async def preview_rich_menu(
 
 
 @router.get("/{id}", response_model=RichMenuResponse)
-async def get_rich_menu(id: int, db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_admin)):
+async def get_rich_menu(id: int, db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_admin_or_viewer)):
     result = await db.execute(select(RichMenu).where(RichMenu.id == id))
     rich_menu = result.scalar_one_or_none()
     if not rich_menu:
@@ -715,7 +715,7 @@ async def sync_rich_menu(id: int, db: AsyncSession = Depends(get_db), current_ad
     return sync_result
 
 @router.get("/{id}/sync-status")
-async def get_sync_status(id: int, db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_admin)):
+async def get_sync_status(id: int, db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_admin_or_viewer)):
     """Get the current sync status of a rich menu."""
     status_info = await RichMenuService.get_sync_status(db, id)
     if "success" in status_info and not status_info["success"]:

@@ -5,6 +5,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import AdminRequestList from '../page';
 import { isoToYMD } from '@/lib/utils';
 
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({ user: { role: 'ADMIN' } }),
+}));
+
 vi.mock('@/components/ui/CalendarPickerTH', () => ({
   default: function MockCalendarPicker({
     value,

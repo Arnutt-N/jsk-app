@@ -6,12 +6,18 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ToastProvider } from '@/components/ui/Toast';
 import CannedResponsesPage from '../page';
 
+const { authMocks } = vi.hoisted(() => ({ authMocks: { role: 'ADMIN' as string } }));
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({ user: { role: authMocks.role } }),
+}));
+
 interface CannedFixture {
   id: number;
   shortcut: string;
   title: string;
   content: string;
   category: string;
+  is_active?: boolean;
   usage_count?: number;
 }
 
@@ -53,6 +59,7 @@ async function fillForm(user: ReturnType<typeof userEvent.setup>) {
 describe('CannedResponsesPage', () => {
   beforeEach(() => {
     vi.unstubAllGlobals();
+    authMocks.role = 'ADMIN';
   });
 
   it('fetches the list and shows the empty state', async () => {
@@ -167,5 +174,53 @@ describe('CannedResponsesPage', () => {
       );
       expect(delCall).toBeTruthy();
     });
+  });
+
+  it('toggles active from the Status column: PUTs is_active then refetches', async () => {
+    const user = userEvent.setup();
+    const row: CannedFixture = { id: 7, shortcut: 'hello', title: 'ข้อความต้อนรับ', content: 'สวัสดีค่ะ', category: 'greeting' };
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(listResponse([row]))
+      .mockResolvedValueOnce(jsonResponse({ ...row, is_active: false }))
+      .mockResolvedValueOnce(listResponse([{ ...row, is_active: false }]));
+    vi.stubGlobal('fetch', fetchMock);
+
+    renderPage();
+    await waitForInitialFetch(fetchMock);
+    await screen.findByText('/hello');
+
+    await user.click(screen.getByRole('checkbox', { name: 'เปิดใช้งาน ข้อความต้อนรับ' }));
+
+    await waitFor(() => {
+      const putCall = fetchMock.mock.calls.find(
+        ([url, init]) => url === '/api/v1/admin/canned-responses/7' && init?.method === 'PUT'
+      );
+      expect(putCall).toBeTruthy();
+    });
+    const putCall = fetchMock.mock.calls.find(
+      ([url, init]) => url === '/api/v1/admin/canned-responses/7' && init?.method === 'PUT'
+    )!;
+    expect(JSON.parse(putCall[1].body as string)).toEqual({ is_active: false });
+  });
+
+  it('VIEWER sees the status badge but no switch and no write actions', async () => {
+    authMocks.role = 'VIEWER';
+    const fetchMock = vi.fn().mockResolvedValue(
+      listResponse([
+        { id: 1, shortcut: 'hello', title: 'ข้อความต้อนรับ', content: 'สวัสดีค่ะ', category: 'greeting', usage_count: 3 },
+      ])
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    renderPage();
+    await waitForInitialFetch(fetchMock);
+    await screen.findByText('/hello');
+
+    expect(screen.getByText('ใช้งานอยู่')).toBeInTheDocument();
+    expect(screen.queryByRole('checkbox', { name: 'เปิดใช้งาน ข้อความต้อนรับ' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'เพิ่มข้อความ' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'แก้ไข' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'ลบ' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'ดูรายละเอียด' })).toBeInTheDocument();
   });
 });

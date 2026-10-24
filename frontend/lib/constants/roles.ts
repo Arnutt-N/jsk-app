@@ -2,7 +2,12 @@
  * Source of truth for user-role identity across the admin UI.
  *
  * Backend enum (backend/app/models/user.py:UserRole) — DO NOT rename values:
- *   SUPER_ADMIN, ADMIN, DIRECTOR, HEAD, AGENT, USER
+ *   SUPER_ADMIN, ADMIN, DIRECTOR, HEAD, AGENT, VIEWER, USER
+ *
+ * VIEWER is the read-only observer (ผู้ชม): allowed nav is menus 1-5 only,
+ * every write denied backend-side. VIEWER is deliberately NOT in STAFF_ROLES
+ * (write paths keyed on staff stay closed); nav visibility is per-item
+ * `allowedRoles` in app/admin/layout.tsx.
  *
  * Display policy (Phase 2 rename):
  *   - AGENT's English label is "Operator" (it was mislabeled "Staff").
@@ -17,6 +22,7 @@ export const ROLE = {
   DIRECTOR: 'DIRECTOR',
   HEAD: 'HEAD',
   AGENT: 'AGENT',
+  VIEWER: 'VIEWER',
   USER: 'USER',
 } as const
 
@@ -38,6 +44,7 @@ export const ROLE_META: Record<Role, RoleMeta> = {
   DIRECTOR:    { label: 'Director',    labelTh: 'ผู้อำนวยการ',        badge: 'danger'  },
   HEAD:        { label: 'Head',        labelTh: 'หัวหน้าฝ่าย',        badge: 'warning' },
   AGENT:       { label: 'Operator',    labelTh: 'เจ้าหน้าที่',         badge: 'success' },
+  VIEWER:      { label: 'Viewer',      labelTh: 'ผู้ชม',               badge: 'gray'    },
   USER:        { label: 'User',        labelTh: 'ผู้ใช้ทั่วไป',        badge: 'gray'    },
 }
 

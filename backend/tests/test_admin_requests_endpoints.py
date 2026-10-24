@@ -107,6 +107,9 @@ def test_create_comment_ignores_forged_user_id_query_param():
     app.dependency_overrides[session_get_db] = _override_get_db
     app.dependency_overrides[deps.get_current_admin] = _override_get_current_admin
     app.dependency_overrides[deps.get_current_manager] = _override_get_current_admin
+    app.dependency_overrides[deps.get_current_admin_or_viewer] = _override_get_current_admin
+    app.dependency_overrides[deps.get_current_manager_or_viewer] = _override_get_current_admin
+    app.dependency_overrides[deps.get_current_staff_or_viewer] = _override_get_current_admin
 
     client = TestClient(app)
     try:
@@ -188,6 +191,9 @@ def _patch_admin_overrides(fake_db: _FakeDB):
     app.dependency_overrides[session_get_db] = _override_get_db
     app.dependency_overrides[deps.get_current_admin] = _override_get_current_admin
     app.dependency_overrides[deps.get_current_manager] = _override_get_current_admin
+    app.dependency_overrides[deps.get_current_admin_or_viewer] = _override_get_current_admin
+    app.dependency_overrides[deps.get_current_manager_or_viewer] = _override_get_current_admin
+    app.dependency_overrides[deps.get_current_staff_or_viewer] = _override_get_current_admin
 
     def teardown():
         app.dependency_overrides.clear()
@@ -346,6 +352,9 @@ def test_unassign_request_forbidden_for_agent_role():
     app.dependency_overrides[session_get_db] = _override_get_db
     app.dependency_overrides[deps.get_current_admin] = _override_get_current_admin
     app.dependency_overrides[deps.get_current_manager] = _override_get_current_admin
+    app.dependency_overrides[deps.get_current_admin_or_viewer] = _override_get_current_admin
+    app.dependency_overrides[deps.get_current_manager_or_viewer] = _override_get_current_admin
+    app.dependency_overrides[deps.get_current_staff_or_viewer] = _override_get_current_admin
 
     client = TestClient(app)
     try:
@@ -689,6 +698,9 @@ def _patch_agent_overrides(fake_db):
     app.dependency_overrides[session_get_db] = _override_get_db
     app.dependency_overrides[deps.get_current_admin] = _override_get_current_admin
     app.dependency_overrides[deps.get_current_manager] = _override_get_current_admin
+    app.dependency_overrides[deps.get_current_admin_or_viewer] = _override_get_current_admin
+    app.dependency_overrides[deps.get_current_manager_or_viewer] = _override_get_current_admin
+    app.dependency_overrides[deps.get_current_staff_or_viewer] = _override_get_current_admin
 
     def _teardown():
         app.dependency_overrides.clear()
@@ -1366,6 +1378,9 @@ def test_request_search_escapes_like_wildcards():
     app.dependency_overrides[session_get_db] = _override_get_db
     app.dependency_overrides[deps.get_current_admin] = _override_admin
     app.dependency_overrides[deps.get_current_manager] = _override_admin
+    app.dependency_overrides[deps.get_current_admin_or_viewer] = _override_admin
+    app.dependency_overrides[deps.get_current_manager_or_viewer] = _override_admin
+    app.dependency_overrides[deps.get_current_staff_or_viewer] = _override_admin
 
     client = TestClient(app)
     try:

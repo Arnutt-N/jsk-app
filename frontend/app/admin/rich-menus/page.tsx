@@ -8,6 +8,7 @@ import PageHeader from '@/app/admin/components/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { ActionIconButton } from '@/components/ui/ActionIconButton';
 import { DetailModal } from '@/components/admin/DetailModal';
+import { ViewerHide, useIsViewer } from '@/components/admin/ViewerHide';
 import { useRouter } from 'next/navigation';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -35,6 +36,7 @@ interface RichMenu {
 
 export default function RichMenuListPage() {
     const router = useRouter();
+    const isViewer = useIsViewer();
     const [menus, setMenus] = useState<RichMenu[]>([]);
     const [loading, setLoading] = useState(true);
     const [syncingId, setSyncingId] = useState<number | null>(null);
@@ -145,6 +147,8 @@ export default function RichMenuListPage() {
             {/* Header Section */}
             <PageHeader title="Rich Menus" subtitle="จัดการเมนู LINE Official Account">
                 <div className="flex items-center gap-2">
+                    <ViewerHide>
+                    <>
                     <Link href="/admin/rich-menus/aliases">
                         <Button size="sm" variant="ghost" leftIcon={<Link2 className="w-4 h-4" />}>
                             Aliases
@@ -155,6 +159,8 @@ export default function RichMenuListPage() {
                             New Menu
                         </Button>
                     </Link>
+                    </>
+                    </ViewerHide>
                 </div>
             </PageHeader>
 
@@ -163,7 +169,9 @@ export default function RichMenuListPage() {
             ) : menus.length === 0 ? (
                 <div className="bg-surface rounded-xl border border-dashed border-border-default p-12 text-center">
                     <p className="text-text-tertiary text-sm">ไม่พบข้อมูลเมนูในระบบ</p>
+                    <ViewerHide>
                     <Link href="/admin/rich-menus/new" className="text-brand-600 text-sm mt-2 block hover:underline cursor-pointer dark:text-brand-400">สร้างเมนูแรกของคุณ &rarr;</Link>
+                    </ViewerHide>
                 </div>
             ) : (
                 <div className="bg-surface rounded-2xl border border-border-default shadow-sm overflow-hidden">
@@ -232,6 +240,7 @@ export default function RichMenuListPage() {
                                     <td className="px-5 py-4">
                                         <div className="flex items-center justify-center gap-4">
                                             {/* Primary Action Button */}
+                                            <ViewerHide>
                                             {!menu.line_rich_menu_id ? (
                                                 <Button
                                                     size="xs"
@@ -272,10 +281,12 @@ export default function RichMenuListPage() {
                                             ) : (
                                                 <div className="text-[10px] font-black text-emerald-600 px-3 py-1 bg-emerald-50 rounded-full border border-emerald-100 tracking-widest leading-none thai-no-break dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20">Live Now</div>
                                             )}
+                                            </ViewerHide>
 
                                             {/* Icons Actions: Edit then Delete */}
                                             <div className="flex items-center gap-1 border-l border-border-default pl-4">
                                                 {menu.line_rich_menu_id && (
+                                                    <ViewerHide>
                                                     <Link href={`/admin/rich-menus/${menu.id}/insights`}>
                                                         <ActionIconButton
                                                             icon={<BarChart3 className="w-4 h-4" />}
@@ -283,6 +294,7 @@ export default function RichMenuListPage() {
                                                             variant="default"
                                                         />
                                                     </Link>
+                                                    </ViewerHide>
                                                 )}
                                                 <ActionIconButton
                                                     icon={<Eye className="w-4 h-4" />}
@@ -290,6 +302,7 @@ export default function RichMenuListPage() {
                                                     variant="default"
                                                     onClick={() => setViewMenu(menu)}
                                                 />
+                                                <ViewerHide>
                                                 <Link href={`/admin/rich-menus/${menu.id}/edit`}>
                                                     <ActionIconButton
                                                         icon={<SquarePen className="w-4 h-4" />}
@@ -297,13 +310,15 @@ export default function RichMenuListPage() {
                                                         variant="default"
                                                     />
                                                 </Link>
-
+                                                </ViewerHide>
+                                                <ViewerHide>
                                                 <ActionIconButton
                                                     icon={<Trash2 className="w-4 h-4" />}
                                                     label="ลบ"
                                                     variant="danger"
                                                     onClick={() => setConfirmDelete({open: true, id: menu.id})}
                                                 />
+                                                </ViewerHide>
                                             </div>
                                         </div>
                                     </td>
@@ -330,7 +345,7 @@ export default function RichMenuListPage() {
                     <img src={viewMenu.image_url} alt={viewMenu.name} className="w-full rounded-lg border border-border-default" />
                 ) : undefined}
                 actions={viewMenu ? [
-                    { label: 'แก้ไข', onClick: () => { const m = viewMenu; setViewMenu(null); router.push(`/admin/rich-menus/${m.id}/edit`); }, variant: 'outline' },
+                    ...(!isViewer ? [{ label: 'แก้ไข', onClick: () => { const m = viewMenu; setViewMenu(null); router.push(`/admin/rich-menus/${m.id}/edit`); }, variant: 'outline' as const }] : []),
                     { label: 'ปิด', onClick: () => setViewMenu(null), variant: 'primary' },
                 ] : undefined}
             />

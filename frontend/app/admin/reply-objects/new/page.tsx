@@ -1,24 +1,34 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import PageHeader from '@/app/admin/components/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
 import { logger } from '@/lib/logger';
+import { useAuth } from '@/contexts/AuthContext';
 import ReplyObjectForm, { EMPTY_REPLY_OBJECT_FORM, formatErrorDetail, type ReplyObjectFormData } from '@/components/admin/ReplyObjectForm';
+import { formToPayload } from '@/lib/reply-objects';
 
 const API_BASE = '/api/v1';
 export default function NewReplyObjectPage() {
     const router = useRouter();
     const { toast } = useToast();
+    const { user } = useAuth();
+
+    useEffect(() => {
+        if (user?.role === 'VIEWER') {
+            router.replace('/admin/reply-objects');
+        }
+    }, [router, user]);
 
     const handleSave = async (data: ReplyObjectFormData): Promise<boolean> => {
         try {
             const res = await fetch(`${API_BASE}/admin/reply-objects`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...data, payload: JSON.parse(data.payload) }),
+                body: JSON.stringify({ ...data, payload: formToPayload(data) }),
             });
             if (res.ok) {
                 toast({ title: 'สร้างเทมเพลตแล้ว', variant: 'success' });

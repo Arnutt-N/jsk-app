@@ -10,6 +10,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { Select } from '@/components/ui/Select'
 import { ViewToggle } from '@/components/admin/ViewToggle'
 import { CalendarDays, BellRing, ChevronLeft, ChevronRight, LayoutList, Pencil, Phone, Plus, RefreshCw, Search, UserMinus, UserPlus } from 'lucide-react'
+import { ViewerHide } from '@/components/admin/ViewerHide';
 import { logger } from '@/lib/logger'
 import { formatThaiDate, formatThaiDateTime } from '@/lib/format-date'
 import { isoToYMD } from '@/lib/utils'
@@ -318,10 +319,12 @@ export default function AdminBookingsPage() {
             รีเฟรช
           </Button>
           {walkinEnabled && (
+            <ViewerHide>
             <Button onClick={() => setWalkinOpen(true)}>
               <Plus className="mr-1 h-4 w-4" aria-hidden="true" />
               เพิ่มคิวนอก
             </Button>
+            </ViewerHide>
           )}
         </div>
       </header>
@@ -448,6 +451,7 @@ export default function AdminBookingsPage() {
               </Badge>
 
               {booking.status === 'CONFIRMED' && (
+                <ViewerHide>
                 <div className="flex gap-1">
                   {assignEnabled && (
                     <Button
@@ -509,6 +513,7 @@ export default function AdminBookingsPage() {
                     </Button>
                   ))}
                 </div>
+                </ViewerHide>
               )}
             </li>
           ))}

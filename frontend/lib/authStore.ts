@@ -14,7 +14,7 @@ export type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated' | 'boot
 export interface AuthUser {
   id: string;
   username: string;
-  role: 'SUPER_ADMIN' | 'ADMIN' | 'DIRECTOR' | 'HEAD' | 'AGENT' | 'USER';
+  role: 'SUPER_ADMIN' | 'ADMIN' | 'DIRECTOR' | 'HEAD' | 'AGENT' | 'VIEWER' | 'USER';
   display_name?: string;
 }
 

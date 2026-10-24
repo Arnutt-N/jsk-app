@@ -1,15 +1,17 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import type { DateRange } from 'react-day-picker';
+import { DEFAULT_RANGE_DAYS, defaultDateRange, isDefaultRange, toYMD } from '@/lib/date-range';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/Table';
-import { TrendBadge, type TrendValue } from '@/components/ui/TrendBadge';
+import type { TrendValue } from '@/components/ui/TrendBadge';
+import StatsCard from '../components/StatsCard';
 import PageHeader from '@/app/admin/components/PageHeader';
-import CalendarPickerTH from '@/components/ui/CalendarPickerTH';
-import { isoToYMD } from '@/lib/utils';
+import { DateRangePicker, standardDatePresets } from '@/components/ui/DateRangePicker';
 import { formatDuration } from '@/lib/format';
 import { getStatusLabel } from '@/lib/constants/request-status';
 import {
@@ -43,6 +45,7 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { apiFetch } from '@/lib/api-error';
+import { ViewerHide } from '@/components/admin/ViewerHide';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -115,70 +118,18 @@ const CHART_COLORS = [
 
 const PIE_COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#2563eb', '#1d4ed8', '#14b8a6', '#f97316'];
 
-type DatePreset = '7d' | '30d' | '90d' | 'year' | 'custom';
-
-function presetToDates(preset: DatePreset): { start: string; end: string } {
-  const end = new Date();
-  const start = new Date();
-  switch (preset) {
-    case '7d':
-      start.setDate(end.getDate() - 7);
-      break;
-    case '30d':
-      start.setDate(end.getDate() - 30);
-      break;
-    case '90d':
-      start.setDate(end.getDate() - 90);
-      break;
-    case 'year':
-      start.setMonth(0, 1);
-      break;
-    default:
-      start.setDate(end.getDate() - 30);
-  }
-  return {
-    start: start.toISOString().split('T')[0],
-    end: end.toISOString().split('T')[0],
-  };
-}
+type Period = 'daily' | 'weekly' | 'monthly';
 
 // ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
 
-function StatCard({
-  label,
-  value,
-  icon: Icon,
-  trend,
-  color = 'brand',
-}: {
-  label: string;
-  value: string | number;
-  icon: React.ComponentType<{ className?: string }>;
-  trend?: TrendValue;
-  color?: 'brand' | 'success' | 'warning' | 'danger';
-}) {
-  const colorMap = {
-    brand: 'bg-brand-50 text-brand-600 dark:bg-brand-500/10',
-    success: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10',
-    warning: 'bg-amber-50 text-amber-600 dark:bg-amber-500/10',
-    danger: 'bg-red-50 text-red-600 dark:bg-red-500/10',
+function toTrend(trend?: TrendValue | null) {
+  if (!trend) return undefined;
+  return {
+    value: Number(Math.abs(trend.change_percent).toFixed(1)),
+    isPositive: trend.change_percent >= 0,
   };
-  return (
-    <Card>
-      <CardContent className="p-5">
-        <div className="flex items-center justify-between mb-3">
-          <div className={`p-2.5 rounded-xl ${colorMap[color]}`}>
-            <Icon className="w-5 h-5" />
-          </div>
-          <TrendBadge trend={trend} />
-        </div>
-        <p className="text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-1 thai-no-break">{label}</p>
-        <p className="text-2xl font-bold text-text-primary">{value}</p>
-      </CardContent>
-    </Card>
-  );
 }
 
 async function downloadPDF(reportType: string, startDate: string, endDate: string) {
@@ -243,10 +194,8 @@ function ExportButton({
 
 export default function ReportsPage() {
   const [activeTab, setActiveTab] = useState('overview');
-  const [datePreset, setDatePreset] = useState<DatePreset>('30d');
-  const [customStart, setCustomStart] = useState('');
-  const [customEnd, setCustomEnd] = useState('');
-  const [period, setPeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily');
+  const [range, setRange] = useState<DateRange | undefined>(() => defaultDateRange());
+  const [period, setPeriod] = useState<Period>('daily');
   const [loading, setLoading] = useState(false);
 
   // Data
@@ -257,11 +206,11 @@ export default function ReportsPage() {
   const [folReport, setFolReport] = useState<FollowersReport | null>(null);
 
   const { start: startDate, end: endDate } = useMemo(() => {
-    if (datePreset === 'custom' && customStart && customEnd) {
-      return { start: customStart, end: customEnd };
-    }
-    return presetToDates(datePreset);
-  }, [datePreset, customStart, customEnd]);
+    const to = new Date();
+    const from = range?.from ?? defaultDateRange().from;
+    const end = range?.to ?? range?.from ?? to;
+    return { start: toYMD(from), end: toYMD(end) };
+  }, [range]);
 
   const fetchTab = useCallback(
     async (tab: string) => {
@@ -310,47 +259,21 @@ export default function ReportsPage() {
   // Render Helpers
   // ---------------------------------------------------------------------------
 
+  const hasActiveDateFilter = !isDefaultRange(range) || period !== 'daily';
+
+  const clearDateFilters = () => {
+    setRange(defaultDateRange());
+    setPeriod('daily');
+  };
+
   const renderDateSelector = () => (
     <div className="flex items-center gap-2 flex-wrap">
-      {([
-        ['7d', '7 วัน'],
-        ['30d', '30 วัน'],
-        ['90d', '90 วัน'],
-        ['year', 'ปีนี้'],
-        ['custom', 'กำหนดเอง'],
-      ] as [DatePreset, string][]).map(([key, label]) => (
-        <Button
-          key={key}
-          variant={datePreset === key ? 'primary' : 'outline'}
-          size="sm"
-          onClick={() => setDatePreset(key)}
-          className="text-xs"
-        >
-          {label}
-        </Button>
-      ))}
-      {datePreset === 'custom' && (
-        <div className="flex items-center gap-2">
-          <div className="w-44">
-            <CalendarPickerTH
-              value={customStart || null}
-              onChange={(iso) => setCustomStart(isoToYMD(iso))}
-            />
-          </div>
-          <span className="text-text-tertiary text-xs">-</span>
-          <div className="w-44">
-            <CalendarPickerTH
-              value={customEnd || null}
-              onChange={(iso) => setCustomEnd(isoToYMD(iso))}
-            />
-          </div>
-        </div>
-      )}
-      {(datePreset !== '30d' || customStart !== '' || customEnd !== '' || period !== 'daily') && (
+      <DateRangePicker value={range} presets={standardDatePresets} onChange={(r) => setRange(r)} />
+      {hasActiveDateFilter && (
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => { setDatePreset('30d'); setCustomStart(''); setCustomEnd(''); setPeriod('daily'); }}
+          onClick={clearDateFilters}
           leftIcon={<RotateCcw className="w-4 h-4" />}
           className="text-xs"
         >
@@ -391,38 +314,38 @@ export default function ReportsPage() {
         {/* Stat cards */}
         <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StaggerItem>
-            <StatCard
-              label="คำร้องทั้งหมด"
+            <StatsCard
+              title="คำร้องทั้งหมด"
               value={overview.total_requests}
-              icon={FileText}
-              trend={overview.requests_trend}
-              color="brand"
+              icon={<FileText className="w-6 h-6" />}
+              trend={toTrend(overview.requests_trend)}
+              color="primary"
             />
           </StaggerItem>
           <StaggerItem>
-            <StatCard
-              label="ข้อความวันนี้"
+            <StatsCard
+              title="ข้อความวันนี้"
               value={overview.total_messages_today}
-              icon={MessageSquare}
-              trend={overview.messages_trend}
+              icon={<MessageSquare className="w-6 h-6" />}
+              trend={toTrend(overview.messages_trend)}
               color="success"
             />
           </StaggerItem>
           <StaggerItem>
-            <StatCard
-              label="ผู้ติดตาม"
+            <StatsCard
+              title="ผู้ติดตาม"
               value={overview.total_followers}
-              icon={Users}
-              trend={overview.followers_trend}
+              icon={<Users className="w-6 h-6" />}
+              trend={toTrend(overview.followers_trend)}
               color="warning"
             />
           </StaggerItem>
           <StaggerItem>
-            <StatCard
-              label="เซสชันแชทที่ใช้งาน"
+            <StatsCard
+              title="เซสชันแชทที่ใช้งาน"
               value={overview.active_sessions}
-              icon={Headphones}
-              trend={overview.sessions_trend}
+              icon={<Headphones className="w-6 h-6" />}
+              trend={toTrend(overview.sessions_trend)}
               color="danger"
             />
           </StaggerItem>
@@ -499,32 +422,34 @@ export default function ReportsPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           {renderPeriodSelector()}
-          <ExportButton type="service-requests" startDate={startDate} endDate={endDate} />
+          <ViewerHide>
+            <ExportButton type="service-requests" startDate={startDate} endDate={endDate} />
+          </ViewerHide>
         </div>
 
         {/* Avg resolution */}
         <StaggerContainer className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <StaggerItem>
-            <StatCard
-              label="เวลาแก้ปัญหาเฉลี่ย"
+            <StatsCard
+              title="เวลาแก้ปัญหาเฉลี่ย"
               value={`${srReport.avg_resolution_days} วัน`}
-              icon={Clock}
-              color="brand"
+              icon={<Clock className="w-6 h-6" />}
+              color="primary"
             />
           </StaggerItem>
           <StaggerItem>
-            <StatCard
-              label="คำร้องทั้งหมดในช่วง"
+            <StatsCard
+              title="คำร้องทั้งหมดในช่วง"
               value={srReport.over_time.reduce((a, c) => a + c.count, 0)}
-              icon={FileText}
+              icon={<FileText className="w-6 h-6" />}
               color="success"
             />
           </StaggerItem>
           <StaggerItem>
-            <StatCard
-              label="หมวดหมู่ยอดนิยม"
+            <StatsCard
+              title="หมวดหมู่ยอดนิยม"
               value={srReport.top_categories[0]?.category || '-'}
-              icon={TrendingUp}
+              icon={<TrendingUp className="w-6 h-6" />}
               color="warning"
             />
           </StaggerItem>
@@ -629,18 +554,20 @@ export default function ReportsPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           {renderPeriodSelector()}
-          <ExportButton type="messages" startDate={startDate} endDate={endDate} />
+          <ViewerHide>
+            <ExportButton type="messages" startDate={startDate} endDate={endDate} />
+          </ViewerHide>
         </div>
 
         <StaggerContainer className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <StaggerItem>
-            <StatCard label="ข้อความทั้งหมด" value={totalMessages} icon={MessageSquare} color="brand" />
+            <StatsCard title="ข้อความทั้งหมด" value={totalMessages} icon={<MessageSquare className="w-6 h-6" />} color="primary" />
           </StaggerItem>
           <StaggerItem>
-            <StatCard label="ข้อความขาเข้า" value={msgReport.incoming_total} icon={ArrowDownRight} color="success" />
+            <StatsCard title="ข้อความขาเข้า" value={msgReport.incoming_total} icon={<ArrowDownRight className="w-6 h-6" />} color="success" />
           </StaggerItem>
           <StaggerItem>
-            <StatCard label="ข้อความขาออก" value={msgReport.outgoing_total} icon={ArrowUpRight} color="warning" />
+            <StatsCard title="ข้อความขาออก" value={msgReport.outgoing_total} icon={<ArrowUpRight className="w-6 h-6" />} color="warning" />
           </StaggerItem>
         </StaggerContainer>
 
@@ -696,32 +623,34 @@ export default function ReportsPage() {
     return (
       <div className="space-y-6">
         <div className="flex justify-end">
-          <ExportButton type="operators" startDate={startDate} endDate={endDate} />
+          <ViewerHide>
+            <ExportButton type="operators" startDate={startDate} endDate={endDate} />
+          </ViewerHide>
         </div>
 
         {/* Summary cards */}
         <StaggerContainer className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <StaggerItem>
-            <StatCard
-              label="จำนวนเจ้าหน้าที่"
+            <StatsCard
+              title="จำนวนเจ้าหน้าที่"
               value={opsReport.operators.length}
-              icon={Headphones}
-              color="brand"
+              icon={<Headphones className="w-6 h-6" />}
+              color="primary"
             />
           </StaggerItem>
           <StaggerItem>
-            <StatCard
-              label="เซสชันทั้งหมด"
+            <StatsCard
+              title="เซสชันทั้งหมด"
               value={opsReport.operators.reduce((a, o) => a + o.sessions_handled, 0)}
-              icon={MessageSquare}
+              icon={<MessageSquare className="w-6 h-6" />}
               color="success"
             />
           </StaggerItem>
           <StaggerItem>
-            <StatCard
-              label="ข้อความส่งทั้งหมด"
+            <StatsCard
+              title="ข้อความส่งทั้งหมด"
               value={opsReport.operators.reduce((a, o) => a + o.messages_sent, 0)}
-              icon={ArrowUpRight}
+              icon={<ArrowUpRight className="w-6 h-6" />}
               color="warning"
             />
           </StaggerItem>
@@ -786,24 +715,26 @@ export default function ReportsPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           {renderPeriodSelector()}
-          <ExportButton type="followers" startDate={startDate} endDate={endDate} />
+          <ViewerHide>
+            <ExportButton type="followers" startDate={startDate} endDate={endDate} />
+          </ViewerHide>
         </div>
 
         <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StaggerItem>
-            <StatCard label="ผู้ติดตามทั้งหมด" value={folReport.total_followers} icon={Users} color="brand" />
+            <StatsCard title="ผู้ติดตามทั้งหมด" value={folReport.total_followers} icon={<Users className="w-6 h-6" />} color="primary" />
           </StaggerItem>
           <StaggerItem>
-            <StatCard label="ผู้ติดตามใหม่" value={folReport.new_this_period} icon={UserPlus} color="success" />
+            <StatsCard title="ผู้ติดตามใหม่" value={folReport.new_this_period} icon={<UserPlus className="w-6 h-6" />} color="success" />
           </StaggerItem>
           <StaggerItem>
-            <StatCard label="ยกเลิกติดตาม" value={folReport.lost_this_period} icon={ArrowDownRight} color="danger" />
+            <StatsCard title="ยกเลิกติดตาม" value={folReport.lost_this_period} icon={<ArrowDownRight className="w-6 h-6" />} color="danger" />
           </StaggerItem>
           <StaggerItem>
-            <StatCard
-              label="อัตราติดตามกลับ"
+            <StatsCard
+              title="อัตราติดตามกลับ"
               value={`${folReport.refollow_rate}%`}
-              icon={TrendingUp}
+              icon={<TrendingUp className="w-6 h-6" />}
               color="warning"
             />
           </StaggerItem>

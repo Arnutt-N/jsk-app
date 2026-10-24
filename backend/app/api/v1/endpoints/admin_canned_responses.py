@@ -1,7 +1,7 @@
 """Admin canned responses API endpoints."""
 from datetime import datetime
 
-from app.api.deps import get_current_admin, get_db
+from app.api.deps import get_current_admin, get_current_admin_or_viewer, get_db
 from app.models.user import User
 from app.services.canned_response_service import canned_response_service, normalize_text
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -32,7 +32,7 @@ async def list_canned_responses(
     category: str | None = Query(None, description="Filter by category"),
     include_inactive: bool = Query(False, description="Admin toggle view also needs disabled rows"),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_admin)
+    current_user: User = Depends(get_current_admin_or_viewer)
 ):
     """List canned responses (active only by default; admin passes include_inactive)."""
     items = await canned_response_service.get_all(db, category=category, active_only=not include_inactive)

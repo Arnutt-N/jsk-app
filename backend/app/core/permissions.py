@@ -126,6 +126,7 @@ DEFAULT_POLICY: dict[str, frozenset[UserRole]] = {
         UserRole.ADMIN,
         UserRole.DIRECTOR,
         UserRole.HEAD,
+        UserRole.VIEWER,
     }),
     KEY_VIEW_AUDIT_LOG: frozenset({UserRole.SUPER_ADMIN, UserRole.ADMIN}),
     KEY_EDIT_SYSTEM_SETTINGS: frozenset({UserRole.SUPER_ADMIN, UserRole.ADMIN}),

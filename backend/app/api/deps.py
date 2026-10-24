@@ -12,6 +12,7 @@ from app.core.permissions import (
     KEY_ACCESS_STAFF_ENDPOINTS,
 )
 from app.core.security import verify_token
+from app.models.user import UserRole
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -233,6 +234,29 @@ async def get_current_staff(
     return current_user
 
 
+def _gate_or_viewer(key: str):
+    """Shared VIEWER-or-key gate; use ONLY on explicit allow-listed GET routes.
+
+    VIEWER is admitted without a permission check; every other role must
+    hold `key`. Write endpoints keep their plain gates, so opting a GET in
+    here never opens a write.
+    """
+    async def gate(current_user=Depends(get_current_user)):
+        if current_user.role == UserRole.VIEWER:
+            return current_user
+        if not can(current_user.role, key):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Insufficient permissions"
+            )
+        return current_user
+    return gate
+
+get_current_admin_or_viewer = _gate_or_viewer(KEY_ACCESS_ADMIN_ENDPOINTS)
+get_current_manager_or_viewer = _gate_or_viewer(KEY_ACCESS_MANAGER_ENDPOINTS)
+get_current_staff_or_viewer = _gate_or_viewer(KEY_ACCESS_STAFF_ENDPOINTS)
+
+
 def require_permission(key: str):
     """Dependency factory: gate a route on a single module permission key.
 
@@ -286,4 +310,10 @@ def check_role_permission(current_user, target_role) -> None:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Only SUPER_ADMIN can manage DIRECTOR or HEAD users",
+            )
+    elif target_role == UserRole.VIEWER:
+        if current_user.role not in (UserRole.SUPER_ADMIN, UserRole.ADMIN):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only SUPER_ADMIN or ADMIN can manage VIEWER users",
             )

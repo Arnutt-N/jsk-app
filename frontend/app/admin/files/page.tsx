@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import {
   Upload, Download, Trash2, Link2, LinkIcon, Search,
-  FileText, Image as ImageIcon, Video, Music, File as FileIcon,
+  FileText, File as FileIcon,
   Grid3X3, List, Copy, Check, Eye, ExternalLink,
   ChevronLeft, ChevronRight, AlertTriangle, SquarePen,
 } from 'lucide-react';
@@ -22,6 +22,14 @@ import { ActionIconButton } from '@/components/ui/ActionIconButton';
 import { cn } from '@/lib/utils';
 import { StaggerContainer, StaggerItem } from '@/components/ui/PageTransition';
 import PageHeader from '../components/PageHeader';
+import AuthenticatedFileImage, {
+  CATEGORY_META,
+  PRIVATE_PREVIEW_REASON,
+  getCategoryIcon,
+  getDirectMediaUrl,
+  useAuthenticatedMediaUrl,
+  type PreviewCategory as Category,
+} from '@/components/admin/AuthenticatedFileImage';
 import { apiFetch } from '@/lib/api-error';
 import { API_BASE } from '@/lib/constants/api';
 import { downloadBlob } from '@/lib/download-blob';
@@ -42,8 +50,6 @@ interface MediaFile {
   created_at: string | null;
 }
 
-type Category = 'ALL' | 'DOCUMENT' | 'IMAGE' | 'VIDEO' | 'AUDIO' | 'OTHER';
-
 interface Stats {
   total_count: number;
   total_size: number;
@@ -53,15 +59,6 @@ interface Stats {
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
-
-const CATEGORY_META: Record<Category, { label: string; icon: React.ReactNode; color: string }> = {
-  ALL:      { label: 'ทั้งหมด',  icon: <FileIcon className="w-4 h-4" />,  color: 'gray' },
-  DOCUMENT: { label: 'เอกสาร',   icon: <FileText className="w-4 h-4" />,  color: 'blue' },
-  IMAGE:    { label: 'รูปภาพ',    icon: <ImageIcon className="w-4 h-4" />, color: 'green' },
-  VIDEO:    { label: 'วิดีโอ',    icon: <Video className="w-4 h-4" />,     color: 'navy' },
-  AUDIO:    { label: 'เสียง',     icon: <Music className="w-4 h-4" />,     color: 'amber' },
-  OTHER:    { label: 'อื่นๆ',     icon: <FileIcon className="w-4 h-4" />,  color: 'gray' },
-};
 
 const BADGE_VARIANT_MAP: Record<string, 'info' | 'success' | 'primary' | 'warning' | 'gray'> = {
   DOCUMENT: 'info',
@@ -88,10 +85,6 @@ function formatDate(iso: string | null): string {
     day: 'numeric', month: 'short', year: 'numeric',
     hour: '2-digit', minute: '2-digit',
   });
-}
-
-function getCategoryIcon(cat: string) {
-  return CATEGORY_META[cat as Category]?.icon ?? <FileIcon className="w-4 h-4" />;
 }
 
 function isImageMime(mime: string) {
@@ -351,15 +344,12 @@ export default function FilesPage() {
   );
 
   const getPreviewUrl = useCallback((file: MediaFile) => {
-    if (file.thumbnail_url) return file.thumbnail_url;
-    if (file.public_url) return file.public_url;
-    // NOTE: the `/media/{id}` endpoint serves the raw binary; private
-    // files need their token appended (buildMediaUrl). The render path
-    // tracks broken loads in `brokenIds` and falls back to the category
-    // icon for files without a token.
-    if (isImageMime(file.mime_type)) return buildMediaUrl(file);
-    return null;
+    if (!isImageMime(file.mime_type)) return null;
+    return getDirectMediaUrl(file, buildMediaUrl);
   }, [buildMediaUrl]);
+
+  const modalDirectUrl = previewFile ? getDirectMediaUrl(previewFile, buildMediaUrl) : null;
+  const modalMedia = useAuthenticatedMediaUrl(previewFile ? previewFile.id : null, modalDirectUrl);
 
   // -----------------------------------------------------------------------
   // Render
@@ -511,8 +501,6 @@ export default function FilesPage() {
                 <StaggerContainer className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
                   {files.map(file => {
                     const preview = getPreviewUrl(file);
-                    const isBroken = brokenIds.has(file.id);
-                    const showImage = preview && !isBroken;
                     const isSelected = selected.has(file.id);
                     return (
                       <StaggerItem key={file.id}>
@@ -546,17 +534,17 @@ export default function FilesPage() {
                           className="aspect-square bg-gray-50 dark:bg-gray-800 flex items-center justify-center cursor-pointer overflow-hidden relative"
                           onClick={() => setPreviewFile(file)}
                         >
-                          {showImage ? (
-                            <Image
-                              src={preview}
-                              alt={file.filename}
+                          {isImageMime(file.mime_type) ? (
+                            <AuthenticatedFileImage
+                              key={`${file.id}|${preview ?? ''}`}
+                              file={file}
+                              directUrl={preview}
                               fill
-                              unoptimized
                               className="object-cover"
-                              onError={() => markBroken(file.id)}
+                              onLoadFailed={markBroken}
                             />
                           ) : (
-                            <div className="flex flex-col items-center gap-1 text-text-tertiary" aria-hidden={!showImage}>
+                            <div className="flex flex-col items-center gap-1 text-text-tertiary">
                               {getCategoryIcon(file.category)}
                               <span className="text-[10px] px-1 text-center line-clamp-2 max-w-[90%]">
                                 {file.filename}
@@ -845,17 +833,21 @@ export default function FilesPage() {
           <div className="space-y-4">
             {isImageMime(previewFile.mime_type) ? (
               <div className="flex justify-center min-h-[120px]">
-                {brokenIds.has(previewFile.id) ? (
+                {modalMedia.kind === 'failed' || brokenIds.has(previewFile.id) ? (
                   <div className="flex flex-col items-center justify-center gap-2 py-12 text-text-tertiary">
                     {getCategoryIcon(previewFile.category)}
-                    <p className="text-sm">ไม่สามารถโหลดภาพตัวอย่างได้</p>
+                    <p className="text-sm">{modalDirectUrl ? 'ไม่สามารถโหลดภาพตัวอย่างได้' : PRIVATE_PREVIEW_REASON}</p>
                     <Button size="sm" variant="outline" onClick={() => downloadFile(previewFile)}>
                       <Download className="w-4 h-4 mr-1.5" />ดาวน์โหลด
                     </Button>
                   </div>
+                ) : modalMedia.kind === 'loading' ? (
+                  <div className="flex items-center justify-center py-12 text-text-tertiary animate-pulse">
+                    {getCategoryIcon(previewFile.category)}
+                  </div>
                 ) : (
                   <Image
-                    src={getPreviewUrl(previewFile) ?? buildMediaUrl(previewFile)}
+                    src={modalMedia.url}
                     alt={previewFile.filename}
                     width={1600}
                     height={1200}
@@ -866,15 +858,43 @@ export default function FilesPage() {
                 )}
               </div>
             ) : isVideoMime(previewFile.mime_type) ? (
-              <video
-                controls
-                className="w-full max-h-[60vh] rounded-xl"
-                src={buildMediaUrl(previewFile)}
-              />
+              modalMedia.kind === 'failed' ? (
+                <div className="flex flex-col items-center justify-center gap-2 py-12 text-text-tertiary">
+                  {getCategoryIcon(previewFile.category)}
+                  <p className="text-sm">{modalDirectUrl ? 'ไม่สามารถโหลดวิดีโอได้' : PRIVATE_PREVIEW_REASON}</p>
+                  <Button size="sm" variant="outline" onClick={() => downloadFile(previewFile)}>
+                    <Download className="w-4 h-4 mr-1.5" />ดาวน์โหลด
+                  </Button>
+                </div>
+              ) : modalMedia.kind === 'loading' ? (
+                <div className="flex items-center justify-center py-12 text-text-tertiary animate-pulse">
+                  {getCategoryIcon(previewFile.category)}
+                </div>
+              ) : (
+                <video
+                  controls
+                  className="w-full max-h-[60vh] rounded-xl"
+                  src={modalMedia.url}
+                />
+              )
             ) : isAudioMime(previewFile.mime_type) ? (
-              <div className="flex justify-center py-8">
-                <audio controls src={buildMediaUrl(previewFile)} />
-              </div>
+              modalMedia.kind === 'failed' ? (
+                <div className="flex flex-col items-center justify-center gap-2 py-8 text-text-tertiary">
+                  {getCategoryIcon(previewFile.category)}
+                  <p className="text-sm">{modalDirectUrl ? 'ไม่สามารถโหลดเสียงได้' : PRIVATE_PREVIEW_REASON}</p>
+                  <Button size="sm" variant="outline" onClick={() => downloadFile(previewFile)}>
+                    <Download className="w-4 h-4 mr-1.5" />ดาวน์โหลด
+                  </Button>
+                </div>
+              ) : modalMedia.kind === 'loading' ? (
+                <div className="flex items-center justify-center py-8 text-text-tertiary animate-pulse">
+                  {getCategoryIcon(previewFile.category)}
+                </div>
+              ) : (
+                <div className="flex justify-center py-8">
+                  <audio controls src={modalMedia.url} />
+                </div>
+              )
             ) : (
               <div className="text-center py-12">
                 <FileText className="w-16 h-16 mx-auto text-text-tertiary mb-4" />

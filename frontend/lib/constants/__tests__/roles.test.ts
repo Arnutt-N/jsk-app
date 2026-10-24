@@ -89,9 +89,9 @@ describe('roles constants', () => {
       expect(Object.values(ROLE_META).every((m) => m.label !== 'Staff')).toBe(true)
     })
 
-    it('defines all six roles', () => {
+    it('defines all seven roles', () => {
       expect(Object.keys(ROLE_META).sort()).toEqual(
-        ['ADMIN', 'AGENT', 'DIRECTOR', 'HEAD', 'SUPER_ADMIN', 'USER'],
+        ['ADMIN', 'AGENT', 'DIRECTOR', 'HEAD', 'SUPER_ADMIN', 'USER', 'VIEWER'],
       )
     })
 

@@ -13,6 +13,10 @@ class UserRole(str, enum.Enum):
       DIRECTOR    -> Director (ผู้อำนวยการ): supervisor of HEAD/AGENT staff.
       HEAD        -> Head of section (หัวหน้าฝ่าย): supervises AGENT staff.
       AGENT       -> Front-line officer (เจ้าหน้าที่): processes assigned work.
+      VIEWER      -> Read-only observer (ผู้ชม): menus 1-5 GET only, every
+                     write denied. In no MANAGE/access key except view_reports;
+                     read access elsewhere comes only from explicit *_or_viewer
+                     gates on allow-listed GET routes.
       USER        -> End user (LIFF / public): submits requests only.
 
     DIRECTOR and HEAD share the same default permissions as ADMIN for
@@ -25,6 +29,7 @@ class UserRole(str, enum.Enum):
     DIRECTOR = "DIRECTOR"
     HEAD = "HEAD"
     AGENT = "AGENT"
+    VIEWER = "VIEWER"
     USER = "USER"
 
 class ChatMode(str, enum.Enum):

@@ -7,6 +7,10 @@ import AdminBookingsPage from '../page'
 import type { Booking } from '@/lib/booking'
 import { isoToYMD } from '@/lib/utils'
 
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({ user: { role: 'ADMIN' } }),
+}))
+
 vi.mock('@/components/ui/CalendarPickerTH', () => ({
   default: function MockCalendarPicker({
     value,

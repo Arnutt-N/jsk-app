@@ -2,9 +2,10 @@ import enum
 import uuid
 from datetime import UTC, date, datetime, time, timedelta
 
-from app.api.deps import get_current_admin, get_current_manager
+from app.api.deps import get_current_admin, get_current_manager, get_current_manager_or_viewer
 from app.core.audit import create_audit_log
 from app.core.date_windows import bangkok_today_start_utc
+from app.core.pii_masking import mask_viewer_contacts
 from app.core.permissions import (
     can_assign,
     can_edit_request_details,
@@ -157,7 +158,7 @@ async def create_request(
 
 
 @router.get("/stats", response_model=RequestStats)
-async def get_request_stats(db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_manager)):
+async def get_request_stats(db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_manager_or_viewer)):
     """Get summary statistics for admin dashboard.
 
     Splits PENDING into two display buckets based on assignment:
@@ -193,7 +194,7 @@ class MonthlyStats(BaseModel):
     count: int
 
 @router.get("/stats/monthly", response_model=list[MonthlyStats])
-async def get_monthly_stats(db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_manager)):
+async def get_monthly_stats(db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_manager_or_viewer)):
     """Get request counts grouped by month (last 12 months)."""
     # Using text() for the order by to reference the alias
     from sqlalchemy import text
@@ -221,7 +222,7 @@ class WorkloadStats(BaseModel):
     awaiting_approval_count: int   # AWAITING_APPROVAL ("รออนุมัติ")
 
 @router.get("/stats/workload", response_model=list[WorkloadStats])
-async def get_workload_stats(db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_manager)):
+async def get_workload_stats(db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_manager_or_viewer)):
     """Get workload distribution across agents.
 
     Counts only OPEN states the agent is responsible for (PENDING with
@@ -247,7 +248,7 @@ class PerformanceStats(BaseModel):
     on_time_percentage: float
 
 @router.get("/stats/performance", response_model=PerformanceStats)
-async def get_performance_stats(db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_manager)):
+async def get_performance_stats(db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_manager_or_viewer)):
     """Analyze agent performance."""
     # Simplified calculation for cycle time
     cycle_time_query = select(
@@ -283,7 +284,7 @@ async def list_requests(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=200),
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_manager)
+    current_admin: User = Depends(get_current_manager_or_viewer)
 ):
     """List all service requests with filtering and search."""
     if start_date and end_date and start_date > end_date:
@@ -330,19 +331,19 @@ async def list_requests(
     for req, assignee_name in result.all():
         req_dict = ServiceRequestResponse.model_validate(req).model_dump()
         req_dict['assignee_name'] = assignee_name
-        requests.append(req_dict)
+        requests.append(mask_viewer_contacts(req_dict, current_admin.role))
         
     return requests
 
 
 @router.get("/{request_id}", response_model=ServiceRequestResponse)
-async def get_request_detail(request_id: int, db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_manager)):
+async def get_request_detail(request_id: int, db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_manager_or_viewer)):
     """Get full details of a specific request."""
     result = await db.execute(select(ServiceRequest).where(ServiceRequest.id == request_id))
     request = result.scalar_one_or_none()
     if not request:
         raise HTTPException(status_code=404, detail="Request not found")
-    return request
+    return mask_viewer_contacts(ServiceRequestResponse.model_validate(request).model_dump(), current_admin.role)
 
 class RequestUpdate(BaseModel):
     # Existing fields
@@ -777,7 +778,7 @@ async def create_comment(
     )
 
 @router.get("/{request_id}/comments", response_model=list[RequestCommentResponse])
-async def list_comments(request_id: int, db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_manager)):
+async def list_comments(request_id: int, db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_manager_or_viewer)):
     """List all internal comments for a specific request."""
     query = (
         select(RequestComment, User.display_name)

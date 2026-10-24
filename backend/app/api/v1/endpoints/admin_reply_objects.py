@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
 from typing import List
 
-from app.api.deps import get_db, get_current_admin, require_permission
+from app.api.deps import get_db, get_current_admin_or_viewer, require_permission
 from app.core.permissions import KEY_MANAGE_REPLY_OBJECTS
 from app.models.reply_object import ReplyObject, ObjectType
 from app.models.user import User
@@ -26,7 +26,7 @@ async def list_reply_objects(
     category: str = None,
     object_type: str = None,
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin)
+    current_admin: User = Depends(get_current_admin_or_viewer)
 ):
     """List all reply objects with optional filtering."""
     query = select(ReplyObject).order_by(ReplyObject.created_at.desc())
@@ -52,7 +52,7 @@ async def list_reply_objects(
 async def get_reply_object(
     object_id: str,
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin)
+    current_admin: User = Depends(get_current_admin_or_viewer)
 ):
     """Get a single reply object by its object_id."""
     result = await db.execute(

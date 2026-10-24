@@ -30,9 +30,33 @@ interface MenuItem {
   name: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
-  allowedRoles?: Array<'SUPER_ADMIN' | 'ADMIN' | 'DIRECTOR' | 'HEAD' | 'AGENT'>;
+  allowedRoles?: Array<'SUPER_ADMIN' | 'ADMIN' | 'DIRECTOR' | 'HEAD' | 'AGENT' | 'VIEWER'>;
   external?: boolean;
   openInNewTab?: boolean;
+}
+
+// VIEWER (read-only observer) allow-list: menus 1-5 only. Matches the
+// sidebar allowedRoles in menuGroups below and the backend *_or_viewer
+// gates. Everything else bounces to '/admin' in AdminAuthGate; write
+// sub-routes (/requests/create, /reply-objects/new, /rich-menus/new,
+// /rich-menus/aliases, /rich-menus/[id]/edit) are excluded on purpose —
+// a direct URL must not render a form whose submit would 403.
+function isViewerPathAllowed(pathname: string): boolean {
+  if (
+    pathname === '/admin' ||
+    pathname === '/admin/chatbot' ||
+    pathname === '/admin/reports' ||
+    pathname === '/admin/bookings' ||
+    pathname === '/admin/reply-objects' ||
+    pathname === '/admin/rich-menus' ||
+    pathname === '/admin/canned-responses'
+  ) {
+    return true;
+  }
+  if (pathname === '/admin/requests' || pathname === '/admin/requests/kanban') {
+    return true;
+  }
+  return /^\/admin\/requests\/\d+$/.test(pathname);
 }
 
 function AdminAuthGate({ children }: { children: React.ReactNode }) {
@@ -51,6 +75,11 @@ function AdminAuthGate({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (isLoading || !isAuthenticated || !user) {
+      return;
+    }
+
+    if (user.role === 'VIEWER' && !isViewerPathAllowed(pathname)) {
+      router.replace('/admin');
       return;
     }
 
@@ -86,6 +115,14 @@ function AdminAuthGate({ children }: { children: React.ReactNode }) {
     return (
       // pt-20 ชดเชยความสูง header (h-20) + lg:pl-64 ชดเชย sidebar เพื่อให้ spinner
       // ตอน auth นั่งตำแหน่งเดียวกับ content spinner (calc(100vh-8rem) ใน <main>) — กัน jump ตอน auth→page
+      <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 pt-20 lg:pl-64">
+        <LoadingSpinner label="กำลังโหลด..." fullPage={false} />
+      </div>
+    );
+  }
+
+  if (user?.role === 'VIEWER' && !isViewerPathAllowed(pathname)) {
+    return (
       <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 pt-20 lg:pl-64">
         <LoadingSpinner label="กำลังโหลด..." fullPage={false} />
       </div>
@@ -182,22 +219,22 @@ function AdminShell({ children }: { children: React.ReactNode }) {
     {
       title: 'Service Requests',
       items: [
-        { name: 'Dashboard', href: '/admin', icon: LayoutDashboard, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'DIRECTOR', 'HEAD'] },
-        { name: 'Manage Requests', href: '/admin/requests', icon: FileText, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'DIRECTOR', 'HEAD'] },
-        { name: 'Appointments', href: '/admin/bookings', icon: CalendarCheck, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'DIRECTOR', 'HEAD', 'AGENT'] },
+        { name: 'Dashboard', href: '/admin', icon: LayoutDashboard, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'DIRECTOR', 'HEAD', 'VIEWER'] },
+        { name: 'Manage Requests', href: '/admin/requests', icon: FileText, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'DIRECTOR', 'HEAD', 'VIEWER'] },
+        { name: 'Appointments', href: '/admin/bookings', icon: CalendarCheck, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'DIRECTOR', 'HEAD', 'AGENT', 'VIEWER'] },
       ]
     },
     {
       title: 'Chatbot Management',
       items: [
-        { name: 'Chatbot Overview', href: '/admin/chatbot', icon: Bot, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
+        { name: 'Chatbot Overview', href: '/admin/chatbot', icon: Bot, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'VIEWER'] },
         { name: 'Live Chat', href: '/admin/live-chat', icon: MessageCircle, openInNewTab: true, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'AGENT'] },
         { name: 'Chat Histories', href: '/admin/chat-histories', icon: History, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
         { name: 'Broadcast', href: '/admin/chatbot/broadcast', icon: Megaphone, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
         { name: 'Auto-Replies', href: '/admin/auto-replies', icon: Reply, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
-        { name: 'Reply Objects', href: '/admin/reply-objects', icon: MessageSquareReply, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
-        { name: 'Canned Responses', href: '/admin/canned-responses', icon: MessageSquareText, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
-        { name: 'Rich Menus', href: '/admin/rich-menus', icon: PanelTop, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
+        { name: 'Reply Objects', href: '/admin/reply-objects', icon: MessageSquareReply, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'VIEWER'] },
+        { name: 'Canned Responses', href: '/admin/canned-responses', icon: MessageSquareText, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'VIEWER'] },
+        { name: 'Rich Menus', href: '/admin/rich-menus', icon: PanelTop, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'VIEWER'] },
         { name: 'Friend Histories', href: '/admin/friends', icon: Users, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
       ]
     },
@@ -208,7 +245,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
         { name: 'Access Requests', href: '/admin/access-requests', icon: UserPlus, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
         { name: 'File Management', href: '/admin/files', icon: FolderOpen, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
         { name: 'Image Resize', href: '/admin/image-resize', icon: Scaling, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
-        { name: 'Reports', href: '/admin/reports', icon: BarChart3, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
+        { name: 'Reports', href: '/admin/reports', icon: BarChart3, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'VIEWER'] },
         { name: 'Audit Log', href: '/admin/audit', icon: Shield, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
         { name: 'Health Check', href: '/admin/health', icon: Activity, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
         { name: 'Settings', href: '/admin/settings', icon: Settings, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
