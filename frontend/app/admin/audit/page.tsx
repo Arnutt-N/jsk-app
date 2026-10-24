@@ -5,8 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Select, type SelectOption } from "@/components/ui/Select";
-import CalendarPickerTH from "@/components/ui/CalendarPickerTH";
-import { isoToYMD } from "@/lib/utils";
+import { DatePresetFilter } from "@/components/admin/DatePresetFilter";
+import { resolveDateRangeWithFallback } from "@/lib/date-range";
 import { RefreshCw, Calendar, ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
 import { StaggerContainer, StaggerItem } from "@/components/ui/PageTransition";
 import PageHeader from "../components/PageHeader";
@@ -53,33 +53,6 @@ const ACTION_COLORS: Record<string, string> = {
   "unassign": "bg-muted text-text-secondary",
 };
 
-type DatePreset = '7d' | '30d' | '90d' | 'year' | 'custom';
-
-function presetToDates(preset: DatePreset): { start: string; end: string } {
-  const end = new Date();
-  const start = new Date();
-  switch (preset) {
-    case '7d':
-      start.setDate(end.getDate() - 7);
-      break;
-    case '30d':
-      start.setDate(end.getDate() - 30);
-      break;
-    case '90d':
-      start.setDate(end.getDate() - 90);
-      break;
-    case 'year':
-      start.setMonth(0, 1);
-      break;
-    default:
-      start.setDate(end.getDate() - 30);
-  }
-  return {
-    start: start.toISOString().split('T')[0],
-    end: end.toISOString().split('T')[0],
-  };
-}
-
 export default function AuditLogPage() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [stats, setStats] = useState<AuditStats | null>(null);
@@ -87,7 +60,7 @@ export default function AuditLogPage() {
   const [total, setTotal] = useState(0);
   const [offset, setOffset] = useState(0);
   const [limit] = useState(50);
-  const [datePreset, setDatePreset] = useState<DatePreset>('30d');
+  const [datePreset, setDatePreset] = useState('30d');
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
   const [filter, setFilter] = useState({
@@ -96,10 +69,7 @@ export default function AuditLogPage() {
   });
 
   const { start: startDate, end: endDate } = useMemo(() => {
-    if (datePreset === 'custom' && customStart && customEnd) {
-      return { start: customStart, end: customEnd };
-    }
-    return presetToDates(datePreset);
+    return resolveDateRangeWithFallback(datePreset, customStart, customEnd);
   }, [datePreset, customStart, customEnd]);
 
   const fetchLogs = useCallback(async () => {
@@ -162,53 +132,16 @@ export default function AuditLogPage() {
   };
 
   const renderDateSelector = () => (
-    <div className="flex items-center gap-2 flex-wrap">
-      {([
-        ['7d', '7 วัน'],
-        ['30d', '30 วัน'],
-        ['90d', '90 วัน'],
-        ['year', 'ปีนี้'],
-        ['custom', 'กำหนดเอง'],
-      ] as [DatePreset, string][]).map(([key, label]) => (
-        <Button
-          key={key}
-          variant={datePreset === key ? 'primary' : 'outline'}
-          size="sm"
-          onClick={() => { setDatePreset(key); setOffset(0); }}
-          className="text-xs"
-        >
-          {label}
-        </Button>
-      ))}
-      {datePreset === 'custom' && (
-        <div className="flex items-center gap-2">
-          <div className="w-44">
-            <CalendarPickerTH
-              value={customStart || null}
-              onChange={(iso) => { setCustomStart(isoToYMD(iso)); setOffset(0); }}
-            />
-          </div>
-          <span className="text-text-tertiary text-xs">-</span>
-          <div className="w-44">
-            <CalendarPickerTH
-              value={customEnd || null}
-              onChange={(iso) => { setCustomEnd(isoToYMD(iso)); setOffset(0); }}
-            />
-          </div>
-        </div>
-      )}
-      {(datePreset !== '30d' || customStart !== '' || customEnd !== '' || filter.action !== '' || filter.resource_type !== '') && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={clearFilters}
-          leftIcon={<RotateCcw className="w-4 h-4" />}
-          className="text-xs"
-        >
-          ล้างตัวกรอง
-        </Button>
-      )}
-    </div>
+    <DatePresetFilter
+      preset={datePreset}
+      customStart={customStart}
+      customEnd={customEnd}
+      onPresetChange={(key) => { setDatePreset(key); setOffset(0); }}
+      onCustomStartChange={(v) => { setCustomStart(v); setOffset(0); }}
+      onCustomEndChange={(v) => { setCustomEnd(v); setOffset(0); }}
+      showClear={datePreset !== '30d' || customStart !== '' || customEnd !== '' || filter.action !== '' || filter.resource_type !== ''}
+      onClear={clearFilters}
+    />
   );
 
   const totalPages = Math.ceil(total / limit);

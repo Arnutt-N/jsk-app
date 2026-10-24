@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
@@ -8,8 +8,8 @@ import {
     Users, MessageSquare, Clock, CheckCircle
 } from 'lucide-react';
 import { logger } from '@/lib/logger';
-import CalendarPickerTH from '@/components/ui/CalendarPickerTH';
-import { isoToYMD } from '@/lib/utils';
+import { DatePresetFilter } from '@/components/admin/DatePresetFilter';
+import { resolveDateRange } from '@/lib/date-range';
 import { API_BASE } from '../_lib/constants';
 
 const CHART = {
@@ -43,11 +43,23 @@ export default function AnalyticsPage() {
     const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
     const [dailyStats, setDailyStats] = useState<DailyStat[]>([]);
     const [operatorStats, setOperatorStats] = useState<OperatorStat[]>([]);
-    const [dateRange, setDateRange] = useState({ from: '', to: '' });
+    const [datePreset, setDatePreset] = useState<string | null>(null);
+    const [customStart, setCustomStart] = useState('');
+    const [customEnd, setCustomEnd] = useState('');
+
+    const dateRange = useMemo(() => {
+        return resolveDateRange(datePreset, customStart, customEnd);
+    }, [datePreset, customStart, customEnd]);
 
     const fetchData = useCallback(async (signal?: AbortSignal) => {
         try {
-            const query = `?from_date=${dateRange.from}&to_date=${dateRange.to}`;
+            const params = new URLSearchParams();
+            if (dateRange) {
+                params.append('from_date', dateRange.start);
+                params.append('to_date', dateRange.end);
+            }
+            const qs = params.toString();
+            const query = qs ? `?${qs}` : '';
 
             const [analyticsRes, operatorsRes] = await Promise.all([
                 fetch(`${API_BASE}/admin/live-chat/analytics${query}`, { signal }),
@@ -69,7 +81,7 @@ export default function AnalyticsPage() {
             if (error instanceof DOMException && error.name === 'AbortError') return;
             logger.error("Failed to fetch analytics", error);
         }
-    }, [dateRange.from, dateRange.to]);
+    }, [dateRange]);
 
     useEffect(() => {
         const controller = new AbortController();
@@ -90,21 +102,16 @@ export default function AnalyticsPage() {
                     <h1 className="text-2xl font-bold text-text-primary">Live Chat Analytics</h1>
                     <p className="text-text-secondary text-sm">monitor performance and team efficiency</p>
                 </div>
-                <div className="flex items-center gap-2">
-                    <div className="w-44">
-                        <CalendarPickerTH
-                            value={dateRange.from || null}
-                            onChange={(iso) => setDateRange(prev => ({ ...prev, from: isoToYMD(iso) }))}
-                        />
-                    </div>
-                    <span className="self-center text-text-tertiary">-</span>
-                    <div className="w-44">
-                        <CalendarPickerTH
-                            value={dateRange.to || null}
-                            onChange={(iso) => setDateRange(prev => ({ ...prev, to: isoToYMD(iso) }))}
-                        />
-                    </div>
-                </div>
+                <DatePresetFilter
+                    preset={datePreset}
+                    customStart={customStart}
+                    customEnd={customEnd}
+                    onPresetChange={setDatePreset}
+                    onCustomStartChange={setCustomStart}
+                    onCustomEndChange={setCustomEnd}
+                    showClear={datePreset !== null}
+                    onClear={() => { setDatePreset(null); setCustomStart(''); setCustomEnd(''); }}
+                />
             </div>
 
             {/* Stats Cards */}

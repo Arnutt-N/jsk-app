@@ -2,10 +2,8 @@
 // Client Component required: interactive table with selection, filters, and modals.
 // Auth is handled globally by the authFetch interceptor (cookie auth).
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { subDays, format } from 'date-fns';
-import type { DateRange } from 'react-day-picker';
-import { History, RefreshCw, Tag, User, RotateCcw } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { History, RefreshCw, Tag, User } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -16,7 +14,8 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/Toast';
 import type { SelectOption } from '@/components/ui/Select';
 import { AdminSearchFilterBar } from '@/components/admin/AdminSearchFilterBar';
-import { DateRangePicker, standardDatePresets } from '@/components/ui/DateRangePicker';
+import { DatePresetFilter } from '@/components/admin/DatePresetFilter';
+import { resolveDateRange } from '@/lib/date-range';
 import { AdminTableHead, type AdminTableHeadColumn } from '@/components/admin/AdminTableHead';
 import {
     RichMenuAssignModal,
@@ -53,7 +52,9 @@ export default function FriendsPage() {
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('');
     const [statusFilter, setStatusFilter] = useState<string | null>(null);
-    const [range, setRange] = useState<DateRange | undefined>(undefined);
+    const [datePreset, setDatePreset] = useState<string | null>(null);
+    const [customStart, setCustomStart] = useState('');
+    const [customEnd, setCustomEnd] = useState('');
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [assignModal, setAssignModal] = useState<{
         open: boolean;
@@ -81,9 +82,10 @@ export default function FriendsPage() {
         try {
             const params = new URLSearchParams();
             if (statusFilter) params.append('status', statusFilter);
-            if (range?.from) {
-                params.append('start_date', format(range.from, 'yyyy-MM-dd'));
-                params.append('end_date', format(range.to ?? range.from, 'yyyy-MM-dd'));
+            const dateRange = resolveDateRange(datePreset, customStart, customEnd);
+            if (dateRange) {
+                params.append('start_date', dateRange.start);
+                params.append('end_date', dateRange.end);
             }
             const qs = params.toString();
             const res = await fetch(`${API_BASE}/admin/friends${qs ? `?${qs}` : ''}`);
@@ -98,7 +100,7 @@ export default function FriendsPage() {
         } finally {
             setLoading(false);
         }
-    }, [statusFilter, range]);
+    }, [statusFilter, datePreset, customStart, customEnd]);
 
     const fetchRichMenus = useCallback(async () => {
         try {
@@ -334,17 +336,16 @@ export default function FriendsPage() {
                     showCategory={false}
                 />
                 <div className="flex flex-wrap items-center gap-2">
-                    <DateRangePicker value={range} presets={standardDatePresets} onChange={(r) => { setRange(r); clearSelection(); }} />
-                    {(statusFilter !== null || filter !== '' || range !== undefined) && (
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => { setFilter(''); setStatusFilter(null); setRange(undefined); clearSelection(); }}
-                            leftIcon={<RotateCcw className="w-4 h-4" />}
-                        >
-                            ล้างตัวกรอง
-                        </Button>
-                    )}
+                    <DatePresetFilter
+                        preset={datePreset}
+                        customStart={customStart}
+                        customEnd={customEnd}
+                        onPresetChange={(key) => { setDatePreset(key); clearSelection(); }}
+                        onCustomStartChange={(v) => { setCustomStart(v); clearSelection(); }}
+                        onCustomEndChange={(v) => { setCustomEnd(v); clearSelection(); }}
+                        showClear={statusFilter !== null || filter !== '' || datePreset !== null}
+                        onClear={() => { setFilter(''); setStatusFilter(null); setDatePreset(null); setCustomStart(''); setCustomEnd(''); clearSelection(); }}
+                    />
                 </div>
             </div>
 
