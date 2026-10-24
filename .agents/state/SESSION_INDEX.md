@@ -7,8 +7,8 @@
 
 | Metric | Value |
 |--------|-------|
-| Handoff checkpoints (active) | 305 |
-| Session summaries on disk | 410 |
+| Handoff checkpoints (active) | 309 |
+| Session summaries on disk | 414 |
 | Platforms | 12 (antigravity, claude_code, cline, codex, gemini_cli, kilo_code, kimi_code, muse_code, open_code, pi, qoder, zcode) |
 | Most recent | 2026-10-24 07:17 — pi |
 
@@ -159,7 +159,7 @@
 | 2026-08-15 14:50 | completed | — | — | `handover-open_code-20260815-1450.json` |
 | 2026-02-14 23:00 | completed | — | — | `handover-open_code-20260214-2300.json` |
 
-## pi (26)
+## pi (30)
 
 | When | Status | Model | Provider | Checkpoint |
 |------|--------|-------|----------|------------|
@@ -183,7 +183,7 @@
 | 2026-10-19 08:58 | completed | — | — | `handover-pi-20261019-0858.json` |
 | 2026-10-19 02:28 | completed | — | — | `handover-pi-20261019-0228.json` |
 | 2026-10-18 14:33 | completed | — | — | `handover-pi-20261018-1433.json` |
-| … | | | | +6 older |
+| … | | | | +10 older |
 
 ## qoder (26)
 

@@ -2,7 +2,7 @@
 # Handoff Board (generated)
 
 > **Last generated**: 2026-10-24 07:17 (from newest checkpoint)
-> 305 active handoffs, 12 platforms, 0 queued directed handoff(s).
+> 309 active handoffs, 12 platforms, 0 queued directed handoff(s).
 
 > Regenerate after any handoff: `node .agents/scripts/gen-handoff-views.cjs`
 
