@@ -2,15 +2,15 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Package, Trash2, SquarePen, Eye, LayoutGrid, List } from 'lucide-react';
 import PageHeader from '@/app/admin/components/PageHeader';
 import { ViewToggle } from '@/components/admin/ViewToggle';
 import { DetailModal } from '@/components/admin/DetailModal';
 import { ActionIconButton } from '@/components/ui/ActionIconButton';
 import { Button } from '@/components/ui/Button';
-import { Modal } from '@/components/ui/Modal';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import ReplyObjectForm, { formatErrorDetail, type ReplyObjectFormData } from '@/components/admin/ReplyObjectForm';
+import { formatErrorDetail } from '@/components/admin/ReplyObjectForm';
 import { StaggerContainer, StaggerItem } from '@/components/ui/PageTransition';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/Toast';
@@ -30,11 +30,11 @@ interface ReplyObject {
 }
 
 export default function ReplyObjectsPage() {
+    const router = useRouter();
     const { user } = useAuth();
     const isViewer = user?.role === 'VIEWER';
     const [objects, setObjects] = useState<ReplyObject[]>([]);
     const [loading, setLoading] = useState(true);
-    const [editingObj, setEditingObj] = useState<ReplyObject | null>(null);
     const [viewObj, setViewObj] = useState<ReplyObject | null>(null);
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
@@ -60,32 +60,7 @@ export default function ReplyObjectsPage() {
         return () => window.clearTimeout(timer);
     }, [fetchObjects]);
 
-    const openEdit = (obj: ReplyObject) => setEditingObj(obj);
-    const closeEdit = () => setEditingObj(null);
-
-    const handleSaveEdit = async (data: ReplyObjectFormData): Promise<boolean> => {
-        if (!editingObj) return false;
-        try {
-            const res = await fetch(`${API_BASE}/admin/reply-objects/${editingObj.object_id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...data, payload: JSON.parse(data.payload) }),
-            });
-            if (res.ok) {
-                toast({ title: 'บันทึกการแก้ไขแล้ว', variant: 'success' });
-                closeEdit();
-                await fetchObjects();
-                return true;
-            }
-            const error = await res.json().catch(() => ({} as { detail?: unknown }));
-            toast({ title: 'ผิดพลาด', description: formatErrorDetail(error.detail), variant: 'error' });
-            return false;
-        } catch (error) {
-            logger.error('Error saving reply object:', error);
-            toast({ title: 'ผิดพลาด', description: formatErrorDetail(undefined), variant: 'error' });
-            return false;
-        }
-    };
+    const openEdit = (obj: ReplyObject) => router.push(`/admin/reply-objects/${obj.object_id}/edit`);
 
     const handleDelete = async (objectId: string) => {
         // ts-4: await + explicit error handling; refresh the list only on success.
@@ -108,19 +83,6 @@ export default function ReplyObjectsPage() {
             toast({ title: 'ผิดพลาด', description: 'ลบไม่สำเร็จ กรุณาลองใหม่อีกครั้ง', variant: 'error' });
         }
     };
-
-    const editInitial: ReplyObjectFormData | null = editingObj ? (() => {
-        const p = editingObj.payload;
-        const isPlainObject = p !== null && typeof p === 'object' && !Array.isArray(p);
-        return {
-            object_id: editingObj.object_id,
-            name: editingObj.name,
-            category: editingObj.category || '',
-            object_type: editingObj.object_type,
-            payload: isPlainObject ? JSON.stringify(p, null, 2) : p ? JSON.stringify(p, null, 2) : '{}',
-            alt_text: editingObj.alt_text || '',
-        };
-    })() : null;
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500 thai-text">
@@ -262,24 +224,6 @@ export default function ReplyObjectsPage() {
                 confirmText="ลบ"
                 variant="danger"
             />
-
-            <Modal
-                isOpen={editingObj !== null}
-                onClose={closeEdit}
-                title="Edit Object"
-                maxWidth="4xl"
-            >
-                {editInitial && (
-                    <ReplyObjectForm
-                        key={editingObj?.object_id}
-                        initial={editInitial}
-                        lockObjectId
-                        submitLabel="Save Modifications"
-                        onSave={handleSaveEdit}
-                        onCancel={closeEdit}
-                    />
-                )}
-            </Modal>
 
             <DetailModal
                 title="รายละเอียดเทมเพลต"
