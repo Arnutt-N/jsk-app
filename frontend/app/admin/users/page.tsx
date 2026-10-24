@@ -60,7 +60,7 @@ interface UserListResponse {
 
 /* ── Constants ─────────────────────────────────────────────────────── */
 
-// Badge config for all six roles, sourced from the central role map.
+// Badge config for all seven roles, sourced from the central role map.
 // Source of truth: lib/constants/roles.ts (AGENT renders as "Operator").
 const ROLE_BADGE: Record<string, { variant: RoleBadgeVariant; label: string }> = Object.fromEntries(
     (Object.keys(ROLE_META) as Role[]).map(
@@ -68,11 +68,12 @@ const ROLE_BADGE: Record<string, { variant: RoleBadgeVariant; label: string }> =
     )
 );
 
-// Filter + edit-role options: all six roles (privilege order) plus the
+// Filter + edit-role options: all seven roles (privilege order) plus the
 // "all roles" empty option. The edit modal reuses this minus the empty entry.
 const ROLE_OPTIONS: SelectOption[] = [
     { value: '', label: 'ทุกบทบาท' },
     ...STAFF_ROLES.map((r) => ({ value: r, label: getRoleOptionLabel(r) })),
+    { value: ROLE.VIEWER, label: getRoleOptionLabel(ROLE.VIEWER) },
     { value: ROLE.USER, label: getRoleOptionLabel(ROLE.USER) },
 ];
 
@@ -84,8 +85,9 @@ const STATUS_OPTIONS: SelectOption[] = [
 
 // Roles offered in the create-user modal (SUPER_ADMIN view). ADMIN callers are
 // further restricted to AGENT-only by allowedCreateRoles below. Covers all
-// five staff roles — USER (LINE customers) is never creatable here.
-const CREATE_ROLE_OPTIONS: SelectOption[] = STAFF_ROLES.map((r) => ({
+// five staff roles plus the read-only VIEWER — USER (LINE customers) is
+// never creatable here.
+const CREATE_ROLE_OPTIONS: SelectOption[] = [...STAFF_ROLES, ROLE.VIEWER].map((r) => ({
     value: r,
     label: getRoleOptionLabel(r),
 }));

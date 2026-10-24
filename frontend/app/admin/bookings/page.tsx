@@ -10,6 +10,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { Select } from '@/components/ui/Select'
 import { ViewToggle } from '@/components/admin/ViewToggle'
 import { CalendarDays, BellRing, ChevronLeft, ChevronRight, LayoutList, Pencil, Phone, Plus, RefreshCw, Search, UserMinus, UserPlus } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext';
 import { logger } from '@/lib/logger'
 import { formatThaiDate, formatThaiDateTime } from '@/lib/format-date'
 import { isoToYMD } from '@/lib/utils'
@@ -60,6 +61,8 @@ const ACTIONS: { status: BookingStatus; label: string }[] = [
 ]
 
 export default function AdminBookingsPage() {
+  const { user } = useAuth()
+  const isViewer = user?.role === 'VIEWER'
   const [date, setDate] = useState('') // '' = all days; must not default to today
   const [statusFilter, setStatusFilter] = useState<BookingStatus | ''>('')
   const [serviceTypeFilter, setServiceTypeFilter] = useState('')
@@ -317,7 +320,7 @@ export default function AdminBookingsPage() {
             <RefreshCw className="mr-1 h-4 w-4" aria-hidden="true" />
             รีเฟรช
           </Button>
-          {walkinEnabled && (
+          {walkinEnabled && !isViewer && (
             <Button onClick={() => setWalkinOpen(true)}>
               <Plus className="mr-1 h-4 w-4" aria-hidden="true" />
               เพิ่มคิวนอก
@@ -447,7 +450,7 @@ export default function AdminBookingsPage() {
                 {booking.email && emailEnabled ? 'อีเมล' : 'LINE'}
               </Badge>
 
-              {booking.status === 'CONFIRMED' && (
+              {booking.status === 'CONFIRMED' && !isViewer && (
                 <div className="flex gap-1">
                   {assignEnabled && (
                     <Button

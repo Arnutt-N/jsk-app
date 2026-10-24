@@ -233,6 +233,70 @@ async def get_current_staff(
     return current_user
 
 
+async def get_current_admin_or_viewer(
+    current_user=Depends(get_current_user),
+):
+    """Admin gate that also admits the read-only VIEWER role.
+
+    Use ONLY on explicit allow-listed GET routes (VIEWER menus 1-5:
+    reply-objects, rich-menus, intent categories). VIEWER is in no
+    MANAGE/access key, so every write endpoint keeps denying it via its
+    own gate -- opting a GET in here never opens a write.
+    """
+    from app.models.user import UserRole
+
+    if current_user.role == UserRole.VIEWER:
+        return current_user
+    if not can(current_user.role, KEY_ACCESS_ADMIN_ENDPOINTS):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Insufficient permissions"
+        )
+    return current_user
+
+
+async def get_current_manager_or_viewer(
+    current_user=Depends(get_current_user),
+):
+    """Manager gate that also admits the read-only VIEWER role.
+
+    Use ONLY on explicit allow-listed GET routes (service-request reads).
+    Request writes (assign/comment/delete) keep the plain manager/admin
+    gates, so VIEWER stays 403 there.
+    """
+    from app.models.user import UserRole
+
+    if current_user.role == UserRole.VIEWER:
+        return current_user
+    if not can(current_user.role, KEY_ACCESS_MANAGER_ENDPOINTS):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Insufficient permissions"
+        )
+    return current_user
+
+
+async def get_current_staff_or_viewer(
+    current_user=Depends(get_current_user),
+):
+    """Staff gate that also admits the read-only VIEWER role.
+
+    Use ONLY on explicit allow-listed GET routes (booking list +
+    counter availability). Booking writes and the live-chat HTTP gate keep
+    the plain staff gate, so VIEWER stays 403 there.
+    """
+    from app.models.user import UserRole
+
+    if current_user.role == UserRole.VIEWER:
+        return current_user
+    if not can(current_user.role, KEY_ACCESS_STAFF_ENDPOINTS):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Insufficient permissions"
+        )
+    return current_user
+
+
 def require_permission(key: str):
     """Dependency factory: gate a route on a single module permission key.
 
@@ -286,4 +350,10 @@ def check_role_permission(current_user, target_role) -> None:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Only SUPER_ADMIN can manage DIRECTOR or HEAD users",
+            )
+    elif target_role == UserRole.VIEWER:
+        if current_user.role not in (UserRole.SUPER_ADMIN, UserRole.ADMIN):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only SUPER_ADMIN or ADMIN can manage VIEWER users",
             )

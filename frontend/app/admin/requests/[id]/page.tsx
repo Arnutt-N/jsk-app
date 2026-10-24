@@ -636,6 +636,7 @@ export default function RequestDetailPage() {
     };
 
     // --- Derived state (computed BEFORE any early return so hooks rules are satisfied) ---
+    const isViewer = user?.role === 'VIEWER';
     const isAssignee = userId !== null && request?.assigned_agent_id === userId;
     const canApprove = permissions?.can_assign ?? false;
     const canRevertApproval = permissions?.can_revert_approval ?? false;
@@ -1374,7 +1375,9 @@ export default function RequestDetailPage() {
                                 })}
                             </div>
 
-                            <CommentInputSection requestId={params.id ?? ''} onSuccess={fetchComments} />
+                            {!isViewer && (
+                                <CommentInputSection requestId={params.id ?? ''} onSuccess={fetchComments} />
+                            )}
                         </div>
                     )}
 

@@ -43,6 +43,7 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { apiFetch } from '@/lib/api-error';
+import { useAuth } from '@/contexts/AuthContext';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -206,6 +207,8 @@ function ExportButton({
   startDate: string;
   endDate: string;
 }) {
+  const { user } = useAuth();
+  if (user?.role === 'VIEWER') return null;
   const handleExport = async () => {
     const params = new URLSearchParams({ type, start_date: startDate, end_date: endDate });
     const result = await apiFetch<Response>(`/admin/reports/export?${params}`, { raw: true });

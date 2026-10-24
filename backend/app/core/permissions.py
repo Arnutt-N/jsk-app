@@ -121,11 +121,13 @@ DEFAULT_POLICY: dict[str, frozenset[UserRole]] = {
     KEY_MANAGE_USERS: frozenset({UserRole.SUPER_ADMIN, UserRole.ADMIN}),
     KEY_MANAGE_FILES: frozenset({UserRole.SUPER_ADMIN, UserRole.ADMIN}),
     # Managers (DIRECTOR/HEAD) may VIEW reports; writes stay ADMIN+.
+    # VIEWER (read-only observer) may also VIEW reports -- menus 1-5 scope.
     KEY_VIEW_REPORTS: frozenset({
         UserRole.SUPER_ADMIN,
         UserRole.ADMIN,
         UserRole.DIRECTOR,
         UserRole.HEAD,
+        UserRole.VIEWER,
     }),
     KEY_VIEW_AUDIT_LOG: frozenset({UserRole.SUPER_ADMIN, UserRole.ADMIN}),
     KEY_EDIT_SYSTEM_SETTINGS: frozenset({UserRole.SUPER_ADMIN, UserRole.ADMIN}),

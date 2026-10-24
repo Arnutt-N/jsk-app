@@ -15,6 +15,7 @@ import { StaggerContainer, StaggerItem } from '@/components/ui/PageTransition';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/Toast';
 import { logger } from '@/lib/logger';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ReplyObject {
     id: number;
@@ -29,6 +30,8 @@ interface ReplyObject {
 }
 
 export default function ReplyObjectsPage() {
+    const { user } = useAuth();
+    const isViewer = user?.role === 'VIEWER';
     const [objects, setObjects] = useState<ReplyObject[]>([]);
     const [loading, setLoading] = useState(true);
     const [editingObj, setEditingObj] = useState<ReplyObject | null>(null);
@@ -132,9 +135,11 @@ export default function ReplyObjectsPage() {
                         onChange={setViewMode}
                         ariaLabel="มุมมอง"
                     />
-                    <Link href="/admin/reply-objects/new">
-                        <Button>+ New Template</Button>
-                    </Link>
+                    {!isViewer && (
+                        <Link href="/admin/reply-objects/new">
+                            <Button>+ New Template</Button>
+                        </Link>
+                    )}
                 </div>
             </PageHeader>
 
@@ -187,18 +192,22 @@ export default function ReplyObjectsPage() {
                                         variant="default"
                                         onClick={() => setViewObj(obj)}
                                     />
-                                    <ActionIconButton
-                                        icon={<SquarePen className="w-4 h-4" />}
-                                        label="แก้ไข"
-                                        variant="default"
-                                        onClick={() => openEdit(obj)}
-                                    />
-                                    <ActionIconButton
-                                        icon={<Trash2 className="w-4 h-4" />}
-                                        label="ลบ"
-                                        variant="danger"
-                                        onClick={() => setConfirmDelete({open: true, objectId: obj.object_id})}
-                                    />
+                                    {!isViewer && (
+                                        <>
+                                            <ActionIconButton
+                                                icon={<SquarePen className="w-4 h-4" />}
+                                                label="แก้ไข"
+                                                variant="default"
+                                                onClick={() => openEdit(obj)}
+                                            />
+                                            <ActionIconButton
+                                                icon={<Trash2 className="w-4 h-4" />}
+                                                label="ลบ"
+                                                variant="danger"
+                                                onClick={() => setConfirmDelete({open: true, objectId: obj.object_id})}
+                                            />
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -228,8 +237,12 @@ export default function ReplyObjectsPage() {
                                         <td className="px-5 py-3">
                                             <div className="flex items-center justify-center gap-1">
                                                 <ActionIconButton icon={<Eye className="w-4 h-4" />} label="ดูรายละเอียด" variant="default" onClick={() => setViewObj(obj)} />
-                                                <ActionIconButton icon={<SquarePen className="w-4 h-4" />} label="แก้ไข" variant="default" onClick={() => openEdit(obj)} />
-                                                <ActionIconButton icon={<Trash2 className="w-4 h-4" />} label="ลบ" variant="danger" onClick={() => setConfirmDelete({ open: true, objectId: obj.object_id })} />
+                                                {!isViewer && (
+                                                    <>
+                                                        <ActionIconButton icon={<SquarePen className="w-4 h-4" />} label="แก้ไข" variant="default" onClick={() => openEdit(obj)} />
+                                                        <ActionIconButton icon={<Trash2 className="w-4 h-4" />} label="ลบ" variant="danger" onClick={() => setConfirmDelete({ open: true, objectId: obj.object_id })} />
+                                                    </>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>
@@ -287,7 +300,7 @@ export default function ReplyObjectsPage() {
                     </div>
                 ) : undefined}
                 actions={viewObj ? [
-                    { label: 'แก้ไข', onClick: () => { const o = viewObj; setViewObj(null); openEdit(o); }, variant: 'outline' },
+                    ...(!isViewer ? [{ label: 'แก้ไข', onClick: () => { const o = viewObj; setViewObj(null); openEdit(o); }, variant: 'outline' as const }] : []),
                     { label: 'ปิด', onClick: () => setViewObj(null), variant: 'primary' },
                 ] : undefined}
             />

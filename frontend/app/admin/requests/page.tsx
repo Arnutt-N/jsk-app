@@ -43,6 +43,7 @@ import {
     getStatusVariantForRequest,
     getStatusIconForRequest,
 } from '@/lib/constants/request-status';
+import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/lib/permissions';
 import { useToast } from '@/components/ui/Toast';
 import { apiFetch } from '@/lib/api-error';
@@ -92,6 +93,8 @@ const PAGE_LIMIT = 100;
 
 export default function AdminRequestList() {
     const { toast } = useToast();
+    const { user } = useAuth();
+    const isViewer = user?.role === 'VIEWER';
     const [requests, setRequests] = useState<ServiceRequest[]>([]);
     const [loading, setLoading] = useState(true);
     const [fetchError, setFetchError] = useState<string | null>(null);
@@ -226,11 +229,13 @@ export default function AdminRequestList() {
         <div className="space-y-6 animate-in fade-in duration-500 thai-text">
             {/* Page Header */}
             <PageHeader title="รายการคำร้องขอรับบริการ" subtitle="จัดการและติดตามสถานะคำร้องจากประชาชนผ่าน LINE OA">
-                <Button asChild variant="primary" size="sm">
-                    <Link href="/admin/requests/create">
-                        <Plus className="w-4 h-4 mr-1" /> สร้างคำร้อง
-                    </Link>
-                </Button>
+                {!isViewer && (
+                    <Button asChild variant="primary" size="sm">
+                        <Link href="/admin/requests/create">
+                            <Plus className="w-4 h-4 mr-1" /> สร้างคำร้อง
+                        </Link>
+                    </Button>
+                )}
                 <Button
                     variant="outline"
                     size="sm"
@@ -449,19 +454,23 @@ export default function AdminRequestList() {
                                                 variant="default"
                                                 onClick={() => handleView(req)}
                                             />
-                                            <Link href={`/admin/requests/${req.id}`}>
-                                                <ActionIconButton
-                                                    icon={<SquarePen className="w-4 h-4" />}
-                                                    label="แก้ไข"
-                                                    variant="warning"
-                                                />
-                                            </Link>
-                                            <ActionIconButton
-                                                icon={<Trash2 className="w-4 h-4" />}
-                                                label="ลบ"
-                                                variant="danger"
-                                                onClick={() => handleDelete(req)}
-                                            />
+                                            {!isViewer && (
+                                                <>
+                                                    <Link href={`/admin/requests/${req.id}`}>
+                                                        <ActionIconButton
+                                                            icon={<SquarePen className="w-4 h-4" />}
+                                                            label="แก้ไข"
+                                                            variant="warning"
+                                                        />
+                                                    </Link>
+                                                    <ActionIconButton
+                                                        icon={<Trash2 className="w-4 h-4" />}
+                                                        label="ลบ"
+                                                        variant="danger"
+                                                        onClick={() => handleDelete(req)}
+                                                    />
+                                                </>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>

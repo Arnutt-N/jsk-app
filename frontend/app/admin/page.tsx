@@ -132,7 +132,7 @@ export default function ServiceDashboard() {
 
     if (loading) {
         return (
-            <PageAccessGuard allowedRoles={['SUPER_ADMIN', 'ADMIN']}>
+            <PageAccessGuard allowedRoles={['SUPER_ADMIN', 'ADMIN', 'VIEWER']}>
                 <LoadingSpinner />
             </PageAccessGuard>
         );
@@ -266,7 +266,7 @@ export default function ServiceDashboard() {
     );
 
     return (
-        <PageAccessGuard allowedRoles={['SUPER_ADMIN', 'ADMIN']}>
+        <PageAccessGuard allowedRoles={['SUPER_ADMIN', 'ADMIN', 'VIEWER']}>
             {content}
         </PageAccessGuard>
     );
