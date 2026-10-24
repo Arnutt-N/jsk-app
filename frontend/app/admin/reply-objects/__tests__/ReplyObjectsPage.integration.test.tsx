@@ -14,6 +14,9 @@ vi.mock('@/components/ui/Toast', () => ({
   useToast: () => ({ toast: toastMock }),
 }));
 vi.mock('@/lib/logger', () => ({ logger: { error: vi.fn(), info: vi.fn() } }));
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({ user: { role: 'ADMIN' } }),
+}));
 
 function jsonResponse(body: unknown, ok = true, status = 200): Promise<Response> {
   return Promise.resolve({
