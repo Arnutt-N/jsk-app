@@ -105,6 +105,149 @@ function isAudioMime(mime: string) {
 }
 
 // ---------------------------------------------------------------------------
+// Authenticated media preview (private files have no token for `<img>`).
+// ---------------------------------------------------------------------------
+
+// Shown when a private file has no token the browser could use directly.
+const PRIVATE_PREVIEW_REASON = 'ไฟล์ส่วนตัว — กดสร้างลิงก์สาธารณะเพื่อดู';
+
+// Direct (no-auth) URL for a file, or null when the browser must not try
+// one: a tokenless private file 403s on `/media/{id}`, so callers fetch the
+// bytes through the admin download endpoint instead.
+function getDirectMediaUrl(file: MediaFile, buildUrl: (f: MediaFile) => string): string | null {
+  if (file.thumbnail_url) return file.thumbnail_url;
+  if (file.public_url) return file.public_url;
+  if (file.public_token) return buildUrl(file);
+  return null;
+}
+
+type AuthenticatedMediaState =
+  | { kind: 'direct'; url: string }
+  | { kind: 'loading' }
+  | { kind: 'ready'; url: string }
+  | { kind: 'failed' };
+
+// Resolve a viewable URL for a file the admin may access. Public files (and
+// private files carrying a token) already have a direct URL; otherwise the
+// bytes are fetched with the admin session (cookies via apiFetch) and
+// exposed as an object URL, since `<img>`/`<video>` cannot attach auth
+// headers on their own.
+function useAuthenticatedMediaUrl(fileId: string | null, directUrl: string | null): AuthenticatedMediaState {
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+  // Reset cached fetch state when the target changes (render-phase update:
+  // the effect below only ever moves loading -> ready/failed forward).
+  const [prevKey, setPrevKey] = useState<string | null>(null);
+  const key = fileId && !directUrl ? fileId : null;
+  if (prevKey !== key) {
+    setPrevKey(key);
+    setBlobUrl(null);
+    setFailed(false);
+  }
+
+  useEffect(() => {
+    if (!key) return;
+    let cancelled = false;
+    let objectUrl: string | null = null;
+    void (async () => {
+      const result = await apiFetch<Response>(`/admin/media/${key}/download`, { raw: true });
+      if (cancelled) return;
+      if (!result.ok) {
+        setFailed(true);
+        return;
+      }
+      try {
+        const blob = await result.data.blob();
+        if (cancelled) return;
+        objectUrl = URL.createObjectURL(blob);
+        setBlobUrl(objectUrl);
+      } catch {
+        if (!cancelled) setFailed(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [key]);
+
+  if (directUrl) return { kind: 'direct', url: directUrl };
+  if (failed) return { kind: 'failed' };
+  if (blobUrl) return { kind: 'ready', url: blobUrl };
+  return { kind: 'loading' };
+}
+
+// Thumbnail that can show private images: falls back to the category icon
+// plus the Thai private-file reason when no viewable URL exists, and
+// reports failures through `onLoadFailed` (the parent `markBroken`).
+function AuthenticatedFileImage({
+  file,
+  directUrl,
+  fill,
+  className,
+  fallbackAction,
+  onLoadFailed,
+}: {
+  file: MediaFile;
+  directUrl: string | null;
+  fill: boolean;
+  className: string;
+  fallbackAction?: React.ReactNode;
+  onLoadFailed: (id: string) => void;
+}) {
+  const state = useAuthenticatedMediaUrl(file.id, directUrl);
+  const [imgBroken, setImgBroken] = useState(false);
+
+  // A new file (or a new direct URL) gets a fresh error flag.
+  const [prevSrcKey, setPrevSrcKey] = useState('');
+  const srcKey = `${file.id}|${directUrl ?? ''}`;
+  if (prevSrcKey !== srcKey) {
+    setPrevSrcKey(srcKey);
+    setImgBroken(false);
+  }
+
+  const handleError = useCallback(() => {
+    setImgBroken(true);
+    onLoadFailed(file.id);
+  }, [file.id, onLoadFailed]);
+
+  useEffect(() => {
+    if (state.kind === 'failed') onLoadFailed(file.id);
+  }, [state.kind, file.id, onLoadFailed]);
+
+  if (state.kind === 'failed' || imgBroken) {
+    return (
+      <div className="flex flex-col items-center gap-1 px-2 py-6 text-center text-text-tertiary">
+        {getCategoryIcon(file.category)}
+        <span className="text-[10px] line-clamp-2 max-w-[90%]">{file.filename}</span>
+        <span className="text-[10px] text-amber-600 dark:text-amber-400">
+          {directUrl ? 'ไม่สามารถโหลดภาพตัวอย่างได้' : PRIVATE_PREVIEW_REASON}
+        </span>
+        {fallbackAction}
+      </div>
+    );
+  }
+
+  const src = state.kind === 'direct' || state.kind === 'ready' ? state.url : null;
+  if (!src) {
+    return (
+      <div className="flex items-center justify-center w-full h-full animate-pulse text-text-tertiary">
+        {getCategoryIcon(file.category)}
+      </div>
+    );
+  }
+
+  if (fill) {
+    return (
+      <Image src={src} alt={file.filename} fill unoptimized className={className} onError={handleError} />
+    );
+  }
+  return (
+    <Image src={src} alt={file.filename} width={1600} height={1200} unoptimized className={className} onError={handleError} />
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 export default function FilesPage() {
@@ -351,15 +494,16 @@ export default function FilesPage() {
   );
 
   const getPreviewUrl = useCallback((file: MediaFile) => {
-    if (file.thumbnail_url) return file.thumbnail_url;
-    if (file.public_url) return file.public_url;
-    // NOTE: the `/media/{id}` endpoint serves the raw binary; private
-    // files need their token appended (buildMediaUrl). The render path
-    // tracks broken loads in `brokenIds` and falls back to the category
-    // icon for files without a token.
-    if (isImageMime(file.mime_type)) return buildMediaUrl(file);
-    return null;
+    // Tokenless private files 403 on `/media/{id}` — return null so the
+    // render path fetches the bytes with the admin session instead.
+    if (!isImageMime(file.mime_type)) return null;
+    return getDirectMediaUrl(file, buildMediaUrl);
   }, [buildMediaUrl]);
+
+  // Viewable URL for the modal file: direct when public/tokenized, else an
+  // admin-session object URL (same hook the grid thumbnails use).
+  const modalDirectUrl = previewFile ? getDirectMediaUrl(previewFile, buildMediaUrl) : null;
+  const modalMedia = useAuthenticatedMediaUrl(previewFile ? previewFile.id : null, modalDirectUrl);
 
   // -----------------------------------------------------------------------
   // Render
@@ -511,8 +655,6 @@ export default function FilesPage() {
                 <StaggerContainer className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
                   {files.map(file => {
                     const preview = getPreviewUrl(file);
-                    const isBroken = brokenIds.has(file.id);
-                    const showImage = preview && !isBroken;
                     const isSelected = selected.has(file.id);
                     return (
                       <StaggerItem key={file.id}>
@@ -546,17 +688,16 @@ export default function FilesPage() {
                           className="aspect-square bg-gray-50 dark:bg-gray-800 flex items-center justify-center cursor-pointer overflow-hidden relative"
                           onClick={() => setPreviewFile(file)}
                         >
-                          {showImage ? (
-                            <Image
-                              src={preview}
-                              alt={file.filename}
+                          {isImageMime(file.mime_type) ? (
+                            <AuthenticatedFileImage
+                              file={file}
+                              directUrl={preview}
                               fill
-                              unoptimized
                               className="object-cover"
-                              onError={() => markBroken(file.id)}
+                              onLoadFailed={markBroken}
                             />
                           ) : (
-                            <div className="flex flex-col items-center gap-1 text-text-tertiary" aria-hidden={!showImage}>
+                            <div className="flex flex-col items-center gap-1 text-text-tertiary">
                               {getCategoryIcon(file.category)}
                               <span className="text-[10px] px-1 text-center line-clamp-2 max-w-[90%]">
                                 {file.filename}
@@ -845,17 +986,21 @@ export default function FilesPage() {
           <div className="space-y-4">
             {isImageMime(previewFile.mime_type) ? (
               <div className="flex justify-center min-h-[120px]">
-                {brokenIds.has(previewFile.id) ? (
+                {modalMedia.kind === 'failed' || brokenIds.has(previewFile.id) ? (
                   <div className="flex flex-col items-center justify-center gap-2 py-12 text-text-tertiary">
                     {getCategoryIcon(previewFile.category)}
-                    <p className="text-sm">ไม่สามารถโหลดภาพตัวอย่างได้</p>
+                    <p className="text-sm">{modalDirectUrl ? 'ไม่สามารถโหลดภาพตัวอย่างได้' : PRIVATE_PREVIEW_REASON}</p>
                     <Button size="sm" variant="outline" onClick={() => downloadFile(previewFile)}>
                       <Download className="w-4 h-4 mr-1.5" />ดาวน์โหลด
                     </Button>
                   </div>
+                ) : modalMedia.kind === 'loading' ? (
+                  <div className="flex items-center justify-center py-12 text-text-tertiary animate-pulse">
+                    {getCategoryIcon(previewFile.category)}
+                  </div>
                 ) : (
                   <Image
-                    src={getPreviewUrl(previewFile) ?? buildMediaUrl(previewFile)}
+                    src={modalMedia.url}
                     alt={previewFile.filename}
                     width={1600}
                     height={1200}
@@ -866,15 +1011,43 @@ export default function FilesPage() {
                 )}
               </div>
             ) : isVideoMime(previewFile.mime_type) ? (
-              <video
-                controls
-                className="w-full max-h-[60vh] rounded-xl"
-                src={buildMediaUrl(previewFile)}
-              />
+              modalMedia.kind === 'failed' ? (
+                <div className="flex flex-col items-center justify-center gap-2 py-12 text-text-tertiary">
+                  {getCategoryIcon(previewFile.category)}
+                  <p className="text-sm">{modalDirectUrl ? 'ไม่สามารถโหลดวิดีโอได้' : PRIVATE_PREVIEW_REASON}</p>
+                  <Button size="sm" variant="outline" onClick={() => downloadFile(previewFile)}>
+                    <Download className="w-4 h-4 mr-1.5" />ดาวน์โหลด
+                  </Button>
+                </div>
+              ) : modalMedia.kind === 'loading' ? (
+                <div className="flex items-center justify-center py-12 text-text-tertiary animate-pulse">
+                  {getCategoryIcon(previewFile.category)}
+                </div>
+              ) : (
+                <video
+                  controls
+                  className="w-full max-h-[60vh] rounded-xl"
+                  src={modalMedia.url}
+                />
+              )
             ) : isAudioMime(previewFile.mime_type) ? (
-              <div className="flex justify-center py-8">
-                <audio controls src={buildMediaUrl(previewFile)} />
-              </div>
+              modalMedia.kind === 'failed' ? (
+                <div className="flex flex-col items-center justify-center gap-2 py-8 text-text-tertiary">
+                  {getCategoryIcon(previewFile.category)}
+                  <p className="text-sm">{modalDirectUrl ? 'ไม่สามารถโหลดเสียงได้' : PRIVATE_PREVIEW_REASON}</p>
+                  <Button size="sm" variant="outline" onClick={() => downloadFile(previewFile)}>
+                    <Download className="w-4 h-4 mr-1.5" />ดาวน์โหลด
+                  </Button>
+                </div>
+              ) : modalMedia.kind === 'loading' ? (
+                <div className="flex items-center justify-center py-8 text-text-tertiary animate-pulse">
+                  {getCategoryIcon(previewFile.category)}
+                </div>
+              ) : (
+                <div className="flex justify-center py-8">
+                  <audio controls src={modalMedia.url} />
+                </div>
+              )
             ) : (
               <div className="text-center py-12">
                 <FileText className="w-16 h-16 mx-auto text-text-tertiary mb-4" />
