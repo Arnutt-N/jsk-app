@@ -17,7 +17,7 @@ import { StaggerContainer, StaggerItem } from '@/components/ui/PageTransition';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/Toast';
 import { logger } from '@/lib/logger';
-import { useAuth } from '@/contexts/AuthContext';
+import { ViewerHide, useIsViewer } from '@/components/admin/ViewerHide';
 
 interface ReplyObject {
     id: number;
@@ -33,8 +33,7 @@ interface ReplyObject {
 
 export default function ReplyObjectsPage() {
     const router = useRouter();
-    const { user } = useAuth();
-    const isViewer = user?.role === 'VIEWER';
+    const isViewer = useIsViewer();
     const [objects, setObjects] = useState<ReplyObject[]>([]);
     const [loading, setLoading] = useState(true);
     const [viewObj, setViewObj] = useState<ReplyObject | null>(null);
@@ -123,11 +122,11 @@ export default function ReplyObjectsPage() {
                         onChange={setViewMode}
                         ariaLabel="มุมมอง"
                     />
-                    {!isViewer && (
+                    <ViewerHide>
                         <Link href="/admin/reply-objects/new">
                             <Button>+ New Template</Button>
                         </Link>
-                    )}
+                    </ViewerHide>
                 </div>
             </PageHeader>
 
@@ -178,14 +177,14 @@ export default function ReplyObjectsPage() {
                                         <Badge variant={obj.is_active ? 'success' : 'gray'} size="sm" className="thai-no-break">
                                             {obj.is_active ? 'ใช้งานอยู่' : 'ปิดใช้งาน'}
                                         </Badge>
-                                        {!isViewer && (
+                                        <ViewerHide>
                                             <Switch
                                                 checked={obj.is_active}
                                                 onCheckedChange={() => { void handleToggleActive(obj); }}
                                                 disabled={togglingId === obj.id}
                                                 aria-label={`${obj.is_active ? 'ปิดใช้งาน' : 'เปิดใช้งาน'} ${obj.name}`}
                                             />
-                                        )}
+                                        </ViewerHide>
                                     </div>
                                 </div>
 
@@ -196,7 +195,7 @@ export default function ReplyObjectsPage() {
                                         variant="default"
                                         onClick={() => setViewObj(obj)}
                                     />
-                                    {!isViewer && (
+                                    <ViewerHide>
                                         <>
                                             <ActionIconButton
                                                 icon={<SquarePen className="w-4 h-4" />}
@@ -211,7 +210,7 @@ export default function ReplyObjectsPage() {
                                                 onClick={() => setConfirmDelete({open: true, objectId: obj.object_id})}
                                             />
                                         </>
-                                    )}
+                                    </ViewerHide>
                                 </div>
                             </div>
                         </div>
@@ -244,25 +243,25 @@ export default function ReplyObjectsPage() {
                                                 <Badge variant={obj.is_active ? 'success' : 'gray'} size="sm" className="thai-no-break">
                                                     {obj.is_active ? 'ใช้งานอยู่' : 'ปิดใช้งาน'}
                                                 </Badge>
-                                                {!isViewer && (
+                                                <ViewerHide>
                                                     <Switch
                                                         checked={obj.is_active}
                                                         onCheckedChange={() => { void handleToggleActive(obj); }}
                                                         disabled={togglingId === obj.id}
                                                         aria-label={`${obj.is_active ? 'ปิดใช้งาน' : 'เปิดใช้งาน'} ${obj.name}`}
                                                     />
-                                                )}
+                                                </ViewerHide>
                                             </div>
                                         </td>
                                         <td className="px-5 py-3">
                                             <div className="flex items-center justify-center gap-1">
                                                 <ActionIconButton icon={<Eye className="w-4 h-4" />} label="ดูรายละเอียด" variant="default" onClick={() => setViewObj(obj)} />
-                                                {!isViewer && (
+                                                <ViewerHide>
                                                     <>
                                                         <ActionIconButton icon={<SquarePen className="w-4 h-4" />} label="แก้ไข" variant="default" onClick={() => openEdit(obj)} />
                                                         <ActionIconButton icon={<Trash2 className="w-4 h-4" />} label="ลบ" variant="danger" onClick={() => setConfirmDelete({ open: true, objectId: obj.object_id })} />
                                                     </>
-                                                )}
+                                                </ViewerHide>
                                             </div>
                                         </td>
                                     </tr>

@@ -9,7 +9,7 @@ import StatsCard from '../components/StatsCard';
 import { StaggerContainer, StaggerItem } from '@/components/ui/PageTransition';
 import PageHeader from '../components/PageHeader';
 import { logger } from '@/lib/logger';
-import { useAuth } from '@/contexts/AuthContext';
+import { ViewerHide, useIsViewer } from '@/components/admin/ViewerHide';
 import { getCategoryReadiness, readinessDotClass, readinessLabel } from '@/lib/chatbot-readiness';
 
 interface ReplyObjectSummary {
@@ -53,8 +53,7 @@ async function getChatbotData() {
 }
 
 export default function ChatbotDashboard() {
-    const { user } = useAuth();
-    const isViewer = user?.role === 'VIEWER';
+    const isViewer = useIsViewer();
     const [replyObjects, setReplyObjects] = useState<ReplyObjectSummary[]>([]);
     const [intentCategories, setIntentCategories] = useState<IntentCategorySummary[]>([]);
     const [error, setError] = useState<string | null>(null);
@@ -112,7 +111,7 @@ export default function ChatbotDashboard() {
                         value={intentCategories.length}
                         icon={<Tags className="w-6 h-6" />}
                         color="primary"
-                        link={isViewer ? undefined : "/admin/auto-replies"}
+                        link={isViewer ? undefined : '/admin/auto-replies'}
                         description={`${intentCategories.filter((c) => c.is_active).length} Active Categories`}
                     />
                 </StaggerItem>
@@ -168,17 +167,14 @@ export default function ChatbotDashboard() {
                             <span className="w-1 h-5 bg-brand-500 rounded-full" />
                             Active Intents
                         </h2>
-                        {!isViewer && (
+                        <ViewerHide>
                             <Link href="/admin/auto-replies" className="text-xs font-medium text-brand-500 hover:text-brand-600/80 uppercase tracking-wide px-2 py-1 rounded hover:bg-brand-50 transition-colors cursor-pointer dark:text-brand-400 dark:hover:bg-brand-500/10">Manage</Link>
-                        )}
+                        </ViewerHide>
                     </div>
                     <div className="divide-y divide-gray-50 dark:divide-gray-700">
-                        {intentCategories.slice(0, 5).map((category) => (
-                            isViewer ? (
-                            <div
-                                key={category.id}
-                                className="px-5 py-3.5 block dark:hover:bg-gray-700/30"
-                            >
+                        {intentCategories.slice(0, 5).map((category) => {
+                            const readiness = getCategoryReadiness(category);
+                            const row = (
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
                                         <div className="w-8 h-8 bg-brand-50 text-brand-500 rounded-lg flex items-center justify-center text-sm font-semibold dark:bg-brand-500/10 dark:text-brand-400">
@@ -191,50 +187,30 @@ export default function ChatbotDashboard() {
                                             </p>
                                         </div>
                                     </div>
-                                    {(() => {
-                                        const readiness = getCategoryReadiness(category);
-                                        return (
-                                            <span
-                                                className={`w-2 h-2 rounded-full ${readinessDotClass(readiness)}`}
-                                                title={readinessLabel(readiness)}
-                                                aria-label={readinessLabel(readiness)}
-                                            />
-                                        );
-                                    })()}
+                                    <span
+                                        className={`w-2 h-2 rounded-full ${readinessDotClass(readiness)}`}
+                                        title={readinessLabel(readiness)}
+                                        aria-label={readinessLabel(readiness)}
+                                    />
                                 </div>
-                            </div>
+                            );
+                            return isViewer ? (
+                                <div
+                                    key={category.id}
+                                    className="px-5 py-3.5 block dark:hover:bg-gray-700/30"
+                                >
+                                    {row}
+                                </div>
                             ) : (
-                            <Link
-                                key={category.id}
-                                href={`/admin/auto-replies/${category.id}`}
-                                className="px-5 py-3.5 hover:bg-gray-50/50 transition-all group cursor-pointer block dark:hover:bg-gray-700/30"
-                            >
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 bg-brand-50 text-brand-500 rounded-lg flex items-center justify-center text-sm font-semibold dark:bg-brand-500/10 dark:text-brand-400">
-                                            #
-                                        </div>
-                                        <div>
-                                            <p className="text-text-secondary font-medium text-sm group-hover:text-brand-600 transition-colors dark:group-hover:text-brand-400">{category.name}</p>
-                                            <p className="text-gray-400 text-xs dark:text-gray-500">
-                                                {category.keyword_count} keywords · {category.response_count} responses
-                                            </p>
-                                        </div>
-                                    </div>
-                                    {(() => {
-                                        const readiness = getCategoryReadiness(category);
-                                        return (
-                                            <span
-                                                className={`w-2 h-2 rounded-full ${readinessDotClass(readiness)}`}
-                                                title={readinessLabel(readiness)}
-                                                aria-label={readinessLabel(readiness)}
-                                            />
-                                        );
-                                    })()}
-                                </div>
-                            </Link>
-                            )
-                        ))}
+                                <Link
+                                    key={category.id}
+                                    href={`/admin/auto-replies/${category.id}`}
+                                    className="px-5 py-3.5 hover:bg-gray-50/50 transition-all group cursor-pointer block dark:hover:bg-gray-700/30"
+                                >
+                                    {row}
+                                </Link>
+                            );
+                        })}
                     </div>
                 </div>
             </div>

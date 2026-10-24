@@ -61,6 +61,7 @@ import { ThaiAddressCascade } from '@/components/forms/ThaiAddressCascade';
 import { FormSelect } from '@/components/forms/FormSelect';
 import { usePermissions } from '@/lib/permissions';
 import { useAuth } from '@/contexts/AuthContext';
+import { ViewerHide, useIsViewer } from '@/components/admin/ViewerHide';
 import { useGuardedUpdate } from '@/hooks/useGuardedUpdate';
 import { buildChangedFields } from '@/lib/diff-fields';
 import { logger } from '@/lib/logger';
@@ -636,7 +637,7 @@ export default function RequestDetailPage() {
     };
 
     // --- Derived state (computed BEFORE any early return so hooks rules are satisfied) ---
-    const isViewer = user?.role === 'VIEWER';
+    const isViewer = useIsViewer();
     const isAssignee = userId !== null && request?.assigned_agent_id === userId;
     const canApprove = permissions?.can_assign ?? false;
     const canRevertApproval = permissions?.can_revert_approval ?? false;
@@ -1375,9 +1376,9 @@ export default function RequestDetailPage() {
                                 })}
                             </div>
 
-                            {!isViewer && (
+                            <ViewerHide>
                                 <CommentInputSection requestId={params.id ?? ''} onSuccess={fetchComments} />
-                            )}
+                            </ViewerHide>
                         </div>
                     )}
 
