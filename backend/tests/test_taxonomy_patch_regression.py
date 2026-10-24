@@ -647,3 +647,122 @@ async def test_move_topic_to_hidden_category_maps_to_409():
             )
             await session.commit()
         await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_reuse_hidden_category_name_succeeds():
+    marker = f"reuse{uuid.uuid4().hex[:8]}"
+    engine = _fresh_engine()
+    Session = async_sessionmaker(engine, expire_on_commit=False)
+
+    async with Session() as session:
+        session.add(TaxonomyCategory(name=f"cat-{marker}", sort_order=0, is_active=True))
+        await session.commit()
+        cat_id = (
+            await session.execute(
+                select(TaxonomyCategory.id).where(
+                    TaxonomyCategory.name == f"cat-{marker}"
+                )
+            )
+        ).scalar_one()
+
+    async def _fresh_get_db():
+        async with Session() as session:
+            yield session
+
+    app.dependency_overrides[deps.get_db] = _fresh_get_db
+    app.dependency_overrides[deps.get_current_user] = _admin_user
+    try:
+        client = TestClient(app, raise_server_exceptions=False)
+        try:
+            hide = client.delete(f"/api/v1/admin/taxonomy/categories/{cat_id}")
+            assert hide.status_code == 200, hide.text
+            create = client.post(
+                "/api/v1/admin/taxonomy/categories",
+                json={"name": f"cat-{marker}", "sort_order": 1},
+            )
+            assert create.status_code == 201, create.text
+            new_id = create.json()["id"]
+            assert new_id != cat_id
+        finally:
+            client.close()
+    finally:
+        app.dependency_overrides.clear()
+
+    try:
+        async with Session() as session:
+            old = await session.get(TaxonomyCategory, cat_id)
+            assert old is not None
+            assert old.is_active is False
+            new = await session.get(TaxonomyCategory, new_id)
+            assert new is not None
+            assert new.is_active is True
+    finally:
+        async with Session() as session:
+            await session.execute(
+                delete(TaxonomyCategory).where(
+                    TaxonomyCategory.name == f"cat-{marker}"
+                )
+            )
+            await session.commit()
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_admin_list_hides_inactive_by_default():
+    marker = f"lst{uuid.uuid4().hex[:8]}"
+    engine = _fresh_engine()
+    Session = async_sessionmaker(engine, expire_on_commit=False)
+
+    async with Session() as session:
+        session.add(TaxonomyCategory(name=f"vis-{marker}", sort_order=0, is_active=True))
+        session.add(TaxonomyCategory(name=f"hid-{marker}", sort_order=1, is_active=False))
+        await session.commit()
+        vis_id = (
+            await session.execute(
+                select(TaxonomyCategory.id).where(
+                    TaxonomyCategory.name == f"vis-{marker}"
+                )
+            )
+        ).scalar_one()
+        hid_id = (
+            await session.execute(
+                select(TaxonomyCategory.id).where(
+                    TaxonomyCategory.name == f"hid-{marker}"
+                )
+            )
+        ).scalar_one()
+
+    async def _fresh_get_db():
+        async with Session() as session:
+            yield session
+
+    app.dependency_overrides[deps.get_db] = _fresh_get_db
+    app.dependency_overrides[deps.get_current_user] = _admin_user
+    try:
+        client = TestClient(app, raise_server_exceptions=False)
+        try:
+            default_list = client.get("/api/v1/admin/taxonomy")
+            assert default_list.status_code == 200, default_list.text
+            default_names = [c["name"] for c in default_list.json()["categories"]]
+            assert f"vis-{marker}" in default_names
+            assert f"hid-{marker}" not in default_names
+
+            full_list = client.get("/api/v1/admin/taxonomy?include_inactive=true")
+            assert full_list.status_code == 200, full_list.text
+            full_names = [c["name"] for c in full_list.json()["categories"]]
+            assert f"vis-{marker}" in full_names
+            assert f"hid-{marker}" in full_names
+        finally:
+            client.close()
+    finally:
+        app.dependency_overrides.clear()
+
+    async with Session() as session:
+        await session.execute(
+            delete(TaxonomyCategory).where(
+                TaxonomyCategory.id.in_([vis_id, hid_id])
+            )
+        )
+        await session.commit()
+    await engine.dispose()

@@ -136,11 +136,14 @@ export function useTaxonomyAdmin() {
     }
   }, [])
 
+  const [showHidden, setShowHidden] = useState(false)
+
   const refresh = useCallback(async (): Promise<void> => {
     setLoading(true)
     setLoadError(null)
     try {
-      const response = await fetch(TAXONOMY_API)
+      const url = showHidden ? `${TAXONOMY_API}?include_inactive=true` : TAXONOMY_API
+      const response = await fetch(url)
       if (!mountedRef.current) return
       if (response.ok) {
         setCategories(parseCategoryList(await response.json()))
@@ -161,7 +164,7 @@ export function useTaxonomyAdmin() {
     } finally {
       if (mountedRef.current) setLoading(false)
     }
-  }, [])
+  }, [showHidden])
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -256,6 +259,8 @@ export function useTaxonomyAdmin() {
     loading,
     loadError,
     refresh,
+    showHidden,
+    setShowHidden,
     createCategory,
     updateCategory,
     deleteCategory,

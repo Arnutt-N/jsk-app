@@ -25,11 +25,14 @@ async def list_auto_replies(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=100),
     keyword: str = None,
+    include_inactive: bool = Query(False),
     db: AsyncSession = Depends(get_db),
     current_admin: User = Depends(get_current_admin)
 ):
     """List all auto-reply rules with optional filtering."""
     query = select(AutoReply).order_by(AutoReply.created_at.desc())
+    if not include_inactive:
+        query = query.where(AutoReply.is_active.is_(True))
     
     if keyword:
         query = query.filter(
@@ -64,14 +67,18 @@ async def create_auto_reply(
     current_admin: User = Depends(require_permission(KEY_MANAGE_AUTO_REPLIES))
 ):
     """Create a new auto-reply rule."""
-    # Check if keyword already exists (including hidden rows: names stay reserved)
+    # Check if keyword already exists (active rows only — hidden rows no
+    # longer reserve their keyword since the partial unique policy).
     existing = await db.execute(
-        select(AutoReply).filter(AutoReply.keyword == data.keyword)
+        select(AutoReply).filter(
+            AutoReply.keyword == data.keyword,
+            AutoReply.is_active.is_(True),
+        )
     )
     if existing.scalars().first():
         raise HTTPException(
             status_code=400,
-            detail=f"คีย์เวิร์ด '{data.keyword}' ถูกใช้แล้ว (อาจเป็นรายการที่ปิดใช้งานอยู่ ให้เปิดใช้งานรายการเดิมแทนการสร้างใหม่)",
+            detail=f"คีย์เวิร์ด '{data.keyword}' ถูกใช้แล้ว",
         )
     
     rule = AutoReply(
@@ -109,13 +116,14 @@ async def update_auto_reply(
         clash = await db.execute(
             select(AutoReply.id).filter(
                 AutoReply.keyword == new_keyword,
+                AutoReply.is_active.is_(True),
                 AutoReply.id != reply_id,
             )
         )
         if clash.scalars().first() is not None:
             raise HTTPException(
                 status_code=409,
-                detail=f"คีย์เวิร์ด '{new_keyword}' ถูกใช้แล้ว (อาจเป็นรายการที่ปิดใช้งานอยู่ ให้เปิดใช้งานรายการเดิมแทนการสร้างใหม่)",
+                detail=f"คีย์เวิร์ด '{new_keyword}' ถูกใช้แล้ว",
             )
     for field, value in update_data.items():
         if field == "match_type" and value:

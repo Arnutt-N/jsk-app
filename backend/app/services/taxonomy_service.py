@@ -56,16 +56,19 @@ class TaxonomyService:
         _cached_at = now
         return table
 
-    async def get_admin_taxonomy(self, db: AsyncSession) -> list[TaxonomyCategory]:
-        cat_rows = (
-            await db.execute(
-                select(TaxonomyCategory)
-                .options(selectinload(TaxonomyCategory.topics))
-                .order_by(
-                    TaxonomyCategory.sort_order.asc(), TaxonomyCategory.id.asc()
-                )
+    async def get_admin_taxonomy(
+        self, db: AsyncSession, include_inactive: bool = False
+    ) -> list[TaxonomyCategory]:
+        stmt = (
+            select(TaxonomyCategory)
+            .options(selectinload(TaxonomyCategory.topics))
+            .order_by(
+                TaxonomyCategory.sort_order.asc(), TaxonomyCategory.id.asc()
             )
-        ).scalars().all()
+        )
+        if not include_inactive:
+            stmt = stmt.where(TaxonomyCategory.is_active.is_(True))
+        cat_rows = (await db.execute(stmt)).scalars().all()
         for category in cat_rows:
             category.topics.sort(key=lambda t: (t.sort_order, t.id))
         return list(cat_rows)
@@ -92,9 +95,17 @@ class TaxonomyService:
             await db.rollback()
             raise ValueError(f"Category '{cleaned}' already exists") from None
         await db.refresh(category)
-        category.topics = []
         self.invalidate()
-        return category
+        # Reload with topics: a fresh instance never loaded the collection,
+        # so serializing it would lazy-load on AsyncSession (MissingGreenlet).
+        reloaded = (
+            await db.execute(
+                select(TaxonomyCategory)
+                .options(selectinload(TaxonomyCategory.topics))
+                .where(TaxonomyCategory.id == category.id)
+            )
+        ).scalar_one()
+        return reloaded
 
     async def update_category(
         self,
