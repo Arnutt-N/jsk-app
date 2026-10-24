@@ -10,6 +10,7 @@ import { useToast } from '@/components/ui/Toast';
 import { logger } from '@/lib/logger';
 import { useAuth } from '@/contexts/AuthContext';
 import ReplyObjectForm, { formatErrorDetail, type ReplyObjectFormData } from '@/components/admin/ReplyObjectForm';
+import { formToPayload, replyObjectToForm } from '@/lib/reply-objects';
 
 const API_BASE = '/api/v1';
 
@@ -27,16 +28,7 @@ export default function EditReplyObjectPage() {
             const res = await fetch(`${API_BASE}/admin/reply-objects/${objectId}`);
             if (res.ok) {
                 const obj = await res.json();
-                const p = obj.payload;
-                const isPlain = p !== null && typeof p === 'object' && !Array.isArray(p);
-                setInitial({
-                    object_id: obj.object_id,
-                    name: obj.name,
-                    category: obj.category || '',
-                    object_type: obj.object_type,
-                    payload: isPlain ? JSON.stringify(p, null, 2) : p ? JSON.stringify(p, null, 2) : '{}',
-                    alt_text: obj.alt_text || '',
-                });
+                setInitial(replyObjectToForm(obj));
             } else {
                 toast({ title: 'ผิดพลาด', description: 'ไม่พบเทมเพลตนี้', variant: 'error' });
                 router.push('/admin/reply-objects');
@@ -62,7 +54,7 @@ export default function EditReplyObjectPage() {
             const res = await fetch(`${API_BASE}/admin/reply-objects/${objectId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...data, payload: JSON.parse(data.payload) }),
+                body: JSON.stringify({ ...data, payload: formToPayload(data) }),
             });
             if (res.ok) {
                 toast({ title: 'บันทึกการแก้ไขแล้ว', variant: 'success' });

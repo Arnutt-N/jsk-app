@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { format, subDays } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
+import { DEFAULT_RANGE_DAYS, defaultDateRange, isDefaultRange, toYMD } from '@/lib/date-range';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
@@ -45,7 +45,7 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { apiFetch } from '@/lib/api-error';
-import { useAuth } from '@/contexts/AuthContext';
+import { ViewerHide } from '@/components/admin/ViewerHide';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -157,8 +157,6 @@ function ExportButton({
   startDate: string;
   endDate: string;
 }) {
-  const { user } = useAuth();
-  if (user?.role === 'VIEWER') return null;
   const handleExport = async () => {
     const params = new URLSearchParams({ type, start_date: startDate, end_date: endDate });
     const result = await apiFetch<Response>(`/admin/reports/export?${params}`, { raw: true });
@@ -196,10 +194,7 @@ function ExportButton({
 
 export default function ReportsPage() {
   const [activeTab, setActiveTab] = useState('overview');
-  const [range, setRange] = useState<DateRange | undefined>(() => {
-    const to = new Date();
-    return { from: subDays(to, 30), to };
-  });
+  const [range, setRange] = useState<DateRange | undefined>(() => defaultDateRange());
   const [period, setPeriod] = useState<Period>('daily');
   const [loading, setLoading] = useState(false);
 
@@ -210,18 +205,9 @@ export default function ReportsPage() {
   const [opsReport, setOpsReport] = useState<OperatorsReport | null>(null);
   const [folReport, setFolReport] = useState<FollowersReport | null>(null);
 
-  const toYMD = (d: Date) => format(d, 'yyyy-MM-dd');
-  const DEFAULT_RANGE_DAYS = 30;
-  const isDefaultRange = (r: DateRange | undefined) => {
-    if (!r?.from || !r.to) return false;
-    const to = new Date();
-    const diffDays = Math.round((to.getTime() - r.from.getTime()) / 86400000);
-    return diffDays === DEFAULT_RANGE_DAYS && toYMD(r.to) === toYMD(to);
-  };
-
   const { start: startDate, end: endDate } = useMemo(() => {
     const to = new Date();
-    const from = range?.from ?? subDays(to, DEFAULT_RANGE_DAYS);
+    const from = range?.from ?? defaultDateRange().from;
     const end = range?.to ?? range?.from ?? to;
     return { start: toYMD(from), end: toYMD(end) };
   }, [range]);
@@ -276,8 +262,7 @@ export default function ReportsPage() {
   const hasActiveDateFilter = !isDefaultRange(range) || period !== 'daily';
 
   const clearDateFilters = () => {
-    const to = new Date();
-    setRange({ from: subDays(to, DEFAULT_RANGE_DAYS), to });
+    setRange(defaultDateRange());
     setPeriod('daily');
   };
 
@@ -437,7 +422,9 @@ export default function ReportsPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           {renderPeriodSelector()}
-          <ExportButton type="service-requests" startDate={startDate} endDate={endDate} />
+          <ViewerHide>
+            <ExportButton type="service-requests" startDate={startDate} endDate={endDate} />
+          </ViewerHide>
         </div>
 
         {/* Avg resolution */}
@@ -567,7 +554,9 @@ export default function ReportsPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           {renderPeriodSelector()}
-          <ExportButton type="messages" startDate={startDate} endDate={endDate} />
+          <ViewerHide>
+            <ExportButton type="messages" startDate={startDate} endDate={endDate} />
+          </ViewerHide>
         </div>
 
         <StaggerContainer className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -634,7 +623,9 @@ export default function ReportsPage() {
     return (
       <div className="space-y-6">
         <div className="flex justify-end">
-          <ExportButton type="operators" startDate={startDate} endDate={endDate} />
+          <ViewerHide>
+            <ExportButton type="operators" startDate={startDate} endDate={endDate} />
+          </ViewerHide>
         </div>
 
         {/* Summary cards */}
@@ -724,7 +715,9 @@ export default function ReportsPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           {renderPeriodSelector()}
-          <ExportButton type="followers" startDate={startDate} endDate={endDate} />
+          <ViewerHide>
+            <ExportButton type="followers" startDate={startDate} endDate={endDate} />
+          </ViewerHide>
         </div>
 
         <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

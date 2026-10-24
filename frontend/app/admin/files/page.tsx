@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import {
   Upload, Download, Trash2, Link2, LinkIcon, Search,
-  FileText, Image as ImageIcon, Video, Music, File as FileIcon,
+  FileText, File as FileIcon,
   Grid3X3, List, Copy, Check, Eye, ExternalLink,
   ChevronLeft, ChevronRight, AlertTriangle, SquarePen,
 } from 'lucide-react';
@@ -22,6 +22,22 @@ import { ActionIconButton } from '@/components/ui/ActionIconButton';
 import { cn } from '@/lib/utils';
 import { StaggerContainer, StaggerItem } from '@/components/ui/PageTransition';
 import PageHeader from '../components/PageHeader';
+import AuthenticatedFileImage, {
+  CATEGORY_META,
+  PRIVATE_PREVIEW_REASON,
+  getCategoryIcon,
+  getDirectMediaUrl,
+  useAuthenticatedMediaUrl,
+  type PreviewCategory as Category,
+} from '@/components/admin/AuthenticatedFileImage';
+import AuthenticatedFileImage, {
+  CATEGORY_META,
+  PRIVATE_PREVIEW_REASON,
+  getCategoryIcon,
+  getDirectMediaUrl,
+  useAuthenticatedMediaUrl,
+  type PreviewCategory as Category,
+} from '@/components/admin/AuthenticatedFileImage';
 import { apiFetch } from '@/lib/api-error';
 import { API_BASE } from '@/lib/constants/api';
 import { downloadBlob } from '@/lib/download-blob';
@@ -42,8 +58,6 @@ interface MediaFile {
   created_at: string | null;
 }
 
-type Category = 'ALL' | 'DOCUMENT' | 'IMAGE' | 'VIDEO' | 'AUDIO' | 'OTHER';
-
 interface Stats {
   total_count: number;
   total_size: number;
@@ -53,15 +67,6 @@ interface Stats {
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
-
-const CATEGORY_META: Record<Category, { label: string; icon: React.ReactNode; color: string }> = {
-  ALL:      { label: 'ทั้งหมด',  icon: <FileIcon className="w-4 h-4" />,  color: 'gray' },
-  DOCUMENT: { label: 'เอกสาร',   icon: <FileText className="w-4 h-4" />,  color: 'blue' },
-  IMAGE:    { label: 'รูปภาพ',    icon: <ImageIcon className="w-4 h-4" />, color: 'green' },
-  VIDEO:    { label: 'วิดีโอ',    icon: <Video className="w-4 h-4" />,     color: 'navy' },
-  AUDIO:    { label: 'เสียง',     icon: <Music className="w-4 h-4" />,     color: 'amber' },
-  OTHER:    { label: 'อื่นๆ',     icon: <FileIcon className="w-4 h-4" />,  color: 'gray' },
-};
 
 const BADGE_VARIANT_MAP: Record<string, 'info' | 'success' | 'primary' | 'warning' | 'gray'> = {
   DOCUMENT: 'info',
@@ -90,10 +95,6 @@ function formatDate(iso: string | null): string {
   });
 }
 
-function getCategoryIcon(cat: string) {
-  return CATEGORY_META[cat as Category]?.icon ?? <FileIcon className="w-4 h-4" />;
-}
-
 function isImageMime(mime: string) {
   return mime.startsWith('image/');
 }
@@ -102,135 +103,6 @@ function isVideoMime(mime: string) {
 }
 function isAudioMime(mime: string) {
   return mime.startsWith('audio/');
-}
-
-// Shown when a private file has no token the browser could use directly.
-const PRIVATE_PREVIEW_REASON = 'ไฟล์ส่วนตัว — กดสร้างลิงก์สาธารณะเพื่อดู';
-
-// Direct (no-auth) URL for a file, or null when the browser must not try
-// one: a tokenless private file 403s on `/media/{id}`, so callers fetch the
-// bytes through the admin download endpoint instead.
-function getDirectMediaUrl(file: MediaFile, buildUrl: (f: MediaFile) => string): string | null {
-  if (file.thumbnail_url) return file.thumbnail_url;
-  if (file.public_url) return file.public_url;
-  if (file.public_token) return buildUrl(file);
-  return null;
-}
-
-type AuthenticatedMediaState =
-  | { kind: 'direct'; url: string }
-  | { kind: 'loading' }
-  | { kind: 'ready'; url: string }
-  | { kind: 'failed' };
-
-// Object URL because `<img>`/`<video>` cannot attach auth headers on their own.
-function useAuthenticatedMediaUrl(fileId: string | null, directUrl: string | null): AuthenticatedMediaState {
-  const [blobUrl, setBlobUrl] = useState<string | null>(null);
-  const [failed, setFailed] = useState(false);
-  const [prevKey, setPrevKey] = useState<string | null>(null);
-  const key = fileId && !directUrl ? fileId : null;
-  if (prevKey !== key) {
-    setPrevKey(key);
-    setBlobUrl(null);
-    setFailed(false);
-  }
-
-  useEffect(() => {
-    if (!key) return;
-    let cancelled = false;
-    let objectUrl: string | null = null;
-    void (async () => {
-      const result = await apiFetch<Response>(`/admin/media/${key}/download`, { raw: true });
-      if (cancelled) return;
-      if (!result.ok) {
-        setFailed(true);
-        return;
-      }
-      try {
-        const blob = await result.data.blob();
-        if (cancelled) return;
-        objectUrl = URL.createObjectURL(blob);
-        setBlobUrl(objectUrl);
-      } catch {
-        if (!cancelled) setFailed(true);
-      }
-    })();
-    return () => {
-      cancelled = true;
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-    };
-  }, [key]);
-
-  if (directUrl) return { kind: 'direct', url: directUrl };
-  if (failed) return { kind: 'failed' };
-  if (blobUrl) return { kind: 'ready', url: blobUrl };
-  return { kind: 'loading' };
-}
-
-function AuthenticatedFileImage({
-  file,
-  directUrl,
-  fill,
-  className,
-  fallbackAction,
-  onLoadFailed,
-}: {
-  file: MediaFile;
-  directUrl: string | null;
-  fill: boolean;
-  className: string;
-  fallbackAction?: React.ReactNode;
-  onLoadFailed: (id: string) => void;
-}) {
-  const state = useAuthenticatedMediaUrl(file.id, directUrl);
-  const [imgBroken, setImgBroken] = useState(false);
-
-  const [prevSrcKey, setPrevSrcKey] = useState('');
-  const srcKey = `${file.id}|${directUrl ?? ''}`;
-  if (prevSrcKey !== srcKey) {
-    setPrevSrcKey(srcKey);
-    setImgBroken(false);
-  }
-
-  const handleError = useCallback(() => {
-    setImgBroken(true);
-    onLoadFailed(file.id);
-  }, [file.id, onLoadFailed]);
-
-  useEffect(() => {
-    if (state.kind === 'failed') onLoadFailed(file.id);
-  }, [state.kind, file.id, onLoadFailed]);
-
-  if (state.kind === 'failed' || imgBroken) {
-    return (
-      <div className="flex flex-col items-center gap-1 px-2 py-6 text-center text-text-tertiary">
-        {getCategoryIcon(file.category)}
-        <span className="text-[10px] line-clamp-2 max-w-[90%]">{file.filename}</span>
-        <span className="text-[10px] text-amber-600 dark:text-amber-400">
-          {directUrl ? 'ไม่สามารถโหลดภาพตัวอย่างได้' : PRIVATE_PREVIEW_REASON}
-        </span>
-        {fallbackAction}
-      </div>
-    );
-  }
-
-  const src = state.kind === 'direct' || state.kind === 'ready' ? state.url : null;
-  if (!src) {
-    return (
-      <div className="flex items-center justify-center w-full h-full animate-pulse text-text-tertiary">
-        {getCategoryIcon(file.category)}
-      </div>
-    );
-  }
-
-  if (fill) {
-    return (
-      <Image src={src} alt={file.filename} fill unoptimized className={className} onError={handleError} />
-    );
-  }
-  return (
-    <Image src={src} alt={file.filename} width={1600} height={1200} unoptimized className={className} onError={handleError} />
-  );
 }
 
 // ---------------------------------------------------------------------------
@@ -672,6 +544,7 @@ export default function FilesPage() {
                         >
                           {isImageMime(file.mime_type) ? (
                             <AuthenticatedFileImage
+                              key={`${file.id}|${preview ?? ''}`}
                               file={file}
                               directUrl={preview}
                               fill
