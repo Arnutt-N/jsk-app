@@ -380,12 +380,12 @@ export default function UsersPage() {
                     <table className="w-full">
                         <thead className="bg-slate-50 dark:bg-gray-800 border-b border-border-default">
                             <tr className="text-xs font-semibold text-text-secondary tracking-wider">
-                                <th className="px-6 py-3 text-left">ผู้ใช้</th>
-                                <th className="px-6 py-3 text-left">ชื่อผู้ใช้</th>
-                                <th className="px-6 py-3 text-left">บทบาท</th>
-                                <th className="px-6 py-3 text-left">สถานะ</th>
-                                <th className="px-6 py-3 text-left">วันที่สร้าง</th>
-                                <th className="px-6 py-3 text-right">การดำเนินการ</th>
+                                <th className="px-4 py-3 text-left">ผู้ใช้</th>
+                                <th className="px-4 py-3 text-left">ชื่อผู้ใช้</th>
+                                <th className="px-4 py-3 text-left">บทบาท</th>
+                                <th className="px-4 py-3 text-left">สถานะ</th>
+                                <th className="px-4 py-3 text-left">วันที่สร้าง</th>
+                                <th className="px-4 py-3 text-right">การดำเนินการ</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border-default">
@@ -408,7 +408,7 @@ export default function UsersPage() {
                                     const isSelf = currentUser?.id === String(u.id);
                                     return (
                                         <tr key={u.id} className="hover:bg-slate-50/50 dark:hover:bg-gray-800/50 transition-colors">
-                                            <td className="px-6 py-4 whitespace-nowrap">
+                                            <td className="px-4 py-4 whitespace-nowrap">
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-gray-700 overflow-hidden flex-shrink-0">
                                                         {u.picture_url ? (
@@ -419,23 +419,23 @@ export default function UsersPage() {
                                                             </div>
                                                         )}
                                                     </div>
-                                                    <div className="min-w-0">
-                                                        <div className="font-medium text-text-primary truncate">{u.display_name || 'Unknown'}</div>
-                                                        {u.email && <div className="text-xs text-text-tertiary truncate">{u.email}</div>}
+                                                    <div className="min-w-0 max-w-[220px]">
+                                                        <div className="font-medium text-text-primary truncate" title={u.display_name || undefined}>{u.display_name || 'Unknown'}</div>
+                                                        {u.email && <div className="text-xs text-text-tertiary truncate" title={u.email}>{u.email}</div>}
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <span className="text-sm text-text-secondary font-mono">
+                                            <td className="px-4 py-4">
+                                                <span className="block max-w-[140px] truncate font-mono text-sm text-text-secondary" title={u.username || u.line_user_id || '-'}>
                                                     {u.username || (u.line_user_id ? `LINE:${maskLineUserId(u.line_user_id)}` : '-')}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
+                                            <td className="px-4 py-4 whitespace-nowrap">
                                                 <Badge variant={badge.variant} size="sm">
                                                     {badge.label}
                                                 </Badge>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
+                                            <td className="px-4 py-4 whitespace-nowrap">
                                                 {u.is_active ? (
                                                     <span className="inline-flex items-center gap-1.5 text-xs font-medium text-green-600 dark:text-green-400">
                                                         <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
@@ -448,10 +448,10 @@ export default function UsersPage() {
                                                     </span>
                                                 )}
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-text-secondary">
+                                            <td className="px-4 py-4 whitespace-nowrap text-sm text-text-secondary">
                                                 {u.created_at ? new Date(u.created_at).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' }) : '-'}
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-right">
+                                            <td className="px-4 py-4 whitespace-nowrap text-right">
                                                 <div className="flex items-center justify-end gap-1">
                                                     <ActionIconButton
                                                         icon={<Eye className="w-4 h-4" />}
