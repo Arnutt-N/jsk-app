@@ -8,7 +8,7 @@ export function toYMD(d: Date): string {
   return format(d, "yyyy-MM-dd");
 }
 
-export function defaultDateRange(): DateRange {
+export function defaultDateRange(): { from: Date; to: Date } {
   const to = new Date();
   return { from: subDays(to, DEFAULT_RANGE_DAYS), to };
 }
