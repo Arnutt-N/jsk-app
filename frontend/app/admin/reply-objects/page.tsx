@@ -8,8 +8,10 @@ import PageHeader from '@/app/admin/components/PageHeader';
 import { ViewToggle } from '@/components/admin/ViewToggle';
 import { DetailModal } from '@/components/admin/DetailModal';
 import { ActionIconButton } from '@/components/ui/ActionIconButton';
+import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { Switch } from '@/components/ui/Switch';
 import { formatErrorDetail } from '@/components/admin/ReplyObjectForm';
 import { StaggerContainer, StaggerItem } from '@/components/ui/PageTransition';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -36,6 +38,7 @@ export default function ReplyObjectsPage() {
     const [objects, setObjects] = useState<ReplyObject[]>([]);
     const [loading, setLoading] = useState(true);
     const [viewObj, setViewObj] = useState<ReplyObject | null>(null);
+    const [togglingId, setTogglingId] = useState<number | null>(null);
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
     const [confirmDelete, setConfirmDelete] = useState<{open: boolean; objectId: string | null}>({open: false, objectId: null});
@@ -61,6 +64,29 @@ export default function ReplyObjectsPage() {
     }, [fetchObjects]);
 
     const openEdit = (obj: ReplyObject) => router.push(`/admin/reply-objects/${obj.object_id}/edit`);
+
+    const handleToggleActive = async (obj: ReplyObject) => {
+        if (togglingId !== null) return;
+        setTogglingId(obj.id);
+        try {
+            const res = await fetch(`${API_BASE}/admin/reply-objects/${obj.object_id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ is_active: !obj.is_active }),
+            });
+            if (res.ok) {
+                toast({ title: 'อัปเดตสถานะแล้ว', variant: 'success' });
+                await fetchObjects();
+            } else {
+                toast({ title: 'ผิดพลาด', description: formatErrorDetail(undefined, 'อัปเดตไม่สำเร็จ กรุณาลองใหม่อีกครั้ง'), variant: 'error' });
+            }
+        } catch (error) {
+            logger.error('Error toggling reply object:', error);
+            toast({ title: 'ผิดพลาด', description: 'อัปเดตไม่สำเร็จ กรุณาลองใหม่อีกครั้ง', variant: 'error' });
+        } finally {
+            setTogglingId(null);
+        }
+    };
 
     const handleDelete = async (objectId: string) => {
         // ts-4: await + explicit error handling; refresh the list only on success.
@@ -147,6 +173,22 @@ export default function ReplyObjectsPage() {
                                     </div>
                                 )}
 
+                                <div className="flex items-center justify-between gap-2 mb-4">
+                                    <div className="flex items-center gap-2">
+                                        <Badge variant={obj.is_active ? 'success' : 'gray'} size="sm" className="thai-no-break">
+                                            {obj.is_active ? 'ใช้งานอยู่' : 'ปิดใช้งาน'}
+                                        </Badge>
+                                        {!isViewer && (
+                                            <Switch
+                                                checked={obj.is_active}
+                                                onCheckedChange={() => { void handleToggleActive(obj); }}
+                                                disabled={togglingId === obj.id}
+                                                aria-label={`${obj.is_active ? 'ปิดใช้งาน' : 'เปิดใช้งาน'} ${obj.name}`}
+                                            />
+                                        )}
+                                    </div>
+                                </div>
+
                                 <div className="flex gap-2 h-10 items-center justify-end">
                                     <ActionIconButton
                                         icon={<Eye className="w-4 h-4" />}
@@ -186,6 +228,7 @@ export default function ReplyObjectsPage() {
                                     <th className="px-5 py-3 text-xs font-semibold text-text-tertiary">ชื่อ</th>
                                     <th className="px-5 py-3 text-xs font-semibold text-text-tertiary text-center">ประเภท</th>
                                     <th className="px-5 py-3 text-xs font-semibold text-text-tertiary">หมวดหมู่</th>
+                                    <th className="px-5 py-3 text-xs font-semibold text-text-tertiary text-center">สถานะ</th>
                                     <th className="px-5 py-3 text-xs font-semibold text-text-tertiary text-center">จัดการ</th>
                                 </tr>
                             </thead>
@@ -196,6 +239,21 @@ export default function ReplyObjectsPage() {
                                         <td className="px-5 py-3 font-medium text-text-primary">{obj.name}</td>
                                         <td className="px-5 py-3 text-center"><span className="text-[10px] font-bold uppercase tracking-widest text-text-secondary">{obj.object_type}</span></td>
                                         <td className="px-5 py-3 text-sm text-text-tertiary">{obj.category || '-'}</td>
+                                        <td className="px-5 py-3">
+                                            <div className="flex flex-col items-center gap-2">
+                                                <Badge variant={obj.is_active ? 'success' : 'gray'} size="sm" className="thai-no-break">
+                                                    {obj.is_active ? 'ใช้งานอยู่' : 'ปิดใช้งาน'}
+                                                </Badge>
+                                                {!isViewer && (
+                                                    <Switch
+                                                        checked={obj.is_active}
+                                                        onCheckedChange={() => { void handleToggleActive(obj); }}
+                                                        disabled={togglingId === obj.id}
+                                                        aria-label={`${obj.is_active ? 'ปิดใช้งาน' : 'เปิดใช้งาน'} ${obj.name}`}
+                                                    />
+                                                )}
+                                            </div>
+                                        </td>
                                         <td className="px-5 py-3">
                                             <div className="flex items-center justify-center gap-1">
                                                 <ActionIconButton icon={<Eye className="w-4 h-4" />} label="ดูรายละเอียด" variant="default" onClick={() => setViewObj(obj)} />
@@ -234,6 +292,11 @@ export default function ReplyObjectsPage() {
                     { label: 'ชื่อ', value: viewObj.name },
                     { label: 'ประเภท', value: <span className="uppercase">{viewObj.object_type}</span> },
                     { label: 'หมวดหมู่', value: viewObj.category || '-' },
+                    { label: 'สถานะ', value: (
+                        <Badge variant={viewObj.is_active ? 'success' : 'gray'} size="sm">
+                            {viewObj.is_active ? 'ใช้งานอยู่' : 'ปิดใช้งาน'}
+                        </Badge>
+                    ) },
                 ] : []}
                 renderExtra={viewObj ? (
                     <div>
