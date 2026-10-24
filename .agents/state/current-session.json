@@ -1,12 +1,20 @@
 {
-  "last_updated": "2026-10-24T11:26:00+07:00",
+  "last_updated": "2026-10-25T01:02:00+07:00",
   "platform": "pi",
-  "current_task": "PR 257 merged after conflict resolution (4 generated files took main, views regenerated); main healthy, CD correctly skipped deploy for docs-only",
+  "current_task": "Merged PR #296: admin UI fixes batch + read-only Viewer (10 items), all CI green",
   "plan_status": "completed",
   "next_steps": [
-    "Nothing pending - await user next task"
+    "Smoke-test Viewer login on staging",
+    "Run alembic upgrade head on staging (viewer enum + jsk_menu rename)"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-10-25T01:02:00+07:00",
+      "platform": "pi",
+      "branch": "main",
+      "head": "2c56454",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-10-24T11:26:00+07:00",
       "platform": "pi",
@@ -138,13 +146,6 @@
       "platform": "pi",
       "branch": "feat/booking-full-option",
       "head": "6f76209",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-10-19T08:58:00+07:00",
-      "platform": "pi",
-      "branch": "feat/booking-full-option",
-      "head": "ed62bd4",
       "status": "completed"
     }
   ],
