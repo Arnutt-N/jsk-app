@@ -1,8 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import type { DateRange } from 'react-day-picker';
-import { DEFAULT_RANGE_DAYS, defaultDateRange, isDefaultRange, toYMD } from '@/lib/date-range';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
@@ -11,7 +9,8 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import type { TrendValue } from '@/components/ui/TrendBadge';
 import StatsCard from '../components/StatsCard';
 import PageHeader from '@/app/admin/components/PageHeader';
-import { DateRangePicker, standardDatePresets } from '@/components/ui/DateRangePicker';
+import CalendarPickerTH from '@/components/ui/CalendarPickerTH';
+import { isoToYMD } from '@/lib/utils';
 import { formatDuration } from '@/lib/format';
 import { getStatusLabel } from '@/lib/constants/request-status';
 import {
@@ -118,6 +117,33 @@ const CHART_COLORS = [
 
 const PIE_COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#2563eb', '#1d4ed8', '#14b8a6', '#f97316'];
 
+type DatePreset = '7d' | '30d' | '90d' | 'year' | 'custom';
+
+function presetToDates(preset: DatePreset): { start: string; end: string } {
+  const end = new Date();
+  const start = new Date();
+  switch (preset) {
+    case '7d':
+      start.setDate(end.getDate() - 7);
+      break;
+    case '30d':
+      start.setDate(end.getDate() - 30);
+      break;
+    case '90d':
+      start.setDate(end.getDate() - 90);
+      break;
+    case 'year':
+      start.setMonth(0, 1);
+      break;
+    default:
+      start.setDate(end.getDate() - 30);
+  }
+  return {
+    start: start.toISOString().split('T')[0],
+    end: end.toISOString().split('T')[0],
+  };
+}
+
 type Period = 'daily' | 'weekly' | 'monthly';
 
 // ---------------------------------------------------------------------------
@@ -194,7 +220,9 @@ function ExportButton({
 
 export default function ReportsPage() {
   const [activeTab, setActiveTab] = useState('overview');
-  const [range, setRange] = useState<DateRange | undefined>(() => defaultDateRange());
+  const [datePreset, setDatePreset] = useState<DatePreset>('30d');
+  const [customStart, setCustomStart] = useState('');
+  const [customEnd, setCustomEnd] = useState('');
   const [period, setPeriod] = useState<Period>('daily');
   const [loading, setLoading] = useState(false);
 
@@ -206,11 +234,11 @@ export default function ReportsPage() {
   const [folReport, setFolReport] = useState<FollowersReport | null>(null);
 
   const { start: startDate, end: endDate } = useMemo(() => {
-    const to = new Date();
-    const from = range?.from ?? defaultDateRange().from;
-    const end = range?.to ?? range?.from ?? to;
-    return { start: toYMD(from), end: toYMD(end) };
-  }, [range]);
+    if (datePreset === 'custom' && customStart && customEnd) {
+      return { start: customStart, end: customEnd };
+    }
+    return presetToDates(datePreset);
+  }, [datePreset, customStart, customEnd]);
 
   const fetchTab = useCallback(
     async (tab: string) => {
@@ -259,21 +287,47 @@ export default function ReportsPage() {
   // Render Helpers
   // ---------------------------------------------------------------------------
 
-  const hasActiveDateFilter = !isDefaultRange(range) || period !== 'daily';
-
-  const clearDateFilters = () => {
-    setRange(defaultDateRange());
-    setPeriod('daily');
-  };
-
   const renderDateSelector = () => (
     <div className="flex items-center gap-2 flex-wrap">
-      <DateRangePicker value={range} presets={standardDatePresets} onChange={(r) => setRange(r)} />
-      {hasActiveDateFilter && (
+      {([
+        ['7d', '7 วัน'],
+        ['30d', '30 วัน'],
+        ['90d', '90 วัน'],
+        ['year', 'ปีนี้'],
+        ['custom', 'กำหนดเอง'],
+      ] as [DatePreset, string][]).map(([key, label]) => (
+        <Button
+          key={key}
+          variant={datePreset === key ? 'primary' : 'outline'}
+          size="sm"
+          onClick={() => setDatePreset(key)}
+          className="text-xs"
+        >
+          {label}
+        </Button>
+      ))}
+      {datePreset === 'custom' && (
+        <div className="flex items-center gap-2">
+          <div className="w-44">
+            <CalendarPickerTH
+              value={customStart || null}
+              onChange={(iso) => setCustomStart(isoToYMD(iso))}
+            />
+          </div>
+          <span className="text-text-tertiary text-xs">-</span>
+          <div className="w-44">
+            <CalendarPickerTH
+              value={customEnd || null}
+              onChange={(iso) => setCustomEnd(isoToYMD(iso))}
+            />
+          </div>
+        </div>
+      )}
+      {(datePreset !== '30d' || customStart !== '' || customEnd !== '' || period !== 'daily') && (
         <Button
           variant="ghost"
           size="sm"
-          onClick={clearDateFilters}
+          onClick={() => { setDatePreset('30d'); setCustomStart(''); setCustomEnd(''); setPeriod('daily'); }}
           leftIcon={<RotateCcw className="w-4 h-4" />}
           className="text-xs"
         >
