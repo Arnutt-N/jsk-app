@@ -43,7 +43,7 @@ export function presetOptionToDates(opt: DatePresetOption): { start: string; end
   return { start: toYMD(subDays(to, opt.days ?? DEFAULT_RANGE_DAYS)), end };
 }
 
-/** Resolve preset + custom-picker state to a range. `null` preset (or an
+/** Resolve preset + custom-picker state to a range. `null` preset (or a
  *  half-picked custom range) means unfiltered, so callers skip date params. */
 export function resolveDateRange(
   preset: string | null,
