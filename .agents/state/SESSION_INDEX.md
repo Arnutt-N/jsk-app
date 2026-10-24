@@ -1,16 +1,16 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Cross-Platform Session Index (generated)
 
-> **Last generated**: 2026-10-24 07:11 (from newest checkpoint)
+> **Last generated**: 2026-10-24 07:17 (from newest checkpoint)
 
 ## Quick Stats
 
 | Metric | Value |
 |--------|-------|
-| Handoff checkpoints (active) | 304 |
-| Session summaries on disk | 409 |
+| Handoff checkpoints (active) | 305 |
+| Session summaries on disk | 410 |
 | Platforms | 12 (antigravity, claude_code, cline, codex, gemini_cli, kilo_code, kimi_code, muse_code, open_code, pi, qoder, zcode) |
-| Most recent | 2026-10-24 07:11 — pi |
+| Most recent | 2026-10-24 07:17 — pi |
 
 > Regenerate after any handoff: `node .agents/scripts/gen-handoff-views.cjs`
 
@@ -159,10 +159,11 @@
 | 2026-08-15 14:50 | completed | — | — | `handover-open_code-20260815-1450.json` |
 | 2026-02-14 23:00 | completed | — | — | `handover-open_code-20260214-2300.json` |
 
-## pi (25)
+## pi (26)
 
 | When | Status | Model | Provider | Checkpoint |
 |------|--------|-------|----------|------------|
+| 2026-10-24 07:17 | completed | — | — | `handover-pi-20261024-0717.json` |
 | 2026-10-24 07:11 | completed | — | — | `handover-pi-20261024-0711.json` |
 | 2026-10-24 02:21 | completed | — | — | `handover-pi-20261024-0221.json` |
 | 2026-10-24 00:06 | completed | — | — | `handover-pi-20261024-0006.json` |
@@ -182,8 +183,7 @@
 | 2026-10-19 08:58 | completed | — | — | `handover-pi-20261019-0858.json` |
 | 2026-10-19 02:28 | completed | — | — | `handover-pi-20261019-0228.json` |
 | 2026-10-18 14:33 | completed | — | — | `handover-pi-20261018-1433.json` |
-| 2026-10-18 13:04 | completed | — | — | `handover-pi-20261018-1304.json` |
-| … | | | | +5 older |
+| … | | | | +6 older |
 
 ## qoder (26)
 
