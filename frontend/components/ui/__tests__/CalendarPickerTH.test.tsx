@@ -4,6 +4,17 @@ import { describe, it, expect, vi } from 'vitest';
 import { toISODate } from '@/lib/booking';
 import CalendarPickerTH from '../CalendarPickerTH';
 
+// jsdom has no ResizeObserver, which the Radix positioning engine behind the
+// Portal popup needs — stub it so Portal tests run like a real browser.
+if (typeof (window as unknown as Record<string, unknown>).ResizeObserver === 'undefined') {
+  class ResizeObserverStub {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+  (window as unknown as Record<string, unknown>).ResizeObserver = ResizeObserverStub;
+}
+
 /**
  * Behaviour contract for the Thai (พ.ศ.) date picker:
  *  1. พิมพ์ได้  — typing วว/ดด/ปปปป commits an ISO date.
@@ -238,5 +249,51 @@ describe('CalendarPickerTH booking window', () => {
     expect(onChange).not.toHaveBeenCalled();
     fireEvent.click(within(dialog).getByLabelText('15 ตุลาคม 2569'));
     expect(onChange).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('CalendarPickerTH slim input + Portal popup', () => {
+  const FILLED = '2024-01-15T00:00:00.000Z';
+
+  it('shows no ✓ status icon when a date is set', () => {
+    const { container } = render(<CalendarPickerTH value={FILLED} onChange={() => {}} />);
+    expect(container.querySelector('.text-emerald-600')).toBeNull();
+  });
+
+  it('hides the ✕ until hover/focus, stacked on the calendar icon slot', () => {
+    render(<CalendarPickerTH value={FILLED} onChange={() => {}} />);
+    const clear = screen.getByLabelText('ล้างวันที่');
+    expect(clear.className).toContain('opacity-0');
+    expect(clear.className).toContain('absolute');
+    expect(screen.getByLabelText('เปิดปฏิทินเลือกวันที่')).toBeInTheDocument();
+  });
+
+  it('renders no ✕ at all when empty', () => {
+    render(<CalendarPickerTH value={null} onChange={() => {}} />);
+    expect(screen.queryByLabelText('ล้างวันที่')).toBeNull();
+    expect(screen.getByLabelText('เปิดปฏิทินเลือกวันที่')).toBeInTheDocument();
+  });
+
+  it('clicking ✕ clears the typed sub-inputs and emits null', async () => {
+    const onChange = vi.fn();
+    render(<CalendarPickerTH value={FILLED} onChange={onChange} />);
+    fireEvent.click(screen.getByLabelText('ล้างวันที่'));
+    expect(onChange).toHaveBeenCalledWith(null);
+    expect((screen.getByLabelText('วันที่') as HTMLInputElement).value).toBe('');
+    expect((screen.getByLabelText('เดือน') as HTMLInputElement).value).toBe('');
+    expect((screen.getByLabelText('ปี พ.ศ.') as HTMLInputElement).value).toBe('');
+  });
+
+  it('renders the popup in a Portal outside clipped ancestors', async () => {
+    const { container } = render(
+      <div style={{ overflow: 'hidden' }} data-testid="clip">
+        <CalendarPickerTH value={null} onChange={() => {}} />
+      </div>
+    );
+    fireEvent.click(screen.getByLabelText('เปิดปฏิทินเลือกวันที่'));
+    const dialog = await screen.findByRole('dialog');
+    const clip = container.querySelector('[data-testid="clip"]') as HTMLElement;
+    expect(clip).not.toContainElement(dialog);
+    expect(document.body).toContainElement(dialog);
   });
 });

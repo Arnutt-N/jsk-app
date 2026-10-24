@@ -145,6 +145,26 @@ async def get_item(id: int, db: AsyncSession = Depends(get_db), admin: User = De
 
 ---
 
+## Code Comments — why only, never restatements
+
+- Comments explain a non-obvious *why* the code cannot show. Never restate what the code says.
+- Banned: section banners, docstrings/JSDoc repeating the signature, narrations of the lines below, empty `catch` notes without a reason.
+- Enforcement: run the `no-comments` (comment-sicko) review before code review; a keep survives only with proof, otherwise delete.
+
+## Rule Table (rule → what enforces it)
+
+| Rule | Enforced by |
+|------|-------------|
+| Comments carry why-only; restatements deleted | `no-comments` review before code review + reviewer triage |
+| Test BroadcastChannel stub uses the shared helper or a typed cast, never `as any` + suppression | Single helper `contexts/__tests__/broadcast-channel-stub.ts` + `no-explicit-any` + reviewer triage |
+| Endpoint tests covering response serialization use a real session (NullPool + marker cleanup recipe), never a mocked service | Exemplar `backend/tests/test_taxonomy_patch_regression.py` + reviewer triage |
+| Admin date filters use Bangkok half-open UTC windows via `app.core.date_windows` (never naive `datetime(y,m,d)`) | Shared helper + `backend/tests/test_date_windows.py` (pure unit, no DB) + reviewer triage |
+| Frontend mocks of a module must re-export every named export the code imports (`getWindowLiff`-class breakage) | Vitest fails loudly naming the missing export (`No "X" export is defined on the "..." mock`) + reviewer triage |
+| Endpoint route changes must keep decorators (a dropped `@router.put` 405s) | Backend Pytest per-endpoint suites in CI + reviewer triage |
+| New soft-delete endpoint tests use `tests/soft_delete_harness.py` (real session), never a hand-rolled NullPool setup | Shared harness + exemplar `backend/tests/test_auto_replies_delete_soft.py` + reviewer triage |
+
+---
+
 ## Key Patterns
 
 - **LINE SDK lazy init**: `@property` with `if self._api is None` guard (needs async event loop)

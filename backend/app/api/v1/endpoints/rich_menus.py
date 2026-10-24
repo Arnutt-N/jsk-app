@@ -24,6 +24,7 @@ from app.schemas.rich_menu import (
     BulkUnlinkRequest,
     RichMenuInsightSummaryResponse,
     RichMenuInsightDailyResponse,
+    selected_for_display_mode,
 )
 from app.models.rich_menu_alias import RichMenuAlias
 from app.models.user_rich_menu_link import UserRichMenuLink
@@ -560,7 +561,7 @@ async def update_rich_menu(id: int, data: RichMenuUpdate, db: AsyncSession = Dep
     existing_size = (rich_menu.config or {}).get("size") or resolve_rich_menu_size("")
     line_config = {
         "size": existing_size,
-        "selected": False,
+        "selected": selected_for_display_mode(data.display_mode),
         "name": data.name,
         "chatBarText": data.chat_bar_text,
         "areas": [area.model_dump() for area in data.areas]
@@ -591,7 +592,7 @@ async def create_rich_menu(
     # Construct LINE config object
     line_config = {
         "size": resolve_rich_menu_size(data.template_type),
-        "selected": False,
+        "selected": selected_for_display_mode(data.display_mode),
         "name": data.name,
         "chatBarText": data.chat_bar_text,
         "areas": [area.model_dump() for area in data.areas]
@@ -760,7 +761,6 @@ async def publish_rich_menu(id: int, db: AsyncSession = Depends(get_db), current
         )
 
     rich_menu.status = RichMenuStatus.PUBLISHED
-    await db.commit()
     await create_audit_log(
         db,
         admin_id=current_admin.id,
@@ -769,6 +769,7 @@ async def publish_rich_menu(id: int, db: AsyncSession = Depends(get_db), current
         resource_id=str(id),
         details={"line_rich_menu_id": rich_menu.line_rich_menu_id},
     )
+    await db.commit()
 
     return {"message": "Rich Menu is now default on LINE Official Account"}
 
@@ -810,6 +811,14 @@ async def delete_rich_menu(id: int, db: AsyncSession = Depends(get_db), current_
     # delete still raises IntegrityError — surface it as a 409, not a 500.
     deleted_name = rich_menu.name
     try:
+        await create_audit_log(
+            db,
+            admin_id=current_admin.id,
+            action="rich_menu_delete",
+            resource_type="rich_menu",
+            resource_id=str(id),
+            details={"name_masked": (deleted_name or "")[:2] + "…"},
+        )
         await db.delete(rich_menu)
         await db.commit()
     except IntegrityError:
@@ -818,14 +827,5 @@ async def delete_rich_menu(id: int, db: AsyncSession = Depends(get_db), current_
             status_code=409,
             detail="Rich menu has dependencies; cannot delete",
         )
-
-    await create_audit_log(
-        db,
-        admin_id=current_admin.id,
-        action="rich_menu_delete",
-        resource_type="rich_menu",
-        resource_id=str(id),
-        details={"name_masked": (deleted_name or "")[:2] + "…"},
-    )
 
     return {"message": "Rich Menu deleted"}

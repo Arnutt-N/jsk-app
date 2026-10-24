@@ -61,4 +61,27 @@ describe('ServiceDashboard fetch failures (R3-H3)', () => {
     });
     expect(screen.queryByText('Connection Error')).not.toBeInTheDocument();
   });
+
+  it('renders the action queues and system status when stats succeed', async () => {
+    global.fetch = vi.fn().mockImplementation((url: string) => {
+      if (url.includes('/health/detailed')) {
+        return Promise.resolve(
+          new Response('{"status":"healthy"}', { status: 200, headers: { 'Content-Type': 'application/json' } }),
+        );
+      }
+      return Promise.resolve(
+        new Response(
+          url.includes('/monthly')
+            ? '[]'
+            : '{"total":9,"pending":1,"awaiting_ack":2,"acknowledged":1,"in_progress":1,"awaiting_approval":1,"completed":2,"rejected":1,"today":3}',
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+      );
+    }) as unknown as typeof fetch;
+    render(<ServiceDashboard />);
+    await waitFor(() => {
+      expect(screen.queryAllByTestId('stats-card').length).toBe(8);
+    });
+    expect(screen.getByText(/ระบบปกติ/)).toBeInTheDocument();
+  });
 });

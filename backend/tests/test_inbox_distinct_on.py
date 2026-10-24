@@ -1,4 +1,22 @@
-"""Inbox message windows are index-driven DISTINCT ON (R3-M19)."""
+"""Inbox message windows are index-driven DISTINCT ON (R3-M19).
+
+NOTE (F2, stale-data artifact — proven 2026-10-15): ``test_inbox_equivalence_db``
+reads the shared persistent DB from ``settings.DATABASE_URL`` (local default:
+``skn_app_db``), and ``get_conversations`` fail-loud decrypts every user row in
+the inbox window. Rows encrypted under a *different* ``ENCRYPTION_KEY`` (e.g.
+dev runs with a real key vs the committed pytest dummy key) raise
+``cryptography.fernet.InvalidToken`` even though this test's own nonce rows
+are fine — the test only cleans up its own rows. This is environmental, not a
+code regression (base code identical; green on a fresh DB). To reset: recreate
+the DB, run ``alembic upgrade head`` with the pytest dummy ``ENCRYPTION_KEY``,
+or point ``DATABASE_URL`` at a fresh database before running this node. Never
+delete other rows from the shared dev DB to satisfy this test.
+
+Cipher note (M5): the encryption cipher is cached per process — changing the key
+needs a process restart; ``ENV_FILE`` vs exported-env precedence decides which key
+wins. Isolation (H1 follow-up): this node honors ``TEST_DATABASE_URL`` when set and
+falls back to ``settings.DATABASE_URL`` otherwise."""
+import os
 import socket
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
@@ -15,8 +33,13 @@ from app.core.config import settings
 from app.services.live_chat_service import live_chat_service
 
 
+def _test_db_url() -> str:
+    """H1: prefer an isolated DB when provided; CI-safe fallback to the shared URL."""
+    return os.environ.get("TEST_DATABASE_URL", str(settings.DATABASE_URL))
+
+
 def _db_reachable() -> bool:
-    u = urlsplit(str(settings.DATABASE_URL).replace("+asyncpg", ""))
+    u = urlsplit(_test_db_url().replace("+asyncpg", ""))
     try:
         with socket.create_connection((u.hostname or "localhost", u.port or 5432), timeout=3):
             return True
@@ -28,7 +51,7 @@ def _test_session():
     """Private NullPool engine — same foreign-loop rationale as T3 (see
     test_rich_menu_display_scheduler_db._test_session): seeding must not use
     the shared AsyncSessionLocal pool from this test's own loop."""
-    engine = create_async_engine(str(settings.DATABASE_URL), poolclass=NullPool)
+    engine = create_async_engine(_test_db_url(), poolclass=NullPool)
     return sessionmaker(engine, class_=AsyncSession, expire_on_commit=False), engine
 
 
@@ -88,9 +111,9 @@ async def test_inbox_equivalence_db(test_client):
                 Message(user_id=u2.id, direction=MessageDirection.INCOMING,
                         message_type="text", content="u2-only", created_at=t0),
                 Message(user_id=None, direction=MessageDirection.INCOMING,
-                        message_type="text", content="ut9-orphan", created_at=t2),
+                        message_type="text", content=f"ut9-orphan-{nonce}", created_at=t2),
                 Message(user_id=staff.id, direction=MessageDirection.INCOMING,
-                        message_type="text", content="ut9-staff-msg", created_at=t2),
+                        message_type="text", content=f"ut9-staff-msg-{nonce}", created_at=t2),
             ])
             await db.commit()
             user_ids = [u1.id, u2.id, staff.id]
@@ -98,7 +121,12 @@ async def test_inbox_equivalence_db(test_client):
         async def _override_staff():
             return SimpleNamespace(id=staff.id, role=UserRole.AGENT)
 
+        async def _override_get_db():
+            async with Session() as db:
+                yield db
+
         app.dependency_overrides[deps.get_current_staff] = _override_staff
+        app.dependency_overrides[deps.get_db] = _override_get_db
         try:
             response = test_client.get("/api/v1/admin/live-chat/conversations")
         finally:
@@ -122,13 +150,13 @@ async def test_inbox_equivalence_db(test_client):
         assert ours[raw2]["last_message"]["content"] == "u2-only"
         assert _as_utc_ts(ours[raw2]["last_user_activity_at"]) == t0.timestamp()
         for row in ours.values():
-            assert row["last_message"]["content"] not in ("ut9-orphan", "ut9-staff-msg")
+            assert row["last_message"]["content"] not in (f"ut9-orphan-{nonce}", f"ut9-staff-msg-{nonce}")
     finally:
         async with Session() as db:
             if user_ids:
                 await db.execute(delete(Message).where(Message.user_id.in_(user_ids)))
                 await db.execute(
-                    delete(Message).where(Message.content == "ut9-orphan")
+                    delete(Message).where(Message.content == f"ut9-orphan-{nonce}")
                 )
                 await db.execute(delete(User).where(User.id.in_(user_ids)))
                 await db.commit()

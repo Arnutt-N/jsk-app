@@ -21,6 +21,7 @@ interface CategoryFixture {
     is_active: boolean;
     keyword_count: number;
     response_count: number;
+    active_response_count?: number;
     keywords_preview: string[];
 }
 
@@ -190,5 +191,33 @@ describe('IntentsPage create-category flow', () => {
 
         expect(await screen.findByText('ต้องมีอย่างน้อย 1 คีย์เวิร์ดและ 1 ข้อความตอบกลับก่อนเปิดใช้งาน')).toBeInTheDocument();
         expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'PUT')).toBe(false);
+    });
+
+    it('blocks enabling when responses exist but none are active (active-count gate)', async () => {
+        const user = userEvent.setup();
+        const fetchMock = mockInitialCategories([
+            { id: 1, name: 'All hidden', is_active: false, keyword_count: 1, response_count: 2, keywords_preview: ['hello'], active_response_count: 0 },
+        ]);
+
+        renderPage();
+        await waitForInitialFetch(fetchMock);
+        await user.click(await screen.findByRole('button', { name: 'เปิดใช้งาน Category' }));
+
+        expect(await screen.findByText('ต้องมีอย่างน้อย 1 คีย์เวิร์ดและ 1 ข้อความตอบกลับก่อนเปิดใช้งาน')).toBeInTheDocument();
+        expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'PUT')).toBe(false);
+    });
+
+    it('shows an error toast when the backend rejects re-activation', async () => {
+        const user = userEvent.setup();
+        const fetchMock = mockInitialCategories([
+            { id: 1, name: 'Ready', is_active: false, keyword_count: 1, response_count: 1, keywords_preview: ['hello'], active_response_count: 1 },
+        ]);
+
+        renderPage();
+        await waitForInitialFetch(fetchMock);
+        vi.mocked(fetch).mockResolvedValueOnce(jsonResponse({ detail: 'no active response' }, 400));
+        await user.click(await screen.findByRole('button', { name: 'เปิดใช้งาน Category' }));
+
+        expect(await screen.findByText(/เปิดใช้งานไม่สำเร็จ/)).toBeInTheDocument();
     });
 });

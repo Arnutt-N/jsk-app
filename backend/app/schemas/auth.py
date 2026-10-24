@@ -6,6 +6,8 @@ from app.models.user import UserRole
 
 
 class LoginRequest(BaseModel):
+    # Kept named `username` for API compatibility -- accepts a username OR
+    # an email address (matched case-insensitively, see _find_admin_by_identifier).
     username: str
     password: str = Field(..., max_length=72)
 
@@ -18,6 +20,25 @@ class LoginRequest(BaseModel):
     @classmethod
     def _check_password_bytes(cls, value: str) -> str:
         return assert_bcrypt_compatible(value)
+
+
+class ForgotPasswordRequest(BaseModel):
+    username_or_email: str = Field(..., min_length=1, max_length=255)
+
+    @field_validator("username_or_email")
+    @classmethod
+    def normalize_username_or_email(cls, value: str) -> str:
+        return value.strip()
+
+
+class ResetPasswordConfirm(BaseModel):
+    token: str = Field(..., min_length=16)
+    new_password: str = Field(..., min_length=8, max_length=72)
+
+    @field_validator("new_password")
+    @classmethod
+    def _check_password_bytes(cls, v: str) -> str:
+        return assert_bcrypt_compatible(v)
 
 
 class AuthUserResponse(BaseModel):

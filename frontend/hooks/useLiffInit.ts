@@ -8,20 +8,27 @@ export interface LiffProfile {
 }
 
 /**
- * Structural subset of the LIFF SDK used by the init flow. Both the bundled
- * `@line/liff` default export and the script-injected `window.liff` satisfy it.
+ * SDK surface the init flow drives, derived from the single loader
+ * (`window.liff` injected by `liff/layout.tsx`). `getProfile` stays narrowed
+ * to the one field forms read so callers are not coupled to LINE's full shape.
  */
-export interface LiffSdk {
-  init(options: { liffId: string }): Promise<void>;
-  isLoggedIn(): boolean;
-  isInClient(): boolean;
-  login(): void;
+export type LiffSdk = Pick<
+  NonNullable<Window['liff']>,
+  'init' | 'isLoggedIn' | 'isInClient' | 'login' | 'getIDToken'
+> & {
   getProfile(): Promise<LiffProfile>;
-  getIDToken(): string | null;
+};
+
+/**
+ * Shared loader for every LIFF page: the edge script in `liff/layout.tsx`
+ * populates `window.liff`; a blocked/slow script (or SSR) means undefined.
+ */
+export function getWindowLiff(): LiffSdk | undefined {
+  return typeof window !== 'undefined' ? window.liff : undefined;
 }
 
 export interface UseLiffInitOptions {
-  /** Returns the LIFF SDK to drive (bundled import or `window.liff`). */
+  /** Returns the LIFF SDK to drive (normally `getWindowLiff`). */
   getLiff: () => LiffSdk | null | undefined;
   /** Throw (surfaced via `liffError`) when NEXT_PUBLIC_LIFF_ID is missing; when false, skip silently. */
   requireLiffId?: boolean;
@@ -31,6 +38,8 @@ export interface UseLiffInitOptions {
   trackInLineApp?: boolean;
   /** Console-warn when getLiff() yields nothing (SDK script not loaded). */
   warnWhenSdkMissing?: boolean;
+  /** Skip liff.getProfile() (an extra round trip) for pages that only need the ID token. Default true. */
+  fetchProfile?: boolean;
   /** Extra per-page reaction to an init failure (e.g. a user-facing error message). */
   onError?: (err: unknown) => void;
 }
@@ -52,6 +61,7 @@ export function useLiffInit({
   redirectLogin = true,
   trackInLineApp = false,
   warnWhenSdkMissing = false,
+  fetchProfile = true,
   onError
 }: UseLiffInitOptions): UseLiffInitResult {
   const [profile, setProfile] = useState<LiffProfile | null>(null);
@@ -95,13 +105,17 @@ export function useLiffInit({
           return;
         }
 
-        // Get profile if logged in
-        const userProfile = await liffApi.getProfile();
-        setProfile(userProfile);
+        // The ID token is available synchronously after init, so publish it
+        // before the profile round trip: token-gated fetches start sooner.
         try {
           setIdToken(liffApi.getIDToken());
         } catch (tokenErr) {
           logger.error('LIFF getIDToken Error:', tokenErr);
+        }
+
+        if (fetchProfile) {
+          const userProfile = await liffApi.getProfile();
+          setProfile(userProfile);
         }
       } catch (err: unknown) {
         logger.error('LIFF Init Error:', err);

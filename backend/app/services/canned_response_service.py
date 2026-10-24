@@ -1,9 +1,9 @@
 import logging
 import re
-from typing import Optional
+
+from app.models.canned_response import CannedResponse
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.models.canned_response import CannedResponse
 
 logger = logging.getLogger(__name__)
 
@@ -85,25 +85,25 @@ DEFAULT_TEMPLATES = [
 
 
 class CannedResponseService:
-    async def get_all(self, db: AsyncSession, category: Optional[str] = None) -> list[CannedResponse]:
-        stmt = select(CannedResponse).where(CannedResponse.is_active == True)
+    async def get_all(self, db: AsyncSession, category: str | None = None, active_only: bool = True) -> list[CannedResponse]:
+        stmt = select(CannedResponse)
+        if active_only:
+            stmt = stmt.where(CannedResponse.is_active)
         if category:
             stmt = stmt.where(CannedResponse.category == category)
         stmt = stmt.order_by(CannedResponse.category, CannedResponse.shortcut)
         result = await db.execute(stmt)
         return list(result.scalars().all())
 
-    async def get_by_id(self, id: int, db: AsyncSession) -> Optional[CannedResponse]:
+    async def get_by_id(self, id: int, db: AsyncSession) -> CannedResponse | None:
         result = await db.execute(select(CannedResponse).where(CannedResponse.id == id))
         return result.scalar_one_or_none()
 
-    async def get_by_shortcut(self, shortcut: str, db: AsyncSession) -> Optional[CannedResponse]:
-        result = await db.execute(
-            select(CannedResponse).where(
-                CannedResponse.shortcut == shortcut,
-                CannedResponse.is_active == True
-            )
-        )
+    async def get_by_shortcut(self, shortcut: str, db: AsyncSession, active_only: bool = True) -> CannedResponse | None:
+        stmt = select(CannedResponse).where(CannedResponse.shortcut == shortcut)
+        if active_only:
+            stmt = stmt.where(CannedResponse.is_active)
+        result = await db.execute(stmt)
         return result.scalar_one_or_none()
 
     async def create(self, data: dict, db: AsyncSession) -> CannedResponse:
@@ -115,7 +115,7 @@ class CannedResponseService:
         await db.refresh(response)
         return response
 
-    async def update(self, id: int, data: dict, db: AsyncSession) -> Optional[CannedResponse]:
+    async def update(self, id: int, data: dict, db: AsyncSession) -> CannedResponse | None:
         response = await self.get_by_id(id, db)
         if not response:
             return None

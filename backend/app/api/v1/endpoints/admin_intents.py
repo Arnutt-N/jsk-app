@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 from typing import List
 
@@ -22,11 +23,14 @@ router = APIRouter()
 async def list_categories(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=100),
+    include_inactive: bool = Query(False),
     db: AsyncSession = Depends(get_db),
     current_admin: User = Depends(get_current_admin)
 ):
     """List all intent categories with row counts."""
     stmt = select(IntentCategory).order_by(IntentCategory.name).offset(skip).limit(limit)
+    if not include_inactive:
+        stmt = stmt.where(IntentCategory.is_active.is_(True))
     result = await db.execute(stmt)
     categories = result.scalars().all()
 
@@ -92,10 +96,14 @@ async def list_categories(
 
 @router.post("/categories", response_model=IntentCategoryResponse, status_code=status.HTTP_201_CREATED)
 async def create_category(data: IntentCategoryCreate, db: AsyncSession = Depends(get_db), current_admin: User = Depends(require_permission(KEY_MANAGE_AUTO_REPLIES))):
-    # Check uniqueness
-    existing = await db.execute(select(IntentCategory).filter(IntentCategory.name == data.name))
+    # Check uniqueness (active rows only — hidden rows no longer reserve
+    # their name since the partial unique policy).
+    existing = await db.execute(select(IntentCategory).filter(IntentCategory.name == data.name, IntentCategory.is_active.is_(True)))
     if existing.scalars().first():
-        raise HTTPException(status_code=400, detail="Category name already exists")
+        raise HTTPException(
+            status_code=400,
+            detail=f"ชื่อหมวด '{data.name}' ถูกใช้แล้ว",
+        )
     
     cat = IntentCategory(**data.model_dump())
     db.add(cat)
@@ -142,7 +150,14 @@ async def update_category(cat_id: int, data: IntentCategoryUpdate, db: AsyncSess
     for field, value in payload.items():
         setattr(cat, field, value)
 
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail="ชื่อหมวดนี้ถูกใช้แล้ว",
+        )
     await db.refresh(cat)
     return cat
 
@@ -152,8 +167,10 @@ async def delete_category(cat_id: int, db: AsyncSession = Depends(get_db), curre
     cat = result.scalars().first()
     if not cat:
         raise HTTPException(status_code=404, detail="Category not found")
-    
-    await db.delete(cat)
+
+    # Soft-delete only: hidden from public matching, restorable via PUT.
+    # Children stay untouched (flag flip never triggers delete-orphan).
+    cat.is_active = False
     await db.commit()
     return None
 
@@ -172,6 +189,14 @@ def _guard_regex_keyword(keyword: str | None, match_type) -> None:
 @router.post("/keywords", response_model=IntentKeywordResponse, status_code=status.HTTP_201_CREATED)
 async def create_keyword(data: IntentKeywordCreate, db: AsyncSession = Depends(get_db), current_admin: User = Depends(require_permission(KEY_MANAGE_AUTO_REPLIES))):
     _guard_regex_keyword(data.keyword, data.match_type)
+    parent = await db.get(IntentCategory, data.category_id)
+    if parent is None:
+        raise HTTPException(status_code=404, detail="Category not found")
+    if not parent.is_active:
+        raise HTTPException(
+            status_code=409,
+            detail="หมวดนี้ปิดใช้งานอยู่ ให้เปิดใช้งานหมวดก่อนเพิ่มคีย์เวิร์ด",
+        )
     keyword = IntentKeyword(**data.model_dump())
     db.add(keyword)
     await db.commit()
@@ -209,8 +234,9 @@ async def delete_keyword(k_id: int, db: AsyncSession = Depends(get_db), current_
     kw = result.scalars().first()
     if not kw:
         raise HTTPException(status_code=404, detail="Keyword not found")
-    
-    await db.delete(kw)
+
+    # Soft-delete only: hidden from matching, restorable via PUT.
+    kw.is_active = False
     await db.commit()
     from app.services.message_intake.intent_matching import invalidate_intent_regex_cache
     invalidate_intent_regex_cache()
@@ -219,6 +245,12 @@ async def delete_keyword(k_id: int, db: AsyncSession = Depends(get_db), current_
 # --- Responses ---
 @router.post("/responses", response_model=IntentResponseResponse, status_code=status.HTTP_201_CREATED)
 async def create_intent_response(data: IntentResponseCreate, db: AsyncSession = Depends(get_db), current_admin: User = Depends(require_permission(KEY_MANAGE_AUTO_REPLIES))):
+    # Recovery path: creating under a hidden category is allowed on purpose —
+    # a fresh active response is what un-bricks a hidden category at restore
+    # (the re-activate guard needs >=1 active response).
+    parent = await db.get(IntentCategory, data.category_id)
+    if parent is None:
+        raise HTTPException(status_code=404, detail="Category not found")
     res = IntentResponse(**data.model_dump())
     db.add(res)
     await db.commit()
@@ -245,7 +277,8 @@ async def delete_intent_response(r_id: int, db: AsyncSession = Depends(get_db), 
     res = result.scalars().first()
     if not res:
         raise HTTPException(status_code=404, detail="Response not found")
-    
-    await db.delete(res)
+
+    # Soft-delete only: hidden from matching, restorable via PUT.
+    res.is_active = False
     await db.commit()
     return None

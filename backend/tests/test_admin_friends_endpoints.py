@@ -1,31 +1,25 @@
 """Endpoint tests for admin friends APIs."""
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
-
-from fastapi.testclient import TestClient
 
 from app.api import deps
 from app.api.v1.endpoints import admin_friends
 from app.main import app
 from app.models.user import ChatMode, UserRole
 from app.services.credential_service import credential_service
-
+from fastapi.testclient import TestClient
 from tests.identity_helpers import make_line_user_fields
 
 
 def _make_db_mock(user_rows: list[tuple[int, str]], total: int = 1):
-    """DB mock wired for list_friends' two real db.execute calls:
-    1) count query → .scalar() → total
-    2) decrypt_line_ids_for_users select(User.id, User.line_user_id_encrypted)
-       → .all() → [(user_id, encrypted_token), ...]
-    """
+    """DB mock wired for count_friends' db.scalar call plus the one remaining
+    db.execute call (decrypt_line_ids_for_users select)."""
     db = AsyncMock()
-    count_result = MagicMock()
-    count_result.scalar.return_value = total
+    db.scalar = AsyncMock(return_value=total)
     decrypt_result = MagicMock()
     decrypt_result.all.return_value = user_rows
-    db.execute = AsyncMock(side_effect=[count_result, decrypt_result])
+    db.execute = AsyncMock(return_value=decrypt_result)
     return db
 
 
@@ -55,8 +49,8 @@ def test_list_friends_serializes_friend_rows():
                 display_name="Friend One",
                 picture_url="https://example.com/friend.png",
                 friend_status="ACTIVE",
-                friend_since=datetime(2026, 3, 10, 1, 2, tzinfo=timezone.utc),
-                last_message_at=datetime(2026, 3, 11, 3, 4, tzinfo=timezone.utc),
+                friend_since=datetime(2026, 3, 10, 1, 2, tzinfo=UTC),
+                last_message_at=datetime(2026, 3, 11, 3, 4, tzinfo=UTC),
                 chat_mode=ChatMode.HUMAN,
                 **make_line_user_fields("U123"),
             )

@@ -314,7 +314,7 @@ async def create_debt_mediation_request(
         user_id=user.id if user else None,
         status=RequestStatus.PENDING,
         submitter_type=DebtMediationParty(request.submitter_type.value),
-        full_name=request.full_name.strip(),
+        full_name=(request.full_name or "").strip(),
         phone_number=request.phone_number.strip(),
         province=request.province,
         sub_district=request.sub_district,

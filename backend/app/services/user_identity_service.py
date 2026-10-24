@@ -175,6 +175,40 @@ async def decrypt_line_ids_for_users(
     return mapping
 
 
+async def decrypt_line_ids_for_users_quarantined(
+    db: AsyncSession, user_ids: list[int]
+) -> tuple[dict[int, str], list[int]]:
+    """Listing-path variant (H2): quarantine per-row decrypt failures.
+
+    Fail-loud ``decrypt_line_ids_for_users`` stays the contract everywhere else.
+    Skipped rows are counted (caller surfaces ``quarantined_count``) and logged
+    by user id only — never token material. No metric infra invented here; if a
+    reusable counter lands later, increment it alongside the warning.
+    """
+    if not user_ids:
+        return {}, []
+    unique_ids = list(dict.fromkeys(user_ids))
+    result = await db.execute(
+        select(User.id, User.line_user_id_encrypted).where(User.id.in_(unique_ids))
+    )
+    mapping: dict[int, str] = {}
+    quarantined: list[int] = []
+    for uid, token in result.all():
+        if not token:
+            logger.warning("inbox decrypt quarantine: user %s has no token, skipping", uid)
+            quarantined.append(uid)
+            continue
+        try:
+            mapping[uid] = _decrypt_line_id(token)
+        except Exception as e:
+            logger.warning(
+                "inbox decrypt quarantine: user %s undecryptable, skipping: %s",
+                uid, type(e).__name__,
+            )
+            quarantined.append(uid)
+    return mapping, quarantined
+
+
 async def decrypt_line_ids_for_users_tolerant(
     db: AsyncSession, user_ids: list[int]
 ) -> dict[int, str]:

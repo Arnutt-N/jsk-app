@@ -9,6 +9,7 @@ const config = [
       "dist/**",
       "build/**",
       "node_modules/**",
+      "playwright-report-2client/**",
       "**/*.min.js",
       "**/*.min.css",
     ],

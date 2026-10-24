@@ -2,11 +2,13 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Plus, SquarePen, Trash2, Link2, Users, BarChart3 } from 'lucide-react';
+import { Plus, SquarePen, Trash2, Link2, Users, BarChart3, Eye } from 'lucide-react';
 import { AdminTableHead, type AdminTableHeadColumn } from '@/components/admin/AdminTableHead';
 import PageHeader from '@/app/admin/components/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { ActionIconButton } from '@/components/ui/ActionIconButton';
+import { DetailModal } from '@/components/admin/DetailModal';
+import { useRouter } from 'next/navigation';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/Toast';
@@ -32,10 +34,12 @@ interface RichMenu {
 }
 
 export default function RichMenuListPage() {
+    const router = useRouter();
     const [menus, setMenus] = useState<RichMenu[]>([]);
     const [loading, setLoading] = useState(true);
     const [syncingId, setSyncingId] = useState<number | null>(null);
     const [confirmDelete, setConfirmDelete] = useState<{open: boolean; id: number | null}>({open: false, id: null});
+    const [viewMenu, setViewMenu] = useState<RichMenu | null>(null);
     const { toast } = useToast();
     const tableColumns: AdminTableHeadColumn[] = [
         { key: 'preview', label: 'Preview', align: 'center', className: 'w-40' },
@@ -61,7 +65,7 @@ export default function RichMenuListPage() {
         } finally {
             setLoading(false);
         }
-    }, [API_BASE]);
+    }, [API_BASE, toast]);
 
     useEffect(() => {
         fetchMenus();
@@ -280,6 +284,12 @@ export default function RichMenuListPage() {
                                                         />
                                                     </Link>
                                                 )}
+                                                <ActionIconButton
+                                                    icon={<Eye className="w-4 h-4" />}
+                                                    label="ดูรายละเอียด"
+                                                    variant="default"
+                                                    onClick={() => setViewMenu(menu)}
+                                                />
                                                 <Link href={`/admin/rich-menus/${menu.id}/edit`}>
                                                     <ActionIconButton
                                                         icon={<SquarePen className="w-4 h-4" />}
@@ -305,7 +315,27 @@ export default function RichMenuListPage() {
                 </div>
             )}
 
-            <ConfirmDialog
+            <DetailModal
+                title="รายละเอียดริชเมนู"
+                open={viewMenu !== null}
+                onClose={() => setViewMenu(null)}
+                rows={viewMenu ? [
+                    { label: 'ชื่อเมนู', value: viewMenu.name },
+                    { label: 'ข้อความแถบแชท', value: <span className="italic">&quot;{viewMenu.chat_bar_text}&quot;</span> },
+                    { label: 'LINE Rich Menu ID', value: <span className="font-mono text-xs">{viewMenu.line_rich_menu_id || 'LOCAL_ONLY'}</span> },
+                    { label: 'ช่วงเวลาแสดงผล', value: [viewMenu.display_start_at, viewMenu.display_end_at].filter(Boolean).join(' – ') || 'ตลอดเวลา' },
+                    { label: 'ผู้ใช้ที่ผูกเมนูนี้', value: `${viewMenu.user_link_count ?? 0} คน` },
+                ] : []}
+                renderExtra={viewMenu?.image_url ? (
+                    <img src={viewMenu.image_url} alt={viewMenu.name} className="w-full rounded-lg border border-border-default" />
+                ) : undefined}
+                actions={viewMenu ? [
+                    { label: 'แก้ไข', onClick: () => { const m = viewMenu; setViewMenu(null); router.push(`/admin/rich-menus/${m.id}/edit`); }, variant: 'outline' },
+                    { label: 'ปิด', onClick: () => setViewMenu(null), variant: 'primary' },
+                ] : undefined}
+            />
+
+      <ConfirmDialog
                 isOpen={confirmDelete.open}
                 onClose={() => setConfirmDelete({open: false, id: null})}
                 onConfirm={() => { handleDelete(confirmDelete.id!); setConfirmDelete({open: false, id: null}); }}

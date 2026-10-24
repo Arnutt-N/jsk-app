@@ -13,6 +13,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from linebot.v3.messaging import FlexContainer, FlexMessage
 
 from app.models.booking import Booking
+from app.services.booking_email import (
+    build_confirmation_email,
+    build_reminder_email,
+    send_booking_email,
+)
+from app.services.booking_settings import load_booking_config
 from app.services.flex_messages import build_booking_confirmation
 from app.services.line_service import line_service, resolve_raw_for_push
 from app.services.telegram_service import telegram_service
@@ -32,6 +38,7 @@ async def _push_flex(db: AsyncSession, user, alt_text: str, contents: dict) -> b
 
     The LINE id is resolved through the user relationship rather than stored on
     the booking, so this keeps working when storage flips to pseudonym mode.
+    Pure push: the caller checks the channel toggle first.
     """
     raw_line_id = await resolve_raw_for_push(db, user)
     if not raw_line_id:
@@ -47,30 +54,60 @@ async def _push_flex(db: AsyncSession, user, alt_text: str, contents: dict) -> b
 
 
 async def notify_booking_confirmed(db: AsyncSession, booking: Booking, user) -> bool:
-    """Confirmation bubble to the citizen. Never raises."""
+    """Never raises."""
     try:
-        return await _push_flex(
-            db,
-            user,
-            alt_text=f"จองคิวสำเร็จ {booking.queue_number or ''}".strip(),
-            contents=build_booking_confirmation(booking),
-        )
+        config = await load_booking_config(db)
+        sent = False
+        if config.email_enabled and booking.email:
+            try:
+                subject, body = build_confirmation_email(booking)
+                if await send_booking_email(booking.email, subject, body):
+                    sent = True
+            except Exception as exc:
+                logger.error("Booking confirmation email failed for %s: %s", _describe(booking), exc)
+        if config.line_enabled:
+            try:
+                if await _push_flex(
+                    db,
+                    user,
+                    alt_text=f"จองคิวสำเร็จ {booking.queue_number or ''}".strip(),
+                    contents=build_booking_confirmation(booking),
+                ):
+                    sent = True
+            except Exception as exc:
+                logger.error("Booking confirmation push failed for %s: %s", _describe(booking), exc)
+        return sent
     except Exception as exc:
-        logger.error("Booking confirmation push failed for %s: %s", _describe(booking), exc)
+        logger.error("Booking confirmation failed for %s: %s", _describe(booking), exc)
         return False
 
 
 async def send_booking_reminder(db: AsyncSession, booking: Booking, user) -> bool:
-    """Advance-reminder bubble to the citizen. Never raises."""
+    """Never raises."""
     try:
-        return await _push_flex(
-            db,
-            user,
-            alt_text=f"เตือนนัดหมาย {booking.queue_number or ''}".strip(),
-            contents=build_booking_confirmation(booking, title="🔔 เตือนนัดหมาย"),
-        )
+        config = await load_booking_config(db)
+        sent = False
+        if config.email_enabled and booking.email:
+            try:
+                subject, body = build_reminder_email(booking)
+                if await send_booking_email(booking.email, subject, body):
+                    sent = True
+            except Exception as exc:
+                logger.error("Booking reminder email failed for %s: %s", _describe(booking), exc)
+        if config.line_enabled:
+            try:
+                if await _push_flex(
+                    db,
+                    user,
+                    alt_text=f"เตือนนัดหมาย {booking.queue_number or ''}".strip(),
+                    contents=build_booking_confirmation(booking, title="🔔 เตือนนัดหมาย"),
+                ):
+                    sent = True
+            except Exception as exc:
+                logger.error("Booking reminder push failed for %s: %s", _describe(booking), exc)
+        return sent
     except Exception as exc:
-        logger.error("Booking reminder push failed for %s: %s", _describe(booking), exc)
+        logger.error("Booking reminder failed for %s: %s", _describe(booking), exc)
         return False
 
 

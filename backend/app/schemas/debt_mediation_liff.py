@@ -6,6 +6,8 @@ import re
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from app.schemas.person_name import compose_person_name
+
 ISSUE_OTHER_LABEL = "อื่น ๆ"
 
 _PHONE_PATTERN = re.compile(r"^\+?[0-9]{9,15}$")
@@ -51,7 +53,11 @@ def _blank(value: Optional[str]) -> bool:
 
 class DebtMediationCreate(BaseModel):
     submitter_type: SubmitterType
-    full_name: str = Field(min_length=1, max_length=200)
+    # Stored column never changes; the validator composes it from the trio.
+    full_name: Optional[str] = Field(default=None, max_length=200)
+    prefix: Optional[str] = Field(default=None, max_length=20)
+    firstname: Optional[str] = Field(default=None, max_length=100)
+    lastname: Optional[str] = Field(default=None, max_length=100)
     # Raw input may include dashes/spaces; the field validator strips them and
     # then enforces 9–15 digits (optional leading +). Keep the raw cap loose.
     phone_number: str = Field(min_length=1, max_length=20)
@@ -97,6 +103,9 @@ class DebtMediationCreate(BaseModel):
         # values that were whitespace-only.
         for field in (
             "full_name",
+            "prefix",
+            "firstname",
+            "lastname",
             "phone_number",
             "province",
             "counterparty_name",
@@ -112,8 +121,13 @@ class DebtMediationCreate(BaseModel):
                 else:
                     setattr(self, field, stripped or value)
 
-        # Optional sub_district / issue_other that are whitespace-only become
-        # NULL; required fields must not be blank after stripping.
+        # Legacy full_name-only payloads still pass (compat).
+        trio = [getattr(self, field) for field in ("prefix", "firstname", "lastname")]
+        if any(trio):
+            composed = compose_person_name(self.prefix, self.firstname, self.lastname, max_length=200)
+            if composed is None:
+                raise ValueError("prefix, firstname and lastname are required together.")
+            self.full_name = composed
         for field in ("full_name", "phone_number", "province", "issue_category", "counterparty_name"):
             if _blank(getattr(self, field)):
                 raise ValueError(f"{field} must not be blank.")
@@ -152,7 +166,9 @@ class DebtMediationCreate(BaseModel):
         json_schema_extra={
             "example": {
                 "submitter_type": "DEBTOR",
-                "full_name": "สมชาย ใจดี",
+                "prefix": "นาย",
+                "firstname": "สมชาย",
+                "lastname": "ใจดี",
                 "phone_number": "0812345678",
                 "province": "สกลนคร",
                 "sub_district": "ธาตุเชิงชุม",

@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import Image from 'next/image';
 import {
   Upload, Download, Trash2, Link2, LinkIcon, Search,
   FileText, Image as ImageIcon, Video, Music, File as FileIcon,
   Grid3X3, List, Copy, Check, Eye, ExternalLink,
-  ChevronLeft, ChevronRight, AlertTriangle,
+  ChevronLeft, ChevronRight, AlertTriangle, SquarePen,
 } from 'lucide-react';
 import {
   Button, Card, Badge, Input, Modal,
@@ -13,6 +14,8 @@ import {
   Checkbox,
 } from '@/components/ui';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { RenameFileModal } from '@/components/admin/RenameFileModal';
+import { ViewToggle } from '@/components/admin/ViewToggle';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { useToast } from '@/components/ui/Toast';
 import { ActionIconButton } from '@/components/ui/ActionIconButton';
@@ -130,6 +133,8 @@ export default function FilesPage() {
   const [publicLinkFile, setPublicLinkFile] = useState<MediaFile | null>(null);
   const [previewFile, setPreviewFile] = useState<MediaFile | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ ids: string[]; show: boolean }>({ ids: [], show: false });
+  const [renameTarget, setRenameTarget] = useState<MediaFile | null>(null);
+  const [renaming, setRenaming] = useState(false);
   const [copied, setCopied] = useState(false);
 
   // Track files whose <img> failed to load so we can show the category icon
@@ -254,6 +259,26 @@ export default function FilesPage() {
       toast({ title: result.message, variant: 'error' });
     }
   }, [toast, fetchStats]);
+
+  const saveRename = useCallback(async (filename: string) => {
+    if (!renameTarget || renaming) return;
+    setRenaming(true);
+    try {
+      const result = await apiFetch<MediaFile>(`/admin/media/${renameTarget.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ filename }),
+      });
+      if (result.ok) {
+        setFiles(prev => prev.map(f => f.id === result.data.id ? result.data : f));
+        setRenameTarget(null);
+        toast({ title: 'เปลี่ยนชื่อไฟล์แล้ว', variant: 'success' });
+      } else {
+        toast({ title: result.message, variant: 'error' });
+      }
+    } finally {
+      setRenaming(false);
+    }
+  }, [renameTarget, renaming, toast]);
 
   const deleteFiles = useCallback(async (ids: string[]) => {
     const result = ids.length === 1
@@ -436,28 +461,15 @@ export default function FilesPage() {
           )}
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          <button
-            onClick={() => setViewMode('grid')}
-            className={cn(
-              'p-2 rounded-lg transition-colors',
-              viewMode === 'grid'
-                ? 'bg-brand-100 text-brand-600 dark:bg-brand-900/40 dark:text-brand-400'
-                : 'text-text-tertiary hover:bg-gray-100 dark:hover:bg-gray-700',
-            )}
-          >
-            <Grid3X3 className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => setViewMode('list')}
-            className={cn(
-              'p-2 rounded-lg transition-colors',
-              viewMode === 'list'
-                ? 'bg-brand-100 text-brand-600 dark:bg-brand-900/40 dark:text-brand-400'
-                : 'text-text-tertiary hover:bg-gray-100 dark:hover:bg-gray-700',
-            )}
-          >
-            <List className="w-4 h-4" />
-          </button>
+          <ViewToggle
+            options={[
+              { value: 'grid', label: 'มุมมองกริด', icon: <Grid3X3 className="w-4 h-4" /> },
+              { value: 'list', label: 'มุมมองตาราง', icon: <List className="w-4 h-4" /> },
+            ]}
+            value={viewMode}
+            onChange={setViewMode}
+            ariaLabel="มุมมองไฟล์"
+          />
         </div>
       </div>
 
@@ -531,15 +543,16 @@ export default function FilesPage() {
 
                         {/* Thumbnail area */}
                         <div
-                          className="aspect-square bg-gray-50 dark:bg-gray-800 flex items-center justify-center cursor-pointer overflow-hidden"
+                          className="aspect-square bg-gray-50 dark:bg-gray-800 flex items-center justify-center cursor-pointer overflow-hidden relative"
                           onClick={() => setPreviewFile(file)}
                         >
                           {showImage ? (
-                            <img
+                            <Image
                               src={preview}
                               alt={file.filename}
-                              className="w-full h-full object-cover"
-                              loading="lazy"
+                              fill
+                              unoptimized
+                              className="object-cover"
                               onError={() => markBroken(file.id)}
                             />
                           ) : (
@@ -584,6 +597,12 @@ export default function FilesPage() {
                               label="ดู"
                               variant="default"
                               onClick={() => setPreviewFile(file)}
+                            />
+                            <ActionIconButton
+                              icon={<SquarePen className="w-4 h-4" />}
+                              label="แก้ไขชื่อ"
+                              variant="default"
+                              onClick={() => setRenameTarget(file)}
                             />
                             <ActionIconButton
                               icon={<Trash2 className="w-4 h-4" />}
@@ -675,6 +694,12 @@ export default function FilesPage() {
                             label="สร้างลิงก์"
                             variant="default"
                             onClick={() => file.is_public ? setPublicLinkFile(file) : createPublicLink(file)}
+                          />
+                          <ActionIconButton
+                            icon={<SquarePen className="w-4 h-4" />}
+                            label="แก้ไขชื่อ"
+                            variant="default"
+                            onClick={() => setRenameTarget(file)}
                           />
                           <ActionIconButton
                             icon={<Trash2 className="w-4 h-4" />}
@@ -829,9 +854,12 @@ export default function FilesPage() {
                     </Button>
                   </div>
                 ) : (
-                  <img
+                  <Image
                     src={getPreviewUrl(previewFile) ?? buildMediaUrl(previewFile)}
                     alt={previewFile.filename}
+                    width={1600}
+                    height={1200}
+                    unoptimized
                     className="max-h-[60vh] rounded-xl object-contain"
                     onError={() => markBroken(previewFile.id)}
                   />
@@ -911,6 +939,14 @@ export default function FilesPage() {
           </div>
         )}
       </Modal>
+
+      <RenameFileModal
+        key={renameTarget?.id ?? 'none'}
+        filename={renameTarget?.filename ?? null}
+        saving={renaming}
+        onClose={() => setRenameTarget(null)}
+        onSave={saveRename}
+      />
 
       {/* ================================================================= */}
       {/* Delete Confirmation                                                */}

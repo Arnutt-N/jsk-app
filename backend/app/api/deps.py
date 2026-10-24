@@ -258,3 +258,32 @@ def require_permission(key: str):
         return current_user
 
     return _dependency
+
+
+def check_role_permission(current_user, target_role) -> None:
+    from app.models.user import UserRole
+
+    if target_role == UserRole.SUPER_ADMIN:
+        if current_user.role != UserRole.SUPER_ADMIN:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only SUPER_ADMIN can manage SUPER_ADMIN users",
+            )
+    elif target_role == UserRole.ADMIN:
+        if current_user.role != UserRole.SUPER_ADMIN:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only SUPER_ADMIN can manage ADMIN users",
+            )
+    elif target_role == UserRole.AGENT:
+        if current_user.role not in (UserRole.SUPER_ADMIN, UserRole.ADMIN):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only ADMIN or SUPER_ADMIN can manage AGENT users",
+            )
+    elif target_role in (UserRole.DIRECTOR, UserRole.HEAD):
+        if current_user.role != UserRole.SUPER_ADMIN:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only SUPER_ADMIN can manage DIRECTOR or HEAD users",
+            )

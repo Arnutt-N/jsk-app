@@ -5,23 +5,28 @@ import Head from 'next/head'
 import { Province } from '../../../types/location'
 import { Button } from '@/components/ui/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
-import { Badge } from '@/components/ui/Badge'
+import LiffStatusBadge from '@/components/liff/LiffStatusBadge'
 import { Alert } from '@/components/ui/Alert'
 import {
     User,
     Wallet,
     Handshake,
     Scale,
-    CheckCircle2,
-    ChevronRight,
-    ChevronLeft,
-    AlertTriangle,
-    X
+    CheckCircle2
 } from 'lucide-react'
 import { logger } from '@/lib/logger';
-import { useLiffInit } from '@/hooks/useLiffInit'
+import { useLiffInit, getWindowLiff as getLiff } from '@/hooks/useLiffInit'
+import { useLiffLeave } from '@/hooks/useLiffLeave'
+import { LeaveConfirmDialog } from '@/components/liff/LeaveConfirmDialog'
+import { LiffClearButton } from '@/components/liff/LiffClearButton'
+import { LiffWizardNav } from '@/components/liff/LiffWizardNav'
+import { LiffStepCard } from '@/components/liff/LiffStepCard'
+import LiffStepper from '@/components/liff/LiffStepper'
 import { useAutoCloseCountdown } from '@/hooks/useAutoCloseCountdown'
 import { submitDebtMediation, DebtMediationPayload, formatLiffSubmitError, isValidPhone, normalizePhone } from '@/lib/liff/submit-debt-mediation'
+import { composeContactName } from '@/lib/liff/validation'
+import { PREFIX_OPTIONS } from '@/lib/constants/prefixes'
+import { Select } from '@/components/ui/Select'
 
 // --- FORM CONTENT (mirrors the MoJ debt-mediation registration form) ---
 
@@ -72,7 +77,9 @@ const STEPS = [
 
 const INITIAL_FORM_DATA = {
     submitter_type: '' as SubmitterType | '',
-    full_name: '',
+    prefix: '',
+    firstname: '',
+    lastname: '',
     phone_number: '',
     province: '',
     sub_district: '',
@@ -87,8 +94,6 @@ const INITIAL_FORM_DATA = {
 const inputBaseClass =
     'w-full bg-white border text-gray-900 text-sm rounded-lg focus:ring-primary focus:border-primary block p-2.5 outline-none transition-all'
 
-const getLiff = () => (typeof window !== 'undefined' ? window.liff : undefined)
-
 export default function LiffDebtMediation() {
     const [step, setStep] = useState(0)
     const [submitting, setSubmitting] = useState(false)
@@ -96,13 +101,13 @@ export default function LiffDebtMediation() {
     const [success, setSuccess] = useState(false)
     const [showConfirm, setShowConfirm] = useState(false)
     const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
-    const [showLeaveConfirm, setShowLeaveConfirm] = useState(false)
+    const { leaveOpen, requestLeave, cancelLeave, confirmLeave } = useLiffLeave()
     const [provinces, setProvinces] = useState<Province[]>([])
     type ProvinceLoad = 'loading' | 'ok' | 'failed'
     const [provinceLoad, setProvinceLoad] = useState<ProvinceLoad>('loading')
 
     const { profile, idToken, isInLineApp, setIsInLineApp } = useLiffInit({
-        getLiff: () => getLiff(),
+        getLiff,
         requireLiffId: true,
         redirectLogin: true,
         trackInLineApp: true
@@ -167,9 +172,11 @@ export default function LiffDebtMediation() {
                 if (!formData.submitter_type) errors.submitter_type = 'กรุณาเลือกสถานะผู้ยื่นคำขอ'
                 break
             case 1: // Debt info
-                if (blank(formData.full_name)) errors.full_name = 'กรุณาระบุชื่อ-สกุล'
+                if (blank(formData.prefix)) errors.prefix = 'กรุณาเลือกคำนำหน้า'
+                if (blank(formData.firstname)) errors.firstname = 'กรุณาระบุชื่อ'
+                if (blank(formData.lastname)) errors.lastname = 'กรุณาระบุนามสกุล'
                 if (blank(formData.phone_number)) errors.phone_number = 'กรุณาระบุหมายเลขโทรศัพท์'
-                else if (!isValidPhone(formData.phone_number)) errors.phone_number = 'เบอร์โทรไม่ถูกต้อง'
+                else if (!isValidPhone(formData.phone_number)) errors.phone_number = 'หมายเลขโทรศัพท์ไม่ถูกต้อง'
                 if (blank(formData.province)) errors.province = 'กรุณาเลือกจังหวัดที่อาศัย'
                 if (!formData.debt_amount || Number(formData.debt_amount) <= 0) errors.debt_amount = 'กรุณาระบุยอดหนี้สิน'
                 if (!formData.debt_type) errors.debt_type = 'กรุณาเลือกประเภทหนี้'
@@ -215,7 +222,14 @@ export default function LiffDebtMediation() {
 
     const buildPayload = (): DebtMediationPayload => ({
         submitter_type: formData.submitter_type as SubmitterType,
-        full_name: formData.full_name.trim(),
+        prefix: formData.prefix.trim(),
+        firstname: formData.firstname.trim(),
+        lastname: formData.lastname.trim(),
+        full_name: composeContactName({
+            prefix: formData.prefix,
+            firstname: formData.firstname,
+            lastname: formData.lastname,
+        }),
         phone_number: normalizePhone(formData.phone_number),
         province: formData.province.trim(),
         sub_district: formData.sub_district.trim() || null,
@@ -267,7 +281,7 @@ export default function LiffDebtMediation() {
         if (step === 0) {
             setFormData(prev => ({ ...prev, submitter_type: '' }))
         } else if (step === 1) {
-            setFormData(prev => ({ ...prev, full_name: '', phone_number: '', province: '', sub_district: '', debt_amount: '', debt_type: '' }))
+            setFormData(prev => ({ ...prev, prefix: '', firstname: '', lastname: '', phone_number: '', province: '', sub_district: '', debt_amount: '', debt_type: '' }))
         } else if (step === 2) {
             setFormData(prev => ({ ...prev, counterparty_name: '', interest_rate: '', issue_category: '', issue_other: '' }))
         }
@@ -288,26 +302,13 @@ export default function LiffDebtMediation() {
 
     const handleClose = () => {
         try {
-            getLiff()?.closeWindow()
+            window.liff?.closeWindow?.()
         } catch (e) {
             logger.error('Close window failed:', e)
         }
     }
 
     const { timeLeft, resetCountdown } = useAutoCloseCountdown(success && isInLineApp, handleClose)
-
-    const requestCancel = () => {
-        setShowLeaveConfirm(true)
-    }
-
-    const confirmLeave = () => {
-        setShowLeaveConfirm(false)
-        if (getLiff()?.isInClient()) {
-            handleClose()
-        } else {
-            window.location.href = '/'
-        }
-    }
 
     if (success) {
         return (
@@ -387,12 +388,10 @@ export default function LiffDebtMediation() {
                         </p>
                     </div>
                     <div className="flex items-center gap-2">
-                        <Badge
-                            variant={provinceLoad === 'ok' ? 'success' : provinceLoad === 'failed' ? 'danger' : 'warning'}
-                            className="h-6"
-                        >
-                            {provinceLoad === 'ok' ? 'Online' : provinceLoad === 'failed' ? 'โหลดไม่สำเร็จ' : 'Connecting...'}
-                        </Badge>
+                        <LiffStatusBadge
+                            kind="connectivity"
+                            state={provinceLoad === 'ok' ? 'online' : provinceLoad === 'failed' ? 'offline' : 'loading'}
+                        />
                         {provinceLoad === 'failed' && (
                             <Button type="button" variant="outline" size="sm" onClick={() => void loadProvinces()}>
                                 ลองใหม่
@@ -403,25 +402,11 @@ export default function LiffDebtMediation() {
             </div>
 
             <main className="px-4 max-w-lg mx-auto">
-                {/* Progress Steps */}
-                <div className="mb-8 flex justify-between items-center px-2">
-                    {STEPS.map((s, idx) => (
-                        <div key={idx} className="flex flex-col items-center gap-2 relative flex-1">
-                            <div className={`
-                                w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold z-10 transition-all duration-300
-                                ${idx <= step ? 'bg-primary text-white shadow-md shadow-primary/20' : 'bg-gray-200 text-gray-500'}
-                            `}>
-                                {idx < step ? <CheckCircle2 className="w-5 h-5" /> : s.icon}
-                            </div>
-                            <span className={`text-[10px] font-semibold ${idx <= step ? 'text-primary' : 'text-gray-400'}`}>
-                                {s.title}
-                            </span>
-                            {idx < STEPS.length - 1 && (
-                                <div className={`absolute left-[60%] top-4 w-full h-[2px] -z-0 ${idx < step ? 'bg-primary' : 'bg-gray-200'}`} />
-                            )}
-                        </div>
-                    ))}
-                </div>
+                <LiffStepper
+                    steps={STEPS.map((s) => ({ label: s.title, icon: s.icon }))}
+                    currentIndex={step}
+                    ariaLabel="ขั้นตอนขอแก้หนี้"
+                />
 
                 <form onSubmit={handleFormSubmit} className="liff-form space-y-6">
                     {error && (
@@ -430,28 +415,11 @@ export default function LiffDebtMediation() {
                         </Alert>
                     )}
 
-                    <Card glass className="overflow-hidden">
-                        <CardHeader className="bg-gray-50/50 border-b border-gray-100">
-                            <div className="flex items-center justify-between gap-2">
-                                <CardTitle className="text-base flex items-center gap-2">
-                                    {STEPS[step].icon}{' '}
-                                    {step === 2 && formData.submitter_type
-                                        ? (isDebtor ? 'ข้อมูลเจ้าหนี้' : 'ข้อมูลลูกหนี้')
-                                        : STEPS[step].title}
-                                </CardTitle>
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={clearStep}
-                                    className="h-7 px-2 text-xs text-gray-500 dark:text-gray-400 shrink-0"
-                                >
-                                    ล้างค่า
-                                </Button>
-                            </div>
-                        </CardHeader>
-                        <CardContent className="pt-6">
-                            {/* Step 1: Submitter */}
+                    <LiffStepCard
+                        icon={STEPS[step].icon}
+                        title={step === 2 && formData.submitter_type ? (isDebtor ? 'ข้อมูลเจ้าหนี้' : 'ข้อมูลลูกหนี้') : STEPS[step].title}
+                        action={<LiffClearButton onClear={clearStep} />}
+                    >
                             {step === 0 && (
                                 <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
                                     <p className="text-xs font-bold text-gray-600 uppercase tracking-wide">
@@ -501,27 +469,66 @@ export default function LiffDebtMediation() {
                                 </div>
                             )}
 
-                            {/* Step 2: Submitter info + debt */}
                             {step === 1 && (
                                 <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+                                    <div className="grid grid-cols-3 gap-3">
+                                        <div className="col-span-1">
+                                            <label htmlFor="dm-prefix" className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
+                                                คำนำหน้า <span className="text-red-500">*</span>
+                                            </label>
+                                            <Select
+                                                id="dm-prefix"
+                                                name="prefix"
+                                                value={formData.prefix}
+                                                onChange={handleChange}
+                                                aria-invalid={Boolean(fieldErrors.prefix) || undefined}
+                                                aria-describedby={fieldErrors.prefix ? 'dm-prefix-err' : undefined}
+                                                options={PREFIX_OPTIONS}
+                                                placeholder="เลือก"
+                                                state={fieldErrors.prefix ? 'error' : 'default'}
+                                                required
+                                            />
+                                            {fieldErrors.prefix && <p id="dm-prefix-err" className="text-red-500 text-[10px] mt-1">{fieldErrors.prefix}</p>}
+                                        </div>
+                                        <div className="col-span-2">
+                                            <label htmlFor="dm-firstname" className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
+                                                ชื่อ <span className="text-red-500">*</span>
+                                            </label>
+                                            <input
+                                                id="dm-firstname"
+                                                type="text"
+                                                name="firstname"
+                                                value={formData.firstname}
+                                                onChange={handleChange}
+                                                maxLength={100}
+                                                aria-invalid={Boolean(fieldErrors.firstname) || undefined}
+                                                aria-describedby={fieldErrors.firstname ? 'dm-firstname-err' : undefined}
+                                                className={`${inputBaseClass} ${fieldErrors.firstname ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-200'}`}
+                                                placeholder="ระบุชื่อจริง"
+                                                required
+                                            />
+                                            {fieldErrors.firstname && <p id="dm-firstname-err" className="text-red-500 text-[10px] mt-1">{fieldErrors.firstname}</p>}
+                                        </div>
+                                    </div>
+
                                     <div>
-                                        <label htmlFor="dm-full-name" className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
-                                            ชื่อ-สกุล <span className="text-red-500">*</span>
+                                        <label htmlFor="dm-lastname" className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
+                                            นามสกุล <span className="text-red-500">*</span>
                                         </label>
                                         <input
-                                            id="dm-full-name"
+                                            id="dm-lastname"
                                             type="text"
-                                            name="full_name"
-                                            value={formData.full_name}
+                                            name="lastname"
+                                            value={formData.lastname}
                                             onChange={handleChange}
-                                            maxLength={200}
-                                            aria-invalid={Boolean(fieldErrors.full_name) || undefined}
-                                            aria-describedby={fieldErrors.full_name ? 'dm-full-name-err' : undefined}
-                                            className={`${inputBaseClass} ${fieldErrors.full_name ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-200'}`}
-                                            placeholder="ระบุชื่อ-นามสกุล"
+                                            maxLength={100}
+                                            aria-invalid={Boolean(fieldErrors.lastname) || undefined}
+                                            aria-describedby={fieldErrors.lastname ? 'dm-lastname-err' : undefined}
+                                            className={`${inputBaseClass} ${fieldErrors.lastname ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-200'}`}
+                                            placeholder="ระบุนามสกุล"
                                             required
                                         />
-                                        {fieldErrors.full_name && <p id="dm-full-name-err" className="text-red-500 text-[10px] mt-1">{fieldErrors.full_name}</p>}
+                                        {fieldErrors.lastname && <p id="dm-lastname-err" className="text-red-500 text-[10px] mt-1">{fieldErrors.lastname}</p>}
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-4">
@@ -571,23 +578,21 @@ export default function LiffDebtMediation() {
                                         <label htmlFor="dm-province" className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
                                             จังหวัดที่อาศัย <span className="text-red-500">*</span>
                                         </label>
-                                        <select
+                                        <Select
                                             id="dm-province"
                                             name="province"
                                             value={formData.province}
                                             onChange={handleChange}
                                             aria-invalid={Boolean(fieldErrors.province) || undefined}
                                             aria-describedby={fieldErrors.province ? 'dm-province-err' : undefined}
-                                            className={`${inputBaseClass} ${fieldErrors.province ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-200'}`}
+                                            options={provinces.map((p) => ({
+                                                value: p.PROVINCE_THAI,
+                                                label: p.PROVINCE_THAI,
+                                            }))}
+                                            placeholder="-- เลือกจังหวัด --"
+                                            state={fieldErrors.province ? 'error' : 'default'}
                                             required
-                                        >
-                                            <option value="">-- เลือกจังหวัด --</option>
-                                            {provinces.map(p => (
-                                                <option key={p.PROVINCE_ID} value={p.PROVINCE_THAI}>
-                                                    {p.PROVINCE_THAI}
-                                                </option>
-                                            ))}
-                                        </select>
+                                        />
                                         {fieldErrors.province && <p id="dm-province-err" className="text-red-500 text-[10px] mt-1">{fieldErrors.province}</p>}
                                     </div>
 
@@ -640,7 +645,6 @@ export default function LiffDebtMediation() {
                                 </div>
                             )}
 
-                            {/* Step 3: Counterparty */}
                             {step === 2 && (
                                 <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
                                     <div>
@@ -742,58 +746,15 @@ export default function LiffDebtMediation() {
                                     </div>
                                 </div>
                             )}
-                        </CardContent>
-                    </Card>
+                        </LiffStepCard>
 
-                    {/* Navigation Buttons */}
                     <div className="pt-8 border-t border-gray-100 flex flex-col gap-3">
-                        <div className="flex gap-3 w-full">
-                            {step > 0 && (
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    className="flex-1 py-3 h-auto"
-                                    onClick={prevStep}
-                                    leftIcon={<ChevronLeft className="w-4 h-4" />}
-                                >
-                                    กลับ
-                                </Button>
-                            )}
-
-                            {step < STEPS.length - 1 ? (
-                                <Button
-                                    type="button"
-                                    variant="primary"
-                                    className="flex-[2] py-3 h-auto"
-                                    onClick={nextStep}
-                                    rightIcon={<ChevronRight className="w-4 h-4" />}
-                                >
-                                    ถัดไป
-                                </Button>
-                            ) : (
-                                <Button
-                                    type="button"
-                                    variant="primary"
-                                    onClick={() => {
-                                        if (validateStep(step)) setShowConfirm(true)
-                                    }}
-                                    disabled={submitting}
-                                    className="flex-[2] py-3 h-auto font-bold"
-                                >
-                                    ยื่นคำขอ
-                                </Button>
-                            )}
-                        </div>
-
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            className="w-full py-2 h-auto text-xs text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 font-medium"
-                            onClick={requestCancel}
-                            leftIcon={<X className="w-3.5 h-3.5" />}
-                        >
-                            ยกเลิกรายการ
-                        </Button>
+                        <LiffWizardNav
+                            onCancel={requestLeave}
+                            back={step > 0 ? { label: 'กลับ', onClick: prevStep } : undefined}
+                            next={step < STEPS.length - 1 ? { label: 'ถัดไป', onClick: nextStep } : undefined}
+                            submit={step === STEPS.length - 1 ? { label: 'ยื่นคำขอ', onClick: () => { if (validateStep(step)) setShowConfirm(true) }, disabled: submitting } : undefined}
+                        />
 
                         <p className="text-center text-[10px] text-gray-600 dark:text-gray-400 mt-4 px-4 leading-relaxed">
                             ข้อมูลของท่านจะถูกใช้เพื่อการวิเคราะห์และดำเนินการให้ความช่วยเหลือโดยบุคลากรของรัฐที่เกี่ยวข้องเท่านั้น ภายใต้กฎหมายคุ้มครองข้อมูลส่วนบุคคล (PDPA)
@@ -838,43 +799,12 @@ export default function LiffDebtMediation() {
                     </div>
                 )}
 
-                {/* Leave / cancel confirmation */}
-                {showLeaveConfirm && (
-                    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200" role="dialog" aria-modal="true" aria-labelledby="cancel-dialog-title">
-                        <Card className="w-full max-w-sm shadow-2xl">
-                            <CardHeader className="text-center pb-2">
-                                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-red-600">
-                                    <AlertTriangle className="w-6 h-6" />
-                                </div>
-                                <CardTitle id="cancel-dialog-title" className="text-lg">
-                                    {isInLineApp ? 'ปิดแบบฟอร์มนี้?' : 'ออกจากหน้านี้?'}
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="text-center space-y-4">
-                                <p className="text-sm text-gray-500">
-                                    ข้อมูลที่กรอกไว้ทั้งหมดจะหายไป<br />
-                                    และไม่สามารถกู้คืนได้
-                                </p>
-                                <div className="flex gap-3 pt-2">
-                                    <Button
-                                        variant="ghost"
-                                        className="flex-1"
-                                        onClick={() => setShowLeaveConfirm(false)}
-                                    >
-                                        ไม่ใช่
-                                    </Button>
-                                    <Button
-                                        variant="danger"
-                                        className="flex-1"
-                                        onClick={confirmLeave}
-                                    >
-                                        ยืนยัน
-                                    </Button>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
-                )}
+                <LeaveConfirmDialog
+                    isOpen={leaveOpen}
+                    isInLineApp={isInLineApp}
+                    onClose={cancelLeave}
+                    onConfirm={confirmLeave}
+                />
             </main>
         </div>
     )

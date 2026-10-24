@@ -191,8 +191,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const meData = await meRes.json();
           if (cancelled) return;
           if (getAuthSnapshot().status !== 'loading') return;
-          if (meData.csrf_token) setCsrfToken(meData.csrf_token);
-          const { csrf_token: _csrf, ...userFields } = meData;
+          const { csrf_token, ...userFields } = meData;
+          if (csrf_token) setCsrfToken(csrf_token);
           setAuthState({ user: userFields, status: 'authenticated' });
         } else {
           setAuthState({ status: 'unauthenticated' });
@@ -370,14 +370,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // /login 401 chain) firing this event must not end up broadcasting
       // logout to every other tab: that broadcast was the P1 login flake.
       if (getAuthSnapshot().status !== 'authenticated') return;
-      logout();
+      void verifyThenApplyRemoteLogout();
     };
     window.addEventListener('jsk:auth-expired', onAuthExpired as EventListener);
     return () => {
       setAuthRefreshHandler(null);
       window.removeEventListener('jsk:auth-expired', onAuthExpired as EventListener);
     };
-  }, [refreshAccessToken, logout]);
+  }, [refreshAccessToken, verifyThenApplyRemoteLogout]);
 
   const value = useMemo<AuthContextType>(() => ({
     user,

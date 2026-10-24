@@ -3,9 +3,9 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import LiffServiceRequestV2 from '../page';
 
-vi.mock('@line/liff', () => ({ __esModule: true, default: {} }));
 vi.mock('@/hooks/useLiffInit', () => ({
-  useLiffInit: () => ({ idToken: 'tok', initDone: true, profile: null, isInLineApp: true }),
+  useLiffInit: () => ({ idToken: 'tok', initDone: true, profile: null, isInLineApp: true, setIsInLineApp: vi.fn() }),
+  getWindowLiff: () => undefined,
 }));
 vi.mock('@/hooks/useAutoCloseCountdown', () => ({
   useAutoCloseCountdown: () => ({}),
@@ -65,7 +65,7 @@ describe('LIFF upload retry (R3-H5)', () => {
       const { container } = render(<LiffServiceRequestV2 />);
 
       // Step 0: personal info (prefix is a text input, not a select).
-      fireEvent.change(container.querySelector('input[name="prefix"]')!, { target: { value: 'นาย' } });
+      fireEvent.change(container.querySelector('select[name="prefix"]')!, { target: { value: 'นาย' } });
       fireEvent.change(container.querySelector('input[name="firstname"]')!, { target: { value: 'สมชาย' } });
       fireEvent.change(container.querySelector('input[name="lastname"]')!, { target: { value: 'ใจดี' } });
       fireEvent.change(container.querySelector('input[name="phone_number"]')!, { target: { value: '0812345679' } });

@@ -1,8 +1,224 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 285 active handoffs, 12 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 309 active handoffs, 12 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-10-24 07:17 — pi — completed
+
+Session closeout after follow-ups: PR 295 merged + CD green, main at 02fef0c, tree clean, no pending code work
+
+- Checkpoint: `.agents/state/checkpoints/handover-pi-20261024-0717.json`
+- Summary: `project-log-md/pi/session-summary-20261024-0717.md`
+
+---
+
+### 2026-10-24 07:11 — pi — completed
+
+Follow-up batch done: PR 295 merged, CD green incl prod migration c3d4e5f6a7b8; user asked about pending items and confirmed all three; main at 96d1849
+
+- Checkpoint: `.agents/state/checkpoints/handover-pi-20261024-0711.json`
+- Summary: `project-log-md/pi/session-summary-20261024-0711.md`
+
+---
+
+### 2026-10-24 02:21 — pi — completed
+
+Session closeout: pstack pipeline done, PRs 291-294 merged green, follow-ups proposed, PR 257 merge question pending user
+
+- Checkpoint: `.agents/state/checkpoints/handover-pi-20261024-0221.json`
+- Summary: `project-log-md/pi/session-summary-20261024-0221.md`
+
+---
+
+### 2026-10-24 00:06 — pi — completed
+
+pstack pipeline complete: #293 hardening merged (CD green), #294 harness merged; interrogate+thermos findings actioned; user decisions Q1-keep Q2-cascade Q3-hide-children recorded
+
+- Checkpoint: `.agents/state/checkpoints/handover-pi-20261024-0006.json`
+- Summary: `project-log-md/pi/session-summary-20261024-0006.md`
+
+---
+
+### 2026-10-23 19:25 — pi — completed
+
+PR #291 merged (squash c319a45): LIFF leave-confirm unified + admin soft-delete; CI all green
+
+- Checkpoint: `.agents/state/checkpoints/handover-pi-20261023-1925.json`
+- Summary: `project-log-md/pi/session-summary-20261023-1925.md`
+
+---
+
+### 2026-10-23 02:09 — pi — completed
+
+Merged datepicker redesign PRs #285/#286/#287 (Portal popup, slim input, touch hardening, touch e2e)
+
+- Checkpoint: `.agents/state/checkpoints/handover-pi-20261023-0209.json`
+- Summary: `project-log-md/pi/session-summary-20261023-0209.md`
+
+---
+
+### 2026-10-22 08:18 — pi — completed
+
+Merged PR stack to main: #282 user-create roles, #283 login by username-or-email, #284 access-request form + approval queue + password reset (review fixes included)
+
+- Checkpoint: `.agents/state/checkpoints/handover-pi-20261022-0818.json`
+- Summary: `project-log-md/pi/session-summary-20261022-0818.md`
+
+---
+
+### 2026-10-21 18:42 — pi — completed
+
+Graphs refreshed after review-fix session: graft rebuild and graphify update both green, tree clean
+
+- Checkpoint: `.agents/state/checkpoints/handover-pi-20261021-1842.json`
+- Summary: `project-log-md/pi/session-summary-20261021-1842.md`
+
+---
+
+### 2026-10-21 08:48 — pi — completed
+
+Session complete: PR #280 LINE toggle+quota and PR #281 review fixes both merged, CD green; pstack 6-skill review synthesized and applied
+
+- Checkpoint: `.agents/state/checkpoints/handover-pi-20261021-0848.json`
+- Summary: `project-log-md/pi/session-summary-20261021-0848.md`
+
+---
+
+### 2026-10-21 08:39 — pi — completed
+
+PR #281 review fixes merged to main, CD green; kept line OFF default per operator; admin must flip LINE toggle ON to resume pushes
+
+- Checkpoint: `.agents/state/checkpoints/handover-pi-20261021-0839.json`
+- Summary: `project-log-md/pi/session-summary-20261021-0839.md`
+
+---
+
+### 2026-10-21 06:03 — pi — completed
+
+PR #280 booking LINE notify merged to main, CD green; line_enabled defaults OFF, awaiting admin opt-in
+
+- Checkpoint: `.agents/state/checkpoints/handover-pi-20261021-0603.json`
+- Summary: `project-log-md/pi/session-summary-20261021-0603.md`
+
+---
+
+### 2026-10-21 06:00 — pi — completed
+
+PR #280 booking LINE notify merged to main, CD green; line_enabled defaults OFF, awaiting admin opt-in
+
+- Checkpoint: `.agents/state/checkpoints/handover-pi-20261021-0600.json`
+- Summary: `project-log-md/pi/session-summary-20261021-0600.md`
+
+---
+
+### 2026-10-21 05:59 — pi — completed
+
+PR #280 booking LINE notify merged to main, CD green; line_enabled defaults OFF, awaiting admin opt-in
+
+- Checkpoint: `.agents/state/checkpoints/handover-pi-20261021-0559.json`
+- Summary: `project-log-md/pi/session-summary-20261021-0559.md`
+
+---
+
+### 2026-10-19 23:15 — pi — completed
+
+Booking full-option program COMPLETE: phases 1-6 on feat/booking-full-option, single PR #279 opened (merged 4b5222b+71888e2, SMTP live-send deferred by operator)
+
+- Checkpoint: `.agents/state/checkpoints/handover-pi-20261019-2315.json`
+- Summary: `project-log-md/pi/session-summary-20261019-2315.md`
+
+---
+
+### 2026-10-19 20:02 — pi — completed
+
+Booking full-option phase 5 done on feat/booking-full-option (assignment migration live-tested, endpoint + gates, column/modal/chip, toggle OFF; d302446 pushed, no PR yet)
+
+- Checkpoint: `.agents/state/checkpoints/handover-pi-20261019-2002.json`
+- Summary: `project-log-md/pi/session-summary-20261019-2002.md`
+
+---
+
+### 2026-10-19 17:03 — pi — completed
+
+Booking full-option phase 4 done on feat/booking-full-option (reminder status column, resend endpoint + guard, toggle; 492070c pushed, no PR yet)
+
+- Checkpoint: `.agents/state/checkpoints/handover-pi-20261019-1703.json`
+- Summary: `project-log-md/pi/session-summary-20261019-1703.md`
+
+---
+
+### 2026-10-19 15:03 — pi — completed
+
+Booking full-option phase 3 done on feat/booking-full-option (month calendar, range wrapper, toggle; 6f76209 pushed, no PR yet)
+
+- Checkpoint: `.agents/state/checkpoints/handover-pi-20261019-1503.json`
+- Summary: `project-log-md/pi/session-summary-20261019-1503.md`
+
+---
+
+### 2026-10-19 08:58 — pi — completed
+
+Booking full-option phase 1+2 done on feat/booking-full-option (walk-in create, contact edit, search, pagination)
+
+- Checkpoint: `.agents/state/checkpoints/handover-pi-20261019-0858.json`
+- Summary: `project-log-md/pi/session-summary-20261019-0858.md`
+
+---
+
+### 2026-10-19 02:28 — pi — completed
+
+Merged PRs 272-278: LIFF cancel-everywhere, 4 shared components, booking in-LINE title fix, comment cleanup
+
+- Checkpoint: `.agents/state/checkpoints/handover-pi-20261019-0228.json`
+- Summary: `project-log-md/pi/session-summary-20261019-0228.md`
+
+---
+
+### 2026-10-18 14:33 — pi — completed
+
+Merged PR #268: rich-menu show-expanded via selected=true (ALWAYS/SCHEDULED expand, MANUAL collapsed)
+
+- Checkpoint: `.agents/state/checkpoints/handover-pi-20261018-1433.json`
+- Summary: `project-log-md/pi/session-summary-20261018-1433.md`
+
+---
+
+### 2026-10-18 13:04 — pi — completed
+
+Merged PRs #265 (LIFF roots: wizard, shared kit, trio, cache), #266 (rich-menu audit order), #267 (phone 9-15 rule); rich-menu ALWAYS investigation with live LINE checks
+
+- Checkpoint: `.agents/state/checkpoints/handover-pi-20261018-1304.json`
+- Summary: `project-log-md/pi/session-summary-20261018-1304.md`
+
+---
+
+### 2026-10-18 10:26 — claude_code — completed
+
+LIFF polish: merged #269 (booking date picker no longer covered), #270 (stepper label icons, booking cancel + faster load, debt clear icon), #271 (booking note moved to service step, summary step renamed ยืนยัน); opened #272 (ยกเลิกรายการ on every booking step); designed shared LIFF components
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20261018-1026.json`
+- Summary: `project-log-md/claude_code/session-summary-20261018-1026.md`
+
+---
+
+### 2026-10-17 07:20 — pi — completed
+
+Merged PRs 259-264: booking UX, login verify-before-logout, shared taxonomy, agent rules
+
+- Checkpoint: `.agents/state/checkpoints/handover-pi-20261017-0720.json`
+- Summary: `project-log-md/pi/session-summary-20261017-0720.md`
+
+---
+
+### 2026-10-16 10:33 — pi — completed
+
+PR #259 review fixes done (option A), CI green, ready to merge
+
+- Checkpoint: `.agents/state/checkpoints/handover-pi-20261016-1033.json`
+- Summary: `project-log-md/pi/session-summary-20261016-1033.md`
+
+---
 
 ### 2026-10-15 21:24 — pi — completed
 

@@ -3,9 +3,9 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import LiffRequestV2 from '../page';
 
-vi.mock('@line/liff', () => ({ __esModule: true, default: {} }));
 vi.mock('@/hooks/useLiffInit', () => ({
   useLiffInit: () => ({ idToken: 'tok', initDone: true, profile: null, isInLineApp: true }),
+  getWindowLiff: () => undefined,
 }));
 vi.mock('@/hooks/useAutoCloseCountdown', () => ({
   useAutoCloseCountdown: () => ({}),
@@ -44,11 +44,12 @@ vi.mock('@/lib/liff/submit-service-request', () => ({
 const originalFetch = global.fetch;
 
 function mockProvincesFetch() {
-  const resp = new Response(
+  // Fresh Response per call: the page now fetches the shared taxonomy too,
+  // and one body can only be read once — same as a real fetch.
+  global.fetch = vi.fn().mockImplementation(async () => new Response(
     JSON.stringify([{ PROVINCE_ID: 1, PROVINCE_THAI: 'กทม' }]),
     { status: 200, headers: { 'content-type': 'application/json' } },
-  );
-  global.fetch = vi.fn().mockResolvedValue(resp);
+  ));
 }
 
 function changeByName(container: HTMLElement, name: string, value: string) {
@@ -85,7 +86,7 @@ describe('LIFF request-v2 validation (D4)', () => {
   it('rejects over-long phone numbers without submitting (D4/F7 parity)', async () => {
     const { container } = render(<LiffRequestV2 />);
 
-    changeByName(container, 'phone', '081234567890');
+    changeByName(container, 'phone', '0812345678901234');
     fireEvent.submit(container.querySelector('form')!);
 
     await waitFor(() => {

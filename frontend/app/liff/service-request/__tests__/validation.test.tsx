@@ -3,9 +3,9 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import LiffServiceRequest from '../page';
 
-vi.mock('@line/liff', () => ({ __esModule: true, default: {} }));
 vi.mock('@/hooks/useLiffInit', () => ({
-  useLiffInit: () => ({ idToken: 'tok', initDone: true, profile: null, isInLineApp: true }),
+  useLiffInit: () => ({ idToken: 'tok', initDone: true, profile: null, isInLineApp: true, setIsInLineApp: vi.fn() }),
+  getWindowLiff: () => undefined,
 }));
 vi.mock('@/hooks/useAutoCloseCountdown', () => ({
   useAutoCloseCountdown: () => ({}),
@@ -64,7 +64,7 @@ describe('LIFF service-request validation (R3-M28)', () => {
   it('rejects whitespace-only firstname with inline guidance', async () => {
     const { container } = render(<LiffServiceRequest />);
 
-    fireEvent.change(container.querySelector('input[name="prefix"]')!, { target: { value: 'นาย' } });
+    fireEvent.change(container.querySelector('select[name="prefix"]')!, { target: { value: 'นาย' } });
     fireEvent.change(container.querySelector('input[name="firstname"]')!, { target: { value: '   ' } });
     fireEvent.change(container.querySelector('input[name="lastname"]')!, { target: { value: 'ใจดี' } });
     fireEvent.change(container.querySelector('input[name="phone_number"]')!, { target: { value: '0812345679' } });
@@ -83,7 +83,7 @@ describe('LIFF service-request validation (R3-M28)', () => {
       const { container } = render(<LiffServiceRequest />);
 
       // Step 0: valid personal info.
-      fireEvent.change(container.querySelector('input[name="prefix"]')!, { target: { value: 'นาย' } });
+      fireEvent.change(container.querySelector('select[name="prefix"]')!, { target: { value: 'นาย' } });
       fireEvent.change(container.querySelector('input[name="firstname"]')!, { target: { value: 'สมชาย' } });
       fireEvent.change(container.querySelector('input[name="lastname"]')!, { target: { value: 'ใจดี' } });
       fireEvent.change(container.querySelector('input[name="phone_number"]')!, { target: { value: '0812345679' } });
@@ -140,17 +140,31 @@ describe('LIFF service-request validation (R3-M28)', () => {
   it('rejects over-long phone numbers (F7)', async () => {
     const { container } = render(<LiffServiceRequest />);
 
-    fireEvent.change(container.querySelector('input[name="prefix"]')!, { target: { value: 'นาย' } });
+    fireEvent.change(container.querySelector('select[name="prefix"]')!, { target: { value: 'นาย' } });
+    fireEvent.change(container.querySelector('input[name="firstname"]')!, { target: { value: 'สมชาย' } });
+    fireEvent.change(container.querySelector('input[name="lastname"]')!, { target: { value: 'ใจดี' } });
+    fireEvent.change(container.querySelector('input[name="phone_number"]')!, { target: { value: '0812345678901234' } });
+    fireEvent.click(screen.getByRole('button', { name: 'ถัดไป' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('หมายเลขโทรศัพท์ไม่ถูกต้อง')).toBeTruthy();
+    });
+    // Still on step 0: the phone input is still rendered.
+    expect(container.querySelector('input[name="phone_number"]')).not.toBeNull();
+  });
+
+  it('accepts 11-15 digit numbers under the shared rule', async () => {
+    const { container } = render(<LiffServiceRequest />);
+
+    fireEvent.change(container.querySelector('select[name="prefix"]')!, { target: { value: 'นาย' } });
     fireEvent.change(container.querySelector('input[name="firstname"]')!, { target: { value: 'สมชาย' } });
     fireEvent.change(container.querySelector('input[name="lastname"]')!, { target: { value: 'ใจดี' } });
     fireEvent.change(container.querySelector('input[name="phone_number"]')!, { target: { value: '081234567890' } });
     fireEvent.click(screen.getByRole('button', { name: 'ถัดไป' }));
 
     await waitFor(() => {
-      expect(screen.getByText('เบอร์โทรไม่ถูกต้อง')).toBeTruthy();
+      expect(screen.queryByText('หมายเลขโทรศัพท์ไม่ถูกต้อง')).toBeNull();
     });
-    // Still on step 0: the phone input is still rendered.
-    expect(container.querySelector('input[name="phone_number"]')).not.toBeNull();
   });
 
   it('normalizes a pasted +66 prefix to 0 (F12)', () => {

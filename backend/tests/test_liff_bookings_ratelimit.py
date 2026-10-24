@@ -64,6 +64,8 @@ def test_clean_read_traffic_unblocked():
         service_types=("ปรึกษากฎหมาย",),
         advance_days=3,
         blackout_dates=[],
+        email_enabled=False,
+        line_enabled=False,
     )
 
     async def _stub_db():

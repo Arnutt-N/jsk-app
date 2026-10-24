@@ -1,49 +1,53 @@
-from fastapi import APIRouter, Depends, Query
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Any, Optional
+import math
+from datetime import date
+from typing import Any
+
 from app.api import deps
 from app.api.deps import get_current_admin
+from app.core.date_windows import InvertedRangeError
 from app.core.pii_masking import mask_line_id
 from app.models.user import User
-from app.schemas.friend import FriendListResponse, FriendResponse
-from app.services.friend_service import friend_service
-from app.services.rich_menu_service import RichMenuService
+from app.schemas.friend import FriendResponse
 from app.schemas.friend_event import (
     FriendEventListResponse,
     FriendEventListWithUserResponse,
     FriendEventResponse,
     FriendStatsResponse,
 )
-import math
+from app.services.friend_service import friend_service
+from app.services.rich_menu_service import RichMenuService
+from app.services.user_identity_service import decrypt_line_ids_for_users
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
 
 
 @router.get("")
 async def list_friends(
-    status: Optional[str] = None,
+    status: str | None = None,
+    start_date: date | None = None,
+    end_date: date | None = None,
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=100),
     db: AsyncSession = Depends(deps.get_db),
     current_admin: User = Depends(get_current_admin),
 ) -> Any:
     """List all friends with status"""
-    friends = await friend_service.list_friends(status, db, skip, limit)
+    try:
+        friends = await friend_service.list_friends(status, db, skip, limit, start_date, end_date)
+    except InvertedRangeError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
-    # Get total count for pagination
-    from sqlalchemy import func as sa_func
-    from app.models.user import User as UserModel
-    from app.services.user_identity_service import decrypt_line_ids_for_users, user_identity_filter
-    count_query = select(sa_func.count(UserModel.id)).where(user_identity_filter())
-    if status:
-        count_query = count_query.where(UserModel.friend_status == status)
-    total_result = await db.execute(count_query)
-    total = total_result.scalar() or 0
+    # Total count for pagination (same filters as the list — never diverge)
+    try:
+        total = await friend_service.count_friends(status, db, start_date, end_date)
+    except InvertedRangeError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     # Batch-decrypt the raw LINE IDs for this page (friends are User rows).
     raw_by_user_id = await decrypt_line_ids_for_users(
-        db, [f.id for f in friends if f.line_user_id_hash]
+        db, [f.id for f in friends if f.line_user_id_hash is not None]
     )
 
     # Scope refollow counts to current page only (result keyed by raw LINE id).
@@ -73,8 +77,8 @@ async def list_friends(
 
 @router.get("/history", response_model=FriendEventListWithUserResponse)
 async def list_friend_history(
-    line_user_id: Optional[str] = Query(None, description="Filter by LINE user ID"),
-    event_type: Optional[str] = Query(None, description="Filter by event type (FOLLOW, UNFOLLOW, BLOCK, REFOLLOW)"),
+    line_user_id: str | None = Query(None, description="Filter by LINE user ID"),
+    event_type: str | None = Query(None, description="Filter by event type (FOLLOW, UNFOLLOW, BLOCK, REFOLLOW)"),
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(deps.get_db),

@@ -56,8 +56,11 @@ async def run_booking_reminders():
 
 async def _process_due_reminders(db: AsyncSession):
     """Claim and send every reminder that is currently due."""
-    config = await load_booking_config(db)
+    config = await load_booking_config(db, fresh=True)
     if not config.enabled or not config.reminder_enabled:
+        return
+    if not config.email_enabled and not config.line_enabled:
+        logger.debug("Booking reminder scheduler idle: no notification channel enabled")
         return
 
     window_start, window_end = reminder_window(config, local_now())

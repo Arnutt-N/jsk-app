@@ -82,19 +82,25 @@ const chartColors = [
 /* ── Component inventory ── */
 const uiComponents = [
   'Accordion', 'ActionIconButton', 'Alert', 'Avatar', 'Badge', 'Button',
-  'Calendar', 'Card', 'Chart', 'Checkbox', 'Command', 'ConfirmDialog',
-  'DateRangePicker', 'DropdownMenu', 'EmptyState', 'ErrorBoundary',
+  'Calendar', 'CalendarPickerTH', 'Card', 'Chart', 'Checkbox', 'Command',
+  'CommandPalette', 'ConfirmDialog', 'DateRangePicker', 'DateTimePickerTH',
+  'DropdownMenu', 'EmptyState', 'ErrorBoundary', 'EscalationDialog',
   'FileUploadZone', 'Form', 'Input', 'Label', 'LoadingSpinner', 'Modal',
-  'ModalAlert', 'PageTransition', 'Pagination', 'Popover', 'Progress',
-  'RadioGroup', 'Select', 'Separator', 'Sheet', 'Skeleton', 'Switch',
-  'Table', 'Tabs', 'Textarea', 'Timeline', 'Toast', 'Tooltip',
+  'ModalAlert', 'PageTransition', 'Pagination', 'PasswordStrengthMeter',
+  'Popover', 'Progress', 'RadioGroup', 'Select', 'Separator', 'Sheet',
+  'Skeleton', 'Switch', 'Table', 'Tabs', 'Textarea', 'Timeline', 'Toast',
+  'Tooltip', 'TrendBadge',
 ];
 
 const adminComponents = [
   'AdminLanguageToggle', 'AdminSearchFilterBar', 'AdminTableHead',
-  'AssignModal', 'BotStatusIndicator', 'CannedResponsePicker',
-  'ConversationActionMenu', 'CredentialForm', 'PageAccessGuard',
-  'SessionTimeoutWarning', 'SidebarItem', 'ThemeToggleSwitch', 'TypingIndicator',
+  'AssignModal', 'AuditTimelineEntry', 'BookingMonthCalendar',
+  'BotStatusIndicator', 'CannedResponsePicker', 'CommandPalette',
+  'ConversationActionMenu', 'CredentialForm', 'FormActions', 'HelpSheet',
+  'LogoutConfirmDialog', 'NotificationPanel', 'PageAccessGuard',
+  'ReplyObjectForm', 'RichMenuAssignModal', 'SessionTimeoutWarning',
+  'SidebarItem', 'TaxonomyEditor', 'ThemeToggleSwitch', 'TypingIndicator',
+  'UserMenu', 'WalkinBookingDialog',
 ];
 
 /* ── Timeline demo data ── */

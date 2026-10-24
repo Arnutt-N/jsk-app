@@ -176,7 +176,7 @@ export default function ChatHistoryDetailPage() {
         a.download = `chat-${exportBase}-${new Date().toISOString().slice(0, 10)}.txt`;
         a.click();
         URL.revokeObjectURL(url);
-    }, [messages, lineUserId, displayName]);
+    }, [messages, displayName]);
 
     /* ---- Export CSV: download from backend (UTF-8-SIG, opens cleanly in Excel) ---- */
     const handleExportCsv = useCallback(async () => {

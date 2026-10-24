@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import LiffServiceRequestSingle from '../page';
 
-vi.mock('@line/liff', () => ({ __esModule: true, default: {} }));
 vi.mock('@/hooks/useLiffInit', () => ({
   useLiffInit: () => ({ idToken: 'tok', initDone: true, profile: null, isInLineApp: true }),
+  getWindowLiff: () => undefined,
 }));
 vi.mock('@/hooks/useAutoCloseCountdown', () => ({
   useAutoCloseCountdown: () => ({}),
@@ -86,7 +86,7 @@ describe('LIFF service-request-single validation (R3-M28-twin)', () => {
     try {
       const { container } = render(<LiffServiceRequestSingle />);
 
-      fireEvent.change(container.querySelector('input[name="prefix"]')!, { target: { value: 'นาย' } });
+      fireEvent.change(container.querySelector('select[name="prefix"]')!, { target: { value: 'นาย' } });
       fireEvent.change(container.querySelector('input[name="firstname"]')!, { target: { value: 'สมชาย' } });
       fireEvent.change(container.querySelector('input[name="lastname"]')!, { target: { value: 'ใจดี' } });
       fireEvent.change(container.querySelector('input[name="phone"]')!, { target: { value: '0812345679' } });
@@ -131,7 +131,7 @@ describe('LIFF service-request-single validation (R3-M28-twin)', () => {
   it('rejects over-long phone numbers without opening confirm (F7)', async () => {
     const { container } = render(<LiffServiceRequestSingle />);
 
-    fireEvent.change(container.querySelector('input[name="phone"]')!, { target: { value: '081234567890' } });
+    fireEvent.change(container.querySelector('input[name="phone"]')!, { target: { value: '0812345678901234' } });
     fireEvent.submit(container.querySelector('form')!);
 
     await waitFor(() => {
@@ -146,5 +146,27 @@ describe('LIFF service-request-single validation (R3-M28-twin)', () => {
     const phone = container.querySelector('input[name="phone"]') as HTMLInputElement;
     fireEvent.change(phone, { target: { value: '+66812345678' } });
     expect(phone.value).toBe('0812345678');
+  });
+
+  it('cancel asks before leaving when the form is dirty (leave-confirm)', async () => {
+    const { container } = render(<LiffServiceRequestSingle />);
+    fireEvent.change(container.querySelector('input[name="firstname"]')!, { target: { value: 'สมชาย' } });
+    fireEvent.click(screen.getByRole('button', { name: 'ยกเลิก' }));
+    expect(await screen.findByText('ปิดแบบฟอร์มนี้?')).toBeInTheDocument();
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'ยืนยัน' }));
+    await waitFor(() => {
+      expect(screen.queryByText('ปิดแบบฟอร์มนี้?')).not.toBeInTheDocument();
+    });
+  });
+
+  it('cancel on a pristine form leaves at once without asking', async () => {
+    render(<LiffServiceRequestSingle />);
+    fireEvent.click(screen.getByRole('button', { name: 'ยกเลิก' }));
+    await waitFor(() => {
+      expect(screen.queryByText('ปิดแบบฟอร์มนี้?')).not.toBeInTheDocument();
+    });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });

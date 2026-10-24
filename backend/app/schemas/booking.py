@@ -4,12 +4,16 @@ Validation here is the outer boundary: anything reaching the service layer has
 already been shape-checked, so the service can focus on the rules that need a
 database (capacity, duplicates) rather than re-checking field types.
 """
-from datetime import date, time
+import re
+from datetime import date, datetime, time
 from typing import List, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.services.booking_service import ReminderUnit
+from app.schemas.person_name import compose_person_name
+
+_EMAIL_RE = re.compile(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$")
 
 
 class SlotOut(BaseModel):
@@ -35,6 +39,19 @@ class BookingOptionsOut(BaseModel):
     advance_days: int
     blackout_dates: List[date]
     max_range_days: int
+    email_enabled: bool
+    line_enabled: bool
+
+
+class LineQuotaOut(BaseModel):
+    """All counts, not percents.
+
+    `quota`/`remaining` are None on an unlimited plan (LINE returns no value).
+    """
+
+    quota: int | None
+    consumption: int
+    remaining: int | None
 
 
 class AvailabilityOut(BaseModel):
@@ -70,6 +87,12 @@ class ContactFields(BaseModel):
     contact_name: Optional[str] = Field(default=None, max_length=120)
     phone_number: Optional[str] = Field(default=None, max_length=20)
     note: Optional[str] = Field(default=None, max_length=1000)
+    email: Optional[str] = Field(default=None, max_length=254)
+    # No new columns: the trio composes into contact_name.
+
+    prefix: Optional[str] = Field(default=None, max_length=20)
+    firstname: Optional[str] = Field(default=None, max_length=100)
+    lastname: Optional[str] = Field(default=None, max_length=100)
 
     @field_validator("phone_number")
     @classmethod
@@ -83,6 +106,18 @@ class ContactFields(BaseModel):
             raise ValueError("phone_number must contain digits only")
         return cleaned
 
+    @field_validator("email")
+    @classmethod
+    def _valid_email(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        cleaned = value.strip()
+        if not cleaned:
+            return ""
+        if len(cleaned) > 254 or not _EMAIL_RE.fullmatch(cleaned):
+            raise ValueError("email must be a valid address")
+        return cleaned
+
     @field_validator("contact_name", "note")
     @classmethod
     def _strip_blank(cls, value: Optional[str]) -> Optional[str]:
@@ -90,11 +125,27 @@ class ContactFields(BaseModel):
             return None
         return value.strip() or None
 
+    @model_validator(mode="after")
+    def _compose_contact_name(self) -> "ContactFields":
+        """Trio wins over legacy; oversize rejected, not truncated."""
+        composed = compose_person_name(self.prefix, self.firstname, self.lastname, max_length=120)
+        if composed is not None:
+            self.contact_name = composed
+        return self
+
 
 class BookingCreate(ContactFields):
     service_type: str = Field(min_length=1, max_length=200)
     booking_date: date
     booking_time: time
+    idempotency_key: Optional[str] = Field(default=None, max_length=36)
+
+    @field_validator("idempotency_key")
+    @classmethod
+    def _strip_key(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        return value.strip() or None
 
 
 class BookingOut(BaseModel):
@@ -109,6 +160,9 @@ class BookingOut(BaseModel):
     contact_name: Optional[str]
     phone_number: Optional[str]
     note: Optional[str]
+    reminder_sent_at: Optional[datetime] = None
+    assigned_staff_id: Optional[int] = None
+    email: Optional[str] = None
 
     @field_validator("status", mode="before")
     @classmethod
@@ -127,6 +181,12 @@ class BookingUpdateIn(ContactFields):
     model_config = ConfigDict(extra="forbid")
 
 
+class BookingAssignIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    assigned_staff_id: Optional[int] = None
+
+
 class BookingSettingsIn(BaseModel):
     """Admin-editable configuration. Rejects values that would break the engine."""
 
@@ -139,6 +199,16 @@ class BookingSettingsIn(BaseModel):
     reminder_enabled: bool
     reminder_lead_value: int = Field(ge=1, le=90)
     reminder_lead_unit: ReminderUnit
+    # Defaulted so older payloads (and the counter UI before its update)
+    # keep validating; the settings page always sends the stored value.
+    walkin_enabled: bool = True
+    calendar_enabled: bool = True
+    resend_enabled: bool = True
+    assign_enabled: bool = False
+    # None means "not sent": the settings endpoint keeps the stored value,
+    # so a stale client that omits the field can never flip the channel.
+    email_enabled: Optional[bool] = None
+    line_enabled: bool | None = None
 
     @field_validator("service_types")
     @classmethod

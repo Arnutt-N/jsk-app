@@ -1,16 +1,16 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Cross-Platform Session Index (generated)
 
-> **Last generated**: 2026-10-15 21:24 (from newest checkpoint)
+> **Last generated**: 2026-10-24 07:17 (from newest checkpoint)
 
 ## Quick Stats
 
 | Metric | Value |
 |--------|-------|
-| Handoff checkpoints (active) | 285 |
-| Session summaries on disk | 389 |
+| Handoff checkpoints (active) | 309 |
+| Session summaries on disk | 414 |
 | Platforms | 12 (antigravity, claude_code, cline, codex, gemini_cli, kilo_code, kimi_code, muse_code, open_code, pi, qoder, zcode) |
-| Most recent | 2026-10-15 21:24 — pi |
+| Most recent | 2026-10-24 07:17 — pi |
 
 > Regenerate after any handoff: `node .agents/scripts/gen-handoff-views.cjs`
 
@@ -24,10 +24,11 @@
 | 2026-04-04 12:04 | completed | — | — | `handover-antigravity-20260404-1204.json` |
 | 2026-02-15 03:20 | completed | — | — | `handover-antigravity-20260215-0320.json` |
 
-## claude_code (161)
+## claude_code (162)
 
 | When | Status | Model | Provider | Checkpoint |
 |------|--------|-------|----------|------------|
+| 2026-10-18 10:26 | completed | — | — | `handover-claude_code-20261018-1026.json` |
 | 2026-10-10 12:50 | completed | — | — | `handover-claude_code-20261010-1250.json` |
 | 2026-10-10 01:32 | completed | Claude Haiku 5.5 | Anthropic | `handover-claude_code-20261010-0132.json` |
 | 2026-08-14 23:06 | completed | Claude Opus 5 | Anthropic | `handover-claude_code-20260814-2306.json` |
@@ -47,8 +48,7 @@
 | 2026-08-02 18:33 | completed | — | — | `handover-claude_code-20260802-1833.json` |
 | 2026-08-02 18:01 | completed | — | — | `handover-claude_code-20260802-1801.json` |
 | 2026-08-02 02:01 | completed | — | — | `handover-claude_code-20260802-0201.json` |
-| 2026-08-02 00:39 | completed | — | — | `handover-claude_code-20260802-0039.json` |
-| … | | | | +141 older |
+| … | | | | +142 older |
 
 ## cline (14)
 
@@ -159,17 +159,31 @@
 | 2026-08-15 14:50 | completed | — | — | `handover-open_code-20260815-1450.json` |
 | 2026-02-14 23:00 | completed | — | — | `handover-open_code-20260214-2300.json` |
 
-## pi (7)
+## pi (30)
 
 | When | Status | Model | Provider | Checkpoint |
 |------|--------|-------|----------|------------|
-| 2026-10-15 21:24 | completed | — | — | `handover-pi-20261015-2124.json` |
-| 2026-10-15 21:13 | completed | — | — | `handover-pi-20261015-2113.json` |
-| 2026-10-15 20:58 | completed | — | — | `handover-pi-20261015-2058.json` |
-| 2026-10-15 18:40 | completed | — | — | `handover-pi-20261015-1840.json` |
-| 2026-10-15 15:01 | completed | — | — | `handover-pi-20261015-1501.json` |
-| 2026-10-14 19:06 | completed | — | — | `handover-pi-20261014-1906.json` |
-| 2026-10-14 00:46 | completed | — | — | `handover-pi-20261014-0046.json` |
+| 2026-10-24 07:17 | completed | — | — | `handover-pi-20261024-0717.json` |
+| 2026-10-24 07:11 | completed | — | — | `handover-pi-20261024-0711.json` |
+| 2026-10-24 02:21 | completed | — | — | `handover-pi-20261024-0221.json` |
+| 2026-10-24 00:06 | completed | — | — | `handover-pi-20261024-0006.json` |
+| 2026-10-23 19:25 | completed | — | — | `handover-pi-20261023-1925.json` |
+| 2026-10-23 02:09 | completed | — | — | `handover-pi-20261023-0209.json` |
+| 2026-10-22 08:18 | completed | — | — | `handover-pi-20261022-0818.json` |
+| 2026-10-21 18:42 | completed | — | — | `handover-pi-20261021-1842.json` |
+| 2026-10-21 08:48 | completed | — | — | `handover-pi-20261021-0848.json` |
+| 2026-10-21 08:39 | completed | — | — | `handover-pi-20261021-0839.json` |
+| 2026-10-21 06:03 | completed | — | — | `handover-pi-20261021-0603.json` |
+| 2026-10-21 06:00 | completed | — | — | `handover-pi-20261021-0600.json` |
+| 2026-10-21 05:59 | completed | — | — | `handover-pi-20261021-0559.json` |
+| 2026-10-19 23:15 | completed | — | — | `handover-pi-20261019-2315.json` |
+| 2026-10-19 20:02 | completed | — | — | `handover-pi-20261019-2002.json` |
+| 2026-10-19 17:03 | completed | — | — | `handover-pi-20261019-1703.json` |
+| 2026-10-19 15:03 | completed | — | — | `handover-pi-20261019-1503.json` |
+| 2026-10-19 08:58 | completed | — | — | `handover-pi-20261019-0858.json` |
+| 2026-10-19 02:28 | completed | — | — | `handover-pi-20261019-0228.json` |
+| 2026-10-18 14:33 | completed | — | — | `handover-pi-20261018-1433.json` |
+| … | | | | +10 older |
 
 ## qoder (26)
 

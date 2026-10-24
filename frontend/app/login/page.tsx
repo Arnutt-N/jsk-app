@@ -152,7 +152,7 @@ function LoginForm() {
     const nextErrors: { username?: string; password?: string } = {};
 
     if (!username) {
-      nextErrors.username = 'กรุณากรอกชื่อผู้ใช้';
+      nextErrors.username = 'กรุณากรอกชื่อผู้ใช้หรืออีเมล';
     }
 
     if (!password) {
@@ -297,7 +297,7 @@ function LoginForm() {
                       errors.username ? 'text-danger' : 'text-slate-700 dark:text-slate-300'
                     )}
                   >
-                    ชื่อผู้ใช้ <span className="text-danger" aria-hidden="true">*</span>
+                    ชื่อผู้ใช้หรืออีเมล <span className="text-danger" aria-hidden="true">*</span>
                   </Label>
                   <div className="relative group">
                     <Input
@@ -305,7 +305,7 @@ function LoginForm() {
                       id="username"
                       name="username"
                       type="text"
-                      placeholder="กรอกชื่อผู้ใช้ของคุณ"
+                      placeholder="กรอกชื่อผู้ใช้หรืออีเมลของคุณ"
                       onInput={() => clearFieldError('username')}
                       className={cn(
                         'pl-11 h-12 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border-slate-200 dark:border-white/10 transition-all',
@@ -416,12 +416,12 @@ function LoginForm() {
                     </label>
                   </div>
 
-                  <span
-                    className="text-xs text-gray-400 dark:text-gray-500 cursor-default"
-                    title="ติดต่อผู้ดูแลระบบเพื่อรีเซ็ตรหัสผ่าน"
+                  <Link
+                    href="/forgot-password"
+                    className="text-xs font-bold text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
                   >
-                    ลืมรหัสผ่าน? ติดต่อผู้ดูแลระบบ
-                  </span>
+                    ลืมรหัสผ่าน?
+                  </Link>
                 </div>
 
                 <Button

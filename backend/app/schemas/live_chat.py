@@ -42,6 +42,7 @@ class ConversationList(BaseModel):
     total: int
     waiting_count: int
     active_count: int
+    quarantined_count: int = 0
 
 class ConversationDetail(ConversationSummary):
     messages: List[MessageResponse]

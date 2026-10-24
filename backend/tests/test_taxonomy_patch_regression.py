@@ -1,0 +1,768 @@
+"""Real-session regression tests for PATCH taxonomy writers (fixes 1 + 4).
+
+Why a real session: the Unit-2 mocks in test_taxonomy.py use AsyncMock /
+SimpleNamespace, which never expire attributes and never lazy-load — so
+they cannot see MissingGreenlet (fix 1) or post-rollback expiry (fix 4).
+
+Isolation recipe (from test_auto_reply_search_escape.py): a throwaway
+NullPool engine from settings.DATABASE_URL — which conftest defaults to
+the docker test DB, never the dev database — uniquely-marked rows, real
+HTTP via TestClient with get_db + get_current_user overridden, marker
+cleanup afterwards.
+"""
+import uuid
+from types import SimpleNamespace
+
+import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy import delete, func, select
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import NullPool
+
+from app.api import deps
+from app.core.config import settings
+from app.main import app
+from app.models.taxonomy import TaxonomyCategory, TaxonomyTopic
+from app.models.user import UserRole
+
+
+def _fresh_engine():
+    return create_async_engine(str(settings.DATABASE_URL), poolclass=NullPool)
+
+
+def _admin_user():
+    return SimpleNamespace(id=1, username="t", display_name="T", role=UserRole.ADMIN)
+
+
+@pytest.mark.asyncio
+async def test_patch_category_returns_200_with_topics():
+    marker = f"px{uuid.uuid4().hex[:8]}"
+    engine = _fresh_engine()
+    Session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+    async with Session() as session:
+        category = TaxonomyCategory(name=f"cat-{marker}", sort_order=0, is_active=True)
+        session.add(category)
+        await session.flush()
+        category_id = category.id
+        session.add_all(
+            [
+                TaxonomyTopic(category_id=category_id, name=f"top-a-{marker}", sort_order=0, is_active=True),
+                TaxonomyTopic(category_id=category_id, name=f"top-b-{marker}", sort_order=1, is_active=True),
+            ]
+        )
+        await session.commit()
+
+    async def _fresh_get_db():
+        async with Session() as session:
+            yield session
+
+    app.dependency_overrides[deps.get_db] = _fresh_get_db
+    app.dependency_overrides[deps.get_current_user] = _admin_user
+    try:
+        client = TestClient(app, raise_server_exceptions=False)
+        try:
+            response = client.patch(
+                f"/api/v1/admin/taxonomy/categories/{category_id}",
+                json={"name": f"cat-renamed-{marker}"},
+            )
+        finally:
+            client.close()
+    finally:
+        app.dependency_overrides.clear()
+
+    try:
+        assert response.status_code == 200
+        body = response.json()
+        assert body["name"] == f"cat-renamed-{marker}"
+        assert sorted(t["name"] for t in body["topics"]) == sorted(
+            [f"top-a-{marker}", f"top-b-{marker}"]
+        )
+    finally:
+        async with Session() as session:
+            await session.execute(
+                delete(TaxonomyTopic).where(TaxonomyTopic.category_id == category_id)
+            )
+            await session.execute(
+                delete(TaxonomyCategory).where(TaxonomyCategory.id == category_id)
+            )
+            await session.commit()
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_patch_category_duplicate_names_attempted_name():
+    marker = f"dup{uuid.uuid4().hex[:8]}"
+    engine = _fresh_engine()
+    Session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+    async with Session() as session:
+        session.add_all(
+            [
+                TaxonomyCategory(name=f"taken-{marker}", sort_order=0, is_active=True),
+                TaxonomyCategory(name=f"mine-{marker}", sort_order=1, is_active=True),
+            ]
+        )
+        await session.commit()
+        mine_id = (
+            await session.execute(
+                select(TaxonomyCategory.id).where(
+                    TaxonomyCategory.name == f"mine-{marker}"
+                )
+            )
+        ).scalar_one()
+
+    async def _fresh_get_db():
+        async with Session() as session:
+            yield session
+
+    app.dependency_overrides[deps.get_db] = _fresh_get_db
+    app.dependency_overrides[deps.get_current_user] = _admin_user
+    try:
+        client = TestClient(app, raise_server_exceptions=False)
+        try:
+            response = client.patch(
+                f"/api/v1/admin/taxonomy/categories/{mine_id}",
+                json={"name": f"taken-{marker}"},
+            )
+        finally:
+            client.close()
+    finally:
+        app.dependency_overrides.clear()
+
+    try:
+        assert response.status_code == 409
+        assert f"taken-{marker}" in response.json()["detail"]
+    finally:
+        async with Session() as session:
+            await session.execute(
+                delete(TaxonomyCategory).where(
+                    TaxonomyCategory.name.in_([f"taken-{marker}", f"mine-{marker}"])
+                )
+            )
+            await session.commit()
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_delete_topic_soft_hides_from_reads():
+    marker = f"soft{uuid.uuid4().hex[:8]}"
+    engine = _fresh_engine()
+    Session = async_sessionmaker(engine, expire_on_commit=False)
+
+    async with Session() as session:
+        session.add(TaxonomyCategory(name=f"cat-{marker}", sort_order=0, is_active=True))
+        await session.flush()
+        cat_id = (
+            await session.execute(
+                select(TaxonomyCategory.id).where(
+                    TaxonomyCategory.name == f"cat-{marker}"
+                )
+            )
+        ).scalar_one()
+        session.add(
+            TaxonomyTopic(
+                category_id=cat_id, name=f"top-{marker}", sort_order=0, is_active=True
+            )
+        )
+        await session.commit()
+        topic_id = (
+            await session.execute(
+                select(TaxonomyTopic.id).where(
+                    TaxonomyTopic.name == f"top-{marker}"
+                )
+            )
+        ).scalar_one()
+
+    async def _fresh_get_db():
+        async with Session() as session:
+            yield session
+
+    app.dependency_overrides[deps.get_db] = _fresh_get_db
+    app.dependency_overrides[deps.get_current_user] = _admin_user
+    try:
+        client = TestClient(app, raise_server_exceptions=False)
+        try:
+            response = client.delete(f"/api/v1/admin/taxonomy/topics/{topic_id}")
+        finally:
+            client.close()
+    finally:
+        app.dependency_overrides.clear()
+
+    try:
+        assert response.status_code == 200, response.text
+        async with Session() as session:
+            row = await session.get(TaxonomyTopic, topic_id)
+            assert row is not None
+            assert row.is_active is False
+            visible = (
+                await session.execute(
+                    select(TaxonomyTopic.id).where(
+                        TaxonomyTopic.id == topic_id,
+                        TaxonomyTopic.is_active.is_(True),
+                    )
+                )
+            ).scalar_one_or_none()
+            assert visible is None
+    finally:
+        async with Session() as session:
+            await session.execute(
+                delete(TaxonomyTopic).where(TaxonomyTopic.id == topic_id)
+            )
+            await session.execute(
+                delete(TaxonomyCategory).where(TaxonomyCategory.id == cat_id)
+            )
+            await session.commit()
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_delete_empty_category_soft_hides():
+    marker = f"softcat{uuid.uuid4().hex[:8]}"
+    engine = _fresh_engine()
+    Session = async_sessionmaker(engine, expire_on_commit=False)
+
+    async with Session() as session:
+        session.add(TaxonomyCategory(name=f"cat-{marker}", sort_order=0, is_active=True))
+        await session.commit()
+        cat_id = (
+            await session.execute(
+                select(TaxonomyCategory.id).where(
+                    TaxonomyCategory.name == f"cat-{marker}"
+                )
+            )
+        ).scalar_one()
+
+    async def _fresh_get_db():
+        async with Session() as session:
+            yield session
+
+    app.dependency_overrides[deps.get_db] = _fresh_get_db
+    app.dependency_overrides[deps.get_current_user] = _admin_user
+    try:
+        client = TestClient(app, raise_server_exceptions=False)
+        try:
+            response = client.delete(
+                f"/api/v1/admin/taxonomy/categories/{cat_id}"
+            )
+        finally:
+            client.close()
+    finally:
+        app.dependency_overrides.clear()
+
+    try:
+        assert response.status_code == 200, response.text
+        async with Session() as session:
+            row = await session.get(TaxonomyCategory, cat_id)
+            assert row is not None
+            assert row.is_active is False
+    finally:
+        async with Session() as session:
+            await session.execute(
+                delete(TaxonomyCategory).where(TaxonomyCategory.id == cat_id)
+            )
+            await session.commit()
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_delete_category_cascade_hides_topics():
+    marker = f"softcasc{uuid.uuid4().hex[:8]}"
+    engine = _fresh_engine()
+    Session = async_sessionmaker(engine, expire_on_commit=False)
+
+    async with Session() as session:
+        session.add(TaxonomyCategory(name=f"cat-{marker}", sort_order=0, is_active=True))
+        await session.flush()
+        cat_id = (
+            await session.execute(
+                select(TaxonomyCategory.id).where(
+                    TaxonomyCategory.name == f"cat-{marker}"
+                )
+            )
+        ).scalar_one()
+        session.add_all(
+            [
+                TaxonomyTopic(category_id=cat_id, name=f"top-a-{marker}", sort_order=0, is_active=True),
+                TaxonomyTopic(category_id=cat_id, name=f"top-b-{marker}", sort_order=1, is_active=True),
+            ]
+        )
+        await session.commit()
+
+    async def _fresh_get_db():
+        async with Session() as session:
+            yield session
+
+    app.dependency_overrides[deps.get_db] = _fresh_get_db
+    app.dependency_overrides[deps.get_current_user] = _admin_user
+    try:
+        client = TestClient(app, raise_server_exceptions=False)
+        try:
+            response = client.delete(
+                f"/api/v1/admin/taxonomy/categories/{cat_id}"
+            )
+        finally:
+            client.close()
+    finally:
+        app.dependency_overrides.clear()
+
+    try:
+        assert response.status_code == 200, response.text
+        assert response.json()["status"] == "hidden"
+        async with Session() as session:
+            cat = await session.get(TaxonomyCategory, cat_id)
+            assert cat is not None
+            assert cat.is_active is False
+            visible_topics = (
+                await session.execute(
+                    select(func.count())
+                    .select_from(TaxonomyTopic)
+                    .where(
+                        TaxonomyTopic.category_id == cat_id,
+                        TaxonomyTopic.is_active.is_(True),
+                    )
+                )
+            ).scalar()
+            assert visible_topics == 0
+    finally:
+        async with Session() as session:
+            await session.execute(
+                delete(TaxonomyTopic).where(
+                    TaxonomyTopic.category_id == cat_id
+                )
+            )
+            await session.execute(
+                delete(TaxonomyCategory).where(TaxonomyCategory.id == cat_id)
+            )
+            await session.commit()
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_patch_reopens_soft_deleted_topic():
+    marker = f"softre{uuid.uuid4().hex[:8]}"
+    engine = _fresh_engine()
+    Session = async_sessionmaker(engine, expire_on_commit=False)
+
+    async with Session() as session:
+        session.add(TaxonomyCategory(name=f"cat-{marker}", sort_order=0, is_active=True))
+        await session.flush()
+        cat_id = (
+            await session.execute(
+                select(TaxonomyCategory.id).where(
+                    TaxonomyCategory.name == f"cat-{marker}"
+                )
+            )
+        ).scalar_one()
+        session.add(
+            TaxonomyTopic(
+                category_id=cat_id, name=f"top-{marker}", sort_order=0, is_active=False
+            )
+        )
+        await session.commit()
+        topic_id = (
+            await session.execute(
+                select(TaxonomyTopic.id).where(
+                    TaxonomyTopic.name == f"top-{marker}"
+                )
+            )
+        ).scalar_one()
+
+    async def _fresh_get_db():
+        async with Session() as session:
+            yield session
+
+    app.dependency_overrides[deps.get_db] = _fresh_get_db
+    app.dependency_overrides[deps.get_current_user] = _admin_user
+    try:
+        client = TestClient(app, raise_server_exceptions=False)
+        try:
+            response = client.patch(
+                f"/api/v1/admin/taxonomy/topics/{topic_id}",
+                json={"is_active": True},
+            )
+        finally:
+            client.close()
+    finally:
+        app.dependency_overrides.clear()
+
+    try:
+        assert response.status_code == 200, response.text
+        async with Session() as session:
+            row = await session.get(TaxonomyTopic, topic_id)
+            assert row is not None
+            assert row.is_active is True
+    finally:
+        async with Session() as session:
+            await session.execute(
+                delete(TaxonomyTopic).where(TaxonomyTopic.id == topic_id)
+            )
+            await session.execute(
+                delete(TaxonomyCategory).where(TaxonomyCategory.id == cat_id)
+            )
+            await session.commit()
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_hidden_category_absent_from_public_map():
+    from app.services.taxonomy_service import taxonomy_service
+
+    marker = f"map{uuid.uuid4().hex[:8]}"
+    engine = _fresh_engine()
+    Session = async_sessionmaker(engine, expire_on_commit=False)
+
+    async with Session() as session:
+        session.add(TaxonomyCategory(name=f"cat-{marker}", sort_order=0, is_active=True))
+        await session.flush()
+        cat_id = (
+            await session.execute(
+                select(TaxonomyCategory.id).where(
+                    TaxonomyCategory.name == f"cat-{marker}"
+                )
+            )
+        ).scalar_one()
+        session.add(
+            TaxonomyTopic(
+                category_id=cat_id, name=f"top-{marker}", sort_order=0, is_active=True
+            )
+        )
+        await session.commit()
+
+    async def _fresh_get_db():
+        async with Session() as session:
+            yield session
+
+    app.dependency_overrides[deps.get_db] = _fresh_get_db
+    app.dependency_overrides[deps.get_current_user] = _admin_user
+    try:
+        client = TestClient(app, raise_server_exceptions=False)
+        try:
+            response = client.delete(
+                f"/api/v1/admin/taxonomy/categories/{cat_id}"
+            )
+        finally:
+            client.close()
+    finally:
+        app.dependency_overrides.clear()
+
+    try:
+        assert response.status_code == 200, response.text
+        async with Session() as session:
+            public_map = await taxonomy_service.get_taxonomy_map(session)
+            assert f"cat-{marker}" not in public_map
+    finally:
+        async with Session() as session:
+            await session.execute(
+                delete(TaxonomyTopic).where(
+                    TaxonomyTopic.category_id == cat_id
+                )
+            )
+            await session.execute(
+                delete(TaxonomyCategory).where(TaxonomyCategory.id == cat_id)
+            )
+            await session.commit()
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_repeat_delete_hidden_category_stays_hidden():
+    marker = f"rep{uuid.uuid4().hex[:8]}"
+    engine = _fresh_engine()
+    Session = async_sessionmaker(engine, expire_on_commit=False)
+
+    async with Session() as session:
+        session.add(TaxonomyCategory(name=f"cat-{marker}", sort_order=0, is_active=True))
+        await session.commit()
+        cat_id = (
+            await session.execute(
+                select(TaxonomyCategory.id).where(
+                    TaxonomyCategory.name == f"cat-{marker}"
+                )
+            )
+        ).scalar_one()
+
+    async def _fresh_get_db():
+        async with Session() as session:
+            yield session
+
+    app.dependency_overrides[deps.get_db] = _fresh_get_db
+    app.dependency_overrides[deps.get_current_user] = _admin_user
+    try:
+        client = TestClient(app, raise_server_exceptions=False)
+        try:
+            first = client.delete(f"/api/v1/admin/taxonomy/categories/{cat_id}")
+            second = client.delete(f"/api/v1/admin/taxonomy/categories/{cat_id}")
+        finally:
+            client.close()
+    finally:
+        app.dependency_overrides.clear()
+
+    try:
+        assert first.status_code == 200, first.text
+        assert second.status_code == 200, second.text
+        assert second.json()["status"] == "hidden"
+        async with Session() as session:
+            row = await session.get(TaxonomyCategory, cat_id)
+            assert row is not None
+            assert row.is_active is False
+    finally:
+        async with Session() as session:
+            await session.execute(
+                delete(TaxonomyCategory).where(TaxonomyCategory.id == cat_id)
+            )
+            await session.commit()
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_create_topic_under_hidden_category_maps_to_409():
+    marker = f"hid{uuid.uuid4().hex[:8]}"
+    engine = _fresh_engine()
+    Session = async_sessionmaker(engine, expire_on_commit=False)
+
+    async with Session() as session:
+        session.add(TaxonomyCategory(name=f"cat-{marker}", sort_order=0, is_active=False))
+        await session.commit()
+        cat_id = (
+            await session.execute(
+                select(TaxonomyCategory.id).where(
+                    TaxonomyCategory.name == f"cat-{marker}"
+                )
+            )
+        ).scalar_one()
+
+    async def _fresh_get_db():
+        async with Session() as session:
+            yield session
+
+    app.dependency_overrides[deps.get_db] = _fresh_get_db
+    app.dependency_overrides[deps.get_current_user] = _admin_user
+    try:
+        client = TestClient(app, raise_server_exceptions=False)
+        try:
+            response = client.post(
+                "/api/v1/admin/taxonomy/topics",
+                json={"category_id": cat_id, "name": f"top-{marker}"},
+            )
+        finally:
+            client.close()
+    finally:
+        app.dependency_overrides.clear()
+
+    try:
+        assert response.status_code == 409, response.text
+        assert "เปิดใช้งานก่อน" in response.json()["detail"]
+        async with Session() as session:
+            row = (
+                await session.execute(
+                    select(TaxonomyTopic.id).where(
+                        TaxonomyTopic.name == f"top-{marker}"
+                    )
+                )
+            ).scalar_one_or_none()
+            assert row is None
+    finally:
+        async with Session() as session:
+            await session.execute(
+                delete(TaxonomyCategory).where(TaxonomyCategory.id == cat_id)
+            )
+            await session.commit()
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_move_topic_to_hidden_category_maps_to_409():
+    marker = f"mov{uuid.uuid4().hex[:8]}"
+    engine = _fresh_engine()
+    Session = async_sessionmaker(engine, expire_on_commit=False)
+
+    async with Session() as session:
+        session.add(TaxonomyCategory(name=f"live-{marker}", sort_order=0, is_active=True))
+        session.add(TaxonomyCategory(name=f"hid-{marker}", sort_order=1, is_active=False))
+        await session.flush()
+        live_id = (
+            await session.execute(
+                select(TaxonomyCategory.id).where(
+                    TaxonomyCategory.name == f"live-{marker}"
+                )
+            )
+        ).scalar_one()
+        hidden_id = (
+            await session.execute(
+                select(TaxonomyCategory.id).where(
+                    TaxonomyCategory.name == f"hid-{marker}"
+                )
+            )
+        ).scalar_one()
+        session.add(
+            TaxonomyTopic(
+                category_id=live_id, name=f"top-{marker}", sort_order=0, is_active=True
+            )
+        )
+        await session.commit()
+        topic_id = (
+            await session.execute(
+                select(TaxonomyTopic.id).where(
+                    TaxonomyTopic.name == f"top-{marker}"
+                )
+            )
+        ).scalar_one()
+
+    async def _fresh_get_db():
+        async with Session() as session:
+            yield session
+
+    app.dependency_overrides[deps.get_db] = _fresh_get_db
+    app.dependency_overrides[deps.get_current_user] = _admin_user
+    try:
+        client = TestClient(app, raise_server_exceptions=False)
+        try:
+            response = client.patch(
+                f"/api/v1/admin/taxonomy/topics/{topic_id}",
+                json={"category_id": hidden_id},
+            )
+        finally:
+            client.close()
+    finally:
+        app.dependency_overrides.clear()
+
+    try:
+        assert response.status_code == 409, response.text
+        async with Session() as session:
+            row = await session.get(TaxonomyTopic, topic_id)
+            assert row is not None
+            assert row.category_id == live_id
+            assert row.is_active is True
+    finally:
+        async with Session() as session:
+            await session.execute(
+                delete(TaxonomyTopic).where(TaxonomyTopic.id == topic_id)
+            )
+            await session.execute(
+                delete(TaxonomyCategory).where(
+                    TaxonomyCategory.id.in_([live_id, hidden_id])
+                )
+            )
+            await session.commit()
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_reuse_hidden_category_name_succeeds():
+    marker = f"reuse{uuid.uuid4().hex[:8]}"
+    engine = _fresh_engine()
+    Session = async_sessionmaker(engine, expire_on_commit=False)
+
+    async with Session() as session:
+        session.add(TaxonomyCategory(name=f"cat-{marker}", sort_order=0, is_active=True))
+        await session.commit()
+        cat_id = (
+            await session.execute(
+                select(TaxonomyCategory.id).where(
+                    TaxonomyCategory.name == f"cat-{marker}"
+                )
+            )
+        ).scalar_one()
+
+    async def _fresh_get_db():
+        async with Session() as session:
+            yield session
+
+    app.dependency_overrides[deps.get_db] = _fresh_get_db
+    app.dependency_overrides[deps.get_current_user] = _admin_user
+    try:
+        client = TestClient(app, raise_server_exceptions=False)
+        try:
+            hide = client.delete(f"/api/v1/admin/taxonomy/categories/{cat_id}")
+            assert hide.status_code == 200, hide.text
+            create = client.post(
+                "/api/v1/admin/taxonomy/categories",
+                json={"name": f"cat-{marker}", "sort_order": 1},
+            )
+            assert create.status_code == 201, create.text
+            new_id = create.json()["id"]
+            assert new_id != cat_id
+        finally:
+            client.close()
+    finally:
+        app.dependency_overrides.clear()
+
+    try:
+        async with Session() as session:
+            old = await session.get(TaxonomyCategory, cat_id)
+            assert old is not None
+            assert old.is_active is False
+            new = await session.get(TaxonomyCategory, new_id)
+            assert new is not None
+            assert new.is_active is True
+    finally:
+        async with Session() as session:
+            await session.execute(
+                delete(TaxonomyCategory).where(
+                    TaxonomyCategory.name == f"cat-{marker}"
+                )
+            )
+            await session.commit()
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_admin_list_hides_inactive_by_default():
+    marker = f"lst{uuid.uuid4().hex[:8]}"
+    engine = _fresh_engine()
+    Session = async_sessionmaker(engine, expire_on_commit=False)
+
+    async with Session() as session:
+        session.add(TaxonomyCategory(name=f"vis-{marker}", sort_order=0, is_active=True))
+        session.add(TaxonomyCategory(name=f"hid-{marker}", sort_order=1, is_active=False))
+        await session.commit()
+        vis_id = (
+            await session.execute(
+                select(TaxonomyCategory.id).where(
+                    TaxonomyCategory.name == f"vis-{marker}"
+                )
+            )
+        ).scalar_one()
+        hid_id = (
+            await session.execute(
+                select(TaxonomyCategory.id).where(
+                    TaxonomyCategory.name == f"hid-{marker}"
+                )
+            )
+        ).scalar_one()
+
+    async def _fresh_get_db():
+        async with Session() as session:
+            yield session
+
+    app.dependency_overrides[deps.get_db] = _fresh_get_db
+    app.dependency_overrides[deps.get_current_user] = _admin_user
+    try:
+        client = TestClient(app, raise_server_exceptions=False)
+        try:
+            default_list = client.get("/api/v1/admin/taxonomy")
+            assert default_list.status_code == 200, default_list.text
+            default_names = [c["name"] for c in default_list.json()["categories"]]
+            assert f"vis-{marker}" in default_names
+            assert f"hid-{marker}" not in default_names
+
+            full_list = client.get("/api/v1/admin/taxonomy?include_inactive=true")
+            assert full_list.status_code == 200, full_list.text
+            full_names = [c["name"] for c in full_list.json()["categories"]]
+            assert f"vis-{marker}" in full_names
+            assert f"hid-{marker}" in full_names
+        finally:
+            client.close()
+    finally:
+        app.dependency_overrides.clear()
+
+    async with Session() as session:
+        await session.execute(
+            delete(TaxonomyCategory).where(
+                TaxonomyCategory.id.in_([vis_id, hid_id])
+            )
+        )
+        await session.commit()
+    await engine.dispose()

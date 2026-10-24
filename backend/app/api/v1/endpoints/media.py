@@ -1,29 +1,36 @@
 import logging
+import math
 import secrets
 import uuid
-import math
 from datetime import timedelta
-from typing import Annotated, Optional
+from typing import Annotated
 
-from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile, File, Response, Query
-from pydantic import BaseModel
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func as sa_func
-from sqlalchemy.orm import defer
-
+from app.api.deps import get_current_admin, get_db, require_permission
+from app.core.audit import create_audit_log
+from app.core.http_rate_limit import http_rate_limit
+from app.core.permissions import KEY_IMAGE_RESIZE, KEY_MANAGE_FILES
+from app.core.query_utils import escape_ilike
 from app.core.redis_client import redis_client
 from app.core.security import create_access_token, verify_token
 from app.db.session import AsyncSessionLocal
-from app.models.media_file import MediaFile, FileCategory, detect_category
-from app.api.deps import get_db, get_current_admin, require_permission
-from app.core.audit import create_audit_log
-from app.core.http_rate_limit import http_rate_limit
-from app.core.query_utils import escape_ilike
-from app.core.permissions import KEY_IMAGE_RESIZE, KEY_MANAGE_FILES
+from app.models.media_file import FileCategory, MediaFile, detect_category
 from app.schemas.media import ResizeTicketResponse
 from app.utils.mime_sniff import sniff_mime
-from typing import List
-from pydantic import Field
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Query,
+    Response,
+    UploadFile,
+)
+from pydantic import BaseModel, Field, field_validator
+from sqlalchemy import func as sa_func
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import defer
 
 
 def _safe_filename(filename: str) -> str:
@@ -31,7 +38,7 @@ def _safe_filename(filename: str) -> str:
 
 
 class BulkIdsRequest(BaseModel):
-    ids: List[str] = Field(min_length=1, max_length=100)
+    ids: list[str] = Field(min_length=1, max_length=100)
 from app.core.config import settings
 from app.models.user import User
 
@@ -42,7 +49,7 @@ logger = logging.getLogger(__name__)
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
 
 
-def check_private_token(stored: Optional[str], presented: Optional[str]) -> bool:
+def check_private_token(stored: str | None, presented: str | None) -> bool:
     """True เฉพาะฝั่งละ non-empty และตรงกันแบบ constant-time.
 
     ว่างชนว่างต้องไม่ผ่าน: private file ที่ไม่มี token เก็บ ต้อง 403 เสมอ
@@ -75,8 +82,18 @@ _public_file_rate_limit = http_rate_limit(
 # Pydantic schemas
 # ---------------------------------------------------------------------------
 class MediaMetadataUpdate(BaseModel):
-    filename: Optional[str] = None
-    category: Optional[FileCategory] = None
+    filename: str | None = Field(default=None, min_length=1)
+    category: FileCategory | None = None
+
+    @field_validator("filename")
+    @classmethod
+    def _strip_filename(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        stripped = v.strip()
+        if not stripped:
+            raise ValueError("filename must not be blank")
+        return stripped
 
 
 # ---------------------------------------------------------------------------
@@ -146,7 +163,7 @@ async def get_public_file(public_token: str):
 async def get_media(
     media_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    token: Optional[str] = Query(None),
+    token: str | None = Query(None),
 ):
     result = await db.execute(select(MediaFile).filter(MediaFile.id == media_id))
     media = result.scalar_one_or_none()
@@ -207,8 +224,8 @@ async def get_media_stats(
 
 @router.get("/admin/media")
 async def list_media(
-    category: Optional[str] = Query(None),
-    search: Optional[str] = Query(None),
+    category: str | None = Query(None),
+    search: str | None = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
@@ -249,7 +266,7 @@ async def list_media(
     }
 
 
-async def _validate_media_upload(file: UploadFile) -> tuple[bytes, Optional[str], str]:
+async def _validate_media_upload(file: UploadFile) -> tuple[bytes, str | None, str]:
     """Read + size-check + sniff an upload; returns (content, mime, filename).
 
     Raises 413 on oversize (before and after buffering) and 422 when the

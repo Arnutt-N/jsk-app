@@ -16,6 +16,7 @@ def _booking():
         booking_date=date(2026, 1, 15),
         booking_time=time(10, 30),
         contact_name="Ann",
+        email=None,
     )
 
 
@@ -24,6 +25,11 @@ async def test_confirm_pushes_flex_message_object():
     with (
         patch.object(
             booking_notifications, "resolve_raw_for_push", AsyncMock(return_value="U1")
+        ),
+        patch.object(
+            booking_notifications,
+            "load_booking_config",
+            new=AsyncMock(return_value=SimpleNamespace(line_enabled=True, email_enabled=False)),
         ),
         patch.object(
             booking_notifications.line_service, "push_messages", AsyncMock()

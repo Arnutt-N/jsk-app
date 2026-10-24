@@ -218,6 +218,17 @@ async def revoke_family(db: AsyncSession, family_id: str) -> int:
     return result.rowcount or 0
 
 
+async def revoke_all_user_sessions(db: AsyncSession, user_id: int) -> int:
+    """Revoke every `active` session row of a user (password reset kicks
+    out all sessions, including a possibly stolen one). Caller commits."""
+    result = await db.execute(
+        update(AuthSession)
+        .where(AuthSession.user_id == user_id, AuthSession.status == STATUS_ACTIVE)
+        .values(status=STATUS_REVOKED)
+    )
+    return result.rowcount or 0
+
+
 async def mint_ws_ticket(db: AsyncSession, user_id: int) -> str:
     """Mint a single-use, 60s-TTL WebSocket auth ticket. Returns the raw
     value once -- only its hash is persisted. Caller commits.

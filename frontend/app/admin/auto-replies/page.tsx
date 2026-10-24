@@ -23,6 +23,7 @@ interface IntentCategory {
     is_active: boolean;
     keyword_count: number;
     response_count: number;
+    active_response_count: number;
     keywords_preview: string[];
 }
 
@@ -78,17 +79,22 @@ export default function IntentsPage() {
         setCreateError(null);
     };
 
+    const [showHidden, setShowHidden] = useState(false);
+
     const fetchCategories = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await fetch(`${API_BASE}/admin/intents/categories`);
+            const url = showHidden
+                ? `${API_BASE}/admin/intents/categories?include_inactive=true`
+                : `${API_BASE}/admin/intents/categories`;
+            const res = await fetch(url);
             if (res.ok) setCategories(await res.json());
         } catch (error) {
             logger.error('Error fetching categories:', error);
         } finally {
             setLoading(false);
         }
-    }, [API_BASE]);
+    }, [API_BASE, showHidden]);
 
     useEffect(() => {
         const timer = window.setTimeout(() => {
@@ -165,7 +171,7 @@ export default function IntentsPage() {
     };
 
     const handleToggleStatus = async (category: IntentCategory, isActive: boolean) => {
-        if (isActive && (category.keyword_count === 0 || category.response_count === 0)) {
+        if (isActive && (category.keyword_count === 0 || category.active_response_count === 0)) {
             toast({
                 title: INCOMPLETE_CATEGORY_MESSAGE,
                 variant: 'warning',
@@ -181,12 +187,26 @@ export default function IntentsPage() {
 
         if (res.ok) {
             fetchCategories();
+        } else {
+            toast({
+                title: 'เปิดใช้งานไม่สำเร็จ — หมวดนี้ต้องมีข้อความตอบกลับที่เปิดใช้งานอย่างน้อย 1 รายการก่อน',
+                variant: 'error',
+            });
         }
     };
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500 thai-text">
             <PageHeader title="Intent Categories" subtitle="จัดการหมวดหมู่การตอบกลับอัตโนมัติ">
+                <label className="flex items-center gap-2 text-sm text-text-secondary">
+                    <input
+                        type="checkbox"
+                        checked={showHidden}
+                        onChange={(e) => setShowHidden(e.target.checked)}
+                        className="h-4 w-4"
+                    />
+                    แสดงที่ปิดใช้งาน
+                </label>
                 <Button size="sm" onClick={() => setShowAddForm(true)}>
                     + New Category
                 </Button>
@@ -347,7 +367,7 @@ export default function IntentsPage() {
                                                     </Link>
                                                     <ActionIconButton
                                                         icon={<Trash2 className="w-4 h-4" />}
-                                                        label="ลบ"
+                                                        label="ปิดใช้งาน"
                                                         variant="danger"
                                                         onClick={() => setConfirmDelete({open: true, id: category.id})}
                                                     />
@@ -366,9 +386,9 @@ export default function IntentsPage() {
                 isOpen={confirmDelete.open}
                 onClose={() => setConfirmDelete({open: false, id: null})}
                 onConfirm={() => { handleDelete(confirmDelete.id!); setConfirmDelete({open: false, id: null}); }}
-                title="ยืนยันการลบ"
-                description="ต้องการลบ Category นี้หรือไม่?"
-                confirmText="ลบ"
+                title="ปิดใช้งานหมวดหมู่นี้?"
+                description="หมวดหมู่จะถูกซ่อนไว้ กู้คืนได้ด้วยการเปิดสวิตช์อีกครั้ง"
+                confirmText="ปิดใช้งาน"
                 variant="danger"
             />
         </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { FileText, Clock, Zap, CheckCircle2 } from 'lucide-react';
+import { FileText, Clock, Zap, CheckCircle2, Inbox, UserCheck, Hourglass, Activity } from 'lucide-react';
 import PageAccessGuard from '@/components/admin/PageAccessGuard';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { StaggerContainer, StaggerItem } from '@/components/ui/PageTransition';
@@ -30,6 +30,7 @@ async function fetchWithTimeout(url: string, timeout = 15000) {
 
 type RequestStats = Record<string, number>;
 type MonthlyDataPoint = { month: string; count: number };
+type HealthLevel = 'healthy' | 'degraded' | 'unhealthy' | 'unknown';
 
 function getErrorMessage(error: unknown): string {
     if (error instanceof DOMException && error.name === 'AbortError') {
@@ -95,22 +96,32 @@ async function getRequestData() {
 export default function ServiceDashboard() {
     const [requestStats, setRequestStats] = useState<RequestStats | null>(null);
     const [monthlyData, setMonthlyData] = useState<MonthlyDataPoint[]>([]);
+    const [health, setHealth] = useState<HealthLevel>('unknown');
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
 
     const fetchDashboardData = useCallback(async () => {
         setLoading(true);
-        try {
-            const data = await getRequestData();
-            setRequestStats(data.requestStats);
-            setMonthlyData(data.monthlyData);
-            setError(data.error);
-        } catch {
-            setRequestStats(null);
-            setMonthlyData([]);
-            setError('Failed to load service data. Please try again.');
-        } finally {
-            setLoading(false);
+        const [data, healthRes] = await Promise.all([
+            getRequestData().catch(() => ({ requestStats: null, monthlyData: [], error: 'Failed to load service data. Please try again.' })),
+            fetchWithTimeout('/api/v1/health/detailed').catch(() => null),
+        ]);
+        setRequestStats(data.requestStats);
+        setMonthlyData(data.monthlyData);
+        setError(data.error);
+        setLoading(false);
+        if (!healthRes) {
+            setHealth('unknown');
+        } else if (healthRes.ok) {
+            const h = await healthRes.json().catch(() => ({}));
+            const level = String(h.status ?? '').toLowerCase();
+            setHealth(level === 'healthy' || level === 'ok' ? 'healthy' : level === 'degraded' ? 'degraded' : 'unhealthy');
+        } else if (healthRes.status === 401 || healthRes.status === 403) {
+            // Signed out (or forbidden) is not an outage — leave the
+            // banner neutral instead of crying red.
+            setHealth('unknown');
+        } else {
+            setHealth('unhealthy');
         }
     }, []);
 
@@ -147,7 +158,6 @@ export default function ServiceDashboard() {
                 </span>
             </PageHeader>
 
-            {/* Stats Cards Row */}
             <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
                 <StaggerItem>
                     <StatsCard
@@ -190,7 +200,66 @@ export default function ServiceDashboard() {
                 </StaggerItem>
             </StaggerContainer>
 
-            {/* Analytics Charts */}
+            <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+                <StaggerItem>
+                    <StatsCard
+                        title="เข้ามาวันนี้"
+                        value={requestStats?.today || 0}
+                        icon={<Inbox className="w-6 h-6" />}
+                        color="info"
+                        link="/admin/requests"
+                        description="เรื่องใหม่วันนี้"
+                    />
+                </StaggerItem>
+                <StaggerItem>
+                    <StatsCard
+                        title="รอรับเรื่อง"
+                        value={requestStats?.awaiting_ack || 0}
+                        icon={<UserCheck className="w-6 h-6" />}
+                        color="warning"
+                        link="/admin/requests"
+                        description="มอบหมายแล้ว รอรับ"
+                    />
+                </StaggerItem>
+                <StaggerItem>
+                    <StatsCard
+                        title="รอดำเนินการ"
+                        value={requestStats?.acknowledged || 0}
+                        icon={<Hourglass className="w-6 h-6" />}
+                        color="warning"
+                        link="/admin/requests"
+                        description="รับแล้ว ยังไม่เริ่ม"
+                    />
+                </StaggerItem>
+                <StaggerItem>
+                    <StatsCard
+                        title="รออนุมัติ"
+                        value={requestStats?.awaiting_approval || 0}
+                        icon={<Clock className="w-6 h-6" />}
+                        color="warning"
+                        link="/admin/requests"
+                        description="รอหัวหน้าอนุมัติ"
+                    />
+                </StaggerItem>
+            </StaggerContainer>
+
+            <div className={`flex items-center gap-3 rounded-2xl border px-5 py-4 text-sm font-medium ${health === 'healthy'
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400'
+                : health === 'degraded'
+                    ? 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-400'
+                    : health === 'unhealthy'
+                        ? 'border-red-200 bg-red-50 text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400'
+                        : 'border-border-default bg-surface text-text-tertiary'}`}>
+                <Activity className="w-5 h-5" />
+                <span>
+                    {health === 'healthy' && 'ระบบปกติ — ฐานข้อมูลและบริการเสริมทำงาน'}
+                    {health === 'degraded' && 'ระบบชะลอตัว — ตรวจสอบหน้า Health Check'}
+                    {health === 'unhealthy' && 'ระบบมีปัญหา — ตรวจสอบหน้า Health Check'}
+                    {health === 'unknown' && 'สถานะระบบไม่ทราบ — ตรวจสอบหน้า Health Check'}
+                </span>
+                <a href="/admin/health" className="ml-auto underline underline-offset-2">ดูรายละเอียด</a>
+            </div>
+
             <ChartsWrapper statusData={statusData} monthlyData={monthlyData} />
 
         </div>

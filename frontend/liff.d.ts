@@ -1,6 +1,6 @@
 declare global {
     interface Window {
-        liff: {
+        liff?: {
             init: (config: { liffId: string }) => Promise<void>;
             isLoggedIn: () => boolean;
             login: () => void;

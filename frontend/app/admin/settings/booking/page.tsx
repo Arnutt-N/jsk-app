@@ -3,17 +3,21 @@
 import { useEffect, useState } from 'react'
 import { Alert } from '@/components/ui/Alert'
 import { Button } from '@/components/ui/Button'
+import { Select } from '@/components/ui/Select'
 import CalendarPickerTH from '@/components/ui/CalendarPickerTH'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { Plus, Save, X } from 'lucide-react'
 import { isoToYMD } from '@/lib/utils'
 import { logger } from '@/lib/logger'
 import {
+  describeQuota,
   describeReminder,
   fetchBookingSettings,
+  fetchLineQuota,
   formatThaiDate,
   saveBookingSettings,
   type BookingSettings,
+  type LineQuota,
   type ReminderUnit,
 } from '@/lib/booking'
 
@@ -23,6 +27,7 @@ export default function BookingSettingsPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
+  const [quota, setQuota] = useState<LineQuota | null>(null)
 
   const [newService, setNewService] = useState('')
   const [newBlackout, setNewBlackout] = useState('')
@@ -38,7 +43,15 @@ export default function BookingSettingsPage() {
         setLoading(false)
       }
     }
+    const loadQuota = async () => {
+      try {
+        setQuota(await fetchLineQuota())
+      } catch (err) {
+        logger.error('Failed to load LINE quota:', err)
+      }
+    }
     void load()
+    void loadQuota()
   }, [])
 
   // Every updater returns a new object — the settings object is rendered from
@@ -120,9 +133,145 @@ export default function BookingSettingsPage() {
         </label>
       </section>
 
+      {/* Counter walk-ins */}
+      <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
+        <label className="flex items-center justify-between gap-4">
+          <span>
+            <span className="block font-medium text-slate-900 dark:text-slate-100">
+              เคาน์เตอร์เพิ่มคิวนอกได้
+            </span>
+            <span className="block text-sm text-slate-500">
+              ปิดไว้ปุ่ม “เพิ่มคิวนอก” กับ “แก้ข้อมูล” จะหายจากหน้าคิวนัดหมาย และการเรียก API ตรงจะถูกปฏิเสธ
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            checked={settings.walkin_enabled ?? true}
+            onChange={(e) => update('walkin_enabled', e.target.checked)}
+            className="h-5 w-5 accent-emerald-600"
+          />
+        </label>
+      </section>
+
+      <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
+        <label className="flex items-center justify-between gap-4">
+          <span>
+            <span className="block font-medium text-slate-900 dark:text-slate-100">
+              แสดงปฏิทินรายเดือน
+            </span>
+            <span className="block text-sm text-slate-500">
+              ปิดไว้แถบสลับมุมมองปฏิทินจะหายจากหน้าคิวนัดหมาย และการดูความเต็มรายเดือนจะถูกปฏิเสธ (ช่องว่างรายวันของคิวนอกยังใช้ได้)
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            checked={settings.calendar_enabled ?? true}
+            onChange={(e) => update('calendar_enabled', e.target.checked)}
+            className="h-5 w-5 accent-emerald-600"
+          />
+        </label>
+      </section>
+
+      <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
+        <label className="flex items-center justify-between gap-4">
+          <span>
+            <span className="block font-medium text-slate-900 dark:text-slate-100">
+              เคาน์เตอร์ส่งเตือนซ้ำได้
+            </span>
+            <span className="block text-sm text-slate-500">
+              ปิดไว้ปุ่ม “ส่งเตือนซ้ำ” จะหายจากหน้าคิวนัดหมาย และการเรียก API ตรงจะถูกปฏิเสธ
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            checked={settings.resend_enabled ?? true}
+            onChange={(e) => update('resend_enabled', e.target.checked)}
+            className="h-5 w-5 accent-emerald-600"
+          />
+        </label>
+      </section>
+
+      <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
+        <label className="flex items-center justify-between gap-4">
+          <span>
+            <span className="block font-medium text-slate-900 dark:text-slate-100">
+              แจ้งเตือนทาง LINE
+            </span>
+            <span className="block text-sm text-slate-500">
+              เปิดไว้จะส่งยืนยันและเตือนเป็นฟองข้อความใน LINE (ใช้โควต้าพุช) ปิดไว้จะไม่ส่ง LINE เหลือเฉพาะอีเมลถ้าเปิดไว้ การเปลี่ยนมีผลภายในประมาณ 1 นาที
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            checked={settings.line_enabled ?? false}
+            onChange={(e) => update('line_enabled', e.target.checked)}
+            className="h-5 w-5 accent-emerald-600"
+          />
+        </label>
+
+        <p className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+          {describeQuota(quota) || 'ยังอ่านโควต้า LINE ไม่ได้'}{' '}
+          <button
+            type="button"
+            onClick={() => {
+              void fetchLineQuota()
+                .then(setQuota)
+                .catch((err: unknown) => {
+                  logger.error('Failed to refresh LINE quota:', err)
+                  setQuota(null)
+                })
+            }}
+            className="underline"
+          >
+            รีเฟรช
+          </button>
+        </p>
+      </section>
+
+      <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
+        <label className="flex items-center justify-between gap-4">
+          <span>
+            <span className="block font-medium text-slate-900 dark:text-slate-100">
+              รับการยืนยันและเตือนทางอีเมล
+            </span>
+            <span className="block text-sm text-slate-500">
+              ปิดไว้ช่องกรอกอีเมลจะหายจากหน้าจอง และการส่งจะกลับไปทาง LINE ทั้งหมด
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            checked={settings.email_enabled ?? false}
+            onChange={(e) => update('email_enabled', e.target.checked)}
+            className="h-5 w-5 accent-emerald-600"
+          />
+        </label>
+      </section>
+
+      <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
+        <label className="flex items-center justify-between gap-4">
+          <span>
+            <span className="block font-medium text-slate-900 dark:text-slate-100">
+              เคาน์เตอร์มอบหมายคิวได้
+            </span>
+            <span className="block text-sm text-slate-500">
+              ปิดไว้คอลัมน์ผู้รับผิดชอบกับปุ่ม “มอบหมาย” จะหายจากหน้าคิวนัดหมาย และการเรียก API ตรงจะถูกปฏิเสธ เปิดเมื่อพร้อมผังเจ้าหน้าที่แล้วเท่านั้น
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            checked={settings.assign_enabled ?? false}
+            onChange={(e) => update('assign_enabled', e.target.checked)}
+            className="h-5 w-5 accent-emerald-600"
+          />
+        </label>
+      </section>
+
       {/* Services */}
       <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
         <h2 className="mb-3 font-medium text-slate-900 dark:text-slate-100">บริการที่เปิดให้จอง</h2>
+        <p className="mb-3 text-xs text-slate-500 dark:text-slate-400">
+          รายชื่อนี้คือต้นทางของช่องเลือกบริการในหน้า LIFF — หมวดหมู่กลาง (taxonomy) มีหน้าที่จัดกลุ่มเท่านั้น
+        </p>
         <ul className="mb-3 space-y-2">
           {settings.service_types.map((service) => (
             <li
@@ -144,6 +293,9 @@ export default function BookingSettingsPage() {
           ))}
           {settings.service_types.length === 0 && (
             <li className="text-sm text-slate-400">ยังไม่มีบริการ — เพิ่มอย่างน้อย 1 รายการก่อนเปิดใช้งาน</li>
+          )}
+          {settings.service_types.length === 1 && (
+            <li className="text-sm text-amber-600 dark:text-amber-400">มีเพียง 1 รายการ — ชาวบ้านจะเห็นตัวเลือกเดียวในหน้า LIFF</li>
           )}
         </ul>
         <div className="flex gap-2">
@@ -274,14 +426,14 @@ export default function BookingSettingsPage() {
             </label>
             <label className="block">
               <span className="mb-1 block text-sm text-slate-500">หน่วย</span>
-              <select
+              <Select
                 value={settings.reminder_lead_unit}
                 onChange={(e) => update('reminder_lead_unit', e.target.value as ReminderUnit)}
-                className="rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800"
-              >
-                <option value="DAY">วัน</option>
-                <option value="HOUR">ชั่วโมง</option>
-              </select>
+                options={[
+                  { value: 'DAY', label: 'วัน' },
+                  { value: 'HOUR', label: 'ชั่วโมง' },
+                ]}
+              />
             </label>
           </div>
         )}

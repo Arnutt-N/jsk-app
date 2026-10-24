@@ -88,6 +88,8 @@ class Settings(BaseSettings):
     # Set this to your ngrok/public domain, e.g., "https://abc123.ngrok.io"
     SERVER_BASE_URL: str = ""
 
+    PUBLIC_APP_URL: str = ""
+
     # WebSocket Rate Limiting
     WS_RATE_LIMIT_MESSAGES: int = 30   # Max messages per window
     WS_RATE_LIMIT_WINDOW: int = 60     # Window in seconds
@@ -129,6 +131,15 @@ class Settings(BaseSettings):
     SLA_MAX_RESOLUTION_SECONDS: int = 1800
     SLA_MAX_QUEUE_WAIT_SECONDS: int = 300
     SLA_ALERT_TELEGRAM_ENABLED: bool = False
+
+    # Outbound email for booking confirmations/reminders (quota saver).
+    # An empty host disables the email channel; sends fall back to LINE push.
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USERNAME: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM: str = ""
+    SMTP_USE_TLS: bool = True
 
     model_config = SettingsConfigDict(
         env_ignore_empty=True,

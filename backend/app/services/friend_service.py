@@ -1,12 +1,13 @@
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc, func, case
-from sqlalchemy.exc import IntegrityError
-from app.models.friend_event import FriendEvent, FriendEventType, EventSource
-from app.models.user import User
-from datetime import datetime, timezone
-from typing import Dict, List, Optional, Tuple
 import logging
+from datetime import UTC, date, datetime
+
+from app.core.date_windows import resolve_range
 from app.core.logging_utils import mask_line_id
+from app.models.friend_event import EventSource, FriendEvent, FriendEventType
+from app.models.user import User
+from sqlalchemy import desc, func, select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +19,10 @@ class FriendService:
         Resolution is HMAC-hash only (plaintext column dropped in PR C).
         Populates the pseudonymization surrogate (hash + encrypted) on create.
         """
-        from app.services.user_identity_service import resolve_by_line_id, populate_surrogate
+        from app.services.user_identity_service import (
+            populate_surrogate,
+            resolve_by_line_id,
+        )
 
         user = await resolve_by_line_id(db, line_user_id)
         if user:
@@ -31,15 +35,15 @@ class FriendService:
                 display_name=profile.display_name,
                 picture_url=profile.picture_url,
                 friend_status="ACTIVE",
-                friend_since=datetime.now(timezone.utc),
-                profile_updated_at=datetime.now(timezone.utc),
+                friend_since=datetime.now(UTC),
+                profile_updated_at=datetime.now(UTC),
             )
         except Exception as e:
             logger.warning("Failed to fetch LINE profile for %s: %s", mask_line_id(line_user_id), e)
             user = User(
                 display_name="LINE User",
                 friend_status="ACTIVE",
-                friend_since=datetime.now(timezone.utc),
+                friend_since=datetime.now(UTC),
             )
 
         populate_surrogate(user, line_user_id)
@@ -78,7 +82,7 @@ class FriendService:
         force: bool = False,
         stale_after_hours: int = 24,
         commit: bool = True,
-    ) -> Optional[User]:
+    ) -> User | None:
         """Refresh LINE profile for a user when stale or forced."""
         from app.services.user_identity_service import resolve_by_line_id
 
@@ -86,13 +90,13 @@ class FriendService:
         if not user:
             return None
 
-        now = datetime.now(timezone.utc)
-        profile_updated_at = user.profile_updated_at
-        if profile_updated_at and profile_updated_at.tzinfo is None:
-            profile_updated_at = profile_updated_at.replace(tzinfo=timezone.utc)
+        now = datetime.now(UTC)
+        profile_updated_at: datetime | None = getattr(user, "profile_updated_at", None)
+        if profile_updated_at is not None and profile_updated_at.tzinfo is None:
+            profile_updated_at = profile_updated_at.replace(tzinfo=UTC)
         if (
             not force
-            and profile_updated_at
+            and profile_updated_at is not None
             and (now - profile_updated_at).total_seconds() < stale_after_hours * 3600
         ):
             return user
@@ -145,7 +149,7 @@ class FriendService:
             user.friend_status = "ACTIVE"
             user.is_active = True
             if not user.friend_since:
-                user.friend_since = datetime.now(timezone.utc)
+                user.friend_since = datetime.now(UTC)
 
         event = FriendEvent(
             user_id=user.id if user else None,
@@ -186,7 +190,7 @@ class FriendService:
         line_user_id: str,
         db: AsyncSession,
         limit: int = 50
-    ) -> List[FriendEvent]:
+    ) -> list[FriendEvent]:
         """Get history for a specific user"""
         from app.services.user_identity_service import child_filter, resolve_by_line_id
 
@@ -202,11 +206,11 @@ class FriendService:
     async def get_all_friend_events(
         self,
         db: AsyncSession,
-        line_user_id: Optional[str] = None,
-        event_type: Optional[str] = None,
+        line_user_id: str | None = None,
+        event_type: str | None = None,
         page: int = 1,
         per_page: int = 20,
-    ) -> Tuple[List[Dict], int]:
+    ) -> tuple[list[dict], int]:
         """Get paginated friend events with user info."""
         from app.services.user_identity_service import child_join_condition
 
@@ -220,7 +224,10 @@ class FriendService:
         )
 
         if line_user_id:
-            from app.services.user_identity_service import child_filter, resolve_by_line_id
+            from app.services.user_identity_service import (
+                child_filter,
+                resolve_by_line_id,
+            )
 
             user = await resolve_by_line_id(db, line_user_id)
             query = query.where(child_filter(FriendEvent, line_user_id, user.id if user else None))
@@ -264,9 +271,12 @@ class FriendService:
 
         return events, total
 
-    async def get_friend_stats(self, db: AsyncSession) -> Dict:
+    async def get_friend_stats(self, db: AsyncSession) -> dict:
         """Get friend statistics summary."""
-        from app.services.user_identity_service import child_column, user_identity_filter
+        from app.services.user_identity_service import (
+            child_column,
+            user_identity_filter,
+        )
 
         # Total followers (ACTIVE status)
         total_followers_result = await db.execute(
@@ -344,9 +354,12 @@ class FriendService:
             "refollow_breakdown": refollow_breakdown,
         }
 
-    async def get_user_refollow_counts(self, db: AsyncSession, line_user_ids: list[str] | None = None) -> Dict[str, int]:
+    async def get_user_refollow_counts(self, db: AsyncSession, line_user_ids: list[str] | None = None) -> dict[str, int]:
         """Get max refollow count per user, optionally scoped to specific IDs."""
-        from app.services.user_identity_service import child_column, resolve_many_by_line_id
+        from app.services.user_identity_service import (
+            child_column,
+            resolve_many_by_line_id,
+        )
 
         owner_col = child_column(FriendEvent)
         query = select(
@@ -356,7 +369,7 @@ class FriendService:
             FriendEvent.event_type == FriendEventType.REFOLLOW.value
         ).group_by(owner_col)
 
-        id_to_user: Dict[str, int] = {}
+        id_to_user: dict[str, int] = {}
         if line_user_ids:
             id_to_user = await resolve_many_by_line_id(db, line_user_ids)
             query = query.where(owner_col.in_(list(id_to_user.values())))
@@ -365,19 +378,52 @@ class FriendService:
         user_to_id = {user_id: raw for raw, user_id in id_to_user.items()}
         return {user_to_id.get(row[0], row[0]): row.max_refollow for row in result.all()}
 
-    async def list_friends(
+    def _friend_filter_clauses(
         self,
-        status: Optional[str],
-        db: AsyncSession,
-        skip: int = 0,
-        limit: int = 100
-    ) -> List[User]:
-        """List users who are friends"""
+        status: str | None,
+        start_date: date | None,
+        end_date: date | None,
+    ) -> list:
+        """Shared WHERE clauses for list + count so pagination never diverges."""
         from app.services.user_identity_service import user_identity_filter
 
-        query = select(User).where(user_identity_filter())
+        clauses = [user_identity_filter()]
         if status:
-            query = query.where(User.friend_status == status)
+            clauses.append(User.friend_status == status)
+        if start_date or end_date:
+            start, end = resolve_range(start_date, end_date, 36500)
+            clauses.append(User.friend_since >= start)
+            clauses.append(User.friend_since < end)
+        return clauses
+
+    async def count_friends(
+        self,
+        status: str | None,
+        db: AsyncSession,
+        start_date: date | None = None,
+        end_date: date | None = None,
+    ) -> int:
+        """Total matching friends (same filters as list_friends)."""
+        from sqlalchemy import func as sa_func
+
+        query = select(sa_func.count(User.id))
+        for clause in self._friend_filter_clauses(status, start_date, end_date):
+            query = query.where(clause)
+        return await db.scalar(query) or 0
+
+    async def list_friends(
+        self,
+        status: str | None,
+        db: AsyncSession,
+        skip: int = 0,
+        limit: int = 100,
+        start_date: date | None = None,
+        end_date: date | None = None,
+    ) -> list[User]:
+        """List users who are friends"""
+        query = select(User)
+        for clause in self._friend_filter_clauses(status, start_date, end_date):
+            query = query.where(clause)
 
         query = query.order_by(desc(User.last_message_at)).offset(skip).limit(limit)
         result = await db.execute(query)

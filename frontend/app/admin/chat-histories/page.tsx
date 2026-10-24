@@ -189,9 +189,10 @@ export default function ChatHistoriesPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => fetchConversations()}
-                    aria-label="รีเฟรช"
+                    disabled={loading}
+                    leftIcon={<RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />}
                 >
-                    <RefreshCw className="w-4 h-4" />
+                    รีเฟรช
                 </Button>
             </PageHeader>
 

@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-10-15 21:24 by Pi (Session close: enterprise audit sweep fully done.)
+> **Last Updated:** 2026-10-24 07:17 by Pi (Session closeout after follow-ups: PR 295 merged + CD green, main at 02fef0c, tree clean, )
 
 ## Thai Summary
 **สถานะล่าสุด (2026-09-30)** — รวม PR #239 (แก้บั๊กโอนแชทไม่มีบันทึก M-8) เข้าสายหลักแล้ว (`fd82c7a`) + ตรวจหลังส่งขึ้นร้านจริงเสร็จ: หลังบ้านแข็งแรงดี (database+redis ปกติ), หน้าร้านเปิดติด (HTTP 200), ปุ่มโอนแชทล็อกถูกต้อง (401), บันทึกส่งของ CD `36596610691` เขียวครบ 6 งาน — โค้ดตรงกับเซิร์ฟเวอร์ เหลือ Round-3b (22 ข้อ) + ซ่อมไฟล์ทดสอบ upload-security ที่พังมาก่อน
@@ -123,10 +123,31 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
-- [2026-10-15 21:24] Pi: Session close: enterprise audit sweep fully done. PR #258 merged to main, CI+CD green, prod smoke 200/200, lanes cleaned. Only open item: PR #257 (report docs) merge-or-close decision by user. Iron Rule respected throughout (counts/lengths  (Pi)
-- [2026-10-15 21:13] Pi: PR #258 squash-merged to main (a9d807c). Main CI+CD green. Prod smoke backend 200 frontend 200. Lane worktrees+branches cleaned. Report PR #257 still open. Iron Rule respected throughout. (Pi)
-- [2026-10-15 20:58] Pi: Opened PR #258 (fix/audit-f1f4: F1-F4 ECC-lane fixes, 4 commits rebased on main, cross-reviewed both directions, all approve). Race verdict: F1/F2/F3 ties, F4 ECC wins. Awaiting review/merge. Iron Rule respected throughout (counts/lengths o (Pi)
-- [2026-10-15 18:40] Pi: Enterprise audit sweep report-only done: PR #257 opened (docs only, no code). Backend 1469/2/5, frontend tsc+unit+build green lint-red-generated-only, security+smoke green. Findings F1 (low test-env) F2 (medium unproven, fresh-DB rerun pend (Pi)
+- [2026-10-24 07:17] Pi: Session closeout after follow-ups: PR 295 merged + CD green, main at 02fef0c, tree clean, no pending code work (Pi)
+- [2026-10-24 07:11] Pi: Follow-up batch done: PR 295 merged, CD green incl prod migration c3d4e5f6a7b8; user asked about pending items and confirmed all three; main at 96d1849 (Pi)
+- [2026-10-24 02:21] Pi: Session closeout: pstack pipeline done, PRs 291-294 merged green, follow-ups proposed, PR 257 merge question pending user (Pi)
+- [2026-10-24 00:06] Pi: pstack pipeline complete: #293 hardening merged (CD green), #294 harness merged; interrogate+thermos findings actioned; user decisions Q1-keep Q2-cascade Q3-hide-children recorded (Pi)
+- [2026-10-23 19:25] Pi: PR #291 merged (squash c319a45): LIFF leave-confirm unified + admin soft-delete; CI all green (Pi)
+- [2026-10-23 02:09] Pi: Merged datepicker redesign PRs #285/#286/#287 (Portal popup, slim input, touch hardening, touch e2e) (Pi)
+- [2026-10-22 08:18] Pi: Merged PR stack to main: #282 user-create roles, #283 login by username-or-email, #284 access-request form + approval queue + password reset (review fixes included) (Pi)
+- [2026-10-21 18:42] Pi: Graphs refreshed after review-fix session: graft rebuild and graphify update both green, tree clean (Pi)
+- [2026-10-21 08:48] Pi: Session complete: PR #280 LINE toggle+quota and PR #281 review fixes both merged, CD green; pstack 6-skill review synthesized and applied (Pi)
+- [2026-10-21 08:39] Pi: PR #281 review fixes merged to main, CD green; kept line OFF default per operator; admin must flip LINE toggle ON to resume pushes (Pi)
+- [2026-10-21 06:03] Pi: PR #280 booking LINE notify merged to main, CD green; line_enabled defaults OFF, awaiting admin opt-in (Pi)
+- [2026-10-21 06:00] Pi: PR #280 booking LINE notify merged to main, CD green; line_enabled defaults OFF, awaiting admin opt-in (Pi)
+- [2026-10-21 05:59] Pi: PR #280 booking LINE notify merged to main, CD green; line_enabled defaults OFF, awaiting admin opt-in (Pi)
+- [2026-10-19 23:15] Pi: Booking full-option program COMPLETE: phases 1-6 on feat/booking-full-option, single PR #279 opened (merged 4b5222b+71888e2, SMTP live-send deferred by operator) (Pi)
+- [2026-10-19 20:02] Pi: Booking full-option phase 5 done on feat/booking-full-option (assignment migration live-tested, endpoint + gates, column/modal/chip, toggle OFF; d302446 pushed, no PR yet) (Pi)
+- [2026-10-19 17:03] Pi: Booking full-option phase 4 done on feat/booking-full-option (reminder status column, resend endpoint + guard, toggle; 492070c pushed, no PR yet) (Pi)
+- [2026-10-19 15:03] Pi: Booking full-option phase 3 done on feat/booking-full-option (month calendar, range wrapper, toggle; 6f76209 pushed, no PR yet) (Pi)
+- [2026-10-19 15:02] Pi: Booking full-option phase 3 done on feat/booking-full-option (month calendar, range wrapper, toggle; 6f76209 pushed, no PR yet) (Pi)
+- [2026-10-19 08:58] Pi: Booking full-option phase 1+2 done on feat/booking-full-option (walk-in create, contact edit, search, pagination) (Pi)
+- [2026-10-19 02:28] Pi: Merged PRs 272-278: LIFF cancel-everywhere, 4 shared components, booking in-LINE title fix, comment cleanup (Pi)
+- [2026-10-18 10:26] Claude Code: LIFF polish: merged #269 (booking date picker no longer covered), #270 (stepper label icons, booking cancel + faster load, debt clear icon), #271 (booking note moved to service step, summary step renamed ยืนยัน); opened #272 (ยกเลิกรายการ o (Claude Code)
+- [2026-10-18 14:33] Pi: Merged PR #268: rich-menu show-expanded via selected=true (ALWAYS/SCHEDULED expand, MANUAL collapsed) (Pi)
+- [2026-10-18 13:04] Pi: Merged PRs #265 (LIFF roots: wizard, shared kit, trio, cache), #266 (rich-menu audit order), #267 (phone 9-15 rule); rich-menu ALWAYS investigation with live LINE checks (Pi)
+- [2026-10-17 07:20] Pi: Merged PRs 259-264: booking UX, login verify-before-logout, shared taxonomy, agent rules (Pi)
+- [2026-10-16 10:33] Pi: PR #259 review fixes done (option A), CI green, ready to merge (Pi)
 - [2026-10-15 15:01] Pi: Merged PR #256: login redirect flake fix (stale bootstrap guard + repro test) (Pi)
 - [2026-10-14 19:06] Pi: PR254 merged (4e2db66, CD green); review findings 74 recorded; Phase A relaunch needed (3 owners stopped, zero commits) (Pi)
 - [2026-10-14 00:46] Pi: Shipped SakonNakhonBot reuse (PRs #250-253) + prod cutover (61 Q&A live); recorded secrets iron rule in AGENTS.md (Pi)

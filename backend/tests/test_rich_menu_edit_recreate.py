@@ -46,10 +46,10 @@ AREA_MSG = {
 }
 
 
-def _config(areas):
+def _config(areas, selected=False):
     return {
         "size": {"width": 2500, "height": 843},
-        "selected": False,
+        "selected": selected,
         "name": "Menu A",
         "chatBarText": "menu",
         "areas": areas,
@@ -429,6 +429,7 @@ def _put_kwargs():
         "json": {
             "name": "Menu A",
             "chat_bar_text": "menu",
+            "display_mode": "ALWAYS",
             "areas": [
                 {
                     "bounds": {"x": 0, "y": 0, "width": 2500, "height": 843},
@@ -494,7 +495,7 @@ def test_put_flags_pending_when_config_changes_on_synced_menu():
 
 
 def test_put_keeps_synced_on_noop_save():
-    menu = _menu(sync_status="SYNCED", config=_config([AREA_URI]))
+    menu = _menu(sync_status="SYNCED", config=_config([AREA_URI], selected=True))
     client, db = _put_client(menu)
     try:
         resp = client.put("/api/v1/admin/rich-menus/1", **_put_kwargs())

@@ -1,11 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { subDays, format } from "date-fns";
+import type { DateRange } from "react-day-picker";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
-import { RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
+import { Select, type SelectOption } from "@/components/ui/Select";
+import { DateRangePicker, standardDatePresets } from "@/components/ui/DateRangePicker";
+import { RefreshCw, ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
 import { StaggerContainer, StaggerItem } from "@/components/ui/PageTransition";
 import PageHeader from "../components/PageHeader";
 import { logger } from '@/lib/logger';
@@ -58,11 +61,23 @@ export default function AuditLogPage() {
   const [total, setTotal] = useState(0);
   const [offset, setOffset] = useState(0);
   const [limit] = useState(50);
-  const [days, setDays] = useState(7);
+  const [range, setRange] = useState<DateRange | undefined>(() => {
+    const to = new Date();
+    return { from: subDays(to, 7), to };
+  });
   const [filter, setFilter] = useState({
     action: "",
     resource_type: ""
   });
+
+  const toYMD = (d: Date) => format(d, "yyyy-MM-dd");
+  const DEFAULT_RANGE_DAYS = 7;
+  const isDefaultRange = (r: DateRange | undefined) => {
+    if (!r?.from || !r.to) return false;
+    const to = new Date();
+    const diffDays = Math.round((to.getTime() - r.from.getTime()) / 86400000);
+    return diffDays === DEFAULT_RANGE_DAYS && toYMD(r.to) === toYMD(to);
+  };
 
   const fetchLogs = useCallback(async () => {
     setLoading(true);
@@ -70,14 +85,20 @@ export default function AuditLogPage() {
       const params = new URLSearchParams({
         limit: String(limit),
         offset: String(offset),
-        days: String(days)
       });
+      const statsParams = new URLSearchParams();
+      if (range?.from) {
+        params.append("start_date", toYMD(range.from));
+        params.append("end_date", toYMD(range.to ?? range.from));
+        statsParams.append("start_date", toYMD(range.from));
+        statsParams.append("end_date", toYMD(range.to ?? range.from));
+      }
       if (filter.action) params.append("action", filter.action);
       if (filter.resource_type) params.append("resource_type", filter.resource_type);
 
       const [logsRes, statsRes] = await Promise.all([
         fetch(`/api/v1/admin/audit/logs?${params}`),
-        fetch(`/api/v1/admin/audit/stats?days=${days}`)
+        fetch(`/api/v1/admin/audit/stats?${statsParams}`)
       ]);
 
       if (logsRes.ok) {
@@ -95,11 +116,28 @@ export default function AuditLogPage() {
     } finally {
       setLoading(false);
     }
-  }, [days, filter.action, filter.resource_type, limit, offset]);
+  }, [range, filter.action, filter.resource_type, limit, offset]);
 
   useEffect(() => {
     fetchLogs();
   }, [fetchLogs]);
+
+  const actionOptions: SelectOption[] = [
+    { value: "", label: "ทุกการกระทำ" },
+    ...Object.keys(stats?.action_breakdown ?? {}).sort((a, b) => a.localeCompare(b)).map((a) => ({ value: a, label: a })),
+  ];
+  const resourceOptions: SelectOption[] = [
+    { value: "", label: "ทุกประเภท" },
+    ...Object.keys(stats?.resource_breakdown ?? {}).sort((a, b) => a.localeCompare(b)).map((r) => ({ value: r, label: r })),
+  ];
+  const hasActiveFilter = filter.action !== "" || filter.resource_type !== "" || !isDefaultRange(range);
+
+  const clearFilters = () => {
+    setFilter({ action: "", resource_type: "" });
+    const to = new Date();
+    setRange({ from: subDays(to, 7), to });
+    setOffset(0);
+  };
 
   const totalPages = Math.ceil(total / limit);
   const currentPage = Math.floor(offset / limit) + 1;
@@ -107,20 +145,13 @@ export default function AuditLogPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Audit Logs">
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-text-tertiary">Last</span>
-          <Input
-            type="number"
-            value={days}
-            onChange={(e) => {
-              setDays(Number(e.target.value));
-              setOffset(0);
-            }}
-            className="w-20"
-            min={1}
-            max={90}
-          />
-          <span className="text-sm text-text-tertiary">days</span>
+        <div className="flex flex-wrap items-center gap-2">
+          <DateRangePicker value={range} presets={standardDatePresets} onChange={(r) => { setRange(r); setOffset(0); }} />
+          {hasActiveFilter && (
+            <Button variant="ghost" size="sm" onClick={clearFilters} leftIcon={<RotateCcw className="w-4 h-4" />}>
+              ล้างตัวกรอง
+            </Button>
+          )}
         </div>
         <Button
           variant="outline"
@@ -198,22 +229,24 @@ export default function AuditLogPage() {
       {/* Filters */}
       <div className="bg-surface rounded-2xl border border-border-default p-4 shadow-sm">
         <div className="flex flex-col sm:flex-row gap-4">
-          <Input
-            placeholder="กรองตามการกระทำ..."
+          <Select
             value={filter.action}
             onChange={(e) => {
               setFilter({ ...filter, action: e.target.value });
               setOffset(0);
             }}
+            options={actionOptions}
+            placeholder="กรองตามการกระทำ..."
             className="w-full sm:w-48"
           />
-          <Input
-            placeholder="กรองตามประเภททรัพยากร..."
+          <Select
             value={filter.resource_type}
             onChange={(e) => {
               setFilter({ ...filter, resource_type: e.target.value });
               setOffset(0);
             }}
+            options={resourceOptions}
+            placeholder="กรองตามประเภททรัพยากร..."
             className="w-full sm:w-48"
           />
         </div>

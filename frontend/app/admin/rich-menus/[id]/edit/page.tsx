@@ -167,6 +167,7 @@ export default function EditRichMenuPage() {
 
         setSaving(true);
         try {
+            const preSaveMenu = menu;
             // SCHEDULED needs a full, ordered period — the backend 422s otherwise.
             const display: {
                 display_mode: RichMenuDisplayModeValue;
@@ -247,10 +248,7 @@ export default function EditRichMenuPage() {
                 } else {
                     const outcome = parseSyncResult(await res.json());
                     if (outcome.ok) {
-                        // แสดงตลอดเวลา = keep it live: (re)publish right after the
-                        // sync. A SCHEDULED menu's default is owned by the
-                        // backend scheduler; MANUAL never auto-publishes.
-                        if (displayMode === RichMenuDisplayMode.ALWAYS && menu?.status !== 'PUBLISHED') {
+                        if (displayMode === RichMenuDisplayMode.ALWAYS) {
                             const pubRes = await fetch(`${API_BASE}/admin/rich-menus/${menuId}/publish`, { method: 'POST' });
                             if (pubRes.ok) {
                                 toast({ variant: 'success', title: 'อัปเดตและเผยแพร่สำเร็จ', description: 'แก้ไขถึง LINE แล้วและเมนูกำลังใช้งานเป็นเมนูหลัก' });
@@ -268,7 +266,7 @@ export default function EditRichMenuPage() {
                                 description: `${outcome.message} — ${nextStep}`,
                             });
                         } else {
-                            const nextStep = menu?.status === 'PUBLISHED'
+                            const nextStep = preSaveMenu?.status === 'PUBLISHED'
                                 ? 'เมนูหลักกำลังใช้เนื้อหาที่แก้ไขแล้ว'
                                 : 'กด "Set Active" เพื่อใช้งานเมนูนี้';
                             toast({
@@ -285,7 +283,7 @@ export default function EditRichMenuPage() {
                 toast({
                     variant: 'success',
                     title: 'บันทึกสำเร็จ',
-                    description: menu?.line_rich_menu_id
+                    description: preSaveMenu?.line_rich_menu_id
                         ? 'บันทึกในระบบแล้ว — ยังไม่ส่งไป LINE กด "บันทึกและซิงค์" เพื่ออัปเดตให้ผู้ใช้เห็น'
                         : 'บันทึก Rich Menu เป็นฉบับร่างแล้ว',
                 });

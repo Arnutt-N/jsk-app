@@ -1,30 +1,20 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Package, Trash2, SquarePen, ChevronDown } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
+import { Package, Trash2, SquarePen, Eye, LayoutGrid, List } from 'lucide-react';
 import PageHeader from '@/app/admin/components/PageHeader';
+import { ViewToggle } from '@/components/admin/ViewToggle';
+import { DetailModal } from '@/components/admin/DetailModal';
+import { ActionIconButton } from '@/components/ui/ActionIconButton';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { ActionIconButton } from '@/components/ui/ActionIconButton';
+import ReplyObjectForm, { formatErrorDetail, type ReplyObjectFormData } from '@/components/admin/ReplyObjectForm';
 import { StaggerContainer, StaggerItem } from '@/components/ui/PageTransition';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/Toast';
 import { logger } from '@/lib/logger';
-import type { QuickReply } from '@/lib/line/message-types';
-import { TemplateEditor } from './_components/editors/TemplateEditor';
-import { TextV2Editor } from './_components/editors/TextV2Editor';
-import { QuickReplyEditor } from './_components/QuickReplyEditor';
-import { MessagePreview } from './_components/preview/MessagePreview';
-import {
-    safeParsePayload,
-    defaultPayloadForType,
-    ensureEditorKeys,
-    stripEditorKeys,
-    findInvalidActionUri,
-    URI_SCHEME_ERROR_TH,
-} from './_components/payload-utils';
 
 interface ReplyObject {
     id: number;
@@ -38,86 +28,16 @@ interface ReplyObject {
     created_at: string;
 }
 
-const OBJECT_TYPES = [
-    'text', 'text_v2', 'flex', 'template',
-    'image', 'sticker', 'video', 'audio', 'location', 'imagemap',
-];
-
-// Types that have a dedicated structured editor (vs. the raw JSON textarea).
-const STRUCTURED_TYPES = new Set(['template', 'text_v2']);
-
-/**
- * FastAPI validation errors (422) return `detail` as an ARRAY of error objects,
- * not a string. Normalize any shape into a single string so the toast never
- * receives an object/array (which throws "Objects are not valid as a React child").
- */
-function formatErrorDetail(detail: unknown, fallback = 'Error saving'): string {
-    if (typeof detail === 'string') return detail;
-    if (Array.isArray(detail)) {
-        const msgs = detail
-            .map((d) => (d && typeof d === 'object' && 'msg' in d ? String((d as { msg: unknown }).msg) : ''))
-            .filter(Boolean);
-        if (msgs.length > 0) return msgs.join('; ');
-    }
-    return fallback;
-}
-
 export default function ReplyObjectsPage() {
     const [objects, setObjects] = useState<ReplyObject[]>([]);
     const [loading, setLoading] = useState(true);
-    const [showForm, setShowForm] = useState(false);
-    const [editingId, setEditingId] = useState<string | null>(null);
-    const [rawMode, setRawMode] = useState(false);
-    const [formData, setFormData] = useState({
-        object_id: '',
-        name: '',
-        category: '',
-        object_type: 'flex',
-        payload: '{}',
-        alt_text: ''
-    });
+    const [editingObj, setEditingObj] = useState<ReplyObject | null>(null);
+    const [viewObj, setViewObj] = useState<ReplyObject | null>(null);
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
     const [confirmDelete, setConfirmDelete] = useState<{open: boolean; objectId: string | null}>({open: false, objectId: null});
     const { toast } = useToast();
     const API_BASE = '/api/v1';
-
-    // Parsed payload — single source of truth stays the JSON string in formData.
-    const parsedPayload = useMemo(() => safeParsePayload(formData.payload), [formData.payload]);
-
-    const updatePayload = useCallback((next: Record<string, unknown>) => {
-        setFormData(prev => ({ ...prev, payload: JSON.stringify(next, null, 2) }));
-    }, []);
-
-    const handleTypeChange = (newType: string) => {
-        setFormData(prev => {
-            const prevPayload = safeParsePayload(prev.payload);
-            const next = defaultPayloadForType(newType);
-            // Carry the quick-reply modifier across a type switch.
-            if (prevPayload.quickReply) next.quickReply = prevPayload.quickReply;
-            // Tag editor list items with stable internal keys (react-2).
-            return { ...prev, object_type: newType, payload: JSON.stringify(ensureEditorKeys(next), null, 2) };
-        });
-        setRawMode(false);
-    };
-
-    // Entering raw mode strips internal `_key` tags so the JSON matches the
-    // exact LINE payload shape; returning to the form re-tags list items so
-    // React keys stay stable (react-2).
-    const handleToggleRawMode = () => {
-        setFormData(prev => {
-            const parsed = safeParsePayload(prev.payload);
-            const next = rawMode ? ensureEditorKeys(parsed) : stripEditorKeys(parsed);
-            return { ...prev, payload: JSON.stringify(next, null, 2) };
-        });
-        setRawMode(m => !m);
-    };
-
-    const handleQuickReplyChange = (qr: QuickReply | undefined) => {
-        const next: Record<string, unknown> = { ...parsedPayload };
-        if (qr && Array.isArray(qr.items) && qr.items.length > 0) next.quickReply = qr;
-        else delete next.quickReply;
-        updatePayload(next);
-    };
 
     const fetchObjects = useCallback(async () => {
         try {
@@ -137,70 +57,31 @@ export default function ReplyObjectsPage() {
         return () => window.clearTimeout(timer);
     }, [fetchObjects]);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const openEdit = (obj: ReplyObject) => setEditingObj(obj);
+    const closeEdit = () => setEditingObj(null);
+
+    const handleSaveEdit = async (data: ReplyObjectFormData): Promise<boolean> => {
+        if (!editingObj) return false;
         try {
-            const parsed: unknown = JSON.parse(formData.payload);
-
-            // sec-1: defense-in-depth — block uri actions outside the scheme
-            // allowlist (https/http/tel/mailto/line) before they reach the API.
-            const invalidUri = findInvalidActionUri(parsed);
-            if (invalidUri) {
-                toast({ title: 'ผิดพลาด', description: `${URI_SCHEME_ERROR_TH} (${invalidUri})`, variant: 'error' });
-                return;
-            }
-
-            const payload = {
-                ...formData,
-                // Strip internal editor keys so the saved LINE payload shape
-                // never changes (react-2 backward-compatibility guarantee).
-                payload: stripEditorKeys(parsed)
-            };
-
-            const url = editingId
-                ? `${API_BASE}/admin/reply-objects/${editingId}`
-                : `${API_BASE}/admin/reply-objects`;
-
-            const res = await fetch(url, {
-                method: editingId ? 'PUT' : 'POST',
+            const res = await fetch(`${API_BASE}/admin/reply-objects/${editingObj.object_id}`, {
+                method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: JSON.stringify({ ...data, payload: JSON.parse(data.payload) }),
             });
-
             if (res.ok) {
+                toast({ title: 'บันทึกการแก้ไขแล้ว', variant: 'success' });
+                closeEdit();
                 await fetchObjects();
-                resetForm();
-            } else {
-                const error = await res.json().catch(() => ({} as { detail?: unknown }));
-                toast({ title: 'ผิดพลาด', description: formatErrorDetail(error.detail), variant: 'error' });
+                return true;
             }
-        } catch {
-            toast({ title: 'ผิดพลาด', description: 'Invalid JSON payload', variant: 'error' });
+            const error = await res.json().catch(() => ({} as { detail?: unknown }));
+            toast({ title: 'ผิดพลาด', description: formatErrorDetail(error.detail), variant: 'error' });
+            return false;
+        } catch (error) {
+            logger.error('Error saving reply object:', error);
+            toast({ title: 'ผิดพลาด', description: formatErrorDetail(undefined), variant: 'error' });
+            return false;
         }
-    };
-
-    const handleEdit = (obj: ReplyObject) => {
-        // Loaded payloads predate internal keys — tag list items once at load
-        // time so editor React keys are stable (react-2); stripped on save.
-        // Non-object payloads (legacy/edge shapes) pass through untouched.
-        const isPlainObject =
-            obj.payload !== null && typeof obj.payload === 'object' && !Array.isArray(obj.payload);
-        const payloadString = isPlainObject
-            ? JSON.stringify(ensureEditorKeys(obj.payload as Record<string, unknown>), null, 2)
-            : obj.payload
-                ? JSON.stringify(obj.payload, null, 2)
-                : '{}';
-        setFormData({
-            object_id: obj.object_id,
-            name: obj.name,
-            category: obj.category || '',
-            object_type: obj.object_type,
-            payload: payloadString,
-            alt_text: obj.alt_text || ''
-        });
-        setEditingId(obj.object_id);
-        setRawMode(false);
-        setShowForm(true);
     };
 
     const handleDelete = async (objectId: string) => {
@@ -225,22 +106,36 @@ export default function ReplyObjectsPage() {
         }
     };
 
-    const resetForm = () => {
-        setFormData({ object_id: '', name: '', category: '', object_type: 'flex', payload: '{}', alt_text: '' });
-        setEditingId(null);
-        setRawMode(false);
-        setShowForm(false);
-    };
-
-    const isStructured = STRUCTURED_TYPES.has(formData.object_type);
-    const showStructuredEditor = isStructured && !rawMode;
+    const editInitial: ReplyObjectFormData | null = editingObj ? (() => {
+        const p = editingObj.payload;
+        const isPlainObject = p !== null && typeof p === 'object' && !Array.isArray(p);
+        return {
+            object_id: editingObj.object_id,
+            name: editingObj.name,
+            category: editingObj.category || '',
+            object_type: editingObj.object_type,
+            payload: isPlainObject ? JSON.stringify(p, null, 2) : p ? JSON.stringify(p, null, 2) : '{}',
+            alt_text: editingObj.alt_text || '',
+        };
+    })() : null;
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500 thai-text">
             <PageHeader title="Reply Objects" subtitle="Manage reusable message templates">
-                <Button onClick={() => setShowForm(true)}>
-                    + New Template
-                </Button>
+                <div className="flex items-center gap-2">
+                    <ViewToggle
+                        options={[
+                            { value: 'grid', label: 'มุมมองการ์ด', icon: <LayoutGrid className="w-4 h-4" /> },
+                            { value: 'list', label: 'มุมมองตาราง', icon: <List className="w-4 h-4" /> },
+                        ]}
+                        value={viewMode}
+                        onChange={setViewMode}
+                        ariaLabel="มุมมอง"
+                    />
+                    <Link href="/admin/reply-objects/new">
+                        <Button>+ New Template</Button>
+                    </Link>
+                </div>
             </PageHeader>
 
             {/* Objects Grid */}
@@ -254,7 +149,7 @@ export default function ReplyObjectsPage() {
                     <h3 className="text-3xl font-black text-text-primary mb-4 tracking-tight">Empty Repository</h3>
                     <p className="text-text-tertiary text-lg max-w-sm leading-relaxed">No reusable templates found. Create your first template to simplify your automated responses.</p>
                 </div>
-            ) : (
+            ) : viewMode === 'grid' ? (
                 <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                     {objects.map((obj) => (
                         <StaggerItem key={obj.id}>
@@ -287,10 +182,16 @@ export default function ReplyObjectsPage() {
 
                                 <div className="flex gap-2 h-10 items-center justify-end">
                                     <ActionIconButton
+                                        icon={<Eye className="w-4 h-4" />}
+                                        label="ดูรายละเอียด"
+                                        variant="default"
+                                        onClick={() => setViewObj(obj)}
+                                    />
+                                    <ActionIconButton
                                         icon={<SquarePen className="w-4 h-4" />}
                                         label="แก้ไข"
                                         variant="default"
-                                        onClick={() => handleEdit(obj)}
+                                        onClick={() => openEdit(obj)}
                                     />
                                     <ActionIconButton
                                         icon={<Trash2 className="w-4 h-4" />}
@@ -304,6 +205,39 @@ export default function ReplyObjectsPage() {
                         </StaggerItem>
                     ))}
                 </StaggerContainer>
+            ) : (
+                <div className="bg-surface rounded-2xl border border-border-default shadow-sm overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="w-full min-w-[720px]">
+                            <thead>
+                                <tr className="border-b border-border-default text-left">
+                                    <th className="px-5 py-3 text-xs font-semibold text-text-tertiary">รหัส</th>
+                                    <th className="px-5 py-3 text-xs font-semibold text-text-tertiary">ชื่อ</th>
+                                    <th className="px-5 py-3 text-xs font-semibold text-text-tertiary text-center">ประเภท</th>
+                                    <th className="px-5 py-3 text-xs font-semibold text-text-tertiary">หมวดหมู่</th>
+                                    <th className="px-5 py-3 text-xs font-semibold text-text-tertiary text-center">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-border-subtle">
+                                {objects.map((obj) => (
+                                    <tr key={obj.id} className="hover:bg-bg/50 transition-colors">
+                                        <td className="px-5 py-3"><span className="font-mono font-semibold text-brand-600 dark:text-brand-400 text-sm thai-no-break">${obj.object_id}</span></td>
+                                        <td className="px-5 py-3 font-medium text-text-primary">{obj.name}</td>
+                                        <td className="px-5 py-3 text-center"><span className="text-[10px] font-bold uppercase tracking-widest text-text-secondary">{obj.object_type}</span></td>
+                                        <td className="px-5 py-3 text-sm text-text-tertiary">{obj.category || '-'}</td>
+                                        <td className="px-5 py-3">
+                                            <div className="flex items-center justify-center gap-1">
+                                                <ActionIconButton icon={<Eye className="w-4 h-4" />} label="ดูรายละเอียด" variant="default" onClick={() => setViewObj(obj)} />
+                                                <ActionIconButton icon={<SquarePen className="w-4 h-4" />} label="แก้ไข" variant="default" onClick={() => openEdit(obj)} />
+                                                <ActionIconButton icon={<Trash2 className="w-4 h-4" />} label="ลบ" variant="danger" onClick={() => setConfirmDelete({ open: true, objectId: obj.object_id })} />
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             )}
 
             <ConfirmDialog
@@ -316,151 +250,47 @@ export default function ReplyObjectsPage() {
                 variant="danger"
             />
 
-            {/* Form Modal */}
             <Modal
-                isOpen={showForm}
-                onClose={resetForm}
-                title={editingId ? 'Edit Object' : 'New Template'}
+                isOpen={editingObj !== null}
+                onClose={closeEdit}
+                title="Edit Object"
                 maxWidth="4xl"
             >
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                            <label htmlFor="ro-field-object-id" className="text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-1">Universal ID *</label>
-                            <Input
-                                id="ro-field-object-id"
-                                type="text"
-                                value={formData.object_id}
-                                onChange={(e) => setFormData({ ...formData, object_id: e.target.value })}
-                                disabled={!!editingId}
-                                className="font-bold font-mono"
-                                placeholder="flex_welcome"
-                                required
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <label htmlFor="ro-field-name" className="text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-1">Internal Name *</label>
-                            <Input
-                                id="ro-field-name"
-                                type="text"
-                                value={formData.name}
-                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                className="font-bold"
-                                placeholder="Welcome Message 2.0"
-                                required
-                            />
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                            <label htmlFor="ro-field-object-type" className="text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-1">Message Protocol *</label>
-                            <div className="relative">
-                                <select
-                                    id="ro-field-object-type"
-                                    value={formData.object_type}
-                                    onChange={(e) => handleTypeChange(e.target.value)}
-                                    className="w-full h-10 px-4 py-0 bg-surface border border-border-default rounded-xl text-sm text-text-primary font-bold appearance-none focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:bg-surface transition-all cursor-pointer"
-                                >
-                                    {OBJECT_TYPES.map(t => (
-                                        <option key={t} value={t} className="bg-surface text-text-primary">{t.toUpperCase()}</option>
-                                    ))}
-                                </select>
-                                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-text-tertiary">
-                                    <ChevronDown className="w-4 h-4" />
-                                </div>
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            <label htmlFor="ro-field-category" className="text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-1">Grouping Category</label>
-                            <Input
-                                id="ro-field-category"
-                                type="text"
-                                value={formData.category}
-                                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                                className="font-bold"
-                                placeholder="Marketing / Support"
-                            />
-                        </div>
-                    </div>
-
-                    <div className="space-y-2">
-                        <label htmlFor="ro-field-alt-text" className="text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-1">Alt Text (Mobile/Tablet accessibility)</label>
-                            <Input
-                                id="ro-field-alt-text"
-                                type="text"
-                                value={formData.alt_text}
-                                onChange={(e) => setFormData({ ...formData, alt_text: e.target.value })}
-                                className="font-bold"
-                                placeholder="Brief description of the message"
-                            />
-                    </div>
-
-                    {/* Content editor (left) + live preview (right) */}
-                    <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-6">
-                        <div className="space-y-4 min-w-0">
-                            <div className="flex items-center justify-between">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-1">Content</label>
-                                {isStructured && (
-                                    <button
-                                        type="button"
-                                        onClick={handleToggleRawMode}
-                                        className="text-xs font-bold text-brand-600 hover:text-brand-500 transition-colors"
-                                    >
-                                        {rawMode ? '↩ ใช้ตัวแก้ไขฟอร์ม' : '</> แก้แบบ JSON'}
-                                    </button>
-                                )}
-                            </div>
-
-                            {showStructuredEditor && formData.object_type === 'template' && (
-                                <TemplateEditor payload={parsedPayload} onChange={updatePayload} />
-                            )}
-                            {showStructuredEditor && formData.object_type === 'text_v2' && (
-                                <TextV2Editor payload={parsedPayload} onChange={updatePayload} />
-                            )}
-                            {!showStructuredEditor && (
-                                <textarea
-                                    value={formData.payload}
-                                    onChange={(e) => setFormData({ ...formData, payload: e.target.value })}
-                                    rows={12}
-                                    className="w-full px-6 py-4 bg-gray-900 border border-gray-800 rounded-xl text-green-400 font-mono text-xs focus:outline-none focus:border-brand-500/50 transition-all overscroll-contain"
-                                    placeholder="{ ... }"
-                                    required
-                                />
-                            )}
-
-                            <p className="text-[11px] leading-relaxed text-text-tertiary ml-1">
-                                อ้างถึงในคำตอบด้วยรหัส เช่น <code className="font-mono">$skn_menu</code> (วางท้ายข้อความ คั่นด้วยเว้นวรรค) — การ์ด flex ที่อ้างถึงจะส่งทั้งก้อน ไม่ถูกตัด · หลีกเลี่ยงตัวเลขหลัง $ เช่น <code className="font-mono">$100</code> (จะหายไป)
-                            </p>
-
-                            <QuickReplyEditor
-                                value={parsedPayload.quickReply as QuickReply | undefined}
-                                onChange={handleQuickReplyChange}
-                            />
-                        </div>
-
-                        <div className="lg:sticky lg:top-0 h-fit space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-text-tertiary ml-1">Live Preview</label>
-                            <div className="rounded-xl border border-border-default bg-[#8aa6c8] dark:bg-[#39414d] p-4 overflow-x-auto">
-                                <MessagePreview
-                                    objectType={formData.object_type}
-                                    payload={parsedPayload}
-                                    altText={formData.alt_text}
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="flex gap-3 pt-2">
-                        <Button type="submit" className="flex-1">
-                            {editingId ? 'Save Modifications' : 'Initialize Template'}
-                        </Button>
-                        <Button type="button" variant="ghost" onClick={resetForm}>
-                            Cancel
-                        </Button>
-                    </div>
-                </form>
+                {editInitial && (
+                    <ReplyObjectForm
+                        key={editingObj?.object_id}
+                        initial={editInitial}
+                        lockObjectId
+                        submitLabel="Save Modifications"
+                        onSave={handleSaveEdit}
+                        onCancel={closeEdit}
+                    />
+                )}
             </Modal>
+
+            <DetailModal
+                title="รายละเอียดเทมเพลต"
+                open={viewObj !== null}
+                onClose={() => setViewObj(null)}
+                rows={viewObj ? [
+                    { label: 'รหัส', value: <span className="font-mono font-semibold text-brand-600 dark:text-brand-400">${viewObj.object_id}</span> },
+                    { label: 'ชื่อ', value: viewObj.name },
+                    { label: 'ประเภท', value: <span className="uppercase">{viewObj.object_type}</span> },
+                    { label: 'หมวดหมู่', value: viewObj.category || '-' },
+                ] : []}
+                renderExtra={viewObj ? (
+                    <div>
+                        <p className="text-xs text-text-tertiary mb-1">JSON</p>
+                        <pre className="max-h-64 overflow-auto rounded-xl bg-gray-900 p-4 font-mono text-xs text-green-400 overscroll-contain">
+                            {JSON.stringify(viewObj.payload, null, 2)}
+                        </pre>
+                    </div>
+                ) : undefined}
+                actions={viewObj ? [
+                    { label: 'แก้ไข', onClick: () => { const o = viewObj; setViewObj(null); openEdit(o); }, variant: 'outline' },
+                    { label: 'ปิด', onClick: () => setViewObj(null), variant: 'primary' },
+                ] : undefined}
+            />
         </div>
     );
 }

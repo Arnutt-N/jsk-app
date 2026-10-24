@@ -15,6 +15,7 @@ from app.services.user_identity_service import (
     child_filter,
     child_join_condition,
     decrypt_line_ids_for_users,
+    decrypt_line_ids_for_users_quarantined,
     decrypt_user_line_id,
     resolve_by_line_id,
     user_identity_filter,
@@ -173,7 +174,8 @@ class ConversationsMixin:
 
         # 4. Batch fetch tags
         user_ids = [user.id for user, _session, _last_msg, _last_incoming in rows if user and user.id]
-        line_id_map = await decrypt_line_ids_for_users(db, user_ids)
+        line_id_map, quarantined_ids = await decrypt_line_ids_for_users_quarantined(db, user_ids)
+        quarantined_set = set(quarantined_ids)
         tag_map: dict[int, list[dict[str, Any]]] = {}
         if user_ids:
             tag_rows = (
@@ -204,6 +206,8 @@ class ConversationsMixin:
         # 5. Conversations list construction
         conversations = []
         for user, session, last_msg, last_incoming in rows:
+            if user is None or user.id not in line_id_map:
+                continue
             raw_line_id = line_id_map.get(user.id)
             unread_count = unread_counts.get(raw_line_id, 0) if raw_line_id else 0
             pref = pref_map.get(user.id)
@@ -235,7 +239,8 @@ class ConversationsMixin:
             "conversations": conversations,
             "total": total_users,
             "waiting_count": waiting_count or 0,
-            "active_count": active_count or 0
+            "active_count": active_count or 0,
+            "quarantined_count": len(quarantined_set),
         }
 
     async def search_messages(

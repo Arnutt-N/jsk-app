@@ -30,8 +30,13 @@ function settings(overrides: Partial<BookingSettings> = {}): BookingSettings {
 
 let fetchMock: ReturnType<typeof vi.fn>
 
-function mockFetch(initial: BookingSettings) {
+function mockFetch(initial: BookingSettings, quota?: unknown) {
   fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+    if (String(url).includes('/line-quota')) {
+      if (init?.method === 'PUT') return jsonResponse(quota)
+      if (quota === undefined) return jsonResponse({ detail: 'LINE down' }, 502)
+      return jsonResponse(quota)
+    }
     if (init?.method === 'PUT') {
       return jsonResponse(JSON.parse(String(init.body)))
     }
@@ -47,8 +52,8 @@ function savedPayload(): BookingSettings {
   return JSON.parse(String((put[1] as RequestInit).body))
 }
 
-async function renderLoaded(initial = settings()) {
-  mockFetch(initial)
+async function renderLoaded(initial = settings(), quota?: unknown) {
+  mockFetch(initial, quota)
   render(<BookingSettingsPage />)
   await waitFor(() => expect(screen.getByText('ตั้งค่าการจองคิว')).toBeInTheDocument())
 }
@@ -138,6 +143,16 @@ describe('service types', () => {
       screen.getByText('ยังไม่มีบริการ — เพิ่มอย่างน้อย 1 รายการก่อนเปิดใช้งาน'),
     ).toBeInTheDocument()
   })
+
+  it('states who owns the list and warns on a single service', async () => {
+    await renderLoaded()
+    expect(
+      screen.getByText(/รายชื่อนี้คือต้นทางของช่องเลือกบริการในหน้า LIFF/),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText('มีเพียง 1 รายการ — ชาวบ้านจะเห็นตัวเลือกเดียวในหน้า LIFF'),
+    ).toBeInTheDocument()
+  })
 })
 
 describe('blackout dates', () => {
@@ -174,6 +189,62 @@ describe('blackout dates', () => {
     await user.click(screen.getByRole('button', { name: /บันทึกการตั้งค่า/ }))
     await waitFor(() =>
       expect(savedPayload().blackout_dates).toContain('2027-01-10'),
+    )
+  })
+})
+
+describe('the LINE channel setting', () => {
+  it('starts switched off when the payload predates the toggle', async () => {
+    await renderLoaded()
+    expect(screen.getByLabelText(/แจ้งเตือนทาง LINE/)).not.toBeChecked()
+  })
+
+  it('reflects a stored on state', async () => {
+    await renderLoaded(settings({ line_enabled: true }))
+    expect(screen.getByLabelText(/แจ้งเตือนทาง LINE/)).toBeChecked()
+  })
+
+  it('persists the on state', async () => {
+    const user = userEvent.setup()
+    await renderLoaded()
+
+    await user.click(screen.getByLabelText(/แจ้งเตือนทาง LINE/))
+    await user.click(screen.getByRole('button', { name: /บันทึกการตั้งค่า/ }))
+
+    await waitFor(() => expect(savedPayload().line_enabled).toBe(true))
+  })
+
+  it('shows the remaining push quota', async () => {
+    await renderLoaded(settings(), { quota: 500, consumption: 120, remaining: 380 })
+    expect(screen.getByText('โควต้า LINE คงเหลือ 380 / 500')).toBeInTheDocument()
+  })
+
+  it('names an unlimited plan instead of inventing numbers', async () => {
+    await renderLoaded(settings(), { quota: null, consumption: 7, remaining: null })
+    expect(screen.getByText('โควต้า LINE: ไม่จำกัด')).toBeInTheDocument()
+  })
+
+  it('degrades to a placeholder when the quota read fails', async () => {
+    await renderLoaded()
+    expect(screen.getByText(/ยังอ่านโควต้า LINE ไม่ได้/)).toBeInTheDocument()
+  })
+
+  it('refreshes the quota on demand', async () => {
+    const user = userEvent.setup()
+    await renderLoaded()
+    expect(screen.getByText(/ยังอ่านโควต้า LINE ไม่ได้/)).toBeInTheDocument()
+
+    fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (String(url).includes('/line-quota') && !init?.method) {
+        return jsonResponse({ quota: 500, consumption: 120, remaining: 380 })
+      }
+      if (init?.method === 'PUT') return jsonResponse(JSON.parse(String(init.body)))
+      return jsonResponse(settings())
+    })
+    await user.click(screen.getByRole('button', { name: 'รีเฟรช' }))
+
+    await waitFor(() =>
+      expect(screen.getByText('โควต้า LINE คงเหลือ 380 / 500')).toBeInTheDocument(),
     )
   })
 })
