@@ -13,6 +13,7 @@ import { DetailModal } from '@/components/admin/DetailModal';
 import { Switch } from '@/components/ui/Switch';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/Toast';
+import { useAuth } from '@/contexts/AuthContext';
 import { getHttpStatusMessage } from '@/lib/api-error';
 import { logger } from '@/lib/logger';
 
@@ -65,6 +66,8 @@ const INCOMPLETE_FORM_MESSAGE = 'กรุณากรอกชอร์ตค�
 
 export default function CannedResponsesPage() {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const isViewer = user?.role === 'VIEWER';
   const [responses, setResponses] = useState<CannedResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -242,10 +245,12 @@ export default function CannedResponsesPage() {
         title="ข้อความสำเร็จรูป"
         subtitle="จัดการชุดข้อความที่เจ้าหน้าที่เรียกใช้เร็วในแชทสดด้วยเครื่องหมาย /"
       >
-        <Button size="sm" onClick={openCreate}>
-          <Plus className="w-4 h-4" />
-          เพิ่มข้อความ
-        </Button>
+        {!isViewer && (
+          <Button size="sm" onClick={openCreate}>
+            <Plus className="w-4 h-4" />
+            เพิ่มข้อความ
+          </Button>
+        )}
       </PageHeader>
 
       <Modal
@@ -399,9 +404,19 @@ export default function CannedResponsesPage() {
                       </Badge>
                     </td>
                     <td className="px-5 py-4 text-center">
-                      <Badge variant={(row.is_active ?? true) ? 'success' : 'gray'} size="sm" className="thai-no-break">
-                        {(row.is_active ?? true) ? 'ใช้งานอยู่' : 'ปิดใช้งาน'}
-                      </Badge>
+                      <div className="flex flex-col items-center gap-2">
+                        <Badge variant={(row.is_active ?? true) ? 'success' : 'gray'} size="sm" className="thai-no-break">
+                          {(row.is_active ?? true) ? 'ใช้งานอยู่' : 'ปิดใช้งาน'}
+                        </Badge>
+                        {!isViewer && (
+                          <Switch
+                            checked={row.is_active ?? true}
+                            onCheckedChange={() => { void handleToggleActive(row); }}
+                            disabled={togglingId === row.id}
+                            aria-label={`เปิดใช้งาน ${row.title}`}
+                          />
+                        )}
+                      </div>
                     </td>
                     <td className="px-5 py-4 text-center text-sm text-text-secondary">
                       {row.usage_count ?? 0}
@@ -414,24 +429,22 @@ export default function CannedResponsesPage() {
                           variant="muted"
                           onClick={() => setViewRow(row)}
                         />
-                        <ActionIconButton
-                          icon={<SquarePen className="w-4 h-4" />}
-                          label="แก้ไข"
-                          variant="muted"
-                          onClick={() => openEdit(row)}
-                        />
-                        <Switch
-                          checked={row.is_active ?? true}
-                          onCheckedChange={() => { void handleToggleActive(row); }}
-                          disabled={togglingId === row.id}
-                          aria-label={`เปิดใช้งาน ${row.title}`}
-                        />
-                        <ActionIconButton
-                          icon={<Trash2 className="w-4 h-4" />}
-                          label="ลบ"
-                          variant="danger"
-                          onClick={() => setConfirmDelete({ open: true, id: row.id })}
-                        />
+                        {!isViewer && (
+                          <>
+                            <ActionIconButton
+                              icon={<SquarePen className="w-4 h-4" />}
+                              label="แก้ไข"
+                              variant="muted"
+                              onClick={() => openEdit(row)}
+                            />
+                            <ActionIconButton
+                              icon={<Trash2 className="w-4 h-4" />}
+                              label="ลบ"
+                              variant="danger"
+                              onClick={() => setConfirmDelete({ open: true, id: row.id })}
+                            />
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
