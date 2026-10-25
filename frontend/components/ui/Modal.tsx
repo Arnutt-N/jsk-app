@@ -14,6 +14,12 @@ interface ModalProps {
   maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl';
   showCloseButton?: boolean;
   closeOnBackdropClick?: boolean;
+  /**
+   * When true, all dismiss paths (Escape, backdrop click, X button) are
+   * blocked. Callers pass their pending state here (e.g. ConfirmDialog
+   * passes isLoading) so a slow request cannot be dismissed mid-flight.
+   */
+  dismissDisabled?: boolean;
 }
 
 export const Modal: React.FC<ModalProps> = ({
@@ -25,6 +31,7 @@ export const Modal: React.FC<ModalProps> = ({
   maxWidth = 'md',
   showCloseButton = true,
   closeOnBackdropClick = true,
+  dismissDisabled = false,
 }) => {
   useEffect(() => {
     if (isOpen) {
@@ -48,6 +55,9 @@ export const Modal: React.FC<ModalProps> = ({
   const descriptionId = React.useId();
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (dismissDisabled) {
+      return;
+    }
     if (e.key === 'Escape') {
       onClose();
       return;
@@ -74,7 +84,7 @@ export const Modal: React.FC<ModalProps> = ({
         }
       }
     }
-  }, [onClose]);
+  }, [onClose, dismissDisabled]);
 
   // Keydown listener only — re-running this effect (e.g. when a parent passes
   // an inline onClose whose identity changes every render) has no side effect
@@ -130,7 +140,7 @@ export const Modal: React.FC<ModalProps> = ({
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
-        onClick={closeOnBackdropClick ? onClose : undefined}
+        onClick={closeOnBackdropClick && !dismissDisabled ? onClose : undefined}
       />
 
       {/* Modal Content */}
@@ -165,7 +175,7 @@ export const Modal: React.FC<ModalProps> = ({
             ) : (
               <div />
             )}
-            {showCloseButton && (
+            {showCloseButton && !dismissDisabled && (
               <button
                 onClick={onClose}
                 className="p-1.5 rounded-lg hover:bg-muted text-text-tertiary hover:text-text-primary transition-colors cursor-pointer"
