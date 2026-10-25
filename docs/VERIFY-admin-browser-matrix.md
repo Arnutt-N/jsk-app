@@ -9,6 +9,7 @@ Goal: record real browser results for every admin route before any fix lands. Ea
 ตาม `docs/PRP-admin-browser-verification.md` Task 2–5 — สเปกเปล่ารอที่ `frontend/e2e/admin-audit-verify/`
 
 P1 ที่พังจริงตามโค้ดและเส้นทางที่เกี่ยว:
+
 - NAV-01 (ค้นหามือถือ): ทุก route ที่มีแถบบน (`layout.tsx`) — จอ 360px พัง, 1280px ใช้ได้
 - NAV-02 (เมนู/สิทธิ์): `/admin/bookings` สำหรับ AGENT — เมนูโชว์แต่โดน guard เด้งกลับ `/admin/live-chat`
 - SAFE-01 (ออก 2 แบบ): ทุก route (sidebar) vs UserMenu
