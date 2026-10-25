@@ -514,13 +514,13 @@ async def test_apply_twice_converges_and_cleans_up(tmp_path):
                         )
                     ).scalars().all()
                     assert len(resps) == 1
-                    assert "$skn_" in resps[0].text_content or tag in resps[0].text_content
+                    assert "$jsk_" in resps[0].text_content or tag in resps[0].text_content
         finally:
             async with Session() as db:
                 objs = (
                     await db.execute(
                         select(ReplyObject).where(
-                            ReplyObject.object_id.startswith("$skn_")
+                            ReplyObject.object_id.startswith("$jsk_")
                         )
                     )
                 ).scalars().all()

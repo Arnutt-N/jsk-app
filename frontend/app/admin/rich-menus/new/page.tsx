@@ -7,6 +7,7 @@ import Link from 'next/link';
 import PageHeader from '../../components/PageHeader';
 import { useToast } from '@/components/ui/Toast';
 import { DateTimePickerTH } from '@/components/ui/DateTimePickerTH';
+import { Select } from '@/components/ui/Select';
 import { logger } from '@/lib/logger';
 import { readErrorMessage } from '@/lib/api-error';
 import { ensureRichMenuImage, parseSyncResult, RichMenuDisplayMode } from '@/lib/rich-menu';
@@ -513,8 +514,8 @@ export default function NewRichMenuPage() {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                             {selectedTemplate?.item.areas.map((area: TemplateArea, i: number) => (
-                                <div key={area.id} className="p-4 bg-slate-50/50 rounded-2xl border border-slate-200/60 space-y-4 hover:border-primary/40 hover:bg-white transition-all duration-300 group">
-                                    <div className="flex justify-between items-center">
+                                <div key={area.id} className="p-5 bg-slate-50/50 rounded-2xl border border-slate-200/60 space-y-4 hover:border-primary/40 hover:bg-white transition-all duration-300 group">
+                                    <div className="flex justify-between items-center gap-3">
                                         <div className="flex items-center gap-2">
                                             <span className="flex items-center justify-center w-6 h-6 rounded-full bg-slate-200 text-slate-600 text-[10px] font-bold group-hover:bg-primary group-hover:text-white transition-all">
                                                 {i + 1}
@@ -523,15 +524,18 @@ export default function NewRichMenuPage() {
                                                 {area.name}
                                             </span>
                                         </div>
-                                        <select
+                                        <Select
+                                            size="sm"
+                                            wrapperClassName="w-auto min-w-[148px] shrink-0"
                                             value={actions[i]?.type || 'uri'}
                                             onChange={(e) => handleActionChange(i, 'type', e.target.value)}
-                                            className="text-xs bg-white border border-slate-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-primary/20 outline-none cursor-pointer"
-                                        >
-                                            <option value="uri">Open URL</option>
-                                            <option value="message">Send Msg</option>
-                                            <option value="richmenuswitch">สลับเมนู</option>
-                                        </select>
+                                            aria-label={`ประเภทการทำงานของพื้นที่ ${area.name}`}
+                                            options={[
+                                                { value: 'uri', label: 'Open URL' },
+                                                { value: 'message', label: 'Send Msg' },
+                                                { value: 'richmenuswitch', label: 'สลับเมนู' },
+                                            ]}
+                                        />
                                     </div>
 
                                     <div className="space-y-3">
@@ -556,28 +560,27 @@ export default function NewRichMenuPage() {
                                                         onChange={(e) => handleActionChange(i, 'text', e.target.value)}
                                                     />
                                                 </div>
-                                                <div className="space-y-1">
+                                                <div className="space-y-1.5">
                                                     <label className="text-[10px] font-bold text-slate-400">SYSTEM OBJECTS</label>
-                                                    <select
-                                                        className="w-full text-sm bg-white border border-slate-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-brand-500/20 outline-none cursor-pointer"
+                                                    <Select
+                                                        aria-label={`เลือกข้อความสำเร็จรูปสำหรับพื้นที่ ${area.name}`}
+                                                        placeholder="-- Quick Select --"
                                                         onChange={(e) => {
                                                             const val = e.target.value;
                                                             if (val.startsWith('intent:')) handleActionChange(i, 'intent_name', val.split(':')[1]);
                                                             else if (val.startsWith('obj:')) handleActionChange(i, 'object_id', val.split(':')[1]);
                                                         }}
-                                                    >
-                                                        <option value="">-- Quick Select --</option>
-                                                        <optgroup label="Auto Replies">
-                                                            {autoReplies.map(cat => (
-                                                                <option key={cat.id} value={`intent:${cat.name}`}>{cat.name}</option>
-                                                            ))}
-                                                        </optgroup>
-                                                        <optgroup label="Reply Objects">
-                                                            {replyObjects.map(obj => (
-                                                                <option key={obj.id} value={`obj:${obj.object_id}`}>{obj.name}</option>
-                                                            ))}
-                                                        </optgroup>
-                                                    </select>
+                                                        groups={[
+                                                            {
+                                                                label: 'Auto Replies',
+                                                                options: autoReplies.map(cat => ({ value: `intent:${cat.name}`, label: cat.name })),
+                                                            },
+                                                            {
+                                                                label: 'Reply Objects',
+                                                                options: replyObjects.map(obj => ({ value: `obj:${obj.object_id}`, label: obj.name })),
+                                                            },
+                                                        ]}
+                                                    />
                                                 </div>
                                             </div>
                                         )}
@@ -592,16 +595,13 @@ export default function NewRichMenuPage() {
                                                         </Link>
                                                     </p>
                                                 ) : (
-                                                    <select
-                                                        className="w-full text-sm bg-white border border-slate-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-primary/20 outline-none cursor-pointer"
+                                                    <Select
+                                                        aria-label={`เลือก alias ปลายทางสำหรับพื้นที่ ${area.name}`}
+                                                        placeholder="-- เลือก alias --"
                                                         value={actions[i]?.richMenuAliasId || ''}
                                                         onChange={(e) => handleActionChange(i, 'richMenuAliasId', e.target.value)}
-                                                    >
-                                                        <option value="">-- เลือก alias --</option>
-                                                        {aliases.map((a) => (
-                                                            <option key={a.id} value={a.alias_id}>{a.alias_id}</option>
-                                                        ))}
-                                                    </select>
+                                                        options={aliases.map((a) => ({ value: a.alias_id, label: a.alias_id }))}
+                                                    />
                                                 )}
                                             </div>
                                         )}

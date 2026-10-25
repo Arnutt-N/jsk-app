@@ -118,7 +118,7 @@ export default function AuditLogPage() {
     ...Object.keys(stats?.action_breakdown ?? {}).sort((a, b) => a.localeCompare(b)).map((a) => ({ value: a, label: a })),
   ];
   const resourceOptions: SelectOption[] = [
-    { value: "", label: "ทุกประเภท" },
+    { value: "", label: "ทุกประเภททรัพยากร" },
     ...Object.keys(stats?.resource_breakdown ?? {}).sort((a, b) => a.localeCompare(b)).map((r) => ({ value: r, label: r })),
   ];
   const hasActiveFilter = filter.action !== "" || filter.resource_type !== "" || datePreset !== '30d' || customStart !== '' || customEnd !== '';
@@ -147,6 +147,15 @@ export default function AuditLogPage() {
   const totalPages = Math.ceil(total / limit);
   const currentPage = Math.floor(offset / limit) + 1;
 
+  // Ranked breakdowns for the summary cards: top 3 rows each so all
+  // three cards stay the same height regardless of data volume.
+  const rankedActions = Object.entries(stats?.action_breakdown ?? {}).sort((a, b) => b[1] - a[1]);
+  const topActions = rankedActions.slice(0, 3);
+  const remainingActions = rankedActions.length - topActions.length;
+  const rankedResources = Object.entries(stats?.resource_breakdown ?? {}).sort((a, b) => b[1] - a[1]);
+  const topResources = rankedResources.slice(0, 3);
+  const remainingResources = rankedResources.length - topResources.length;
+
   return (
     <div className="space-y-6">
       <PageHeader title="Audit Logs">
@@ -167,60 +176,79 @@ export default function AuditLogPage() {
 
       {/* Stats Cards */}
       {stats && (
-        <StaggerContainer className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <StaggerItem>
-          <Card>
+        <StaggerContainer className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-stretch">
+          <StaggerItem className="h-full">
+          <Card className="h-full flex flex-col">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-text-tertiary">
                 Total Actions
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex-1">
               <div className="text-2xl font-bold">{stats.total_actions}</div>
+              <p className="mt-1 text-xs text-text-tertiary">
+                ในช่วง {stats.period_days} วัน · เฉลี่ย {stats.period_days > 0 ? Math.round(stats.total_actions / stats.period_days) : stats.total_actions} รายการ/วัน
+              </p>
             </CardContent>
           </Card>
           </StaggerItem>
 
-          <StaggerItem>
-          <Card>
+          <StaggerItem className="h-full">
+          <Card className="h-full flex flex-col">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-text-tertiary">
                 Top Actions
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-1">
-                {Object.entries(stats.action_breakdown)
-                  .sort((a, b) => b[1] - a[1])
-                  .slice(0, 5)
-                  .map(([action, count]) => (
-                    <Badge key={action} variant="secondary" className="text-xs">
-                      {action}: {count}
-                    </Badge>
+            <CardContent className="flex-1">
+              {topActions.length === 0 ? (
+                <p className="text-xs text-text-tertiary">ไม่มีข้อมูลในช่วงนี้</p>
+              ) : (
+                <ol className="space-y-1.5">
+                  {topActions.map(([action, count], idx) => (
+                    <li key={action} className="flex items-center justify-between gap-2 rounded-lg bg-bg px-2.5 py-1.5 text-xs">
+                      <span className="flex min-w-0 items-center gap-2">
+                        <span className="font-bold text-text-tertiary">{idx + 1}.</span>
+                        <span className="truncate font-medium text-text-primary" title={action}>{action}</span>
+                      </span>
+                      <Badge variant="secondary" className="shrink-0">{count}</Badge>
+                    </li>
                   ))}
-              </div>
+                </ol>
+              )}
+              {remainingActions > 0 && (
+                <p className="mt-1.5 text-[11px] text-text-tertiary">+ อีก {remainingActions} รายการ</p>
+              )}
             </CardContent>
           </Card>
           </StaggerItem>
 
-          <StaggerItem>
-          <Card>
+          <StaggerItem className="h-full">
+          <Card className="h-full flex flex-col">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-text-tertiary">
                 By Resource Type
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-1">
-                {Object.entries(stats.resource_breakdown)
-                  .sort((a, b) => b[1] - a[1])
-                  .slice(0, 5)
-                  .map(([type, count]) => (
-                    <Badge key={type} variant="secondary" className="text-xs">
-                      {type}: {count}
-                    </Badge>
+            <CardContent className="flex-1">
+              {topResources.length === 0 ? (
+                <p className="text-xs text-text-tertiary">ไม่มีข้อมูลในช่วงนี้</p>
+              ) : (
+                <ol className="space-y-1.5">
+                  {topResources.map(([type, count], idx) => (
+                    <li key={type} className="flex items-center justify-between gap-2 rounded-lg bg-bg px-2.5 py-1.5 text-xs">
+                      <span className="flex min-w-0 items-center gap-2">
+                        <span className="font-bold text-text-tertiary">{idx + 1}.</span>
+                        <span className="truncate font-medium text-text-primary" title={type}>{type}</span>
+                      </span>
+                      <Badge variant="secondary" className="shrink-0">{count}</Badge>
+                    </li>
                   ))}
-              </div>
+                </ol>
+              )}
+              {remainingResources > 0 && (
+                <p className="mt-1.5 text-[11px] text-text-tertiary">+ อีก {remainingResources} รายการ</p>
+              )}
             </CardContent>
           </Card>
           </StaggerItem>
@@ -237,7 +265,7 @@ export default function AuditLogPage() {
               setOffset(0);
             }}
             options={actionOptions}
-            placeholder="กรองตามการกระทำ..."
+            aria-label="เลือกการกระทำ"
             wrapperClassName="w-full sm:w-48"
           />
           <Select
@@ -247,7 +275,7 @@ export default function AuditLogPage() {
               setOffset(0);
             }}
             options={resourceOptions}
-            placeholder="กรองตามประเภททรัพยากร..."
+            aria-label="เลือกประเภททรัพยากร"
             wrapperClassName="w-full sm:w-48"
           />
           {hasActiveFilter && (

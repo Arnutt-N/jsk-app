@@ -403,9 +403,9 @@ export default function CannedResponsesPage() {
                     </td>
                     <td className="px-5 py-4 text-center">
                       <div className="flex flex-col items-center gap-2">
-                        <Badge variant={(row.is_active ?? true) ? 'success' : 'gray'} size="sm" className="thai-no-break">
+                        <span className="text-xs font-medium text-text-secondary thai-no-break">
                           {(row.is_active ?? true) ? 'ใช้งานอยู่' : 'ปิดใช้งาน'}
-                        </Badge>
+                        </span>
                         <ViewerHide>
                           <Switch
                             checked={row.is_active ?? true}
@@ -462,14 +462,9 @@ export default function CannedResponsesPage() {
           { label: 'ชื่อ', value: viewRow.title },
           { label: 'ข้อความ', value: <span className="whitespace-pre-wrap">{viewRow.content}</span> },
           {
-            label: 'สถานะ',
+            label: 'หมวดหมู่',
             value: (
-              <span className="flex items-center gap-2">
-                <Badge variant="secondary" size="sm">{CATEGORY_LABEL[viewRow.category] ?? viewRow.category}</Badge>
-                <Badge variant={(viewRow.is_active ?? true) ? 'success' : 'gray'} size="sm">
-                  {(viewRow.is_active ?? true) ? 'ใช้งานอยู่' : 'ปิดใช้งาน'}
-                </Badge>
-              </span>
+              <Badge variant="secondary" size="sm">{CATEGORY_LABEL[viewRow.category] ?? viewRow.category}</Badge>
             ),
           },
         ] : []}
