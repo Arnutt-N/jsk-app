@@ -1,8 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import type { DateRange } from 'react-day-picker';
-import { DEFAULT_RANGE_DAYS, defaultDateRange, isDefaultRange, toYMD } from '@/lib/date-range';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
@@ -11,7 +9,8 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import type { TrendValue } from '@/components/ui/TrendBadge';
 import StatsCard from '../components/StatsCard';
 import PageHeader from '@/app/admin/components/PageHeader';
-import { DateRangePicker, standardDatePresets } from '@/components/ui/DateRangePicker';
+import { DatePresetFilter } from '@/components/admin/DatePresetFilter';
+import { resolveDateRangeWithFallback } from '@/lib/date-range';
 import { formatDuration } from '@/lib/format';
 import { getStatusLabel } from '@/lib/constants/request-status';
 import {
@@ -42,7 +41,6 @@ import {
   Clock,
   TrendingUp,
   Calendar,
-  RotateCcw,
 } from 'lucide-react';
 import { apiFetch } from '@/lib/api-error';
 import { ViewerHide } from '@/components/admin/ViewerHide';
@@ -194,7 +192,9 @@ function ExportButton({
 
 export default function ReportsPage() {
   const [activeTab, setActiveTab] = useState('overview');
-  const [range, setRange] = useState<DateRange | undefined>(() => defaultDateRange());
+  const [datePreset, setDatePreset] = useState('30d');
+  const [customStart, setCustomStart] = useState('');
+  const [customEnd, setCustomEnd] = useState('');
   const [period, setPeriod] = useState<Period>('daily');
   const [loading, setLoading] = useState(false);
 
@@ -206,11 +206,8 @@ export default function ReportsPage() {
   const [folReport, setFolReport] = useState<FollowersReport | null>(null);
 
   const { start: startDate, end: endDate } = useMemo(() => {
-    const to = new Date();
-    const from = range?.from ?? defaultDateRange().from;
-    const end = range?.to ?? range?.from ?? to;
-    return { start: toYMD(from), end: toYMD(end) };
-  }, [range]);
+    return resolveDateRangeWithFallback(datePreset, customStart, customEnd);
+  }, [datePreset, customStart, customEnd]);
 
   const fetchTab = useCallback(
     async (tab: string) => {
@@ -259,28 +256,17 @@ export default function ReportsPage() {
   // Render Helpers
   // ---------------------------------------------------------------------------
 
-  const hasActiveDateFilter = !isDefaultRange(range) || period !== 'daily';
-
-  const clearDateFilters = () => {
-    setRange(defaultDateRange());
-    setPeriod('daily');
-  };
-
   const renderDateSelector = () => (
-    <div className="flex items-center gap-2 flex-wrap">
-      <DateRangePicker value={range} presets={standardDatePresets} onChange={(r) => setRange(r)} />
-      {hasActiveDateFilter && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={clearDateFilters}
-          leftIcon={<RotateCcw className="w-4 h-4" />}
-          className="text-xs"
-        >
-          ล้างตัวกรอง
-        </Button>
-      )}
-    </div>
+    <DatePresetFilter
+      preset={datePreset}
+      customStart={customStart}
+      customEnd={customEnd}
+      onPresetChange={setDatePreset}
+      onCustomStartChange={setCustomStart}
+      onCustomEndChange={setCustomEnd}
+      showClear={datePreset !== '30d' || customStart !== '' || customEnd !== '' || period !== 'daily'}
+      onClear={() => { setDatePreset('30d'); setCustomStart(''); setCustomEnd(''); setPeriod('daily'); }}
+    />
   );
 
   const renderPeriodSelector = () => (

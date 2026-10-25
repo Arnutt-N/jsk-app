@@ -1,9 +1,8 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { format, subDays } from 'date-fns';
 import {
   Eye,
   MousePointerClick,
@@ -24,10 +23,10 @@ import {
   Tooltip,
   Legend,
 } from 'recharts';
-import type { DateRange } from 'react-day-picker';
 import PageHeader from '@/app/admin/components/PageHeader';
 import StatsCard from '@/app/admin/components/StatsCard';
-import { DateRangePicker } from '@/components/ui/DateRangePicker';
+import { DatePresetFilter } from '@/components/admin/DatePresetFilter';
+import { INSIGHT_DATE_PRESETS, resolveDateRangeWithFallback } from '@/lib/date-range';
 import { Card } from '@/components/ui/Card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
@@ -72,18 +71,6 @@ interface InsightDaily {
 
 const BOUND_COLORS = ['#6366f1', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#06b6d4'];
 
-const insightPresets = [
-  { label: '7 วัน', days: 7 },
-  { label: '14 วัน', days: 14 },
-  { label: '30 วัน', days: 30 },
-  { label: '60 วัน', days: 60 },
-  { label: '90 วัน', days: 90 },
-];
-
-function formatYyyymmdd(d: Date): string {
-  return format(d, 'yyyyMMdd');
-}
-
 function formatDisplayDate(yyyymmdd: string): string {
   if (yyyymmdd.length !== 8) return yyyymmdd;
   return `${yyyymmdd.slice(6, 8)}/${yyyymmdd.slice(4, 6)}`;
@@ -97,17 +84,19 @@ export default function RichMenuInsightsPage() {
   const [summary, setSummary] = useState<InsightSummary | null>(null);
   const [daily, setDaily] = useState<InsightDaily | null>(null);
   const [loading, setLoading] = useState(true);
-  const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: subDays(new Date(), 30),
-    to: new Date(),
-  });
+  const [datePreset, setDatePreset] = useState('30d');
+  const [customStart, setCustomStart] = useState('');
+  const [customEnd, setCustomEnd] = useState('');
+
+  const dateRange = useMemo(() => {
+    return resolveDateRangeWithFallback(datePreset, customStart, customEnd, INSIGHT_DATE_PRESETS);
+  }, [datePreset, customStart, customEnd]);
 
   const fetchInsights = useCallback(async () => {
-    if (!dateRange?.from || !dateRange?.to) return;
     setLoading(true);
 
-    const from = formatYyyymmdd(dateRange.from);
-    const to = formatYyyymmdd(dateRange.to);
+    const from = dateRange.start.replaceAll('-', '');
+    const to = dateRange.end.replaceAll('-', '');
 
     try {
       const [summaryRes, dailyRes] = await Promise.all([
@@ -167,10 +156,16 @@ export default function RichMenuInsightsPage() {
     <div className="space-y-6 animate-in fade-in duration-500 thai-text">
       <PageHeader title="สถิติ Rich Menu" subtitle="ข้อมูลการใช้งานจาก LINE Insight API">
         <div className="flex items-center gap-3">
-          <DateRangePicker
-            value={dateRange}
-            onChange={setDateRange}
-            presets={insightPresets}
+          <DatePresetFilter
+            preset={datePreset}
+            customStart={customStart}
+            customEnd={customEnd}
+            onPresetChange={setDatePreset}
+            onCustomStartChange={setCustomStart}
+            onCustomEndChange={setCustomEnd}
+            presets={INSIGHT_DATE_PRESETS}
+            showClear={datePreset !== '30d' || customStart !== '' || customEnd !== ''}
+            onClear={() => { setDatePreset('30d'); setCustomStart(''); setCustomEnd(''); }}
           />
           <Link
             href="/admin/rich-menus"

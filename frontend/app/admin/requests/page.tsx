@@ -36,6 +36,8 @@ import { AssignModal } from '@/components/admin/AssignModal';
 import { ActionIconButton } from '@/components/ui/ActionIconButton';
 import PageHeader from '@/app/admin/components/PageHeader';
 import { StaggerContainer, StaggerItem } from '@/components/ui/PageTransition';
+import { DatePresetButtons } from '@/components/admin/DatePresetFilter';
+import { STANDARD_DATE_PRESETS, presetOptionToDates } from '@/lib/date-range';
 import {
     type RequestStatus,
     STATUS_OPTIONS,
@@ -109,6 +111,7 @@ export default function AdminRequestList() {
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [dateRangeError, setDateRangeError] = useState<string | null>(null);
+    const [datePreset, setDatePreset] = useState<string | null>(null);
 
     const fetchRequests = useCallback(async () => {
         if (filter.startDate && filter.endDate && filter.startDate > filter.endDate) {
@@ -280,6 +283,22 @@ export default function AdminRequestList() {
 
                             {/* Date Range Filter Row */}
                             <div className="mt-4 pt-4 border-t border-border-default flex flex-wrap items-center gap-4">
+                                <DatePresetButtons
+                                    preset={datePreset}
+                                    onPresetChange={(key) => {
+                                        setDatePreset(key);
+                                        setDateRangeError(null);
+                                        if (key === 'custom') {
+                                            setFilter(prev => ({ ...prev, startDate: '', endDate: '' }));
+                                        } else {
+                                            const opt = STANDARD_DATE_PRESETS.find((p) => p.key === key);
+                                            if (opt) {
+                                                const { start, end } = presetOptionToDates(opt);
+                                                setFilter(prev => ({ ...prev, startDate: start, endDate: end }));
+                                            }
+                                        }
+                                    }}
+                                />
                                 <div className="flex w-full items-center gap-2 sm:w-auto">
                                     <span className="text-xs font-medium text-text-secondary whitespace-nowrap">จากวันที่:</span>
                                     <div className="w-full sm:w-auto">
@@ -288,6 +307,7 @@ export default function AdminRequestList() {
                                             value={filter.startDate ? new Date(`${filter.startDate}T00:00:00`).toISOString() : null}
                                             onChange={(iso) => {
                                                 setDateRangeError(null);
+                                                setDatePreset(null);
                                                 setFilter(prev => ({ ...prev, startDate: iso ? isoToYMD(iso) : '' }));
                                             }}
                                         />
@@ -301,6 +321,7 @@ export default function AdminRequestList() {
                                             value={filter.endDate ? new Date(`${filter.endDate}T00:00:00`).toISOString() : null}
                                             onChange={(iso) => {
                                                 setDateRangeError(null);
+                                                setDatePreset(null);
                                                 setFilter(prev => ({ ...prev, endDate: iso ? isoToYMD(iso) : '' }));
                                             }}
                                         />
@@ -312,6 +333,7 @@ export default function AdminRequestList() {
                                         size="sm"
                                         onClick={() => {
                                             setDateRangeError(null);
+                                            setDatePreset(null);
                                             setFilter(prev => ({ ...prev, startDate: '', endDate: '' }));
                                         }}
                                         className="text-xs text-text-tertiary hover:text-text-primary"

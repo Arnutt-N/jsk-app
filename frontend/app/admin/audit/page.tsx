@@ -1,14 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import type { DateRange } from "react-day-picker";
-import { defaultDateRange, isDefaultRange, toYMD } from "@/lib/date-range";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Select, type SelectOption } from "@/components/ui/Select";
-import { DateRangePicker, standardDatePresets } from "@/components/ui/DateRangePicker";
-import { RefreshCw, ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
+import { DatePresetFilter } from "@/components/admin/DatePresetFilter";
+import { resolveDateRangeWithFallback } from "@/lib/date-range";
+import { RefreshCw, Calendar, ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
 import { StaggerContainer, StaggerItem } from "@/components/ui/PageTransition";
 import PageHeader from "../components/PageHeader";
 import { logger } from '@/lib/logger';
@@ -61,11 +60,17 @@ export default function AuditLogPage() {
   const [total, setTotal] = useState(0);
   const [offset, setOffset] = useState(0);
   const [limit] = useState(50);
-  const [range, setRange] = useState<DateRange | undefined>(() => defaultDateRange());
+  const [datePreset, setDatePreset] = useState('30d');
+  const [customStart, setCustomStart] = useState('');
+  const [customEnd, setCustomEnd] = useState('');
   const [filter, setFilter] = useState({
     action: "",
     resource_type: ""
   });
+
+  const { start: startDate, end: endDate } = useMemo(() => {
+    return resolveDateRangeWithFallback(datePreset, customStart, customEnd);
+  }, [datePreset, customStart, customEnd]);
 
   const fetchLogs = useCallback(async () => {
     setLoading(true);
@@ -75,12 +80,10 @@ export default function AuditLogPage() {
         offset: String(offset),
       });
       const statsParams = new URLSearchParams();
-      if (range?.from) {
-        params.append("start_date", toYMD(range.from));
-        params.append("end_date", toYMD(range.to ?? range.from));
-        statsParams.append("start_date", toYMD(range.from));
-        statsParams.append("end_date", toYMD(range.to ?? range.from));
-      }
+      params.append("start_date", startDate);
+      params.append("end_date", endDate);
+      statsParams.append("start_date", startDate);
+      statsParams.append("end_date", endDate);
       if (filter.action) params.append("action", filter.action);
       if (filter.resource_type) params.append("resource_type", filter.resource_type);
 
@@ -104,7 +107,7 @@ export default function AuditLogPage() {
     } finally {
       setLoading(false);
     }
-  }, [range, filter.action, filter.resource_type, limit, offset]);
+  }, [startDate, endDate, filter.action, filter.resource_type, limit, offset]);
 
   useEffect(() => {
     fetchLogs();
@@ -118,13 +121,28 @@ export default function AuditLogPage() {
     { value: "", label: "ทุกประเภท" },
     ...Object.keys(stats?.resource_breakdown ?? {}).sort((a, b) => a.localeCompare(b)).map((r) => ({ value: r, label: r })),
   ];
-  const hasActiveFilter = filter.action !== "" || filter.resource_type !== "" || !isDefaultRange(range);
+  const hasActiveFilter = filter.action !== "" || filter.resource_type !== "" || datePreset !== '30d' || customStart !== '' || customEnd !== '';
 
   const clearFilters = () => {
     setFilter({ action: "", resource_type: "" });
-    setRange(defaultDateRange());
+    setDatePreset('30d');
+    setCustomStart('');
+    setCustomEnd('');
     setOffset(0);
   };
+
+  const renderDateSelector = () => (
+    <DatePresetFilter
+      preset={datePreset}
+      customStart={customStart}
+      customEnd={customEnd}
+      onPresetChange={(key) => { setDatePreset(key); setOffset(0); }}
+      onCustomStartChange={(v) => { setCustomStart(v); setOffset(0); }}
+      onCustomEndChange={(v) => { setCustomEnd(v); setOffset(0); }}
+      showClear={datePreset !== '30d' || customStart !== '' || customEnd !== '' || filter.action !== '' || filter.resource_type !== ''}
+      onClear={clearFilters}
+    />
+  );
 
   const totalPages = Math.ceil(total / limit);
   const currentPage = Math.floor(offset / limit) + 1;
@@ -132,13 +150,9 @@ export default function AuditLogPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Audit Logs">
-        <div className="flex flex-wrap items-center gap-2">
-          <DateRangePicker value={range} presets={standardDatePresets} onChange={(r) => { setRange(r); setOffset(0); }} />
-          {hasActiveFilter && (
-            <Button variant="ghost" size="sm" onClick={clearFilters} leftIcon={<RotateCcw className="w-4 h-4" />}>
-              ล้างตัวกรอง
-            </Button>
-          )}
+        <div className="flex items-center gap-2">
+          <Calendar className="w-4 h-4 text-text-tertiary" />
+          {renderDateSelector()}
         </div>
         <Button
           variant="outline"
