@@ -177,7 +177,6 @@ function SidebarUserInfo({ isCollapsed }: { isCollapsed: boolean }) {
 function AdminShell({ children }: { children: React.ReactNode }) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [adminLocale, setAdminLocale] = useState<AdminLocale>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('jsk-admin-locale');
@@ -401,26 +400,14 @@ function AdminShell({ children }: { children: React.ReactNode }) {
                   <Menu className="w-5 h-5" />
                 </button>
 
-                {isMobileSearchOpen ? (
-                  <div className="md:hidden flex items-center bg-muted/50 rounded-xl px-3 py-2 border border-border-default focus-within:ring-2 focus-within:ring-brand-100 transition-all w-full max-w-xs">
-                    <Search className="w-4 h-4 text-sidebar-text-muted mr-2 flex-shrink-0" />
-                    <input
-                      type="text"
-                      placeholder="ค้นหา..."
-                      className="bg-transparent text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none w-full"
-                      autoFocus
-                      onBlur={() => setIsMobileSearchOpen(false)}
-                    />
-                  </div>
-                ) : (
-                  <button
-                    className="md:hidden p-2 bg-surface rounded-xl shadow-sm border border-border-default text-text-secondary hover:text-brand-600 transition-colors cursor-pointer"
-                    aria-label="Search"
-                    onClick={() => setIsMobileSearchOpen(true)}
-                  >
-                    <Search className="w-5 h-5" />
-                  </button>
-                )}
+                {/* Mobile search opens the same command palette as desktop — one search path for every viewport. */}
+                <button
+                  className="md:hidden p-2 bg-surface rounded-xl shadow-sm border border-border-default text-text-secondary hover:text-brand-600 transition-colors cursor-pointer"
+                  aria-label="Search"
+                  onClick={() => document.dispatchEvent(new Event('jsk:open-command-palette'))}
+                >
+                  <Search className="w-5 h-5" />
+                </button>
 
                 {/* Command palette trigger — opens ⌘K */}
                 <button

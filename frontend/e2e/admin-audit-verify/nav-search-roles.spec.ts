@@ -7,27 +7,22 @@ const EVIDENCE = '../.audit/browser-verify'
 // Dev-server compiles make first hits slow; fail loudly instead of retrying.
 test.describe.configure({ timeout: 90_000 })
 
-test.describe('NAV-01 mobile search is a dead input', () => {
+test.describe('NAV-01 mobile search opens the shared palette', () => {
   test.use({ viewport: { width: 360, height: 800 } })
 
-  test('typing + Enter navigates nowhere and shows no results', async ({ page }) => {
+  test('typing + selecting a result navigates like desktop', async ({ page }) => {
     await loginAsAdmin(page)
     await page.goto('/admin')
 
     await page.locator('button[aria-label="Search"]').click()
-    const deadInput = page.getByPlaceholder('ค้นหา...')
-    await expect(deadInput).toBeVisible()
+    const palette = page.getByRole('dialog', { name: 'Command palette' })
+    await expect(palette).toBeVisible()
 
-    const urlBefore = page.url()
-    await deadInput.fill('test-query-xyz')
-    await deadInput.press('Enter')
-    await page.waitForTimeout(500)
-
-    // The input wires no change/submit handler, so nothing may navigate
-    // and no result surface may appear.
-    expect(page.url()).toBe(urlBefore)
-    await expect(page.getByRole('dialog')).toHaveCount(0)
-    await page.screenshot({ path: `${EVIDENCE}/nav-01-mobile-dead-input.png` })
+    await palette.getByPlaceholder('ค้นหาหน้า การดำเนินการ หรือการตั้งค่า...').fill('reports')
+    await palette.getByRole('option').first().click()
+    // Cold dev-server compile of the target route can exceed 15s on first hit.
+    await page.waitForURL(/\/admin\/reports/, { timeout: 60_000 })
+    await page.screenshot({ path: `${EVIDENCE}/nav-01-mobile-palette-fixed.png` })
   })
 })
 
@@ -54,7 +49,8 @@ test.describe('NAV-02 AGENT role sees Appointments but cannot stay there', () =>
     }
     await loginAs(page, 'staff', password)
     await page.goto('/admin', { waitUntil: 'domcontentloaded' })
-    await page.waitForURL(/\/admin\/live-chat/, { timeout: 15_000 })
+    // Cold dev-server compile of the redirect chain can exceed 15s on first hit.
+    await page.waitForURL(/\/admin\/live-chat/, { timeout: 60_000 })
     await page.screenshot({ path: `${EVIDENCE}/nav-02-agent-console.png` })
 
     // The AGENT console carries no admin sidebar at all, so there is no
@@ -64,7 +60,7 @@ test.describe('NAV-02 AGENT role sees Appointments but cannot stay there', () =>
 
     // Direct navigation hits the same guard and snaps back.
     await page.goto('/admin/bookings', { waitUntil: 'domcontentloaded', timeout: 25_000 })
-    await page.waitForURL(/\/admin\/live-chat/, { timeout: 15_000 })
+    await page.waitForURL(/\/admin\/live-chat/, { timeout: 60_000 })
     await page.screenshot({ path: `${EVIDENCE}/nav-02-agent-snapped-back.png` })
   })
 })
