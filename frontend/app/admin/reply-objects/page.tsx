@@ -152,7 +152,7 @@ export default function ReplyObjectsPage() {
                                 <div className="flex items-start justify-between mb-4">
                                     <div>
                                         <div className="flex items-center gap-2 mb-1.5">
-                                            <span className="text-brand-600 font-black font-mono text-sm tracking-tighter dark:text-brand-400">${obj.object_id}</span>
+                                            <span className="text-brand-600 font-black font-mono text-sm tracking-tighter dark:text-brand-400">{obj.object_id}</span>
                                         </div>
                                         <h3 className="text-lg font-bold text-text-primary group-hover:text-brand-600 transition-colors tracking-tight">{obj.name}</h3>
                                     </div>
@@ -234,7 +234,7 @@ export default function ReplyObjectsPage() {
                             <tbody className="divide-y divide-border-subtle">
                                 {objects.map((obj) => (
                                     <tr key={obj.id} className="hover:bg-bg/50 transition-colors">
-                                        <td className="px-5 py-3"><span className="font-mono font-semibold text-brand-600 dark:text-brand-400 text-sm thai-no-break">${obj.object_id}</span></td>
+                                        <td className="px-5 py-3"><span className="font-mono font-semibold text-brand-600 dark:text-brand-400 text-sm thai-no-break">{obj.object_id}</span></td>
                                         <td className="px-5 py-3 font-medium text-text-primary">{obj.name}</td>
                                         <td className="px-5 py-3 text-center"><span className="text-[10px] font-bold uppercase tracking-widest text-text-secondary">{obj.object_type}</span></td>
                                         <td className="px-5 py-3 text-sm text-text-tertiary">{obj.category || '-'}</td>
@@ -287,7 +287,7 @@ export default function ReplyObjectsPage() {
                 open={viewObj !== null}
                 onClose={() => setViewObj(null)}
                 rows={viewObj ? [
-                    { label: 'รหัส', value: <span className="font-mono font-semibold text-brand-600 dark:text-brand-400">${viewObj.object_id}</span> },
+                    { label: 'รหัส', value: <span className="font-mono font-semibold text-brand-600 dark:text-brand-400">{viewObj.object_id}</span> },
                     { label: 'ชื่อ', value: viewObj.name },
                     { label: 'ประเภท', value: <span className="uppercase">{viewObj.object_type}</span> },
                     { label: 'หมวดหมู่', value: viewObj.category || '-' },

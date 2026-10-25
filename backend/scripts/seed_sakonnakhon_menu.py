@@ -2,7 +2,7 @@
 
 Source: SakonNakhonBot `menu.gs` (imagemap 1040x701, 6 message actions) and
 `quickReply.gs` (website / facebook / cancel). Idempotent: re-running updates
-in place (natural keys `$skn_menu`, `$skn_social`, `sakonnakhon/menu.jpg`).
+in place (natural keys `$jsk_menu`, `$jsk_social`, `sakonnakhon/menu.jpg`).
 
 Usage:
   python -m scripts.seed_sakonnakhon_menu --apply   # download + write
@@ -15,8 +15,8 @@ import argparse
 import asyncio
 
 MENU_IMAGE_URL = "https://i.imgur.com/AOtbh61.jpg"
-MENU_OBJECT_ID = "$skn_menu"
-SOCIAL_OBJECT_ID = "$skn_social"
+MENU_OBJECT_ID = "$jsk_menu"
+SOCIAL_OBJECT_ID = "$jsk_social"
 MENU_FILENAME = "sakonnakhon/menu.jpg"
 MENU_ALT = "เมนูบริการสำนักงานยุติธรรมจังหวัดสกลนคร"
 
@@ -196,19 +196,19 @@ async def run(*, apply: bool) -> int:
 
             _, s1 = await _upsert_object(
                 db, ReplyObject, object_id=MENU_OBJECT_ID,
-                name="SKN 6-zone service menu (legacy imagemap)",
+                name="JSK 6-zone service menu (legacy imagemap)",
                 object_type=ObjectType.IMAGEMAP,
                 payload=build_menu_payload(base_url), alt_text=MENU_ALT,
             )
             _, s2 = await _upsert_object(
                 db, ReplyObject, object_id=SOCIAL_OBJECT_ID,
-                name="SKN social quick reply (legacy)",
+                name="JSK social quick reply (legacy)",
                 object_type=ObjectType.TEXT,
                 payload=build_social_payload(), alt_text=SOCIAL_TEXT,
             )
             await db.commit()
-            print(f"Objects: $skn_menu={s1}, $skn_social={s2}")
-            print("Reference from answers as $skn_menu / $skn_social.")
+            print(f"Objects: $jsk_menu={s1}, $jsk_social={s2}")
+            print("Reference from answers as $jsk_menu / $jsk_social.")
             return 0
     finally:
         await engine.dispose()

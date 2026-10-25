@@ -11,7 +11,7 @@ Identity without schema changes (natural keys):
   categories  -> exact name (marked "source: sakonnakhon" in description)
   keywords    -> (category_id, keyword)
   responses   -> the single active response of a pack category (update in place)
-  objects     -> object_id "$skn_<12hex of group key>"
+  objects     -> object_id "$jsk_<12hex of group key>"
   media       -> filename "sakonnakhon/<slug>.<ext>"
   settings    -> key (WELCOME_TEMPLATE, ZERO_HANDOFF_ENABLED)
 
@@ -148,7 +148,7 @@ def load_rows(source: Path) -> list[dict]:
         sample = fh.read(4096)
         fh.seek(0)
         try:
-            dialect = csv.Sniffer().sniff(sample, delimiters=[",", ";"])
+            dialect = csv.Sniffer().sniff(sample, delimiters=",;")
         except csv.Error:
             dialect = csv.excel
         # The sniffer misdetects quoting on Thai text with stray `"`
@@ -487,12 +487,12 @@ async def apply_plan(plan: ImportPlan, db, *, source_label: str = "",
 
         object_id: str | None = None
         if group.image_type == "flex_carousel" and group.image_urls:
-            object_id = f"$skn_{group.slug}"
+            object_id = f"$jsk_{group.slug}"
             payload = build_flex_carousel_payload(group)
             _, status = await _upsert_object(
                 db, ReplyObject,
                 object_id=object_id,
-                name=f"SKN flex carousel: {group.name[:120]}",
+                name=f"JSK flex carousel: {group.name[:120]}",
                 object_type=ObjectType.FLEX,
                 payload=payload,
                 alt_text=group.alt_text,
@@ -504,12 +504,12 @@ async def apply_plan(plan: ImportPlan, db, *, source_label: str = "",
                 report.objects_updated += 1
             report.media_hotlinked += len(group.image_urls)
         elif group.image_type == "carousel" and group.image_urls:
-            object_id = f"$skn_{group.slug}"
+            object_id = f"$jsk_{group.slug}"
             payload = build_template_carousel_payload(group)
             _, status = await _upsert_object(
                 db, ReplyObject,
                 object_id=object_id,
-                name=f"SKN image carousel: {group.name[:120]}",
+                name=f"JSK image carousel: {group.name[:120]}",
                 object_type=ObjectType.TEMPLATE,
                 payload=payload,
                 alt_text=group.alt_text,
@@ -537,12 +537,12 @@ async def apply_plan(plan: ImportPlan, db, *, source_label: str = "",
                 # Fallback payload still points at the external URL: it is a
                 # hotlink (failures additionally land in media_failed).
                 report.media_hotlinked += 1
-            object_id = f"$skn_{group.slug}"
+            object_id = f"$jsk_{group.slug}"
             payload = {"url": hosted_url or url, "preview_url": preview}
             _, status = await _upsert_object(
                 db, ReplyObject,
                 object_id=object_id,
-                name=f"SKN image: {group.name[:120]}",
+                name=f"JSK image: {group.name[:120]}",
                 object_type=ObjectType.IMAGE,
                 payload=payload,
                 alt_text=group.alt_text,
@@ -594,6 +594,8 @@ async def apply_plan(plan: ImportPlan, db, *, source_label: str = "",
     # Stale sweep (pack-owned only, FULL-SYNC ONLY): deactivate marked
     # categories absent from this import. Gated because a partial plan
     # (tests, single-group dev runs) must never retire unseen categories.
+    # Objects match both the current `$jsk_` prefix and the legacy `$skn_`
+    # prefix (pre-rename rows survive until the rename migration runs).
     if full_sync and seen_categories:
         from sqlalchemy import select as _select
 
@@ -620,10 +622,15 @@ async def apply_plan(plan: ImportPlan, db, *, source_label: str = "",
                 for resp in resps:
                     resp.is_active = False
                     report.responses_updated += 1
+        from sqlalchemy import or_ as _or
+
         stale_objs = (
             await db.execute(
                 select(ReplyObject).where(
-                    ReplyObject.object_id.startswith("$skn_"),
+                    _or(
+                        ReplyObject.object_id.startswith("$jsk_"),
+                        ReplyObject.object_id.startswith("$skn_"),
+                    ),
                     ReplyObject.is_active == True,  # noqa: E712
                 )
             )
