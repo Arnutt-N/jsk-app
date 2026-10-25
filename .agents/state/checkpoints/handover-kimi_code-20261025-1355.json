@@ -1,0 +1,16 @@
+{
+  "handoff_version": "2.0",
+  "platform": "kimi_code",
+  "agent": "kimi_code",
+  "timestamp": "2026-10-25T13:55:00+07:00",
+  "branch": "main",
+  "head_commit": "fca08f2",
+  "status": "completed",
+  "work_summary": "Merged PR #299: admin UI polish batch (reply-objects SKN->JSK rename+migration, canned badge removal, rich-menu shared Selects, audit filters+balanced cards); CD green, prod DB migrated",
+  "priority_actions": [
+    "Verify the 5 fixed pages on production from a phone"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/kimi_code/session-summary-20261025-1355.md",
+  "cross_platform_read": []
+}

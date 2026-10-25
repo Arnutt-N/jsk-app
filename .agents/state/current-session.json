@@ -1,13 +1,19 @@
 {
-  "last_updated": "2026-10-25T10:29:00+07:00",
-  "platform": "pi",
-  "current_task": "Merged PR #297 (shared DatePresetFilter on 6 admin pages) + PR #298 (eslint ban on direct DateRangePicker imports)",
+  "last_updated": "2026-10-25T13:55:00+07:00",
+  "platform": "kimi_code",
+  "current_task": "Merged PR #299: admin UI polish batch (reply-objects SKN->JSK rename+migration, canned badge removal, rich-menu shared Selects, audit filters+balanced cards); CD green, prod DB migrated",
   "plan_status": "completed",
   "next_steps": [
-    "Verify Vercel preview of main",
-    "Continue 'correct' skill Class B (noUnusedLocals) if desired"
+    "Verify the 5 fixed pages on production from a phone"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-10-25T13:55:00+07:00",
+      "platform": "kimi_code",
+      "branch": "main",
+      "head": "fca08f2",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-10-25T10:29:00+07:00",
       "platform": "pi",
@@ -139,13 +145,6 @@
       "platform": "pi",
       "branch": "feat/booking-full-option",
       "head": "492070c",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-10-19T15:03:00+07:00",
-      "platform": "pi",
-      "branch": "feat/booking-full-option",
-      "head": "6f76209",
       "status": "completed"
     }
   ],

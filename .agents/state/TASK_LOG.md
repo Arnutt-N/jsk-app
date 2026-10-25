@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 312 active handoffs, 12 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 313 active handoffs, 12 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-10-25 13:55 — kimi_code — completed
+
+Merged PR #299: admin UI polish batch (reply-objects SKN->JSK rename+migration, canned badge removal, rich-menu shared Selects, audit filters+balanced cards); CD green, prod DB migrated
+
+- Checkpoint: `.agents/state/checkpoints/handover-kimi_code-20261025-1355.json`
+- Summary: `project-log-md/kimi_code/session-summary-20261025-1355.md`
+
+---
 
 ### 2026-10-25 10:29 — pi — completed
 
