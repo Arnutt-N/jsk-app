@@ -148,7 +148,7 @@ def load_rows(source: Path) -> list[dict]:
         sample = fh.read(4096)
         fh.seek(0)
         try:
-            dialect = csv.Sniffer().sniff(sample, delimiters=[",", ";"])
+            dialect = csv.Sniffer().sniff(sample, delimiters=",;")
         except csv.Error:
             dialect = csv.excel
         # The sniffer misdetects quoting on Thai text with stray `"`
