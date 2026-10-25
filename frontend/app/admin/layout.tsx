@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
@@ -186,6 +186,9 @@ function SidebarUserInfo({ isCollapsed }: { isCollapsed: boolean }) {
 function AdminShell({ children }: { children: React.ReactNode }) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
+  const menuOpenButtonRef = useRef<HTMLButtonElement>(null);
+  const drawerCloseButtonRef = useRef<HTMLButtonElement>(null);
   const [adminLocale, setAdminLocale] = useState<AdminLocale>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('jsk-admin-locale');
@@ -212,7 +215,9 @@ function AdminShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth < 1024) {
+      const mobile = window.innerWidth < 1024;
+      setIsMobileViewport(mobile);
+      if (mobile) {
         setIsSidebarCollapsed(true);
       } else {
         setIsSidebarCollapsed(false);
@@ -222,6 +227,24 @@ function AdminShell({ children }: { children: React.ReactNode }) {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Mobile drawer accessibility: Escape closes, focus moves in on open
+  // and returns to the menu button on close. inert/aria-hidden apply only
+  // on mobile viewports — on desktop the same aside is the permanent sidebar.
+  const drawerHiddenOnMobile = isMobileViewport && !isMobileMenuOpen;
+  useEffect(() => {
+    if (!isMobileMenuOpen) return;
+    drawerCloseButtonRef.current?.focus();
+    const opener = menuOpenButtonRef.current;
+    const handleDrawerKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsMobileMenuOpen(false);
+    };
+    window.addEventListener('keydown', handleDrawerKey);
+    return () => {
+      window.removeEventListener('keydown', handleDrawerKey);
+      opener?.focus();
+    };
+  }, [isMobileMenuOpen]);
 
   const menuGroups: { title: string; items: MenuItem[] }[] = [
     {
@@ -301,6 +324,8 @@ function AdminShell({ children }: { children: React.ReactNode }) {
 
           {/* Sidebar */}
           <aside
+            inert={drawerHiddenOnMobile}
+            aria-hidden={drawerHiddenOnMobile}
             className={cn(
               'fixed left-0 top-0 z-50 h-full',
               'bg-sidebar-bg text-sidebar-fg',
@@ -315,6 +340,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
 
             {/* Mobile close button */}
             <button
+              ref={drawerCloseButtonRef}
               onClick={() => setIsMobileMenuOpen(false)}
               className="absolute top-4 right-4 z-20 lg:hidden p-1.5 rounded-lg text-sidebar-text-muted hover:text-white hover:bg-white/10 transition-colors"
               aria-label="Close menu"
@@ -402,6 +428,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
             )}>
               <div className="flex items-center gap-4">
                 <button
+                  ref={menuOpenButtonRef}
                   onClick={() => setIsMobileMenuOpen(true)}
                   className="lg:hidden p-2 bg-surface dark:bg-surface-dark rounded-xl shadow-sm border border-border-default text-text-secondary hover:text-brand-600 transition-colors cursor-pointer"
                   aria-label="Open menu"

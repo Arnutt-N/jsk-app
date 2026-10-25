@@ -6,39 +6,35 @@ const EVIDENCE = '../.audit/browser-verify'
 // Dev-server compiles make first hits slow; fail loudly instead of retrying.
 test.describe.configure({ timeout: 90_000 })
 
-test.describe('A11Y-01 mobile drawer focus', () => {
+test.describe('A11Y-01 mobile drawer focus (fixed)', () => {
   test.use({ viewport: { width: 360, height: 800 } })
 
-  test('Tab leaves the drawer and Escape does not close it', async ({ page }) => {
+  test('Tab stays inside the drawer, Escape closes it, focus returns', async ({ page }) => {
     await loginAsAdmin(page)
     await page.goto('/admin')
 
     await page.locator('button[aria-label="Open menu"]').click()
     const drawer = page.locator('aside')
     await expect(drawer).toBeVisible()
+    await expect(page.locator('button[aria-label="Close menu"]')).toBeFocused()
     await page.screenshot({ path: `${EVIDENCE}/a11y-01-drawer-open.png` })
 
-    const escaped: string[] = []
     for (let i = 0; i < 12; i++) {
       await page.keyboard.press('Tab')
-      const focus = await page.evaluate(() => {
-        const el = document.activeElement
+      const inside = await page.evaluate(() => {
         const aside = document.querySelector('aside')
-        const label =
-          el?.getAttribute('aria-label') || el?.textContent?.trim().slice(0, 30) || el?.tagName || 'none'
-        return { label, inside: aside ? aside.contains(el) : false }
+        return aside ? aside.contains(document.activeElement) : false
       })
-      if (!focus.inside) escaped.push(focus.label)
+      expect(inside).toBe(true)
     }
+    await page.screenshot({ path: `${EVIDENCE}/a11y-01-focus-trapped.png` })
 
-    // Pre-fix the drawer traps nothing, so tabbing reaches the page behind it.
-    expect(escaped.length).toBeGreaterThan(0)
-    await page.screenshot({ path: `${EVIDENCE}/a11y-01-focus-escaped.png` })
-
-    // No Escape handler closes the drawer pre-fix.
     await page.keyboard.press('Escape')
-    await page.waitForTimeout(300)
-    await expect(drawer).toBeVisible()
+    await expect.poll(async () => page.evaluate(() => {
+      const aside = document.querySelector('aside')
+      return aside ? aside.getBoundingClientRect().x : 0
+    }), { timeout: 5_000 }).toBeLessThan(0)
+    await expect(page.locator('button[aria-label="Open menu"]')).toBeFocused()
   })
 })
 
