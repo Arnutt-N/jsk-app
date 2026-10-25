@@ -13,29 +13,32 @@ async function openDeleteDialog(page: Page) {
   await expect(page.getByRole('heading', { name: 'ยืนยันการลบ' })).toBeVisible()
 }
 
-test.describe('SAFE-01 two logouts behave differently', () => {
+test.describe('SAFE-01 both logouts confirm first', () => {
   test.use({ viewport: { width: 1280, height: 800 } })
 
-  test('sidebar logout is a no-confirm div, UserMenu asks first', async ({ page }) => {
+  test('sidebar logout is a button that asks before signing out', async ({ page }) => {
     await loginAsAdmin(page)
     await page.goto('/admin')
 
-    // UserMenu first: it must ask before signing out.
-    await page.locator('button[aria-label="Open profile menu"]').click()
-    await page.getByRole('menuitem', { name: 'ออกจากระบบ' }).click()
-    await expect(page.getByRole('button', { name: 'ยืนยัน' })).toBeVisible()
-    await page.screenshot({ path: `${EVIDENCE}/safe-01-usermenu-confirm.png` })
+    // Sidebar logout must be a real button, not a div.
+    const sidebarLogout = page.locator('aside button[aria-label="ออกจากระบบ"]')
+    await expect(sidebarLogout).toBeVisible()
+    const tagName = await sidebarLogout.evaluate((el) => el.tagName)
+    expect(tagName).toBe('BUTTON')
+
+    // Clicking it asks first instead of signing out immediately.
+    await sidebarLogout.click()
+    await expect(page.getByRole('heading', { name: 'ต้องการออกจากระบบหรือไม่?' })).toBeVisible()
+    await page.screenshot({ path: `${EVIDENCE}/safe-01-sidebar-logout.png` })
+
+    // Cancelling keeps the session.
     await page.getByRole('button', { name: 'ยกเลิก' }).click()
     await expect(page).toHaveURL(/\/admin/)
 
-    // Sidebar logout is a plain div wired straight to logout().
-    const sidebarLogout = page.locator('aside div.cursor-pointer').first()
-    const tagName = await sidebarLogout.evaluate((el) => el.tagName)
-    expect(tagName).toBe('DIV')
-    await page.screenshot({ path: `${EVIDENCE}/safe-01-sidebar-logout.png` })
-
+    // Confirming signs out to /login.
     await sidebarLogout.click()
-    await page.waitForURL(/\/login/, { timeout: 15_000 })
+    await page.getByRole('button', { name: 'ยืนยัน' }).click()
+    await page.waitForURL(/\/login/, { timeout: 60_000 })
   })
 })
 

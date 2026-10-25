@@ -25,6 +25,7 @@ import { NotificationPanel } from '@/components/admin/NotificationPanel';
 import SidebarItem from '@/components/admin/SidebarItem';
 import { CommandPalette } from '@/components/admin/CommandPalette';
 import { HelpSheet } from '@/components/admin/HelpSheet';
+import LogoutConfirmDialog from '@/components/admin/LogoutConfirmDialog';
 
 interface MenuItem {
   name: string;
@@ -145,15 +146,18 @@ function AdminAuthGate({ children }: { children: React.ReactNode }) {
 // Sidebar User Info Component (uses auth context)
 function SidebarUserInfo({ isCollapsed }: { isCollapsed: boolean }) {
   const { user, logout } = useAuth();
+  const [confirmingLogout, setConfirmingLogout] = useState(false);
   const displayName = user?.display_name || user?.username || 'Administrator';
   const email = '';
   const initials = displayName.substring(0, 2).toUpperCase();
 
   return (
     <div className="relative z-10 p-3 border-t border-white/10 bg-sidebar-accent/50">
-      <div
-        className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-colors cursor-pointer group"
-        onClick={() => logout?.()}
+      <button
+        type="button"
+        aria-label="ออกจากระบบ"
+        className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-colors cursor-pointer group w-full text-left"
+        onClick={() => setConfirmingLogout(true)}
       >
         {/* No presence dot: the sidebar shows on every admin page where there
             is no live socket, so a dot here would be a fake always-on indicator
@@ -169,7 +173,12 @@ function SidebarUserInfo({ isCollapsed }: { isCollapsed: boolean }) {
             <LogOut className="w-4 h-4 text-sidebar-text-muted group-hover:text-white transition-colors" />
           </>
         )}
-      </div>
+      </button>
+      <LogoutConfirmDialog
+        isOpen={confirmingLogout}
+        onClose={() => setConfirmingLogout(false)}
+        onConfirm={() => { setConfirmingLogout(false); logout?.(); }}
+      />
     </div>
   );
 }
