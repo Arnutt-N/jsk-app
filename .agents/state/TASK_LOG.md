@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 311 active handoffs, 12 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 312 active handoffs, 12 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-10-25 10:29 — pi — completed
+
+Merged PR #297 (shared DatePresetFilter on 6 admin pages) + PR #298 (eslint ban on direct DateRangePicker imports)
+
+- Checkpoint: `.agents/state/checkpoints/handover-pi-20261025-1029.json`
+- Summary: `project-log-md/pi/session-summary-20261025-1029.md`
+
+---
 
 ### 2026-10-25 01:02 — pi — completed
 

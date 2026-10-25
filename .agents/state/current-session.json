@@ -1,13 +1,20 @@
 {
-  "last_updated": "2026-10-25T01:02:00+07:00",
+  "last_updated": "2026-10-25T10:29:00+07:00",
   "platform": "pi",
-  "current_task": "Merged PR #296: admin UI fixes batch + read-only Viewer (10 items), all CI green",
+  "current_task": "Merged PR #297 (shared DatePresetFilter on 6 admin pages) + PR #298 (eslint ban on direct DateRangePicker imports)",
   "plan_status": "completed",
   "next_steps": [
-    "Smoke-test Viewer login on staging",
-    "Run alembic upgrade head on staging (viewer enum + jsk_menu rename)"
+    "Verify Vercel preview of main",
+    "Continue 'correct' skill Class B (noUnusedLocals) if desired"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-10-25T10:29:00+07:00",
+      "platform": "pi",
+      "branch": "main",
+      "head": "30903a1",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-10-25T01:02:00+07:00",
       "platform": "pi",
@@ -136,13 +143,6 @@
     },
     {
       "timestamp": "2026-10-19T15:03:00+07:00",
-      "platform": "pi",
-      "branch": "feat/booking-full-option",
-      "head": "6f76209",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-10-19T15:02:00+07:00",
       "platform": "pi",
       "branch": "feat/booking-full-option",
       "head": "6f76209",
