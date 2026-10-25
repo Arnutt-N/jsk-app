@@ -8,7 +8,7 @@
 
 **Tech Stack:** Next.js 16 + React 19 + Tailwind v4, Vitest, Playwright
 
-**Decisions needed before Task 2:** D1 (NAV-02 ทาง ก/ข), D2 (live-chat ไม่มีเตือน = ตั้งใจ?)
+**Decisions made (2026-10-25):** D1 = ทาง (ก) ซ่อนเมนูนัดหมายจาก AGENT, D2 = live-chat ต้องมีเตือนหมดเวลาเหมือนหน้าอื่น
 
 ## Global Constraints
 
@@ -37,15 +37,14 @@
 - [ ] **Step 4: Run** — `npm run test:e2e -- nav-search-roles` + `npm run lint`
 - [ ] **Step 5: Commit** — `git commit -m "fix(admin): mobile search opens shared command palette"`
 
-### Task 2: NAV-02 — เมนูตรงกับตัวกันสิทธิ์ (รอ D1)
+### Task 2: NAV-02 — เมนูตรงกับตัวกันสิทธิ์ (D1 = ซ่อนเมนู)
 
 **Files:**
-- Modify (ทาง ก ค่าเริ่มต้น): `frontend/app/admin/layout.tsx:224` (เอา AGENT ออกจาก Appointments)
-- Alt (ทาง ข): `frontend/app/admin/layout.tsx:86-92,132-140` + backend gate review
+- Modify: `frontend/app/admin/layout.tsx:224` (เอา AGENT ออกจาก Appointments)
 - Test: เติม `nav-search-roles.spec.ts` (AGENT matrix)
 
 - [ ] **Step 1: Failing check** — login AGENT กด Appointments ดู URL เด้งกลับ live-chat
-- [ ] **Step 2: Implement (ก)** — ลบ `'AGENT'` ออกจาก `allowedRoles` ของ Appointments; (ข) ถ้าเจ้าของเลือก ข ให้แก้ guard + รีวิวสิทธิ์แยก
+- [ ] **Step 2: Implement** — ลบ `'AGENT'` ออกจาก `allowedRoles` ของ Appointments
 - [ ] **Step 3: Verify** — AGENT เห็นเฉพาะเมนูที่เข้าได้ เปิด URL ตรงของหน้าที่ไม่มีสิทธิ์โดนเด้งเหมือนเดิม
 - [ ] **Step 4: Run** — e2e role matrix + lint
 - [ ] **Step 5: Commit** — `git commit -m "fix(admin): align Appointments nav with AGENT route guard"`
@@ -105,14 +104,14 @@
 - [ ] **Step 4: Run** — lint + e2e keyboard (เติม `a11y-drawer-session.spec.ts`)
 - [ ] **Step 5: Commit** — `git commit -m "fix(admin): mobile drawer focus trap, inert, Escape"`
 
-### Task 7: A11Y-02 — เตือนหมดเวลาใช้หน้าต่างกลาง (รอ D2)
+### Task 7: A11Y-02 — เตือนหมดเวลาใช้หน้าต่างกลาง + ครอบ live-chat (D2)
 
 **Files:**
 - Modify: `frontend/components/admin/SessionTimeoutWarning.tsx`
 - Reuse: `frontend/components/ui/Modal.tsx` (หลัง Task 4)
 
 - [ ] **Step 1: Failing check** — เปิดเตือน ตรวจว่าไม่มี `role=dialog` โฟกัสไม่ย้าย screen reader ไม่อ่าน
-- [ ] **Step 2: Implement** — ใช้ `Modal` กลางพร้อม `title` (ชื่อ dialog) โฟกัสเข้าปุ่มต่อเวลา Escape/ต่อเวลาได้ D2 ยืนยัน live-chat ไม่มีเตือน = คง `layout.tsx:275` ไว้
+- [ ] **Step 2: Implement** — ใช้ `Modal` กลางพร้อม `title` (ชื่อ dialog) โฟกัสเข้าปุ่มต่อเวลา Escape/ต่อเวลาได้ และติด `SessionTimeoutWarning` ในเส้นทาง early-return ของ live-chat (`layout.tsx:275`) ให้มีเตือนเหมือนหน้าอื่น
 - [ ] **Step 3: Verify** — โปรแกรมอ่านจออ่านชื่อ + เวลาที่เหลือ โฟกัสกลับจุดเดิมหลังต่อเวลา สี/ข้อความเข้าชุดเดียวกับ dialog อื่น
 - [ ] **Step 4: Run** — lint + e2e session spec
 - [ ] **Step 5: Commit** — `git commit -m "fix(admin): session warning uses shared modal semantics"`
@@ -140,4 +139,4 @@
 
 ## Execution Handoff
 
-รอเจ้าของอนุมัติ PRD + แผนนี้ และตอบ D1/D2 ก่อนเริ่ม Task 1
+รอเจ้าของอนุมัติ PRD + แผนนี้ก่อนเริ่ม Task 1 (D1/D2 ได้คำตอบแล้ว)
