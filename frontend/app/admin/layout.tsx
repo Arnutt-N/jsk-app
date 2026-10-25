@@ -228,9 +228,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Mobile drawer accessibility: Escape closes, focus moves in on open
-  // and returns to the menu button on close. inert/aria-hidden apply only
-  // on mobile viewports — on desktop the same aside is the permanent sidebar.
+  // Gated on viewport: on desktop this aside is the permanent sidebar, not a drawer.
   const drawerHiddenOnMobile = isMobileViewport && !isMobileMenuOpen;
   useEffect(() => {
     if (!isMobileMenuOpen) return;
@@ -304,8 +302,6 @@ function AdminShell({ children }: { children: React.ReactNode }) {
   const isLiveChat = pathname.includes('/admin/live-chat');
 
   if (isLiveChat) {
-    // Live-chat bypasses the admin chrome but keeps the idle-session
-    // warning (D2): operators on this page must be warned like everyone else.
     return <>{children}<SessionTimeoutWarning /></>;
   }
 
@@ -438,7 +434,6 @@ function AdminShell({ children }: { children: React.ReactNode }) {
                   <Menu className="w-5 h-5" />
                 </button>
 
-                {/* Mobile search opens the same command palette as desktop — one search path for every viewport. */}
                 <button
                   className="md:hidden p-2 bg-surface rounded-xl shadow-sm border border-border-default text-text-secondary hover:text-brand-600 transition-colors cursor-pointer"
                   aria-label="Search"

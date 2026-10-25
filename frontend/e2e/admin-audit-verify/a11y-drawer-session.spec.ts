@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { loginAsAdmin } from '../utils/auth'
+import { gotoAdmin } from '../utils/nav'
 
 const EVIDENCE = '../.audit/browser-verify'
 
@@ -11,7 +12,7 @@ test.describe('A11Y-01 mobile drawer focus (fixed)', () => {
 
   test('Tab stays inside the drawer, Escape closes it, focus returns', async ({ page }) => {
     await loginAsAdmin(page)
-    await page.goto('/admin')
+    await gotoAdmin(page, '/admin')
 
     await page.locator('button[aria-label="Open menu"]').click()
     const drawer = page.locator('aside')
@@ -43,10 +44,9 @@ test.describe('A11Y-02 session warning stays hidden until idle', () => {
 
   test('warning is absent on a fresh page (unit test covers dialog semantics)', async ({ page }) => {
     await loginAsAdmin(page)
-    await page.goto('/admin')
+    await gotoAdmin(page, '/admin')
 
-    // The warning only appears after 25 idle minutes, so a fresh page shows
-    // nothing; when it does render it is plain divs with no role="dialog".
+    // The warning needs 25 idle minutes to appear, so a fresh page renders none.
     await expect(page.getByText('Session Expiring Soon')).toHaveCount(0)
     await expect(page.getByRole('dialog')).toHaveCount(0)
     await page.screenshot({ path: `${EVIDENCE}/a11y-02-no-warning.png` })

@@ -6,11 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { AlertCircle } from 'lucide-react';
 
 /**
- * Idle-session warning rendered through the shared Modal primitive so it
- * carries dialog semantics (role/aria-modal/labelledby), focus capture and
- * restore, and Escape handling like every other dialog. Closing the dialog
- * by any path (Escape, backdrop, X, Stay Logged In) extends the session —
- * there is no dismiss-without-extend path.
+ * Closing by any path (Escape, backdrop, X, Stay Logged In) extends the session.
  */
 export function SessionTimeoutWarning() {
   const { logout } = useAuth();

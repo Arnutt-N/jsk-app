@@ -4,11 +4,6 @@ import { describe, it, expect, vi } from 'vitest';
 
 import { ConfirmDialog } from '../ConfirmDialog';
 
-/**
- * Pending-dismiss policy: while isLoading is true, every dismiss path
- * (Cancel button, Escape, backdrop click) must be blocked and onClose
- * must never fire. With isLoading false all paths close normally.
- */
 describe('ConfirmDialog pending dismiss', () => {
   it('blocks onClose on Escape and backdrop click while loading', () => {
     const onClose = vi.fn();

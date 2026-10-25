@@ -19,19 +19,13 @@ vi.mock('@/contexts/AuthContext', () => ({
 
 import { SessionTimeoutWarning } from '../SessionTimeoutWarning';
 
-/**
- * The idle-session warning must use shared dialog semantics: a real
- * dialog role with an accessible name, and every dismiss path must
- * extend the session (there is no dismiss-without-extend path).
- */
 describe('SessionTimeoutWarning dialog semantics', () => {
   it('renders as a named dialog with the countdown', () => {
     render(<SessionTimeoutWarning />);
 
     const dialog = screen.getByRole('dialog', { name: 'Session Expiring Soon' });
     expect(dialog).toBeTruthy();
-    // Countdown appears twice: Modal description (aria-describedby) + body.
-    expect(screen.getAllByText(/2:05/).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/2:05/)).toHaveLength(2);
   });
 
   it('Escape extends the session instead of silently dismissing', () => {

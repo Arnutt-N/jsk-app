@@ -99,8 +99,6 @@ export default function AdminRequestList() {
     const [loading, setLoading] = useState(true);
     const [fetchError, setFetchError] = useState<string | null>(null);
     const [page, setPage] = useState(0);
-    // NET-01 guards: abort the previous request and tag each fetch with a
-    // sequence number so only the latest query's response updates state.
     const abortRef = useRef<AbortController | null>(null);
     const seqRef = useRef(0);
     // Computed from the RAW fetched length (before client-side status splits),
@@ -118,9 +116,6 @@ export default function AdminRequestList() {
     const [datePreset, setDatePreset] = useState<string | null>(null);
 
     const fetchRequests = useCallback(async () => {
-        // Abort the previous in-flight fetch and tag this one with a
-        // sequence number so a slower older response can never overwrite
-        // the latest query's results (NET-01 stale-response race).
         abortRef.current?.abort();
         const controller = new AbortController();
         abortRef.current = controller;
@@ -150,7 +145,6 @@ export default function AdminRequestList() {
             query.append('limit', String(PAGE_LIMIT));
 
             const result = await apiFetch<ServiceRequest[]>(`/admin/requests?${query.toString()}`, { signal: controller.signal });
-            // Drop stale responses: aborted or superseded by a newer fetch.
             if (controller.signal.aborted || seq !== seqRef.current) return;
             if (result.ok) {
                 setHasMore(result.data.length >= PAGE_LIMIT);
@@ -162,9 +156,6 @@ export default function AdminRequestList() {
                 }
                 setRequests(data);
             } else {
-                // An aborted fetch resolves ok:false — not a real error,
-                // so never flash the fetch-error UI for it.
-                if (controller.signal.aborted || seq !== seqRef.current) return;
                 setFetchError(result.message);
             }
         } finally {
@@ -180,10 +171,7 @@ export default function AdminRequestList() {
     }, [search]);
 
     useEffect(() => {
-        // No-op when already on page 0 (same-value setState bails out),
-        // so a filter change on the first page fires exactly one fetch.
-        // Off page 0 the second run aborts and supersedes the first via
-        // abortRef/seqRef above.
+        // Same-value setState bails out, so page 0 fires one fetch, not two.
         setPage((p) => (p === 0 ? p : 0));
     }, [filter.status, filter.category, debouncedSearch, filter.startDate, filter.endDate]);
 

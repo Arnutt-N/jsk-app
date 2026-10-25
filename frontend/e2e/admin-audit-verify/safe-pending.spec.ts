@@ -1,5 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import { loginAsAdmin } from '../utils/auth'
+import { gotoAdmin } from '../utils/nav'
+import { captureCsrf, createRequestFixture } from '../utils/request-fixture'
 
 const EVIDENCE = '../.audit/browser-verify'
 
@@ -7,9 +9,14 @@ const EVIDENCE = '../.audit/browser-verify'
 test.describe.configure({ timeout: 90_000 })
 
 async function openDeleteDialog(page: Page) {
+  captureCsrf(page)
   await loginAsAdmin(page)
-  await page.goto('/admin/requests', { waitUntil: 'domcontentloaded' })
-  await page.getByRole('button', { name: 'ลบ' }).first().click()
+  await createRequestFixture(page, `Del${Date.now()}`)
+  await gotoAdmin(page, '/admin/requests')
+  // Cold dev-server compile plus auth bootstrap can outlast the 10s default action timeout.
+  const deleteButton = page.getByRole('button', { name: 'ลบ' }).first()
+  await expect(deleteButton).toBeVisible({ timeout: 60_000 })
+  await deleteButton.click()
   await expect(page.getByRole('heading', { name: 'ยืนยันการลบ' })).toBeVisible()
 }
 
@@ -18,24 +25,20 @@ test.describe('SAFE-01 both logouts confirm first', () => {
 
   test('sidebar logout is a button that asks before signing out', async ({ page }) => {
     await loginAsAdmin(page)
-    await page.goto('/admin')
+    await gotoAdmin(page, '/admin')
 
-    // Sidebar logout must be a real button, not a div.
     const sidebarLogout = page.locator('aside button[aria-label="ออกจากระบบ"]')
     await expect(sidebarLogout).toBeVisible()
     const tagName = await sidebarLogout.evaluate((el) => el.tagName)
     expect(tagName).toBe('BUTTON')
 
-    // Clicking it asks first instead of signing out immediately.
     await sidebarLogout.click()
     await expect(page.getByRole('heading', { name: 'ต้องการออกจากระบบหรือไม่?' })).toBeVisible()
     await page.screenshot({ path: `${EVIDENCE}/safe-01-sidebar-logout.png` })
 
-    // Cancelling keeps the session.
     await page.getByRole('button', { name: 'ยกเลิก' }).click()
     await expect(page).toHaveURL(/\/admin/)
 
-    // Confirming signs out to /login.
     await sidebarLogout.click()
     await page.getByRole('button', { name: 'ยืนยัน' }).click()
     await page.waitForURL(/\/login/, { timeout: 60_000 })
@@ -91,7 +94,6 @@ test.describe('SAFE-03 double confirm sends one DELETE', () => {
     await page.route('**/admin/requests/*', async (route) => {
       if (route.request().method() === 'DELETE') {
         deleteCount += 1
-        // Hold the first request so the second click lands while pending.
         await new Promise((r) => setTimeout(r, 800))
       }
       await route.continue()
@@ -103,7 +105,6 @@ test.describe('SAFE-03 double confirm sends one DELETE', () => {
       (res) => res.url().includes('/admin/requests/') && res.request().method() === 'DELETE',
       { timeout: 15_000 },
     )
-    // Give a late duplicate every chance to fire, then count.
     await page.waitForTimeout(1500)
     expect(deleteCount).toBe(1)
     await page.screenshot({ path: `${EVIDENCE}/safe-03-double-delete.png` })

@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { loginAs, loginAsAdmin } from '../utils/auth'
+import { gotoAdmin } from '../utils/nav'
 
-// Evidence stills land beside the code-evidence notes from the read-only pass.
 const EVIDENCE = '../.audit/browser-verify'
 
 // Dev-server compiles make first hits slow; fail loudly instead of retrying.
@@ -12,7 +12,7 @@ test.describe('NAV-01 mobile search opens the shared palette', () => {
 
   test('typing + selecting a result navigates like desktop', async ({ page }) => {
     await loginAsAdmin(page)
-    await page.goto('/admin')
+    await gotoAdmin(page, '/admin')
 
     await page.locator('button[aria-label="Search"]').click()
     const palette = page.getByRole('dialog', { name: 'Command palette' })
@@ -31,7 +31,7 @@ test.describe('NAV-01 desktop palette opens', () => {
 
   test('command palette opens from the header trigger', async ({ page }) => {
     await loginAsAdmin(page)
-    await page.goto('/admin')
+    await gotoAdmin(page, '/admin')
 
     await page.locator('button[aria-label="Open command palette (Ctrl+K)"]').click()
     await expect(page.getByRole('dialog').first()).toBeVisible()
@@ -48,18 +48,14 @@ test.describe('NAV-02 AGENT role sees Appointments but cannot stay there', () =>
       throw new Error('E2E_ADMIN_PASSWORD env var is required (AGENT shares the seeded dev password).')
     }
     await loginAs(page, 'staff', password)
-    await page.goto('/admin', { waitUntil: 'domcontentloaded' })
+    await gotoAdmin(page, '/admin')
     // Cold dev-server compile of the redirect chain can exceed 15s on first hit.
     await page.waitForURL(/\/admin\/live-chat/, { timeout: 60_000 })
     await page.screenshot({ path: `${EVIDENCE}/nav-02-agent-console.png` })
 
-    // The AGENT console carries no admin sidebar at all, so there is no
-    // Appointments affordance to click — stronger than a menu/guard mismatch:
-    // the destination is unreachable from the AGENT UI.
     await expect(page.locator('a[href="/admin/bookings"]')).toHaveCount(0)
 
-    // Direct navigation hits the same guard and snaps back.
-    await page.goto('/admin/bookings', { waitUntil: 'domcontentloaded', timeout: 25_000 })
+    await gotoAdmin(page, '/admin/bookings')
     await page.waitForURL(/\/admin\/live-chat/, { timeout: 60_000 })
     await page.screenshot({ path: `${EVIDENCE}/nav-02-agent-snapped-back.png` })
   })
