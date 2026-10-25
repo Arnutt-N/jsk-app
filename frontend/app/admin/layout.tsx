@@ -304,7 +304,9 @@ function AdminShell({ children }: { children: React.ReactNode }) {
   const isLiveChat = pathname.includes('/admin/live-chat');
 
   if (isLiveChat) {
-    return <>{children}</>;
+    // Live-chat bypasses the admin chrome but keeps the idle-session
+    // warning (D2): operators on this page must be warned like everyone else.
+    return <>{children}<SessionTimeoutWarning /></>;
   }
 
   const allItems = visibleMenuGroups.flatMap(g => g.items);

@@ -38,10 +38,10 @@ test.describe('A11Y-01 mobile drawer focus (fixed)', () => {
   })
 })
 
-test.describe('A11Y-02 session warning has no dialog semantics', () => {
+test.describe('A11Y-02 session warning stays hidden until idle', () => {
   test.use({ viewport: { width: 1280, height: 800 } })
 
-  test('warning is absent on a fresh page and carries no dialog role', async ({ page }) => {
+  test('warning is absent on a fresh page (unit test covers dialog semantics)', async ({ page }) => {
     await loginAsAdmin(page)
     await page.goto('/admin')
 

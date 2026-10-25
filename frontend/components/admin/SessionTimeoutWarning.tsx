@@ -1,9 +1,17 @@
 'use client';
 
+import { Modal } from '@/components/ui/Modal';
 import { useSessionTimeout } from '@/hooks/useSessionTimeout';
 import { useAuth } from '@/contexts/AuthContext';
 import { AlertCircle } from 'lucide-react';
 
+/**
+ * Idle-session warning rendered through the shared Modal primitive so it
+ * carries dialog semantics (role/aria-modal/labelledby), focus capture and
+ * restore, and Escape handling like every other dialog. Closing the dialog
+ * by any path (Escape, backdrop, X, Stay Logged In) extends the session —
+ * there is no dismiss-without-extend path.
+ */
 export function SessionTimeoutWarning() {
   const { logout } = useAuth();
   const { showWarning, remainingTime, extendSession } = useSessionTimeout(logout);
@@ -14,40 +22,40 @@ export function SessionTimeoutWarning() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  if (!showWarning) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-xl p-6 max-w-md w-full mx-4 border border-slate-100/60">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-xl bg-warning/12 flex items-center justify-center">
-            <AlertCircle className="w-6 h-6 text-warning" />
-          </div>
-          <h2 className="text-lg font-semibold text-slate-800">
-            Session Expiring Soon
-          </h2>
+    <Modal
+      isOpen={showWarning}
+      onClose={extendSession}
+      title="Session Expiring Soon"
+      description={`Your session will expire in ${formatTime(remainingTime)} due to inactivity.`}
+      maxWidth="md"
+    >
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-10 h-10 rounded-xl bg-warning/12 flex items-center justify-center">
+          <AlertCircle className="w-6 h-6 text-warning" />
         </div>
-
-        <p className="text-slate-600 mb-4">
-          Your session will expire in <span className="font-semibold text-danger">{formatTime(remainingTime)}</span> due to inactivity.
-          Click below to stay logged in.
+        <p className="text-slate-600">
+          Your session will expire in{' '}
+          <span className="font-semibold text-danger">{formatTime(remainingTime)}</span> due to
+          inactivity. Click below to stay logged in.
         </p>
-
-        <div className="flex gap-3">
-          <button
-            onClick={extendSession}
-            className="flex-1 bg-gradient-to-br from-primary to-primary-dark text-white py-2 px-4 rounded-xl hover:shadow-lg transition-all font-medium active:scale-[0.97]"
-          >
-            Stay Logged In
-          </button>
-          <button
-            onClick={logout}
-            className="flex-1 bg-slate-100 text-slate-700 py-2 px-4 rounded-xl hover:bg-slate-200 transition-all font-medium"
-          >
-            Logout
-          </button>
-        </div>
       </div>
-    </div>
+
+      <div className="flex gap-3">
+        <button
+          onClick={extendSession}
+          autoFocus
+          className="flex-1 bg-gradient-to-br from-primary to-primary-dark text-white py-2 px-4 rounded-xl hover:shadow-lg transition-all font-medium active:scale-[0.97] cursor-pointer"
+        >
+          Stay Logged In
+        </button>
+        <button
+          onClick={logout}
+          className="flex-1 bg-slate-100 text-slate-700 py-2 px-4 rounded-xl hover:bg-slate-200 transition-all font-medium cursor-pointer"
+        >
+          Logout
+        </button>
+      </div>
+    </Modal>
   );
 }
