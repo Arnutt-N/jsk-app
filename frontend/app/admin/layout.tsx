@@ -220,7 +220,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
       items: [
         { name: 'Dashboard', href: '/admin', icon: LayoutDashboard, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'DIRECTOR', 'HEAD', 'VIEWER'] },
         { name: 'Manage Requests', href: '/admin/requests', icon: FileText, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'DIRECTOR', 'HEAD', 'VIEWER'] },
-        { name: 'Appointments', href: '/admin/bookings', icon: CalendarCheck, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'DIRECTOR', 'HEAD', 'AGENT', 'VIEWER'] },
+        { name: 'Appointments', href: '/admin/bookings', icon: CalendarCheck, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'DIRECTOR', 'HEAD', 'VIEWER'] },
       ]
     },
     {
