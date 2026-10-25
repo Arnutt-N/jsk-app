@@ -42,10 +42,10 @@ test.describe('SAFE-01 both logouts confirm first', () => {
   })
 })
 
-test.describe('SAFE-02 dialog dismisses while delete is pending', () => {
+test.describe('SAFE-02 dialog stays open while delete is pending', () => {
   test.use({ viewport: { width: 1280, height: 800 } })
 
-  test('Escape closes the confirm dialog mid-request', async ({ page }) => {
+  test('Escape does not close the confirm dialog mid-request', async ({ page }) => {
     await page.route('**/admin/requests/*', async (route) => {
       if (route.request().method() === 'DELETE') {
         await new Promise((r) => setTimeout(r, 1200))
@@ -57,13 +57,14 @@ test.describe('SAFE-02 dialog dismisses while delete is pending', () => {
     await openDeleteDialog(page)
 
     await page.getByRole('button', { name: 'ยืนยันลบ' }).click()
+    await expect(page.getByText('กำลังทำรายการ ปิดหน้าต่างนี้ไม่ได้ยกเลิกคำสั่ง')).toBeVisible()
     await page.waitForTimeout(400)
     await page.keyboard.press('Escape')
-    await expect(page.getByRole('heading', { name: 'ยืนยันการลบ' })).toBeHidden({ timeout: 5_000 })
-    await page.screenshot({ path: `${EVIDENCE}/safe-02-escape-dismissed.png` })
+    await expect(page.getByRole('heading', { name: 'ยืนยันการลบ' })).toBeVisible({ timeout: 5_000 })
+    await page.screenshot({ path: `${EVIDENCE}/safe-02-escape-blocked.png` })
   })
 
-  test('backdrop click closes the confirm dialog mid-request', async ({ page }) => {
+  test('backdrop click does not close the confirm dialog mid-request', async ({ page }) => {
     await page.route('**/admin/requests/*', async (route) => {
       if (route.request().method() === 'DELETE') {
         await new Promise((r) => setTimeout(r, 1200))
@@ -77,19 +78,21 @@ test.describe('SAFE-02 dialog dismisses while delete is pending', () => {
     await page.getByRole('button', { name: 'ยืนยันลบ' }).click()
     await page.waitForTimeout(400)
     await page.mouse.click(40, 400)
-    await expect(page.getByRole('heading', { name: 'ยืนยันการลบ' })).toBeHidden({ timeout: 5_000 })
-    await page.screenshot({ path: `${EVIDENCE}/safe-02-backdrop-dismissed.png` })
+    await expect(page.getByRole('heading', { name: 'ยืนยันการลบ' })).toBeVisible({ timeout: 5_000 })
+    await page.screenshot({ path: `${EVIDENCE}/safe-02-backdrop-blocked.png` })
   })
 })
 
-test.describe('SAFE-03 double confirm sends two DELETEs', () => {
+test.describe('SAFE-03 double confirm sends one DELETE', () => {
   test.use({ viewport: { width: 1280, height: 800 } })
 
-  test('fast double-click is not deduped', async ({ page }) => {
+  test('fast double-click is deduped by the pending guard', async ({ page }) => {
     let deleteCount = 0
     await page.route('**/admin/requests/*', async (route) => {
       if (route.request().method() === 'DELETE') {
         deleteCount += 1
+        // Hold the first request so the second click lands while pending.
+        await new Promise((r) => setTimeout(r, 800))
       }
       await route.continue()
     })
@@ -100,11 +103,9 @@ test.describe('SAFE-03 double confirm sends two DELETEs', () => {
       (res) => res.url().includes('/admin/requests/') && res.request().method() === 'DELETE',
       { timeout: 15_000 },
     )
-    await page.waitForResponse(
-      (res) => res.url().includes('/admin/requests/') && res.request().method() === 'DELETE',
-      { timeout: 15_000 },
-    )
-    expect(deleteCount).toBe(2)
+    // Give a late duplicate every chance to fire, then count.
+    await page.waitForTimeout(1500)
+    expect(deleteCount).toBe(1)
     await page.screenshot({ path: `${EVIDENCE}/safe-03-double-delete.png` })
   })
 })

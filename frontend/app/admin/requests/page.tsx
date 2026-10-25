@@ -179,6 +179,7 @@ export default function AdminRequestList() {
     const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(null);
     const [viewModalOpen, setViewModalOpen] = useState(false);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
     const [assignModalOpen, setAssignModalOpen] = useState(false);
     const [assigningRequest, setAssigningRequest] = useState<ServiceRequest | null>(null);
 
@@ -214,15 +215,20 @@ export default function AdminRequestList() {
     };
 
     const confirmDelete = async () => {
-        if (!selectedRequest) return;
-        const result = await apiFetch(`/admin/requests/${selectedRequest.id}`, { method: 'DELETE' });
-        if (result.ok) {
-            setRequests(prev => prev.filter(r => r.id !== selectedRequest.id));
-            setDeleteModalOpen(false);
-            setSelectedRequest(null);
-            toast({ variant: 'success', title: 'ลบคำร้องสำเร็จ' });
-        } else {
-            toast({ variant: 'error', title: 'ลบคำร้องไม่สำเร็จ', description: result.message });
+        if (!selectedRequest || isDeleting) return;
+        setIsDeleting(true);
+        try {
+            const result = await apiFetch(`/admin/requests/${selectedRequest.id}`, { method: 'DELETE' });
+            if (result.ok) {
+                setRequests(prev => prev.filter(r => r.id !== selectedRequest.id));
+                setDeleteModalOpen(false);
+                setSelectedRequest(null);
+                toast({ variant: 'success', title: 'ลบคำร้องสำเร็จ' });
+            } else {
+                toast({ variant: 'error', title: 'ลบคำร้องไม่สำเร็จ', description: result.message });
+            }
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -564,6 +570,7 @@ export default function AdminRequestList() {
                 onClose={() => setDeleteModalOpen(false)}
                 onConfirm={confirmDelete}
                 title="ยืนยันการลบ"
+                isLoading={isDeleting}
                 description={
                     <>
                         คุณต้องการลบคำร้องของ <b>{selectedRequest?.firstname} {selectedRequest?.lastname}</b> ใช่หรือไม่?
