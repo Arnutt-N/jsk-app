@@ -120,7 +120,7 @@ performance work, and the named follow-ups in `.audit/review-record-admin-p1-fix
 - [ ] **Step 1: Failing check** — as HEAD/DIRECTOR, POST a live-chat write; assert it currently succeeds at HTTP while the WS gate rejects.
 - [ ] **Step 2: Implement** — replace `get_current_staff` with the permission-key gate on state-changing routes only; keep the permissive gate on read/page-load routes.
 - [ ] **Step 3: Verify** — HEAD/DIRECTOR writes now 403; AGENT/SUPER_ADMIN/ADMIN writes still work; reads unchanged.
-- [ ] **Step 4: Run** — `python -m pytest -q tests/ -k live_chat` + new test asserting the 403 + `python -m compileall -q app` + `ruff check backend/api/v1/endpoints/admin_live_chat.py`.
+- [ ] **Step 4: Run** — `python -m pytest -q tests/ -k live_chat` + new test asserting the 403 + `python -m compileall -q app` + `ruff check app/api/v1/endpoints/admin_live_chat.py`.
 - [ ] **Step 5: Commit** — `git commit -m "fix(security): gate live-chat HTTP writes on KEY_ACCESS_LIVE_CHAT"`
 
 ### Task 2: Cross-worker policy invalidation (F-002) — DECIDED: short-TTL re-read
@@ -135,7 +135,7 @@ serving stale.
 - [ ] **Step 1: Failing check** — change a permission via PATCH, then read the matrix from a second worker/process; assert staleness.
 - [ ] **Step 2: Implement** — re-read the DB-backed matrix when the cached entry is older than 30s; keep the in-process fast path otherwise.
 - [ ] **Step 3: Verify** — revocation propagates within 30s; single-process behaviour unchanged.
-- [ ] **Step 4: Run** — `python -m pytest -q tests/ -k permission` + new propagation test + `python -m compileall -q app` + `ruff check backend/core/permissions.py`.
+- [ ] **Step 4: Run** — `python -m pytest -q tests/ -k permission` + new propagation test + `python -m compileall -q app` + `ruff check app/core/permissions.py`.
 - [ ] **Step 5: Commit** — `git commit -m "fix(security): bound permission policy staleness with TTL re-read"`
 
 ### Task 3: ENVIRONMENT fail-safe default (F-003)
@@ -146,7 +146,7 @@ serving stale.
 - [ ] **Step 1: Failing check** — boot with empty ENVIRONMENT; assert `is_production_like` is False today.
 - [ ] **Step 2: Implement** — default to `"production"` (explicit value still wins).
 - [ ] **Step 3: Verify** — empty value boots production-like; guards enforced.
-- [ ] **Step 4: Run** — `python -m pytest -q tests/test_config*.py` (or new unit test) + `python -m compileall -q app` + `ruff check backend/core/config.py`.
+- [ ] **Step 4: Run** — `python -m pytest -q tests/test_config*.py` (or new unit test) + `python -m compileall -q app` + `ruff check app/core/config.py`.
 - [ ] **Step 5: Commit** — `git commit -m "fix(security): fail-safe ENVIRONMENT default"`
 
 ### Task 4: Fail closed on policy load failure (F-004)
@@ -157,7 +157,7 @@ serving stale.
 - [ ] **Step 1: Failing check** — simulate a read exception; assert customised rules are replaced today.
 - [ ] **Step 2: Implement** — deny the requested key (empty set) plus a logged alert.
 - [ ] **Step 3: Verify** — exception path denies; healthy path unchanged.
-- [ ] **Step 4: Run** — `python -m pytest -q tests/ -k permission` + new test + `python -m compileall -q app` + `ruff check backend/core/permissions.py`.
+- [ ] **Step 4: Run** — `python -m pytest -q tests/ -k permission` + new test + `python -m compileall -q app` + `ruff check app/core/permissions.py`.
 - [ ] **Step 5: Commit** — `git commit -m "fix(security): fail closed on permission policy load failure"`
 
 ### Task 5: Webhook body cap and decode order (F-005, F-011)
@@ -168,7 +168,7 @@ serving stale.
 - [ ] **Step 1: Failing check** — POST a 2 MiB body and a non-UTF-8 body; assert unbounded buffering and a 500 today.
 - [ ] **Step 2: Implement** — reject above 1 MiB before buffering; catch UnicodeDecodeError → 400.
 - [ ] **Step 3: Verify** — both rejected cleanly; valid signed payloads still verify.
-- [ ] **Step 4: Run** — `python -m pytest -q tests/ -k webhook` + new tests + `python -m compileall -q app` + `ruff check backend/api/v1/endpoints/webhook.py`.
+- [ ] **Step 4: Run** — `python -m pytest -q tests/ -k webhook` + new tests + `python -m compileall -q app` + `ruff check app/api/v1/endpoints/webhook.py`.
 - [ ] **Step 5: Commit** — `git commit -m "fix(security): cap webhook bodies and decode safely"`
 
 ### Task 6: Audit rows for visibility and conversation lifecycle (F-006, F-007)
@@ -185,7 +185,7 @@ serving stale.
   column per `app/models/chat_session.py:12-35`, it cannot hold an id).
 - [ ] **Step 3: Verify** — rows exist with actor, resource, action for each path; non-owner, non-admin
   force-close returns 403.
-- [ ] **Step 4: Run** — `python -m pytest -q tests/ -k "media or live_chat"` + new tests + `python -m compileall -q app` + `ruff check backend/api/v1/endpoints/media.py backend/api/v1/endpoints/admin_live_chat.py`.
+- [ ] **Step 4: Run** — `python -m pytest -q tests/ -k "media or live_chat"` + new tests + `python -m compileall -q app` + `ruff check app/api/v1/endpoints/media.py app/api/v1/endpoints/admin_live_chat.py`.
 - [ ] **Step 5: Commit** — `git commit -m "fix(audit): log public-link changes and conversation force-close"`
 
 ### Task 7: CSRF compare, login disambiguation, login timing (F-008, F-009, F-010)
@@ -196,7 +196,7 @@ serving stale.
 - [ ] **Step 1: Failing check** — non-ASCII CSRF header (500 today); colliding username/email fixture; timing delta between known/unknown users.
 - [ ] **Step 2: Implement** — encode both compare sides; username-first-then-email resolution; dummy `verify_password_async` on the not-found path.
 - [ ] **Step 3: Verify** — 403 / deterministic user / timing equalised.
-- [ ] **Step 4: Run** — `python -m pytest -q tests/ -k "auth or csrf or login"` + `python -m compileall -q app` + `ruff check backend/api/v1/endpoints/auth.py backend/api/deps.py`.
+- [ ] **Step 4: Run** — `python -m pytest -q tests/ -k "auth or csrf or login"` + `python -m compileall -q app` + `ruff check app/api/v1/endpoints/auth.py app/api/deps.py`.
 - [ ] **Step 5: Commit** — `git commit -m "fix(auth): harden CSRF compare, login resolution, and timing"`
 
 ### Task 8: Auth-entry endpoints are not refreshable (F-012)
@@ -284,7 +284,7 @@ serving stale.
 - [ ] **Step 1: Failing check** — add a comment-only mention of a fake gate; assert the guard passes today.
 - [ ] **Step 2: Implement** — match concrete usage (overrides key, monkeypatch target, decorator argument).
 - [ ] **Step 3: Verify** — comment-only mention fails; real usage passes.
-- [ ] **Step 4: Run** — `python -m pytest -q tests/test_gate_test_coverage.py` + `python -m compileall -q tests` + `ruff check backend/tests/test_gate_test_coverage.py`.
+- [ ] **Step 4: Run** — `python -m pytest -q tests/test_gate_test_coverage.py` + `python -m compileall -q tests` + `ruff check tests/test_gate_test_coverage.py`.
 - [ ] **Step 5: Commit** — `git commit -m "test(gates): require concrete usage in gate coverage"`
 
 ### Task 16: Assert the positive login landing (F-020)
@@ -331,7 +331,7 @@ data-dependent skip with a hard failure so an empty DB fails loudly.
 - [ ] **Step 2: Implement** — delete the guard.
 - [ ] **Step 3: Verify** — suite still green; `grep -rn "RED:" backend/tests/test_image_resize_security.py`
   returns nothing (the guard text is gone, not just skipped over).
-- [ ] **Step 4: Run** — `python -m pytest -q tests/test_image_resize_security.py` + `python -m compileall -q tests` + `ruff check backend/tests/test_image_resize_security.py`.
+- [ ] **Step 4: Run** — `python -m pytest -q tests/test_image_resize_security.py` + `python -m compileall -q tests` + `ruff check tests/test_image_resize_security.py`.
 - [ ] **Step 5: Commit** — `git commit -m "test(security): drop the dead RED skip guard"`
 
 ### Task 20: Smoke checks must actually check (F-024)
@@ -358,7 +358,8 @@ data-dependent skip with a hard failure so an empty DB fails loudly.
 
 ### Task 22: Backend static gate — DECIDED: ruff only (F-026)
 
-**Files:** Modify `.github/workflows/ci.yml:124`, add `[tool.ruff]` to backend `pyproject.toml`, pin `ruff` in `backend/requirements.txt`
+**Files:** Modify `.github/workflows/ci.yml:124`; create `backend/pyproject.toml` (it does not exist); pin `ruff` in `backend/requirements.txt`
+**New file content** (`backend/pyproject.toml`): `[tool.ruff] line-length = 120` plus `[tool.ruff.lint] select = ["E", "F", "I"]` (extend only if the first CI run is green).
 **Decision:** ruff only. mypy on this tree is unmeasured work that would block the gate on day one; record a mypy follow-up instead.
 
 - [ ] **Step 1: Failing check** — confirm no ruff/mypy step exists today.
@@ -375,7 +376,7 @@ data-dependent skip with a hard failure so an empty DB fails loudly.
 - [ ] **Step 1: Failing check** — confirm `forbidOnly` is absent today.
 - [ ] **Step 2: Implement** — `forbidOnly: !!process.env.CI` in both configs.
 - [ ] **Step 3: Verify** — a scratch `test.only` fails under `CI=true`, passes locally.
-- [ ] **Step 4: Run** — `npx playwright test --list` loads both configs (the config-load proof for a config-only change) + green CI SHA on this branch.
+- [ ] **Step 4: Run** — `npx playwright test --list` AND `npx playwright test -c e2e-2client.config.ts --list` both load (the config-load proof for a config-only change) + green CI SHA on this branch.
 - [ ] **Step 5: Commit** — `git commit -m "test(e2e): forbid focused tests in CI"`
 
 ### Task 24: Coverage floors (F-028)
@@ -430,7 +431,7 @@ data-dependent skip with a hard failure so an empty DB fails loudly.
 - [ ] **Step 1: Failing check** — boot prod-like with default URL and Redis down; assert silent degradation today.
 - [ ] **Step 2: Implement** — require non-localhost URL in production; fail startup when unreachable (dev keeps localhost).
 - [ ] **Step 3: Verify** — misconfigured boot fails fast; healthy boot unchanged.
-- [ ] **Step 4: Run** — `python -m pytest -q tests/ -k "config or redis"` + `python -m compileall -q app` + `ruff check backend/core/config.py`.
+- [ ] **Step 4: Run** — `python -m pytest -q tests/ -k "config or redis"` + `python -m compileall -q app` + `ruff check app/core/config.py`.
 - [ ] **Step 5: Commit** — `git commit -m "fix(config): guard production Redis explicitly"`
 
 ### Task 29: Single route→permission manifest (F-033)
@@ -452,7 +453,7 @@ data-dependent skip with a hard failure so an empty DB fails loudly.
 - [ ] **Step 1: Failing check** — feed `start_date = end_date = 2026-10-26`; assert the inline window can disagree with the helper today.
 - [ ] **Step 2: Implement** — pin `resolve_range(start_date, end_date, days)` from `app.core.date_windows` (verified export; `day_bounds_utc` is its single-day primitive). Catch `InvertedRangeError` in the endpoint and return HTTP 400 with the existing invalid-range message shape.
 - [ ] **Step 3: Verify** — `resolve_range(2026-10-26, 2026-10-26, days)` equals `day_bounds_utc(2026-10-26)`, i.e. half-open `[2026-10-25T17:00Z, 2026-10-26T17:00Z)`, and the list matches the audit/reports windows on that day.
-- [ ] **Step 4: Run** — `python -m pytest -q tests/ -k "request and date"` + `test_date_windows.py` + `python -m compileall -q app` + `ruff check backend/api/v1/endpoints/admin_requests.py`.
+- [ ] **Step 4: Run** — `python -m pytest -q tests/ -k "request and date"` + `test_date_windows.py` + `python -m compileall -q app` + `ruff check app/api/v1/endpoints/admin_requests.py`.
 - [ ] **Step 5: Commit** — `git commit -m "fix(requests): use the shared Bangkok date window"`
 
 ---
