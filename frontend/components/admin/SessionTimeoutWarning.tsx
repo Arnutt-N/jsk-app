@@ -23,7 +23,6 @@ export function SessionTimeoutWarning() {
       isOpen={showWarning}
       onClose={extendSession}
       title="Session Expiring Soon"
-      description={`Your session will expire in ${formatTime(remainingTime)} due to inactivity.`}
       maxWidth="md"
     >
       <div className="flex items-center gap-3 mb-4">

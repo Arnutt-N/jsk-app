@@ -25,7 +25,7 @@ describe('SessionTimeoutWarning dialog semantics', () => {
 
     const dialog = screen.getByRole('dialog', { name: 'Session Expiring Soon' });
     expect(dialog).toBeTruthy();
-    expect(screen.getAllByText(/2:05/)).toHaveLength(2);
+    expect(screen.getAllByText(/2:05/)).toHaveLength(1);
   });
 
   it('Escape extends the session instead of silently dismissing', () => {

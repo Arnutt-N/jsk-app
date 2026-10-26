@@ -39,7 +39,7 @@ test.describe('NAV-01 desktop palette opens', () => {
   })
 })
 
-test.describe('NAV-02 AGENT role sees Appointments but cannot stay there', () => {
+test.describe('NAV-02 Appointments is not reachable for AGENT', () => {
   test.use({ viewport: { width: 1280, height: 800 } })
 
   test('Appointments is unreachable for AGENT and the guard snaps back', async ({ page }) => {

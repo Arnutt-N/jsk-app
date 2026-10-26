@@ -20,6 +20,15 @@ test.describe('A11Y-01 mobile drawer focus (fixed)', () => {
     await expect(page.locator('button[aria-label="Close menu"]')).toBeFocused()
     await page.screenshot({ path: `${EVIDENCE}/a11y-01-drawer-open.png` })
 
+    // The page behind the drawer is inert while it is open, which is what keeps
+    // Tab inside; the loop below proves the observable consequence.
+    const contentInert = await page.evaluate(() => {
+      const aside = document.querySelector('aside')
+      const content = aside?.parentElement?.children[2] as HTMLElement | undefined
+      return content ? content.hasAttribute('inert') : null
+    })
+    expect(contentInert, 'page content behind the drawer is inert').toBe(true)
+
     for (let i = 0; i < 12; i++) {
       await page.keyboard.press('Tab')
       const inside = await page.evaluate(() => {

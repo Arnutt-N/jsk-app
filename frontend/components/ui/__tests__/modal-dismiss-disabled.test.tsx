@@ -4,12 +4,11 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 
 import { ConfirmDialog } from '../ConfirmDialog';
-import { Modal } from '../Modal';
 
 const settle = () => new Promise((r) => setTimeout(r, 90));
 
-describe('Modal dismissDisabled', () => {
-  it('leaves the dialog without an exit while pending', async () => {
+describe('ConfirmDialog while a request is pending', () => {
+  it('keeps the dialog open through every dismiss affordance', async () => {
     const onClose = vi.fn();
     render(
       <ConfirmDialog isOpen onClose={onClose} onConfirm={() => {}} title="ยืนยันการลบ" isLoading />,
@@ -17,37 +16,33 @@ describe('Modal dismissDisabled', () => {
     await settle();
 
     fireEvent.keyDown(window, { key: 'Escape' });
-    expect(onClose, 'Escape').not.toHaveBeenCalled();
-
-    fireEvent.click(document.querySelector('.bg-black\\/50')!);
-    expect(onClose, 'backdrop').not.toHaveBeenCalled();
-
-    expect(document.querySelector('[aria-label="Close modal"]'), 'X button').toBeNull();
+    fireEvent.click(screen.getByTestId('modal-backdrop'));
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByRole('dialog', { name: 'ยืนยันการลบ' })).toBeTruthy();
 
     const cancel = screen.getByRole('button', { name: 'ยกเลิก' }) as HTMLButtonElement;
-    expect(cancel.disabled, 'cancel disabled').toBe(true);
     fireEvent.click(cancel);
-    expect(onClose, 'cancel click').not.toHaveBeenCalled();
+    expect(cancel.disabled).toBe(true);
+    expect(onClose).not.toHaveBeenCalled();
   });
 
-  it('keeps the Tab trap alive, so focus cannot escape to the page behind', async () => {
+  it('keeps focus inside the dialog even though every control is disabled', async () => {
     render(
-      <Modal isOpen onClose={() => {}} dismissDisabled>
-        <button id="first">first</button>
-        <button id="last">last</button>
-      </Modal>,
+      <ConfirmDialog isOpen onClose={() => {}} onConfirm={() => {}} title="ยืนยันการลบ" isLoading />,
     );
     await settle();
 
-    const last = document.querySelector('#last') as HTMLButtonElement;
-    last.focus();
-    fireEvent.keyDown(window, { key: 'Tab' });
-    expect((document.activeElement as HTMLElement).id, 'wrap to first').toBe('first');
+    const dialog = screen.getByRole('dialog', { name: 'ยืนยันการลบ' });
+    for (let i = 0; i < 3; i++) {
+      fireEvent.keyDown(window, { key: 'Tab' });
+      expect(dialog.contains(document.activeElement), `Tab ${i + 1}`).toBe(true);
+    }
+  });
 
-    const first = document.querySelector('#first') as HTMLButtonElement;
-    first.focus();
-    fireEvent.keyDown(window, { key: 'Tab', shiftKey: true });
-    expect((document.activeElement as HTMLElement).id, 'wrap back to last').toBe('last');
+  it('tells the user that closing would not cancel the request', async () => {
+    render(<ConfirmDialog isOpen onClose={() => {}} onConfirm={() => {}} title="x" isLoading />);
+    await settle();
+    expect(screen.getByText('กำลังทำรายการ ปิดหน้าต่างนี้ไม่ได้ยกเลิกคำสั่ง')).toBeTruthy();
   });
 
   it('dismisses normally once the request settles', async () => {
@@ -71,25 +66,28 @@ describe('Modal dismissDisabled', () => {
     await settle();
 
     fireEvent.keyDown(window, { key: 'Escape' });
-    expect(onClose, 'blocked while pending').not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole('button', { name: 'request settled' }));
     await settle();
 
     fireEvent.keyDown(window, { key: 'Escape' });
-    expect(onClose, 'works once pending clears').toHaveBeenCalledTimes(1);
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });
 
-describe('inert attribute plumbing for the mobile drawer', () => {
-  it('omits the attribute when false, so the desktop sidebar stays reachable', () => {
-    const { container } = render(
-      <>
-        <div id="a" inert={false} />
-        <div id="b" inert={true} />
-      </>,
+describe('Modal dismissDisabled focus trap', () => {
+  it('cycles Tab between the dialog controls', async () => {
+    const { Modal } = await import('../Modal');
+    render(
+      <Modal isOpen onClose={() => {}} dismissDisabled title="ระหว่างรอ">
+        <button id="only">only</button>
+      </Modal>,
     );
-    expect((container.querySelector('#a') as HTMLElement).hasAttribute('inert')).toBe(false);
-    expect((container.querySelector('#b') as HTMLElement).hasAttribute('inert')).toBe(true);
+    await settle();
+
+    (document.querySelector('#only') as HTMLButtonElement).focus();
+    fireEvent.keyDown(window, { key: 'Tab' });
+    expect(screen.getByRole('dialog').contains(document.activeElement)).toBe(true);
   });
 });

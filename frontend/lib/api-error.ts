@@ -148,6 +148,10 @@ export async function apiFetch<T = unknown>(
     const data = (await res.json()) as T
     return { ok: true, data }
   } catch (err) {
+    // A caller-cancelled request is not a failure; logging it as one hides real errors.
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      return { ok: false, status: 0, message: 'คำขอถูกยกเลิก' }
+    }
     if (isNetworkError(err)) {
       logger.error('Network error', err, { url: fullUrl })
       return {

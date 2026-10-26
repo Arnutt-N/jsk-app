@@ -20,6 +20,8 @@ interface ModalProps {
    * passes isLoading) so a slow request cannot be dismissed mid-flight.
    */
   dismissDisabled?: boolean;
+  /** Accessible name for dialogs that render their own heading in the body. */
+  ariaLabel?: string;
 }
 
 export const Modal: React.FC<ModalProps> = ({
@@ -32,16 +34,15 @@ export const Modal: React.FC<ModalProps> = ({
   showCloseButton = true,
   closeOnBackdropClick = true,
   dismissDisabled = false,
+  ariaLabel,
 }) => {
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
-      document.body.style.paddingRight = `${scrollbarWidth}px`;
-    } else {
-      document.body.style.overflow = '';
-      document.body.style.paddingRight = '';
-    }
+    // Only the open state owns the body lock. Writing the unlock branch while
+    // closed would clear the scroll lock of whatever dialog is actually open.
+    if (!isOpen) return;
+    document.body.style.overflow = 'hidden';
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+    document.body.style.paddingRight = `${scrollbarWidth}px`;
     return () => {
       document.body.style.overflow = '';
       document.body.style.paddingRight = '';
@@ -65,9 +66,15 @@ export const Modal: React.FC<ModalProps> = ({
 
     if (e.key === 'Tab' && modalRef.current) {
       const focusable = modalRef.current.querySelectorAll<HTMLElement>(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
       );
-      if (focusable.length === 0) return;
+      if (focusable.length === 0) {
+        // A pending dialog disables every control. Without this the browser
+        // moves focus to the page behind the modal.
+        e.preventDefault();
+        modalRef.current.focus();
+        return;
+      }
 
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
@@ -139,6 +146,7 @@ export const Modal: React.FC<ModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
       {/* Backdrop */}
       <div
+        data-testid="modal-backdrop"
         className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
         onClick={closeOnBackdropClick && !dismissDisabled ? onClose : undefined}
       />
@@ -148,9 +156,10 @@ export const Modal: React.FC<ModalProps> = ({
         ref={modalRef}
         role="dialog"
         aria-modal="true"
+        tabIndex={-1}
         {...(title
           ? { 'aria-labelledby': titleId }
-          : { 'aria-label': 'Dialog' })}
+          : { 'aria-label': ariaLabel ?? 'Dialog' })}
         {...(description ? { 'aria-describedby': descriptionId } : {})}
         className={cn(
           'relative bg-surface dark:bg-surface-dark rounded-2xl w-full',
@@ -175,10 +184,11 @@ export const Modal: React.FC<ModalProps> = ({
             ) : (
               <div />
             )}
-            {showCloseButton && !dismissDisabled && (
+            {showCloseButton && (
               <button
                 onClick={onClose}
-                className="p-1.5 rounded-lg hover:bg-muted text-text-tertiary hover:text-text-primary transition-colors cursor-pointer"
+                disabled={dismissDisabled}
+                className="p-1.5 rounded-lg hover:bg-muted text-text-tertiary hover:text-text-primary transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
                 aria-label="Close modal"
               >
                 <X className="w-5 h-5" />

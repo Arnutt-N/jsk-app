@@ -159,10 +159,8 @@ function SidebarUserInfo({ isCollapsed }: { isCollapsed: boolean }) {
         className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-colors cursor-pointer group w-full text-left"
         onClick={() => setConfirmingLogout(true)}
       >
-        {/* No presence dot: the sidebar shows on every admin page where there
-            is no live socket, so a dot here would be a fake always-on indicator
-            (it was hardcoded "online"). Plain avatar instead — the real
-            socket-backed dot lives only on the live-chat ProfileDropdown. */}
+        {/* No presence dot: this sidebar shows on every admin page where there
+            is no live socket (the real dot lives on the live-chat profile). */}
         <Avatar size="sm" fallback={initials} />
         {!isCollapsed && (
           <>
@@ -412,11 +410,14 @@ function AdminShell({ children }: { children: React.ReactNode }) {
             </button>
           </aside>
 
-          {/* Main Content */}
-          <div className={cn(
-            'flex flex-col flex-1 transition-all duration-300',
-            isSidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'
-          )}>
+          {/* Main Content — inert while the mobile drawer is open so Tab cannot reach the page behind it. */}
+          <div
+            inert={isMobileViewport && isMobileMenuOpen}
+            className={cn(
+              'flex flex-col flex-1 transition-all duration-300',
+              isSidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'
+            )}
+          >
             {/* Header */}
             <header className={cn(
               'sticky top-0 z-40 h-20',

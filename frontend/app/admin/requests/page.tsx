@@ -159,7 +159,8 @@ export default function AdminRequestList() {
                 setFetchError(result.message);
             }
         } finally {
-            setLoading(false);
+            // A superseded request must not clear the loading state of the one that replaced it.
+            if (seq === seqRef.current) setLoading(false);
         }
     }, [debouncedSearch, filter.category, filter.status, filter.startDate, filter.endDate, page]);
 
@@ -171,13 +172,14 @@ export default function AdminRequestList() {
     }, [search]);
 
     useEffect(() => {
-        // Same-value setState bails out, so page 0 fires one fetch, not two.
-        setPage((p) => (p === 0 ? p : 0));
+        setPage(0);
     }, [filter.status, filter.category, debouncedSearch, filter.startDate, filter.endDate]);
 
     useEffect(() => {
         void fetchRequests();
     }, [fetchRequests]);
+
+    useEffect(() => () => abortRef.current?.abort(), []);
 
     // Effective permissions for the logged-in admin -- decides whether
     // the assign button is rendered. Returns null while loading; we
@@ -189,6 +191,7 @@ export default function AdminRequestList() {
     const [viewModalOpen, setViewModalOpen] = useState(false);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+    const deletingRef = useRef(false);
     const [assignModalOpen, setAssignModalOpen] = useState(false);
     const [assigningRequest, setAssigningRequest] = useState<ServiceRequest | null>(null);
 
@@ -224,7 +227,10 @@ export default function AdminRequestList() {
     };
 
     const confirmDelete = async () => {
-        if (!selectedRequest || isDeleting) return;
+        // Two activations can reach here before React commits setIsDeleting,
+        // so the ref is what actually blocks the second DELETE.
+        if (!selectedRequest || deletingRef.current) return;
+        deletingRef.current = true;
         setIsDeleting(true);
         try {
             const result = await apiFetch(`/admin/requests/${selectedRequest.id}`, { method: 'DELETE' });
@@ -237,6 +243,7 @@ export default function AdminRequestList() {
                 toast({ variant: 'error', title: 'ลบคำร้องไม่สำเร็จ', description: result.message });
             }
         } finally {
+            deletingRef.current = false;
             setIsDeleting(false);
         }
     };

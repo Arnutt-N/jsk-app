@@ -62,7 +62,7 @@ export function ConfirmDialog({
   const config = variantConfig[variant];
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} maxWidth="sm" showCloseButton={false} dismissDisabled={isLoading}>
+    <Modal isOpen={isOpen} onClose={onClose} maxWidth="sm" showCloseButton={false} dismissDisabled={isLoading} ariaLabel={title}>
       <div className="flex flex-col items-center text-center">
         <div className={cn('w-14 h-14 rounded-2xl flex items-center justify-center mb-4', config.iconBg)}>
           {config.icon}
