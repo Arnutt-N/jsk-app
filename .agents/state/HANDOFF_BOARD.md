@@ -1,8 +1,8 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Handoff Board (generated)
 
-> **Last generated**: 2026-10-25 13:55 (from newest checkpoint)
-> 313 active handoffs, 12 platforms, 0 queued directed handoff(s).
+> **Last generated**: 2026-10-26 11:13 (from newest checkpoint)
+> 314 active handoffs, 12 platforms, 0 queued directed handoff(s).
 
 > Regenerate after any handoff: `node .agents/scripts/gen-handoff-views.cjs`
 
@@ -19,7 +19,7 @@
 | kimi_code | AVAILABLE | 2026-10-25 13:55 | 0 | Merged PR #299: admin UI polish batch (reply-objects SKN->JSK rename+migration, canned badge removal, rich-menu shared S | `project-log-md/kimi_code/session-summary-20261025-1355.md` |
 | muse_code | AVAILABLE | 2026-10-11 15:10 | 0 | Merged PR #248 (act-on-8 fixes + 6 review findings) via guarded squash d5dbef9 after independent PASS+NOTES verdict; del | `project-log-md/muse_code/session-summary-20261011-1510.md` |
 | open_code | AVAILABLE | 2026-08-25 07:39 | 0 | LIFF smoke-test plan for PR #202 drafted+reviewed (.scratch/liff-smoke-pr202/smoke-test-plan.md, REV1: 5 findings fixed) | `project-log-md/open_code/session-summary-20260825-0739.md` |
-| pi | AVAILABLE | 2026-10-25 10:29 | 0 | Merged PR #297 (shared DatePresetFilter on 6 admin pages) + PR #298 (eslint ban on direct DateRangePicker imports) | `project-log-md/pi/session-summary-20261025-1029.md` |
+| pi | AVAILABLE | 2026-10-26 11:13 | 0 | Admin P1 fixes: 8 defects fixed, PR #300 open and CI green; review round 2 in flight | `project-log-md/pi/session-summary-20261026-1113.md` |
 | qoder | AVAILABLE | 2026-08-29 23:21 | 0 | Merged PR #206 + #207 to main (8ddbda3, beaff04) — resolved #206 generated-state conflicts (kept both 21:58/22:44 record | `project-log-md/qoder/session-summary-20260829-2321.md` |
 | zcode | AVAILABLE | 2026-09-06 22:56 | 0 | codebase-review-fix on PR #228 CLOSED via PR #229 (squash e63ee9f, CI 4/4, CD success): review found 0 Critical/High; 3  | `project-log-md/zcode/session-summary-20260906-2256.md` |
 
@@ -35,6 +35,7 @@ _None — no blocked checkpoints._
 
 | When | From → To | Task | Checkpoint |
 |------|-----------|------|------------|
+| 2026-10-26 11:13 | pi → all | Admin P1 fixes: 8 defects fixed, PR #300 open and CI green; review round 2 in flight | `handover-pi-20261026-1113.json` |
 | 2026-10-25 13:55 | kimi_code → all | Merged PR #299: admin UI polish batch (reply-objects SKN->JSK rename+migration, canned badge removal, rich-menu shared Selects, audit filter | `handover-kimi_code-20261025-1355.json` |
 | 2026-10-25 10:29 | pi → all | Merged PR #297 (shared DatePresetFilter on 6 admin pages) + PR #298 (eslint ban on direct DateRangePicker imports) | `handover-pi-20261025-1029.json` |
 | 2026-10-25 01:02 | pi → all | Merged PR #296: admin UI fixes batch + read-only Viewer (10 items), all CI green | `handover-pi-20261025-0102.json` |
@@ -44,4 +45,3 @@ _None — no blocked checkpoints._
 | 2026-10-24 02:21 | pi → all | Session closeout: pstack pipeline done, PRs 291-294 merged green, follow-ups proposed, PR 257 merge question pending user | `handover-pi-20261024-0221.json` |
 | 2026-10-24 00:06 | pi → all | pstack pipeline complete: #293 hardening merged (CD green), #294 harness merged; interrogate+thermos findings actioned; user decisions Q1-ke | `handover-pi-20261024-0006.json` |
 | 2026-10-23 19:25 | pi → all | PR #291 merged (squash c319a45): LIFF leave-confirm unified + admin soft-delete; CI all green | `handover-pi-20261023-1925.json` |
-| 2026-10-23 02:09 | pi → all | Merged datepicker redesign PRs #285/#286/#287 (Portal popup, slim input, touch hardening, touch e2e) | `handover-pi-20261023-0209.json` |

@@ -1,12 +1,21 @@
 {
-  "last_updated": "2026-10-25T13:55:00+07:00",
-  "platform": "kimi_code",
-  "current_task": "Merged PR #299: admin UI polish batch (reply-objects SKN->JSK rename+migration, canned badge removal, rich-menu shared Selects, audit filters+balanced cards); CD green, prod DB migrated",
+  "last_updated": "2026-10-26T11:13:00+07:00",
+  "platform": "pi",
+  "current_task": "Admin P1 fixes: 8 defects fixed, PR #300 open and CI green; review round 2 in flight",
   "plan_status": "completed",
   "next_steps": [
-    "Verify the 5 fixed pages on production from a phone"
+    "Run the remaining independent reviews (interrogate C/D, thermos both, blast-radius) to completion",
+    "Verify Vitest components/ui/__tests__/modal-dismiss-disabled.test.tsx on a quiet machine (last run was killed by machine load)",
+    "Check the blast-radius finding: Modal.dismissDisabled killed the Tab trap, fixed in dc559b9, needs reviewer confirmation"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-10-26T11:13:00+07:00",
+      "platform": "pi",
+      "branch": "feat/admin-p1-fixes",
+      "head": "dc559b9",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-10-25T13:55:00+07:00",
       "platform": "kimi_code",
@@ -138,13 +147,6 @@
       "platform": "pi",
       "branch": "feat/booking-full-option",
       "head": "d302446",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-10-19T17:03:00+07:00",
-      "platform": "pi",
-      "branch": "feat/booking-full-option",
-      "head": "492070c",
       "status": "completed"
     }
   ],
