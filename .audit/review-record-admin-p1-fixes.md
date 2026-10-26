@@ -78,12 +78,36 @@ walked out into the page behind. Fixed in `dc559b9`.
   window with `page.clock` did not fire the hook's timers, so the dialog semantics and the dismiss
   policy are covered by the unit test instead.
 
+## Round 3: the code-quality `thermos` pass delivered
+
+Against head `5722170`. Its verdict: "not messier overall, the diff is net subtractive and pays down
+real bugs", with one item it wanted fixed before merge. Triage:
+
+### Accepted and fixed
+
+| Finding | Fix |
+|---|---|
+| One Escape had two owners, and the layout sniffed `[role="dialog"]` in the DOM to guess | `Modal` exports `hasOpenDialog()` off its own ref-count; the drawer asks that instead |
+| The same `isMobileViewport && isMobileMenuOpen` predicate was spelled four ways | One `drawerOpen` value drives the aside, the content `inert`, and the skip link |
+| The `aborted` result flag was dead surface, and request bounding lived in one page | `apiFetch` gained `timeoutMs`; the delete passes it and reads `result.aborted` |
+| `onClose={extendSession}` on the session warning was unreachable wiring that read as intent | Replaced with a no-op and a why comment |
+
+### Noted, not done here
+
+- The drawer's focus and Escape handling still live in `AdminShell` (517 lines). Extracting a
+  `useMobileDrawer` hook, or composing the existing `Sheet` primitive, is a follow-up rather than a
+  last-minute refactor of a page shell under review.
+- The four specs stay in `e2e/admin-audit-verify/`. Folding them into the existing feature specs is
+  test organisation, not a defect, and the folder name records why they exist.
+- The ref-counted body lock has no reset path if a tree unmounts mid-render. Cheap hardening, left for
+  whoever next touches `ErrorBoundary`.
+
 ## Current gate state
 
-CI is green and all ten `admin-audit-verify` specs pass. `interrogate` B and D and the security
-`thermos` pass delivered verdicts for this branch. The code-quality `thermos` pass never delivered: two
-attempts died on quota and the third hung until the harness stopped it, so that single axis stays
-uncovered. Everything else in the gate is closed.
+CI is green and all ten `admin-audit-verify` specs pass. Every requested review has now delivered a
+verdict for this branch: `no-comments`, `blast-radius` (its partial run found the Tab-trap defect),
+`interrogate` A/B/C/D, and both `thermos` passes. Work that the reviewers asked for is either fixed
+above or recorded as a named follow-up.
 
 Secrets rule (user-mandated 2026-10-13) held throughout: no key, token, or password appears in this
 file, the PR body, or any log from this session.
