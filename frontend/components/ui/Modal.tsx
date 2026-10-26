@@ -55,10 +55,10 @@ export const Modal: React.FC<ModalProps> = ({
   const descriptionId = React.useId();
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (dismissDisabled) {
-      return;
-    }
     if (e.key === 'Escape') {
+      // While a request is pending the dialog must not be dismissible, but the
+      // Tab trap below still has to hold or focus escapes to the page behind.
+      if (dismissDisabled) return;
       onClose();
       return;
     }
