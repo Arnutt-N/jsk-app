@@ -5,7 +5,7 @@ import { gotoAdmin } from '../utils/nav'
 const EVIDENCE = '../.audit/browser-verify'
 
 // Dev-server compiles make first hits slow; fail loudly instead of retrying.
-test.describe.configure({ timeout: 90_000 })
+test.describe.configure({ timeout: 90_000, retries: 0 })
 
 test.describe('NAV-01 mobile search opens the shared palette', () => {
   test.use({ viewport: { width: 360, height: 800 } })
@@ -19,7 +19,7 @@ test.describe('NAV-01 mobile search opens the shared palette', () => {
     await expect(palette).toBeVisible()
 
     await palette.getByPlaceholder('ค้นหาหน้า การดำเนินการ หรือการตั้งค่า...').fill('reports')
-    await palette.getByRole('option').first().click()
+    await palette.getByRole('option', { name: /Reports/ }).first().click()
     // Cold dev-server compile of the target route can exceed 15s on first hit.
     await page.waitForURL(/\/admin\/reports/, { timeout: 60_000 })
     await page.screenshot({ path: `${EVIDENCE}/nav-01-mobile-palette-fixed.png` })
@@ -34,7 +34,7 @@ test.describe('NAV-01 desktop palette opens', () => {
     await gotoAdmin(page, '/admin')
 
     await page.locator('button[aria-label="Open command palette (Ctrl+K)"]').click()
-    await expect(page.getByRole('dialog').first()).toBeVisible()
+    await expect(page.getByRole('dialog', { name: 'Command palette' })).toBeVisible()
     await page.screenshot({ path: `${EVIDENCE}/nav-01-desktop-palette.png` })
   })
 })
@@ -49,19 +49,21 @@ test.describe('NAV-02 Appointments is not reachable for AGENT', () => {
     }
 
     // CI seeds the admin account only, so this spec runs where an AGENT exists.
-    let loggedIn = true
     try {
       await loginAs(page, 'staff', password)
-    } catch {
-      loggedIn = false
-    }
-    if (!loggedIn) {
+    } catch (error) {
+      // Only a failed sign-in may skip; a broken page or a 500 must surface.
+      if (!page.url().includes('/login')) throw error
       test.skip(true, 'Seeded AGENT account "staff" is absent in this environment.')
     }
 
     await expect(page).toHaveURL(/\/admin\/live-chat/, { timeout: 60_000 })
+    // Positive control: the console rendered, so the absence below is real.
+    await expect(page.locator('input[name="password"]')).toHaveCount(0)
     await page.screenshot({ path: `${EVIDENCE}/nav-02-agent-console.png` })
 
+    // AGENT gets no admin sidebar at all, so there is no Appointments affordance anywhere.
+    expect(await page.locator('aside').count(), 'AGENT console has no admin sidebar').toBe(0)
     await expect(page.locator('a[href="/admin/bookings"]')).toHaveCount(0)
 
     await gotoAdmin(page, '/admin/bookings')

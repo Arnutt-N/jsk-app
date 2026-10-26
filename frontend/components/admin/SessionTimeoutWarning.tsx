@@ -6,7 +6,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { AlertCircle } from 'lucide-react';
 
 /**
- * Closing by any path (Escape, backdrop, X, Stay Logged In) extends the session.
+ * Only the two explicit buttons act. Escape, a backdrop tap, and the X would
+ * each renew an idle admin session over citizen data, so they are blocked:
+ * the clock must move on a deliberate choice, not on a stray tap.
  */
 export function SessionTimeoutWarning() {
   const { logout } = useAuth();
@@ -24,6 +26,8 @@ export function SessionTimeoutWarning() {
       onClose={extendSession}
       title="Session Expiring Soon"
       maxWidth="md"
+      dismissDisabled
+      showCloseButton={false}
     >
       <div className="flex items-center gap-3 mb-4">
         <div className="w-10 h-10 rounded-xl bg-warning/12 flex items-center justify-center">

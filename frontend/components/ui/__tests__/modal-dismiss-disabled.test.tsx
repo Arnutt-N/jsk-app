@@ -39,10 +39,10 @@ describe('ConfirmDialog while a request is pending', () => {
     }
   });
 
-  it('tells the user that closing would not cancel the request', async () => {
+  it('announces the pending state to assistive tech', async () => {
     render(<ConfirmDialog isOpen onClose={() => {}} onConfirm={() => {}} title="x" isLoading />);
     await settle();
-    expect(screen.getByText('กำลังทำรายการ ปิดหน้าต่างนี้ไม่ได้ยกเลิกคำสั่ง')).toBeTruthy();
+    expect(screen.getByRole('status').textContent).toContain('กำลังดำเนินการ');
   });
 
   it('dismisses normally once the request settles', async () => {

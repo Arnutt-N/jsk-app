@@ -233,7 +233,11 @@ function AdminShell({ children }: { children: React.ReactNode }) {
     drawerCloseButtonRef.current?.focus();
     const opener = menuOpenButtonRef.current;
     const handleDrawerKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setIsMobileMenuOpen(false);
+      if (e.key !== 'Escape' || e.defaultPrevented) return;
+      // A portaled dialog owns Escape while it is open.
+      if (document.querySelector('[role="dialog"]')) return;
+      e.preventDefault();
+      setIsMobileMenuOpen(false);
     };
     window.addEventListener('keydown', handleDrawerKey);
     return () => {
@@ -310,16 +314,19 @@ function AdminShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen bg-bg text-gray-600 dark:bg-gray-900 dark:text-gray-400 font-sans">
-          {/* Skip to main content link for accessibility */}
-          <a
-            href="#main-content"
-            className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-brand-500 focus:text-white focus:rounded-lg"
-          >
-            Skip to main content
-          </a>
+          {/* The skip link sits outside both inert regions, so it is hidden while the drawer owns focus. */}
+          {!(isMobileViewport && isMobileMenuOpen) && (
+            <a
+              href="#main-content"
+              className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-brand-500 focus:text-white focus:rounded-lg"
+            >
+              Skip to main content
+            </a>
+          )}
 
           {/* Sidebar */}
           <aside
+            data-testid="admin-drawer"
             inert={drawerHiddenOnMobile}
             aria-hidden={drawerHiddenOnMobile}
             className={cn(

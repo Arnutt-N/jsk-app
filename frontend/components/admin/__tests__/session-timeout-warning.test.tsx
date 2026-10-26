@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
 
 const mockExtendSession = vi.fn();
 const mockLogout = vi.fn();
@@ -19,26 +19,42 @@ vi.mock('@/contexts/AuthContext', () => ({
 
 import { SessionTimeoutWarning } from '../SessionTimeoutWarning';
 
+beforeEach(() => {
+  mockExtendSession.mockClear();
+  mockLogout.mockClear();
+});
+
 describe('SessionTimeoutWarning dialog semantics', () => {
-  it('renders as a named dialog with the countdown', () => {
+  it('renders as a named dialog with the countdown shown once', () => {
     render(<SessionTimeoutWarning />);
 
-    const dialog = screen.getByRole('dialog', { name: 'Session Expiring Soon' });
-    expect(dialog).toBeTruthy();
+    expect(screen.getByRole('dialog', { name: 'Session Expiring Soon' })).toBeTruthy();
     expect(screen.getAllByText(/2:05/)).toHaveLength(1);
+    expect(mockExtendSession).not.toHaveBeenCalled();
   });
 
-  it('Escape extends the session instead of silently dismissing', () => {
+  it('ignores Escape and a backdrop tap so a stray key cannot renew the session', () => {
     render(<SessionTimeoutWarning />);
 
     fireEvent.keyDown(window, { key: 'Escape' });
-    expect(mockExtendSession).toHaveBeenCalled();
+    fireEvent.click(screen.getByTestId('modal-backdrop'));
+    expect(mockExtendSession).not.toHaveBeenCalled();
+    expect(screen.getByRole('dialog', { name: 'Session Expiring Soon' })).toBeTruthy();
   });
 
   it('Stay Logged In extends the session', () => {
     render(<SessionTimeoutWarning />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Stay Logged In' }));
-    expect(mockExtendSession).toHaveBeenCalled();
+    expect(mockExtendSession).toHaveBeenCalledTimes(1);
+    expect(mockLogout).not.toHaveBeenCalled();
+  });
+
+  it('Logout signs out instead of extending', () => {
+    render(<SessionTimeoutWarning />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Logout' }));
+    expect(mockLogout).toHaveBeenCalledTimes(1);
+    expect(mockExtendSession).not.toHaveBeenCalled();
   });
 });

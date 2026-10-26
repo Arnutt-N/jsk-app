@@ -105,7 +105,7 @@ export function isNetworkError(error: unknown): boolean {
 
 type ApiFetchResult<T> =
   | { ok: true; data: T }
-  | { ok: false; status: number; message: string }
+  | { ok: false; status: number; message: string; aborted?: true }
 
 /**
  * Fetch wrapper that handles errors uniformly.
@@ -150,7 +150,7 @@ export async function apiFetch<T = unknown>(
   } catch (err) {
     // A caller-cancelled request is not a failure; logging it as one hides real errors.
     if (err instanceof DOMException && err.name === 'AbortError') {
-      return { ok: false, status: 0, message: 'คำขอถูกยกเลิก' }
+      return { ok: false, status: 0, message: 'คำขอถูกยกเลิก', aborted: true }
     }
     if (isNetworkError(err)) {
       logger.error('Network error', err, { url: fullUrl })

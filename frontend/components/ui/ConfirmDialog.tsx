@@ -72,7 +72,9 @@ export function ConfirmDialog({
           <p className="text-sm text-text-secondary mb-6">{description}</p>
         )}
         {isLoading && (
-          <p className="text-xs text-text-tertiary -mt-3 mb-1">กำลังทำรายการ ปิดหน้าต่างนี้ไม่ได้ยกเลิกคำสั่ง</p>
+          <p role="status" className="text-xs text-text-tertiary -mt-3 mb-1">
+            กำลังดำเนินการ กรุณาอย่าปิดหรือรีเฟรชหน้านี้
+          </p>
         )}
         <div className="flex gap-3 w-full">
           <Button

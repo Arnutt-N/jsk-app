@@ -5,6 +5,10 @@ import { X } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 
+// Several modals can be open at once (a warning over a form). The lock is
+// reference-counted so the inner one closing cannot unlock the page behind it.
+let bodyLockCount = 0;
+
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -37,13 +41,14 @@ export const Modal: React.FC<ModalProps> = ({
   ariaLabel,
 }) => {
   useEffect(() => {
-    // Only the open state owns the body lock. Writing the unlock branch while
-    // closed would clear the scroll lock of whatever dialog is actually open.
     if (!isOpen) return;
+    bodyLockCount += 1;
     document.body.style.overflow = 'hidden';
     const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
     document.body.style.paddingRight = `${scrollbarWidth}px`;
     return () => {
+      bodyLockCount -= 1;
+      if (bodyLockCount > 0) return;
       document.body.style.overflow = '';
       document.body.style.paddingRight = '';
     };
@@ -60,6 +65,8 @@ export const Modal: React.FC<ModalProps> = ({
       // While a request is pending the dialog must not be dismissible, but the
       // Tab trap below still has to hold or focus escapes to the page behind.
       if (dismissDisabled) return;
+      // Claim the key so a drawer or other window listener does not also act.
+      e.preventDefault();
       onClose();
       return;
     }
@@ -120,7 +127,7 @@ export const Modal: React.FC<ModalProps> = ({
       // (the Close button) — the CI-red auto-replies create-category race.
       if (modalRef.current?.contains(document.activeElement)) return;
       const firstFocusable = modalRef.current?.querySelector<HTMLElement>(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
       );
       firstFocusable?.focus();
     }, 50);
