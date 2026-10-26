@@ -1,4 +1,4 @@
-# [Codebase Review 2026-10-26] Implementation Plan (rev.2 — gate feedback applied)
+# [Codebase Review 2026-10-26] Implementation Plan (rev.4 — loop-3 gate feedback applied)
 
 > **For agentic workers:** use superpowers:subagent-driven-development or superpowers:executing-plans,
 > task by task. Steps use checkbox syntax. Validate immediately after every change; never accumulate
@@ -54,14 +54,17 @@ auth overrides go through dependency_overrides, never substring tricks.
 `import { captureCsrf, createRequestFixture } from '../utils/request-fixture';`
 `captureCsrf(page); await loginAsAdmin(page); await createRequestFixture(page, 'Name');`
 
-## UX contract (applies to the three UI-affecting tasks; everything else is N/A — internal change)
+## UX contract (applies to the five UI-affecting tasks; everything else is N/A — internal change)
 
 - Task 12 (F-016): before, an HTML error page body renders verbatim in the toast; after, the toast
   shows the Thai status message and the raw body stays in the server logs only.
 - Task 27 (F-031): before, the sidebar shows hardcoded menus that disagree with the DB matrix; after,
   the same menus appear/disappear from the served capability map with identical styling and order.
 - Task 29 (F-033): before, three declarations can disagree; after, routing behaviour is identical,
-  only the source is single. Loading, error, and empty states do not change in any task.
+  only the source is single.
+- Task 8 (F-012): before, a wrong password hangs the UI in a refresh loop before surfacing; after, the login error surfaces immediately while an expired session still refreshes once.
+- Task 11 (F-015): before, a cancelled or timed-out fetch can flash an error toast and clear another request's loading state; after, aborted requests are silent and loading belongs to the latest request only.
+Loading, error, and empty states do not change in any other task.
 
 ## Risks and mitigations
 
@@ -124,7 +127,10 @@ performance work, and the named follow-ups in `.audit/review-record-admin-p1-fix
 
 **Files:** Modify `backend/app/core/permissions.py` (`_policy_cache`, `_check`), `backend/app/api/v1/endpoints/settings.py` (PATCH path)
 **Consumes:** existing Redis client (`app.core.redis_client`); no new infrastructure.
-**Decision:** short TTL re-read (not pub/sub): simpler, no new channels, bounds staleness deterministically.
+**Decision:** short-TTL re-read (not pub/sub): simpler, no new channels. State: module-level
+`_policy_loaded_at: float | None` set on every successful `load_policy`; `_check` re-reads when older
+than 30s; a re-read exception denies the request (fail closed, consistent with Task 4) instead of
+serving stale.
 
 - [ ] **Step 1: Failing check** — change a permission via PATCH, then read the matrix from a second worker/process; assert staleness.
 - [ ] **Step 2: Implement** — re-read the DB-backed matrix when the cached entry is older than 30s; keep the in-process fast path otherwise.
@@ -172,8 +178,11 @@ performance work, and the named follow-ups in `.audit/review-record-admin-p1-fix
 
 - [ ] **Step 1: Failing check** — exercise each path; assert no audit row exists today.
 - [ ] **Step 2: Implement** — `create_audit_log` on all three link paths; gate `delete_conversation` on the
-  same `require_permission(KEY_ACCESS_LIVE_CHAT)` key used in Task 1 and require ownership-or-admin;
-  record the acting user in `closed_by`/details plus an audit row on force-close.
+  same `require_permission(KEY_ACCESS_LIVE_CHAT)` key used in Task 1 AND require ownership
+  (`session.assigned_agent_id == current_admin.id`) or role in (SUPER_ADMIN, ADMIN); unclaimed sessions
+  (assignee null) require SUPER_ADMIN/ADMIN. Record the actor as `details={"actor_id": current_admin.id,
+  "force_close": True}` in the audit row; `closed_by` stays the `ClosedBy` enum (a String(20) enum
+  column per `app/models/chat_session.py:12-35`, it cannot hold an id).
 - [ ] **Step 3: Verify** — rows exist with actor, resource, action for each path; non-owner, non-admin
   force-close returns 403.
 - [ ] **Step 4: Run** — `python -m pytest -q tests/ -k "media or live_chat"` + new tests + `python -m compileall -q app` + `ruff check backend/api/v1/endpoints/media.py backend/api/v1/endpoints/admin_live_chat.py`.
@@ -188,7 +197,7 @@ performance work, and the named follow-ups in `.audit/review-record-admin-p1-fix
 - [ ] **Step 2: Implement** — encode both compare sides; username-first-then-email resolution; dummy `verify_password_async` on the not-found path.
 - [ ] **Step 3: Verify** — 403 / deterministic user / timing equalised.
 - [ ] **Step 4: Run** — `python -m pytest -q tests/ -k "auth or csrf or login"` + `python -m compileall -q app` + `ruff check backend/api/v1/endpoints/auth.py backend/api/deps.py`.
-- [ ] **Step 5: Commit** — `git commit -m "fix(auth): harden CSRF compare, login resolution, and timing"``
+- [ ] **Step 5: Commit** — `git commit -m "fix(auth): harden CSRF compare, login resolution, and timing"`
 
 ### Task 8: Auth-entry endpoints are not refreshable (F-012)
 
@@ -254,7 +263,7 @@ performance work, and the named follow-ups in `.audit/review-record-admin-p1-fix
 - [ ] **Step 2: Implement** — add the job with the same services as the smoke job.
 - [ ] **Step 3: Verify** — a PR run shows the job executing (pass or genuine fail, never absent); link the green run SHA.
 - [ ] **Step 4: Run** — green CI SHA on this branch as the proof artifact, plus local YAML validity: `python -c "import yaml; yaml.safe_load(open('.github/workflows/e2e.yml'))"`.
-- [ ] **Step 5: Commit** — `git commit -m "ci(e2e): run the 2-client live-chat suite"``
+- [ ] **Step 5: Commit** — `git commit -m "ci(e2e): run the 2-client live-chat suite"`
 
 ### Task 14: Gate CD on CI and E2E (F-018)
 
@@ -265,7 +274,7 @@ performance work, and the named follow-ups in `.audit/review-record-admin-p1-fix
 - [ ] **Step 2: Implement** — add E2E to the workflow list and require both conclusions for the same head SHA.
 - [ ] **Step 3: Verify** — link a CI cycle where a red E2E would block deploy (or a green pair that ships).
 - [ ] **Step 4: Run** — green CI SHA on this branch as the proof artifact, plus local YAML validity: `python -c "import yaml; yaml.safe_load(open('.github/workflows/cd.yml'))"`.
-- [ ] **Step 5: Commit** — `git commit -m "ci(cd): gate deploys on CI and E2E"``
+- [ ] **Step 5: Commit** — `git commit -m "ci(cd): gate deploys on CI and E2E"`
 
 ### Task 15: Make the gate-coverage test concrete (F-019)
 
@@ -276,7 +285,7 @@ performance work, and the named follow-ups in `.audit/review-record-admin-p1-fix
 - [ ] **Step 2: Implement** — match concrete usage (overrides key, monkeypatch target, decorator argument).
 - [ ] **Step 3: Verify** — comment-only mention fails; real usage passes.
 - [ ] **Step 4: Run** — `python -m pytest -q tests/test_gate_test_coverage.py` + `python -m compileall -q tests` + `ruff check backend/tests/test_gate_test_coverage.py`.
-- [ ] **Step 5: Commit** — `git commit -m "test(gates): require concrete usage in gate coverage"``
+- [ ] **Step 5: Commit** — `git commit -m "test(gates): require concrete usage in gate coverage"`
 
 ### Task 16: Assert the positive login landing (F-020)
 
@@ -311,7 +320,7 @@ data-dependent skip with a hard failure so an empty DB fails loudly.
 - [ ] **Step 2: Implement** — install `requirements-lock.txt` in both.
 - [ ] **Step 3: Verify** — link the green CI SHA showing the lock file installed in both jobs.
 - [ ] **Step 4: Run** — green CI SHA on this branch as the proof artifact, plus the same local YAML validity check as Task 14.
-- [ ] **Step 5: Commit** — `git commit -m "ci(deps): install the lock file for deploy and e2e"``
+- [ ] **Step 5: Commit** — `git commit -m "ci(deps): install the lock file for deploy and e2e"`
 
 ### Task 19: Remove the dead RED skip guard (F-023)
 
@@ -334,14 +343,14 @@ data-dependent skip with a hard failure so an empty DB fails loudly.
 - [ ] **Step 2: Implement** — fail (or explicitly mark the job skipped) when unconfigured.
 - [ ] **Step 3: Verify** — link a CI cycle proving the hard gate.
 - [ ] **Step 4: Run** — green CI SHA on this branch as the proof artifact, plus the same local YAML validity check as Task 14.
-- [ ] **Step 5: Commit** — `git commit -m "ci(cd): smoke checks fail when unconfigured"``
+- [ ] **Step 5: Commit** — `git commit -m "ci(cd): smoke checks fail when unconfigured"`
 
 ### Task 21: Migrate bare admin navigations to gotoAdmin (F-025)
 
-**Files:** all 19 admin navigations — `admin-requests-polish.spec.ts:68,94,102(detailUrl),121,129(detailUrl),148,156(detailUrl),189,221`, `admin-requests-supervisor.spec.ts:137`, `audit-timeline.spec.ts:49`, `auth.spec.ts:6`, `bookings-calendar.spec.ts:7`, `cookie-auth.spec.ts:72,76`, `datepicker-touch.spec.ts:20`, `live-chat-layout.spec.ts:64`, `permission-settings.spec.ts:21`, `request-list.spec.ts:19` (`gotoAdmin(page, url)` accepts the dynamic detail URLs too)
+**Files:** all 29 bare admin navigations — 17 static (`admin-requests-polish.spec.ts:68,94,121,148,189,221`, `admin-requests-supervisor.spec.ts:137`, `audit-timeline.spec.ts:49`, `auth.spec.ts:6`, `bookings-calendar.spec.ts:7`, `cookie-auth.spec.ts:25,72,76`, `datepicker-touch.spec.ts:20`, `live-chat-layout.spec.ts:64`, `permission-settings.spec.ts:21`, `request-list.spec.ts:19`) plus 12 dynamic detail-URL gotos (`admin-requests-polish.spec.ts:102,129,156`, `admin-requests-supervisor.spec.ts:156,185,213,251,284,313,359`, `audit-timeline.spec.ts:65,88`; `gotoAdmin(page, url)` accepts the dynamic URL string too)
 **Consumes:** `gotoAdmin` from `e2e/utils/nav` (see Reusable patterns).
 
-- [ ] **Step 1: Failing check** — `grep -rn "await page.goto('/admin" frontend/e2e/*.spec.ts` lists the 19 sites above today.
+- [ ] **Step 1: Failing check** — `grep -rn "await page.goto('/admin" frontend/e2e/*.spec.ts` plus `grep -rn "page.goto(detailUrl" frontend/e2e/*.spec.ts` list the 29 sites above today.
 - [ ] **Step 2: Implement** — replace every one with `gotoAdmin`.
 - [ ] **Step 3: Verify** — specs navigate identically under load.
 - [ ] **Step 4: Run** — touched specs + `npm run lint` + `npm run build`.
@@ -351,13 +360,12 @@ data-dependent skip with a hard failure so an empty DB fails loudly.
 
 **Files:** Modify `.github/workflows/ci.yml:124`, add `[tool.ruff]` to backend `pyproject.toml`, pin `ruff` in `backend/requirements.txt`
 **Decision:** ruff only. mypy on this tree is unmeasured work that would block the gate on day one; record a mypy follow-up instead.
-**Decision:** ruff only. mypy on this tree is unmeasured work that would block the gate on day one; record a mypy follow-up instead.
 
 - [ ] **Step 1: Failing check** — confirm no ruff/mypy step exists today.
 - [ ] **Step 2: Implement** — ruff step for `backend/` with the repo's line-length rules.
 - [ ] **Step 3: Verify** — introduce a deliberate violation on a scratch run; CI flags it, then remove it.
 - [ ] **Step 4: Run** — green CI SHA on this branch as the proof artifact, plus the same local YAML validity check as Task 14.
-- [ ] **Step 5: Commit** — `git commit -m "ci(backend): add ruff gate for backend"``
+- [ ] **Step 5: Commit** — `git commit -m "ci(backend): add ruff gate for backend"`
 
 ### Task 23: Forbid focused tests in CI (F-027)
 
@@ -368,7 +376,7 @@ data-dependent skip with a hard failure so an empty DB fails loudly.
 - [ ] **Step 2: Implement** — `forbidOnly: !!process.env.CI` in both configs.
 - [ ] **Step 3: Verify** — a scratch `test.only` fails under `CI=true`, passes locally.
 - [ ] **Step 4: Run** — `npx playwright test --list` loads both configs (the config-load proof for a config-only change) + green CI SHA on this branch.
-- [ ] **Step 5: Commit** — `git commit -m "test(e2e): forbid focused tests in CI"``
+- [ ] **Step 5: Commit** — `git commit -m "test(e2e): forbid focused tests in CI"`
 
 ### Task 24: Coverage floors (F-028)
 
@@ -442,7 +450,7 @@ data-dependent skip with a hard failure so an empty DB fails loudly.
 **Consumes:** `resolve_range(start_date, end_date, days)` from `app.core.date_windows` (verified export at `date_windows.py:31` raising `InvertedRangeError` on start > end; keep surfacing that as the page error).
 
 - [ ] **Step 1: Failing check** — feed `start_date = end_date = 2026-10-26`; assert the inline window can disagree with the helper today.
-- [ ] **Step 2: Implement** — pin `resolve_range(start_date, end_date, days)` from `app.core.date_windows` (verified export; `day_bounds_utc` is its single-day primitive).
+- [ ] **Step 2: Implement** — pin `resolve_range(start_date, end_date, days)` from `app.core.date_windows` (verified export; `day_bounds_utc` is its single-day primitive). Catch `InvertedRangeError` in the endpoint and return HTTP 400 with the existing invalid-range message shape.
 - [ ] **Step 3: Verify** — `resolve_range(2026-10-26, 2026-10-26, days)` equals `day_bounds_utc(2026-10-26)`, i.e. half-open `[2026-10-25T17:00Z, 2026-10-26T17:00Z)`, and the list matches the audit/reports windows on that day.
 - [ ] **Step 4: Run** — `python -m pytest -q tests/ -k "request and date"` + `test_date_windows.py` + `python -m compileall -q app` + `ruff check backend/api/v1/endpoints/admin_requests.py`.
 - [ ] **Step 5: Commit** — `git commit -m "fix(requests): use the shared Bangkok date window"`
@@ -452,7 +460,7 @@ data-dependent skip with a hard failure so an empty DB fails loudly.
 ## Self-Review
 
 - [x] Spec coverage: all 34 accepted findings map to Tasks 1–30 (F-005+F-011→5, F-006+F-007→6, F-008+F-009+F-010→7); Highs are Phase 1, CI gates Phase 0.
-- [x] Placeholder scan: no TBD/TODO; imports, file paths for every new module, all 19 gotoAdmin sites (16 static + 3 dynamic detailUrl) and all 9 skip sites enumerated, decisions (Task 2 TTL, Task 22 ruff-only, Task 25 manual script) recorded with reasons; no grep-conditional or read-first hedges remain.
+- [x] Placeholder scan: no TBD/TODO; imports, file paths for every new module, all 29 gotoAdmin sites (17 static + 12 dynamic detailUrl) and all 8 data-dependent skip sites enumerated, decisions (Task 2 TTL, Task 22 ruff-only, Task 25 manual script) recorded with reasons; no grep-conditional or read-first hedges remain.
 - [x] Type consistency: `F-xxx` IDs match the findings file; `timeoutMs`, `aborted`, CSRF header, `gotoAdmin`/`createRequestFixture` usage match existing code.
 - [x] Dependency order: Phase 0 → Phase 1 → Phase 2 → Phase 3; backend security before frontend auth work that assumes it; navigation refactors after the gates.
 - [x] Gate feedback addressed (loops 1+2): reusable patterns with snippets, build/compile/ruff in every code task, green-SHA proof for workflow tasks, UX contract + N/A, Risks table, edge-case checklist with thresholds and concrete values, fixture rule propagated, phase lists use real task IDs 1-30, Task 6 covers F-007 gate+ownership.
