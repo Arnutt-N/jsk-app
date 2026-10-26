@@ -97,7 +97,7 @@ measured-then-pinned in Task 24.
 
 - Fix root causes, not symptoms. No unrelated refactoring. No new features.
 - Never print secret material; verify by counts/presence only.
-- Backend changes: scoped pytest proof + `python -m compileall -q app` from `backend/`.
+- Backend changes: scoped pytest proof + `python -m compileall -q app` + `ruff check app/... tests/...` from `backend/` (all backend paths in Run steps are relative to `backend/`; `compileall`/`pytest`/`ruff` targets likewise).
 - Frontend changes: `npm run lint` + scoped unit or e2e proof + `npm run build` for any task touching
   `frontend/app`, `frontend/components`, or `frontend/lib`.
 - Workflow (`.github/`, config) changes: link the green CI run for this branch's exact SHA as proof;
