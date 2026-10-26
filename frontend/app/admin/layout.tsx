@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { SessionTimeoutWarning } from '@/components/admin/SessionTimeoutWarning';
+import { hasOpenDialog } from '@/components/ui/Modal';
 import { cn } from '@/lib/utils';
 import { isNavItemVisible } from '@/lib/nav-access';
 import {
@@ -227,6 +228,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Gated on viewport: on desktop this aside is the permanent sidebar, not a drawer.
+  const drawerOpen = isMobileViewport && isMobileMenuOpen;
   const drawerHiddenOnMobile = isMobileViewport && !isMobileMenuOpen;
   useEffect(() => {
     if (!isMobileMenuOpen) return;
@@ -234,8 +236,8 @@ function AdminShell({ children }: { children: React.ReactNode }) {
     const opener = menuOpenButtonRef.current;
     const handleDrawerKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape' || e.defaultPrevented) return;
-      // A portaled dialog owns Escape while it is open.
-      if (document.querySelector('[role="dialog"]')) return;
+      // A dialog owns Escape while it is open; the modal stack is the one answer.
+      if (hasOpenDialog()) return;
       e.preventDefault();
       setIsMobileMenuOpen(false);
     };
@@ -315,7 +317,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-screen bg-bg text-gray-600 dark:bg-gray-900 dark:text-gray-400 font-sans">
           {/* The skip link sits outside both inert regions, so it is hidden while the drawer owns focus. */}
-          {!(isMobileViewport && isMobileMenuOpen) && (
+          {!drawerOpen && (
             <a
               href="#main-content"
               className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-brand-500 focus:text-white focus:rounded-lg"
@@ -419,7 +421,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
 
           {/* Main Content — inert while the mobile drawer is open so Tab cannot reach the page behind it. */}
           <div
-            inert={isMobileViewport && isMobileMenuOpen}
+            inert={drawerOpen}
             className={cn(
               'flex flex-col flex-1 transition-all duration-300',
               isSidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'

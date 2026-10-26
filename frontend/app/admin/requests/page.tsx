@@ -236,14 +236,14 @@ export default function AdminRequestList() {
             // A hung DELETE would leave the dialog uncloseable, so the request is bounded.
             const result = await apiFetch(`/admin/requests/${selectedRequest.id}`, {
                 method: 'DELETE',
-                signal: AbortSignal.timeout(15_000),
+                timeoutMs: 15_000,
             });
             if (result.ok) {
                 setRequests(prev => prev.filter(r => r.id !== selectedRequest.id));
                 setDeleteModalOpen(false);
                 setSelectedRequest(null);
                 toast({ variant: 'success', title: 'ลบคำร้องสำเร็จ' });
-            } else {
+            } else if (!result.aborted) {
                 toast({ variant: 'error', title: 'ลบคำร้องไม่สำเร็จ', description: result.message });
             }
         } finally {

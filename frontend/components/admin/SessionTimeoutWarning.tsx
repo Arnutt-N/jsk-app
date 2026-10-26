@@ -23,7 +23,9 @@ export function SessionTimeoutWarning() {
   return (
     <Modal
       isOpen={showWarning}
-      onClose={extendSession}
+      // Unreachable while dismissDisabled and showCloseButton={false} hold; a no-op
+      // keeps the wiring honest that closing is not a way to stay logged in.
+      onClose={() => {}}
       title="Session Expiring Soon"
       maxWidth="md"
       dismissDisabled

@@ -122,6 +122,8 @@ type ApiFetchResult<T> =
 export interface ApiFetchOptions extends RequestInit {
   /** Skip JSON parsing and return the raw Response (for blob downloads). */
   raw?: boolean
+  /** Bound the request so a hung backend cannot hold the UI forever. */
+  timeoutMs?: number
 }
 
 export async function apiFetch<T = unknown>(
@@ -129,6 +131,11 @@ export async function apiFetch<T = unknown>(
   init?: ApiFetchOptions,
 ): Promise<ApiFetchResult<T>> {
   const fullUrl = url.startsWith('http') || url.startsWith(`${API_BASE}/`) ? url : `${API_BASE}${url}`
+  const { raw, timeoutMs, signal, ...rest } = init ?? {}
+
+  const timeoutSignal = timeoutMs ? AbortSignal.timeout(timeoutMs) : undefined
+  const composedSignal =
+    signal && timeoutSignal ? AbortSignal.any([signal, timeoutSignal]) : signal ?? timeoutSignal
 
   const headers = new Headers(init?.headers)
   if (typeof init?.body === 'string' && !headers.has('Content-Type')) {
@@ -136,13 +143,13 @@ export async function apiFetch<T = unknown>(
   }
 
   try {
-    const res = await fetch(fullUrl, { ...init, headers })
+    const res = await fetch(fullUrl, { ...rest, headers, signal: composedSignal })
     if (!res.ok) {
       const message = await readErrorMessage(res, getHttpStatusMessage(res.status))
       logger.error(`API ${res.status}: ${fullUrl}`, { status: res.status, url: fullUrl })
       return { ok: false, status: res.status, message }
     }
-    if (init?.raw) {
+    if (raw) {
       return { ok: true, data: res as unknown as T }
     }
     const data = (await res.json()) as T

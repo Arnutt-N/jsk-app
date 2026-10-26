@@ -48,7 +48,8 @@ test.describe('SAFE-01 both logouts confirm first', () => {
     await gotoAdmin(page, '/admin')
 
     const sidebarLogout = page.locator('aside button[aria-label="ออกจากระบบ"]')
-    await expect(sidebarLogout).toBeVisible()
+    // The first hit after an edit recompiles the admin shell.
+    await expect(sidebarLogout).toBeVisible({ timeout: 60_000 })
 
     await sidebarLogout.click()
     const confirm = page.getByRole('heading', { name: 'ต้องการออกจากระบบหรือไม่?' })

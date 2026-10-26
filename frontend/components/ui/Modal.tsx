@@ -6,8 +6,13 @@ import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 
 // Several modals can be open at once (a warning over a form). The lock is
-// reference-counted so the inner one closing cannot unlock the page behind it.
+// reference-counted so the inner one closing cannot unlock the page behind it,
+// and the count doubles as the one answer to "is a dialog above the page?"
 let bodyLockCount = 0;
+
+export function hasOpenDialog(): boolean {
+  return bodyLockCount > 0;
+}
 
 interface ModalProps {
   isOpen: boolean;
