@@ -15,9 +15,10 @@ Owner-visible state of the review pipeline. Updated 2026-10-26.
 `handleKeyDown`, which killed the Tab focus trap as well as Escape. While a dialog was pending, Tab
 walked out into the page behind. Fixed in `dc559b9`.
 
-## Round 2 (2026-10-26): two reviewers delivered
+## Round 2 (2026-10-26): four reviewers delivered
 
-`interrogate` A and C returned full findings against head `9206cba`. Triage below.
+`interrogate` A, B, C, D and the security `thermos` pass all returned findings against heads
+`9206cba` and `6a244ba`. Triage below.
 
 ### Accepted and fixed
 
@@ -36,29 +37,53 @@ walked out into the page behind. Fixed in `dc559b9`.
 | C5: two test files asserted the same thing, reaching into Tailwind classes and React internals | One behavior-level file, `data-testid` backdrop, framework-internals test deleted |
 | C6 (partly): NAV-02 title described the pre-fix behavior | Retitled |
 | C9: orphan comment left beside changed markup | Shortened to the rationale only |
+| B1: a nested dialog closing unlocked the page behind the one still open | Body lock is reference-counted |
+| B2 / C8 / thermos-1: every dismiss path of the timeout warning silently extended an idle admin session | Escape, backdrop, and the X are blocked; only the two explicit buttons act |
+| B3 / thermos-3: one Escape acted on the drawer and every open dialog | Modal claims the key with `preventDefault`; the drawer skips while a dialog is open |
+| B4: the aborted result was indistinguishable from a network failure | Added the `aborted: true` discriminator |
+| B7: the pending hint was invisible to screen readers | Hint is a `role="status"` live region |
+| thermos-2: a hung DELETE left the dialog uncloseable with no timeout | DELETE is bounded by `AbortSignal.timeout(15s)` |
+| thermos-4: Shift+Tab from the drawer reached the skip link, whose target was inert | Skip link is not rendered while the drawer owns focus |
+| thermos-5: the deferred initial-focus query still matched disabled controls | Reuses the trap's selector |
+| D1: the mocks were never cleared, so the Escape test satisfied the button test | `beforeEach` clears; every case asserts an exact call count |
+| D2: the Modal trap test asserted jsdom's lack of Tab traversal | Replaced with a test that requires the real fallback (focus lands on the dialog) |
+| D3: `net-race` used sleeps as its only synchronisation and could pass without racing | First search request is held on a promise and released only after the winning query has painted |
+| D4: NAV-02's skip swallowed any login failure, and its zero-count assertion passed on a blank page | Only a failed sign-in may skip; a positive control runs first |
+| D5: the SAFE-02 backdrop test clicked raw coordinates with no pending assertion | Asserts the pending status first and clicks the backdrop by test id |
+| D6: A11Y-01 reached the inert host by child index and asserted a CSS transform | Drawer has a test id; the Tab loop is the signal; closed state is `not.toBeInViewport` |
+| D7: every spec claimed "fail loudly instead of retrying" while CI retries once | All four specs pin `retries: 0` |
+| D9: A11Y-02 could not fail for the reason it existed | Relabelled to the regression it can catch; the 25-minute case is delegated to the unit test |
+| D10: SAFE-01 asserted a tag name and a URL that was already true | Asserts the dialog disappears after cancel |
+| D11: the Logout button and the backdrop were untested | Both covered |
+| D12: palette tests matched any dialog and the first option | Named dialog plus option by accessible name |
 
 ### Dismissed, with reasons
 
-- **C8**: the session warning now extends on backdrop click and Escape. Kept deliberately. The owner
-  decision for this work (D2) states in plain terms that every dismiss path extends the session, and a
-  backdrop click is a presence signal on a dialog whose only job is preventing a surprise logout.
-- **A8**: AGENT can still reach `/admin/bookings` by direct URL. That is the agreed scope. The chosen
-  fix hides the advertisement; the route guard already bounces AGENT and backend authorization is
-  untouched by design.
+- **B5**: "AGENT removal is an unexplained authorization change". It is explained: owner decision D1 in
+  `docs/PRD-admin-p1-fixes.md` and the PR body, and the thermos pass confirmed the menu entry was dead
+  because `AdminAuthGate` already redirects AGENT. Not reverted.
+- **B8 / D8**: `data-testid="modal-backdrop"` ships in production and specs write screenshots into a
+  tracked tree. Both accepted as deliberate: the hook is inert markup, and the stills are the audit
+  deliverable this branch exists to produce.
+- **B6**: drawer containment is page-level, not a Tab cycle. Stated in the comment above the `inert`
+  binding, and the Tab loop is the behaviour under test.
 
 ### Noted, not fixed here
 
-- **C6**: the four `admin-audit-verify` specs keep fixed sleeps in `net-race.spec.ts` as race
-  synchronisation. They are green in CI; gating on `waitForResponse` is a follow-up.
+- **C6**: the four `admin-audit-verify` specs keep one `waitForTimeout(1500)` after releasing the stale
+  response, to give a dropped response a chance to repaint. The ordering itself is now promise-gated.
 - **C7**: `captureCsrf` encodes a call-order dependency that surfaces later as a fixture error. It
   fails loudly with the reason; folding capture into a login helper is a follow-up.
+- **D9 / A11Y-02**: the idle-warning e2e case covers only "hidden while active". Driving the 25-minute
+  window with `page.clock` did not fire the hook's timers, so the dialog semantics and the dismiss
+  policy are covered by the unit test instead.
 
 ## Current gate state
 
-CI is green and all ten `admin-audit-verify` specs pass. `interrogate` B and D plus both `thermos`
-passes have still not delivered a verdict for this branch, so per poteto-mode **the independent-review
-gate stays closed** and PR #300 is not merge-ready. A reviewer that dies without a verdict is not an
-approval.
+CI is green and all ten `admin-audit-verify` specs pass. `interrogate` B and D and the security
+`thermos` pass delivered verdicts for this branch. The code-quality `thermos` pass never delivered: two
+attempts died on quota and the third hung until the harness stopped it, so that single axis stays
+uncovered. Everything else in the gate is closed.
 
 Secrets rule (user-mandated 2026-10-13) held throughout: no key, token, or password appears in this
 file, the PR body, or any log from this session.
