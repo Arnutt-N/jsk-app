@@ -270,8 +270,16 @@ def require_permission(key: str):
         @router.post("/")
         async def create(..., current_admin = Depends(require_permission(KEY_MANAGE_BROADCAST))):
     """
-    async def _dependency(current_user = Depends(get_current_user)):
-        from app.core.permissions import can
+    async def _dependency(
+        current_user=Depends(get_current_user),
+        db: AsyncSession = Depends(get_db),
+    ):
+        from app.core.permissions import can, refresh_policy_if_stale
+
+        # F-002: the matrix is cached per process, so a revocation edited on
+        # another worker would never reach this one. Refresh when stale before
+        # deciding; inside the TTL this is a timestamp read with no I/O.
+        await refresh_policy_if_stale(db)
 
         if not can(current_user.role, key):
             raise HTTPException(

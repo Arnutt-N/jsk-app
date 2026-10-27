@@ -28,6 +28,7 @@ Default policy keys (must match `permission_settings.key` rows):
 from __future__ import annotations
 
 import logging
+import time
 from typing import Iterable, Literal, NamedTuple
 
 from sqlalchemy import select
@@ -172,6 +173,17 @@ PERMISSION_SETTINGS_EDITOR_ROLES: frozenset[UserRole] = DEFAULT_POLICY[KEY_EDIT_
 # helpers fall back to DEFAULT_POLICY.
 _policy_cache: dict[str, frozenset[UserRole]] | None = None
 
+# Monotonic timestamp of the last successful load. `load_policy` is only called
+# at startup and by the PATCH handler, so without a TTL a revocation edited on
+# one worker never reaches the others (F-002). `refresh_policy_if_stale` bounds
+# that window to POLICY_CACHE_TTL_SECONDS.
+_policy_loaded_at: float | None = None
+
+# How long a cached matrix may be served before the next request re-reads it.
+# 30s keeps the common-path cost at zero (an in-process dict read) while making
+# a revocation reach every worker within half a minute.
+POLICY_CACHE_TTL_SECONDS = 30.0
+
 
 def _coerce_roles(values: Iterable[str]) -> frozenset[UserRole]:
     """Convert a sequence of stringified role names to UserRole enums.
@@ -198,7 +210,7 @@ async def load_policy(db: AsyncSession) -> dict[str, frozenset[UserRole]]:
     # Local import to avoid a circular ORM/Base import at module load.
     from app.models.permission_setting import PermissionSetting
 
-    global _policy_cache
+    global _policy_cache, _policy_loaded_at
 
     try:
         result = await db.execute(select(PermissionSetting))
@@ -206,6 +218,9 @@ async def load_policy(db: AsyncSession) -> dict[str, frozenset[UserRole]]:
     except Exception as exc:  # noqa: BLE001 -- log + degrade
         logger.warning("Failed to load permission_settings: %s; using defaults", exc)
         _policy_cache = dict(DEFAULT_POLICY)
+        # Stamp the fallback too: otherwise a DB outage would make every
+        # subsequent request retry the (still failing) query.
+        _policy_loaded_at = time.monotonic()
         return _policy_cache
 
     db_policy: dict[str, frozenset[UserRole]] = {}
@@ -216,6 +231,7 @@ async def load_policy(db: AsyncSession) -> dict[str, frozenset[UserRole]]:
     # Merge: DB values override defaults, but defaults fill any missing keys.
     merged = {**DEFAULT_POLICY, **db_policy}
     _policy_cache = merged
+    _policy_loaded_at = time.monotonic()
     return merged
 
 
@@ -308,8 +324,37 @@ def invalidate_cache() -> None:
     The next call to a `can_*` helper that triggers a refresh (or the
     next call to `load_policy`) will repopulate from the DB.
     """
-    global _policy_cache
+    global _policy_cache, _policy_loaded_at
     _policy_cache = None
+    _policy_loaded_at = None
+
+
+async def refresh_policy_if_stale(db: AsyncSession) -> None:
+    """Re-read the DB-backed matrix when the cached copy is older than the TTL.
+
+    F-002: `_policy_cache` is per-process and only the PATCH worker refreshes
+    it, so without this a revocation edited on one gunicorn/Koyeb worker never
+    reaches the others. Every request-carrying caller (the permission
+    dependency) awaits this; inside the TTL it is an in-process timestamp read
+    with no I/O, so the fast path is unchanged.
+
+    Fails closed: if the re-read raises, the cache is cleared so subsequent
+    checks fall back to DEFAULT_POLICY rather than continuing to serve a matrix
+    that may already have been revoked.
+    """
+    if _policy_cache is not None and _policy_loaded_at is not None:
+        if time.monotonic() - _policy_loaded_at < POLICY_CACHE_TTL_SECONDS:
+            return
+
+    try:
+        await load_policy(db)
+    except Exception as exc:  # noqa: BLE001 -- deny rather than serve stale
+        logger.warning(
+            "Permission policy refresh failed: %s; clearing cache so checks "
+            "fail closed",
+            exc,
+        )
+        invalidate_cache()
 
 
 def _allowed_for(key: str) -> frozenset[UserRole]:
