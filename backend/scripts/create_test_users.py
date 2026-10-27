@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import os
 import sys
 from pathlib import Path
 
@@ -78,7 +77,10 @@ async def create_test_users(*, apply: bool, password: str) -> int:
         elif not apply:
             print(f"\n🔍 Would create {created} test users (run with --apply)")
 
-    return created
+    # Return a process exit code, not the created count: `main()` feeds this
+    # straight into SystemExit, so a nonzero count used to make a *successful*
+    # run exit with that number (created 4 -> exit 4 -> shell `-e` aborts).
+    return 0
 
 
 def main() -> int:
