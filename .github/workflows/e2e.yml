@@ -27,7 +27,10 @@ jobs:
   e2e:
     name: Playwright Smoke
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # Covers the smoke suite plus the serial 2-client live-chat suite below
+    # (2 tests x 240s timeout x 3 attempts in CI, plus per-test reseed + two
+    # cold logins each).
+    timeout-minutes: 50
     services:
       postgres:
         image: postgres:16
@@ -76,6 +79,16 @@ jobs:
       # Playwright env -- read by e2e/utils/auth.ts.
       E2E_ADMIN_USERNAME: admin
       E2E_ADMIN_PASSWORD: e2e-test-password
+      # 2-client suite: operator B is the seeded AGENT "staff". Its password
+      # comes from create_test_users.py --password below; the credential is a
+      # CI-only value, same class as E2E_ADMIN_PASSWORD.
+      E2E_STAFF_USERNAME: staff
+      E2E_STAFF_PASSWORD: e2e-test-password
+      # Makes the 2-client spec reseed its WAITING session before every test
+      # attempt, so retries start from a known state instead of inheriting an
+      # ACTIVE row left by a mid-test failure. Playwright runs with cwd
+      # `frontend/`, hence the relative path into the backend.
+      E2E_SEED_CMD: python ../backend/scripts/seed_live_chat_e2e.py --apply
       BASE_URL: http://localhost:3000
     steps:
       - name: Checkout
@@ -123,6 +136,20 @@ jobs:
         # --apply is required: without it the script only prints the plan
         # and the supervisor specs skip for lack of PENDING/COMPLETED rows.
         run: python scripts/seed_e2e_requests.py --apply
+
+      - name: Seed 2-client live-chat fixtures
+        working-directory: backend
+        # Preconditions for live-chat-2client.spec.ts, which runs in its own
+        # step below:
+        #   - create_test_users.py adds the AGENT "staff" that operator B logs
+        #     in as ("Staff Test" is the display name the transfer picker must
+        #     list). The admin seed above only creates `admin`.
+        #   - seed_live_chat_e2e.py adds the unclaimed WAITING conversation
+        #     whose customer is "E2E Waiting Customer". Its --apply guard
+        #     refuses non-local DBs, so it must run after the .env stub step.
+        run: |
+          python scripts/create_test_users.py --apply --password "$E2E_STAFF_PASSWORD"
+          python scripts/seed_live_chat_e2e.py --apply
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -185,6 +212,15 @@ jobs:
         working-directory: frontend
         run: npm run test:e2e
 
+      # The 2-client multi-operator acceptance suite is excluded from the smoke
+      # config (serial, generous timeouts, two contexts, one shared DB row), so
+      # it needs its own run. It reuses the stack above: same backend,
+      # frontend, and seeded fixtures. `E2E_SEED_CMD` makes it reseed the
+      # WAITING session before each test attempt (see env block).
+      - name: Run 2-client live-chat suite
+        working-directory: frontend
+        run: npm run test:e2e:2client
+
       - name: Stop backend / frontend (always)
         if: always()
         run: |
@@ -196,7 +232,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
-          path: frontend/playwright-report/
+          path: |
+            frontend/playwright-report/
+            frontend/playwright-report-2client/
           retention-days: 7
 
       - name: Upload backend log on failure
