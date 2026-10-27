@@ -10,7 +10,6 @@ import pytest
 
 from app.tasks.health_watchdog import HealthWatchdog
 
-
 BASE = 1_000_000.0  # arbitrary reference timestamp
 
 

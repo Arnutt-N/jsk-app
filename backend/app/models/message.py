@@ -1,8 +1,9 @@
-from sqlalchemy import Column, String, Integer, DateTime, ForeignKey, Index, Text, Enum, text
-from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import relationship
-from sqlalchemy.sql import func
 import enum
+
+from sqlalchemy import Column, DateTime, Enum, ForeignKey, Index, Integer, String, Text, text
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.sql import func
+
 from app.db.base import Base
 
 

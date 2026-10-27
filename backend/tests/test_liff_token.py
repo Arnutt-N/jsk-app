@@ -34,6 +34,7 @@ from app.models.service_request import ServiceRequest
 from app.models.user import User
 from app.services.credential_service import credential_service
 
+
 # The app's own AsyncSessionLocal (app/db/session.py) is bound to a pooled
 # engine whose connections get created inside the TestClient's ASGI event
 # loop (a separate loop/thread from this async test function's own

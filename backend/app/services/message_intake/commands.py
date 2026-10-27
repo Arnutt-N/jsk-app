@@ -5,12 +5,12 @@ from functools import partial
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.logging_utils import mask_line_id, mask_phone
 from app.models.service_request import ServiceRequest
 from app.services.flex_messages import build_booking_list, build_request_status_list
 from app.services.outbox import Outbox, drain_outbox
 
 from ._deps import get_line_service
-from app.core.logging_utils import mask_line_id, mask_phone
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +48,7 @@ async def handle_check_status(
     box = outbox if outbox is not None else []
     line_svc = get_line_service()
     try:
-        from app.services.user_identity_service import resolve_by_line_id, child_filter
+        from app.services.user_identity_service import child_filter, resolve_by_line_id
 
         resolved_user = await resolve_by_line_id(db, line_user_id)
         user_id = resolved_user.id if resolved_user else None

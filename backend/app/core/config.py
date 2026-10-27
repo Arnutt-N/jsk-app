@@ -1,7 +1,8 @@
-import os
-from typing import List, Literal, Union
-from pydantic import AnyHttpUrl, PostgresDsn, computed_field
+from typing import List, Literal
+
+from pydantic import AnyHttpUrl, PostgresDsn
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
 from app.core.env import resolve_env_file
 
 # Production guard thresholds — see docs/remediation/migration-controls.md

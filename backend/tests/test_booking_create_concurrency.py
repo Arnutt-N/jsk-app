@@ -12,7 +12,7 @@ two bookers it races and removes them again.
 import asyncio
 import os
 import socket
-from datetime import date, datetime, time, timedelta
+from datetime import date, time, timedelta
 from typing import NamedTuple
 from urllib.parse import urlparse
 

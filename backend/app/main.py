@@ -5,10 +5,10 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from fastapi.staticfiles import StaticFiles
+
 from app.api.v1.api import api_router
-from app.core.connection_targets import describe_postgres_url, is_localhost_url
 from app.core.config import settings
+from app.core.connection_targets import describe_postgres_url, is_localhost_url
 from app.core.pubsub_manager import pubsub_manager
 from app.core.redis_client import redis_client
 from app.core.websocket_manager import ws_manager
@@ -85,8 +85,8 @@ async def _initialize_permission_policy() -> None:
     fails (e.g. table not yet migrated) the helpers fall back to
     DEFAULT_POLICY -- never blocks startup.
     """
-    from app.db.session import AsyncSessionLocal
     from app.core.permissions import ensure_seed_rows, load_policy
+    from app.db.session import AsyncSessionLocal
 
     try:
         async with AsyncSessionLocal() as db:

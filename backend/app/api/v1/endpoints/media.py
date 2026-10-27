@@ -5,17 +5,6 @@ import uuid
 from datetime import timedelta
 from typing import Annotated
 
-from app.api.deps import get_current_admin, get_db, require_permission
-from app.core.audit import create_audit_log
-from app.core.http_rate_limit import http_rate_limit
-from app.core.permissions import KEY_IMAGE_RESIZE, KEY_MANAGE_FILES
-from app.core.query_utils import escape_ilike
-from app.core.redis_client import redis_client
-from app.core.security import create_access_token, verify_token
-from app.db.session import AsyncSessionLocal
-from app.models.media_file import FileCategory, MediaFile, detect_category
-from app.schemas.media import ResizeTicketResponse
-from app.utils.mime_sniff import sniff_mime
 from fastapi import (
     APIRouter,
     Depends,
@@ -31,6 +20,18 @@ from sqlalchemy import func as sa_func
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import defer
+
+from app.api.deps import get_current_admin, get_db, require_permission
+from app.core.audit import create_audit_log
+from app.core.http_rate_limit import http_rate_limit
+from app.core.permissions import KEY_IMAGE_RESIZE, KEY_MANAGE_FILES
+from app.core.query_utils import escape_ilike
+from app.core.redis_client import redis_client
+from app.core.security import create_access_token, verify_token
+from app.db.session import AsyncSessionLocal
+from app.models.media_file import FileCategory, MediaFile, detect_category
+from app.schemas.media import ResizeTicketResponse
+from app.utils.mime_sniff import sniff_mime
 
 
 def _safe_filename(filename: str) -> str:

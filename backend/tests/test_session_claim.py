@@ -14,13 +14,11 @@ import pytest
 from pydantic import BaseModel
 from sqlalchemy.exc import IntegrityError
 
-from app.core.websocket_manager import ReadMarkerPersistenceError
-
 from app.api import deps
+from app.core.websocket_manager import ReadMarkerPersistenceError
 from app.main import app
+from app.models.chat_session import ClosedBy, SessionStatus
 from app.schemas.message import message_payload_dict
-from app.models.chat_session import SessionStatus, ClosedBy
-
 from tests.identity_helpers import make_line_user_fields
 
 

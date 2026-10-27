@@ -9,7 +9,6 @@ from urllib.parse import urlparse
 import pytest
 from fastapi.testclient import TestClient
 
-
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 PROBE_TIMEOUT_SECONDS = 3
 

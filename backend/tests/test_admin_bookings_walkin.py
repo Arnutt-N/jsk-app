@@ -370,6 +370,7 @@ async def test_counter_availability_ignores_the_calendar_toggle():
 async def test_search_filters_name_phone_and_queue_with_escaped_wildcards():
     """A literal % in the query must not become a wildcard — same rule as requests."""
     from unittest.mock import MagicMock
+
     from sqlalchemy.dialects import postgresql
 
     db = AsyncMock()
@@ -392,6 +393,7 @@ async def test_search_filters_name_phone_and_queue_with_escaped_wildcards():
 @pytest.mark.asyncio
 async def test_blank_search_adds_no_filter():
     from unittest.mock import MagicMock
+
     from sqlalchemy.dialects import postgresql
 
     db = AsyncMock()

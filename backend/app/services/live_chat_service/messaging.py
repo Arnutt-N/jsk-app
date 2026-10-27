@@ -8,13 +8,13 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.audit import audit_action
+from app.core.logging_utils import mask_line_id
 from app.models.chat_session import ChatSession, SessionStatus
 from app.models.message import MessageDirection
 from app.models.user import ChatMode, User
 from app.schemas.message import message_payload_dict
 from app.services.line_service import line_service
 from app.services.user_identity_service import resolve_by_line_id
-from app.core.logging_utils import mask_line_id
 
 from ._deps import get_sla_service
 

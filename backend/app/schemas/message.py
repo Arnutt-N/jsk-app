@@ -1,7 +1,9 @@
-from pydantic import BaseModel, ConfigDict
 from datetime import datetime
-from typing import Optional, Any
 from enum import Enum
+from typing import Any, Optional
+
+from pydantic import BaseModel, ConfigDict
+
 
 class MessageDirection(str, Enum):
     INCOMING = "INCOMING"

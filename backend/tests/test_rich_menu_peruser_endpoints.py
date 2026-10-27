@@ -15,7 +15,6 @@ httpx is never hit.
 """
 from types import SimpleNamespace
 
-import pytest
 from fastapi.testclient import TestClient
 
 from app.api import deps
@@ -23,7 +22,6 @@ from app.core.permissions import invalidate_cache
 from app.db.session import get_db as session_get_db
 from app.main import app
 from app.models.user import UserRole
-
 from tests.identity_helpers import make_line_user_fields
 
 BASE = "/api/v1/admin/rich-menus"

@@ -86,10 +86,10 @@ def test_seed_encodes_exactly_two_levels():
 
 # --- Unit 2: service (sole owner, cache, validation) ------------------------
 
-import pytest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
+import pytest
 from sqlalchemy.exc import IntegrityError
 
 from app.core.permissions import (

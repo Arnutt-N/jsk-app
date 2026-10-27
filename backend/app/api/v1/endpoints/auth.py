@@ -2,7 +2,7 @@ import hashlib
 import logging
 import secrets
 from datetime import datetime, timedelta, timezone
-from typing import Optional, NoReturn
+from typing import NoReturn, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -40,16 +40,16 @@ from app.schemas.auth import (
     TokenResponse,
     WsTicketResponse,
 )
-from app.services.booking_email import send_booking_email
 from app.services.auth_session_service import (
-    RotationOutcome,
     WS_TICKET_TTL_SECONDS,
+    RotationOutcome,
     create_session_family,
     mint_ws_ticket,
     revoke_all_user_sessions,
     revoke_family,
     rotate_refresh_session,
 )
+from app.services.booking_email import send_booking_email
 
 router = APIRouter()
 
@@ -455,7 +455,7 @@ async def refresh(
         )
 
     try:
-        user_id = int(subject)
+        _ = int(subject)
     except (TypeError, ValueError):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

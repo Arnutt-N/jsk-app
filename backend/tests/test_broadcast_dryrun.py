@@ -1,6 +1,7 @@
 from types import SimpleNamespace
+
 import pytest
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
@@ -72,9 +73,10 @@ async def test_retry_exhaustion_persists_failed_tokens(test_client, monkeypatch)
     # mock multicast พังครบ 3 รอบ -> ต้องมี failed-token rows ถูกสร้าง
     # (idempotent: รันซ้ำไม่สร้างซ้ำ) + timezone ข้ามวันยังตรง
     import asyncio as _asyncio
-    from app.services.broadcast_service import broadcast_service
+
     from app.models.broadcast import Broadcast, BroadcastType
     from app.models.broadcast_failed_recipient import BroadcastFailedRecipient
+    from app.services.broadcast_service import broadcast_service
     calls = {"n": 0}
 
     async def _boom(*_a, **_k):

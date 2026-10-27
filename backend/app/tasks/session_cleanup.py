@@ -3,6 +3,7 @@ import asyncio
 import logging
 from datetime import datetime, timedelta, timezone
 
+from linebot.v3.messaging import TextMessage
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,10 +12,9 @@ from app.core.websocket_manager import ws_manager
 from app.db.session import AsyncSessionLocal
 from app.models.chat_session import ChatSession, SessionStatus
 from app.models.user import ChatMode, User
-from app.services.line_service import line_service
 from app.services.analytics_service import analytics_service
+from app.services.line_service import line_service
 from app.services.user_identity_service import decrypt_line_ids_for_users_tolerant
-from linebot.v3.messaging import TextMessage
 
 logger = logging.getLogger(__name__)
 

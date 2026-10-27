@@ -5,10 +5,9 @@ Tests for multiple operators handling:
 - operator_left broadcast when operator leaves
 - Message broadcast reaches all operators in room
 """
-import pytest
 from unittest.mock import AsyncMock, patch
-from fastapi.testclient import TestClient
-from app.main import app
+
+import pytest
 
 
 @pytest.fixture(autouse=True)
@@ -33,7 +32,7 @@ class TestMultipleOperators:
         """Presence update should show all online operators"""
         with test_client.websocket_connect("/api/v1/ws/live-chat") as ws1:
             ws1.send_json({"type": "auth", "payload": {"token": "test-access-token"}})
-            data = ws1.receive_json()  # auth_success
+            ws1.receive_json()  # auth_success (consumed to reach the presence update)
             presence = ws1.receive_json()  # presence_update
 
             # Should have at least 1 operator online

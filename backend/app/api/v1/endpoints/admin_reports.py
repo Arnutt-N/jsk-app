@@ -1,8 +1,8 @@
 """Comprehensive reporting endpoints for admin dashboard."""
 
+import asyncio
 import csv
 import io
-import asyncio
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -12,14 +12,14 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_admin, get_db, require_permission
-from app.core.permissions import KEY_VIEW_REPORTS, KEY_EXPORT_CHAT
+from app.api.deps import get_db, require_permission
+from app.core.permissions import KEY_EXPORT_CHAT, KEY_VIEW_REPORTS
+from app.core.pii_masking import mask_line_id  # D4 — central helper, never re-implement
 from app.models.friend_event import FriendEvent
 from app.models.message import Message
 from app.models.service_request import ServiceRequest
 from app.models.user import User
-from app.services.report_service import report_service, parse_dates
-from app.core.pii_masking import mask_line_id  # D4 — central helper, never re-implement
+from app.services.report_service import parse_dates, report_service
 
 
 def _csv_line_id(raw: str, role: str) -> str:

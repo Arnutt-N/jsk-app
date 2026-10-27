@@ -1,20 +1,22 @@
 import logging
 import secrets
 from typing import Optional
+
 from fastapi import Depends, HTTPException, Request, status
-from app.db.session import AsyncSessionLocal, get_db
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.config import settings
 from app.core.cookie_auth import ACCESS_COOKIE, CSRF_COOKIE
 from app.core.permissions import (
-    can,
     KEY_ACCESS_ADMIN_ENDPOINTS,
     KEY_ACCESS_MANAGER_ENDPOINTS,
     KEY_ACCESS_STAFF_ENDPOINTS,
+    can,
 )
 from app.core.security import verify_token
+from app.db.session import get_db
 from app.models.user import UserRole
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +48,7 @@ async def get_current_user(
     In development mode (DEV_AUTH_BYPASS=true), returns a mock admin user
     when NO cookie was presented. In production, requires a valid JWT token.
     """
-    from app.models.user import User, UserRole
+    from app.models.user import User
 
     cookie_token = request.cookies.get(ACCESS_COOKIE)
     token: Optional[str] = cookie_token or None
@@ -164,7 +166,6 @@ async def get_current_admin(
     authenticated user — it only reads the caller's own capabilities, so
     it cannot lock anyone out.)
     """
-    from app.models.user import UserRole
 
     if not can(current_user.role, KEY_ACCESS_ADMIN_ENDPOINTS):
         raise HTTPException(
@@ -189,7 +190,6 @@ async def get_current_manager(
     recoverable via the matrix endpoint (still reachable through
     access_admin_endpoints).
     """
-    from app.models.user import UserRole
 
     if not can(current_user.role, KEY_ACCESS_MANAGER_ENDPOINTS):
         raise HTTPException(
@@ -224,7 +224,6 @@ async def get_current_staff(
     the WS gate would hide the page from supervisors and break the
     discoverability path.
     """
-    from app.models.user import UserRole
 
     if not can(current_user.role, KEY_ACCESS_STAFF_ENDPOINTS):
         raise HTTPException(

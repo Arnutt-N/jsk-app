@@ -1,28 +1,22 @@
 """LINE webhook endpoint — signature verification and event dispatch only."""
+import logging
 import uuid
 from typing import Optional
 
-from fastapi import APIRouter, Request, HTTPException, Header, BackgroundTasks
+from fastapi import APIRouter, BackgroundTasks, Header, HTTPException, Request
 from linebot.v3.exceptions import InvalidSignatureError
-from linebot.v3.webhooks import (
-    MessageEvent,
-    PostbackEvent,
-    FollowEvent,
-    UnfollowEvent
-)
-import logging
+from linebot.v3.webhooks import FollowEvent, MessageEvent, PostbackEvent, UnfollowEvent
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.line_client import parser
+from app.core.logging_utils import mask_line_id
 from app.core.redis_client import redis_client
 from app.db.session import AsyncSessionLocal
 from app.services.friend_service import friend_service
 from app.services.message_intake.message_handler import handle_message_event as _handle_message_event_impl
-from app.services.outbox import Outbox, drain_outbox, new_outbox
 from app.services.message_intake.postback_handler import handle_postback_event
-
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.core.logging_utils import mask_line_id
+from app.services.outbox import Outbox, drain_outbox, new_outbox
 
 router = APIRouter()
 logger = logging.getLogger(__name__)

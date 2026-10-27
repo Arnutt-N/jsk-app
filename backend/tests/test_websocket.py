@@ -1,7 +1,6 @@
-import pytest
 from unittest.mock import AsyncMock, patch
 
-from app.main import app
+import pytest
 
 
 @pytest.fixture(autouse=True)

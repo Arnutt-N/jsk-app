@@ -2,16 +2,21 @@ import enum
 import uuid
 from datetime import UTC, date, datetime, time, timedelta
 
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, Field
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.api.deps import get_current_admin, get_current_manager, get_current_manager_or_viewer
 from app.core.audit import create_audit_log
 from app.core.date_windows import bangkok_today_start_utc
-from app.core.pii_masking import mask_viewer_contacts
 from app.core.permissions import (
     can_assign,
     can_edit_request_details,
     can_revert_approval,
     can_self_assign,
 )
+from app.core.pii_masking import mask_viewer_contacts
 from app.core.query_utils import escape_ilike
 from app.core.request_workflow import describe_invalid_transition, requires_override
 from app.db.session import get_db
@@ -25,10 +30,6 @@ from app.schemas.service_request_liff import (
     ServiceRequestResponse,
 )
 from app.services.business_hours_service import BANGKOK_TZ
-from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
-from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
 

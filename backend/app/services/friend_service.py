@@ -1,13 +1,14 @@
 import logging
 from datetime import UTC, date, datetime
 
+from sqlalchemy import desc, func, select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.date_windows import resolve_range
 from app.core.logging_utils import mask_line_id
 from app.models.friend_event import EventSource, FriendEvent, FriendEventType
 from app.models.user import User
-from sqlalchemy import desc, func, select
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 

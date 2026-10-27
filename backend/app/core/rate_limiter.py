@@ -8,9 +8,9 @@ aliases over the generic attributes, so existing call sites
 (`ws_live_chat.py`, `websocket_manager.py`) and existing tests that poke
 `limiter.max_messages`/`limiter.window` directly keep working unchanged.
 """
+import logging
 import time
 from typing import Dict, List
-import logging
 
 from app.core.config import settings
 from app.core.redis_client import redis_client

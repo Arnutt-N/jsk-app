@@ -1,8 +1,8 @@
+import re
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
 from typing import Optional
-import re
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 

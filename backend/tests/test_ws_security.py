@@ -4,20 +4,20 @@ Tests for WebSocket security features:
 - Rate limiting
 - Input validation and sanitization
 """
-import pytest
 import time
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
 from jose import jwt
 from pydantic import ValidationError
 
 from app.core.config import settings
 from app.core.rate_limiter import WebSocketRateLimiter
-from app.schemas.ws_events import AuthPayload, SendMessagePayload, JoinRoomPayload
-from app.services.ws_session.auth import authenticate_ws_user
 from app.models.user import UserRole
+from app.schemas.ws_events import AuthPayload, JoinRoomPayload, SendMessagePayload
+from app.services.ws_session.auth import authenticate_ws_user
 
 
 class TestRateLimiter:
@@ -317,8 +317,8 @@ class TestWebSocketAuthHelper:
         Ships-dark: today's hardcoded set was {ADMIN, SUPER_ADMIN, AGENT};
         DEFAULT_POLICY mirrors it so DIRECTOR is rejected on deploy.
         """
-        from app.services.ws_session.auth import _load_and_authorize_ws_user
         from app.core.permissions import invalidate_cache
+        from app.services.ws_session.auth import _load_and_authorize_ws_user
 
         invalidate_cache()  # ensure DEFAULT_POLICY applies
         user = SimpleNamespace(id=42, role=UserRole.DIRECTOR, is_active=True)
@@ -338,12 +338,12 @@ class TestWebSocketAuthHelper:
     @pytest.mark.asyncio
     async def test_ws_auth_accepts_director_when_db_grants(self):
         """After a DB grant (cache injected), DIRECTOR passes the WS gate."""
-        from app.services.ws_session.auth import _load_and_authorize_ws_user
         from app.core import permissions as perms_module
         from app.core.permissions import (
             KEY_ACCESS_LIVE_CHAT,
             invalidate_cache,
         )
+        from app.services.ws_session.auth import _load_and_authorize_ws_user
 
         try:
             # Inject a DB-style policy entry granting DIRECTOR.
@@ -388,6 +388,7 @@ async def test_handle_auth_rejects_when_payload_has_no_token():
 def test_websocket_endpoint_does_not_accept_token_query_param():
     """The JWT must not be accepted as a URL query parameter (logs/history leak)."""
     import inspect
+
     from app.api.v1.endpoints.ws_live_chat import websocket_endpoint
     sig = inspect.signature(websocket_endpoint)
     assert "token" not in sig.parameters
@@ -403,6 +404,7 @@ async def test_handle_auth_redacts_validation_error_input_value(caplog):
     sentinel never appears in any captured log record while the `loc`/`type` do.
     """
     import logging
+
     from app.services.ws_session.auth import handle_auth
 
     sentinel = "LEAK-SENTINEL-" + "x" * 400  # > max_length=200 -> validation error

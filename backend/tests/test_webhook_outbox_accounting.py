@@ -4,13 +4,12 @@ Contract: drain_outbox returns the failure count; the webhook marks the
 dedup key only when the count is zero, else logs delivery_failed.
 """
 import logging
-from types import SimpleNamespace
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from app.api.v1.endpoints.webhook import process_webhook_events
-from app.services.outbox import drain_outbox, new_outbox
+from app.services.outbox import drain_outbox
 
 
 @pytest.mark.asyncio

@@ -1,11 +1,12 @@
 """Business hours service for checking operating hours."""
+import logging
 from datetime import datetime, time
-from typing import Optional
+
 import pytz
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.models.business_hours import BusinessHours, FULL_DAY_CLOSE
-import logging
+
+from app.models.business_hours import FULL_DAY_CLOSE, BusinessHours
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +31,7 @@ class BusinessHoursService:
 
         stmt = select(BusinessHours).where(
             BusinessHours.day_of_week == day,
-            BusinessHours.is_open == True
+            BusinessHours.is_open.is_(True)
         )
         result = await db.execute(stmt)
         hours = result.scalar_one_or_none()
@@ -57,7 +58,7 @@ class BusinessHoursService:
 
             stmt = select(BusinessHours).where(
                 BusinessHours.day_of_week == check_day,
-                BusinessHours.is_open == True
+                BusinessHours.is_open.is_(True)
             )
             result = await db.execute(stmt)
             hours = result.scalar_one_or_none()

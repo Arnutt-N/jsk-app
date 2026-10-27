@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.booking import Booking, BookingStatus
-from app.models.business_hours import BusinessHours, FULL_DAY_CLOSE
+from app.models.business_hours import FULL_DAY_CLOSE, BusinessHours
 from app.services.business_hours_service import BANGKOK_TZ
 
 

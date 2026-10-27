@@ -4,8 +4,9 @@ Tests for reconnection and state recovery:
 - Rate limit state (may reset on reconnect - verify behavior)
 - Room must be rejoined after reconnect
 """
-import pytest
 from unittest.mock import AsyncMock, patch
+
+import pytest
 
 
 @pytest.fixture(autouse=True)

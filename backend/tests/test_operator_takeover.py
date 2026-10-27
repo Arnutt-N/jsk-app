@@ -17,7 +17,6 @@ from app.main import app
 from app.models.chat_session import ClosedBy, SessionStatus
 from app.services.live_chat_service import LiveChatService
 
-
 LINE_USER = "Uabcdef0123456789abcdef0123456789"
 MODE_URL = f"/api/v1/admin/live-chat/conversations/{LINE_USER}/mode"
 

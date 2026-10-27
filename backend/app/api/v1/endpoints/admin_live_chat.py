@@ -1,44 +1,46 @@
 import logging
+from datetime import datetime, timezone
+from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query, UploadFile, File, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Any, List, Optional
+
 from app.api import deps
-from app.services.outbox import drain_outbox, new_outbox
+from app.core.websocket_manager import ReadMarkerPersistenceError, ws_manager
+from app.models.chat_session import ChatSession, ClosedBy, SessionStatus
+from app.models.message import MessageDirection
+from app.models.user import ChatMode, User
+from app.schemas.live_chat import (
+    ConversationDetail,
+    ConversationList,
+    ConversationPreferenceUpdate,
+    ModeToggleRequest,
+    ReadConversationRequest,
+    SendMessageRequest,
+    sanitize_message_text,
+)
+from app.schemas.message import MessagePage, MessageResponse
+from app.schemas.ws_events import TransferSessionPayload, WSEventType
+from app.services.analytics_service import analytics_service
+from app.services.friend_service import friend_service
+from app.services.line_service import line_service
 from app.services.live_chat_service import (
-    live_chat_service,
     TRANSFER_ERR_CONFLICT,
     TRANSFER_ERR_NO_ACTIVE_SESSION,
     TRANSFER_ERR_NOT_CURRENT_OPERATOR,
+    live_chat_service,
 )
 from app.services.live_chat_service.choreography import (
     announce_session_event,
     publish_session_event,
     session_status_value,
 )
-from app.schemas.live_chat import (
-    ConversationList, ConversationDetail,
-    SendMessageRequest, ModeToggleRequest,
-    ConversationPreferenceUpdate,
-    ReadConversationRequest,
-    sanitize_message_text,
-)
-from app.models.chat_session import ChatSession, ClosedBy, SessionStatus
-from app.models.message import Message, MessageDirection
-from app.models.user import ChatMode, User
-from app.core.websocket_manager import ReadMarkerPersistenceError, ws_manager
-from app.schemas.ws_events import WSEventType
-from app.schemas.ws_events import TransferSessionPayload
-from app.schemas.message import MessagePage, MessageResponse
-from app.services.analytics_service import analytics_service
-from app.services.friend_service import friend_service
-from app.services.line_service import line_service
 from app.services.message_intake import notify_admins_message_sent
+from app.services.outbox import drain_outbox, new_outbox
 from app.services.user_identity_service import child_filter, resolve_by_line_id
-from datetime import datetime, timezone
 
 router = APIRouter()
 logger = logging.getLogger(__name__)

@@ -1,9 +1,10 @@
-from enum import Enum
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
-from typing import Optional, Any, List
-from datetime import datetime
-import bleach
 import re
+from datetime import datetime
+from enum import Enum
+from typing import Any, List, Optional
+
+import bleach
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class WSEventType(str, Enum):

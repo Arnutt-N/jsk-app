@@ -1,19 +1,22 @@
+import enum
+
 from sqlalchemy import (
     Column,
+    Date,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Index,
     Integer,
     String,
     Text,
-    Date,
     Time,
-    DateTime,
-    ForeignKey,
-    Enum,
-    Index,
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-import enum
+
 from app.db.base import Base
+
 
 class BookingStatus(str, enum.Enum):
     CONFIRMED = "CONFIRMED"

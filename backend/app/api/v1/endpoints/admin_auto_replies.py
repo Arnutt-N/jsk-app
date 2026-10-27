@@ -1,21 +1,18 @@
 """
 Admin API endpoints for Auto Replies management
 """
-from fastapi import APIRouter, HTTPException, Depends, Query
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 from typing import List
 
-from app.api.deps import get_db, get_current_admin, require_permission
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.api.deps import get_current_admin, get_db, require_permission
 from app.core.permissions import KEY_MANAGE_AUTO_REPLIES
 from app.core.query_utils import escape_ilike
 from app.models.auto_reply import AutoReply, MatchType, ReplyType
 from app.models.user import User
-from app.schemas.auto_reply import (
-    AutoReplyCreate,
-    AutoReplyUpdate,
-    AutoReplyResponse
-)
+from app.schemas.auto_reply import AutoReplyCreate, AutoReplyResponse, AutoReplyUpdate
 
 router = APIRouter()
 

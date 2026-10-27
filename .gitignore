@@ -93,4 +93,4 @@ graphify-out-fe/
 .ignore
 v.indexOf(
 v.indexOf('
-{a
+[{]a

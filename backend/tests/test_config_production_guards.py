@@ -14,7 +14,6 @@ import pytest
 from app.core.config import Settings
 from app.services.credential_service import CredentialService
 
-
 # Safe values for every production-guarded field — individual tests break
 # exactly one field to isolate the violation under test.
 BASE_SETTINGS = {

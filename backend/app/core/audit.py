@@ -1,9 +1,11 @@
 """Audit logging utilities for tracking admin actions."""
 import functools
-import logging
 import inspect
-from typing import Callable, Optional, Any
+import logging
+from typing import Any, Callable, Optional
+
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.models.audit_log import AuditLog
 
 logger = logging.getLogger(__name__)

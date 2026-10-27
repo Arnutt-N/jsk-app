@@ -1,13 +1,14 @@
 """Admin analytics API endpoints."""
-from fastapi import APIRouter, Depends, Query
-from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 
-from app.api.deps import get_db, get_current_admin, require_permission
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.api.deps import get_db, require_permission
 from app.core.permissions import KEY_VIEW_REPORTS
 from app.models.user import User
-from app.services.analytics_service import analytics_service
 from app.schemas.analytics import DashboardResponse
+from app.services.analytics_service import analytics_service
 
 router = APIRouter()
 

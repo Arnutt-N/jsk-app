@@ -6,7 +6,6 @@ user_id alone, so past and cancelled bookings leaked into the reply — and the
 `limit 10` quota could be eaten by old rows, pushing real upcoming bookings
 out of the list entirely.
 """
-from datetime import date, datetime, time
 import inspect
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch

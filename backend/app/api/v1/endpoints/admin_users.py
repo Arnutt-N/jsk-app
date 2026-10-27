@@ -1,28 +1,27 @@
 """User management endpoints for admin dashboard."""
 
-from fastapi import APIRouter, Depends, Query, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, or_, and_
-from sqlalchemy.exc import IntegrityError
+import math
 from typing import List, Optional
 
-from app.db.session import get_db
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+from sqlalchemy import and_, func, or_, select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.api.deps import check_role_permission, get_current_admin, get_current_staff, require_permission
 from app.core.audit import create_audit_log
 from app.core.permissions import KEY_MANAGE_USERS
 from app.core.pii_masking import mask_line_id
-from app.models.user import User, UserRole
-from app.models.service_request import ServiceRequest, RequestStatus
+from app.core.query_utils import escape_ilike
 from app.core.security import (
     assert_bcrypt_compatible,
-    get_password_hash,
     get_password_hash_async,
-    verify_password,
 )
+from app.db.session import get_db
+from app.models.service_request import RequestStatus, ServiceRequest
+from app.models.user import User, UserRole
 from app.services.user_identity_service import decrypt_user_line_id
-from app.core.query_utils import escape_ilike
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
-import math
 
 router = APIRouter()
 
@@ -130,8 +129,8 @@ async def get_user_stats(
     result = await db.execute(
         select(
             func.count(User.id).label("total"),
-            func.count(User.id).filter(User.is_active == True).label("active"),
-            func.count(User.id).filter(User.is_active == False).label("inactive"),
+            func.count(User.id).filter(User.is_active.is_(True)).label("active"),
+            func.count(User.id).filter(User.is_active.is_(False)).label("inactive"),
             func.count(User.id).filter(User.role == UserRole.SUPER_ADMIN).label("super_admins"),
             func.count(User.id).filter(User.role == UserRole.ADMIN).label("admins"),
             func.count(User.id).filter(User.role == UserRole.AGENT).label("agents"),
@@ -544,7 +543,7 @@ async def delete_user(
         count_result = await db.execute(
             select(func.count(User.id)).where(
                 User.role == UserRole.SUPER_ADMIN,
-                User.is_active == True,
+                User.is_active.is_(True),
             )
         )
         count = count_result.scalar_one()

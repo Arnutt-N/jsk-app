@@ -13,7 +13,6 @@ LINE id and no local image so no httpx/filesystem call is made.
 """
 from types import SimpleNamespace
 
-import pytest
 from fastapi.testclient import TestClient
 
 from app.api import deps

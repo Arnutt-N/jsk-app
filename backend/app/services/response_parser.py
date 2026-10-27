@@ -6,26 +6,28 @@ Example:
   Input: "ท่านสามารถขอรับค่าตอบแทน... $flex_traffic"
   Output: [TextMessage("ท่านสามารถขอรับค่าตอบแทน..."), FlexMessage(contents=...)]
 """
+import logging
 import re
-from typing import List, Optional, Dict, Any
+from typing import Any, Dict, List, Optional
+
+from linebot.v3.messaging import (
+    AudioMessage,
+    FlexContainer,
+    FlexMessage,
+    ImagemapBaseSize,
+    ImagemapMessage,
+    ImageMessage,
+    LocationMessage,
+    QuickReply,
+    StickerMessage,
+    TemplateMessage,
+    TextMessage,
+    VideoMessage,
+)
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from linebot.v3.messaging import (
-    TextMessage,
-    FlexMessage,
-    FlexContainer,
-    ImageMessage,
-    StickerMessage,
-    LocationMessage,
-    VideoMessage,
-    AudioMessage,
-    ImagemapMessage,
-    ImagemapBaseSize,
-    TemplateMessage,
-    QuickReply,
-)
-from app.models.reply_object import ReplyObject, ObjectType
-import logging
+
+from app.models.reply_object import ObjectType, ReplyObject
 
 logger = logging.getLogger(__name__)
 
@@ -102,7 +104,7 @@ async def _resolve_objects_batch(object_ids: List[str], db: AsyncSession) -> Dic
         result = await db.execute(
             select(ReplyObject).filter(
                 ReplyObject.object_id.in_(unique_ids),
-                ReplyObject.is_active == True
+                ReplyObject.is_active.is_(True)
             )
         )
         found: Dict[str, ReplyObject] = {}
@@ -131,7 +133,7 @@ async def resolve_object(object_id: str, db: AsyncSession) -> Optional[Any]:
         result = await db.execute(
             select(ReplyObject).filter(
                 ReplyObject.object_id == object_id,
-                ReplyObject.is_active == True
+                ReplyObject.is_active.is_(True)
             )
         )
         obj = result.scalars().first()

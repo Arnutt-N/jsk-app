@@ -5,12 +5,10 @@ password guessing against bcrypt-hashed accounts. The fix reuses the existing
 _auth_rate_limit_exceeded helper (Redis fixed-window with in-process fallback)
 keyed by client IP + username, BEFORE any DB/password work.
 """
-from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 from fastapi.testclient import TestClient
 
-from app.api import deps
 from app.api.deps import get_db as deps_get_db
 from app.core.permissions import invalidate_cache
 from app.main import app

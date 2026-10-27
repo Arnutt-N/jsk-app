@@ -10,7 +10,6 @@ from pydantic import ValidationError
 from app.schemas.reply_object import ReplyObjectCreate
 from app.schemas.reply_object_validation import validate_payload_for_type
 
-
 # --- template: happy paths ------------------------------------------------
 
 def test_template_buttons_ok():

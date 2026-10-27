@@ -9,9 +9,10 @@ URL, and JSON body. The most error-prone things are guarded explicitly:
 Mirrors the FakeResp / _make_client / _patches style of
 test_rich_menu_alias_service.py.
 """
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import httpx
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 
 from app.services.rich_menu_service import RichMenuService
 

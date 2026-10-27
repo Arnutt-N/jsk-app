@@ -1,12 +1,14 @@
 import html
-import httpx
 import logging
 from typing import List, Optional
+
+import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.models.credential import Provider
-from app.services.credential_service import credential_service
+
 from app.core.config import settings
 from app.core.http_timeouts import DEFAULT_TIMEOUT
+from app.models.credential import Provider
+from app.services.credential_service import credential_service
 
 logger = logging.getLogger(__name__)
 

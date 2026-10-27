@@ -1,17 +1,16 @@
+from typing import Any
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Any, List
+
 from app.api import deps
 from app.api.deps import get_current_admin, require_permission
-from app.core.audit import create_audit_log, changed_field_names
+from app.core.audit import changed_field_names, create_audit_log
 from app.core.permissions import KEY_EDIT_SYSTEM_SETTINGS, KEY_MANAGE_CREDENTIALS
-from app.models.user import User
-from app.services.credential_service import credential_service
 from app.models.credential import Credential, Provider
-from app.schemas.credential import (
-    CredentialCreate, CredentialUpdate,
-    CredentialResponse, CredentialListResponse
-)
+from app.models.user import User
+from app.schemas.credential import CredentialCreate, CredentialListResponse, CredentialResponse, CredentialUpdate
+from app.services.credential_service import credential_service
 
 
 def _provider_value(provider: Any) -> str:

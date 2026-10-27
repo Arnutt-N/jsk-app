@@ -1,9 +1,9 @@
-from cryptography.fernet import Fernet
 import json
 import logging
 from typing import Any, Dict, List, Optional
 
 import httpx
+from cryptography.fernet import Fernet
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -99,8 +99,8 @@ class CredentialService:
         result = await db.execute(
             select(Credential)
             .where(Credential.provider == provider)
-            .where(Credential.is_active == True)
-            .where(Credential.is_default == True)
+            .where(Credential.is_active.is_(True))
+            .where(Credential.is_default.is_(True))
             .limit(1)
         )
         return result.scalar_one_or_none()

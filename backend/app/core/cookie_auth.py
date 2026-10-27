@@ -7,7 +7,6 @@ leaving the old cookie in place (see Starlette docs; this is PRD FR2/test 7's
 subject). SameSite=Strict is enforced (PR 2C).
 """
 import secrets
-from typing import Optional
 
 from fastapi import Response
 

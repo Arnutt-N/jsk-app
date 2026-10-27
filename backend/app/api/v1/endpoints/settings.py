@@ -1,31 +1,33 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
-from app.db.session import get_db
+
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.api.deps import get_current_admin, get_current_user, require_permission
 from app.core.audit import create_audit_log
+from app.core.http_timeouts import DEFAULT_TIMEOUT
 from app.core.permissions import (
-    can_assign,
-    can_self_assign,
-    can_edit_permission_settings,
-    can_revert_approval,
-    can_edit_request_details,
-    get_permission_summary,
-    get_effective_capabilities,
-    load_policy,
-    invalidate_cache,
     ALL_PERMISSION_KEYS,
-    PERMISSION_REGISTRY,
     KEY_EDIT_SYSTEM_SETTINGS,
+    PERMISSION_REGISTRY,
+    can_assign,
+    can_edit_permission_settings,
+    can_edit_request_details,
+    can_revert_approval,
+    can_self_assign,
+    get_effective_capabilities,
+    get_permission_summary,
+    invalidate_cache,
+    load_policy,
 )
+from app.db.session import get_db
 from app.models.permission_setting import PermissionSetting
+from app.models.system_setting import SystemSetting
 from app.models.user import User, UserRole
 from app.schemas.rich_menu import SystemSettingBase, SystemSettingResponse
 from app.services.settings_service import SECRET_DENY_LIST, SettingsService
-from app.models.system_setting import SystemSetting
-from sqlalchemy import select
-from pydantic import BaseModel, Field
-from app.core.http_timeouts import DEFAULT_TIMEOUT
 
 router = APIRouter()
 

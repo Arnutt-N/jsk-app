@@ -1,7 +1,8 @@
 """Tests for template / text_v2 / quickReply support in build_message_from_object."""
 from types import SimpleNamespace
 
-from linebot.v3.messaging import TextMessage, TemplateMessage
+from linebot.v3.messaging import TemplateMessage, TextMessage
+
 from app.models.reply_object import ObjectType
 from app.services.response_parser import build_message_from_object
 

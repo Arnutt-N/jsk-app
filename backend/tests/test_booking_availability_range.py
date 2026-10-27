@@ -22,7 +22,6 @@ from app.services.booking_service import (
     get_availability_range,
 )
 
-
 NOW = datetime(2026, 8, 12, 9, 15)  # Wednesday, 09:15 local
 TODAY = date(2026, 8, 12)
 SERVICE = "ปรึกษากฎหมาย"

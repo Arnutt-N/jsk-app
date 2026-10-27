@@ -1,9 +1,9 @@
 """WebSocket health monitoring and metrics tracking."""
+import logging
 import time
 from dataclasses import dataclass, field
-from typing import Optional, Dict
-from datetime import datetime, timedelta, timezone
-import logging
+from datetime import datetime, timezone
+from typing import Dict, Optional
 
 from app.core.pubsub_manager import pubsub_manager
 

@@ -1,9 +1,11 @@
 """Tests for webhook event deduplication."""
-import pytest
+from datetime import datetime, timezone
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
-from datetime import datetime, timezone
-from app.api.v1.endpoints.webhook import process_webhook_events, WEBHOOK_EVENT_KEY_PREFIX
+
+import pytest
+
+from app.api.v1.endpoints.webhook import WEBHOOK_EVENT_KEY_PREFIX, process_webhook_events
 from app.core.redis_client import RedisClient
 
 
@@ -58,7 +60,7 @@ class TestWebhookDeduplication:
         events = [mock_event_with_id]
         
         # Act
-        with patch('app.api.v1.endpoints.webhook.handle_follow_event') as mock_handler:
+        with patch('app.api.v1.endpoints.webhook.handle_follow_event'):
             await process_webhook_events(events)
             
             # Assert

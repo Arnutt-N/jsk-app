@@ -10,14 +10,12 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 import pytest
-
 from sqlalchemy import select, update
 from sqlalchemy.dialects import postgresql
 
 from app.models.booking import Booking, BookingStatus
 from app.services.booking_service import BookingConfig, ReminderUnit, reminder_window
 from app.tasks import booking_reminder
-
 
 NOW = datetime(2026, 8, 12, 9, 0)
 

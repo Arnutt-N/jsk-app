@@ -8,13 +8,13 @@ from linebot.v3.messaging import TextMessage
 from linebot.v3.webhooks import MessageEvent, TextMessageContent
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.logging_utils import mask_line_id
 from app.models.intent import IntentResponse
 from app.models.message import MessageDirection
 from app.schemas.ws_events import WSEventType
 from app.services.line_service import describe_line_message
 from app.services.outbox import Outbox, drain_outbox, new_outbox
 from app.services.response_parser import parse_response
-from app.core.logging_utils import mask_line_id
 
 from ._deps import (
     get_friend_service,
@@ -187,13 +187,13 @@ async def _handle_message_event_inner(event: MessageEvent, db: AsyncSession, box
             if len(all_messages) >= 5:
                 break
 
-            reply_type = res.reply_type if isinstance(res, IntentResponse) else res["reply_type"]
             text_content = res.text_content if isinstance(res, IntentResponse) else res["text_content"]
             payload = res.payload if isinstance(res, IntentResponse) else res["payload"]
 
             try:
                 if payload:
-                    from linebot.v3.messaging import FlexMessage, FlexContainer
+                    from linebot.v3.messaging import FlexContainer, FlexMessage
+
                     from app.utils.url_utils import resolve_payload_urls, strip_flex_body
 
                     resolved_payload = resolve_payload_urls(payload)

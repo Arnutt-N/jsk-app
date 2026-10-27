@@ -3,12 +3,13 @@ from datetime import UTC, datetime
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
+from fastapi.testclient import TestClient
+
 from app.api import deps
 from app.api.v1.endpoints import admin_friends
 from app.main import app
 from app.models.user import ChatMode, UserRole
 from app.services.credential_service import credential_service
-from fastapi.testclient import TestClient
 from tests.identity_helpers import make_line_user_fields
 
 

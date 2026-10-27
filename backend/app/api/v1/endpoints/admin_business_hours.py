@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_admin, get_current_staff, require_permission
+from app.api.deps import get_current_staff, require_permission
 from app.core.audit import create_audit_log
 from app.core.permissions import KEY_EDIT_BUSINESS_HOURS
 from app.db.session import get_db

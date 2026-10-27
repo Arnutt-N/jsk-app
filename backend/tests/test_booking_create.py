@@ -28,7 +28,6 @@ from app.services.booking_service import (
     create_booking,
 )
 
-
 TARGET = date(2026, 8, 19)
 SLOT = time(9, 0)
 NOW = datetime(2026, 8, 12, 9, 15)

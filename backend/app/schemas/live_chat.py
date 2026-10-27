@@ -1,13 +1,14 @@
 import re
 from datetime import datetime
 from enum import Enum
-from typing import Any, List, Optional
+from typing import List, Optional
 
 import bleach
 from pydantic import BaseModel, Field, field_validator
 
-from .chat_session import ChatSessionResponse, SessionStatus
+from .chat_session import ChatSessionResponse
 from .message import MessageResponse
+
 
 class ChatMode(str, Enum):
     BOT = "BOT"

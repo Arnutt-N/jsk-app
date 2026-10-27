@@ -9,11 +9,12 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 import manage_rich_menu
-import run
 import test_endpoint
 import verify_api
 import verify_db
 import verify_schema_extended
+
+import run
 
 
 def test_manage_rich_menu_defaults_to_list_only() -> None:

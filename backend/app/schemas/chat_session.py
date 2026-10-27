@@ -1,7 +1,9 @@
-from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from enum import Enum
 from typing import Optional
+
+from pydantic import BaseModel, ConfigDict
+
 
 class SessionStatus(str, Enum):
     WAITING = "WAITING"

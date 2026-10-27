@@ -1,9 +1,10 @@
 import logging
 import re
 
-from app.models.canned_response import CannedResponse
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.canned_response import CannedResponse
 
 logger = logging.getLogger(__name__)
 

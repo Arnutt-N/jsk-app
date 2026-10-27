@@ -1,9 +1,12 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Enum, Text
+import enum
+
+from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-import enum
+
 from app.db.base import Base
+
 
 class RequestStatus(str, enum.Enum):
     """Request lifecycle states (ordered by workflow progression).

@@ -13,6 +13,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, Header, HTTPException, Path, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.v1.endpoints.liff import verify_liff_token
 from app.core.config import settings
 from app.core.http_rate_limit import http_rate_limit
 from app.db.session import get_db
@@ -33,10 +34,10 @@ from app.services.booking_notifications import (
     notify_staff_new_booking,
 )
 from app.services.booking_service import (
+    MAX_AVAILABILITY_RANGE_DAYS,
     BookingNotCancellableError,
     BookingWindowError,
     DuplicateBookingError,
-    MAX_AVAILABILITY_RANGE_DAYS,
     SlotFullError,
     SlotUnavailableError,
     UnknownServiceTypeError,
@@ -44,7 +45,6 @@ from app.services.booking_service import (
 from app.services.booking_settings import load_booking_config
 from app.services.friend_service import friend_service
 from app.services.user_identity_service import resolve_by_line_id
-from app.api.v1.endpoints.liff import verify_liff_token
 
 logger = logging.getLogger(__name__)
 

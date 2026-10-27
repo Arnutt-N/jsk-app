@@ -9,8 +9,8 @@ from typing import Dict, Optional, Set
 from fastapi import WebSocket
 from redis.exceptions import WatchError
 
-from app.core.rate_limiter import ws_rate_limiter
 from app.core.pubsub_manager import pubsub_manager
+from app.core.rate_limiter import ws_rate_limiter
 from app.core.redis_client import redis_client
 
 logger = logging.getLogger(__name__)
@@ -207,6 +207,7 @@ class ConnectionManager:
             return
         try:
             from sqlalchemy import select
+
             from app.db.session import AsyncSessionLocal
             from app.models.user import User
 

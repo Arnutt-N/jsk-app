@@ -1,8 +1,11 @@
 from enum import Enum
-from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime
+
+from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.sql import func
+
 from app.db.base import Base
+
 
 class Provider(str, Enum):
     LINE = "LINE"

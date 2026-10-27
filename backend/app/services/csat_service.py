@@ -1,13 +1,14 @@
 """CSAT (Customer Satisfaction) survey service."""
 import logging
 from typing import Optional
+
+from linebot.v3.messaging import FlexContainer, FlexMessage
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from linebot.v3.messaging import FlexMessage, FlexContainer
 
+from app.core.logging_utils import mask_line_id
 from app.models.csat_response import CsatResponse
 from app.services.line_service import line_service
-from app.core.logging_utils import mask_line_id
 
 logger = logging.getLogger(__name__)
 

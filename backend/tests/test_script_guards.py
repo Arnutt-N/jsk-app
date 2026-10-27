@@ -7,17 +7,16 @@ import pytest
 
 from app.core import env as env_module
 
-
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 SCRIPTS_DIR = BACKEND_DIR / "scripts"
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 import _script_safety  # noqa: E402
+import fix_user_data  # noqa: E402
 import import_csv_intents  # noqa: E402
 import migrate_line_to_credentials  # noqa: E402
 import seed_admin  # noqa: E402
-import fix_user_data  # noqa: E402
 
 
 def configure_env_module(monkeypatch: pytest.MonkeyPatch, backend_dir: Path) -> None:

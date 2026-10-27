@@ -1,5 +1,7 @@
-from sqlalchemy import Column, Integer, Date, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, Date, ForeignKey, Integer, UniqueConstraint
+
 from app.db.base import Base
+
 
 class ChatAnalytics(Base):
     __tablename__ = "chat_analytics"

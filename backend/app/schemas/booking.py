@@ -10,8 +10,8 @@ from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from app.services.booking_service import ReminderUnit
 from app.schemas.person_name import compose_person_name
+from app.services.booking_service import ReminderUnit
 
 _EMAIL_RE = re.compile(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$")
 

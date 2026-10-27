@@ -1,7 +1,8 @@
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from app.models.system_setting import SystemSetting
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.config import settings
+from app.models.system_setting import SystemSetting
 
 # B2: secrets live in encrypted Credential rows (credential_service), never
 # in SystemSetting. Root keys (ENCRYPTION_KEY/LINE_ID_HMAC_KEY) are env-only.

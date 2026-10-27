@@ -41,8 +41,8 @@ from app.core.pii_masking import (
     mask_viewer_contacts,
 )
 from app.main import app
-from app.services.booking_settings import DEFAULTS, save_booking_config
 from app.models.user import UserRole
+from app.services.booking_settings import DEFAULTS, save_booking_config
 
 
 def _viewer_user():

@@ -1,12 +1,13 @@
 from types import SimpleNamespace
+
 import pytest
+from sqlalchemy import event
 
 from app.api import deps as api_deps
 from app.core.redis_client import redis_client
 from app.db.session import engine as _app_engine
 from app.main import app
 from app.models.user import UserRole
-from sqlalchemy import event
 
 
 @pytest.fixture

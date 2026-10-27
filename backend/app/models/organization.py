@@ -1,6 +1,8 @@
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import relationship
+
 from app.db.base import Base
+
 
 class Organization(Base):
     __tablename__ = "organizations"

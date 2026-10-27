@@ -1,8 +1,8 @@
 """Unit tests for analytics service abandonment metrics."""
-import pytest
-from unittest.mock import AsyncMock
 from types import SimpleNamespace
+from unittest.mock import AsyncMock
 
+import pytest
 from sqlalchemy.dialects import postgresql
 
 from app.services.analytics_service import AnalyticsService

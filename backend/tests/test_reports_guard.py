@@ -1,4 +1,5 @@
 from types import SimpleNamespace
+
 import pytest
 
 from app.api import deps as api_deps

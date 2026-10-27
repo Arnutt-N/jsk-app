@@ -1,6 +1,8 @@
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, UniqueConstraint
 from sqlalchemy.sql import func
+
 from app.db.base import Base
+
 
 class OperatorConversationPreference(Base):
     """Per-operator preferences for a conversation (pin / mute / spam).

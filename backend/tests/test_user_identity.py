@@ -20,7 +20,6 @@ from app.services.user_identity_service import (
     resolve_by_line_id,
 )
 
-
 # ── 1. Resolve existing user by hash (idempotent) ─────────────────
 
 
@@ -274,8 +273,8 @@ async def test_resolve_raw_for_push_raises_when_user_missing():
 
 
 def test_child_filter_uses_user_id():
-    from app.services.user_identity_service import child_filter
     from app.models.message import Message
+    from app.services.user_identity_service import child_filter
 
     clause = child_filter(Message, "Uabc", user_id=42)
 
@@ -285,8 +284,8 @@ def test_child_filter_uses_user_id():
 def test_child_filter_without_user_id_matches_nothing():
     """PR C regression: an unresolved user (user_id=None) must match nothing —
     there is no plaintext fallback column to fall back to."""
-    from app.services.user_identity_service import child_filter
     from app.models.message import Message
+    from app.services.user_identity_service import child_filter
 
     clause = child_filter(Message, "Uabc", user_id=None)
 
@@ -297,18 +296,18 @@ def test_child_filter_without_user_id_matches_nothing():
 
 
 def test_child_column_is_user_id():
-    from app.services.user_identity_service import child_column
     from app.models.message import Message
+    from app.services.user_identity_service import child_column
 
     assert child_column(Message) is Message.user_id
 
 
 def test_child_join_condition_user_as_parent():
     """PR C regression: User joins to child tables on child.user_id == User.id."""
-    from app.services.user_identity_service import child_join_condition
-    from app.models.message import Message
     from app.models.chat_session import ChatSession
+    from app.models.message import Message
     from app.models.user import User
+    from app.services.user_identity_service import child_join_condition
 
     clause = child_join_condition(User, Message)
     assert str(clause) == str(User.id == Message.user_id)
@@ -318,17 +317,17 @@ def test_child_join_condition_user_as_parent():
 
 
 def test_child_join_condition_child_to_child():
-    from app.services.user_identity_service import child_join_condition
-    from app.models.message import Message
     from app.models.chat_session import ChatSession
+    from app.models.message import Message
+    from app.services.user_identity_service import child_join_condition
 
     clause = child_join_condition(ChatSession, Message)
     assert str(clause) == str(ChatSession.user_id == Message.user_id)
 
 
 def test_user_identity_filter_checks_hash_presence():
-    from app.services.user_identity_service import user_identity_filter
     from app.models.user import User
+    from app.services.user_identity_service import user_identity_filter
 
     clause = user_identity_filter()
     assert str(clause) == str(User.line_user_id_hash.isnot(None))

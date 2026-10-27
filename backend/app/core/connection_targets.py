@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from urllib.parse import urlparse
 
-
 LOCALHOST_HOSTS = {"localhost", "127.0.0.1", "::1"}
 
 

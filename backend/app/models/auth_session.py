@@ -8,8 +8,9 @@ every `active` row in its family. `token_hash` stores only the SHA-256 hash
 of the refresh JWT's `jti` claim — never the raw token. No IP/user-agent
 columns by design (no PII creep, per PRD FR1).
 """
-from sqlalchemy import Column, ForeignKey, Integer, String, DateTime
 from datetime import datetime, timezone
+
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
 
 from app.db.base import Base
 

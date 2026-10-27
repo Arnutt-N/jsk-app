@@ -1,4 +1,3 @@
-from linebot.v3.messaging import FlexContainer
 
 _BOOKING_STATUS_MAP = {
     "CONFIRMED": {"text": "ยืนยันแล้ว", "color": "#10B981"},   # Emerald

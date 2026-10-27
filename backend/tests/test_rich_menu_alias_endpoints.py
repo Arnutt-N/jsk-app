@@ -15,7 +15,6 @@ LINE call), so httpx is never hit.
 """
 from types import SimpleNamespace
 
-import pytest
 from fastapi.testclient import TestClient
 
 from app.api import deps

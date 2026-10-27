@@ -3,9 +3,10 @@
 These mock httpx so no real LINE call is made; they assert the HTTP method,
 URL, and JSON body — the things most likely to be wrong (esp. update = PUT).
 """
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import httpx
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 
 from app.services.rich_menu_service import RichMenuService
 

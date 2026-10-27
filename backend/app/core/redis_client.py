@@ -1,9 +1,11 @@
 """Redis client for caching and deduplication."""
 import logging
 from typing import Optional
+
 import redis.asyncio as redis
-from app.core.connection_targets import describe_redis_url
+
 from app.core.config import settings
+from app.core.connection_targets import describe_redis_url
 
 logger = logging.getLogger(__name__)
 

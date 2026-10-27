@@ -1,7 +1,7 @@
-from linebot.v3.messaging import AsyncMessagingApi, AsyncApiClient
-from linebot.v3.webhook import WebhookParser
-from linebot.v3.messaging import Configuration
 from typing import Optional
+
+from linebot.v3.messaging import AsyncApiClient, AsyncMessagingApi, Configuration
+from linebot.v3.webhook import WebhookParser
 
 from app.core.config import settings
 

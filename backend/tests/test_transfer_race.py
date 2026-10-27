@@ -1,4 +1,5 @@
 import asyncio
+
 import pytest
 import pytest_asyncio
 from sqlalchemy import select
@@ -11,7 +12,7 @@ from app.models.audit_log import AuditLog
 from app.models.chat_session import ChatSession, SessionStatus
 from app.models.user import User, UserRole
 from app.services.friend_service import friend_service
-from app.services.live_chat_service import live_chat_service, TRANSFER_ERR_CONFLICT
+from app.services.live_chat_service import TRANSFER_ERR_CONFLICT, live_chat_service
 
 
 def _fresh_engine():

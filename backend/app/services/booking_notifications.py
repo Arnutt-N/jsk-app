@@ -8,9 +8,8 @@ silently either; it is logged at ERROR so the existing alerting picks it up.
 import logging
 from typing import Optional
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from linebot.v3.messaging import FlexContainer, FlexMessage
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.booking import Booking
 from app.services.booking_email import (

@@ -1,5 +1,6 @@
-from pydantic import BaseModel, Field, field_validator
 from typing import Optional
+
+from pydantic import BaseModel, Field, field_validator
 
 from app.core.security import assert_bcrypt_compatible
 from app.models.user import UserRole

@@ -8,7 +8,7 @@ from fastapi import HTTPException
 from pydantic import ValidationError
 
 from app.api.v1.endpoints import admin_bookings
-from app.models.booking import Booking, BookingStatus
+from app.models.booking import BookingStatus
 from app.schemas.booking import BookingSettingsIn
 from app.services.booking_service import ReminderUnit
 
@@ -203,6 +203,7 @@ async def test_list_orders_soonest_first():
     appointment disappearing from the top of the list is how staff convinced
     themselves 'nobody has booked yet'."""
     from unittest.mock import MagicMock
+
     from sqlalchemy.dialects import postgresql
 
     db = AsyncMock()

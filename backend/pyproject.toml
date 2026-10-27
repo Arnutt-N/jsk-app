@@ -1,0 +1,14 @@
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+# E501 (line-too-long) and E402 (import-not-at-top) are bulk pre-existing style
+# debt across ~33 files: excluded from the gate until the dedicated cleanup
+# pass. Everything else (pyflakes, pycodestyle errors, isort) must stay green.
+# See Task 22 follow-up.
+ignore = ["E501", "E402"]
+
+[tool.ruff.format]
+line-ending = "lf"
