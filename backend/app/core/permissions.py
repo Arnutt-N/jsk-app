@@ -329,14 +329,19 @@ def invalidate_cache() -> None:
     _policy_loaded_at = None
 
 
-async def refresh_policy_if_stale(db: AsyncSession) -> None:
+async def refresh_policy_if_stale(db: AsyncSession | None = None) -> None:
     """Re-read the DB-backed matrix when the cached copy is older than the TTL.
 
     F-002: `_policy_cache` is per-process and only the PATCH worker refreshes
     it, so without this a revocation edited on one gunicorn/Koyeb worker never
-    reaches the others. Every request-carrying caller (the permission
-    dependency) awaits this; inside the TTL it is an in-process timestamp read
-    with no I/O, so the fast path is unchanged.
+    reaches the others. Callers awaiting this on each permission-gated request
+    get the in-process timestamp read with no I/O inside the TTL, so the fast
+    path is unchanged.
+
+    `db` is optional and exists for tests. In production the refresh opens its
+    OWN session: reusing the request session would consume statements from a
+    caller that owns it (and would break every test that substitutes `get_db`
+    with a scripted fake).
 
     Fails closed: if the re-read raises, the cache is cleared so subsequent
     checks fall back to DEFAULT_POLICY rather than continuing to serve a matrix
@@ -347,7 +352,15 @@ async def refresh_policy_if_stale(db: AsyncSession) -> None:
             return
 
     try:
-        await load_policy(db)
+        if db is not None:
+            await load_policy(db)
+        else:
+            # Local import: app.db.session builds the engine at import time,
+            # which unit tests that never touch a DB must not pay for.
+            from app.db.session import AsyncSessionLocal
+
+            async with AsyncSessionLocal() as session:
+                await load_policy(session)
     except Exception as exc:  # noqa: BLE001 -- deny rather than serve stale
         logger.warning(
             "Permission policy refresh failed: %s; clearing cache so checks "
