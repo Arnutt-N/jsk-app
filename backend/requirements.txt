@@ -12,6 +12,7 @@ httpx>=0.26.0
 line-bot-sdk>=3.0.0
 pytest>=8.0.0
 pytest-asyncio>=0.23.0
+pytest-cov>=5.0.0
 bleach>=6.0.0
 redis>=5.0.0
 pytz>=2024.1

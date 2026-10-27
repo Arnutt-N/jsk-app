@@ -121,7 +121,9 @@ jobs:
         run: alembic upgrade head
 
       - name: Run backend tests
-        run: python -m pytest -q
+        # --cov first without --cov-fail-under: the floor is pinned to the
+        # measured value (Task 24), never guessed.
+        run: python -m pytest -q --cov=app --cov-report=term-missing
 
       - name: Lint backend (ruff)
         run: ruff check app tests
@@ -156,7 +158,9 @@ jobs:
         run: npm run lint
 
       - name: Run frontend unit tests
-        run: npm run test:unit
+        # Coverage report only for now; the floor is pinned to the measured
+        # value in a follow-up commit (Task 24).
+        run: npm run test:unit -- --coverage
 
       - name: Run frontend build
         run: npm run build
