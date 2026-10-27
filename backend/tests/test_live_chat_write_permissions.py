@@ -6,31 +6,138 @@ caller through `get_current_staff`, which checks `KEY_ACCESS_STAFF_ENDPOINTS`
 `KEY_ACCESS_LIVE_CHAT`, which does not. So a DIRECTOR could issue live-chat
 writes over HTTP that the socket would have refused.
 
-These tests pin the fix: every state-changing route resolves the caller through
-`require_permission(KEY_ACCESS_LIVE_CHAT)`, so a role outside that policy set
-is rejected by the dependency BEFORE any handler body runs. Read/page-load
-routes keep the permissive `get_current_staff` gate on purpose (two-gate
-design: supervisors may load the page and discover the feature).
+Two layers are pinned here, both without a live DB or app lifespan:
 
-The assertions deliberately do not require a live DB row: the permission gate
-runs as a FastAPI dependency, ahead of the handler, so a 403 proves the gate
-fired. Where a route would otherwise reach the DB first, the expectation is
-still 403 — a 404/500 there would mean the gate did not run.
+1. **Wiring (AST)** — every state-changing route in `admin_live_chat.py`
+   depends on the module-level `require_live_chat_access`, and every read
+   route still depends on the permissive `deps.get_current_staff`. This is the
+   assertion that would have failed before the fix.
+2. **Behaviour (unit)** — the dependency itself rejects roles outside the
+   live-chat policy and admits roles inside it. `require_permission` only calls
+   `can(role, key)`, so it is exercised directly with a stubbed `get_current_user`
+   rather than through a TestClient (which needs the app lifespan, a DB, and a
+   single shared event loop).
+
+The split also keeps this file independent of test ordering: nothing here opens
+a connection, so it cannot perturb the session-scoped app fixture.
 """
 
 from __future__ import annotations
 
+import ast
+import pathlib
+
 import pytest
-from fastapi.testclient import TestClient
+from fastapi import HTTPException
 
 from app.api import deps
-from app.core.permissions import KEY_ACCESS_LIVE_CHAT
-from app.main import app
+from app.core.permissions import DEFAULT_POLICY, KEY_ACCESS_LIVE_CHAT, can
 from app.models.user import User, UserRole
 
+ENDPOINT_PATH = (
+    pathlib.Path(__file__).resolve().parents[1]
+    / "app"
+    / "api"
+    / "v1"
+    / "endpoints"
+    / "admin_live_chat.py"
+)
 
-def _make_user(role: UserRole) -> User:
-    return User(
+# Every state-changing route in the module, by handler name.
+WRITE_HANDLERS = {
+    "send_message",
+    "send_media",
+    "claim_conversation",
+    "close_conversation",
+    "transfer_conversation",
+    "toggle_mode",
+    "refresh_profile",
+    "create_conversation",
+    "archive_conversation",
+    "update_conversation_preferences",
+    "delete_conversation",
+}
+
+# Read / page-load routes: these keep a permissive, non-live-chat gate on
+# purpose. `get_analytics` / `get_operator_stats` are also admin-only, hence
+# the different expected gate.
+READ_HANDLERS = {
+    "list_conversations": "deps.get_current_staff",
+    "get_conversation": "deps.get_current_staff",
+    "mark_conversation_read": "deps.get_current_staff",
+    "get_conversation_messages": "deps.get_current_staff",
+    "search_messages": "deps.get_current_staff",
+    "get_analytics": "deps.get_current_admin",
+    "get_operator_stats": "deps.get_current_admin",
+}
+
+
+def _handler_dependency(name: str) -> str | None:
+    """Return the dependency expression used for the caller in `name`.
+
+    Looks only at the `current_user` / `_current_user` parameter — the first
+    `Depends(...)` in a signature is usually `get_db`, which says nothing about
+    authorization.
+    """
+    caller_params = {"current_user", "_current_user"}
+    tree = ast.parse(ENDPOINT_PATH.read_text(encoding="utf-8"))
+
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.AsyncFunctionDef, ast.FunctionDef)):
+            continue
+        if node.name != name:
+            continue
+
+        args = node.args.args + node.args.kwonlyargs
+        positional = [None] * (len(node.args.args) - len(node.args.defaults))
+        positional += list(node.args.defaults)
+        kwonly = list(node.args.kw_defaults)
+        defaults = positional + kwonly
+
+        for arg, default in zip(args, defaults):
+            if arg.arg not in caller_params or default is None:
+                continue
+            for sub in ast.walk(default):
+                if not isinstance(sub, ast.Call):
+                    continue
+                func = sub.func
+                fname = getattr(func, "id", None) or getattr(func, "attr", None)
+                if fname != "Depends" or not sub.args:
+                    continue
+                inner = sub.args[0]
+                if isinstance(inner, ast.Name):
+                    return inner.id
+                if isinstance(inner, ast.Attribute):
+                    owner = getattr(inner.value, "id", "")
+                    return f"{owner}.{inner.attr}" if owner else inner.attr
+        return None
+
+    raise AssertionError(f"handler not found in {ENDPOINT_PATH.name}: {name}")
+
+
+@pytest.mark.parametrize("handler", sorted(WRITE_HANDLERS))
+def test_write_handlers_use_the_live_chat_gate(handler: str):
+    """State-changing routes must gate on the live-chat key (F-001)."""
+    assert _handler_dependency(handler) == "require_live_chat_access", (
+        f"{handler} must depend on require_live_chat_access "
+        f"(KEY_ACCESS_LIVE_CHAT); it uses something more permissive, so a "
+        f"DIRECTOR/HEAD could write over HTTP that the WebSocket would refuse."
+    )
+
+
+@pytest.mark.parametrize("handler,expected", sorted(READ_HANDLERS.items()))
+def test_read_handlers_keep_the_permissive_gate(handler: str, expected: str):
+    """Read routes stay on a non-live-chat gate so supervisors can load the page."""
+    assert _handler_dependency(handler) == expected
+
+
+@pytest.mark.parametrize("role", [UserRole.DIRECTOR, UserRole.HEAD, UserRole.VIEWER])
+def test_gate_rejects_roles_outside_the_live_chat_policy(role: UserRole):
+    """The dependency itself raises 403 for roles outside the policy."""
+    assert not can(role, KEY_ACCESS_LIVE_CHAT)
+
+    dependency = deps.require_permission(KEY_ACCESS_LIVE_CHAT)
+    user = User(
         id=1,
         username="gate-test",
         hashed_password="x",
@@ -39,89 +146,28 @@ def _make_user(role: UserRole) -> User:
         is_active=True,
     )
 
+    with pytest.raises(HTTPException) as exc:
+        # The dependency's only free parameter is the resolved caller.
+        import asyncio
 
-@pytest.fixture(scope="module")
-def _client():
-    """One TestClient for the module.
+        asyncio.run(dependency(current_user=user))
 
-    Creating a TestClient per parametrized case leaves the previous one's event
-    loop closed while its backend DB/Redis clients still hold it, which surfaces
-    as "Event loop is closed" in unrelated cases. Shares the app lifespan, which
-    is what these gate tests want anyway.
-    """
-    from app.main import app as fastapi_app
-
-    with TestClient(fastapi_app) as client:
-        yield client
+    assert exc.value.status_code == 403
 
 
-@pytest.fixture
-def as_role():
-    """Return a helper that installs a caller of the given role."""
-    installed: list[User] = []
-
-    def _install(role: UserRole) -> None:
-        user = _make_user(role)
-        installed.append(user)
-        app.dependency_overrides[deps.get_current_user] = lambda: user
-        app.dependency_overrides[deps.get_current_staff] = lambda: user
-
-    yield _install
-
-    app.dependency_overrides.clear()
-
-
-# (method, path) for every state-changing live-chat route. Path params use a
-# placeholder that never exists as a row: the permission dependency still runs
-# first, so a role outside the policy gets 403 regardless.
-WRITE_ROUTES = [
-    ("post", "/api/v1/admin/live-chat/conversations/Udeadbeef/messages"),
-    ("post", "/api/v1/admin/live-chat/conversations/Udeadbeef/media"),
-    ("post", "/api/v1/admin/live-chat/conversations/Udeadbeef/claim"),
-    ("post", "/api/v1/admin/live-chat/conversations/Udeadbeef/close"),
-    ("post", "/api/v1/admin/live-chat/conversations/Udeadbeef/transfer"),
-    ("post", "/api/v1/admin/live-chat/conversations/Udeadbeef/mode"),
-    ("post", "/api/v1/admin/live-chat/conversations/Udeadbeef/refresh-profile"),
-    ("patch", "/api/v1/admin/live-chat/conversations/Udeadbeef/archive"),
-    ("patch", "/api/v1/admin/live-chat/conversations/Udeadbeef/preferences"),
-    ("delete", "/api/v1/admin/live-chat/conversations/Udeadbeef"),
-    ("post", "/api/v1/admin/live-chat/conversations"),
-]
-
-
-@pytest.mark.parametrize("method,path", WRITE_ROUTES)
-@pytest.mark.parametrize("role", [UserRole.DIRECTOR, UserRole.HEAD])
-def test_write_routes_reject_roles_outside_live_chat_policy(
-    as_role, _client, method: str, path: str, role: UserRole
-):
-    """DIRECTOR/HEAD pass the staff gate but not the live-chat one."""
-    as_role(role)
-
-    # delete() has no body parameter in httpx; the gate runs before any
-    # handler body would read one anyway.
-    request = getattr(_client, method)
-    response = request(path) if method == "delete" else request(path, json={})
-
-    assert response.status_code == 403, (
-        f"{method.upper()} {path} must be gated on {KEY_ACCESS_LIVE_CHAT} "
-        f"(role {role.value}); got {response.status_code}"
+@pytest.mark.parametrize("role", sorted(DEFAULT_POLICY[KEY_ACCESS_LIVE_CHAT], key=str))
+def test_gate_admits_roles_inside_the_live_chat_policy(role: UserRole):
+    """Roles holding the key pass through unchanged."""
+    dependency = deps.require_permission(KEY_ACCESS_LIVE_CHAT)
+    user = User(
+        id=1,
+        username="gate-test",
+        hashed_password="x",
+        display_name="Gate Test",
+        role=role,
+        is_active=True,
     )
 
+    import asyncio
 
-@pytest.mark.parametrize("method,path", WRITE_ROUTES)
-@pytest.mark.parametrize("role", [UserRole.AGENT, UserRole.ADMIN, UserRole.SUPER_ADMIN])
-def test_write_routes_admit_roles_inside_live_chat_policy(
-    as_role, _client, method: str, path: str, role: UserRole
-):
-    """Roles holding the key get past the gate (the handler may fail later)."""
-    as_role(role)
-
-    # delete() has no body parameter in httpx; the gate runs before any
-    # handler body would read one anyway.
-    request = getattr(_client, method)
-    response = request(path) if method == "delete" else request(path, json={})
-
-    assert response.status_code != 403, (
-        f"{role.value} holds {KEY_ACCESS_LIVE_CHAT} and must not be 403'd by "
-        f"the gate on {method.upper()} {path}"
-    )
+    assert asyncio.run(dependency(current_user=user)) is user
