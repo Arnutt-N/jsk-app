@@ -121,9 +121,9 @@ jobs:
         run: alembic upgrade head
 
       - name: Run backend tests
-        # --cov first without --cov-fail-under: the floor is pinned to the
-        # measured value (Task 24), never guessed.
-        run: python -m pytest -q --cov=app --cov-report=term-missing
+        # The coverage floor lives in backend/pytest.ini (addopts), so the
+        # gate applies to a plain `pytest` run too, not only to CI.
+        run: python -m pytest -q
 
       - name: Lint backend (ruff)
         run: ruff check app tests
@@ -158,8 +158,8 @@ jobs:
         run: npm run lint
 
       - name: Run frontend unit tests
-        # Coverage report only for now; the floor is pinned to the measured
-        # value in a follow-up commit (Task 24).
+        # --coverage is required to enforce the thresholds pinned in
+        # frontend/vitest.config.ts (Task 24).
         run: npm run test:unit -- --coverage
 
       - name: Run frontend build

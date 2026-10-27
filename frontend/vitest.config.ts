@@ -36,5 +36,18 @@ export default defineConfig({
     // picked up (they use a different runner with different globals).
     include: ['**/__tests__/**/*.test.{ts,tsx}'],
     exclude: ['node_modules', 'e2e', '.next'],
+    // Coverage floor (Task 24 / F-028). Measured on the CI runner:
+    // 42.3% stmts, 74.71% branch, 59.59% funcs. One point of headroom on each
+    // so ordinary churn does not fail an unrelated PR. Raise, never lower,
+    // without a reason.
+    coverage: {
+      provider: 'v8',
+      reporter: ['text'],
+      thresholds: {
+        statements: 41,
+        branches: 73,
+        functions: 58,
+      },
+    },
   },
 })
