@@ -2,6 +2,16 @@ name: CD
 
 on:
   workflow_run:
+    # Triggered by CI only — deliberately NOT by "E2E (Playwright)" too.
+    # Two reasons:
+    #   1. The `cd-scope` artifact this workflow downloads is produced by CI
+    #      (ci.yml), so `github.event.workflow_run.id` must be a CI run id. An
+    #      E2E-triggered run would look for an artifact that never existed.
+    #   2. Both workflows run in parallel for one push; triggering from each
+    #      would deploy the same SHA twice.
+    # E2E is still a hard gate: the `Gate on E2E (Playwright)` step below waits
+    # for the E2E run of this same commit and fails the deploy unless it
+    # succeeded (F-018).
     workflows: ["CI"]
     types:
       - completed
@@ -42,7 +52,10 @@ jobs:
   resolve-scope:
     name: Resolve Deployment Scope
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    # 5 min originally; raised for the E2E gate below, which may wait up to
+    # 10 min for the E2E run of this commit (E2E itself takes ~6 on a healthy
+    # runner and runs in parallel with CI).
+    timeout-minutes: 15
     if: |
       github.event_name == 'workflow_dispatch' || (
         github.event_name == 'workflow_run' &&
@@ -65,6 +78,56 @@ jobs:
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ github.token }}
           path: .cd
+
+      # E2E runs in parallel with CI, so CD is normally triggered before the
+      # E2E conclusion for this commit is known. Poll for it and fail the whole
+      # deploy unless it succeeded: a red (or missing) E2E must never ship.
+      # Polling, not a second workflow_run trigger, keeps one deploy per SHA and
+      # keeps `github.event.workflow_run.id` pointing at the CI run whose
+      # cd-scope artifact is downloaded above.
+      - name: Gate on E2E (Playwright)
+        if: github.event_name == 'workflow_run'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+
+          # Give up after ~10 minutes; E2E takes ~6 on a healthy runner.
+          deadline=$(( SECONDS + 600 ))
+          while :; do
+            # Newest run of the E2E workflow for this exact commit. The jq
+            # filter keeps only an exact SHA match (head_sha is short-safe).
+            run=$(gh api \
+              "repos/${REPO}/actions/workflows/e2e.yml/runs?head_sha=${HEAD_SHA}&per_page=1" \
+              --jq '.workflow_runs[0] | "\(.status) \(.conclusion) \(.html_url)"' 2>/dev/null || echo "")
+
+            status=${run%% *}
+            rest=${run#* }
+            conclusion=${rest%% *}
+            url=${rest#* }
+
+            if [ -z "$status" ]; then
+              echo "No E2E run found yet for ${HEAD_SHA}; retrying..."
+            elif [ "$status" = "completed" ]; then
+              if [ "$conclusion" = "success" ]; then
+                echo "E2E passed for ${HEAD_SHA}: ${url}"
+                exit 0
+              fi
+              echo "::error::E2E did not pass for ${HEAD_SHA} (conclusion: ${conclusion:-none}) — refusing to deploy. See ${url}"
+              exit 1
+            else
+              echo "E2E for ${HEAD_SHA} is ${status}; waiting..."
+            fi
+
+            if [ "$SECONDS" -ge "$deadline" ]; then
+              echo "::error::Timed out waiting for the E2E run of ${HEAD_SHA} — refusing to deploy."
+              exit 1
+            fi
+            sleep 20
+          done
 
       - name: Resolve scope
         id: scope
