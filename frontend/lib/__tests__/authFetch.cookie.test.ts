@@ -95,6 +95,48 @@ describe('admin auth fetch interceptor — cookie mode', () => {
     expect(r2.status).toBe(401);
   });
 
+  it('does NOT refresh or retry a login 401 (F-012)', async () => {
+    // A wrong password answers 401 at /auth/login. Refreshing there is
+    // pointless — the session was never the problem — and it hides the real
+    // answer behind a refresh cycle.
+    nativeFetch.mockResolvedValueOnce(jsonResponse(401));
+    const refresh = vi.fn().mockResolvedValue('cookie-refreshed');
+    setAuthRefreshHandler(refresh);
+
+    const res = await window.fetch('/api/v1/auth/login', { method: 'POST' });
+
+    expect(refresh).not.toHaveBeenCalled();
+    expect(nativeFetch).toHaveBeenCalledTimes(1);
+    expect(res.status).toBe(401);
+  });
+
+  it('does NOT refresh or retry migrate-session or ws-ticket 401s (F-012)', async () => {
+    const refresh = vi.fn().mockResolvedValue('cookie-refreshed');
+    setAuthRefreshHandler(refresh);
+
+    for (const path of ['/api/v1/auth/migrate-session', '/api/v1/auth/ws-ticket']) {
+      nativeFetch.mockResolvedValueOnce(jsonResponse(401));
+      const res = await window.fetch(path, { method: 'POST' });
+      expect(refresh).not.toHaveBeenCalled();
+      expect(res.status).toBe(401);
+    }
+    expect(nativeFetch).toHaveBeenCalledTimes(2); // one attempt each, no retry
+  });
+
+  it('still refreshes an expired-session 401 on a regular admin call (F-012)', async () => {
+    nativeFetch
+      .mockResolvedValueOnce(jsonResponse(401))
+      .mockResolvedValueOnce(jsonResponse(200));
+    const refresh = vi.fn().mockResolvedValue('cookie-refreshed');
+    setAuthRefreshHandler(refresh);
+
+    const res = await window.fetch(ADMIN_GET);
+
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(nativeFetch).toHaveBeenCalledTimes(2);
+    expect(res.status).toBe(200);
+  });
+
   it('signals auth-expired when refresh fails', async () => {
     nativeFetch.mockResolvedValueOnce(jsonResponse(401));
     setAuthRefreshHandler(vi.fn().mockResolvedValue(null));
