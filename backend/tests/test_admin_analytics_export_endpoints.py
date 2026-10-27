@@ -194,6 +194,10 @@ def test_export_pdf_endpoint_streams_file():
 def test_refresh_profile_endpoint_returns_updated_user():
     app.dependency_overrides[deps.get_db] = _override_get_db
     app.dependency_overrides[deps.get_current_staff] = _override_get_current_admin
+    # F-001: refresh-profile is a write route, gated on
+    # require_permission(KEY_ACCESS_LIVE_CHAT) — which resolves the caller via
+    # get_current_user.
+    app.dependency_overrides[deps.get_current_user] = _override_get_current_admin
 
     original_refresh = admin_live_chat.friend_service.refresh_profile
     admin_live_chat.friend_service.refresh_profile = AsyncMock(
