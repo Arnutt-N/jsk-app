@@ -99,13 +99,15 @@ jobs:
         with:
           python-version: "3.13"
           cache: pip
-          cache-dependency-path: backend/requirements.txt
+          cache-dependency-path: backend/requirements-lock.txt
 
       - name: Install backend dependencies
         working-directory: backend
+        # Same pinned set the deploy uses, so an e2e pass means the versions
+        # that ship are the versions exercised (F-022).
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r requirements-lock.txt
 
       - name: Run database migrations
         working-directory: backend

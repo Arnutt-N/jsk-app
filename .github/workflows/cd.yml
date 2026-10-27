@@ -286,13 +286,16 @@ jobs:
         with:
           python-version: "3.13"
           cache: pip
-          cache-dependency-path: backend/requirements.txt
+          cache-dependency-path: backend/requirements-lock.txt
 
       - name: Install backend dependencies
         if: steps.config.outputs.migration_configured == 'true'
+        # Pinned install: production migrations must run the same versions CI
+        # tested, not whatever today's index resolves for the ranges in
+        # requirements.txt (F-022).
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r requirements-lock.txt
 
       - name: Write remote backend env file
         if: steps.config.outputs.migration_configured == 'true'
