@@ -184,6 +184,35 @@ _policy_loaded_at: float | None = None
 # a revocation reach every worker within half a minute.
 POLICY_CACHE_TTL_SECONDS = 30.0
 
+_policy_session_factory_cache = None
+
+
+def _policy_session_factory():
+    """Session factory for the policy re-read, on a NullPool engine.
+
+    Built lazily and cached per process. NullPool because the refresh can run
+    on any event loop — a request served by a TestClient portal, for instance —
+    and a pooled connection created on one loop cannot be reused on another
+    ("got Future attached to a different loop"). With NullPool every connection
+    stays on the caller's loop, and since the refresh runs at most once per TTL
+    per worker the extra connect is cheaper than the alternative.
+    """
+    global _policy_session_factory_cache
+    if _policy_session_factory_cache is None:
+        # Local imports: engine construction is not needed by unit tests that
+        # never refresh.
+        from sqlalchemy.ext.asyncio import AsyncSession as _AsyncSession
+        from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+        from sqlalchemy.pool import NullPool
+
+        from app.core.config import settings
+
+        engine = create_async_engine(str(settings.DATABASE_URL), poolclass=NullPool)
+        _policy_session_factory_cache = async_sessionmaker(
+            engine, class_=_AsyncSession, expire_on_commit=False
+        )
+    return _policy_session_factory_cache
+
 
 def _coerce_roles(values: Iterable[str]) -> frozenset[UserRole]:
     """Convert a sequence of stringified role names to UserRole enums.
@@ -355,11 +384,8 @@ async def refresh_policy_if_stale(db: AsyncSession | None = None) -> None:
         if db is not None:
             await load_policy(db)
         else:
-            # Local import: app.db.session builds the engine at import time,
-            # which unit tests that never touch a DB must not pay for.
-            from app.db.session import AsyncSessionLocal
-
-            async with AsyncSessionLocal() as session:
+            session_maker = _policy_session_factory()
+            async with session_maker() as session:
                 await load_policy(session)
     except Exception as exc:  # noqa: BLE001 -- deny rather than serve stale
         logger.warning(
