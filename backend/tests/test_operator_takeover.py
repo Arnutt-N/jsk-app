@@ -15,6 +15,7 @@ from fastapi import HTTPException
 from app.api import deps
 from app.main import app
 from app.models.chat_session import ClosedBy, SessionStatus
+from app.models.user import UserRole
 from app.services.live_chat_service import LiveChatService
 
 LINE_USER = "Uabcdef0123456789abcdef0123456789"
@@ -31,10 +32,13 @@ def _override_deps(mock_db, operator_id=7):
         yield mock_db
 
     async def _get_staff():
-        return SimpleNamespace(id=operator_id)
+        return SimpleNamespace(id=operator_id, role=UserRole.AGENT)
 
     app.dependency_overrides[deps.get_db] = _get_db
     app.dependency_overrides[deps.get_current_staff] = _get_staff
+    # F-001: write routes gate on require_permission(KEY_ACCESS_LIVE_CHAT),
+    # which resolves the caller through get_current_user.
+    app.dependency_overrides[deps.get_current_user] = _get_staff
 
 
 # ---------------------------------------------------------------------------
