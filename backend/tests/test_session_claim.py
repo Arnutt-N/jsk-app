@@ -18,6 +18,7 @@ from app.api import deps
 from app.core.websocket_manager import ReadMarkerPersistenceError
 from app.main import app
 from app.models.chat_session import ClosedBy, SessionStatus
+from app.models.user import UserRole
 from app.schemas.message import message_payload_dict
 from tests.identity_helpers import make_line_user_fields
 
@@ -93,7 +94,7 @@ class TestSessionClaim:
 def test_transfer_conversation_rest_endpoint(test_client):
     mock_db = AsyncMock()
     mock_session = SimpleNamespace(id=42)
-    fake_user = SimpleNamespace(id=7)
+    fake_user = SimpleNamespace(id=7, role=UserRole.AGENT)
 
     async def _override_get_db():
         yield mock_db
@@ -103,6 +104,9 @@ def test_transfer_conversation_rest_endpoint(test_client):
 
     app.dependency_overrides[deps.get_db] = _override_get_db
     app.dependency_overrides[deps.get_current_staff] = _override_get_current_staff
+    # F-001: write routes now gate on require_permission(KEY_ACCESS_LIVE_CHAT),
+    # which resolves the caller via get_current_user — override that too.
+    app.dependency_overrides[deps.get_current_user] = _override_get_current_staff
 
     try:
         with patch(
@@ -143,7 +147,7 @@ def test_transfer_conversation_rest_endpoint(test_client):
 
 def test_transfer_conversation_rest_endpoint_rejects_non_owner(test_client):
     mock_db = AsyncMock()
-    fake_user = SimpleNamespace(id=7)
+    fake_user = SimpleNamespace(id=7, role=UserRole.AGENT)
 
     async def _override_get_db():
         yield mock_db
@@ -153,6 +157,9 @@ def test_transfer_conversation_rest_endpoint_rejects_non_owner(test_client):
 
     app.dependency_overrides[deps.get_db] = _override_get_db
     app.dependency_overrides[deps.get_current_staff] = _override_get_current_staff
+    # F-001: write routes now gate on require_permission(KEY_ACCESS_LIVE_CHAT),
+    # which resolves the caller via get_current_user — override that too.
+    app.dependency_overrides[deps.get_current_user] = _override_get_current_staff
 
     try:
         with patch(
@@ -173,7 +180,7 @@ def test_transfer_conversation_rest_endpoint_rejects_non_owner(test_client):
 
 def test_transfer_conversation_rest_endpoint_returns_404_for_missing_session(test_client):
     mock_db = AsyncMock()
-    fake_user = SimpleNamespace(id=7)
+    fake_user = SimpleNamespace(id=7, role=UserRole.AGENT)
 
     async def _override_get_db():
         yield mock_db
@@ -183,6 +190,9 @@ def test_transfer_conversation_rest_endpoint_returns_404_for_missing_session(tes
 
     app.dependency_overrides[deps.get_db] = _override_get_db
     app.dependency_overrides[deps.get_current_staff] = _override_get_current_staff
+    # F-001: write routes now gate on require_permission(KEY_ACCESS_LIVE_CHAT),
+    # which resolves the caller via get_current_user — override that too.
+    app.dependency_overrides[deps.get_current_user] = _override_get_current_staff
 
     try:
         with patch(
@@ -203,7 +213,7 @@ def test_transfer_conversation_rest_endpoint_returns_404_for_missing_session(tes
 
 def test_send_message_rest_broadcasts_message_and_conversation_update(test_client):
     mock_db = AsyncMock()
-    fake_user = SimpleNamespace(id=7)
+    fake_user = SimpleNamespace(id=7, role=UserRole.AGENT)
     message = SimpleNamespace(
         id=11,
         user_id=1,
@@ -224,6 +234,9 @@ def test_send_message_rest_broadcasts_message_and_conversation_update(test_clien
 
     app.dependency_overrides[deps.get_db] = _override_get_db
     app.dependency_overrides[deps.get_current_staff] = _override_get_current_staff
+    # F-001: write routes now gate on require_permission(KEY_ACCESS_LIVE_CHAT),
+    # which resolves the caller via get_current_user — override that too.
+    app.dependency_overrides[deps.get_current_user] = _override_get_current_staff
 
     try:
         with patch(
@@ -296,7 +309,7 @@ def test_send_message_rest_broadcasts_message_and_conversation_update(test_clien
 
 def test_mark_conversation_read_uses_explicit_boundary(test_client):
     mock_db = AsyncMock()
-    fake_user = SimpleNamespace(id=7)
+    fake_user = SimpleNamespace(id=7, role=UserRole.AGENT)
     line_user_id = "Uabcdef0123456789abcdef0123456789"
     read_at = "2026-03-18T00:00:00+00:00"
     stored_read_at = datetime.fromisoformat(read_at) + timedelta(minutes=1)
@@ -309,6 +322,9 @@ def test_mark_conversation_read_uses_explicit_boundary(test_client):
 
     app.dependency_overrides[deps.get_db] = _override_get_db
     app.dependency_overrides[deps.get_current_staff] = _override_get_current_staff
+    # F-001: write routes now gate on require_permission(KEY_ACCESS_LIVE_CHAT),
+    # which resolves the caller via get_current_user — override that too.
+    app.dependency_overrides[deps.get_current_user] = _override_get_current_staff
 
     try:
         with patch(
@@ -336,7 +352,7 @@ def test_mark_conversation_read_uses_explicit_boundary(test_client):
 
 def test_mark_conversation_read_returns_503_when_marker_cannot_persist(test_client):
     mock_db = AsyncMock()
-    fake_user = SimpleNamespace(id=7)
+    fake_user = SimpleNamespace(id=7, role=UserRole.AGENT)
     line_user_id = "Uabcdef0123456789abcdef0123456789"
 
     async def _override_get_db():
@@ -347,6 +363,9 @@ def test_mark_conversation_read_returns_503_when_marker_cannot_persist(test_clie
 
     app.dependency_overrides[deps.get_db] = _override_get_db
     app.dependency_overrides[deps.get_current_staff] = _override_get_current_staff
+    # F-001: write routes now gate on require_permission(KEY_ACCESS_LIVE_CHAT),
+    # which resolves the caller via get_current_user — override that too.
+    app.dependency_overrides[deps.get_current_user] = _override_get_current_staff
 
     try:
         with patch(
@@ -369,7 +388,7 @@ def test_mark_conversation_read_returns_503_when_marker_cannot_persist(test_clie
 
 def test_send_message_rest_rejects_blank_after_sanitization(test_client):
     mock_db = AsyncMock()
-    fake_user = SimpleNamespace(id=7)
+    fake_user = SimpleNamespace(id=7, role=UserRole.AGENT)
 
     async def _override_get_db():
         yield mock_db
@@ -379,6 +398,9 @@ def test_send_message_rest_rejects_blank_after_sanitization(test_client):
 
     app.dependency_overrides[deps.get_db] = _override_get_db
     app.dependency_overrides[deps.get_current_staff] = _override_get_current_staff
+    # F-001: write routes now gate on require_permission(KEY_ACCESS_LIVE_CHAT),
+    # which resolves the caller via get_current_user — override that too.
+    app.dependency_overrides[deps.get_current_user] = _override_get_current_staff
 
     try:
         with patch(
@@ -400,7 +422,7 @@ def test_send_message_rest_rejects_blank_after_sanitization(test_client):
 
 def test_send_message_rest_sanitizes_text_like_websocket(test_client):
     mock_db = AsyncMock()
-    fake_user = SimpleNamespace(id=7)
+    fake_user = SimpleNamespace(id=7, role=UserRole.AGENT)
 
     message = SimpleNamespace(
         id=11,
@@ -422,6 +444,9 @@ def test_send_message_rest_sanitizes_text_like_websocket(test_client):
 
     app.dependency_overrides[deps.get_db] = _override_get_db
     app.dependency_overrides[deps.get_current_staff] = _override_get_current_staff
+    # F-001: write routes now gate on require_permission(KEY_ACCESS_LIVE_CHAT),
+    # which resolves the caller via get_current_user — override that too.
+    app.dependency_overrides[deps.get_current_user] = _override_get_current_staff
 
     try:
         with patch(
@@ -452,7 +477,7 @@ def test_send_message_rest_sanitizes_text_like_websocket(test_client):
 
 def test_claim_conversation_rest_broadcasts_session_claimed(test_client):
     mock_db = AsyncMock()
-    fake_user = SimpleNamespace(id=7)
+    fake_user = SimpleNamespace(id=7, role=UserRole.AGENT)
     session = SessionStub(id=42, status=SessionStatus.ACTIVE)
 
     async def _override_get_db():
@@ -463,6 +488,9 @@ def test_claim_conversation_rest_broadcasts_session_claimed(test_client):
 
     app.dependency_overrides[deps.get_db] = _override_get_db
     app.dependency_overrides[deps.get_current_staff] = _override_get_current_staff
+    # F-001: write routes now gate on require_permission(KEY_ACCESS_LIVE_CHAT),
+    # which resolves the caller via get_current_user — override that too.
+    app.dependency_overrides[deps.get_current_user] = _override_get_current_staff
 
     try:
         with patch(
@@ -503,7 +531,7 @@ def test_claim_conversation_rest_broadcasts_session_claimed(test_client):
 
 def test_close_conversation_rest_broadcasts_session_closed(test_client):
     mock_db = AsyncMock()
-    fake_user = SimpleNamespace(id=7)
+    fake_user = SimpleNamespace(id=7, role=UserRole.AGENT)
     session = SessionStub(id=42)
 
     async def _override_get_db():
@@ -514,6 +542,9 @@ def test_close_conversation_rest_broadcasts_session_closed(test_client):
 
     app.dependency_overrides[deps.get_db] = _override_get_db
     app.dependency_overrides[deps.get_current_staff] = _override_get_current_staff
+    # F-001: write routes now gate on require_permission(KEY_ACCESS_LIVE_CHAT),
+    # which resolves the caller via get_current_user — override that too.
+    app.dependency_overrides[deps.get_current_user] = _override_get_current_staff
 
     try:
         with patch(
@@ -556,7 +587,7 @@ def test_close_conversation_rest_broadcasts_session_closed(test_client):
 def test_create_conversation_returns_409_on_open_session_race(test_client):
     mock_db = AsyncMock()
     mock_db.add = Mock()
-    fake_user = SimpleNamespace(id=7)
+    fake_user = SimpleNamespace(id=7, role=UserRole.AGENT)
     line_user = SimpleNamespace(
         id=99,
         **make_line_user_fields("Uabcdef0123456789abcdef0123456789"),
@@ -574,6 +605,9 @@ def test_create_conversation_returns_409_on_open_session_race(test_client):
 
     app.dependency_overrides[deps.get_db] = _override_get_db
     app.dependency_overrides[deps.get_current_staff] = _override_get_current_staff
+    # F-001: write routes now gate on require_permission(KEY_ACCESS_LIVE_CHAT),
+    # which resolves the caller via get_current_user — override that too.
+    app.dependency_overrides[deps.get_current_user] = _override_get_current_staff
 
     try:
         with patch(
@@ -625,10 +659,13 @@ def test_delete_conversation_resets_chat_mode_to_bot(test_client):
         yield mock_db
 
     async def _override_get_current_staff():
-        return SimpleNamespace(id=9)
+        return SimpleNamespace(id=9, role=UserRole.AGENT)
 
     app.dependency_overrides[deps.get_db] = _override_get_db
     app.dependency_overrides[deps.get_current_staff] = _override_get_current_staff
+    # F-001: write routes now gate on require_permission(KEY_ACCESS_LIVE_CHAT),
+    # which resolves the caller via get_current_user — override that too.
+    app.dependency_overrides[deps.get_current_user] = _override_get_current_staff
 
     try:
         with patch(
@@ -659,7 +696,7 @@ def test_create_conversation_rejects_oversize_reason(test_client):
     carries max_length=255 today (app/schemas/ws_events.py:126), so a test
     there would pass before the fix and prove nothing."""
     mock_db = AsyncMock()
-    fake_user = SimpleNamespace(id=7)
+    fake_user = SimpleNamespace(id=7, role=UserRole.AGENT)
 
     async def _override_get_db():
         yield mock_db
@@ -669,6 +706,9 @@ def test_create_conversation_rejects_oversize_reason(test_client):
 
     app.dependency_overrides[deps.get_db] = _override_get_db
     app.dependency_overrides[deps.get_current_staff] = _override_get_current_staff
+    # F-001: write routes now gate on require_permission(KEY_ACCESS_LIVE_CHAT),
+    # which resolves the caller via get_current_user — override that too.
+    app.dependency_overrides[deps.get_current_user] = _override_get_current_staff
 
     try:
         response = test_client.post(
