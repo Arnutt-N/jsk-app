@@ -265,14 +265,18 @@ serving stale.
 - [ ] **Step 4: Run** — green CI SHA on this branch as the proof artifact, plus local YAML validity: `python -c "import yaml; yaml.safe_load(open('.github/workflows/e2e.yml'))"`.
 - [ ] **Step 5: Commit** — `git commit -m "ci(e2e): run the 2-client live-chat suite"`
 
-### Task 14: Gate CD on CI and E2E (F-018)
+### Task 14: Gate CD on CI and E2E (F-018) — DECIDED: polling gate, not a second trigger
 
-**Files:** Modify `.github/workflows/cd.yml:5` (the `workflows:` list; the E2E workflow's `name:` is `E2E (Playwright)`)
-**Consumes:** `workflows: ["CI", "E2E (Playwright)"]` matched against the two `name:` fields.
+**Files:** Modify `.github/workflows/cd.yml` (trigger block comment; new `Gate on E2E (Playwright)` step in `resolve-scope`; `resolve-scope` timeout 5 → 15 min)
+**Decision:** keep `workflows: ["CI"]` and gate on E2E by polling. Adding `"E2E (Playwright)"` to the list (the original plan) breaks two things:
+1. `cd.yml` downloads the `cd-scope` artifact with `run-id: ${{ github.event.workflow_run.id }}`. That artifact is produced by `ci.yml` only, so an E2E-triggered CD run would look for an artifact that never existed.
+2. CI and E2E run in parallel for one push, so triggering from each deploys the same SHA twice.
+
+The intent — "require both conclusions for the same head SHA" — is met by the gate step: it polls `gh api .../workflows/e2e.yml/runs?head_sha=<sha>` until the E2E run for this exact commit completes, then exits 0 only on `success` (nonzero on any other conclusion or on a 10-minute timeout).
 
 - [ ] **Step 1: Failing check** — confirm CD triggers on `CI` only today.
-- [ ] **Step 2: Implement** — add E2E to the workflow list and require both conclusions for the same head SHA.
-- [ ] **Step 3: Verify** — link a CI cycle where a red E2E would block deploy (or a green pair that ships).
+- [ ] **Step 2: Implement** — `Gate on E2E (Playwright)` step in `resolve-scope`, guarded on `github.event_name == 'workflow_run'`.
+- [ ] **Step 3: Verify** — the gate script against both cases on this repo: a SHA whose E2E succeeded (exit 0) and a SHA whose E2E failed (exit 1). A real red-E2E-blocks-deploy CI cycle is only observable on `main`; deferred to the first CD cycle after this branch merges.
 - [ ] **Step 4: Run** — green CI SHA on this branch as the proof artifact, plus local YAML validity: `python -c "import yaml; yaml.safe_load(open('.github/workflows/cd.yml'))"`.
 - [ ] **Step 5: Commit** — `git commit -m "ci(cd): gate deploys on CI and E2E"`
 
@@ -461,7 +465,7 @@ data-dependent skip with a hard failure so an empty DB fails loudly.
 ## Self-Review
 
 - [x] Spec coverage: all 34 accepted findings map to Tasks 1–30 (F-005+F-011→5, F-006+F-007→6, F-008+F-009+F-010→7); Highs are Phase 1, CI gates Phase 0.
-- [x] Placeholder scan: no TBD/TODO; imports, file paths for every new module, all 29 gotoAdmin sites (17 static + 12 dynamic detailUrl) and all 8 data-dependent skip sites enumerated, decisions (Task 2 TTL, Task 22 ruff-only, Task 25 manual script) recorded with reasons; no grep-conditional or read-first hedges remain.
+- [x] Placeholder scan: no TBD/TODO; imports, file paths for every new module, all 29 gotoAdmin sites (17 static + 12 dynamic detailUrl) and all 8 data-dependent skip sites enumerated, decisions (Task 2 TTL, Task 14 polling gate, Task 22 ruff-only, Task 25 manual script) recorded with reasons; no grep-conditional or read-first hedges remain.
 - [x] Type consistency: `F-xxx` IDs match the findings file; `timeoutMs`, `aborted`, CSRF header, `gotoAdmin`/`createRequestFixture` usage match existing code.
 - [x] Dependency order: Phase 0 → Phase 1 → Phase 2 → Phase 3; backend security before frontend auth work that assumes it; navigation refactors after the gates.
 - [x] Gate feedback addressed (loops 1+2): reusable patterns with snippets, build/compile/ruff in every code task, green-SHA proof for workflow tasks, UX contract + N/A, Risks table, edge-case checklist with thresholds and concrete values, fixture rule propagated, phase lists use real task IDs 1-30, Task 6 covers F-007 gate+ownership.
