@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 314 active handoffs, 12 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 315 active handoffs, 12 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-10-27 12:25 — pi — completed
+
+Codebase review: Task 22 backend ruff gate done, PR #301 draft CI green; 29 tasks remain starting with Phase 0 CI tasks
+
+- Checkpoint: `.agents/state/checkpoints/handover-pi-20261027-1225.json`
+- Summary: `project-log-md/pi/session-summary-20261027-1225.md`
+
+---
 
 ### 2026-10-26 11:13 — pi — completed
 
