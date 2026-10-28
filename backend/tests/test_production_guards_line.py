@@ -23,6 +23,8 @@ def _prod_settings(**overrides):
         LINE_ID_HMAC_KEY="test-hmac-key-not-real",
         LINE_CHANNEL_SECRET="test-channel-secret",
         LINE_CHANNEL_ACCESS_TOKEN="test-access-token",
+        # F-032: production also requires a shared (non-loopback) Redis.
+        REDIS_URL="rediss://redis.internal:6380/0",
     )
     base.update(overrides)
     return Settings(**base)
