@@ -62,8 +62,12 @@ test.describe('NAV-02 Appointments is not reachable for AGENT', () => {
     await expect(page.locator('input[name="password"]')).toHaveCount(0)
     await page.screenshot({ path: `${EVIDENCE}/nav-02-agent-console.png` })
 
-    // AGENT gets no admin sidebar at all, so there is no Appointments affordance anywhere.
-    expect(await page.locator('aside').count(), 'AGENT console has no admin sidebar').toBe(0)
+    // AGENT gets no ADMIN sidebar, so there is no Appointments affordance
+    // anywhere. Assert on the admin drawer specifically: the live-chat console
+    // renders its own <aside> (the conversation list), so counting bare
+    // `aside` elements asserted something neither this spec nor the app means
+    // — it only passed while that console happened not to have mounted yet.
+    await expect(page.getByTestId('admin-drawer')).toHaveCount(0)
     await expect(page.locator('a[href="/admin/bookings"]')).toHaveCount(0)
 
     await gotoAdmin(page, '/admin/bookings')
