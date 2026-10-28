@@ -27,6 +27,14 @@ class _Result:
             raise ValueError("no row")
         return value
 
+    def scalars(self):
+        return self
+
+    def first(self):
+        # F-009: the login lookup resolves via scalars().first(); this fake is
+        # shared by auth-adjacent suites, so it must speak both shapes.
+        return self.scalar_one_or_none()
+
 
 class _FakeDB:
     def __init__(self, selects=None):
