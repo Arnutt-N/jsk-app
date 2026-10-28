@@ -240,5 +240,43 @@ describe('api-error utilities', () => {
         expect(result.data).toBe(mockResponse)
       }
     })
+
+    it('should treat AbortSignal.timeout aborts as aborted, not as an error (F-015)', async () => {
+      // AbortSignal.timeout() rejects with a TimeoutError DOMException, whose
+      // name is not 'AbortError'. The catch only recognised AbortError, so a
+      // deliberate timeout surfaced as "เกิดข้อผิดพลาดที่ไม่คาดคิด" and was
+      // logged as an unexpected fetch error.
+      global.fetch = vi.fn().mockRejectedValue(
+        new DOMException('The operation timed out.', 'TimeoutError'),
+      )
+
+      const result = await apiFetch('/slow', { timeoutMs: 10 })
+
+      expect(result.ok).toBe(false)
+      if (!result.ok) {
+        expect(result.aborted).toBe(true)
+        expect(result.status).toBe(0)
+      }
+    })
+
+    it('should still treat a caller-cancelled AbortError as aborted', async () => {
+      global.fetch = vi.fn().mockRejectedValue(
+        new DOMException('The operation was aborted.', 'AbortError'),
+      )
+
+      const result = await apiFetch('/cancel', { signal: AbortSignal.abort() })
+
+      expect(result.ok).toBe(false)
+      if (!result.ok) expect(result.aborted).toBe(true)
+    })
+
+    it('should not flag a genuine failure as aborted', async () => {
+      global.fetch = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'))
+
+      const result = await apiFetch('/down')
+
+      expect(result.ok).toBe(false)
+      if (!result.ok) expect(result.aborted).toBeUndefined()
+    })
   })
 })

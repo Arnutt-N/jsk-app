@@ -156,7 +156,15 @@ export async function apiFetch<T = unknown>(
     return { ok: true, data }
   } catch (err) {
     // A caller-cancelled request is not a failure; logging it as one hides real errors.
-    if (err instanceof DOMException && err.name === 'AbortError') {
+    // F-015: `AbortSignal.timeout()` rejects with a DOMException named
+    // 'TimeoutError', not 'AbortError', so a deliberate timeout used to fall
+    // through to the generic branch and surface as an unexpected error (and a
+    // logged "Unexpected fetch error"). Both names mean "we cancelled this
+    // on purpose" and neither belongs on an error path.
+    if (
+      err instanceof DOMException &&
+      (err.name === 'AbortError' || err.name === 'TimeoutError')
+    ) {
       return { ok: false, status: 0, message: 'คำขอถูกยกเลิก', aborted: true }
     }
     if (isNetworkError(err)) {
