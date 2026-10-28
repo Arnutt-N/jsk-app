@@ -9,11 +9,12 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api import deps
+from app.core.audit import create_audit_log
 from app.core.permissions import KEY_ACCESS_LIVE_CHAT
 from app.core.websocket_manager import ReadMarkerPersistenceError, ws_manager
 from app.models.chat_session import ChatSession, ClosedBy, SessionStatus
 from app.models.message import MessageDirection
-from app.models.user import ChatMode, User
+from app.models.user import ChatMode, User, UserRole
 from app.schemas.live_chat import (
     ConversationDetail,
     ConversationList,
@@ -695,12 +696,29 @@ async def delete_conversation(
             detail="No session found for this user",
         )
 
+    # F-007: force-closing ends someone else's live conversation, so it needs
+    # more than the live-chat key. Supervisors may close anything; an operator
+    # may close only the session they hold. A WAITING session has no holder
+    # (operator_id is NULL), which is exactly the case an unprivileged
+    # operator must not be able to kill — otherwise they could archive a
+    # customer's queue entry before anyone claims it.
+    is_supervisor = current_user.role in (UserRole.SUPER_ADMIN, UserRole.ADMIN)
+    if not is_supervisor and session.operator_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only close a conversation you are handling",
+        )
+
+    previous_status = session.status
+    previous_operator_id = session.operator_id
     now = datetime.now(timezone.utc)
     if session.status in (SessionStatus.WAITING.value, SessionStatus.ACTIVE.value,
                           SessionStatus.WAITING, SessionStatus.ACTIVE):
         session.status = SessionStatus.CLOSED.value
         session.closed_at = now
         session.closed_by = ClosedBy.OPERATOR.value
+        # The enum column records the KIND of closer; who actually did it goes
+        # in the audit row below (details cannot be a column here).
         # Mirror close_session: force-closing must also return the user to bot
         # mode, otherwise the conversation stays in HUMAN mode with no ACTIVE
         # session (review finding M3).
@@ -710,6 +728,21 @@ async def delete_conversation(
     session.is_archived = True
     session.archived_at = now
     session.archived_by = current_user.id
+
+    await create_audit_log(
+        db=db,
+        admin_id=current_user.id,
+        action="force_close_conversation",
+        resource_type="chat_session",
+        resource_id=str(session.id),
+        details={
+            "actor_id": current_user.id,
+            "force_close": True,
+            "line_user_id": line_user_id,
+            "previous_operator_id": previous_operator_id,
+            "previous_status": previous_status,
+        },
+    )
 
     await db.commit()
     await db.refresh(session)

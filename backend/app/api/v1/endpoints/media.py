@@ -554,6 +554,18 @@ async def create_public_link(
         media.public_token = str(uuid.uuid4())
     media.is_public = True
 
+    # F-006: this flips a citizen's upload to world-readable. The delete path
+    # already audits; without this row the most privacy-sensitive transition
+    # left no trace.
+    await create_audit_log(
+        db=db,
+        admin_id=_admin.id,
+        action="create_public_link",
+        resource_type="media_file",
+        resource_id=str(media.id),
+        details={"filename": media.filename},
+    )
+
     await db.commit()
     await db.refresh(media)
 
@@ -574,6 +586,17 @@ async def revoke_public_link(
 
     media.is_public = False
     media.public_token = None
+
+    # F-006: same reasoning as create — revoking is the other direction of the
+    # same world-readability switch.
+    await create_audit_log(
+        db=db,
+        admin_id=_admin.id,
+        action="revoke_public_link",
+        resource_type="media_file",
+        resource_id=str(media.id),
+        details={"filename": media.filename},
+    )
 
     await db.commit()
     await db.refresh(media)
@@ -650,6 +673,17 @@ async def bulk_create_public_links(
                 media.public_token = str(uuid.uuid4())
             media.is_public = True
             updated += 1
+
+    # F-006: one row for the batch (mirrors bulk_delete_media).
+    if updated:
+        await create_audit_log(
+            db=db,
+            admin_id=_admin.id,
+            action="bulk_create_public_links",
+            resource_type="media_file",
+            resource_id="bulk",
+            details={"ids": [str(u) for u in uids], "count": updated},
+        )
 
     await db.commit()
     return {"ok": True, "updated": updated}

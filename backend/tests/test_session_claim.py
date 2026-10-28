@@ -643,6 +643,8 @@ def test_delete_conversation_resets_chat_mode_to_bot(test_client):
     fake_user = SimpleNamespace(id=7, chat_mode=ChatMode.HUMAN)
     session = SimpleNamespace(
         id=42, status=SessionStatus.ACTIVE.value,
+        # F-007: caller (id=9) must hold the session it force-closes.
+        operator_id=9,
         is_archived=False, is_archived_at=None,
     )
 

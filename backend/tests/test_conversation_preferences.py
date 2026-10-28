@@ -116,6 +116,8 @@ class TestDeleteConversation:
         session = SimpleNamespace(
             id=42,
             status=SessionStatus.ACTIVE.value,
+            # F-007: caller (id=7) must be the operator holding the session.
+            operator_id=7,
             is_archived=False,
             closed_at=None,
             closed_by=None,
@@ -148,6 +150,7 @@ class TestDeleteConversation:
         session = SimpleNamespace(
             id=42,
             status=SessionStatus.CLOSED.value,
+            operator_id=7,  # F-007: caller (id=7) holds this session
             is_archived=False,
             closed_at=None,
             closed_by=None,
