@@ -78,6 +78,50 @@ def test_recognized_non_production_environments_skip_guards(environment: str) ->
     assert settings.enforce_production_guards() is settings
 
 
+# --- ENVIRONMENT fail-safe default (F-003) ----------------------------------
+#
+# A process started without ENVIRONMENT used to fall back to "development",
+# which silently turns off every production guard: the SECRET_KEY check, the
+# secure-cookie flag, and the DEV_AUTH_BYPASS rejection. An omitted variable is
+# a deployment mistake, not a statement that this is a dev box — the default
+# must therefore be the safe one, and an explicit value still wins.
+
+
+def test_unset_environment_defaults_to_production(monkeypatch) -> None:
+    # conftest seeds ENVIRONMENT=development for the whole suite; this test is
+    # specifically about a process that configured nothing.
+    monkeypatch.delenv("ENVIRONMENT", raising=False)
+    settings = Settings(
+        _env_file=None,
+        DATABASE_URL="postgresql+asyncpg://postgres:password@localhost:5432/skn_app_db",
+        SECRET_KEY="x" * 40,
+    )
+
+    assert settings.ENVIRONMENT == "production"
+    assert settings.is_production_like is True
+
+
+def test_unset_environment_enforces_the_guards(monkeypatch) -> None:
+    """The whole point of the safe default: guards actually run."""
+    monkeypatch.delenv("ENVIRONMENT", raising=False)
+    settings = Settings(
+        _env_file=None,
+        DATABASE_URL="postgresql+asyncpg://postgres:password@localhost:5432/skn_app_db",
+        SECRET_KEY="short",  # too weak — must be rejected
+    )
+
+    with pytest.raises(RuntimeError, match="SECRET_KEY"):
+        settings.enforce_production_guards()
+
+
+@pytest.mark.parametrize("environment", ["development", "test", "local"])
+def test_explicit_non_production_environment_still_wins(environment: str) -> None:
+    settings = build_settings(ENVIRONMENT=environment)
+
+    assert settings.ENVIRONMENT == environment
+    assert settings.is_production_like is False
+
+
 # --- REDIS_URL production guard (F-032) -------------------------------------
 #
 # Every redis failure degrades silently to per-process rate limits and a

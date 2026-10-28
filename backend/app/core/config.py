@@ -73,7 +73,14 @@ def _redis_host(redis_url: str) -> str:
 class Settings(BaseSettings):
     PROJECT_NAME: str = "JskApp"
     API_V1_STR: str = "/api/v1"
-    ENVIRONMENT: str = "development"
+    # F-003: the default is the SAFE one. Omitting ENVIRONMENT used to mean
+    # "development", which silently disabled the SECRET_KEY guard, the
+    # secure-cookie flag, and the DEV_AUTH_BYPASS rejection — an omitted
+    # variable is a deployment mistake, not a statement that this is a dev box.
+    # Every dev entrypoint sets ENVIRONMENT=development explicitly (run.py
+    # --target local, ci.yml, e2e.yml, the .env examples), so this only bites a
+    # process that configured nothing.
+    ENVIRONMENT: str = "production"
 
     # Migration controls. LIFF_STRICT_MODE defaults to True — all LIFF clients
     # send x-liff-id-token. Rollback: set LIFF_STRICT_MODE=false in env.
