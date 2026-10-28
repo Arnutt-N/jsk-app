@@ -24,14 +24,60 @@ logger = logging.getLogger(__name__)
 WEBHOOK_EVENT_KEY_PREFIX = "webhook:event:"
 WEBHOOK_EVENT_LOCK_SUFFIX = ":lock"
 
+# F-005: this endpoint is public and unauthenticated, and the signature check
+# needs the whole body, so everything before it is attacker-controlled. LINE
+# text messages cap at a few KB; 1 MiB leaves room for a large postback payload
+# and still bounds what one anonymous request can make the process hold.
+MAX_WEBHOOK_BODY_BYTES = 1024 * 1024  # 1 MiB
+
+
+async def _read_body_with_limit(request: Request) -> bytes:
+    """Read the request body, refusing anything over MAX_WEBHOOK_BODY_BYTES.
+
+    Two gates on purpose:
+      1. The declared Content-Length is rejected before a single byte is read,
+         so the common case costs nothing.
+      2. A streamed read enforces the same cap, because Content-Length may be
+         absent (chunked) or a lie.
+
+    Raises HTTPException(413) rather than returning a sentinel so no caller can
+    forget to check it.
+    """
+    declared = request.headers.get("content-length")
+    if declared is not None:
+        try:
+            declared_len = int(declared)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid Content-Length")
+        if declared_len > MAX_WEBHOOK_BODY_BYTES:
+            raise HTTPException(status_code=413, detail="Request body too large")
+
+    chunks: list[bytes] = []
+    total = 0
+    async for chunk in request.stream():
+        total += len(chunk)
+        if total > MAX_WEBHOOK_BODY_BYTES:
+            raise HTTPException(status_code=413, detail="Request body too large")
+        chunks.append(chunk)
+    return b"".join(chunks)
+
 
 @router.post("/webhook")
 async def line_webhook(request: Request, background_tasks: BackgroundTasks, x_line_signature: str = Header(None)):
     if x_line_signature is None:
         raise HTTPException(status_code=400, detail="Missing X-Line-Signature header")
 
-    body = await request.body()
-    body_str = body.decode('utf-8')
+    body = await _read_body_with_limit(request)
+
+    # F-011: decode AFTER the size gate and map malformed bytes to a 400.
+    # Previously `body.decode("utf-8")` ran first, so a non-UTF-8 body surfaced
+    # as an unhandled UnicodeDecodeError — a 500 with a traceback for input the
+    # caller fully controls.
+    try:
+        body_str = body.decode("utf-8")
+    except UnicodeDecodeError:
+        logger.warning("Webhook body is not valid UTF-8 (length=%d)", len(body))
+        raise HTTPException(status_code=400, detail="Invalid request body encoding")
 
     try:
         events = parser.parse(body_str, x_line_signature)
