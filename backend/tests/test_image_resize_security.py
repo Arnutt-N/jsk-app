@@ -82,15 +82,11 @@ def resize_setup(test_client, monkeypatch):
         used.add(key)
         return True
 
-    # Pre-implementation red-phase: media.py ยังไม่มี redis_client attribute
-    # (Step 3 ถึงจะเพิ่ม). ห้าม monkeypatch media_module.redis_client ตรง ๆ
-    # เพราะจะพังตั้งแต่ fixture setup (AttributeError) ไม่ใช่ RED ที่ถูกต้อง.
-    # ใช้ try/except แยก: ถ้ายังไม่มี attribute = RED ที่ถูกต้อง (route ยังไม่เกิด).
-    try:
-        _redis_target = media_module.redis_client
-    except AttributeError:
-        pytest.skip("RED: resize ticket route + redis_client not implemented yet")
-    monkeypatch.setattr(_redis_target, "set", fake_set)
+    # media.py always exposes `redis_client` (real import at media.py:13), so
+    # this attribute is not optional. The old RED-phase try/except around it
+    # turned the whole suite into a silent skip the moment the name changed —
+    # a rename should fail loudly here instead (F-023).
+    monkeypatch.setattr(media_module.redis_client, "set", fake_set)
     try:
         yield test_client, admin_id, agent_id, filename, used, outage
     finally:
