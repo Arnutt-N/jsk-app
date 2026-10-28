@@ -1,13 +1,22 @@
 {
-  "last_updated": "2026-10-27T12:25:00+07:00",
-  "platform": "pi",
-  "current_task": "Codebase review: Task 22 backend ruff gate done, PR #301 draft CI green; 29 tasks remain starting with Phase 0 CI tasks",
+  "last_updated": "2026-10-29T06:51:00+07:00",
+  "platform": "claude_code",
+  "current_task": "Codebase review: Phase 0 complete (5/5) and Phase 1 complete (7/7); Phase 2 at 10/14. Tasks 1,2,3,4,5,6,7,8,9,10,11,13,14,15,16,17,18,19,22,24,27,28 done, all CI green.",
   "plan_status": "completed",
   "next_steps": [
-    "Run Phase 0 tasks 13 (2-client e2e in CI), 14 (gate deploys on CI+E2E), 18 (lock files for deploy+e2e), 24 (coverage floors)",
-    "Address the deferred items: E501/E402 bulk cleanup pass, mypy follow-up evaluation, captureCsrf login helper, admin-audit-verify spec consolidation"
+    "Task 20: Smoke checks must actually check (F-024)",
+    "Task 21: Migrate bare admin navigations to gotoAdmin (F-025)",
+    "Task 29: Single route->permission manifest (F-033)",
+    "Task 30: Shared date window for the requests list (F-034)"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-10-29T06:51:00+07:00",
+      "platform": "claude_code",
+      "branch": "fix/codebase-review-20261026",
+      "head": "4f5de53",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-10-27T12:25:00+07:00",
       "platform": "pi",
@@ -139,13 +148,6 @@
       "platform": "pi",
       "branch": "main",
       "head": "add13bc",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-10-19T23:15:00+07:00",
-      "platform": "pi",
-      "branch": "feat/booking-full-option",
-      "head": "71888e2",
       "status": "completed"
     }
   ],

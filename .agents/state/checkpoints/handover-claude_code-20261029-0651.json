@@ -1,0 +1,19 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-10-29T06:51:00+07:00",
+  "branch": "fix/codebase-review-20261026",
+  "head_commit": "4f5de53",
+  "status": "completed",
+  "work_summary": "Codebase review: Phase 0 complete (5/5) and Phase 1 complete (7/7); Phase 2 at 10/14. Tasks 1,2,3,4,5,6,7,8,9,10,11,13,14,15,16,17,18,19,22,24,27,28 done, all CI green.",
+  "priority_actions": [
+    "Task 20: Smoke checks must actually check (F-024)",
+    "Task 21: Migrate bare admin navigations to gotoAdmin (F-025)",
+    "Task 29: Single route->permission manifest (F-033)",
+    "Task 30: Shared date window for the requests list (F-034)"
+  ],
+  "context_for_next_agent": "Follow .claude/PRPs/plans/codebase-review-20261026.plan.md task by task. Every task so far: write the failing test first, then implement, then push and wait for a GREEN CI SHA before moving on. CI is the only trustworthy judge — the Windows local env gives false failures (full backend suite times out ~98%, frontend needs `node node_modules/vitest/vitest.mjs` because npm does not create node_modules/.bin). Next.js build rewrites frontend/next-env.d.ts; revert it before commit. LESSON THAT COST THREE EXTRA CI ROUNDS: when you change a dependency/gate/method shape, grep ALL test fakes that imitate it before pushing (e.g. scalar_one_or_none -> scalars().first() broke 3 files). Test-only fake fixes are their own commit. Deferred (not blockers): Task 14 Step 3 real CD cycle on main (verify after merge), ruff gate scope excludes backend/scripts (25 pre-existing errors), E501/E402 cleanup, mypy evaluation, KEY_MANAGE_RICH_MENUS/KEY_MANAGE_REPLY_OBJECTS gate read+write with one key.",
+  "session_summary": "project-log-md/claude_code/session-summary-20261029-0651.md",
+  "cross_platform_read": []
+}
