@@ -8,6 +8,7 @@ import { SessionTimeoutWarning } from '@/components/admin/SessionTimeoutWarning'
 import { hasOpenDialog } from '@/components/ui/Modal';
 import { cn } from '@/lib/utils';
 import { isNavItemVisible } from '@/lib/nav-access';
+import { capabilityOf, usePermissions } from '@/lib/permissions';
 import {
   Menu, Search, LogOut, ChevronLeft, ChevronRight, X,
   LayoutDashboard, FileText, Bot, MessageCircle,
@@ -33,6 +34,13 @@ interface MenuItem {
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   allowedRoles?: Array<'SUPER_ADMIN' | 'ADMIN' | 'DIRECTOR' | 'HEAD' | 'AGENT' | 'VIEWER'>;
+  /**
+   * Permission key that additionally gates this item (F-031). When present the
+   * item is visible only if the served capability map grants it — the matrix in
+   * Settings can then move a menu without a frontend deploy. `allowedRoles`
+   * stays as the fallback for items with no key.
+   */
+  capability?: string;
   external?: boolean;
   openInNewTab?: boolean;
 }
@@ -261,34 +269,43 @@ function AdminShell({ children }: { children: React.ReactNode }) {
       title: 'Chatbot Management',
       items: [
         { name: 'Chatbot Overview', href: '/admin/chatbot', icon: Bot, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'VIEWER'] },
-        { name: 'Live Chat', href: '/admin/live-chat', icon: MessageCircle, openInNewTab: true, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'AGENT'] },
+        { name: 'Live Chat', href: '/admin/live-chat', icon: MessageCircle, openInNewTab: true, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'AGENT'], capability: 'access_live_chat' },
         { name: 'Chat Histories', href: '/admin/chat-histories', icon: History, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
-        { name: 'Broadcast', href: '/admin/chatbot/broadcast', icon: Megaphone, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
-        { name: 'Auto-Replies', href: '/admin/auto-replies', icon: Reply, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
-        { name: 'Reply Objects', href: '/admin/reply-objects', icon: MessageSquareReply, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'VIEWER'] },
+        { name: 'Broadcast', href: '/admin/chatbot/broadcast', icon: Megaphone, allowedRoles: ['SUPER_ADMIN', 'ADMIN'], capability: 'manage_broadcast' },
+        { name: 'Auto-Replies', href: '/admin/auto-replies', icon: Reply, allowedRoles: ['SUPER_ADMIN', 'ADMIN'], capability: 'manage_auto_replies' },
+        { name: 'Reply Objects', href: '/admin/reply-objects', icon: MessageSquareReply, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'VIEWER'], capability: 'manage_reply_objects' },
         { name: 'Canned Responses', href: '/admin/canned-responses', icon: MessageSquareText, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'VIEWER'] },
-        { name: 'Rich Menus', href: '/admin/rich-menus', icon: PanelTop, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'VIEWER'] },
+        { name: 'Rich Menus', href: '/admin/rich-menus', icon: PanelTop, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'VIEWER'], capability: 'manage_rich_menus' },
         { name: 'Friend Histories', href: '/admin/friends', icon: Users, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
       ]
     },
     {
       title: 'System and Utilities',
       items: [
-        { name: 'User Management', href: '/admin/users', icon: UserCog, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
+        { name: 'User Management', href: '/admin/users', icon: UserCog, allowedRoles: ['SUPER_ADMIN', 'ADMIN'], capability: 'manage_users' },
         { name: 'Access Requests', href: '/admin/access-requests', icon: UserPlus, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
-        { name: 'File Management', href: '/admin/files', icon: FolderOpen, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
-        { name: 'Image Resize', href: '/admin/image-resize', icon: Scaling, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
-        { name: 'Reports', href: '/admin/reports', icon: BarChart3, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'VIEWER'] },
-        { name: 'Audit Log', href: '/admin/audit', icon: Shield, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
+        { name: 'File Management', href: '/admin/files', icon: FolderOpen, allowedRoles: ['SUPER_ADMIN', 'ADMIN'], capability: 'manage_files' },
+        { name: 'Image Resize', href: '/admin/image-resize', icon: Scaling, allowedRoles: ['SUPER_ADMIN', 'ADMIN'], capability: 'image_resize' },
+        { name: 'Reports', href: '/admin/reports', icon: BarChart3, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'VIEWER'], capability: 'view_reports' },
+        { name: 'Audit Log', href: '/admin/audit', icon: Shield, allowedRoles: ['SUPER_ADMIN', 'ADMIN'], capability: 'view_audit_log' },
         { name: 'Health Check', href: '/admin/health', icon: Activity, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
-        { name: 'Settings', href: '/admin/settings', icon: Settings, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
+        { name: 'Settings', href: '/admin/settings', icon: Settings, allowedRoles: ['SUPER_ADMIN', 'ADMIN'], capability: 'edit_permission_settings' },
         { name: 'Design System', href: '/admin/design-system', icon: Palette, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
       ]
     }
   ];
 
-  const isMenuItemVisible = (item: MenuItem) =>
-    isNavItemVisible(user?.role, item.allowedRoles);
+  // F-031: items that name a permission key follow the served matrix (so a
+  // change in Settings moves the menu with no deploy). `useHasPermission`
+  // returns false until the map loads, which would flash an empty sidebar, so
+  // an unresolved map falls back to the role list — identical to the old
+  // behaviour for that render.
+  const permissions = usePermissions();
+  const isMenuItemVisible = (item: MenuItem) => {
+    if (!isNavItemVisible(user?.role, item.allowedRoles)) return false;
+    if (!item.capability || !permissions) return true;
+    return capabilityOf(permissions, item.capability);
+  };
 
   const visibleMenuGroups = menuGroups
     .map((group) => ({

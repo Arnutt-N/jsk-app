@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { useAuth } from '@/contexts/AuthContext';
+import { capabilityOf, usePermissions } from '@/lib/permissions';
 
 // Mirrors the User.role union in AuthContext (excluding USER, who is
 // never an admin). DIRECTOR + HEAD added 2026-05-04 for the request
@@ -13,6 +14,13 @@ type AllowedRole = 'SUPER_ADMIN' | 'ADMIN' | 'DIRECTOR' | 'HEAD' | 'AGENT' | 'VI
 
 interface PageAccessGuardProps {
   allowedRoles: AllowedRole[];
+  /**
+   * F-031: optional permission key. When set, the page additionally requires
+   * the served capability map to grant it, so a matrix edit in Settings moves
+   * the page guard without a deploy. Until the map resolves the role list
+   * alone decides — same behaviour as before this prop existed.
+   */
+  requiredCapability?: string;
   fallbackPath?: string;
   children: React.ReactNode;
 }
@@ -29,13 +37,19 @@ function resolveFallbackPath(
 
 export default function PageAccessGuard({
   allowedRoles,
+  requiredCapability,
   fallbackPath,
   children,
 }: PageAccessGuardProps) {
   const router = useRouter();
   const { user, isLoading, isAuthenticated, bootstrapFailed } = useAuth();
+  const permissions = usePermissions();
 
-  const isAllowed = !!user && user.role !== 'USER' && allowedRoles.includes(user.role as AllowedRole);
+  const roleAllowed =
+    !!user && user.role !== 'USER' && allowedRoles.includes(user.role as AllowedRole);
+  const capabilityAllowed =
+    !requiredCapability || !permissions || capabilityOf(permissions, requiredCapability);
+  const isAllowed = roleAllowed && capabilityAllowed;
 
   useEffect(() => {
     // bootstrapFailed = auth state unknown (transient backend failure) —

@@ -115,6 +115,11 @@ DEFAULT_POLICY: dict[str, frozenset[UserRole]] = {
     # --- Phase 3: Chatbot Management ---
     KEY_MANAGE_BROADCAST: frozenset({UserRole.SUPER_ADMIN, UserRole.ADMIN}),
     KEY_MANAGE_AUTO_REPLIES: frozenset({UserRole.SUPER_ADMIN, UserRole.ADMIN}),
+    # NOTE: no VIEWER. The sidebar used to list Rich Menus / Reply Objects for
+    # VIEWER while these keys excluded the role; the menu now follows the matrix
+    # (F-031), so the honest fix is to stop promising a page whose write action
+    # the same key forbids. Adding VIEWER here would grant create/update on
+    # /admin/reply-objects and /admin/rich-menus — see the view-only routes.
     KEY_MANAGE_RICH_MENUS: frozenset({UserRole.SUPER_ADMIN, UserRole.ADMIN}),
     KEY_MANAGE_REPLY_OBJECTS: frozenset({UserRole.SUPER_ADMIN, UserRole.ADMIN}),
     KEY_EXPORT_CHAT: frozenset({UserRole.SUPER_ADMIN, UserRole.ADMIN}),
