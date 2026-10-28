@@ -81,9 +81,10 @@ async def _initialize_permission_policy() -> None:
 
     The cache is read by every authenticated request that touches an
     assign / self-assign / settings-edit check, so loading once here
-    avoids a DB round-trip on the first such request. If the load
-    fails (e.g. table not yet migrated) the helpers fall back to
-    DEFAULT_POLICY -- never blocks startup.
+    avoids a DB round-trip on the first such request. A failed load never
+    blocks startup, but it no longer widens access either: `load_policy`
+    writes a deny-all cache on failure (F-004), so permission-gated routes
+    answer 403 until the next successful refresh.
     """
     from app.core.permissions import ensure_seed_rows, load_policy
     from app.db.session import AsyncSessionLocal
@@ -97,9 +98,9 @@ async def _initialize_permission_policy() -> None:
             await load_policy(db)
             logger.info("Permission policy loaded into cache.")
     except Exception as exc:  # noqa: BLE001 -- intentional graceful degrade
-        logger.warning(
-            "Could not load permission policy at startup: %s; "
-            "permission checks will use hardcoded DEFAULT_POLICY until next refresh",
+        logger.error(
+            "Could not load permission policy at startup: %s; permission-gated "
+            "routes will deny until the next successful refresh",
             exc,
         )
 

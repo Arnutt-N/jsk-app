@@ -249,11 +249,19 @@ async def load_policy(db: AsyncSession) -> dict[str, frozenset[UserRole]]:
     try:
         result = await db.execute(select(PermissionSetting))
         rows = result.scalars().all()
-    except Exception as exc:  # noqa: BLE001 -- log + degrade
-        logger.warning("Failed to load permission_settings: %s; using defaults", exc)
-        _policy_cache = dict(DEFAULT_POLICY)
-        # Stamp the fallback too: otherwise a DB outage would make every
-        # subsequent request retry the (still failing) query.
+    except Exception as exc:  # noqa: BLE001 -- deny, never widen
+        # F-004: this used to fall back to DEFAULT_POLICY, which is the
+        # BOOTSTRAP policy and more permissive than a hardened production
+        # matrix. A transient read error therefore restored rights an operator
+        # had revoked, for the life of the process. Deny every key instead
+        # (every value an empty frozenset) and leave the cache marked loaded so
+        # the retry is bounded by the TTL rather than by traffic.
+        logger.error(
+            "Failed to load permission_settings: %s — denying all permission "
+            "checks until the next successful refresh",
+            exc,
+        )
+        _policy_cache = {key: frozenset() for key in ALL_PERMISSION_KEYS}
         _policy_loaded_at = time.monotonic()
         return _policy_cache
 
@@ -404,13 +412,14 @@ async def refresh_policy_if_stale(db: AsyncSession | None = None) -> None:
 def _allowed_for(key: str) -> frozenset[UserRole]:
     """Resolve the allowed-roles set for a permission key.
 
-    Reads from the in-process cache when populated, otherwise falls back
-    to the hardcoded DEFAULT_POLICY. The cache is populated by an async
-    `load_policy()` call, so before the first request lands the helpers
-    will use defaults -- matching Stage 1 behavior exactly.
+    When the cache is populated it is authoritative — including a populated
+    cache where this key is absent, which yields an empty set (deny). The
+    DEFAULT_POLICY fallback exists only for the window BEFORE the first load
+    (bootstrap), never as a substitute for a failed one: `load_policy` writes a
+    deny-all cache on failure so a DB outage cannot widen access (F-004).
     """
-    if _policy_cache is not None and key in _policy_cache:
-        return _policy_cache[key]
+    if _policy_cache is not None:
+        return _policy_cache.get(key, frozenset())
     return DEFAULT_POLICY.get(key, frozenset())
 
 

@@ -22,6 +22,7 @@ import pytest
 
 from app.core import permissions
 from app.core.permissions import (
+    ALL_PERMISSION_KEYS,
     DEFAULT_POLICY,
     KEY_ACCESS_LIVE_CHAT,
     POLICY_CACHE_TTL_SECONDS,
@@ -137,3 +138,81 @@ async def test_revocation_visible_after_ttl():
         "after the TTL the revoked role must lose the key"
     )
     assert permissions.can(UserRole.SUPER_ADMIN, KEY_ACCESS_LIVE_CHAT)
+
+
+# --- F-004: a failed read must deny, not fall back to the permissive default --
+
+
+@pytest.mark.asyncio
+async def test_failed_read_denies_instead_of_substituting_defaults():
+    """A DB outage must not widen access.
+
+    DEFAULT_POLICY is the *bootstrap* policy, and it is more permissive than a
+    hardened production matrix — an exception used to swap it in for the life
+    of the process, so a transient read error silently restored rights an
+    operator had revoked.
+    """
+    # A hardened matrix: only SUPER_ADMIN may reach live chat.
+    permissions._policy_cache = {
+        **DEFAULT_POLICY,
+        KEY_ACCESS_LIVE_CHAT: frozenset({UserRole.SUPER_ADMIN}),
+    }
+    permissions._policy_loaded_at = time.monotonic()
+
+    async def _boom(_stmt):
+        raise RuntimeError("db down")
+
+    db = AsyncMock()
+    db.execute = _boom
+
+    await permissions.load_policy(db)
+
+    assert not permissions.can(UserRole.ADMIN, KEY_ACCESS_LIVE_CHAT), (
+        "after a failed read every key must deny — the old behaviour restored "
+        "the permissive DEFAULT_POLICY, silently undoing the revocation"
+    )
+    assert not permissions.can(UserRole.AGENT, KEY_ACCESS_LIVE_CHAT)
+
+
+@pytest.mark.asyncio
+async def test_failed_read_denies_every_key():
+    """Not just the one key a test happens to check."""
+    await permissions.load_policy(_failing_db())
+
+    for key in ALL_PERMISSION_KEYS:
+        for role in UserRole:
+            assert not permissions.can(role, key), f"{role} still holds {key}"
+
+
+@pytest.mark.asyncio
+async def test_healthy_read_still_applies_the_db_matrix():
+    """The deny path must not swallow the working path."""
+    class _Row:
+        key = KEY_ACCESS_LIVE_CHAT
+        allowed_roles = [UserRole.AGENT.value]
+
+    class _Rows:
+        def scalars(self):
+            return self
+
+        def all(self):
+            return [_Row()]
+
+    async def _execute(_stmt):
+        return _Rows()
+
+    db = AsyncMock()
+    db.execute = _execute
+    await permissions.load_policy(db)
+
+    assert permissions.can(UserRole.AGENT, KEY_ACCESS_LIVE_CHAT)
+    assert not permissions.can(UserRole.ADMIN, KEY_ACCESS_LIVE_CHAT)
+
+
+def _failing_db() -> AsyncMock:
+    async def _boom(_stmt):
+        raise RuntimeError("db down")
+
+    db = AsyncMock()
+    db.execute = _boom
+    return db

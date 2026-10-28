@@ -260,11 +260,12 @@ def require_permission(key: str):
     """Dependency factory: gate a route on a single module permission key.
 
     Returns an async dependency that resolves the authenticated user via
-    `get_current_user`, then checks the DB-backed module policy (cached,
-    with DEFAULT_POLICY fallback) for `key`. Raises 403 when the user's
-    role lacks the key. Authentication (401) is still enforced upstream by
+    `get_current_user`, then checks the DB-backed module policy (cached and
+    refreshed on a short TTL) for `key`. Raises 403 when the user's role lacks
+    the key. Authentication (401) is still enforced upstream by
     `get_current_user`. Fails closed: an unknown key resolves to an empty
-    allowed-set -> 403.
+    allowed-set, and a failed policy read denies every key (F-004) rather than
+    falling back to the permissive bootstrap defaults.
 
     Usage:
         @router.post("/")
