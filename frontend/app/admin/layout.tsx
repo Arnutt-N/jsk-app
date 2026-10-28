@@ -303,6 +303,12 @@ function AdminShell({ children }: { children: React.ReactNode }) {
   const permissions = usePermissions();
   const isMenuItemVisible = (item: MenuItem) => {
     if (!isNavItemVisible(user?.role, item.allowedRoles)) return false;
+    // VIEWER is a read-only observer whose access is defined by the path
+    // allow-list (which also excludes every write form). The capability keys
+    // this menu would otherwise consult gate WRITES — `manage_rich_menus`
+    // guards POST/PUT on /admin/rich-menus — so using them here would hide a
+    // page the backend and the path guard both open to VIEWER.
+    if (user?.role === 'VIEWER') return isViewerPathAllowed(item.href);
     if (!item.capability || !permissions) return true;
     return capabilityOf(permissions, item.capability);
   };

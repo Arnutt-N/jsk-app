@@ -24,14 +24,36 @@ const viewPerms: MyPermissions = {
   capabilities: { manage_rich_menus: true, view_reports: false },
 };
 
+/** Mirrors isViewerPathAllowed in app/admin/layout.tsx. */
+function viewerPathAllowed(pathname: string): boolean {
+  if (
+    [
+      '/admin',
+      '/admin/chatbot',
+      '/admin/reports',
+      '/admin/bookings',
+      '/admin/reply-objects',
+      '/admin/rich-menus',
+      '/admin/canned-responses',
+    ].includes(pathname)
+  ) {
+    return true;
+  }
+  if (pathname === '/admin/requests' || pathname === '/admin/requests/kanban') return true;
+  return /^\/admin\/requests\/\d+$/.test(pathname);
+}
+
 /** The composed rule both the sidebar and PageAccessGuard apply. */
 function itemVisible(
   role: string | undefined,
   allowedRoles: readonly string[] | undefined,
   capability: string | undefined,
   perms: MyPermissions | null,
+  href?: string,
 ): boolean {
   if (!isNavItemVisible(role, allowedRoles)) return false;
+  // VIEWER: path allow-list wins over the write-gating capability keys.
+  if (role === 'VIEWER' && href) return viewerPathAllowed(href);
   if (!capability || !perms) return true;
   return capabilityOf(perms, capability);
 }
@@ -73,5 +95,53 @@ describe('capability-driven navigation (F-031)', () => {
   it('the ADMIN baseline used by the existing nav stays visible', () => {
     // Guard against a refactor that silently hides menus admins had before.
     expect(itemVisible('ADMIN', ['SUPER_ADMIN', 'ADMIN'], 'manage_users', null)).toBe(true);
+  });
+
+  describe('VIEWER is a read-only observer', () => {
+    const VIEWER_MENUS = [
+      ['/admin', undefined],
+      ['/admin/requests', undefined],
+      ['/admin/bookings', undefined],
+      ['/admin/chatbot', undefined],
+      ['/admin/reply-objects', 'manage_reply_objects'],
+      ['/admin/canned-responses', undefined],
+      ['/admin/rich-menus', 'manage_rich_menus'],
+      ['/admin/reports', 'view_reports'],
+    ] as const;
+
+    it.each(VIEWER_MENUS)('shows %s even when the write key is absent', (href, capability) => {
+      // The backend opens these GETs via *_or_viewer and the path guard allows
+      // the page, so hiding the menu would leave a reachable page with no way
+      // in. The capability keys gate writes, not reads.
+      const allowedRoles = ['SUPER_ADMIN', 'ADMIN', 'VIEWER'];
+      expect(itemVisible('VIEWER', allowedRoles, capability, viewPerms, href)).toBe(true);
+    });
+
+    it('sees exactly eight menus', () => {
+      const all = [
+        '/admin', '/admin/requests', '/admin/bookings', '/admin/chatbot',
+        '/admin/live-chat', '/admin/chat-histories', '/admin/chatbot/broadcast',
+        '/admin/auto-replies', '/admin/reply-objects', '/admin/canned-responses',
+        '/admin/rich-menus', '/admin/friends', '/admin/users', '/admin/access-requests',
+        '/admin/files', '/admin/image-resize', '/admin/reports', '/admin/audit',
+        '/admin/health', '/admin/settings', '/admin/design-system',
+      ];
+      const roles = ['SUPER_ADMIN', 'ADMIN', 'DIRECTOR', 'HEAD', 'AGENT', 'VIEWER'];
+      const visible = all.filter((href) => itemVisible('VIEWER', roles, undefined, viewPerms, href));
+      expect(visible).toHaveLength(8);
+    });
+
+    it('never reaches a write sub-route', () => {
+      for (const href of ['/admin/requests/create', '/admin/reply-objects/new', '/admin/rich-menus/new']) {
+        expect(viewerPathAllowed(href)).toBe(false);
+      }
+    });
+
+    it('a non-VIEWER role is unaffected by the viewer path list', () => {
+      // ADMIN holding manage_rich_menus keeps the menu even though the path
+      // rule is viewer-specific.
+      const perms: MyPermissions = { ...viewPerms, role: 'ADMIN', capabilities: { manage_rich_menus: true } };
+      expect(itemVisible('ADMIN', ['ADMIN'], 'manage_rich_menus', perms, '/admin/rich-menus')).toBe(true);
+    });
   });
 });
