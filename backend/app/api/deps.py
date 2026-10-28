@@ -30,6 +30,19 @@ _CSRF_PROTECTED_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 # dependency_overrides keys work no matter which path a test imports.
 
 
+def csrf_matches(header_value: str, cookie_value: str) -> bool:
+    """Constant-time CSRF comparison that tolerates non-ASCII input.
+
+    F-008: `secrets.compare_digest(str, str)` raises TypeError when either side
+    contains a non-ASCII character, so a crafted `X-CSRF-Token` header turned a
+    403 into a 500 (plus a traceback). Comparing the UTF-8 encodings keeps the
+    constant-time property and never raises.
+    """
+    return secrets.compare_digest(
+        header_value.encode("utf-8"), cookie_value.encode("utf-8")
+    )
+
+
 async def get_current_user(
     request: Request,
     db: AsyncSession = Depends(get_db)
@@ -134,7 +147,7 @@ async def get_current_user(
     if request.method in _CSRF_PROTECTED_METHODS:
         header_csrf = request.headers.get("x-csrf-token")
         cookie_csrf = request.cookies.get(CSRF_COOKIE)
-        if not header_csrf or not cookie_csrf or not secrets.compare_digest(header_csrf, cookie_csrf):
+        if not header_csrf or not cookie_csrf or not csrf_matches(header_csrf, cookie_csrf):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="CSRF token missing or invalid",

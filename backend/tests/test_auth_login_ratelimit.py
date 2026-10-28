@@ -24,6 +24,12 @@ def _override_db():
         def scalar_one_or_none(self):
             return None  # unknown user → invalid-credentials path
 
+        def scalars(self):
+            return self
+
+        def first(self):
+            return None  # F-009: username-then-email resolution finds nothing
+
     class _DB:
         added = []
 

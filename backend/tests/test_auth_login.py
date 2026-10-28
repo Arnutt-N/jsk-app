@@ -24,10 +24,23 @@ class _FakeRequest:
 
 
 class _ScalarResult:
+    """Fake result supporting both access shapes.
+
+    F-009 changed `_find_admin_by_identifier` from `scalar_one_or_none()` to
+    `scalars().first()` (deterministic username-then-email resolution), so the
+    fake has to expose both.
+    """
+
     def __init__(self, value):
         self._value = value
 
     def scalar_one_or_none(self):
+        return self._value
+
+    def scalars(self):
+        return self
+
+    def first(self):
         return self._value
 
 
