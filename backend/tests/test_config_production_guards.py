@@ -23,6 +23,8 @@ BASE_SETTINGS = {
     "ENCRYPTION_KEY": "zsi41Kqura0QA7xUGAtHnwoAnPP3IAddcu-cb2mfGCA=",
     "LINE_ID_HMAC_KEY": "test-line-id-hmac-key-0123456789",
     "DEV_AUTH_BYPASS": False,
+    # F-032: production requires a shared Redis; a loopback URL is a violation.
+    "REDIS_URL": "rediss://redis.internal:6380/0",
 }
 
 
@@ -73,6 +75,53 @@ def test_recognized_non_production_environments_skip_guards(environment: str) ->
     settings = build_settings(ENVIRONMENT=environment, DEV_AUTH_BYPASS=True)
 
     assert settings.is_production_like is False
+    assert settings.enforce_production_guards() is settings
+
+
+# --- REDIS_URL production guard (F-032) -------------------------------------
+#
+# Every redis failure degrades silently to per-process rate limits and a
+# per-process WebSocket presence roster, so a production boot pointing at
+# localhost is a silent multi-worker correctness bug: each worker counts its own
+# traffic and operators see only their own connections. The guard rejects a
+# loopback URL in production and leaves development on the localhost default.
+
+
+@pytest.mark.parametrize(
+    "redis_url",
+    [
+        "redis://localhost:6379/0",
+        "redis://127.0.0.1:6379/1",
+        "redis://127.0.0.1:6380/0",
+        "redis://[::1]:6379/0",
+        "rediss://localhost:6380/0",
+    ],
+)
+def test_production_rejects_loopback_redis_url(redis_url: str) -> None:
+    settings = build_settings(ENVIRONMENT="production", REDIS_URL=redis_url)
+
+    with pytest.raises(RuntimeError, match="REDIS_URL"):
+        settings.enforce_production_guards()
+
+
+def test_production_accepts_a_remote_redis_url() -> None:
+    settings = build_settings(
+        ENVIRONMENT="production", REDIS_URL="rediss://redis.internal:6380/0"
+    )
+
+    assert settings.enforce_production_guards() is settings
+
+
+def test_development_keeps_the_localhost_redis_default() -> None:
+    """The local dev stack has no managed Redis; a loopback URL must pass.
+
+    Asserts the guard, not the literal default — the process running the suite
+    may already export REDIS_URL (127.0.0.1 in a compose-style shell).
+    """
+    settings = Settings(
+        _env_file=None, ENVIRONMENT="development", REDIS_URL="redis://localhost:6379/0"
+    )
+
     assert settings.enforce_production_guards() is settings
 
 

@@ -41,6 +41,35 @@ _LOCAL_DATABASE_HOSTS = frozenset(
     }
 )
 
+# Redis hosts that mean "this machine or the compose sidecar". A production
+# process pointed at one of these loses cross-worker rate limits, the shared
+# WebSocket presence roster, and webhook dedup — silently, because every redis
+# call has a per-process fallback (F-032).
+_LOCAL_REDIS_HOSTS = frozenset(
+    {
+        "localhost",
+        "127.0.0.1",
+        "::1",
+        "redis",
+    }
+)
+
+
+def _redis_host(redis_url: str) -> str:
+    """Host portion of a redis:// or rediss:// URL, lowercased and unbracketed.
+
+    Returns "" when the URL cannot be parsed, which the caller treats as a
+    violation: an unreadable REDIS_URL in production is indistinguishable from a
+    wrong one.
+    """
+    from urllib.parse import urlparse
+
+    try:
+        parsed = urlparse(redis_url.strip())
+    except ValueError:
+        return ""
+    return (parsed.hostname or "").strip().lower()
+
 class Settings(BaseSettings):
     PROJECT_NAME: str = "JskApp"
     API_V1_STR: str = "/api/v1"
@@ -241,6 +270,18 @@ class Settings(BaseSettings):
             violations.append(
                 "LINE_CHANNEL_ACCESS_TOKEN must be set in production — LINE API "
                 "calls cannot authenticate without it."
+            )
+
+        # F-032: every redis consumer degrades to a per-process fallback, so a
+        # loopback URL in production is silent multi-worker breakage rather than
+        # an outage: each worker keeps its own rate-limit counters, its own
+        # presence roster, and its own webhook dedup window. Reject it at boot.
+        redis_host = _redis_host(self.REDIS_URL)
+        if not redis_host or redis_host in _LOCAL_REDIS_HOSTS:
+            violations.append(
+                "REDIS_URL must point at a shared Redis in production — a "
+                "loopback or unparseable value makes rate limits, WebSocket "
+                "presence, and webhook dedup per-worker."
             )
 
         if violations:
