@@ -52,10 +52,14 @@ interface UseLiveChatSocketReturn {
   reconnect: () => void;
 }
 
-// Track pending messages for retry
+// Track pending messages for retry. `room` records the conversation the
+// message was written in: a retry may only replay it into that same room
+// (F-014 — without it, switching conversations delivered one customer's text
+// into another's thread).
 interface PendingMessage {
   text: string;
   retries: number;
+  room: string | null;
 }
 
 export function useLiveChatSocket(options: UseLiveChatSocketOptions): UseLiveChatSocketReturn {
@@ -183,6 +187,15 @@ export function useLiveChatSocket(options: UseLiveChatSocketOptions): UseLiveCha
   const leaveRoom = useCallback(() => {
     if (currentRoom.current) {
       send(MessageType.LEAVE_ROOM, {});
+      // F-014: an unsent message belongs to the conversation being left. Drop
+      // it here rather than leaving a retryable entry that would replay into
+      // whatever room the operator opens next.
+      const left = currentRoom.current;
+      for (const [tempId, pending] of pendingMessages.current) {
+        if (pending.room === left) {
+          pendingMessages.current.delete(tempId);
+        }
+      }
       currentRoom.current = null;
     }
   }, [send]);
@@ -194,7 +207,11 @@ export function useLiveChatSocket(options: UseLiveChatSocketOptions): UseLiveCha
     }
     // Store message for potential retry
     if (tempId) {
-      pendingMessages.current.set(tempId, { text, retries: 0 });
+      pendingMessages.current.set(tempId, {
+        text,
+        retries: 0,
+        room: currentRoom.current,
+      });
     }
     return send(MessageType.SEND_MESSAGE, { text, temp_id: tempId }, { queue: false });
   }, [send]);
@@ -204,11 +221,22 @@ export function useLiveChatSocket(options: UseLiveChatSocketOptions): UseLiveCha
     if (!pending || pending.retries >= 3) {
       return false;
     }
+    // F-014: siblings (sendMessage, transferSession) early-return on a null
+    // room; a retry that skipped this check could deliver the text somewhere
+    // else entirely. A room switch also invalidates the entry for good.
+    if (!currentRoom.current || pending.room !== currentRoom.current) {
+      pendingMessages.current.delete(tempId);
+      return false;
+    }
     const dispatched = send(MessageType.SEND_MESSAGE, { text: pending.text, temp_id: tempId }, { queue: false });
     // Only consume a retry attempt when the frame actually left the socket —
     // a failed dispatch keeps the message failed and retryable.
     if (dispatched) {
-      pendingMessages.current.set(tempId, { text: pending.text, retries: pending.retries + 1 });
+      pendingMessages.current.set(tempId, {
+        text: pending.text,
+        retries: pending.retries + 1,
+        room: pending.room,
+      });
     }
     return dispatched;
   }, [send]);
