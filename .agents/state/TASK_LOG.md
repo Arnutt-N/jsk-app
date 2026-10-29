@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 316 active handoffs, 12 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 317 active handoffs, 12 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-10-29 11:32 — claude_code — completed
+
+Codebase review plan COMPLETE: all 30/30 tasks done (Tasks 20,21,25,26,29,30 this session). CI + E2E + Encoding green at 38f2385.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20261029-1132.json`
+- Summary: `project-log-md/claude_code/session-summary-20261029-1132.md`
+
+---
 
 ### 2026-10-29 06:51 — claude_code — completed
 

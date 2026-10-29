@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-10-29 06:51 by Claude Code (Codebase review: Phase 0 complete 5/5 and Phase 1 complete 7/7; Phase 2 at 10/14.)
+> **Last Updated:** 2026-10-29 11:32 by Claude Code (Codebase review plan COMPLETE: all 30/30 tasks done Tasks 20,21,25,26,29,30 this session.)
 
 ## Thai Summary
 **สถานะล่าสุด (2026-10-27)** — งานตรวจโค้ดรอบใหม่ Task 22 เสร็จ: เปิดประตูตรวจโค้ดหลังบ้าน (ruff) ใน CI แล้ว, PR #301 (draft) CI เขียวครบทุกด่าน; เหลืออีก 29 งาน เริ่มจาก Phase 0 (CI tasks 13, 14, 18, 24) — ดูรายละเอียดใน `project-log-md/pi/session-summary-20261027-1225.md`
@@ -125,6 +125,7 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-10-29 11:32] Claude Code: Codebase review plan COMPLETE: all 30/30 tasks done (Tasks 20,21,25,26,29,30 this session). CI + E2E + Encoding green at 38f2385. (Claude Code)
 - [2026-10-29 06:51] Claude Code: Codebase review: Phase 0 complete (5/5) and Phase 1 complete (7/7); Phase 2 at 10/14. Tasks 1,2,3,4,5,6,7,8,9,10,11,13,14,15,16,17,18,19,22,24,27,28 done, all CI green. (Claude Code)
 - [2026-10-27 12:25] Pi: Codebase review: Task 22 backend ruff gate done, PR #301 draft CI green; 29 tasks remain starting with Phase 0 CI tasks (Pi)
 - [2026-10-26 11:13] Pi: Admin P1 fixes: 8 defects fixed, PR #300 open and CI green; review round 2 in flight (Pi)
