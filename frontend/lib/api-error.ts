@@ -17,8 +17,12 @@ import { API_BASE } from './constants/api'
  *
  * Tries, in order:
  *   1. JSON body fields: `detail`, `message`, `error`
- *   2. Raw response body text
- *   3. The provided `fallbackMessage`
+ *   2. The provided `fallbackMessage`
+ *
+ * F-016: the raw non-JSON body is NEVER returned to the caller. A 500 from a
+ * reverse proxy is an HTML page and a crashed backend is a Python traceback —
+ * neither belongs in a user-facing toast. The body is logged instead, where
+ * an engineer can still see it.
  *
  * Clones the response internally so callers can still read the body
  * afterwards if needed.
@@ -28,6 +32,8 @@ export async function readErrorMessage(
   fallbackMessage: string,
 ): Promise<string> {
   const contentType = response.headers.get('content-type') || ''
+  let rawBody: string | null = null
+
   if (contentType.includes('application/json')) {
     try {
       const payload = await response.clone().json()
@@ -35,15 +41,21 @@ export async function readErrorMessage(
       if (typeof payload?.message === 'string' && payload.message.trim()) return payload.message
       if (typeof payload?.error === 'string' && payload.error.trim()) return payload.error
     } catch {
-      // Fall through to text parsing and the default fallback.
+      // Not JSON after all (mislabeled content-type) — fall through.
     }
   }
 
+  // Keep the body for the log, never for the caller.
   try {
-    const text = (await response.text()).trim()
-    if (text) return text
+    rawBody = (await response.text()).trim() || null
   } catch {
-    // Ignore body parsing errors and use the fallback message.
+    rawBody = null
+  }
+
+  if (rawBody) {
+    logger.error(`API error body (${contentType || 'no content-type'})`, undefined, {
+      body: rawBody.slice(0, 2000),
+    })
   }
 
   return fallbackMessage

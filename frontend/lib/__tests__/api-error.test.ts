@@ -35,12 +35,54 @@ describe('api-error utilities', () => {
       expect(message).toBe('Error field')
     })
 
-    it('should return plain text if content-type is not JSON', async () => {
+    it('does not return a plain-text body to the caller (F-016)', async () => {
+      // Before F-016 this returned 'Plain text error'. A non-JSON body is not
+      // a contract we can trust to be user-safe (proxy HTML, tracebacks), so
+      // the caller now gets its own fallback and the body goes to the logger.
       const response = new Response('Plain text error', {
         headers: { 'content-type': 'text/plain' },
       })
       const message = await readErrorMessage(response, 'Fallback message')
-      expect(message).toBe('Plain text error')
+      expect(message).toBe('Fallback message')
+    })
+
+    it('logs the raw body it withheld from the caller (F-016)', async () => {
+      const { default: logger } = await import('../logger')
+      vi.mocked(logger.error).mockClear()
+      const response = new Response('Plain text error', {
+        headers: { 'content-type': 'text/plain' },
+      })
+      await readErrorMessage(response, 'Fallback message')
+      expect(vi.mocked(logger.error)).toHaveBeenCalledWith(
+        expect.stringContaining('text/plain'),
+        undefined,
+        expect.objectContaining({ body: 'Plain text error' }),
+      )
+    })
+
+    it('should not leak an HTML error page body into the UI (F-016)', async () => {
+      // A 500 from a proxy/reverse proxy is an HTML page, not an API payload.
+      // Returning it verbatim put raw markup in the toast; the caller's Thai
+      // status message is the right thing to show.
+      const html = '<!DOCTYPE html><html><body><h1>500 Internal Server Error</h1></body></html>'
+      const response = new Response(html, {
+        status: 500,
+        headers: { 'content-type': 'text/html' },
+      })
+      const message = await readErrorMessage(response, 'เซิร์ฟเวอร์มีปัญหา กรุณาลองใหม่ภายหลัง')
+      expect(message).toBe('เซิร์ฟเวอร์มีปัญหา กรุณาลองใหม่ภายหลัง')
+      expect(message).not.toContain('<')
+    })
+
+    it('should not leak a text/plain backend traceback into the UI (F-016)', async () => {
+      const trace = 'Traceback (most recent call last):\n  File "app/main.py", line 1\nValueError: boom'
+      const response = new Response(trace, {
+        status: 500,
+        headers: { 'content-type': 'text/plain' },
+      })
+      const message = await readErrorMessage(response, 'เซิร์ฟเวอร์มีปัญหา กรุณาลองใหม่ภายหลัง')
+      expect(message).toBe('เซิร์ฟเวอร์มีปัญหา กรุณาลองใหม่ภายหลัง')
+      expect(message).not.toContain('Traceback')
     })
 
     it('should return fallback message if response body is empty', async () => {
