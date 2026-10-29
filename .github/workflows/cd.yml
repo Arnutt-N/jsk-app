@@ -454,9 +454,12 @@ jobs:
         env:
           FRONTEND_HEALTHCHECK_URL: ${{ vars.FRONTEND_HEALTHCHECK_URL }}
         run: |
+          # A deploy nobody verified must not look green (F-024). The deploy
+          # itself already ran, so this fails the run rather than skipping it:
+          # a skipped job leaves the workflow conclusion green.
           if [ -z "$FRONTEND_HEALTHCHECK_URL" ]; then
-            echo "::warning::FRONTEND_HEALTHCHECK_URL is not configured. Skipping frontend smoke check."
-            exit 0
+            echo "::error::FRONTEND_HEALTHCHECK_URL is not configured — cannot verify the frontend deploy."
+            exit 1
           fi
 
           for attempt in $(seq 1 20); do
@@ -497,9 +500,12 @@ jobs:
         env:
           BACKEND_HEALTHCHECK_URL: ${{ vars.BACKEND_HEALTHCHECK_URL }}
         run: |
+          # A deploy nobody verified must not look green (F-024). The deploy
+          # itself already ran, so this fails the run rather than skipping it:
+          # a skipped job leaves the workflow conclusion green.
           if [ -z "$BACKEND_HEALTHCHECK_URL" ]; then
-            echo "::warning::BACKEND_HEALTHCHECK_URL is not configured. Skipping backend smoke check."
-            exit 0
+            echo "::error::BACKEND_HEALTHCHECK_URL is not configured — cannot verify the backend deploy."
+            exit 1
           fi
 
           for attempt in $(seq 1 12); do
