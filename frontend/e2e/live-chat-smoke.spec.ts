@@ -41,8 +41,25 @@ async function gotoLiveChat(page: Page): Promise<void> {
 }
 
 /**
+ * Open the console and wait until the conversation list has actually loaded.
+ *
+ * The listbox is mounted before the `/conversations` response arrives, so a
+ * count taken right after `gotoLiveChat` can read zero and turn a seeded
+ * conversation into a false "empty DB" skip. Wait for the list request to
+ * finish first (F-030).
+ */
+async function gotoLiveChatAndLoad(page: Page): Promise<void> {
+  const firstList = page.waitForResponse(
+    (res) => res.url().includes('/admin/live-chat/conversations?') && res.request().method() === 'GET',
+    { timeout: 45_000 },
+  )
+  await gotoLiveChat(page)
+  await firstList
+}
+
+/**
  * Resolve the first conversation row (role=option) if the seed has any.
- * Returns null on an empty DB so callers can skip gracefully.
+ * Returns null when the backend really has no conversations.
  */
 async function firstConversation(page: Page) {
   const options = page.getByRole('option')
@@ -72,9 +89,9 @@ test.describe('/admin/live-chat smoke', () => {
   })
 
   test('selecting a conversation reveals the chat area', async ({ page }) => {
-    await gotoLiveChat(page)
+    await gotoLiveChatAndLoad(page)
     const convo = await firstConversation(page)
-    test.skip(convo === null, 'no seeded conversation in this DB')
+    test.skip(convo === null, 'no conversation in this DB — the seed script was not run')
 
     await convo!.click()
     // After selecting, the message log region should be present. Phase 1/H4
@@ -93,9 +110,10 @@ test.describe('/admin/live-chat smoke', () => {
    * can only be pinned in a real browser.
    */
   test('arrow keys move the selection after clicking a conversation', async ({ page }) => {
-    await gotoLiveChat(page)
+    await gotoLiveChatAndLoad(page)
     const options = page.getByRole('option')
-    test.skip((await options.count()) < 2, 'needs at least two seeded conversations')
+    const count = await options.count()
+    test.skip(count < 2, `needs at least two conversations, the seed provided ${count}`)
 
     await options.first().click()
     await expect(options.first()).toHaveAttribute('aria-selected', 'true')
@@ -113,13 +131,12 @@ test.describe('/admin/live-chat smoke', () => {
    * part of Phase 1 to prove the fix + prevent future regression.
    */
   test('Send button exposes an accessible name (H1)', async ({ page }) => {
-    await gotoLiveChat(page)
+    await gotoLiveChatAndLoad(page)
     // The composer (and its Send button) only mounts after a conversation is
-    // selected — same data-dependence as the test above. Skip gracefully on an
-    // empty seed; H1 is also covered deterministically by the MessageInput unit
-    // test. When data exists this proves the Send button has an accessible name.
+    // selected — same data-dependence as the test above. H1 is also covered
+    // deterministically by the MessageInput unit test.
     const convo = await firstConversation(page)
-    test.skip(convo === null, 'no seeded conversation — Send button mounts only after selecting one')
+    test.skip(convo === null, 'no conversation in this DB — the seed script was not run')
 
     await convo!.click()
     await expect(page.getByRole('button', { name: /ส่งข้อความ|send/i })).toBeVisible()
