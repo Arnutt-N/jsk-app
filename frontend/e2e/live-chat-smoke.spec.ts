@@ -41,12 +41,18 @@ async function gotoLiveChat(page: Page): Promise<void> {
 }
 
 /**
- * Open the console and wait until the conversation list has actually loaded.
+ * Open the console and wait until the conversation list has settled.
  *
- * The listbox is mounted before the `/conversations` response arrives, so a
- * count taken right after `gotoLiveChat` can read zero and turn a seeded
- * conversation into a false "empty DB" skip. Wait for the list request to
- * finish first (F-030).
+ * Two separate races bit this spec. The listbox mounts before the
+ * `/conversations` response arrives, so a count taken right after
+ * `gotoLiveChat` read zero and turned a seeded conversation into a false
+ * "empty DB" skip. Waiting for the response alone was still not enough: it can
+ * land before React commits the rows, so the count read zero again on a seeded
+ * run (F-030, seen in CI).
+ *
+ * So wait for the request, then let the listbox finish rendering. A loaded list
+ * that is genuinely empty still returns here; whether an empty list is allowed
+ * is the caller's decision, which `skipWhenUnseeded` makes.
  */
 async function gotoLiveChatAndLoad(page: Page): Promise<void> {
   const firstList = page.waitForResponse(
@@ -55,13 +61,17 @@ async function gotoLiveChatAndLoad(page: Page): Promise<void> {
       // The list call is `/conversations`, optionally followed by `?status=`;
       // detail fetches append `/{line_user_id}`. Strip the query before
       // matching so both list shapes hit and detail fetches do not.
-      const path = new URL(res.url()).pathname
-      return path.endsWith('/admin/live-chat/conversations')
+      return new URL(res.url()).pathname.endsWith('/admin/live-chat/conversations')
     },
     { timeout: 45_000 },
   )
   await gotoLiveChat(page)
   await firstList
+  // The response resolving does not mean React has painted the rows yet. Wait
+  // for either outcome to render: a row, or the loaded-but-empty chat pane.
+  await expect(
+    page.getByRole('option').first().or(page.getByText(/select a conversation/i)),
+  ).toBeVisible({ timeout: 30_000 })
 }
 
 /**
