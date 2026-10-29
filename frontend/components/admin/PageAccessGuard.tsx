@@ -1,26 +1,24 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { capabilityOf, usePermissions } from '@/lib/permissions';
+import { capabilityFor, requiredRolesFor } from '@/lib/route-permissions';
 
-// Mirrors the User.role union in AuthContext (excluding USER, who is
-// never an admin). DIRECTOR + HEAD added 2026-05-04 for the request
-// workflow split -- they share AGENT-equivalent fallback behaviour
-// since they are mid-tier supervisors, not top-level operators.
-type AllowedRole = 'SUPER_ADMIN' | 'ADMIN' | 'DIRECTOR' | 'HEAD' | 'AGENT' | 'VIEWER';
-
+/**
+ * F-033: the guard reads `lib/route-permissions` instead of taking an
+ * `allowedRoles` prop. Three declarations of the same rule (sidebar, this
+ * prop, backend key) used to disagree — e.g. DIRECTOR/HEAD saw the dashboard
+ * in the menu while this guard bounced them back to it.
+ *
+ * `allowedRoles` is still accepted so existing call sites keep type-checking,
+ * but the manifest wins; passing a list only narrows what the manifest already
+ * allows (never widens it).
+ */
 interface PageAccessGuardProps {
-  allowedRoles: AllowedRole[];
-  /**
-   * F-031: optional permission key. When set, the page additionally requires
-   * the served capability map to grant it, so a matrix edit in Settings moves
-   * the page guard without a deploy. Until the map resolves the role list
-   * alone decides — same behaviour as before this prop existed.
-   */
-  requiredCapability?: string;
+  allowedRoles?: readonly string[];
   fallbackPath?: string;
   children: React.ReactNode;
 }
@@ -37,18 +35,26 @@ function resolveFallbackPath(
 
 export default function PageAccessGuard({
   allowedRoles,
-  requiredCapability,
   fallbackPath,
   children,
 }: PageAccessGuardProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const { user, isLoading, isAuthenticated, bootstrapFailed } = useAuth();
   const permissions = usePermissions();
 
+  const manifestRoles = requiredRolesFor(pathname);
+  const capability = capabilityFor(pathname);
+
+  const role = user?.role;
   const roleAllowed =
-    !!user && user.role !== 'USER' && allowedRoles.includes(user.role as AllowedRole);
-  const capabilityAllowed =
-    !requiredCapability || !permissions || capabilityOf(permissions, requiredCapability);
+    !!role &&
+    role !== 'USER' &&
+    (manifestRoles as readonly string[]).includes(role) &&
+    (!allowedRoles || allowedRoles.includes(role));
+  // Until the map resolves the role list alone decides — same behaviour as
+  // before this module existed (no flash of a bounced page on first paint).
+  const capabilityAllowed = !capability || !permissions || capabilityOf(permissions, capability);
   const isAllowed = roleAllowed && capabilityAllowed;
 
   useEffect(() => {

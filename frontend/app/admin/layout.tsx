@@ -9,6 +9,7 @@ import { hasOpenDialog } from '@/components/ui/Modal';
 import { cn } from '@/lib/utils';
 import { isNavItemVisible } from '@/lib/nav-access';
 import { capabilityOf, usePermissions } from '@/lib/permissions';
+import { canAccessRoute, routeFor } from '@/lib/route-permissions';
 import {
   Menu, Search, LogOut, ChevronLeft, ChevronRight, X,
   LayoutDashboard, FileText, Bot, MessageCircle,
@@ -33,40 +34,19 @@ interface MenuItem {
   name: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
-  allowedRoles?: Array<'SUPER_ADMIN' | 'ADMIN' | 'DIRECTOR' | 'HEAD' | 'AGENT' | 'VIEWER'>;
-  /**
-   * Permission key that additionally gates this item (F-031). When present the
-   * item is visible only if the served capability map grants it — the matrix in
-   * Settings can then move a menu without a frontend deploy. `allowedRoles`
-   * stays as the fallback for items with no key.
-   */
-  capability?: string;
+  // F-033: role list and capability key come from `lib/route-permissions`,
+  // looked up by `href`. Keeping copies here is what let the sidebar and the
+  // page guards disagree.
   external?: boolean;
   openInNewTab?: boolean;
 }
 
-// VIEWER (read-only observer) allow-list: menus 1-5 only. Matches the
-// sidebar allowedRoles in menuGroups below and the backend *_or_viewer
-// gates. Everything else bounces to '/admin' in AdminAuthGate; write
-// sub-routes (/requests/create, /reply-objects/new, /rich-menus/new,
-// /rich-menus/aliases, /rich-menus/[id]/edit) are excluded on purpose —
-// a direct URL must not render a form whose submit would 403.
+// F-033: path authorization lives in one place -- `lib/route-permissions`.
+// This file keeps only what is genuinely layout-specific (icon, label, group).
+// The old `isViewerPathAllowed` list and the per-item `allowedRoles` arrays
+// disagreed with the page guards; both now read the manifest.
 function isViewerPathAllowed(pathname: string): boolean {
-  if (
-    pathname === '/admin' ||
-    pathname === '/admin/chatbot' ||
-    pathname === '/admin/reports' ||
-    pathname === '/admin/bookings' ||
-    pathname === '/admin/reply-objects' ||
-    pathname === '/admin/rich-menus' ||
-    pathname === '/admin/canned-responses'
-  ) {
-    return true;
-  }
-  if (pathname === '/admin/requests' || pathname === '/admin/requests/kanban') {
-    return true;
-  }
-  return /^\/admin\/requests\/\d+$/.test(pathname);
+  return canAccessRoute(pathname, 'VIEWER');
 }
 
 function AdminAuthGate({ children }: { children: React.ReactNode }) {
@@ -260,57 +240,59 @@ function AdminShell({ children }: { children: React.ReactNode }) {
     {
       title: 'Service Requests',
       items: [
-        { name: 'Dashboard', href: '/admin', icon: LayoutDashboard, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'DIRECTOR', 'HEAD', 'VIEWER'] },
-        { name: 'Manage Requests', href: '/admin/requests', icon: FileText, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'DIRECTOR', 'HEAD', 'VIEWER'] },
-        { name: 'Appointments', href: '/admin/bookings', icon: CalendarCheck, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'DIRECTOR', 'HEAD', 'VIEWER'] },
+        { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
+        { name: 'Manage Requests', href: '/admin/requests', icon: FileText },
+        { name: 'Appointments', href: '/admin/bookings', icon: CalendarCheck },
       ]
     },
     {
       title: 'Chatbot Management',
       items: [
-        { name: 'Chatbot Overview', href: '/admin/chatbot', icon: Bot, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'VIEWER'] },
-        { name: 'Live Chat', href: '/admin/live-chat', icon: MessageCircle, openInNewTab: true, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'AGENT'], capability: 'access_live_chat' },
-        { name: 'Chat Histories', href: '/admin/chat-histories', icon: History, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
-        { name: 'Broadcast', href: '/admin/chatbot/broadcast', icon: Megaphone, allowedRoles: ['SUPER_ADMIN', 'ADMIN'], capability: 'manage_broadcast' },
-        { name: 'Auto-Replies', href: '/admin/auto-replies', icon: Reply, allowedRoles: ['SUPER_ADMIN', 'ADMIN'], capability: 'manage_auto_replies' },
-        { name: 'Reply Objects', href: '/admin/reply-objects', icon: MessageSquareReply, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'VIEWER'], capability: 'manage_reply_objects' },
-        { name: 'Canned Responses', href: '/admin/canned-responses', icon: MessageSquareText, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'VIEWER'] },
-        { name: 'Rich Menus', href: '/admin/rich-menus', icon: PanelTop, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'VIEWER'], capability: 'manage_rich_menus' },
-        { name: 'Friend Histories', href: '/admin/friends', icon: Users, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
+        { name: 'Chatbot Overview', href: '/admin/chatbot', icon: Bot },
+        { name: 'Live Chat', href: '/admin/live-chat', icon: MessageCircle, openInNewTab: true },
+        { name: 'Chat Histories', href: '/admin/chat-histories', icon: History },
+        { name: 'Broadcast', href: '/admin/chatbot/broadcast', icon: Megaphone },
+        { name: 'Auto-Replies', href: '/admin/auto-replies', icon: Reply },
+        { name: 'Reply Objects', href: '/admin/reply-objects', icon: MessageSquareReply },
+        { name: 'Canned Responses', href: '/admin/canned-responses', icon: MessageSquareText },
+        { name: 'Rich Menus', href: '/admin/rich-menus', icon: PanelTop },
+        { name: 'Friend Histories', href: '/admin/friends', icon: Users },
       ]
     },
     {
       title: 'System and Utilities',
       items: [
-        { name: 'User Management', href: '/admin/users', icon: UserCog, allowedRoles: ['SUPER_ADMIN', 'ADMIN'], capability: 'manage_users' },
-        { name: 'Access Requests', href: '/admin/access-requests', icon: UserPlus, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
-        { name: 'File Management', href: '/admin/files', icon: FolderOpen, allowedRoles: ['SUPER_ADMIN', 'ADMIN'], capability: 'manage_files' },
-        { name: 'Image Resize', href: '/admin/image-resize', icon: Scaling, allowedRoles: ['SUPER_ADMIN', 'ADMIN'], capability: 'image_resize' },
-        { name: 'Reports', href: '/admin/reports', icon: BarChart3, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'VIEWER'], capability: 'view_reports' },
-        { name: 'Audit Log', href: '/admin/audit', icon: Shield, allowedRoles: ['SUPER_ADMIN', 'ADMIN'], capability: 'view_audit_log' },
-        { name: 'Health Check', href: '/admin/health', icon: Activity, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
-        { name: 'Settings', href: '/admin/settings', icon: Settings, allowedRoles: ['SUPER_ADMIN', 'ADMIN'], capability: 'edit_permission_settings' },
-        { name: 'Design System', href: '/admin/design-system', icon: Palette, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
+        { name: 'User Management', href: '/admin/users', icon: UserCog },
+        { name: 'Access Requests', href: '/admin/access-requests', icon: UserPlus },
+        { name: 'File Management', href: '/admin/files', icon: FolderOpen },
+        { name: 'Image Resize', href: '/admin/image-resize', icon: Scaling },
+        { name: 'Reports', href: '/admin/reports', icon: BarChart3 },
+        { name: 'Audit Log', href: '/admin/audit', icon: Shield },
+        { name: 'Health Check', href: '/admin/health', icon: Activity },
+        { name: 'Settings', href: '/admin/settings', icon: Settings },
+        { name: 'Design System', href: '/admin/design-system', icon: Palette },
       ]
     }
   ];
 
-  // F-031: items that name a permission key follow the served matrix (so a
-  // change in Settings moves the menu with no deploy). `useHasPermission`
-  // returns false until the map loads, which would flash an empty sidebar, so
-  // an unresolved map falls back to the role list — identical to the old
-  // behaviour for that render.
+  // F-033: the role list and the capability key both come from the shared
+  // manifest, so the sidebar, `PageAccessGuard`, and the VIEWER path guard
+  // cannot drift apart. Only icon/label/group (presentation) live here.
   const permissions = usePermissions();
   const isMenuItemVisible = (item: MenuItem) => {
-    if (!isNavItemVisible(user?.role, item.allowedRoles)) return false;
+    // A menu whose route the manifest does not list is a bug, not a permission
+    // decision: hide it rather than render a link to a page that will bounce.
+    const route = routeFor(item.href);
+    if (!route) return false;
+    if (!isNavItemVisible(user?.role, route.allowedRoles)) return false;
     // VIEWER is a read-only observer whose access is defined by the path
     // allow-list (which also excludes every write form). The capability keys
     // this menu would otherwise consult gate WRITES — `manage_rich_menus`
     // guards POST/PUT on /admin/rich-menus — so using them here would hide a
     // page the backend and the path guard both open to VIEWER.
-    if (user?.role === 'VIEWER') return isViewerPathAllowed(item.href);
-    if (!item.capability || !permissions) return true;
-    return capabilityOf(permissions, item.capability);
+    if (user?.role === 'VIEWER') return canAccessRoute(item.href, 'VIEWER');
+    if (!route.capability || !permissions) return true;
+    return capabilityOf(permissions, route.capability);
   };
 
   const visibleMenuGroups = menuGroups

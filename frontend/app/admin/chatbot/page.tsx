@@ -75,7 +75,7 @@ export default function ChatbotDashboard() {
 
     if (loading) {
         return (
-            <PageAccessGuard allowedRoles={['SUPER_ADMIN', 'ADMIN', 'VIEWER']}>
+            <PageAccessGuard>
                 <LoadingSpinner />
             </PageAccessGuard>
         );
@@ -218,7 +218,7 @@ export default function ChatbotDashboard() {
     );
 
     return (
-        <PageAccessGuard allowedRoles={['SUPER_ADMIN', 'ADMIN', 'VIEWER']}>
+        <PageAccessGuard>
             {content}
         </PageAccessGuard>
     );
