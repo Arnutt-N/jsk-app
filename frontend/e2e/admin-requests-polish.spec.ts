@@ -159,32 +159,9 @@ test.describe('Admin Requests UI Polish', () => {
     await expect(page.locator('text=การกระทำนี้ไม่สามารถย้อนกลับได้')).toHaveCount(0)
   })
 
-  // Optional screenshot baseline — run with `--update-snapshots` to
-  // generate. CI runs without baselines will fail this test; gated behind
-  // the UPDATE_SCREENSHOTS env var so CI doesn't depend on it. This is the one
-  // remaining skip: it guards a missing BASELINE, not missing data.
-  test('visual baseline: list modal at narrow viewport (320px)', async ({ page }) => {
-    test.skip(
-      process.env.UPDATE_SCREENSHOTS !== '1',
-      'Screenshot baseline run — set UPDATE_SCREENSHOTS=1 to enable',
-    )
-    const firstname = `Polish-Visual-${Date.now()}`
-    await createRequestFixture(page, firstname)
-
-    await page.setViewportSize({ width: 320, height: 800 })
-    await openRequestsList(page)
-
-    const row = fixtureRow(page, firstname)
-    await expect(row, 'the fixture row must be visible in the list').toBeVisible({
-      timeout: 15_000,
-    })
-    const viewButton = row.locator('button[title="เรียกดู"]').first()
-    await expect(viewButton).toBeVisible({ timeout: 10_000 })
-    await viewButton.click()
-
-    await expect(page).toHaveScreenshot('list-modal-320.png', {
-      maxDiffPixelRatio: 0.02,
-      mask: [page.locator('time, [data-testid="timestamp"]')],
-    })
-  })
+  // The screenshot baseline used to live here as a test gated behind
+  // `UPDATE_SCREENSHOTS=1` — an env var nothing ever set, with no baseline
+  // image committed, so it reported as a suite member while never running
+  // (F-029). Pixel baselines change with design rather than on a clock, so
+  // capture is now a deliberate manual step: see `e2e/MANUAL_BASELINE.md`.
 })
