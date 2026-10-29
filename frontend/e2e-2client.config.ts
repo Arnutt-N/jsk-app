@@ -51,6 +51,10 @@ export default defineConfig({
   timeout: 240_000,
   // Cross-context WebSocket propagation (A acts -> B observes) is not instant.
   expect: { timeout: 20_000 },
+  // F-027: a committed `test.only` here would shrink the two-client acceptance
+  // suite to one test while CI stayed green. Refuse to run under CI; locally
+  // `test.only` keeps working for iterating on one of the two cases.
+  forbidOnly: !!process.env.CI,
 
   // A transient timing miss should auto-retry; the spec is made retry-safe via
   // E2E_SEED_CMD. CI gets one extra retry for noisier shared runners.
