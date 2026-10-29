@@ -43,9 +43,11 @@ test.describe('NAV-02 Appointments is not reachable for AGENT', () => {
   test.use({ viewport: { width: 1280, height: 800 } })
 
   test('Appointments is unreachable for AGENT and the guard snaps back', async ({ page }) => {
+    // test.skip() returns void, so it cannot narrow `password`; return instead.
     const password = process.env.E2E_AGENT_PASSWORD ?? process.env.E2E_ADMIN_PASSWORD
     if (!password) {
       test.skip(true, 'No AGENT password configured (E2E_AGENT_PASSWORD / E2E_ADMIN_PASSWORD).')
+      return
     }
 
     // CI seeds the admin account only, so this spec runs where an AGENT exists.
