@@ -199,11 +199,23 @@ const DYNAMIC_ROUTES = ROUTE_LIST.filter((r) => r.path.includes('/:')).sort(
   (a, b) => b.path.length - a.path.length,
 )
 
+/**
+ * Shape a named `:param` must match. Without this, `:id` accepted any segment,
+ * so VIEWER reached `/admin/requests/<anything>` while the guard it replaced
+ * required digits. A name with no entry accepts any non-empty segment, which
+ * fails closed for a future route whose id is not numeric.
+ */
+const PARAM_SHAPES: Record<string, RegExp> = { id: /^\d+$/ }
+
 function matchesDynamic(pattern: string, pathname: string): boolean {
   const patternParts = pattern.split('/')
   const pathParts = pathname.split('/')
   if (patternParts.length !== pathParts.length) return false
-  return patternParts.every((part, i) => part.startsWith(':') || part === pathParts[i])
+  return patternParts.every((part, i) => {
+    if (!part.startsWith(':')) return part === pathParts[i]
+    const shape = PARAM_SHAPES[part.slice(1)]
+    return shape ? shape.test(pathParts[i]) : pathParts[i] !== ''
+  })
 }
 
 /** The manifest entry that owns `pathname`, or `undefined` when unlisted. */
@@ -235,4 +247,19 @@ export function requiredRolesFor(pathname: string): readonly AdminRole[] {
 /** The backend permission key gating `pathname`, if it names one. */
 export function capabilityFor(pathname: string): string | undefined {
   return routeFor(pathname)?.capability
+}
+
+/**
+ * Whether the served capability map must also be consulted for `pathname`.
+ *
+ * The manifest's keys name backend gates that guard WRITES (`manage_rich_menus`
+ * guards POST/PUT on `/admin/rich-menus`), while VIEWER is a read-only observer
+ * whose reads those same pages serve through `*_or_viewer`. Consulting the key
+ * for VIEWER would hide a page the backend and the path allow-list both open,
+ * so the check is skipped for that one role. Keeping the rule here means the
+ * sidebar and `PageAccessGuard` cannot disagree about it.
+ */
+export function capabilityAppliesTo(pathname: string, role: string | null | undefined): boolean {
+  if (!capabilityFor(pathname)) return false
+  return role !== 'VIEWER'
 }

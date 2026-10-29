@@ -9,7 +9,7 @@ import { hasOpenDialog } from '@/components/ui/Modal';
 import { cn } from '@/lib/utils';
 import { isNavItemVisible } from '@/lib/nav-access';
 import { capabilityOf, usePermissions } from '@/lib/permissions';
-import { canAccessRoute, routeFor } from '@/lib/route-permissions';
+import { canAccessRoute, capabilityAppliesTo, routeFor } from '@/lib/route-permissions';
 import {
   Menu, Search, LogOut, ChevronLeft, ChevronRight, X,
   LayoutDashboard, FileText, Bot, MessageCircle,
@@ -285,12 +285,9 @@ function AdminShell({ children }: { children: React.ReactNode }) {
     const route = routeFor(item.href);
     if (!route) return false;
     if (!isNavItemVisible(user?.role, route.allowedRoles)) return false;
-    // VIEWER is a read-only observer whose access is defined by the path
-    // allow-list (which also excludes every write form). The capability keys
-    // this menu would otherwise consult gate WRITES — `manage_rich_menus`
-    // guards POST/PUT on /admin/rich-menus — so using them here would hide a
-    // page the backend and the path guard both open to VIEWER.
-    if (user?.role === 'VIEWER') return canAccessRoute(item.href, 'VIEWER');
+    // VIEWER reads are governed by the path allow-list; the manifest's keys
+    // gate writes. `capabilityAppliesTo` owns that split for both consumers.
+    if (!capabilityAppliesTo(item.href, user?.role)) return true;
     if (!route.capability || !permissions) return true;
     return capabilityOf(permissions, route.capability);
   };

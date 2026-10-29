@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { capabilityOf, usePermissions } from '@/lib/permissions';
-import { capabilityFor, requiredRolesFor } from '@/lib/route-permissions';
+import { capabilityAppliesTo, capabilityFor, requiredRolesFor } from '@/lib/route-permissions';
 
 /**
  * F-033: the guard reads `lib/route-permissions` instead of taking an
@@ -54,7 +54,14 @@ export default function PageAccessGuard({
     (!allowedRoles || allowedRoles.includes(role));
   // Until the map resolves the role list alone decides — same behaviour as
   // before this module existed (no flash of a bounced page on first paint).
-  const capabilityAllowed = !capability || !permissions || capabilityOf(permissions, capability);
+  // `capabilityAppliesTo` keeps VIEWER off the write-gating keys, the same rule
+  // the sidebar applies, so mounting this guard cannot bounce a role the page
+  // itself admits.
+  const capabilityAllowed =
+    !capabilityAppliesTo(pathname, role) ||
+    !permissions ||
+    !capability ||
+    capabilityOf(permissions, capability);
   const isAllowed = roleAllowed && capabilityAllowed;
 
   useEffect(() => {

@@ -17,6 +17,7 @@ import { describe, expect, it } from 'vitest'
 import {
   ADMIN_ROUTES,
   canAccessRoute,
+  capabilityAppliesTo,
   requiredRolesFor,
   type AdminRouteMeta,
 } from '../route-permissions'
@@ -104,6 +105,46 @@ describe('route permission manifest (F-033)', () => {
       // /admin/requests/create is deliberately not VIEWER-reachable.
       expect(canAccessRoute('/admin/requests/create', 'VIEWER')).toBe(false)
       expect(canAccessRoute('/admin/requests/kanban', 'VIEWER')).toBe(true)
+    })
+
+    it('rejects a non-numeric segment where the id must be numeric', () => {
+      // `:id` used to accept any segment, so VIEWER reached
+      // /admin/requests/<anything> while the guard it replaced required digits.
+      // Every future page dropped under requests/ would have been VIEWER-open.
+      for (const path of [
+        '/admin/requests/abc',
+        '/admin/requests/export',
+        '/admin/requests/bulk-approve',
+        '/admin/requests/',
+      ]) {
+        expect(canAccessRoute(path, 'VIEWER'), path).toBe(false)
+      }
+    })
+
+    it('keeps numeric ids open to VIEWER', () => {
+      for (const path of ['/admin/requests/1', '/admin/requests/999999']) {
+        expect(canAccessRoute(path, 'VIEWER'), path).toBe(true)
+      }
+    })
+  })
+
+  describe('capabilityAppliesTo', () => {
+    it('consults the key for non-VIEWER roles', () => {
+      expect(capabilityAppliesTo('/admin/rich-menus', 'ADMIN')).toBe(true)
+      expect(capabilityAppliesTo('/admin/reply-objects', 'SUPER_ADMIN')).toBe(true)
+    })
+
+    it('never consults the key for VIEWER: the keys gate writes, VIEWER reads', () => {
+      // manage_rich_menus / manage_reply_objects are SUPER_ADMIN+ADMIN, yet the
+      // manifest admits VIEWER to both pages. Letting the key decide would
+      // bounce VIEWER off a page the backend serves through *_or_viewer.
+      expect(capabilityAppliesTo('/admin/rich-menus', 'VIEWER')).toBe(false)
+      expect(capabilityAppliesTo('/admin/reply-objects', 'VIEWER')).toBe(false)
+    })
+
+    it('is false for a route with no capability', () => {
+      expect(capabilityAppliesTo('/admin', 'ADMIN')).toBe(false)
+      expect(capabilityAppliesTo('/admin/requests', 'VIEWER')).toBe(false)
     })
   })
 
