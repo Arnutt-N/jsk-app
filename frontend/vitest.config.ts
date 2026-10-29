@@ -36,6 +36,11 @@ export default defineConfig({
     // picked up (they use a different runner with different globals).
     include: ['**/__tests__/**/*.test.{ts,tsx}'],
     exclude: ['node_modules', 'e2e', '.next'],
+    // LIFF wizard specs type through userEvent under jsdom and legitimately
+    // take 4-6s each on a loaded Windows box — right at the 5000ms default,
+    // which made 22 of them fail locally while passing on CI. Bounded at 20s
+    // so a genuine hang still fails instead of stalling the run.
+    testTimeout: 20_000,
     // Coverage floor (Task 24 / F-028). Measured on the CI runner:
     // 42.3% stmts, 74.71% branch, 59.59% funcs. One point of headroom on each
     // so ordinary churn does not fail an unrelated PR. Raise, never lower,
