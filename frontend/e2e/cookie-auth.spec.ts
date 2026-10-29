@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { loginAsAdmin } from './utils/auth'
+import { gotoAdmin } from './utils/nav'
 
 test.describe('Cookie Auth Flow (PR 2C)', () => {
   test('login sets HttpOnly cookies, not localStorage tokens', async ({ page }) => {
@@ -22,7 +23,7 @@ test.describe('Cookie Auth Flow (PR 2C)', () => {
 
     const [response] = await Promise.all([
       page.waitForResponse((res) => res.url().includes('/api/v1/admin/') && res.status() === 200),
-      page.goto('/admin/requests'),
+      gotoAdmin(page, '/admin/requests'),
     ])
 
     const request = response.request()
@@ -69,11 +70,11 @@ test.describe('Cookie Auth Flow (PR 2C)', () => {
 
   test('unauthenticated admin access redirects to /login after logout', async ({ page }) => {
     await loginAsAdmin(page)
-    await page.goto('/admin/requests')
+    await gotoAdmin(page, '/admin/requests')
     await expect(page.locator('a[href*="/admin/requests"]').first()).toBeVisible()
 
     await page.context().clearCookies()
-    await page.goto('/admin/requests')
+    await gotoAdmin(page, '/admin/requests')
     await page.waitForURL(/\/login/, { timeout: 10_000 })
   })
 })

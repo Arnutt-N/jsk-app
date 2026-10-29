@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { loginAsAdmin } from './utils/auth'
+import { gotoAdmin } from './utils/nav'
 
 /**
  * /admin/requests/[id] -- audit timeline (request-edit-audit-log PRD).
@@ -46,7 +47,7 @@ async function getFirstRequestDetailUrl(page: Page): Promise<string | null> {
 test.describe('Request detail -- audit timeline', () => {
   test.beforeEach(async ({ page }) => {
     await loginAsAdmin(page)
-    await page.goto('/admin/requests')
+    await gotoAdmin(page, '/admin/requests')
     await expect(page.locator('table')).toBeVisible({ timeout: 10_000 })
   })
 
@@ -62,7 +63,7 @@ test.describe('Request detail -- audit timeline', () => {
       (r) => r.url().includes('/admin/audit/logs') && r.url().includes('resource_id='),
       { timeout: 15_000 }
     )
-    await page.goto(detailUrl!)
+    await gotoAdmin(page, detailUrl!)
     const res = await auditResponse
     expect(res.status(), 'GET /admin/audit/logs must not error').toBe(200)
 
@@ -85,7 +86,7 @@ test.describe('Request detail -- audit timeline', () => {
 
     const detailUrl = await getFirstRequestDetailUrl(page)
     test.skip(!detailUrl, 'no requests in test DB; nothing to edit')
-    await page.goto(detailUrl!)
+    await gotoAdmin(page, detailUrl!)
 
     // Enter contact tab edit mode and flip the phone number.
     await page.getByRole('tab', { name: /ข้อมูลผู้ติดต่อ/ }).click()

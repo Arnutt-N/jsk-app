@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { loginAsAdmin } from './utils/auth'
+import { gotoAdmin } from './utils/nav'
 
 /**
  * Layout-stability regression for /admin/live-chat.
@@ -61,7 +62,7 @@ function expectViewportStable(snap: LayoutSnapshot) {
 test('live-chat layout stays viewport-stable and controls use pointer cursor', async ({ page }) => {
   await page.setViewportSize({ width: 1366, height: 650 })
   await loginAsAdmin(page)
-  await page.goto('/admin/live-chat')
+  await gotoAdmin(page, '/admin/live-chat')
   await page.locator('[role="listbox"]').waitFor({ state: 'visible', timeout: 30_000 })
 
   const before = await page.evaluate(collectLayout)

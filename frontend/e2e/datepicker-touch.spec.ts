@@ -1,5 +1,6 @@
 import { expect, test, devices } from '@playwright/test'
 import { loginAsAdmin } from './utils/auth'
+import { gotoAdmin } from './utils/nav'
 
 /**
  * Touch hardening for the shared Thai date picker (PR #287).
@@ -17,7 +18,7 @@ test.use({ ...devices['Pixel 7'] })
 test.describe('datepicker touch behaviour', () => {
   test.beforeEach(async ({ page }) => {
     await loginAsAdmin(page)
-    await page.goto('/admin/requests')
+    await gotoAdmin(page, '/admin/requests')
   })
 
   test('tap opens calendar, tap X clears, groups span full width', async ({ page }) => {

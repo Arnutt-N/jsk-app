@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { loginAsAdmin } from './utils/auth'
+import { gotoAdmin } from './utils/nav'
 
 /**
  * /admin/settings/permissions — Phase 3 module-based matrix.
@@ -18,7 +19,7 @@ import { loginAsAdmin } from './utils/auth'
 test.describe('Permission settings page (Phase 3)', () => {
   test.beforeEach(async ({ page }) => {
     await loginAsAdmin(page)
-    await page.goto('/admin/settings/permissions')
+    await gotoAdmin(page, '/admin/settings/permissions')
   })
 
   test('renders the page header', async ({ page }) => {

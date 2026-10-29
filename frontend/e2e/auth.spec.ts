@@ -1,9 +1,10 @@
 import { expect, test } from '@playwright/test'
 import { loginAsAdmin } from './utils/auth'
+import { gotoAdmin } from './utils/nav'
 
 test.describe('Authentication', () => {
   test('unauthenticated request to /admin redirects to /login', async ({ page }) => {
-    await page.goto('/admin')
+    await gotoAdmin(page, '/admin')
     await expect(page).toHaveURL(/\/login/)
   })
 

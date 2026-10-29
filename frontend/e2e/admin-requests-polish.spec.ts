@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { loginAsAdmin } from './utils/auth'
+import { gotoAdmin } from './utils/nav'
 import { captureCsrf, createRequestFixture } from './utils/request-fixture'
 
 /**
@@ -31,14 +32,14 @@ import { captureCsrf, createRequestFixture } from './utils/request-fixture'
 /** Resolve the detail URL for a specific fixture row. */
 async function detailUrlFor(page: Page, requestId: number): Promise<string> {
   const href = `/admin/requests/${requestId}`
-  await page.goto(href)
+  await gotoAdmin(page, href)
   await expect(page.getByRole('button', { name: 'กลับ' })).toBeVisible({ timeout: 15_000 })
   return href
 }
 
 /** Open the list page and wait for the table to mount. */
 async function openRequestsList(page: Page): Promise<void> {
-  await page.goto('/admin/requests')
+  await gotoAdmin(page, '/admin/requests')
   await expect(page.locator('table')).toBeVisible({ timeout: 15_000 })
 }
 
