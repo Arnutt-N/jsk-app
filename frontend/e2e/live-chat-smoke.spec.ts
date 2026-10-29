@@ -69,8 +69,10 @@ async function gotoLiveChatAndLoad(page: Page): Promise<void> {
   await firstList
   // The response resolving does not mean React has painted the rows yet. Wait
   // for either outcome to render: a row, or the loaded-but-empty chat pane.
+  // `.first()` sits on the combined locator: both can be present at once, and
+  // the union would otherwise trip strict mode.
   await expect(
-    page.getByRole('option').first().or(page.getByText(/select a conversation/i)),
+    page.getByRole('option').or(page.getByText(/select a conversation/i)).first(),
   ).toBeVisible({ timeout: 30_000 })
 }
 
