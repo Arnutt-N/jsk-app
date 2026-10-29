@@ -1,13 +1,21 @@
 {
-  "last_updated": "2026-10-29T11:32:00+07:00",
+  "last_updated": "2026-10-29T17:21:00+07:00",
   "platform": "claude_code",
-  "current_task": "Codebase review plan COMPLETE: all 30/30 tasks done (Tasks 20,21,25,26,29,30 this session). CI + E2E + Encoding green at 38f2385.",
+  "current_task": "Codebase review plan 30/30 complete, plus a review/correct/deslop pass that closed 4 findings (2 latent fail-open in the route manifest, 1 stale doc, 1 e2e race). CI + E2E + Encoding green at c04f5b8 ",
   "plan_status": "completed",
   "next_steps": [
-    "Verify Task 14 step 3 (red E2E blocks deploy) on main after merge",
-    "Merge PR #301 when ready"
+    "Task 20 fixed only the healthcheck-URL soft skip; 3 more remain in cd.yml (VERCEL_DEPLOY_HOOK_URL, BACKEND_REMOTE_ENV_FILE, KOYEB_*) and still let CD go green having deployed and verified nothing",
+    "Merge PR #301 when reviewed",
+    "After merge: verify Task 14 Step 3, a red E2E must block deploy, observable only on main"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-10-29T17:21:00+07:00",
+      "platform": "claude_code",
+      "branch": "fix/codebase-review-20261026",
+      "head": "c04f5b8",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-10-29T11:32:00+07:00",
       "platform": "claude_code",
@@ -136,13 +144,6 @@
     },
     {
       "timestamp": "2026-10-21T06:03:00+07:00",
-      "platform": "pi",
-      "branch": "main",
-      "head": "add13bc",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-10-21T06:00:00+07:00",
       "platform": "pi",
       "branch": "main",
       "head": "add13bc",
