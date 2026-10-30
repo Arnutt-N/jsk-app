@@ -162,6 +162,8 @@ async def get_item(id: int, db: AsyncSession = Depends(get_db), admin: User = De
 | Frontend mocks of a module must re-export every named export the code imports (`getWindowLiff`-class breakage) | Vitest fails loudly naming the missing export (`No "X" export is defined on the "..." mock`) + reviewer triage |
 | Endpoint route changes must keep decorators (a dropped `@router.put` 405s) | Backend Pytest per-endpoint suites in CI + reviewer triage |
 | New soft-delete endpoint tests use `tests/soft_delete_harness.py` (real session), never a hand-rolled NullPool setup | Shared harness + exemplar `backend/tests/test_auto_replies_delete_soft.py` + reviewer triage |
+| E2E specs that create/delete rows call `createRequestFixture` from `frontend/e2e/utils/request-fixture.ts` (after `captureCsrf`) instead of relying on seeded rows other specs delete | Shared helper + reviewer triage (seeded-row specs went flaky twice on 2026-10-25) |
+| E2E admin navigations use `gotoAdmin` from `frontend/e2e/utils/nav.ts` (60s cold-compile budget) instead of bare `page.goto` | Shared helper + reviewer triage (bare goto timed out at Playwright's 15s default under load) |
 
 ---
 

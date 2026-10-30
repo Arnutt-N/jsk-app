@@ -2,24 +2,22 @@ import asyncio
 import hashlib
 import logging
 from datetime import datetime, timezone
-from typing import Optional, List
+from typing import List, Optional
 
 from linebot.v3.messaging import (
     BroadcastRequest,
+    FlexContainer,
+    FlexMessage,
+    ImageMessage,
     MulticastRequest,
     TextMessage,
-    ImageMessage,
-    FlexMessage,
-    FlexContainer,
 )
-from sqlalchemy import select, func, desc, update
+from sqlalchemy import desc, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.models.broadcast_failed_recipient import BroadcastFailedRecipient
 
 from app.core.line_client import get_line_bot_api
 from app.models.broadcast import Broadcast, BroadcastStatus, BroadcastType
-from app.models.user import User
+from app.models.broadcast_failed_recipient import BroadcastFailedRecipient
 
 logger = logging.getLogger(__name__)
 

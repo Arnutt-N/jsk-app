@@ -1,8 +1,11 @@
 from enum import Enum
+
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Index, Integer, String, text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
+
 from app.db.base import Base
+
 
 class SessionStatus(str, Enum):
     WAITING = "WAITING"

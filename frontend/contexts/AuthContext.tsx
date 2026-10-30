@@ -215,17 +215,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // anything: a 200 on /auth/me means the broadcast was not about our
   // session — ignoring it is what keeps a freshly logged-in tab stable
   // when a stale tab's expired-auth chain shouts (P1 login flake).
+  //
+  // Re-entrancy (F-013): the probe itself goes through authFetch, so its own
+  // 401 emits `jsk:auth-expired` again — re-entering this function before the
+  // first copy resolved and starting a second probe. A ref (not state) keeps
+  // the guard synchronous, so a burst of broadcasts is collapsed to one probe.
+  const remoteLogoutInFlight = useRef(false);
   const verifyThenApplyRemoteLogout = useCallback(async () => {
+    if (remoteLogoutInFlight.current) return;
+    remoteLogoutInFlight.current = true;
     try {
-      const res = await fetch('/api/v1/auth/me', { credentials: 'include' });
-      if (res.ok) return;
-      if (isTransientLoginStatus(res.status)) return; // unknown state — keep session
-    } catch {
-      return; // cannot verify on a network error — keep session
+      try {
+        const res = await fetch('/api/v1/auth/me', { credentials: 'include' });
+        if (res.ok) return;
+        if (isTransientLoginStatus(res.status)) return; // unknown state — keep session
+      } catch {
+        return; // cannot verify on a network error — keep session
+      }
+      clearCsrfToken();
+      setAuthState({ user: null, status: 'unauthenticated' });
+      router.replace('/login');
+    } finally {
+      // Released even on the early returns above, so a later broadcast (a real
+      // logout minutes from now) still gets its probe.
+      remoteLogoutInFlight.current = false;
     }
-    clearCsrfToken();
-    setAuthState({ user: null, status: 'unauthenticated' });
-    router.replace('/login');
   }, [router]);
 
   // Multi-tab logout/expiry sync via BroadcastChannel.

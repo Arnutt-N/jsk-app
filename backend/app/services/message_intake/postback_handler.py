@@ -4,10 +4,11 @@ from functools import partial
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ._deps import get_line_service
-from .commands import handle_check_status
 from app.core.logging_utils import mask_line_id
 from app.services.outbox import Outbox, drain_outbox
+
+from ._deps import get_line_service
+from .commands import handle_check_status
 
 logger = logging.getLogger(__name__)
 

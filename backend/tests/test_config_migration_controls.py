@@ -3,7 +3,6 @@ from pydantic import ValidationError
 
 from app.core.config import Settings
 
-
 BASE_SETTINGS = {
     "DATABASE_URL": "postgresql+asyncpg://postgres:password@localhost:5432/skn_app_db",
     "SECRET_KEY": "test-secret-key",

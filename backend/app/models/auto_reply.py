@@ -1,8 +1,11 @@
-from sqlalchemy import Column, String, Integer, DateTime, Boolean, Enum, Text, ForeignKey
+import enum
+
+from sqlalchemy import Boolean, Column, DateTime, Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.sql import func
-import enum
+
 from app.db.base import Base
+
 
 class ReplyType(str, enum.Enum):
     TEXT = "text"

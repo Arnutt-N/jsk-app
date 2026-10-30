@@ -73,7 +73,6 @@ async def test_get_incoming_message_by_line_message_id_tolerates_duplicate_rows(
     """Review finding L1: payload->>'line_message_id' is not unique — a second
     matching row must not raise MultipleResultsFound; the first row wins."""
     from types import SimpleNamespace
-    from unittest.mock import AsyncMock, patch
 
     service = LineService()
 

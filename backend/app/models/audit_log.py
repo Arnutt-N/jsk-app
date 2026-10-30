@@ -1,8 +1,10 @@
 """Audit Log model for tracking admin actions."""
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text
+from datetime import datetime, timezone
+
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
-from datetime import datetime, timezone
+
 from app.db.base import Base
 
 

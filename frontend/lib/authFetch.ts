@@ -85,9 +85,28 @@ function isApiRequest(input: RequestInfo | URL): boolean {
   }
 }
 
-// Never refresh+retry the refresh call itself (guards against recursion).
-function isRefreshRequest(input: RequestInfo | URL): boolean {
-  return getRequestUrl(input).includes('/auth/refresh');
+// Refresh-then-replay is only meaningful for a request that carries the
+// session. Auth-ENTRY endpoints are the ones that ESTABLISH it: a 401 there
+// means "wrong credentials" (or no session to migrate), so refreshing would
+// burn a call and hide the real answer behind a failed refresh cycle.
+//   /auth/refresh        — recursion guard
+//   /auth/login          — wrong password must surface as-is (F-012)
+//   /auth/migrate-session— converts a legacy Bearer token; 401 = bad token
+//
+// /auth/ws-ticket is deliberately NOT here. It mints a ticket for an existing
+// session, so a 401 means the access token expired — exactly the case a
+// refresh-then-replay recovers. Listing it made an expired token kill the
+// socket permanently: the minter swallowed the 401 (`return null`) while the
+// dispatch still fired the logout event.
+const NON_RETRYABLE_AUTH_PATHS = [
+  '/auth/refresh',
+  '/auth/login',
+  '/auth/migrate-session',
+] as const;
+
+function isNonRetryableAuthRequest(input: RequestInfo | URL): boolean {
+  const url = getRequestUrl(input);
+  return NON_RETRYABLE_AUTH_PATHS.some((path) => url.includes(path));
 }
 
 const MUTATING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
@@ -123,7 +142,7 @@ async function handleCookieModeFetch(
   if (!isApiRequest(input)) {
     return nativeFetch(input, init);
   }
-  const canRetry = !isRefreshRequest(input);
+  const canRetry = !isNonRetryableAuthRequest(input);
   // isApiRequest(input) is guaranteed true here by the early return above (F14).
   const needsCsrf = MUTATING_METHODS.has(getRequestMethod(input, init));
 

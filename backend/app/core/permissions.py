@@ -27,7 +27,9 @@ Default policy keys (must match `permission_settings.key` rows):
 """
 from __future__ import annotations
 
+import asyncio
 import logging
+import time
 from typing import Iterable, Literal, NamedTuple
 
 from sqlalchemy import select
@@ -114,6 +116,11 @@ DEFAULT_POLICY: dict[str, frozenset[UserRole]] = {
     # --- Phase 3: Chatbot Management ---
     KEY_MANAGE_BROADCAST: frozenset({UserRole.SUPER_ADMIN, UserRole.ADMIN}),
     KEY_MANAGE_AUTO_REPLIES: frozenset({UserRole.SUPER_ADMIN, UserRole.ADMIN}),
+    # NOTE: no VIEWER. The sidebar used to list Rich Menus / Reply Objects for
+    # VIEWER while these keys excluded the role; the menu now follows the matrix
+    # (F-031), so the honest fix is to stop promising a page whose write action
+    # the same key forbids. Adding VIEWER here would grant create/update on
+    # /admin/reply-objects and /admin/rich-menus — see the view-only routes.
     KEY_MANAGE_RICH_MENUS: frozenset({UserRole.SUPER_ADMIN, UserRole.ADMIN}),
     KEY_MANAGE_REPLY_OBJECTS: frozenset({UserRole.SUPER_ADMIN, UserRole.ADMIN}),
     KEY_EXPORT_CHAT: frozenset({UserRole.SUPER_ADMIN, UserRole.ADMIN}),
@@ -172,6 +179,51 @@ PERMISSION_SETTINGS_EDITOR_ROLES: frozenset[UserRole] = DEFAULT_POLICY[KEY_EDIT_
 # helpers fall back to DEFAULT_POLICY.
 _policy_cache: dict[str, frozenset[UserRole]] | None = None
 
+# Monotonic timestamp of the last successful load. `load_policy` is only called
+# at startup and by the PATCH handler, so without a TTL a revocation edited on
+# one worker never reaches the others (F-002). `refresh_policy_if_stale` bounds
+# that window to POLICY_CACHE_TTL_SECONDS.
+_policy_loaded_at: float | None = None
+
+# How long a cached matrix may be served before the next request re-reads it.
+# 30s keeps the common-path cost at zero (an in-process dict read) while making
+# a revocation reach every worker within half a minute.
+POLICY_CACHE_TTL_SECONDS = 30.0
+
+# Ceiling on one refresh round-trip. Without it a DB that accepts the TCP
+# connection but never answers would park every `require_permission` request
+# (102 call sites) until the client gave up, instead of denying at the TTL.
+POLICY_REFRESH_TIMEOUT_SECONDS = 5.0
+
+_policy_session_factory_cache = None
+
+
+def _policy_session_factory():
+    """Session factory for the policy re-read, on a NullPool engine.
+
+    Built lazily and cached per process. NullPool because the refresh can run
+    on any event loop — a request served by a TestClient portal, for instance —
+    and a pooled connection created on one loop cannot be reused on another
+    ("got Future attached to a different loop"). With NullPool every connection
+    stays on the caller's loop, and since the refresh runs at most once per TTL
+    per worker the extra connect is cheaper than the alternative.
+    """
+    global _policy_session_factory_cache
+    if _policy_session_factory_cache is None:
+        # Local imports: engine construction is not needed by unit tests that
+        # never refresh.
+        from sqlalchemy.ext.asyncio import AsyncSession as _AsyncSession
+        from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+        from sqlalchemy.pool import NullPool
+
+        from app.core.config import settings
+
+        engine = create_async_engine(str(settings.DATABASE_URL), poolclass=NullPool)
+        _policy_session_factory_cache = async_sessionmaker(
+            engine, class_=_AsyncSession, expire_on_commit=False
+        )
+    return _policy_session_factory_cache
+
 
 def _coerce_roles(values: Iterable[str]) -> frozenset[UserRole]:
     """Convert a sequence of stringified role names to UserRole enums.
@@ -198,14 +250,25 @@ async def load_policy(db: AsyncSession) -> dict[str, frozenset[UserRole]]:
     # Local import to avoid a circular ORM/Base import at module load.
     from app.models.permission_setting import PermissionSetting
 
-    global _policy_cache
+    global _policy_cache, _policy_loaded_at
 
     try:
         result = await db.execute(select(PermissionSetting))
         rows = result.scalars().all()
-    except Exception as exc:  # noqa: BLE001 -- log + degrade
-        logger.warning("Failed to load permission_settings: %s; using defaults", exc)
-        _policy_cache = dict(DEFAULT_POLICY)
+    except Exception as exc:  # noqa: BLE001 -- deny, never widen
+        # F-004: this used to fall back to DEFAULT_POLICY, which is the
+        # BOOTSTRAP policy and more permissive than a hardened production
+        # matrix. A transient read error therefore restored rights an operator
+        # had revoked, for the life of the process. Deny every key instead
+        # (every value an empty frozenset) and leave the cache marked loaded so
+        # the retry is bounded by the TTL rather than by traffic.
+        logger.error(
+            "Failed to load permission_settings: %s — denying all permission "
+            "checks until the next successful refresh",
+            exc,
+        )
+        _policy_cache = {key: frozenset() for key in ALL_PERMISSION_KEYS}
+        _policy_loaded_at = time.monotonic()
         return _policy_cache
 
     db_policy: dict[str, frozenset[UserRole]] = {}
@@ -216,6 +279,7 @@ async def load_policy(db: AsyncSession) -> dict[str, frozenset[UserRole]]:
     # Merge: DB values override defaults, but defaults fill any missing keys.
     merged = {**DEFAULT_POLICY, **db_policy}
     _policy_cache = merged
+    _policy_loaded_at = time.monotonic()
     return merged
 
 
@@ -308,20 +372,71 @@ def invalidate_cache() -> None:
     The next call to a `can_*` helper that triggers a refresh (or the
     next call to `load_policy`) will repopulate from the DB.
     """
-    global _policy_cache
+    global _policy_cache, _policy_loaded_at
     _policy_cache = None
+    _policy_loaded_at = None
+
+
+async def refresh_policy_if_stale(db: AsyncSession | None = None) -> None:
+    """Re-read the DB-backed matrix when the cached copy is older than the TTL.
+
+    F-002: `_policy_cache` is per-process and only the PATCH worker refreshes
+    it, so without this a revocation edited on one gunicorn/Koyeb worker never
+    reaches the others. Callers awaiting this on each permission-gated request
+    get the in-process timestamp read with no I/O inside the TTL, so the fast
+    path is unchanged.
+
+    `db` is optional and exists for tests. In production the refresh opens its
+    OWN session: reusing the request session would consume statements from a
+    caller that owns it (and would break every test that substitutes `get_db`
+    with a scripted fake).
+
+    Fails closed: if the re-read raises, a deny-all cache is written. Clearing
+    the cache instead would fall back to DEFAULT_POLICY — the bootstrap
+    matrix — which is WIDER than any hardened production matrix, so a DB flap
+    would restore revoked rights (F-004). The deny-all written here is also
+    stamped, so the retry stays bounded by the TTL rather than by traffic.
+    """
+    global _policy_cache, _policy_loaded_at
+
+    if _policy_cache is not None and _policy_loaded_at is not None:
+        if time.monotonic() - _policy_loaded_at < POLICY_CACHE_TTL_SECONDS:
+            return
+
+    try:
+        if db is not None:
+            await load_policy(db)
+        else:
+            await asyncio.wait_for(_load_on_own_session(), POLICY_REFRESH_TIMEOUT_SECONDS)
+    except Exception as exc:  # noqa: BLE001 -- deny rather than serve stale
+        logger.error(
+            "Permission policy refresh failed: %s — denying all permission "
+            "checks until the next successful refresh; not falling back to "
+            "DEFAULT_POLICY",
+            exc,
+        )
+        _policy_cache = {key: frozenset() for key in ALL_PERMISSION_KEYS}
+        _policy_loaded_at = time.monotonic()
+
+
+async def _load_on_own_session() -> None:
+    """Open the NullPool session and load the matrix into the cache."""
+    session_maker = _policy_session_factory()
+    async with session_maker() as session:
+        await load_policy(session)
 
 
 def _allowed_for(key: str) -> frozenset[UserRole]:
     """Resolve the allowed-roles set for a permission key.
 
-    Reads from the in-process cache when populated, otherwise falls back
-    to the hardcoded DEFAULT_POLICY. The cache is populated by an async
-    `load_policy()` call, so before the first request lands the helpers
-    will use defaults -- matching Stage 1 behavior exactly.
+    When the cache is populated it is authoritative — including a populated
+    cache where this key is absent, which yields an empty set (deny). The
+    DEFAULT_POLICY fallback exists only for the window BEFORE the first load
+    (bootstrap), never as a substitute for a failed one: `load_policy` writes a
+    deny-all cache on failure so a DB outage cannot widen access (F-004).
     """
-    if _policy_cache is not None and key in _policy_cache:
-        return _policy_cache[key]
+    if _policy_cache is not None:
+        return _policy_cache.get(key, frozenset())
     return DEFAULT_POLICY.get(key, frozenset())
 
 

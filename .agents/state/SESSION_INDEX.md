@@ -1,16 +1,16 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Cross-Platform Session Index (generated)
 
-> **Last generated**: 2026-10-25 13:55 (from newest checkpoint)
+> **Last generated**: 2026-10-29 17:21 (from newest checkpoint)
 
 ## Quick Stats
 
 | Metric | Value |
 |--------|-------|
-| Handoff checkpoints (active) | 313 |
-| Session summaries on disk | 418 |
+| Handoff checkpoints (active) | 318 |
+| Session summaries on disk | 423 |
 | Platforms | 12 (antigravity, claude_code, cline, codex, gemini_cli, kilo_code, kimi_code, muse_code, open_code, pi, qoder, zcode) |
-| Most recent | 2026-10-25 13:55 — kimi_code |
+| Most recent | 2026-10-29 17:21 — claude_code |
 
 > Regenerate after any handoff: `node .agents/scripts/gen-handoff-views.cjs`
 
@@ -24,10 +24,13 @@
 | 2026-04-04 12:04 | completed | — | — | `handover-antigravity-20260404-1204.json` |
 | 2026-02-15 03:20 | completed | — | — | `handover-antigravity-20260215-0320.json` |
 
-## claude_code (162)
+## claude_code (165)
 
 | When | Status | Model | Provider | Checkpoint |
 |------|--------|-------|----------|------------|
+| 2026-10-29 17:21 | completed | — | — | `handover-claude_code-20261029-1721.json` |
+| 2026-10-29 11:32 | completed | — | — | `handover-claude_code-20261029-1132.json` |
+| 2026-10-29 06:51 | completed | — | — | `handover-claude_code-20261029-0651.json` |
 | 2026-10-18 10:26 | completed | — | — | `handover-claude_code-20261018-1026.json` |
 | 2026-10-10 12:50 | completed | — | — | `handover-claude_code-20261010-1250.json` |
 | 2026-10-10 01:32 | completed | Claude Haiku 5.5 | Anthropic | `handover-claude_code-20261010-0132.json` |
@@ -45,10 +48,7 @@
 | 2026-08-02 20:10 | completed | — | — | `handover-claude_code-20260802-2010.json` |
 | 2026-08-02 19:49 | completed | — | — | `handover-claude_code-20260802-1949.json` |
 | 2026-08-02 19:35 | completed | — | — | `handover-claude_code-20260802-1935.json` |
-| 2026-08-02 18:33 | completed | — | — | `handover-claude_code-20260802-1833.json` |
-| 2026-08-02 18:01 | completed | — | — | `handover-claude_code-20260802-1801.json` |
-| 2026-08-02 02:01 | completed | — | — | `handover-claude_code-20260802-0201.json` |
-| … | | | | +142 older |
+| … | | | | +145 older |
 
 ## cline (14)
 
@@ -160,10 +160,12 @@
 | 2026-08-15 14:50 | completed | — | — | `handover-open_code-20260815-1450.json` |
 | 2026-02-14 23:00 | completed | — | — | `handover-open_code-20260214-2300.json` |
 
-## pi (33)
+## pi (35)
 
 | When | Status | Model | Provider | Checkpoint |
 |------|--------|-------|----------|------------|
+| 2026-10-27 12:25 | completed | — | — | `handover-pi-20261027-1225.json` |
+| 2026-10-26 11:13 | completed | — | — | `handover-pi-20261026-1113.json` |
 | 2026-10-25 10:29 | completed | — | — | `handover-pi-20261025-1029.json` |
 | 2026-10-25 01:02 | completed | — | — | `handover-pi-20261025-0102.json` |
 | 2026-10-24 11:26 | completed | — | — | `handover-pi-20261024-1126.json` |
@@ -182,9 +184,7 @@
 | 2026-10-21 05:59 | completed | — | — | `handover-pi-20261021-0559.json` |
 | 2026-10-19 23:15 | completed | — | — | `handover-pi-20261019-2315.json` |
 | 2026-10-19 20:02 | completed | — | — | `handover-pi-20261019-2002.json` |
-| 2026-10-19 17:03 | completed | — | — | `handover-pi-20261019-1703.json` |
-| 2026-10-19 15:03 | completed | — | — | `handover-pi-20261019-1503.json` |
-| … | | | | +13 older |
+| … | | | | +15 older |
 
 ## qoder (26)
 

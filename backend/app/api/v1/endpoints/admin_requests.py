@@ -1,17 +1,22 @@
 import enum
 import uuid
-from datetime import UTC, date, datetime, time, timedelta
+from datetime import date, datetime
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, Field
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_admin, get_current_manager, get_current_manager_or_viewer
 from app.core.audit import create_audit_log
-from app.core.date_windows import bangkok_today_start_utc
-from app.core.pii_masking import mask_viewer_contacts
+from app.core.date_windows import bangkok_today_start_utc, day_bounds_utc
 from app.core.permissions import (
     can_assign,
     can_edit_request_details,
     can_revert_approval,
     can_self_assign,
 )
+from app.core.pii_masking import mask_viewer_contacts
 from app.core.query_utils import escape_ilike
 from app.core.request_workflow import describe_invalid_transition, requires_override
 from app.db.session import get_db
@@ -24,11 +29,6 @@ from app.schemas.service_request_liff import (
     RequestCommentResponse,
     ServiceRequestResponse,
 )
-from app.services.business_hours_service import BANGKOK_TZ
-from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
-from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
 
@@ -304,14 +304,17 @@ async def list_requests(
     if category:
         query = query.where(ServiceRequest.topic_category == category)
     
+    # F-034: one definition of "a Bangkok calendar day", shared with the audit
+    # log and report endpoints. `day_bounds_utc` is applied per bound rather
+    # than through `resolve_range`, because this endpoint treats each date as
+    # optional independently (a lone end_date is an upper cap with no lower
+    # bound) — `resolve_range` fills the missing side, which would quietly
+    # invent a bound the caller never asked for.
     if start_date:
-        start_naive = datetime.combine(start_date, time.min)
-        start_dt = BANGKOK_TZ.localize(start_naive).astimezone(UTC)
+        start_dt, _ = day_bounds_utc(start_date)
         query = query.where(ServiceRequest.created_at >= start_dt)
     if end_date:
-        next_day = end_date + timedelta(days=1)
-        next_naive = datetime.combine(next_day, time.min)
-        end_dt = BANGKOK_TZ.localize(next_naive).astimezone(UTC)
+        _, end_dt = day_bounds_utc(end_date)
         query = query.where(ServiceRequest.created_at < end_dt)
     
     if search:

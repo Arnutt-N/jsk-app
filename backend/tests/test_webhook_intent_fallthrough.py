@@ -10,8 +10,9 @@ silently swallows the user's message.
 `keyword_match` in the returned tuple is None whenever the answer comes from
 AutoReply, so the caller labels the reply from the rule (not the dead intent).
 """
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from app.services.message_intake.intent_matching import resolve_reply_responses
 

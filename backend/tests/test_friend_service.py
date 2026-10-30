@@ -6,7 +6,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from app.services.friend_service import FriendService
-
 from tests.identity_helpers import make_line_user_fields
 
 

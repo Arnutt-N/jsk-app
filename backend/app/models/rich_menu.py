@@ -1,11 +1,11 @@
 import enum
-import uuid
 
-from sqlalchemy import Column, ForeignKey, Integer, String, DateTime, JSON, Text
+from sqlalchemy import JSON, Column, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 
 from app.db.base import Base
+
 
 class RichMenuStatus(str, enum.Enum):
     DRAFT = "DRAFT"

@@ -1,6 +1,7 @@
 """Business hours model for defining operating hours."""
-from sqlalchemy import Column, Integer, Boolean, Index, String, DateTime, UniqueConstraint, text
+from sqlalchemy import Boolean, Column, DateTime, Index, Integer, String, UniqueConstraint, text
 from sqlalchemy.orm import validates
+
 from app.db.base import Base
 
 # Sentinel close time meaning "open until midnight". datetime.time cannot hold

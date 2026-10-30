@@ -81,6 +81,7 @@ async def test_set_setting_rejects_secret_key():
 @pytest.mark.asyncio
 async def test_get_settings_masks_secret_values(test_client, monkeypatch):
     from types import SimpleNamespace
+
     from app.models.user import UserRole
 
     engine = _fresh_engine()

@@ -2,6 +2,7 @@ from typing import Sequence, Union
 
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy.dialects import postgresql
 
 revision: str = "533db9188e4b"
 down_revision: Union[str, None] = "h8i9j0k1l2m4"
@@ -18,8 +19,20 @@ def upgrade() -> None:
         sa.Column("email", sa.String(), nullable=True),
         sa.Column("phone_number", sa.String(), nullable=True),
         # userrole already exists (initial migration + DIRECTOR/HEAD added later) --
-        # reference it without creating.
-        sa.Column("requested_role", sa.Enum("SUPER_ADMIN", "ADMIN", "DIRECTOR", "HEAD", "AGENT", "USER", name="userrole", create_type=False), nullable=False, server_default="AGENT"),
+        # reference it without creating. Must be postgresql.ENUM, not sa.Enum:
+        # the generic sa.Enum ignores `create_type` entirely and emits CREATE
+        # TYPE, which fails with DuplicateObjectError on any database that
+        # already has the type (every one that ran the initial migration).
+        sa.Column(
+            "requested_role",
+            postgresql.ENUM(
+                "SUPER_ADMIN", "ADMIN", "DIRECTOR", "HEAD", "AGENT", "USER",
+                name="userrole",
+                create_type=False,
+            ),
+            nullable=False,
+            server_default="AGENT",
+        ),
         sa.Column("reason", sa.Text(), nullable=True),
         sa.Column("status", sa.Enum("PENDING", "APPROVED", "REJECTED", name="accessrequeststatus"), nullable=False, server_default="PENDING"),
         sa.Column("reviewed_by", sa.Integer(), sa.ForeignKey("users.id"), nullable=True),

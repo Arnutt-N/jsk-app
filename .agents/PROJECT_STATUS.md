@@ -1,8 +1,10 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-10-25 13:55 by Kimi Code (Merged PR #299: admin UI polish batch reply-objects SKN->JSK rename+migration, canned badg)
+> **Last Updated:** 2026-10-29 17:21 by Claude Code (Codebase review plan 30/30 complete, plus a review/correct/deslop pass that closed 4 findi)
 
 ## Thai Summary
+**สถานะล่าสุด (2026-10-27)** — งานตรวจโค้ดรอบใหม่ Task 22 เสร็จ: เปิดประตูตรวจโค้ดหลังบ้าน (ruff) ใน CI แล้ว, PR #301 (draft) CI เขียวครบทุกด่าน; เหลืออีก 29 งาน เริ่มจาก Phase 0 (CI tasks 13, 14, 18, 24) — ดูรายละเอียดใน `project-log-md/pi/session-summary-20261027-1225.md`
+
 **สถานะล่าสุด (2026-09-30)** — รวม PR #239 (แก้บั๊กโอนแชทไม่มีบันทึก M-8) เข้าสายหลักแล้ว (`fd82c7a`) + ตรวจหลังส่งขึ้นร้านจริงเสร็จ: หลังบ้านแข็งแรงดี (database+redis ปกติ), หน้าร้านเปิดติด (HTTP 200), ปุ่มโอนแชทล็อกถูกต้อง (401), บันทึกส่งของ CD `36596610691` เขียวครบ 6 งาน — โค้ดตรงกับเซิร์ฟเวอร์ เหลือ Round-3b (22 ข้อ) + ซ่อมไฟล์ทดสอบ upload-security ที่พังมาก่อน
 
 <!-- Previous project summary retained below for historical context. -->
@@ -123,6 +125,11 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-10-29 17:21] Claude Code: Codebase review plan 30/30 complete, plus a review/correct/deslop pass that closed 4 findings (2 latent fail-open in the route manifest, 1 stale doc, 1 e2e race). CI + E2E + Encoding green at c04f5b8 with zero retries. (Claude Code)
+- [2026-10-29 11:32] Claude Code: Codebase review plan COMPLETE: all 30/30 tasks done (Tasks 20,21,25,26,29,30 this session). CI + E2E + Encoding green at 38f2385. (Claude Code)
+- [2026-10-29 06:51] Claude Code: Codebase review: Phase 0 complete (5/5) and Phase 1 complete (7/7); Phase 2 at 10/14. Tasks 1,2,3,4,5,6,7,8,9,10,11,13,14,15,16,17,18,19,22,24,27,28 done, all CI green. (Claude Code)
+- [2026-10-27 12:25] Pi: Codebase review: Task 22 backend ruff gate done, PR #301 draft CI green; 29 tasks remain starting with Phase 0 CI tasks (Pi)
+- [2026-10-26 11:13] Pi: Admin P1 fixes: 8 defects fixed, PR #300 open and CI green; review round 2 in flight (Pi)
 - [2026-10-25 13:55] Kimi Code: Merged PR #299: admin UI polish batch (reply-objects SKN->JSK rename+migration, canned badge removal, rich-menu shared Selects, audit filters+balanced cards); CD green, prod DB migrated (Kimi Code)
 - [2026-10-25 10:29] Pi: Merged PR #297 (shared DatePresetFilter on 6 admin pages) + PR #298 (eslint ban on direct DateRangePicker imports) (Pi)
 - [2026-10-25 01:02] Pi: Merged PR #296: admin UI fixes batch + read-only Viewer (10 items), all CI green (Pi)

@@ -125,7 +125,7 @@ export default function DesignSystemPage() {
   const [checkboxChecked, setCheckboxChecked] = useState(true);
 
   return (
-    <PageAccessGuard allowedRoles={['SUPER_ADMIN', 'ADMIN']}>
+    <PageAccessGuard>
       <div className="ds-page">
         {/* ── Hero ── */}
         <PageHeader title="JSK Admin UI Language" subtitle="Design system component showcase" />

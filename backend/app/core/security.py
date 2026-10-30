@@ -1,13 +1,12 @@
 """Security utilities for JWT and authentication."""
-from datetime import datetime, timedelta, timezone
+import asyncio
 import logging
+from datetime import datetime, timedelta, timezone
+from functools import partial
 from typing import Optional, Union
 
-import asyncio
-from functools import partial
-
 import bcrypt
-from jose import jwt, JWTError
+from jose import JWTError, jwt
 
 from app.core.config import settings
 

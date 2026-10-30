@@ -4,7 +4,6 @@ Redis is down.
 """
 import pytest
 
-from app.api.v1.endpoints import auth as auth_module
 from app.api.v1.endpoints.auth import (
     AUTH_RATE_LIMIT,
     _auth_rate_limit_exceeded,

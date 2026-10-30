@@ -27,6 +27,8 @@ from app.api.v1.endpoints import (
     admin_integrations,
     admin_users,
     media,
+)
+from app.api.v1.endpoints import (
     settings as settings_endpoints,
 )
 from app.api.v1.endpoints.media import BulkIdsRequest

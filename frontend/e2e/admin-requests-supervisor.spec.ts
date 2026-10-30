@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { loginAsAdmin } from './utils/auth'
+import { gotoAdmin } from './utils/nav'
 
 /**
  * /admin/requests/[id] -- supervisor workflow + override menu.
@@ -134,7 +135,7 @@ test.describe('Request detail page -- supervisor view', () => {
 
   test.beforeEach(async ({ page }) => {
     await loginAsAdmin(page)
-    await page.goto('/admin/requests')
+    await gotoAdmin(page, '/admin/requests')
     await expect(page.locator('table')).toBeVisible({ timeout: 10_000 })
     await seedRequest(page, 'PENDING')
     await seedRequest(page, 'COMPLETED')
@@ -153,7 +154,7 @@ test.describe('Request detail page -- supervisor view', () => {
 
   test('hero card renders supervisor-tier workflow buttons', async ({ page }) => {
     const detailUrl = await getFirstRequestDetailUrl(page)
-    await page.goto(detailUrl!)
+    await gotoAdmin(page, detailUrl!)
 
     // Hero card: title with topic_category + back button + workflow row
     await expect(page.getByRole('button', { name: 'กลับ' })).toBeVisible({ timeout: 10_000 })
@@ -182,7 +183,7 @@ test.describe('Request detail page -- supervisor view', () => {
 
   test('override kebab menu opens and contains escape-hatch items', async ({ page }) => {
     const detailUrl = await getFirstRequestDetailUrl(page)
-    await page.goto(detailUrl!)
+    await gotoAdmin(page, detailUrl!)
     await expect(page.getByRole('button', { name: 'กลับ' })).toBeVisible({ timeout: 10_000 })
 
     // The kebab is hidden on terminal-state requests (COMPLETED/REJECTED).
@@ -210,7 +211,7 @@ test.describe('Request detail page -- supervisor view', () => {
     await page.setViewportSize({ width: 375, height: 800 })
 
     const detailUrl = await getFirstRequestDetailUrl(page)
-    await page.goto(detailUrl!)
+    await gotoAdmin(page, detailUrl!)
     await expect(page.getByRole('button', { name: 'กลับ' })).toBeVisible({ timeout: 10_000 })
 
     // Switch to manage tab where the pills live (tabs use role="tab").
@@ -248,7 +249,7 @@ test.describe('Request detail page -- supervisor view', () => {
 
   test('revert kebab shows both revert items on COMPLETED request', async ({ page }) => {
     const detailUrl = await getFirstCompletedRequestDetailUrl(page)
-    await page.goto(detailUrl!)
+    await gotoAdmin(page, detailUrl!)
     await expect(page.getByRole('button', { name: 'กลับ' })).toBeVisible({ timeout: 10_000 })
 
     // Kebab MUST be visible on COMPLETED for supervisor (PRD B changed
@@ -281,7 +282,7 @@ test.describe('Request detail page -- supervisor view', () => {
 
   test('cancelling the revert dialog keeps status as COMPLETED', async ({ page }) => {
     const detailUrl = await getFirstCompletedRequestDetailUrl(page)
-    await page.goto(detailUrl!)
+    await gotoAdmin(page, detailUrl!)
     await expect(page.getByRole('button', { name: 'กลับ' })).toBeVisible({ timeout: 10_000 })
 
     // The status pill we expect to remain after cancel.
@@ -310,7 +311,7 @@ test.describe('Request detail page -- supervisor view', () => {
     // Baseline: real backend GET on page load; capture BEFORE installing fulfills.
     const [detailResp] = await Promise.all([
       page.waitForResponse((r) => r.request().method() === 'GET' && r.url().endsWith(`/api/v1/admin/requests/${id}`)),
-      page.goto(detailUrl!),
+      gotoAdmin(page, detailUrl!),
     ])
     const baseline = await detailResp.json()
     await expect(page.getByRole('button', { name: 'กลับ' })).toBeVisible({ timeout: 10_000 })
@@ -356,7 +357,7 @@ test.describe('Request detail page -- supervisor view', () => {
     })
 
     const detailUrl = await getFirstRequestDetailUrl(page)
-    await page.goto(detailUrl!)
+    await gotoAdmin(page, detailUrl!)
     await expect(page.getByRole('button', { name: 'กลับ' })).toBeVisible({ timeout: 10_000 })
 
     // Wait briefly for any deferred network calls (fetchDetail, fetchComments).

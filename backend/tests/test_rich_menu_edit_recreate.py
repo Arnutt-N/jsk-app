@@ -22,8 +22,6 @@ from datetime import datetime
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
-import pytest
-
 from app.models.rich_menu import RichMenuSyncStatus
 from app.services import rich_menu_service as service_module
 from app.services.rich_menu_service import RichMenuService
@@ -442,6 +440,7 @@ def _put_kwargs():
 
 def _put_client(menu):
     from fastapi.testclient import TestClient
+
     from app.api import deps
     from app.core.permissions import invalidate_cache
     from app.db.session import get_db as session_get_db

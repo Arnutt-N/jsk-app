@@ -121,7 +121,12 @@ jobs:
         run: alembic upgrade head
 
       - name: Run backend tests
+        # The coverage floor lives in backend/pytest.ini (addopts), so the
+        # gate applies to a plain `pytest` run too, not only to CI.
         run: python -m pytest -q
+
+      - name: Lint backend (ruff)
+        run: ruff check app tests
 
   frontend:
     name: Frontend Lint and Build
@@ -153,7 +158,9 @@ jobs:
         run: npm run lint
 
       - name: Run frontend unit tests
-        run: npm run test:unit
+        # --coverage is required to enforce the thresholds pinned in
+        # frontend/vitest.config.ts (Task 24).
+        run: npm run test:unit -- --coverage
 
       - name: Run frontend build
         run: npm run build

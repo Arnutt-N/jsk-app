@@ -1,12 +1,10 @@
 """Unit tests for session cleanup abandonment handling."""
-from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.tasks.session_cleanup import _process_inactive_sessions
-from app.models.chat_session import SessionStatus
 from app.services.user_identity_service import decrypt_line_ids_for_users_tolerant
+from app.tasks.session_cleanup import _process_inactive_sessions
 
 
 def _mock_result_with_sessions(sessions):

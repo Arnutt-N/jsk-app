@@ -1,7 +1,8 @@
+import enum
+
 from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, Numeric, String, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.sql import func
-import enum
 
 from app.db.base import Base
 from app.models.service_request import RequestStatus

@@ -1,6 +1,7 @@
 from datetime import date, timedelta
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
+
 import pytest
 
 from app.api.v1.endpoints import liff_bookings as liff_bookings_module

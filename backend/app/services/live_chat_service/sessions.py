@@ -10,9 +10,9 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.audit import audit_action, create_audit_log
-from app.core.permissions import can, KEY_ACCESS_LIVE_CHAT
+from app.core.permissions import KEY_ACCESS_LIVE_CHAT, can
 from app.models.chat_session import ChatSession, ClosedBy, SessionStatus
-from app.models.user import ChatMode, User, UserRole
+from app.models.user import ChatMode, User
 from app.services.user_identity_service import resolve_by_line_id
 
 from ._deps import get_sla_service

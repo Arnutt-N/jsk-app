@@ -12,9 +12,8 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from app.services import booking_settings
-from app.services import booking_settings
-from app.services.booking_settings import DEFAULTS, load_booking_config
 from app.services.booking_service import ReminderUnit
+from app.services.booking_settings import DEFAULTS, load_booking_config
 
 
 @pytest.fixture(autouse=True)

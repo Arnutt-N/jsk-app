@@ -1,12 +1,38 @@
 from types import SimpleNamespace
+
 import pytest
+from sqlalchemy import event
 
 from app.api import deps as api_deps
+from app.core.config import settings
 from app.core.redis_client import redis_client
 from app.db.session import engine as _app_engine
 from app.main import app
 from app.models.user import UserRole
-from sqlalchemy import event
+
+CACHE_KEY = "analytics:dashboard:7"
+
+
+def _forget_cache_key(key: str) -> None:
+    """Drop a cache key through a throwaway SYNC client.
+
+    `redis_client._redis` is an async client owned by the TestClient portal's
+    event loop (conftest.py documents the same constraint). Awaiting it from
+    pytest-asyncio's loop raised "Task attached to a different loop", and the
+    portal's already-closed loop then surfaced "Event loop is closed". These
+    tests exercise HTTP through `test_client`, which is synchronous anyway, so
+    they stay sync and clear Redis out of band.
+    """
+    try:
+        import redis as _redis_sync
+
+        client = _redis_sync.from_url(settings.REDIS_URL)
+        try:
+            client.delete(key)
+        finally:
+            client.close()
+    except Exception:
+        pass
 
 
 @pytest.fixture
@@ -29,14 +55,13 @@ def query_counter():
     event.remove(sync_engine, "before_cursor_execute", _incr)
 
 
-@pytest.mark.asyncio
-async def test_dashboard_cache_effectiveness(test_client, query_counter):
+def test_dashboard_cache_effectiveness(test_client, query_counter):
     async def _override():
         yield SimpleNamespace(id=1, role=UserRole.ADMIN, is_active=True)
 
     app.dependency_overrides[api_deps.get_current_user] = _override
     try:
-        await redis_client.delete("analytics:dashboard:7")
+        _forget_cache_key(CACHE_KEY)
         # warm-up: first request may trigger connection setup / pool init
         _ = test_client.get("/api/v1/admin/analytics/dashboard?days=7")
         query_counter.count = 0  # reset after warm-up
@@ -56,18 +81,17 @@ async def test_dashboard_cache_effectiveness(test_client, query_counter):
         assert query_counter.count == first
     finally:
         app.dependency_overrides.clear()
-        await redis_client.delete("analytics:dashboard:7")
+        _forget_cache_key(CACHE_KEY)
 
 
-@pytest.mark.asyncio
-async def test_dashboard_empty_percentiles_are_zero(test_client):
+def test_dashboard_empty_percentiles_are_zero(test_client):
     # empty-set: percentile ต้องได้ 0 ไม่ใช่ 500/None
     async def _override():
         yield SimpleNamespace(id=1, role=UserRole.ADMIN, is_active=True)
 
     app.dependency_overrides[api_deps.get_current_user] = _override
     try:
-        await redis_client.delete("analytics:dashboard:7")
+        _forget_cache_key(CACHE_KEY)
         r = test_client.get("/api/v1/admin/analytics/dashboard?days=7")
         assert r.status_code == 200
         pct = r.json()["percentiles"]
@@ -76,11 +100,10 @@ async def test_dashboard_empty_percentiles_are_zero(test_client):
                 assert pct[grp][k] == 0 or pct[grp][k] == 0.0
     finally:
         app.dependency_overrides.clear()
-        await redis_client.delete("analytics:dashboard:7")
+        _forget_cache_key(CACHE_KEY)
 
 
-@pytest.mark.asyncio
-async def test_dashboard_redis_down_still_serves(test_client, monkeypatch):
+def test_dashboard_redis_down_still_serves(test_client, monkeypatch):
     # Redis-down: get/setex พัง -> ต้องคำนวณตรง ๆ ไม่ล้ม request
     async def _override():
         yield SimpleNamespace(id=1, role=UserRole.ADMIN, is_active=True)

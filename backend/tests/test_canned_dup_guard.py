@@ -1,12 +1,12 @@
 import uuid
 from types import SimpleNamespace
+
 import pytest
 import pytest_asyncio
+from sqlalchemy import delete as sa_delete
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
-
-from sqlalchemy import delete as sa_delete
 
 from app.api import deps as api_deps
 from app.core.config import settings

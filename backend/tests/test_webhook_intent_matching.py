@@ -5,8 +5,9 @@ STARTS_WITH > CONTAINS), then evaluate REGEX keywords in Python with ReDoS
 guards (pattern-length cap, probe-length cap, invalid patterns skipped
 instead of raised).
 """
-import pytest
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 from app.services.message_intake.intent_matching import (
     MAX_REGEX_PATTERN_LENGTH,

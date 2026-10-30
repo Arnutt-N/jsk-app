@@ -62,7 +62,7 @@ export function ConfirmDialog({
   const config = variantConfig[variant];
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} maxWidth="sm" showCloseButton={false}>
+    <Modal isOpen={isOpen} onClose={onClose} maxWidth="sm" showCloseButton={false} dismissDisabled={isLoading} ariaLabel={title}>
       <div className="flex flex-col items-center text-center">
         <div className={cn('w-14 h-14 rounded-2xl flex items-center justify-center mb-4', config.iconBg)}>
           {config.icon}
@@ -70,6 +70,11 @@ export function ConfirmDialog({
         <h3 className="text-lg font-semibold text-text-primary mb-2">{title}</h3>
         {description && (
           <p className="text-sm text-text-secondary mb-6">{description}</p>
+        )}
+        {isLoading && (
+          <p role="status" className="text-xs text-text-tertiary -mt-3 mb-1">
+            กำลังดำเนินการ กรุณาอย่าปิดหรือรีเฟรชหน้านี้
+          </p>
         )}
         <div className="flex gap-3 w-full">
           <Button

@@ -17,8 +17,12 @@ import { API_BASE } from './constants/api'
  *
  * Tries, in order:
  *   1. JSON body fields: `detail`, `message`, `error`
- *   2. Raw response body text
- *   3. The provided `fallbackMessage`
+ *   2. The provided `fallbackMessage`
+ *
+ * F-016: the raw non-JSON body is NEVER returned to the caller. A 500 from a
+ * reverse proxy is an HTML page and a crashed backend is a Python traceback —
+ * neither belongs in a user-facing toast. The body is logged instead, where
+ * an engineer can still see it.
  *
  * Clones the response internally so callers can still read the body
  * afterwards if needed.
@@ -28,6 +32,8 @@ export async function readErrorMessage(
   fallbackMessage: string,
 ): Promise<string> {
   const contentType = response.headers.get('content-type') || ''
+  let rawBody: string | null = null
+
   if (contentType.includes('application/json')) {
     try {
       const payload = await response.clone().json()
@@ -35,15 +41,21 @@ export async function readErrorMessage(
       if (typeof payload?.message === 'string' && payload.message.trim()) return payload.message
       if (typeof payload?.error === 'string' && payload.error.trim()) return payload.error
     } catch {
-      // Fall through to text parsing and the default fallback.
+      // Not JSON after all (mislabeled content-type) — fall through.
     }
   }
 
+  // Keep the body for the log, never for the caller.
   try {
-    const text = (await response.text()).trim()
-    if (text) return text
+    rawBody = (await response.text()).trim() || null
   } catch {
-    // Ignore body parsing errors and use the fallback message.
+    rawBody = null
+  }
+
+  if (rawBody) {
+    logger.error(`API error body (${contentType || 'no content-type'})`, undefined, {
+      body: rawBody.slice(0, 2000),
+    })
   }
 
   return fallbackMessage
@@ -105,7 +117,7 @@ export function isNetworkError(error: unknown): boolean {
 
 type ApiFetchResult<T> =
   | { ok: true; data: T }
-  | { ok: false; status: number; message: string }
+  | { ok: false; status: number; message: string; aborted?: true }
 
 /**
  * Fetch wrapper that handles errors uniformly.
@@ -122,6 +134,8 @@ type ApiFetchResult<T> =
 export interface ApiFetchOptions extends RequestInit {
   /** Skip JSON parsing and return the raw Response (for blob downloads). */
   raw?: boolean
+  /** Bound the request so a hung backend cannot hold the UI forever. */
+  timeoutMs?: number
 }
 
 export async function apiFetch<T = unknown>(
@@ -129,6 +143,11 @@ export async function apiFetch<T = unknown>(
   init?: ApiFetchOptions,
 ): Promise<ApiFetchResult<T>> {
   const fullUrl = url.startsWith('http') || url.startsWith(`${API_BASE}/`) ? url : `${API_BASE}${url}`
+  const { raw, timeoutMs, signal, ...rest } = init ?? {}
+
+  const timeoutSignal = timeoutMs ? AbortSignal.timeout(timeoutMs) : undefined
+  const composedSignal =
+    signal && timeoutSignal ? AbortSignal.any([signal, timeoutSignal]) : signal ?? timeoutSignal
 
   const headers = new Headers(init?.headers)
   if (typeof init?.body === 'string' && !headers.has('Content-Type')) {
@@ -136,18 +155,30 @@ export async function apiFetch<T = unknown>(
   }
 
   try {
-    const res = await fetch(fullUrl, { ...init, headers })
+    const res = await fetch(fullUrl, { ...rest, headers, signal: composedSignal })
     if (!res.ok) {
       const message = await readErrorMessage(res, getHttpStatusMessage(res.status))
       logger.error(`API ${res.status}: ${fullUrl}`, { status: res.status, url: fullUrl })
       return { ok: false, status: res.status, message }
     }
-    if (init?.raw) {
+    if (raw) {
       return { ok: true, data: res as unknown as T }
     }
     const data = (await res.json()) as T
     return { ok: true, data }
   } catch (err) {
+    // A caller-cancelled request is not a failure; logging it as one hides real errors.
+    // F-015: `AbortSignal.timeout()` rejects with a DOMException named
+    // 'TimeoutError', not 'AbortError', so a deliberate timeout used to fall
+    // through to the generic branch and surface as an unexpected error (and a
+    // logged "Unexpected fetch error"). Both names mean "we cancelled this
+    // on purpose" and neither belongs on an error path.
+    if (
+      err instanceof DOMException &&
+      (err.name === 'AbortError' || err.name === 'TimeoutError')
+    ) {
+      return { ok: false, status: 0, message: 'คำขอถูกยกเลิก', aborted: true }
+    }
     if (isNetworkError(err)) {
       logger.error('Network error', err, { url: fullUrl })
       return {

@@ -1,18 +1,24 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 import { useAuth } from '@/contexts/AuthContext';
+import { capabilityOf, usePermissions } from '@/lib/permissions';
+import { capabilityAppliesTo, capabilityFor, requiredRolesFor } from '@/lib/route-permissions';
 
-// Mirrors the User.role union in AuthContext (excluding USER, who is
-// never an admin). DIRECTOR + HEAD added 2026-05-04 for the request
-// workflow split -- they share AGENT-equivalent fallback behaviour
-// since they are mid-tier supervisors, not top-level operators.
-type AllowedRole = 'SUPER_ADMIN' | 'ADMIN' | 'DIRECTOR' | 'HEAD' | 'AGENT' | 'VIEWER';
-
+/**
+ * F-033: the guard reads `lib/route-permissions` instead of taking an
+ * `allowedRoles` prop. Three declarations of the same rule (sidebar, this
+ * prop, backend key) used to disagree — e.g. DIRECTOR/HEAD saw the dashboard
+ * in the menu while this guard bounced them back to it.
+ *
+ * `allowedRoles` is still accepted so existing call sites keep type-checking,
+ * but the manifest wins; passing a list only narrows what the manifest already
+ * allows (never widens it).
+ */
 interface PageAccessGuardProps {
-  allowedRoles: AllowedRole[];
+  allowedRoles?: readonly string[];
   fallbackPath?: string;
   children: React.ReactNode;
 }
@@ -33,9 +39,31 @@ export default function PageAccessGuard({
   children,
 }: PageAccessGuardProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const { user, isLoading, isAuthenticated, bootstrapFailed } = useAuth();
+  const permissions = usePermissions();
 
-  const isAllowed = !!user && user.role !== 'USER' && allowedRoles.includes(user.role as AllowedRole);
+  const manifestRoles = requiredRolesFor(pathname);
+  const capability = capabilityFor(pathname);
+
+  const role = user?.role;
+  // The role list is the PRE-LOAD fallback, not a second gate. Requiring both
+  // made a matrix grant unreachable: adding DIRECTOR to `access_live_chat` in
+  // Settings changed nothing while this list still said
+  // SUPER_ADMIN/ADMIN/AGENT. Once the served map has the key, it decides.
+  const roleAllowed =
+    !!role &&
+    role !== 'USER' &&
+    (manifestRoles as readonly string[]).includes(role) &&
+    (!allowedRoles || allowedRoles.includes(role));
+  // `capabilityAppliesTo` keeps VIEWER off the write-gating keys, the same rule
+  // the sidebar applies, so mounting this guard cannot bounce a role the page
+  // itself admits.
+  const capabilityConsulted = capabilityAppliesTo(pathname, role);
+  const capabilityDecided = capabilityConsulted && !!permissions && !!capability;
+  const isAllowed = capabilityDecided
+    ? capabilityOf(permissions, capability)
+    : roleAllowed;
 
   useEffect(() => {
     // bootstrapFailed = auth state unknown (transient backend failure) —

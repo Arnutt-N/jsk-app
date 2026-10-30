@@ -1,9 +1,11 @@
 """
 Pydantic schemas for Auto Reply API
 """
-from pydantic import BaseModel, ConfigDict, Field
-from typing import Optional, Dict, Any
 from datetime import datetime
+from typing import Any, Dict, Optional
+
+from pydantic import BaseModel, ConfigDict, Field
+
 from app.models.auto_reply import MatchType, ReplyType
 
 

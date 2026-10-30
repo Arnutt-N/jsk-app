@@ -460,6 +460,50 @@ describe('cross-tab logout broadcast (login-flake fix)', () => {
     expect(hoisted.replace).toHaveBeenCalledWith('/login');
   });
 
+  it('does not run a second verification while the first is still in flight (F-013)', async () => {
+    // The verification request itself goes through authFetch, so its own 401
+    // fires `jsk:auth-expired` again — re-entering verifyThenApplyRemoteLogout
+    // before the first copy resolved. Two concurrent logout broadcasts make
+    // that trivial to hit. Only ONE /auth/me probe may run.
+    let release!: (res: Response) => void;
+    const pending = new Promise<Response>((resolve) => {
+      release = resolve;
+    });
+    const fetchMock = vi.fn().mockReturnValue(pending);
+    global.fetch = fetchMock;
+    setAuthState({ user: { id: '1', username: 'admin', role: 'ADMIN' }, status: 'authenticated' });
+    const snapshot = makeSnapshot();
+    render(
+      <AuthProvider>
+        <TestConsumer snapshot={snapshot} />
+      </AuthProvider>,
+    );
+    await waitFor(() => {
+      expect(snapshot.current?.isAuthenticated).toBe(true);
+    });
+
+    const channel = MockChannel.instances[0];
+    await act(async () => {
+      channel.onmessage?.({ data: { type: 'expired' } });
+      channel.onmessage?.({ data: { type: 'expired' } });
+      // Re-entrancy also comes from the window event path.
+      window.dispatchEvent(new CustomEvent('jsk:auth-expired'));
+      await Promise.resolve();
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      release(jsonResponse(401));
+      await pending;
+    });
+
+    await waitFor(() => {
+      expect(snapshot.current?.isAuthenticated).toBe(false);
+    });
+    expect(hoisted.replace).toHaveBeenCalledWith('/login');
+  });
+
   it('a tab that was never authenticated does not log out or broadcast on auth-expired', async () => {
     // Unauthenticated tab (e.g. its own /login bootstrap 401 chain) — the
     // auth-expired event must not trigger logout()/broadcast: it has no

@@ -17,6 +17,7 @@ fallback. The first block below covers the DEFAULT_POLICY path (ships-
 dark); the second block covers the DB-backed path (cache invalidation
 after a PATCH-style policy flip via _policy_cache direct injection).
 """
+import time
 from types import SimpleNamespace
 
 import pytest
@@ -171,10 +172,14 @@ async def test_require_permission_manage_users_gate(role: UserRole, allowed: boo
 def _set_policy_cache(key: str, roles: set) -> None:
     """Inject a DB-style policy entry into the in-process cache.
 
-    Mirrors the shape load_policy(db) produces: dict[str, frozenset[UserRole]].
+    Mirrors BOTH things load_policy(db) writes: the matrix and its freshness
+    stamp. Stamping matters because every plain gate now calls
+    `refresh_policy_if_stale` (F-002); an unstamped cache counts as stale and is
+    immediately overwritten from the real DB, discarding the injected flip.
     """
     invalidate_cache()  # start clean
     perms_module._policy_cache = {**perms_module.DEFAULT_POLICY, key: frozenset(roles)}
+    perms_module._policy_loaded_at = time.monotonic()
 
 
 @pytest.mark.asyncio

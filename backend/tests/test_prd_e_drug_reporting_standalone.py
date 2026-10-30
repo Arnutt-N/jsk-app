@@ -10,9 +10,10 @@ from pathlib import Path
 backend_path = Path(__file__).parent.parent
 sys.path.insert(0, str(backend_path))
 
-from pydantic import BaseModel, ConfigDict
 from typing import Optional
+
 import pytest
+from pydantic import BaseModel, ConfigDict
 
 
 # Recreate the schema here to avoid import issues with Python 3.9

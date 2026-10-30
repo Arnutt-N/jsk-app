@@ -5,19 +5,19 @@ import logging
 from collections.abc import Awaitable, Callable
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
-from sqlalchemy import and_, exists, func, literal_column, select, text
-from sqlalchemy.dialects.postgresql import JSON
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import aliased
 from typing import Any, Optional
 
+from sqlalchemy import and_, exists, func, literal_column, select, text
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import aliased
+
+from app.core.config import settings
+from app.core.redis_client import redis_client
+from app.db.session import AsyncSessionLocal
 from app.models.chat_session import ChatSession, SessionStatus
 from app.models.csat_response import CsatResponse
-from app.models.user import User, ChatMode
 from app.models.message import Message, MessageDirection
-from app.core.redis_client import redis_client
-from app.core.config import settings
-from app.db.session import AsyncSessionLocal
+from app.models.user import ChatMode, User
 from app.services.user_identity_service import child_column
 
 _CLOSED = SessionStatus.CLOSED.value  # asyncpg: string param avoids IndeterminateDatatypeError
@@ -494,10 +494,6 @@ class AnalyticsService:
 
         row = await self._get_dashboard_row(db, days)
         now = datetime.now(timezone.utc)
-        safe_days = max(1, min(days, 30))
-        cutoff = now - timedelta(days=safe_days)
-        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-        yesterday_start = today_start - timedelta(days=1)
 
         def _trend(cur: float, prev: float) -> dict:
             delta = float(cur or 0) - float(prev or 0)

@@ -322,7 +322,6 @@ async def test_activate_due_publishes_and_audits():
 
 @pytest.mark.asyncio
 async def test_activate_skips_already_published():
-    menu = _scheduled_menu(status=RichMenuStatus.PUBLISHED.value)
     db = _SeqDB([[]])  # the query itself filters these out
     with patch.object(RichMenuService, "set_default_on_line", new=AsyncMock()) as set_default:
         due = await _activate_due(db, NOW)
@@ -358,7 +357,7 @@ async def test_expire_never_cancels_a_default_owned_by_another_menu():
                       new=AsyncMock(return_value={"richMenuId": "richmenu-OTHER"})), \
          patch.object(RichMenuService, "cancel_default_on_line", new=AsyncMock()) as cancel, \
          patch("app.tasks.rich_menu_display_scheduler.create_audit_log", new=AsyncMock()):
-        due = await _expire_due(db, NOW)
+        await _expire_due(db, NOW)
 
     assert menu.status == RichMenuStatus.INACTIVE.value
     cancel.assert_not_awaited()

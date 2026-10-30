@@ -22,7 +22,6 @@ from app.core.request_workflow import (
 )
 from app.models.service_request import RequestStatus
 
-
 # ---------------------------------------------------------------------------
 # Map shape
 # ---------------------------------------------------------------------------

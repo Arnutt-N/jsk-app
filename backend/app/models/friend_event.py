@@ -1,7 +1,9 @@
 from enum import Enum
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.sql import func
+
 from app.db.base import Base
 
 

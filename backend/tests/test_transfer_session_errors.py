@@ -9,7 +9,6 @@ only the endpoint's error mapping, not the transfer business logic itself.
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
-import pytest
 from fastapi.testclient import TestClient
 
 from app.api import deps
@@ -17,10 +16,10 @@ from app.api.v1.endpoints import admin_live_chat
 from app.main import app
 from app.models.user import UserRole
 from app.services.live_chat_service import (
+    TRANSFER_ERR_INVALID_TARGET,
     TRANSFER_ERR_NO_ACTIVE_SESSION,
     TRANSFER_ERR_NOT_CURRENT_OPERATOR,
     TRANSFER_ERR_TRANSFER_TO_SELF,
-    TRANSFER_ERR_INVALID_TARGET,
 )
 
 TRANSFER_URL = "/api/v1/admin/live-chat/conversations/U123/transfer"
@@ -40,6 +39,9 @@ def _post_transfer_expecting(error_message: str):
     """Mock transfer_session to raise ValueError(error_message) and POST."""
     app.dependency_overrides[deps.get_db] = _override_get_db
     app.dependency_overrides[deps.get_current_staff] = _override_get_current_staff
+    # F-001: write routes now gate on require_permission(KEY_ACCESS_LIVE_CHAT),
+    # which resolves the caller via get_current_user — override that too.
+    app.dependency_overrides[deps.get_current_user] = _override_get_current_staff
 
     original = admin_live_chat.live_chat_service.transfer_session
     admin_live_chat.live_chat_service.transfer_session = AsyncMock(

@@ -73,3 +73,45 @@ async def test_connect_roundtrip_against_real_redis():
         await client.delete(key)
         await client.disconnect()
     assert client.is_connected is False
+
+
+# --- F-032: production boot must not silently lose shared Redis -------------
+
+
+@pytest.mark.asyncio
+async def test_connect_raises_in_production_when_redis_is_unreachable():
+    """A healthy-looking boot with per-worker limits is worse than no boot."""
+    from app.core import redis_client as rc_module
+
+    with patch.object(
+        rc_module.settings.__class__,
+        "is_production_like",
+        property(lambda self: True),
+    ):
+        client = RedisClient()
+        with patch(
+            "app.core.redis_client.redis.from_url", side_effect=ConnectionError("down")
+        ):
+            with pytest.raises(RuntimeError, match="Redis is unreachable"):
+                await client.connect()
+
+    assert client.is_connected is False
+
+
+@pytest.mark.asyncio
+async def test_connect_degrades_in_development_when_redis_is_unreachable():
+    """Local stacks without Redis stay usable: warn and continue."""
+    from app.core import redis_client as rc_module
+
+    with patch.object(
+        rc_module.settings.__class__,
+        "is_production_like",
+        property(lambda self: False),
+    ):
+        client = RedisClient()
+        with patch(
+            "app.core.redis_client.redis.from_url", side_effect=ConnectionError("down")
+        ):
+            await client.connect()
+
+    assert client.is_connected is False

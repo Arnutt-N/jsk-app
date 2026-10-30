@@ -3,14 +3,14 @@ from types import SimpleNamespace
 
 import pytest
 from linebot.v3.messaging import (
-    TextMessage,
-    FlexMessage,
-    ImageMessage,
-    StickerMessage,
-    LocationMessage,
-    VideoMessage,
     AudioMessage,
+    FlexMessage,
     ImagemapMessage,
+    ImageMessage,
+    LocationMessage,
+    StickerMessage,
+    TextMessage,
+    VideoMessage,
 )
 
 from app.models.reply_object import ObjectType

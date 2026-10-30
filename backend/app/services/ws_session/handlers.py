@@ -5,7 +5,6 @@ service calls, broadcasts, and error frames. The endpoint dispatches here.
 """
 import logging
 import time
-from datetime import datetime, timezone
 
 from fastapi import HTTPException, WebSocket
 from pydantic import ValidationError
@@ -13,11 +12,11 @@ from pydantic import ValidationError
 from app.db.session import AsyncSessionLocal
 from app.models.chat_session import ClosedBy
 from app.schemas.ws_events import (
-    WSEventType,
-    WSErrorCode,
-    SendMessagePayload,
     JoinRoomPayload,
+    SendMessagePayload,
     TransferSessionPayload,
+    WSErrorCode,
+    WSEventType,
 )
 from app.services.live_chat_service.choreography import (
     publish_session_event,
@@ -25,12 +24,12 @@ from app.services.live_chat_service.choreography import (
 )
 
 from ._deps import (
-    get_ws_manager,
-    get_live_chat_service,
     get_analytics_service,
-    get_ws_health_monitor,
-    get_resolve_by_line_id,
+    get_live_chat_service,
     get_notify_admins_message_sent,
+    get_resolve_by_line_id,
+    get_ws_health_monitor,
+    get_ws_manager,
 )
 from .auth import send_message_failed, send_ws_error
 

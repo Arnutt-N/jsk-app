@@ -1,12 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { SessionTimeoutWarning } from '@/components/admin/SessionTimeoutWarning';
+import { hasOpenDialog } from '@/components/ui/Modal';
 import { cn } from '@/lib/utils';
 import { isNavItemVisible } from '@/lib/nav-access';
+import { capabilityOf, usePermissions } from '@/lib/permissions';
+import { canAccessRoute, capabilityAppliesTo, routeFor } from '@/lib/route-permissions';
 import {
   Menu, Search, LogOut, ChevronLeft, ChevronRight, X,
   LayoutDashboard, FileText, Bot, MessageCircle,
@@ -25,38 +28,25 @@ import { NotificationPanel } from '@/components/admin/NotificationPanel';
 import SidebarItem from '@/components/admin/SidebarItem';
 import { CommandPalette } from '@/components/admin/CommandPalette';
 import { HelpSheet } from '@/components/admin/HelpSheet';
+import LogoutConfirmDialog from '@/components/admin/LogoutConfirmDialog';
 
 interface MenuItem {
   name: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
-  allowedRoles?: Array<'SUPER_ADMIN' | 'ADMIN' | 'DIRECTOR' | 'HEAD' | 'AGENT' | 'VIEWER'>;
+  // F-033: role list and capability key come from `lib/route-permissions`,
+  // looked up by `href`. Keeping copies here is what let the sidebar and the
+  // page guards disagree.
   external?: boolean;
   openInNewTab?: boolean;
 }
 
-// VIEWER (read-only observer) allow-list: menus 1-5 only. Matches the
-// sidebar allowedRoles in menuGroups below and the backend *_or_viewer
-// gates. Everything else bounces to '/admin' in AdminAuthGate; write
-// sub-routes (/requests/create, /reply-objects/new, /rich-menus/new,
-// /rich-menus/aliases, /rich-menus/[id]/edit) are excluded on purpose —
-// a direct URL must not render a form whose submit would 403.
+// F-033: path authorization lives in one place -- `lib/route-permissions`.
+// This file keeps only what is genuinely layout-specific (icon, label, group).
+// The old `isViewerPathAllowed` list and the per-item `allowedRoles` arrays
+// disagreed with the page guards; both now read the manifest.
 function isViewerPathAllowed(pathname: string): boolean {
-  if (
-    pathname === '/admin' ||
-    pathname === '/admin/chatbot' ||
-    pathname === '/admin/reports' ||
-    pathname === '/admin/bookings' ||
-    pathname === '/admin/reply-objects' ||
-    pathname === '/admin/rich-menus' ||
-    pathname === '/admin/canned-responses'
-  ) {
-    return true;
-  }
-  if (pathname === '/admin/requests' || pathname === '/admin/requests/kanban') {
-    return true;
-  }
-  return /^\/admin\/requests\/\d+$/.test(pathname);
+  return canAccessRoute(pathname, 'VIEWER');
 }
 
 function AdminAuthGate({ children }: { children: React.ReactNode }) {
@@ -145,20 +135,21 @@ function AdminAuthGate({ children }: { children: React.ReactNode }) {
 // Sidebar User Info Component (uses auth context)
 function SidebarUserInfo({ isCollapsed }: { isCollapsed: boolean }) {
   const { user, logout } = useAuth();
+  const [confirmingLogout, setConfirmingLogout] = useState(false);
   const displayName = user?.display_name || user?.username || 'Administrator';
   const email = '';
   const initials = displayName.substring(0, 2).toUpperCase();
 
   return (
     <div className="relative z-10 p-3 border-t border-white/10 bg-sidebar-accent/50">
-      <div
-        className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-colors cursor-pointer group"
-        onClick={() => logout?.()}
+      <button
+        type="button"
+        aria-label="ออกจากระบบ"
+        className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-colors cursor-pointer group w-full text-left"
+        onClick={() => setConfirmingLogout(true)}
       >
-        {/* No presence dot: the sidebar shows on every admin page where there
-            is no live socket, so a dot here would be a fake always-on indicator
-            (it was hardcoded "online"). Plain avatar instead — the real
-            socket-backed dot lives only on the live-chat ProfileDropdown. */}
+        {/* No presence dot: this sidebar shows on every admin page where there
+            is no live socket (the real dot lives on the live-chat profile). */}
         <Avatar size="sm" fallback={initials} />
         {!isCollapsed && (
           <>
@@ -169,7 +160,12 @@ function SidebarUserInfo({ isCollapsed }: { isCollapsed: boolean }) {
             <LogOut className="w-4 h-4 text-sidebar-text-muted group-hover:text-white transition-colors" />
           </>
         )}
-      </div>
+      </button>
+      <LogoutConfirmDialog
+        isOpen={confirmingLogout}
+        onClose={() => setConfirmingLogout(false)}
+        onConfirm={() => { setConfirmingLogout(false); logout?.(); }}
+      />
     </div>
   );
 }
@@ -177,7 +173,9 @@ function SidebarUserInfo({ isCollapsed }: { isCollapsed: boolean }) {
 function AdminShell({ children }: { children: React.ReactNode }) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
+  const menuOpenButtonRef = useRef<HTMLButtonElement>(null);
+  const drawerCloseButtonRef = useRef<HTMLButtonElement>(null);
   const [adminLocale, setAdminLocale] = useState<AdminLocale>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('jsk-admin-locale');
@@ -204,7 +202,9 @@ function AdminShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth < 1024) {
+      const mobile = window.innerWidth < 1024;
+      setIsMobileViewport(mobile);
+      if (mobile) {
         setIsSidebarCollapsed(true);
       } else {
         setIsSidebarCollapsed(false);
@@ -215,47 +215,86 @@ function AdminShell({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Gated on viewport: on desktop this aside is the permanent sidebar, not a drawer.
+  const drawerOpen = isMobileViewport && isMobileMenuOpen;
+  const drawerHiddenOnMobile = isMobileViewport && !isMobileMenuOpen;
+  useEffect(() => {
+    if (!isMobileMenuOpen) return;
+    drawerCloseButtonRef.current?.focus();
+    const opener = menuOpenButtonRef.current;
+    const handleDrawerKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || e.defaultPrevented) return;
+      // A dialog owns Escape while it is open; the modal stack is the one answer.
+      if (hasOpenDialog()) return;
+      e.preventDefault();
+      setIsMobileMenuOpen(false);
+    };
+    window.addEventListener('keydown', handleDrawerKey);
+    return () => {
+      window.removeEventListener('keydown', handleDrawerKey);
+      opener?.focus();
+    };
+  }, [isMobileMenuOpen]);
+
   const menuGroups: { title: string; items: MenuItem[] }[] = [
     {
       title: 'Service Requests',
       items: [
-        { name: 'Dashboard', href: '/admin', icon: LayoutDashboard, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'DIRECTOR', 'HEAD', 'VIEWER'] },
-        { name: 'Manage Requests', href: '/admin/requests', icon: FileText, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'DIRECTOR', 'HEAD', 'VIEWER'] },
-        { name: 'Appointments', href: '/admin/bookings', icon: CalendarCheck, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'DIRECTOR', 'HEAD', 'AGENT', 'VIEWER'] },
+        { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
+        { name: 'Manage Requests', href: '/admin/requests', icon: FileText },
+        { name: 'Appointments', href: '/admin/bookings', icon: CalendarCheck },
       ]
     },
     {
       title: 'Chatbot Management',
       items: [
-        { name: 'Chatbot Overview', href: '/admin/chatbot', icon: Bot, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'VIEWER'] },
-        { name: 'Live Chat', href: '/admin/live-chat', icon: MessageCircle, openInNewTab: true, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'AGENT'] },
-        { name: 'Chat Histories', href: '/admin/chat-histories', icon: History, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
-        { name: 'Broadcast', href: '/admin/chatbot/broadcast', icon: Megaphone, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
-        { name: 'Auto-Replies', href: '/admin/auto-replies', icon: Reply, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
-        { name: 'Reply Objects', href: '/admin/reply-objects', icon: MessageSquareReply, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'VIEWER'] },
-        { name: 'Canned Responses', href: '/admin/canned-responses', icon: MessageSquareText, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'VIEWER'] },
-        { name: 'Rich Menus', href: '/admin/rich-menus', icon: PanelTop, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'VIEWER'] },
-        { name: 'Friend Histories', href: '/admin/friends', icon: Users, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
+        { name: 'Chatbot Overview', href: '/admin/chatbot', icon: Bot },
+        { name: 'Live Chat', href: '/admin/live-chat', icon: MessageCircle, openInNewTab: true },
+        { name: 'Chat Histories', href: '/admin/chat-histories', icon: History },
+        { name: 'Broadcast', href: '/admin/chatbot/broadcast', icon: Megaphone },
+        { name: 'Auto-Replies', href: '/admin/auto-replies', icon: Reply },
+        { name: 'Reply Objects', href: '/admin/reply-objects', icon: MessageSquareReply },
+        { name: 'Canned Responses', href: '/admin/canned-responses', icon: MessageSquareText },
+        { name: 'Rich Menus', href: '/admin/rich-menus', icon: PanelTop },
+        { name: 'Friend Histories', href: '/admin/friends', icon: Users },
       ]
     },
     {
       title: 'System and Utilities',
       items: [
-        { name: 'User Management', href: '/admin/users', icon: UserCog, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
-        { name: 'Access Requests', href: '/admin/access-requests', icon: UserPlus, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
-        { name: 'File Management', href: '/admin/files', icon: FolderOpen, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
-        { name: 'Image Resize', href: '/admin/image-resize', icon: Scaling, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
-        { name: 'Reports', href: '/admin/reports', icon: BarChart3, allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'VIEWER'] },
-        { name: 'Audit Log', href: '/admin/audit', icon: Shield, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
-        { name: 'Health Check', href: '/admin/health', icon: Activity, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
-        { name: 'Settings', href: '/admin/settings', icon: Settings, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
-        { name: 'Design System', href: '/admin/design-system', icon: Palette, allowedRoles: ['SUPER_ADMIN', 'ADMIN'] },
+        { name: 'User Management', href: '/admin/users', icon: UserCog },
+        { name: 'Access Requests', href: '/admin/access-requests', icon: UserPlus },
+        { name: 'File Management', href: '/admin/files', icon: FolderOpen },
+        { name: 'Image Resize', href: '/admin/image-resize', icon: Scaling },
+        { name: 'Reports', href: '/admin/reports', icon: BarChart3 },
+        { name: 'Audit Log', href: '/admin/audit', icon: Shield },
+        { name: 'Health Check', href: '/admin/health', icon: Activity },
+        { name: 'Settings', href: '/admin/settings', icon: Settings },
+        { name: 'Design System', href: '/admin/design-system', icon: Palette },
       ]
     }
   ];
 
-  const isMenuItemVisible = (item: MenuItem) =>
-    isNavItemVisible(user?.role, item.allowedRoles);
+  // F-033: the role list and the capability key both come from the shared
+  // manifest, so the sidebar, `PageAccessGuard`, and the VIEWER path guard
+  // cannot drift apart. Only icon/label/group (presentation) live here.
+  const permissions = usePermissions();
+  const isMenuItemVisible = (item: MenuItem) => {
+    // A menu whose route the manifest does not list is a bug, not a permission
+    // decision: hide it rather than render a link to a page that will bounce.
+    const route = routeFor(item.href);
+    if (!route) return false;
+    // The role list is the PRE-LOAD fallback; once the served map answers for
+    // this key it decides. Gating on both made a matrix grant invisible: a
+    // DIRECTOR added to `access_live_chat` still matched neither the hardcoded
+    // list nor the key check.
+    // VIEWER reads are governed by the path allow-list; the manifest's keys
+    // gate writes. `capabilityAppliesTo` owns that split for both consumers.
+    if (!route.capability || !permissions || !capabilityAppliesTo(item.href, user?.role)) {
+      return isNavItemVisible(user?.role, route.allowedRoles);
+    }
+    return capabilityOf(permissions, route.capability);
+  };
 
   const visibleMenuGroups = menuGroups
     .map((group) => ({
@@ -273,7 +312,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
   const isLiveChat = pathname.includes('/admin/live-chat');
 
   if (isLiveChat) {
-    return <>{children}</>;
+    return <>{children}<SessionTimeoutWarning /></>;
   }
 
   const allItems = visibleMenuGroups.flatMap(g => g.items);
@@ -283,16 +322,21 @@ function AdminShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen bg-bg text-gray-600 dark:bg-gray-900 dark:text-gray-400 font-sans">
-          {/* Skip to main content link for accessibility */}
-          <a
-            href="#main-content"
-            className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-brand-500 focus:text-white focus:rounded-lg"
-          >
-            Skip to main content
-          </a>
+          {/* The skip link sits outside both inert regions, so it is hidden while the drawer owns focus. */}
+          {!drawerOpen && (
+            <a
+              href="#main-content"
+              className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-brand-500 focus:text-white focus:rounded-lg"
+            >
+              Skip to main content
+            </a>
+          )}
 
           {/* Sidebar */}
           <aside
+            data-testid="admin-drawer"
+            inert={drawerHiddenOnMobile}
+            aria-hidden={drawerHiddenOnMobile}
             className={cn(
               'fixed left-0 top-0 z-50 h-full',
               'bg-sidebar-bg text-sidebar-fg',
@@ -307,6 +351,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
 
             {/* Mobile close button */}
             <button
+              ref={drawerCloseButtonRef}
               onClick={() => setIsMobileMenuOpen(false)}
               className="absolute top-4 right-4 z-20 lg:hidden p-1.5 rounded-lg text-sidebar-text-muted hover:text-white hover:bg-white/10 transition-colors"
               aria-label="Close menu"
@@ -380,11 +425,14 @@ function AdminShell({ children }: { children: React.ReactNode }) {
             </button>
           </aside>
 
-          {/* Main Content */}
-          <div className={cn(
-            'flex flex-col flex-1 transition-all duration-300',
-            isSidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'
-          )}>
+          {/* Main Content — inert while the mobile drawer is open so Tab cannot reach the page behind it. */}
+          <div
+            inert={drawerOpen}
+            className={cn(
+              'flex flex-col flex-1 transition-all duration-300',
+              isSidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'
+            )}
+          >
             {/* Header */}
             <header className={cn(
               'sticky top-0 z-40 h-20',
@@ -394,6 +442,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
             )}>
               <div className="flex items-center gap-4">
                 <button
+                  ref={menuOpenButtonRef}
                   onClick={() => setIsMobileMenuOpen(true)}
                   className="lg:hidden p-2 bg-surface dark:bg-surface-dark rounded-xl shadow-sm border border-border-default text-text-secondary hover:text-brand-600 transition-colors cursor-pointer"
                   aria-label="Open menu"
@@ -401,26 +450,13 @@ function AdminShell({ children }: { children: React.ReactNode }) {
                   <Menu className="w-5 h-5" />
                 </button>
 
-                {isMobileSearchOpen ? (
-                  <div className="md:hidden flex items-center bg-muted/50 rounded-xl px-3 py-2 border border-border-default focus-within:ring-2 focus-within:ring-brand-100 transition-all w-full max-w-xs">
-                    <Search className="w-4 h-4 text-sidebar-text-muted mr-2 flex-shrink-0" />
-                    <input
-                      type="text"
-                      placeholder="ค้นหา..."
-                      className="bg-transparent text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none w-full"
-                      autoFocus
-                      onBlur={() => setIsMobileSearchOpen(false)}
-                    />
-                  </div>
-                ) : (
-                  <button
-                    className="md:hidden p-2 bg-surface rounded-xl shadow-sm border border-border-default text-text-secondary hover:text-brand-600 transition-colors cursor-pointer"
-                    aria-label="Search"
-                    onClick={() => setIsMobileSearchOpen(true)}
-                  >
-                    <Search className="w-5 h-5" />
-                  </button>
-                )}
+                <button
+                  className="md:hidden p-2 bg-surface rounded-xl shadow-sm border border-border-default text-text-secondary hover:text-brand-600 transition-colors cursor-pointer"
+                  aria-label="Search"
+                  onClick={() => document.dispatchEvent(new Event('jsk:open-command-palette'))}
+                >
+                  <Search className="w-5 h-5" />
+                </button>
 
                 {/* Command palette trigger — opens ⌘K */}
                 <button

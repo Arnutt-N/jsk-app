@@ -4,7 +4,7 @@ Contract: the LINE push leaves only after the session/message commit, so a
 commit failure sends nothing (no ghosts).
 """
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 

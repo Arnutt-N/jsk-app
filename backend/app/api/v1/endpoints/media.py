@@ -5,17 +5,6 @@ import uuid
 from datetime import timedelta
 from typing import Annotated
 
-from app.api.deps import get_current_admin, get_db, require_permission
-from app.core.audit import create_audit_log
-from app.core.http_rate_limit import http_rate_limit
-from app.core.permissions import KEY_IMAGE_RESIZE, KEY_MANAGE_FILES
-from app.core.query_utils import escape_ilike
-from app.core.redis_client import redis_client
-from app.core.security import create_access_token, verify_token
-from app.db.session import AsyncSessionLocal
-from app.models.media_file import FileCategory, MediaFile, detect_category
-from app.schemas.media import ResizeTicketResponse
-from app.utils.mime_sniff import sniff_mime
 from fastapi import (
     APIRouter,
     Depends,
@@ -31,6 +20,18 @@ from sqlalchemy import func as sa_func
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import defer
+
+from app.api.deps import get_current_admin, get_db, require_permission
+from app.core.audit import create_audit_log
+from app.core.http_rate_limit import http_rate_limit
+from app.core.permissions import KEY_IMAGE_RESIZE, KEY_MANAGE_FILES
+from app.core.query_utils import escape_ilike
+from app.core.redis_client import redis_client
+from app.core.security import create_access_token, verify_token
+from app.db.session import AsyncSessionLocal
+from app.models.media_file import FileCategory, MediaFile, detect_category
+from app.schemas.media import ResizeTicketResponse
+from app.utils.mime_sniff import sniff_mime
 
 
 def _safe_filename(filename: str) -> str:
@@ -553,6 +554,18 @@ async def create_public_link(
         media.public_token = str(uuid.uuid4())
     media.is_public = True
 
+    # F-006: this flips a citizen's upload to world-readable. The delete path
+    # already audits; without this row the most privacy-sensitive transition
+    # left no trace.
+    await create_audit_log(
+        db=db,
+        admin_id=_admin.id,
+        action="create_public_link",
+        resource_type="media_file",
+        resource_id=str(media.id),
+        details={"filename": media.filename},
+    )
+
     await db.commit()
     await db.refresh(media)
 
@@ -573,6 +586,17 @@ async def revoke_public_link(
 
     media.is_public = False
     media.public_token = None
+
+    # F-006: same reasoning as create — revoking is the other direction of the
+    # same world-readability switch.
+    await create_audit_log(
+        db=db,
+        admin_id=_admin.id,
+        action="revoke_public_link",
+        resource_type="media_file",
+        resource_id=str(media.id),
+        details={"filename": media.filename},
+    )
 
     await db.commit()
     await db.refresh(media)
@@ -649,6 +673,17 @@ async def bulk_create_public_links(
                 media.public_token = str(uuid.uuid4())
             media.is_public = True
             updated += 1
+
+    # F-006: one row for the batch (mirrors bulk_delete_media).
+    if updated:
+        await create_audit_log(
+            db=db,
+            admin_id=_admin.id,
+            action="bulk_create_public_links",
+            resource_type="media_file",
+            resource_id="bulk",
+            details={"ids": [str(u) for u in uids], "count": updated},
+        )
 
     await db.commit()
     return {"ok": True, "updated": updated}

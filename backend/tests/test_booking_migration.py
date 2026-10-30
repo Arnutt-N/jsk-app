@@ -14,7 +14,6 @@ import pytest
 
 from app.models.booking import Booking
 
-
 VERSIONS_DIR = Path(__file__).resolve().parents[1] / "alembic" / "versions"
 MIGRATION_PATH = VERSIONS_DIR / "e6f7g8h9i0j1_add_booking_appointment_fields.py"
 

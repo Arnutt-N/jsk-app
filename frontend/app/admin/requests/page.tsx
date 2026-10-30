@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { Card, CardContent } from '@/components/ui/Card';
@@ -99,6 +99,8 @@ export default function AdminRequestList() {
     const [loading, setLoading] = useState(true);
     const [fetchError, setFetchError] = useState<string | null>(null);
     const [page, setPage] = useState(0);
+    const abortRef = useRef<AbortController | null>(null);
+    const seqRef = useRef(0);
     // Computed from the RAW fetched length (before client-side status splits),
     // so a heavily filtered full page still offers Next.
     const [hasMore, setHasMore] = useState(false);
@@ -114,6 +116,11 @@ export default function AdminRequestList() {
     const [datePreset, setDatePreset] = useState<string | null>(null);
 
     const fetchRequests = useCallback(async () => {
+        abortRef.current?.abort();
+        const controller = new AbortController();
+        abortRef.current = controller;
+        seqRef.current += 1;
+        const seq = seqRef.current;
         if (filter.startDate && filter.endDate && filter.startDate > filter.endDate) {
             setDateRangeError('วันที่เริ่มต้นต้องไม่มากกว่าวันที่สิ้นสุด');
             setLoading(false);
@@ -137,7 +144,8 @@ export default function AdminRequestList() {
             query.append('skip', String(page * PAGE_LIMIT));
             query.append('limit', String(PAGE_LIMIT));
 
-            const result = await apiFetch<ServiceRequest[]>(`/admin/requests?${query.toString()}`);
+            const result = await apiFetch<ServiceRequest[]>(`/admin/requests?${query.toString()}`, { signal: controller.signal });
+            if (controller.signal.aborted || seq !== seqRef.current) return;
             if (result.ok) {
                 setHasMore(result.data.length >= PAGE_LIMIT);
                 let data = result.data;
@@ -151,7 +159,8 @@ export default function AdminRequestList() {
                 setFetchError(result.message);
             }
         } finally {
-            setLoading(false);
+            // A superseded request must not clear the loading state of the one that replaced it.
+            if (seq === seqRef.current) setLoading(false);
         }
     }, [debouncedSearch, filter.category, filter.status, filter.startDate, filter.endDate, page]);
 
@@ -170,6 +179,8 @@ export default function AdminRequestList() {
         void fetchRequests();
     }, [fetchRequests]);
 
+    useEffect(() => () => abortRef.current?.abort(), []);
+
     // Effective permissions for the logged-in admin -- decides whether
     // the assign button is rendered. Returns null while loading; we
     // fall back to "no permissions" until the fetch resolves.
@@ -179,6 +190,8 @@ export default function AdminRequestList() {
     const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(null);
     const [viewModalOpen, setViewModalOpen] = useState(false);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const deletingRef = useRef(false);
     const [assignModalOpen, setAssignModalOpen] = useState(false);
     const [assigningRequest, setAssigningRequest] = useState<ServiceRequest | null>(null);
 
@@ -214,15 +227,28 @@ export default function AdminRequestList() {
     };
 
     const confirmDelete = async () => {
-        if (!selectedRequest) return;
-        const result = await apiFetch(`/admin/requests/${selectedRequest.id}`, { method: 'DELETE' });
-        if (result.ok) {
-            setRequests(prev => prev.filter(r => r.id !== selectedRequest.id));
-            setDeleteModalOpen(false);
-            setSelectedRequest(null);
-            toast({ variant: 'success', title: 'ลบคำร้องสำเร็จ' });
-        } else {
-            toast({ variant: 'error', title: 'ลบคำร้องไม่สำเร็จ', description: result.message });
+        // Two activations can reach here before React commits setIsDeleting,
+        // so the ref is what actually blocks the second DELETE.
+        if (!selectedRequest || deletingRef.current) return;
+        deletingRef.current = true;
+        setIsDeleting(true);
+        try {
+            // A hung DELETE would leave the dialog uncloseable, so the request is bounded.
+            const result = await apiFetch(`/admin/requests/${selectedRequest.id}`, {
+                method: 'DELETE',
+                timeoutMs: 15_000,
+            });
+            if (result.ok) {
+                setRequests(prev => prev.filter(r => r.id !== selectedRequest.id));
+                setDeleteModalOpen(false);
+                setSelectedRequest(null);
+                toast({ variant: 'success', title: 'ลบคำร้องสำเร็จ' });
+            } else if (!result.aborted) {
+                toast({ variant: 'error', title: 'ลบคำร้องไม่สำเร็จ', description: result.message });
+            }
+        } finally {
+            deletingRef.current = false;
+            setIsDeleting(false);
         }
     };
 
@@ -564,6 +590,7 @@ export default function AdminRequestList() {
                 onClose={() => setDeleteModalOpen(false)}
                 onConfirm={confirmDelete}
                 title="ยืนยันการลบ"
+                isLoading={isDeleting}
                 description={
                     <>
                         คุณต้องการลบคำร้องของ <b>{selectedRequest?.firstname} {selectedRequest?.lastname}</b> ใช่หรือไม่?

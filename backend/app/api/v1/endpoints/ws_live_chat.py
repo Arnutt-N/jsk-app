@@ -1,26 +1,27 @@
-from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
-from typing import Optional
-from datetime import datetime, timezone
 import logging
 import time
+from datetime import datetime, timezone
+from typing import Optional
+
+from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 
 from app.core.config import settings
-from app.core.websocket_manager import ws_manager
 from app.core.rate_limiter import ws_rate_limiter
 from app.core.websocket_health import ws_health_monitor
+from app.core.websocket_manager import ws_manager
 from app.db.session import AsyncSessionLocal
+from app.schemas.ws_events import WSErrorCode, WSEventType
 from app.services.analytics_service import analytics_service
 from app.services.ws_session import (
-    handle_auth,
     authenticate_ws_ticket,
-    log_ws_event,
-    handle_send_message,
-    handle_join_room,
+    handle_auth,
     handle_claim_session,
     handle_close_session,
+    handle_join_room,
+    handle_send_message,
     handle_transfer_session,
+    log_ws_event,
 )
-from app.schemas.ws_events import WSEventType, WSErrorCode
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -52,7 +53,7 @@ async def websocket_endpoint(
         await websocket.close(code=1008)
         return
 
-    connection_id = await ws_manager.connect(websocket)
+    await ws_manager.connect(websocket)
     admin_id: Optional[str] = None
     current_room: Optional[str] = None
     message_start_time: Optional[float] = None

@@ -1,11 +1,13 @@
 """Redis Pub/Sub manager for cross-server WebSocket communication."""
-import json
 import asyncio
+import json
 import logging
-from typing import Callable, Optional, Dict, List
+from typing import Callable, Dict, List, Optional
+
 import redis.asyncio as redis
-from app.core.connection_targets import describe_redis_url
+
 from app.core.config import settings
+from app.core.connection_targets import describe_redis_url
 
 logger = logging.getLogger(__name__)
 

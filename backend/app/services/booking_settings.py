@@ -7,9 +7,9 @@ back to its default and is logged rather than propagated.
 """
 import json
 import logging
+from collections.abc import Callable
 from datetime import date
 from time import monotonic
-from collections.abc import Callable
 from typing import Any, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession

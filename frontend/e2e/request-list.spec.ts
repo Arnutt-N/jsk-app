@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { loginAsAdmin } from './utils/auth'
+import { gotoAdmin } from './utils/nav'
 
 /**
  * /admin/requests -- the list page.
@@ -16,7 +17,7 @@ import { loginAsAdmin } from './utils/auth'
 test.describe('Request list page', () => {
   test.beforeEach(async ({ page }) => {
     await loginAsAdmin(page)
-    await page.goto('/admin/requests')
+    await gotoAdmin(page, '/admin/requests')
   })
 
   test('renders the page header and create-request link', async ({ page }) => {

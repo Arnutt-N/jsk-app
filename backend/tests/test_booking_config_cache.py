@@ -9,8 +9,8 @@ pytestmark = pytest.mark.asyncio
 from app.services import booking_settings
 from app.services.booking_settings import (
     ALL_KEYS,
-    BookingConfig,
     DEFAULTS,
+    BookingConfig,
     load_booking_config,
     save_booking_config,
 )

@@ -2,11 +2,11 @@ import hashlib
 import logging
 import secrets
 from datetime import datetime, timedelta, timezone
-from typing import Optional, NoReturn
+from typing import NoReturn, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy import delete, func, or_, select, update
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_db
@@ -40,16 +40,16 @@ from app.schemas.auth import (
     TokenResponse,
     WsTicketResponse,
 )
-from app.services.booking_email import send_booking_email
 from app.services.auth_session_service import (
-    RotationOutcome,
     WS_TICKET_TTL_SECONDS,
+    RotationOutcome,
     create_session_family,
     mint_ws_ticket,
     revoke_all_user_sessions,
     revoke_family,
     rotate_refresh_session,
 )
+from app.services.booking_email import send_booking_email
 
 router = APIRouter()
 
@@ -129,6 +129,13 @@ async def _load_admin_user(db: AsyncSession, user_id: int) -> Optional[User]:
     return result.scalar_one_or_none()
 
 
+# F-010: a real bcrypt hash of a value nobody knows, verified on the
+# not-found path so an unknown identifier costs the same as a wrong password.
+# Generated once at import time (not per request) — bcrypt hashing is the cost
+# we are trying to equalise, not pay twice.
+_DUMMY_PASSWORD_HASH = "$2b$10$pqS9jurIH9EAmLQJsO/cp.4zuUlV4B8CnvhccIR7p.6TBpiY.o4c2"
+
+
 async def _find_admin_by_identifier(
     db: AsyncSession, identifier: str
 ) -> Optional[User]:
@@ -137,16 +144,27 @@ async def _find_admin_by_identifier(
     The login field accepts either value so staff can sign in with whichever
     they remember. Email comparison is lowercased on both sides; rows with a
     NULL email never match the email branch."""
-    result = await db.execute(
+    # F-009: resolve in two steps instead of one OR. A single OR can match two
+    # DIFFERENT rows (one user's username equals another user's email), and
+    # `scalar_one_or_none()` then raises MultipleResultsFound — a 500 on an
+    # ordinary login attempt. Username wins; email is the fallback.
+    by_username = await db.execute(
         select(User).where(
             User.role.in_(_ADMIN_AUTH_ROLES),
-            or_(
-                User.username == identifier,
-                func.lower(User.email) == identifier.lower(),
-            ),
+            User.username == identifier,
         )
     )
-    return result.scalar_one_or_none()
+    found = by_username.scalars().first()
+    if found is not None:
+        return found
+
+    by_email = await db.execute(
+        select(User).where(
+            User.role.in_(_ADMIN_AUTH_ROLES),
+            func.lower(User.email) == identifier.lower(),
+        )
+    )
+    return by_email.scalars().first()
 
 
 async def _login_failed(db: AsyncSession, username_masked: str) -> NoReturn:
@@ -189,6 +207,10 @@ async def login(
 
     user = await _find_admin_by_identifier(db, payload.username)
     if not user or not user.hashed_password:
+        # F-010: without this the not-found path skipped bcrypt entirely, so
+        # response time told an attacker whether the username exists. Verify
+        # against a fixed dummy hash so both paths cost the same.
+        await verify_password_async(payload.password, _DUMMY_PASSWORD_HASH)
         await _login_failed(db, username_masked)
 
     if not await verify_password_async(payload.password, user.hashed_password):
@@ -455,7 +477,7 @@ async def refresh(
         )
 
     try:
-        user_id = int(subject)
+        _ = int(subject)
     except (TypeError, ValueError):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

@@ -1,9 +1,11 @@
 """Redis client for caching and deduplication."""
 import logging
 from typing import Optional
+
 import redis.asyncio as redis
-from app.core.connection_targets import describe_redis_url
+
 from app.core.config import settings
+from app.core.connection_targets import describe_redis_url
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +36,14 @@ class RedisClient:
         self._url: str = getattr(settings, 'REDIS_URL', 'redis://localhost:6379/0')
     
     async def connect(self):
-        """Connect to Redis."""
+        """Connect to Redis.
+
+        Production-like environments raise on failure (F-032): every consumer
+        degrades to a per-process fallback, so a boot that cannot reach Redis
+        would look healthy while rate limits, WebSocket presence, and webhook
+        dedup silently stop being shared across workers. Development keeps the
+        warn-and-degrade path — a local stack without Redis is still usable.
+        """
         try:
             # from_url is a sync factory (A1): use its return value directly
             # instead of awaiting it. Awaiting works on redis>=5 only because
@@ -50,7 +59,13 @@ class RedisClient:
         except Exception as e:
             logger.warning("Redis unavailable at %s: %s", describe_redis_url(self._url), e)
             self._redis = None
-    
+            if settings.is_production_like:
+                raise RuntimeError(
+                    "Redis is unreachable in a production-like environment; "
+                    "refusing to start with per-process rate limits, presence, "
+                    "and webhook dedup."
+                ) from e
+
     async def disconnect(self):
         """Disconnect from Redis."""
         if not self._redis:

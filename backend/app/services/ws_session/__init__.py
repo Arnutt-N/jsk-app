@@ -6,26 +6,26 @@ and the receive loop — all business logic dispatches here.
 
 Singletons re-exported for test patching (see _deps.py).
 """
-from app.core.websocket_manager import ws_manager
 from app.core.rate_limiter import ws_rate_limiter
 from app.core.websocket_health import ws_health_monitor
-from app.services.live_chat_service import live_chat_service
+from app.core.websocket_manager import ws_manager
 from app.services.analytics_service import analytics_service
-from app.services.user_identity_service import resolve_by_line_id
+from app.services.live_chat_service import live_chat_service
 from app.services.message_intake import notify_admins_message_sent
+from app.services.user_identity_service import resolve_by_line_id
 
 from .auth import (
-    handle_auth,
-    authenticate_ws_user,
     authenticate_ws_ticket,
-    send_message_failed,
+    authenticate_ws_user,
+    handle_auth,
     log_ws_event,
+    send_message_failed,
 )
 from .handlers import (
-    handle_send_message,
-    handle_join_room,
     handle_claim_session,
     handle_close_session,
+    handle_join_room,
+    handle_send_message,
     handle_transfer_session,
 )
 

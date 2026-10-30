@@ -1,49 +1,61 @@
 import logging
+from datetime import datetime, timezone
+from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query, UploadFile, File, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Any, List, Optional
+
 from app.api import deps
-from app.services.outbox import drain_outbox, new_outbox
+from app.core.audit import create_audit_log
+from app.core.permissions import KEY_ACCESS_LIVE_CHAT
+from app.core.websocket_manager import ReadMarkerPersistenceError, ws_manager
+from app.models.chat_session import ChatSession, ClosedBy, SessionStatus
+from app.models.message import MessageDirection
+from app.models.user import ChatMode, User, UserRole
+from app.schemas.live_chat import (
+    ConversationDetail,
+    ConversationList,
+    ConversationPreferenceUpdate,
+    ModeToggleRequest,
+    ReadConversationRequest,
+    SendMessageRequest,
+    sanitize_message_text,
+)
+from app.schemas.message import MessagePage, MessageResponse
+from app.schemas.ws_events import TransferSessionPayload, WSEventType
+from app.services.analytics_service import analytics_service
+from app.services.friend_service import friend_service
+from app.services.line_service import line_service
 from app.services.live_chat_service import (
-    live_chat_service,
     TRANSFER_ERR_CONFLICT,
     TRANSFER_ERR_NO_ACTIVE_SESSION,
     TRANSFER_ERR_NOT_CURRENT_OPERATOR,
+    live_chat_service,
 )
 from app.services.live_chat_service.choreography import (
     announce_session_event,
     publish_session_event,
     session_status_value,
 )
-from app.schemas.live_chat import (
-    ConversationList, ConversationDetail,
-    SendMessageRequest, ModeToggleRequest,
-    ConversationPreferenceUpdate,
-    ReadConversationRequest,
-    sanitize_message_text,
-)
-from app.models.chat_session import ChatSession, ClosedBy, SessionStatus
-from app.models.message import Message, MessageDirection
-from app.models.user import ChatMode, User
-from app.core.websocket_manager import ReadMarkerPersistenceError, ws_manager
-from app.schemas.ws_events import WSEventType
-from app.schemas.ws_events import TransferSessionPayload
-from app.schemas.message import MessagePage, MessageResponse
-from app.services.analytics_service import analytics_service
-from app.services.friend_service import friend_service
-from app.services.line_service import line_service
 from app.services.message_intake import notify_admins_message_sent
+from app.services.outbox import drain_outbox, new_outbox
 from app.services.user_identity_service import child_filter, resolve_by_line_id
-from datetime import datetime, timezone
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
 MAX_LIVE_CHAT_MEDIA_BYTES = 10 * 1024 * 1024  # 10 MB (parity with media.py / liff.py)
+
+# F-001: every state-changing route below is gated on the SAME key the
+# WebSocket auth path checks (`ws_session/auth.py:_load_and_authorize_ws_user`).
+# `get_current_staff` alone is the permissive page-load gate — it admits
+# DIRECTOR/HEAD so supervisors can discover the feature, but those roles are
+# outside the live-chat policy, so without this they could push writes over
+# HTTP that the socket would refuse. Read routes keep `get_current_staff`.
+require_live_chat_access = deps.require_permission(KEY_ACCESS_LIVE_CHAT)
 
 
 def _utcnow() -> datetime:
@@ -151,7 +163,7 @@ async def send_message(
     line_user_id: str,
     request: SendMessageRequest,
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_staff),
+    current_user: User = Depends(require_live_chat_access),
 ) -> Any:
     """Send message to user via LINE"""
     if not request.text:
@@ -181,7 +193,7 @@ async def send_media(
     line_user_id: str,
     file: UploadFile = File(...),
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_staff),
+    current_user: User = Depends(require_live_chat_access),
 ) -> Any:
     """Upload and send media message to user via LINE."""
     # Size cap BEFORE buffering (same 10 MB cap as media.py / liff.py) —
@@ -229,7 +241,7 @@ async def send_media(
 async def claim_conversation(
     line_user_id: str,
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_staff),
+    current_user: User = Depends(require_live_chat_access),
 ) -> Any:
     """Operator claims the chat session"""
     session = await live_chat_service.claim_session(
@@ -260,7 +272,7 @@ async def claim_conversation(
 async def close_conversation(
     line_user_id: str,
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_staff),
+    current_user: User = Depends(require_live_chat_access),
 ) -> Any:
     """Close session and return to bot mode"""
     session = await live_chat_service.close_session(
@@ -288,7 +300,7 @@ async def transfer_conversation(
     line_user_id: str,
     request: TransferSessionPayload,
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_staff),
+    current_user: User = Depends(require_live_chat_access),
 ) -> Any:
     """Transfer an active session to another operator."""
     try:
@@ -342,7 +354,7 @@ async def toggle_mode(
     line_user_id: str,
     request: ModeToggleRequest,
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_staff),
+    current_user: User = Depends(require_live_chat_access),
 ) -> Any:
     """Toggle chat mode: BOT | HUMAN.
 
@@ -374,7 +386,7 @@ async def toggle_mode(
 async def refresh_profile(
     line_user_id: str,
     db: AsyncSession = Depends(deps.get_db),
-    _current_user: User = Depends(deps.get_current_staff),
+    _current_user: User = Depends(require_live_chat_access),
 ) -> Any:
     """Manually refresh LINE profile for a conversation user."""
     user = await friend_service.refresh_profile(
@@ -457,7 +469,7 @@ class CreateSessionRequest(BaseModel):
 async def create_conversation(
     data: CreateSessionRequest,
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_staff),
+    current_user: User = Depends(require_live_chat_access),
 ) -> Any:
     """Admin initiates a new live-chat conversation with a LINE user."""
     # 1. Find user by line_user_id
@@ -569,7 +581,7 @@ async def create_conversation(
 async def archive_conversation(
     line_user_id: str,
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_staff),
+    current_user: User = Depends(require_live_chat_access),
 ) -> Any:
     """Archive a closed conversation. Session must be CLOSED first."""
     # Find the most recent session for this user
@@ -626,7 +638,7 @@ async def update_conversation_preferences(
     line_user_id: str,
     payload: ConversationPreferenceUpdate,
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_staff),
+    current_user: User = Depends(require_live_chat_access),
 ) -> Any:
     """Upsert the current operator's pin/mute/spam flags for a conversation."""
     updates = payload.model_dump(exclude_none=True)
@@ -662,7 +674,7 @@ async def update_conversation_preferences(
 async def delete_conversation(
     line_user_id: str,
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_staff),
+    current_user: User = Depends(require_live_chat_access),
 ) -> Any:
     """Soft-delete a conversation: force-close any open session, then archive it.
 
@@ -684,12 +696,29 @@ async def delete_conversation(
             detail="No session found for this user",
         )
 
+    # F-007: force-closing ends someone else's live conversation, so it needs
+    # more than the live-chat key. Supervisors may close anything; an operator
+    # may close only the session they hold. A WAITING session has no holder
+    # (operator_id is NULL), which is exactly the case an unprivileged
+    # operator must not be able to kill — otherwise they could archive a
+    # customer's queue entry before anyone claims it.
+    is_supervisor = current_user.role in (UserRole.SUPER_ADMIN, UserRole.ADMIN)
+    if not is_supervisor and session.operator_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only close a conversation you are handling",
+        )
+
+    previous_status = session.status
+    previous_operator_id = session.operator_id
     now = datetime.now(timezone.utc)
     if session.status in (SessionStatus.WAITING.value, SessionStatus.ACTIVE.value,
                           SessionStatus.WAITING, SessionStatus.ACTIVE):
         session.status = SessionStatus.CLOSED.value
         session.closed_at = now
         session.closed_by = ClosedBy.OPERATOR.value
+        # The enum column records the KIND of closer; who actually did it goes
+        # in the audit row below (details cannot be a column here).
         # Mirror close_session: force-closing must also return the user to bot
         # mode, otherwise the conversation stays in HUMAN mode with no ACTIVE
         # session (review finding M3).
@@ -699,6 +728,21 @@ async def delete_conversation(
     session.is_archived = True
     session.archived_at = now
     session.archived_by = current_user.id
+
+    await create_audit_log(
+        db=db,
+        admin_id=current_user.id,
+        action="force_close_conversation",
+        resource_type="chat_session",
+        resource_id=str(session.id),
+        details={
+            "actor_id": current_user.id,
+            "force_close": True,
+            "line_user_id": line_user_id,
+            "previous_operator_id": previous_operator_id,
+            "previous_status": previous_status,
+        },
+    )
 
     await db.commit()
     await db.refresh(session)

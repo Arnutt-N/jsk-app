@@ -16,7 +16,6 @@ from app.models.debt_mediation import (
     DebtMediationRequest,
 )
 from app.models.media_file import MediaFile, detect_category
-from app.utils.mime_sniff import sniff_mime
 from app.models.service_request import RequestStatus, ServiceRequest
 from app.schemas.debt_mediation_liff import (
     DebtMediationCreate,
@@ -25,6 +24,7 @@ from app.schemas.debt_mediation_liff import (
 from app.schemas.service_request_liff import ServiceRequestCreate, ServiceRequestResponse
 from app.services.friend_service import friend_service
 from app.services.user_identity_service import resolve_by_line_id
+from app.utils.mime_sniff import sniff_mime
 
 logger = logging.getLogger(__name__)
 

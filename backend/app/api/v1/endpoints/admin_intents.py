@@ -1,18 +1,26 @@
-from fastapi import APIRouter, HTTPException, Depends, Query, status
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import selectinload
 from typing import List
 
-from app.api.deps import get_db, get_current_admin, get_current_admin_or_viewer, require_permission
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+
+from app.api.deps import get_current_admin, get_current_admin_or_viewer, get_db, require_permission
 from app.core.permissions import KEY_MANAGE_AUTO_REPLIES
-from app.models.intent import IntentCategory, IntentKeyword, IntentResponse, MatchType, ReplyType
+from app.models.intent import IntentCategory, IntentKeyword, IntentResponse, MatchType
 from app.models.user import User
 from app.schemas.intent import (
-    IntentCategoryCreate, IntentCategoryUpdate, IntentCategoryResponse, IntentCategoryDetailResponse,
-    IntentKeywordCreate, IntentKeywordUpdate, IntentKeywordResponse,
-    IntentResponseCreate, IntentResponseUpdate, IntentResponseResponse
+    IntentCategoryCreate,
+    IntentCategoryDetailResponse,
+    IntentCategoryResponse,
+    IntentCategoryUpdate,
+    IntentKeywordCreate,
+    IntentKeywordResponse,
+    IntentKeywordUpdate,
+    IntentResponseCreate,
+    IntentResponseResponse,
+    IntentResponseUpdate,
 )
 
 router = APIRouter()
@@ -53,7 +61,7 @@ async def list_categories(
         select(
             IntentResponse.category_id,
             func.count(IntentResponse.id),
-            func.count(IntentResponse.id).filter(IntentResponse.is_active == True),
+            func.count(IntentResponse.id).filter(IntentResponse.is_active.is_(True)),
         )
         .where(IntentResponse.category_id.in_(cat_ids))
         .group_by(IntentResponse.category_id)
@@ -138,7 +146,7 @@ async def update_category(cat_id: int, data: IntentCategoryUpdate, db: AsyncSess
         active_count = await db.scalar(
             select(func.count(IntentResponse.id)).where(
                 IntentResponse.category_id == cat_id,
-                IntentResponse.is_active == True,
+                IntentResponse.is_active.is_(True),
             )
         )
         if not active_count:
@@ -177,7 +185,6 @@ async def delete_category(cat_id: int, db: AsyncSession = Depends(get_db), curre
 # --- Keywords ---
 def _guard_regex_keyword(keyword: str | None, match_type) -> None:
     """Reject ReDoS-prone or too-long REGEX keywords at write time (C3)."""
-    from app.models.intent import MatchType
     from app.services.message_intake.intent_matching import compile_intent_keyword
     if match_type == MatchType.REGEX and keyword is not None:
         try:

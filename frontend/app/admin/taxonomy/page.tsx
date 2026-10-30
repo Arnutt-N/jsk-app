@@ -10,9 +10,7 @@ export const metadata: Metadata = {
 
 export default function TaxonomyAdminPage() {
   return (
-    <PageAccessGuard
-      allowedRoles={['SUPER_ADMIN', 'ADMIN', 'DIRECTOR', 'HEAD', 'AGENT']}
-    >
+    <PageAccessGuard>
       <TaxonomyEditor />
     </PageAccessGuard>
   )

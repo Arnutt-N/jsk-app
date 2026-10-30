@@ -8,10 +8,10 @@ import pytest
 from pydantic import ValidationError
 
 from app.schemas.rich_menu import (
-    RichMenuAreaAction,
-    RichMenuAliasCreate,
     BulkLinkRequest,
     BulkUnlinkRequest,
+    RichMenuAliasCreate,
+    RichMenuAreaAction,
 )
 
 # LINE userId format: "U" + 32 lowercase hex chars (33 total) — ^U[0-9a-f]{32}$

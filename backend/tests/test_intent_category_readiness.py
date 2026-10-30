@@ -8,7 +8,6 @@ and no DB/Redis connection is attempted.
 from datetime import datetime, timezone
 from types import SimpleNamespace
 
-import pytest
 from fastapi.testclient import TestClient
 
 from app.api import deps

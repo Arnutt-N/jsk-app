@@ -6,8 +6,9 @@ message. DB-backed (not Redis) because the backend may scale horizontally on
 Koyeb and Redis stays optional per repo policy. `token_hash` stores only the
 SHA-256 hash of the raw ticket — never the raw value.
 """
-from sqlalchemy import Column, ForeignKey, Integer, String, DateTime
 from datetime import datetime, timezone
+
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
 
 from app.db.base import Base
 

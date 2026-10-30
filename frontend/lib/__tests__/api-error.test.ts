@@ -35,12 +35,54 @@ describe('api-error utilities', () => {
       expect(message).toBe('Error field')
     })
 
-    it('should return plain text if content-type is not JSON', async () => {
+    it('does not return a plain-text body to the caller (F-016)', async () => {
+      // Before F-016 this returned 'Plain text error'. A non-JSON body is not
+      // a contract we can trust to be user-safe (proxy HTML, tracebacks), so
+      // the caller now gets its own fallback and the body goes to the logger.
       const response = new Response('Plain text error', {
         headers: { 'content-type': 'text/plain' },
       })
       const message = await readErrorMessage(response, 'Fallback message')
-      expect(message).toBe('Plain text error')
+      expect(message).toBe('Fallback message')
+    })
+
+    it('logs the raw body it withheld from the caller (F-016)', async () => {
+      const { default: logger } = await import('../logger')
+      vi.mocked(logger.error).mockClear()
+      const response = new Response('Plain text error', {
+        headers: { 'content-type': 'text/plain' },
+      })
+      await readErrorMessage(response, 'Fallback message')
+      expect(vi.mocked(logger.error)).toHaveBeenCalledWith(
+        expect.stringContaining('text/plain'),
+        undefined,
+        expect.objectContaining({ body: 'Plain text error' }),
+      )
+    })
+
+    it('should not leak an HTML error page body into the UI (F-016)', async () => {
+      // A 500 from a proxy/reverse proxy is an HTML page, not an API payload.
+      // Returning it verbatim put raw markup in the toast; the caller's Thai
+      // status message is the right thing to show.
+      const html = '<!DOCTYPE html><html><body><h1>500 Internal Server Error</h1></body></html>'
+      const response = new Response(html, {
+        status: 500,
+        headers: { 'content-type': 'text/html' },
+      })
+      const message = await readErrorMessage(response, 'เซิร์ฟเวอร์มีปัญหา กรุณาลองใหม่ภายหลัง')
+      expect(message).toBe('เซิร์ฟเวอร์มีปัญหา กรุณาลองใหม่ภายหลัง')
+      expect(message).not.toContain('<')
+    })
+
+    it('should not leak a text/plain backend traceback into the UI (F-016)', async () => {
+      const trace = 'Traceback (most recent call last):\n  File "app/main.py", line 1\nValueError: boom'
+      const response = new Response(trace, {
+        status: 500,
+        headers: { 'content-type': 'text/plain' },
+      })
+      const message = await readErrorMessage(response, 'เซิร์ฟเวอร์มีปัญหา กรุณาลองใหม่ภายหลัง')
+      expect(message).toBe('เซิร์ฟเวอร์มีปัญหา กรุณาลองใหม่ภายหลัง')
+      expect(message).not.toContain('Traceback')
     })
 
     it('should return fallback message if response body is empty', async () => {
@@ -239,6 +281,44 @@ describe('api-error utilities', () => {
       if (result.ok) {
         expect(result.data).toBe(mockResponse)
       }
+    })
+
+    it('should treat AbortSignal.timeout aborts as aborted, not as an error (F-015)', async () => {
+      // AbortSignal.timeout() rejects with a TimeoutError DOMException, whose
+      // name is not 'AbortError'. The catch only recognised AbortError, so a
+      // deliberate timeout surfaced as "เกิดข้อผิดพลาดที่ไม่คาดคิด" and was
+      // logged as an unexpected fetch error.
+      global.fetch = vi.fn().mockRejectedValue(
+        new DOMException('The operation timed out.', 'TimeoutError'),
+      )
+
+      const result = await apiFetch('/slow', { timeoutMs: 10 })
+
+      expect(result.ok).toBe(false)
+      if (!result.ok) {
+        expect(result.aborted).toBe(true)
+        expect(result.status).toBe(0)
+      }
+    })
+
+    it('should still treat a caller-cancelled AbortError as aborted', async () => {
+      global.fetch = vi.fn().mockRejectedValue(
+        new DOMException('The operation was aborted.', 'AbortError'),
+      )
+
+      const result = await apiFetch('/cancel', { signal: AbortSignal.abort() })
+
+      expect(result.ok).toBe(false)
+      if (!result.ok) expect(result.aborted).toBe(true)
+    })
+
+    it('should not flag a genuine failure as aborted', async () => {
+      global.fetch = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'))
+
+      const result = await apiFetch('/down')
+
+      expect(result.ok).toBe(false)
+      if (!result.ok) expect(result.aborted).toBeUndefined()
     })
   })
 })

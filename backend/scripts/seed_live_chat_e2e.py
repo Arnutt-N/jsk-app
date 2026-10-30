@@ -1,10 +1,15 @@
-"""Seed an idempotent WAITING live-chat session for 2-client e2e tests.
+"""Seed idempotent WAITING live-chat sessions for the e2e suites.
 
 Mirrors the end-state of a real handoff (live_chat_service.initiate_handoff):
 a LINE customer User with chat_mode=HUMAN plus an unclaimed WAITING
 ChatSession. A direct upsert is used instead of calling initiate_handoff so
 the seed is deterministic (no LINE/Telegram side-effects, no business-hours
 branch) and safe to re-run.
+
+Two customers are seeded on purpose: the 2-client acceptance suite drives one
+shared row, while the keyboard-navigation assertion in live-chat-smoke needs a
+second row to move the selection onto (F-030 — a single-row seed made that
+test skip forever, so it guarded nothing).
 
 Run:
     python backend/scripts/seed_live_chat_e2e.py --apply
@@ -27,14 +32,23 @@ if str(BACKEND_DIR) not in sys.path:
 
 from scripts._script_safety import print_dry_run_hint, print_script_header
 
-# Deterministic LINE user id matching ^U[0-9a-f]{32}$ (built so the length is
+# Deterministic LINE user ids matching ^U[0-9a-f]{32}$ (built so the length is
 # always correct regardless of hand-counting). The regex guard fails loudly if
 # the construction ever drifts.
 SEED_LINE_USER_ID = "U" + "e2e0c0ffee".ljust(32, "0")
 SEED_DISPLAY_NAME = "E2E Waiting Customer"
 SEED_INCOMING_TEXT = "ขอคุยกับเจ้าหน้าที่ค่ะ"
 
+# The second customer exists only to give the keyboard-navigation test a row to
+# move onto. Its display name sorts after the first, so the first row of the
+# list stays the one the 2-client suite drives.
+SECOND_LINE_USER_ID = "U" + "e2e0c0ffed".ljust(32, "0")
+SECOND_DISPLAY_NAME = "E2E Second Customer"
+SECOND_INCOMING_TEXT = "สวัสดีค่ะ มีเรื่องสอบถาม"
+
 assert re.fullmatch(r"U[0-9a-f]{32}", SEED_LINE_USER_ID), SEED_LINE_USER_ID
+assert re.fullmatch(r"U[0-9a-f]{32}", SECOND_LINE_USER_ID), SECOND_LINE_USER_ID
+assert SECOND_LINE_USER_ID != SEED_LINE_USER_ID
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -49,14 +63,110 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-async def seed_live_chat_e2e(*, apply: bool) -> int:
+async def _seed_customer(
+    db,
+    *,
+    line_user_id: str,
+    display_name: str,
+    incoming_text: str,
+    started_at: datetime,
+    last_activity_at: datetime,
+) -> None:
+    """Upsert one customer + WAITING session + preview message (idempotent)."""
     from sqlalchemy import select
 
-    from app.db.session import AsyncSessionLocal
     from app.models.chat_session import ChatSession, SessionStatus
     from app.models.message import Message, MessageDirection, SenderRole
     from app.models.user import ChatMode, User, UserRole
     from app.services.user_identity_service import populate_surrogate, resolve_by_line_id
+
+    print(f"\n-- {display_name} ({line_user_id})")
+
+    # 1. Upsert the LINE customer (chat_mode=HUMAN, as a real handoff leaves it).
+    user = await resolve_by_line_id(db, line_user_id)
+    if user is None:
+        user = User(
+            display_name=display_name,
+            role=UserRole.USER,
+            is_active=True,
+            chat_mode=ChatMode.HUMAN,
+            friend_status="ACTIVE",
+            last_message_at=last_activity_at,
+        )
+        populate_surrogate(user, line_user_id)
+        db.add(user)
+        print("  [created] customer user")
+    else:
+        user.display_name = display_name
+        user.chat_mode = ChatMode.HUMAN
+        user.is_active = True
+        user.friend_status = "ACTIVE"
+        user.last_message_at = last_activity_at
+        if not user.line_user_id_hash:
+            populate_surrogate(user, line_user_id)
+        print("  [updated] customer user")
+    await db.flush()  # user.id needed by the session/message rows below
+
+    # 2. Upsert a single non-closed session into the unclaimed WAITING state.
+    #    Reset an already-claimed (ACTIVE) session back to WAITING so the
+    #    e2e can re-run from a clean slate.
+    session = await db.scalar(
+        select(ChatSession)
+        .where(ChatSession.user_id == user.id)
+        .where(
+            ChatSession.status.in_([SessionStatus.WAITING, SessionStatus.ACTIVE])
+        )
+        .order_by(ChatSession.started_at.desc())
+        .limit(1)
+    )
+    if session is None:
+        session = ChatSession(
+            user_id=user.id,
+            status=SessionStatus.WAITING,
+            operator_id=None,
+            started_at=started_at,
+            last_activity_at=last_activity_at,
+            is_archived=False,
+        )
+        db.add(session)
+        print("  [created] WAITING session (unclaimed)")
+    else:
+        session.status = SessionStatus.WAITING
+        session.operator_id = None
+        session.claimed_at = None
+        session.closed_at = None
+        session.closed_by = None
+        session.started_at = started_at
+        session.last_activity_at = last_activity_at
+        session.is_archived = False
+        print("  [reset]   session -> WAITING (unclaimed)")
+
+    # 3. Ensure one INCOMING message so the conversation row shows a preview
+    #    and sorts by recency (last_message join is otherwise nullable).
+    existing_message = await db.scalar(
+        select(Message)
+        .where(Message.user_id == user.id)
+        .where(Message.direction == MessageDirection.INCOMING)
+        .limit(1)
+    )
+    if existing_message is None:
+        db.add(
+            Message(
+                user_id=user.id,
+                direction=MessageDirection.INCOMING,
+                message_type="text",
+                content=incoming_text,
+                sender_role=SenderRole.USER,
+                created_at=last_activity_at,
+            )
+        )
+        print("  [created] incoming message")
+    else:
+        print("  [skip]    incoming message already exists")
+
+
+async def seed_live_chat_e2e(*, apply: bool) -> int:
+    from app.db.session import AsyncSessionLocal
 
     _env_path, database_target = print_script_header(
         "Seed e2e WAITING live-chat session", apply=apply
@@ -86,90 +196,21 @@ async def seed_live_chat_e2e(*, apply: bool) -> int:
     last_activity_at = now
 
     async with AsyncSessionLocal() as db:
-        # 1. Upsert the LINE customer (chat_mode=HUMAN, as a real handoff leaves it).
-        user = await resolve_by_line_id(db, SEED_LINE_USER_ID)
-        if user is None:
-            user = User(
-                display_name=SEED_DISPLAY_NAME,
-                role=UserRole.USER,
-                is_active=True,
-                chat_mode=ChatMode.HUMAN,
-                friend_status="ACTIVE",
-                last_message_at=last_activity_at,
-            )
-            populate_surrogate(user, SEED_LINE_USER_ID)
-            db.add(user)
-            print("  [created] customer user")
-        else:
-            user.display_name = SEED_DISPLAY_NAME
-            user.chat_mode = ChatMode.HUMAN
-            user.is_active = True
-            user.friend_status = "ACTIVE"
-            user.last_message_at = last_activity_at
-            if not user.line_user_id_hash:
-                populate_surrogate(user, SEED_LINE_USER_ID)
-            print("  [updated] customer user")
-        await db.flush()  # user.id needed by the session/message rows below
-
-        # 2. Upsert a single non-closed session into the unclaimed WAITING state.
-        #    Reset an already-claimed (ACTIVE) session back to WAITING so the
-        #    e2e can re-run from a clean slate.
-        session = await db.scalar(
-            select(ChatSession)
-            .where(ChatSession.user_id == user.id)
-            .where(
-                ChatSession.status.in_([SessionStatus.WAITING, SessionStatus.ACTIVE])
-            )
-            .order_by(ChatSession.started_at.desc())
-            .limit(1)
-        )
-        if session is None:
-            session = ChatSession(
-                user_id=user.id,
-                status=SessionStatus.WAITING,
-                operator_id=None,
+        for line_user_id, display_name, incoming_text in (
+            (SEED_LINE_USER_ID, SEED_DISPLAY_NAME, SEED_INCOMING_TEXT),
+            (SECOND_LINE_USER_ID, SECOND_DISPLAY_NAME, SECOND_INCOMING_TEXT),
+        ):
+            await _seed_customer(
+                db,
+                line_user_id=line_user_id,
+                display_name=display_name,
+                incoming_text=incoming_text,
                 started_at=started_at,
                 last_activity_at=last_activity_at,
-                is_archived=False,
             )
-            db.add(session)
-            print("  [created] WAITING session (unclaimed)")
-        else:
-            session.status = SessionStatus.WAITING
-            session.operator_id = None
-            session.claimed_at = None
-            session.closed_at = None
-            session.closed_by = None
-            session.started_at = started_at
-            session.last_activity_at = last_activity_at
-            session.is_archived = False
-            print("  [reset]   session -> WAITING (unclaimed)")
-
-        # 3. Ensure one INCOMING message so the conversation row shows a preview
-        #    and sorts by recency (last_message join is otherwise nullable).
-        existing_message = await db.scalar(
-            select(Message)
-            .where(Message.user_id == user.id)
-            .where(Message.direction == MessageDirection.INCOMING)
-            .limit(1)
-        )
-        if existing_message is None:
-            db.add(
-                Message(
-                    user_id=user.id,
-                    direction=MessageDirection.INCOMING,
-                    message_type="text",
-                    content=SEED_INCOMING_TEXT,
-                    sender_role=SenderRole.USER,
-                    created_at=last_activity_at,
-                )
-            )
-            print("  [created] incoming message")
-        else:
-            print("  [skip]    incoming message already exists")
 
         await db.commit()
-        print("\nDone. WAITING conversation is ready for the 2-client e2e.")
+        print("\nDone. WAITING conversations are ready for the live-chat e2e suites.")
         return 0
 
 

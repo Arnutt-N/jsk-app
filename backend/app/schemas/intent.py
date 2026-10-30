@@ -1,8 +1,11 @@
-from pydantic import BaseModel, ConfigDict, Field
-from typing import Optional, List, Dict, Any
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict, Field
+
 from app.models.intent import MatchType, ReplyType
+
 
 # --- Keywords ---
 class IntentKeywordBase(BaseModel):

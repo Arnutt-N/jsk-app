@@ -2,11 +2,13 @@
 ReplyObject Model - Reusable Message Templates
 Admin creates these objects ($flex_1, $image_1) that can be referenced in auto-reply responses.
 """
-from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, Enum
+import enum
+
+from sqlalchemy import Boolean, Column, DateTime, Enum, Integer, String
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.sql import func
+
 from app.db.base import Base
-import enum
 
 
 class ObjectType(str, enum.Enum):

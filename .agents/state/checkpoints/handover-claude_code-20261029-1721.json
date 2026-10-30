@@ -1,0 +1,19 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-10-29T17:21:00+07:00",
+  "branch": "fix/codebase-review-20261026",
+  "head_commit": "c04f5b8",
+  "status": "completed",
+  "work_summary": "Codebase review plan 30/30 complete, plus a review/correct/deslop pass that closed 4 findings (2 latent fail-open in the route manifest, 1 stale doc, 1 e2e race). CI + E2E + Encoding green at c04f5b8 with zero retries.",
+  "priority_actions": [
+    "Task 20 fixed only the healthcheck-URL soft skip; 3 more remain in cd.yml (VERCEL_DEPLOY_HOOK_URL, BACKEND_REMOTE_ENV_FILE, KOYEB_*) and still let CD go green having deployed and verified nothing",
+    "Merge PR #301 when reviewed",
+    "After merge: verify Task 14 Step 3, a red E2E must block deploy, observable only on main"
+  ],
+  "context_for_next_agent": "Two sessions of work are on this branch. The first closed the codebase-review-20261026 plan (30/30 tasks, commits 912717e through 0b69a38). The second ran a review/correct/deslop pass over that work and closed 4 more findings (9229246, 95c6a9e, 51d4db6, c04f5b8). Read project-log-md/claude_code/session-summary-20261029-1721.md first; its predecessor session-summary-20261029-1132.md has the per-task detail for the 30-task plan. Every task followed the same loop: failing test first, implement, push, wait for a GREEN CI SHA before moving on. CI is the only trustworthy judge — the Windows local env gives false results (full backend suite hangs near the end; run vitest as `node node_modules/vitest/vitest.mjs run <path>` because npm does not create node_modules/.bin). THREE LESSONS THAT COST EXTRA ROUNDS THIS SESSION: (1) a green E2E job with retries hides real races — grep the run log for 'retry #1' before believing a conclusion, because 95c6a9e passed only on retry while carrying a genuine paint race; (2) waiting for a network response is not waiting for React to paint — e2e waits must target the rendered element, and a `.or()` union needs `.first()` on the combined locator or strict mode throws when both branches match; (3) when the isolation worktree option is used, verify the checkout is on the branch under review — here it silently based reviewers on main at an older commit and two adversaries caught it themselves. Turbopack build flakes with \"Can't resolve @vercel/turbopack-next/internal/font/google/font\" while fetching Outfit from fonts.gstatic.com; it hit three times and cleared on re-run each time, so never treat it as a code regression. Deferred and still open: the three cd.yml soft-skip paths above; ruff gate scope excludes backend/scripts (25 pre-existing errors); E501/E402 cleanup; mypy evaluation; KEY_MANAGE_RICH_MENUS/KEY_MANAGE_REPLY_OBJECTS gate reads and writes with one key; and a pre-existing tsc error at e2e/admin-audit-verify/nav-search-roles.spec.ts:53.",
+  "session_summary": "project-log-md/claude_code/session-summary-20261029-1721.md",
+  "cross_platform_read": [],
+  "to_agent": "all"
+}

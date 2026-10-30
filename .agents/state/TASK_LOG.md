@@ -1,8 +1,53 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 313 active handoffs, 12 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 318 active handoffs, 12 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-10-29 17:21 — claude_code — completed
+
+Codebase review plan 30/30 complete, plus a review/correct/deslop pass that closed 4 findings (2 latent fail-open in the route manifest, 1 stale doc, 1 e2e race). CI + E2E + Encoding green at c04f5b8 with zero retries.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20261029-1721.json`
+- Summary: `project-log-md/claude_code/session-summary-20261029-1721.md`
+
+---
+
+### 2026-10-29 11:32 — claude_code — completed
+
+Codebase review plan COMPLETE: all 30/30 tasks done (Tasks 20,21,25,26,29,30 this session). CI + E2E + Encoding green at 38f2385.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20261029-1132.json`
+- Summary: `project-log-md/claude_code/session-summary-20261029-1132.md`
+
+---
+
+### 2026-10-29 06:51 — claude_code — completed
+
+Codebase review: Phase 0 complete (5/5) and Phase 1 complete (7/7); Phase 2 at 10/14. Tasks 1,2,3,4,5,6,7,8,9,10,11,13,14,15,16,17,18,19,22,24,27,28 done, all CI green.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20261029-0651.json`
+- Summary: `project-log-md/claude_code/session-summary-20261029-0651.md`
+
+---
+
+### 2026-10-27 12:25 — pi — completed
+
+Codebase review: Task 22 backend ruff gate done, PR #301 draft CI green; 29 tasks remain starting with Phase 0 CI tasks
+
+- Checkpoint: `.agents/state/checkpoints/handover-pi-20261027-1225.json`
+- Summary: `project-log-md/pi/session-summary-20261027-1225.md`
+
+---
+
+### 2026-10-26 11:13 — pi — completed
+
+Admin P1 fixes: 8 defects fixed, PR #300 open and CI green; review round 2 in flight
+
+- Checkpoint: `.agents/state/checkpoints/handover-pi-20261026-1113.json`
+- Summary: `project-log-md/pi/session-summary-20261026-1113.md`
+
+---
 
 ### 2026-10-25 13:55 — kimi_code — completed
 

@@ -1,6 +1,7 @@
+from types import SimpleNamespace
+
 import pytest
 import pytest_asyncio
-from types import SimpleNamespace
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool

@@ -1,7 +1,9 @@
-from pydantic import BaseModel, ConfigDict, Field, model_validator
-from typing import Annotated, List, Dict, Any, Optional, Literal
 from datetime import datetime
-from app.models.rich_menu import RichMenuStatus, RichMenuDisplayMode
+from typing import Annotated, Any, Dict, List, Literal, Optional
+
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+from app.models.rich_menu import RichMenuDisplayMode, RichMenuStatus
 
 # LINE userId: "U" + 32 lowercase hex chars (33 total). Validated per-element.
 LineUserId = Annotated[str, Field(pattern=r"^U[0-9a-f]{32}$")]

@@ -27,6 +27,10 @@ export default defineConfig({
   // Catch hangs early -- the slowest screens render in <5s on cold start.
   timeout: 30_000,
   expect: { timeout: 5_000 },
+  // F-027: a committed `test.only` silently shrinks the suite to one test
+  // while CI stays green. Refuse to run under CI. Locally it stays allowed so
+  // `test.only` remains usable while iterating.
+  forbidOnly: !!process.env.CI,
 
   // CI gets retries because of cold-start flakiness on the dev server;
   // local runs fail loudly so developers fix bugs instead of papering

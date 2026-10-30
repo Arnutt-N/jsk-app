@@ -16,7 +16,6 @@ from app.services.booking_service import (
     compute_slots,
 )
 
-
 TODAY = date(2026, 8, 12)  # a Wednesday
 NOW = datetime(2026, 8, 12, 9, 15)  # 09:15 local, mid-morning
 

@@ -4,23 +4,23 @@ These endpoints use the existing Credential model with Fernet encryption
 to securely store and manage integration credentials.
 """
 
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, Field
-import httpx
 import ipaddress
 import logging
+from typing import Any, Dict, List, Optional
 from urllib.parse import urlsplit
 
-from app.api import deps
+import httpx
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.api.deps import get_current_admin, require_permission
 from app.core.audit import create_audit_log
 from app.core.permissions import KEY_EDIT_SYSTEM_SETTINGS
 from app.db.session import get_db
-from app.models.user import User
 from app.models.credential import Credential, Provider
+from app.models.user import User
 from app.services.credential_service import credential_service
 
 logger = logging.getLogger(__name__)
@@ -114,7 +114,7 @@ async def _get_or_none(provider: str, db: AsyncSession) -> Optional[Credential]:
     result = await db.execute(
         select(Credential)
         .where(Credential.provider == provider)
-        .where(Credential.is_active == True)
+        .where(Credential.is_active.is_(True))
         .order_by(Credential.is_default.desc())
         .limit(1)
     )

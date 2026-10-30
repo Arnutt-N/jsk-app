@@ -6,7 +6,7 @@ AutoReply fallback. Pure query logic — no side effects beyond DB reads.
 import logging
 import re
 
-from sqlalchemy import case, or_, select, func, literal
+from sqlalchemy import case, func, literal, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -50,7 +50,7 @@ def _like_safe(col):
 
 def _intent_eager_options():
     return selectinload(IntentKeyword.category).selectinload(
-        IntentCategory.responses.and_(IntentResponse.is_active == True)
+        IntentCategory.responses.and_(IntentResponse.is_active.is_(True))
     )
 
 
@@ -150,8 +150,8 @@ async def _find_autoreply_rule(text: str, db: AsyncSession):
         select(AutoReply)
         .where(
             or_(
-                _exact & (AutoReply.is_active == True),
-                _contains & (AutoReply.is_active == True),
+                _exact & (AutoReply.is_active.is_(True)),
+                _contains & (AutoReply.is_active.is_(True)),
             )
         )
         .order_by(prio, AutoReply.id.asc())

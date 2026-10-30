@@ -1,42 +1,44 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Path, Query
-from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Dict, List, Optional
 import logging
 import os
+from datetime import date, datetime, timedelta, timezone
+from typing import Dict, List, Optional
+
 import httpx
-from app.db.session import get_db
+from fastapi import APIRouter, Depends, File, HTTPException, Path, Query, UploadFile
+from sqlalchemy import delete, func, select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.api.deps import get_current_admin_or_viewer, require_permission
-from app.core.permissions import KEY_MANAGE_RICH_MENUS
 from app.core.audit import create_audit_log
-from app.core.http_rate_limit import http_rate_limit
 from app.core.config import settings
-from app.models.rich_menu import RichMenu, RichMenuStatus, RichMenuSyncStatus
+from app.core.http_rate_limit import http_rate_limit
+from app.core.permissions import KEY_MANAGE_RICH_MENUS
+from app.db.session import get_db
 from app.models.media_file import MediaFile
+from app.models.rich_menu import RichMenu, RichMenuStatus, RichMenuSyncStatus
+from app.models.rich_menu_alias import RichMenuAlias
 from app.models.user import User
+from app.models.user_rich_menu_link import UserRichMenuLink
 from app.schemas.rich_menu import (
-    RichMenuResponse,
-    RichMenuCreate,
-    RichMenuUpdate,
-    RichMenuAliasCreate,
-    RichMenuAliasUpdate,
-    RichMenuAliasResponse,
     BulkLinkRequest,
     BulkUnlinkRequest,
-    RichMenuInsightSummaryResponse,
+    RichMenuAliasCreate,
+    RichMenuAliasResponse,
+    RichMenuAliasUpdate,
+    RichMenuCreate,
     RichMenuInsightDailyResponse,
+    RichMenuInsightSummaryResponse,
+    RichMenuResponse,
+    RichMenuUpdate,
     selected_for_display_mode,
 )
-from app.models.rich_menu_alias import RichMenuAlias
-from app.models.user_rich_menu_link import UserRichMenuLink
 from app.services.rich_menu_service import (
-    RichMenuService,
     LINE_IMAGE_LIMIT_BYTES,
     LINE_IMAGE_TOO_LARGE_DETAIL,
+    RichMenuService,
 )
 from app.services.user_identity_service import resolve_by_line_id, resolve_many_by_line_id
-from sqlalchemy import select, delete, func
-from sqlalchemy.exc import IntegrityError
-from datetime import date, datetime, timedelta, timezone
 
 router = APIRouter()
 logger = logging.getLogger(__name__)

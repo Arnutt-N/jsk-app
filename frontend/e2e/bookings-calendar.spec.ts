@@ -1,10 +1,11 @@
 import { expect, test } from '@playwright/test'
 import { loginAsAdmin } from './utils/auth'
+import { gotoAdmin } from './utils/nav'
 
 test.describe('Bookings calendar view', () => {
   test.beforeEach(async ({ page }) => {
     await loginAsAdmin(page)
-    await page.goto('/admin/bookings')
+    await gotoAdmin(page, '/admin/bookings')
   })
 
   test('shows list/calendar tabs and opens the month grid', async ({ page }) => {

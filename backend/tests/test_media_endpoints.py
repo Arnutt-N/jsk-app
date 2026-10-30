@@ -140,7 +140,7 @@ async def test_create_public_link_generates_token():
     # refresh should be a no-op (token already set by the endpoint logic)
     db.refresh = AsyncMock()
 
-    response = await media.create_public_link(
+    await media.create_public_link(
         media_id=media_file.id, db=db, _admin=_admin_user(),
     )
 
@@ -190,7 +190,7 @@ async def test_revoke_public_link_clears_token():
     db.execute.return_value = result
     db.refresh = AsyncMock()
 
-    response = await media.revoke_public_link(
+    await media.revoke_public_link(
         media_id=media_file.id, db=db, _admin=_admin_user(),
     )
 

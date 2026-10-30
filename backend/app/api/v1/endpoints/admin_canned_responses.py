@@ -1,12 +1,13 @@
 """Admin canned responses API endpoints."""
 from datetime import datetime
 
-from app.api.deps import get_current_admin, get_current_admin_or_viewer, get_db
-from app.models.user import User
-from app.services.canned_response_service import canned_response_service, normalize_text
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.api.deps import get_current_admin, get_current_admin_or_viewer, get_db
+from app.models.user import User
+from app.services.canned_response_service import canned_response_service, normalize_text
 
 router = APIRouter()
 

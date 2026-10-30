@@ -8,7 +8,6 @@ This module exercises the ACTUAL WHERE clauses against PostgreSQL.
 CI runs with PostgreSQL/Redis, so this executes there; locally (services down)
 it SKIPS cleanly instead of erroring.
 """
-import asyncio
 from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, patch
 

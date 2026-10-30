@@ -1,5 +1,5 @@
 """Endpoint tests for admin request comment behavior."""
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
@@ -1351,6 +1351,89 @@ def test_list_requests_invalid_date_bounds_returns_400():
 
     assert response.status_code == 400
     assert response.json()["detail"] == "start_date must not be after end_date"
+
+
+# ---------------------------------------------------------------------------
+# F-034 (2026-10-29) — the requests list must use the shared Bangkok window.
+#
+# The endpoint used to build its bounds inline with pytz while every other
+# admin surface (audit log, reports, friends) used `app.core.date_windows`.
+# Two hand-rolled copies of "a Bangkok calendar day" is one too many: they
+# agreed on the wire format the tests checked (hour == 17) but nothing kept
+# them in step. These pin the endpoint to the shared helper's output exactly.
+# ---------------------------------------------------------------------------
+def _list_bounds(fake_db) -> tuple:
+    """The two created_at bounds the endpoint put on the wire, lower first."""
+    params = fake_db.last_stmt.compile().params
+    bounds = sorted(
+        v for v in params.values() if isinstance(v, datetime)
+    )
+    assert len(bounds) == 2, f"expected two datetime bounds, got {params}"
+    return bounds[0], bounds[1]
+
+
+def test_list_requests_same_day_bounds_match_shared_helper():
+    """F-034: start_date == end_date must equal day_bounds_utc for that day."""
+    from app.core.date_windows import day_bounds_utc
+
+    fake_db = _FakeDB()
+    fake_db._fake_list_rows = [(_build_editable_request(request_id=1), "Admin User")]
+    teardown = _patch_admin_overrides(fake_db)
+
+    client = TestClient(app)
+    try:
+        response = client.get("/api/v1/admin/requests?start_date=2026-10-26&end_date=2026-10-26")
+    finally:
+        client.close()
+        teardown()
+
+    assert response.status_code == 200
+    expected_start, expected_end = day_bounds_utc(date(2026, 10, 26))
+    actual_start, actual_end = _list_bounds(fake_db)
+    assert actual_start == expected_start, f"{actual_start} != {expected_start}"
+    assert actual_end == expected_end, f"{actual_end} != {expected_end}"
+
+
+def test_list_requests_range_matches_shared_helper():
+    """F-034: an explicit range must equal resolve_range's half-open bounds."""
+    from app.core.date_windows import resolve_range
+
+    fake_db = _FakeDB()
+    fake_db._fake_list_rows = [(_build_editable_request(request_id=1), "Admin User")]
+    teardown = _patch_admin_overrides(fake_db)
+
+    client = TestClient(app)
+    try:
+        response = client.get("/api/v1/admin/requests?start_date=2026-10-20&end_date=2026-10-22")
+    finally:
+        client.close()
+        teardown()
+
+    assert response.status_code == 200
+    expected_start, expected_end = resolve_range(date(2026, 10, 20), date(2026, 10, 22), 7)
+    actual_start, actual_end = _list_bounds(fake_db)
+    assert (actual_start, actual_end) == (expected_start, expected_end)
+
+
+def test_list_requests_single_end_date_matches_shared_helper():
+    """F-034: end_date alone is a Bangkok day too, not a bare UTC midnight."""
+
+    fake_db = _FakeDB()
+    fake_db._fake_list_rows = [(_build_editable_request(request_id=1), "Admin User")]
+    teardown = _patch_admin_overrides(fake_db)
+
+    client = TestClient(app)
+    try:
+        response = client.get("/api/v1/admin/requests?end_date=2026-10-26")
+    finally:
+        client.close()
+        teardown()
+
+    assert response.status_code == 200
+    params = fake_db.last_stmt.compile().params
+    bound = next(v for v in params.values() if isinstance(v, datetime))
+    # Exclusive upper bound: Bangkok midnight Oct 27 == Oct 26 17:00 UTC.
+    assert bound == datetime(2026, 10, 26, 17, 0, tzinfo=timezone.utc)
 
 
 # ---------------------------------------------------------------------------

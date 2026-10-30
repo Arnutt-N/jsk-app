@@ -20,9 +20,10 @@ from types import SimpleNamespace
 import pytest
 
 from app.api.v1.endpoints import admin_credentials
-from app.models.credential import Credential, Provider as ORMProvider
-from app.schemas.credential import CredentialCreate, CredentialResponse, Provider
+from app.models.credential import Credential
+from app.models.credential import Provider as ORMProvider
 from app.models.user import UserRole
+from app.schemas.credential import CredentialCreate, CredentialResponse, Provider
 
 
 def _real_credential(**overrides) -> Credential:

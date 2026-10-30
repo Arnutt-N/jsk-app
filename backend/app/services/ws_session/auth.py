@@ -8,15 +8,15 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import WebSocket
-from jose import jwt, JWTError, ExpiredSignatureError
+from jose import ExpiredSignatureError, JWTError, jwt
 from pydantic import ValidationError
 from sqlalchemy import select
 
 from app.core.config import settings
-from app.core.permissions import can, KEY_ACCESS_LIVE_CHAT
+from app.core.permissions import KEY_ACCESS_LIVE_CHAT, can
 from app.db.session import AsyncSessionLocal
 from app.models.user import User
-from app.schemas.ws_events import WSEventType, WSErrorCode, AuthPayload
+from app.schemas.ws_events import AuthPayload, WSErrorCode, WSEventType
 from app.services.auth_session_service import claim_ws_ticket
 
 from ._deps import get_ws_manager

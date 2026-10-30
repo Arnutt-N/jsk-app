@@ -5,7 +5,6 @@ import pytest
 
 from app.models.user import ChatMode
 from app.services.handoff_service import HandoffService
-
 from tests.identity_helpers import make_line_user_fields
 
 

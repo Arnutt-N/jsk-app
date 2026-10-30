@@ -1,5 +1,6 @@
 """Test PRD E: Community agencies and drug reporting category support"""
 import pytest
+
 from app.schemas.service_request_liff import ServiceRequestCreate
 
 

@@ -5,6 +5,15 @@ import { X } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 
+// Several modals can be open at once (a warning over a form). The lock is
+// reference-counted so the inner one closing cannot unlock the page behind it,
+// and the count doubles as the one answer to "is a dialog above the page?"
+let bodyLockCount = 0;
+
+export function hasOpenDialog(): boolean {
+  return bodyLockCount > 0;
+}
+
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -14,6 +23,14 @@ interface ModalProps {
   maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl';
   showCloseButton?: boolean;
   closeOnBackdropClick?: boolean;
+  /**
+   * When true, all dismiss paths (Escape, backdrop click, X button) are
+   * blocked. Callers pass their pending state here (e.g. ConfirmDialog
+   * passes isLoading) so a slow request cannot be dismissed mid-flight.
+   */
+  dismissDisabled?: boolean;
+  /** Accessible name for dialogs that render their own heading in the body. */
+  ariaLabel?: string;
 }
 
 export const Modal: React.FC<ModalProps> = ({
@@ -25,17 +42,18 @@ export const Modal: React.FC<ModalProps> = ({
   maxWidth = 'md',
   showCloseButton = true,
   closeOnBackdropClick = true,
+  dismissDisabled = false,
+  ariaLabel,
 }) => {
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
-      document.body.style.paddingRight = `${scrollbarWidth}px`;
-    } else {
-      document.body.style.overflow = '';
-      document.body.style.paddingRight = '';
-    }
+    if (!isOpen) return;
+    bodyLockCount += 1;
+    document.body.style.overflow = 'hidden';
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+    document.body.style.paddingRight = `${scrollbarWidth}px`;
     return () => {
+      bodyLockCount -= 1;
+      if (bodyLockCount > 0) return;
       document.body.style.overflow = '';
       document.body.style.paddingRight = '';
     };
@@ -49,15 +67,26 @@ export const Modal: React.FC<ModalProps> = ({
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape') {
+      // While a request is pending the dialog must not be dismissible, but the
+      // Tab trap below still has to hold or focus escapes to the page behind.
+      if (dismissDisabled) return;
+      // Claim the key so a drawer or other window listener does not also act.
+      e.preventDefault();
       onClose();
       return;
     }
 
     if (e.key === 'Tab' && modalRef.current) {
       const focusable = modalRef.current.querySelectorAll<HTMLElement>(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
       );
-      if (focusable.length === 0) return;
+      if (focusable.length === 0) {
+        // A pending dialog disables every control. Without this the browser
+        // moves focus to the page behind the modal.
+        e.preventDefault();
+        modalRef.current.focus();
+        return;
+      }
 
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
@@ -74,7 +103,7 @@ export const Modal: React.FC<ModalProps> = ({
         }
       }
     }
-  }, [onClose]);
+  }, [onClose, dismissDisabled]);
 
   // Keydown listener only — re-running this effect (e.g. when a parent passes
   // an inline onClose whose identity changes every render) has no side effect
@@ -103,7 +132,7 @@ export const Modal: React.FC<ModalProps> = ({
       // (the Close button) — the CI-red auto-replies create-category race.
       if (modalRef.current?.contains(document.activeElement)) return;
       const firstFocusable = modalRef.current?.querySelector<HTMLElement>(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
       );
       firstFocusable?.focus();
     }, 50);
@@ -129,8 +158,9 @@ export const Modal: React.FC<ModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
       {/* Backdrop */}
       <div
+        data-testid="modal-backdrop"
         className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
-        onClick={closeOnBackdropClick ? onClose : undefined}
+        onClick={closeOnBackdropClick && !dismissDisabled ? onClose : undefined}
       />
 
       {/* Modal Content */}
@@ -138,9 +168,10 @@ export const Modal: React.FC<ModalProps> = ({
         ref={modalRef}
         role="dialog"
         aria-modal="true"
+        tabIndex={-1}
         {...(title
           ? { 'aria-labelledby': titleId }
-          : { 'aria-label': 'Dialog' })}
+          : { 'aria-label': ariaLabel ?? 'Dialog' })}
         {...(description ? { 'aria-describedby': descriptionId } : {})}
         className={cn(
           'relative bg-surface dark:bg-surface-dark rounded-2xl w-full',
@@ -168,7 +199,8 @@ export const Modal: React.FC<ModalProps> = ({
             {showCloseButton && (
               <button
                 onClick={onClose}
-                className="p-1.5 rounded-lg hover:bg-muted text-text-tertiary hover:text-text-primary transition-colors cursor-pointer"
+                disabled={dismissDisabled}
+                className="p-1.5 rounded-lg hover:bg-muted text-text-tertiary hover:text-text-primary transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
                 aria-label="Close modal"
               >
                 <X className="w-5 h-5" />

@@ -1,9 +1,12 @@
-from sqlalchemy import Column, String, Integer, DateTime, Boolean, Enum, Index, Text, ForeignKey, text
-from sqlalchemy.dialects.postgresql import JSONB, UUID
-from sqlalchemy.sql import func
-from sqlalchemy.orm import relationship
 import enum
+
+from sqlalchemy import Boolean, Column, DateTime, Enum, ForeignKey, Index, Integer, String, Text, text
+from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
+
 from app.db.base import Base
+
 
 class MatchType(str, enum.Enum):
     EXACT = "exact"

@@ -1,6 +1,6 @@
 """SLA monitoring and alert emission for live chat operations."""
-from datetime import datetime, timezone
 import logging
+from datetime import datetime, timezone
 from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession

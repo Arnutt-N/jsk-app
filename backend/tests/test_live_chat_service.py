@@ -4,18 +4,18 @@ Unit tests for live_chat_service.py:
 - close_session logic
 - get_active_session logic
 """
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import datetime, timezone
 from types import SimpleNamespace
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
 
-from app.services.live_chat_service import LiveChatService
-from app.models.chat_session import SessionStatus, ClosedBy
+from app.models.chat_session import ClosedBy, SessionStatus
 from app.models.user import ChatMode, UserRole
 from app.services.credential_service import credential_service
-
+from app.services.live_chat_service import LiveChatService
 from tests.identity_helpers import make_line_user_fields
 
 

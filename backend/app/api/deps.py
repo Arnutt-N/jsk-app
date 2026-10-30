@@ -1,20 +1,23 @@
 import logging
 import secrets
 from typing import Optional
+
 from fastapi import Depends, HTTPException, Request, status
-from app.db.session import AsyncSessionLocal, get_db
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.config import settings
 from app.core.cookie_auth import ACCESS_COOKIE, CSRF_COOKIE
 from app.core.permissions import (
-    can,
     KEY_ACCESS_ADMIN_ENDPOINTS,
     KEY_ACCESS_MANAGER_ENDPOINTS,
     KEY_ACCESS_STAFF_ENDPOINTS,
+    can,
+    refresh_policy_if_stale,
 )
 from app.core.security import verify_token
+from app.db.session import get_db
 from app.models.user import UserRole
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +29,19 @@ _CSRF_PROTECTED_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 # get_db is re-exported from app.db.session (single implementation — R3-M26).
 # Both `deps.get_db` and `session.get_db` are the SAME function object, so
 # dependency_overrides keys work no matter which path a test imports.
+
+
+def csrf_matches(header_value: str, cookie_value: str) -> bool:
+    """Constant-time CSRF comparison that tolerates non-ASCII input.
+
+    F-008: `secrets.compare_digest(str, str)` raises TypeError when either side
+    contains a non-ASCII character, so a crafted `X-CSRF-Token` header turned a
+    403 into a 500 (plus a traceback). Comparing the UTF-8 encodings keeps the
+    constant-time property and never raises.
+    """
+    return secrets.compare_digest(
+        header_value.encode("utf-8"), cookie_value.encode("utf-8")
+    )
 
 
 async def get_current_user(
@@ -46,7 +62,7 @@ async def get_current_user(
     In development mode (DEV_AUTH_BYPASS=true), returns a mock admin user
     when NO cookie was presented. In production, requires a valid JWT token.
     """
-    from app.models.user import User, UserRole
+    from app.models.user import User
 
     cookie_token = request.cookies.get(ACCESS_COOKIE)
     token: Optional[str] = cookie_token or None
@@ -132,7 +148,7 @@ async def get_current_user(
     if request.method in _CSRF_PROTECTED_METHODS:
         header_csrf = request.headers.get("x-csrf-token")
         cookie_csrf = request.cookies.get(CSRF_COOKIE)
-        if not header_csrf or not cookie_csrf or not secrets.compare_digest(header_csrf, cookie_csrf):
+        if not header_csrf or not cookie_csrf or not csrf_matches(header_csrf, cookie_csrf):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="CSRF token missing or invalid",
@@ -164,7 +180,11 @@ async def get_current_admin(
     authenticated user — it only reads the caller's own capabilities, so
     it cannot lock anyone out.)
     """
-    from app.models.user import UserRole
+
+    # F-002: without this the plain gates (83 route deps) would keep serving a
+    # matrix they loaded before the revocation, forever — the TTL only ever
+    # reached `require_permission` call sites.
+    await refresh_policy_if_stale()
 
     if not can(current_user.role, KEY_ACCESS_ADMIN_ENDPOINTS):
         raise HTTPException(
@@ -189,7 +209,8 @@ async def get_current_manager(
     recoverable via the matrix endpoint (still reachable through
     access_admin_endpoints).
     """
-    from app.models.user import UserRole
+
+    await refresh_policy_if_stale()
 
     if not can(current_user.role, KEY_ACCESS_MANAGER_ENDPOINTS):
         raise HTTPException(
@@ -224,7 +245,8 @@ async def get_current_staff(
     the WS gate would hide the page from supervisors and break the
     discoverability path.
     """
-    from app.models.user import UserRole
+
+    await refresh_policy_if_stale()
 
     if not can(current_user.role, KEY_ACCESS_STAFF_ENDPOINTS):
         raise HTTPException(
@@ -242,6 +264,7 @@ def _gate_or_viewer(key: str):
     here never opens a write.
     """
     async def gate(current_user=Depends(get_current_user)):
+        await refresh_policy_if_stale()
         if current_user.role == UserRole.VIEWER:
             return current_user
         if not can(current_user.role, key):
@@ -261,18 +284,26 @@ def require_permission(key: str):
     """Dependency factory: gate a route on a single module permission key.
 
     Returns an async dependency that resolves the authenticated user via
-    `get_current_user`, then checks the DB-backed module policy (cached,
-    with DEFAULT_POLICY fallback) for `key`. Raises 403 when the user's
-    role lacks the key. Authentication (401) is still enforced upstream by
+    `get_current_user`, then checks the DB-backed module policy (cached and
+    refreshed on a short TTL) for `key`. Raises 403 when the user's role lacks
+    the key. Authentication (401) is still enforced upstream by
     `get_current_user`. Fails closed: an unknown key resolves to an empty
-    allowed-set -> 403.
+    allowed-set, and a failed policy read denies every key (F-004) rather than
+    falling back to the permissive bootstrap defaults.
 
     Usage:
         @router.post("/")
         async def create(..., current_admin = Depends(require_permission(KEY_MANAGE_BROADCAST))):
     """
-    async def _dependency(current_user = Depends(get_current_user)):
-        from app.core.permissions import can
+    async def _dependency(current_user=Depends(get_current_user)):
+        from app.core.permissions import can, refresh_policy_if_stale
+
+        # F-002: the matrix is cached per process, so a revocation edited on
+        # another worker would never reach this one. Refresh when stale before
+        # deciding; inside the TTL this is a timestamp read with no I/O. The
+        # refresh opens its own session on purpose — taking `db` here would
+        # make this dependency consume statements from the request session.
+        await refresh_policy_if_stale()
 
         if not can(current_user.role, key):
             raise HTTPException(

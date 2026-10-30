@@ -104,7 +104,7 @@ class ConversationsMixin:
 
         if not include_archived:
             session_base = session_base.where(
-                (ChatSession.is_archived == False) | (ChatSession.is_archived.is_(None))
+                (ChatSession.is_archived.is_(False)) | (ChatSession.is_archived.is_(None))
             )
 
         latest_session_subquery = session_base.subquery()

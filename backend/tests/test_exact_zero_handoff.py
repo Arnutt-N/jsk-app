@@ -52,9 +52,10 @@ async def _backup_settings(db, keys):
 
 
 async def _restore_settings(db, backup, keys):
+    from sqlalchemy import delete
+
     from app.models.system_setting import SystemSetting
     from app.services.settings_service import SettingsService
-    from sqlalchemy import delete
 
     for key in keys:
         if key in backup:

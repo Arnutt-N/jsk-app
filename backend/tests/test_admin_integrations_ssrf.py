@@ -102,6 +102,5 @@ def test_endpoint_blocks_loopback_without_outbound_call():
         invalidate_cache()
 
     assert resp.status_code == 200
-    body = finish.await_args.args[-1] if finish.await_args.args else finish.await_args.kwargs
     # the result must carry the guard's failure, not an outbound attempt
     assert finish.await_count == 1

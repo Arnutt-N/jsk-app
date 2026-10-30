@@ -1,8 +1,8 @@
 import httpx
 import pytest
 
-from app.api.v1.endpoints import liff as liff_module
 import app.main as main_module
+from app.api.v1.endpoints import liff as liff_module
 
 # Full LIFF route inventory (source of truth: OpenAPI schema — nested
 # routers in this FastAPI version are not flattened into app.routes).
