@@ -147,6 +147,11 @@ ACCESS_TOKEN_EXPIRE_MINUTES=30
 DATABASE_URL=ค่าจาก Supabase
 REDIS_URL=ค่าจาก Upstash
 
+# HMAC key สำหรับ line_user_id_hash — ต้องคงค่าเดิมตลอด
+# ถ้าเปลี่ยนภายหลัง hash เดิมจะ resolve ไม่ได้
+LINE_ID_HMAC_KEY=ค่าสุ่มยาว
+LINE_ID_STORAGE_MODE=pseudonym
+
 LINE_CHANNEL_ACCESS_TOKEN=ค่าจาก LINE
 LINE_CHANNEL_SECRET=ค่าจาก LINE
 LINE_LOGIN_CHANNEL_ID=ค่าจาก LINE
@@ -182,7 +187,53 @@ python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().d
 2. รอให้ Koyeb build และ start สำเร็จ
 3. จด backend URL ที่ได้
 
-### 4.6 Seed Admin User (ทำครั้งแรกหลัง deploy)
+### 4.6 สร้างตารางในฐานข้อมูล (Migration)
+
+⚠️ **ห้ามข้ามขั้นนี้** — backend จะ start ได้แต่ทุก API ที่อ่านฐานข้อมูลจะ error
+เพราะตารางยังไม่มี
+
+ขั้นตอนแบบย่อ (รายละเอียดเต็ม + กับดักทั้งหมด → `docs/DB_MIGRATION_RUNBOOK_TH.md`):
+
+1. สร้าง `backend/.env` (ไฟล์นี้ gitignore ไว้ ไม่มีในรีโป):
+
+```bash
+cd backend
+cat > .env <<'EOF'
+DATABASE_URL=postgresql+asyncpg://USER:PASSWORD@HOST:5432/postgres
+SECRET_KEY=ค่าเดียวกับที่ใส่ใน Koyeb
+ENCRYPTION_KEY=ค่าเดียวกับที่ใส่ใน Koyeb
+LINE_ID_HMAC_KEY=ค่าที่ตั้งใน Koyeb
+REDIS_URL=ค่าจาก Upstash
+ENVIRONMENT=production
+EOF
+```
+
+2. ตรวจว่าต่อได้:
+
+```bash
+python scripts/db_target.py alembic --target remote current
+```
+
+3. รัน migration:
+
+```bash
+python scripts/db_target.py alembic --target remote upgrade head
+```
+
+4. ตรวจว่าถึง head แล้ว:
+
+```bash
+python scripts/db_target.py alembic --target remote current
+```
+
+หมายเหตุ:
+
+- ถ้า database มีข้อมูลเดิมและตามหลังหลาย migration **อย่ารันตรง ๆ** — ให้ replay
+  บน database จำลองก่อนตาม runbook
+- migration ที่สำเร็จจะ commit แยกทีละตัว ถ้าล้มกลางทางรันต่อได้ทันทีหลังแก้สาเหตุ
+- เสร็จแล้วลบ `backend/.env` เพราะมี secret ของ production แบบ plaintext
+
+### 4.7 Seed Admin User (ทำครั้งแรกหลัง deploy)
 
 หลัง backend start สำเร็จแล้ว ต้องสร้าง admin user ก่อนจึงจะล็อกอินได้
 
@@ -215,7 +266,7 @@ python scripts/seed_admin.py --apply
 - หลังจากนั้นสามารถเปลี่ยนรหัสผ่านผ่านหน้า admin ได้
 - ถ้าใช้ GitHub Actions CD สามารถรัน seed script ผ่าน local machine ที่ต่อ production DB ได้
 
-### 4.7 เช็กว่า backend พร้อมใช้งาน
+### 4.8 เช็กว่า backend พร้อมใช้งาน
 
 เปิด:
 

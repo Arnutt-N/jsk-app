@@ -47,6 +47,8 @@ python scripts/db_target.py alembic --target local revision --autogenerate -m "d
 python scripts/db_target.py alembic --target local upgrade head
 python scripts/db_target.py alembic --target local downgrade -1
 python scripts/db_target.py alembic --target remote upgrade head  # deploy/migrate Supabase
+# Production migration needs backend/.env (gitignored) and a dry run first —
+# see docs/DB_MIGRATION_RUNBOOK_TH.md
 ```
 
 ### Testing
