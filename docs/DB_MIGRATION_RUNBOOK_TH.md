@@ -247,6 +247,91 @@ rm backend/.env
 
 ---
 
+## 6. ตรวจว่า deploy เกิดขึ้นจริง (ไม่ใช่แค่ CD เขียว)
+
+⚠️ **`CD` ที่ขึ้น `success` ไม่ได้แปลว่าโค้ดขึ้น production แล้ว**
+
+workflow `CD` มี 6 job แต่วิ่งจริงแค่บางตัว ขึ้นกับว่า job `Resolve Deployment Scope`
+(ซึ่งอ่าน artifact `cd-scope` ที่ CI สร้าง) เห็นว่าคอมมิตนั้นแตะอะไร ถ้าแตะแค่
+docs/markdown — job ที่ `Deploy *` และ `Run Production DB Migrations` จะเป็น
+**skipped** แล้ว workflow สรุปเป็น `success` ทั้งที่ไม่มีอะไรขึ้น production เลย
+
+เจอมาแล้วจริง: PR ที่แก้แต่เอกสารขึ้น `success` ทั้งที่ job เป็น
+`Deploy Backend (Koyeb): skipped`, `Deploy Frontend (Vercel): skipped`
+
+### วิธีตรวจที่ถูก
+
+```bash
+# 1) เอา run ล่าสุดของ CD บน main
+gh run list --branch main --workflow CD --limit 3 \
+  --json databaseId,conclusion,headSha \
+  --jq '.[] | "\(.headSha[0:7]) \(.conclusion)"'
+
+# 2) ดู job-level ไม่ใช่ workflow-level
+gh run view <run-id> --json jobs --jq '.jobs[] | "\(.name): \(.conclusion)"'
+```
+
+ต้องเห็นแบบนี้ถึงจะเรียกว่า deploy แล้ว:
+
+```text
+Deploy Backend (Koyeb): success
+Deploy Frontend (Vercel): success
+Smoke Check Backend: success
+Smoke Check Frontend: success
+Run Production DB Migrations: success
+```
+
+ถ้าเห็น `skipped` → **ยังไม่ deploy**
+
+### CD ล้มด้วยเรื่อง infra ให้ re-run ไม่ต้อง dispatch ใหม่
+
+เจอ error นี้มาแล้ว:
+
+```text
+##[error]Unable to download artifact(s): Unable to download and extract artifact:
+Artifact download failed after 5 retries.
+```
+
+สาเหตุ: job `Resolve Deployment Scope` ดึง artifact `cd-scope` จาก run ของ CI ไม่ได้
+(ระบบ GitHub ล่มชั่วคราว) — **ไม่ใช่โค้ดเราเสีย**
+
+แก้ด้วย:
+
+```bash
+gh run rerun <run-id> --failed
+```
+
+`--failed` จะรันเฉพาะ job ที่ล้ม ไม่รันตัวที่สำเร็จซ้ำ (job `Deploy *` จะได้ไม่รันซ้ำ
+เกินจำเป็น) แล้วรอจนจบ
+
+ถ้า re-run ยังล้มด้วย artifact error เดิม ให้ใช้ `workflow_dispatch` แทน:
+
+```bash
+gh workflow run cd.yml -f environment=production -f target=all --ref main
+```
+
+### ตรวจ DB กับ code ว่าตรงกัน
+
+ถ้า migrate DB ไปแล้วแต่ code ยังไม่ขึ้น (หรือกลับกัน) จะได้สภาพที่แย่ที่สุด:
+**code เก่าอ่าน schema ใหม่** หรือ **code ใหม่อ่านตารางที่ยังไม่มี**
+
+ตรวจว่า DB อยู่ revision ไหน:
+
+```bash
+cd backend
+python scripts/db_target.py alembic --target remote current
+```
+
+แล้วเทียบกับ revision ล่าสุดในรีโป:
+
+```bash
+python -m alembic heads
+```
+
+สองค่านี้ต้องตรงกัน **หลัง** deploy เสร็จ
+
+---
+
 ## ภาคผนวก: คำสั่งด่วน
 
 ```bash
