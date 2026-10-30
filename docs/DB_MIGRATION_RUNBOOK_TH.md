@@ -205,8 +205,20 @@ from sqlalchemy.dialects import postgresql
 sa.Column("role", postgresql.ENUM("A", "B", name="userrole", create_type=False))  # ถูก
 ```
 
-`create_type` เป็น attribute ของ `postgresql.ENUM` เท่านั้น `sa.Enum` ไม่มี (ตรวจได้ด้วย
-`getattr(sa.Enum(name='x'), 'create_type', 'ABSENT')`)
+`create_type` เป็น attribute ของ `postgresql.ENUM` เท่านั้น `sa.Enum` ไม่เก็บค่านี้ไว้
+— ส่งเข้าไปแล้วมันหายไป ตรวจได้ด้วย:
+
+```python
+import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
+
+sa.Enum('A', 'B', name='e', create_type=False).create_type   # AttributeError
+postgresql.ENUM('A', 'B', name='e', create_type=False).create_type   # False
+```
+
+ระวัง: `getattr(sa.Enum(name='x'), 'create_type', 'ABSENT')` คืน `'ABSENT'` (ไม่มี
+attribute นี้จริง) — แต่ถ้าส่ง `create_type=False` เข้า constructor มันจะรับไว้แล้ว
+ทิ้งไปเงียบ ๆ จึงต้องเทสต์จาก DDL ที่ emit ออกมา ไม่ใช่จาก attribute
 
 ### Pooler port
 
