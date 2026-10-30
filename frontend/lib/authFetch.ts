@@ -92,12 +92,16 @@ function isApiRequest(input: RequestInfo | URL): boolean {
 //   /auth/refresh        — recursion guard
 //   /auth/login          — wrong password must surface as-is (F-012)
 //   /auth/migrate-session— converts a legacy Bearer token; 401 = bad token
-//   /auth/ws-ticket      — mints a socket ticket for the current session
+//
+// /auth/ws-ticket is deliberately NOT here. It mints a ticket for an existing
+// session, so a 401 means the access token expired — exactly the case a
+// refresh-then-replay recovers. Listing it made an expired token kill the
+// socket permanently: the minter swallowed the 401 (`return null`) while the
+// dispatch still fired the logout event.
 const NON_RETRYABLE_AUTH_PATHS = [
   '/auth/refresh',
   '/auth/login',
   '/auth/migrate-session',
-  '/auth/ws-ticket',
 ] as const;
 
 function isNonRetryableAuthRequest(input: RequestInfo | URL): boolean {

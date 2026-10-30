@@ -152,8 +152,19 @@ export const ADMIN_ROUTES = {
   },
   reports: {
     path: '/admin/reports',
-    allowedRoles: ADMIN_AND_VIEWER,
+    // KEY_VIEW_REPORTS grants DIRECTOR/HEAD too ("Managers may VIEW reports");
+    // an ADMIN_AND_VIEWER list here hid a page the backend serves them.
+    allowedRoles: WORKFLOW_AND_VIEWER,
     capability: 'view_reports',
+  },
+  analytics: {
+    // Same backend gate as reports (admin_analytics.py uses KEY_VIEW_REPORTS).
+    // It lived only in CommandPalette, so `routeFor` missed it and
+    // `canAccessRoute` fell back to ADMIN_ONLY, bouncing VIEWER.
+    path: '/admin/analytics',
+    allowedRoles: WORKFLOW_AND_VIEWER,
+    capability: 'view_reports',
+    nav: false,
   },
   audit: {
     path: '/admin/audit',
@@ -250,16 +261,29 @@ export function capabilityFor(pathname: string): string | undefined {
 }
 
 /**
+ * Capability keys that gate a READ, not a write.
+ *
+ * Most manifest keys guard WRITES (`manage_rich_menus` guards POST/PUT on
+ * `/admin/rich-menus`), and VIEWER — a read-only observer — reaches those pages
+ * through `*_or_viewer` on the GETs. Consulting a write key for VIEWER would
+ * hide a page the backend serves, so that check is skipped for the role.
+ *
+ * These keys are the exception: the backend gates the GETs themselves with
+ * `require_permission(KEY_...)` (admin_reports.py:101-151, admin_analytics.py),
+ * so a matrix that revokes VIEWER really does 403 every tab. Skipping the check
+ * for them left VIEWER a sidebar entry that 403s on click.
+ */
+const READ_GATING_KEYS: readonly string[] = ['view_reports', 'view_audit_log']
+
+/**
  * Whether the served capability map must also be consulted for `pathname`.
  *
- * The manifest's keys name backend gates that guard WRITES (`manage_rich_menus`
- * guards POST/PUT on `/admin/rich-menus`), while VIEWER is a read-only observer
- * whose reads those same pages serve through `*_or_viewer`. Consulting the key
- * for VIEWER would hide a page the backend and the path allow-list both open,
- * so the check is skipped for that one role. Keeping the rule here means the
- * sidebar and `PageAccessGuard` cannot disagree about it.
+ * Keeping the rule here means the sidebar and `PageAccessGuard` cannot
+ * disagree about it.
  */
 export function capabilityAppliesTo(pathname: string, role: string | null | undefined): boolean {
-  if (!capabilityFor(pathname)) return false
-  return role !== 'VIEWER'
+  const key = capabilityFor(pathname)
+  if (!key) return false
+  if (role !== 'VIEWER') return true
+  return READ_GATING_KEYS.includes(key)
 }

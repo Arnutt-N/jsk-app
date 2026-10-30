@@ -47,22 +47,23 @@ export default function PageAccessGuard({
   const capability = capabilityFor(pathname);
 
   const role = user?.role;
+  // The role list is the PRE-LOAD fallback, not a second gate. Requiring both
+  // made a matrix grant unreachable: adding DIRECTOR to `access_live_chat` in
+  // Settings changed nothing while this list still said
+  // SUPER_ADMIN/ADMIN/AGENT. Once the served map has the key, it decides.
   const roleAllowed =
     !!role &&
     role !== 'USER' &&
     (manifestRoles as readonly string[]).includes(role) &&
     (!allowedRoles || allowedRoles.includes(role));
-  // Until the map resolves the role list alone decides — same behaviour as
-  // before this module existed (no flash of a bounced page on first paint).
   // `capabilityAppliesTo` keeps VIEWER off the write-gating keys, the same rule
   // the sidebar applies, so mounting this guard cannot bounce a role the page
   // itself admits.
-  const capabilityAllowed =
-    !capabilityAppliesTo(pathname, role) ||
-    !permissions ||
-    !capability ||
-    capabilityOf(permissions, capability);
-  const isAllowed = roleAllowed && capabilityAllowed;
+  const capabilityConsulted = capabilityAppliesTo(pathname, role);
+  const capabilityDecided = capabilityConsulted && !!permissions && !!capability;
+  const isAllowed = capabilityDecided
+    ? capabilityOf(permissions, capability)
+    : roleAllowed;
 
   useEffect(() => {
     // bootstrapFailed = auth state unknown (transient backend failure) —

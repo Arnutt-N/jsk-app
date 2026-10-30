@@ -110,17 +110,33 @@ describe('admin auth fetch interceptor — cookie mode', () => {
     expect(res.status).toBe(401);
   });
 
-  it('does NOT refresh or retry migrate-session or ws-ticket 401s (F-012)', async () => {
+  it('does NOT refresh or retry a migrate-session 401 (F-012)', async () => {
     const refresh = vi.fn().mockResolvedValue('cookie-refreshed');
     setAuthRefreshHandler(refresh);
 
-    for (const path of ['/api/v1/auth/migrate-session', '/api/v1/auth/ws-ticket']) {
-      nativeFetch.mockResolvedValueOnce(jsonResponse(401));
-      const res = await window.fetch(path, { method: 'POST' });
-      expect(refresh).not.toHaveBeenCalled();
-      expect(res.status).toBe(401);
-    }
-    expect(nativeFetch).toHaveBeenCalledTimes(2); // one attempt each, no retry
+    nativeFetch.mockResolvedValueOnce(jsonResponse(401));
+    const res = await window.fetch('/api/v1/auth/migrate-session', { method: 'POST' });
+
+    expect(refresh).not.toHaveBeenCalled();
+    expect(nativeFetch).toHaveBeenCalledTimes(1);
+    expect(res.status).toBe(401);
+  });
+
+  it('DOES refresh and retry a ws-ticket 401: it mints for an existing session', async () => {
+    // The ticket mints against the current session, so a 401 means the access
+    // token expired — exactly what refresh-then-replay recovers. Treating it as
+    // an auth-entry endpoint made an expired token kill the socket for good.
+    nativeFetch
+      .mockResolvedValueOnce(jsonResponse(401))
+      .mockResolvedValueOnce(jsonResponse(200));
+    const refresh = vi.fn().mockResolvedValue('cookie-refreshed');
+    setAuthRefreshHandler(refresh);
+
+    const res = await window.fetch('/api/v1/auth/ws-ticket', { method: 'POST' });
+
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(nativeFetch).toHaveBeenCalledTimes(2);
+    expect(res.status).toBe(200);
   });
 
   it('still refreshes an expired-session 401 on a regular admin call (F-012)', async () => {

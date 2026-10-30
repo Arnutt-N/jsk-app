@@ -82,8 +82,18 @@ async def test_absent_cache_is_loaded():
 
 @pytest.mark.asyncio
 async def test_reload_failure_fails_closed():
-    """A raising re-read must deny, not serve the possibly-revoked policy."""
-    permissions._policy_cache = {**DEFAULT_POLICY}
+    """A raising re-read must deny every key, not fall back to DEFAULT_POLICY.
+
+    Clearing the cache (`_policy_cache is None`) is NOT fail-closed here:
+    `_allowed_for` then falls back to DEFAULT_POLICY, which is wider than a
+    hardened matrix, so a DB flap would restore revoked rights (F-004).
+    """
+    # A hardened matrix: AGENT revoked from live chat.
+    hardened = {**DEFAULT_POLICY}
+    hardened[KEY_ACCESS_LIVE_CHAT] = frozenset(
+        {UserRole.SUPER_ADMIN, UserRole.ADMIN}
+    )
+    permissions._policy_cache = hardened
     _age_cache(POLICY_CACHE_TTL_SECONDS + 1)
 
     # Reproduce a DB outage during the refresh.
@@ -93,10 +103,14 @@ async def test_reload_failure_fails_closed():
         db = AsyncMock()
         await refresh_policy_if_stale(db)
 
-    assert permissions._policy_cache is None, (
-        "a failed refresh must clear the cache so the next check fails closed "
-        "instead of serving the stale matrix"
+    assert permissions._policy_cache is not None, (
+        "a failed refresh must leave a populated cache; None would fall back "
+        "to the permissive DEFAULT_POLICY"
     )
+    assert permissions._policy_cache == {key: frozenset() for key in ALL_PERMISSION_KEYS}, (
+        "a failed refresh must deny every key"
+    )
+    assert permissions.can(UserRole.AGENT, KEY_ACCESS_LIVE_CHAT) is False
 
 
 @pytest.mark.asyncio

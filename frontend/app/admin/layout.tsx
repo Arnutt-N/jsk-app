@@ -284,11 +284,15 @@ function AdminShell({ children }: { children: React.ReactNode }) {
     // decision: hide it rather than render a link to a page that will bounce.
     const route = routeFor(item.href);
     if (!route) return false;
-    if (!isNavItemVisible(user?.role, route.allowedRoles)) return false;
+    // The role list is the PRE-LOAD fallback; once the served map answers for
+    // this key it decides. Gating on both made a matrix grant invisible: a
+    // DIRECTOR added to `access_live_chat` still matched neither the hardcoded
+    // list nor the key check.
     // VIEWER reads are governed by the path allow-list; the manifest's keys
     // gate writes. `capabilityAppliesTo` owns that split for both consumers.
-    if (!capabilityAppliesTo(item.href, user?.role)) return true;
-    if (!route.capability || !permissions) return true;
+    if (!route.capability || !permissions || !capabilityAppliesTo(item.href, user?.role)) {
+      return isNavItemVisible(user?.role, route.allowedRoles);
+    }
     return capabilityOf(permissions, route.capability);
   };
 

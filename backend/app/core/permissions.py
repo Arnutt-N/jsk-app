@@ -27,6 +27,7 @@ Default policy keys (must match `permission_settings.key` rows):
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 import time
 from typing import Iterable, Literal, NamedTuple
@@ -188,6 +189,11 @@ _policy_loaded_at: float | None = None
 # 30s keeps the common-path cost at zero (an in-process dict read) while making
 # a revocation reach every worker within half a minute.
 POLICY_CACHE_TTL_SECONDS = 30.0
+
+# Ceiling on one refresh round-trip. Without it a DB that accepts the TCP
+# connection but never answers would park every `require_permission` request
+# (102 call sites) until the client gave up, instead of denying at the TTL.
+POLICY_REFRESH_TIMEOUT_SECONDS = 5.0
 
 _policy_session_factory_cache = None
 
@@ -385,10 +391,14 @@ async def refresh_policy_if_stale(db: AsyncSession | None = None) -> None:
     caller that owns it (and would break every test that substitutes `get_db`
     with a scripted fake).
 
-    Fails closed: if the re-read raises, the cache is cleared so subsequent
-    checks fall back to DEFAULT_POLICY rather than continuing to serve a matrix
-    that may already have been revoked.
+    Fails closed: if the re-read raises, a deny-all cache is written. Clearing
+    the cache instead would fall back to DEFAULT_POLICY — the bootstrap
+    matrix — which is WIDER than any hardened production matrix, so a DB flap
+    would restore revoked rights (F-004). The deny-all written here is also
+    stamped, so the retry stays bounded by the TTL rather than by traffic.
     """
+    global _policy_cache, _policy_loaded_at
+
     if _policy_cache is not None and _policy_loaded_at is not None:
         if time.monotonic() - _policy_loaded_at < POLICY_CACHE_TTL_SECONDS:
             return
@@ -397,16 +407,23 @@ async def refresh_policy_if_stale(db: AsyncSession | None = None) -> None:
         if db is not None:
             await load_policy(db)
         else:
-            session_maker = _policy_session_factory()
-            async with session_maker() as session:
-                await load_policy(session)
+            await asyncio.wait_for(_load_on_own_session(), POLICY_REFRESH_TIMEOUT_SECONDS)
     except Exception as exc:  # noqa: BLE001 -- deny rather than serve stale
-        logger.warning(
-            "Permission policy refresh failed: %s; clearing cache so checks "
-            "fail closed",
+        logger.error(
+            "Permission policy refresh failed: %s — denying all permission "
+            "checks until the next successful refresh; not falling back to "
+            "DEFAULT_POLICY",
             exc,
         )
-        invalidate_cache()
+        _policy_cache = {key: frozenset() for key in ALL_PERMISSION_KEYS}
+        _policy_loaded_at = time.monotonic()
+
+
+async def _load_on_own_session() -> None:
+    """Open the NullPool session and load the matrix into the cache."""
+    session_maker = _policy_session_factory()
+    async with session_maker() as session:
+        await load_policy(session)
 
 
 def _allowed_for(key: str) -> frozenset[UserRole]:

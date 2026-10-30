@@ -13,6 +13,7 @@ from app.core.permissions import (
     KEY_ACCESS_MANAGER_ENDPOINTS,
     KEY_ACCESS_STAFF_ENDPOINTS,
     can,
+    refresh_policy_if_stale,
 )
 from app.core.security import verify_token
 from app.db.session import get_db
@@ -180,6 +181,11 @@ async def get_current_admin(
     it cannot lock anyone out.)
     """
 
+    # F-002: without this the plain gates (83 route deps) would keep serving a
+    # matrix they loaded before the revocation, forever — the TTL only ever
+    # reached `require_permission` call sites.
+    await refresh_policy_if_stale()
+
     if not can(current_user.role, KEY_ACCESS_ADMIN_ENDPOINTS):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -203,6 +209,8 @@ async def get_current_manager(
     recoverable via the matrix endpoint (still reachable through
     access_admin_endpoints).
     """
+
+    await refresh_policy_if_stale()
 
     if not can(current_user.role, KEY_ACCESS_MANAGER_ENDPOINTS):
         raise HTTPException(
@@ -238,6 +246,8 @@ async def get_current_staff(
     discoverability path.
     """
 
+    await refresh_policy_if_stale()
+
     if not can(current_user.role, KEY_ACCESS_STAFF_ENDPOINTS):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -254,6 +264,7 @@ def _gate_or_viewer(key: str):
     here never opens a write.
     """
     async def gate(current_user=Depends(get_current_user)):
+        await refresh_policy_if_stale()
         if current_user.role == UserRole.VIEWER:
             return current_user
         if not can(current_user.role, key):

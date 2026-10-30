@@ -19,6 +19,7 @@ import {
   canAccessRoute,
   capabilityAppliesTo,
   requiredRolesFor,
+  routeFor,
   type AdminRouteMeta,
 } from '../route-permissions'
 
@@ -145,6 +146,35 @@ describe('route permission manifest (F-033)', () => {
     it('is false for a route with no capability', () => {
       expect(capabilityAppliesTo('/admin', 'ADMIN')).toBe(false)
       expect(capabilityAppliesTo('/admin/requests', 'VIEWER')).toBe(false)
+    })
+
+    it('DOES consult read-gating keys for VIEWER', () => {
+      // view_reports gates the GETs themselves (admin_reports.py:101-151 uses
+      // require_permission, not *_or_viewer). Skipping the key for VIEWER left
+      // a sidebar entry that 403s on click once the matrix revokes the role.
+      expect(capabilityAppliesTo('/admin/reports', 'VIEWER')).toBe(true)
+      expect(capabilityAppliesTo('/admin/analytics', 'VIEWER')).toBe(true)
+      expect(capabilityAppliesTo('/admin/audit', 'VIEWER')).toBe(true)
+    })
+  })
+
+  describe('the served matrix can widen beyond the role list', () => {
+    it('admits DIRECTOR to reports, which KEY_VIEW_REPORTS grants', () => {
+      // The backend comment reads "Managers (DIRECTOR/HEAD) may VIEW reports".
+      // An ADMIN_AND_VIEWER list here hid a page the backend serves them.
+      expect(canAccessRoute('/admin/reports', 'DIRECTOR')).toBe(true)
+      expect(canAccessRoute('/admin/reports', 'HEAD')).toBe(true)
+    })
+
+    it('lists /admin/analytics so it is not treated as an unlisted route', () => {
+      // Unlisted routes fall back to ADMIN_ONLY, which bounced VIEWER off a
+      // page admin_analytics.py gates with KEY_VIEW_REPORTS.
+      expect(routeFor('/admin/analytics')).toBeDefined()
+      expect(requiredRolesFor('/admin/analytics')).toEqual(
+        ADMIN_ROUTES['analytics'].allowedRoles
+      )
+      expect(canAccessRoute('/admin/analytics', 'VIEWER')).toBe(true)
+      expect(canAccessRoute('/admin/analytics', 'AGENT')).toBe(false)
     })
   })
 
