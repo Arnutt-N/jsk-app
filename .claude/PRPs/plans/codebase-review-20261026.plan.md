@@ -475,3 +475,32 @@ data-dependent skip with a hard failure so an empty DB fails loudly.
 Subagent-driven, one task per fresh subagent, review between phases. Backend tasks need the venv
 (`backend/venv/Scripts/python.exe`) and a running DB; frontend e2e tasks need the dev servers plus
 `createRequestFixture` rows and the 60s `gotoAdmin` budget from the repo rule table.
+
+---
+
+## Execution status (2026-10-30)
+
+**All 30 tasks are implemented and green on `54b5adc`.** The per-step `- [ ]` boxes above were
+never ticked during execution, so they no longer reflect the tree — treat this section as the
+record, not the boxes.
+
+Proof at hand-off (not per-task claims — the code and CI are the evidence):
+
+| Signal | 2026-10-30 result |
+|---|---|
+| Backend `pytest` | 1764 passed, 0 failed, 0 error |
+| Frontend `vitest` | 1049/1050 (one jsdom timeout; 12/12 in isolation) |
+| `tsc --noEmit` | clean |
+| CI on `54b5adc` | Backend Pytest, Frontend Lint and Build, Playwright Smoke, Encoding Scan, Vercel — all green |
+
+Findings F-001…F-034 are all closed; the mapping lives in the commit messages and PR #301.
+
+A post-implementation review round found eight defects introduced or left by this work (a
+fail-open policy refresh, a missing refresh timeout, stale-matrix plain gates, a role-AND-capability
+guard that made matrix grants unreachable, a non-retryable ws-ticket, two wrong route role lists,
+and a read-gating key skipped for VIEWER). All eight are fixed in `54b5adc`, with three tests
+corrected that had asserted the old wrong behaviour.
+
+**Deploy prerequisite:** the remote DB needs `alembic upgrade head` alongside this deploy —
+migration `d5e6f7a8b9c0` grants VIEWER the `view_reports` key, and without it a deployed build 403s
+VIEWER on every report route.
