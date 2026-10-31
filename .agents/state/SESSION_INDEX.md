@@ -7,8 +7,8 @@
 
 | Metric | Value |
 |--------|-------|
-| Handoff checkpoints (active) | 318 |
-| Session summaries on disk | 423 |
+| Handoff checkpoints (active) | 320 |
+| Session summaries on disk | 426 |
 | Platforms | 12 (antigravity, claude_code, cline, codex, gemini_cli, kilo_code, kimi_code, muse_code, open_code, pi, qoder, zcode) |
 | Most recent | 2026-10-29 17:21 — claude_code |
 
@@ -50,7 +50,7 @@
 | 2026-08-02 19:35 | completed | — | — | `handover-claude_code-20260802-1935.json` |
 | … | | | | +145 older |
 
-## cline (14)
+## cline (16)
 
 | When | Status | Model | Provider | Checkpoint |
 |------|--------|-------|----------|------------|
@@ -58,6 +58,8 @@
 | 2026-09-27 11:56 | completed | — | — | `handover-cline-20260927-1156.json` |
 | 2026-09-27 00:42 | completed | — | — | `handover-cline-20260927-0042.json` |
 | 2026-09-24 06:53 | completed | — | — | `handover-cline-20260924-0653.json` |
+| 2026-09-12 17:45 | completed | Claude Sonnet 4.5 | Anthropic | `handover-cline-20260912-1745.json` |
+| 2026-09-12 17:19 | completed | GLM-4.5 | Zhipu AI | `handover-cline-20260912-1719.json` |
 | 2026-08-30 14:15 | completed | — | — | `handover-cline-20260830-1415.json` |
 | 2026-08-30 13:20 | completed | — | — | `handover-cline-20260830-1320.json` |
 | 2026-08-30 10:44 | completed | — | — | `handover-cline-20260830-1044.json` |

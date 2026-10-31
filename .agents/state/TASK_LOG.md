@@ -1,7 +1,7 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 318 active handoffs, 12 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 320 active handoffs, 12 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
 
 ### 2026-10-29 17:21 — claude_code — completed
@@ -523,6 +523,24 @@ Feature-line audit map: PRD + 19-task PRP plan (4 Critical + ~30 High fixes acro
 
 - Checkpoint: `.agents/state/checkpoints/handover-kilo_code-20260913-1822.json`
 - Summary: `project-log-md/kilo_code/session-summary-20260913-1822.md`
+
+---
+
+### 2026-09-12 17:45 — cline (Claude Sonnet 4.5 / Anthropic) — completed
+
+Retired v1 handoff instructions across 7 agent docs - they told agents to hand-edit TASK_LOG.md/SESSION_INDEX.md and maintain a task.md scratchpad, all superseded by the v2 single-source-of-truth system (commit 4ee758f)
+
+- Checkpoint: `.agents/state/checkpoints/handover-cline-20260912-1745.json`
+- Summary: `project-log-md/cline/session-summary-20260912-1745.md`
+
+---
+
+### 2026-09-12 17:19 — cline (GLM-4.5 / Zhipu AI) — completed
+
+Feature inventory and tracing across all 7 areas via graphify maps (backend 5100 nodes / 9747 edges, frontend 1904 nodes / 4345 edges) - per-feature entry points, services, models and UI consumers documented
+
+- Checkpoint: `.agents/state/checkpoints/handover-cline-20260912-1719.json`
+- Summary: `project-log-md/cline/session-summary-20260912-1719.md`
 
 ---
 
