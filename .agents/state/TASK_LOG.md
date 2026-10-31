@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 320 active handoffs, 12 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 321 active handoffs, 12 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-10-31 21:56 — claude_code (Claude Fable 5 / Anthropic) — completed
+
+Closed all three items from the previous handoff: (1) the docs/cd-skip-trap PR had already merged as #303; (2) branch cleanup — 25 local and 71 remote branches deleted down to main only, after verifying every deleted branch was merged, then #304 salvaged three artifacts that existed only on stale branches (two cline checkpoints + their summaries, and a 35-finding Thai UX/UI audit doc) with the regenerated views going from 318 to 320 checkpoints, CI 7/7 green, CD correctly skipped for a docs-only change; (3) the three PR #301 reviewer suggestions — one held, #305 fixed isNonRetryableAuthRequest matching /auth/login as a substring so /api/v1/admin/x?next=/auth/login and /auth/login-audit skipped refresh+replay and logged the operator out on an expired token, now a shared getPathname() with suffix matching, two regression tests proven to fail on the old code, CI 7/7 green and CD actually deployed the frontend this time; the other two suggestions did not reproduce. Previous handoff's Next Step 1 is now done, so the branch-cleanup item is closed entirely.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20261031-2156.json`
+- Summary: `project-log-md/claude_code/session-summary-20261031-2156.md`
+
+---
 
 ### 2026-10-29 17:21 — claude_code — completed
 

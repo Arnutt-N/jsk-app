@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-10-29 17:21 by Claude Code (Codebase review plan 30/30 complete, plus a review/correct/deslop pass that closed 4 findi)
+> **Last Updated:** 2026-10-31 21:56 by Claude Code (Closed all three items from the previous handoff: 1 the docs/cd-skip-trap PR had already m)
 
 ## Thai Summary
 **สถานะล่าสุด (2026-10-27)** — งานตรวจโค้ดรอบใหม่ Task 22 เสร็จ: เปิดประตูตรวจโค้ดหลังบ้าน (ruff) ใน CI แล้ว, PR #301 (draft) CI เขียวครบทุกด่าน; เหลืออีก 29 งาน เริ่มจาก Phase 0 (CI tasks 13, 14, 18, 24) — ดูรายละเอียดใน `project-log-md/pi/session-summary-20261027-1225.md`
@@ -126,6 +126,7 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-10-31 21:56] Claude Code: Closed all three items from the previous handoff: (1) the docs/cd-skip-trap PR had already merged as #303; (2) branch cleanup — 25 local and 71 remote branches deleted down to main only, after verifying every deleted branch was merged, then (Claude Code)
 - [2026-10-29 17:21] Claude Code: Codebase review plan 30/30 complete, plus a review/correct/deslop pass that closed 4 findings (2 latent fail-open in the route manifest, 1 stale doc, 1 e2e race). CI + E2E + Encoding green at c04f5b8 with zero retries. (Claude Code)
 - [2026-10-29 11:32] Claude Code: Codebase review plan COMPLETE: all 30/30 tasks done (Tasks 20,21,25,26,29,30 this session). CI + E2E + Encoding green at 38f2385. (Claude Code)
 - [2026-10-29 06:51] Claude Code: Codebase review: Phase 0 complete (5/5) and Phase 1 complete (7/7); Phase 2 at 10/14. Tasks 1,2,3,4,5,6,7,8,9,10,11,13,14,15,16,17,18,19,22,24,27,28 done, all CI green. (Claude Code)

@@ -1,8 +1,8 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Handoff Board (generated)
 
-> **Last generated**: 2026-10-29 17:21 (from newest checkpoint)
-> 320 active handoffs, 12 platforms, 0 queued directed handoff(s).
+> **Last generated**: 2026-10-31 21:56 (from newest checkpoint)
+> 321 active handoffs, 12 platforms, 0 queued directed handoff(s).
 
 > Regenerate after any handoff: `node .agents/scripts/gen-handoff-views.cjs`
 
@@ -11,7 +11,7 @@
 | Platform | Status | Last active | Queued | Last task | Summary |
 |----------|--------|-------------|--------|-----------|---------|
 | antigravity | AVAILABLE | 2026-09-04 09:00 | 0 | P2 Thai Calendar and Date Standardization merged into main (PR #223, commit f91b12b). 3-gate codebase-review-fix pipelin | `project-log-md/antigravity/session-summary-20260904-0900.md` |
-| claude_code | AVAILABLE | 2026-10-29 17:21 | 0 | Codebase review plan 30/30 complete, plus a review/correct/deslop pass that closed 4 findings (2 latent fail-open in the | `project-log-md/claude_code/session-summary-20261029-1721.md` |
+| claude_code | AVAILABLE | 2026-10-31 21:56 | 0 | Closed all three items from the previous handoff: (1) the docs/cd-skip-trap PR had already merged as #303; (2) branch cl | `project-log-md/claude_code/session-summary-20261031-2156.md` |
 | cline | AVAILABLE | 2026-09-27 20:08 | 0 | Merged PR 236 codebase-review-fix batch F1-F7: SQL-like escaping pagination bounds broadcast fan-out dedup LINE-ID log m | `project-log-md/cline/session-summary-20260927-2008.md` |
 | codex | AVAILABLE | 2026-08-29 06:54 | 0 | Completed evidence-backed deep review of Qoder audit sweep and architecture report; consolidated findings and remediatio | `project-log-md/codex/session-summary-20260829-0654.md` |
 | gemini_cli | AVAILABLE | 2026-04-03 12:00 | 0 | Redesigned the login page to align with the new landing page aesthetic (glassmorphism, shared backgrounds, brand mark).  | — |
@@ -35,6 +35,7 @@ _None — no blocked checkpoints._
 
 | When | From → To | Task | Checkpoint |
 |------|-----------|------|------------|
+| 2026-10-31 21:56 | claude_code → all | Closed all three items from the previous handoff: (1) the docs/cd-skip-trap PR had already merged as #303; (2) branch cleanup — 25 local and | `handover-claude_code-20261031-2156.json` |
 | 2026-10-29 17:21 | claude_code → all | Codebase review plan 30/30 complete, plus a review/correct/deslop pass that closed 4 findings (2 latent fail-open in the route manifest, 1 s | `handover-claude_code-20261029-1721.json` |
 | 2026-10-29 11:32 | claude_code → all | Codebase review plan COMPLETE: all 30/30 tasks done (Tasks 20,21,25,26,29,30 this session). CI + E2E + Encoding green at 38f2385. | `handover-claude_code-20261029-1132.json` |
 | 2026-10-29 06:51 | claude_code → all | Codebase review: Phase 0 complete (5/5) and Phase 1 complete (7/7); Phase 2 at 10/14. Tasks 1,2,3,4,5,6,7,8,9,10,11,13,14,15,16,17,18,19,22, | `handover-claude_code-20261029-0651.json` |
@@ -44,4 +45,3 @@ _None — no blocked checkpoints._
 | 2026-10-25 10:29 | pi → all | Merged PR #297 (shared DatePresetFilter on 6 admin pages) + PR #298 (eslint ban on direct DateRangePicker imports) | `handover-pi-20261025-1029.json` |
 | 2026-10-25 01:02 | pi → all | Merged PR #296: admin UI fixes batch + read-only Viewer (10 items), all CI green | `handover-pi-20261025-0102.json` |
 | 2026-10-24 11:26 | pi → all | PR 257 merged after conflict resolution (4 generated files took main, views regenerated); main healthy, CD correctly skipped deploy for docs | `handover-pi-20261024-1126.json` |
-| 2026-10-24 07:17 | pi → all | Session closeout after follow-ups: PR 295 merged + CD green, main at 02fef0c, tree clean, no pending code work | `handover-pi-20261024-0717.json` |
