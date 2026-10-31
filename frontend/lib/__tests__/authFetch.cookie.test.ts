@@ -122,6 +122,40 @@ describe('admin auth fetch interceptor — cookie mode', () => {
     expect(res.status).toBe(401);
   });
 
+  it('refreshes an admin call whose QUERY STRING merely contains an auth path', async () => {
+    // Matching auth-entry paths by substring meant `/api/v1/admin/x?next=/auth/login`
+    // was treated as the login endpoint: refresh and replay were skipped, the
+    // logout event fired, and an expired access token logged the operator out
+    // instead of being refreshed.
+    nativeFetch
+      .mockResolvedValueOnce(jsonResponse(401))
+      .mockResolvedValueOnce(jsonResponse(200));
+    const refresh = vi.fn().mockResolvedValue('cookie-refreshed');
+    setAuthRefreshHandler(refresh);
+
+    const res = await window.fetch('/api/v1/admin/requests?next=/auth/login');
+
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(nativeFetch).toHaveBeenCalledTimes(2);
+    expect(res.status).toBe(200);
+  });
+
+  it('refreshes a sibling of an auth-entry path that only matches as a prefix', async () => {
+    // `/api/v1/auth/login-audit` is a different endpoint; a substring match
+    // suppressed its refresh too.
+    nativeFetch
+      .mockResolvedValueOnce(jsonResponse(401))
+      .mockResolvedValueOnce(jsonResponse(200));
+    const refresh = vi.fn().mockResolvedValue('cookie-refreshed');
+    setAuthRefreshHandler(refresh);
+
+    const res = await window.fetch('/api/v1/auth/login-audit', { method: 'POST' });
+
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(nativeFetch).toHaveBeenCalledTimes(2);
+    expect(res.status).toBe(200);
+  });
+
   it('DOES refresh and retry a ws-ticket 401: it mints for an existing session', async () => {
     // The ticket mints against the current session, so a 401 means the access
     // token expired — exactly what refresh-then-replay recovers. Treating it as
