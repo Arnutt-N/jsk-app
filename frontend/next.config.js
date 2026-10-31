@@ -1,5 +1,3 @@
-const path = require('path');
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -12,7 +10,7 @@ const nextConfig = {
   //   Module not found: Can't resolve '@vercel/turbopack-next/internal/font/google/font'
   //   Error: Turbopack build failed with 9 errors
   // Pinning both to the same directory keeps the bases consistent.
-  outputFileTracingRoot: path.resolve(__dirname),
+  outputFileTracingRoot: __dirname,
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'profile.line-scdn.net' },
@@ -20,7 +18,7 @@ const nextConfig = {
     ],
   },
   turbopack: {
-    root: path.resolve(__dirname),
+    root: __dirname,
   },
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
