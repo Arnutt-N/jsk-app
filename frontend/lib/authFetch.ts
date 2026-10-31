@@ -70,19 +70,26 @@ function getRequestUrl(input: RequestInfo | URL): string {
   return input.toString();
 }
 
-function isApiRequest(input: RequestInfo | URL): boolean {
-  // Pathname-prefix match (absolute-or-relative safe): a substring check
-  // would also match non-API URLs merely containing '/api/v1/' (F13).
-  // No same-origin gating — prod API is cross-origin by design.
+// Pathname only — strip query and fragment. Relative-or-absolute safe, and
+// null when an absolute URL cannot be parsed. Shared by the two matchers below
+// so neither can drift back into a substring check.
+function getPathname(input: RequestInfo | URL): string | null {
   const raw = getRequestUrl(input);
   if (raw.startsWith('/')) {
-    return raw.startsWith('/api/v1/');
+    return raw.split('?')[0].split('#')[0];
   }
   try {
-    return new URL(raw).pathname.startsWith('/api/v1/');
+    return new URL(raw).pathname;
   } catch {
-    return false;
+    return null;
   }
+}
+
+function isApiRequest(input: RequestInfo | URL): boolean {
+  // Pathname-prefix match: a substring check would also match non-API URLs
+  // merely containing '/api/v1/' (F13). No same-origin gating — prod API is
+  // cross-origin by design.
+  return getPathname(input)?.startsWith('/api/v1/') ?? false;
 }
 
 // Refresh-then-replay is only meaningful for a request that carries the
@@ -104,9 +111,17 @@ const NON_RETRYABLE_AUTH_PATHS = [
   '/auth/migrate-session',
 ] as const;
 
+// Suffix match at a segment boundary, not a substring: `includes` also hit a
+// URL merely carrying the path in a query string, or a longer sibling —
+// `/api/v1/admin/x?next=/auth/login` and `/auth/login-audit` both suppressed
+// refresh+replay on an ordinary call, so an expired access token logged the
+// operator out instead of being refreshed. A trailing slash is tolerated.
 function isNonRetryableAuthRequest(input: RequestInfo | URL): boolean {
-  const url = getRequestUrl(input);
-  return NON_RETRYABLE_AUTH_PATHS.some((path) => url.includes(path));
+  const pathname = getPathname(input)?.replace(/\/$/, '');
+  if (!pathname) {
+    return false;
+  }
+  return NON_RETRYABLE_AUTH_PATHS.some((path) => pathname.endsWith(path));
 }
 
 const MUTATING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
