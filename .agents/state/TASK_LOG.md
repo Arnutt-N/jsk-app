@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 320 active handoffs, 12 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 321 active handoffs, 12 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-11-01 11:11 — claude_code (Claude Fable 5 / Anthropic) — completed
+
+Next.js security upgrade in progress on branch chore/next-16-4-3-cve (uncommitted). next 16.1.1 -> 16.4.3 clears 4 critical advisories to 0 critical (3 were Next.js: Image Optimizer DoS, RSC deserialization DoS, request smuggling in rewrites). tsc and next build both pass (68s). But the upgrade pulls eslint-plugin-react-hooks 7.1.1, which adds react-hooks/set-state-in-effect at error severity and flags 54 pre-existing sites across 42 files. Pinning eslint-config-next back to 16.1.1 does NOT help - the plugin resolves via ^7.0.0 regardless (verified: still 54 errors). Probed the rule against the installed plugin with 12 synthetic shapes; only effect-local async fn with a cancellation guard plus a reloadKey refetch (probe N) passes while preserving behaviour. Rejected the await-Promise.resolve() trick (probe J) on principle. Also probed: useCallback fetchers, useEffectEvent, plain async fns in component body, and moving setLoading to the handler all FAIL. Wrote a PRD and PRP plan splitting the work into Phase 1 (9 files, 12 errors, fetchers with a single call site) and Phase 2 (33 files, 42 errors, fetchers reused by buttons/pagination/post-save, in three groups by reuse count). Test coverage of the affected surface is thin: only 7 of the 42 files have a colocated test. Both docs are uncommitted: .claude/PRPs/prds/2026-11-01-next-16-4-3-react-hooks-rule.prd.md and .claude/PRPs/plans/2026-11-01-next-16-4-3-react-hooks-rule.plan.md. Two independent reviewers (sonnet + opus) were dispatched for /prp-validate-plan and were still running after 25 minutes when this handoff was written - their verdicts are NOT yet collected, so the plan is unvalidated.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20261101-1111.json`
+- Summary: `project-log-md/claude_code/session-summary-20261101-1111.md`
+
+---
 
 ### 2026-10-29 17:21 — claude_code — completed
 
