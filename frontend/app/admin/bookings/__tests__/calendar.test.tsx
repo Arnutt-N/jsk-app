@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import AdminBookingsPage from '../page'
 import type { Booking } from '@/lib/booking'
+import { THAI_MONTHS_LONG } from '@/lib/format-date'
 
 vi.mock('@/contexts/AuthContext', () => ({
   useAuth: () => ({ user: { role: 'ADMIN' } }),
@@ -58,13 +59,31 @@ const RANGE = {
   ],
 }
 
+// The one day the mocked availability marks as open-and-not-full; the click
+// test and the mock both read it, so they cannot drift apart.
+const OPEN_DAY = 19
+
 let fetchMock: ReturnType<typeof vi.fn>
 
 function mockFetch({ settings = SETTINGS }: { settings?: unknown } = {}) {
   fetchMock = vi.fn(async (url: string) => {
     const path = String(url)
     if (path.endsWith('/settings')) return jsonResponse(settings)
-    if (path.includes('/availability/range')) return jsonResponse(RANGE)
+    // The grid always opens on the current month, so the availability range has
+    // to answer for whichever month was asked for. A fixed date made these tests
+    // depend on the wall clock.
+    if (path.includes('/availability/range')) {
+      const from = path.match(/from=(\d{4}-\d{2})-01/)?.[1]
+      const base = from ?? RANGE.days[0].date.slice(0, 7)
+      return jsonResponse({
+        ...RANGE,
+        days: [
+          { date: `${base}-${OPEN_DAY}`, is_open: true, remaining: 2 },
+          { date: `${base}-20`, is_open: true, remaining: 0 },
+          { date: `${base}-21`, is_open: false, remaining: 0 },
+        ],
+      })
+    }
     return jsonResponse([booking()])
   })
   vi.stubGlobal('fetch', fetchMock)
@@ -119,13 +138,22 @@ describe('calendar view', () => {
     const visible = rangeCalls()[0]
     const month = visible.match(/from=(\d{4}-\d{2})-01/)?.[1]
     expect(month).toBeTruthy()
-    await user.click(screen.getByRole('button', { name: '19 ตุลาคม 2569 (ว่าง)' }))
+    // The grid opens on the CURRENT month, so neither the label nor the
+    // expected date may be hardcoded — a fixed date made this test expire on
+    // the first day of the next month.
+    const monthIndex = Number(month!.slice(5, 7)) - 1
+    const year = Number(month!.slice(0, 4))
+    await user.click(
+      screen.getByRole('button', {
+        name: `${OPEN_DAY} ${THAI_MONTHS_LONG[monthIndex]} ${year + 543} (ว่าง)`,
+      }),
+    )
     await screen.findByRole('list')
     expect(screen.queryByRole('group', { name: 'วันในเดือน' })).not.toBeInTheDocument()
     const listCalls = fetchMock.mock.calls
       .map(([url]) => String(url))
       .filter((url) => !url.includes('/settings') && !url.includes('/availability'))
-    expect(listCalls.some((url) => url.includes('date=2026-10-19'))).toBe(true)
+    expect(listCalls.some((url) => url.includes(`date=${month}-${OPEN_DAY}`))).toBe(true)
   })
 
   it('hides the tabs entirely when the toggle is off', async () => {
