@@ -46,7 +46,12 @@ export function WalkinBookingDialog({ open, serviceTypes, initialDate, emailEnab
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
+  // Reset the form when the dialog opens — during render, not in an effect.
+  const [prevOpen, setPrevOpen] = useState(open)
+  const [prevInitialDate, setPrevInitialDate] = useState(initialDate)
+  if (prevOpen !== open || prevInitialDate !== initialDate) {
+    setPrevOpen(open)
+    setPrevInitialDate(initialDate)
     if (open) {
       setService('')
       setDate(initialDate)
@@ -56,16 +61,20 @@ export function WalkinBookingDialog({ open, serviceTypes, initialDate, emailEnab
       setPhone('')
       setNote('')
       setEmail('')
-      idempotencyKey.current = crypto.randomUUID()
       setError(null)
     }
-  }, [open, initialDate])
+  }
+
+  // Ref write only — a ref may not be written during render, so it stays in an effect.
+  useEffect(() => {
+    if (open) idempotencyKey.current = crypto.randomUUID()
+  }, [initialDate, open])
+
+  // Derived: no open/service/date means no slots, without writing state in an effect.
+  const visibleSlots = open && service && date ? slots : []
 
   useEffect(() => {
-    if (!open || !service || !date) {
-      setSlots([])
-      return
-    }
+    if (!open || !service || !date) return
     let cancelled = false
     const load = async () => {
       setLoadingSlots(true)
@@ -89,7 +98,7 @@ export function WalkinBookingDialog({ open, serviceTypes, initialDate, emailEnab
     }
   }, [open, service, date])
 
-  const slotOptions: SelectOption[] = slots.map((slot) => ({
+  const slotOptions: SelectOption[] = visibleSlots.map((slot) => ({
     value: slot.time,
     label: `${formatTime(slot.time)} (ว่าง ${slot.remaining})`,
     disabled: slot.is_full,
@@ -236,13 +245,16 @@ export function EditContactDialog({ booking, emailEnabled, onClose, onUpdated }:
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
+  // Mirror `booking` into the fields — during render, not in an effect.
+  const [prevBooking, setPrevBooking] = useState(booking)
+  if (prevBooking !== booking) {
+    setPrevBooking(booking)
     setName(booking?.contact_name ?? '')
     setPhone(booking?.phone_number ?? '')
     setNote(booking?.note ?? '')
     setEmail(booking?.email ?? '')
     setError(null)
-  }, [booking])
+  }
 
   const handleSave = useCallback(async () => {
     if (!booking) return
