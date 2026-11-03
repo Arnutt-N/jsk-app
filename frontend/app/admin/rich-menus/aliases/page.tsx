@@ -71,7 +71,35 @@ export default function RichMenuAliasesPage() {
     }, [API_BASE]);
 
     useEffect(() => {
-        fetchData();
+
+
+        let cancelled = false;
+
+
+        const run = async () => {
+
+
+            await fetchData();
+
+
+            if (cancelled) return;
+
+
+        };
+
+
+        void run();
+
+
+        return () => {
+
+
+            cancelled = true;
+
+
+        };
+
+
     }, [fetchData]);
 
     const handleCreate = async () => {

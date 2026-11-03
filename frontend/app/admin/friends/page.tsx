@@ -117,11 +117,67 @@ export default function FriendsPage() {
     }, []);
 
     useEffect(() => {
-        fetchFriends();
+
+
+        let cancelled = false;
+
+
+        const run = async () => {
+
+
+            await fetchFriends();
+
+
+            if (cancelled) return;
+
+
+        };
+
+
+        void run();
+
+
+        return () => {
+
+
+            cancelled = true;
+
+
+        };
+
+
     }, [fetchFriends]);
 
     useEffect(() => {
-        fetchRichMenus();
+
+
+        let cancelled = false;
+
+
+        const run = async () => {
+
+
+            await fetchRichMenus();
+
+
+            if (cancelled) return;
+
+
+        };
+
+
+        void run();
+
+
+        return () => {
+
+
+            cancelled = true;
+
+
+        };
+
+
     }, [fetchRichMenus]);
 
     const filteredFriends = friends.filter(

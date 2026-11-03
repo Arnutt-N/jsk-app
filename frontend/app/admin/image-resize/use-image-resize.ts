@@ -34,8 +34,8 @@ export function useImageResize({ toast }: ToastFn) {
 
   const [outputBlob, setOutputBlob] = useState<Blob | null>(null);
   const [outputUrl, setOutputUrl] = useState<string | null>(null);
-  const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [blobKey, setBlobKey] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
 
   const generationRef = useRef(0);
@@ -45,11 +45,22 @@ export function useImageResize({ toast }: ToastFn) {
   const parsedWidth = parseDimension(targetWidth);
   const parsedHeight = parseDimension(targetHeight);
 
+  const ready = Boolean(sourceFile && parsedWidth && parsedHeight);
+  const currentKey = ready ? `${parsedWidth}x${parsedHeight}|${format}|${quality}` : null;
+
+  // Derived: busy the instant the inputs stop matching the blob they produced.
+  const processing = ready && blobKey !== currentKey;
+  // Derived: never surface a blob built for different inputs.
+  const visibleBlob = ready && blobKey === currentKey ? outputBlob : null;
+  const visibleUrl = ready && blobKey === currentKey ? outputUrl : null;
+  const visibleError = ready ? error : null;
+  const visibleBlobKey = blobKey;
+
   const clearOutput = useCallback(() => {
     generationRef.current++;
     setOutputBlob(null);
     setError(null);
-    setProcessing(false);
+    setBlobKey(null);
     if (outputUrlRef.current) {
       URL.revokeObjectURL(outputUrlRef.current);
       outputUrlRef.current = null;
@@ -137,13 +148,8 @@ export function useImageResize({ toast }: ToastFn) {
   }, []);
 
   useEffect(() => {
-    if (!sourceFile || !parsedWidth || !parsedHeight) {
-      if (outputBlob || error) clearOutput();
-      return;
-    }
+    if (!currentKey || !sourceFile || !parsedWidth || !parsedHeight) return;
     const gen = ++generationRef.current;
-    setProcessing(true);
-    setError(null);
 
     const timer = setTimeout(async () => {
       try {
@@ -154,18 +160,19 @@ export function useImageResize({ toast }: ToastFn) {
         outputUrlRef.current = url;
         setOutputBlob(blob);
         setOutputUrl(url);
-        setProcessing(false);
+        setBlobKey(currentKey);
+        setError(null);
       } catch (err) {
         if (generationRef.current !== gen) return;
         setOutputBlob(null);
         setOutputUrl(null);
-        setProcessing(false);
+        setBlobKey(currentKey);   // mark the attempt settled, else `processing` never clears
         setError(err instanceof Error ? err.message : 'เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ');
       }
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [sourceFile, parsedWidth, parsedHeight, format, quality]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [currentKey, sourceFile, parsedWidth, parsedHeight, format, quality]);
 
   useEffect(() => {
     return () => {
@@ -249,6 +256,11 @@ export function useImageResize({ toast }: ToastFn) {
     outputUrl,
     processing,
     error,
+    // Rendered values: null whenever the blob was built for different inputs.
+    visibleBlob,
+    visibleUrl,
+    visibleError,
+    visibleBlobKey,
     uploading,
     selectFile,
     clearFile,

@@ -71,7 +71,15 @@ export default function N8nSettingsPage() {
     }, [API_BASE]);
 
     useEffect(() => {
-        fetchConfig();
+        let cancelled = false;
+        const run = async () => {
+            await fetchConfig();
+            if (cancelled) return;
+        };
+        void run();
+        return () => {
+            cancelled = true;
+        };
     }, [fetchConfig]);
 
     const handleSave = async () => {

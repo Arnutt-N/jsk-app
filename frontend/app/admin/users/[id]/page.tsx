@@ -116,7 +116,17 @@ export default function UserDetailPage() {
         }
     }, [API_BASE, userId]);
 
-    useEffect(() => { fetchUser(); }, [fetchUser]);
+    useEffect(() => {
+        let cancelled = false;
+        const run = async () => {
+            await fetchUser();
+            if (cancelled) return;
+        };
+        void run();
+        return () => {
+            cancelled = true;
+        };
+    }, [fetchUser]);
 
     const handleSave = async () => {
         if (!userData) return;

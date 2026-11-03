@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState, useSyncExternalStore } from 'react'
 import Head from 'next/head'
 import Script from 'next/script'
 import { CheckCircle2 } from 'lucide-react'
@@ -8,14 +8,19 @@ import { Card, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { logger } from '@/lib/logger';
 
+const noopSubscribe = () => () => {}
+
 export default function CloseTestPage() {
     const [timeLeft, setTimeLeft] = useState(5)
     const [status, setStatus] = useState('Initializing...')
     const [liffError, setLiffError] = useState<string | null>(null)
-    const [userAgent, setUserAgent] = useState('')
+    const userAgent = useSyncExternalStore(
+        noopSubscribe,
+        () => navigator.userAgent,
+        () => '',
+    )
 
     useEffect(() => {
-        setUserAgent(navigator.userAgent)
         const initLiff = async () => {
             try {
                 const liffId = process.env.NEXT_PUBLIC_LIFF_ID
@@ -37,7 +42,7 @@ export default function CloseTestPage() {
         initLiff()
     }, [])
 
-    const handleClose = () => {
+    const handleClose = useCallback(() => {
         const liff = window.liff
         try {
             if (liff?.isInClient()) {
@@ -59,17 +64,18 @@ export default function CloseTestPage() {
             logger.error('Close window failed:', e)
             setStatus(`Close Failed: ${e instanceof Error ? e.message : 'Unknown error'}`)
         }
-    }
+    }, [])
 
     // Auto-close countdown
     useEffect(() => {
         if (timeLeft > 0) {
             const timer = setTimeout(() => setTimeLeft(prev => prev - 1), 1000)
             return () => clearTimeout(timer)
-        } else {
-            handleClose()
         }
-    }, [timeLeft])
+        // Deferred out of the effect body so no setState runs synchronously here.
+        const id = setTimeout(handleClose, 0)
+        return () => clearTimeout(id)
+    }, [handleClose, timeLeft])
 
     return (
         <div className="min-h-screen bg-bg pb-20 font-sans p-4 flex items-center justify-center">

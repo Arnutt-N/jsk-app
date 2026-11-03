@@ -73,7 +73,15 @@ export default function LineSettingsPage() {
     }, [API_BASE, toast]);
 
     useEffect(() => {
-        fetchSettings();
+        let cancelled = false;
+        const run = async () => {
+            await fetchSettings();
+            if (cancelled) return;
+        };
+        void run();
+        return () => {
+            cancelled = true;
+        };
     }, [fetchSettings]);
 
     // Warn on browser refresh/close

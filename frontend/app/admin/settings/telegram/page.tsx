@@ -47,7 +47,6 @@ export default function TelegramSettingsPage() {
     const [error, setError] = useState<string | null>(null);
 
     const fetchConfig = useCallback(async () => {
-        setError(null);
         try {
             const result = await apiFetch<TelegramConfig>('/admin/settings/telegram');
             if (result.ok) {
@@ -62,7 +61,16 @@ export default function TelegramSettingsPage() {
     }, []);
 
     useEffect(() => {
-        fetchConfig();
+        let cancelled = false;
+        const run = async () => {
+            setError(null);
+            if (cancelled) return;
+            await fetchConfig();
+        };
+        void run();
+        return () => {
+            cancelled = true;
+        };
     }, [fetchConfig]);
 
     const handleSave = async () => {

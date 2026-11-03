@@ -73,8 +73,16 @@ export function useOperatorRoster(
   useEffect(() => {
     if (!enabled) return;
     const controller = new AbortController();
-    void refetch(controller.signal);
-    return () => controller.abort();
+    let cancelled = false;
+    const run = async () => {
+      await refetch(controller.signal);
+      if (cancelled) return;
+    };
+    void run();
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
   }, [enabled, refetch]);
 
   // Derive the merged, sorted list during render (pure — no setState-in-effect).

@@ -108,14 +108,15 @@ export default function CalendarPickerTH({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewMonthOverride, value, minDate, maxDate]);
 
-  const prevValueRef = useRef(value);
+  // Adjust during render instead of in an effect: `value` going empty exits edit mode.
+  const [prevValue, setPrevValue] = useState(value);
+  if (prevValue !== value) {
+    setPrevValue(value);
+    if (!value) setIsEditing(false);
+  }
+
+  // DOM sync only — writes no state.
   useEffect(() => {
-    if (prevValueRef.current !== value) {
-      prevValueRef.current = value;
-      if (!value) {
-        setIsEditing(false);
-      }
-    }
     if (!isEditing) {
       const parts = partsFrom(value);
       if (dayRef.current && dayRef.current.value !== parts.day) {

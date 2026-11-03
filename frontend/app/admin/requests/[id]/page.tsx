@@ -386,11 +386,18 @@ export default function RequestDetailPage() {
     );
 
     useEffect(() => {
-        if (params.id) {
-            void fetchDetail();
-            void fetchComments();
-            void fetchAuditLogs();
-        }
+        if (!params.id) return;
+        let cancelled = false;
+        const run = async () => {
+            await fetchDetail();
+            await fetchComments();
+            await fetchAuditLogs();
+            if (cancelled) return;
+        };
+        void run();
+        return () => {
+            cancelled = true;
+        };
     }, [fetchAuditLogs, fetchComments, fetchDetail, params.id]);
 
     // --- Handlers ---

@@ -70,7 +70,35 @@ export default function RichMenuListPage() {
     }, [API_BASE, toast]);
 
     useEffect(() => {
-        fetchMenus();
+
+
+        let cancelled = false;
+
+
+        const run = async () => {
+
+
+            await fetchMenus();
+
+
+            if (cancelled) return;
+
+
+        };
+
+
+        void run();
+
+
+        return () => {
+
+
+            cancelled = true;
+
+
+        };
+
+
     }, [fetchMenus]);
 
     const handleDelete = async (id: number) => {

@@ -185,16 +185,15 @@ export function ConversationList() {
     el?.scrollIntoView({ block: 'nearest' });
   }, [selectedId]);
 
-  const [searchResults, setSearchResults] = React.useState<SearchMessageResult[]>([]);
+  const [searchResultList, setSearchResults] = React.useState<SearchMessageResult[]>([]);
+  // Derived: an empty query shows no results without a state write in the effect.
+  const searchResults = searchQuery.trim() ? searchResultList : [];
   const [searching, setSearching] = React.useState(false);
   const [showCreateChat, setShowCreateChat] = React.useState(false);
 
   React.useEffect(() => {
     const q = searchQuery.trim();
-    if (!q) {
-      setSearchResults([]);
-      return;
-    }
+    if (!q) return;
     const timeoutId = setTimeout(async () => {
       setSearching(true);
       try {

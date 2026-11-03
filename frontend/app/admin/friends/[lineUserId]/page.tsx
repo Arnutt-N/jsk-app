@@ -187,7 +187,35 @@ export default function FriendTimelinePage() {
     }, [API_BASE, lineUserId]);
 
     useEffect(() => {
-        fetchData();
+
+
+        let cancelled = false;
+
+
+        const run = async () => {
+
+
+            await fetchData();
+
+
+            if (cancelled) return;
+
+
+        };
+
+
+        void run();
+
+
+        return () => {
+
+
+            cancelled = true;
+
+
+        };
+
+
     }, [fetchData]);
 
     // คำนวณจำนวน follow ทั้งหมด (FOLLOW + REFOLLOW)

@@ -126,7 +126,35 @@ export default function RichMenuInsightsPage() {
   }, [id, dateRange, toast]);
 
   useEffect(() => {
-    fetchInsights();
+
+
+      let cancelled = false;
+
+
+      const run = async () => {
+
+
+          await fetchInsights();
+
+
+          if (cancelled) return;
+
+
+      };
+
+
+      void run();
+
+
+      return () => {
+
+
+          cancelled = true;
+
+
+      };
+
+
   }, [fetchInsights]);
 
   const chartData = daily?.impression?.metrics.map((m) => ({

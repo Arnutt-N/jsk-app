@@ -59,7 +59,15 @@ export default function CredentialList() {
     }, [API_BASE]);
 
     useEffect(() => {
-        fetchCredentials();
+        let cancelled = false;
+        const run = async () => {
+            await fetchCredentials();
+            if (cancelled) return;
+        };
+        void run();
+        return () => {
+            cancelled = true;
+        };
     }, [fetchCredentials]);
 
     const handleOpenCreate = () => {

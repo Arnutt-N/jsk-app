@@ -156,11 +156,21 @@ export default function AnalyticsPage() {
   }, [connectionState, send]);
 
   useEffect(() => {
-    fetchData();
+    let cancelled = false;
+    const run = async () => {
+      await fetchData();
+      if (cancelled) return;
+    };
+    void run();
     const shouldPoll = connectionState !== "connected";
     let interval: ReturnType<typeof setInterval> | undefined;
-    if (shouldPoll) interval = setInterval(fetchData, 30000);
+    if (shouldPoll) {
+      interval = setInterval(() => {
+        void fetchData();
+      }, 30000);
+    }
     return () => {
+      cancelled = true;
       if (interval) clearInterval(interval);
     };
   }, [connectionState, fetchData]);

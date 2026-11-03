@@ -137,7 +137,13 @@ export default function LiffDebtMediation() {
     }, [])
 
     useEffect(() => {
-        void loadProvinces()
+        let cancelled = false
+        const run = async () => {
+            await loadProvinces()
+            if (cancelled) return
+        }
+        void run()
+        return () => { cancelled = true }
     }, [loadProvinces])
 
     const [formData, setFormData] = useState(INITIAL_FORM_DATA)

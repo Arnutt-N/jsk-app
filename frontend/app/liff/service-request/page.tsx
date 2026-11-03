@@ -68,6 +68,30 @@ export default function LiffServiceRequestV2() {
         onError: () => setError('ไม่สามารถเชื่อมต่อ LINE ได้ กรุณาเปิดในแอป LINE แล้วลองใหม่')
     })
 
+    const INITIAL_FORM_DATA = {
+        // Personal
+        prefix: '',
+        firstname: '',
+        lastname: '',
+        phone_number: '',
+        email: '',
+
+        // Location
+        agency: '',
+        province: '',     // Store Thai Name
+        district: '',     // Store Thai Name
+        sub_district: '', // Store Thai Name
+
+        // Topic
+        topic_category: '',
+        topic_subcategory: '',
+        description: '',
+
+        // Attachments
+        attachments: [] as Array<{ id: string, url: string, name: string }>
+    }
+    const [formData, setFormData] = useState(INITIAL_FORM_DATA)
+
     // Cascading selects live in the shared hook (stale guards kept there);
     // this page only maps ids to Thai names in its own form data.
     const cascade = useLocationCascade(
@@ -94,30 +118,6 @@ export default function LiffServiceRequestV2() {
 
     // Location Data State
     const [provinces, setProvinces] = useState<Province[]>([])
-
-    const INITIAL_FORM_DATA = {
-        // Personal
-        prefix: '',
-        firstname: '',
-        lastname: '',
-        phone_number: '',
-        email: '',
-
-        // Location
-        agency: '',
-        province: '',     // Store Thai Name
-        district: '',     // Store Thai Name
-        sub_district: '', // Store Thai Name
-
-        // Topic
-        topic_category: '',
-        topic_subcategory: '',
-        description: '',
-
-        // Attachments
-        attachments: [] as Array<{ id: string, url: string, name: string }>
-    }
-    const [formData, setFormData] = useState(INITIAL_FORM_DATA)
 
     const [taxonomy, setTaxonomy] = useState<TaxonomyTable | null>(null)
     useEffect(() => {

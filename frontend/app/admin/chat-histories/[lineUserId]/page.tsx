@@ -128,7 +128,35 @@ export default function ChatHistoryDetailPage() {
     }, [API_BASE, lineUserId]);
 
     useEffect(() => {
-        void fetchInitial();
+
+
+        let cancelled = false;
+
+
+        const run = async () => {
+
+
+            await fetchInitial();
+
+
+            if (cancelled) return;
+
+
+        };
+
+
+        void run();
+
+
+        return () => {
+
+
+            cancelled = true;
+
+
+        };
+
+
     }, [fetchInitial]);
 
     /* ---- Scroll to bottom on initial load ---- */

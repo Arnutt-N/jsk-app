@@ -110,7 +110,35 @@ export default function EditRichMenuPage() {
     }, [API_BASE, menuId, router, toast]);
 
     useEffect(() => {
-        fetchMenu();
+
+
+        let cancelled = false;
+
+
+        const run = async () => {
+
+
+            await fetchMenu();
+
+
+            if (cancelled) return;
+
+
+        };
+
+
+        void run();
+
+
+        return () => {
+
+
+            cancelled = true;
+
+
+        };
+
+
     }, [fetchMenu]);
 
     // Aliases populate the "switch menu" action dropdown. Plain fetch is enough —

@@ -151,16 +151,76 @@ export default function FriendHistoryPage() {
     }, [API_BASE, page, eventTypeFilter, searchFilter]);
 
     useEffect(() => {
-        fetchStats();
+
+
+        let cancelled = false;
+
+
+        const run = async () => {
+
+
+            await fetchStats();
+
+
+            if (cancelled) return;
+
+
+        };
+
+
+        void run();
+
+
+        return () => {
+
+
+            cancelled = true;
+
+
+        };
+
+
     }, [fetchStats]);
 
     useEffect(() => {
-        fetchEvents();
+
+
+        let cancelled = false;
+
+
+        const run = async () => {
+
+
+            await fetchEvents();
+
+
+            if (cancelled) return;
+
+
+        };
+
+
+        void run();
+
+
+        return () => {
+
+
+            cancelled = true;
+
+
+        };
+
+
     }, [fetchEvents]);
 
-    useEffect(() => {
+    // Reset to page 1 on a filter change during render instead of in an effect.
+    const filterKey = `${eventTypeFilter}|${searchFilter}`;
+    const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
+    if (prevFilterKey !== filterKey) {
+        setPrevFilterKey(filterKey);
         setPage(1);
-    }, [eventTypeFilter, searchFilter]);
+    }
 
     return (
         <div className="max-w-7xl mx-auto thai-text">
