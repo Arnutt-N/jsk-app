@@ -175,7 +175,6 @@ export function useBookingStore({
   useEffect(() => {
     if (!idToken || !service || confirmed || dateOptions.length === 0) return
     let cancelled = false
-    setRangeStatus('loading')
     // The backend caps the window (max_range_days from /options; 62 is only
     // the fallback) and advance_days is admin-editable, so it can exceed the
     // cap — clip the request by calendar span from the first day. Chips
@@ -201,28 +200,55 @@ export function useBookingStore({
 
   // The nearest bookable day loads itself, so the slot grid is already on
   // screen by the time the citizen looks for it.
-  useEffect(() => {
-    if (!service || draft.date || confirmed || dateOptions.length === 0) return
-    if (rangeStatus !== 'ready' && rangeStatus !== 'failed') return
-    if (preselected === service) return
-    setPreselected(service)
-    const firstBookable = dateOptions.find((iso) => {
+  // Pure decision, computed during render so the effect below has no setState.
+  const firstBookable = useMemo(() => {
+    if (!service || draft.date || confirmed || dateOptions.length === 0) return null
+    if (rangeStatus !== 'ready' && rangeStatus !== 'failed') return null
+    if (preselected === service) return null
+    const pick = dateOptions.find((iso) => {
       const info = rangeByDate?.get(iso)
       return Boolean(info?.is_open && info.remaining > 0)
     })
-    const target = firstBookable ?? dateOptions[0]
-    dispatch({ type: 'date/set', date: target })
-    void loadSlots(service, target)
-  }, [confirmed, dateOptions, dispatch, draft.date, loadSlots, preselected, rangeByDate, rangeStatus, service])
+    return pick ?? dateOptions[0]
+  }, [confirmed, dateOptions, draft.date, preselected, rangeByDate, rangeStatus, service])
+
+  // `setPreselected` during render makes `preselected === service` true on the
+  // next pass, so this fires exactly once per service choice.
+  if (firstBookable && service) {
+    setPreselected(service)
+    dispatch({ type: 'date/set', date: firstBookable })
+  }
 
   // Cold open with a saved draft reloads its slots once; the idle → loading
   // transition is the guard, so no once-ref is needed.
+  // The fetch is inlined here because `loadSlots` is a component-scoped
+  // useCallback that setStates — calling it from the effect body is what the
+  // rule rejects. `loadSlots` itself is unchanged for the UI's call sites.
   useEffect(() => {
     if (!idToken || !options || confirmed) return
-    if (service && draft.date && slotsStatus === 'idle') {
-      void loadSlots(service, draft.date)
-    }
-  }, [confirmed, draft.date, idToken, loadSlots, options, service, slotsStatus])
+    if (!service || !draft.date || slotsStatus !== 'idle') return
+    const svc = service
+    const day = draft.date
+    const key = `${svc}|${day}`
+    latestSlotKeyRef.current = key
+    void (async () => {
+      setSlotsStatus('loading')
+      setError(null)
+      try {
+        const loaded = await fetchAvailability(idToken, svc, day)
+        if (!idToken || latestSlotKeyRef.current !== key) return
+        store.setSlots(key, loaded)
+        setSlots(loaded)
+        setSlotsStatus('ready')
+      } catch (err) {
+        logger.error('Failed to load availability:', err)
+        if (latestSlotKeyRef.current !== key) return
+        setError(err instanceof Error ? err.message : 'โหลดช่วงเวลาไม่สำเร็จ')
+        setSlots(null)
+        setSlotsStatus('failed')
+      }
+    })()
+  }, [confirmed, draft.date, idToken, options, service, slotsStatus, store])
 
   return {
     draft,
