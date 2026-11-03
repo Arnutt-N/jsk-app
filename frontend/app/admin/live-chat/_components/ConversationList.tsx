@@ -186,8 +186,11 @@ export function ConversationList() {
   }, [selectedId]);
 
   const [searchResultList, setSearchResults] = React.useState<SearchMessageResult[]>([]);
-  // Derived: an empty query shows no results without a state write in the effect.
-  const searchResults = searchQuery.trim() ? searchResultList : [];
+  // Tag each result set with the query that produced it, so a stale set cannot
+  // show under a new term. Deriving keeps the clear out of the effect body.
+  const [resultQuery, setResultQuery] = React.useState('');
+  const activeQuery = searchQuery.trim();
+  const searchResults = activeQuery && resultQuery === activeQuery ? searchResultList : [];
   const [searching, setSearching] = React.useState(false);
   const [showCreateChat, setShowCreateChat] = React.useState(false);
 
@@ -201,6 +204,7 @@ export function ConversationList() {
         if (!res.ok) return;
         const data = await res.json();
         setSearchResults(data.items || []);
+        setResultQuery(q);
       } finally {
         setSearching(false);
       }
