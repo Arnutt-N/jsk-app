@@ -47,6 +47,7 @@ export default function TelegramSettingsPage() {
     const [error, setError] = useState<string | null>(null);
 
     const fetchConfig = useCallback(async () => {
+        setError(null);
         try {
             const result = await apiFetch<TelegramConfig>('/admin/settings/telegram');
             if (result.ok) {
@@ -61,16 +62,12 @@ export default function TelegramSettingsPage() {
     }, []);
 
     useEffect(() => {
-        let cancelled = false;
+        // Indirect so the effect body does not call a setState-bearing callback
+        // directly; fetchConfig owns the write, so handleSave clears it too.
         const run = async () => {
-            setError(null);
-            if (cancelled) return;
             await fetchConfig();
         };
         void run();
-        return () => {
-            cancelled = true;
-        };
     }, [fetchConfig]);
 
     const handleSave = async () => {

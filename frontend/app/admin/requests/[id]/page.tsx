@@ -387,17 +387,10 @@ export default function RequestDetailPage() {
 
     useEffect(() => {
         if (!params.id) return;
-        let cancelled = false;
-        const run = async () => {
-            await fetchDetail();
-            await fetchComments();
-            await fetchAuditLogs();
-            if (cancelled) return;
-        };
-        void run();
-        return () => {
-            cancelled = true;
-        };
+        // Concurrent: these three are independent, so serialising them triples the wait.
+        void (async () => {
+            await Promise.all([fetchDetail(), fetchComments(), fetchAuditLogs()]);
+        })();
     }, [fetchAuditLogs, fetchComments, fetchDetail, params.id]);
 
     // --- Handlers ---
