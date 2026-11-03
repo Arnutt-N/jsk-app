@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'motion/react';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
@@ -73,11 +73,18 @@ function getLoginErrorInfo(error: unknown): LoginErrorInfo {
   };
 }
 
+// Read-only browser value: same snapshot on the server and the first client render.
+const noopSubscribe = () => () => {};
+
 function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLocalhost, setIsLocalhost] = useState(false);
+  const isLocalhost = useSyncExternalStore(
+    noopSubscribe,
+    () => window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1',
+    () => false,
+  );
   const [errors, setErrors] = useState<{ username?: string; password?: string }>({});
   const [loginError, setLoginError] = useState<string | null>(null);
 
@@ -90,16 +97,23 @@ function LoginForm() {
   const { toast } = useToast();
 
   useEffect(() => {
-    const host = window.location.hostname;
-    setIsLocalhost(host === 'localhost' || host === '127.0.0.1');
-
-    const remembered = localStorage.getItem('jsk-remember-user');
-    if (remembered) {
-      if (usernameInputRef.current) {
-        usernameInputRef.current.value = remembered;
+    let cancelled = false;
+    const run = async () => {
+      // Post-hydration: the server render and the client's first render agree.
+      await Promise.resolve();
+      if (cancelled) return;
+      const remembered = localStorage.getItem('jsk-remember-user');
+      if (remembered) {
+        if (usernameInputRef.current) {
+          usernameInputRef.current.value = remembered;
+        }
+        setRememberMe(true);
       }
-      setRememberMe(true);
-    }
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {

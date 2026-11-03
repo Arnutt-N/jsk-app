@@ -39,8 +39,8 @@ export default function ImageResizePage() {
   const r = useImageResize({ toast });
 
   const sizeDelta =
-    r.sourceFile && r.outputBlob
-      ? Math.round((1 - r.outputBlob.size / r.sourceFile.size) * 100)
+    r.sourceFile && r.visibleBlob
+      ? Math.round((1 - r.visibleBlob.size / r.sourceFile.size) * 100)
       : null;
 
   const renderPresetButtons = (group: 'line' | 'general') =>
@@ -127,9 +127,9 @@ export default function ImageResizePage() {
                 <CardTitle className="text-base">ผลลัพธ์</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {r.error && (
+                {r.visibleError && (
                   <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm text-red-700 dark:text-red-300">
-                    {r.error}
+                    {r.visibleError}
                   </div>
                 )}
                 <div className={cn('relative rounded-xl overflow-hidden flex items-center justify-center min-h-[160px]', checkerboard)}>
@@ -138,19 +138,19 @@ export default function ImageResizePage() {
                       <Loader2 className="w-8 h-8 animate-spin text-brand-500" />
                     </div>
                   )}
-                  {r.outputUrl ? (
+                  {r.visibleUrl ? (
                     /* eslint-disable-next-line @next/next/no-img-element */
-                    <img src={r.outputUrl} alt="ผลลัพธ์" className="max-h-[360px] w-auto object-contain" />
+                    <img src={r.visibleUrl ?? undefined} alt="ผลลัพธ์" className="max-h-[360px] w-auto object-contain" />
                   ) : (
-                    !r.processing && !r.error && (
+                    !r.processing && !r.visibleError && (
                       <p className="text-sm text-text-tertiary py-8">ระบุขนาดเป้าหมายเพื่อสร้างผลลัพธ์</p>
                     )
                   )}
                 </div>
-                {r.outputBlob && (
+                {r.visibleBlob && (
                   <div className="flex flex-wrap items-center gap-2 text-xs">
                     <Badge variant="secondary">{r.parsedWidth}×{r.parsedHeight}</Badge>
-                    <Badge variant="secondary">{formatFileSize(r.outputBlob.size)}</Badge>
+                    <Badge variant="secondary">{formatFileSize(r.visibleBlob.size)}</Badge>
                     {sizeDelta !== null && (
                       <Badge variant={sizeDelta >= 0 ? 'success' : 'warning'}>
                         {sizeDelta >= 0 ? `เล็กลง ${sizeDelta}%` : `ใหญ่ขึ้น ${Math.abs(sizeDelta)}%`}
@@ -267,7 +267,7 @@ export default function ImageResizePage() {
                 className="w-full"
                 leftIcon={<Download className="w-4 h-4" />}
                 onClick={r.downloadOutput}
-                disabled={!r.outputBlob || r.processing}
+                disabled={!r.visibleBlob || r.processing}
               >
                 ดาวน์โหลด
               </Button>
@@ -279,7 +279,7 @@ export default function ImageResizePage() {
                   onClick={r.uploadToMedia}
                   isLoading={r.uploading}
                   loadingText="กำลังอัปโหลด..."
-                  disabled={!r.outputBlob || r.processing}
+                  disabled={!r.visibleBlob || r.processing}
                 >
                   อัปโหลดเข้า Media Library
                 </Button>

@@ -149,11 +149,20 @@ export default function ChatHistoriesPage() {
 
     /* ---- Effect: fetch or search ---- */
     useEffect(() => {
-        if (debouncedSearch.trim()) {
-            void fetchSearchResults(debouncedSearch.trim());
-        } else {
-            void fetchConversations();
-        }
+        let cancelled = false;
+        const run = async () => {
+            const q = debouncedSearch.trim();
+            if (q) {
+                await fetchSearchResults(q);
+            } else {
+                await fetchConversations();
+            }
+            if (cancelled) return;
+        };
+        void run();
+        return () => {
+            cancelled = true;
+        };
     }, [debouncedSearch, fetchConversations, fetchSearchResults]);
 
     /* ---- Derived: paginated conversation list ---- */

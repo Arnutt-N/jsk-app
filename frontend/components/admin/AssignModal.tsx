@@ -52,18 +52,28 @@ export const AssignModal: React.FC<AssignModalProps> = ({
     }, [API_BASE]);
 
     useEffect(() => {
-        if (isOpen) {
-            fetchAgents();
-        }
+        if (!isOpen) return;
+        let cancelled = false;
+        const run = async () => {
+            await fetchAgents();
+            if (cancelled) return;
+        };
+        void run();
+        return () => {
+            cancelled = true;
+        };
     }, [fetchAgents, isOpen]);
 
-    useEffect(() => {
+    // Reset on close during render instead of in an effect.
+    const [prevOpen, setPrevOpen] = useState(isOpen);
+    if (prevOpen !== isOpen) {
+        setPrevOpen(isOpen);
         if (!isOpen) {
             setPendingAgent(null);
             setAssigningId(null);
             setSearch('');
         }
-    }, [isOpen]);
+    }
 
     const handleSelect = (agent: Agent) => {
         setPendingAgent(agent);

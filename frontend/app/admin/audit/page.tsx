@@ -110,7 +110,35 @@ export default function AuditLogPage() {
   }, [startDate, endDate, filter.action, filter.resource_type, limit, offset]);
 
   useEffect(() => {
-    fetchLogs();
+
+
+      let cancelled = false;
+
+
+      const run = async () => {
+
+
+          await fetchLogs();
+
+
+          if (cancelled) return;
+
+
+      };
+
+
+      void run();
+
+
+      return () => {
+
+
+          cancelled = true;
+
+
+      };
+
+
   }, [fetchLogs]);
 
   const actionOptions: SelectOption[] = [

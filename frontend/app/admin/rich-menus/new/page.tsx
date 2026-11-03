@@ -254,23 +254,25 @@ export default function NewRichMenuPage() {
     const previewUrl = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
     useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl); }, [previewUrl]);
 
-    // Synchronize pendingTemplate when modal opens
-    useEffect(() => {
-        if (isTemplateModalOpen) {
-            setPendingTemplate(selectedTemplate);
+    // Synchronize pendingTemplate when modal opens (adjust during render).
+    const [prevModalOpen, setPrevModalOpen] = useState(isTemplateModalOpen);
+    if (prevModalOpen !== isTemplateModalOpen) {
+        setPrevModalOpen(isTemplateModalOpen);
+        if (isTemplateModalOpen) setPendingTemplate(selectedTemplate);
+    }
+
+    const [prevTemplate, setPrevTemplate] = useState(selectedTemplate);
+    if (prevTemplate !== selectedTemplate) {
+        setPrevTemplate(selectedTemplate);
+        if (selectedTemplate) {
+            setActions(selectedTemplate.item.areas.map((a: TemplateArea) => ({
+                type: 'uri',
+                uri: 'https://',
+                label: a.name,
+                text: ''
+            })));
         }
-    }, [isTemplateModalOpen, selectedTemplate]);
-
-    useEffect(() => {
-        if (!selectedTemplate) return;
-
-        setActions(selectedTemplate.item.areas.map((a: TemplateArea) => ({
-            type: 'uri',
-            uri: 'https://',
-            label: a.name,
-            text: ''
-        })));
-    }, [selectedTemplate]);
+    }
 
     useEffect(() => {
         const fetchData = async () => {

@@ -178,7 +178,37 @@ export default function FilesPage() {
     }
   }, []);
 
-  useEffect(() => { fetchFiles(); }, [fetchFiles]);
+  useEffect(() => {
+
+
+      let cancelled = false;
+
+
+      const run = async () => {
+
+
+          await fetchFiles();
+
+
+          if (cancelled) return;
+
+
+      };
+
+
+      void run();
+
+
+      return () => {
+
+
+          cancelled = true;
+
+
+      };
+
+
+  }, [fetchFiles]);
   useEffect(() => {
     void (async () => { await fetchStats(); })();
   }, [fetchStats]);

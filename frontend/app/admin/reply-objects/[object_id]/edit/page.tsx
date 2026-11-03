@@ -46,7 +46,15 @@ export default function EditReplyObjectPage() {
             router.replace('/admin/reply-objects');
             return;
         }
-        void fetchObject();
+        let cancelled = false;
+        const run = async () => {
+            await fetchObject();
+            if (cancelled) return;
+        };
+        void run();
+        return () => {
+            cancelled = true;
+        };
     }, [fetchObject, router, user]);
 
     const handleSave = async (data: ReplyObjectFormData): Promise<boolean> => {

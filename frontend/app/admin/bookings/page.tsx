@@ -123,7 +123,13 @@ export default function AdminBookingsPage() {
   }, [search])
 
   useEffect(() => {
-    void load()
+    let cancelled = false
+    const run = async () => {
+      await load()
+      if (cancelled) return
+    }
+    void run()
+    return () => { cancelled = true }
   }, [load])
 
   useEffect(() => {

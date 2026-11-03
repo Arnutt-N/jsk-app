@@ -249,7 +249,15 @@ export default function ReportsPage() {
   );
 
   useEffect(() => {
-    fetchTab(activeTab);
+    let cancelled = false;
+    const run = async () => {
+      await fetchTab(activeTab);
+      if (cancelled) return;
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
   }, [activeTab, fetchTab]);
 
   // ---------------------------------------------------------------------------

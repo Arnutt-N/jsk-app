@@ -71,7 +71,10 @@ export default function CategoryDetailPage() {
     const [confirmDeleteResponse, setConfirmDeleteResponse] = useState<{open: boolean; id: number | null}>({open: false, id: null});
     const API_BASE = '/api/v1';
 
-    useEffect(() => {
+    // Mirror `category` into the form during render (no effect, no extra pass).
+    const [prevCategory, setPrevCategory] = useState(category);
+    if (prevCategory !== category) {
+        setPrevCategory(category);
         if (category) {
             setCategoryFormData({
                 name: category.name,
@@ -79,7 +82,7 @@ export default function CategoryDetailPage() {
                 is_active: category.is_active
             });
         }
-    }, [category]);
+    }
 
     const fetchCategoryDetail = useCallback(async () => {
         setLoading(true);

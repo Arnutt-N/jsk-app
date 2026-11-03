@@ -103,7 +103,35 @@ export default function BroadcastListPage() {
     }, [API_BASE, statusFilter, page]);
 
     useEffect(() => {
-        void fetchBroadcasts();
+
+
+        let cancelled = false;
+
+
+        const run = async () => {
+
+
+            await fetchBroadcasts();
+
+
+            if (cancelled) return;
+
+
+        };
+
+
+        void run();
+
+
+        return () => {
+
+
+            cancelled = true;
+
+
+        };
+
+
     }, [fetchBroadcasts]);
 
     const handleDelete = async () => {

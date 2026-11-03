@@ -77,7 +77,15 @@ export default function SettingsOverviewPage() {
     }, [API_BASE]);
 
     useEffect(() => {
-        fetchOverview();
+        let cancelled = false;
+        const run = async () => {
+            await fetchOverview();
+            if (cancelled) return;
+        };
+        void run();
+        return () => {
+            cancelled = true;
+        };
     }, [fetchOverview]);
 
     if (loading) {

@@ -171,12 +171,24 @@ export default function AdminRequestList() {
         return () => clearTimeout(timer);
     }, [search]);
 
-    useEffect(() => {
+    // Reset to the first page on a filter change during render instead of in an effect.
+    const filterKey = `${filter.status}|${filter.category}|${debouncedSearch}|${filter.startDate}|${filter.endDate}`;
+    const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
+    if (prevFilterKey !== filterKey) {
+        setPrevFilterKey(filterKey);
         setPage(0);
-    }, [filter.status, filter.category, debouncedSearch, filter.startDate, filter.endDate]);
+    }
 
     useEffect(() => {
-        void fetchRequests();
+        let cancelled = false;
+        const run = async () => {
+            await fetchRequests();
+            if (cancelled) return;
+        };
+        void run();
+        return () => {
+            cancelled = true;
+        };
     }, [fetchRequests]);
 
     useEffect(() => () => abortRef.current?.abort(), []);

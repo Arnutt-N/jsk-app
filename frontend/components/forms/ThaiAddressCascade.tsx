@@ -52,16 +52,21 @@ export function ThaiAddressCascade({
     labelClassName = DEFAULT_LABEL_CLASS,
 }: ThaiAddressCascadeProps) {
     const [provinces, setProvinces] = useState<Province[]>([]);
-    const [districts, setDistricts] = useState<District[]>([]);
-    const [subDistricts, setSubDistricts] = useState<SubDistrict[]>([]);
+    const [districtList, setDistricts] = useState<District[]>([]);
+    const [subDistrictList, setSubDistricts] = useState<SubDistrict[]>([]);
     const [loadingDistricts, setLoadingDistricts] = useState(false);
     const [loadingSubDistricts, setLoadingSubDistricts] = useState(false);
 
     const selectedProvince = provinces.find((p) => p.PROVINCE_THAI === value.province);
-    const selectedDistrict = districts.find((d) => d.DISTRICT_THAI === value.district);
-    const selectedSubDistrict = subDistricts.find((s) => s.SUB_DISTRICT_THAI === value.sub_district);
+    const selectedDistrict = districtList.find((d) => d.DISTRICT_THAI === value.district);
+
     const provinceId = selectedProvince?.PROVINCE_ID ?? null;
     const districtId = selectedDistrict?.DISTRICT_ID ?? null;
+
+    // Derived: no parent selected means no children, without writing state in an effect.
+    const districts = provinceId ? districtList : [];
+    const subDistricts = districtId ? subDistrictList : [];
+    const selectedSubDistrict = subDistricts.find((s) => s.SUB_DISTRICT_THAI === value.sub_district);
 
     useEffect(() => {
         let cancelled = false;
@@ -81,10 +86,7 @@ export function ThaiAddressCascade({
 
     // โหลดอำเภอเมื่อรู้จังหวัด (ครอบคลุมทั้ง preselect จากค่าเดิมและการเลือกใหม่)
     useEffect(() => {
-        if (!provinceId) {
-            setDistricts([]);
-            return;
-        }
+        if (!provinceId) return;
         let cancelled = false;
         const fetchDistricts = async () => {
             setLoadingDistricts(true);
@@ -105,10 +107,7 @@ export function ThaiAddressCascade({
 
     // โหลดตำบลเมื่อรู้อำเภอ
     useEffect(() => {
-        if (!districtId) {
-            setSubDistricts([]);
-            return;
-        }
+        if (!districtId) return;
         let cancelled = false;
         const fetchSubDistricts = async () => {
             setLoadingSubDistricts(true);

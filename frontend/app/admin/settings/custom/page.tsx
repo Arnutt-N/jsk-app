@@ -83,7 +83,15 @@ export default function CustomIntegrationsPage() {
     }, [API_BASE, toast]);
 
     useEffect(() => {
-        fetchIntegrations();
+        let cancelled = false;
+        const run = async () => {
+            await fetchIntegrations();
+            if (cancelled) return;
+        };
+        void run();
+        return () => {
+            cancelled = true;
+        };
     }, [fetchIntegrations]);
 
     const resetForm = () => {

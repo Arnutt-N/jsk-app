@@ -91,7 +91,35 @@ export default function BroadcastDetailPage() {
     }, [API_BASE, broadcastId]);
 
     useEffect(() => {
-        void fetchBroadcast();
+
+
+        let cancelled = false;
+
+
+        const run = async () => {
+
+
+            await fetchBroadcast();
+
+
+            if (cancelled) return;
+
+
+        };
+
+
+        void run();
+
+
+        return () => {
+
+
+            cancelled = true;
+
+
+        };
+
+
     }, [fetchBroadcast]);
 
     const handleSend = async () => {

@@ -164,7 +164,27 @@ export default function UsersPage() {
     useEffect(() => {
         void (async () => { await fetchStats(); })();
     }, [fetchStats]);
-    useEffect(() => { fetchUsers(); }, [fetchUsers]);
+    useEffect(() => {
+
+        let cancelled = false;
+
+        const run = async () => {
+
+            await fetchUsers();
+
+            if (cancelled) return;
+
+        };
+
+        void run();
+
+        return () => {
+
+            cancelled = true;
+
+        };
+
+    }, [fetchUsers]);
 
     /* ── Actions ────────────────────────────────────────────────────── */
 
