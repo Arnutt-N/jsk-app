@@ -1,14 +1,22 @@
 {
-  "last_updated": "2026-11-04T07:40:00+07:00",
+  "last_updated": "2026-11-04T14:01:00+07:00",
   "platform": "claude_code",
-  "current_task": "Merged three PRs completing the Next.js 16.4.3 security upgrade and full react-hooks conformance on main. #309 upgraded next 16.1.1 -> 16.4.3 + eslint-config-next 16.4.3 (pulls eslint-plugin-react-hoo",
+  "current_task": "Merged one more PR after the previous handoff: #312 (fix/live-chat-search-race, merged as 0c1919f) closed a race that #311 had introduced in the live-chat message search. #311 tagged each result set w",
   "plan_status": "completed",
   "next_steps": [
-    "Two findings are recorded in .audit/ with evidence but deliberately NOT fixed, and both should stay unfixed until there is evidence they matter: (1) ~29 of the cancelled guards the sweep added sit after the last state write and protect nothing, worth ~60 cosmetic lines across 29 files -- a regex codemod was attempted and silently deleted an await, so it was reverted; doing it by hand on merged+deployed code is a bad risk trade. (2) lib/booking/store.ts:217 calls dispatch during render, which reaches saveDraft -> sessionStorage.setItem, so in theory a discarded render could persist a draft -- but no test could be built to discriminate it (two attempts both passed on the old code because preselected === service disarms the write after the first commit), and moving the write into an effect measurably regressed app/admin/bookings/__tests__/calendar.test.tsx (passes 4.5s on main, times out at 20s+ with the fix, 3 consecutive runs) because main commits draft.date synchronously during render. Revisit only if a real discarded render appears on the booking page (Suspense or an error boundary).",
-    "app/admin/bookings/__tests__/walkin.test.tsx and calendar.test.tsx have almost no timing headroom: they run 2-22s against a 20s testTimeout and fail spuriously whenever tsc or a full-project eslint runs concurrently. Re-run them in isolation before treating a failure as a regression. Consider raising testTimeout for that directory or cutting the work they do.",
-    "If touching lib/booking/store.ts again, the ordering constraint is load-bearing: dispatch during render makes draft.date available to the same commit, and the calendar depends on that. Any change that defers the write by one render breaks that test."
+    "Two findings remain recorded but deliberately unfixed, both in .audit/ with evidence. (1) lib/booking/store.ts:217 calls dispatch during render, which reaches saveDraft -> sessionStorage.setItem; it is a genuine impurity but no test could be built to discriminate it (two attempts both passed on the old code because preselected === service disarms the write after the first commit), and moving the write into an effect regressed app/admin/bookings/__tests__/calendar.test.tsx from 4.5s to a 20s+ timeout across three consecutive runs, because main commits draft.date synchronously during render and the calendar depends on that. Revisit only if a real discarded render appears on the booking page. (2) Removing the cancelled flag from app/admin/requests/[id]/page.tsx means the three fetchers can setState after unmount; React 19 does not warn and nothing renders, so no user-visible effect, but expect it to be raised in review.",
+    "The audit probes now live in frontend/.audit-probes/ and run with: node frontend/node_modules/vitest/vitest.mjs run --root frontend .audit-probes. They must stay inside the frontend root because three of the five import @/lib/... and cannot resolve from the repo root; that mistake made them unrunnable for one round. The default suite does not collect them (verified 0).",
+    "If touching ConversationList search again, the ordering constraint is load-bearing: the latest-query ref must be assigned on every effect run including the empty-query early return, otherwise clearing the field leaves a stale value in it.",
+    "Test-timing trap, unchanged: app/admin/bookings/__tests__/{walkin,calendar}.test.tsx run 2-22s here against a 20s testTimeout and fail spuriously under concurrent tsc or full-project eslint; on CI the same files run 0.85-1.2s. Always re-run in isolation before calling a failure a regression."
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-11-04T14:01:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "0c1919f",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-11-04T07:40:00+07:00",
       "platform": "claude_code",
@@ -140,13 +148,6 @@
       "platform": "pi",
       "branch": "main",
       "head": "7883eae",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-10-21T08:48:00+07:00",
-      "platform": "pi",
-      "branch": "main",
-      "head": "236890f",
       "status": "completed"
     }
   ],

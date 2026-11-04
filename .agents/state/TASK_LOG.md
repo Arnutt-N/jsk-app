@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 322 active handoffs, 12 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 323 active handoffs, 12 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-11-04 14:01 — claude_code (Claude Fable 5 / Anthropic) — completed
+
+Merged one more PR after the previous handoff: #312 (fix/live-chat-search-race, merged as 0c1919f) closed a race that #311 had introduced in the live-chat message search. #311 tagged each result set with the query that produced it so a stale set could not be DISPLAYED under a new term, but the older query's response still WROTE resultQuery when it arrived late, so the live term matched nothing and the panel stranded on 'No matching messages' until the field was edited. The guard needs a ref, not a state read: inside the effect closure searchQuery is the value from when the effect ran, so comparing searchQuery.trim() !== q compares q to itself and never fires. Also made searching derived (activeQuery !== resultQuery) instead of stored, because as state it could be cleared by a stale response and was false during the 300ms debounce so every new term flashed 'No matching messages', and added the catch the fetch never had. Verified by mounting the real component at the pre-fix commit (interrogator did this in a pinned worktree) and by frontend/.audit-probes/__tests__/search-race.test.tsx which asserts both directions. main is 0c1919f and green: CI, E2E, Encoding, CD all success, Deploy Frontend (Vercel) ran and Smoke Check Frontend passed. No open PRs, working tree clean.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20261104-1401.json`
+- Summary: `project-log-md/claude_code/session-summary-20261104-1401.md`
+
+---
 
 ### 2026-11-04 07:40 — claude_code (Claude Fable 5 / Anthropic) — completed
 
