@@ -25,7 +25,7 @@ const config = [
       "no-restricted-imports": ["error", {
         paths: [{
           name: "@/components/ui/DateRangePicker",
-          message: "Admin date filters must use the shared DatePresetFilter from '@/components/admin/DatePresetFilter' (presets in '@/lib/date-range').",
+          message: "Admin date filters must use the shared DatePresetFilter from '@/components/admin/DatePresetFilter' (presets in '@/lib/date-range'). The Gregorian DateRangePicker was deleted on 2026-11-04 because it duplicated that surface; do not re-add it.",
         }],
       }],
     },

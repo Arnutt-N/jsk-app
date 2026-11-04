@@ -55,7 +55,6 @@ export {
   AccordionTrigger,
   AccordionContent,
 } from './Accordion';
-export { Calendar } from './Calendar';
 export {
   Sheet,
   SheetPortal,
