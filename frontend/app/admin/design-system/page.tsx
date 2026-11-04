@@ -82,8 +82,8 @@ const chartColors = [
 /* ── Component inventory ── */
 const uiComponents = [
   'Accordion', 'ActionIconButton', 'Alert', 'Avatar', 'Badge', 'Button',
-  'Calendar', 'CalendarPickerTH', 'Card', 'Chart', 'Checkbox', 'Command',
-  'CommandPalette', 'ConfirmDialog', 'DateRangePicker', 'DateTimePickerTH',
+  'CalendarPickerTH', 'Card', 'Chart', 'Checkbox', 'Command',
+  'CommandPalette', 'ConfirmDialog', 'DateTimePickerTH',
   'DropdownMenu', 'EmptyState', 'ErrorBoundary', 'EscalationDialog',
   'FileUploadZone', 'Form', 'Input', 'Label', 'LoadingSpinner', 'Modal',
   'ModalAlert', 'PageTransition', 'Pagination', 'PasswordStrengthMeter',
