@@ -1,4 +1,5 @@
 import { format, subDays } from "date-fns";
+import { formatThaiDate } from "@/lib/format-date";
 
 /** Shared Bangkok-calendar date helpers for admin list/report filters. */
 export const DEFAULT_RANGE_DAYS = 30;
@@ -101,6 +102,25 @@ export function resolveDateRangeWithFallback(
     resolveDateRange(preset, customStart, customEnd, presets) ??
     presetOptionToDates(presets.find((p) => p.key === fallbackKey) ?? { key: fallbackKey, label: '', days: DEFAULT_RANGE_DAYS })
   );
+}
+
+/** The text a date filter's trigger shows for the state the user is in. The
+ *  trigger is the only place the range is named, so this covers every state
+ *  rather than only the happy one. */
+export function describeDateFilter(
+  preset: string | null,
+  customStart: string,
+  customEnd: string,
+  presets: DatePresetOption[] = STANDARD_DATE_PRESETS,
+): string {
+  if (preset === 'custom') {
+    const problem = customRangeProblem(customStart, customEnd);
+    if (!problem && customStart && customEnd) {
+      return `${formatThaiDate(customStart, { dayFormat: 'numeric' })} – ${formatThaiDate(customEnd, { dayFormat: 'numeric' })}`;
+    }
+    return CUSTOM_RANGE_MESSAGES[problem ?? 'incomplete'];
+  }
+  return presets.find((p) => p.key === preset)?.label ?? 'ทุกช่วงเวลา';
 }
 
 export function toYMD(d: Date): string {
