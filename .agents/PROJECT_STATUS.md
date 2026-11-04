@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-11-01 11:11 by Claude Code (Next.js security upgrade in progress on branch chore/next-16-4-3-cve uncommitted.)
+> **Last Updated:** 2026-11-04 07:40 by Claude Code (Merged three PRs completing the Next.js 16.4.3 security upgrade and full react-hooks confo)
 
 ## Thai Summary
 **สถานะล่าสุด (2026-10-27)** — งานตรวจโค้ดรอบใหม่ Task 22 เสร็จ: เปิดประตูตรวจโค้ดหลังบ้าน (ruff) ใน CI แล้ว, PR #301 (draft) CI เขียวครบทุกด่าน; เหลืออีก 29 งาน เริ่มจาก Phase 0 (CI tasks 13, 14, 18, 24) — ดูรายละเอียดใน `project-log-md/pi/session-summary-20261027-1225.md`
@@ -126,6 +126,7 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-11-04 07:40] Claude Code: Merged three PRs completing the Next.js 16.4.3 security upgrade and full react-hooks conformance on main. #309 upgraded next 16.1.1 -> 16.4.3 + eslint-config-next 16.4.3 (pulls eslint-plugin-react-hooks 7.1.1, which enables react-hooks/set- (Claude Code)
 - [2026-11-01 11:11] Claude Code: Next.js security upgrade in progress on branch chore/next-16-4-3-cve (uncommitted). next 16.1.1 -> 16.4.3 clears 4 critical advisories to 0 critical (3 were Next.js: Image Optimizer DoS, RSC deserialization DoS, request smuggling in rewrite (Claude Code)
 - [2026-10-29 17:21] Claude Code: Codebase review plan 30/30 complete, plus a review/correct/deslop pass that closed 4 findings (2 latent fail-open in the route manifest, 1 stale doc, 1 e2e race). CI + E2E + Encoding green at c04f5b8 with zero retries. (Claude Code)
 - [2026-10-29 11:32] Claude Code: Codebase review plan COMPLETE: all 30/30 tasks done (Tasks 20,21,25,26,29,30 this session). CI + E2E + Encoding green at 38f2385. (Claude Code)

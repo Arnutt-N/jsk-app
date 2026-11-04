@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 321 active handoffs, 12 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 322 active handoffs, 12 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-11-04 07:40 — claude_code (Claude Fable 5 / Anthropic) — completed
+
+Merged three PRs completing the Next.js 16.4.3 security upgrade and full react-hooks conformance on main. #309 upgraded next 16.1.1 -> 16.4.3 + eslint-config-next 16.4.3 (pulls eslint-plugin-react-hooks 7.1.1, which enables react-hooks/set-state-in-effect at the recommended preset) and cleared 48 of the 54 sites it flagged across 40 files. #310 cleared the last 6 in the LIFF booking flow (components/admin/WalkinBookingDialog.tsx, lib/booking/store.ts). #311 fixed three defects a post-merge quality pass found: a telegram settings error banner that could never clear after a successful save, three independent requests in app/admin/requests/[id]/page.tsx that the sweep had serialised, and stale search results shown under a new query in ConversationList.tsx. Result: react-hooks errors 54 -> 0, npm audit --omit=dev criticals 4 -> 0, warnings unchanged at 7, CI + E2E + CD green on main at 317520d, Deploy Frontend (Vercel) ran and Smoke Check Frontend passed. No test file was modified.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20261104-0740.json`
+- Summary: `project-log-md/claude_code/session-summary-20261104-0740.md`
+
+---
 
 ### 2026-11-01 11:11 — claude_code (Claude Fable 5 / Anthropic) — completed
 

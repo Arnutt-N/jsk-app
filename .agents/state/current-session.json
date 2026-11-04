@@ -1,14 +1,21 @@
 {
-  "last_updated": "2026-11-01T11:11:00+07:00",
+  "last_updated": "2026-11-04T07:40:00+07:00",
   "platform": "claude_code",
-  "current_task": "Next.js security upgrade in progress on branch chore/next-16-4-3-cve (uncommitted). next 16.1.1 -> 16.4.3 clears 4 critical advisories to 0 critical (3 were Next.js: Image Optimizer DoS, RSC deseriali",
+  "current_task": "Merged three PRs completing the Next.js 16.4.3 security upgrade and full react-hooks conformance on main. #309 upgraded next 16.1.1 -> 16.4.3 + eslint-config-next 16.4.3 (pulls eslint-plugin-react-hoo",
   "plan_status": "completed",
   "next_steps": [
-    "Collect the two reviewer verdicts (sonnet + opus) for the PRD/plan, then finish /prp-validate-plan Phases 3-6: merge verdicts, compute the confidence score, and write the report to .claude/PRPs/plan_reviews/2026-11-01-next-16-4-3-react-hooks-rule-review.md.",
-    "Reviewers were dispatched before this handoff, so they may have completed or been lost with the session; if their output is gone, re-run /prp-validate-plan from scratch rather than guessing a verdict.",
-    "The uncommitted package.json/package-lock.json on chore/next-16-4-3-cve must be kept - they are the working 16.4.3 upgrade that the plan depends on. Do not revert them while validating."
+    "Two findings are recorded in .audit/ with evidence but deliberately NOT fixed, and both should stay unfixed until there is evidence they matter: (1) ~29 of the cancelled guards the sweep added sit after the last state write and protect nothing, worth ~60 cosmetic lines across 29 files -- a regex codemod was attempted and silently deleted an await, so it was reverted; doing it by hand on merged+deployed code is a bad risk trade. (2) lib/booking/store.ts:217 calls dispatch during render, which reaches saveDraft -> sessionStorage.setItem, so in theory a discarded render could persist a draft -- but no test could be built to discriminate it (two attempts both passed on the old code because preselected === service disarms the write after the first commit), and moving the write into an effect measurably regressed app/admin/bookings/__tests__/calendar.test.tsx (passes 4.5s on main, times out at 20s+ with the fix, 3 consecutive runs) because main commits draft.date synchronously during render. Revisit only if a real discarded render appears on the booking page (Suspense or an error boundary).",
+    "app/admin/bookings/__tests__/walkin.test.tsx and calendar.test.tsx have almost no timing headroom: they run 2-22s against a 20s testTimeout and fail spuriously whenever tsc or a full-project eslint runs concurrently. Re-run them in isolation before treating a failure as a regression. Consider raising testTimeout for that directory or cutting the work they do.",
+    "If touching lib/booking/store.ts again, the ordering constraint is load-bearing: dispatch during render makes draft.date available to the same commit, and the calendar depends on that. Any change that defers the write by one render breaks that test."
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-11-04T07:40:00+07:00",
+      "platform": "claude_code",
+      "branch": "fix/react-hooks-dead-guards",
+      "head": "317520d",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-11-01T11:11:00+07:00",
       "platform": "claude_code",
@@ -140,13 +147,6 @@
       "platform": "pi",
       "branch": "main",
       "head": "236890f",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-10-21T08:39:00+07:00",
-      "platform": "pi",
-      "branch": "main",
-      "head": "6fca4f3",
       "status": "completed"
     }
   ],
