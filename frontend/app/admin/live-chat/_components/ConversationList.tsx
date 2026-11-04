@@ -4,6 +4,7 @@ import React, { useMemo } from 'react';
 import Link from 'next/link';
 import { ArrowDownWideNarrow, Home, Inbox, MessageSquarePlus, Search } from 'lucide-react';
 
+import { logger } from '@/lib/logger';
 import { useLiveChatStore } from '../_store/liveChatStore';
 import { useConversationStats } from '../_hooks/useConversationStats';
 import { useLiveChatContext } from '../_context/LiveChatContext';
@@ -191,22 +192,29 @@ export function ConversationList() {
   const [resultQuery, setResultQuery] = React.useState('');
   const activeQuery = searchQuery.trim();
   const searchResults = activeQuery && resultQuery === activeQuery ? searchResultList : [];
-  const [searching, setSearching] = React.useState(false);
+  // Derived, not stored: a term is pending whenever it has not produced a
+  // result yet. Storing it let a late response clear the flag for a live term.
+  const searching = Boolean(activeQuery) && activeQuery !== resultQuery;
+  const latestQuery = React.useRef('');
   const [showCreateChat, setShowCreateChat] = React.useState(false);
 
   React.useEffect(() => {
     const q = searchQuery.trim();
+    // Tracked in a ref because the closure keeps the value from when this
+    // effect ran, so comparing against `searchQuery` here always matches.
+    latestQuery.current = q;
     if (!q) return;
     const timeoutId = setTimeout(async () => {
-      setSearching(true);
       try {
         const res = await fetch(`/api/v1/admin/live-chat/messages/search?q=${encodeURIComponent(q)}&limit=10`);
         if (!res.ok) return;
         const data = await res.json();
+        // A slower earlier query must not overwrite a newer one's results.
+        if (latestQuery.current !== q) return;
         setSearchResults(data.items || []);
         setResultQuery(q);
-      } finally {
-        setSearching(false);
+      } catch (err) {
+        logger.error('Search failed', err);
       }
     }, 300);
     return () => clearTimeout(timeoutId);

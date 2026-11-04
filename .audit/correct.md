@@ -40,10 +40,12 @@ One genuine defect inside this class: `app/admin/audit/page.tsx` has a blank lin
 
 ## Rule table
 
-| Rule | Enforced by |
-|---|---|
-| An effect must not write a state that appears in its own dependency array (self-cancelling deadlock) | `.audit/deadlock-scan.cjs`, 0 findings over 43 files |
-| A derived value must be pinned by a test when a raw twin stays live | `.audit-probe/__tests__/derivation-table.test.tsx` |
-| A render-phase write must not reach persistent storage | `.audit-probe/__tests__/discarded-render.test.tsx` (currently **fails the intent**, see blast radius risk 1) |
+| Rule | Enforced by | How to run |
+|---|---|---|
+| An effect must not write a state that appears in its own dependency array (self-cancelling deadlock) | `.audit/deadlock-scan.cjs`, 0 findings over 43 files | `node .audit/deadlock-scan.cjs $(cat .audit/changed.txt \| tr '\n' ' ')` |
+| A derived value must be pinned by a test when a raw twin stays live | `frontend/.audit-probes/__tests__/derivation-table.test.tsx` | `node frontend/node_modules/vitest/vitest.mjs run --root frontend .audit-probes` |
+| The sweep's mount-verified behaviour claims must stay true | `frontend/.audit-probes/__tests__/{safety-fact,storage-write,discarded-render}.test.tsx` | same command |
 
-The third row is the one that needs a fix before it can move from "test that documents the defect" to "test that prevents it".
+Two corrections to the previous version of this table. The probe path was wrong: `.audit-probe/` was renamed to `.audit/probes/`, then moved again into `frontend/.audit-probes/` once it turned out three of the four probes import `@/lib/...` and cannot resolve from the repo root. A rule whose enforcer nobody can run is not enforced, so the path and the run command are both part of the rule.
+
+The third row used to say `discarded-render` "fails the intent". That was accurate when the render-phase `dispatch` was going to be fixed. It has not been fixed, and the fix was reverted after it regressed `calendar.test.tsx`. The test now documents the known impurity rather than guarding against it, and that is stated here instead of implied.
