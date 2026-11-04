@@ -42,8 +42,35 @@ export function presetOptionToDates(opt: DatePresetOption): { start: string; end
   return { start: toYMD(subDays(to, opt.days ?? DEFAULT_RANGE_DAYS)), end };
 }
 
-/** Resolve preset + custom-picker state to a range. `null` preset (or a
- *  half-picked custom range) means unfiltered, so callers skip date params. */
+/** Why a custom range cannot be applied, or null when it can. */
+export type CustomRangeProblem = 'incomplete' | 'reversed';
+
+/** A custom range applies only when both ends are present and ordered. */
+function isUsableCustomRange(start: string, end: string): boolean {
+  return start !== '' && end !== '' && start <= end;
+}
+
+/** What to tell the user about the range they have entered so far. Null when
+ *  the range is usable, or when they have not started picking (an empty pair
+ *  is the resting state, not a mistake). */
+export function customRangeProblem(
+  customStart: string,
+  customEnd: string,
+): CustomRangeProblem | null {
+  if (isUsableCustomRange(customStart, customEnd)) return null;
+  if (!customStart && !customEnd) return null;
+  return customStart && customEnd ? 'reversed' : 'incomplete';
+}
+
+/** Thai copy for each problem. `reversed` is the string the Requests page has
+ *  always shown; `incomplete` is new, written in the same register. */
+export const CUSTOM_RANGE_MESSAGES: Record<CustomRangeProblem, string> = {
+  incomplete: 'กรุณาเลือกวันที่เริ่มต้นและวันที่สิ้นสุด',
+  reversed: 'วันที่เริ่มต้นต้องไม่มากกว่าวันที่สิ้นสุด',
+};
+
+/** Resolve preset + custom-picker state to a range. `null` preset (or an
+ *  unusable custom range) means unfiltered, so callers skip date params. */
 export function resolveDateRange(
   preset: string | null,
   customStart: string,
@@ -52,8 +79,9 @@ export function resolveDateRange(
 ): { start: string; end: string } | null {
   if (!preset) return null;
   if (preset === 'custom') {
-    if (customStart && customEnd) return { start: customStart, end: customEnd };
-    return null;
+    return isUsableCustomRange(customStart, customEnd)
+      ? { start: customStart, end: customEnd }
+      : null;
   }
   const opt = presets.find((p) => p.key === preset);
   if (!opt) return null;
