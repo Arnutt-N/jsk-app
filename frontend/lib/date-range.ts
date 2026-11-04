@@ -104,22 +104,24 @@ export function resolveDateRangeWithFallback(
   );
 }
 
-/** The text a date filter's trigger shows for the state the user is in. The
- *  trigger is the only place the range is named, so this covers every state
- *  rather than only the happy one. */
+/** The text a date filter's trigger shows. It names the range that is actually
+ *  applied, so an unusable custom range reads as its preset label rather than
+ *  as the problem: the problem goes in the panel, where there is room for a
+ *  sentence and where the pickers that caused it are visible. */
 export function describeDateFilter(
   preset: string | null,
   customStart: string,
   customEnd: string,
   presets: DatePresetOption[] = STANDARD_DATE_PRESETS,
 ): string {
+  const customLabel = presets.find((p) => p.key === 'custom')?.label ?? 'กำหนดเอง';
   if (preset === 'custom') {
-    const problem = customRangeProblem(customStart, customEnd);
-    if (!problem && customStart && customEnd) {
-      return `${formatThaiDate(customStart, { dayFormat: 'numeric' })} – ${formatThaiDate(customEnd, { dayFormat: 'numeric' })}`;
-    }
-    return CUSTOM_RANGE_MESSAGES[problem ?? 'incomplete'];
+    const usable = !customRangeProblem(customStart, customEnd) && customStart && customEnd;
+    return usable
+      ? `${formatThaiDate(customStart, { dayFormat: 'numeric' })} – ${formatThaiDate(customEnd, { dayFormat: 'numeric' })}`
+      : customLabel;
   }
+  if (preset === null) return 'ทุกช่วงเวลา';
   return presets.find((p) => p.key === preset)?.label ?? 'ทุกช่วงเวลา';
 }
 

@@ -116,16 +116,13 @@ describe('describeDateFilter', () => {
     expect(text).toContain('–');
   });
 
-  it('surfaces the incomplete message for a half-picked range', () => {
-    expect(describeDateFilter('custom', '2026-09-01', '')).toBe(
-      CUSTOM_RANGE_MESSAGES.incomplete,
-    );
+  it('names an untouched custom preset by its label, not as an error', () => {
+    expect(describeDateFilter('custom', '', '')).toBe('กำหนดเอง');
   });
 
-  it('surfaces the reversed message for an inverted range', () => {
-    expect(describeDateFilter('custom', '2026-09-05', '2026-09-01')).toBe(
-      CUSTOM_RANGE_MESSAGES.reversed,
-    );
+  it('keeps the trigger on the preset label when the custom range is unusable', () => {
+    expect(describeDateFilter('custom', '2026-09-01', '')).toBe('กำหนดเอง');
+    expect(describeDateFilter('custom', '2026-09-05', '2026-09-01')).toBe('กำหนดเอง');
   });
 
   it('falls back to the unfiltered label for an unknown preset key', () => {
