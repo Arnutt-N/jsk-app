@@ -1,0 +1,83 @@
+diff --git a/frontend/app/admin/live-chat/_components/ConversationList.tsx b/frontend/app/admin/live-chat/_components/ConversationList.tsx
+index 976d210..0fa5964 100644
+--- a/frontend/app/admin/live-chat/_components/ConversationList.tsx
++++ b/frontend/app/admin/live-chat/_components/ConversationList.tsx
+@@ -186,8 +186,11 @@ export function ConversationList() {
+   }, [selectedId]);
+ 
+   const [searchResultList, setSearchResults] = React.useState<SearchMessageResult[]>([]);
+-  // Derived: an empty query shows no results without a state write in the effect.
+-  const searchResults = searchQuery.trim() ? searchResultList : [];
++  // Tag each result set with the query that produced it, so a stale set cannot
++  // show under a new term. Deriving keeps the clear out of the effect body.
++  const [resultQuery, setResultQuery] = React.useState('');
++  const activeQuery = searchQuery.trim();
++  const searchResults = activeQuery && resultQuery === activeQuery ? searchResultList : [];
+   const [searching, setSearching] = React.useState(false);
+   const [showCreateChat, setShowCreateChat] = React.useState(false);
+ 
+@@ -201,6 +204,7 @@ export function ConversationList() {
+         if (!res.ok) return;
+         const data = await res.json();
+         setSearchResults(data.items || []);
++        setResultQuery(q);
+       } finally {
+         setSearching(false);
+       }
+diff --git a/frontend/app/admin/requests/[id]/page.tsx b/frontend/app/admin/requests/[id]/page.tsx
+index e0b207d..f1a30e5 100644
+--- a/frontend/app/admin/requests/[id]/page.tsx
++++ b/frontend/app/admin/requests/[id]/page.tsx
+@@ -387,17 +387,10 @@ export default function RequestDetailPage() {
+ 
+     useEffect(() => {
+         if (!params.id) return;
+-        let cancelled = false;
+-        const run = async () => {
+-            await fetchDetail();
+-            await fetchComments();
+-            await fetchAuditLogs();
+-            if (cancelled) return;
+-        };
+-        void run();
+-        return () => {
+-            cancelled = true;
+-        };
++        // Concurrent: these three are independent, so serialising them triples the wait.
++        void (async () => {
++            await Promise.all([fetchDetail(), fetchComments(), fetchAuditLogs()]);
++        })();
+     }, [fetchAuditLogs, fetchComments, fetchDetail, params.id]);
+ 
+     // --- Handlers ---
+diff --git a/frontend/app/admin/settings/telegram/page.tsx b/frontend/app/admin/settings/telegram/page.tsx
+index 35ea07e..e64704b 100644
+--- a/frontend/app/admin/settings/telegram/page.tsx
++++ b/frontend/app/admin/settings/telegram/page.tsx
+@@ -47,6 +47,7 @@ export default function TelegramSettingsPage() {
+     const [error, setError] = useState<string | null>(null);
+ 
+     const fetchConfig = useCallback(async () => {
++        setError(null);
+         try {
+             const result = await apiFetch<TelegramConfig>('/admin/settings/telegram');
+             if (result.ok) {
+@@ -61,16 +62,12 @@ export default function TelegramSettingsPage() {
+     }, []);
+ 
+     useEffect(() => {
+-        let cancelled = false;
++        // Indirect so the effect body does not call a setState-bearing callback
++        // directly; fetchConfig owns the write, so handleSave clears it too.
+         const run = async () => {
+-            setError(null);
+-            if (cancelled) return;
+             await fetchConfig();
+         };
+         void run();
+-        return () => {
+-            cancelled = true;
+-        };
+     }, [fetchConfig]);
+ 
+     const handleSave = async () => {

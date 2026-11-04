@@ -91,3 +91,6 @@ graphify-out-fe/
 
 # Scratch / misc
 .ignore
+
+# vite cache from running vitest with --root .
+.vite/
