@@ -16,7 +16,7 @@ export interface DayInfo {
 export interface DateSectionProps {
   dates: string[]
   value: string | null
-  onChange: (date: string) => void
+  onChange: (date: string | null) => void
   getDayInfo: (iso: string) => DayInfo
   minDate: string | null
   maxDate: string | null
@@ -127,8 +127,7 @@ export default function DateSection({
   }
 
   const pickFromCalendar = (iso: string | null) => {
-    if (!iso) return
-    onChange(toISODate(new Date(iso)))
+    onChange(iso ? toISODate(new Date(iso)) : null)
   }
 
   return (

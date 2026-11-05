@@ -388,10 +388,10 @@ export default function LiffBookingPage() {
   )
 
   const chooseDate = useCallback(
-    (date: string) => {
+    (date: string | null) => {
       setDatetimeError(null)
       dispatch({ type: 'date/set', date })
-      if (serviceType) void loadSlots(serviceType, date)
+      if (serviceType && date) void loadSlots(serviceType, date)
     },
     [dispatch, loadSlots, serviceType],
   )
