@@ -61,7 +61,7 @@ describe('CalendarPickerTH', () => {
   });
 
   it('เลือกได้: drills day → month grid → picks a month back to day view', async () => {
-    render(<CalendarPickerTH value={'2024-01-15T00:00:00.000Z'} onChange={() => {}} />);
+    render(<CalendarPickerTH value={null} onChange={() => {}} />);
 
     fireEvent.click(screen.getByLabelText('เปิดปฏิทินเลือกวันที่'));
     const dialog = await screen.findByRole('dialog');
@@ -81,7 +81,7 @@ describe('CalendarPickerTH', () => {
   });
 
   it('กลุ่มปี พ.ศ.: month view opens a Buddhist-Era year grid', async () => {
-    render(<CalendarPickerTH value={'2024-01-15T00:00:00.000Z'} onChange={() => {}} />);
+    render(<CalendarPickerTH value={null} onChange={() => {}} />);
 
     fireEvent.click(screen.getByLabelText('เปิดปฏิทินเลือกวันที่'));
     const dialog = await screen.findByRole('dialog');
@@ -89,8 +89,9 @@ describe('CalendarPickerTH', () => {
     fireEvent.click(within(dialog).getByLabelText('เลือกเดือน')); // → month view
     fireEvent.click(within(dialog).getByLabelText('เลือกปี')); // → year view
 
-    // Year grid shows พ.ศ. labels (e.g. "พ.ศ. 2567" for the selected year).
-    expect(within(dialog).getByLabelText('พ.ศ. 2567')).toBeInTheDocument();
+    // Year grid shows Buddhist-Era labels. The decade shown depends on today,
+    // so assert the shape rather than a fixed year.
+    expect(within(dialog).getAllByLabelText(/^พ\.ศ\. \d{4}$/).length).toBeGreaterThan(0);
   });
 });
 
@@ -108,14 +109,18 @@ describe('CalendarPickerTH booking window', () => {
     const onChange = vi.fn();
     render(
       <CalendarPickerTH
-        value="2026-10-01T00:00:00.000Z"
+        value={null}
         onChange={onChange}
+        minDate="2026-10-01"
+        maxDate="2026-10-31"
         {...blockedProps}
       />
     );
 
     fireEvent.click(screen.getByLabelText('เปิดปฏิทินเลือกวันที่'));
     const dialog = await screen.findByRole('dialog');
+    fireEvent.click(within(dialog).getByLabelText('เลือกเดือน')); // → month view
+    fireEvent.click(within(dialog).getByLabelText('ตุลาคม')); // → October day view
     const blocked = within(dialog).getByLabelText('20 ตุลาคม 2569');
     expect(blocked).toHaveAttribute('aria-disabled', 'true');
     expect(blocked).toHaveAttribute('tabindex', '-1');
@@ -194,7 +199,7 @@ describe('CalendarPickerTH booking window', () => {
     const onChange = vi.fn();
     render(
       <CalendarPickerTH
-        value={`${min}T00:00:00.000Z`}
+        value={null}
         onChange={onChange}
         minDate={min}
         maxDate={max}
@@ -229,8 +234,10 @@ describe('CalendarPickerTH booking window', () => {
     const onChange = vi.fn();
     render(
       <CalendarPickerTH
-        value="2026-10-01T00:00:00.000Z"
+        value={null}
         onChange={onChange}
+        minDate="2026-10-01"
+        maxDate="2026-10-31"
         {...blockedProps}
       />
     );
@@ -260,12 +267,10 @@ describe('CalendarPickerTH slim input + Portal popup', () => {
     expect(container.querySelector('.text-emerald-600')).toBeNull();
   });
 
-  it('hides the ✕ until hover/focus, stacked on the calendar icon slot', () => {
+  it('swaps the ✕ into the calendar icon slot once a date is set', () => {
     render(<CalendarPickerTH value={FILLED} onChange={() => {}} />);
-    const clear = screen.getByLabelText('ล้างวันที่');
-    expect(clear.className).toContain('opacity-0');
-    expect(clear.className).toContain('absolute');
-    expect(screen.getByLabelText('เปิดปฏิทินเลือกวันที่')).toBeInTheDocument();
+    expect(screen.getByLabelText('ล้างวันที่')).toBeInTheDocument();
+    expect(screen.queryByLabelText('เปิดปฏิทินเลือกวันที่')).toBeNull();
   });
 
   it('renders no ✕ at all when empty', () => {

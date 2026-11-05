@@ -93,7 +93,7 @@ test.describe('Admin Requests UI Polish', () => {
     expect(tabsClasses.some((c) => /text-text-secondary|text-primary/.test(c))).toBe(true)
   })
 
-  test('date picker has w-9 / w-9 / w-14 width proportions (#3)', async ({ page }) => {
+  test('date picker keeps the day/month narrow and the year wider (#3)', async ({ page }) => {
     const firstname = `Polish-Date-${Date.now()}`
     const requestId = await createRequestFixture(page, firstname)
     await detailUrlFor(page, requestId)
@@ -105,9 +105,19 @@ test.describe('Admin Requests UI Polish', () => {
     const yearInput = page.locator('input[aria-label="ปี พ.ศ."]').first()
 
     await expect(dayInput).toBeVisible({ timeout: 5_000 })
-    await expect(dayInput).toHaveClass(/\bw-9\b/)
-    await expect(monthInput).toHaveClass(/\bw-9\b/)
-    await expect(yearInput).toHaveClass(/\bw-14\b/)
+    // Assert the proportion, not the literal width classes: the field's exact
+    // px values are a styling detail, but the year being wider than day/month
+    // is the layout contract this test exists to guard.
+    const width = async (input: typeof dayInput) =>
+      (await input.boundingBox())?.width ?? 0
+    const [day, month, year] = [
+      await width(dayInput),
+      await width(monthInput),
+      await width(yearInput),
+    ]
+    expect(day).toBeGreaterThan(0)
+    expect(Math.abs(day - month)).toBeLessThan(1)
+    expect(year).toBeGreaterThan(day)
   })
 
   test('AssignModal title strips "(Assign Request)" and has no Active Tasks footnote (#7a, #7b)', async ({ page }) => {

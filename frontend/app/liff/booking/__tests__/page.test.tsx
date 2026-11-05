@@ -35,6 +35,10 @@ async function goBack() {
 
 async function openCalendar(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole('button', { name: 'เลือกจากปฏิทิน' }))
+  // The field swaps its calendar icon for a ✕ once it holds a date, so a day
+  // already picked from the strip has to be cleared before the picker opens.
+  const clear = screen.queryByLabelText('ล้างวันที่')
+  if (clear) await user.click(clear)
   await user.click(screen.getByLabelText('เปิดปฏิทินเลือกวันที่'))
 }
 

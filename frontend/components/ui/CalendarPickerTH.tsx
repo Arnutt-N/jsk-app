@@ -340,9 +340,9 @@ export default function CalendarPickerTH({
             disabled
               ? "opacity-40 cursor-not-allowed text-text-primary"
               : sel
-                ? "bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md"
+                ? "bg-gradient-to-br from-brand-500 to-brand-600 text-white shadow-md"
                 : tod
-                  ? "bg-blue-50 text-blue-600 font-semibold ring-2 ring-blue-200"
+                  ? "bg-brand-50 text-brand-600 font-semibold ring-2 ring-brand-200"
                   : "text-text-primary hover:bg-bg dark:text-slate-200 dark:hover:bg-slate-800",
           )}
         >
@@ -373,10 +373,10 @@ export default function CalendarPickerTH({
       )}
 
       <div className={cn(
-        "group relative flex items-center pl-1 pr-3 py-1 rounded-xl border-2 bg-surface transition-all duration-200",
+        "relative flex h-9 items-center gap-0.5 pl-1 pr-1.5 rounded-xl border-2 bg-surface transition-all duration-200",
         error || localError
-          ? "border-red-300 focus-within:border-red-500"
-          : "border-border-default hover:border-text-tertiary focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100"
+          ? "border-danger/50 focus-within:border-danger"
+          : "border-border-default hover:border-text-tertiary focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-100"
       )}>
         {/* Day Input */}
         <input
@@ -389,10 +389,10 @@ export default function CalendarPickerTH({
           onBlur={handleBlur}
           onFocus={() => setIsEditing(true)}
           aria-label={ariaLabel || "วันที่"}
-          className="w-9 px-1 py-1.5 text-center text-sm font-medium bg-transparent text-text-primary focus:outline-none placeholder:text-gray-300"
+          className="w-8 px-1 text-center text-sm font-medium bg-transparent text-text-primary focus:outline-none placeholder:text-text-tertiary"
         />
 
-        <span className="text-gray-300 font-light">/</span>
+        <span className="text-text-tertiary font-light">/</span>
 
         {/* Month Input */}
         <input
@@ -405,10 +405,10 @@ export default function CalendarPickerTH({
           onBlur={handleBlur}
           onFocus={() => setIsEditing(true)}
           aria-label="เดือน"
-          className="w-9 px-1 py-1.5 text-center text-sm font-medium bg-transparent text-text-primary focus:outline-none placeholder:text-gray-300"
+          className="w-8 px-1 text-center text-sm font-medium bg-transparent text-text-primary focus:outline-none placeholder:text-text-tertiary"
         />
 
-        <span className="text-gray-300 font-light">/</span>
+        <span className="text-text-tertiary font-light">/</span>
 
         {/* Year Input */}
         <input
@@ -421,29 +421,15 @@ export default function CalendarPickerTH({
           onBlur={handleBlur}
           onFocus={() => setIsEditing(true)}
           aria-label="ปี พ.ศ."
-          className="w-14 px-1 py-1.5 text-center text-sm font-medium bg-transparent text-text-primary focus:outline-none placeholder:text-gray-300"
+          className="w-14 px-1 text-center text-sm font-medium bg-transparent text-text-primary focus:outline-none placeholder:text-text-tertiary"
         />
 
-        <div className="relative ml-auto flex shrink-0 items-center gap-1">
-          <PopoverTrigger asChild>
-            <button
-              type="button"
-              aria-haspopup="dialog"
-              aria-expanded={isOpen}
-              aria-label="เปิดปฏิทินเลือกวันที่"
-              title="เปิดปฏิทิน (หรือพิมพ์วันที่ในช่องด้านซ้าย)"
-              className={cn(
-                "p-1.5 rounded-lg transition-all duration-200 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400",
-                isOpen
-                  ? "bg-blue-500 text-white"
-                  : "text-text-tertiary hover:bg-bg hover:text-text-primary"
-              )}
-            >
-              <Calendar size={18} />
-            </button>
-          </PopoverTrigger>
-
-          {hasValue && (
+        {/* One slot, two occupants: the calendar trigger while empty, the clear
+            button once a date exists. Rendering them side by side costs width
+            the filter row does not have, and overlaying the clear button across
+            the whole field made the calendar unreachable on hover. */}
+        <div className="relative ml-auto flex h-7 w-7 shrink-0 items-center justify-center">
+          {hasValue ? (
             <button
               type="button"
               onClick={() => {
@@ -455,10 +441,29 @@ export default function CalendarPickerTH({
                 if (yearRef.current) yearRef.current.value = "";
               }}
               aria-label="ล้างวันที่"
-              className="absolute inset-0 flex shrink-0 items-center justify-center rounded-lg bg-surface text-text-tertiary opacity-0 pointer-events-none transition-opacity hover:text-text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto focus-visible:opacity-100 focus-visible:pointer-events-auto [@media(hover:none)]:static [@media(hover:none)]:h-8 [@media(hover:none)]:w-8 [@media(hover:none)]:opacity-100 [@media(hover:none)]:pointer-events-auto [@media(pointer:coarse)]:static [@media(pointer:coarse)]:h-8 [@media(pointer:coarse)]:w-8 [@media(pointer:coarse)]:opacity-100 [@media(pointer:coarse)]:pointer-events-auto"
+              title="ล้างวันที่"
+              className="flex h-6 w-6 items-center justify-center rounded-full bg-danger/10 text-danger-text transition-colors hover:bg-danger hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-danger/40"
             >
-              <X size={16} />
+              <X size={13} strokeWidth={3} />
             </button>
+          ) : (
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                aria-haspopup="dialog"
+                aria-expanded={isOpen}
+                aria-label="เปิดปฏิทินเลือกวันที่"
+                title="เปิดปฏิทิน (หรือพิมพ์วันที่ในช่องด้านซ้าย)"
+                className={cn(
+                  "flex h-7 w-7 items-center justify-center rounded-lg transition-all duration-200 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400",
+                  isOpen
+                    ? "bg-brand-500 text-white"
+                    : "text-text-tertiary hover:bg-bg hover:text-text-primary"
+                )}
+              >
+                <Calendar size={18} />
+              </button>
+            </PopoverTrigger>
           )}
         </div>
       </div>
@@ -504,7 +509,7 @@ export default function CalendarPickerTH({
                   <span className="font-semibold text-text-primary">
                     {THAI_MONTHS_LONG[viewMonth.getMonth()]}
                   </span>
-                  <span className="ml-2 text-blue-600 font-bold">
+                  <span className="ml-2 text-brand-600 font-bold">
                     {toBE(viewMonth.getFullYear())}
                   </span>
                 </button>
@@ -516,7 +521,7 @@ export default function CalendarPickerTH({
                   aria-label="เลือกปี"
                   className="flex-1 mx-1 px-3 py-2 rounded-lg hover:bg-bg transition-colors text-center"
                 >
-                  <span className="text-blue-600 font-bold">
+                  <span className="text-brand-600 font-bold">
                     {toBE(viewMonth.getFullYear())}
                   </span>
                 </button>
@@ -596,9 +601,9 @@ export default function CalendarPickerTH({
                       className={cn(
                         "h-12 rounded-xl text-sm font-medium transition-all duration-150",
                         isSelected
-                          ? "bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md"
+                          ? "bg-gradient-to-br from-brand-500 to-brand-600 text-white shadow-md"
                           : isCurrent
-                            ? "bg-blue-50 text-blue-600 font-semibold ring-2 ring-blue-200"
+                            ? "bg-brand-50 text-brand-600 font-semibold ring-2 ring-brand-200"
                             : "text-text-primary hover:bg-bg"
                       )}
                     >
@@ -628,9 +633,9 @@ export default function CalendarPickerTH({
                       className={cn(
                         "h-12 rounded-xl text-sm font-medium transition-all duration-150",
                         isSelected
-                          ? "bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md"
+                          ? "bg-gradient-to-br from-brand-500 to-brand-600 text-white shadow-md"
                           : isCurrent
-                            ? "bg-blue-50 text-blue-600 font-semibold ring-2 ring-blue-200"
+                            ? "bg-brand-50 text-brand-600 font-semibold ring-2 ring-brand-200"
                             : "text-text-primary hover:bg-bg"
                       )}
                     >
@@ -664,7 +669,7 @@ export default function CalendarPickerTH({
                   setIsOpen(false);
                   setCalendarView("date");
                 }}
-                className="px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                className="px-4 py-2 text-sm font-medium text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"
               >
                 วันนี้ ({formatDisplayDate(new Date().toISOString())})
               </button>
