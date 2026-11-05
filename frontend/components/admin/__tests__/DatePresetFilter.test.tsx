@@ -94,6 +94,21 @@ describe('DatePresetFilter', () => {
     expect(screen.queryByRole('button', { name: 'กำหนดเอง' })).not.toBeInTheDocument();
   });
 
+  it('labels the custom date range and reads as a Thai range', () => {
+    render(<Harness />);
+    expect(screen.getByText('กำหนดเอง').tagName).toBe('SPAN');
+    expect(screen.getByText('ถึง')).toBeInTheDocument();
+    expect(screen.queryByText('-')).not.toBeInTheDocument();
+  });
+
+  it('matches the preset and clear buttons to the date box radius', () => {
+    render(<Harness showClear />);
+    for (const name of ['7 วัน', '30 วัน', '90 วัน', 'ปีนี้', 'ล้างตัวกรอง']) {
+      expect(screen.getByRole('button', { name })).toHaveClass('rounded-xl');
+    }
+    expect(screen.getByRole('button', { name: '7 วัน' })).not.toHaveClass('rounded-lg');
+  });
+
   it('reports the picked preset inline', async () => {
     const user = userEvent.setup();
     const onPresetChange = vi.fn();
