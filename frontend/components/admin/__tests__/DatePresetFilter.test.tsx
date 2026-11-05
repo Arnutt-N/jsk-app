@@ -18,8 +18,8 @@ if (typeof (window as unknown as Record<string, unknown>).ResizeObserver === 'un
   (window as unknown as Record<string, unknown>).ResizeObserver = ResizeObserverStub;
 }
 
-// The custom-range cases must not depend on the Radix calendar internals; a
-// native date input covers the same onChange contract.
+// The box cases must not depend on the Radix calendar internals; a native date
+// input covers the same onChange contract.
 vi.mock('@/components/ui/CalendarPickerTH', () => ({
   default: function MockCalendarPicker({
     value,
@@ -45,6 +45,31 @@ vi.mock('@/components/ui/CalendarPickerTH', () => ({
           }
         }}
       />
+    );
+  },
+}));
+
+// Likewise for the range calendar: the stub exposes its two callbacks so the
+// integration test stays independent of DayPicker's internals.
+vi.mock('@/components/admin/DateRangeCalendarTH', () => ({
+  default: function MockRangeCalendar({
+    onSelect,
+    onCancel,
+  }: {
+    start: string;
+    end: string;
+    onSelect: (start: string, end: string) => void;
+    onCancel: () => void;
+  }) {
+    return (
+      <div>
+        <button type="button" onClick={() => onSelect('2026-09-03', '2026-09-10')}>
+          เลือกช่วงทดสอบ
+        </button>
+        <button type="button" onClick={onCancel}>
+          ยกเลิกปฏิทิน
+        </button>
+      </div>
     );
   },
 }));
@@ -86,125 +111,79 @@ function Harness({
 }
 
 describe('DatePresetFilter', () => {
-  it('rests as one trigger naming the unfiltered range, with no preset rows', () => {
+  it('shows all five preset labels without opening anything', () => {
     render(<Harness />);
-    expect(screen.getByRole('button', { name: 'ตัวกรองช่วงวันที่' })).toHaveTextContent(
-      'ทุกช่วงเวลา',
-    );
-    expect(screen.queryByRole('button', { name: '30 วัน' })).not.toBeInTheDocument();
-  });
-
-  it('reveals the five preset buttons when the trigger is clicked', async () => {
-    const user = userEvent.setup();
-    render(<Harness />);
-    const trigger = screen.getByRole('button', { name: 'ตัวกรองช่วงวันที่' });
-    expect(trigger).toHaveAttribute('aria-expanded', 'false');
-
-    await user.click(trigger);
-
-    expect(trigger).toHaveAttribute('aria-expanded', 'true');
-    expect(trigger).toHaveAttribute('aria-haspopup', 'dialog');
     for (const label of ['7 วัน', '30 วัน', '90 วัน', 'ปีนี้', 'กำหนดเอง']) {
       expect(screen.getByRole('button', { name: label })).toBeInTheDocument();
     }
   });
 
-  it('reports the picked preset and closes the panel', async () => {
+  it('reports the picked preset inline', async () => {
     const user = userEvent.setup();
     const onPresetChange = vi.fn();
     render(<Harness onPresetChange={onPresetChange} />);
-    await user.click(screen.getByRole('button', { name: 'ตัวกรองช่วงวันที่' }));
+
     await user.click(screen.getByRole('button', { name: '30 วัน' }));
 
     expect(onPresetChange).toHaveBeenCalledWith('30d');
-    expect(screen.queryByRole('button', { name: '90 วัน' })).not.toBeInTheDocument();
   });
 
-  it('follows the preset prop in the trigger text', () => {
-    render(<Harness initialPreset="30d" />);
-    expect(screen.getByRole('button', { name: 'ตัวกรองช่วงวันที่' })).toHaveTextContent(
-      '30 วัน',
-    );
-  });
-
-  it('names both Thai dates for a usable custom range', () => {
+  it('renders both typed box values', () => {
     render(<Harness initialPreset="custom" initialStart="2026-09-01" initialEnd="2026-09-30" />);
-    const trigger = screen.getByRole('button', { name: 'ตัวกรองช่วงวันที่' });
-    expect(trigger).toHaveTextContent('ก.ย. 2569');
-    expect(trigger.textContent).toContain('–');
+    expect(screen.getByLabelText('จากวันที่')).toHaveValue('2026-09-01');
+    expect(screen.getByLabelText('ถึงวันที่')).toHaveValue('2026-09-30');
   });
 
-  it('marks an unusable custom range on the trigger without growing its text', async () => {
+  it('opens the range calendar from the calendar button', async () => {
     const user = userEvent.setup();
-    render(<Harness initialPreset="custom" initialStart="2026-09-05" initialEnd="2026-09-01" />);
-    const trigger = screen.getByRole('button', { name: 'ตัวกรองช่วงวันที่' });
-    expect(trigger).toHaveTextContent('กำหนดเอง');
-    expect(trigger).not.toHaveTextContent(CUSTOM_RANGE_MESSAGES.reversed);
-    expect(screen.getByLabelText(CUSTOM_RANGE_MESSAGES.reversed)).toBeInTheDocument();
+    render(<Harness />);
+
+    const trigger = screen.getByRole('button', { name: 'เปิดปฏิทินช่วงวันที่' });
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
 
     await user.click(trigger);
+
+    expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('button', { name: 'เลือกช่วงทดสอบ' })).toBeInTheDocument();
+  });
+
+  it('applies a calendar pick to both boxes and records the custom preset', async () => {
+    const user = userEvent.setup();
+    const onPresetChange = vi.fn();
+    render(<Harness onPresetChange={onPresetChange} />);
+
+    await user.click(screen.getByRole('button', { name: 'เปิดปฏิทินช่วงวันที่' }));
+    await user.click(screen.getByRole('button', { name: 'เลือกช่วงทดสอบ' }));
+
+    expect(screen.getByLabelText('จากวันที่')).toHaveValue('2026-09-03');
+    expect(screen.getByLabelText('ถึงวันที่')).toHaveValue('2026-09-10');
+    expect(onPresetChange).toHaveBeenCalledWith('custom');
+    expect(screen.queryByRole('button', { name: 'เลือกช่วงทดสอบ' })).not.toBeInTheDocument();
+  });
+
+  it('closes the range calendar on cancel', async () => {
+    const user = userEvent.setup();
+    render(<Harness />);
+
+    await user.click(screen.getByRole('button', { name: 'เปิดปฏิทินช่วงวันที่' }));
+    await user.click(screen.getByRole('button', { name: 'ยกเลิกปฏิทิน' }));
+
+    expect(screen.queryByRole('button', { name: 'เลือกช่วงทดสอบ' })).not.toBeInTheDocument();
+  });
+
+  it('reports a reversed custom range below the row', () => {
+    render(<Harness initialPreset="custom" initialStart="2026-09-05" initialEnd="2026-09-01" />);
     expect(screen.getByRole('alert')).toHaveTextContent(CUSTOM_RANGE_MESSAGES.reversed);
   });
 
-  it('asks for the missing end date inside the panel when only one is picked', async () => {
-    const user = userEvent.setup();
+  it('reports a half-typed custom range', () => {
     render(<Harness initialPreset="custom" initialStart="2026-09-01" />);
-    await user.click(screen.getByRole('button', { name: 'ตัวกรองช่วงวันที่' }));
     expect(screen.getByRole('alert')).toHaveTextContent(CUSTOM_RANGE_MESSAGES.incomplete);
   });
 
-  it('closes once the second custom date completes a usable range', async () => {
-    const user = userEvent.setup();
-    render(<Harness initialPreset="custom" initialStart="2026-09-01" />);
-    await user.click(screen.getByRole('button', { name: 'ตัวกรองช่วงวันที่' }));
-
-    await user.type(screen.getByLabelText('ถึงวันที่'), '2026-09-30');
-
+  it('stays silent on an empty pair', () => {
+    render(<Harness />);
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('ถึงวันที่')).not.toBeInTheDocument();
-  });
-
-  it('stays open when the second custom date keeps the range unusable', async () => {
-    const user = userEvent.setup();
-    render(<Harness initialPreset="custom" initialStart="2026-09-30" />);
-    await user.click(screen.getByRole('button', { name: 'ตัวกรองช่วงวันที่' }));
-
-    await user.type(screen.getByLabelText('ถึงวันที่'), '2026-09-01');
-
-    expect(screen.getByRole('alert')).toHaveTextContent(CUSTOM_RANGE_MESSAGES.reversed);
-  });
-
-  it('closes when the page changes the preset from outside while open', async () => {
-    const user = userEvent.setup();
-    const { rerender } = render(
-      <DatePresetFilter
-        preset="custom"
-        customStart="2026-09-01"
-        customEnd=""
-        onPresetChange={() => {}}
-        onCustomStartChange={() => {}}
-        onCustomEndChange={() => {}}
-        showClear={false}
-        onClear={() => {}}
-      />,
-    );
-    await user.click(screen.getByRole('button', { name: 'ตัวกรองช่วงวันที่' }));
-    expect(screen.getByLabelText('จากวันที่')).toBeInTheDocument();
-
-    rerender(
-      <DatePresetFilter
-        preset="30d"
-        customStart="2026-09-01"
-        customEnd=""
-        onPresetChange={() => {}}
-        onCustomStartChange={() => {}}
-        onCustomEndChange={() => {}}
-        showClear={false}
-        onClear={() => {}}
-      />,
-    );
-
-    expect(screen.queryByLabelText('จากวันที่')).not.toBeInTheDocument();
   });
 
   it('renders the clear button only on request and reports a clear', async () => {

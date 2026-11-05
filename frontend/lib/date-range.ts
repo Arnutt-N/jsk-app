@@ -1,5 +1,4 @@
 import { format, subDays } from "date-fns";
-import { formatThaiDate } from "@/lib/format-date";
 
 /** Shared Bangkok-calendar date helpers for admin list/report filters. */
 export const DEFAULT_RANGE_DAYS = 30;
@@ -102,27 +101,6 @@ export function resolveDateRangeWithFallback(
     resolveDateRange(preset, customStart, customEnd, presets) ??
     presetOptionToDates(presets.find((p) => p.key === fallbackKey) ?? { key: fallbackKey, label: '', days: DEFAULT_RANGE_DAYS })
   );
-}
-
-/** The text a date filter's trigger shows. It names the range that is actually
- *  applied, so an unusable custom range reads as its preset label rather than
- *  as the problem: the problem goes in the panel, where there is room for a
- *  sentence and where the pickers that caused it are visible. */
-export function describeDateFilter(
-  preset: string | null,
-  customStart: string,
-  customEnd: string,
-  presets: DatePresetOption[] = STANDARD_DATE_PRESETS,
-): string {
-  const customLabel = presets.find((p) => p.key === 'custom')?.label ?? 'กำหนดเอง';
-  if (preset === 'custom') {
-    const usable = !customRangeProblem(customStart, customEnd) && customStart && customEnd;
-    return usable
-      ? `${formatThaiDate(customStart, { dayFormat: 'numeric' })} – ${formatThaiDate(customEnd, { dayFormat: 'numeric' })}`
-      : customLabel;
-  }
-  if (preset === null) return 'ทุกช่วงเวลา';
-  return presets.find((p) => p.key === preset)?.label ?? 'ทุกช่วงเวลา';
 }
 
 export function toYMD(d: Date): string {

@@ -2,14 +2,12 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
-import dynamic from 'next/dynamic';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { formatThaiDate } from '@/lib/format-date';
-import { isoToYMD } from '@/lib/utils';
 import {
     Search,
     Eye,
@@ -36,7 +34,7 @@ import { AssignModal } from '@/components/admin/AssignModal';
 import { ActionIconButton } from '@/components/ui/ActionIconButton';
 import PageHeader from '@/app/admin/components/PageHeader';
 import { StaggerContainer, StaggerItem } from '@/components/ui/PageTransition';
-import { DatePresetButtons } from '@/components/admin/DatePresetFilter';
+import { DatePresetFilter } from '@/components/admin/DatePresetFilter';
 import { STANDARD_DATE_PRESETS, presetOptionToDates } from '@/lib/date-range';
 import {
     type RequestStatus,
@@ -49,8 +47,6 @@ import { ViewerHide } from '@/components/admin/ViewerHide';
 import { usePermissions } from '@/lib/permissions';
 import { useToast } from '@/components/ui/Toast';
 import { apiFetch } from '@/lib/api-error';
-
-const CalendarPickerTH = dynamic(() => import('@/components/ui/CalendarPickerTH'), { ssr: false });
 
 // Bridge between shared module (icons stored as string names) and the
 // lucide-react components actually rendered. Centralised so swapping an
@@ -107,13 +103,12 @@ export default function AdminRequestList() {
     const [filter, setFilter] = useState({
         status: '',
         category: '',
-        startDate: '',
-        endDate: '',
     });
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
-    const [dateRangeError, setDateRangeError] = useState<string | null>(null);
     const [datePreset, setDatePreset] = useState<string | null>(null);
+    const [customStart, setCustomStart] = useState('');
+    const [customEnd, setCustomEnd] = useState('');
 
     const fetchRequests = useCallback(async () => {
         abortRef.current?.abort();
@@ -121,12 +116,12 @@ export default function AdminRequestList() {
         abortRef.current = controller;
         seqRef.current += 1;
         const seq = seqRef.current;
-        if (filter.startDate && filter.endDate && filter.startDate > filter.endDate) {
-            setDateRangeError('วันที่เริ่มต้นต้องไม่มากกว่าวันที่สิ้นสุด');
+        // A reversed pair has no backend meaning; skip the fetch rather than
+        // widen the result. DatePresetFilter already tells the user why.
+        if (customStart && customEnd && customStart > customEnd) {
             setLoading(false);
             return;
         }
-        setDateRangeError(null);
         setLoading(true);
         setFetchError(null);
         try {
@@ -139,8 +134,8 @@ export default function AdminRequestList() {
             }
             if (filter.category) query.append('category', filter.category);
             if (debouncedSearch) query.append('search', debouncedSearch);
-            if (filter.startDate) query.append('start_date', filter.startDate);
-            if (filter.endDate) query.append('end_date', filter.endDate);
+            if (customStart) query.append('start_date', customStart);
+            if (customEnd) query.append('end_date', customEnd);
             query.append('skip', String(page * PAGE_LIMIT));
             query.append('limit', String(PAGE_LIMIT));
 
@@ -162,7 +157,7 @@ export default function AdminRequestList() {
             // A superseded request must not clear the loading state of the one that replaced it.
             if (seq === seqRef.current) setLoading(false);
         }
-    }, [debouncedSearch, filter.category, filter.status, filter.startDate, filter.endDate, page]);
+    }, [debouncedSearch, filter.category, filter.status, customStart, customEnd, page]);
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -172,7 +167,7 @@ export default function AdminRequestList() {
     }, [search]);
 
     // Reset to the first page on a filter change during render instead of in an effect.
-    const filterKey = `${filter.status}|${filter.category}|${debouncedSearch}|${filter.startDate}|${filter.endDate}`;
+    const filterKey = `${filter.status}|${filter.category}|${debouncedSearch}|${customStart}|${customEnd}`;
     const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
     if (prevFilterKey !== filterKey) {
         setPrevFilterKey(filterKey);
@@ -320,73 +315,43 @@ export default function AdminRequestList() {
                             </div>
 
                             {/* Date Range Filter Row */}
-                            <div className="mt-4 pt-4 border-t border-border-default flex flex-wrap items-center gap-4">
-                                <DatePresetButtons
+                            <div className="mt-4 pt-4 border-t border-border-default">
+                                <DatePresetFilter
                                     preset={datePreset}
+                                    customStart={customStart}
+                                    customEnd={customEnd}
                                     onPresetChange={(key) => {
                                         setDatePreset(key);
-                                        setDateRangeError(null);
                                         if (key === 'custom') {
-                                            setFilter(prev => ({ ...prev, startDate: '', endDate: '' }));
+                                            setCustomStart('');
+                                            setCustomEnd('');
                                         } else {
                                             const opt = STANDARD_DATE_PRESETS.find((p) => p.key === key);
                                             if (opt) {
                                                 const { start, end } = presetOptionToDates(opt);
-                                                setFilter(prev => ({ ...prev, startDate: start, endDate: end }));
+                                                setCustomStart(start);
+                                                setCustomEnd(end);
                                             }
                                         }
                                     }}
+                                    onCustomStartChange={(value) => {
+                                        setDatePreset(null);
+                                        setCustomStart(value);
+                                    }}
+                                    onCustomEndChange={(value) => {
+                                        setDatePreset(null);
+                                        setCustomEnd(value);
+                                    }}
+                                    showClear={datePreset !== null || customStart !== '' || customEnd !== '' || filter.status !== '' || filter.category !== '' || search !== ''}
+                                    onClear={() => {
+                                        setDatePreset(null);
+                                        setCustomStart('');
+                                        setCustomEnd('');
+                                        setFilter({ status: '', category: '' });
+                                        setSearch('');
+                                    }}
                                 />
-                                <div className="flex w-full items-center gap-2 sm:w-auto">
-                                    <span className="text-xs font-medium text-text-secondary whitespace-nowrap">จากวันที่:</span>
-                                    <div className="w-full sm:w-auto">
-                                        <CalendarPickerTH
-                                            ariaLabel="จากวันที่"
-                                            value={filter.startDate ? new Date(`${filter.startDate}T00:00:00`).toISOString() : null}
-                                            onChange={(iso) => {
-                                                setDateRangeError(null);
-                                                setDatePreset(null);
-                                                setFilter(prev => ({ ...prev, startDate: iso ? isoToYMD(iso) : '' }));
-                                            }}
-                                        />
-                                    </div>
-                                </div>
-                                <div className="flex w-full items-center gap-2 sm:w-auto">
-                                    <span className="text-xs font-medium text-text-secondary whitespace-nowrap">ถึงวันที่:</span>
-                                    <div className="w-full sm:w-auto">
-                                        <CalendarPickerTH
-                                            ariaLabel="ถึงวันที่"
-                                            value={filter.endDate ? new Date(`${filter.endDate}T00:00:00`).toISOString() : null}
-                                            onChange={(iso) => {
-                                                setDateRangeError(null);
-                                                setDatePreset(null);
-                                                setFilter(prev => ({ ...prev, endDate: iso ? isoToYMD(iso) : '' }));
-                                            }}
-                                        />
-                                    </div>
-                                </div>
-                                {(filter.startDate || filter.endDate) && (
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => {
-                                            setDateRangeError(null);
-                                            setDatePreset(null);
-                                            setFilter(prev => ({ ...prev, startDate: '', endDate: '' }));
-                                        }}
-                                        className="text-xs text-text-tertiary hover:text-text-primary"
-                                    >
-                                        ล้างวันที่
-                                    </Button>
-                                )}
                             </div>
-
-                            {dateRangeError && (
-                                <div className="mt-3 flex items-center gap-2 text-xs text-danger-text bg-danger/10 p-2.5 rounded-lg">
-                                    <AlertCircle size={14} className="shrink-0" />
-                                    <span>{dateRangeError}</span>
-                                </div>
-                            )}
                         </CardContent>
                     </Card>
                 </StaggerItem>
