@@ -1,0 +1,19 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-11-05T19:59:00+07:00",
+  "branch": "main",
+  "head_commit": "f6a0d2c",
+  "status": "completed",
+  "work_summary": "Merged 6 PRs unifying the admin date-filter UI across all six pages. #313 (c502d09) deleted the dead Gregorian DateRangePicker+Calendar family (261 lines) and added customRangeProblem/CUSTOM_RANGE_MESSAGES so a reversed custom range shows a Thai error instead of silently becoming 'no filter' or a 30-day window. #314 (8fc01e5) folded the filter into one text trigger with a popover panel (700px row -> 200px). #315 (8367259) switched all six pages to Requests' inline layout and added a two-month BE range calendar on react-day-picker/buddhist. #316 (99d8768) dropped that calendar and the custom-preset button after the operator noted each typed box already opens its own calendar; all five designs archived to docs/ui-patterns/date-filter/ with a README (includes probe results: react-aria-components BuddhistCalendar works but its API is not HeroUI's). #317 (bc584de) matched the date field height to the buttons (h-9), swapped the clear button to a circular red X that takes the calendar icon's slot when a value exists (was a hover overlay that blocked the calendar), moved 9 raw blue/indigo/gray tokens to brand-*, and fixed a real LIFF bug: DateSection dropped onChange(null) so the X did nothing in booking. #318 (f6a0d2c) aligned the time input (h-10 -> h-9) to match. Final state: one DatePresetFilter on all six pages, DatePresetButtons deleted, main = f6a0d2c with CI/E2E/Encoding/CD all green, no open PRs, working tree clean.",
+  "priority_actions": [
+    "Verify the date filter renders correctly on all six admin pages in the Vercel preview (JSK app deployment f6a0d2c), especially the X-to-calendar swap on filled fields and the wrap behaviour below 1024px.",
+    "If further polish is wanted, rich-menus new/edit pages still use raw slate/primary tokens in timeInputClassName overrides instead of the shared tokens."
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/claude_code/session-summary-20261105-1959.md",
+  "cross_platform_read": [],
+  "model": "Claude Fable 5",
+  "provider": "Anthropic"
+}

@@ -1,15 +1,20 @@
 {
-  "last_updated": "2026-11-04T14:01:00+07:00",
+  "last_updated": "2026-11-05T19:59:00+07:00",
   "platform": "claude_code",
-  "current_task": "Merged one more PR after the previous handoff: #312 (fix/live-chat-search-race, merged as 0c1919f) closed a race that #311 had introduced in the live-chat message search. #311 tagged each result set w",
+  "current_task": "Merged 6 PRs unifying the admin date-filter UI across all six pages. #313 (c502d09) deleted the dead Gregorian DateRangePicker+Calendar family (261 lines) and added customRangeProblem/CUSTOM_RANGE_MES",
   "plan_status": "completed",
   "next_steps": [
-    "Two findings remain recorded but deliberately unfixed, both in .audit/ with evidence. (1) lib/booking/store.ts:217 calls dispatch during render, which reaches saveDraft -> sessionStorage.setItem; it is a genuine impurity but no test could be built to discriminate it (two attempts both passed on the old code because preselected === service disarms the write after the first commit), and moving the write into an effect regressed app/admin/bookings/__tests__/calendar.test.tsx from 4.5s to a 20s+ timeout across three consecutive runs, because main commits draft.date synchronously during render and the calendar depends on that. Revisit only if a real discarded render appears on the booking page. (2) Removing the cancelled flag from app/admin/requests/[id]/page.tsx means the three fetchers can setState after unmount; React 19 does not warn and nothing renders, so no user-visible effect, but expect it to be raised in review.",
-    "The audit probes now live in frontend/.audit-probes/ and run with: node frontend/node_modules/vitest/vitest.mjs run --root frontend .audit-probes. They must stay inside the frontend root because three of the five import @/lib/... and cannot resolve from the repo root; that mistake made them unrunnable for one round. The default suite does not collect them (verified 0).",
-    "If touching ConversationList search again, the ordering constraint is load-bearing: the latest-query ref must be assigned on every effect run including the empty-query early return, otherwise clearing the field leaves a stale value in it.",
-    "Test-timing trap, unchanged: app/admin/bookings/__tests__/{walkin,calendar}.test.tsx run 2-22s here against a 20s testTimeout and fail spuriously under concurrent tsc or full-project eslint; on CI the same files run 0.85-1.2s. Always re-run in isolation before calling a failure a regression."
+    "Verify the date filter renders correctly on all six admin pages in the Vercel preview (JSK app deployment f6a0d2c), especially the X-to-calendar swap on filled fields and the wrap behaviour below 1024px.",
+    "If further polish is wanted, rich-menus new/edit pages still use raw slate/primary tokens in timeInputClassName overrides instead of the shared tokens."
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-11-05T19:59:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "f6a0d2c",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-11-04T14:01:00+07:00",
       "platform": "claude_code",
@@ -141,13 +146,6 @@
       "platform": "pi",
       "branch": "main",
       "head": "f84c367",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-10-21T18:42:00+07:00",
-      "platform": "pi",
-      "branch": "main",
-      "head": "7883eae",
       "status": "completed"
     }
   ],

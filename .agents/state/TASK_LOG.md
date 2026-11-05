@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 323 active handoffs, 12 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 324 active handoffs, 12 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-11-05 19:59 — claude_code (Claude Fable 5 / Anthropic) — completed
+
+Merged 6 PRs unifying the admin date-filter UI across all six pages. #313 (c502d09) deleted the dead Gregorian DateRangePicker+Calendar family (261 lines) and added customRangeProblem/CUSTOM_RANGE_MESSAGES so a reversed custom range shows a Thai error instead of silently becoming 'no filter' or a 30-day window. #314 (8fc01e5) folded the filter into one text trigger with a popover panel (700px row -> 200px). #315 (8367259) switched all six pages to Requests' inline layout and added a two-month BE range calendar on react-day-picker/buddhist. #316 (99d8768) dropped that calendar and the custom-preset button after the operator noted each typed box already opens its own calendar; all five designs archived to docs/ui-patterns/date-filter/ with a README (includes probe results: react-aria-components BuddhistCalendar works but its API is not HeroUI's). #317 (bc584de) matched the date field height to the buttons (h-9), swapped the clear button to a circular red X that takes the calendar icon's slot when a value exists (was a hover overlay that blocked the calendar), moved 9 raw blue/indigo/gray tokens to brand-*, and fixed a real LIFF bug: DateSection dropped onChange(null) so the X did nothing in booking. #318 (f6a0d2c) aligned the time input (h-10 -> h-9) to match. Final state: one DatePresetFilter on all six pages, DatePresetButtons deleted, main = f6a0d2c with CI/E2E/Encoding/CD all green, no open PRs, working tree clean.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20261105-1959.json`
+- Summary: `project-log-md/claude_code/session-summary-20261105-1959.md`
+
+---
 
 ### 2026-11-04 14:01 — claude_code (Claude Fable 5 / Anthropic) — completed
 
