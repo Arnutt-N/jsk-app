@@ -28,30 +28,6 @@ interface DatePresetFilterProps {
   presets?: DatePresetOption[];
 }
 
-/** Preset-button row only. Scheduled for deletion once the last caller moves
- *  to {@link DatePresetFilter}. */
-export function DatePresetButtons({
-  preset,
-  onPresetChange,
-  presets = STANDARD_DATE_PRESETS,
-}: Pick<DatePresetFilterProps, 'preset' | 'onPresetChange' | 'presets'>) {
-  return (
-    <div className="flex items-center gap-2 flex-wrap">
-      {presets.map((opt) => (
-        <Button
-          key={opt.key}
-          variant={preset === opt.key ? 'primary' : 'outline'}
-          size="sm"
-          onClick={() => onPresetChange(opt.key)}
-          className="text-xs"
-        >
-          {opt.label}
-        </Button>
-      ))}
-    </div>
-  );
-}
-
 /** Shared admin date filter: preset buttons, two typed Thai date boxes, a
  *  range-calendar popover, and a clear button, all in one row. */
 export function DatePresetFilter({

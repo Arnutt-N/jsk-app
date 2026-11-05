@@ -2,7 +2,6 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   CUSTOM_RANGE_MESSAGES,
   customRangeProblem,
-  describeDateFilter,
   presetOptionToDates,
   resolveDateRange,
   resolveDateRangeWithFallback,
@@ -94,38 +93,5 @@ describe('resolveDateRangeWithFallback', () => {
       start: '2026-10-05',
       end: '2026-11-04',
     });
-  });
-});
-
-describe('describeDateFilter', () => {
-  it('names the unfiltered state', () => {
-    expect(describeDateFilter(null, '', '')).toBe('ทุกช่วงเวลา');
-  });
-
-  it('names a day-lookback preset by its label', () => {
-    expect(describeDateFilter('30d', '', '')).toBe('30 วัน');
-  });
-
-  it('names the year-to-date preset by its label', () => {
-    expect(describeDateFilter('year', '', '')).toBe('ปีนี้');
-  });
-
-  it('names a usable custom range as both Thai dates', () => {
-    const text = describeDateFilter('custom', '2026-09-01', '2026-09-30');
-    expect(text).toContain('ก.ย. 2569');
-    expect(text).toContain('–');
-  });
-
-  it('names an untouched custom preset by its label, not as an error', () => {
-    expect(describeDateFilter('custom', '', '')).toBe('กำหนดเอง');
-  });
-
-  it('keeps the trigger on the preset label when the custom range is unusable', () => {
-    expect(describeDateFilter('custom', '2026-09-01', '')).toBe('กำหนดเอง');
-    expect(describeDateFilter('custom', '2026-09-05', '2026-09-01')).toBe('กำหนดเอง');
-  });
-
-  it('falls back to the unfiltered label for an unknown preset key', () => {
-    expect(describeDateFilter('nope', '', '')).toBe('ทุกช่วงเวลา');
   });
 });

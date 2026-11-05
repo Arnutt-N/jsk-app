@@ -107,13 +107,13 @@ describe('AdminRequestList date filtering', () => {
     expect(await screen.findByText('วันที่เริ่มต้นต้องไม่มากกว่าวันที่สิ้นสุด')).toBeInTheDocument();
   });
 
-  it('clears date inputs and refetches when "ล้างวันที่" is clicked', async () => {
+  it('clears date inputs and refetches from the shared clear button', async () => {
     const user = userEvent.setup();
     render(<AdminRequestList />);
     await screen.findByText('สมชาย ใจดี');
 
     fireEvent.change(screen.getByLabelText('จากวันที่'), { target: { value: '2026-09-01' } });
-    const clearBtn = await screen.findByRole('button', { name: 'ล้างวันที่' });
+    const clearBtn = await screen.findByRole('button', { name: 'ล้างตัวกรอง' });
     await user.click(clearBtn);
 
     await waitFor(() => {
