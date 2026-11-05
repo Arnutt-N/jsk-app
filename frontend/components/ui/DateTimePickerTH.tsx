@@ -25,7 +25,7 @@ export interface DateTimePickerTHProps {
 }
 
 const DEFAULT_TIME_CLASSES =
-  "h-10 w-32 rounded-xl border border-border-default bg-surface px-3 text-sm text-text-primary " +
+  "h-9 w-32 rounded-xl border border-border-default bg-surface px-3 text-sm text-text-primary " +
   "focus:outline-none focus:ring-2 focus:ring-brand-500/20";
 
 /**
