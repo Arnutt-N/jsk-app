@@ -1,4 +1,10 @@
-# Session Summary — claude_code (Claude Fable 5) — 2026-11-05T19:59:00+07:00
+# Session Summary — claude_code (model: mybai via local proxy) — 2026-11-05T19:59:00+07:00
+
+> **Model identity note.** The harness labels this session "Claude Fable 5",
+> but `~/.claude/settings.json` routes `model: sonnet` through
+> `ANTHROPIC_BASE_URL=127.0.0.1:20128` to `ANTHROPIC_DEFAULT_SONNET_MODEL=mybai`.
+> The real model behind `mybai` cannot be verified from inside the session.
+> Recorded as configured, not as advertised.
 
 ## Goal
 

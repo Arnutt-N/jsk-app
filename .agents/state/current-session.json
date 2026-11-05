@@ -157,6 +157,6 @@
     ],
     "key_insights": "Handoff system redesigned to single-source-of-truth (checkpoints) + generated views (TASK_LOG/SESSION_INDEX via gen-handoff-views.cjs). Use handoff-new.cjs to create handoffs. Stop hook enforces it. Do NOT hand-edit the generated files."
   },
-  "model": "Claude Fable 5",
-  "provider": "Anthropic"
+  "model": "mybai (routed via local proxy; harness labels Claude Fable 5 — unverifiable)",
+  "provider": "custom router (ANTHROPIC_BASE_URL=127.0.0.1:20128)"
 }

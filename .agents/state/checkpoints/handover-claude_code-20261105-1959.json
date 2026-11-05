@@ -14,6 +14,6 @@
   "context_for_next_agent": "",
   "session_summary": "project-log-md/claude_code/session-summary-20261105-1959.md",
   "cross_platform_read": [],
-  "model": "Claude Fable 5",
-  "provider": "Anthropic"
+  "model": "mybai (settings.model=sonnet → ANTHROPIC_DEFAULT_SONNET_MODEL, via local proxy 127.0.0.1:20128; harness labels it Claude Fable 5, unverifiable from inside)",
+  "provider": "custom router (ANTHROPIC_BASE_URL=127.0.0.1:20128)"
 }

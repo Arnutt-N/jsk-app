@@ -28,7 +28,7 @@
 
 | When | Status | Model | Provider | Checkpoint |
 |------|--------|-------|----------|------------|
-| 2026-11-05 19:59 | completed | Claude Fable 5 | Anthropic | `handover-claude_code-20261105-1959.json` |
+| 2026-11-05 19:59 | completed | mybai (settings.model=sonnet → ANTHROPIC_DEFAULT_SONNET_MODEL, via local proxy 127.0.0.1:20128; harness labels it Claude Fable 5, unverifiable from inside) | custom router (ANTHROPIC_BASE_URL=127.0.0.1:20128) | `handover-claude_code-20261105-1959.json` |
 | 2026-11-04 14:01 | completed | Claude Fable 5 | Anthropic | `handover-claude_code-20261104-1401.json` |
 | 2026-11-04 07:40 | completed | Claude Fable 5 | Anthropic | `handover-claude_code-20261104-0740.json` |
 | 2026-11-01 11:11 | completed | Claude Fable 5 | Anthropic | `handover-claude_code-20261101-1111.json` |
