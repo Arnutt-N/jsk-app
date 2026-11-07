@@ -211,6 +211,8 @@ class FriendService:
         event_type: str | None = None,
         page: int = 1,
         per_page: int = 20,
+        start_dt: datetime | None = None,
+        end_dt: datetime | None = None,
     ) -> tuple[list[dict], int]:
         """Get paginated friend events with user info."""
         from app.services.user_identity_service import child_join_condition
@@ -234,6 +236,10 @@ class FriendService:
             query = query.where(child_filter(FriendEvent, line_user_id, user.id if user else None))
         if event_type:
             query = query.where(FriendEvent.event_type == event_type)
+        if start_dt is not None:
+            query = query.where(FriendEvent.created_at >= start_dt)
+        if end_dt is not None:
+            query = query.where(FriendEvent.created_at < end_dt)
 
         # Count total
         count_query = select(func.count()).select_from(
