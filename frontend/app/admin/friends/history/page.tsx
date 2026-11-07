@@ -19,6 +19,8 @@ import type { SelectOption } from '@/components/ui/Select';
 import { Select } from '@/components/ui/Select';
 import { Input } from '@/components/ui/Input';
 import PageHeader from '../../components/PageHeader';
+import { DatePresetFilter } from '@/components/admin/DatePresetFilter';
+import { STANDARD_DATE_PRESETS, presetOptionToDates } from '@/lib/date-range';
 import { logger } from '@/lib/logger';
 import { maskLineUserId } from '@/lib/mask';
 
@@ -103,6 +105,9 @@ export default function FriendHistoryPage() {
     const [total, setTotal] = useState(0);
     const [eventTypeFilter, setEventTypeFilter] = useState('');
     const [searchFilter, setSearchFilter] = useState('');
+    const [datePreset, setDatePreset] = useState<string | null>(null);
+    const [customStart, setCustomStart] = useState('');
+    const [customEnd, setCustomEnd] = useState('');
 
     const API_BASE = '/api/v1';
 
@@ -127,6 +132,11 @@ export default function FriendHistoryPage() {
     }, [API_BASE]);
 
     const fetchEvents = useCallback(async () => {
+        // reversed คู่ไม่มีความหมาย backend — ข้าม fetch แจ้งเหตุผลผ่าน filter
+        if (customStart && customEnd && customStart > customEnd) {
+            setLoading(false);
+            return;
+        }
         setLoading(true);
         try {
             const params = new URLSearchParams({
@@ -135,6 +145,8 @@ export default function FriendHistoryPage() {
             });
             if (eventTypeFilter) params.set('event_type', eventTypeFilter);
             if (searchFilter) params.set('line_user_id', searchFilter);
+            if (customStart) params.set('start_date', customStart);
+            if (customEnd) params.set('end_date', customEnd);
 
             const res = await fetch(`${API_BASE}/admin/friends/history?${params.toString()}`);
             if (res.ok) {
@@ -148,7 +160,7 @@ export default function FriendHistoryPage() {
         } finally {
             setLoading(false);
         }
-    }, [API_BASE, page, eventTypeFilter, searchFilter]);
+    }, [API_BASE, page, eventTypeFilter, searchFilter, customStart, customEnd]);
 
     useEffect(() => {
 
@@ -215,7 +227,7 @@ export default function FriendHistoryPage() {
     }, [fetchEvents]);
 
     // Reset to page 1 on a filter change during render instead of in an effect.
-    const filterKey = `${eventTypeFilter}|${searchFilter}`;
+    const filterKey = `${eventTypeFilter}|${searchFilter}|${customStart}|${customEnd}`;
     const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
     if (prevFilterKey !== filterKey) {
         setPrevFilterKey(filterKey);
@@ -310,6 +322,43 @@ export default function FriendHistoryPage() {
                     <div className="md:col-span-1 flex items-center text-sm text-text-secondary">
                         ทั้งหมด {total.toLocaleString()} รายการ
                     </div>
+                </div>
+                <div className="mt-4 pt-4 border-t border-border">
+                    <DatePresetFilter
+                        preset={datePreset}
+                        customStart={customStart}
+                        customEnd={customEnd}
+                        onPresetChange={(key) => {
+                            setDatePreset(key);
+                            if (key === 'custom') {
+                                setCustomStart('');
+                                setCustomEnd('');
+                            } else {
+                                const opt = STANDARD_DATE_PRESETS.find((p) => p.key === key);
+                                if (opt) {
+                                    const { start, end } = presetOptionToDates(opt);
+                                    setCustomStart(start);
+                                    setCustomEnd(end);
+                                }
+                            }
+                        }}
+                        onCustomStartChange={(value) => {
+                            setDatePreset(null);
+                            setCustomStart(value);
+                        }}
+                        onCustomEndChange={(value) => {
+                            setDatePreset(null);
+                            setCustomEnd(value);
+                        }}
+                        showClear={datePreset !== null || customStart !== '' || customEnd !== '' || eventTypeFilter !== '' || searchFilter !== ''}
+                        onClear={() => {
+                            setDatePreset(null);
+                            setCustomStart('');
+                            setCustomEnd('');
+                            setEventTypeFilter('');
+                            setSearchFilter('');
+                        }}
+                    />
                 </div>
             </div>
 

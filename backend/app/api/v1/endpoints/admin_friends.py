@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api import deps
 from app.api.deps import get_current_admin
-from app.core.date_windows import InvertedRangeError
+from app.core.date_windows import InvertedRangeError, day_bounds_utc
 from app.core.pii_masking import mask_line_id
 from app.models.user import User
 from app.schemas.friend import FriendResponse
@@ -80,18 +80,28 @@ async def list_friends(
 async def list_friend_history(
     line_user_id: str | None = Query(None, description="Filter by LINE user ID"),
     event_type: str | None = Query(None, description="Filter by event type (FOLLOW, UNFOLLOW, BLOCK, REFOLLOW)"),
+    start_date: date | None = Query(None, description="Filter events on or after this date (YYYY-MM-DD)"),
+    end_date: date | None = Query(None, description="Filter events on or before this date (YYYY-MM-DD)"),
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(deps.get_db),
     current_admin: User = Depends(get_current_admin),
 ) -> Any:
     """Get paginated list of all friend events (newest first)"""
+    if start_date and end_date and start_date > end_date:
+        raise HTTPException(status_code=400, detail="start_date must not be after end_date")
+    # Same per-bound Bangkok-day semantics as the requests list: each bound
+    # is independent, no invented cap on the open side.
+    start_dt = day_bounds_utc(start_date)[0] if start_date else None
+    end_dt = day_bounds_utc(end_date)[1] if end_date else None
     events, total = await friend_service.get_all_friend_events(
         db=db,
         line_user_id=line_user_id,
         event_type=event_type,
         page=page,
         per_page=per_page,
+        start_dt=start_dt,
+        end_dt=end_dt,
     )
     total_pages = math.ceil(total / per_page) if per_page > 0 else 0
     return {
