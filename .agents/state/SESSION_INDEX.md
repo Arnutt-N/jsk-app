@@ -1,16 +1,16 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Cross-Platform Session Index (generated)
 
-> **Last generated**: 2026-11-05 19:59 (from newest checkpoint)
+> **Last generated**: 2026-11-07 13:42 (from newest checkpoint)
 
 ## Quick Stats
 
 | Metric | Value |
 |--------|-------|
-| Handoff checkpoints (active) | 324 |
-| Session summaries on disk | 430 |
+| Handoff checkpoints (active) | 325 |
+| Session summaries on disk | 431 |
 | Platforms | 12 (antigravity, claude_code, cline, codex, gemini_cli, kilo_code, kimi_code, muse_code, open_code, pi, qoder, zcode) |
-| Most recent | 2026-11-05 19:59 — claude_code |
+| Most recent | 2026-11-07 13:42 — claude_code |
 
 > Regenerate after any handoff: `node .agents/scripts/gen-handoff-views.cjs`
 
@@ -24,10 +24,11 @@
 | 2026-04-04 12:04 | completed | — | — | `handover-antigravity-20260404-1204.json` |
 | 2026-02-15 03:20 | completed | — | — | `handover-antigravity-20260215-0320.json` |
 
-## claude_code (169)
+## claude_code (170)
 
 | When | Status | Model | Provider | Checkpoint |
 |------|--------|-------|----------|------------|
+| 2026-11-07 13:42 | completed | myzenmux (session /model selection; upstream model unverifiable from inside) | custom router (ANTHROPIC_BASE_URL=127.0.0.1:20128) | `handover-claude_code-20261107-1342.json` |
 | 2026-11-05 19:59 | completed | mybai (settings.model=sonnet → ANTHROPIC_DEFAULT_SONNET_MODEL, via local proxy 127.0.0.1:20128; harness labels it Claude Fable 5, unverifiable from inside) | custom router (ANTHROPIC_BASE_URL=127.0.0.1:20128) | `handover-claude_code-20261105-1959.json` |
 | 2026-11-04 14:01 | completed | Claude Fable 5 | Anthropic | `handover-claude_code-20261104-1401.json` |
 | 2026-11-04 07:40 | completed | Claude Fable 5 | Anthropic | `handover-claude_code-20261104-0740.json` |
@@ -47,8 +48,7 @@
 | 2026-08-07 07:37 | completed | Claude Opus 5 (1M context) | Anthropic | `handover-claude_code-20260807-0737.json` |
 | 2026-08-05 14:19 | completed | Claude Opus 5 | Anthropic | `handover-claude_code-20260805-1419.json` |
 | 2026-08-05 07:52 | completed | Claude Opus 5 | Anthropic | `handover-claude_code-20260805-0752.json` |
-| 2026-08-05 03:05 | completed | — | — | `handover-claude_code-20260805-0305.json` |
-| … | | | | +149 older |
+| … | | | | +150 older |
 
 ## cline (16)
 

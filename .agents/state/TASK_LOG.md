@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 324 active handoffs, 12 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 325 active handoffs, 12 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-11-07 13:42 — claude_code (myzenmux (session /model selection; upstream model unverifiable from inside) / custom router (ANTHROPIC_BASE_URL=127.0.0.1:20128)) — completed
+
+Merged 2 PRs continuing the admin UI consistency pass. #319 (d31f628) fixed the shared DatePresetFilter: the preset and clear buttons were rounded-lg while the CalendarPickerTH date boxes are rounded-xl, so all four buttons now carry rounded-xl via a shared FILTER_BUTTON_CLASSES const; added a กำหนดเอง label plus a divider so the two date boxes read as their own group instead of visually merging into the preset row; replaced the - separator with ถึง; and fixed the narrow-screen layout (flex-wrap, basis-48, shrink-0, min-w-0) that was squeezing both pickers to about 100px at 320px. #320 (efcb508) removed the redundant ใช้งานอยู่/ปิดใช้งาน text above the status Switch on /admin/canned-responses, since the toggle state already says it, and made VIEWERs see that toggle disabled (useIsViewer, onCheckedChange undefined) instead of not seeing the status at all; also dropped the extra wrapper div and ViewerHide. Both merged to main with CI green (Backend Pytest, Frontend Lint and Build, Playwright Smoke, Source Encoding Scan, Vercel). main = efcb508, no open PRs, working tree clean.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20261107-1342.json`
+- Summary: `project-log-md/claude_code/session-summary-20261107-1342.md`
+
+---
 
 ### 2026-11-05 19:59 — claude_code (mybai (settings.model=sonnet → ANTHROPIC_DEFAULT_SONNET_MODEL, via local proxy 127.0.0.1:20128; harness labels it Claude Fable 5, unverifiable from inside) / custom router (ANTHROPIC_BASE_URL=127.0.0.1:20128)) — completed
 
