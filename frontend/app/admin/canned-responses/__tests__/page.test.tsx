@@ -203,7 +203,26 @@ describe('CannedResponsesPage', () => {
     expect(JSON.parse(putCall[1].body as string)).toEqual({ is_active: false });
   });
 
-  it('VIEWER sees the status badge but no switch and no write actions', async () => {
+  it('status column shows only the toggle, no status text', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      listResponse([
+        { id: 1, shortcut: 'hello', title: 'ข้อความต้อนรับ', content: 'สวัสดีค่ะ', category: 'greeting', is_active: true, usage_count: 3 },
+        { id: 2, shortcut: 'bye', title: 'ลาก่อน', content: 'ขอบคุณค่ะ', category: 'closing', is_active: false, usage_count: 1 },
+      ])
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    renderPage();
+    await waitForInitialFetch(fetchMock);
+    await screen.findByText('/hello');
+
+    expect(screen.getByRole('checkbox', { name: 'เปิดใช้งาน ข้อความต้อนรับ' })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'เปิดใช้งาน ลาก่อน' })).not.toBeChecked();
+    expect(screen.queryByText('ใช้งานอยู่')).not.toBeInTheDocument();
+    expect(screen.queryByText('ปิดใช้งาน')).not.toBeInTheDocument();
+  });
+
+  it('VIEWER sees a disabled status toggle and no write actions', async () => {
     authMocks.role = 'VIEWER';
     const fetchMock = vi.fn().mockResolvedValue(
       listResponse([
@@ -216,8 +235,7 @@ describe('CannedResponsesPage', () => {
     await waitForInitialFetch(fetchMock);
     await screen.findByText('/hello');
 
-    expect(screen.getByText('ใช้งานอยู่')).toBeInTheDocument();
-    expect(screen.queryByRole('checkbox', { name: 'เปิดใช้งาน ข้อความต้อนรับ' })).not.toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'เปิดใช้งาน ข้อความต้อนรับ' })).toBeDisabled();
     expect(screen.queryByRole('button', { name: 'เพิ่มข้อความ' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'แก้ไข' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'ลบ' })).not.toBeInTheDocument();
