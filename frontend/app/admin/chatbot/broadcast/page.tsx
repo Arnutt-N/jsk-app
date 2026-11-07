@@ -26,6 +26,8 @@ import {
 import { Modal } from '@/components/ui/Modal';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { ActionIconButton } from '@/components/ui/ActionIconButton';
+import { DatePresetFilter } from '@/components/admin/DatePresetFilter';
+import { STANDARD_DATE_PRESETS, presetOptionToDates } from '@/lib/date-range';
 import PageHeader from '@/app/admin/components/PageHeader';
 import { logger } from '@/lib/logger';
 
@@ -70,6 +72,9 @@ export default function BroadcastListPage() {
     const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(true);
     const [statusFilter, setStatusFilter] = useState('');
+    const [datePreset, setDatePreset] = useState<string | null>(null);
+    const [customStart, setCustomStart] = useState('');
+    const [customEnd, setCustomEnd] = useState('');
     const [page, setPage] = useState(0);
     const pageSize = 20;
 
@@ -81,11 +86,18 @@ export default function BroadcastListPage() {
     const API_BASE = '/api/v1';
 
     const fetchBroadcasts = useCallback(async () => {
+        // reversed คู่ไม่มีความหมาย backend — ข้าม fetch แจ้งเหตุผลผ่าน filter
+        if (customStart && customEnd && customStart > customEnd) {
+            setLoading(false);
+            return;
+        }
         setLoading(true);
         setFetchError(null);
         try {
             const params = new URLSearchParams();
             if (statusFilter) params.append('status', statusFilter);
+            if (customStart) params.append('start_date', customStart);
+            if (customEnd) params.append('end_date', customEnd);
             params.append('skip', String(page * pageSize));
             params.append('limit', String(pageSize));
 
@@ -100,7 +112,7 @@ export default function BroadcastListPage() {
         } finally {
             setLoading(false);
         }
-    }, [API_BASE, statusFilter, page]);
+    }, [API_BASE, statusFilter, customStart, customEnd, page]);
 
     useEffect(() => {
 
@@ -200,6 +212,46 @@ export default function BroadcastListPage() {
                                 { value: 'failed', label: 'ล้มเหลว' },
                                 { value: 'cancelled', label: 'ยกเลิก' },
                             ]}
+                        />
+                    </div>
+                    <div className="mt-4 pt-4 border-t border-border-default">
+                        <DatePresetFilter
+                            preset={datePreset}
+                            customStart={customStart}
+                            customEnd={customEnd}
+                            onPresetChange={(key) => {
+                                setDatePreset(key);
+                                if (key === 'custom') {
+                                    setCustomStart('');
+                                    setCustomEnd('');
+                                } else {
+                                    const opt = STANDARD_DATE_PRESETS.find((p) => p.key === key);
+                                    if (opt) {
+                                        const { start, end } = presetOptionToDates(opt);
+                                        setCustomStart(start);
+                                        setCustomEnd(end);
+                                    }
+                                }
+                                setPage(0);
+                            }}
+                            onCustomStartChange={(value) => {
+                                setDatePreset(null);
+                                setCustomStart(value);
+                                setPage(0);
+                            }}
+                            onCustomEndChange={(value) => {
+                                setDatePreset(null);
+                                setCustomEnd(value);
+                                setPage(0);
+                            }}
+                            showClear={datePreset !== null || customStart !== '' || customEnd !== '' || statusFilter !== ''}
+                            onClear={() => {
+                                setDatePreset(null);
+                                setCustomStart('');
+                                setCustomEnd('');
+                                setStatusFilter('');
+                                setPage(0);
+                            }}
                         />
                     </div>
                 </CardContent>
