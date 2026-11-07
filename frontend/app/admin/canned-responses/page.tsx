@@ -13,7 +13,7 @@ import { DetailModal } from '@/components/admin/DetailModal';
 import { Switch } from '@/components/ui/Switch';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/Toast';
-import { ViewerHide } from '@/components/admin/ViewerHide';
+import { ViewerHide, useIsViewer } from '@/components/admin/ViewerHide';
 import { getHttpStatusMessage } from '@/lib/api-error';
 import { logger } from '@/lib/logger';
 
@@ -66,6 +66,7 @@ const INCOMPLETE_FORM_MESSAGE = 'กรุณากรอกชอร์ตค�
 
 export default function CannedResponsesPage() {
   const { toast } = useToast();
+  const isViewer = useIsViewer();
   const [responses, setResponses] = useState<CannedResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -402,19 +403,12 @@ export default function CannedResponsesPage() {
                       </Badge>
                     </td>
                     <td className="px-5 py-4 text-center">
-                      <div className="flex flex-col items-center gap-2">
-                        <span className="text-xs font-medium text-text-secondary thai-no-break">
-                          {(row.is_active ?? true) ? 'ใช้งานอยู่' : 'ปิดใช้งาน'}
-                        </span>
-                        <ViewerHide>
-                          <Switch
-                            checked={row.is_active ?? true}
-                            onCheckedChange={() => { void handleToggleActive(row); }}
-                            disabled={togglingId === row.id}
-                            aria-label={`เปิดใช้งาน ${row.title}`}
-                          />
-                        </ViewerHide>
-                      </div>
+                      <Switch
+                        checked={row.is_active ?? true}
+                        onCheckedChange={isViewer ? undefined : () => { void handleToggleActive(row); }}
+                        disabled={isViewer || togglingId === row.id}
+                        aria-label={`เปิดใช้งาน ${row.title}`}
+                      />
                     </td>
                     <td className="px-5 py-4 text-center text-sm text-text-secondary">
                       {row.usage_count ?? 0}
