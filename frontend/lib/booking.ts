@@ -326,6 +326,8 @@ export async function updateBookingContact(
 
 export async function fetchAdminBookings(params: {
   date?: string
+  startDate?: string
+  endDate?: string
   status?: BookingStatus
   serviceType?: string
   search?: string
@@ -335,6 +337,8 @@ export async function fetchAdminBookings(params: {
 }): Promise<Booking[]> {
   const query = new URLSearchParams()
   if (params.date) query.set('date', params.date)
+  if (params.startDate) query.set('start_date', params.startDate)
+  if (params.endDate) query.set('end_date', params.endDate)
   if (params.status) query.set('status', params.status)
   if (params.serviceType) query.set('service_type', params.serviceType)
   if (params.search) query.set('q', params.search)

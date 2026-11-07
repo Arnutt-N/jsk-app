@@ -1,7 +1,6 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import dynamic from 'next/dynamic'
 import { Alert } from '@/components/ui/Alert'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
@@ -13,9 +12,10 @@ import { CalendarDays, BellRing, ChevronLeft, ChevronRight, LayoutList, Pencil, 
 import { ViewerHide } from '@/components/admin/ViewerHide';
 import { logger } from '@/lib/logger'
 import { formatThaiDate, formatThaiDateTime } from '@/lib/format-date'
-import { isoToYMD } from '@/lib/utils'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { AssignModal } from '@/components/admin/AssignModal'
+import { DatePresetFilter } from '@/components/admin/DatePresetFilter'
+import { STANDARD_DATE_PRESETS, presetOptionToDates } from '@/lib/date-range'
 import { EditContactDialog, WalkinBookingDialog } from '@/components/admin/WalkinBookingDialog'
 import BookingMonthCalendar from '@/components/admin/BookingMonthCalendar'
 import {
@@ -32,8 +32,6 @@ import {
   type BookingStatus,
   type DayAvailability,
 } from '@/lib/booking'
-
-const CalendarPickerTH = dynamic(() => import('@/components/ui/CalendarPickerTH'), { ssr: false })
 
 const STATUS_FILTER_OPTIONS = [
   { value: '', label: 'ทุกสถานะ' },
@@ -61,7 +59,9 @@ const ACTIONS: { status: BookingStatus; label: string }[] = [
 ]
 
 export default function AdminBookingsPage() {
-  const [date, setDate] = useState('') // '' = all days; must not default to today
+  const [datePreset, setDatePreset] = useState<string | null>(null)
+  const [customStart, setCustomStart] = useState('') // '' = unbounded; must not default to today
+  const [customEnd, setCustomEnd] = useState('')
   const [statusFilter, setStatusFilter] = useState<BookingStatus | ''>('')
   const [serviceTypeFilter, setServiceTypeFilter] = useState('')
   const [search, setSearch] = useState('')
@@ -90,12 +90,18 @@ export default function AdminBookingsPage() {
   const [editing, setEditing] = useState<Booking | null>(null)
 
   const load = useCallback(async () => {
+    // reversed คู่ไม่มีความหมาย backend — ข้าม fetch แจ้งเหตุผลผ่าน filter
+    if (customStart && customEnd && customStart > customEnd) {
+      setLoading(false)
+      return
+    }
     setLoading(true)
     setError(null)
     try {
       setBookings(
         await fetchAdminBookings({
-          date,
+          startDate: customStart || undefined,
+          endDate: customEnd || undefined,
           status: statusFilter || undefined,
           serviceType: serviceTypeFilter || undefined,
           search: debouncedSearch.trim() || undefined,
@@ -110,7 +116,7 @@ export default function AdminBookingsPage() {
     } finally {
       setLoading(false)
     }
-  }, [date, statusFilter, serviceTypeFilter, debouncedSearch, unassignedOnly, page])
+  }, [customStart, customEnd, statusFilter, serviceTypeFilter, debouncedSearch, unassignedOnly, page])
 
   // Same 500ms debounce as the requests list — each keystroke must not
   // become an API call. A filter change always restarts from the first page.
@@ -243,7 +249,9 @@ export default function AdminBookingsPage() {
   )
 
   const handleSelectDay = useCallback((iso: string) => {
-    setDate(iso)
+    setDatePreset(null)
+    setCustomStart(iso)
+    setCustomEnd(iso)
     setPage(0)
     setView('list')
   }, [])
@@ -264,62 +272,33 @@ export default function AdminBookingsPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-2 text-sm">
-            <CalendarDays className="h-4 w-4 text-slate-400" aria-hidden="true" />
-            <div className="w-48">
-              <CalendarPickerTH
-                value={date ? new Date(`${date}T00:00:00`).toISOString() : null}
-                onChange={(iso) => {
-                  setDate(iso ? isoToYMD(iso) : '')
-                  setPage(0)
-                }}
-              />
-            </div>
-            {!date && (
-              <span className="text-xs text-slate-400">ทุกวัน</span>
-            )}
-            {date && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setDate('')
-                  setPage(0)
-                }}
-                className="text-xs text-text-tertiary hover:text-text-primary"
-              >
-                ล้างวันที่
-              </Button>
-            )}
-            <div className="w-36">
+          <div className="w-36">
+            <Select
+              size="sm"
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value as BookingStatus | '')
+                setPage(0)
+              }}
+              options={STATUS_FILTER_OPTIONS}
+            />
+          </div>
+          {serviceTypes.length > 0 && (
+            <div className="w-44">
               <Select
                 size="sm"
-                value={statusFilter}
+                value={serviceTypeFilter}
                 onChange={(e) => {
-                  setStatusFilter(e.target.value as BookingStatus | '')
+                  setServiceTypeFilter(e.target.value)
                   setPage(0)
                 }}
-                options={STATUS_FILTER_OPTIONS}
+                options={[
+                  { value: '', label: 'ทุกบริการ' },
+                  ...serviceTypes.map((type) => ({ value: type, label: type })),
+                ]}
               />
             </div>
-            {serviceTypes.length > 0 && (
-              <div className="w-44">
-                <Select
-                  size="sm"
-                  value={serviceTypeFilter}
-                  onChange={(e) => {
-                    setServiceTypeFilter(e.target.value)
-                    setPage(0)
-                  }}
-                  options={[
-                    { value: '', label: 'ทุกบริการ' },
-                    ...serviceTypes.map((type) => ({ value: type, label: type })),
-                  ]}
-                />
-              </div>
-            )}
-          </div>
+          )}
           <Button variant="secondary" onClick={() => void load()} disabled={loading}>
             <RefreshCw className="mr-1 h-4 w-4" aria-hidden="true" />
             รีเฟรช
@@ -376,12 +355,55 @@ export default function AdminBookingsPage() {
         )}
       </div>
 
+      <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
+        <DatePresetFilter
+          preset={datePreset}
+          customStart={customStart}
+          customEnd={customEnd}
+          onPresetChange={(key) => {
+            setDatePreset(key)
+            if (key === 'custom') {
+              setCustomStart('')
+              setCustomEnd('')
+            } else {
+              const opt = STANDARD_DATE_PRESETS.find((p) => p.key === key)
+              if (opt) {
+                const { start, end } = presetOptionToDates(opt)
+                setCustomStart(start)
+                setCustomEnd(end)
+              }
+            }
+            setPage(0)
+          }}
+          onCustomStartChange={(value) => {
+            setDatePreset(null)
+            setCustomStart(value)
+            setPage(0)
+          }}
+          onCustomEndChange={(value) => {
+            setDatePreset(null)
+            setCustomEnd(value)
+            setPage(0)
+          }}
+          showClear={datePreset !== null || customStart !== '' || customEnd !== '' || statusFilter !== '' || serviceTypeFilter !== '' || search !== ''}
+          onClear={() => {
+            setDatePreset(null)
+            setCustomStart('')
+            setCustomEnd('')
+            setStatusFilter('')
+            setServiceTypeFilter('')
+            setSearch('')
+            setPage(0)
+          }}
+        />
+      </div>
+
       {error && <Alert variant="danger">{error}</Alert>}
 
       {calendarEnabled && view === 'calendar' && (
         <BookingMonthCalendar
-          key={date ? date.slice(0, 7) : 'all'}
-          selectedDate={date}
+          key={customStart ? customStart.slice(0, 7) : 'all'}
+          selectedDate={customStart && customStart === customEnd ? customStart : ''}
           rangeByDate={rangeByDate}
           loadingRange={loadingRange}
           rangeServiceLabel={rangeService || null}
@@ -398,8 +420,8 @@ export default function AdminBookingsPage() {
         <p className="rounded-xl border border-dashed border-slate-200 py-16 text-center text-sm text-slate-400 dark:border-slate-700">
           {debouncedSearch
             ? 'ไม่พบรายการที่ตรงกับที่ค้นหา'
-            : date
-              ? 'ไม่มีการจองในวันที่เลือก'
+            : customStart || customEnd
+              ? 'ไม่มีการจองในช่วงวันที่เลือก'
               : 'ไม่มีการจอง'}
         </p>
       ) : (
@@ -528,7 +550,11 @@ export default function AdminBookingsPage() {
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs text-slate-400">
-          แสดงรายการ{date ? `ของวันที่ ${formatThaiDate(date, { yearFormat: 'numeric' })}` : 'ทุกวัน'}
+          {customStart && customStart === customEnd
+            ? `แสดงรายการของวันที่ ${formatThaiDate(customStart, { yearFormat: 'numeric' })}`
+            : customStart || customEnd
+              ? `แสดงรายการ${customStart ? `ตั้งแต่ ${formatThaiDate(customStart, { yearFormat: 'numeric' })}` : ''}${customEnd ? `ถึง ${formatThaiDate(customEnd, { yearFormat: 'numeric' })}` : ''}`
+              : 'แสดงรายการทุกวัน'}
         </p>
         {(page > 0 || bookings.length >= PAGE_SIZE) && (
           <div className="flex items-center gap-2">
@@ -561,7 +587,7 @@ export default function AdminBookingsPage() {
         <WalkinBookingDialog
           open={walkinOpen}
           serviceTypes={serviceTypes}
-          initialDate={date}
+          initialDate={customStart && customStart === customEnd ? customStart : ''}
           emailEnabled={emailEnabled}
           onClose={() => setWalkinOpen(false)}
           onCreated={() => void load()}

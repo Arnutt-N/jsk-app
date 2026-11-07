@@ -118,20 +118,25 @@ describe('the day list', () => {
     const user = userEvent.setup()
     await renderLoaded([])
 
-    await user.type(screen.getByLabelText('วันที่'), '2026-08-19')
+    await user.type(screen.getByLabelText('จากวันที่'), '2026-08-19')
+    await user.type(screen.getByLabelText('ถึงวันที่'), '2026-08-19')
 
-    expect(await screen.findByText('ไม่มีการจองในวันที่เลือก')).toBeInTheDocument()
+    expect(await screen.findByText('ไม่มีการจองในช่วงวันที่เลือก')).toBeInTheDocument()
   })
 
   it('says "ไม่มีการจอง" when no date filter is set', async () => {
     await renderLoaded([])
     expect(await screen.findByText('ไม่มีการจอง')).toBeInTheDocument()
-    expect(screen.queryByText('ไม่มีการจองในวันที่เลือก')).not.toBeInTheDocument()
+    expect(screen.queryByText('ไม่มีการจองในช่วงวันที่เลือก')).not.toBeInTheDocument()
   })
 
-  it('shows a "ทุกวัน" hint next to the date picker when no date is selected', async () => {
+  it('renders the shared preset buttons and custom range inputs', async () => {
     await renderLoaded()
-    expect(await screen.findByText('ทุกวัน')).toBeInTheDocument()
+    for (const label of ['7 วัน', '30 วัน', '90 วัน', 'ปีนี้']) {
+      expect(screen.getByRole('button', { name: label })).toBeInTheDocument();
+    }
+    expect(screen.getByLabelText('จากวันที่')).toBeInTheDocument();
+    expect(screen.getByLabelText('ถึงวันที่')).toBeInTheDocument();
   })
 
   it('requests all days by default (no date param)', async () => {
@@ -139,21 +144,38 @@ describe('the day list', () => {
     await waitFor(() => {
       const [url] = fetchMock.mock.calls[0]
       expect(String(url)).not.toContain('date=')
+      expect(String(url)).not.toContain('start_date=')
     })
   })
 
-  it('requests the selected date when one is chosen', async () => {
+  it('requests the selected range when custom dates are chosen', async () => {
     const user = userEvent.setup()
     await renderLoaded()
 
-    await user.type(screen.getByLabelText('วันที่'), '2026-08-19')
+    await user.type(screen.getByLabelText('จากวันที่'), '2026-08-19')
+    await user.type(screen.getByLabelText('ถึงวันที่'), '2026-08-21')
 
     await waitFor(() => {
       const call = fetchMock.mock.calls.find(
-        ([url]) => String(url).includes('date=2026-08-19'),
+        ([url]) => String(url).includes('start_date=2026-08-19') && String(url).includes('end_date=2026-08-21'),
       )
       expect(call).toBeTruthy()
     })
+  })
+
+  it('shows a Thai error and never fetches the reversed pair', async () => {
+    const user = userEvent.setup()
+    await renderLoaded()
+
+    await user.type(screen.getByLabelText('จากวันที่'), '2026-08-21')
+    await user.type(screen.getByLabelText('ถึงวันที่'), '2026-08-19')
+
+    expect(await screen.findByText('วันที่เริ่มต้นต้องไม่มากกว่าวันที่สิ้นสุด')).toBeInTheDocument()
+    // A lone start is a valid open-ended fetch; the reversed PAIR must never go out.
+    const reversedCall = fetchMock.mock.calls.find(
+      ([url]) => String(url).includes('start_date=2026-08-21') && String(url).includes('end_date=2026-08-19'),
+    )
+    expect(reversedCall).toBeUndefined()
   })
 
   it('says "ทุกวัน" in the footer when no date is selected', async () => {
@@ -161,14 +183,16 @@ describe('the day list', () => {
     expect(await screen.findByText('แสดงรายการทุกวัน')).toBeInTheDocument()
   })
 
-  it('clears date filter and re-fetches all bookings when "ล้างวันที่" is clicked', async () => {
+  it('clears date filter and re-fetches all bookings when "ล้างตัวกรอง" is clicked', async () => {
     const user = userEvent.setup()
     await renderLoaded()
-    await user.type(screen.getByLabelText('วันที่'), '2026-08-19')
-    const clearButton = await screen.findByRole('button', { name: 'ล้างวันที่' })
+    await user.type(screen.getByLabelText('จากวันที่'), '2026-08-19')
+    await user.type(screen.getByLabelText('ถึงวันที่'), '2026-08-19')
+    const clearButton = await screen.findByRole('button', { name: 'ล้างตัวกรอง' })
     await user.click(clearButton)
     await waitFor(() => {
       const lastCall = fetchMock.mock.calls[fetchMock.mock.calls.length - 1]
+      expect(String(lastCall[0])).not.toContain('start_date=')
       expect(String(lastCall[0])).not.toContain('date=')
     })
   })

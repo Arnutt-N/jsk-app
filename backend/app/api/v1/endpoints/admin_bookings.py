@@ -71,6 +71,8 @@ SETTABLE_STATUSES = {
 @router.get("", response_model=List[BookingOut], summary="List bookings")
 async def list_bookings(
     booking_date: Optional[date_type] = Query(default=None, alias="date"),
+    start_date: Optional[date_type] = Query(default=None, description="Filter bookings on or after this date (YYYY-MM-DD)"),
+    end_date: Optional[date_type] = Query(default=None, description="Filter bookings on or before this date (YYYY-MM-DD)"),
     status: Optional[BookingStatus] = Query(default=None),
     service_type: Optional[str] = Query(default=None, max_length=200),
     search: Optional[str] = Query(default=None, alias="q", max_length=120,
@@ -81,9 +83,24 @@ async def list_bookings(
     db: AsyncSession = Depends(get_db),
     _staff=Depends(get_current_staff_or_viewer),
 ):
+    # isinstance guard: direct unit calls (no FastAPI validation) leave the
+    # Query() object itself as the default instead of None — only real dates
+    # participate in the comparison or the WHERE clause.
+    has_start = isinstance(start_date, date_type)
+    has_end = isinstance(end_date, date_type)
+    if has_start and has_end and start_date > end_date:
+        raise HTTPException(status_code=400, detail="start_date must not be after end_date")
+
     stmt = select(Booking)
-    if booking_date is not None:
+    if isinstance(booking_date, date_type):
         stmt = stmt.where(Booking.booking_date == booking_date)
+    # Range bounds are independent (same per-bound semantics as the
+    # requests list): a lone end_date is an upper cap, not an invented
+    # lower bound. `booking_date` keeps working as the single-day shortcut.
+    if has_start:
+        stmt = stmt.where(Booking.booking_date >= start_date)
+    if has_end:
+        stmt = stmt.where(Booking.booking_date <= end_date)
     if status is not None:
         stmt = stmt.where(Booking.status == status)
     if service_type:
