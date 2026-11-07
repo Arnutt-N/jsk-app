@@ -20,8 +20,6 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import PageHeader from '@/app/admin/components/PageHeader';
-import { DatePresetFilter } from '@/components/admin/DatePresetFilter';
-import { STANDARD_DATE_PRESETS, presetOptionToDates } from '@/lib/date-range';
 import { logger } from '@/lib/logger';
 import { maskLineUserId } from '@/lib/mask';
 
@@ -98,9 +96,6 @@ export default function ChatHistoriesPage() {
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [page, setPage] = useState(0);
-    const [datePreset, setDatePreset] = useState<string | null>(null);
-    const [customStart, setCustomStart] = useState('');
-    const [customEnd, setCustomEnd] = useState('');
 
     const API_BASE = '/api/v1';
 
@@ -115,19 +110,10 @@ export default function ChatHistoriesPage() {
 
     /* ---- Fetch conversations ---- */
     const fetchConversations = useCallback(async () => {
-        // reversed คู่ไม่มีความหมาย backend — ข้าม fetch แจ้งเหตุผลผ่าน filter
-        if (customStart && customEnd && customStart > customEnd) {
-            setLoading(false);
-            return;
-        }
         setLoading(true);
         setFetchError(null);
         try {
-            const params = new URLSearchParams();
-            if (customStart) params.append('start_date', customStart);
-            if (customEnd) params.append('end_date', customEnd);
-            const qs = params.toString();
-            const res = await fetch(`${API_BASE}/admin/live-chat/conversations${qs ? `?${qs}` : ''}`);
+            const res = await fetch(`${API_BASE}/admin/live-chat/conversations`);
             if (!res.ok) throw new Error('Failed to fetch conversations');
             const data: ConversationsResponse = await res.json();
             setConversations(data.conversations);
@@ -138,21 +124,14 @@ export default function ChatHistoriesPage() {
         } finally {
             setLoading(false);
         }
-    }, [API_BASE, customStart, customEnd]);
+    }, [API_BASE]);
 
     /* ---- Fetch search results ---- */
     const fetchSearchResults = useCallback(async (q: string) => {
-        // reversed คู่ไม่มีความหมาย backend — ข้าม fetch แจ้งเหตุผลผ่าน filter
-        if (customStart && customEnd && customStart > customEnd) {
-            setLoading(false);
-            return;
-        }
         setLoading(true);
         setFetchError(null);
         try {
             const params = new URLSearchParams({ q, limit: '50' });
-            if (customStart) params.append('start_date', customStart);
-            if (customEnd) params.append('end_date', customEnd);
             const res = await fetch(
                 `${API_BASE}/admin/live-chat/messages/search?${params.toString()}`,
             );
@@ -166,7 +145,7 @@ export default function ChatHistoriesPage() {
         } finally {
             setLoading(false);
         }
-    }, [API_BASE, customStart, customEnd]);
+    }, [API_BASE]);
 
     /* ---- Effect: fetch or search ---- */
     useEffect(() => {
@@ -228,7 +207,7 @@ export default function ChatHistoriesPage() {
 
             {/* Search */}
             <Card glass className="border-none shadow-sm">
-                <CardContent className="p-4 space-y-4">
+                <CardContent className="p-4">
                     <Input
                         type="text"
                         placeholder="ค้นหาข้อความในสนทนา..."
@@ -236,46 +215,6 @@ export default function ChatHistoriesPage() {
                         onChange={(e) => setSearch(e.target.value)}
                         leftIcon={<Search className="w-4 h-4" />}
                     />
-                    <div className="pt-4 border-t border-border-default">
-                        <DatePresetFilter
-                            preset={datePreset}
-                            customStart={customStart}
-                            customEnd={customEnd}
-                            onPresetChange={(key) => {
-                                setDatePreset(key);
-                                if (key === 'custom') {
-                                    setCustomStart('');
-                                    setCustomEnd('');
-                                } else {
-                                    const opt = STANDARD_DATE_PRESETS.find((p) => p.key === key);
-                                    if (opt) {
-                                        const { start, end } = presetOptionToDates(opt);
-                                        setCustomStart(start);
-                                        setCustomEnd(end);
-                                    }
-                                }
-                                setPage(0);
-                            }}
-                            onCustomStartChange={(value) => {
-                                setDatePreset(null);
-                                setCustomStart(value);
-                                setPage(0);
-                            }}
-                            onCustomEndChange={(value) => {
-                                setDatePreset(null);
-                                setCustomEnd(value);
-                                setPage(0);
-                            }}
-                            showClear={datePreset !== null || customStart !== '' || customEnd !== '' || search !== ''}
-                            onClear={() => {
-                                setDatePreset(null);
-                                setCustomStart('');
-                                setCustomEnd('');
-                                setSearch('');
-                                setPage(0);
-                            }}
-                        />
-                    </div>
                 </CardContent>
             </Card>
 
