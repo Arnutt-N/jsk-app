@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from types import SimpleNamespace
 from typing import List, Optional
 
@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_admin, require_permission
 from app.core.audit import create_audit_log
+from app.core.date_windows import day_bounds_utc
 from app.core.permissions import KEY_MANAGE_BROADCAST
 from app.db.session import get_db
 from app.models.broadcast import BroadcastStatus, BroadcastType
@@ -106,12 +107,23 @@ async def get_broadcast_stats(
 @router.get("", response_model=BroadcastListResponse)
 async def list_broadcasts(
     status: Optional[str] = Query(None),
+    start_date: date | None = Query(None, description="Filter broadcasts created on or after this date (YYYY-MM-DD)"),
+    end_date: date | None = Query(None, description="Filter broadcasts created on or before this date (YYYY-MM-DD)"),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
-    items, total = await broadcast_service.list_broadcasts(db, status=status, skip=skip, limit=limit)
+    if start_date and end_date and start_date > end_date:
+        raise HTTPException(status_code=400, detail="start_date must not be after end_date")
+
+    # Same per-bound Bangkok-day semantics as the requests list: each bound
+    # is optional independently — no invented lower/upper cap.
+    start_dt = day_bounds_utc(start_date)[0] if start_date else None
+    end_dt = day_bounds_utc(end_date)[1] if end_date else None
+    items, total = await broadcast_service.list_broadcasts(
+        db, status=status, skip=skip, limit=limit, start_dt=start_dt, end_dt=end_dt,
+    )
     return BroadcastListResponse(
         items=[BroadcastResponse.model_validate(b) for b in items],
         total=total,

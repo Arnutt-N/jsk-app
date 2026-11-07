@@ -82,6 +82,8 @@ class BroadcastService:
         status: Optional[str] = None,
         skip: int = 0,
         limit: int = 50,
+        start_dt: Optional[datetime] = None,
+        end_dt: Optional[datetime] = None,
     ) -> tuple[List[Broadcast], int]:
         query = select(Broadcast)
         count_query = select(func.count(Broadcast.id))
@@ -89,6 +91,12 @@ class BroadcastService:
         if status:
             query = query.where(Broadcast.status == status)
             count_query = count_query.where(Broadcast.status == status)
+        if start_dt is not None:
+            query = query.where(Broadcast.created_at >= start_dt)
+            count_query = count_query.where(Broadcast.created_at >= start_dt)
+        if end_dt is not None:
+            query = query.where(Broadcast.created_at < end_dt)
+            count_query = count_query.where(Broadcast.created_at < end_dt)
 
         total_result = await db.execute(count_query)
         total = total_result.scalar() or 0

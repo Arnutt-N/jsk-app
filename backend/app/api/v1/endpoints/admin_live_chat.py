@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api import deps
 from app.core.audit import create_audit_log
+from app.core.date_windows import day_bounds_utc
 from app.core.permissions import KEY_ACCESS_LIVE_CHAT
 from app.core.websocket_manager import ReadMarkerPersistenceError, ws_manager
 from app.models.chat_session import ChatSession, ClosedBy, SessionStatus
@@ -88,12 +89,19 @@ async def _broadcast_conversation_update(
 async def list_conversations(
     status: Optional[str] = None,
     include_archived: bool = Query(False, description="Include archived sessions"),
+    start_date: date | None = Query(None, description="Filter conversations last active on or after this date (YYYY-MM-DD)"),
+    end_date: date | None = Query(None, description="Filter conversations last active on or before this date (YYYY-MM-DD)"),
     db: AsyncSession = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_staff),
 ) -> Any:
     """List all conversations for inbox"""
+    if start_date and end_date and start_date > end_date:
+        raise HTTPException(status_code=400, detail="start_date must not be after end_date")
+    start_dt = day_bounds_utc(start_date)[0] if start_date else None
+    end_dt = day_bounds_utc(end_date)[1] if end_date else None
     return await live_chat_service.get_conversations(
         status, db, admin_id=current_user.id, include_archived=include_archived,
+        start_dt=start_dt, end_dt=end_dt,
     )
 
 @router.get("/conversations/{line_user_id}", response_model=ConversationDetail)
@@ -436,16 +444,24 @@ async def search_messages(
     q: str,
     line_user_id: Optional[str] = None,
     limit: int = Query(20, ge=1, le=100),
+    start_date: date | None = Query(None, description="Filter messages sent on or after this date (YYYY-MM-DD)"),
+    end_date: date | None = Query(None, description="Filter messages sent on or before this date (YYYY-MM-DD)"),
     db: AsyncSession = Depends(deps.get_db),
     _current_user: User = Depends(deps.get_current_staff),
 ) -> Any:
     """Search message text across conversations or within a specific conversation."""
+    if start_date and end_date and start_date > end_date:
+        raise HTTPException(status_code=400, detail="start_date must not be after end_date")
+    start_dt = day_bounds_utc(start_date)[0] if start_date else None
+    end_dt = day_bounds_utc(end_date)[1] if end_date else None
     return {
         "items": await live_chat_service.search_messages(
             query=q,
             line_user_id=line_user_id,
             limit=limit,
             db=db,
+            start_dt=start_dt,
+            end_dt=end_dt,
         )
     }
 
