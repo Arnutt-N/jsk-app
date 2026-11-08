@@ -29,6 +29,12 @@ def _event_row(**overrides):
 
 
 def _db_with_events(rows):
+    """Fake DB that routes by statement kind, not call order.
+        side_effect lists break the moment the service reorders its queries
+        (count-first vs page-first bit us twice). String matching on the
+        compiled statement is order-proof: count queries carry func.count,
+        page queries carry LIMIT, decrypt selects hit the identity table.
+    """
     db = AsyncMock()
     page_result = MagicMock()
     page_result.all.return_value = [(row, "Tester", None) for row in rows]
@@ -36,8 +42,16 @@ def _db_with_events(rows):
     count_result.scalar.return_value = len(rows)
     decrypt_result = MagicMock()
     decrypt_result.all.return_value = []
-    # Order in get_all_friend_events: count query, page query, decrypt select.
-    db.execute = AsyncMock(side_effect=[count_result, page_result, decrypt_result])
+
+    async def _route(stmt, *args, **kwargs):
+        sql = str(stmt)
+        if "func.count" in sql or "count(" in sql.lower():
+            return count_result
+        if "LIMIT" in sql:
+            return page_result
+        return decrypt_result
+
+    db.execute = AsyncMock(side_effect=_route)
     return db
 
 
@@ -51,11 +65,15 @@ async def test_history_list_date_filter_bounds():
     )
     assert total == 1
     assert len(events) == 1
-    # call[0] is the count query off the same filtered subquery; call[1] is
-    # the paginated page query. Either carries the date bounds.
-    sql = str(db.execute.call_args_list[1].args[0])
-    assert "created_at >=" in sql
-    assert "created_at <" in sql
+    # The page query is the one with LIMIT; the count wrapper shares the
+    # same filtered subquery, so either proves the bounds.
+    page_sql = next(
+        str(c.args[0])
+        for c in db.execute.call_args_list
+        if "LIMIT" in str(c.args[0])
+    )
+    assert "created_at >=" in page_sql
+    assert "created_at <" in page_sql
 
 
 @pytest.mark.asyncio
@@ -66,9 +84,13 @@ async def test_history_list_lone_end_date_is_upper_cap():
         end_dt=datetime(2026, 9, 3, 17, 0, tzinfo=timezone.utc),
     )
     assert total == 1
-    sql = str(db.execute.call_args_list[1].args[0])
-    assert "created_at <" in sql
-    assert "created_at >=" not in sql
+    page_sql = next(
+        str(c.args[0])
+        for c in db.execute.call_args_list
+        if "LIMIT" in str(c.args[0])
+    )
+    assert "created_at <" in page_sql
+    assert "created_at >=" not in page_sql
 
 
 def test_history_endpoint_reversed_dates_returns_400():

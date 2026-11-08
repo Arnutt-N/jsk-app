@@ -312,6 +312,14 @@ Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `chore`
 
 Example: `feat(live-chat): add operator typing indicator`
 
+### Agent mistake rules (enforced, not advisory)
+
+| Rule | Enforced by |
+|------|-------------|
+| Never push to `main` — open a PR | `scripts/git-hooks/pre-push` (installed via `postinstall`) |
+| Run repo commands from the repo root only | `node scripts/r.cjs <frontend\|backend> <cmd...>` |
+| Backend date-filter mocks route by statement, never by call order | `test_friend_history_date_range.py::_db_with_events` pattern |
+
 ### CI Checks (run on push)
 - **Frontend Lint & Build**: ESLint + `tsc --noEmit` + `next build`
 - **Backend Pytest**: `python -m pytest`
