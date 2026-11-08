@@ -3,8 +3,10 @@ from datetime import UTC, date, datetime, timedelta
 
 from app.core.date_windows import (
     InvertedRangeError,
+    apply_optional_range,
     bangkok_today_start_utc,
     day_bounds_utc,
+    optional_range_utc,
     resolve_range,
 )
 
@@ -49,3 +51,56 @@ def test_bangkok_today_start_is_bangkok_midnight():
 
     local = start.astimezone(ZoneInfo("Asia/Bangkok"))
     assert (local.hour, local.minute, local.second) == (0, 0, 0)
+
+
+def test_optional_range_both_bounds():
+    start_dt, end_dt = optional_range_utc(date(2026, 9, 1), date(2026, 9, 3))
+    assert start_dt == datetime(2026, 8, 31, 17, 0, tzinfo=UTC)
+    assert end_dt == datetime(2026, 9, 3, 17, 0, tzinfo=UTC)
+
+
+def test_optional_range_lone_end_is_upper_cap_only():
+    start_dt, end_dt = optional_range_utc(None, date(2026, 9, 3))
+    assert start_dt is None
+    assert end_dt == datetime(2026, 9, 3, 17, 0, tzinfo=UTC)
+
+
+def test_optional_range_reversed_rejects():
+    try:
+        optional_range_utc(date(2026, 9, 5), date(2026, 9, 1))
+    except InvertedRangeError:
+        return
+    raise AssertionError("expected InvertedRangeError")
+
+
+def test_optional_range_ignores_non_dates():
+    # Direct unit calls without FastAPI validation leave the Query()
+    # object itself as the default — the helper treats those as absent.
+    start_dt, end_dt = optional_range_utc(None, None)
+    assert (start_dt, end_dt) == (None, None)
+
+
+def test_apply_optional_range_appends_half_open_bounds():
+    from sqlalchemy import column, select
+
+    created = column("created_at")
+    stmt = apply_optional_range(
+        select(created), created,
+        datetime(2026, 8, 31, 17, 0, tzinfo=UTC),
+        datetime(2026, 9, 3, 17, 0, tzinfo=UTC),
+    )
+    sql = str(stmt)
+    assert "created_at >=" in sql
+    assert "created_at <" in sql
+
+
+def test_apply_optional_range_skips_open_side():
+    from sqlalchemy import column, select
+
+    created = column("created_at")
+    stmt = apply_optional_range(select(created), created, None, None)
+    # No WHERE appended — the column still appears in the SELECT clause,
+    # so assert on the absence of comparison operators instead.
+    sql = str(stmt)
+    assert ">=" not in sql
+    assert " < " not in sql

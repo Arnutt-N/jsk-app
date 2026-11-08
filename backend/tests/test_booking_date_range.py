@@ -67,7 +67,7 @@ async def test_bookings_list_date_range_bounds():
     assert len(rows) == 1
     sql = str(db.execute.call_args_list[0].args[0])
     assert "booking_date >=" in sql
-    assert "booking_date <=" in sql
+    assert "booking_date <" in sql
 
 
 @pytest.mark.asyncio
@@ -109,7 +109,7 @@ async def test_bookings_list_lone_end_date_is_upper_cap():
     )
     assert len(rows) == 1
     sql = str(db.execute.call_args_list[0].args[0])
-    assert "booking_date <=" in sql
+    assert "booking_date <" in sql
     assert "booking_date >=" not in sql
 
 

@@ -15,6 +15,7 @@ from linebot.v3.messaging import (
 from sqlalchemy import desc, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.date_windows import apply_optional_range
 from app.core.line_client import get_line_bot_api
 from app.models.broadcast import Broadcast, BroadcastStatus, BroadcastType
 from app.models.broadcast_failed_recipient import BroadcastFailedRecipient
@@ -91,12 +92,8 @@ class BroadcastService:
         if status:
             query = query.where(Broadcast.status == status)
             count_query = count_query.where(Broadcast.status == status)
-        if start_dt is not None:
-            query = query.where(Broadcast.created_at >= start_dt)
-            count_query = count_query.where(Broadcast.created_at >= start_dt)
-        if end_dt is not None:
-            query = query.where(Broadcast.created_at < end_dt)
-            count_query = count_query.where(Broadcast.created_at < end_dt)
+        query = apply_optional_range(query, Broadcast.created_at, start_dt, end_dt)
+        count_query = apply_optional_range(count_query, Broadcast.created_at, start_dt, end_dt)
 
         total_result = await db.execute(count_query)
         total = total_result.scalar() or 0

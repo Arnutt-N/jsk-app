@@ -51,3 +51,38 @@ def resolve_range(
         return start, end
     now = datetime.now(UTC)
     return now - timedelta(days=days), now
+
+
+def optional_range_utc(
+    start_date: date | None,
+    end_date: date | None,
+) -> tuple[datetime | None, datetime | None]:
+    """Per-bound Bangkok-day window for optional list-filter dates.
+
+    Each bound is independent: a lone end_date is an upper cap with no
+    invented lower bound (and vice versa). A reversed pair raises
+    InvertedRangeError; callers map it to 400. Returns (start_dt, end_dt)
+    with None on the open side. Non-date values (e.g. a raw Query() default
+    seen by direct unit calls without FastAPI validation) count as absent.
+    """
+    has_start = isinstance(start_date, date)
+    has_end = isinstance(end_date, date)
+    if has_start and has_end and start_date > end_date:
+        raise InvertedRangeError("start_date must not be after end_date")
+    start_dt = day_bounds_utc(start_date)[0] if has_start else None
+    end_dt = day_bounds_utc(end_date)[1] if has_end else None
+    return start_dt, end_dt
+
+
+def apply_optional_range(query, column, start_dt: datetime | None, end_dt: datetime | None):
+    """Append a half-open [start_dt, end_dt) window to a SQLAlchemy query.
+
+    Each bound is independent; None means unbounded on that side. Returns
+    the query so calls chain. One place for the four list endpoints that
+    each hand-rolled the same two `where` clauses.
+    """
+    if start_dt is not None:
+        query = query.where(column >= start_dt)
+    if end_dt is not None:
+        query = query.where(column < end_dt)
+    return query

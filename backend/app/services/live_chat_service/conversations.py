@@ -7,6 +7,8 @@ from sqlalchemy import and_, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
+from app.core.date_windows import apply_optional_range
+
 from app.models.chat_session import ChatSession, SessionStatus
 from app.models.message import Message, MessageDirection
 from app.models.tag import Tag, UserTag
@@ -173,10 +175,7 @@ class ConversationsMixin:
         # Optional activity window on the same `last_message_at` the row is
         # sorted on. Per-bound semantics match the requests list: each bound
         # is independent, no invented cap on the open side.
-        if start_dt is not None:
-            query = query.where(User.last_message_at >= start_dt)
-        if end_dt is not None:
-            query = query.where(User.last_message_at < end_dt)
+        query = apply_optional_range(query, User.last_message_at, start_dt, end_dt)
 
         query = query.order_by(desc(User.last_message_at)).limit(limit)
 
@@ -278,10 +277,7 @@ class ConversationsMixin:
                 Message.content.ilike(f"%{escaped}%", escape="\\"),
             )
         )
-        if start_dt is not None:
-            stmt = stmt.where(Message.created_at >= start_dt)
-        if end_dt is not None:
-            stmt = stmt.where(Message.created_at < end_dt)
+        stmt = apply_optional_range(stmt, Message.created_at, start_dt, end_dt)
         if line_user_id:
             user = await resolve_by_line_id(db, line_user_id)
             stmt = stmt.where(child_filter(Message, line_user_id, user.id if user else None))
