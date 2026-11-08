@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api import deps
 from app.core.audit import create_audit_log
-from app.core.date_windows import InvertedRangeError, day_bounds_utc, optional_range_utc
+from app.core.date_windows import InvertedRangeError, optional_range_utc
 from app.core.permissions import KEY_ACCESS_LIVE_CHAT
 from app.core.websocket_manager import ReadMarkerPersistenceError, ws_manager
 from app.models.chat_session import ChatSession, ClosedBy, SessionStatus

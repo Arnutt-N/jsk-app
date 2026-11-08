@@ -8,7 +8,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
 from app.core.date_windows import apply_optional_range
-
 from app.models.chat_session import ChatSession, SessionStatus
 from app.models.message import Message, MessageDirection
 from app.models.tag import Tag, UserTag
