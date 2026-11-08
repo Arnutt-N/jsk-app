@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 325 active handoffs, 12 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 326 active handoffs, 12 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-11-09 05:08 — claude_code — completed
+
+Date-filter rollout + agent guardrails (PR #321-#327 merged)
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20261109-0508.json`
+- Summary: `project-log-md/claude_code/session-summary-20261109-0508.md`
+
+---
 
 ### 2026-11-07 13:42 — claude_code (myzenmux (session /model selection; upstream model unverifiable from inside) / custom router (ANTHROPIC_BASE_URL=127.0.0.1:20128)) — completed
 

@@ -1,15 +1,20 @@
 {
-  "last_updated": "2026-11-07T13:42:00+07:00",
+  "last_updated": "2026-11-09T05:08:00+07:00",
   "platform": "claude_code",
-  "current_task": "Merged 2 PRs continuing the admin UI consistency pass. #319 (d31f628) fixed the shared DatePresetFilter: the preset and clear buttons were rounded-lg while the CalendarPickerTH date boxes are rounded-",
+  "current_task": "Date-filter rollout + agent guardrails (PR #321-#327 merged)",
   "plan_status": "completed",
   "next_steps": [
-    "reply-objects page still shows a ใช้งานอยู่/ปิดใช้งาน Badge next to a Switch in the same cell — the same duplication #320 removed from canned-responses; apply the same treatment if wanted.",
-    "users page also renders ใช้งานอยู่ (it is a filter option there, not only a status label) — check before touching it.",
-    "Verify both changes in the Vercel preview for efcb508, especially the date filter at a 320px viewport and the VIEWER role on /admin/canned-responses.",
-    "vitest worker startup intermittently fails with Failed to start forks worker on this machine; re-running the identical command succeeds — retry before debugging the code."
+    "Interrogate findings 2 items left open: shell:true in r.cjs, OTHER-bucket mock branch",
+    "Smoke + CI green on all 7 PRs; next: thermo bug/security retry still pending"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-11-09T05:08:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "421f084",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-11-07T13:42:00+07:00",
       "platform": "claude_code",
@@ -142,13 +147,6 @@
       "branch": "main",
       "head": "c319a45",
       "status": "completed"
-    },
-    {
-      "timestamp": "2026-10-23T02:09:00+07:00",
-      "platform": "pi",
-      "branch": "main",
-      "head": "333cfdc",
-      "status": "completed"
     }
   ],
   "cross_platform_context": {
@@ -158,7 +156,5 @@
       "codex/2026-09-22-feature-line-audit-fix-map-handoff.md"
     ],
     "key_insights": "Handoff system redesigned to single-source-of-truth (checkpoints) + generated views (TASK_LOG/SESSION_INDEX via gen-handoff-views.cjs). Use handoff-new.cjs to create handoffs. Stop hook enforces it. Do NOT hand-edit the generated files."
-  },
-  "model": "myzenmux (session /model selection; upstream model unverifiable from inside)",
-  "provider": "custom router (ANTHROPIC_BASE_URL=127.0.0.1:20128)"
+  }
 }
