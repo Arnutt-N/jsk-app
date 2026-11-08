@@ -1,0 +1,14 @@
+#!/bin/sh
+# Block commits directly on main/master — all changes land via a feature
+# branch + PR. Runs at commit time (not push time) so the mistake is caught
+# the moment it happens, not after a revert dance.
+branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null) || exit 0
+case "$branch" in
+  main|master)
+    echo "BLOCKED: committing directly on ${branch}" >&2
+    echo "Create a branch first: git checkout -b <feat/...> (your work is still unstaged/committable there)" >&2
+    echo "Bypass (with reason) only: git commit --no-verify" >&2
+    exit 1
+    ;;
+esac
+exit 0
