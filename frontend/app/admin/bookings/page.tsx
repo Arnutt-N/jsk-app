@@ -15,7 +15,7 @@ import { formatThaiDate, formatThaiDateTime } from '@/lib/format-date'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { AssignModal } from '@/components/admin/AssignModal'
 import { DatePresetFilter } from '@/components/admin/DatePresetFilter'
-import { STANDARD_DATE_PRESETS, presetOptionToDates } from '@/lib/date-range'
+import { useDatePresetFilter } from '@/hooks/useDatePresetFilter'
 import { EditContactDialog, WalkinBookingDialog } from '@/components/admin/WalkinBookingDialog'
 import BookingMonthCalendar from '@/components/admin/BookingMonthCalendar'
 import {
@@ -59,9 +59,8 @@ const ACTIONS: { status: BookingStatus; label: string }[] = [
 ]
 
 export default function AdminBookingsPage() {
-  const [datePreset, setDatePreset] = useState<string | null>(null)
-  const [customStart, setCustomStart] = useState('') // '' = unbounded; must not default to today
-  const [customEnd, setCustomEnd] = useState('')
+  const dateFilter = useDatePresetFilter()
+  const { customStart, customEnd, params: dateParams, isBlocked } = dateFilter
   const [statusFilter, setStatusFilter] = useState<BookingStatus | ''>('')
   const [serviceTypeFilter, setServiceTypeFilter] = useState('')
   const [search, setSearch] = useState('')
@@ -90,8 +89,9 @@ export default function AdminBookingsPage() {
   const [editing, setEditing] = useState<Booking | null>(null)
 
   const load = useCallback(async () => {
-    // reversed คู่ไม่มีความหมาย backend — ข้าม fetch แจ้งเหตุผลผ่าน filter
-    if (customStart && customEnd && customStart > customEnd) {
+    // Reversed pair has no backend meaning; DatePresetFilter already tells
+    // the user why, so skip the fetch.
+    if (isBlocked) {
       setLoading(false)
       return
     }
@@ -100,8 +100,8 @@ export default function AdminBookingsPage() {
     try {
       setBookings(
         await fetchAdminBookings({
-          startDate: customStart || undefined,
-          endDate: customEnd || undefined,
+          startDate: dateParams.start_date,
+          endDate: dateParams.end_date,
           status: statusFilter || undefined,
           serviceType: serviceTypeFilter || undefined,
           search: debouncedSearch.trim() || undefined,
@@ -116,7 +116,7 @@ export default function AdminBookingsPage() {
     } finally {
       setLoading(false)
     }
-  }, [customStart, customEnd, statusFilter, serviceTypeFilter, debouncedSearch, unassignedOnly, page])
+  }, [dateParams, isBlocked, statusFilter, serviceTypeFilter, debouncedSearch, unassignedOnly, page])
 
   // Same 500ms debounce as the requests list — each keystroke must not
   // become an API call. A filter change always restarts from the first page.
@@ -249,12 +249,10 @@ export default function AdminBookingsPage() {
   )
 
   const handleSelectDay = useCallback((iso: string) => {
-    setDatePreset(null)
-    setCustomStart(iso)
-    setCustomEnd(iso)
+    dateFilter.pinSingleDay(iso)
     setPage(0)
     setView('list')
-  }, [])
+  }, [dateFilter])
 
   const counts = useMemo(() => {
     const total = bookings.length
@@ -357,39 +355,15 @@ export default function AdminBookingsPage() {
 
       <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
         <DatePresetFilter
-          preset={datePreset}
-          customStart={customStart}
-          customEnd={customEnd}
-          onPresetChange={(key) => {
-            setDatePreset(key)
-            if (key === 'custom') {
-              setCustomStart('')
-              setCustomEnd('')
-            } else {
-              const opt = STANDARD_DATE_PRESETS.find((p) => p.key === key)
-              if (opt) {
-                const { start, end } = presetOptionToDates(opt)
-                setCustomStart(start)
-                setCustomEnd(end)
-              }
-            }
-            setPage(0)
-          }}
-          onCustomStartChange={(value) => {
-            setDatePreset(null)
-            setCustomStart(value)
-            setPage(0)
-          }}
-          onCustomEndChange={(value) => {
-            setDatePreset(null)
-            setCustomEnd(value)
-            setPage(0)
-          }}
-          showClear={datePreset !== null || customStart !== '' || customEnd !== '' || statusFilter !== '' || serviceTypeFilter !== '' || search !== ''}
+          preset={dateFilter.datePreset}
+          customStart={dateFilter.customStart}
+          customEnd={dateFilter.customEnd}
+          onPresetChange={(key) => { dateFilter.handlePresetChange(key); setPage(0); }}
+          onCustomStartChange={(value) => { dateFilter.handleCustomStartChange(value); setPage(0); }}
+          onCustomEndChange={(value) => { dateFilter.handleCustomEndChange(value); setPage(0); }}
+          showClear={dateFilter.hasFilter || statusFilter !== '' || serviceTypeFilter !== '' || search !== ''}
           onClear={() => {
-            setDatePreset(null)
-            setCustomStart('')
-            setCustomEnd('')
+            dateFilter.clear()
             setStatusFilter('')
             setServiceTypeFilter('')
             setSearch('')

@@ -35,7 +35,7 @@ import { ActionIconButton } from '@/components/ui/ActionIconButton';
 import PageHeader from '@/app/admin/components/PageHeader';
 import { StaggerContainer, StaggerItem } from '@/components/ui/PageTransition';
 import { DatePresetFilter } from '@/components/admin/DatePresetFilter';
-import { STANDARD_DATE_PRESETS, presetOptionToDates } from '@/lib/date-range';
+import { useDatePresetFilter } from '@/hooks/useDatePresetFilter';
 import {
     type RequestStatus,
     STATUS_OPTIONS,
@@ -106,9 +106,8 @@ export default function AdminRequestList() {
     });
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
-    const [datePreset, setDatePreset] = useState<string | null>(null);
-    const [customStart, setCustomStart] = useState('');
-    const [customEnd, setCustomEnd] = useState('');
+    const dateFilter = useDatePresetFilter();
+    const { params: dateParams, isBlocked: isDateBlocked } = dateFilter;
 
     const fetchRequests = useCallback(async () => {
         abortRef.current?.abort();
@@ -118,7 +117,7 @@ export default function AdminRequestList() {
         const seq = seqRef.current;
         // A reversed pair has no backend meaning; skip the fetch rather than
         // widen the result. DatePresetFilter already tells the user why.
-        if (customStart && customEnd && customStart > customEnd) {
+        if (isDateBlocked) {
             setLoading(false);
             return;
         }
@@ -134,8 +133,8 @@ export default function AdminRequestList() {
             }
             if (filter.category) query.append('category', filter.category);
             if (debouncedSearch) query.append('search', debouncedSearch);
-            if (customStart) query.append('start_date', customStart);
-            if (customEnd) query.append('end_date', customEnd);
+            if (dateParams.start_date) query.append('start_date', dateParams.start_date);
+            if (dateParams.end_date) query.append('end_date', dateParams.end_date);
             query.append('skip', String(page * PAGE_LIMIT));
             query.append('limit', String(PAGE_LIMIT));
 
@@ -157,7 +156,7 @@ export default function AdminRequestList() {
             // A superseded request must not clear the loading state of the one that replaced it.
             if (seq === seqRef.current) setLoading(false);
         }
-    }, [debouncedSearch, filter.category, filter.status, customStart, customEnd, page]);
+    }, [debouncedSearch, filter.category, filter.status, dateParams, isDateBlocked, page]);
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -167,7 +166,7 @@ export default function AdminRequestList() {
     }, [search]);
 
     // Reset to the first page on a filter change during render instead of in an effect.
-    const filterKey = `${filter.status}|${filter.category}|${debouncedSearch}|${customStart}|${customEnd}`;
+    const filterKey = `${filter.status}|${filter.category}|${debouncedSearch}|${dateFilter.customStart}|${dateFilter.customEnd}`;
     const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
     if (prevFilterKey !== filterKey) {
         setPrevFilterKey(filterKey);
@@ -317,36 +316,15 @@ export default function AdminRequestList() {
                             {/* Date Range Filter Row */}
                             <div className="mt-4 pt-4 border-t border-border-default">
                                 <DatePresetFilter
-                                    preset={datePreset}
-                                    customStart={customStart}
-                                    customEnd={customEnd}
-                                    onPresetChange={(key) => {
-                                        setDatePreset(key);
-                                        if (key === 'custom') {
-                                            setCustomStart('');
-                                            setCustomEnd('');
-                                        } else {
-                                            const opt = STANDARD_DATE_PRESETS.find((p) => p.key === key);
-                                            if (opt) {
-                                                const { start, end } = presetOptionToDates(opt);
-                                                setCustomStart(start);
-                                                setCustomEnd(end);
-                                            }
-                                        }
-                                    }}
-                                    onCustomStartChange={(value) => {
-                                        setDatePreset(null);
-                                        setCustomStart(value);
-                                    }}
-                                    onCustomEndChange={(value) => {
-                                        setDatePreset(null);
-                                        setCustomEnd(value);
-                                    }}
-                                    showClear={datePreset !== null || customStart !== '' || customEnd !== '' || filter.status !== '' || filter.category !== '' || search !== ''}
+                                    preset={dateFilter.datePreset}
+                                    customStart={dateFilter.customStart}
+                                    customEnd={dateFilter.customEnd}
+                                    onPresetChange={dateFilter.handlePresetChange}
+                                    onCustomStartChange={dateFilter.handleCustomStartChange}
+                                    onCustomEndChange={dateFilter.handleCustomEndChange}
+                                    showClear={dateFilter.hasFilter || filter.status !== '' || filter.category !== '' || search !== ''}
                                     onClear={() => {
-                                        setDatePreset(null);
-                                        setCustomStart('');
-                                        setCustomEnd('');
+                                        dateFilter.clear();
                                         setFilter({ status: '', category: '' });
                                         setSearch('');
                                     }}

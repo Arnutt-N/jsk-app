@@ -15,7 +15,7 @@ import { useToast } from '@/components/ui/Toast';
 import type { SelectOption } from '@/components/ui/Select';
 import { AdminSearchFilterBar } from '@/components/admin/AdminSearchFilterBar';
 import { DatePresetFilter } from '@/components/admin/DatePresetFilter';
-import { resolveDateRange } from '@/lib/date-range';
+import { useDatePresetFilter } from '@/hooks/useDatePresetFilter';
 import { AdminTableHead, type AdminTableHeadColumn } from '@/components/admin/AdminTableHead';
 import {
     RichMenuAssignModal,
@@ -52,9 +52,8 @@ export default function FriendsPage() {
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('');
     const [statusFilter, setStatusFilter] = useState<string | null>(null);
-    const [datePreset, setDatePreset] = useState<string | null>(null);
-    const [customStart, setCustomStart] = useState('');
-    const [customEnd, setCustomEnd] = useState('');
+    const dateFilter = useDatePresetFilter();
+    const { params: dateParams, isBlocked: isDateBlocked } = dateFilter;
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [assignModal, setAssignModal] = useState<{
         open: boolean;
@@ -78,15 +77,17 @@ export default function FriendsPage() {
     );
 
     const fetchFriends = useCallback(async () => {
+        if (isDateBlocked) {
+            setFriends([]);
+            setLoading(false);
+            return;
+        }
         setLoading(true);
         try {
             const params = new URLSearchParams();
             if (statusFilter) params.append('status', statusFilter);
-            const dateRange = resolveDateRange(datePreset, customStart, customEnd);
-            if (dateRange) {
-                params.append('start_date', dateRange.start);
-                params.append('end_date', dateRange.end);
-            }
+            if (dateParams.start_date) params.append('start_date', dateParams.start_date);
+            if (dateParams.end_date) params.append('end_date', dateParams.end_date);
             const qs = params.toString();
             const res = await fetch(`${API_BASE}/admin/friends${qs ? `?${qs}` : ''}`);
             if (res.ok) {
@@ -100,7 +101,7 @@ export default function FriendsPage() {
         } finally {
             setLoading(false);
         }
-    }, [statusFilter, datePreset, customStart, customEnd]);
+    }, [statusFilter, dateParams, isDateBlocked]);
 
     const fetchRichMenus = useCallback(async () => {
         try {
@@ -393,14 +394,14 @@ export default function FriendsPage() {
                 />
                 <div className="flex flex-wrap items-center gap-2">
                     <DatePresetFilter
-                        preset={datePreset}
-                        customStart={customStart}
-                        customEnd={customEnd}
-                        onPresetChange={(key) => { setDatePreset(key); clearSelection(); }}
-                        onCustomStartChange={(v) => { setCustomStart(v); clearSelection(); }}
-                        onCustomEndChange={(v) => { setCustomEnd(v); clearSelection(); }}
-                        showClear={statusFilter !== null || filter !== '' || datePreset !== null}
-                        onClear={() => { setFilter(''); setStatusFilter(null); setDatePreset(null); setCustomStart(''); setCustomEnd(''); clearSelection(); }}
+                        preset={dateFilter.datePreset}
+                        customStart={dateFilter.customStart}
+                        customEnd={dateFilter.customEnd}
+                        onPresetChange={(key) => { dateFilter.handlePresetChange(key); clearSelection(); }}
+                        onCustomStartChange={(v) => { dateFilter.handleCustomStartChange(v); clearSelection(); }}
+                        onCustomEndChange={(v) => { dateFilter.handleCustomEndChange(v); clearSelection(); }}
+                        showClear={statusFilter !== null || filter !== '' || dateFilter.hasFilter}
+                        onClear={() => { setFilter(''); setStatusFilter(null); dateFilter.clear(); clearSelection(); }}
                     />
                 </div>
             </div>

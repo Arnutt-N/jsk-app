@@ -5,7 +5,7 @@ from sqlalchemy import desc, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.date_windows import resolve_range
+from app.core.date_windows import apply_optional_range, resolve_range
 from app.core.logging_utils import mask_line_id
 from app.models.friend_event import EventSource, FriendEvent, FriendEventType
 from app.models.user import User
@@ -236,10 +236,7 @@ class FriendService:
             query = query.where(child_filter(FriendEvent, line_user_id, user.id if user else None))
         if event_type:
             query = query.where(FriendEvent.event_type == event_type)
-        if start_dt is not None:
-            query = query.where(FriendEvent.created_at >= start_dt)
-        if end_dt is not None:
-            query = query.where(FriendEvent.created_at < end_dt)
+        query = apply_optional_range(query, FriendEvent.created_at, start_dt, end_dt)
 
         # Count total
         count_query = select(func.count()).select_from(

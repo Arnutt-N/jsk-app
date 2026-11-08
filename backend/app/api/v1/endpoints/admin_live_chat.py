@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api import deps
 from app.core.audit import create_audit_log
-from app.core.date_windows import day_bounds_utc
+from app.core.date_windows import InvertedRangeError, optional_range_utc
 from app.core.permissions import KEY_ACCESS_LIVE_CHAT
 from app.core.websocket_manager import ReadMarkerPersistenceError, ws_manager
 from app.models.chat_session import ChatSession, ClosedBy, SessionStatus
@@ -95,10 +95,10 @@ async def list_conversations(
     current_user: User = Depends(deps.get_current_staff),
 ) -> Any:
     """List all conversations for inbox"""
-    if start_date and end_date and start_date > end_date:
-        raise HTTPException(status_code=400, detail="start_date must not be after end_date")
-    start_dt = day_bounds_utc(start_date)[0] if start_date else None
-    end_dt = day_bounds_utc(end_date)[1] if end_date else None
+    try:
+        start_dt, end_dt = optional_range_utc(start_date, end_date)
+    except InvertedRangeError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     return await live_chat_service.get_conversations(
         status, db, admin_id=current_user.id, include_archived=include_archived,
         start_dt=start_dt, end_dt=end_dt,
@@ -450,10 +450,10 @@ async def search_messages(
     _current_user: User = Depends(deps.get_current_staff),
 ) -> Any:
     """Search message text across conversations or within a specific conversation."""
-    if start_date and end_date and start_date > end_date:
-        raise HTTPException(status_code=400, detail="start_date must not be after end_date")
-    start_dt = day_bounds_utc(start_date)[0] if start_date else None
-    end_dt = day_bounds_utc(end_date)[1] if end_date else None
+    try:
+        start_dt, end_dt = optional_range_utc(start_date, end_date)
+    except InvertedRangeError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     return {
         "items": await live_chat_service.search_messages(
             query=q,

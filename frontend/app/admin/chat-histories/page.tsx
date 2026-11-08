@@ -21,7 +21,7 @@ import {
 import Image from 'next/image';
 import PageHeader from '@/app/admin/components/PageHeader';
 import { DatePresetFilter } from '@/components/admin/DatePresetFilter';
-import { STANDARD_DATE_PRESETS, presetOptionToDates } from '@/lib/date-range';
+import { useDatePresetFilter } from '@/hooks/useDatePresetFilter';
 import { logger } from '@/lib/logger';
 import { maskLineUserId } from '@/lib/mask';
 
@@ -98,9 +98,8 @@ export default function ChatHistoriesPage() {
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [page, setPage] = useState(0);
-    const [datePreset, setDatePreset] = useState<string | null>(null);
-    const [customStart, setCustomStart] = useState('');
-    const [customEnd, setCustomEnd] = useState('');
+    const dateFilter = useDatePresetFilter();
+    const { params: dateParams, isBlocked: isDateBlocked } = dateFilter;
 
     const API_BASE = '/api/v1';
 
@@ -115,8 +114,7 @@ export default function ChatHistoriesPage() {
 
     /* ---- Fetch conversations ---- */
     const fetchConversations = useCallback(async () => {
-        // reversed คู่ไม่มีความหมาย backend — ข้าม fetch แจ้งเหตุผลผ่าน filter
-        if (customStart && customEnd && customStart > customEnd) {
+        if (isDateBlocked) {
             setLoading(false);
             return;
         }
@@ -124,8 +122,8 @@ export default function ChatHistoriesPage() {
         setFetchError(null);
         try {
             const params = new URLSearchParams();
-            if (customStart) params.append('start_date', customStart);
-            if (customEnd) params.append('end_date', customEnd);
+            if (dateParams.start_date) params.append('start_date', dateParams.start_date);
+            if (dateParams.end_date) params.append('end_date', dateParams.end_date);
             const qs = params.toString();
             const res = await fetch(`${API_BASE}/admin/live-chat/conversations${qs ? `?${qs}` : ''}`);
             if (!res.ok) throw new Error('Failed to fetch conversations');
@@ -138,12 +136,11 @@ export default function ChatHistoriesPage() {
         } finally {
             setLoading(false);
         }
-    }, [API_BASE, customStart, customEnd]);
+    }, [API_BASE, dateParams, isDateBlocked]);
 
     /* ---- Fetch search results ---- */
     const fetchSearchResults = useCallback(async (q: string) => {
-        // reversed คู่ไม่มีความหมาย backend — ข้าม fetch แจ้งเหตุผลผ่าน filter
-        if (customStart && customEnd && customStart > customEnd) {
+        if (isDateBlocked) {
             setLoading(false);
             return;
         }
@@ -151,8 +148,8 @@ export default function ChatHistoriesPage() {
         setFetchError(null);
         try {
             const params = new URLSearchParams({ q, limit: '50' });
-            if (customStart) params.append('start_date', customStart);
-            if (customEnd) params.append('end_date', customEnd);
+            if (dateParams.start_date) params.append('start_date', dateParams.start_date);
+            if (dateParams.end_date) params.append('end_date', dateParams.end_date);
             const res = await fetch(
                 `${API_BASE}/admin/live-chat/messages/search?${params.toString()}`,
             );
@@ -166,7 +163,7 @@ export default function ChatHistoriesPage() {
         } finally {
             setLoading(false);
         }
-    }, [API_BASE, customStart, customEnd]);
+    }, [API_BASE, dateParams, isDateBlocked]);
 
     /* ---- Effect: fetch or search ---- */
     useEffect(() => {
@@ -238,39 +235,15 @@ export default function ChatHistoriesPage() {
                     />
                     <div className="pt-4 border-t border-border-default">
                         <DatePresetFilter
-                            preset={datePreset}
-                            customStart={customStart}
-                            customEnd={customEnd}
-                            onPresetChange={(key) => {
-                                setDatePreset(key);
-                                if (key === 'custom') {
-                                    setCustomStart('');
-                                    setCustomEnd('');
-                                } else {
-                                    const opt = STANDARD_DATE_PRESETS.find((p) => p.key === key);
-                                    if (opt) {
-                                        const { start, end } = presetOptionToDates(opt);
-                                        setCustomStart(start);
-                                        setCustomEnd(end);
-                                    }
-                                }
-                                setPage(0);
-                            }}
-                            onCustomStartChange={(value) => {
-                                setDatePreset(null);
-                                setCustomStart(value);
-                                setPage(0);
-                            }}
-                            onCustomEndChange={(value) => {
-                                setDatePreset(null);
-                                setCustomEnd(value);
-                                setPage(0);
-                            }}
-                            showClear={datePreset !== null || customStart !== '' || customEnd !== '' || search !== ''}
+                            preset={dateFilter.datePreset}
+                            customStart={dateFilter.customStart}
+                            customEnd={dateFilter.customEnd}
+                            onPresetChange={(key) => { dateFilter.handlePresetChange(key); setPage(0); }}
+                            onCustomStartChange={(value) => { dateFilter.handleCustomStartChange(value); setPage(0); }}
+                            onCustomEndChange={(value) => { dateFilter.handleCustomEndChange(value); setPage(0); }}
+                            showClear={dateFilter.hasFilter || search !== ''}
                             onClear={() => {
-                                setDatePreset(null);
-                                setCustomStart('');
-                                setCustomEnd('');
+                                dateFilter.clear();
                                 setSearch('');
                                 setPage(0);
                             }}

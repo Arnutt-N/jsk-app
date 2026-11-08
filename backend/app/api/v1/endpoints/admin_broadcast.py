@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_admin, require_permission
 from app.core.audit import create_audit_log
-from app.core.date_windows import day_bounds_utc
+from app.core.date_windows import InvertedRangeError, optional_range_utc
 from app.core.permissions import KEY_MANAGE_BROADCAST
 from app.db.session import get_db
 from app.models.broadcast import BroadcastStatus, BroadcastType
@@ -114,13 +114,10 @@ async def list_broadcasts(
     db: AsyncSession = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
-    if start_date and end_date and start_date > end_date:
-        raise HTTPException(status_code=400, detail="start_date must not be after end_date")
-
-    # Same per-bound Bangkok-day semantics as the requests list: each bound
-    # is optional independently — no invented lower/upper cap.
-    start_dt = day_bounds_utc(start_date)[0] if start_date else None
-    end_dt = day_bounds_utc(end_date)[1] if end_date else None
+    try:
+        start_dt, end_dt = optional_range_utc(start_date, end_date)
+    except InvertedRangeError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     items, total = await broadcast_service.list_broadcasts(
         db, status=status, skip=skip, limit=limit, start_dt=start_dt, end_dt=end_dt,
     )

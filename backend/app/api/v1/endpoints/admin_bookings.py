@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_admin, get_current_staff, get_current_staff_or_viewer
 from app.core.audit import create_audit_log
+from app.core.date_windows import InvertedRangeError, optional_range_utc
 from app.core.permissions import can_assign, can_self_assign
 from app.core.pii_masking import mask_viewer_contacts
 from app.core.query_utils import escape_ilike
@@ -86,10 +87,12 @@ async def list_bookings(
     # isinstance guard: direct unit calls (no FastAPI validation) leave the
     # Query() object itself as the default instead of None — only real dates
     # participate in the comparison or the WHERE clause.
-    has_start = isinstance(start_date, date_type)
-    has_end = isinstance(end_date, date_type)
-    if has_start and has_end and start_date > end_date:
-        raise HTTPException(status_code=400, detail="start_date must not be after end_date")
+    try:
+        start_dt, end_dt = optional_range_utc(start_date, end_date)
+    except InvertedRangeError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    has_start = start_dt is not None
+    has_end = end_dt is not None
 
     stmt = select(Booking)
     if isinstance(booking_date, date_type):
@@ -97,10 +100,14 @@ async def list_bookings(
     # Range bounds are independent (same per-bound semantics as the
     # requests list): a lone end_date is an upper cap, not an invented
     # lower bound. `booking_date` keeps working as the single-day shortcut.
+    # start_dt/end_dt are Bangkok-midnight UTC bounds; booking_date is a
+    # plain DATE column, so compare against their calendar-day dates.
     if has_start:
-        stmt = stmt.where(Booking.booking_date >= start_date)
+        stmt = stmt.where(Booking.booking_date >= start_dt.date())
     if has_end:
-        stmt = stmt.where(Booking.booking_date <= end_date)
+        # end_dt is exclusive (next Bangkok midnight); the inclusive DATE
+        # cap is the day before it.
+        stmt = stmt.where(Booking.booking_date < end_dt.date())
     if status is not None:
         stmt = stmt.where(Booking.status == status)
     if service_type:
