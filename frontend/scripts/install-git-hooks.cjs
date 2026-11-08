@@ -1,15 +1,16 @@
 /** Install repo git hooks (pre-push guard against direct main pushes).
  *
- * Runs on `npm install` via the `postinstall` script. Copies versioned
- * hooks from scripts/git-hooks/ into .git/hooks/ (git does not sync
- * .git/hooks on clone, so without this the guard only exists on machines
- * that ran it once). Skips silently outside a git checkout.
+ * Runs on `npm install` via the `postinstall` script. The Vercel build
+ * uses frontend/ as its root, so this installer and the hook source live
+ * under frontend/scripts/ (not the repo root) to survive that layout.
+ * Locally it installs into the repo .git/hooks/.
  */
 const { copyFileSync, existsSync, mkdirSync, chmodSync } = require('node:fs');
-const { join, dirname } = require('node:path');
+const { join } = require('node:path');
 
-const root = join(dirname(__filename), '..');
-const src = join(root, 'scripts', 'git-hooks', 'pre-push');
+// frontend/scripts -> frontend -> repo root
+const root = join(__dirname, "..", "..");
+const src = join(__dirname, 'git-hooks', 'pre-push');
 const destDir = join(root, '.git', 'hooks');
 const dest = join(destDir, 'pre-push');
 
