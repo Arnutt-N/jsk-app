@@ -31,9 +31,12 @@ def _event_row(**overrides):
 def _db_with_events(rows):
     """Fake DB that routes by statement kind, not call order.
         side_effect lists break the moment the service reorders its queries
-        (count-first vs page-first bit us twice). String matching on the
-        compiled statement is order-proof: count queries carry func.count,
-        page queries carry LIMIT, decrypt selects hit the identity table.
+        (count-first vs page-first bit us twice). Routing checks the most
+        specific shape first: a decrypt select reads the identity table by
+        user id, then count statements (compiled as count(*) — never the
+        literal text "func.count"), then the paginated page query carries
+        LIMIT. Anything else fails loud instead of silently returning the
+        wrong result set.
     """
     db = AsyncMock()
     page_result = MagicMock()
@@ -43,15 +46,33 @@ def _db_with_events(rows):
     decrypt_result = MagicMock()
     decrypt_result.all.return_value = []
 
+    def _page_sql():
+        """Compiled SQL of the paginated page query (the one with LIMIT)."""
+        for c in db.execute.call_args_list:
+            sql = str(c.args[0])
+            if "limit" in sql.lower():
+                return sql
+        raise AssertionError(
+            f"no paginated (LIMIT) query issued; calls were: "
+            f"{[str(c.args[0])[:120] for c in db.execute.call_args_list]}"
+        )
+
     async def _route(stmt, *args, **kwargs):
         sql = str(stmt)
-        if "func.count" in sql or "count(" in sql.lower():
+        lower = sql.lower()
+        # Decrypt selects read the identity table by user id (no LIMIT,
+        # no count). Check first: a paginated decrypt would otherwise
+        # match the LIMIT branch below.
+        if "from users" in lower:
+            return decrypt_result
+        if "count(" in lower:
             return count_result
-        if "LIMIT" in sql:
+        if "limit" in lower:
             return page_result
-        return decrypt_result
+        raise AssertionError(f"unrouted test statement: {sql[:200]}")
 
     db.execute = AsyncMock(side_effect=_route)
+    db.page_sql = _page_sql  # test helper: read-only introspection
     return db
 
 
@@ -67,11 +88,7 @@ async def test_history_list_date_filter_bounds():
     assert len(events) == 1
     # The page query is the one with LIMIT; the count wrapper shares the
     # same filtered subquery, so either proves the bounds.
-    page_sql = next(
-        str(c.args[0])
-        for c in db.execute.call_args_list
-        if "LIMIT" in str(c.args[0])
-    )
+    page_sql = db.page_sql()
     assert "created_at >=" in page_sql
     assert "created_at <" in page_sql
 
@@ -84,11 +101,7 @@ async def test_history_list_lone_end_date_is_upper_cap():
         end_dt=datetime(2026, 9, 3, 17, 0, tzinfo=timezone.utc),
     )
     assert total == 1
-    page_sql = next(
-        str(c.args[0])
-        for c in db.execute.call_args_list
-        if "LIMIT" in str(c.args[0])
-    )
+    page_sql = db.page_sql()
     assert "created_at <" in page_sql
     assert "created_at >=" not in page_sql
 
