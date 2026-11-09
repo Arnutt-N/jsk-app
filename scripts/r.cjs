@@ -29,7 +29,16 @@ function run(dir, cmd, args) {
     console.error(`[r] expected ${dir}/${marker} — repo layout changed?`);
     process.exit(2);
   }
-  const res = spawnSync(cmd, args, { cwd, stdio: 'inherit', shell: true });
+  // Windows resolves npm/npx only through shell (.cmd shims); POSIX execs the
+  // binary directly. shell:false on POSIX also keeps arg vectors intact — a
+  // shell would re-parse metacharacters in args (dev tool, human-invoked,
+  // so this is misuse protection, not an untrusted-input boundary).
+  const useShell = process.platform === 'win32';
+  const res = spawnSync(cmd, args, {
+    cwd,
+    stdio: 'inherit',
+    shell: useShell,
+  });
   process.exit(res.status ?? 1);
 }
 

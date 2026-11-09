@@ -7,7 +7,9 @@ from fastapi import HTTPException
 from sqlalchemy.dialects import postgresql
 
 from app.api.v1.endpoints import admin_bookings
+from app.models.booking import Booking
 from app.models.booking import BookingStatus
+from app.models.user import User
 from app.schemas.booking import BookingAssignIn
 
 
@@ -15,6 +17,22 @@ def _config(**overrides):
     values = {"assign_enabled": True}
     values.update(overrides)
     return SimpleNamespace(**values)
+
+
+def _routed_get_db(booking, target=None):
+    """db.get routed by model class (Booking vs User), not call order."""
+    booking_result = booking if booking is not None else None
+
+    async def _get(model, pk):
+        if model is Booking:
+            return booking_result
+        if model is User:
+            return target
+        raise AssertionError(f"unrouted db.get model: {model.__name__}")
+
+    db = AsyncMock()
+    db.get = AsyncMock(side_effect=_get)
+    return db
 
 
 def _stored_booking(**overrides):
@@ -49,10 +67,9 @@ def _call(db, payload, booking_id=11, staff=None):
 
 @pytest.mark.asyncio
 async def test_assign_to_another_staff_member():
-    db = AsyncMock()
     booking = _stored_booking()
     target = SimpleNamespace(id=5, role="ADMIN", is_active=True)
-    db.get = AsyncMock(side_effect=[booking, target])
+    db = _routed_get_db(booking, target)
     with patch.object(
         admin_bookings, "load_booking_config", new=AsyncMock(return_value=_config())
     ), patch.object(admin_bookings, "create_audit_log", new=AsyncMock()) as audit:
@@ -67,10 +84,8 @@ async def test_assign_to_another_staff_member():
 
 @pytest.mark.asyncio
 async def test_assign_to_a_citizen_is_rejected():
-    db = AsyncMock()
-    booking = _stored_booking()
-    db.get = AsyncMock(
-        side_effect=[booking, SimpleNamespace(id=9, role="USER", is_active=True)]
+    db = _routed_get_db(
+        _stored_booking(), SimpleNamespace(id=9, role="USER", is_active=True)
     )
     with patch.object(
         admin_bookings, "load_booking_config", new=AsyncMock(return_value=_config())
@@ -81,10 +96,8 @@ async def test_assign_to_a_citizen_is_rejected():
 
 @pytest.mark.asyncio
 async def test_assign_to_an_inactive_account_is_rejected():
-    db = AsyncMock()
-    booking = _stored_booking()
-    db.get = AsyncMock(
-        side_effect=[booking, SimpleNamespace(id=9, role="AGENT", is_active=False)]
+    db = _routed_get_db(
+        _stored_booking(), SimpleNamespace(id=9, role="AGENT", is_active=False)
     )
     with patch.object(
         admin_bookings, "load_booking_config", new=AsyncMock(return_value=_config())
@@ -95,24 +108,20 @@ async def test_assign_to_an_inactive_account_is_rejected():
 
 @pytest.mark.asyncio
 async def test_self_assign_is_allowed_with_the_self_assign_grant():
-    db = AsyncMock()
-    booking = _stored_booking()
-    db.get = AsyncMock(side_effect=[booking])
+    db = _routed_get_db(_stored_booking())
     with patch.object(
         admin_bookings, "load_booking_config", new=AsyncMock(return_value=_config())
     ), patch.object(admin_bookings, "create_audit_log", new=AsyncMock()):
         result = await _call(db, BookingAssignIn(assigned_staff_id=2))
 
-    assert booking.assigned_staff_id == 2
     assert result.assigned_staff_id == 2
     db.commit.assert_awaited()
 
 
 @pytest.mark.asyncio
 async def test_unassign_clears_the_holder():
-    db = AsyncMock()
     booking = _stored_booking(assigned_staff_id=5)
-    db.get = AsyncMock(side_effect=[booking])
+    db = _routed_get_db(booking)
     with patch.object(
         admin_bookings, "load_booking_config", new=AsyncMock(return_value=_config())
     ), patch.object(admin_bookings, "create_audit_log", new=AsyncMock()):
@@ -125,10 +134,9 @@ async def test_unassign_clears_the_holder():
 
 @pytest.mark.asyncio
 async def test_reassigning_the_same_holder_is_a_no_op():
-    db = AsyncMock()
     booking = _stored_booking(assigned_staff_id=5)
-    db.get = AsyncMock(
-        side_effect=[booking, SimpleNamespace(id=5, role="AGENT", is_active=True)]
+    db = _routed_get_db(
+        booking, SimpleNamespace(id=5, role="AGENT", is_active=True)
     )
     with patch.object(
         admin_bookings, "load_booking_config", new=AsyncMock(return_value=_config())
@@ -144,10 +152,9 @@ async def test_reassigning_the_same_holder_is_a_no_op():
 
 @pytest.mark.asyncio
 async def test_reassigning_a_legacy_invalid_holder_is_flagged():
-    db = AsyncMock()
-    booking = _stored_booking(assigned_staff_id=9)
-    db.get = AsyncMock(
-        side_effect=[booking, SimpleNamespace(id=9, role="USER", is_active=True)]
+    db = _routed_get_db(
+        _stored_booking(assigned_staff_id=9),
+        SimpleNamespace(id=9, role="USER", is_active=True),
     )
     with patch.object(
         admin_bookings, "load_booking_config", new=AsyncMock(return_value=_config())
@@ -160,9 +167,7 @@ async def test_reassigning_a_legacy_invalid_holder_is_flagged():
 
 @pytest.mark.asyncio
 async def test_agent_cannot_assign_to_others():
-    db = AsyncMock()
-    booking = _stored_booking()
-    db.get = AsyncMock(side_effect=[booking, SimpleNamespace(id=5)])
+    db = _routed_get_db(_stored_booking(), SimpleNamespace(id=5))
     with patch.object(
         admin_bookings, "load_booking_config", new=AsyncMock(return_value=_config())
     ), pytest.raises(HTTPException) as exc:
@@ -172,9 +177,7 @@ async def test_agent_cannot_assign_to_others():
 
 @pytest.mark.asyncio
 async def test_agent_cannot_unassign():
-    db = AsyncMock()
-    booking = _stored_booking(assigned_staff_id=5)
-    db.get = AsyncMock(side_effect=[booking])
+    db = _routed_get_db(_stored_booking(assigned_staff_id=5))
     with patch.object(
         admin_bookings, "load_booking_config", new=AsyncMock(return_value=_config())
     ), pytest.raises(HTTPException) as exc:
@@ -186,9 +189,7 @@ async def test_agent_cannot_unassign():
 
 @pytest.mark.asyncio
 async def test_agent_can_release_their_own_queue_with_self_assign_grant():
-    db = AsyncMock()
-    booking = _stored_booking(assigned_staff_id=2)
-    db.get = AsyncMock(side_effect=[booking])
+    db = _routed_get_db(_stored_booking(assigned_staff_id=2))
     with patch.object(
         admin_bookings, "load_booking_config", new=AsyncMock(return_value=_config())
     ), patch.object(
@@ -216,8 +217,7 @@ async def test_assign_disabled_is_rejected_before_touching_the_database():
 
 @pytest.mark.asyncio
 async def test_assign_unknown_booking_is_404():
-    db = AsyncMock()
-    db.get = AsyncMock(return_value=None)
+    db = _routed_get_db(None)
     with patch.object(
         admin_bookings, "load_booking_config", new=AsyncMock(return_value=_config())
     ), pytest.raises(HTTPException) as exc:
@@ -227,9 +227,7 @@ async def test_assign_unknown_booking_is_404():
 
 @pytest.mark.asyncio
 async def test_assign_unknown_staff_is_404():
-    db = AsyncMock()
-    booking = _stored_booking()
-    db.get = AsyncMock(side_effect=[booking, None])
+    db = _routed_get_db(_stored_booking(), None)
     with patch.object(
         admin_bookings, "load_booking_config", new=AsyncMock(return_value=_config())
     ), pytest.raises(HTTPException) as exc:

@@ -44,14 +44,25 @@ def _saved_text():
 
 
 def _operator_and_guard_db():
+    """Route by statement shape, not call order: the operator lookup is a
+    SELECT on users, the ghost-push guard is an UPDATE on chat_sessions."""
     operator_result = MagicMock()
     operator_result.scalar_one_or_none.return_value = SimpleNamespace(
         display_name="Op"
     )
     guard_result = MagicMock()
     guard_result.rowcount = 1
+
+    async def _route(stmt, *args, **kwargs):
+        sql = str(stmt)
+        if sql.lstrip().upper().startswith("SELECT"):
+            return operator_result
+        if sql.lstrip().upper().startswith("UPDATE"):
+            return guard_result
+        raise AssertionError(f"unrouted test statement: {sql[:200]}")
+
     db = AsyncMock()
-    db.execute = AsyncMock(side_effect=[operator_result, guard_result])
+    db.execute = AsyncMock(side_effect=_route)
     return db
 
 

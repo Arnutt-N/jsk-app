@@ -32,11 +32,12 @@ def _db_with_events(rows):
     """Fake DB that routes by statement kind, not call order.
         side_effect lists break the moment the service reorders its queries
         (count-first vs page-first bit us twice). Routing checks the most
-        specific shape first: a decrypt select reads the identity table by
-        user id, then count statements (compiled as count(*) — never the
-        literal text "func.count"), then the paginated page query carries
-        LIMIT. Anything else fails loud instead of silently returning the
-        wrong result set.
+        specific shape first: a resolve-by-hash select reads the identity
+        table by line_user_id_hash, then a decrypt select reads it by user
+        id, then count statements (compiled as count(*) — never the literal
+        text "func.count"), then the paginated page query carries LIMIT.
+        Anything else fails loud instead of silently returning the wrong
+        result set.
     """
     db = AsyncMock()
     page_result = MagicMock()
@@ -45,6 +46,8 @@ def _db_with_events(rows):
     count_result.scalar.return_value = len(rows)
     decrypt_result = MagicMock()
     decrypt_result.all.return_value = []
+    resolve_result = MagicMock()
+    resolve_result.scalar_one_or_none.return_value = None
 
     def _page_sql():
         """Compiled SQL of the paginated page query (the one with LIMIT)."""
@@ -60,6 +63,12 @@ def _db_with_events(rows):
     async def _route(stmt, *args, **kwargs):
         sql = str(stmt)
         lower = sql.lower()
+        # Resolve-by-hash reads the identity table by line_user_id_hash and
+        # consumes scalar_one_or_none(); a miss is None, not a MagicMock.
+        # Check before the generic "from users" branch so a paginated
+        # decrypt would not otherwise swallow it.
+        if "line_user_id_hash" in lower:
+            return resolve_result
         # Decrypt selects read the identity table by user id (no LIMIT,
         # no count). Check first: a paginated decrypt would otherwise
         # match the LIMIT branch below.
@@ -74,6 +83,17 @@ def _db_with_events(rows):
     db.execute = AsyncMock(side_effect=_route)
     db.page_sql = _page_sql  # test helper: read-only introspection
     return db
+
+
+@pytest.mark.asyncio
+async def test_history_list_resolve_by_line_id_miss_returns_none():
+    """Pin the OTHER-bucket route: a resolve-by-hash select consumes
+    scalar_one_or_none() and must see None on a miss, not a MagicMock."""
+    from app.services.user_identity_service import resolve_by_line_id
+
+    db = _db_with_events([])
+    resolved = await resolve_by_line_id(db, "Uunknown")
+    assert resolved is None
 
 
 @pytest.mark.asyncio
