@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 327 active handoffs, 12 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 328 active handoffs, 12 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-11-09 23:11 — claude_code — completed
+
+Closed handoff items 1-3 from checkpoint 20261109-0712: r.cjs shell branch by platform, resolve_by_line_id hash branch in friend-history mock, 7-file statement-routing sweep. PR #330 opened.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20261109-2311.json`
+- Summary: `project-log-md/claude_code/session-summary-20261109-2311.md`
+
+---
 
 ### 2026-11-09 07:12 — claude_code — completed
 
