@@ -1,0 +1,17 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-11-09T07:12:00+07:00",
+  "branch": "main",
+  "head_commit": "7053188",
+  "status": "completed",
+  "work_summary": "PR #326 merged + #327 verified; poteto review of #325 done",
+  "priority_actions": [
+    "Open: shell:true in r.cjs, mock OTHER-bucket branch, 13 legacy side_effect files",
+    "All PRs #321-#328 merged and green; interrogate/thermos/correct/deslop completed for #325"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/claude_code/session-summary-20261109-0712.md",
+  "cross_platform_read": []
+}

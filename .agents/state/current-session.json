@@ -1,13 +1,20 @@
 {
-  "last_updated": "2026-11-09T05:08:00+07:00",
+  "last_updated": "2026-11-09T07:12:00+07:00",
   "platform": "claude_code",
-  "current_task": "Date-filter rollout + agent guardrails (PR #321-#327 merged)",
+  "current_task": "PR #326 merged + #327 verified; poteto review of #325 done",
   "plan_status": "completed",
   "next_steps": [
-    "Interrogate findings 2 items left open: shell:true in r.cjs, OTHER-bucket mock branch",
-    "Smoke + CI green on all 7 PRs; next: thermo bug/security retry still pending"
+    "Open: shell:true in r.cjs, mock OTHER-bucket branch, 13 legacy side_effect files",
+    "All PRs #321-#328 merged and green; interrogate/thermos/correct/deslop completed for #325"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-11-09T07:12:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "7053188",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-11-09T05:08:00+07:00",
       "platform": "claude_code",
@@ -139,13 +146,6 @@
       "platform": "pi",
       "branch": "main",
       "head": "14ead1f",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-10-23T19:25:00+07:00",
-      "platform": "pi",
-      "branch": "main",
-      "head": "c319a45",
       "status": "completed"
     }
   ],
