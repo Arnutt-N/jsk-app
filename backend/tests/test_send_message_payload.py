@@ -32,8 +32,17 @@ async def test_send_message_returns_persisted_payload():
     )
     guard_result = MagicMock()
     guard_result.rowcount = 1
+
+    async def _route(stmt, *args, **kwargs):
+        sql = str(stmt)
+        if sql.lstrip().upper().startswith("SELECT"):
+            return operator_result
+        if sql.lstrip().upper().startswith("UPDATE"):
+            return guard_result
+        raise AssertionError(f"unrouted test statement: {sql[:200]}")
+
     db = AsyncMock()
-    db.execute = AsyncMock(side_effect=[operator_result, guard_result])
+    db.execute = AsyncMock(side_effect=_route)
     line_svc = Mock()
     line_svc.save_message = AsyncMock(return_value=saved)
     line_svc.push_messages = AsyncMock()

@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-11-09 07:12 by Claude Code (PR #326 merged + #327 verified; poteto review of #325 done)
+> **Last Updated:** 2026-11-09 23:11 by Claude Code (Closed handoff items 1-3 from checkpoint 20261109-0712: r.cjs shell branch by platform, re)
 
 ## Thai Summary
 **สถานะล่าสุด (2026-10-27)** — งานตรวจโค้ดรอบใหม่ Task 22 เสร็จ: เปิดประตูตรวจโค้ดหลังบ้าน (ruff) ใน CI แล้ว, PR #301 (draft) CI เขียวครบทุกด่าน; เหลืออีก 29 งาน เริ่มจาก Phase 0 (CI tasks 13, 14, 18, 24) — ดูรายละเอียดใน `project-log-md/pi/session-summary-20261027-1225.md`
@@ -126,6 +126,7 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-11-09 23:11] Claude Code: Closed handoff items 1-3 from checkpoint 20261109-0712: r.cjs shell branch by platform, resolve_by_line_id hash branch in friend-history mock, 7-file statement-routing sweep. PR #330 opened. (Claude Code)
 - [2026-11-09 07:12] Claude Code: PR #326 merged + #327 verified; poteto review of #325 done (Claude Code)
 - [2026-11-09 05:08] Claude Code: Date-filter rollout + agent guardrails (PR #321-#327 merged) (Claude Code)
 - [2026-11-07 13:42] Claude Code: Merged 2 PRs continuing the admin UI consistency pass. #319 (d31f628) fixed the shared DatePresetFilter: the preset and clear buttons were rounded-lg while the CalendarPickerTH date boxes are rounded-xl, so all four buttons now carry rounde (Claude Code)

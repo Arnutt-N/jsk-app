@@ -31,14 +31,22 @@ def _quarantine_db(monkeypatch):
     user2 = SimpleNamespace(
         id=2, display_name="Bad", picture_url=None, friend_status=None, chat_mode=None
     )
+    inbox_result = _result([(user1, None, None, None), (user2, None, None, None)])
+    decrypt_result = _result([(1, good_token), (2, "garbage-not-a-token")])
+    tag_result = _result([])
+
+    async def _route(stmt, *args, **kwargs):
+        sql = str(stmt).lower()
+        if "chat_sessions" in sql:
+            return inbox_result
+        if "line_user_id_encrypted" in sql and "user_tag" not in sql:
+            return decrypt_result
+        if "user_tag" in sql:
+            return tag_result
+        raise AssertionError(f"unrouted test statement: {sql[:200]}")
+
     db = AsyncMock()
-    db.execute = AsyncMock(
-        side_effect=[
-            _result([(user1, None, None, None), (user2, None, None, None)]),
-            _result([(1, good_token), (2, "garbage-not-a-token")]),
-            _result([]),
-        ]
-    )
+    db.execute = AsyncMock(side_effect=_route)
     db.scalar = AsyncMock(return_value=0)
     return db
 
@@ -61,14 +69,22 @@ def _vanished_db():
     user2 = SimpleNamespace(
         id=2, display_name="Gone", picture_url=None, friend_status=None, chat_mode=None
     )
+    inbox_result = _result([(user1, None, None, None), (user2, None, None, None)])
+    decrypt_result = _result([(1, good_token)])
+    tag_result = _result([])
+
+    async def _route(stmt, *args, **kwargs):
+        sql = str(stmt).lower()
+        if "chat_sessions" in sql:
+            return inbox_result
+        if "line_user_id_encrypted" in sql and "user_tag" not in sql:
+            return decrypt_result
+        if "user_tag" in sql:
+            return tag_result
+        raise AssertionError(f"unrouted test statement: {sql[:200]}")
+
     db = AsyncMock()
-    db.execute = AsyncMock(
-        side_effect=[
-            _result([(user1, None, None, None), (user2, None, None, None)]),
-            _result([(1, good_token)]),
-            _result([]),
-        ]
-    )
+    db.execute = AsyncMock(side_effect=_route)
     db.scalar = AsyncMock(return_value=0)
     return db
 

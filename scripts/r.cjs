@@ -29,7 +29,13 @@ function run(dir, cmd, args) {
     console.error(`[r] expected ${dir}/${marker} — repo layout changed?`);
     process.exit(2);
   }
-  const res = spawnSync(cmd, args, { cwd, stdio: 'inherit', shell: true });
+  // Windows needs shell for npm/npx .cmd shims; POSIX shell:false keeps arg vectors intact.
+  const useShell = process.platform === 'win32';
+  const res = spawnSync(cmd, args, {
+    cwd,
+    stdio: 'inherit',
+    shell: useShell,
+  });
   process.exit(res.status ?? 1);
 }
 

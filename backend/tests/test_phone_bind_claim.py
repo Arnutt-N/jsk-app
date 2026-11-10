@@ -48,15 +48,9 @@ class _FakeRowsAndCount:
         return len(self._rows)
 
 
-def _make_db(scan_rows, latest_rows):
+def _make_db(scan_rows):
     db = AsyncMock()
-    db.execute = AsyncMock(
-        side_effect=[
-            _FakeRowsAndCount(scan_rows),
-            SimpleNamespace(),
-            _FakeRowsAndCount(latest_rows),
-        ]
-    )
+    db.execute = AsyncMock(return_value=_FakeRowsAndCount(scan_rows))
     return db
 
 
@@ -91,16 +85,7 @@ def _assert_no_binding_write(db):
 async def test_claim_unbound_victims_binds_nothing_and_leaks_nothing(caplog):
     caplog.set_level(logging.INFO)
     scan = [(101, None, None), (102, None, None), (103, None, None)]
-    latest = [
-        SimpleNamespace(
-            id=101,
-            requester_name=VICTIM_NAME,
-            phone_number=VICTIM_PHONE,
-            description=VICTIM_DETAILS,
-            topic_category="ขอความช่วยเหลือ",
-        )
-    ]
-    db = _make_db(scan, latest)
+    db = _make_db(scan)
     line_svc = _make_line_svc()
     await _run_claim(db, line_svc)
 
@@ -120,7 +105,7 @@ async def test_claim_unbound_victims_binds_nothing_and_leaks_nothing(caplog):
 
 @pytest.mark.asyncio
 async def test_claim_unknown_number_replies_not_found_without_echo():
-    db = _make_db([], [])
+    db = _make_db([])
     line_svc = _make_line_svc()
     await _run_claim(db, line_svc)
 

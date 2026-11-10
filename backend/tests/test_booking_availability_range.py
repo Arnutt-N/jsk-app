@@ -50,13 +50,24 @@ def _hours(weekday, is_open=True, open_time="08:00", close_time="17:00"):
 
 
 def _db(hours=None, count_rows=None):
-    """AsyncSession stub answering exactly two queries: hours, then counts."""
+    """AsyncSession stub routing by statement shape: the hours query selects
+    BusinessHours, the counts query aggregates bookings (the batched
+    14-day window must stay exactly those two queries)."""
     db = AsyncMock()
     hours_result = MagicMock()
     hours_result.scalars.return_value.all.return_value = list(hours or [])
     counts_result = MagicMock()
     counts_result.all.return_value = list(count_rows or [])
-    db.execute = AsyncMock(side_effect=[hours_result, counts_result])
+
+    async def _route(stmt, *args, **kwargs):
+        sql = str(stmt)
+        if "business_hours" in sql.lower():
+            return hours_result
+        if "bookings" in sql.lower():
+            return counts_result
+        raise AssertionError(f"unrouted test statement: {sql[:200]}")
+
+    db.execute = AsyncMock(side_effect=_route)
     return db
 
 
