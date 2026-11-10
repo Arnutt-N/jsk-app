@@ -1,0 +1,17 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-11-10T20:28:00+07:00",
+  "branch": "fix/mock-routing-and-r-cjs-shell",
+  "head_commit": "196561a",
+  "status": "completed",
+  "work_summary": "PR #330 green on head 196561a: all 6 CI checks SUCCESS. Gauntlet status: no-comments done (4 comments killed, 8 KEEP), blast-radius probe OK (11/11 statements route correctly), babysit done (root-caused CI ruff I001 to import sort, fixed). Remaining: interrogate, thermos, correct, deslop not yet run.",
+  "priority_actions": [
+    "Run interrogate + thermos on PR 330 diff",
+    "Run correct + deslop as final gate"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/claude_code/session-summary-20261110-2028.md",
+  "cross_platform_read": []
+}

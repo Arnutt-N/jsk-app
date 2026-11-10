@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 328 active handoffs, 12 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 329 active handoffs, 12 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-11-10 20:28 — claude_code — completed
+
+PR #330 green on head 196561a: all 6 CI checks SUCCESS. Gauntlet status: no-comments done (4 comments killed, 8 KEEP), blast-radius probe OK (11/11 statements route correctly), babysit done (root-caused CI ruff I001 to import sort, fixed). Remaining: interrogate, thermos, correct, deslop not yet run.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20261110-2028.json`
+- Summary: `project-log-md/claude_code/session-summary-20261110-2028.md`
+
+---
 
 ### 2026-11-09 23:11 — claude_code — completed
 

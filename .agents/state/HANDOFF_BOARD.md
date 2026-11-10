@@ -1,8 +1,8 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Handoff Board (generated)
 
-> **Last generated**: 2026-11-09 23:11 (from newest checkpoint)
-> 328 active handoffs, 12 platforms, 0 queued directed handoff(s).
+> **Last generated**: 2026-11-10 20:28 (from newest checkpoint)
+> 329 active handoffs, 12 platforms, 0 queued directed handoff(s).
 
 > Regenerate after any handoff: `node .agents/scripts/gen-handoff-views.cjs`
 
@@ -11,7 +11,7 @@
 | Platform | Status | Last active | Queued | Last task | Summary |
 |----------|--------|-------------|--------|-----------|---------|
 | antigravity | AVAILABLE | 2026-09-04 09:00 | 0 | P2 Thai Calendar and Date Standardization merged into main (PR #223, commit f91b12b). 3-gate codebase-review-fix pipelin | `project-log-md/antigravity/session-summary-20260904-0900.md` |
-| claude_code | AVAILABLE | 2026-11-09 23:11 | 0 | Closed handoff items 1-3 from checkpoint 20261109-0712: r.cjs shell branch by platform, resolve_by_line_id hash branch i | `project-log-md/claude_code/session-summary-20261109-2311.md` |
+| claude_code | AVAILABLE | 2026-11-10 20:28 | 0 | PR #330 green on head 196561a: all 6 CI checks SUCCESS. Gauntlet status: no-comments done (4 comments killed, 8 KEEP), b | `project-log-md/claude_code/session-summary-20261110-2028.md` |
 | cline | AVAILABLE | 2026-09-27 20:08 | 0 | Merged PR 236 codebase-review-fix batch F1-F7: SQL-like escaping pagination bounds broadcast fan-out dedup LINE-ID log m | `project-log-md/cline/session-summary-20260927-2008.md` |
 | codex | AVAILABLE | 2026-08-29 06:54 | 0 | Completed evidence-backed deep review of Qoder audit sweep and architecture report; consolidated findings and remediatio | `project-log-md/codex/session-summary-20260829-0654.md` |
 | gemini_cli | AVAILABLE | 2026-04-03 12:00 | 0 | Redesigned the login page to align with the new landing page aesthetic (glassmorphism, shared backgrounds, brand mark).  | — |
@@ -35,6 +35,7 @@ _None — no blocked checkpoints._
 
 | When | From → To | Task | Checkpoint |
 |------|-----------|------|------------|
+| 2026-11-10 20:28 | claude_code → all | PR #330 green on head 196561a: all 6 CI checks SUCCESS. Gauntlet status: no-comments done (4 comments killed, 8 KEEP), blast-radius probe OK | `handover-claude_code-20261110-2028.json` |
 | 2026-11-09 23:11 | claude_code → all | Closed handoff items 1-3 from checkpoint 20261109-0712: r.cjs shell branch by platform, resolve_by_line_id hash branch in friend-history moc | `handover-claude_code-20261109-2311.json` |
 | 2026-11-09 07:12 | claude_code → all | PR #326 merged + #327 verified; poteto review of #325 done | `handover-claude_code-20261109-0712.json` |
 | 2026-11-09 05:08 | claude_code → all | Date-filter rollout + agent guardrails (PR #321-#327 merged) | `handover-claude_code-20261109-0508.json` |
@@ -44,4 +45,3 @@ _None — no blocked checkpoints._
 | 2026-11-04 07:40 | claude_code → all | Merged three PRs completing the Next.js 16.4.3 security upgrade and full react-hooks conformance on main. #309 upgraded next 16.1.1 -> 16.4. | `handover-claude_code-20261104-0740.json` |
 | 2026-11-01 11:11 | claude_code → all | Next.js security upgrade in progress on branch chore/next-16-4-3-cve (uncommitted). next 16.1.1 -> 16.4.3 clears 4 critical advisories to 0  | `handover-claude_code-20261101-1111.json` |
 | 2026-10-29 17:21 | claude_code → all | Codebase review plan 30/30 complete, plus a review/correct/deslop pass that closed 4 findings (2 latent fail-open in the route manifest, 1 s | `handover-claude_code-20261029-1721.json` |
-| 2026-10-29 11:32 | claude_code → all | Codebase review plan COMPLETE: all 30/30 tasks done (Tasks 20,21,25,26,29,30 this session). CI + E2E + Encoding green at 38f2385. | `handover-claude_code-20261029-1132.json` |
