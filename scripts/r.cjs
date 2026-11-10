@@ -29,10 +29,7 @@ function run(dir, cmd, args) {
     console.error(`[r] expected ${dir}/${marker} — repo layout changed?`);
     process.exit(2);
   }
-  // Windows resolves npm/npx only through shell (.cmd shims); POSIX execs the
-  // binary directly. shell:false on POSIX also keeps arg vectors intact — a
-  // shell would re-parse metacharacters in args (dev tool, human-invoked,
-  // so this is misuse protection, not an untrusted-input boundary).
+  // Windows needs shell for npm/npx .cmd shims; POSIX shell:false keeps arg vectors intact.
   const useShell = process.platform === 'win32';
   const res = spawnSync(cmd, args, {
     cwd,

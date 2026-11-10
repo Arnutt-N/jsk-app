@@ -7,8 +7,7 @@ from fastapi import HTTPException
 from sqlalchemy.dialects import postgresql
 
 from app.api.v1.endpoints import admin_bookings
-from app.models.booking import Booking
-from app.models.booking import BookingStatus
+from app.models.booking import Booking, BookingStatus
 from app.models.user import User
 from app.schemas.booking import BookingAssignIn
 
@@ -21,11 +20,9 @@ def _config(**overrides):
 
 def _routed_get_db(booking, target=None):
     """db.get routed by model class (Booking vs User), not call order."""
-    booking_result = booking if booking is not None else None
-
     async def _get(model, pk):
         if model is Booking:
-            return booking_result
+            return booking
         if model is User:
             return target
         raise AssertionError(f"unrouted db.get model: {model.__name__}")

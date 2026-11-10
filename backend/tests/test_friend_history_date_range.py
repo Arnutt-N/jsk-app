@@ -63,11 +63,7 @@ def _db_with_events(rows):
     async def _route(stmt, *args, **kwargs):
         sql = str(stmt)
         lower = sql.lower()
-        # Resolve-by-hash reads the identity table by line_user_id_hash and
-        # consumes scalar_one_or_none(); a miss is None, not a MagicMock.
-        # Check before the generic "from users" branch so a paginated
-        # decrypt would not otherwise swallow it.
-        if "line_user_id_hash" in lower:
+        if "line_user_id_hash =" in lower:
             return resolve_result
         # Decrypt selects read the identity table by user id (no LIMIT,
         # no count). Check first: a paginated decrypt would otherwise

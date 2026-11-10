@@ -49,8 +49,6 @@ class _FakeRowsAndCount:
 
 
 def _make_db(scan_rows):
-    """One count query: the handler resolves the user via a patched
-    resolve_by_line_id, then counts matching requests. Presence only."""
     db = AsyncMock()
     db.execute = AsyncMock(return_value=_FakeRowsAndCount(scan_rows))
     return db
