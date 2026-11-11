@@ -30,6 +30,9 @@ function run(dir, cmd, args) {
     process.exit(2);
   }
   // Windows needs shell for npm/npx .cmd shims; POSIX shell:false keeps arg vectors intact.
+  // Windows caveat: shell:true re-parses metacharacters in args, so an arg
+  // with spaces or & splits or runs shell syntax. This is a human-invoked
+  // dev tool with no untrusted input, so the hazard is documented, not fixed.
   const useShell = process.platform === 'win32';
   const res = spawnSync(cmd, args, {
     cwd,
