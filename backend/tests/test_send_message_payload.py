@@ -35,7 +35,7 @@ async def test_send_message_returns_persisted_payload():
 
     async def _route(stmt, *args, **kwargs):
         sql = str(stmt)
-        if sql.lstrip().upper().startswith("SELECT"):
+        if "from users" in sql.lower():
             return operator_result
         if sql.lstrip().upper().startswith("UPDATE"):
             return guard_result
