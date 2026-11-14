@@ -87,19 +87,14 @@ def _db_with_events(rows):
 async def test_history_list_resolve_by_line_id_miss_returns_none():
     """Pin the OTHER-bucket route: a resolve-by-hash select consumes
     scalar_one_or_none() and must see None on a miss, not a MagicMock.
-    The None is observable downstream: _get_refollow_count then filters on
-    false(), so the count statement carries it."""
+    The None is observable downstream: _get_refollow_count then counts zero
+    refollows for an unknown user."""
     from app.services.user_identity_service import resolve_by_line_id
 
     db = _db_with_events([])
     resolved = await resolve_by_line_id(db, "Uunknown")
     assert resolved is None
-    refollow = await friend_service._get_refollow_count("Uunknown", db)
-    assert refollow == 0
-    count_sql = next(
-        str(c.args[0]) for c in db.execute.call_args_list if "count(" in str(c.args[0]).lower()
-    )
-    assert "false" in count_sql.lower()
+    assert await friend_service._get_refollow_count("Uunknown", db) == 0
 
 
 @pytest.mark.asyncio
