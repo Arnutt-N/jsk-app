@@ -319,6 +319,7 @@ Example: `feat(live-chat): add operator typing indicator`
 | Never push to `main` — open a PR | `scripts/git-hooks/pre-push` (installed via `postinstall`) |
 | Run repo commands from the repo root only | `node scripts/r.cjs <frontend\|backend> <cmd...>` |
 | Backend date-filter mocks route by statement, never by call order | `test_friend_history_date_range.py::_db_with_events` pattern |
+| Handoff validator runs on a real interpreter, never the MS Store `python` stub | `handoff-new.cjs::runValidator` requires the `RESULT:` marker |
 
 ### CI Checks (run on push)
 - **Frontend Lint & Build**: ESLint + `tsc --noEmit` + `next build`
