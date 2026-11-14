@@ -29,7 +29,8 @@ function run(dir, cmd, args) {
     console.error(`[r] expected ${dir}/${marker} — repo layout changed?`);
     process.exit(2);
   }
-  // Windows needs shell for npm/npx .cmd shims; POSIX shell:false keeps arg vectors intact.
+  // Windows needs shell for npm/npx .cmd shims; shell:true re-parses
+  // metacharacters in args — human-invoked dev tool, no untrusted input.
   const useShell = process.platform === 'win32';
   const res = spawnSync(cmd, args, {
     cwd,

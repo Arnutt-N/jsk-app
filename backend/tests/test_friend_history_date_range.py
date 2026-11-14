@@ -72,7 +72,9 @@ def _db_with_events(rows):
             return decrypt_result
         if "count(" in lower:
             return count_result
-        if "limit" in lower:
+        # Gate the page branch on SELECT so a paginated non-SELECT cannot
+        # silently receive the page result set.
+        if lower.lstrip().startswith("select") and "limit" in lower:
             return page_result
         raise AssertionError(f"unrouted test statement: {sql[:200]}")
 
@@ -84,12 +86,15 @@ def _db_with_events(rows):
 @pytest.mark.asyncio
 async def test_history_list_resolve_by_line_id_miss_returns_none():
     """Pin the OTHER-bucket route: a resolve-by-hash select consumes
-    scalar_one_or_none() and must see None on a miss, not a MagicMock."""
+    scalar_one_or_none() and must see None on a miss, not a MagicMock.
+    The None is observable downstream: _get_refollow_count then counts zero
+    refollows for an unknown user."""
     from app.services.user_identity_service import resolve_by_line_id
 
     db = _db_with_events([])
     resolved = await resolve_by_line_id(db, "Uunknown")
     assert resolved is None
+    assert await friend_service._get_refollow_count("Uunknown", db) == 0
 
 
 @pytest.mark.asyncio

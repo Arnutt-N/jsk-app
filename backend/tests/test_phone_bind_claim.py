@@ -49,8 +49,19 @@ class _FakeRowsAndCount:
 
 
 def _make_db(scan_rows):
+    """One count query: the handler resolves the user via a patched
+    resolve_by_line_id, then counts matching requests. Presence only.
+    Route by shape so a future extra query fails loud, not silently served."""
+    count_result = _FakeRowsAndCount(scan_rows)
+
+    async def _route(stmt, *args, **kwargs):
+        sql = str(stmt).lower()
+        if "count(" in sql and "service_requests" in sql:
+            return count_result
+        raise AssertionError(f"unrouted test statement: {sql[:200]}")
+
     db = AsyncMock()
-    db.execute = AsyncMock(return_value=_FakeRowsAndCount(scan_rows))
+    db.execute = AsyncMock(side_effect=_route)
     return db
 
 

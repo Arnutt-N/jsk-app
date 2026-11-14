@@ -36,7 +36,13 @@ def _quarantine_db(monkeypatch):
     tag_result = _result([])
 
     async def _route(stmt, *args, **kwargs):
-        sql = str(stmt).lower()
+        sql = str(stmt).lower().lstrip()
+        # Inbox listing joins chat_sessions+messages; the batch decrypt reads
+        # line_user_id_encrypted; the tag fetch joins user_tag. The inbox
+        # select must be checked first — it also lists line_user_id_encrypted
+        # among the User columns, so the narrower decrypt match comes after.
+        if not sql.startswith("select"):
+            raise AssertionError(f"unrouted non-select statement: {sql[:200]}")
         if "chat_sessions" in sql:
             return inbox_result
         if "line_user_id_encrypted" in sql and "user_tag" not in sql:
@@ -74,7 +80,11 @@ def _vanished_db():
     tag_result = _result([])
 
     async def _route(stmt, *args, **kwargs):
-        sql = str(stmt).lower()
+        sql = str(stmt).lower().lstrip()
+        # Same gotcha as _quarantine_db: inbox select carries
+        # line_user_id_encrypted, so it must win before the decrypt match.
+        if not sql.startswith("select"):
+            raise AssertionError(f"unrouted non-select statement: {sql[:200]}")
         if "chat_sessions" in sql:
             return inbox_result
         if "line_user_id_encrypted" in sql and "user_tag" not in sql:
