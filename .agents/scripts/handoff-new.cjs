@@ -306,10 +306,13 @@ function main() {
 function runValidator(root, platform) {
   const script = path.join(root, '.agents', 'scripts', 'validate_handoff_state.py');
   if (!fs.existsSync(script)) return null;
-  for (const py of ['python3', 'python', 'py']) {
+  // `py` is the real Windows launcher; `python3`/`python` are often MS Store
+  // stubs that exit 0 without running anything, which would false-PASS. Require
+  // the validator's own RESULT: marker so a silent stub cannot count as PASS.
+  for (const py of ['py', 'python3', 'python']) {
     try {
-      execFileSync(py, [script, '--platform', platform], { cwd: root, stdio: 'inherit' });
-      return true; // exit 0
+      const out = execFileSync(py, [script, '--platform', platform], { cwd: root, encoding: 'utf8' });
+      return /RESULT:\s*(PASS|FAIL)/.test(out);
     } catch (err) {
       // ENOENT = this interpreter isn't installed; try the next candidate.
       if (err && err.code === 'ENOENT') continue;
