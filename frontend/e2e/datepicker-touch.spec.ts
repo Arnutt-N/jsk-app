@@ -66,9 +66,13 @@ test.describe('datepicker touch behaviour', () => {
     expect(clipped).toBe(false)
 
     await page.keyboard.press('Escape')
-    // Same force rationale as the trigger tap above: outcome assertions
-    // (empty field, zero clear buttons) carry the proof.
-    await clear.tap({ force: true })
+    // Wait for the dialog to actually detach before touching the clear (X).
+    // Escape only starts Radix's close animation; tapping during it lands on
+    // the overlay, so the clear's onClick never runs and the field keeps its
+    // value. That is the flake this assertion used to hit on CI: force skips
+    // the hit-target check, so the tap "succeeded" while hitting nothing.
+    await expect(dialog).toHaveCount(0)
+    await clear.tap()
     await expect(day).toHaveValue('')
     await expect(page.getByLabel('ล้างวันที่')).toHaveCount(0)
 
