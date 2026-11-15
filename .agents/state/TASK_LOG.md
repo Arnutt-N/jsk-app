@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 329 active handoffs, 12 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 330 active handoffs, 12 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-11-15 20:34 — claude_code — completed
+
+Three PRs open, all red on the same Playwright datepicker-touch spec. #336 docs (intent_combine order-pin, GOOD, only red because shared E2E job). #337 first datepicker attempt (REVERTED conceptually by #338). #338 blur-commit fix, INSUFFICIENT: tap still times out, interceptor rotation unchanged. Root cause still unproven after 3 wrong hypotheses.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20261115-2034.json`
+- Summary: `project-log-md/claude_code/session-summary-20261115-2034.md`
+
+---
 
 ### 2026-11-15 08:12 — claude_code — completed
 
