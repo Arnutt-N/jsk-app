@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 328 active handoffs, 12 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 329 active handoffs, 12 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-11-15 08:12 — claude_code — completed
+
+Gauntlet closed on PR #330 and follow-ups merged: #331 verb-gated mock routers, #332 handoff validator on real interpreter, #333 send_message SELECT-gated route + stop-check py launcher. origin/main at 33f2e5b.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20261115-0812.json`
+- Summary: `project-log-md/claude_code/session-summary-20261115-0812.md`
+
+---
 
 ### 2026-11-09 23:11 — claude_code — completed
 
