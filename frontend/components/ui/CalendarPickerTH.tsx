@@ -220,10 +220,17 @@ export default function CalendarPickerTH({
     }
   };
 
+  // Blur commits only when the fields are incomplete, so a blur that lands
+  // after the year-complete commit (the queueMicrotask in handleInput) does
+  // not fire a second onChange and refetch. That second commit moved the row
+  // under any tap that followed the blur.
   const handleBlur = () => {
     setTimeout(() => {
       if (!containerRef.current?.contains(document.activeElement)) {
-        validateAndUpdate();
+        const day = dayRef.current?.value ?? "";
+        const month = monthRef.current?.value ?? "";
+        const beYear = yearRef.current?.value ?? "";
+        if (!day || !month || !beYear) validateAndUpdate();
       }
     }, 100);
   };

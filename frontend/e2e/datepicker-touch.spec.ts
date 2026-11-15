@@ -36,9 +36,9 @@ test.describe('datepicker touch behaviour', () => {
     const clear = page.getByLabel('ล้างวันที่').first()
     await expect(clear).toBeVisible()
 
-    // Drop focus from the year input and let the refetch settle, so the
-    // trigger stops moving before the tap's stability check runs.
-    await page.getByLabel('ปี พ.ศ.').first().evaluate((el) => (el as HTMLElement).blur())
+    // The year-complete fill already commits, so no blur is needed here. A
+    // manual blur would fire a second validateAndUpdate and refetch, which
+    // moves the row under the clear tap.
     await page.waitForLoadState('networkidle')
 
     // The calendar icon must still be tappable with a value present --
@@ -66,11 +66,11 @@ test.describe('datepicker touch behaviour', () => {
     expect(clipped).toBe(false)
 
     await page.keyboard.press('Escape')
-    // Wait for the dialog to actually detach before touching the clear (X).
-    // Escape only starts Radix's close animation; tapping during it lands on
-    // the overlay, so the clear's onClick never runs and the field keeps its
-    // value. That is the flake this assertion used to hit on CI: force skips
-    // the hit-target check, so the tap "succeeded" while hitting nothing.
+    // Wait for the dialog to detach. The old force:true tap masked a real
+    // instability: the blur after the year-complete fill fired a second
+    // onChange and refetch, which moved the row under the clear tap. The
+    // blur-commit is gone now, so the layout is stable and the tap can be
+    // checked normally.
     await expect(dialog).toHaveCount(0)
     await clear.tap()
     await expect(day).toHaveValue('')
