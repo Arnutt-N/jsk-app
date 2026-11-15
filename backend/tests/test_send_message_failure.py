@@ -157,12 +157,7 @@ async def test_send_media_push_failure_returns_failure_and_skips_counters():
         payload={"url": "https://files.example/a.txt"},
         created_at=now, sender_role="ADMIN", operator_name="Op",
     )
-    db = AsyncMock()
-    operator_result = MagicMock()
-    operator_result.scalar_one_or_none.return_value = SimpleNamespace(
-        display_name="Op"
-    )
-    db.execute = AsyncMock(return_value=operator_result)
+    db = _operator_and_guard_db()
     line_svc = Mock()
     line_svc.persist_operator_upload = AsyncMock(return_value={
         "url": "https://files.example/a.txt",
@@ -204,12 +199,7 @@ async def test_send_media_image_push_failure_returns_failure_and_skips_counters(
         payload={"url": "https://files.example/a.png"},
         created_at=now, sender_role="ADMIN", operator_name="Op",
     )
-    db = AsyncMock()
-    operator_result = MagicMock()
-    operator_result.scalar_one_or_none.return_value = SimpleNamespace(
-        display_name="Op"
-    )
-    db.execute = AsyncMock(return_value=operator_result)
+    db = _operator_and_guard_db()
     line_svc = Mock()
     line_svc.persist_operator_upload = AsyncMock(return_value={
         "url": "https://files.example/a.png",
