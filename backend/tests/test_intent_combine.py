@@ -1,4 +1,20 @@
-"""Combined intent SQL branches: 6 round trips → 3 (R3-M22)."""
+"""Combined intent SQL branches: 6 round trips → 3 (R3-M22).
+
+These three tests keep order-based `side_effect` queues on purpose, unlike
+the statement-routed mocks elsewhere in this suite. The order is the
+contract under test, not an accident:
+
+- `test_no_match_anywhere_costs_three_queries` pins the query COUNT (6 → 3),
+  which is the whole point of the optimization. Routing by statement shape
+  would still answer each call, but it could no longer fail when the count
+  regressed, so the queue stays.
+- the other two queue a single result each, so there is no order to get
+  wrong and nothing to convert.
+
+If a future change makes the count contract obsolete, replace the queue with
+a shape router in the same commit that drops the count assertion. Do not
+convert these to shape routing while the count assertion stands.
+"""
 import socket
 from unittest.mock import AsyncMock, MagicMock
 from urllib.parse import urlsplit
