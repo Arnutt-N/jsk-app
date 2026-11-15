@@ -55,9 +55,10 @@ def _operator_and_guard_db():
 
     async def _route(stmt, *args, **kwargs):
         sql = str(stmt)
-        if "from users" in sql.lower():
+        lower = sql.lower()
+        if lower.lstrip().startswith("select") and "from users" in lower:
             return operator_result
-        if sql.lstrip().upper().startswith("UPDATE"):
+        if lower.lstrip().startswith("update"):
             return guard_result
         raise AssertionError(f"unrouted test statement: {sql[:200]}")
 

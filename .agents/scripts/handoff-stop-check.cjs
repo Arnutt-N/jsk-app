@@ -44,16 +44,21 @@ function git(args, cwd) {
 // Run validate_handoff_state.py with whatever Python is on PATH.
 // Returns { status: 'pass'|'fail'|'skip', out }. 'skip' = no interpreter / no script
 // (fail-open: the caller treats skip as a pass so a missing Python never blocks).
+// `py` is tried first: on Windows `python3`/`python` are MS Store stubs that
+// fail with a non-ENOENT error, which would report fail and block the session
+// even though no real interpreter ran. Require the validator's RESULT: marker
+// so a silent stub cannot pass.
 function runValidator(root) {
   const script = path.join(root, '.agents', 'scripts', 'validate_handoff_state.py');
   if (!fs.existsSync(script)) return { status: 'skip', out: '' };
-  for (const py of ['python3', 'python', 'py']) {
+  for (const py of ['py', 'python3', 'python']) {
     try {
       const out = execFileSync(py, [script], {
         cwd: root,
         stdio: ['ignore', 'pipe', 'pipe'],
         encoding: 'utf8',
       });
+      if (!/RESULT:\s*(PASS|FAIL)/.test(out)) continue; // ran but produced nothing we trust
       return { status: 'pass', out };
     } catch (err) {
       if (err && err.code === 'ENOENT') continue; // this interpreter isn't installed
