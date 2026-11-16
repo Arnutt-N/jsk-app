@@ -70,3 +70,17 @@ already shipped on that basis.
 
 ## Handoff pointer
 Checkpoint: `.agents/state/checkpoints/handover-claude_code-20261115-2034.json`
+## Update 2026-11-16 (same session, new evidence)
+PR #339 (handoff) also red on the same E2E job, with TWO failures:
+- datepicker-touch (known)
+- audit-timeline.spec.ts:54 "comments tab renders the merged timeline"
+  — PASSED on retry #1 (4.8s after failing at 13.7s first run)
+
+Both flake on the requests page load, not on their own logic.
+audit-timeline already has a skeleton guard (waitForFunction on row links),
+datepicker already has networkidle + table-visible. Both still flake.
+
+Revised conclusion: the flake is page-load timing on the requests page on a
+cold CI runner, not the datepicker component or the blur path. The three
+fixes so far (#337, #338, the blur-commit change) were aimed at the wrong
+layer. Do not propose another fix until the real trace is read.
