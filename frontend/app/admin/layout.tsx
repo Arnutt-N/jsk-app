@@ -429,7 +429,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
           <div
             inert={drawerOpen}
             className={cn(
-              'flex flex-col flex-1 transition-all duration-300',
+              'flex flex-col flex-1 min-w-0 transition-all duration-300',
               isSidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'
             )}
           >

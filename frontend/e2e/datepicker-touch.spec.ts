@@ -78,9 +78,20 @@ test.describe('datepicker touch behaviour', () => {
 
     const group = page.locator('div.flex.w-full', { has: day }).first()
     const box = await group.boundingBox()
-    const viewport = page.viewportSize()
     expect(box).not.toBeNull()
-    expect(viewport).not.toBeNull()
-    expect(box!.width).toBeGreaterThan(viewport!.width - 60)
+
+    // The admin main flex item used to grow to 526px inside a 412px viewport,
+    // letting the sticky header cover the clear button during tap. Assert no
+    // document overflow, then that the row still fills most of its card.
+    const layout = await page.evaluate(() => ({
+      clientWidth: document.documentElement.clientWidth,
+      scrollWidth: document.documentElement.scrollWidth,
+    }))
+    expect(layout.scrollWidth).toBeLessThanOrEqual(layout.clientWidth)
+    const cardContent = await group.evaluate((el) => {
+      const card = el.closest('.p-4')
+      return card ? card.getBoundingClientRect().width : 0
+    })
+    expect(box!.width).toBeGreaterThan(cardContent * 0.7)
   })
 })
