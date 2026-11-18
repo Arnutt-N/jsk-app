@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import {
     ArrowLeft, User, Shield, UserCog, Mail, Calendar,
@@ -61,7 +61,9 @@ const JSON_HEADERS = { 'Content-Type': 'application/json' };
 export default function UserDetailPage() {
     const params = useParams();
     const router = useRouter();
+    const searchParams = useSearchParams();
     const userId = params.id as string;
+    const isEditMode = searchParams.get('mode') === 'edit';
     const { user: currentUser } = useAuth();
 
     const [userData, setUserData] = useState<UserRecord | null>(null);
@@ -296,6 +298,20 @@ export default function UserDetailPage() {
                 </div>
             </div>
 
+            {currentUser?.role === 'SUPER_ADMIN' && !isSelf && userData.username && (
+                <div className="flex justify-end">
+                    <Button
+                        variant="warning"
+                        leftIcon={<Key className="w-4 h-4" />}
+                        onClick={() => { setShowReset(true); setResetPw(''); setResetError(''); }}
+                    >
+                        รีเซ็ตรหัสผ่าน
+                    </Button>
+                </div>
+            )}
+
+            {isEditMode && (
+            <>
             {/* Edit Form */}
             <div className="bg-surface rounded-2xl border border-border-default p-6 shadow-sm">
                 <h2 className="text-lg font-semibold text-text-primary mb-4">แก้ไขข้อมูล</h2>
@@ -359,20 +375,11 @@ export default function UserDetailPage() {
                     >
                         บันทึก
                     </Button>
-                    {currentUser?.role === 'SUPER_ADMIN' && !isSelf && userData.username && (
-                        <Button
-                            variant="warning"
-                            leftIcon={<Key className="w-4 h-4" />}
-                            onClick={() => { setShowReset(true); setResetPw(''); setResetError(''); }}
-                        >
-                            รีเซ็ตรหัสผ่าน
-                        </Button>
-                    )}
                 </div>
             </div>
 
             {/* Change Password Section */}
-            {userData.username && (
+            {isEditMode && userData.username && (
                 <div className="bg-surface rounded-2xl border border-border-default p-6 shadow-sm">
                     <h2 className="text-lg font-semibold text-text-primary mb-4">เปลี่ยนรหัสผ่าน</h2>
                     <div className="max-w-md">
@@ -397,6 +404,9 @@ export default function UserDetailPage() {
                         </Button>
                     </div>
                 </div>
+            )}
+
+            </>
             )}
 
             {/* Account Info */}

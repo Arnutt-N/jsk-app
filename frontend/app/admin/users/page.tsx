@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import {
     Users, Shield, UserCog, User, UserPlus,
     Search, SquarePen, Trash2, Key, Eye,
-    ToggleLeft, ToggleRight, ChevronLeft, ChevronRight,
+    RotateCcw, ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
@@ -110,15 +110,17 @@ export default function UsersPage() {
     const [createLoading, setCreateLoading] = useState(false);
     const [createError, setCreateError] = useState('');
 
-    // Edit modal
-    const [editUser, setEditUser] = useState<UserRecord | null>(null);
-    const [editForm, setEditForm] = useState({ display_name: '', email: '', role: '', is_active: true, password: '' });
-    const [editLoading, setEditLoading] = useState(false);
-    const [editError, setEditError] = useState('');
-
     // Delete confirm
     const [deleteUser, setDeleteUser] = useState<UserRecord | null>(null);
     const [deleteLoading, setDeleteLoading] = useState(false);
+
+    const hasActiveFilters = Boolean(search || roleFilter || statusFilter);
+    const clearFilters = () => {
+        setSearch('');
+        setRoleFilter('');
+        setStatusFilter('');
+        setPage(1);
+    };
 
     // Reset password
     const [resetUser, setResetUser] = useState<UserRecord | null>(null);
@@ -215,32 +217,6 @@ export default function UsersPage() {
         setCreateLoading(false);
     };
 
-    const handleEdit = async () => {
-        if (!editUser) return;
-        setEditError('');
-        setEditLoading(true);
-        const payload: Record<string, unknown> = {};
-        if (editForm.display_name !== (editUser.display_name || '')) payload.display_name = editForm.display_name;
-        if (editForm.email !== (editUser.email || '')) payload.email = editForm.email || null;
-        if (editForm.role !== editUser.role) payload.role = editForm.role;
-        if (editForm.is_active !== editUser.is_active) payload.is_active = editForm.is_active;
-        if (editForm.password) payload.password = editForm.password;
-
-        const result = await apiFetch(`/admin/users/${editUser.id}`, {
-            method: 'PUT',
-            body: JSON.stringify(payload),
-        });
-        if (result.ok) {
-            setEditUser(null);
-            setAlert({ type: 'success', title: 'สำเร็จ', message: 'อัปเดตข้อมูลผู้ใช้เรียบร้อยแล้ว' });
-            fetchUsers();
-            fetchStats();
-        } else {
-            setEditError(result.message);
-        }
-        setEditLoading(false);
-    };
-
     const handleDelete = async () => {
         if (!deleteUser) return;
         setDeleteLoading(true);
@@ -279,18 +255,6 @@ export default function UsersPage() {
         setResetLoading(false);
     };
 
-    const openEdit = (u: UserRecord) => {
-        setEditUser(u);
-        setEditForm({
-            display_name: u.display_name || '',
-            email: u.email || '',
-            role: u.role,
-            is_active: u.is_active,
-            password: '',
-        });
-        setEditError('');
-    };
-
     /* ── Filtered role options for create based on current user ────── */
 
     const allowedCreateRoles = useMemo(() => {
@@ -313,7 +277,7 @@ export default function UsersPage() {
                         onClick={() => {
                             setShowCreate(true);
                             setCreateError('');
-                            setCreateForm({ username: '', password: '', display_name: '', email: '', role: allowedCreateRoles[0]?.value || 'AGENT' });
+                            setCreateForm({ username: '', password: '', display_name: '', email: '', role: 'AGENT' });
                         }}
                     >
                         เพิ่มผู้ใช้ใหม่
@@ -385,6 +349,15 @@ export default function UsersPage() {
                         variant="filled"
                         options={STATUS_OPTIONS}
                     />
+                    {hasActiveFilters && (
+                        <Button
+                            variant="outline"
+                            leftIcon={<RotateCcw className="w-4 h-4" />}
+                            onClick={clearFilters}
+                        >
+                            ล้างตัวกรอง
+                        </Button>
+                    )}
                 </div>
             </div>
 
@@ -477,7 +450,7 @@ export default function UsersPage() {
                                                         icon={<SquarePen className="w-4 h-4" />}
                                                         label="แก้ไข"
                                                         variant="default"
-                                                        onClick={() => openEdit(u)}
+                                                        onClick={() => router.push(`/admin/users/${u.id}?mode=edit`)}
                                                     />
                                                     {currentUser?.role === 'SUPER_ADMIN' && !isSelf && u.username && (
                                                         <ActionIconButton
@@ -604,89 +577,6 @@ export default function UsersPage() {
                         </Button>
                     </div>
                 </div>
-            </Modal>
-
-            {/* ── Edit User Modal ────────────────────────────────────── */}
-            <Modal
-                isOpen={!!editUser}
-                onClose={() => setEditUser(null)}
-                title="แก้ไขผู้ใช้"
-                description={editUser?.display_name || editUser?.username || ''}
-                maxWidth="md"
-            >
-                {editUser && (
-                    <div className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-text-primary mb-1.5">ชื่อที่แสดง</label>
-                            <Input
-                                value={editForm.display_name}
-                                onChange={(e) => setEditForm(f => ({ ...f, display_name: e.target.value }))}
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-text-primary mb-1.5">อีเมล</label>
-                            <Input
-                                type="email"
-                                value={editForm.email}
-                                onChange={(e) => setEditForm(f => ({ ...f, email: e.target.value }))}
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-text-primary mb-1.5">บทบาท</label>
-                            <Select
-                                value={editForm.role}
-                                onChange={(e) => setEditForm(f => ({ ...f, role: e.target.value }))}
-                                options={ROLE_OPTIONS.filter(o => o.value !== '')}
-                                disabled={currentUser?.id === String(editUser.id)}
-                            />
-                            {currentUser?.id === String(editUser.id) && (
-                                <p className="text-xs text-text-tertiary mt-1">ไม่สามารถเปลี่ยนบทบาทของตัวเองได้</p>
-                            )}
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-text-primary mb-1.5">สถานะ</label>
-                            <div className="flex items-center gap-3">
-                                <button
-                                    onClick={() => setEditForm(f => ({ ...f, is_active: !f.is_active }))}
-                                    disabled={currentUser?.id === String(editUser.id)}
-                                    className="flex items-center gap-2 text-sm"
-                                >
-                                    {editForm.is_active ? (
-                                        <ToggleRight className="w-8 h-8 text-green-500" />
-                                    ) : (
-                                        <ToggleLeft className="w-8 h-8 text-gray-400" />
-                                    )}
-                                    <span className={editForm.is_active ? 'text-green-600 font-medium' : 'text-text-tertiary'}>
-                                        {editForm.is_active ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
-                                    </span>
-                                </button>
-                            </div>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-text-primary mb-1.5">เปลี่ยนรหัสผ่าน (เว้นว่างถ้าไม่ต้องการเปลี่ยน)</label>
-                            <Input
-                                type="password"
-                                placeholder="รหัสผ่านใหม่ (อย่างน้อย 8 ตัวอักษร)"
-                                value={editForm.password}
-                                onChange={(e) => setEditForm(f => ({ ...f, password: e.target.value }))}
-                            />
-                            {editForm.password && <PasswordStrengthMeter password={editForm.password} />}
-                        </div>
-
-                        {editError && (
-                            <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg px-3 py-2">{editError}</p>
-                        )}
-
-                        <div className="flex gap-3 pt-2">
-                            <Button variant="ghost" className="flex-1" onClick={() => setEditUser(null)} disabled={editLoading}>
-                                ยกเลิก
-                            </Button>
-                            <Button variant="primary" className="flex-1" onClick={handleEdit} isLoading={editLoading}>
-                                บันทึก
-                            </Button>
-                        </div>
-                    </div>
-                )}
             </Modal>
 
             {/* ── Reset Password Modal ───────────────────────────────── */}
