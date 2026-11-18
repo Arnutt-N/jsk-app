@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  experimental: { agentUpgrade: 'security' },
   // Vercel sets outputFileTracingRoot to the REPO root (/vercel/path0) because
   // this project's rootDirectory is `frontend`, while turbopack.root below is
   // __dirname. Next warns they must match, then uses the tracing root — which
