@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 330 active handoffs, 12 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 331 active handoffs, 12 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-11-19 14:10 — claude_code — completed
+
+PR #343 handoff closeout merged as 2837d4d; local main fast-forwarded to 2837d4d; prior PRs #342 and #341 remain merged and production checks passed; no open work from the /admin/users and Next 16.4.6 closeout
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20261119-1410.json`
+- Summary: `project-log-md/claude_code/session-summary-20261119-1410.md`
+
+---
 
 ### 2026-11-19 13:33 — claude_code — completed
 

@@ -1,14 +1,21 @@
 {
-  "last_updated": "2026-11-19T13:33:00+07:00",
+  "last_updated": "2026-11-19T14:10:00+07:00",
   "platform": "claude_code",
-  "current_task": "PR #342 (/admin/users edit consolidation) and PR #341 (Next 16.4.6 security upgrade) merged to main; local main fast-forwarded to 180cfc8 and dependencies synced to Next 16.4.6; audit chain passed wit",
+  "current_task": "PR #343 handoff closeout merged as 2837d4d; local main fast-forwarded to 2837d4d; prior PRs #342 and #341 remain merged and production checks passed; no open work from the /admin/users and Next 16.4.6",
   "plan_status": "completed",
   "next_steps": [
-    "Verify production CD and smoke after merged PRs #342 and #341",
-    "Decide whether to add a regression test for self-edit role/status guards; current backend and frontend guards verified present",
-    "Clean untracked .audit artifacts only if no longer needed"
+    "Smoke test production /admin/users flows and confirm Vercel deployment after reauthorizing API access",
+    "Decide whether to add backend regression tests for self-edit role and active status rejection",
+    "Clean old .audit artifacts only when no longer needed"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-11-19T14:10:00+07:00",
+      "platform": "claude_code",
+      "branch": "main",
+      "head": "2837d4d",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-11-19T13:33:00+07:00",
       "platform": "claude_code",
@@ -140,13 +147,6 @@
       "platform": "pi",
       "branch": "main",
       "head": "1d86937",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-10-24T07:17:00+07:00",
-      "platform": "pi",
-      "branch": "main",
-      "head": "02fef0c",
       "status": "completed"
     }
   ],
