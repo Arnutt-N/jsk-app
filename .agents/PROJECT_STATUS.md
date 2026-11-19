@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-11-19 13:33 by Claude Code (PR #342 /admin/users edit consolidation and PR #341 Next 16.4.6 security upgrade merged to)
+> **Last Updated:** 2026-11-19 14:10 by Claude Code (PR #343 handoff closeout merged as 2837d4d; local main fast-forwarded to 2837d4d; prior PR)
 
 ## Thai Summary
 **สถานะล่าสุด (2026-10-27)** — งานตรวจโค้ดรอบใหม่ Task 22 เสร็จ: เปิดประตูตรวจโค้ดหลังบ้าน (ruff) ใน CI แล้ว, PR #301 (draft) CI เขียวครบทุกด่าน; เหลืออีก 29 งาน เริ่มจาก Phase 0 (CI tasks 13, 14, 18, 24) — ดูรายละเอียดใน `project-log-md/pi/session-summary-20261027-1225.md`
@@ -126,6 +126,7 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-11-19 14:10] Claude Code: PR #343 handoff closeout merged as 2837d4d; local main fast-forwarded to 2837d4d; prior PRs #342 and #341 remain merged and production checks passed; no open work from the /admin/users and Next 16.4.6 closeout (Claude Code)
 - [2026-11-19 13:33] Claude Code: PR #342 (/admin/users edit consolidation) and PR #341 (Next 16.4.6 security upgrade) merged to main; local main fast-forwarded to 180cfc8 and dependencies synced to Next 16.4.6; audit chain passed with no code changes; global stop-control a (Claude Code)
 - [2026-11-15 08:12] Claude Code: Gauntlet closed on PR #330 and follow-ups merged: #331 verb-gated mock routers, #332 handoff validator on real interpreter, #333 send_message SELECT-gated route + stop-check py launcher. origin/main at 33f2e5b. (Claude Code)
 - [2026-11-09 23:11] Claude Code: Closed handoff items 1-3 from checkpoint 20261109-0712: r.cjs shell branch by platform, resolve_by_line_id hash branch in friend-history mock, 7-file statement-routing sweep. PR #330 opened. (Claude Code)
