@@ -28,6 +28,7 @@ from app.models.business_hours import BusinessHours
 from app.models.service_request import ServiceRequest
 from app.models.user import User, UserRole
 from app.services import booking_email, booking_notifications, booking_service
+from app.services.delivery_outcome import DeliveryOutcome as _DeliveryOutcome, as_outcome
 from app.services.user_identity_service import populate_surrogate
 from app.services.booking_service import BookingConfig, ReminderUnit, local_now
 from app.tasks import booking_reminder
@@ -126,6 +127,14 @@ async def test_smtp_timeout_after_send_message_entered_is_unknown(monkeypatch):
     assert (provider_result, aggregate_result) == (unknown, unknown)
     assert "send_message" in entered
     assert hasattr(booking_notifications, "DeliveryOutcome")
+
+
+def test_legacy_string_outcomes_coerce_to_the_same_enum_values():
+    """Persisted or injected old aggregate strings must not flip meaning."""
+    assert as_outcome("CONFIRMED") is _DeliveryOutcome.SENT
+    assert as_outcome("FAILED") is _DeliveryOutcome.NOT_SENT
+    assert as_outcome("UNKNOWN") is _DeliveryOutcome.UNKNOWN
+    assert _DeliveryOutcome("FAILED") is _DeliveryOutcome.NOT_SENT
 
 
 @pytest.mark.asyncio
