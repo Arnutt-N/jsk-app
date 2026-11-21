@@ -123,10 +123,14 @@ def _service_request_response(
 
 
 def _payload_hash(request: ServiceRequestCreate) -> str:
-    """Canonical digest of the submitted payload for replay-drift detection."""
-    canonical = json.dumps(
-        request.model_dump(mode="json"), sort_keys=True, separators=(",", ":")
-    )
+    """Canonical digest of citizen-supplied details for replay-drift detection.
+
+    `line_user_id` is transport identity. The verified LIFF token, not this body
+    field, decides ownership, and the profile can resolve after the first submit.
+    """
+    payload = request.model_dump(mode="json")
+    payload.pop("line_user_id", None)
+    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 

@@ -339,14 +339,18 @@ async def test_changed_payload_replay_is_409_and_leaves_one_booking(
             "description": f"changed-{marker}",
             "firstname": "ใหม่",
         }
+        profile_changed = {**body, "line_user_id": sub}
         try:
             first = test_client.post(ENDPOINT, json=body, headers=hdr)
             assert first.status_code == 201, first.text
             first_id = first.json()["id"]
+            profile_retry = test_client.post(ENDPOINT, json=profile_changed, headers=hdr)
             second = test_client.post(ENDPOINT, json=changed, headers=hdr)
         finally:
             app.dependency_overrides.clear()
 
+        assert profile_retry.status_code == 201, profile_retry.text
+        assert profile_retry.json()["id"] == first_id
         assert second.status_code == 409, second.text
 
         async with Session() as session:
