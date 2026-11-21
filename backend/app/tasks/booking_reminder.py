@@ -31,7 +31,6 @@ from app.models.booking import BookingStatus
 from app.services.booking_notifications import (
     send_booking_reminder_outcome,
 )
-from app.services.delivery_outcome import DeliveryOutcome
 from app.services.booking_service import (
     claim_reminder,
     clear_reminder_claim,
@@ -43,6 +42,7 @@ from app.services.booking_service import (
     verify_reminder_lease,
 )
 from app.services.booking_settings import load_booking_config
+from app.services.delivery_outcome import DeliveryOutcome
 
 logger = logging.getLogger(__name__)
 

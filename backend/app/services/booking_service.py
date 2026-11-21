@@ -8,9 +8,9 @@ free of I/O means those can all be pinned down by fast tests. The only part that
 touches the database is counting what is already booked.
 """
 from dataclasses import dataclass
-from inspect import isawaitable
 from datetime import date, datetime, time, timedelta
 from enum import Enum
+from inspect import isawaitable
 from typing import AbstractSet, Mapping, Optional, Sequence
 
 from sqlalchemy import ColumnElement, DateTime, func, or_, select, text, type_coerce, update

@@ -12,7 +12,6 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from fastapi.testclient import TestClient
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
@@ -24,15 +23,14 @@ from app.core.config import settings
 from app.main import app
 from app.models.audit_log import AuditLog
 from app.models.booking import Booking, BookingStatus
-from app.models.business_hours import BusinessHours
 from app.models.service_request import ServiceRequest
 from app.models.user import User, UserRole
 from app.services import booking_email, booking_notifications, booking_service
-from app.services.delivery_outcome import DeliveryOutcome as _DeliveryOutcome, as_outcome
-from app.services.user_identity_service import populate_surrogate
 from app.services.booking_service import BookingConfig, ReminderUnit, local_now
+from app.services.delivery_outcome import DeliveryOutcome as _DeliveryOutcome
+from app.services.delivery_outcome import as_outcome
+from app.services.user_identity_service import populate_surrogate
 from app.tasks import booking_reminder
-from app.services.settings_service import SettingsService
 
 ENDPOINT = "/api/v1/liff/service-requests"
 

@@ -6,7 +6,6 @@ and token-scoped finalize. Each test seeds and cleans its own rows.
 """
 import uuid
 from datetime import time, timedelta
-from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 import pytest
