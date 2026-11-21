@@ -5,25 +5,28 @@ from enum import Enum
 class DeliveryOutcome(Enum):
     """SENT = accepted, NOT_SENT = definite refusal, UNKNOWN = maybe delivered.
 
-    SENT/NOT_SENT use legacy bool values so old boolean callers keep working;
-    UNKNOWN is the new third state for ambiguous provider errors.
+    SENT/NOT_SENT keep the old aggregate values ("CONFIRMED"/"FAILED") so
+    persisted and injected legacy string outcomes remain valid.
     """
 
-    SENT = True
-    NOT_SENT = False
+    SENT = "CONFIRMED"
+    NOT_SENT = "FAILED"
     UNKNOWN = "UNKNOWN"
 
-    # Legacy aggregate aliases.
-    CONFIRMED = True
-    FAILED = False
+    # Legacy aggregate names.
+    CONFIRMED = "CONFIRMED"
+    FAILED = "FAILED"
 
 
 def as_outcome(value) -> DeliveryOutcome:
-    """Coerce legacy boolean providers to the shared outcome enum."""
+    """Coerce legacy boolean or string outcomes to the shared enum."""
     if isinstance(value, DeliveryOutcome):
         return value
-    if value == "UNKNOWN":
-        return DeliveryOutcome.UNKNOWN
+    if isinstance(value, str):
+        try:
+            return DeliveryOutcome(value)
+        except ValueError:
+            return DeliveryOutcome.NOT_SENT
     return DeliveryOutcome.SENT if value else DeliveryOutcome.NOT_SENT
 
 
