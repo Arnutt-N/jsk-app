@@ -82,6 +82,7 @@ export default function BroadcastDetailPage() {
             if (!res.ok) throw new Error('Not found');
             const data = await res.json();
             setBroadcast(data);
+            return data.status as string;
         } catch (err) {
             logger.error(err);
             setFetchError('ไม่สามารถโหลดข้อมูล Broadcast ได้');
@@ -137,6 +138,7 @@ export default function BroadcastDetailPage() {
     };
 
     const handleCancel = async () => {
+        const statusBeforeCancel = broadcast?.status;
         setActionLoading(true);
         try {
             const res = await fetch(`${API_BASE}/admin/broadcasts/${broadcastId}/cancel`, { method: 'POST' });
@@ -145,6 +147,14 @@ export default function BroadcastDetailPage() {
                 await fetchBroadcast();
                 toast({ variant: 'warning', title: 'สถานะเปลี่ยนแล้ว', description: 'สถานะเปลี่ยนระหว่างยกเลิก กรุณาตรวจสอบสถานะล่าสุด' });
                 return;
+            }
+            if (res.status === 400) {
+                const freshStatus = await fetchBroadcast();
+                if (freshStatus && freshStatus !== statusBeforeCancel) {
+                    setCancelModal(false);
+                    toast({ variant: 'warning', title: 'สถานะเปลี่ยนแล้ว', description: 'สถานะเปลี่ยนระหว่างยกเลิก กรุณาตรวจสอบสถานะล่าสุด' });
+                    return;
+                }
             }
             if (!res.ok) throw new Error('Failed');
             setCancelModal(false);
