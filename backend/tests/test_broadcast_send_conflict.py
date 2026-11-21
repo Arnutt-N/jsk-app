@@ -67,3 +67,35 @@ async def test_post_send_claim_conflict_returns_409(test_client):
         assert "concurrent send" in resp.json()["detail"]
     finally:
         app.dependency_overrides.clear()
+
+
+@pytest.mark.asyncio
+async def test_post_cancel_claim_conflict_returns_409(test_client):
+    """The cancel endpoint maps a lost cancel claim to 409 with a generic
+    detail so the UI can refresh status instead of showing a generic failure."""
+    async def _override():
+        yield SimpleNamespace(id=1, role=UserRole.SUPER_ADMIN, is_active=True)
+
+    app.dependency_overrides[api_deps.get_current_user] = _override
+    try:
+        with (
+            patch.object(
+                broadcast_service,
+                "get_broadcast",
+                new=AsyncMock(return_value=SimpleNamespace(id=9)),
+            ),
+            patch.object(
+                broadcast_service,
+                "cancel_broadcast",
+                new=AsyncMock(
+                    side_effect=BroadcastClaimConflict(
+                        "Cannot cancel broadcast 9: send already started"
+                    )
+                ),
+            ),
+        ):
+            resp = test_client.post("/api/v1/admin/broadcasts/9/cancel")
+        assert resp.status_code == 409
+        assert resp.json()["detail"]  # generic, non-empty detail
+    finally:
+        app.dependency_overrides.clear()

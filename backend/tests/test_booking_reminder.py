@@ -14,6 +14,7 @@ from sqlalchemy import select, update
 from sqlalchemy.dialects import postgresql
 
 from app.models.booking import Booking, BookingStatus
+from app.services.booking_notifications import ReminderOutcome
 from app.services.booking_service import BookingConfig, ReminderUnit, reminder_window
 from app.tasks import booking_reminder
 
@@ -39,36 +40,53 @@ def _config(**overrides):
     return BookingConfig(**defaults)
 
 
-def _booking(booking_id=1):
+TOKEN = datetime(2026, 8, 12, 8, 30)
+
+
+def _booking(booking_id=1, status=BookingStatus.CONFIRMED):
     return SimpleNamespace(
         id=booking_id,
         queue_number=f"260813-{booking_id:03d}",
         service_type="ปรึกษากฎหมาย",
         booking_date=date(2026, 8, 13),
         booking_time=time(9, 0),
+        status=status,
         user=SimpleNamespace(id=99),
     )
 
 
-def _patches(*, config=None, due=(), claim=True, send=None, load=None):
+def _patches(*, config=None, due=(), claim=True, send=None, load=None, outcome=None):
     """Patch every collaborator of _process_due_reminders."""
     due_list = list(due)
+    send = send or AsyncMock(return_value=True)
 
     async def _default_load(_db, booking_id):
         return next((b for b in due_list if b.id == booking_id), None)
+
+    async def _outcome(*a, **k):
+        if outcome is not None:
+            return outcome
+        result = await send(*a, **k)
+        return ReminderOutcome.CONFIRMED if result else ReminderOutcome.FAILED
 
     return (
         patch.object(booking_reminder, "load_booking_config", new=AsyncMock(return_value=config or _config())),
         patch.object(booking_reminder, "local_now", return_value=NOW),
         patch.object(booking_reminder, "get_due_reminders", new=AsyncMock(return_value=due_list)),
-        patch.object(booking_reminder, "claim_reminder", new=AsyncMock(return_value=claim)),
+        patch.object(booking_reminder, "claim_reminder", new=AsyncMock(return_value=TOKEN if claim else None)),
         patch.object(booking_reminder, "load_booking_for_reminder", new=load or AsyncMock(side_effect=_default_load)),
-        patch.object(booking_reminder, "send_booking_reminder", new=send or AsyncMock(return_value=True)),
+        patch.object(booking_reminder, "send_booking_reminder_outcome", new=AsyncMock(side_effect=_outcome)),
+        patch.object(booking_reminder, "finalize_reminder", new=AsyncMock(return_value=True)),
+        patch.object(booking_reminder, "clear_reminder_claim", new=AsyncMock()),
     )
 
 
 async def _process(**kwargs):
     db = AsyncMock()
+    return await _process_with_db(db, **kwargs)
+
+
+async def _process_with_db(db, **kwargs):
     patches = _patches(**kwargs)
     for p in patches:
         p.start()
@@ -78,6 +96,22 @@ async def _process(**kwargs):
         for p in patches:
             p.stop()
     return db
+
+
+async def _capture(**kwargs):
+    """Run one booking and return (db, finalize mock, clear mock)."""
+    patches = _patches(due=(_booking(),), **kwargs)
+    finalize = next(p for p in patches if p.attribute == "finalize_reminder").new
+    clear = next(p for p in patches if p.attribute == "clear_reminder_claim").new
+    for p in patches:
+        p.start()
+    db = AsyncMock()
+    try:
+        await booking_reminder._process_due_reminders(db)
+    finally:
+        for p in patches:
+            p.stop()
+    return db, finalize, clear
 
 
 # --- the SQL these guards depend on ---
@@ -103,13 +137,24 @@ def test_the_due_query_compares_date_plus_time_as_one_timestamp():
 
 
 def test_the_claim_update_is_guarded_on_reminder_sent_at_being_null():
-    """Without the NULL guard the UPDATE always matches and duplicates go out."""
+    """Without the NULL guard a reclaimed lease could confirm a duplicate."""
+    from app.services import booking_service
+
     sql = _compile(
         update(Booking)
-        .where(Booking.id == 1, Booking.reminder_sent_at.is_(None))
-        .values(reminder_sent_at=None)
+        .where(
+            Booking.id == 1,
+            Booking.status == BookingStatus.CONFIRMED,
+            Booking.reminder_sent_at.is_(None),
+            booking_service._lease_is_stale(),
+            Booking.reminder_claimed_at.is_(None),
+        )
+        .values(reminder_claimed_at=None)
     )
     assert "reminder_sent_at IS NULL" in sql
+    assert "reminder_claimed_at IS NULL" in sql
+    assert "bookings.status" in sql
+    assert "make_interval" in sql
     assert "WHERE" in sql
 
 
@@ -222,7 +267,7 @@ async def test_the_claim_is_committed_before_the_push():
         for p in patches:
             p.stop()
 
-    assert order == ["commit", "send"], f"expected commit before send, got {order}"
+    assert order.index("commit") < order.index("send"), f"claim must commit before send, got {order}"
 
 
 # --- resilience ---
@@ -282,3 +327,48 @@ async def test_one_failure_does_not_stop_later_bookings():
 
     await _process(due=(_booking(1), _booking(2)), claim=True, send=AsyncMock(side_effect=_send))
     assert calls == [1, 2]
+
+
+# --- F2: lease outcome handling ---
+
+
+@pytest.mark.asyncio
+async def test_all_channel_failure_releases_the_lease_for_retry():
+    """A definite failure must not burn the confirmed-sent marker (F2)."""
+    _db, finalize, clear = await _capture(outcome=ReminderOutcome.FAILED)
+    finalize.assert_not_awaited()
+    clear.assert_awaited_once_with(_db, 1, TOKEN)
+
+
+@pytest.mark.asyncio
+async def test_confirmed_delivery_finalizes_and_does_not_clear():
+    _db, finalize, clear = await _capture(outcome=ReminderOutcome.CONFIRMED)
+    finalize.assert_awaited_once_with(_db, 1, TOKEN)
+    clear.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_unknown_outcome_finalizes_rather_than_risks_a_duplicate():
+    """A provider error with unknown result keeps the sent marker (F2)."""
+    _db, finalize, clear = await _capture(outcome=ReminderOutcome.UNKNOWN)
+    finalize.assert_awaited_once_with(_db, 1, TOKEN)
+    clear.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_cancelled_after_claim_skips_send_and_releases_lease():
+    """A cancellation between selection and reload must not be mailed (F2)."""
+    cancelled = _booking(status=BookingStatus.CANCELLED)
+    send = AsyncMock(return_value=True)
+    patches = _patches(due=(cancelled,), claim=True, send=send)
+    clear = next(p for p in patches if p.attribute == "clear_reminder_claim").new
+    for p in patches:
+        p.start()
+    db = AsyncMock()
+    try:
+        await booking_reminder._process_due_reminders(db)
+    finally:
+        for p in patches:
+            p.stop()
+    send.assert_not_awaited()
+    clear.assert_awaited_once_with(db, 1, TOKEN)

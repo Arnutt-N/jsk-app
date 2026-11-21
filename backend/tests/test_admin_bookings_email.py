@@ -268,7 +268,10 @@ def _editable_booking(**overrides):
 async def test_update_with_blank_email_clears_the_channel():
     db = AsyncMock()
     booking = _editable_booking()
-    await update_booking_contact(db, booking, contact_name=None, phone_number=None, note=None, email="")
+    await update_booking_contact(
+        db, booking, contact_name=None, phone_number=None, note=None, email="",
+        fields_set={"contact_name", "phone_number", "note", "email"},
+    )
     assert booking.email is None
 
 
@@ -276,8 +279,32 @@ async def test_update_with_blank_email_clears_the_channel():
 async def test_update_without_email_keeps_the_channel():
     db = AsyncMock()
     booking = _editable_booking()
-    await update_booking_contact(db, booking, contact_name=None, phone_number=None, note=None, email=None)
+    await update_booking_contact(
+        db, booking, contact_name=None, phone_number=None, note=None, email=None,
+        fields_set={"contact_name", "phone_number", "note"},
+    )
     assert booking.email == "old@example.com"
+
+
+@pytest.mark.asyncio
+async def test_update_with_blank_note_clears_it():
+    db = AsyncMock()
+    booking = _editable_booking(note="old note")
+    await update_booking_contact(
+        db, booking, contact_name=None, phone_number=None, note="", fields_set={"note"}
+    )
+    assert booking.note is None
+
+
+@pytest.mark.asyncio
+async def test_update_without_note_keeps_it():
+    db = AsyncMock()
+    booking = _editable_booking(note="old note")
+    await update_booking_contact(
+        db, booking, contact_name=None, phone_number=None, note=None,
+        fields_set={"contact_name"},
+    )
+    assert booking.note == "old note"
 
 
 @pytest.mark.asyncio

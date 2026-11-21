@@ -1,8 +1,35 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 331 active handoffs, 12 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 334 active handoffs, 12 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-11-20 21:45 — claude_code — completed
+
+Continued after the low-memory suite stop. Ran focused backend suites covering every changed area: 143 passed. Full backend suite remains outstanding because the clean background run was killed by system memory pressure, not by a test failure. No commit or PR.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20261120-2145.json`
+- Summary: `project-log-md/claude_code/session-summary-20261120-2145.md`
+
+---
+
+### 2026-11-20 16:39 — claude_code — completed
+
+Resolved the three P1 findings from the handoff analysis: new-case id rotation, hidden booking email preservation, and stale reminder status after concurrent cancellation. Focused backend and frontend suites passed, independent reviewer found no confirmed defects. Full backend suite was stopped by the system because memory ran low; it is not a test failure. No commit or PR.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20261120-1639.json`
+- Summary: `project-log-md/claude_code/session-summary-20261120-1639.md`
+
+---
+
+### 2026-11-20 12:05 — claude_code — completed
+
+Fixed all six defects from the 2026-11-19 codebase review: F1 upload race, F2 booking reminder loss, F3 broadcast cancel race, F4 duplicate case retry, F5 clear account email, F6 clear booking note. Full backend suite passed (~1926 tests, exit 0), focused frontend suites passed (29 tests), tsc passed. Alembic head z2a3b4c5d6e7. Working tree still dirty; no commit or PR.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20261120-1205.json`
+- Summary: `project-log-md/claude_code/session-summary-20261120-1205.md`
+
+---
 
 ### 2026-11-19 14:10 — claude_code — completed
 

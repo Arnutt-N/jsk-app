@@ -10,9 +10,10 @@ touches the database is counting what is already booked.
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 from enum import Enum
-from typing import Mapping, Optional, Sequence
+from inspect import isawaitable
+from typing import AbstractSet, Mapping, Optional, Sequence
 
-from sqlalchemy import DateTime, func, select, text, type_coerce, update
+from sqlalchemy import ColumnElement, DateTime, func, or_, select, text, type_coerce, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -518,6 +519,7 @@ async def update_booking_contact(
     phone_number: Optional[str],
     note: Optional[str],
     email: Optional[str] = None,
+    fields_set: AbstractSet[str],
 ) -> Booking:
     """Edit a citizen's contact fields on a still-editable booking.
 
@@ -536,15 +538,29 @@ async def update_booking_contact(
         booking.contact_name = contact_name
     if phone_number is not None:
         booking.phone_number = phone_number
-    if note is not None:
-        booking.note = note
-    if email is not None:
+    if "note" in fields_set:
+        booking.note = note or None
+    if "email" in fields_set:
         booking.email = email or None
     await db.flush()
     return booking
 
 
 # --- advance reminders ------------------------------------------------------
+
+# A reminder claim that has not been resolved within this window is assumed
+# abandoned (worker crash) and becomes eligible for another worker to reclaim.
+REMINDER_CLAIM_TTL_SECONDS = 300
+
+
+def _lease_is_stale() -> ColumnElement[bool]:
+    """The SQL predicate for an absent or expired reminder lease."""
+    return or_(
+        Booking.reminder_claimed_at.is_(None),
+        Booking.reminder_claimed_at
+        < func.now()
+        - func.make_interval(0, 0, 0, 0, 0, 0, REMINDER_CLAIM_TTL_SECONDS),
+    )
 
 
 def reminder_window(config: BookingConfig, now: datetime) -> tuple:
@@ -559,7 +575,7 @@ def reminder_window(config: BookingConfig, now: datetime) -> tuple:
 async def get_due_reminders(
     db: AsyncSession, *, window_start: datetime, window_end: datetime, limit: int = 100
 ) -> Sequence[Booking]:
-    """Confirmed, not-yet-reminded bookings whose appointment falls in the window."""
+    """Confirmed, unsent, unclaimed bookings due in the reminder window."""
     # Postgres evaluates `date + time` as a timestamp; type_coerce tells
     # SQLAlchemy the result type without altering the emitted SQL.
     appointment_at = type_coerce(Booking.booking_date + Booking.booking_time, DateTime)
@@ -573,6 +589,7 @@ async def get_due_reminders(
         .where(
             Booking.status == BookingStatus.CONFIRMED,
             Booking.reminder_sent_at.is_(None),
+            _lease_is_stale(),
             appointment_at > window_start,
             appointment_at <= window_end,
         )
@@ -583,28 +600,99 @@ async def get_due_reminders(
 
 
 async def load_booking_for_reminder(
-    db: AsyncSession, booking_id: int
+    db: AsyncSession, booking_id: int, token: Optional[datetime] = None
 ) -> Optional[Booking]:
-    """Re-read one booking with its user eagerly loaded, for the reminder push."""
-    result = await db.execute(
+    """Re-read one booking with its user eagerly loaded, for the reminder push.
+
+    Passing `token` scopes the reload to the lease this worker won: if another
+    worker reclaimed it, the row is not returned and no push may be made.
+    """
+    stmt = (
         select(Booking)
         .options(selectinload(Booking.user))
         .where(Booking.id == booking_id)
     )
+    if token is not None:
+        stmt = stmt.where(Booking.reminder_claimed_at == token)
+    result = await db.execute(stmt.execution_options(populate_existing=True))
     return result.scalar_one_or_none()
 
 
-async def claim_reminder(db: AsyncSession, booking_id: int) -> bool:
-    """Atomically mark a booking as reminded; True only for the winning caller.
+async def verify_reminder_lease(
+    db: AsyncSession, booking_id: int, token: datetime
+) -> bool:
+    """Confirm this worker still owns the lease immediately before sending."""
+    result = await db.execute(
+        select(Booking.id).where(
+            Booking.id == booking_id,
+            Booking.reminder_claimed_at == token,
+        )
+    )
+    owner = result.scalar_one_or_none()
+    if isawaitable(owner):  # AsyncMock db in unit tests.
+        owner = await owner
+    return owner is not None
 
-    This conditional UPDATE — not the surrounding transaction or any row lock —
-    is what makes the reminder exactly-once across the two uvicorn workers that
-    each run their own scheduler loop. A worker that loses the race sees zero
-    rows updated and sends nothing.
+
+async def claim_reminder(db: AsyncSession, booking_id: int) -> Optional[datetime]:
+    """Take a short-lived reminder lease; return its token for the winner only.
+
+    The conditional UPDATE — not the surrounding transaction or any row lock —
+    is what makes the reminder single-delivery across the two uvicorn workers.
+    It also re-checks status and future time at claim, closing the window where
+    a booking was cancelled after the due query selected it. A lost race, a
+    cancellation, or an appointment already past returns None.
+    """
+    appointment_at = type_coerce(Booking.booking_date + Booking.booking_time, DateTime)
+    result = await db.execute(
+        update(Booking)
+        .where(
+            Booking.id == booking_id,
+            Booking.status == BookingStatus.CONFIRMED,
+            Booking.reminder_sent_at.is_(None),
+            _lease_is_stale(),
+            appointment_at > local_now(),
+        )
+        .values(reminder_claimed_at=func.now())
+        .returning(Booking.reminder_claimed_at)
+    )
+    return result.scalar_one_or_none()
+
+
+async def finalize_reminder(
+    db: AsyncSession, booking_id: int, token: datetime
+) -> bool:
+    """Mark a claimed reminder delivered, only if this worker still owns the lease.
+
+    `token` is the value returned by the winning `claim_reminder`. Matching it in
+    the WHERE clause means a stale worker whose lease expired and was reclaimed
+    cannot confirm delivery for the newer owner.
     """
     result = await db.execute(
         update(Booking)
-        .where(Booking.id == booking_id, Booking.reminder_sent_at.is_(None))
-        .values(reminder_sent_at=func.now())
+        .where(
+            Booking.id == booking_id,
+            Booking.reminder_claimed_at == token,
+            Booking.reminder_sent_at.is_(None),
+        )
+        .values(reminder_sent_at=func.now(), reminder_claimed_at=None)
     )
     return result.rowcount == 1
+
+
+async def clear_reminder_claim(
+    db: AsyncSession, booking_id: int, token: datetime
+) -> None:
+    """Release a lease after definite failure, only if still owned by `token`.
+
+    On confirmed all-channel failure the booking becomes eligible for a retry
+    immediately rather than waiting out the lease TTL.
+    """
+    await db.execute(
+        update(Booking)
+        .where(
+            Booking.id == booking_id,
+            Booking.reminder_claimed_at == token,
+        )
+        .values(reminder_claimed_at=None)
+    )

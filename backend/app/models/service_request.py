@@ -35,10 +35,20 @@ class RequestPriority(str, enum.Enum):
     URGENT = "URGENT"
 
 
+SUBMISSION_ID_MAX_LENGTH = 36
+
+
 class ServiceRequest(Base):
     __tablename__ = "service_requests"
 
     id = Column(Integer, primary_key=True, index=True)
+
+    # Client-supplied idempotency key for LIFF retries. Nullable so old clients
+    # and non-LIFF rows keep working; unique so two racing retries cannot mint
+    # two cases (the loser rolls back and replays the winner).
+    submission_id = Column(
+        String(SUBMISSION_ID_MAX_LENGTH), nullable=True, unique=True, index=True
+    )
 
     # แหล่งที่มาของคำร้อง (LIFF, ADMIN, PHONE, PAPER, WALK_IN)
     source = Column(String(20), default="LIFF", nullable=False, index=True)

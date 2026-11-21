@@ -322,6 +322,7 @@ async def update_my_booking(
             phone_number=payload.phone_number,
             note=payload.note,
             email=payload.email,
+            fields_set=payload.model_fields_set,
         )
     except BookingNotCancellableError:
         raise HTTPException(status_code=409, detail="การจองนี้แก้ไขไม่ได้แล้ว")
