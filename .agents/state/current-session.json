@@ -1,14 +1,21 @@
 {
-  "last_updated": "2026-11-20T21:45:00+07:00",
+  "last_updated": "2026-11-21T12:24:00+07:00",
   "platform": "claude_code",
-  "current_task": "Continued after the low-memory suite stop. Ran focused backend suites covering every changed area: 143 passed. Full backend suite remains outstanding because the clean background run was killed by sys",
+  "current_task": "Committed fe16a1d: LIFF upload guards and submission replay, booking email preservation, reminder lease and stale-status fix, broadcast cancel CAS. Full backend suite passed 1807 tests with 78.74% cov",
   "plan_status": "completed",
   "next_steps": [
-    "Rerun the full backend suite when memory is available",
-    "Commit after a clean full-suite result",
-    "Decide whether to address the two follow-up findings before release"
+    "Push branch and open PR for review if required",
+    "Run deployment migrations f0a1b2c3d4e6 then z2a3b4c5d6e7 before code rollout",
+    "Do manual LINE phone check for upload progress and booking edit flows"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-11-21T12:24:00+07:00",
+      "platform": "claude_code",
+      "branch": "docs/handoff-20261119-1410",
+      "head": "fe16a1d",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-11-20T21:45:00+07:00",
       "platform": "claude_code",
@@ -140,13 +147,6 @@
       "platform": "pi",
       "branch": "feat/admin-p1-fixes",
       "head": "dc559b9",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-10-25T13:55:00+07:00",
-      "platform": "kimi_code",
-      "branch": "main",
-      "head": "fca08f2",
       "status": "completed"
     }
   ],

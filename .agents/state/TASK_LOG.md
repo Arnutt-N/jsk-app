@@ -1,8 +1,17 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 334 active handoffs, 12 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 335 active handoffs, 12 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-11-21 12:24 — claude_code — completed
+
+Committed fe16a1d: LIFF upload guards and submission replay, booking email preservation, reminder lease and stale-status fix, broadcast cancel CAS. Full backend suite passed 1807 tests with 78.74% coverage; frontend affected suites passed 166 tests; typecheck clean.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20261121-1224.json`
+- Summary: `project-log-md/claude_code/session-summary-20261121-1224.md`
+
+---
 
 ### 2026-11-20 21:45 — claude_code — completed
 

@@ -1,0 +1,18 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-11-21T12:24:00+07:00",
+  "branch": "docs/handoff-20261119-1410",
+  "head_commit": "fe16a1d",
+  "status": "completed",
+  "work_summary": "Committed fe16a1d: LIFF upload guards and submission replay, booking email preservation, reminder lease and stale-status fix, broadcast cancel CAS. Full backend suite passed 1807 tests with 78.74% coverage; frontend affected suites passed 166 tests; typecheck clean.",
+  "priority_actions": [
+    "Push branch and open PR for review if required",
+    "Run deployment migrations f0a1b2c3d4e6 then z2a3b4c5d6e7 before code rollout",
+    "Do manual LINE phone check for upload progress and booking edit flows"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/claude_code/session-summary-20261121-1224.md",
+  "cross_platform_read": []
+}
