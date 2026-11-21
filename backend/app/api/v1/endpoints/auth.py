@@ -50,6 +50,7 @@ from app.services.auth_session_service import (
     rotate_refresh_session,
 )
 from app.services.booking_email import send_booking_email
+from app.services.delivery_outcome import DeliveryOutcome, as_outcome
 
 router = APIRouter()
 
@@ -350,7 +351,8 @@ async def forgot_password(
             "ถ้าไม่ได้ขอเอง ไม่ต้องทำอะไร\n"
             "ข้อความนี้ส่งอัตโนมัติ กรุณาอย่าตอบกลับ"
         )
-        sent = await send_booking_email(user.email, subject, body)
+        outcome = await send_booking_email(user.email, subject, body)
+        sent = as_outcome(outcome) is DeliveryOutcome.SENT
         if not sent:
             logger.error("password reset email failed for user_id=%s", user.id)
         await create_audit_log(

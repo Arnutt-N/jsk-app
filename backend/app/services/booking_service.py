@@ -8,6 +8,7 @@ free of I/O means those can all be pinned down by fast tests. The only part that
 touches the database is counting what is already booked.
 """
 from dataclasses import dataclass
+from inspect import isawaitable
 from datetime import date, datetime, time, timedelta
 from enum import Enum
 from typing import AbstractSet, Mapping, Optional, Sequence
@@ -599,16 +600,38 @@ async def get_due_reminders(
 
 
 async def load_booking_for_reminder(
-    db: AsyncSession, booking_id: int
+    db: AsyncSession, booking_id: int, token: Optional[datetime] = None
 ) -> Optional[Booking]:
-    """Re-read one booking with its user eagerly loaded, for the reminder push."""
-    result = await db.execute(
+    """Re-read one booking with its user eagerly loaded, for the reminder push.
+
+    Passing `token` scopes the reload to the lease this worker won: if another
+    worker reclaimed it, the row is not returned and no push may be made.
+    """
+    stmt = (
         select(Booking)
         .options(selectinload(Booking.user))
         .where(Booking.id == booking_id)
-        .execution_options(populate_existing=True)
     )
+    if token is not None:
+        stmt = stmt.where(Booking.reminder_claimed_at == token)
+    result = await db.execute(stmt.execution_options(populate_existing=True))
     return result.scalar_one_or_none()
+
+
+async def verify_reminder_lease(
+    db: AsyncSession, booking_id: int, token: datetime
+) -> bool:
+    """Confirm this worker still owns the lease immediately before sending."""
+    result = await db.execute(
+        select(Booking.id).where(
+            Booking.id == booking_id,
+            Booking.reminder_claimed_at == token,
+        )
+    )
+    owner = result.scalar_one_or_none()
+    if isawaitable(owner):  # AsyncMock db in unit tests.
+        owner = await owner
+    return owner is not None
 
 
 async def claim_reminder(db: AsyncSession, booking_id: int) -> Optional[datetime]:
