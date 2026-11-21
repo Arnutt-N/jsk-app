@@ -48,10 +48,14 @@ class Booking(Base):
     note = Column(Text, nullable=True)
     email = Column(String(254), nullable=True)
 
-    # Claim marker for the advance-reminder scheduler. Must stay NULL on insert:
-    # the guard is `UPDATE ... WHERE reminder_sent_at IS NULL`, so any default
-    # here would make every new booking look already-reminded.
+    # Confirmed delivery marker for the advance-reminder scheduler. Must stay
+    # NULL on insert: a default would make every new booking look already-reminded.
     reminder_sent_at = Column(DateTime(timezone=True), nullable=True)
+
+    # Short-lived lease taken just before a reminder push and released when the
+    # outcome is known. Separate from the confirmed marker so a failed push can
+    # be retried instead of being excluded from later passes (F2).
+    reminder_claimed_at = Column(DateTime(timezone=True), nullable=True)
 
     cancelled_at = Column(DateTime(timezone=True), nullable=True)
 

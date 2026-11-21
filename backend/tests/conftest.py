@@ -1,6 +1,7 @@
 """
 Shared pytest fixtures for WebSocket and API tests.
 """
+import asyncio
 import os
 import socket
 from pathlib import Path
@@ -11,6 +12,11 @@ from fastapi.testclient import TestClient
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 PROBE_TIMEOUT_SECONDS = 3
+
+if os.name == "nt":
+    # Proactor close can spin on pending overlapped IO when session TestClient
+    # and pytest-asyncio loops coexist. The suite does not need proactor pipes.
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 
 def _configure_test_environment() -> None:

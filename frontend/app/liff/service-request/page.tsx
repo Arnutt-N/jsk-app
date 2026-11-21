@@ -115,6 +115,7 @@ export default function LiffServiceRequestV2() {
     // Uploads started but not yet resolved — counted toward the attachment
     // cap so rapid file picks cannot exceed the shared rate-limit budget.
     const inflightUploadsRef = useRef(0)
+    const submissionIdRef = useRef<string | null>(null)
 
     // Location Data State
     const [provinces, setProvinces] = useState<Province[]>([])
@@ -281,12 +282,21 @@ export default function LiffServiceRequestV2() {
         // Prevent accidental submit on previous steps (e.g. via Enter key)
         if (step !== STEPS.length - 1) return
 
+        if (inflightUploadsRef.current > 0) {
+            setError('รอให้ไฟล์แนบอัปโหลดเสร็จก่อนส่งคำร้อง')
+            return
+        }
         if (validateStep(3)) {
             setShowConfirm(true)
         }
     }
 
     const submitData = async () => {
+        if (inflightUploadsRef.current > 0) {
+            setError('รอให้ไฟล์แนบอัปโหลดเสร็จก่อนส่งคำร้อง')
+            setShowConfirm(false)
+            return
+        }
         setSubmitting(true)
         setError(null)
 
@@ -297,7 +307,8 @@ export default function LiffServiceRequestV2() {
             }
 
             // Post to backend
-            const res = await submitServiceRequest(payload, idToken)
+            submissionIdRef.current ??= crypto.randomUUID()
+            const res = await submitServiceRequest(payload, idToken, submissionIdRef.current)
 
             const resText = await res.text()
             let data
@@ -353,6 +364,7 @@ export default function LiffServiceRequestV2() {
         setError(null)
         setShowConfirm(false)
         setSuccess(false)
+        submissionIdRef.current = null
         resetCountdown()
         window.scrollTo(0, 0)
     }

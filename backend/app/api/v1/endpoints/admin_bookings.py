@@ -374,6 +374,7 @@ async def update_booking_contact_info(
             phone_number=payload.phone_number,
             note=payload.note,
             email=payload.email,
+            fields_set=payload.model_fields_set,
         )
     except BookingNotCancellableError:
         raise HTTPException(
