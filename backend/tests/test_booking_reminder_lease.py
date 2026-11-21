@@ -20,6 +20,7 @@ from app.models.booking import Booking, BookingStatus
 from app.models.user import User
 from app.services import booking_service
 from app.services.booking_service import BookingConfig, ReminderUnit, local_now
+from app.services.business_hours_service import BANGKOK_TZ
 from app.tasks import booking_reminder
 
 
@@ -153,7 +154,9 @@ async def test_claim_guard_rejects_past_appointment():
 async def test_stale_lease_can_be_reclaimed():
     engine = _fresh_engine()
     Session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-    stale = local_now() - timedelta(seconds=booking_service.REMINDER_CLAIM_TTL_SECONDS + 5)
+    stale = BANGKOK_TZ.localize(local_now()) - timedelta(
+        seconds=booking_service.REMINDER_CLAIM_TTL_SECONDS + 5
+    )
     booking_id, user_id = await _seed(Session, claimed_at=stale)
     try:
         async with Session() as db:
