@@ -8,6 +8,7 @@ import smtplib
 from email.message import EmailMessage
 
 from app.core.config import settings
+from app.services.delivery_outcome import DeliveryOutcome
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +51,7 @@ def build_reminder_email(booking) -> tuple[str, str]:
     return subject, body
 
 
-def _send_sync(to: str, subject: str, body: str) -> None:
+def _send_sync(to: str, subject: str, body: str, has_submitted: list[bool]) -> None:
     message = EmailMessage()
     message["From"] = settings.SMTP_FROM
     message["To"] = to
@@ -62,6 +63,7 @@ def _send_sync(to: str, subject: str, body: str) -> None:
             server.starttls()
             if settings.SMTP_USERNAME:
                 server.login(settings.SMTP_USERNAME, settings.SMTP_PASSWORD)
+            has_submitted[0] = True
             server.send_message(message)
         finally:
             _quit_quietly(server)
@@ -70,6 +72,7 @@ def _send_sync(to: str, subject: str, body: str) -> None:
         try:
             if settings.SMTP_USERNAME:
                 server.login(settings.SMTP_USERNAME, settings.SMTP_PASSWORD)
+            has_submitted[0] = True
             server.send_message(message)
         finally:
             _quit_quietly(server)
@@ -82,14 +85,20 @@ def _quit_quietly(server) -> None:
         logger.debug("SMTP quit failed (teardown noise): %s", exc)
 
 
-async def send_booking_email(to: str, subject: str, body: str) -> bool:
+async def send_booking_email(to: str, subject: str, body: str):
+    """Return bool for legacy callers, or UNKNOWN for an ambiguous timeout."""
     digest = hashlib.sha256(to.encode("utf-8")).hexdigest()[:12]
     if not settings.SMTP_HOST or not settings.SMTP_FROM:
         logger.error("SMTP not configured; cannot email %s", digest)
         return False
+    has_submitted = [False]
     try:
-        await asyncio.to_thread(_send_sync, to, subject, body)
-        return True
+        await asyncio.to_thread(_send_sync, to, subject, body, has_submitted)
     except Exception as exc:
         logger.error("Booking email to %s failed: %s", digest, exc)
+        # Once DATA was submitted the server may have accepted the message, so a
+        # timeout there is ambiguous rather than a definite decline.
+        if isinstance(exc, TimeoutError) or type(exc).__name__ == "SMTPServerDisconnected":
+            return DeliveryOutcome.UNKNOWN if has_submitted[0] else False
         return False
+    return True

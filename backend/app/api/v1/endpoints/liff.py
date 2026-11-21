@@ -1,3 +1,5 @@
+import hashlib
+import json
 import logging
 import uuid
 from typing import Any, Optional
@@ -120,14 +122,32 @@ def _service_request_response(
     )
 
 
+def _payload_hash(request: ServiceRequestCreate) -> str:
+    """Canonical digest of the submitted payload for replay-drift detection."""
+    canonical = json.dumps(
+        request.model_dump(mode="json"), sort_keys=True, separators=(",", ":")
+    )
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
 def _replay_service_request(
-    found: ServiceRequest, caller_user_id: int | None, line_user_id: str
+    found: ServiceRequest,
+    caller_user_id: int | None,
+    line_user_id: str,
+    payload_hash: str | None = None,
 ) -> ServiceRequestResponse:
-    """Return the original case only when the verified caller owns it."""
+    """Return the original case only for its owner and unchanged payload."""
     if found.user_id != caller_user_id:
         raise HTTPException(
             status_code=409,
             detail="รหัสการส่งนี้ใช้โดยอีกบัญชีหนึ่งแล้ว กรุณาส่งใหม่ด้วยรหัสใหม่",
+        )
+    stored = (found.details or {}).get("submission_hash")
+    # Legacy rows have no hash; keep replaying them for the same verified owner.
+    if stored is not None and stored != payload_hash:
+        raise HTTPException(
+            status_code=409,
+            detail="รหัสการส่งนี้ถูกใช้กับข้อมูลที่ต่างจากเดิม กรุณาส่งใหม่ด้วยรหัสใหม่",
         )
     return _service_request_response(found, line_user_id)
 
@@ -223,7 +243,10 @@ async def create_service_request(
     the same id from the same verified caller replays the original case.
     """
     line_user_id = await require_liff_identity(x_liff_id_token)
+    payload_hash = _payload_hash(request) if x_submission_id else None
     source_details = {"source": "LIFF v2"}
+    if payload_hash:
+        source_details["submission_hash"] = payload_hash
 
     # Resolve the LINE identity to a user row. LIFF submissions may precede the
     # follow event that normally creates the user, so create on miss. An
@@ -240,7 +263,7 @@ async def create_service_request(
     if x_submission_id:
         found = await _find_by_submission_id(db, x_submission_id)
         if found is not None:
-            return _replay_service_request(found, caller_user_id, line_user_id)
+            return _replay_service_request(found, caller_user_id, line_user_id, payload_hash)
 
     # Resolve attachment ids server-side (mirrors the admin create path).
     # The client-supplied url is never persisted — staff open these links
@@ -316,7 +339,7 @@ async def create_service_request(
         if x_submission_id:
             found = await _find_by_submission_id(db, x_submission_id)
             if found is not None:
-                return _replay_service_request(found, caller_user_id, line_user_id)
+                return _replay_service_request(found, caller_user_id, line_user_id, payload_hash)
         raise HTTPException(status_code=409, detail="บันทึกคำร้องล้มเหลว กรุณาลองใหม่")
     await db.refresh(db_obj)
 

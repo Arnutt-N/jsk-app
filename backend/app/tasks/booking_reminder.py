@@ -29,9 +29,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import AsyncSessionLocal
 from app.models.booking import BookingStatus
 from app.services.booking_notifications import (
-    ReminderOutcome,
     send_booking_reminder_outcome,
 )
+from app.services.delivery_outcome import DeliveryOutcome
 from app.services.booking_service import (
     claim_reminder,
     clear_reminder_claim,
@@ -40,6 +40,7 @@ from app.services.booking_service import (
     load_booking_for_reminder,
     local_now,
     reminder_window,
+    verify_reminder_lease,
 )
 from app.services.booking_settings import load_booking_config
 
@@ -102,9 +103,10 @@ async def _process_due_reminders(db: AsyncSession):
             # Re-read after the commit: this is the only way to hold live ORM
             # state that an earlier rollback in this loop cannot have expired.
             booking = await load_booking_for_reminder(db, booking_id)
-            if booking is None:
-                logger.warning("Booking %s vanished between claim and send", booking_id)
-                await clear_reminder_claim(db, booking_id, token)
+            if booking is None or not await verify_reminder_lease(db, booking_id, token):
+                # Either deleted or the lease moved to another worker. Never
+                # clear here: a reassigned lease belongs to its new owner.
+                logger.warning("Booking %s lease lost between claim and send", booking_id)
                 await db.commit()
                 continue
 
@@ -119,7 +121,7 @@ async def _process_due_reminders(db: AsyncSession):
                 continue
 
             outcome = await send_booking_reminder_outcome(db, booking, booking.user)
-            if outcome in (ReminderOutcome.CONFIRMED, ReminderOutcome.UNKNOWN):
+            if outcome in (DeliveryOutcome.SENT, DeliveryOutcome.UNKNOWN):
                 # Confirmed delivery, or a provider error whose result is
                 # genuinely unknown: keep the sent marker so a duplicate is
                 # never sent to a member of the public.
