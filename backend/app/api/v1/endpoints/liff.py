@@ -5,6 +5,7 @@ from typing import Any, Optional
 import httpx
 from fastapi import APIRouter, Depends, File, Header, HTTPException, UploadFile
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -16,7 +17,11 @@ from app.models.debt_mediation import (
     DebtMediationRequest,
 )
 from app.models.media_file import MediaFile, detect_category
-from app.models.service_request import RequestStatus, ServiceRequest
+from app.models.service_request import (
+    SUBMISSION_ID_MAX_LENGTH,
+    RequestStatus,
+    ServiceRequest,
+)
 from app.schemas.debt_mediation_liff import (
     DebtMediationCreate,
     DebtMediationResponse,
@@ -79,6 +84,52 @@ async def require_liff_identity(x_liff_id_token: Optional[str]) -> str:
 
 _LIFF_MEDIA_ALLOWED_MIMES = {"image/jpeg", "image/png", "application/pdf"}
 _LIFF_MEDIA_MAX_BYTES = 10 * 1024 * 1024  # 10 MB
+
+async def _find_by_submission_id(db: AsyncSession, submission_id: str) -> ServiceRequest | None:
+    result = await db.execute(
+        select(ServiceRequest).where(ServiceRequest.submission_id == submission_id)
+    )
+    return result.scalar_one_or_none()
+
+
+def _service_request_response(
+    db_obj: ServiceRequest, line_user_id: str
+) -> ServiceRequestResponse:
+    """Build the public response for both a fresh insert and a replayed row."""
+    return ServiceRequestResponse(
+        id=db_obj.id,
+        line_user_id=line_user_id,
+        created_at=db_obj.created_at,
+        status=db_obj.status.value if hasattr(db_obj.status, "value") else db_obj.status,
+        priority=db_obj.priority.value if hasattr(db_obj.priority, "value") else db_obj.priority,
+        name=db_obj.requester_name,
+        phone=db_obj.phone_number,
+        service_type=db_obj.topic_category or db_obj.category,
+        prefix=db_obj.prefix,
+        firstname=db_obj.firstname,
+        lastname=db_obj.lastname,
+        email=db_obj.email,
+        agency=db_obj.agency,
+        province=db_obj.province,
+        district=db_obj.district,
+        sub_district=db_obj.sub_district,
+        topic_category=db_obj.topic_category,
+        topic_subcategory=db_obj.topic_subcategory,
+        description=db_obj.description,
+        attachments=db_obj.attachments or [],
+    )
+
+
+def _replay_service_request(
+    found: ServiceRequest, caller_user_id: int | None, line_user_id: str
+) -> ServiceRequestResponse:
+    """Return the original case only when the verified caller owns it."""
+    if found.user_id != caller_user_id:
+        raise HTTPException(
+            status_code=409,
+            detail="รหัสการส่งนี้ใช้โดยอีกบัญชีหนึ่งแล้ว กรุณาส่งใหม่ด้วยรหัสใหม่",
+        )
+    return _service_request_response(found, line_user_id)
 
 
 @router.post(
@@ -163,12 +214,33 @@ async def create_service_request(
     request: ServiceRequestCreate,
     db: AsyncSession = Depends(get_db),
     x_liff_id_token: Optional[str] = Header(None),
+    x_submission_id: Optional[str] = Header(None, max_length=SUBMISSION_ID_MAX_LENGTH),
 ) -> Any:
     """
     Create a new service request from LIFF.
+
+    An optional x-submission-id makes retries idempotent: a second POST with
+    the same id from the same verified caller replays the original case.
     """
     line_user_id = await require_liff_identity(x_liff_id_token)
     source_details = {"source": "LIFF v2"}
+
+    # Resolve the LINE identity to a user row. LIFF submissions may precede the
+    # follow event that normally creates the user, so create on miss. An
+    # unverified submission without a line_user_id stays unlinked.
+    user = (
+        await friend_service.get_or_create_user(line_user_id, db, commit=False)
+        if line_user_id
+        else None
+    )
+    caller_user_id = user.id if user else None
+
+    # Replay an already-saved submission before doing any more work. A lost
+    # first response must return the original case, not mint a second row.
+    if x_submission_id:
+        found = await _find_by_submission_id(db, x_submission_id)
+        if found is not None:
+            return _replay_service_request(found, caller_user_id, line_user_id)
 
     # Resolve attachment ids server-side (mirrors the admin create path).
     # The client-supplied url is never persisted — staff open these links
@@ -200,18 +272,10 @@ async def create_service_request(
     if request.name and not full_name:
         full_name = request.name # Fallback
 
-    # Resolve the LINE identity to a user row. LIFF submissions may precede the
-    # follow event that normally creates the user, so create on miss. An
-    # unverified submission without a line_user_id stays unlinked.
-    user = None
-    if line_user_id:
-        user = await resolve_by_line_id(db, line_user_id)
-        if user is None:
-            user = await friend_service.get_or_create_user(line_user_id, db, commit=False)
-
     db_obj = ServiceRequest(
         # Context
-        user_id=user.id if user else None,
+        submission_id=x_submission_id,
+        user_id=caller_user_id,
         status=RequestStatus.PENDING,
         priority=None, # User requested no initial priority
         details=source_details,
@@ -243,39 +307,20 @@ async def create_service_request(
     )
     
     db.add(db_obj)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        # Two concurrent retries with one id: the unique index lets one win.
+        # Roll back the loser, then replay the winner - never mint a second row.
+        await db.rollback()
+        if x_submission_id:
+            found = await _find_by_submission_id(db, x_submission_id)
+            if found is not None:
+                return _replay_service_request(found, caller_user_id, line_user_id)
+        raise HTTPException(status_code=409, detail="บันทึกคำร้องล้มเหลว กรุณาลองใหม่")
     await db.refresh(db_obj)
-    
-    # Map back to Response Schema
-    # Because field names differ, we construct response manually or rely on ORM mapping if aliases were used better.
-    # But simplest is to just return dict that Pydantic can parse if Config.from_attributes=True
-    
-    return ServiceRequestResponse(
-        id=db_obj.id,
-        line_user_id=line_user_id,
-        created_at=db_obj.created_at,
-        status=db_obj.status.value if hasattr(db_obj.status, 'value') else db_obj.status,
-        priority=db_obj.priority.value if hasattr(db_obj.priority, 'value') else db_obj.priority, # No default value
 
-        # Mapped fields
-        name=db_obj.requester_name,
-        phone=db_obj.phone_number,
-        service_type=db_obj.topic_category or db_obj.category,
-
-        # Direct fields
-        prefix=db_obj.prefix,
-        firstname=db_obj.firstname,
-        lastname=db_obj.lastname,
-        email=db_obj.email,
-        agency=db_obj.agency,
-        province=db_obj.province,
-        district=db_obj.district,
-        sub_district=db_obj.sub_district,
-        topic_category=db_obj.topic_category,
-        topic_subcategory=db_obj.topic_subcategory,
-        description=db_obj.description,
-        attachments=db_obj.attachments or []
-    )
+    return _service_request_response(db_obj, line_user_id)
 
 
 @router.post(

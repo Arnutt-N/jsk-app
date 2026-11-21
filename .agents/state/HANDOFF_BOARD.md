@@ -1,8 +1,8 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Handoff Board (generated)
 
-> **Last generated**: 2026-11-19 14:10 (from newest checkpoint)
-> 331 active handoffs, 12 platforms, 0 queued directed handoff(s).
+> **Last generated**: 2026-11-20 21:45 (from newest checkpoint)
+> 334 active handoffs, 12 platforms, 0 queued directed handoff(s).
 
 > Regenerate after any handoff: `node .agents/scripts/gen-handoff-views.cjs`
 
@@ -11,7 +11,7 @@
 | Platform | Status | Last active | Queued | Last task | Summary |
 |----------|--------|-------------|--------|-----------|---------|
 | antigravity | AVAILABLE | 2026-09-04 09:00 | 0 | P2 Thai Calendar and Date Standardization merged into main (PR #223, commit f91b12b). 3-gate codebase-review-fix pipelin | `project-log-md/antigravity/session-summary-20260904-0900.md` |
-| claude_code | AVAILABLE | 2026-11-19 14:10 | 0 | PR #343 handoff closeout merged as 2837d4d; local main fast-forwarded to 2837d4d; prior PRs #342 and #341 remain merged  | `project-log-md/claude_code/session-summary-20261119-1410.md` |
+| claude_code | AVAILABLE | 2026-11-20 21:45 | 0 | Continued after the low-memory suite stop. Ran focused backend suites covering every changed area: 143 passed. Full back | `project-log-md/claude_code/session-summary-20261120-2145.md` |
 | cline | AVAILABLE | 2026-09-27 20:08 | 0 | Merged PR 236 codebase-review-fix batch F1-F7: SQL-like escaping pagination bounds broadcast fan-out dedup LINE-ID log m | `project-log-md/cline/session-summary-20260927-2008.md` |
 | codex | AVAILABLE | 2026-08-29 06:54 | 0 | Completed evidence-backed deep review of Qoder audit sweep and architecture report; consolidated findings and remediatio | `project-log-md/codex/session-summary-20260829-0654.md` |
 | gemini_cli | AVAILABLE | 2026-04-03 12:00 | 0 | Redesigned the login page to align with the new landing page aesthetic (glassmorphism, shared backgrounds, brand mark).  | — |
@@ -35,6 +35,9 @@ _None — no blocked checkpoints._
 
 | When | From → To | Task | Checkpoint |
 |------|-----------|------|------------|
+| 2026-11-20 21:45 | claude_code → all | Continued after the low-memory suite stop. Ran focused backend suites covering every changed area: 143 passed. Full backend suite remains ou | `handover-claude_code-20261120-2145.json` |
+| 2026-11-20 16:39 | claude_code → all | Resolved the three P1 findings from the handoff analysis: new-case id rotation, hidden booking email preservation, and stale reminder status | `handover-claude_code-20261120-1639.json` |
+| 2026-11-20 12:05 | claude_code → all | Fixed all six defects from the 2026-11-19 codebase review: F1 upload race, F2 booking reminder loss, F3 broadcast cancel race, F4 duplicate  | `handover-claude_code-20261120-1205.json` |
 | 2026-11-19 14:10 | claude_code → all | PR #343 handoff closeout merged as 2837d4d; local main fast-forwarded to 2837d4d; prior PRs #342 and #341 remain merged and production check | `handover-claude_code-20261119-1410.json` |
 | 2026-11-19 13:33 | claude_code → all | PR #342 (/admin/users edit consolidation) and PR #341 (Next 16.4.6 security upgrade) merged to main; local main fast-forwarded to 180cfc8 an | `handover-claude_code-20261119-1333.json` |
 | 2026-11-15 08:12 | claude_code → all | Gauntlet closed on PR #330 and follow-ups merged: #331 verb-gated mock routers, #332 handoff validator on real interpreter, #333 send_messag | `handover-claude_code-20261115-0812.json` |
@@ -42,6 +45,3 @@ _None — no blocked checkpoints._
 | 2026-11-09 07:12 | claude_code → all | PR #326 merged + #327 verified; poteto review of #325 done | `handover-claude_code-20261109-0712.json` |
 | 2026-11-09 05:08 | claude_code → all | Date-filter rollout + agent guardrails (PR #321-#327 merged) | `handover-claude_code-20261109-0508.json` |
 | 2026-11-07 13:42 | claude_code → all | Merged 2 PRs continuing the admin UI consistency pass. #319 (d31f628) fixed the shared DatePresetFilter: the preset and clear buttons were r | `handover-claude_code-20261107-1342.json` |
-| 2026-11-05 19:59 | claude_code → all | Merged 6 PRs unifying the admin date-filter UI across all six pages. #313 (c502d09) deleted the dead Gregorian DateRangePicker+Calendar fami | `handover-claude_code-20261105-1959.json` |
-| 2026-11-04 14:01 | claude_code → all | Merged one more PR after the previous handoff: #312 (fix/live-chat-search-race, merged as 0c1919f) closed a race that #311 had introduced in | `handover-claude_code-20261104-1401.json` |
-| 2026-11-04 07:40 | claude_code → all | Merged three PRs completing the Next.js 16.4.3 security upgrade and full react-hooks conformance on main. #309 upgraded next 16.1.1 -> 16.4. | `handover-claude_code-20261104-0740.json` |

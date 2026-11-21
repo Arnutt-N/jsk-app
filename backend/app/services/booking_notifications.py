@@ -6,6 +6,7 @@ because LINE happened to be unreachable — but a failure is never swallowed
 silently either; it is logged at ERROR so the existing alerting picks it up.
 """
 import logging
+from enum import Enum
 from typing import Optional
 
 from linebot.v3.messaging import FlexContainer, FlexMessage
@@ -81,18 +82,30 @@ async def notify_booking_confirmed(db: AsyncSession, booking: Booking, user) -> 
         return False
 
 
-async def send_booking_reminder(db: AsyncSession, booking: Booking, user) -> bool:
-    """Never raises."""
+class ReminderOutcome(str, Enum):
+    """Aggregate result across channels — not per-channel state."""
+
+    CONFIRMED = "CONFIRMED"  # at least one channel accepted delivery
+    UNKNOWN = "UNKNOWN"  # a channel errored; it may or may not have delivered
+    FAILED = "FAILED"  # every attempted channel definitively declined
+
+
+async def send_booking_reminder_outcome(
+    db: AsyncSession, booking: Booking, user
+) -> ReminderOutcome:
+    """Never raises. Collapses all channel results into one delivery outcome."""
+    confirmed = False
+    unknown = False
     try:
         config = await load_booking_config(db)
-        sent = False
         if config.email_enabled and booking.email:
             try:
                 subject, body = build_reminder_email(booking)
                 if await send_booking_email(booking.email, subject, body):
-                    sent = True
+                    confirmed = True
             except Exception as exc:
                 logger.error("Booking reminder email failed for %s: %s", _describe(booking), exc)
+                unknown = True
         if config.line_enabled:
             try:
                 if await _push_flex(
@@ -101,13 +114,25 @@ async def send_booking_reminder(db: AsyncSession, booking: Booking, user) -> boo
                     alt_text=f"เตือนนัดหมาย {booking.queue_number or ''}".strip(),
                     contents=build_booking_confirmation(booking, title="🔔 เตือนนัดหมาย"),
                 ):
-                    sent = True
+                    confirmed = True
             except Exception as exc:
                 logger.error("Booking reminder push failed for %s: %s", _describe(booking), exc)
-        return sent
+                unknown = True
     except Exception as exc:
         logger.error("Booking reminder failed for %s: %s", _describe(booking), exc)
-        return False
+        unknown = True
+
+    if confirmed:
+        return ReminderOutcome.CONFIRMED
+    if unknown:
+        return ReminderOutcome.UNKNOWN
+    return ReminderOutcome.FAILED
+
+
+async def send_booking_reminder(db: AsyncSession, booking: Booking, user) -> bool:
+    """Compatibility wrapper for the resend endpoint: True iff a channel confirmed."""
+    outcome = await send_booking_reminder_outcome(db, booking, user)
+    return outcome is ReminderOutcome.CONFIRMED
 
 
 async def notify_staff_new_booking(

@@ -1048,7 +1048,7 @@ describe('contact validation', () => {
     expect(screen.getByText('citizen@example.com')).toBeInTheDocument()
   })
 
-  it('sends null (keep) for email when editing while the channel is off', async () => {
+  it('omits email from an edit when the channel is off', async () => {
     stubFetch({})
     const user = await bookToDone()
     await user.click(screen.getByRole('button', { name: 'แก้ไขข้อมูล' }))
@@ -1056,7 +1056,7 @@ describe('contact validation', () => {
     await user.click(screen.getByRole('button', { name: 'บันทึกการแก้ไข' }))
     await screen.findByText('แก้ไขข้อมูลเรียบร้อย')
     const patch = fetchMock.mock.calls.find(([, init]) => init?.method === 'PATCH')
-    expect(JSON.parse(String(patch?.[1]?.body)).email).toBeNull()
+    expect(JSON.parse(String(patch?.[1]?.body)).email).toBeUndefined()
   })
 
   it('sends the typed email when editing while the channel is on', async () => {

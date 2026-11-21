@@ -265,7 +265,7 @@ export function EditContactDialog({ booking, emailEnabled, onClose, onUpdated }:
         contact_name: name.trim() || null,
         phone_number: phone.trim() || null,
         note: note.trim() || null,
-        email: emailEnabled ? email.trim() : '',
+        ...(emailEnabled ? { email: email.trim() } : {}),
       })
       onUpdated(updated)
       onClose()

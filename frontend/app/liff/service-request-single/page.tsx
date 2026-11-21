@@ -58,6 +58,7 @@ export default function LiffServiceRequestSingle() {
     // Uploads started but not yet resolved — counted toward the attachment
     // cap so rapid file picks cannot exceed the shared rate-limit budget.
     const inflightUploadsRef = useRef(0)
+    const submissionIdRef = useRef<string | null>(null)
 
     // Location Data State
     const [provinces, setProvinces] = useState<Province[]>([])
@@ -166,7 +167,8 @@ export default function LiffServiceRequestSingle() {
         cascade.selectSubDistrict(e.target.value, cascade.subDistricts)
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (!e.target.files?.length) return
+        const input = e.target
+        if (!input.files?.length) return
 
         const capMessage = attachmentCapMessage(formData.attachments.length, inflightUploadsRef.current)
         if (capMessage) {
@@ -174,7 +176,7 @@ export default function LiffServiceRequestSingle() {
             return
         }
 
-        const file = e.target.files[0]
+        const file = input.files[0]
         let failureMessage = 'อัพโหลดไฟล์ไม่สำเร็จ'
         inflightUploadsRef.current += 1
 
@@ -194,6 +196,7 @@ export default function LiffServiceRequestSingle() {
             alert(isSessionExpired(err) ? SESSION_EXPIRED_MESSAGE : failureMessage)
             logger.error(err)
         } finally {
+            input.value = ''
             inflightUploadsRef.current -= 1
         }
     }
@@ -232,11 +235,20 @@ export default function LiffServiceRequestSingle() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
+        if (inflightUploadsRef.current > 0) {
+            setError('รอให้ไฟล์แนบอัปโหลดเสร็จก่อนส่งคำร้อง')
+            return
+        }
         if (!validateForm()) return
         setShowConfirm(true)
     }
 
     const submitData = async () => {
+        if (inflightUploadsRef.current > 0) {
+            setError('รอให้ไฟล์แนบอัปโหลดเสร็จก่อนส่งคำร้อง')
+            setShowConfirm(false)
+            return
+        }
         setSubmitting(true)
         setError(null)
 
@@ -246,7 +258,8 @@ export default function LiffServiceRequestSingle() {
                 line_user_id: profile?.userId || 'GUEST'
             }
 
-            const res = await submitServiceRequest(payload, idToken)
+            submissionIdRef.current ??= crypto.randomUUID()
+            const res = await submitServiceRequest(payload, idToken, submissionIdRef.current)
 
             const resText = await res.text()
             let data

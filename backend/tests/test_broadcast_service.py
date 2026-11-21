@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from app.models.broadcast import BroadcastStatus, BroadcastType
-from app.services.broadcast_service import BroadcastService
+from app.services.broadcast_service import BroadcastClaimConflict, BroadcastService
 
 
 def _broadcast(**overrides):
@@ -27,6 +27,46 @@ def _broadcast(**overrides):
     )
     defaults.update(overrides)
     return SimpleNamespace(**defaults)
+
+
+class _CasDb:
+    """Fake session over one shared row. Conditional UPDATEs (send/cancel
+    claims) mutate the row only when its status is still DRAFT/SCHEDULED;
+    terminal commits write the object's final status. Models two sessions
+    holding stale snapshots of the same broadcast."""
+
+    def __init__(self, row, tracked=None):
+        self.row = row
+        self.tracked = tracked or []
+        self.commits = 0
+
+    async def execute(self, stmt, *a, **k):
+        params = stmt.compile().params
+        if not str(stmt).upper().lstrip().startswith("UPDATE BROADCASTS"):
+            return SimpleNamespace(rowcount=1, scalars=lambda: SimpleNamespace(all=lambda: []))
+        wanted = params.get("status_1", [])
+        if self.row["status"] not in wanted:
+            return SimpleNamespace(rowcount=0)
+        self.row["status"] = params["status"]
+        if "scheduled_at" in params:
+            self.row["scheduled_at"] = params["scheduled_at"]
+        return SimpleNamespace(rowcount=1)
+
+    async def commit(self):
+        self.commits += 1
+        for obj in self.tracked:
+            if obj.status in (
+                BroadcastStatus.COMPLETED,
+                BroadcastStatus.FAILED,
+                BroadcastStatus.CANCELLED,
+            ):
+                self.row["status"] = obj.status
+
+    async def refresh(self, obj):
+        pass
+
+    async def add(self, obj):
+        pass
 
 
 @pytest.mark.asyncio
@@ -145,6 +185,69 @@ async def test_cancel_broadcast_rejects_failed():
     db = AsyncMock()
     with pytest.raises(ValueError, match="Cannot cancel"):
         await svc.cancel_broadcast(db, bc)
+
+
+@pytest.mark.asyncio
+async def test_cancel_wins_then_send_is_rejected_with_no_line_call():
+    """A cancel claim flips DRAFT/SCHEDULED to CANCELLED first; the sender's
+    later claim sees rowcount 0, raises before delivery, and never calls LINE."""
+    svc = BroadcastService()
+    api = AsyncMock()
+    svc._api = api
+    row = {"status": BroadcastStatus.SCHEDULED, "scheduled_at": None}
+    cancel_db = _CasDb(row)
+    send_db = _CasDb(row)
+
+    cancelled = await svc.cancel_broadcast(cancel_db, _broadcast(status=BroadcastStatus.SCHEDULED))
+    assert cancelled.status == BroadcastStatus.CANCELLED
+    assert row["status"] == BroadcastStatus.CANCELLED
+
+    with pytest.raises(BroadcastClaimConflict):
+        await svc.send_broadcast(send_db, _broadcast(status=BroadcastStatus.SCHEDULED))
+    api.broadcast.assert_not_awaited()
+    assert row["status"] == BroadcastStatus.CANCELLED
+
+
+@pytest.mark.asyncio
+async def test_send_wins_sending_then_cancel_claim_gets_rowcount_zero():
+    """Sender claims SENDING, slow LINE call in flight; the stale cancel
+    claim cannot flip the row and its commit must not overwrite with CANCELLED."""
+    svc = BroadcastService()
+    row = {"status": BroadcastStatus.SCHEDULED, "scheduled_at": None}
+    bc = _broadcast(status=BroadcastStatus.SCHEDULED)
+
+    async def slow(*a, **k):
+        await asyncio.sleep(0)
+
+    api = AsyncMock()
+    api.broadcast.side_effect = slow
+    svc._api = api
+
+    send_db = _CasDb(row, tracked=[bc])
+    send_task = asyncio.create_task(svc.send_broadcast(send_db, bc))
+    await asyncio.sleep(0)  # let the SENDING claim commit before cancel
+    assert row["status"] == BroadcastStatus.SENDING
+
+    cancel_db = _CasDb(row)
+    with pytest.raises(BroadcastClaimConflict):
+        await svc.cancel_broadcast(cancel_db, _broadcast(status=BroadcastStatus.SCHEDULED))
+    assert row["status"] == BroadcastStatus.SENDING
+
+    await send_task
+    assert row["status"] == BroadcastStatus.COMPLETED
+    api.broadcast.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_cancel_rejects_sending():
+    """Cancel on a stale SENDING snapshot never issues a winning claim."""
+    svc = BroadcastService()
+    row = {"status": BroadcastStatus.SENDING, "scheduled_at": None}
+    cancel_db = _CasDb(row)
+    with pytest.raises(BroadcastClaimConflict):
+        await svc.cancel_broadcast(cancel_db, _broadcast(status=BroadcastStatus.SENDING))
+    assert row["status"] == BroadcastStatus.SENDING
+    assert cancel_db.commits == 0
 
 
 @pytest.mark.asyncio

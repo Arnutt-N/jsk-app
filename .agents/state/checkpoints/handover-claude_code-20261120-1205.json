@@ -1,0 +1,18 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-11-20T12:05:00+07:00",
+  "branch": "docs/handoff-20261119-1410",
+  "head_commit": "d370364",
+  "status": "completed",
+  "work_summary": "Fixed all six defects from the 2026-11-19 codebase review: F1 upload race, F2 booking reminder loss, F3 broadcast cancel race, F4 duplicate case retry, F5 clear account email, F6 clear booking note. Full backend suite passed (~1926 tests, exit 0), focused frontend suites passed (29 tests), tsc passed. Alembic head z2a3b4c5d6e7. Working tree still dirty; no commit or PR.",
+  "priority_actions": [
+    "Review combined diff with independent reviewer before commit",
+    "Confirm F2 unknown-provider duplicate risk tradeoff and run final manual UI check",
+    "Commit fixes and run migrations when deploying"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/claude_code/session-summary-20261120-1205.md",
+  "cross_platform_read": []
+}

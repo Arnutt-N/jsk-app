@@ -490,10 +490,11 @@ export default function LiffBookingPage() {
     setSubmitting(true)
     setError(null)
     try {
+      const payload = contactPayload(prefix, firstname, lastname, phoneNumber, note, effectiveEmail)
       const updated = await updateBookingContact(
         idToken,
         confirmed.id,
-        contactPayload(prefix, firstname, lastname, phoneNumber, note, emailEnabled ? effectiveEmail : null),
+        emailEnabled ? payload : { ...payload, email: undefined },
       )
       setConfirmed(updated)
       setEditing(false)
