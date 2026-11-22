@@ -18,6 +18,7 @@ from app.services.booking_email import (
     send_booking_email,
 )
 from app.services.booking_settings import load_booking_config
+from app.services.delivery_outcome import DeliveryOutcome, aggregate_outcomes, as_outcome
 from app.services.flex_messages import build_booking_confirmation
 from app.services.line_service import line_service, resolve_raw_for_push
 from app.services.telegram_service import telegram_service
@@ -60,7 +61,7 @@ async def notify_booking_confirmed(db: AsyncSession, booking: Booking, user) -> 
         if config.email_enabled and booking.email:
             try:
                 subject, body = build_confirmation_email(booking)
-                if await send_booking_email(booking.email, subject, body):
+                if as_outcome(await send_booking_email(booking.email, subject, body)) is DeliveryOutcome.SENT:
                     sent = True
             except Exception as exc:
                 logger.error("Booking confirmation email failed for %s: %s", _describe(booking), exc)
@@ -81,33 +82,53 @@ async def notify_booking_confirmed(db: AsyncSession, booking: Booking, user) -> 
         return False
 
 
-async def send_booking_reminder(db: AsyncSession, booking: Booking, user) -> bool:
-    """Never raises."""
+ReminderOutcome = DeliveryOutcome
+
+
+def _is_circuit_open(exc: Exception) -> bool:
+    """A locally refused push is definite; every other error is ambiguous."""
+    return "circuit is open" in str(exc)
+
+
+async def send_booking_reminder_outcome(
+    db: AsyncSession, booking: Booking, user
+) -> DeliveryOutcome:
+    """Never raises. Collapses all channel results into one delivery outcome."""
+    outcomes: list[DeliveryOutcome] = []
     try:
         config = await load_booking_config(db)
-        sent = False
         if config.email_enabled and booking.email:
             try:
                 subject, body = build_reminder_email(booking)
-                if await send_booking_email(booking.email, subject, body):
-                    sent = True
+                outcomes.append(as_outcome(await send_booking_email(booking.email, subject, body)))
             except Exception as exc:
                 logger.error("Booking reminder email failed for %s: %s", _describe(booking), exc)
+                outcomes.append(DeliveryOutcome.UNKNOWN)
         if config.line_enabled:
             try:
-                if await _push_flex(
+                sent = await _push_flex(
                     db,
                     user,
                     alt_text=f"เตือนนัดหมาย {booking.queue_number or ''}".strip(),
                     contents=build_booking_confirmation(booking, title="🔔 เตือนนัดหมาย"),
-                ):
-                    sent = True
+                )
+                outcomes.append(as_outcome(sent))
             except Exception as exc:
                 logger.error("Booking reminder push failed for %s: %s", _describe(booking), exc)
-        return sent
+                outcomes.append(
+                    DeliveryOutcome.NOT_SENT if _is_circuit_open(exc) else DeliveryOutcome.UNKNOWN
+                )
     except Exception as exc:
         logger.error("Booking reminder failed for %s: %s", _describe(booking), exc)
-        return False
+        outcomes.append(DeliveryOutcome.UNKNOWN)
+
+    return aggregate_outcomes(outcomes)
+
+
+async def send_booking_reminder(db: AsyncSession, booking: Booking, user) -> bool:
+    """Compatibility wrapper for the resend endpoint: True iff a channel confirmed."""
+    outcome = await send_booking_reminder_outcome(db, booking, user)
+    return outcome is DeliveryOutcome.SENT
 
 
 async def notify_staff_new_booking(

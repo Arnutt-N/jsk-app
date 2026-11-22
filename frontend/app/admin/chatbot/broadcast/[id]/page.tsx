@@ -140,6 +140,12 @@ export default function BroadcastDetailPage() {
         setActionLoading(true);
         try {
             const res = await fetch(`${API_BASE}/admin/broadcasts/${broadcastId}/cancel`, { method: 'POST' });
+            if (res.status === 409) {
+                setCancelModal(false);
+                await fetchBroadcast();
+                toast({ variant: 'warning', title: 'สถานะเปลี่ยนแล้ว', description: 'สถานะเปลี่ยนระหว่างยกเลิก กรุณาตรวจสอบสถานะล่าสุด' });
+                return;
+            }
             if (!res.ok) throw new Error('Failed');
             setCancelModal(false);
             fetchBroadcast();

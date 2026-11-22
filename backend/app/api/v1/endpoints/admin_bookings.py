@@ -374,6 +374,7 @@ async def update_booking_contact_info(
             phone_number=payload.phone_number,
             note=payload.note,
             email=payload.email,
+            fields_set=payload.model_fields_set,
         )
     except BookingNotCancellableError:
         raise HTTPException(
@@ -436,7 +437,7 @@ async def resend_booking_reminder(
                 < func.now() - timedelta(seconds=RESEND_COOLDOWN_SECONDS),
             )
         )
-        .values(reminder_sent_at=func.now())
+        .values(reminder_sent_at=func.now(), reminder_failed_at=None)
     )
     if claimed.rowcount == 0:
         raise HTTPException(

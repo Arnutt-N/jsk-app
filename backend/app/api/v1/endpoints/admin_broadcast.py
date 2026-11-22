@@ -311,6 +311,8 @@ async def cancel_broadcast(
         raise HTTPException(status_code=404, detail="Broadcast not found")
     try:
         broadcast = await broadcast_service.cancel_broadcast(db, broadcast)
+    except BroadcastClaimConflict:
+        raise HTTPException(status_code=409, detail="Broadcast status changed; refresh and try again")
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 

@@ -432,11 +432,12 @@ async def update_user(
     prior_role = user.role
     prior_is_active = user.is_active
 
+    email_supplied = "email" in body.model_fields_set
+
     # Apply updates
     if body.display_name is not None:
         user.display_name = body.display_name
-    if body.email is not None:
-        # Check uniqueness
+    if email_supplied:
         if body.email:
             existing = await db.execute(
                 select(User).where(User.email == body.email, User.id != user_id)
@@ -469,7 +470,7 @@ async def update_user(
     changed_fields = []
     if body.display_name is not None and user.display_name != prior_display_name:
         changed_fields.append("display_name")
-    if body.email is not None and user.email != prior_email:
+    if email_supplied and user.email != prior_email:
         changed_fields.append("email")
     if body.password is not None:
         changed_fields.append("password")

@@ -334,6 +334,45 @@ async def test_update_user_masks_line_id_for_agent():
 
 
 @pytest.mark.asyncio
+async def test_update_user_explicit_null_email_clears_and_audits():
+    from unittest.mock import patch
+
+    from app.api.v1.endpoints.admin_users import UserUpdateRequest, update_user
+
+    target = _target_user(UserRole.AGENT, user_id=9)
+    db = AsyncMock()
+    db.execute = AsyncMock(return_value=_FakeResult(target))
+    with patch(
+        "app.api.v1.endpoints.admin_users.create_audit_log", new=AsyncMock()
+    ) as audit:
+        out = await update_user(
+            9, UserUpdateRequest(email=None), db, _caller(UserRole.SUPER_ADMIN)
+        )
+    assert out.email is None
+    assert "email" in audit.await_args.kwargs["details"]["changed_fields"]
+
+
+@pytest.mark.asyncio
+async def test_update_user_omitted_email_is_kept_and_not_audited():
+    from unittest.mock import patch
+
+    from app.api.v1.endpoints.admin_users import UserUpdateRequest, update_user
+
+    target = _target_user(UserRole.AGENT, user_id=9)
+    db = AsyncMock()
+    db.execute = AsyncMock(return_value=_FakeResult(target))
+    with patch(
+        "app.api.v1.endpoints.admin_users.create_audit_log", new=AsyncMock()
+    ) as audit:
+        out = await update_user(
+            9, UserUpdateRequest(display_name="Renamed"), db,
+            _caller(UserRole.SUPER_ADMIN),
+        )
+    assert out.email == "target@example.com"
+    assert "email" not in audit.await_args.kwargs["details"]["changed_fields"]
+
+
+@pytest.mark.asyncio
 async def test_create_user_without_line_id_returns_none():
     from unittest.mock import patch
 

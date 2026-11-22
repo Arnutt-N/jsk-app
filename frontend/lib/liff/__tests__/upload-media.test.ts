@@ -104,6 +104,27 @@ describe('uploadLiffMedia', () => {
 
     await expect(uploadLiffMedia(jpegFile(), 'tok')).resolves.toBe(res)
   })
+
+  it('F4: sends an optional submission id as x-submission-id', async () => {
+    const fetchMock = vi.mocked(fetch)
+    fetchMock.mockResolvedValueOnce(jsonResponse(201))
+
+    await submitServiceRequest({ description: 'x' }, 'tok', 'sub-123')
+
+    const headers = new Headers(fetchMock.mock.calls[0][1]?.headers as HeadersInit)
+    expect(headers.get('x-submission-id')).toBe('sub-123')
+    expect(headers.get('x-liff-id-token')).toBe('tok')
+  })
+
+  it('F4: omits x-submission-id when no submission id is given', async () => {
+    const fetchMock = vi.mocked(fetch)
+    fetchMock.mockResolvedValueOnce(jsonResponse(201))
+
+    await submitServiceRequest({ description: 'x' }, 'tok')
+
+    const headers = new Headers(fetchMock.mock.calls[0][1]?.headers as HeadersInit)
+    expect(headers.get('x-submission-id')).toBeNull()
+  })
 })
 
 describe('attachmentCapMessage', () => {

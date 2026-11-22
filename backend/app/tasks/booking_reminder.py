@@ -3,37 +3,48 @@
 Mirrors ``broadcast_scheduler.py`` — an in-process asyncio loop started from the
 app lifespan, so no external cron is needed.
 
-**Exactly-once across workers.** Production runs more than one uvicorn worker and
-each starts its own copy of this loop, so "have I already sent this?" cannot be
-decided by reading a row and then acting on it. The guarantee comes from
-``claim_reminder``: a conditional ``UPDATE ... WHERE reminder_sent_at IS NULL``
-that reports how many rows it changed. Only the worker that changes the row
-sends anything.
+**Single-delivery across workers.** Production runs more than one uvicorn worker
+and each starts its own copy of this loop. ``claim_reminder`` takes a short-lived
+lease with a conditional UPDATE (status, unsent, stale lease, future time) and
+returns a token only to the winning worker. Status and time are rechecked after
+the reload too, so a cancellation landing mid-flight is not mailed.
 
-**At-most-once, deliberately.** The claim is committed *before* the push goes
-out. If LINE then fails, that reminder is lost and logged at ERROR rather than
-retried. The alternative — send first, mark afterwards — turns a mid-flight
-crash into a duplicate message to a member of the public, which cannot be taken
-back. A missed reminder is recoverable by staff; a duplicate is not.
+**Confirm only on a known outcome.** The lease is committed before the push. On
+confirmed delivery, or an unknown provider outcome, ``finalize_reminder`` writes
+``reminder_sent_at`` and clears the lease — both guarded by the token, so a
+worker whose lease expired cannot confirm for its successor. On a definite
+all-channel failure, ``fail_reminder`` records a terminal failure so the
+scheduler stops retrying. Staff resend clears that marker for a fresh attempt.
+A crash between claim and finalize leaves the lease to expire (TTL), trading a
+delayed retry against a duplicate to the public.
 
 The config is re-read on every pass so an admin toggling reminders off, or
 changing the lead time, takes effect without a restart.
 """
 import asyncio
 import logging
+from datetime import datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import AsyncSessionLocal
-from app.services.booking_notifications import send_booking_reminder
+from app.models.booking import BookingStatus
+from app.services.booking_notifications import (
+    send_booking_reminder_outcome,
+)
 from app.services.booking_service import (
     claim_reminder,
+    clear_reminder_claim,
+    fail_reminder,
+    finalize_reminder,
     get_due_reminders,
     load_booking_for_reminder,
     local_now,
     reminder_window,
+    verify_reminder_lease,
 )
 from app.services.booking_settings import load_booking_config
+from app.services.delivery_outcome import DeliveryOutcome
 
 logger = logging.getLogger(__name__)
 
@@ -80,8 +91,10 @@ async def _process_due_reminders(db: AsyncSession):
 
     for booking_id in booking_ids:
         try:
-            if not await claim_reminder(db, booking_id):
-                # Another worker got there first. Nothing was changed, so end
+            token = await claim_reminder(db, booking_id)
+            if token is None:
+                # Another worker got there first, or the booking was cancelled
+                # or is no longer in the future. Nothing was changed, so end
                 # the transaction with a commit rather than a rollback.
                 await db.commit()
                 continue
@@ -89,19 +102,42 @@ async def _process_due_reminders(db: AsyncSession):
             # Commit the claim before sending — see the module docstring.
             await db.commit()
 
-            # Re-read after the commit: the row is ours now, and this is the
-            # only way to hold live ORM state that an earlier rollback in this
-            # loop cannot have expired.
+            # Re-read after the commit: this is the only way to hold live ORM
+            # state that an earlier rollback in this loop cannot have expired.
             booking = await load_booking_for_reminder(db, booking_id)
-            if booking is None:
-                logger.warning("Booking %s vanished between claim and send", booking_id)
+            if booking is None or not await verify_reminder_lease(db, booking_id, token):
+                # Either deleted or the lease moved to another worker. Never
+                # clear here: a reassigned lease belongs to its new owner.
+                logger.warning("Booking %s lease lost between claim and send", booking_id)
+                await db.commit()
                 continue
 
-            await send_booking_reminder(db, booking, booking.user)
+            # Recheck after the reload: a cancellation may have landed after
+            # the claim's own guard ran. Release the lease so a valid booking
+            # is not blocked until the TTL expires.
+            appointment_at = datetime.combine(booking.booking_date, booking.booking_time)
+            if booking.status != BookingStatus.CONFIRMED or appointment_at <= local_now():
+                logger.info("Booking %s no longer due, dropping reminder claim", booking_id)
+                await clear_reminder_claim(db, booking_id, token)
+                await db.commit()
+                continue
+
+            outcome = await send_booking_reminder_outcome(db, booking, booking.user)
+            if outcome in (DeliveryOutcome.SENT, DeliveryOutcome.UNKNOWN):
+                # Confirmed delivery, or a provider error whose result is
+                # genuinely unknown: keep the sent marker so a duplicate is
+                # never sent to a member of the public.
+                await finalize_reminder(db, booking_id, token)
+            else:
+                # Definite all-channel failure: stop automatic retries. Staff
+                # resend clears the marker when someone wants another attempt.
+                await fail_reminder(db, booking_id, token)
+            await db.commit()
         except Exception as e:
             logger.error("Booking reminder for %s failed: %s", booking_id, e)
             # Reset the shared session so a failure cannot leak an open
-            # transaction or row locks into the next iteration.
+            # transaction or row locks into the next iteration. The lease is
+            # intentionally left to expire on timeout/crash (see docstring).
             await db.rollback()
 
 

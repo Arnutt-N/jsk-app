@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-11-19 14:10 by Claude Code (PR #343 handoff closeout merged as 2837d4d; local main fast-forwarded to 2837d4d; prior PR)
+> **Last Updated:** 2026-11-20 21:45 by Claude Code (Continued after the low-memory suite stop.)
 
 ## Thai Summary
 **สถานะล่าสุด (2026-10-27)** — งานตรวจโค้ดรอบใหม่ Task 22 เสร็จ: เปิดประตูตรวจโค้ดหลังบ้าน (ruff) ใน CI แล้ว, PR #301 (draft) CI เขียวครบทุกด่าน; เหลืออีก 29 งาน เริ่มจาก Phase 0 (CI tasks 13, 14, 18, 24) — ดูรายละเอียดใน `project-log-md/pi/session-summary-20261027-1225.md`
@@ -126,6 +126,9 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-11-20 21:45] Claude Code: Continued after the low-memory suite stop. Ran focused backend suites covering every changed area: 143 passed. Full backend suite remains outstanding because the clean background run was killed by system memory pressure, not by a test failu (Claude Code)
+- [2026-11-20 16:39] Claude Code: Resolved the three P1 findings from the handoff analysis: new-case id rotation, hidden booking email preservation, and stale reminder status after concurrent cancellation. Focused backend and frontend suites passed, independent reviewer fou (Claude Code)
+- [2026-11-20 12:05] Claude Code: Fixed all six defects from the 2026-11-19 codebase review: F1 upload race, F2 booking reminder loss, F3 broadcast cancel race, F4 duplicate case retry, F5 clear account email, F6 clear booking note. Full backend suite passed (~1926 tests, e (Claude Code)
 - [2026-11-19 14:10] Claude Code: PR #343 handoff closeout merged as 2837d4d; local main fast-forwarded to 2837d4d; prior PRs #342 and #341 remain merged and production checks passed; no open work from the /admin/users and Next 16.4.6 closeout (Claude Code)
 - [2026-11-19 13:33] Claude Code: PR #342 (/admin/users edit consolidation) and PR #341 (Next 16.4.6 security upgrade) merged to main; local main fast-forwarded to 180cfc8 and dependencies synced to Next 16.4.6; audit chain passed with no code changes; global stop-control a (Claude Code)
 - [2026-11-15 08:12] Claude Code: Gauntlet closed on PR #330 and follow-ups merged: #331 verb-gated mock routers, #332 handoff validator on real interpreter, #333 send_message SELECT-gated route + stop-check py launcher. origin/main at 33f2e5b. (Claude Code)

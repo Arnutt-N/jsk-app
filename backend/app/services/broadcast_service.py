@@ -315,12 +315,29 @@ class BroadcastService:
         return broadcast
 
     async def cancel_broadcast(self, db: AsyncSession, broadcast: Broadcast) -> Broadcast:
-        if broadcast.status not in (BroadcastStatus.SCHEDULED, BroadcastStatus.DRAFT, BroadcastStatus.SENDING):
+        if broadcast.status in (BroadcastStatus.COMPLETED, BroadcastStatus.FAILED):
             raise ValueError(f"Cannot cancel broadcast in status {broadcast.status}")
-
+        # Same compare-and-swap as the send claim: only DRAFT/SCHEDULED may
+        # become CANCELLED. A sender that already claimed SENDING wins; the
+        # stale cancel sees rowcount 0 and must not overwrite the final status.
+        claimed = await db.execute(
+            update(Broadcast)
+            .where(
+                Broadcast.id == broadcast.id,
+                Broadcast.status.in_(
+                    [BroadcastStatus.DRAFT, BroadcastStatus.SCHEDULED]
+                ),
+            )
+            .values(status=BroadcastStatus.CANCELLED, scheduled_at=None)
+        )
+        if claimed.rowcount != 1:
+            raise BroadcastClaimConflict(
+                f"Cannot cancel broadcast {broadcast.id}: "
+                "send already started or status changed"
+            )
+        await db.commit()
         broadcast.status = BroadcastStatus.CANCELLED
         broadcast.scheduled_at = None
-        await db.commit()
         await db.refresh(broadcast)
         return broadcast
 
