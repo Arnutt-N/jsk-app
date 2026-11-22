@@ -28,6 +28,7 @@ from app.models.booking import Booking, BookingStatus
 from app.models.user import User, UserRole
 from app.services import booking_notifications
 from app.services.booking_service import local_now
+from app.services.delivery_outcome import DeliveryOutcome
 
 
 def _fresh_engine():
@@ -99,8 +100,8 @@ async def test_successful_resend_holds_the_cooldown():
         try:
             with patch.object(
                 admin_bookings,
-                "send_booking_reminder",
-                new=AsyncMock(return_value=True),
+                "send_booking_reminder_outcome",
+                new=AsyncMock(return_value=DeliveryOutcome.SENT),
             ):
                 first = client.post(f"/api/v1/admin/bookings/{booking_id}/remind")
                 second = client.post(f"/api/v1/admin/bookings/{booking_id}/remind")
@@ -137,8 +138,8 @@ async def test_successful_resend_clears_a_terminal_failure_marker():
         try:
             with patch.object(
                 admin_bookings,
-                "send_booking_reminder",
-                new=AsyncMock(return_value=True),
+                "send_booking_reminder_outcome",
+                new=AsyncMock(return_value=DeliveryOutcome.SENT),
             ):
                 response = client.post(f"/api/v1/admin/bookings/{booking_id}/remind")
         finally:
@@ -220,8 +221,8 @@ async def test_concurrent_resends_yield_exactly_one_success():
 
         with patch.object(
             admin_bookings,
-            "send_booking_reminder",
-            new=AsyncMock(return_value=True),
+            "send_booking_reminder_outcome",
+            new=AsyncMock(return_value=DeliveryOutcome.SENT),
         ):
             workers = [threading.Thread(target=_fire) for _ in range(5)]
             for worker in workers:

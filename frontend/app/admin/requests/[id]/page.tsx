@@ -284,6 +284,7 @@ export default function RequestDetailPage() {
     const [comments, setComments] = useState<Comment[]>([]);
     const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
     const [loading, setLoading] = useState(true);
+    const [detailLoadState, setDetailLoadState] = useState<'loading' | 'ready' | 'missing' | 'error'>('loading');
     const [assignModalOpen, setAssignModalOpen] = useState(false);
     const [unassignDialogOpen, setUnassignDialogOpen] = useState(false);
     const [escalationDialogOpen, setEscalationDialogOpen] = useState(false);
@@ -333,12 +334,22 @@ export default function RequestDetailPage() {
     const API_BASE = '/api/v1';
 
     // --- API Fetching ---
-    const fetchDetail = useCallback(async () => {
+    const fetchDetail = useCallback(async (options?: { showLoadError?: boolean }) => {
+        const showLoadError = options?.showLoadError ?? true;
+        if (showLoadError) setDetailLoadState('loading');
         try {
             const res = await fetch(`${API_BASE}/admin/requests/${params.id}`);
+            if (res.status === 404) {
+                if (showLoadError) {
+                    setRequest(null);
+                    setDetailLoadState('missing');
+                }
+                return;
+            }
             if (!res.ok) throw new Error('Failed to fetch request detail');
             const data = await res.json();
             setRequest(data);
+            if (showLoadError) setDetailLoadState('ready');
             // Initialize local form state. Coerce nullable status -> '' so
             // the manage form (string-typed) stays well-typed.
             resetManageForm({
@@ -349,6 +360,7 @@ export default function RequestDetailPage() {
             });
         } catch (err: unknown) {
             logger.error(getErrorMessage(err));
+            if (showLoadError) setDetailLoadState('error');
         } finally {
             setLoading(false);
         }
@@ -411,7 +423,7 @@ export default function RequestDetailPage() {
                 const errorData = await res.json().catch(() => ({ detail: res.statusText }));
                 throw new Error(errorData.detail || 'Update failed');
             }
-            await fetchDetail();
+            await fetchDetail({ showLoadError: false });
         } catch (err: unknown) {
             toast({ title: 'ผิดพลาด', description: getErrorMessage(err), variant: 'error' });
             throw err; // Re-throw so handleSaveManage can stop the bulk-save flow
@@ -726,13 +738,29 @@ export default function RequestDetailPage() {
         { id: 'manage', label: 'จัดการคำร้อง', icon: Settings2 },
     ];
 
-    if (loading) return <LoadingSpinner label="กำลังโหลด..." />;
+    if (loading || detailLoadState === 'loading') return <LoadingSpinner label="กำลังโหลด..." />;
 
-    if (!request) return (
+    if (detailLoadState === 'missing') return (
         <div className="p-8 md:p-16 text-center flex flex-col items-center gap-4 text-text-tertiary">
             <FileText className="w-16 h-16 opacity-20" aria-hidden="true" />
             <p className="text-lg font-bold text-text-secondary">ไม่พบข้อมูลคำร้อง</p>
             <p className="text-sm">คำร้องนี้อาจถูกลบหรือไม่มีอยู่ในระบบ</p>
+            <Link href="/admin/requests">
+                <Button variant="outline" size="sm" leftIcon={<ChevronLeft size={16} />}>
+                    กลับไปหน้ารายการ
+                </Button>
+            </Link>
+        </div>
+    );
+
+    if (detailLoadState === 'error' || !request) return (
+        <div role="alert" className="p-8 md:p-16 text-center flex flex-col items-center gap-4 text-text-tertiary">
+            <FileText className="w-16 h-16 opacity-20" aria-hidden="true" />
+            <p className="text-lg font-bold text-text-secondary">ไม่สามารถโหลดข้อมูลคำร้อง</p>
+            <p className="text-sm">เกิดข้อผิดพลาดชั่วคราว กรุณาลองใหม่</p>
+            <Button variant="outline" size="sm" onClick={() => void fetchDetail()}>
+                ลองใหม่
+            </Button>
             <Link href="/admin/requests">
                 <Button variant="outline" size="sm" leftIcon={<ChevronLeft size={16} />}>
                     กลับไปหน้ารายการ

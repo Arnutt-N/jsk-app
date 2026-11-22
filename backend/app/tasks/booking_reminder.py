@@ -9,14 +9,15 @@ lease with a conditional UPDATE (status, unsent, stale lease, future time) and
 returns a token only to the winning worker. Status and time are rechecked after
 the reload too, so a cancellation landing mid-flight is not mailed.
 
-**Confirm only on a known outcome.** The lease is committed before the push. On
-confirmed delivery, or an unknown provider outcome, ``finalize_reminder`` writes
-``reminder_sent_at`` and clears the lease — both guarded by the token, so a
-worker whose lease expired cannot confirm for its successor. On a definite
-all-channel failure, ``fail_reminder`` records a terminal failure so the
-scheduler stops retrying. Staff resend clears that marker for a fresh attempt.
-A crash between claim and finalize leaves the lease to expire (TTL), trading a
-delayed retry against a duplicate to the public.
+**Confirm only on a known outcome.** The lease is committed before the push and
+is the single active-attempt guard shared with staff resend. On confirmed or
+unknown delivery, ``finalize_reminder`` writes ``reminder_sent_at`` and clears
+the lease — both guarded by the token, so a worker whose lease expired cannot
+confirm for its successor. On a definite failure, ``fail_reminder`` records the
+failure marker so the scheduler stops retrying until its retry delay passes.
+Staff resend clears that marker for a fresh attempt. A crash between claim and
+finalize leaves the lease to expire (TTL), trading a delayed retry against a
+duplicate to the public.
 
 The config is re-read on every pass so an admin toggling reminders off, or
 changing the lead time, takes effect without a restart.
@@ -104,7 +105,9 @@ async def _process_due_reminders(db: AsyncSession):
 
             # Re-read after the commit: this is the only way to hold live ORM
             # state that an earlier rollback in this loop cannot have expired.
-            booking = await load_booking_for_reminder(db, booking_id)
+            # Scope the reload to the token so a lost lease can never load live
+            # state for a send owned by another worker.
+            booking = await load_booking_for_reminder(db, booking_id, token=token)
             if booking is None or not await verify_reminder_lease(db, booking_id, token):
                 # Either deleted or the lease moved to another worker. Never
                 # clear here: a reassigned lease belongs to its new owner.
@@ -119,6 +122,14 @@ async def _process_due_reminders(db: AsyncSession):
             if booking.status != BookingStatus.CONFIRMED or appointment_at <= local_now():
                 logger.info("Booking %s no longer due, dropping reminder claim", booking_id)
                 await clear_reminder_claim(db, booking_id, token)
+                await db.commit()
+                continue
+
+            # Guard the final handoff too: a cancellation may have landed while
+            # the provider call was in flight. The token check keeps a reassigned
+            # lease from being confirmed by this worker.
+            if not await verify_reminder_lease(db, booking_id, token):
+                logger.warning("Booking %s lease lost during send", booking_id)
                 await db.commit()
                 continue
 

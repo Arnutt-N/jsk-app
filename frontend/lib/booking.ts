@@ -51,6 +51,9 @@ export interface Booking {
   phone_number: string | null
   note: string | null
   reminder_sent_at: string | null
+  // Failure marker from a definite provider refusal. Present on payloads from
+  // the updated backend; absent on older ones — both mean "no known failure".
+  reminder_failed_at?: string | null
   assigned_staff_id: number | null
   email: string | null
 }

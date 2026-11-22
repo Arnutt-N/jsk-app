@@ -1,4 +1,4 @@
-from datetime import time, timedelta
+from datetime import datetime, time, timedelta
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -8,6 +8,7 @@ from fastapi import HTTPException
 from app.api.v1.endpoints import admin_bookings
 from app.models.booking import BookingStatus
 from app.services.booking_service import local_now
+from app.services.delivery_outcome import DeliveryOutcome as ReminderOutcome
 
 
 def _config(**overrides):
@@ -35,9 +36,11 @@ def _stored_booking(**overrides):
 
 
 def _patches(db, booking, sent=True, claimed=1):
-    claim = MagicMock()
-    claim.rowcount = claimed
-    db.execute.return_value = claim
+    claim = patch.object(
+        admin_bookings.booking_service,
+        "claim_reminder_for_staff",
+        new=AsyncMock(return_value=datetime(2026, 8, 12, 8, 30) if claimed else None),
+    )
     config = patch.object(
         admin_bookings, "load_booking_config", new=AsyncMock(return_value=_config())
     )
@@ -47,10 +50,10 @@ def _patches(db, booking, sent=True, claimed=1):
         new=AsyncMock(return_value=booking),
     )
     sender = patch.object(
-        admin_bookings, "send_booking_reminder", new=AsyncMock(return_value=sent)
+        admin_bookings, "send_booking_reminder_outcome", new=AsyncMock(return_value=ReminderOutcome.SENT if sent else ReminderOutcome.NOT_SENT)
     )
     audit = patch.object(admin_bookings, "create_audit_log", new=AsyncMock())
-    return config, loader, sender, audit
+    return claim, config, loader, sender, audit
 
 
 def _call(db, booking_id=11):
@@ -62,8 +65,8 @@ def _call(db, booking_id=11):
 @pytest.mark.asyncio
 async def test_resend_sends_pushes_and_audits():
     db = AsyncMock()
-    config, loader, sender, audit = _patches(db, _stored_booking())
-    with config, loader, sender as push, audit as log:
+    claim, config, loader, sender, audit = _patches(db, _stored_booking())
+    with claim, config, loader, sender as push, audit as log:
         result = await _call(db)
 
     push.assert_awaited_once()
@@ -77,8 +80,8 @@ async def test_resend_sends_pushes_and_audits():
 async def test_resend_losing_the_claim_race_is_rejected():
     db = AsyncMock()
     booking = _stored_booking()
-    config, loader, sender, audit = _patches(db, booking, claimed=0)
-    with config, loader, sender as push, audit, pytest.raises(HTTPException) as exc:
+    claim, config, loader, sender, audit = _patches(db, booking, claimed=0)
+    with claim, config, loader, sender as push, audit, pytest.raises(HTTPException) as exc:
         await _call(db)
     assert exc.value.status_code == 429
     push.assert_not_awaited()
@@ -88,7 +91,7 @@ async def test_resend_losing_the_claim_race_is_rejected():
 async def test_resend_needs_a_confirmed_booking():
     db = AsyncMock()
     booking = _stored_booking(status=BookingStatus.CANCELLED)
-    config, loader, sender, audit = _patches(db, booking)
+    claim, config, loader, sender, audit = _patches(db, booking)
     with config, loader, sender as push, audit, pytest.raises(HTTPException) as exc:
         await _call(db)
     assert exc.value.status_code == 409
@@ -101,7 +104,7 @@ async def test_resend_past_appointment_is_rejected():
     booking = _stored_booking(
         booking_date=local_now().date() - timedelta(days=1),
     )
-    config, loader, sender, audit = _patches(db, booking)
+    claim, config, loader, sender, audit = _patches(db, booking)
     with config, loader, sender as push, audit, pytest.raises(HTTPException) as exc:
         await _call(db)
     assert exc.value.status_code == 409
@@ -136,12 +139,12 @@ async def test_resend_unknown_booking_is_404():
 
 
 @pytest.mark.asyncio
-async def test_resend_push_failure_rolls_back_the_claim():
+async def test_resend_failure_records_the_outcome_and_reports_502():
     db = AsyncMock()
-    config, loader, sender, audit = _patches(db, _stored_booking(), sent=False)
-    with config, loader, sender, audit as log, pytest.raises(HTTPException) as exc:
+    claim, config, loader, sender, audit = _patches(db, _stored_booking(), sent=False)
+    with claim, config, loader, sender, audit as log, pytest.raises(HTTPException) as exc:
         await _call(db)
     assert exc.value.status_code == 502
-    log.assert_not_awaited()
-    db.rollback.assert_awaited_once()
-    db.commit.assert_not_awaited()
+    assert log.await_args.kwargs["details"]["outcome"] == ReminderOutcome.NOT_SENT.value
+    db.rollback.assert_not_awaited()
+    db.commit.assert_awaited()

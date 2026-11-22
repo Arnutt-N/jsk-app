@@ -1,11 +1,14 @@
 """LINE webhook endpoint — signature verification and event dispatch only."""
 import logging
 import uuid
+from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, Header, HTTPException, Request
 from linebot.v3.exceptions import InvalidSignatureError
 from linebot.v3.webhooks import FollowEvent, MessageEvent, PostbackEvent, UnfollowEvent
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -13,6 +16,7 @@ from app.core.line_client import parser
 from app.core.logging_utils import mask_line_id
 from app.core.redis_client import redis_client
 from app.db.session import AsyncSessionLocal
+from app.models.webhook_event import ReplyDeliveryStatus, WebhookEvent
 from app.services.friend_service import friend_service
 from app.services.message_intake.message_handler import handle_message_event as _handle_message_event_impl
 from app.services.message_intake.postback_handler import handle_postback_event
@@ -85,6 +89,30 @@ async def line_webhook(request: Request, background_tasks: BackgroundTasks, x_li
         logger.error("Invalid LINE webhook signature (body length=%d)", len(body_str))
         raise HTTPException(status_code=400, detail="Invalid signature")
 
+    # F09: the event ID is durable before the ACK. A crash in the background
+    # task can be redelivered; the row is the durable record of that fact.
+    try:
+        async with AsyncSessionLocal() as db:
+            for event in events:
+                event_id = getattr(event, "webhook_event_id", None)
+                if not event_id or await db.get(WebhookEvent, event_id):
+                    continue
+                try:
+                    async with db.begin_nested():
+                        db.add(WebhookEvent(
+                            event_id=event_id,
+                            event_type=type(event).__name__,
+                        ))
+                except IntegrityError:
+                    # Concurrent duplicate; the first delivery owns the row.
+                    pass
+            await db.commit()
+    except Exception:
+        # Never ACK a duplicate delivered during a DB outage; fail closed
+        # only when the durable marker cannot be written. The first delivery
+        # is still processing and LINE will retry this one.
+        raise HTTPException(status_code=503, detail="Intake storage unavailable")
+
     background_tasks.add_task(process_webhook_events, events)
 
     return "OK"
@@ -128,6 +156,14 @@ async def process_webhook_events(events):
                     if lock_acquired is None:
                         logger.warning(f"Redis unavailable - processing webhook event {event_id} without dedup lock")
 
+                # F09: Redis dedup is best-effort and expires. The durable row
+                # decides whether inbound effects have already been applied.
+                if event_id:
+                    row = await db.get(WebhookEvent, event_id)
+                    if row is not None and row.inbound_applied_at is not None:
+                        logger.info("Inbound effects already applied for webhook event %s", event_id)
+                        continue
+
                 box = None
                 if isinstance(event, MessageEvent):
                     box = new_outbox()
@@ -141,11 +177,28 @@ async def process_webhook_events(events):
                 elif isinstance(event, UnfollowEvent):
                     await handle_unfollow_event(event, db)
 
+                if event_id:
+                    row = await db.get(WebhookEvent, event_id)
+                    if row is not None:
+                        row.inbound_applied_at = datetime.now(timezone.utc)
                 await db.commit()
 
                 failures = 0
                 if box is not None:
                     failures = await drain_outbox(box)
+
+                # F09: reply outcome is a separate status on the same row.
+                # Redelivery sees inbound_applied_at and never re-runs the
+                # inbound handler; it can retry only the reply.
+                if event_id:
+                    async with AsyncSessionLocal() as status_db:
+                        row = await status_db.get(WebhookEvent, event_id)
+                        if row is not None:
+                            row.reply_status = (
+                                ReplyDeliveryStatus.SENT if failures == 0
+                                else ReplyDeliveryStatus.FAILED
+                            )
+                        await status_db.commit()
 
                 if cache_key and failures == 0:
                     try:

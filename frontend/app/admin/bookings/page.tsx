@@ -419,9 +419,13 @@ export default function AdminBookingsPage() {
                 <p className="text-sm text-slate-500">{booking.service_type}</p>
                 {booking.note && <p className="mt-1 text-xs text-slate-400">{booking.note}</p>}
                 <p className="mt-1 text-xs text-slate-400">
-                  {booking.reminder_sent_at
-                    ? `เตือนแล้ว ${formatThaiDateTime(booking.reminder_sent_at)}`
-                    : 'ยังไม่เคยเตือน'}
+                  {booking.reminder_sent_at && booking.reminder_failed_at
+                    ? `ผลการส่งไม่แน่นอน ${formatThaiDateTime(booking.reminder_sent_at)}`
+                    : booking.reminder_sent_at
+                      ? `เตือนแล้ว ${formatThaiDateTime(booking.reminder_sent_at)}`
+                      : booking.reminder_failed_at
+                        ? `ส่งเตือนไม่สำเร็จ (ลองใหม่ได้) ${formatThaiDateTime(booking.reminder_failed_at)}`
+                        : 'ยังไม่เคยเตือน'}
                 </p>
               </div>
 

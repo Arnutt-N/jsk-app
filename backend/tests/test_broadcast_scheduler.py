@@ -47,6 +47,10 @@ async def test_process_due_sends_and_writes_system_audit_log():
         new=AsyncMock(return_value=[bc]),
     ), patch.object(
         broadcast_scheduler.broadcast_service,
+        "get_broadcast",
+        new=AsyncMock(return_value=bc),
+    ), patch.object(
+        broadcast_scheduler.broadcast_service,
         "send_broadcast",
         new=AsyncMock(),
     ) as mock_send, patch.object(
@@ -108,6 +112,12 @@ async def test_process_due_continues_after_one_failure():
         broadcast_scheduler.broadcast_service,
         "get_due_scheduled",
         new=AsyncMock(return_value=[bad, good]),
+    ), patch.object(
+        broadcast_scheduler.broadcast_service,
+        "get_broadcast",
+        new=AsyncMock(side_effect=lambda _db, broadcast_id: (
+            bad if broadcast_id == 1 else good
+        )),
     ), patch.object(
         broadcast_scheduler.broadcast_service,
         "send_broadcast",

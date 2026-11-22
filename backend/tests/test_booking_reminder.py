@@ -60,7 +60,7 @@ def _patches(*, config=None, due=(), claim=True, send=None, load=None, outcome=N
     due_list = list(due)
     send = send or AsyncMock(return_value=True)
 
-    async def _default_load(_db, booking_id):
+    async def _default_load(_db, booking_id, token=None):
         return next((b for b in due_list if b.id == booking_id), None)
 
     async def _outcome(*a, **k):
@@ -286,7 +286,7 @@ async def test_no_orm_object_is_carried_across_iterations():
     """
     loaded_ids = []
 
-    async def _load(_db, booking_id):
+    async def _load(_db, booking_id, token=None):
         loaded_ids.append(booking_id)
         return _booking(booking_id)
 

@@ -256,10 +256,14 @@ jobs:
     environment: ${{ needs.resolve-scope.outputs.deploy_environment }}
     outputs:
       migration_configured: ${{ steps.config.outputs.migration_configured }}
+      migration_verified: ${{ steps.verify_revision.outputs.migration_verified }}
     defaults:
       run:
         shell: bash
         working-directory: backend
+    env:
+      # Single source of truth for the schema this backend deploy requires.
+      EXPECTED_REVISION: f09a1b2c3d4
     steps:
       - name: Check backend migration config
         id: config
@@ -312,11 +316,33 @@ jobs:
         if: steps.config.outputs.migration_configured == 'true'
         run: python scripts/db_target.py alembic --target remote upgrade head
 
-      - name: Warn when backend migration is skipped
+      # Prove the remote is at the exact revision this deploy expects. Capture
+      # raw Alembic output to a file and print only the parser's revision IDs
+      # and status; driver output and connection strings never reach the log.
+      # A missing, extra, or divergent revision fails the job and stops
+      # deploy-backend.
+      - name: Verify production DB revision
+        id: verify_revision
+        if: steps.config.outputs.migration_configured == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! python scripts/db_target.py alembic --target remote current \
+              > /tmp/alembic-current.txt 2>/dev/null; then
+            echo "::error::Unable to read Alembic current from the production DB — refusing to deploy."
+            exit 1
+          fi
+          python scripts/verify_migration_revision.py "$EXPECTED_REVISION" \
+            < /tmp/alembic-current.txt
+          echo "migration_verified=true" >> "$GITHUB_OUTPUT"
+
+      - name: Fail when backend migration is skipped
         if: steps.config.outputs.migration_configured != 'true'
         shell: bash
         working-directory: .
-        run: echo "::warning::BACKEND_REMOTE_ENV_FILE is not configured. Skipping backend migration."
+        run: |
+          echo "::error::BACKEND_REMOTE_ENV_FILE is not configured — refusing to deploy without verifying the production DB revision."
+          exit 1
 
       - name: Append migration summary
         if: always()
@@ -327,6 +353,8 @@ jobs:
             echo "## Production DB migration"
             echo
             echo "- Configured: ${{ steps.config.outputs.migration_configured }}"
+            echo "- Verified: ${{ steps.verify_revision.outputs.migration_verified || 'false' }}"
+            echo "- Expected revision: ${{ env.EXPECTED_REVISION }}"
             echo "- Environment: ${{ needs.resolve-scope.outputs.deploy_environment }}"
             echo "- Trigger: ${GITHUB_EVENT_NAME}"
             echo "- Source SHA: ${{ needs.resolve-scope.outputs.source_sha }}"
@@ -339,7 +367,7 @@ jobs:
       - migrate-backend
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: needs.resolve-scope.outputs.deploy_backend == 'true'
+    if: needs.resolve-scope.outputs.deploy_backend == 'true' && needs.migrate-backend.outputs.migration_verified == 'true'
     environment: ${{ needs.resolve-scope.outputs.deploy_environment }}
     outputs:
       deploy_configured: ${{ steps.config.outputs.deploy_configured }}

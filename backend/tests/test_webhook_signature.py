@@ -15,7 +15,7 @@ import base64
 import hashlib
 import hmac
 import json
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -24,6 +24,16 @@ from app.core.config import settings
 from app.main import app
 
 BASE = "/api/v1/line/webhook"
+
+
+class _NestedCtx:
+    """Async context manager for a mocked savepoint."""
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *args):
+        return False
 
 
 def _sign(body: str, secret: str = settings.LINE_CHANNEL_SECRET) -> str:
@@ -69,8 +79,12 @@ def webhook_mocks():
         redis_mock.delete = AsyncMock()
         redis_mock.release_lock = AsyncMock(return_value=True)
 
+        session = AsyncMock()
+        session.add = MagicMock()
+        session.get = AsyncMock(return_value=None)
+        session.begin_nested = lambda: _NestedCtx()
         session_ctx = AsyncMock()
-        session_ctx.__aenter__ = AsyncMock(return_value=AsyncMock())
+        session_ctx.__aenter__ = AsyncMock(return_value=session)
         session_ctx.__aexit__ = AsyncMock(return_value=False)
         session_factory.return_value = session_ctx
 

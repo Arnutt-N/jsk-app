@@ -7,11 +7,13 @@ class DeliveryOutcome(Enum):
 
     SENT/NOT_SENT keep the old aggregate values ("CONFIRMED"/"FAILED") so
     persisted and injected legacy string outcomes remain valid.
+    TEMPORARY_FAILURE = "TEMPORARY_FAILURE" marks a definite, retryable refusal.
     """
 
     SENT = "CONFIRMED"
     NOT_SENT = "FAILED"
     UNKNOWN = "UNKNOWN"
+    TEMPORARY_FAILURE = "TEMPORARY_FAILURE"
 
     # Legacy aggregate names.
     CONFIRMED = "CONFIRMED"
@@ -31,10 +33,12 @@ def as_outcome(value) -> DeliveryOutcome:
 
 
 def aggregate_outcomes(outcomes) -> DeliveryOutcome:
-    """Fold channel results: any SENT wins, then UNKNOWN, else NOT_SENT."""
+    """Fold channel results: any SENT wins, then UNKNOWN, then temporary failures."""
     values = {as_outcome(value) for value in outcomes}
     if DeliveryOutcome.SENT in values:
         return DeliveryOutcome.SENT
     if DeliveryOutcome.UNKNOWN in values:
         return DeliveryOutcome.UNKNOWN
+    if DeliveryOutcome.TEMPORARY_FAILURE in values:
+        return DeliveryOutcome.TEMPORARY_FAILURE
     return DeliveryOutcome.NOT_SENT

@@ -35,6 +35,8 @@ from app.utils.mime_sniff import sniff_mime
 
 logger = logging.getLogger(__name__)
 
+SUBMISSION_CONFLICT_CODE = "SUBMISSION_PAYLOAD_CONFLICT"
+
 router = APIRouter()
 
 
@@ -148,14 +150,20 @@ def _replay_service_request(
     if found.user_id != caller_user_id:
         raise HTTPException(
             status_code=409,
-            detail="รหัสการส่งนี้ใช้โดยอีกบัญชีหนึ่งแล้ว กรุณาส่งใหม่ด้วยรหัสใหม่",
+            detail={
+                "code": SUBMISSION_CONFLICT_CODE,
+                "message": "รหัสการส่งนี้ใช้โดยอีกบัญชีหนึ่งแล้ว กรุณาส่งใหม่ด้วยรหัสใหม่",
+            },
         )
     stored = (found.details or {}).get("submission_hash")
     # Legacy rows have no hash; keep replaying them for the same verified owner.
     if stored is not None and stored != payload_hash:
         raise HTTPException(
             status_code=409,
-            detail="รหัสการส่งนี้ถูกใช้กับข้อมูลที่ต่างจากเดิม กรุณาส่งใหม่ด้วยรหัสใหม่",
+            detail={
+                "code": SUBMISSION_CONFLICT_CODE,
+                "message": "รหัสการส่งนี้ถูกใช้กับข้อมูลที่ต่างจากเดิม กรุณาส่งใหม่ด้วยรหัสใหม่",
+            },
         )
     return _service_request_response(found, line_user_id)
 

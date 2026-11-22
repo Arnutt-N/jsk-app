@@ -18,11 +18,14 @@ import { useLocationCascade } from '@/hooks/useLocationCascade'
 import { submitServiceRequest } from '@/lib/liff/submit-service-request'
 import { uploadLiffMedia, attachmentCapMessage, readErrorDetail } from '@/lib/liff/upload-media'
 import { SESSION_EXPIRED_MESSAGE, isSessionExpired } from '@/lib/liff/session-expired'
+import { nextSubmissionAttempt, parseSubmitError, type SubmissionAttempt } from '@/lib/liff/submission-retry'
+import SubmitConflictNotice from '@/components/liff/SubmitConflictNotice'
 
 export default function LiffServiceRequestV2() {
     // --- STATE ---
     const [submitting, setSubmitting] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [submitConflict, setSubmitConflict] = useState(false)
     const [success, setSuccess] = useState(false)
     const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
@@ -40,7 +43,7 @@ export default function LiffServiceRequestV2() {
     // Uploads started but not yet resolved — counted toward the attachment
     // cap so rapid file picks cannot exceed the shared rate-limit budget.
     const inflightUploadsRef = useRef(0)
-    const submissionIdRef = useRef<string | null>(null)
+    const submissionRef = useRef<SubmissionAttempt<Record<string, unknown>> | null>(null)
 
     // Location Data State
     const [provinces, setProvinces] = useState<Province[]>([])
@@ -228,24 +231,29 @@ export default function LiffServiceRequestV2() {
         }
         setSubmitting(true)
         setError(null)
+        setSubmitConflict(false)
 
         try {
             // Backend reads `phone_number` only — map the form's `phone` and
             // strip the raw key so the payload carries no dead field (D4).
             const { phone, ...rest } = formData
-            const payload = {
+            const payload: Record<string, unknown> = {
                 ...rest,
                 phone_number: phone,
                 line_user_id: profile?.userId || 'GUEST'
             }
 
-            // Post to backend
-            submissionIdRef.current ??= crypto.randomUUID()
-            const res = await submitServiceRequest(payload, idToken, submissionIdRef.current)
+            // Bind the id to the exact payload sent, not to the live form.
+            // An edit after a lost reply gets a new id; an unchanged retry
+            // replays the original case.
+            const attempt = nextSubmissionAttempt(submissionRef.current, payload)
+            submissionRef.current = attempt
+            const res = await submitServiceRequest(payload, idToken, attempt.submissionId)
 
             if (!res.ok) {
-                const errData = await res.json()
-                throw new Error(errData.detail || 'Failed to submit')
+                const parsed = parseSubmitError(await res.json())
+                if (parsed.isSubmissionConflict) setSubmitConflict(true)
+                throw new Error(parsed.message)
             }
 
             setSuccess(true)
@@ -318,6 +326,23 @@ export default function LiffServiceRequestV2() {
                     <div className="p-3 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100">
                         {error}
                     </div>
+                )}
+                {submitConflict && (
+                    <SubmitConflictNotice
+                        message="ข้อมูลที่ส่งไม่ตรงกับคำร้องที่บันทึกไว้ กดตรวจสอบคำร้องเดิมเพื่อดูผลการส่ง หรือส่งคำร้องใหม่หากต้องการสร้างเรื่องใหม่"
+                        onRecover={() => {
+                            submissionRef.current = null
+                            setSubmitConflict(false)
+                            setError(null)
+                            setSuccess(true)
+                            window.scrollTo(0, 0)
+                        }}
+                        onNewCase={() => {
+                            submissionRef.current = null
+                            setSubmitConflict(false)
+                            setError(null)
+                        }}
+                    />
                 )}
 
                 {/* --- 1. ข้อมูลส่วนตัว --- */}

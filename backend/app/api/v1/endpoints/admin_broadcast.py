@@ -14,7 +14,11 @@ from app.core.permissions import KEY_MANAGE_BROADCAST
 from app.db.session import get_db
 from app.models.broadcast import BroadcastStatus, BroadcastType
 from app.models.user import User
-from app.services.broadcast_service import BroadcastClaimConflict, broadcast_service
+from app.services.broadcast_service import (
+    BroadcastClaimConflict,
+    BroadcastValidationError,
+    broadcast_service,
+)
 
 router = APIRouter()
 
@@ -81,6 +85,10 @@ class BroadcastListResponse(BaseModel):
 
 class ScheduleRequest(BaseModel):
     scheduled_at: datetime
+
+
+class ReconcileRequest(BaseModel):
+    outcome: str
 
 
 class BroadcastStatsResponse(BaseModel):
@@ -214,7 +222,10 @@ async def update_broadcast(
         raise HTTPException(status_code=400, detail="Can only update drafts")
 
     update_data = payload.model_dump(exclude_unset=True)
-    broadcast = await broadcast_service.update_broadcast(db, broadcast, **update_data)
+    try:
+        broadcast = await broadcast_service.update_broadcast(db, broadcast, **update_data)
+    except BroadcastClaimConflict as e:
+        raise HTTPException(status_code=409, detail=str(e)) from e
     return BroadcastResponse.model_validate(broadcast)
 
 
@@ -229,7 +240,10 @@ async def delete_broadcast(
         raise HTTPException(status_code=404, detail="Broadcast not found")
     if broadcast.status not in (BroadcastStatus.DRAFT, BroadcastStatus.CANCELLED):
         raise HTTPException(status_code=400, detail="Can only delete drafts or cancelled broadcasts")
-    await broadcast_service.delete_broadcast(db, broadcast)
+    try:
+        await broadcast_service.delete_broadcast(db, broadcast)
+    except BroadcastClaimConflict as e:
+        raise HTTPException(status_code=409, detail=str(e)) from e
 
 
 @router.post("/{broadcast_id}/send", response_model=BroadcastResponse)
@@ -244,9 +258,11 @@ async def send_broadcast(
     try:
         broadcast = await broadcast_service.send_broadcast(db, broadcast)
     except BroadcastClaimConflict as e:
-        raise HTTPException(status_code=409, detail=str(e))
+        raise HTTPException(status_code=409, detail=str(e)) from e
+    except BroadcastValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
     # Record the resulting status transition regardless of outcome (helps
     # troubleshoot failed sends), then still surface the 502 to the caller.
@@ -280,8 +296,10 @@ async def schedule_broadcast(
         raise HTTPException(status_code=404, detail="Broadcast not found")
     try:
         broadcast = await broadcast_service.schedule_broadcast(db, broadcast, payload.scheduled_at)
+    except BroadcastClaimConflict as e:
+        raise HTTPException(status_code=409, detail=str(e)) from e
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
     await create_audit_log(
         db=db,
@@ -300,6 +318,53 @@ async def schedule_broadcast(
     return BroadcastResponse.model_validate(broadcast)
 
 
+@router.get("/stale-sending", response_model=BroadcastListResponse)
+async def list_stale_sending(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+    current_admin: User = Depends(get_current_admin),
+):
+    items = await broadcast_service.get_stale_sending(db, limit=limit)
+    return BroadcastListResponse(
+        items=[BroadcastResponse.model_validate(b) for b in items[skip:]],
+        total=len(items),
+        skip=skip,
+        limit=limit,
+    )
+
+
+@router.post("/{broadcast_id}/resolve", response_model=BroadcastResponse)
+async def resolve_stale_sending(
+    broadcast_id: int,
+    payload: ReconcileRequest,
+    db: AsyncSession = Depends(get_db),
+    current_admin: User = Depends(require_permission(KEY_MANAGE_BROADCAST)),
+):
+    broadcast = await broadcast_service.get_broadcast(db, broadcast_id)
+    if not broadcast:
+        raise HTTPException(status_code=404, detail="Broadcast not found")
+    try:
+        broadcast = await broadcast_service.reconcile_stale_sending(
+            db, broadcast, payload.outcome
+        )
+    except BroadcastClaimConflict as e:
+        raise HTTPException(status_code=409, detail=str(e)) from e
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+    await create_audit_log(
+        db=db,
+        admin_id=current_admin.id,
+        action="resolve_stale_broadcast",
+        resource_type="broadcast",
+        resource_id=str(broadcast.id),
+        details={"outcome": payload.outcome, "status": _status_value(broadcast.status)},
+    )
+    await db.commit()
+    return BroadcastResponse.model_validate(broadcast)
+
+
 @router.post("/{broadcast_id}/cancel", response_model=BroadcastResponse)
 async def cancel_broadcast(
     broadcast_id: int,
@@ -311,10 +376,10 @@ async def cancel_broadcast(
         raise HTTPException(status_code=404, detail="Broadcast not found")
     try:
         broadcast = await broadcast_service.cancel_broadcast(db, broadcast)
-    except BroadcastClaimConflict:
-        raise HTTPException(status_code=409, detail="Broadcast status changed; refresh and try again")
+    except BroadcastClaimConflict as e:
+        raise HTTPException(status_code=409, detail=str(e)) from e
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
     await create_audit_log(
         db=db,
