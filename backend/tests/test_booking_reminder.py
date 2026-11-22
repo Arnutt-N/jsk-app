@@ -78,6 +78,7 @@ def _patches(*, config=None, due=(), claim=True, send=None, load=None, outcome=N
         patch.object(booking_reminder, "send_booking_reminder_outcome", new=AsyncMock(side_effect=_outcome)),
         patch.object(booking_reminder, "finalize_reminder", new=AsyncMock(return_value=True)),
         patch.object(booking_reminder, "clear_reminder_claim", new=AsyncMock()),
+        patch.object(booking_reminder, "fail_reminder", new=AsyncMock()),
     )
 
 
@@ -99,10 +100,10 @@ async def _process_with_db(db, **kwargs):
 
 
 async def _capture(**kwargs):
-    """Run one booking and return (db, finalize mock, clear mock)."""
+    """Run one booking and return (db, finalize mock, fail mock)."""
     patches = _patches(due=(_booking(),), **kwargs)
     finalize = next(p for p in patches if p.attribute == "finalize_reminder").new
-    clear = next(p for p in patches if p.attribute == "clear_reminder_claim").new
+    fail = next(p for p in patches if p.attribute == "fail_reminder").new
     for p in patches:
         p.start()
     db = AsyncMock()
@@ -111,7 +112,7 @@ async def _capture(**kwargs):
     finally:
         for p in patches:
             p.stop()
-    return db, finalize, clear
+    return db, finalize, fail
 
 
 # --- the SQL these guards depend on ---
@@ -333,26 +334,26 @@ async def test_one_failure_does_not_stop_later_bookings():
 
 
 @pytest.mark.asyncio
-async def test_all_channel_failure_releases_the_lease_for_retry():
-    """A definite failure must not burn the confirmed-sent marker (F2)."""
-    _db, finalize, clear = await _capture(outcome=ReminderOutcome.FAILED)
+async def test_all_channel_failure_stops_automatic_retries():
+    """A definite failure must not be retried every scheduler pass."""
+    _db, finalize, fail = await _capture(outcome=ReminderOutcome.FAILED)
     finalize.assert_not_awaited()
-    clear.assert_awaited_once_with(_db, 1, TOKEN)
+    fail.assert_awaited_once_with(_db, 1, TOKEN)
 
 
 @pytest.mark.asyncio
-async def test_confirmed_delivery_finalizes_and_does_not_clear():
-    _db, finalize, clear = await _capture(outcome=ReminderOutcome.CONFIRMED)
+async def test_confirmed_delivery_finalizes_and_does_not_fail():
+    _db, finalize, fail = await _capture(outcome=ReminderOutcome.CONFIRMED)
     finalize.assert_awaited_once_with(_db, 1, TOKEN)
-    clear.assert_not_awaited()
+    fail.assert_not_awaited()
 
 
 @pytest.mark.asyncio
 async def test_unknown_outcome_finalizes_rather_than_risks_a_duplicate():
     """A provider error with unknown result keeps the sent marker (F2)."""
-    _db, finalize, clear = await _capture(outcome=ReminderOutcome.UNKNOWN)
+    _db, finalize, fail = await _capture(outcome=ReminderOutcome.UNKNOWN)
     finalize.assert_awaited_once_with(_db, 1, TOKEN)
-    clear.assert_not_awaited()
+    fail.assert_not_awaited()
 
 
 @pytest.mark.asyncio

@@ -575,7 +575,7 @@ def reminder_window(config: BookingConfig, now: datetime) -> tuple:
 async def get_due_reminders(
     db: AsyncSession, *, window_start: datetime, window_end: datetime, limit: int = 100
 ) -> Sequence[Booking]:
-    """Confirmed, unsent, unclaimed bookings due in the reminder window."""
+    """Confirmed, unsent, unfailed, unclaimed bookings due in the window."""
     # Postgres evaluates `date + time` as a timestamp; type_coerce tells
     # SQLAlchemy the result type without altering the emitted SQL.
     appointment_at = type_coerce(Booking.booking_date + Booking.booking_time, DateTime)
@@ -589,6 +589,7 @@ async def get_due_reminders(
         .where(
             Booking.status == BookingStatus.CONFIRMED,
             Booking.reminder_sent_at.is_(None),
+            Booking.reminder_failed_at.is_(None),
             _lease_is_stale(),
             appointment_at > window_start,
             appointment_at <= window_end,
@@ -650,6 +651,7 @@ async def claim_reminder(db: AsyncSession, booking_id: int) -> Optional[datetime
             Booking.id == booking_id,
             Booking.status == BookingStatus.CONFIRMED,
             Booking.reminder_sent_at.is_(None),
+            Booking.reminder_failed_at.is_(None),
             _lease_is_stale(),
             appointment_at > local_now(),
         )
@@ -683,11 +685,7 @@ async def finalize_reminder(
 async def clear_reminder_claim(
     db: AsyncSession, booking_id: int, token: datetime
 ) -> None:
-    """Release a lease after definite failure, only if still owned by `token`.
-
-    On confirmed all-channel failure the booking becomes eligible for a retry
-    immediately rather than waiting out the lease TTL.
-    """
+    """Release a lease when the booking is no longer due."""
     await db.execute(
         update(Booking)
         .where(
@@ -695,4 +693,19 @@ async def clear_reminder_claim(
             Booking.reminder_claimed_at == token,
         )
         .values(reminder_claimed_at=None)
+    )
+
+
+async def fail_reminder(
+    db: AsyncSession, booking_id: int, token: datetime
+) -> None:
+    """Stop automatic retries after a definite provider refusal."""
+    await db.execute(
+        update(Booking)
+        .where(
+            Booking.id == booking_id,
+            Booking.reminder_claimed_at == token,
+            Booking.reminder_sent_at.is_(None),
+        )
+        .values(reminder_failed_at=func.now(), reminder_claimed_at=None)
     )

@@ -53,9 +53,12 @@ class Booking(Base):
     reminder_sent_at = Column(DateTime(timezone=True), nullable=True)
 
     # Short-lived lease taken just before a reminder push and released when the
-    # outcome is known. Separate from the confirmed marker so a failed push can
-    # be retried instead of being excluded from later passes (F2).
+    # outcome is known.
     reminder_claimed_at = Column(DateTime(timezone=True), nullable=True)
+
+    # Definite provider refusal. The scheduler must not retry these every pass;
+    # staff resend clears the marker to request a fresh attempt.
+    reminder_failed_at = Column(DateTime(timezone=True), nullable=True)
 
     cancelled_at = Column(DateTime(timezone=True), nullable=True)
 

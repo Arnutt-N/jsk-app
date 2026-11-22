@@ -13,9 +13,10 @@ the reload too, so a cancellation landing mid-flight is not mailed.
 confirmed delivery, or an unknown provider outcome, ``finalize_reminder`` writes
 ``reminder_sent_at`` and clears the lease — both guarded by the token, so a
 worker whose lease expired cannot confirm for its successor. On a definite
-all-channel failure, ``clear_reminder_claim`` releases the lease for an
-immediate retry. A crash between claim and finalize leaves the lease to expire
-(TTL), trading a delayed retry against a duplicate to the public.
+all-channel failure, ``fail_reminder`` records a terminal failure so the
+scheduler stops retrying. Staff resend clears that marker for a fresh attempt.
+A crash between claim and finalize leaves the lease to expire (TTL), trading a
+delayed retry against a duplicate to the public.
 
 The config is re-read on every pass so an admin toggling reminders off, or
 changing the lead time, takes effect without a restart.
@@ -34,6 +35,7 @@ from app.services.booking_notifications import (
 from app.services.booking_service import (
     claim_reminder,
     clear_reminder_claim,
+    fail_reminder,
     finalize_reminder,
     get_due_reminders,
     load_booking_for_reminder,
@@ -127,9 +129,9 @@ async def _process_due_reminders(db: AsyncSession):
                 # never sent to a member of the public.
                 await finalize_reminder(db, booking_id, token)
             else:
-                # Definite all-channel failure: release the lease so the next
-                # scheduler pass can retry instead of losing the reminder.
-                await clear_reminder_claim(db, booking_id, token)
+                # Definite all-channel failure: stop automatic retries. Staff
+                # resend clears the marker when someone wants another attempt.
+                await fail_reminder(db, booking_id, token)
             await db.commit()
         except Exception as e:
             logger.error("Booking reminder for %s failed: %s", booking_id, e)
