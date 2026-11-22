@@ -130,6 +130,10 @@ def _payload_hash(request: ServiceRequestCreate) -> str:
     """
     payload = request.model_dump(mode="json")
     payload.pop("line_user_id", None)
+    for attachment in payload.get("attachments") or []:
+        # The endpoint replaces client URLs with /api/v1/media/{id}; a retry
+        # can carry a different CDN URL for the same saved attachment.
+        attachment.pop("url", None)
     canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
