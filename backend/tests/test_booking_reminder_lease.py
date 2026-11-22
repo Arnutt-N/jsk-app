@@ -1,7 +1,7 @@
 """F2 reminder lease: real-DB proof of the CAS guards and stale-lease reclaim.
 
 Mocks assert the SQL was called; these tests prove the guards *work* against
-Postgres: failed-delivery retry, cancelled-after-claim skip, stale lease reclaim,
+Postgres: terminal failure, cancelled-after-claim skip, stale lease reclaim,
 and token-scoped finalize. Each test seeds and cleans its own rows.
 """
 import uuid
@@ -98,7 +98,7 @@ async def test_claim_then_finalize_sets_sent_only_for_the_owning_token():
 
 
 @pytest.mark.asyncio
-async def test_clear_claim_releases_only_the_owning_token():
+async def test_failed_reminder_is_excluded_from_later_passes():
     engine = _fresh_engine()
     Session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     booking_id, user_id = await _seed(Session)
@@ -106,16 +106,17 @@ async def test_clear_claim_releases_only_the_owning_token():
         async with Session() as db:
             token = await booking_service.claim_reminder(db, booking_id)
             await db.commit()
-            await booking_service.clear_reminder_claim(
-                db, booking_id, token - timedelta(seconds=1)
+            await booking_service.fail_reminder(db, booking_id, token)
+            await db.commit()
+            _, claimed, _ = await _state(Session, booking_id)
+            assert claimed is None
+            due = await booking_service.get_due_reminders(
+                db,
+                window_start=local_now(),
+                window_end=local_now() + timedelta(days=7),
             )
-            await db.commit()
-            _, claimed, _ = await _state(Session, booking_id)
-            assert claimed is not None  # wrong token could not clear it
-            await booking_service.clear_reminder_claim(db, booking_id, token)
-            await db.commit()
-            _, claimed, _ = await _state(Session, booking_id)
-            assert claimed is None  # failed delivery is retryable
+            assert booking_id not in [row.id for row in due]
+            assert await booking_service.claim_reminder(db, booking_id) is None
     finally:
         await _cleanup(Session, booking_id, user_id)
         await engine.dispose()

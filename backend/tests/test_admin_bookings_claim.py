@@ -34,7 +34,7 @@ def _fresh_engine():
     return create_async_engine(str(settings.DATABASE_URL), poolclass=NullPool)
 
 
-async def _seed(Session, email=None):
+async def _seed(Session, email=None, reminder_failed_at=None):
     marker = f"pc{uuid.uuid4().hex[:8]}"
     async with Session() as session:
         target = local_now().date() + timedelta(days=7)
@@ -58,6 +58,7 @@ async def _seed(Session, email=None):
             email=email,
             queue_number=f"PC-{marker}",
             status=BookingStatus.CONFIRMED,
+            reminder_failed_at=reminder_failed_at,
         )
         session.add(booking)
         await session.flush()
@@ -118,6 +119,45 @@ async def test_successful_resend_holds_the_cooldown():
                 )
             ).scalar_one()
             assert stamp is not None
+    finally:
+        await _cleanup(Session, booking_id, user_id, admin_id)
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_successful_resend_clears_a_terminal_failure_marker():
+    engine = _fresh_engine()
+    Session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    booking_id, user_id, admin_id = await _seed(
+        Session, reminder_failed_at=local_now() - timedelta(minutes=1)
+    )
+    _overrides(Session, admin_id)
+    try:
+        client = TestClient(app, raise_server_exceptions=False)
+        try:
+            with patch.object(
+                admin_bookings,
+                "send_booking_reminder",
+                new=AsyncMock(return_value=True),
+            ):
+                response = client.post(f"/api/v1/admin/bookings/{booking_id}/remind")
+        finally:
+            client.close()
+    finally:
+        app.dependency_overrides.clear()
+
+    try:
+        assert response.status_code == 200, response.text
+        async with Session() as session:
+            sent, failed = (
+                await session.execute(
+                    select(
+                        Booking.reminder_sent_at, Booking.reminder_failed_at
+                    ).where(Booking.id == booking_id)
+                )
+            ).one()
+            assert sent is not None
+            assert failed is None
     finally:
         await _cleanup(Session, booking_id, user_id, admin_id)
         await engine.dispose()
