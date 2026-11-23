@@ -5,6 +5,8 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from sqlalchemy import create_engine, select, update
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import Session
 
 from app.api import deps as api_deps
@@ -146,6 +148,12 @@ async def test_stale_sending_is_surfaced_for_reconciliation():
     statement = str(db.execute.await_args.args[0])
     assert "broadcasts.status" in statement
     assert "broadcasts.updated_at" in statement
+
+
+@compiles(JSONB, "sqlite")
+def _compile_jsonb_for_sqlite(type_, compiler, **kw):
+    """Let SQLite compile the production JSONB columns in this isolated test."""
+    return "JSON"
 
 
 def test_unknown_broadcast_is_listed_and_resolvable():
