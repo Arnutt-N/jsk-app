@@ -81,9 +81,19 @@ def test_db_target_build_subprocess_env_sets_expected_env_file(monkeypatch: pyte
     assert env["ENV_FILE"].endswith(str(Path("backend") / "app" / ".env"))
 
 
+def test_db_target_build_subprocess_env_keeps_explicit_env_file(monkeypatch: pytest.MonkeyPatch):
+    explicit_env = "D:/genAI/jsk-app/secrets/production.env"
+    monkeypatch.setattr(db_target.os, "environ", {"ENV_FILE": explicit_env})
+
+    env = db_target.build_subprocess_env("remote")
+
+    assert env["ENV_FILE"] == explicit_env
+
+
 def test_db_target_run_command_uses_backend_cwd(monkeypatch: pytest.MonkeyPatch):
     mock_run = Mock(return_value=Mock(returncode=0))
     monkeypatch.setattr(db_target.subprocess, "run", mock_run)
+    monkeypatch.delenv("ENV_FILE", raising=False)
 
     exit_code = db_target.run_command(["python", "-m", "alembic", "current"], "remote")
 
