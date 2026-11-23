@@ -166,14 +166,13 @@ test.describe('Request detail -- audit timeline', () => {
 
   test('distinguishes a transient detail error from a missing case', async ({ page }) => {
     const requestId = await createRequestFixture(page, caseName('AuditRetry'))
-    let failedOnce = false
     const isDetail = (url: URL) =>
       url.pathname === `/api/v1/admin/requests/${requestId}` && url.search === ''
+    let failUntilRetry = true
 
     await page.route(isDetail, async (route) => {
       if (route.request().method() !== 'GET') return route.continue()
-      if (!failedOnce) {
-        failedOnce = true
+      if (failUntilRetry) {
         await route.fulfill({ status: 503, contentType: 'text/plain', body: 'temporary' })
         return
       }
@@ -185,11 +184,11 @@ test.describe('Request detail -- audit timeline', () => {
     await expect
       .poll(() => page.evaluate(() => document.body.innerText.includes('ไม่สามารถโหลดข้อมูลคำร้อง')))
       .toBe(true)
+    failUntilRetry = false
     await page.getByRole('button', { name: 'ลองใหม่' }).click()
     await expect(page.getByRole('tablist', { name: 'รายละเอียดคำร้อง' })).toBeVisible({
       timeout: 15_000,
     })
-    expect(failedOnce).toBe(true)
 
     await page.unroute(isDetail)
     const missingId = requestId + 1_000_000
