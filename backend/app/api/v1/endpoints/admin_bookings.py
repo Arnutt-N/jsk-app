@@ -41,7 +41,6 @@ from app.services import booking_service
 from app.services.booking_notifications import (
     notify_booking_confirmed,
     notify_staff_new_booking,
-    send_booking_reminder,
     send_booking_reminder_outcome,
 )
 from app.services.booking_service import (
@@ -55,8 +54,8 @@ from app.services.booking_service import (
     UnknownServiceTypeError,
     clear_reminder_outcome,
 )
-from app.services.delivery_outcome import DeliveryOutcome
 from app.services.booking_settings import load_booking_config, save_booking_config
+from app.services.delivery_outcome import DeliveryOutcome
 from app.services.line_service import line_service
 
 logger = logging.getLogger(__name__)
