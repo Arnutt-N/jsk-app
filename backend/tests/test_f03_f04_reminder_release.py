@@ -154,7 +154,7 @@ async def test_staff_resend_during_a_scheduled_claim_makes_one_provider_call():
                 await db.commit()
                 assert token is not None
                 booking = await booking_service.load_booking_for_reminder(db, booking_id, token=token)
-                outcome = await booking_notifications.send_booking_reminder_outcome(
+                await booking_notifications.send_booking_reminder_outcome(
                     db, booking, booking.user
                 )
                 await booking_service.finalize_reminder(db, booking_id, token)
