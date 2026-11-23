@@ -109,6 +109,27 @@ async def test_definite_refusal_does_not_retry():
     api.broadcast.assert_awaited_once()
 
 
+def test_stale_sending_route_is_not_captured_by_broadcast_id():
+    async def _override():
+        yield SimpleNamespace(id=1, role=UserRole.SUPER_ADMIN, is_active=True)
+
+    app.dependency_overrides[api_deps.get_current_user] = _override
+    try:
+        with patch.object(
+            broadcast_service,
+            "get_stale_sending",
+            new=AsyncMock(return_value=[]),
+        ) as get_stale:
+            from fastapi.testclient import TestClient
+
+            resp = TestClient(app).get("/api/v1/admin/broadcasts/stale-sending")
+        assert resp.status_code == 200
+        assert resp.json()["items"] == []
+        get_stale.assert_awaited_once()
+    finally:
+        app.dependency_overrides.clear()
+
+
 @pytest.mark.asyncio
 async def test_stale_sending_is_surfaced_for_reconciliation():
     svc = service_module.BroadcastService()

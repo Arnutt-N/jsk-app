@@ -26,7 +26,11 @@ class WebhookEvent(Base):
     received_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     inbound_applied_at = Column(DateTime(timezone=True), nullable=True)
     reply_status = Column(
-        Enum(ReplyDeliveryStatus, name="webhookeventreplystatus"),
+        Enum(
+            ReplyDeliveryStatus,
+            name="webhookeventreplystatus",
+            values_callable=lambda enum: [member.value for member in enum],
+        ),
         nullable=False,
         server_default=ReplyDeliveryStatus.NONE.value,
     )

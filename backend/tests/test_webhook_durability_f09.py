@@ -64,6 +64,12 @@ def _redis():
     return redis
 
 
+def test_reply_status_persists_lowercase_enum_values():
+    column = WebhookEvent.__table__.c.reply_status
+    assert column.type.enums == ["none", "sent", "failed"]
+    assert column.type._valid_lookup["sent"] == ReplyDeliveryStatus.SENT
+
+
 @pytest.mark.asyncio
 async def test_event_id_committed_before_ack(monkeypatch):
     rows = {}

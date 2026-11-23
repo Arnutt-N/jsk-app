@@ -196,6 +196,22 @@ async def create_broadcast(
     return BroadcastResponse.model_validate(broadcast)
 
 
+@router.get("/stale-sending", response_model=BroadcastListResponse)
+async def list_stale_sending(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+    current_admin: User = Depends(get_current_admin),
+):
+    items = await broadcast_service.get_stale_sending(db, limit=limit)
+    return BroadcastListResponse(
+        items=[BroadcastResponse.model_validate(b) for b in items[skip:]],
+        total=len(items),
+        skip=skip,
+        limit=limit,
+    )
+
+
 @router.get("/{broadcast_id}", response_model=BroadcastResponse)
 async def get_broadcast(
     broadcast_id: int,
@@ -316,22 +332,6 @@ async def schedule_broadcast(
     await db.commit()
 
     return BroadcastResponse.model_validate(broadcast)
-
-
-@router.get("/stale-sending", response_model=BroadcastListResponse)
-async def list_stale_sending(
-    skip: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=100),
-    db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin),
-):
-    items = await broadcast_service.get_stale_sending(db, limit=limit)
-    return BroadcastListResponse(
-        items=[BroadcastResponse.model_validate(b) for b in items[skip:]],
-        total=len(items),
-        skip=skip,
-        limit=limit,
-    )
 
 
 @router.post("/{broadcast_id}/resolve", response_model=BroadcastResponse)
