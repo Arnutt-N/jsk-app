@@ -168,10 +168,6 @@ test.describe('Request detail -- audit timeline', () => {
     const requestId = await createRequestFixture(page, caseName('AuditRetry'))
     const isDetail = (url: URL) =>
       url.pathname === `/api/v1/admin/requests/${requestId}` && url.search === ''
-    // React StrictMode runs mount effects twice in dev. A one-shot 503 is
-    // consumed by the first fetch and the second (implicit) fetch succeeds,
-    // so the error never becomes observable. Fail every mount fetch until the
-    // user clicks retry, which is the behavior this test is about.
     let failUntilRetry = true
 
     await page.route(isDetail, async (route) => {
