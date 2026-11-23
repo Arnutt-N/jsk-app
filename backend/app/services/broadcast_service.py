@@ -13,7 +13,7 @@ from linebot.v3.messaging import (
     MulticastRequest,
     TextMessage,
 )
-from sqlalchemy import delete, desc, func, select, update
+from sqlalchemy import and_, delete, desc, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.date_windows import apply_optional_range
@@ -460,18 +460,30 @@ class BroadcastService:
         )
         return list(result.scalars().all())
 
+    @staticmethod
+    def _reconcilable_condition(older_than_seconds: int):
+        """Shared eligibility rule for stale listing and operator resolution.
+
+        SENDING rows need a stale cutoff because a sender may still be alive.
+        UNKNOWN is terminal with no lease holder, so it is resolvable at once.
+        """
+        cutoff = datetime.now(timezone.utc) - timedelta(seconds=older_than_seconds)
+        return or_(
+            and_(
+                Broadcast.status == BroadcastStatus.SENDING,
+                Broadcast.updated_at <= cutoff,
+            ),
+            Broadcast.status == BroadcastStatus.UNKNOWN,
+        ).self_group()
+
     async def get_stale_sending(
         self, db: AsyncSession, *, older_than_seconds: int = STALE_SENDING_SECONDS,
         limit: int = 50,
     ) -> List[Broadcast]:
-        """Surface SENDING rows whose worker stopped updating them."""
-        cutoff = datetime.now(timezone.utc) - timedelta(seconds=older_than_seconds)
+        """Surface stale SENDING rows and all UNKNOWN rows for resolution."""
         result = await db.execute(
             select(Broadcast)
-            .where(
-                Broadcast.status == BroadcastStatus.SENDING,
-                Broadcast.updated_at <= cutoff,
-            )
+            .where(self._reconcilable_condition(older_than_seconds))
             .order_by(Broadcast.updated_at)
             .limit(limit)
         )
@@ -484,13 +496,11 @@ class BroadcastService:
         """Operator resolution of an unknown provider outcome."""
         if outcome not in ("completed", "failed"):
             raise ValueError("outcome must be completed or failed")
-        cutoff = datetime.now(timezone.utc) - timedelta(seconds=older_than_seconds)
         result = await db.execute(
             update(Broadcast)
             .where(
                 Broadcast.id == broadcast.id,
-                Broadcast.status == BroadcastStatus.SENDING,
-                Broadcast.updated_at <= cutoff,
+                self._reconcilable_condition(older_than_seconds),
             )
             .values(
                 status=BroadcastStatus.COMPLETED if outcome == "completed" else BroadcastStatus.FAILED,

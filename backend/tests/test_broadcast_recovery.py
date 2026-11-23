@@ -1,12 +1,15 @@
 """Focused F05-F07 regression checks for broadcast recovery."""
+from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from sqlalchemy import create_engine, select, update
+from sqlalchemy.orm import Session
 
 from app.api import deps as api_deps
 from app.main import app
-from app.models.broadcast import BroadcastStatus, BroadcastType
+from app.models.broadcast import Broadcast, BroadcastStatus, BroadcastType
 from app.models.user import UserRole
 from app.services import broadcast_service as service_module
 from app.services.broadcast_service import BroadcastClaimConflict, broadcast_service
@@ -122,6 +125,54 @@ async def test_stale_sending_is_surfaced_for_reconciliation():
     statement = str(db.execute.await_args.args[0])
     assert "broadcasts.status" in statement
     assert "broadcasts.updated_at" in statement
+
+
+def test_unknown_broadcast_is_listed_and_resolvable():
+    """Regression: UNKNOWN rows left by an uncertain provider are recoverable."""
+    svc = service_module.BroadcastService()
+    condition = svc._reconcilable_condition(service_module.STALE_SENDING_SECONDS)
+    now = datetime.now(timezone.utc)
+    engine = create_engine("sqlite://")
+    Broadcast.__table__.create(engine)
+
+    with Session(engine) as db:
+        db.add_all([
+            Broadcast(title="fresh-unknown", content={"text": "x"},
+                      status=BroadcastStatus.UNKNOWN,
+                      updated_at=now, payload_version=1),
+            Broadcast(title="stale-sending", content={"text": "x"},
+                      status=BroadcastStatus.SENDING,
+                      updated_at=now - timedelta(hours=1), payload_version=1),
+            Broadcast(title="fresh-sending", content={"text": "x"},
+                      status=BroadcastStatus.SENDING,
+                      updated_at=now, payload_version=1),
+            Broadcast(title="completed", content={"text": "x"},
+                      status=BroadcastStatus.COMPLETED,
+                      updated_at=now - timedelta(hours=1), payload_version=1),
+        ])
+        db.commit()
+
+        listed = db.scalars(select(Broadcast.title).where(condition).order_by(Broadcast.title)).all()
+        assert listed == ["fresh-unknown", "stale-sending"]
+
+        unknown_id = db.scalars(
+            select(Broadcast.id).where(Broadcast.status == BroadcastStatus.UNKNOWN)
+        ).one()
+        resolved = db.execute(
+            update(Broadcast)
+            .where(Broadcast.id == unknown_id, condition)
+            .values(status=BroadcastStatus.COMPLETED)
+        )
+        assert resolved.rowcount == 1
+        assert db.get(Broadcast, unknown_id).status == BroadcastStatus.COMPLETED
+
+        # Second operator cannot resolve the same row again.
+        again = db.execute(
+            update(Broadcast)
+            .where(Broadcast.id == unknown_id, condition)
+            .values(status=BroadcastStatus.FAILED)
+        )
+        assert again.rowcount == 0
 
 
 @pytest.mark.asyncio
