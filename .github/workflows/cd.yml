@@ -262,7 +262,6 @@ jobs:
         shell: bash
         working-directory: backend
     env:
-      # Single source of truth for the schema this backend deploy requires.
       EXPECTED_REVISION: f09a1b2c3d4
     steps:
       - name: Check backend migration config

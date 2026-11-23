@@ -146,7 +146,6 @@ async def send_booking_reminder_outcome(
 
 
 async def send_booking_reminder(db: AsyncSession, booking: Booking, user) -> bool:
-    """Compatibility wrapper: True iff a channel confirmed delivery."""
     outcome = await send_booking_reminder_outcome(db, booking, user)
     return outcome is DeliveryOutcome.SENT
 

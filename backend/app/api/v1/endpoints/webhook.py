@@ -88,8 +88,8 @@ async def line_webhook(request: Request, background_tasks: BackgroundTasks, x_li
         logger.error("Invalid LINE webhook signature (body length=%d)", len(body_str))
         raise HTTPException(status_code=400, detail="Invalid signature")
 
-    # F09: the event ID is durable before the ACK. A crash in the background
-    # task can be redelivered; the row is the durable record of that fact.
+    # An event row is committed before the ACK. A crash in the background task
+    # can be redelivered; the row is the durable record of that fact.
     try:
         async with AsyncSessionLocal() as db:
             for event in events:
@@ -155,7 +155,7 @@ async def process_webhook_events(events):
                     if lock_acquired is None:
                         logger.warning(f"Redis unavailable - processing webhook event {event_id} without dedup lock")
 
-                # F09: Redis dedup is best-effort and expires. The durable row
+                # Redis dedup is best-effort and expires. The durable row
                 # decides whether inbound effects have already been applied.
                 if event_id:
                     row = await db.get(WebhookEvent, event_id)
@@ -186,7 +186,7 @@ async def process_webhook_events(events):
                 if box is not None:
                     failures = await drain_outbox(box)
 
-                # F09: reply outcome is a separate status on the same row.
+                # Reply outcome is a separate status on the same row.
                 # Redelivery sees inbound_applied_at and never re-runs the
                 # inbound handler; it can retry only the reply.
                 if event_id:

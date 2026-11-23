@@ -480,7 +480,6 @@ class BroadcastService:
         self, db: AsyncSession, *, older_than_seconds: int = STALE_SENDING_SECONDS,
         limit: int = 50,
     ) -> List[Broadcast]:
-        """Surface stale SENDING rows and all UNKNOWN rows for resolution."""
         result = await db.execute(
             select(Broadcast)
             .where(self._reconcilable_condition(older_than_seconds))

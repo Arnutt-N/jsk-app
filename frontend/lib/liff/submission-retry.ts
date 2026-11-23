@@ -1,5 +1,5 @@
 /**
- * F02: bind a submission id to the exact payload that was sent.
+ * Bind a submission id to the exact payload that was sent.
  *
  * A lost first response can leave a saved case behind while the citizen edits
  * the form. Comparing the current form to the payload stored at send time

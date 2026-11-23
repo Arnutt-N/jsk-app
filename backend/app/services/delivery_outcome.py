@@ -7,7 +7,6 @@ class DeliveryOutcome(Enum):
 
     SENT/NOT_SENT keep the old aggregate values ("CONFIRMED"/"FAILED") so
     persisted and injected legacy string outcomes remain valid.
-    TEMPORARY_FAILURE = "TEMPORARY_FAILURE" marks a definite, retryable refusal.
     """
 
     SENT = "CONFIRMED"
