@@ -4,9 +4,9 @@ Operator decisions 2026-10-21: channels send independently (both go out when
 both are on), `line_enabled` defaults OFF (explicit opt-in from the settings
 menu), quota display is read-only.
 """
-from datetime import date, time, timedelta
+from datetime import date, datetime, time, timedelta
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from fastapi import HTTPException
@@ -380,16 +380,16 @@ def _resend_stored_booking(**overrides):
 
 
 @pytest.mark.asyncio
-async def test_resend_with_both_channels_off_is_a_clean_502():
+async def test_resend_with_both_channels_off_records_failed_outcome():
     db = AsyncMock()
-    claim = MagicMock()
-    claim.rowcount = 1
-    db.execute.return_value = claim
     booking = _resend_stored_booking()
     with patch.object(
         admin_bookings, "load_booking_config", new=AsyncMock(return_value=SimpleNamespace(resend_enabled=True))
     ), patch.object(
         admin_bookings.booking_service, "load_booking_for_reminder", new=AsyncMock(return_value=booking)
+    ), patch.object(
+        admin_bookings.booking_service, "claim_reminder_for_staff",
+        new=AsyncMock(return_value=datetime(2026, 10, 26, 8, 30)),
     ), patch.object(
         booking_notifications, "load_booking_config",
         new=AsyncMock(return_value=SimpleNamespace(email_enabled=False, line_enabled=False)),
@@ -404,5 +404,5 @@ async def test_resend_with_both_channels_off_is_a_clean_502():
     assert exc.value.status_code == 502
     mail.assert_not_awaited()
     push.assert_not_called()
-    audit.assert_not_awaited()
-    db.rollback.assert_awaited_once()
+    assert audit.await_args.kwargs["details"]["outcome"] == "FAILED"
+    db.commit.assert_awaited()
