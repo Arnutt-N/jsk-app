@@ -161,6 +161,7 @@ class BookingOut(BaseModel):
     phone_number: Optional[str]
     note: Optional[str]
     reminder_sent_at: Optional[datetime] = None
+    reminder_failed_at: Optional[datetime] = None
     assigned_staff_id: Optional[int] = None
     email: Optional[str] = None
 

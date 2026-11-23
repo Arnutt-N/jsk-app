@@ -1,92 +1,140 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page, type Response, type TestInfo } from '@playwright/test'
 import { loginAsAdmin } from './utils/auth'
 import { gotoAdmin } from './utils/nav'
+import { captureCsrf, createRequestFixture } from './utils/request-fixture'
 
 /**
  * /admin/requests/[id] -- audit timeline (request-edit-audit-log PRD).
  *
- * The "การดำเนินงาน/ความเห็น" tab now renders comments merged with
- * edit_request_details audit entries (violet bubbles, Thai field labels,
- * old -> new). The render-safety test always runs; the full
- * edit -> entry roundtrip mutates the shared dev DB, so it only runs
- * when E2E_ALLOW_MUTATION=1 (UAT / local verification).
+ * Each test owns its request row. The detail and audit requests are matched to
+ * that row before the tab is clicked: a 200 from audit alone says nothing about
+ * the detail fetch that actually mounts the tablist.
  */
 
+function caseName(prefix: string): string {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+}
+
 /**
- * Resolve the URL of the first request detail page from the list view.
- * Same approach as admin-requests-supervisor.spec.ts -- returns null
- * when the test DB has no request rows.
+ * Open a case detail page and prove the two independent reads for THIS case
+ * landed. On failure attach a browser trace plus the observed statuses, since
+ * the detail page deliberately swallows fetch errors.
  */
-async function getFirstRequestDetailUrl(page: Page): Promise<string | null> {
-  // Wait for row links to render: the table skeleton mounts before the
-  // list API responds, so an immediate scan would see zero rows and
-  // wrongly report an empty DB (cold-start skip flake).
-  try {
-    await page.waitForFunction(
-      () => {
-        const anchors = document.querySelectorAll('a[href*="/admin/requests/"]')
-        return Array.from(anchors).some((a) =>
-          /\/admin\/requests\/\d+$/.test(a.getAttribute('href') || ''),
-        )
-      },
-      null,
-      { timeout: 10_000 },
+async function openCaseDetail(
+  page: Page,
+  requestId: number,
+  testInfo: TestInfo,
+): Promise<Response | null> {
+  const detailPath = `/admin/requests/${requestId}`
+  const detailStatus = { value: 'no response' as number | string }
+  const auditStatus = { value: 'no response' as number | string }
+
+  const detailResponse = page
+    .waitForResponse(
+      (r) =>
+        new URL(r.url()).pathname === `/api/v1${detailPath}` &&
+        r.request().method() === 'GET',
+      { timeout: 15_000 },
     )
-  } catch {
-    return null
+    .then(
+      (r) => {
+        detailStatus.value = r.status()
+        return r
+      },
+      () => null,
+    )
+  const auditResponse = page
+    .waitForResponse(
+      (r) =>
+        r.url().includes('/admin/audit/logs') &&
+        r.url().includes(`resource_id=${requestId}`),
+      { timeout: 15_000 },
+    )
+    .then(
+      (r) => {
+        auditStatus.value = r.status()
+        return r
+      },
+      () => null,
+    )
+
+  // Playwright already traces retries (trace: 'on-first-retry'). Starting a
+  // second recorder there throws and discards the runner's trace, so only own
+  // tracing on the first attempt; retries get the automatic trace instead.
+  const tracePath = testInfo.outputPath(`case-${requestId}-detail.zip`)
+  const manualTrace = testInfo.retry === 0
+  if (manualTrace) await page.context().tracing.start({ screenshots: true, snapshots: true })
+
+  try {
+    await gotoAdmin(page, detailPath)
+    const [detailRes, auditRes] = await Promise.all([detailResponse, auditResponse])
+    expect(detailRes?.status(), 'GET /admin/requests/:id must not error').toBe(200)
+    await expect(page.getByRole('tablist', { name: 'รายละเอียดคำร้อง' })).toBeVisible({
+      timeout: 15_000,
+    })
+    return auditRes
+  } catch (error) {
+    await testInfo.attach('case-detail-statuses', {
+      body: JSON.stringify({ detailStatus: detailStatus.value, auditStatus: auditStatus.value }),
+      contentType: 'application/json',
+    })
+    await testInfo.attach('case-detail-dom', {
+      body: await page.locator('body').innerText().catch(() => '<unavailable>'),
+      contentType: 'text/plain',
+    })
+    if (manualTrace) {
+      await page.context().tracing.stop({ path: tracePath })
+      await testInfo.attach('case-detail-failure-trace', { path: tracePath })
+    }
+    const reason = error instanceof Error ? error.message : String(error)
+    throw new Error(`detail status=${detailStatus.value} audit status=${auditStatus.value}: ${reason}`)
+  } finally {
+    if (manualTrace && page.context().tracing) {
+      await page.context().tracing.stop().catch(() => {})
+    }
   }
-  const links = page.locator('a[href*="/admin/requests/"]')
-  const count = await links.count()
-  for (let i = 0; i < count; i++) {
-    const href = await links.nth(i).getAttribute('href')
-    if (href && /\/admin\/requests\/\d+$/.test(href)) return href
-  }
-  return null
 }
 
 test.describe('Request detail -- audit timeline', () => {
+  // CI runs two workers. Login plus the two case-matched reads can exceed the
+  // suite-wide 30s cap even when every response is 200; keep the assertions
+  // strict and give slow runs enough time to reach them.
+  test.describe.configure({ timeout: 60_000 })
+
   test.beforeEach(async ({ page }) => {
+    // captureCsrf must be installed before login so the fixture can post.
+    captureCsrf(page)
     await loginAsAdmin(page)
-    await gotoAdmin(page, '/admin/requests')
-    await expect(page.locator('table')).toBeVisible({ timeout: 10_000 })
   })
 
-  test('comments tab renders the merged timeline without crashing', async ({ page }) => {
-    const detailUrl = await getFirstRequestDetailUrl(page)
-    test.skip(!detailUrl, 'no requests in test DB; nothing to render')
+  test('comments tab renders the merged timeline without crashing', async ({ page }, testInfo) => {
+    const requestId = await createRequestFixture(page, caseName('AuditCase'))
+    const auditRes = await openCaseDetail(page, requestId, testInfo)
 
-    // Capture the audit-logs API status. The page swallows fetch errors by
-    // design (graceful degradation), so a 500 here would otherwise be
-    // invisible to the UI -- exactly the regression UAT caught when the
-    // model declared created_at naive against a timestamptz column.
-    const auditResponse = page.waitForResponse(
-      (r) => r.url().includes('/admin/audit/logs') && r.url().includes('resource_id='),
-      { timeout: 15_000 }
-    )
-    await gotoAdmin(page, detailUrl!)
-    const res = await auditResponse
-    expect(res.status(), 'GET /admin/audit/logs must not error').toBe(200)
+    expect(auditRes?.status(), 'GET /admin/audit/logs must not error').toBe(200)
 
     await page.getByRole('tab', { name: /การดำเนินงาน/ }).click()
     await expect(page.locator('#panel-comments')).toBeVisible({ timeout: 10_000 })
 
-    // Either the empty state or at least one timeline entry must render.
-    // This proves the merged comments+audit pipeline (fetchAuditLogs +
-    // mergeTimeline + AuditTimelineEntry) mounted without breaking the tab.
+    // A fresh fixture has no history, so the empty state proves the merged
+    // timeline mounted without breaking the tab. The mutation test below
+    // proves an audit row renders through the same pipeline.
     const emptyState = page.getByText('ยังไม่มีประวัติการดำเนินงาน')
     const anyEntry = page.locator('#panel-comments .relative.group').first()
     await expect(emptyState.or(anyEntry)).toBeVisible({ timeout: 10_000 })
   })
 
-  test('editing a contact field surfaces an audit entry in the timeline', async ({ page }) => {
+  test('editing a contact field surfaces an audit entry in the timeline', async ({ page }, testInfo) => {
     test.skip(
       process.env.E2E_ALLOW_MUTATION !== '1',
       'mutates the shared dev DB; run locally with E2E_ALLOW_MUTATION=1 for UAT'
     )
 
-    const detailUrl = await getFirstRequestDetailUrl(page)
-    test.skip(!detailUrl, 'no requests in test DB; nothing to edit')
-    await gotoAdmin(page, detailUrl!)
+    const requestId = await createRequestFixture(page, caseName('AuditEdit'), {
+      phone_number: '0899999999',
+    })
+    const auditRes = await openCaseDetail(page, requestId, testInfo)
+    expect(auditRes?.status(), 'GET /admin/audit/logs must not error').toBe(200)
 
     // Enter contact tab edit mode and flip the phone number.
     await page.getByRole('tab', { name: /ข้อมูลผู้ติดต่อ/ }).click()
@@ -114,5 +162,43 @@ test.describe('Request detail -- audit timeline', () => {
     await page.locator('#edit-phone').fill(original)
     await page.getByRole('button', { name: 'บันทึก' }).click()
     await expect(page.getByText('บันทึกข้อมูลผู้ติดต่อเรียบร้อย')).toBeVisible({ timeout: 10_000 })
+  })
+
+  test('distinguishes a transient detail error from a missing case', async ({ page }) => {
+    const requestId = await createRequestFixture(page, caseName('AuditRetry'))
+    let failedOnce = false
+    const isDetail = (url: URL) =>
+      url.pathname === `/api/v1/admin/requests/${requestId}` && url.search === ''
+
+    await page.route(isDetail, async (route) => {
+      if (route.request().method() !== 'GET') return route.continue()
+      if (!failedOnce) {
+        failedOnce = true
+        await route.fulfill({ status: 503, contentType: 'text/plain', body: 'temporary' })
+        return
+      }
+      await route.continue()
+    })
+
+    await gotoAdmin(page, `/admin/requests/${requestId}`)
+    await expect(page.getByText('ไม่สามารถโหลดข้อมูลคำร้อง')).toBeVisible({ timeout: 15_000 })
+    await expect
+      .poll(() => page.evaluate(() => document.body.innerText.includes('ไม่สามารถโหลดข้อมูลคำร้อง')))
+      .toBe(true)
+    await page.getByRole('button', { name: 'ลองใหม่' }).click()
+    await expect(page.getByRole('tablist', { name: 'รายละเอียดคำร้อง' })).toBeVisible({
+      timeout: 15_000,
+    })
+    expect(failedOnce).toBe(true)
+
+    await page.unroute(isDetail)
+    const missingId = requestId + 1_000_000
+    await page.route(
+      (url) => url.pathname === `/api/v1/admin/requests/${missingId}`,
+      (route) => route.fulfill({ status: 404, contentType: 'application/json', body: '{}' }),
+    )
+    await gotoAdmin(page, `/admin/requests/${missingId}`)
+    await expect(page.getByText('ไม่พบข้อมูลคำร้อง')).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByRole('button', { name: 'ลองใหม่' })).toHaveCount(0)
   })
 })

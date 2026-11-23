@@ -30,6 +30,7 @@ from .tag import Tag, UserTag
 from .taxonomy import TaxonomyCategory, TaxonomyTopic
 from .user import User
 from .user_rich_menu_link import UserRichMenuLink
+from .webhook_event import ReplyDeliveryStatus, WebhookEvent
 from .ws_ticket import WsTicket
 
 __all__ = [
@@ -72,5 +73,7 @@ __all__ = [
     "User",
     "UserRichMenuLink",
     "UserTag",
+    "WebhookEvent",
+    "ReplyDeliveryStatus",
     "WsTicket",
 ]

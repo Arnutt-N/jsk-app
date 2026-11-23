@@ -26,7 +26,11 @@ def get_target_env_path(target: str) -> Path:
 
 def build_subprocess_env(target: str) -> dict[str, str]:
     env = os.environ.copy()
-    env["ENV_FILE"] = str(get_target_env_path(target))
+    # An explicit ENV_FILE wins over the target default. CD sets this to the
+    # production secret file; replacing it here made the migration gate inspect
+    # backend/.env and report the wrong revision.
+    if not env.get("ENV_FILE"):
+        env["ENV_FILE"] = str(get_target_env_path(target))
     return env
 
 

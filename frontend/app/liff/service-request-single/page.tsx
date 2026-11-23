@@ -34,6 +34,8 @@ import { useLocationCascade } from '@/hooks/useLocationCascade'
 import { submitServiceRequest } from '@/lib/liff/submit-service-request'
 import { uploadLiffMedia, attachmentCapMessage, readErrorDetail } from '@/lib/liff/upload-media'
 import { SESSION_EXPIRED_MESSAGE, isSessionExpired } from '@/lib/liff/session-expired'
+import { nextSubmissionAttempt, parseSubmitError, type SubmissionAttempt } from '@/lib/liff/submission-retry'
+import SubmitConflictNotice from '@/components/liff/SubmitConflictNotice'
 
 // --- CONSTANTS ---
 
@@ -41,6 +43,7 @@ export default function LiffServiceRequestSingle() {
     // --- STATE ---
     const [submitting, setSubmitting] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [submitConflict, setSubmitConflict] = useState(false)
     const [success, setSuccess] = useState(false)
     const [showConfirm, setShowConfirm] = useState(false)
     const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
@@ -58,7 +61,7 @@ export default function LiffServiceRequestSingle() {
     // Uploads started but not yet resolved — counted toward the attachment
     // cap so rapid file picks cannot exceed the shared rate-limit budget.
     const inflightUploadsRef = useRef(0)
-    const submissionIdRef = useRef<string | null>(null)
+    const submissionRef = useRef<SubmissionAttempt<Record<string, unknown>> | null>(null)
 
     // Location Data State
     const [provinces, setProvinces] = useState<Province[]>([])
@@ -251,15 +254,18 @@ export default function LiffServiceRequestSingle() {
         }
         setSubmitting(true)
         setError(null)
+        setSubmitConflict(false)
 
         try {
-            const payload = {
+            const payload: Record<string, unknown> = {
                 ...formData,
                 line_user_id: profile?.userId || 'GUEST'
             }
 
-            submissionIdRef.current ??= crypto.randomUUID()
-            const res = await submitServiceRequest(payload, idToken, submissionIdRef.current)
+            // Bind the id to the exact payload sent, not to the live form.
+            const attempt = nextSubmissionAttempt(submissionRef.current, payload)
+            submissionRef.current = attempt
+            const res = await submitServiceRequest(payload, idToken, attempt.submissionId)
 
             const resText = await res.text()
             let data
@@ -270,7 +276,9 @@ export default function LiffServiceRequestSingle() {
             }
 
             if (!res.ok) {
-                throw new Error(data.detail || 'Failed to submit')
+                const parsed = parseSubmitError(data)
+                if (parsed.isSubmissionConflict) setSubmitConflict(true)
+                throw new Error(parsed.message)
             }
 
             setSuccess(true)
@@ -348,6 +356,23 @@ export default function LiffServiceRequestSingle() {
             <main className="px-4 max-w-lg mx-auto">
                 <form onSubmit={handleSubmit} className="space-y-6">
                     {error && <Alert variant="danger" title="เกิดข้อผิดพลาด">{error}</Alert>}
+                    {submitConflict && (
+                        <SubmitConflictNotice
+                            message="ข้อมูลที่ส่งไม่ตรงกับคำร้องที่บันทึกไว้ กดตรวจสอบคำร้องเดิมเพื่อดูผลการส่ง หรือส่งคำร้องใหม่หากต้องการสร้างเรื่องใหม่"
+                            onRecover={() => {
+                                submissionRef.current = null
+                                setSubmitConflict(false)
+                                setError(null)
+                                setSuccess(true)
+                                window.scrollTo(0, 0)
+                            }}
+                            onNewCase={() => {
+                                submissionRef.current = null
+                                setSubmitConflict(false)
+                                setError(null)
+                            }}
+                        />
+                    )}
 
                     {/* Section 1: Personal Info */}
                     <Card glass>

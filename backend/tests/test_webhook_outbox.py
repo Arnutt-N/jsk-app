@@ -32,6 +32,8 @@ async def test_box_mode_collects_without_sending():
     result = MagicMock()
     result.scalars.return_value.all.return_value = []  # no requests → L68 path
     db = AsyncMock()
+    db.get = AsyncMock(return_value=None)
+    db.rollback = AsyncMock()
     db.execute = AsyncMock(return_value=result)
     box = new_outbox()
 
@@ -81,8 +83,10 @@ async def test_webhook_drains_after_commit_in_order(monkeypatch):
 
     calls: list[str] = []
     handle = AsyncMock(side_effect=lambda *a, **k: calls.append("handle"))
-    drain = AsyncMock(side_effect=lambda *a, **k: calls.append("drain"))
+    drain = AsyncMock(side_effect=lambda *a, **k: (calls.append("drain"), 0)[1])
     db = AsyncMock()
+    db.get = AsyncMock(return_value=None)
+    db.rollback = AsyncMock()
     db.commit = AsyncMock(side_effect=lambda: calls.append("commit"))
 
     redis = MagicMock()
@@ -99,9 +103,9 @@ async def test_webhook_drains_after_commit_in_order(monkeypatch):
 
     await process_webhook_events([_make_event()])
 
-    assert calls == ["handle", "commit", "drain"]
+    assert calls == ["handle", "commit", "drain", "commit"]
     handle.assert_awaited_once()
-    db.commit.assert_awaited_once()
+    assert db.commit.await_count == 2
     drain.assert_awaited_once()
 
 
@@ -112,6 +116,8 @@ async def test_webhook_skips_drain_when_handler_raises(monkeypatch):
     handle = AsyncMock(side_effect=RuntimeError("mutate failed"))
     drain = AsyncMock()
     db = AsyncMock()
+    db.get = AsyncMock(return_value=None)
+    db.rollback = AsyncMock()
 
     redis = MagicMock()
     redis.exists = AsyncMock(return_value=False)
@@ -151,8 +157,10 @@ async def test_postback_drains_after_commit_in_order(monkeypatch):
 
     calls: list[str] = []
     handle = AsyncMock(side_effect=lambda *a, **k: calls.append("handle"))
-    drain = AsyncMock(side_effect=lambda *a, **k: calls.append("drain"))
+    drain = AsyncMock(side_effect=lambda *a, **k: (calls.append("drain"), 0)[1])
     db = AsyncMock()
+    db.get = AsyncMock(return_value=None)
+    db.rollback = AsyncMock()
     db.commit = AsyncMock(side_effect=lambda: calls.append("commit"))
 
     redis = MagicMock()
@@ -169,9 +177,9 @@ async def test_postback_drains_after_commit_in_order(monkeypatch):
 
     await process_webhook_events([_make_postback_event()])
 
-    assert calls == ["handle", "commit", "drain"]
+    assert calls == ["handle", "commit", "drain", "commit"]
     handle.assert_awaited_once()
-    db.commit.assert_awaited_once()
+    assert db.commit.await_count == 2
     drain.assert_awaited_once()
 
 
@@ -185,6 +193,8 @@ async def test_csat_thank_you_queued_not_sent():
     line_svc.reply_text = AsyncMock()
     box = new_outbox()
     db = AsyncMock()
+    db.get = AsyncMock(return_value=None)
+    db.rollback = AsyncMock()
 
     with (
         patch(

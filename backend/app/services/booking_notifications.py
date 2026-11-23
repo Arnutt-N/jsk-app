@@ -90,6 +90,19 @@ def _is_circuit_open(exc: Exception) -> bool:
     return "circuit is open" in str(exc)
 
 
+def _is_temporary_failure(exc: Exception) -> bool:
+    """A rate-limit or 5xx response is a definite, retryable non-send."""
+    text = str(exc).lower()
+    return (
+        "quota exceeded" in text
+        or "429" in text
+        or "500" in text
+        or "502" in text
+        or "503" in text
+        or "504" in text
+    )
+
+
 async def send_booking_reminder_outcome(
     db: AsyncSession, booking: Booking, user
 ) -> DeliveryOutcome:
@@ -103,7 +116,11 @@ async def send_booking_reminder_outcome(
                 outcomes.append(as_outcome(await send_booking_email(booking.email, subject, body)))
             except Exception as exc:
                 logger.error("Booking reminder email failed for %s: %s", _describe(booking), exc)
-                outcomes.append(DeliveryOutcome.UNKNOWN)
+                outcomes.append(
+                    DeliveryOutcome.TEMPORARY_FAILURE
+                    if _is_temporary_failure(exc)
+                    else DeliveryOutcome.UNKNOWN
+                )
         if config.line_enabled:
             try:
                 sent = await _push_flex(
@@ -115,9 +132,12 @@ async def send_booking_reminder_outcome(
                 outcomes.append(as_outcome(sent))
             except Exception as exc:
                 logger.error("Booking reminder push failed for %s: %s", _describe(booking), exc)
-                outcomes.append(
-                    DeliveryOutcome.NOT_SENT if _is_circuit_open(exc) else DeliveryOutcome.UNKNOWN
-                )
+                if _is_circuit_open(exc):
+                    outcomes.append(DeliveryOutcome.NOT_SENT)
+                elif _is_temporary_failure(exc):
+                    outcomes.append(DeliveryOutcome.TEMPORARY_FAILURE)
+                else:
+                    outcomes.append(DeliveryOutcome.UNKNOWN)
     except Exception as exc:
         logger.error("Booking reminder failed for %s: %s", _describe(booking), exc)
         outcomes.append(DeliveryOutcome.UNKNOWN)
@@ -126,7 +146,6 @@ async def send_booking_reminder_outcome(
 
 
 async def send_booking_reminder(db: AsyncSession, booking: Booking, user) -> bool:
-    """Compatibility wrapper for the resend endpoint: True iff a channel confirmed."""
     outcome = await send_booking_reminder_outcome(db, booking, user)
     return outcome is DeliveryOutcome.SENT
 

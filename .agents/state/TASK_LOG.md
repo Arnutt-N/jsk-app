@@ -1,8 +1,26 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 334 active handoffs, 12 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 336 active handoffs, 12 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-11-23 08:51 — claude_code — completed
+
+F01-F09 fixes committed; production revision check failed at f0a1b2c3d4e5; need authorized migration apply then recheck
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20261123-0851.json`
+- Summary: `project-log-md/claude_code/session-summary-20261123-0851.md`
+
+---
+
+### 2026-11-22 09:31 — claude_code — completed
+
+Ordered review complete. PR #347 clean and ready; PR #346 rebased on #347 head with checks in progress. No merge performed.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20261122-0931.json`
+- Summary: `project-log-md/claude_code/session-summary-20261122-0931.md`
+
+---
 
 ### 2026-11-20 21:45 — claude_code — completed
 

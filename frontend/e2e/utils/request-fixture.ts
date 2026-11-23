@@ -25,7 +25,11 @@ export function captureCsrf(page: Page): void {
  * Specs own the rows they operate on. The dev database is shared and other
  * specs delete request rows, so a spec that assumes seeded rows is flaky.
  */
-export async function createRequestFixture(page: Page, firstname: string): Promise<number> {
+export async function createRequestFixture(
+  page: Page,
+  firstname: string,
+  overrides: { phone_number?: string } = {},
+): Promise<number> {
   const csrf = csrfTokens.get(page)
   if (!csrf) {
     throw new Error('captureCsrf(page) must run before the page logs in, then retry the fixture.')
@@ -37,6 +41,7 @@ export async function createRequestFixture(page: Page, firstname: string): Promi
       lastname: 'Fixture',
       topic_category: 'E2E',
       description: `e2e fixture ${firstname}`,
+      ...overrides,
     },
   })
   if (!res.ok()) {

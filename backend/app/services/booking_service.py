@@ -20,6 +20,7 @@ from sqlalchemy.orm import selectinload
 from app.models.booking import Booking, BookingStatus
 from app.models.business_hours import FULL_DAY_CLOSE, BusinessHours
 from app.services.business_hours_service import BANGKOK_TZ
+from app.services.delivery_outcome import DeliveryOutcome
 
 
 class BookingError(Exception):
@@ -552,6 +553,14 @@ async def update_booking_contact(
 # abandoned (worker crash) and becomes eligible for another worker to reclaim.
 REMINDER_CLAIM_TTL_SECONDS = 300
 
+# A definite failure is retried after this delay while the appointment is still
+# upcoming. Bounded: the claim TTL, retry delay, and final time check all cap the
+# number of automatic attempts before the appointment passes.
+REMINDER_RETRY_DELAY_SECONDS = 60
+
+# Staff double-tap protection for a confirmed send.
+REMINDER_STAFF_COOLDOWN_SECONDS = 60
+
 
 def _lease_is_stale() -> ColumnElement[bool]:
     """The SQL predicate for an absent or expired reminder lease."""
@@ -575,7 +584,11 @@ def reminder_window(config: BookingConfig, now: datetime) -> tuple:
 async def get_due_reminders(
     db: AsyncSession, *, window_start: datetime, window_end: datetime, limit: int = 100
 ) -> Sequence[Booking]:
-    """Confirmed, unsent, unfailed, unclaimed bookings due in the window."""
+    """Confirmed, unsent, unclaimed bookings due in the window.
+
+    A definite failure is retried only after a short backoff so a temporary
+    provider refusal does not stop reminders for the rest of the lease window.
+    """
     # Postgres evaluates `date + time` as a timestamp; type_coerce tells
     # SQLAlchemy the result type without altering the emitted SQL.
     appointment_at = type_coerce(Booking.booking_date + Booking.booking_time, DateTime)
@@ -589,7 +602,12 @@ async def get_due_reminders(
         .where(
             Booking.status == BookingStatus.CONFIRMED,
             Booking.reminder_sent_at.is_(None),
-            Booking.reminder_failed_at.is_(None),
+            or_(
+                Booking.reminder_failed_at.is_(None),
+                Booking.reminder_failed_at
+                < func.now()
+                - func.make_interval(0, 0, 0, 0, 0, 0, REMINDER_RETRY_DELAY_SECONDS),
+            ),
             _lease_is_stale(),
             appointment_at > window_start,
             appointment_at <= window_end,
@@ -635,6 +653,42 @@ async def verify_reminder_lease(
     return owner is not None
 
 
+async def claim_reminder_for_staff(
+    db: AsyncSession, booking_id: int
+) -> Optional[datetime]:
+    """Take the same active-attempt lease as the scheduler, for staff resend.
+
+    Returns the lease token only when the booking is confirmed, upcoming, and no
+    active lease is held. An existing reminder marker does not block a manual
+    resend, but a currently running attempt does.
+    """
+    appointment_at = type_coerce(Booking.booking_date + Booking.booking_time, DateTime)
+    result = await db.execute(
+        update(Booking)
+        .where(
+            Booking.id == booking_id,
+            Booking.status == BookingStatus.CONFIRMED,
+            _lease_is_stale(),
+            appointment_at > local_now(),
+            or_(
+                Booking.reminder_sent_at.is_(None),
+                Booking.reminder_sent_at
+                < func.now()
+                - func.make_interval(0, 0, 0, 0, 0, 0, REMINDER_STAFF_COOLDOWN_SECONDS),
+            ),
+        )
+        .values(
+            reminder_claimed_at=func.now(),
+            reminder_failed_at=None,
+        )
+        .returning(Booking.reminder_claimed_at)
+    )
+    token = result.scalar_one_or_none()
+    if isawaitable(token):  # AsyncMock db in unit tests.
+        token = await token
+    return token
+
+
 async def claim_reminder(db: AsyncSession, booking_id: int) -> Optional[datetime]:
     """Take a short-lived reminder lease; return its token for the winner only.
 
@@ -651,7 +705,12 @@ async def claim_reminder(db: AsyncSession, booking_id: int) -> Optional[datetime
             Booking.id == booking_id,
             Booking.status == BookingStatus.CONFIRMED,
             Booking.reminder_sent_at.is_(None),
-            Booking.reminder_failed_at.is_(None),
+            or_(
+                Booking.reminder_failed_at.is_(None),
+                Booking.reminder_failed_at
+                < func.now()
+                - func.make_interval(0, 0, 0, 0, 0, 0, REMINDER_RETRY_DELAY_SECONDS),
+            ),
             _lease_is_stale(),
             appointment_at > local_now(),
         )
@@ -709,3 +768,28 @@ async def fail_reminder(
         )
         .values(reminder_failed_at=func.now(), reminder_claimed_at=None)
     )
+
+
+async def clear_reminder_outcome(
+    db: AsyncSession, booking_id: int, token: datetime, *, outcome: DeliveryOutcome
+) -> bool:
+    """Resolve a staff lease using the existing reminder markers.
+
+    Accepted delivery sets only the sent marker. Unknown delivery sets both:
+    the sent marker keeps it out of automatic resend, the failure marker tells
+    the UI the result was not confirmed. A definite failure sets only the
+    failure marker, so the bounded scheduler backoff can retry it.
+    """
+    now = func.now()
+    if outcome is DeliveryOutcome.SENT:
+        values = {"reminder_sent_at": now, "reminder_failed_at": None}
+    elif outcome is DeliveryOutcome.UNKNOWN:
+        values = {"reminder_sent_at": now, "reminder_failed_at": now}
+    else:
+        values = {"reminder_sent_at": None, "reminder_failed_at": now}
+    result = await db.execute(
+        update(Booking)
+        .where(Booking.id == booking_id, Booking.reminder_claimed_at == token)
+        .values(**values, reminder_claimed_at=None)
+    )
+    return result.rowcount == 1

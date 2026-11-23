@@ -169,6 +169,27 @@ async def test_replay_same_submission_id_returns_original_case(
 
 
 @pytest.mark.asyncio
+async def test_changed_payload_conflict_has_machine_readable_code(
+    test_client, monkeypatch, seeded_users, db_override
+):
+    marker = uuid.uuid4().hex[:10]
+    sid = f"sub-fid-conflict-{marker}"
+    monkeypatch.setattr(settings, "LIFF_STRICT_MODE", True)
+    _patch_line_verify(monkeypatch)
+    try:
+        hdr = {"x-liff-id-token": TOKEN_A, "x-submission-id": sid}
+        original = test_client.post(ENDPOINT, json=_body(marker), headers=hdr)
+        edited = test_client.post(ENDPOINT, json=_body(f"{marker}-edited"), headers=hdr)
+        assert original.status_code == 201, original.text
+        assert edited.status_code == 409, edited.text
+        detail = edited.json()["detail"]
+        assert detail["code"] == liff_module.SUBMISSION_CONFLICT_CODE
+        assert len(await _rows_for(sid)) == 1
+    finally:
+        await _cleanup([sid])
+
+
+@pytest.mark.asyncio
 async def test_different_submission_ids_create_two_rows(
     test_client, monkeypatch, seeded_users, db_override
 ):

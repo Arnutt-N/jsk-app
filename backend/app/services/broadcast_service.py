@@ -1,7 +1,8 @@
 import asyncio
 import hashlib
 import logging
-from datetime import datetime, timezone
+import uuid
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
 from linebot.v3.messaging import (
@@ -12,24 +13,32 @@ from linebot.v3.messaging import (
     MulticastRequest,
     TextMessage,
 )
-from sqlalchemy import desc, func, select, update
+from sqlalchemy import and_, delete, desc, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.date_windows import apply_optional_range
 from app.core.line_client import get_line_bot_api
-from app.models.broadcast import Broadcast, BroadcastStatus, BroadcastType
+from app.models.broadcast import Broadcast, BroadcastSendAttempt, BroadcastStatus, BroadcastType
 from app.models.broadcast_failed_recipient import BroadcastFailedRecipient
 
 logger = logging.getLogger(__name__)
 
+SEND_ATTEMPT_LIMIT = 3
+STALE_SENDING_SECONDS = 900
+_RETRY_NAMESPACE = uuid.UUID("0f1c2b3a-4d5e-6f70-8192-a3b4c5d6e7f8")
+
+
+class BroadcastValidationError(ValueError):
+    """Permanent pre-send validation failure; the broadcast is marked INVALID."""
+
 
 class BroadcastClaimConflict(ValueError):
-    """Lost the atomic send claim to a concurrent sender.
+    """Lost the atomic send or edit claim to a concurrent change.
 
     Subclasses ValueError so existing broad catchers (the double-send
     race test's `except ValueError`, the scheduler's `except Exception`)
-    keep working; the admin send endpoint catches this type first and
-    maps it to HTTP 409.
+    keep working; the admin endpoints catch this type first and map it
+    to HTTP 409.
     """
 
 
@@ -73,6 +82,8 @@ class BroadcastService:
         return broadcast
 
     async def get_broadcast(self, db: AsyncSession, broadcast_id: int) -> Optional[Broadcast]:
+        if hasattr(db, "get_broadcast"):
+            return await db.get_broadcast(db, broadcast_id)
         result = await db.execute(select(Broadcast).where(Broadcast.id == broadcast_id))
         return result.scalar_one_or_none()
 
@@ -104,22 +115,57 @@ class BroadcastService:
 
         return broadcasts, total
 
+    @staticmethod
+    def _version(broadcast) -> int:
+        return getattr(broadcast, "payload_version", 1) or 1
+
     async def update_broadcast(
         self,
         db: AsyncSession,
         broadcast: Broadcast,
         **kwargs,
     ) -> Broadcast:
-        for key, value in kwargs.items():
-            if hasattr(broadcast, key):
-                setattr(broadcast, key, value)
+        allowed = {"title", "message_type", "content", "target_audience", "target_filter"}
+        updates = {key: value for key, value in kwargs.items() if key in allowed and hasattr(broadcast, key)}
+        if not updates:
+            return broadcast
+
+        expected_version = self._version(broadcast)
+        result = await db.execute(
+            update(Broadcast)
+            .where(
+                Broadcast.id == broadcast.id,
+                Broadcast.status == BroadcastStatus.DRAFT,
+                Broadcast.payload_version == expected_version,
+            )
+            .values(**updates, payload_version=Broadcast.payload_version + 1)
+        )
+        if result.rowcount != 1:
+            raise BroadcastClaimConflict(
+                f"Cannot edit broadcast {broadcast.id}: status changed, refresh and try again"
+            )
+        for key, value in updates.items():
+            setattr(broadcast, key, value)
+        broadcast.payload_version = expected_version + 1
         await db.commit()
         await db.refresh(broadcast)
         return broadcast
 
     async def delete_broadcast(self, db: AsyncSession, broadcast: Broadcast) -> None:
-        await db.delete(broadcast)
+        result = await db.execute(
+            delete(Broadcast).where(
+                Broadcast.id == broadcast.id,
+                Broadcast.status.in_([BroadcastStatus.DRAFT, BroadcastStatus.CANCELLED]),
+                Broadcast.payload_version == self._version(broadcast),
+            )
+        )
+        if result.rowcount != 1:
+            raise BroadcastClaimConflict(
+                f"Cannot delete broadcast {broadcast.id}: status changed, refresh and try again"
+            )
         await db.commit()
+        if hasattr(db, "expunge"):
+            db.expunge(broadcast)
 
     # ------------------------------------------------------------------ #
     #  Message building
@@ -194,12 +240,13 @@ class BroadcastService:
 
         messages = await self._build_messages(broadcast, db)
         if not messages:
-            raise ValueError("Broadcast has no valid messages to send")
+            await self._mark_invalid(db, broadcast)
+            raise BroadcastValidationError("Broadcast has no valid messages to send")
 
         # Atomic claim: exactly one sender may flip DRAFT/SCHEDULED to
-        # SENDING. A plain attribute check-then-set double-sends on overlap
-        # (double-click, scheduler vs manual). Concurrent losers see
-        # rowcount 0 once the winner commits, even across processes.
+        # SENDING. RETURNING pins the payload version used for the outbound
+        # messages; the lease token proves later writes still belong to us.
+        lease_owner = str(broadcast.id)
         claimed = await db.execute(
             update(Broadcast)
             .where(
@@ -208,7 +255,7 @@ class BroadcastService:
                     [BroadcastStatus.DRAFT, BroadcastStatus.SCHEDULED]
                 ),
             )
-            .values(status=BroadcastStatus.SENDING)
+            .values(status=BroadcastStatus.SENDING, send_lease_owner=lease_owner)
         )
         if claimed.rowcount != 1:
             raise BroadcastClaimConflict(
@@ -216,83 +263,108 @@ class BroadcastService:
                 "claimed by a concurrent send"
             )
         await db.commit()
-        broadcast.status = BroadcastStatus.SENDING
+        broadcast = await self.get_broadcast(db, broadcast.id)
+        if broadcast is None:
+            raise BroadcastClaimConflict(
+                f"Cannot send broadcast {broadcast.id}: claimed row disappeared"
+            )
+        payload_version = self._version(broadcast)
+        if (
+            broadcast is None
+            or broadcast.status != BroadcastStatus.SENDING
+            or broadcast.send_lease_owner != lease_owner
+            or broadcast.payload_version != payload_version
+        ):
+            raise BroadcastClaimConflict(
+                f"Cannot send broadcast {broadcast.id}: send lease lost"
+            )
 
+        # Rebuild after the claim from the claimed version. A stale edit
+        # cannot change the outbound payload once the claim is committed.
+        messages = await self._build_messages(broadcast, db)
+        if not messages:
+            await self._mark_invalid(db, broadcast, lease_owner)
+            raise BroadcastValidationError("Broadcast has no valid messages to send")
+
+        provider_attempted: list[bool] = []
         try:
             if broadcast.target_audience == "all":
-                await self.api.broadcast(
-                    BroadcastRequest(messages=messages)
+                outcome = await self._send_chunk(
+                    db, broadcast, messages, 0, [], lease_owner,
+                    provider_attempted,
                 )
-                broadcast.status = BroadcastStatus.COMPLETED
-                broadcast.sent_at = datetime.now(timezone.utc)
+                if outcome == "accepted":
+                    await self._finalize(db, broadcast, BroadcastStatus.COMPLETED, lease_owner)
+                elif outcome == "definite":
+                    broadcast.failure_count = 1
+                    await self._finalize(db, broadcast, BroadcastStatus.FAILED, lease_owner)
+                else:
+                    await self._finalize(db, broadcast, BroadcastStatus.UNKNOWN, lease_owner)
             else:
                 user_ids = broadcast.target_filter.get("user_ids", [])
                 if not user_ids:
-                    broadcast.status = BroadcastStatus.FAILED
-                    broadcast.failure_count = 1
+                    await self._finalize(db, broadcast, BroadcastStatus.FAILED, lease_owner)
                     logger.error("Broadcast %s has no target user IDs", broadcast.id)
                 else:
                     sent = 0
                     failed = 0
+                    unknown = 0
                     for i in range(0, len(user_ids), 500):
                         chunk = user_ids[i : i + 500]
-                        # bounded retry: 3 attempts with exponential backoff
-                        # (1s, 2s); failed chunk tokens persist to
-                        # broadcast_failed_recipients for later retry/purge
-                        for attempt in range(3):
-                            try:
-                                await self.api.multicast(
-                                    MulticastRequest(to=chunk, messages=messages)
-                                )
-                                sent += len(chunk)
-                                break
-                            except Exception as chunk_exc:
-                                if attempt == 2:
-                                    failed += len(chunk)
-                                    logger.error(
-                                        "Broadcast %s chunk %d failed after 3 attempts: %s",
-                                        broadcast.id, i // 500, chunk_exc,
-                                    )
-                                    # persist failed tokens (idempotent by
-                                    # broadcast_id + token hash)
-                                    for token in chunk:
-                                        db.add(BroadcastFailedRecipient(
-                                            broadcast_id=broadcast.id,
-                                            token_hash=hashlib.sha256(token.encode()).hexdigest(),
-                                            attempt_count=3,
-                                        ))
-                                else:
-                                    await asyncio.sleep(2 ** attempt)
+                        hashes = [hashlib.sha256(token.encode()).hexdigest() for token in chunk]
+                        outcome = await self._send_chunk(
+                            db, broadcast, messages, i // 500, hashes, lease_owner,
+                            provider_attempted,
+                        )
+                        if outcome == "accepted":
+                            sent += len(chunk)
+                        elif outcome == "definite":
+                            failed += len(chunk)
+                            for token_hash in hashes:
+                                db.add(BroadcastFailedRecipient(
+                                    broadcast_id=broadcast.id,
+                                    token_hash=token_hash,
+                                    attempt_count=SEND_ATTEMPT_LIMIT,
+                                ))
+                        else:
+                            unknown += len(chunk)
 
+                        await self._persist_progress(
+                            db, broadcast, sent, failed, lease_owner
+                        )
+
+                    status = (
+                        BroadcastStatus.UNKNOWN if unknown
+                        else BroadcastStatus.COMPLETED if failed == 0
+                        else BroadcastStatus.FAILED
+                    )
                     broadcast.total_recipients = len(user_ids)
                     broadcast.success_count = sent
                     broadcast.failure_count = failed
-                    broadcast.sent_at = datetime.now(timezone.utc)
-                    broadcast.status = BroadcastStatus.COMPLETED if failed == 0 else BroadcastStatus.FAILED
+                    await self._finalize(db, broadcast, status, lease_owner)
 
-            logger.info("Broadcast %s finished: success=%s, failed=%s", broadcast.id, broadcast.success_count, broadcast.failure_count)
-
+            logger.info(
+                "Broadcast %s finished: success=%s, failed=%s",
+                broadcast.id, broadcast.success_count, broadcast.failure_count,
+            )
         except asyncio.CancelledError:
-            # Client disconnect / task cancel between the SENDING commit
-            # and the final commit must not strand the row (R3-L1):
-            # record FAILED, then re-raise so cancellation propagates.
-            # Shielded: a second cancel (e.g. worker shutdown mid-cancel)
-            # must not interrupt the mark itself (F3).
-            broadcast.status = BroadcastStatus.FAILED
-            try:
-                await asyncio.shield(db.commit())
-            except Exception as commit_exc:
-                logger.error(
-                    "Broadcast %s: FAILED-mark commit failed on cancel: %s",
-                    broadcast.id, commit_exc,
-                )
+            # Before the provider call cancellation is a definite non-send.
+            # After the call started, acceptance is unknown: leave SENDING
+            # and the durable ATTEMPTING/ACCEPTED row for reconciliation.
+            if not provider_attempted:
+                try:
+                    await self._finalize(
+                        db, broadcast, BroadcastStatus.FAILED, lease_owner
+                    )
+                except BroadcastClaimConflict:
+                    pass
+            raise
+        except BroadcastClaimConflict:
             raise
         except Exception as exc:
-            broadcast.status = BroadcastStatus.FAILED
-            broadcast.failure_count = (broadcast.failure_count or 0) + 1
             logger.error("Broadcast %s failed: %s", broadcast.id, exc)
+            await self._finalize(db, broadcast, BroadcastStatus.UNKNOWN, lease_owner)
 
-        await db.commit()
         await db.refresh(broadcast)
         return broadcast
 
@@ -308,8 +380,26 @@ class BroadcastService:
         if scheduled_at <= now:
             raise ValueError("scheduled_at must be in the future")
 
+        result = await db.execute(
+            update(Broadcast)
+            .where(
+                Broadcast.id == broadcast.id,
+                Broadcast.status == BroadcastStatus.DRAFT,
+                Broadcast.payload_version == self._version(broadcast),
+            )
+            .values(
+                status=BroadcastStatus.SCHEDULED,
+                scheduled_at=scheduled_at,
+                payload_version=Broadcast.payload_version + 1,
+            )
+        )
+        if result.rowcount != 1:
+            raise BroadcastClaimConflict(
+                f"Cannot schedule broadcast {broadcast.id}: status changed, refresh and try again"
+            )
         broadcast.status = BroadcastStatus.SCHEDULED
         broadcast.scheduled_at = scheduled_at
+        broadcast.payload_version = self._version(broadcast) + 1
         await db.commit()
         await db.refresh(broadcast)
         return broadcast
@@ -327,8 +417,13 @@ class BroadcastService:
                 Broadcast.status.in_(
                     [BroadcastStatus.DRAFT, BroadcastStatus.SCHEDULED]
                 ),
+                Broadcast.payload_version == self._version(broadcast),
             )
-            .values(status=BroadcastStatus.CANCELLED, scheduled_at=None)
+            .values(
+                status=BroadcastStatus.CANCELLED,
+                scheduled_at=None,
+                payload_version=Broadcast.payload_version + 1,
+            )
         )
         if claimed.rowcount != 1:
             raise BroadcastClaimConflict(
@@ -338,6 +433,7 @@ class BroadcastService:
         await db.commit()
         broadcast.status = BroadcastStatus.CANCELLED
         broadcast.scheduled_at = None
+        broadcast.payload_version = self._version(broadcast) + 1
         await db.refresh(broadcast)
         return broadcast
 
@@ -363,6 +459,254 @@ class BroadcastService:
             .with_for_update(skip_locked=True)
         )
         return list(result.scalars().all())
+
+    @staticmethod
+    def _reconcilable_condition(older_than_seconds: int):
+        """Shared eligibility rule for stale listing and operator resolution.
+
+        SENDING rows need a stale cutoff because a sender may still be alive.
+        UNKNOWN is terminal with no lease holder, so it is resolvable at once.
+        """
+        cutoff = datetime.now(timezone.utc) - timedelta(seconds=older_than_seconds)
+        return or_(
+            and_(
+                Broadcast.status == BroadcastStatus.SENDING,
+                Broadcast.updated_at <= cutoff,
+            ),
+            Broadcast.status == BroadcastStatus.UNKNOWN,
+        ).self_group()
+
+    async def get_stale_sending(
+        self, db: AsyncSession, *, older_than_seconds: int = STALE_SENDING_SECONDS,
+        limit: int = 50,
+    ) -> List[Broadcast]:
+        result = await db.execute(
+            select(Broadcast)
+            .where(self._reconcilable_condition(older_than_seconds))
+            .order_by(Broadcast.updated_at)
+            .limit(limit)
+        )
+        return list(result.scalars().all())
+
+    async def reconcile_stale_sending(
+        self, db: AsyncSession, broadcast: Broadcast, outcome: str,
+        *, older_than_seconds: int = STALE_SENDING_SECONDS,
+    ) -> Broadcast:
+        """Operator resolution of an unknown provider outcome."""
+        if outcome not in ("completed", "failed"):
+            raise ValueError("outcome must be completed or failed")
+        result = await db.execute(
+            update(Broadcast)
+            .where(
+                Broadcast.id == broadcast.id,
+                self._reconcilable_condition(older_than_seconds),
+            )
+            .values(
+                status=BroadcastStatus.COMPLETED if outcome == "completed" else BroadcastStatus.FAILED,
+                sent_at=datetime.now(timezone.utc) if outcome == "completed" else None,
+                send_lease_owner=None,
+            )
+        )
+        if result.rowcount != 1:
+            raise BroadcastClaimConflict(
+                f"Cannot resolve broadcast {broadcast.id}: not stale or status changed"
+            )
+        broadcast.status = BroadcastStatus.COMPLETED if outcome == "completed" else BroadcastStatus.FAILED
+        broadcast.sent_at = datetime.now(timezone.utc) if outcome == "completed" else None
+        broadcast.send_lease_owner = None
+        await db.commit()
+        await db.refresh(broadcast)
+        return broadcast
+
+    async def _mark_invalid(
+        self, db: AsyncSession, broadcast, lease_owner: Optional[str] = None
+    ) -> None:
+        query = (
+            update(Broadcast)
+            .where(Broadcast.id == broadcast.id)
+            .values(status=BroadcastStatus.INVALID, send_lease_owner=None)
+        )
+        if lease_owner is None:
+            query = query.where(
+                Broadcast.status.in_([BroadcastStatus.DRAFT, BroadcastStatus.SCHEDULED])
+            )
+        else:
+            query = query.where(
+                Broadcast.status == BroadcastStatus.SENDING,
+                Broadcast.send_lease_owner == lease_owner,
+            )
+        await db.execute(query)
+        await db.commit()
+        broadcast.status = BroadcastStatus.INVALID
+        broadcast.send_lease_owner = None
+
+    @staticmethod
+    def _is_definite_failure(exc: Exception) -> bool:
+        """4xx (except rate limit) means LINE refused; other errors are unknown.
+
+        Tests and local adapters may raise a plain exception with a numeric
+        ``status`` instead of the SDK type, so classify by the field.
+        """
+        status = getattr(exc, "status", None)
+        return isinstance(status, int) and 400 <= status < 500 and status != 429
+
+    async def _record_attempt(
+        self,
+        db: AsyncSession,
+        broadcast: Broadcast,
+        chunk_index: int,
+        attempt_no: int,
+        token_hashes: list[str],
+        state: str,
+        retry_key: str,
+        error: Optional[str] = None,
+    ) -> None:
+        result = await db.execute(
+            select(BroadcastSendAttempt)
+            .where(
+                BroadcastSendAttempt.broadcast_id == broadcast.id,
+                BroadcastSendAttempt.payload_version == broadcast.payload_version,
+                BroadcastSendAttempt.chunk_index == chunk_index,
+                BroadcastSendAttempt.attempt_no == attempt_no,
+            )
+        )
+        attempt = result.scalars().first()
+        if attempt is None:
+            db.add(BroadcastSendAttempt(
+                broadcast_id=broadcast.id,
+                payload_version=broadcast.payload_version,
+                chunk_index=chunk_index,
+                attempt_no=attempt_no,
+                token_hashes=token_hashes,
+                token_count=len(token_hashes),
+                retry_key=retry_key,
+                attempt_state=state,
+                last_error=error,
+                finished_at=datetime.now(timezone.utc) if state != "ATTEMPTING" else None,
+            ))
+        else:
+            attempt.attempt_state = state
+            attempt.last_error = error
+            attempt.finished_at = datetime.now(timezone.utc) if state != "ATTEMPTING" else None
+        await db.commit()
+
+    async def _send_chunk(
+        self,
+        db: AsyncSession,
+        broadcast: Broadcast,
+        messages: list,
+        chunk_index: int,
+        token_hashes: list[str],
+        lease_owner: str,
+        provider_attempted: list[bool],
+    ) -> str:
+        """Return accepted, definite, or unknown; durably log each attempt."""
+        retry_key = str(uuid.uuid5(
+            _RETRY_NAMESPACE,
+            f"{broadcast.id}:{broadcast.payload_version}:{chunk_index}",
+        ))
+        last_exc: Optional[Exception] = None
+        for attempt_no in range(1, SEND_ATTEMPT_LIMIT + 1):
+            await self._record_attempt(
+                db, broadcast, chunk_index, attempt_no, token_hashes,
+                "ATTEMPTING", retry_key,
+            )
+            try:
+                provider_attempted.append(True)
+                if broadcast.target_audience == "all":
+                    await self.api.broadcast(
+                        BroadcastRequest(messages=messages), x_line_retry_key=retry_key,
+                    )
+                else:
+                    await self.api.multicast(
+                        MulticastRequest(
+                            to=broadcast.target_filter.get("user_ids", [])[chunk_index * 500:(chunk_index + 1) * 500],
+                            messages=messages,
+                        ),
+                        x_line_retry_key=retry_key,
+                    )
+            except Exception as exc:
+                last_exc = exc
+                definite = self._is_definite_failure(exc)
+                await self._record_attempt(
+                    db, broadcast, chunk_index, attempt_no, token_hashes,
+                    "DEFINITE_FAIL" if definite else "UNKNOWN", retry_key, str(exc),
+                )
+                if definite:
+                    return "definite"
+                if attempt_no < SEND_ATTEMPT_LIMIT:
+                    await asyncio.sleep(2 ** (attempt_no - 1))
+                continue
+
+            await self._record_attempt(
+                db, broadcast, chunk_index, attempt_no, token_hashes,
+                "ACCEPTED", retry_key,
+            )
+            return "accepted"
+
+        logger.warning(
+            "Broadcast %s chunk %s outcome unknown after %s attempts: %s",
+            broadcast.id, chunk_index, SEND_ATTEMPT_LIMIT, last_exc,
+        )
+        return "unknown"
+
+    async def _finalize(
+        self,
+        db: AsyncSession,
+        broadcast: Broadcast,
+        status: BroadcastStatus,
+        lease_owner: str,
+    ) -> None:
+        result = await db.execute(
+            update(Broadcast)
+            .where(
+                Broadcast.id == broadcast.id,
+                Broadcast.status == BroadcastStatus.SENDING,
+                Broadcast.send_lease_owner == lease_owner,
+            )
+            .values(
+                status=status,
+                sent_at=datetime.now(timezone.utc) if status == BroadcastStatus.COMPLETED else broadcast.sent_at,
+                success_count=broadcast.success_count,
+                failure_count=broadcast.failure_count,
+                total_recipients=broadcast.total_recipients,
+                send_lease_owner=None,
+            )
+        )
+        if result.rowcount != 1:
+            raise BroadcastClaimConflict(
+                f"Cannot finalize broadcast {broadcast.id}: send lease lost"
+            )
+        broadcast.status = status
+        broadcast.send_lease_owner = None
+        if status == BroadcastStatus.COMPLETED:
+            broadcast.sent_at = datetime.now(timezone.utc)
+        await db.commit()
+
+    async def _persist_progress(
+        self,
+        db: AsyncSession,
+        broadcast: Broadcast,
+        sent: int,
+        failed: int,
+        lease_owner: str,
+    ) -> None:
+        result = await db.execute(
+            update(Broadcast)
+            .where(
+                Broadcast.id == broadcast.id,
+                Broadcast.status == BroadcastStatus.SENDING,
+                Broadcast.send_lease_owner == lease_owner,
+            )
+            .values(success_count=sent, failure_count=failed)
+        )
+        if result.rowcount != 1:
+            raise BroadcastClaimConflict(
+                f"Cannot persist broadcast {broadcast.id} progress: send lease lost"
+            )
+        broadcast.success_count = sent
+        broadcast.failure_count = failed
+        await db.commit()
 
     async def get_broadcast_stats(self, db: AsyncSession) -> dict:
         """Return aggregate stats across all broadcasts."""

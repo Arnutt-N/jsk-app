@@ -12,6 +12,33 @@ from app.core.redis_client import RedisClient
 class TestWebhookDeduplication:
     """Test webhook event deduplication logic."""
 
+    @pytest.fixture(autouse=True)
+    def stub_session_factory(self, monkeypatch):
+        """No real DB in this suite; durable-row lookups return no marker."""
+        from app.api.v1.endpoints import webhook as webhook_module
+
+        class _SessionContext:
+            def __init__(self, db):
+                self.db = db
+
+            async def __aenter__(self):
+                return self.db
+
+            async def __aexit__(self, *args):
+                return False
+
+        class _Nested:
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *args):
+                return False
+
+        db = AsyncMock()
+        db.get = AsyncMock(return_value=None)
+        db.begin_nested = lambda: _Nested()
+        monkeypatch.setattr(webhook_module, "AsyncSessionLocal", lambda: _SessionContext(db))
+
     @pytest.fixture
     def mock_redis(self):
         """Mock Redis client."""
@@ -88,6 +115,7 @@ class TestWebhookDeduplication:
                 return False
 
         db = AsyncMock()
+        db.get = AsyncMock(return_value=None)
         event = FakeMessageEvent()
         event.webhook_event_id = "evt-success"
 
@@ -97,7 +125,7 @@ class TestWebhookDeduplication:
 
         await process_webhook_events([event])
 
-        db.commit.assert_awaited_once()
+        assert db.commit.await_count == 2
         mock_redis.setex.assert_awaited_once()
 
     @pytest.mark.asyncio
@@ -159,6 +187,7 @@ class TestWebhookDeduplication:
                 return False
 
         db = AsyncMock()
+        db.get = AsyncMock(return_value=None)
         event_one = FakeMessageEvent()
         event_one.webhook_event_id = "evt-1"
         event_two = FakeMessageEvent()
@@ -173,7 +202,7 @@ class TestWebhookDeduplication:
         await process_webhook_events([event_one, event_two])
 
         assert handler.await_count == 2
-        db.commit.assert_awaited_once()
+        assert db.commit.await_count == 2
         db.rollback.assert_awaited_once()
         assert mock_redis.setex.call_count == 1
         processed_key = mock_redis.setex.call_args[0][0]

@@ -74,14 +74,17 @@ async def test_retry_exhaustion_persists_failed_tokens(test_client, monkeypatch)
     # (idempotent: รันซ้ำไม่สร้างซ้ำ) + timezone ข้ามวันยังตรง
     import asyncio as _asyncio
 
-    from app.models.broadcast import Broadcast, BroadcastType
+    from app.models.broadcast import Broadcast, BroadcastStatus, BroadcastType
     from app.models.broadcast_failed_recipient import BroadcastFailedRecipient
     from app.services.broadcast_service import broadcast_service
     calls = {"n": 0}
 
+    class _DefiniteRefusal(Exception):
+        status = 400
+
     async def _boom(*_a, **_k):
         calls["n"] += 1
-        raise RuntimeError("LINE down")
+        raise _DefiniteRefusal("LINE refused")
 
     async def _no_sleep(_s):
         return None
@@ -105,7 +108,8 @@ async def test_retry_exhaustion_persists_failed_tokens(test_client, monkeypatch)
             await db.refresh(b)
             # RED: ก่อน implement send จะไม่ retry 3 รอบ และไม่มี failed rows
             out = await broadcast_service.send_broadcast(db, b)
-            assert calls["n"] >= 3, "retry must attempt multicast 3 times before giving up"
+            assert calls["n"] == 1, "a definite refusal must not be retried"
+            assert out.status == BroadcastStatus.FAILED
             assert out.failure_count and out.failure_count > 0
             rows = (await db.execute(
                 select(BroadcastFailedRecipient).where(

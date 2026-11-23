@@ -6,12 +6,12 @@ reminders go out at all — is an administrator action and is audit-logged.
 """
 import logging
 from datetime import date as date_type
-from datetime import datetime, timedelta
+from datetime import datetime
 from time import monotonic
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
-from sqlalchemy import func, or_, select, update
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -41,7 +41,7 @@ from app.services import booking_service
 from app.services.booking_notifications import (
     notify_booking_confirmed,
     notify_staff_new_booking,
-    send_booking_reminder,
+    send_booking_reminder_outcome,
 )
 from app.services.booking_service import (
     MAX_AVAILABILITY_RANGE_DAYS,
@@ -52,8 +52,10 @@ from app.services.booking_service import (
     SlotFullError,
     SlotUnavailableError,
     UnknownServiceTypeError,
+    clear_reminder_outcome,
 )
 from app.services.booking_settings import load_booking_config, save_booking_config
+from app.services.delivery_outcome import DeliveryOutcome
 from app.services.line_service import line_service
 
 logger = logging.getLogger(__name__)
@@ -426,40 +428,43 @@ async def resend_booking_reminder(
     if appointment_at <= booking_service.local_now():
         raise HTTPException(status_code=409, detail="คิวเลยเวลาแล้ว ส่งเตือนไม่ได้")
 
-    claimed = await db.execute(
-        update(Booking)
-        .where(Booking.id == booking_id)
-        .where(Booking.status == BookingStatus.CONFIRMED)
-        .where(
-            or_(
-                Booking.reminder_sent_at.is_(None),
-                Booking.reminder_sent_at
-                < func.now() - timedelta(seconds=RESEND_COOLDOWN_SECONDS),
-            )
-        )
-        .values(reminder_sent_at=func.now(), reminder_failed_at=None)
-    )
-    if claimed.rowcount == 0:
-        raise HTTPException(
-            status_code=429, detail="เพิ่งส่งเตือนไป กรุณารอครู่แล้วลองใหม่"
-        )
-
-    sent = await send_booking_reminder(db, booking, booking.user)
-    if not sent:
+    # One active-attempt guard for both entry points: take the same short-lived
+    # lease the scheduler uses. A running automated or staff attempt returns 429
+    # and never reaches the provider.
+    token = await booking_service.claim_reminder_for_staff(db, booking_id)
+    if token is None:
         await db.rollback()
         raise HTTPException(
-            status_code=502, detail="ส่งเตือนไม่สำเร็จ กรุณาลองใหม่"
+            status_code=429, detail="มีกำลังส่งเตือนอยู่แล้ว กรุณารอครู่แล้วลองใหม่"
         )
+    await db.commit()
 
+    outcome = await send_booking_reminder_outcome(db, booking, booking.user)
+    await clear_reminder_outcome(db, booking_id, token, outcome=outcome)
     await create_audit_log(
         db=db,
         admin_id=staff.id,
         action="resend_booking_reminder",
         resource_type="booking",
         resource_id=str(booking_id),
-        details={"queue_number": booking.queue_number},
+        details={
+            "queue_number": booking.queue_number,
+            "outcome": outcome.value,
+            "channels": [
+                name
+                for name, enabled in (
+                    ("email", getattr(config, "email_enabled", False)),
+                    ("line", getattr(config, "line_enabled", False)),
+                )
+                if enabled
+            ],
+        },
     )
     await db.commit()
+    if outcome is not DeliveryOutcome.SENT:
+        raise HTTPException(
+            status_code=502, detail="ส่งเตือนไม่สำเร็จ กรุณาลองใหม่"
+        )
     await db.refresh(booking)
     return BookingOut.model_validate(booking)
 
@@ -492,9 +497,10 @@ async def update_booking_status(
         )
     booking.status = status
     if status == BookingStatus.CANCELLED and booking.cancelled_at is None:
-        from sqlalchemy import func
-
         booking.cancelled_at = func.now()
+        # Release any in-flight reminder lease so a cancelled appointment is not
+        # mailed by a worker that already passed its pre-send reload.
+        booking.reminder_claimed_at = None
 
     await create_audit_log(
         db=db,

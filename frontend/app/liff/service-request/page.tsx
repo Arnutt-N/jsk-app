@@ -38,6 +38,8 @@ import { useLocationCascade, type LocationSelection } from '@/hooks/useLocationC
 import { submitServiceRequest } from '@/lib/liff/submit-service-request'
 import { uploadLiffMedia, attachmentCapMessage, readErrorDetail } from '@/lib/liff/upload-media'
 import { SESSION_EXPIRED_MESSAGE, isSessionExpired } from '@/lib/liff/session-expired'
+import { nextSubmissionAttempt, parseSubmitError, type SubmissionAttempt } from '@/lib/liff/submission-retry'
+import SubmitConflictNotice from '@/components/liff/SubmitConflictNotice'
 
 // --- CONSTANTS ---
 const STEPS = [
@@ -52,6 +54,7 @@ export default function LiffServiceRequestV2() {
     const [step, setStep] = useState(0)
     const [submitting, setSubmitting] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [submitConflict, setSubmitConflict] = useState(false)
     const [success, setSuccess] = useState(false)
     const [showConfirm, setShowConfirm] = useState(false)
     const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
@@ -115,7 +118,7 @@ export default function LiffServiceRequestV2() {
     // Uploads started but not yet resolved — counted toward the attachment
     // cap so rapid file picks cannot exceed the shared rate-limit budget.
     const inflightUploadsRef = useRef(0)
-    const submissionIdRef = useRef<string | null>(null)
+    const submissionRef = useRef<SubmissionAttempt<Record<string, unknown>> | null>(null)
 
     // Location Data State
     const [provinces, setProvinces] = useState<Province[]>([])
@@ -299,16 +302,20 @@ export default function LiffServiceRequestV2() {
         }
         setSubmitting(true)
         setError(null)
+        setSubmitConflict(false)
 
         try {
-            const payload = {
+            const payload: Record<string, unknown> = {
                 ...formData,
                 line_user_id: profile?.userId || null
             }
 
-            // Post to backend
-            submissionIdRef.current ??= crypto.randomUUID()
-            const res = await submitServiceRequest(payload, idToken, submissionIdRef.current)
+            // Bind the id to the exact payload sent, not to the live form.
+            // An edit after a lost reply gets a new id; an unchanged retry
+            // replays the original case.
+            const attempt = nextSubmissionAttempt(submissionRef.current, payload)
+            submissionRef.current = attempt
+            const res = await submitServiceRequest(payload, idToken, attempt.submissionId)
 
             const resText = await res.text()
             let data
@@ -320,7 +327,9 @@ export default function LiffServiceRequestV2() {
             }
 
             if (!res.ok) {
-                throw new Error(data.detail || JSON.stringify(data))
+                const parsed = parseSubmitError(data)
+                if (parsed.isSubmissionConflict) setSubmitConflict(true)
+                throw new Error(parsed.message)
             }
 
             setSuccess(true)
@@ -364,7 +373,7 @@ export default function LiffServiceRequestV2() {
         setError(null)
         setShowConfirm(false)
         setSuccess(false)
-        submissionIdRef.current = null
+        submissionRef.current = null
         resetCountdown()
         window.scrollTo(0, 0)
     }
@@ -478,6 +487,23 @@ export default function LiffServiceRequestV2() {
                         <Alert variant="danger" title="เกิดข้อผิดพลาด">
                             {error}
                         </Alert>
+                    )}
+                    {submitConflict && (
+                        <SubmitConflictNotice
+                            message="ข้อมูลที่ส่งไม่ตรงกับคำร้องที่บันทึกไว้ กดตรวจสอบคำร้องเดิมเพื่อดูผลการส่ง หรือส่งคำร้องใหม่หากต้องการสร้างเรื่องใหม่"
+                            onRecover={() => {
+                                submissionRef.current = null
+                                setSubmitConflict(false)
+                                setError(null)
+                                setSuccess(true)
+                                window.scrollTo(0, 0)
+                            }}
+                            onNewCase={() => {
+                                submissionRef.current = null
+                                setSubmitConflict(false)
+                                setError(null)
+                            }}
+                        />
                     )}
 
                     <LiffStepCard

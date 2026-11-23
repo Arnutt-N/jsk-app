@@ -19,7 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.audit import create_audit_log
 from app.db.session import AsyncSessionLocal
-from app.services.broadcast_service import broadcast_service
+from app.services.broadcast_service import BroadcastClaimConflict, broadcast_service
 
 logger = logging.getLogger(__name__)
 
@@ -47,10 +47,22 @@ async def _process_due_broadcasts(db: AsyncSession):
 
     logger.info("Scheduler found %s due broadcast(s)", len(due))
 
-    for broadcast in due:
-        broadcast_id = broadcast.id
+    # Snapshot plain IDs before any per-item rollback. Session.rollback()
+    # expires ORM objects even with expire_on_commit=False, so later
+    # `broadcast.id` reads would trigger an async lazy load (MissingGreenlet)
+    # and abandon the rest of the batch.
+    broadcast_ids = [broadcast.id for broadcast in due]
+
+    for broadcast_id in broadcast_ids:
         try:
-            await broadcast_service.send_broadcast(db, broadcast)
+            # Reload inside the guarded operation so this iteration owns live
+            # ORM state regardless of an earlier rollback.
+            broadcast = await broadcast_service.get_broadcast(db, broadcast_id)
+            if broadcast is None:
+                continue
+            result = await broadcast_service.send_broadcast(db, broadcast)
+            if result is None:
+                result = broadcast
             await create_audit_log(
                 db=db,
                 admin_id=None,  # None = system action
@@ -58,17 +70,17 @@ async def _process_due_broadcasts(db: AsyncSession):
                 resource_type="broadcast",
                 resource_id=str(broadcast_id),
                 details={
-                    "status": broadcast.status.value,
-                    "success_count": broadcast.success_count,
-                    "failure_count": broadcast.failure_count,
+                    "status": result.status.value,
+                    "success_count": result.success_count,
+                    "failure_count": result.failure_count,
                 },
             )
             await db.commit()
+        except BroadcastClaimConflict:
+            # Another worker owns the send; no changes to roll back.
+            await db.commit()
         except Exception as e:
             logger.error("Auto-send broadcast %s failed: %s", broadcast_id, e)
-            # Reset the shared session so a guard-raise (e.g. empty messages)
-            # before send_broadcast's first commit doesn't leak an open
-            # transaction / row locks into the next iteration.
             await db.rollback()
 
 

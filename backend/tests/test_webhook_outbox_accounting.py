@@ -40,6 +40,14 @@ class _FakeMessageEvent:
     pass
 
 
+class _Nested:
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *args):
+        return False
+
+
 class _FakeSessionContext:
     def __init__(self, db):
         self.db = db
@@ -78,6 +86,8 @@ async def test_failed_drain_skips_dedup_marker(monkeypatch, caplog):
         box.append(boom)
 
     db = AsyncMock()
+    db.get = AsyncMock(return_value=None)
+    db.begin_nested = lambda: _Nested()
     redis = _redis_stub()
 
     monkeypatch.setattr(webhook_module, "MessageEvent", _FakeMessageEvent)
@@ -88,7 +98,7 @@ async def test_failed_drain_skips_dedup_marker(monkeypatch, caplog):
     with caplog.at_level(logging.ERROR, logger="app.services.outbox"):
         await process_webhook_events([_make_event()])
 
-    db.commit.assert_awaited_once()
+    assert db.commit.await_count == 2
     redis.setex.assert_not_awaited()
     assert "delivery_failed" in caplog.text
 
@@ -102,6 +112,8 @@ async def test_clean_drain_sets_dedup_marker(monkeypatch, caplog):
         box.append(AsyncMock())
 
     db = AsyncMock()
+    db.get = AsyncMock(return_value=None)
+    db.begin_nested = lambda: _Nested()
     redis = _redis_stub()
 
     monkeypatch.setattr(webhook_module, "MessageEvent", _FakeMessageEvent)
@@ -112,6 +124,6 @@ async def test_clean_drain_sets_dedup_marker(monkeypatch, caplog):
     with caplog.at_level(logging.ERROR):
         await process_webhook_events([_make_event("evt-clean")])
 
-    db.commit.assert_awaited_once()
+    assert db.commit.await_count == 2
     redis.setex.assert_awaited_once()
     assert "delivery_failed" not in caplog.text
