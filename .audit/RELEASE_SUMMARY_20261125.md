@@ -2,7 +2,7 @@
 
 ## Status
 
-`origin/main` is `13d7845bf82109425ea249cfc4a38cc713533820`. Three PRs landed from the F01-F09 release run:
+At the time this summary was written, `origin/main` was `13d7845bf82109425ea249cfc4a38cc713533820`. Three PRs landed from the F01-F09 release run:
 
 | PR | Squash commit | Scope |
 |---|---|---|
@@ -10,7 +10,7 @@
 | #350 | `046d6ba` | Stabilized audit-timeline E2E against React 19 StrictMode double mount |
 | #351 | `13d7845` | One metadata-only query for LIFF attachment resolution |
 
-No code from this run remains uncommitted. The working tree has local handoff state edits and untracked audit files only.
+The three release PRs were merged through GitHub. This check was made from the repository state at the time of writing, not from a live service poll.
 
 ## Production verification
 
@@ -18,7 +18,7 @@ CD run `45158783827` for `6ec8041` completed `Run Production DB Migrations`, `De
 
 ## Review and gates
 
-PR #349 and #350 each received independent PASS verdicts before merge. PR #351 received an independent PASS at `06cce5b`. All required CI checks passed on the merged heads: Backend Pytest, Frontend Lint and Build, Playwright Smoke, Source Encoding Scan. no-comments ran before the #349 and #350 merges; accepted findings were comment-only.
+PR #349 and #350 each received independent PASS verdicts before merge. PR #351 received an independent PASS at `06cce5b`. Required CI checks passed on the final head of each PR after failed earlier runs were fixed. no-comments ran before the #349 and #350 merges; accepted findings were comment-only. Evidence is in the per-PR logs and check runs listed below.
 
 ## Performance outcomes
 
@@ -39,7 +39,7 @@ Still unverified without a device: real LINE in-app ID token verification, LINE 
 
 ## Issue tracker pointers
 
-- `.scratch/pr349-review-20261123/issues/` four defects found by the first independent review, all fixed.
+- `.scratch/pr349-review-20261123/issues/` four defects found by the first independent review. The code was fixed and verified; the files still carry their original `ready-for-agent` status and were not edited by this summary.
 - `.scratch/audit-timeline-e2e-tab-flake/issues/01-audit-timeline-tab-timeout.md` marked resolved-pending-merge; PR #350 merged.
 - `.scratch/handoff-analysis-20261122-1948/issues/09-performance-baseline.md` records outcomes for all four candidates.
 
@@ -55,4 +55,4 @@ Selected entry points in `.audit/`. Older logs remain in place and were not dele
 - Browser simulation: `line-browser-checklist-20261124/`
 - Latest handoff: `.agents/state/checkpoints/handover-claude_code-20261125-0013.json`
 
-No files were deleted or rewritten to produce this summary.
+This summary is a new file. It does not claim any other file was deleted or rewritten.
