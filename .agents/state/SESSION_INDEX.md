@@ -1,16 +1,16 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Cross-Platform Session Index (generated)
 
-> **Last generated**: 2026-11-23 08:51 (from newest checkpoint)
+> **Last generated**: 2026-11-25 01:55 (from newest checkpoint)
 
 ## Quick Stats
 
 | Metric | Value |
 |--------|-------|
-| Handoff checkpoints (active) | 336 |
-| Session summaries on disk | 445 |
+| Handoff checkpoints (active) | 349 |
+| Session summaries on disk | 458 |
 | Platforms | 12 (antigravity, claude_code, cline, codex, gemini_cli, kilo_code, kimi_code, muse_code, open_code, pi, qoder, zcode) |
-| Most recent | 2026-11-23 08:51 — claude_code |
+| Most recent | 2026-11-25 01:55 — claude_code |
 
 > Regenerate after any handoff: `node .agents/scripts/gen-handoff-views.cjs`
 
@@ -24,10 +24,23 @@
 | 2026-04-04 12:04 | completed | — | — | `handover-antigravity-20260404-1204.json` |
 | 2026-02-15 03:20 | completed | — | — | `handover-antigravity-20260215-0320.json` |
 
-## claude_code (181)
+## claude_code (194)
 
 | When | Status | Model | Provider | Checkpoint |
 |------|--------|-------|----------|------------|
+| 2026-11-25 01:55 | completed | — | — | `handover-claude_code-20261125-0155.json` |
+| 2026-11-25 00:22 | completed | — | — | `handover-claude_code-20261125-0022.json` |
+| 2026-11-25 00:13 | completed | — | — | `handover-claude_code-20261125-0013.json` |
+| 2026-11-24 13:13 | completed | — | — | `handover-claude_code-20261124-1313.json` |
+| 2026-11-24 11:50 | completed | — | — | `handover-claude_code-20261124-1150.json` |
+| 2026-11-24 00:23 | completed | — | — | `handover-claude_code-20261124-0023.json` |
+| 2026-11-23 23:14 | completed | — | — | `handover-claude_code-20261123-2314.json` |
+| 2026-11-23 22:38 | completed | — | — | `handover-claude_code-20261123-2238.json` |
+| 2026-11-23 20:56 | completed | — | — | `handover-claude_code-20261123-2056.json` |
+| 2026-11-23 20:23 | completed | — | — | `handover-claude_code-20261123-2023.json` |
+| 2026-11-23 17:41 | completed | — | — | `handover-claude_code-20261123-1741.json` |
+| 2026-11-23 17:08 | completed | — | — | `handover-claude_code-20261123-1708.json` |
+| 2026-11-23 14:06 | completed | — | — | `handover-claude_code-20261123-1406.json` |
 | 2026-11-23 08:51 | completed | — | — | `handover-claude_code-20261123-0851.json` |
 | 2026-11-22 09:31 | completed | — | — | `handover-claude_code-20261122-0931.json` |
 | 2026-11-20 21:45 | completed | — | — | `handover-claude_code-20261120-2145.json` |
@@ -35,20 +48,7 @@
 | 2026-11-20 12:05 | completed | — | — | `handover-claude_code-20261120-1205.json` |
 | 2026-11-19 14:10 | completed | — | — | `handover-claude_code-20261119-1410.json` |
 | 2026-11-19 13:33 | completed | — | — | `handover-claude_code-20261119-1333.json` |
-| 2026-11-15 08:12 | completed | — | — | `handover-claude_code-20261115-0812.json` |
-| 2026-11-09 23:11 | completed | — | — | `handover-claude_code-20261109-2311.json` |
-| 2026-11-09 07:12 | completed | — | — | `handover-claude_code-20261109-0712.json` |
-| 2026-11-09 05:08 | completed | — | — | `handover-claude_code-20261109-0508.json` |
-| 2026-11-07 13:42 | completed | myzenmux (session /model selection; upstream model unverifiable from inside) | custom router (ANTHROPIC_BASE_URL=127.0.0.1:20128) | `handover-claude_code-20261107-1342.json` |
-| 2026-11-05 19:59 | completed | mybai (settings.model=sonnet → ANTHROPIC_DEFAULT_SONNET_MODEL, via local proxy 127.0.0.1:20128; harness labels it Claude Fable 5, unverifiable from inside) | custom router (ANTHROPIC_BASE_URL=127.0.0.1:20128) | `handover-claude_code-20261105-1959.json` |
-| 2026-11-04 14:01 | completed | Claude Fable 5 | Anthropic | `handover-claude_code-20261104-1401.json` |
-| 2026-11-04 07:40 | completed | Claude Fable 5 | Anthropic | `handover-claude_code-20261104-0740.json` |
-| 2026-11-01 11:11 | completed | Claude Fable 5 | Anthropic | `handover-claude_code-20261101-1111.json` |
-| 2026-10-29 17:21 | completed | — | — | `handover-claude_code-20261029-1721.json` |
-| 2026-10-29 11:32 | completed | — | — | `handover-claude_code-20261029-1132.json` |
-| 2026-10-29 06:51 | completed | — | — | `handover-claude_code-20261029-0651.json` |
-| 2026-10-18 10:26 | completed | — | — | `handover-claude_code-20261018-1026.json` |
-| … | | | | +161 older |
+| … | | | | +174 older |
 
 ## cline (16)
 

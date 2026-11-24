@@ -1,0 +1,17 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-11-24T11:50:00+07:00",
+  "branch": "fix/f01-f09-release-hardening",
+  "head_commit": "af6b320",
+  "status": "completed",
+  "work_summary": "PR #351 C1 attachment metadata fix reviewed PASS, merged to main as squash 13d7845 with guarded merge at head 06cce5b",
+  "priority_actions": [
+    "Decide whether to act on C4 eager audit-fetch baseline finding",
+    "Run LINE phone checklist on a real device when adb and LINE device are available"
+  ],
+  "context_for_next_agent": "PR #351 passed all CI gates and independent review at head 06cce5b, then merged with --match-head-commit. Squash commit 13d7845 verified in origin/main. Change is one metadata-only SELECT for LIFF attachments; baseline 3 media SELECTs and 8,978,807 fetched row bytes became 1 SELECT and 123 bytes. Focused tests 11 passed, ruff clean. No deploy was run. C4 baseline remains a decision input, not a proven defect.",
+  "session_summary": "project-log-md/claude_code/session-summary-20261124-1150.md",
+  "cross_platform_read": []
+}
