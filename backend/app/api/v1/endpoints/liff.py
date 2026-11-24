@@ -284,20 +284,30 @@ async def create_service_request(
     # Resolve attachment ids server-side (mirrors the admin create path).
     # The client-supplied url is never persisted — staff open these links
     # from the admin detail page, so a forged url would be a phishing vector.
-    attachments: list[dict] = []
+    # One metadata-only query for all ids; request order is preserved below.
+    requested: list[tuple[str, uuid.UUID, str | None]] = []
     for a in (request.attachments or []):
         try:
-            media_uuid = uuid.UUID(a.id)
+            requested.append((a.id, uuid.UUID(a.id), a.name))
         except ValueError:
             raise HTTPException(status_code=400, detail=f"ไฟล์แนบไม่ถูกต้อง: {a.id}")
-        result = await db.execute(select(MediaFile).where(MediaFile.id == media_uuid))
-        media = result.scalar_one_or_none()
-        if not media:
-            raise HTTPException(status_code=400, detail=f"ไม่พบไฟล์แนบ: {a.id}")
+    media_by_id: dict[uuid.UUID, str] = {}
+    if requested:
+        result = await db.execute(
+            select(MediaFile.id, MediaFile.filename).where(
+                MediaFile.id.in_([media_uuid for _, media_uuid, _ in requested])
+            )
+        )
+        media_by_id = {row.id: row.filename for row in result}
+    attachments: list[dict] = []
+    for raw_id, media_uuid, name in requested:
+        filename = media_by_id.get(media_uuid)
+        if filename is None:
+            raise HTTPException(status_code=400, detail=f"ไม่พบไฟล์แนบ: {raw_id}")
         attachments.append({
-            "id": str(media.id),
-            "url": f"/api/v1/media/{media.id}",
-            "name": a.name or media.filename,
+            "id": str(media_uuid),
+            "url": f"/api/v1/media/{media_uuid}",
+            "name": name or filename,
         })
 
     # Map Pydantic to SQLAlchemy Model

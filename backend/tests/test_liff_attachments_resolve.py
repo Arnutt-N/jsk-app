@@ -20,7 +20,7 @@ import uuid
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from sqlalchemy import select
+from sqlalchemy import event, select, text
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
@@ -29,6 +29,7 @@ from app.api.v1.endpoints import liff as liff_module
 from app.core.config import settings
 from app.models.media_file import MediaFile
 from app.models.service_request import ServiceRequest
+from app.schemas.service_request_liff import ServiceRequestCreate
 
 MEDIA_ENDPOINT = "/api/v1/liff/media"
 SERVICE_REQUESTS_ENDPOINT = "/api/v1/liff/service-requests"
@@ -309,3 +310,119 @@ class TestLiffAttachmentResolution:
             if request_id is not None:
                 await _delete_request(request_id)
             await _delete_media_file(media_id)
+
+    @pytest.mark.asyncio
+    async def test_attachment_order_preserved(self, test_client, monkeypatch):
+        """Stored attachment order equals submission order, not DB order."""
+        monkeypatch.setattr(settings, "LIFF_STRICT_MODE", True)
+        _patch_line_verify(monkeypatch)
+        headers = {"x-liff-id-token": "tok-d4"}
+
+        media_ids = []
+        for index in range(3):
+            upload = test_client.post(
+                MEDIA_ENDPOINT,
+                files={"file": (f"f{index}.bin", JPEG_BYTES, "image/jpeg")},
+                headers=headers,
+            )
+            assert upload.status_code == 200
+            media_ids.append(str(uuid.UUID(upload.json()["id"])))
+
+        # Submit in reverse of upload order.
+        ordered_ids = list(reversed(media_ids))
+        request_id = None
+        try:
+            body = _service_request_body(
+                "order",
+                attachments=[
+                    {"id": media_id, "url": "https://evil.example/x", "name": f"n{i}"}
+                    for i, media_id in enumerate(ordered_ids)
+                ],
+            )
+            res = test_client.post(SERVICE_REQUESTS_ENDPOINT, json=body, headers=headers)
+            assert res.status_code == 201
+            request_id = res.json()["id"]
+            stored = await _fetch_request_attachments(request_id)
+            assert [a["id"] for a in stored] == ordered_ids
+            assert [a["name"] for a in stored] == [f"n{i}" for i in range(3)]
+            assert all("evil.example" not in a["url"] for a in stored)
+        finally:
+            if request_id is not None:
+                await _delete_request(request_id)
+            for media_id in media_ids:
+                await _delete_media_file(uuid.UUID(media_id))
+
+    @pytest.mark.asyncio
+    async def test_resolution_uses_one_metadata_only_select(self, monkeypatch):
+        """Three attachments cost one media SELECT of id/filename only."""
+        engine = create_async_engine(str(settings.DATABASE_URL), poolclass=NullPool)
+        Session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+        statements: list[str] = []
+        tag = f"perf-c1-test-{uuid.uuid4().hex[:8]}"
+        media_ids: list[str] = []
+        request_ids: list[int] = []
+
+        def before_cursor_execute(conn, cursor, statement, parameters, context, executemany):
+            low = statement.lower()
+            if "from media_files" in low and low.lstrip().startswith("select"):
+                statements.append(statement)
+
+        monkeypatch.setattr(
+            liff_module, "require_liff_identity", AsyncMock(return_value=VERIFIED_SUB)
+        )
+        event.listen(engine.sync_engine, "before_cursor_execute", before_cursor_execute)
+        try:
+            async with Session() as db:
+                for index in range(3):
+                    media = MediaFile(
+                        filename=f"{tag}-{index}.bin",
+                        mime_type="application/octet-stream",
+                        data=b"x" * (64 * 1024),
+                        size_bytes=64 * 1024,
+                        category="OTHER",
+                        is_public=False,
+                    )
+                    db.add(media)
+                    await db.flush()
+                    media_ids.append(str(media.id))
+                await db.commit()
+            # Submit in reverse of insert order: one query must preserve request order.
+            submitted = list(reversed(media_ids))
+            body = ServiceRequestCreate.model_validate(
+                {
+                    **_service_request_body(
+                        tag,
+                        attachments=[
+                            {"id": mid, "url": "https://evil.example/x", "name": f"name-{i}"}
+                            for i, mid in enumerate(submitted)
+                        ],
+                    )
+                }
+            )
+            statements.clear()
+            async with Session() as db:
+                response = await liff_module.create_service_request(
+                    body, db, "tok", uuid.uuid4().hex
+                )
+            request_ids.append(response.id)
+
+            media_selects = [s for s in statements if "from media_files" in s.lower()]
+            assert len(media_selects) == 1
+            projected = media_selects[0].split("FROM")[0].lower()
+            assert "media_files.data" not in projected
+            assert all(
+                col in projected for col in ("media_files.id", "media_files.filename")
+            )
+        finally:
+            event.remove(engine.sync_engine, "before_cursor_execute", before_cursor_execute)
+            async with Session() as db:
+                for request_id in request_ids:
+                    await db.execute(
+                        text("delete from service_requests where id = :id"), {"id": request_id}
+                    )
+                await db.execute(
+                    text("delete from media_files where filename like :tag"),
+                    {"tag": f"{tag}-%"},
+                )
+                await db.commit()
+            await engine.dispose()
