@@ -1,8 +1,8 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Handoff Board (generated)
 
-> **Last generated**: 2026-11-25 01:55 (from newest checkpoint)
-> 349 active handoffs, 12 platforms, 0 queued directed handoff(s).
+> **Last generated**: 2026-11-25 08:45 (from newest checkpoint)
+> 350 active handoffs, 12 platforms, 0 queued directed handoff(s).
 
 > Regenerate after any handoff: `node .agents/scripts/gen-handoff-views.cjs`
 
@@ -11,7 +11,7 @@
 | Platform | Status | Last active | Queued | Last task | Summary |
 |----------|--------|-------------|--------|-----------|---------|
 | antigravity | AVAILABLE | 2026-09-04 09:00 | 0 | P2 Thai Calendar and Date Standardization merged into main (PR #223, commit f91b12b). 3-gate codebase-review-fix pipelin | `project-log-md/antigravity/session-summary-20260904-0900.md` |
-| claude_code | AVAILABLE | 2026-11-25 01:55 | 0 | PR #352 release summary reviewed PASS, no-comments corrections applied, merged to main as squash 430d527 with guarded me | `project-log-md/claude_code/session-summary-20261125-0155.md` |
+| claude_code | AVAILABLE | 2026-11-25 08:45 | 0 | PR #353 handoff state reviewed PASS+NOTES and merged to main as squash 18dc61a with guarded merge at head da705ff | `project-log-md/claude_code/session-summary-20261125-0845.md` |
 | cline | AVAILABLE | 2026-09-27 20:08 | 0 | Merged PR 236 codebase-review-fix batch F1-F7: SQL-like escaping pagination bounds broadcast fan-out dedup LINE-ID log m | `project-log-md/cline/session-summary-20260927-2008.md` |
 | codex | AVAILABLE | 2026-08-29 06:54 | 0 | Completed evidence-backed deep review of Qoder audit sweep and architecture report; consolidated findings and remediatio | `project-log-md/codex/session-summary-20260829-0654.md` |
 | gemini_cli | AVAILABLE | 2026-04-03 12:00 | 0 | Redesigned the login page to align with the new landing page aesthetic (glassmorphism, shared backgrounds, brand mark).  | — |
@@ -35,6 +35,7 @@ _None — no blocked checkpoints._
 
 | When | From → To | Task | Checkpoint |
 |------|-----------|------|------------|
+| 2026-11-25 08:45 | claude_code → all | PR #353 handoff state reviewed PASS+NOTES and merged to main as squash 18dc61a with guarded merge at head da705ff | `handover-claude_code-20261125-0845.json` |
 | 2026-11-25 01:55 | claude_code → all | PR #352 release summary reviewed PASS, no-comments corrections applied, merged to main as squash 430d527 with guarded merge at head 97c2f17 | `handover-claude_code-20261125-0155.json` |
 | 2026-11-25 00:22 | claude_code → all | Release summary written at .audit/RELEASE_SUMMARY_20261125.md indexing merged PRs, production CD verification, review verdicts, perf outcome | `handover-claude_code-20261125-0022.json` |
 | 2026-11-25 00:13 | claude_code → all | Browser simulation checklist completed: delayed upload, new-case retry, and hidden-email booking all pass with cleanup verified; no product  | `handover-claude_code-20261125-0013.json` |
@@ -44,4 +45,3 @@ _None — no blocked checkpoints._
 | 2026-11-23 23:14 | claude_code → all | PR #350 opened for audit E2E StrictMode fix at aaf39a1; all CI gates pass. Four performance baselines captured and issue trackers updated. G | `handover-claude_code-20261123-2314.json` |
 | 2026-11-23 22:38 | claude_code → all | Work 1+2 done locally: audit E2E root cause proved as StrictMode double mount consuming one-shot 503; test-only fix committed locally as aaf | `handover-claude_code-20261123-2238.json` |
 | 2026-11-23 20:56 | claude_code → all | Started pending work 1+2 on isolated worktrees: audit E2E transient root-cause fix and four-candidate performance baseline. Awaiting runtime | `handover-claude_code-20261123-2056.json` |
-| 2026-11-23 20:23 | claude_code → all | Production migration already applied and verified by CD run 45158783827 at revision f09a1b2c3d4; no manual migration needed. LINE phone chec | `handover-claude_code-20261123-2023.json` |
