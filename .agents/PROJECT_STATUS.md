@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-11-23 08:51 by Claude Code (F01-F09 fixes committed; production revision check failed at f0a1b2c3d4e5; need authorized)
+> **Last Updated:** 2026-11-25 01:55 by Claude Code (PR #352 release summary reviewed PASS, no-comments corrections applied, merged to main as )
 
 ## Thai Summary
 **สถานะล่าสุด (2026-10-27)** — งานตรวจโค้ดรอบใหม่ Task 22 เสร็จ: เปิดประตูตรวจโค้ดหลังบ้าน (ruff) ใน CI แล้ว, PR #301 (draft) CI เขียวครบทุกด่าน; เหลืออีก 29 งาน เริ่มจาก Phase 0 (CI tasks 13, 14, 18, 24) — ดูรายละเอียดใน `project-log-md/pi/session-summary-20261027-1225.md`
@@ -126,6 +126,19 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-11-25 01:55] Claude Code: PR #352 release summary reviewed PASS, no-comments corrections applied, merged to main as squash 430d527 with guarded merge at head 97c2f17 (Claude Code)
+- [2026-11-25 00:22] Claude Code: Release summary written at .audit/RELEASE_SUMMARY_20261125.md indexing merged PRs, production CD verification, review verdicts, perf outcomes, browser checklist, and audit evidence paths (Claude Code)
+- [2026-11-25 00:13] Claude Code: Browser simulation checklist completed: delayed upload, new-case retry, and hidden-email booking all pass with cleanup verified; no product defect. Real LINE in-app token, push delivery, and mobile gestures remain unverified (Claude Code)
+- [2026-11-24 13:13] Claude Code: C4 measured with 10-run interleaved A/B: lazy audit cuts pre-tab requests 9 to 8 but latency gap stays inside noise, verdict NO CHANGE. C1 already merged as 13d7845. All four perf candidates now have measured outcome (Claude Code)
+- [2026-11-24 11:50] Claude Code: PR #351 C1 attachment metadata fix reviewed PASS, merged to main as squash 13d7845 with guarded merge at head 06cce5b (Claude Code)
+- [2026-11-24 00:23] Claude Code: PR #350 reviewed independently PASS and merged to main as squash 046d6ba after CI green and comment cleanup. PR #349 already merged as 6ec8041. Baselines remain captured in .audit/perf-baseline-20261123 (Claude Code)
+- [2026-11-23 23:14] Claude Code: PR #350 opened for audit E2E StrictMode fix at aaf39a1; all CI gates pass. Four performance baselines captured and issue trackers updated. GitHub push recovered after DNS timeout (Claude Code)
+- [2026-11-23 22:38] Claude Code: Work 1+2 done locally: audit E2E root cause proved as StrictMode double mount consuming one-shot 503; test-only fix committed locally as aaf39a1. Four performance baselines captured and copied to .audit/perf-baseline-20261123. GitHub push b (Claude Code)
+- [2026-11-23 20:56] Claude Code: Started pending work 1+2 on isolated worktrees: audit E2E transient root-cause fix and four-candidate performance baseline. Awaiting runtime evidence before any code change (Claude Code)
+- [2026-11-23 20:23] Claude Code: Production migration already applied and verified by CD run 45158783827 at revision f09a1b2c3d4; no manual migration needed. LINE phone checklist remains BLOCKED: no adb binary or connected device in this session (Claude Code)
+- [2026-11-23 17:41] Claude Code: PR #349 merged to main as squash 6ec8041 after independent PASS review and green CI (Claude Code)
+- [2026-11-23 17:08] Claude Code: PR #349 release hardening is green: all CI gates pass at head 116d375; review defects fixed and tracked in .scratch/pr349-review-20261123; production migration apply and LINE phone checklist remain external (Claude Code)
+- [2026-11-23 14:06] Claude Code: Validated F01-F09 handoff on local disposable DB: 21 focused backend tests pass after starting local Postgres; production migration apply and LINE phone checklist remain external (Claude Code)
 - [2026-11-23 08:51] Claude Code: F01-F09 fixes committed; production revision check failed at f0a1b2c3d4e5; need authorized migration apply then recheck (Claude Code)
 - [2026-11-20 21:45] Claude Code: Continued after the low-memory suite stop. Ran focused backend suites covering every changed area: 143 passed. Full backend suite remains outstanding because the clean background run was killed by system memory pressure, not by a test failu (Claude Code)
 - [2026-11-20 16:39] Claude Code: Resolved the three P1 findings from the handoff analysis: new-case id rotation, hidden booking email preservation, and stale reminder status after concurrent cancellation. Focused backend and frontend suites passed, independent reviewer fou (Claude Code)

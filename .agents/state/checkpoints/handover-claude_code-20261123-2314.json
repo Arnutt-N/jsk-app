@@ -1,0 +1,17 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-11-23T23:14:00+07:00",
+  "branch": "fix/f01-f09-release-hardening",
+  "head_commit": "af6b320",
+  "status": "completed",
+  "work_summary": "PR #350 opened for audit E2E StrictMode fix at aaf39a1; all CI gates pass. Four performance baselines captured and issue trackers updated. GitHub push recovered after DNS timeout",
+  "priority_actions": [
+    "Review and merge PR #350 after owner approval",
+    "Decide whether to act on C1 attachment bytes and C4 eager audit fetch baseline findings"
+  ],
+  "context_for_next_agent": "PR #350 is OPEN, MERGEABLE, head aaf39a1, base 6ec8041. All CI gates pass after the test-only StrictMode fix. The issue at .scratch/audit-timeline-e2e-tab-flake/issues/01 is marked resolved-pending-merge. Baseline report and 24 raw artifacts are in .audit/perf-baseline-20261123; issue .scratch/handoff-analysis-20261122-1948/issues/09 is marked baseline-captured with summary numbers. Do not infer a performance fix from the baseline alone. Production migration and deploy were already verified by CD; LINE phone checklist is still blocked without adb and a LINE device.",
+  "session_summary": "project-log-md/claude_code/session-summary-20261123-2314.md",
+  "cross_platform_read": []
+}

@@ -1,0 +1,18 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-11-23T14:06:00+07:00",
+  "branch": "fix/f01-f09-release-hardening",
+  "head_commit": "23b2343",
+  "status": "completed",
+  "work_summary": "Validated F01-F09 handoff on local disposable DB: 21 focused backend tests pass after starting local Postgres; production migration apply and LINE phone checklist remain external",
+  "priority_actions": [
+    "Apply production migrations in authorized environment and rerun gate",
+    "Rerun audit E2E with fresh local servers",
+    "Open PR and get independent review for broadcast data-integrity changes"
+  ],
+  "context_for_next_agent": "Verified against the real handoff: local Postgres was stopped, so the first focused run failed on ConnectionRefusedError. Started the disposable WSL container huangua-postgres on 127.0.0.1:5432 with database skn_app_db and password from the local dev fixture; 21 focused backend tests then passed in 24.89s across F03/F04, F05/F06/F07, F06 env targeting, and F09 webhook durability. Full frontend suite ran 1129 tests with one 20s timeout in walkin pagination; the isolated file passed 13/13 in 75.92s, so treat the full-run failure as machine-load flake, not a code defect. Production migration apply, LINE phone checklist, audit E2E, performance baselines, and independent review remain open. No application code was changed in this session.",
+  "session_summary": "project-log-md/claude_code/session-summary-20261123-1406.md",
+  "cross_platform_read": []
+}

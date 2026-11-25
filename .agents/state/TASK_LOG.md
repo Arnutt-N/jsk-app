@@ -1,8 +1,125 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 336 active handoffs, 12 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 349 active handoffs, 12 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-11-25 01:55 — claude_code — completed
+
+PR #352 release summary reviewed PASS, no-comments corrections applied, merged to main as squash 430d527 with guarded merge at head 97c2f17
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20261125-0155.json`
+- Summary: `project-log-md/claude_code/session-summary-20261125-0155.md`
+
+---
+
+### 2026-11-25 00:22 — claude_code — completed
+
+Release summary written at .audit/RELEASE_SUMMARY_20261125.md indexing merged PRs, production CD verification, review verdicts, perf outcomes, browser checklist, and audit evidence paths
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20261125-0022.json`
+- Summary: `project-log-md/claude_code/session-summary-20261125-0022.md`
+
+---
+
+### 2026-11-25 00:13 — claude_code — completed
+
+Browser simulation checklist completed: delayed upload, new-case retry, and hidden-email booking all pass with cleanup verified; no product defect. Real LINE in-app token, push delivery, and mobile gestures remain unverified
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20261125-0013.json`
+- Summary: `project-log-md/claude_code/session-summary-20261125-0013.md`
+
+---
+
+### 2026-11-24 13:13 — claude_code — completed
+
+C4 measured with 10-run interleaved A/B: lazy audit cuts pre-tab requests 9 to 8 but latency gap stays inside noise, verdict NO CHANGE. C1 already merged as 13d7845. All four perf candidates now have measured outcome
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20261124-1313.json`
+- Summary: `project-log-md/claude_code/session-summary-20261124-1313.md`
+
+---
+
+### 2026-11-24 11:50 — claude_code — completed
+
+PR #351 C1 attachment metadata fix reviewed PASS, merged to main as squash 13d7845 with guarded merge at head 06cce5b
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20261124-1150.json`
+- Summary: `project-log-md/claude_code/session-summary-20261124-1150.md`
+
+---
+
+### 2026-11-24 00:23 — claude_code — completed
+
+PR #350 reviewed independently PASS and merged to main as squash 046d6ba after CI green and comment cleanup. PR #349 already merged as 6ec8041. Baselines remain captured in .audit/perf-baseline-20261123
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20261124-0023.json`
+- Summary: `project-log-md/claude_code/session-summary-20261124-0023.md`
+
+---
+
+### 2026-11-23 23:14 — claude_code — completed
+
+PR #350 opened for audit E2E StrictMode fix at aaf39a1; all CI gates pass. Four performance baselines captured and issue trackers updated. GitHub push recovered after DNS timeout
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20261123-2314.json`
+- Summary: `project-log-md/claude_code/session-summary-20261123-2314.md`
+
+---
+
+### 2026-11-23 22:38 — claude_code — completed
+
+Work 1+2 done locally: audit E2E root cause proved as StrictMode double mount consuming one-shot 503; test-only fix committed locally as aaf39a1. Four performance baselines captured and copied to .audit/perf-baseline-20261123. GitHub push blocked by DNS failure
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20261123-2238.json`
+- Summary: `project-log-md/claude_code/session-summary-20261123-2238.md`
+
+---
+
+### 2026-11-23 20:56 — claude_code — completed
+
+Started pending work 1+2 on isolated worktrees: audit E2E transient root-cause fix and four-candidate performance baseline. Awaiting runtime evidence before any code change
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20261123-2056.json`
+- Summary: `project-log-md/claude_code/session-summary-20261123-2056.md`
+
+---
+
+### 2026-11-23 20:23 — claude_code — completed
+
+Production migration already applied and verified by CD run 45158783827 at revision f09a1b2c3d4; no manual migration needed. LINE phone checklist remains BLOCKED: no adb binary or connected device in this session
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20261123-2023.json`
+- Summary: `project-log-md/claude_code/session-summary-20261123-2023.md`
+
+---
+
+### 2026-11-23 17:41 — claude_code — completed
+
+PR #349 merged to main as squash 6ec8041 after independent PASS review and green CI
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20261123-1741.json`
+- Summary: `project-log-md/claude_code/session-summary-20261123-1741.md`
+
+---
+
+### 2026-11-23 17:08 — claude_code — completed
+
+PR #349 release hardening is green: all CI gates pass at head 116d375; review defects fixed and tracked in .scratch/pr349-review-20261123; production migration apply and LINE phone checklist remain external
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20261123-1708.json`
+- Summary: `project-log-md/claude_code/session-summary-20261123-1708.md`
+
+---
+
+### 2026-11-23 14:06 — claude_code — completed
+
+Validated F01-F09 handoff on local disposable DB: 21 focused backend tests pass after starting local Postgres; production migration apply and LINE phone checklist remain external
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20261123-1406.json`
+- Summary: `project-log-md/claude_code/session-summary-20261123-1406.md`
+
+---
 
 ### 2026-11-23 08:51 — claude_code — completed
 

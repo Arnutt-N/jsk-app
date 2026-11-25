@@ -1,0 +1,18 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-11-22T09:31:00+07:00",
+  "branch": "docs/handoff-20261119-1410",
+  "head_commit": "a48cfca",
+  "status": "completed",
+  "work_summary": "Ordered review complete. PR #347 clean and ready; PR #346 rebased on #347 head with checks in progress. No merge performed.",
+  "priority_actions": [
+    "Merge PR #347 first, then wait for PR #346 checks and merge.",
+    "After merge, run the LINE phone checklist: delayed upload, new-case retry, hidden-email booking.",
+    "Keep .audit and interrogate worktrees out of commits."
+  ],
+  "context_for_next_agent": "PR #347 is MERGEABLE and CLEAN with all checks green. It cherry-picks fe16a1d onto origin/main and adds retry hardening: DeliveryOutcome, SMTP/LINE classification, pre-send lease check, LIFF replay hash excluding transport fields, and attachment URL exclusion. PR #346 is the broadcast cancel UI fix, rebased onto PR #347 head and verified MERGEABLE CLEAN after its checks finished. Merge #347 first, then confirm #346 checks and merge. Interrogate found no new defects beyond the two false-409 cases already fixed. A legacy resend-endpoint 502 on UNKNOWN exists on main and is not a regression from these PRs.",
+  "session_summary": "project-log-md/claude_code/session-summary-20261122-0931.md",
+  "cross_platform_read": []
+}

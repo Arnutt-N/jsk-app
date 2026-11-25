@@ -1,0 +1,16 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-11-25T00:22:00+07:00",
+  "branch": "fix/f01-f09-release-hardening",
+  "head_commit": "af6b320",
+  "status": "completed",
+  "work_summary": "Release summary written at .audit/RELEASE_SUMMARY_20261125.md indexing merged PRs, production CD verification, review verdicts, perf outcomes, browser checklist, and audit evidence paths",
+  "priority_actions": [
+    "Run LINE device check when adb and a LINE-logged-in phone are available"
+  ],
+  "context_for_next_agent": "Release summary is a 58-line index at .audit/RELEASE_SUMMARY_20261125.md. It records main at 13d7845, merged PRs 349/350/351 with squash commits, CD run 45158783827 migration verification at f09a1b2c3d4, independent PASS verdicts, all four performance outcomes, the browser simulation result, and pointers to the real evidence paths. Indexed paths were checked to exist. Nothing was deleted or rewritten to produce the summary. Only remaining task is a real LINE device check with adb and a LINE-logged-in phone.",
+  "session_summary": "project-log-md/claude_code/session-summary-20261125-0022.md",
+  "cross_platform_read": []
+}

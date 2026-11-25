@@ -1,0 +1,18 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-11-23T17:08:00+07:00",
+  "branch": "fix/f01-f09-release-hardening",
+  "head_commit": "116d375",
+  "status": "completed",
+  "work_summary": "PR #349 release hardening is green: all CI gates pass at head 116d375; review defects fixed and tracked in .scratch/pr349-review-20261123; production migration apply and LINE phone checklist remain external",
+  "priority_actions": [
+    "Merge PR #349 after owner approval",
+    "Apply production migrations in authorized environment then rerun gate",
+    "Rerun LINE phone checklist on a real device in LINE"
+  ],
+  "context_for_next_agent": "PR #349 at head 116d375 is OPEN, MERGEABLE, and all CI gates pass: Backend Pytest, Frontend Lint and Build, Playwright Smoke, Source Encoding Scan, Vercel. Independent reviewer returned FAIL on three defects at 23b2343: stale-sending route shadowing, UNKNOWN rows not reconcilable, webhook enum case mismatch. All three were fixed and verified on the real artifact. The backend CI also exposed a stale test contract for failed resends, six ruff regressions, and a SQLite/JSONB compatibility issue on SQLAlchemy 2.0.45; all were fixed. Issues are tracked in .scratch/pr349-review-20261123/issues/. Production migration apply and LINE phone checklist remain external. No merge was performed.",
+  "session_summary": "project-log-md/claude_code/session-summary-20261123-1708.md",
+  "cross_platform_read": []
+}
