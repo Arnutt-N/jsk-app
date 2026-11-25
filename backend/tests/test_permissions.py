@@ -30,6 +30,7 @@ from app.core.permissions import (
     can_revert_approval,
     get_effective_capabilities,
     get_permission_summary,
+    invalidate_cache,
     keys_for_level,
 )
 from app.models.user import UserRole
@@ -161,6 +162,25 @@ def test_effective_capabilities_public_user_all_false():
     # The public USER role holds no module capabilities at all.
     assert caps  # non-empty registry projection
     assert all(value is False for value in caps.values())
+
+
+def test_stored_policy_cannot_grant_viewer_write_capabilities():
+    """A persisted matrix that adds VIEWER to a write key must not widen it."""
+    import app.core.permissions as permissions
+
+    synthetic = {
+        key: frozenset({UserRole.SUPER_ADMIN, UserRole.VIEWER})
+        for key in ALL_PERMISSION_KEYS
+    }
+    try:
+        permissions._policy_cache = synthetic
+        permissions._policy_loaded_at = 1.0
+        for key in ALL_PERMISSION_KEYS:
+            expected = key == KEY_VIEW_REPORTS
+            assert can(UserRole.VIEWER, key) is expected, key
+        assert can(UserRole.SUPER_ADMIN, KEY_MANAGE_USERS) is True
+    finally:
+        invalidate_cache()
 
 
 def test_registry_parity_with_default_policy():
