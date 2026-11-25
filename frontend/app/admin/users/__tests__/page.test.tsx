@@ -9,8 +9,9 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockPush }),
 }));
 
+const authMock = { user: { id: '1', role: 'SUPER_ADMIN' } as { id: string; role: string } };
 vi.mock('@/contexts/AuthContext', () => ({
-  useAuth: () => ({ user: { id: '1', role: 'SUPER_ADMIN' } }),
+  useAuth: () => ({ user: authMock.user }),
 }));
 
 const mockApiFetch = vi.fn();
@@ -81,6 +82,49 @@ describe('UsersPage filters and create defaults', () => {
       expect(lastUrl).not.toContain('is_active=');
       expect(lastUrl).toContain('page=1');
     });
+  });
+
+  it('refetches the list after creating a user even when no filter was active', async () => {
+    const userEventSetup = userEvent.setup();
+    render(<UsersPage />);
+    await screen.findByText('Agent Two');
+
+    const before = mockApiFetch.mock.calls.filter((c) => String(c[0]).startsWith('/admin/users?')).length;
+
+    await userEventSetup.click(screen.getByRole('button', { name: 'เพิ่มผู้ใช้ใหม่' }));
+    const dialog = screen.getByRole('dialog');
+    await userEventSetup.type(within(dialog).getByPlaceholderText('username'), 'newuser');
+    await userEventSetup.type(within(dialog).getByPlaceholderText('อย่างน้อย 8 ตัวอักษร'), 'password123');
+    await userEventSetup.type(within(dialog).getByPlaceholderText('ชื่อที่แสดงในระบบ'), 'New User');
+    await userEventSetup.click(within(dialog).getByRole('button', { name: 'สร้างผู้ใช้' }));
+
+    await waitFor(() => {
+      const after = mockApiFetch.mock.calls.filter((c) => String(c[0]).startsWith('/admin/users?')).length;
+      expect(after).toBeGreaterThan(before);
+    });
+  });
+
+  it('clears the SUPER_ADMIN filter after creating a user so the new user is listed', async () => {
+    const userEventSetup = userEvent.setup();
+    render(<UsersPage />);
+    await screen.findByText('Agent Two');
+
+    fireEvent.change(screen.getAllByRole('combobox')[0], { target: { value: 'SUPER_ADMIN' } });
+    await waitFor(() => {
+      expect(mockApiFetch.mock.calls.some((c) => String(c[0]).includes('role=SUPER_ADMIN'))).toBe(true);
+    });
+
+    await userEventSetup.click(screen.getByRole('button', { name: 'เพิ่มผู้ใช้ใหม่' }));
+    const dialog = screen.getByRole('dialog');
+    await userEventSetup.type(within(dialog).getByPlaceholderText('username'), 'newuser');
+    await userEventSetup.type(within(dialog).getByPlaceholderText('อย่างน้อย 8 ตัวอักษร'), 'password123');
+    await userEventSetup.type(within(dialog).getByPlaceholderText('ชื่อที่แสดงในระบบ'), 'New User');
+    await userEventSetup.click(within(dialog).getByRole('button', { name: 'สร้างผู้ใช้' }));
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('combobox')[0]).toHaveValue('');
+    });
+    expect(screen.queryByRole('button', { name: 'ล้างตัวกรอง' })).not.toBeInTheDocument();
   });
 
   it('navigates edit button to detail page with edit mode', async () => {

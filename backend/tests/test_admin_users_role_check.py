@@ -37,9 +37,18 @@ def test_admin_cannot_manage_director_or_head(target):
 
 
 @pytest.mark.parametrize("target", [UserRole.SUPER_ADMIN, UserRole.ADMIN,
-                                    UserRole.DIRECTOR, UserRole.HEAD, UserRole.AGENT])
+                                    UserRole.DIRECTOR, UserRole.HEAD,
+                                    UserRole.AGENT, UserRole.VIEWER])
 def test_super_admin_manages_everything(target):
     check_role_permission(_user(UserRole.SUPER_ADMIN), target)  # must not raise
+
+
+def test_admin_cannot_manage_viewer():
+    """VIEWER is read-only and super-only: ADMIN must not create/edit/delete one."""
+    with pytest.raises(HTTPException) as exc:
+        check_role_permission(_user(UserRole.ADMIN), UserRole.VIEWER)
+    assert exc.value.status_code == 403
+    assert "SUPER_ADMIN" in exc.value.detail
 
 
 def test_admin_still_manages_agents_and_below():

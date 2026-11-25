@@ -54,7 +54,7 @@ def test_admin_auth_roles_include_director_and_head() -> None:
     # the admin console (login + silent-refresh both used this allowlist).
     assert UserRole.DIRECTOR in _ADMIN_AUTH_ROLES
     assert UserRole.HEAD in _ADMIN_AUTH_ROLES
-    for role in (UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.AGENT):
+    for role in (UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.AGENT, UserRole.VIEWER):
         assert role in _ADMIN_AUTH_ROLES
     # Regular USER role stays out of the admin console.
     assert UserRole.USER not in _ADMIN_AUTH_ROLES
