@@ -1,0 +1,16 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-11-25T08:45:00+07:00",
+  "branch": "docs/handoff-state-20261125",
+  "head_commit": "da705ff",
+  "status": "completed",
+  "work_summary": "PR #353 handoff state reviewed PASS+NOTES and merged to main as squash 18dc61a with guarded merge at head da705ff",
+  "priority_actions": [
+    "Run LINE device check when adb and a LINE-logged-in phone are available"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/claude_code/session-summary-20261125-0845.md",
+  "cross_platform_read": []
+}

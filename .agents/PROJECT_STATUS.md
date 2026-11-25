@@ -1,6 +1,6 @@
 # Project Status: SknApp
 
-> **Last Updated:** 2026-11-25 01:55 by Claude Code (PR #352 release summary reviewed PASS, no-comments corrections applied, merged to main as )
+> **Last Updated:** 2026-11-25 08:45 by Claude Code (PR #353 handoff state reviewed PASS+NOTES and merged to main as squash 18dc61a with guarde)
 
 ## Thai Summary
 **สถานะล่าสุด (2026-10-27)** — งานตรวจโค้ดรอบใหม่ Task 22 เสร็จ: เปิดประตูตรวจโค้ดหลังบ้าน (ruff) ใน CI แล้ว, PR #301 (draft) CI เขียวครบทุกด่าน; เหลืออีก 29 งาน เริ่มจาก Phase 0 (CI tasks 13, 14, 18, 24) — ดูรายละเอียดใน `project-log-md/pi/session-summary-20261027-1225.md`
@@ -126,6 +126,7 @@
 - [2026-07-20] PR #152 (P1.1b frontend page cleanup) merged to `main` (`6fb5aa9`), CI green, Vercel deployed (dark, flag off). Backend healthy on Koyeb (`/api/v1/health` OK). COOKIE_AUTH_MODE=dual prod rollout deferred to Backlog (user decision 2026-07-20) — next agent: see Backlog top item for exact flip steps.
 
 ## Recent Completions
+- [2026-11-25 08:45] Claude Code: PR #353 handoff state reviewed PASS+NOTES and merged to main as squash 18dc61a with guarded merge at head da705ff (Claude Code)
 - [2026-11-25 01:55] Claude Code: PR #352 release summary reviewed PASS, no-comments corrections applied, merged to main as squash 430d527 with guarded merge at head 97c2f17 (Claude Code)
 - [2026-11-25 00:22] Claude Code: Release summary written at .audit/RELEASE_SUMMARY_20261125.md indexing merged PRs, production CD verification, review verdicts, perf outcomes, browser checklist, and audit evidence paths (Claude Code)
 - [2026-11-25 00:13] Claude Code: Browser simulation checklist completed: delayed upload, new-case retry, and hidden-email booking all pass with cleanup verified; no product defect. Real LINE in-app token, push delivery, and mobile gestures remain unverified (Claude Code)
