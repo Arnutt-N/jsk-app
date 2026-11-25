@@ -36,6 +36,12 @@ class _FakeScalarResult:
     def scalar_one_or_none(self):
         return self._value
 
+    def scalars(self):
+        return self
+
+    def all(self):
+        return [] if self._value is True else [self._value]
+
 
 class _FakeDB:
     """Minimal async session stand-in. execute() returns a truthy sentinel
@@ -55,6 +61,9 @@ class _FakeDB:
         self.committed = True
 
     async def refresh(self, obj) -> None:
+        return None
+
+    async def flush(self) -> None:
         return None
 
 
@@ -221,6 +230,37 @@ def _patch_permissions_attempt(key: str, allowed_roles: list[str]) -> tuple:
         invalidate_cache()
 
     return response.status_code, fake_db.committed
+
+
+def test_patch_strips_viewer_from_write_capability():
+    """A stored write grant for VIEWER must normalize away on save."""
+    fake_db = _FakeDB()
+    invalidate_cache()
+
+    async def _override_get_db():
+        yield fake_db
+
+    async def _override_get_current_admin():
+        return _make_user(UserRole.SUPER_ADMIN)
+
+    app.dependency_overrides[session_get_db] = _override_get_db
+    app.dependency_overrides[deps.get_current_admin] = _override_get_current_admin
+    client = TestClient(app)
+    try:
+        response = client.patch(
+            "/api/v1/admin/settings/permissions",
+            json=_patch_permissions_payload("manage_users", ["SUPER_ADMIN", "VIEWER"]),
+        )
+    finally:
+        client.close()
+        app.dependency_overrides.clear()
+        invalidate_cache()
+
+    assert response.status_code == 200, response.text
+    assert fake_db.committed is True
+    saved = [r for r in fake_db.added if getattr(r, "key", None) == "manage_users"]
+    assert len(saved) == 1
+    assert saved[0].allowed_roles == ["SUPER_ADMIN"]
 
 
 def test_lockout_rejects_removing_super_admin_from_access_admin_endpoints():

@@ -12,6 +12,7 @@ from app.core.permissions import (
     ALL_PERMISSION_KEYS,
     KEY_EDIT_SYSTEM_SETTINGS,
     PERMISSION_REGISTRY,
+    VIEWER_READ_KEYS,
     can_assign,
     can_edit_permission_settings,
     can_edit_request_details,
@@ -181,6 +182,11 @@ async def update_permissions(
                 status_code=400,
                 detail=f"ห้ามถอด SUPER_ADMIN ออกจากสิทธิ์ '{rule.key}'",
             )
+        # The settings UI posts every key and has no VIEWER column. Strip a
+        # stale VIEWER grant instead of rejecting the batch, so legacy rows
+        # can self-heal without locking the matrix editor.
+        if rule.key not in VIEWER_READ_KEYS:
+            rule.allowed_roles = [r for r in rule.allowed_roles if r != "VIEWER"]
 
     # Apply -- fetch every existing rule in one IN-query, then upsert per rule.
     # Track old->new role transitions for the audit row (role NAMES only -- no

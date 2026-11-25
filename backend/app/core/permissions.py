@@ -171,6 +171,8 @@ DEFAULT_POLICY: dict[str, frozenset[UserRole]] = {
 
 # Legacy aliases kept for any code that still references them.
 # Prefer DEFAULT_POLICY[KEY_*] in new code.
+VIEWER_READ_KEYS: frozenset[str] = frozenset({KEY_VIEW_REPORTS})
+
 ASSIGN_ALLOWED_ROLES: frozenset[UserRole] = DEFAULT_POLICY[KEY_ASSIGN]
 SELF_ASSIGN_ALLOWED_ROLES: frozenset[UserRole] = DEFAULT_POLICY[KEY_SELF_ASSIGN]
 PERMISSION_SETTINGS_EDITOR_ROLES: frozenset[UserRole] = DEFAULT_POLICY[KEY_EDIT_SETTINGS]
@@ -436,8 +438,13 @@ def _allowed_for(key: str) -> frozenset[UserRole]:
     deny-all cache on failure so a DB outage cannot widen access (F-004).
     """
     if _policy_cache is not None:
-        return _policy_cache.get(key, frozenset())
-    return DEFAULT_POLICY.get(key, frozenset())
+        roles = _policy_cache.get(key, frozenset())
+    else:
+        roles = DEFAULT_POLICY.get(key, frozenset())
+    # Other VIEWER reads use the explicit *_or_viewer gates.
+    if key in VIEWER_READ_KEYS:
+        return roles
+    return roles - {UserRole.VIEWER}
 
 
 def _check(role: UserRole | str | None, key: str) -> bool:
