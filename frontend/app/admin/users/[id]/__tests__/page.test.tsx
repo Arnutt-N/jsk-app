@@ -14,8 +14,9 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => mockSearchParams,
 }));
 
+const authState = { role: 'SUPER_ADMIN' };
 vi.mock('@/contexts/AuthContext', () => ({
-  useAuth: () => ({ user: { id: '1', role: 'SUPER_ADMIN' } }),
+  useAuth: () => ({ user: { id: '1', role: authState.role } }),
 }));
 
 const user = {
@@ -34,6 +35,7 @@ const user = {
 describe('UserDetailPage mode', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    authState.role = 'SUPER_ADMIN';
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
       json: async () => user,
@@ -58,5 +60,28 @@ describe('UserDetailPage mode', () => {
     expect(await screen.findByRole('heading', { name: 'แก้ไขข้อมูล' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'บันทึก' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'เปลี่ยนรหัสผ่าน' })).toBeInTheDocument();
+  });
+
+  it('offers VIEWER when the caller is SUPER_ADMIN', async () => {
+    mockSearchParams.get.mockReturnValue('edit');
+    render(<UserDetailPage />);
+    await screen.findByRole('heading', { name: 'แก้ไขข้อมูล' });
+
+    const options = screen.getAllByRole('combobox').map((el) =>
+      Array.from((el as HTMLSelectElement).options).map((o) => o.value));
+    expect(options.some((list) => list.includes('VIEWER'))).toBe(true);
+  });
+
+  it('hides VIEWER from ADMIN and disables roles ADMIN cannot assign', async () => {
+    authState.role = 'ADMIN';
+    mockSearchParams.get.mockReturnValue('edit');
+    render(<UserDetailPage />);
+    await screen.findByRole('heading', { name: 'แก้ไขข้อมูล' });
+
+    const roleSelect = screen.getAllByRole('combobox').find((el) =>
+      Array.from((el as HTMLSelectElement).options).some((o) => o.value === 'AGENT')) as HTMLSelectElement;
+    const options = Array.from(roleSelect.options);
+    expect(options.some((o) => o.value === 'VIEWER')).toBe(false);
+    expect(options.find((o) => o.value === 'AGENT')?.disabled).toBe(false);
   });
 });

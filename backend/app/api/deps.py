@@ -343,8 +343,8 @@ def check_role_permission(current_user, target_role) -> None:
                 detail="Only SUPER_ADMIN can manage DIRECTOR or HEAD users",
             )
     elif target_role == UserRole.VIEWER:
-        if current_user.role not in (UserRole.SUPER_ADMIN, UserRole.ADMIN):
+        if current_user.role != UserRole.SUPER_ADMIN:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Only SUPER_ADMIN or ADMIN can manage VIEWER users",
+                detail="Only SUPER_ADMIN can manage VIEWER users",
             )

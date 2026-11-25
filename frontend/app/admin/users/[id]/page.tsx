@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import {
@@ -42,19 +42,20 @@ const ROLE_BADGE: Record<string, { variant: RoleBadgeVariant; label: string; ico
     DIRECTOR: { variant: ROLE_META.DIRECTOR.badge, label: ROLE_META.DIRECTOR.label, icon: <Shield className="w-4 h-4" /> },
     HEAD: { variant: ROLE_META.HEAD.badge, label: ROLE_META.HEAD.label, icon: <Shield className="w-4 h-4" /> },
     AGENT: { variant: ROLE_META.AGENT.badge, label: ROLE_META.AGENT.label, icon: <UserCog className="w-4 h-4" /> },
+    VIEWER: { variant: ROLE_META.VIEWER.badge, label: ROLE_META.VIEWER.label, icon: <UserCog className="w-4 h-4" /> },
     USER: { variant: ROLE_META.USER.badge, label: ROLE_META.USER.label, icon: <User className="w-4 h-4" /> },
 };
 
-// Edit-role select: all six roles so an existing DIRECTOR/HEAD user's current
-// role is always representable. (Creation restrictions live on the list page.)
-const ROLE_OPTIONS: SelectOption[] = [
-    { value: ROLE.SUPER_ADMIN, label: getRoleOptionLabel(ROLE.SUPER_ADMIN) },
-    { value: ROLE.ADMIN, label: getRoleOptionLabel(ROLE.ADMIN) },
-    { value: ROLE.DIRECTOR, label: getRoleOptionLabel(ROLE.DIRECTOR) },
-    { value: ROLE.HEAD, label: getRoleOptionLabel(ROLE.HEAD) },
-    { value: ROLE.AGENT, label: getRoleOptionLabel(ROLE.AGENT) },
-    { value: ROLE.USER, label: getRoleOptionLabel(ROLE.USER) },
-];
+const ALL_ROLE_OPTIONS: SelectOption[] = [
+    ROLE.ADMIN, ROLE.DIRECTOR, ROLE.HEAD, ROLE.AGENT, ROLE.VIEWER, ROLE.USER, ROLE.SUPER_ADMIN,
+].map((r) => ({ value: r, label: getRoleOptionLabel(r) }));
+
+// Mirrors backend check_role_permission (deps.py). ADMIN may only assign
+// AGENT/USER; VIEWER is SUPER_ADMIN-only.
+const EDITABLE_ROLES: Record<'SUPER_ADMIN' | 'ADMIN', readonly string[]> = {
+    SUPER_ADMIN: ALL_ROLE_OPTIONS.map((o) => o.value),
+    ADMIN: [ROLE.AGENT, ROLE.USER],
+};
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 
@@ -93,6 +94,15 @@ export default function UserDetailPage() {
     const API_BASE = '/api/v1';
 
     const isSelf = currentUser?.id === userId;
+
+    const roleOptions = useMemo(() => {
+        if (currentUser?.role !== 'SUPER_ADMIN' && currentUser?.role !== 'ADMIN') return ALL_ROLE_OPTIONS;
+        const allowed = EDITABLE_ROLES[currentUser.role];
+        // Keep the stored role visible but disabled if the caller can't assign
+        // it, so the select doesn't render blank and can't save an illegal role.
+        return ALL_ROLE_OPTIONS.filter((o) => allowed.includes(o.value) || o.value === role)
+            .map((o) => (allowed.includes(o.value) ? o : { ...o, disabled: true }));
+    }, [currentUser?.role, role]);
 
     const fetchUser = useCallback(async () => {
         setLoading(true);
@@ -336,7 +346,7 @@ export default function UserDetailPage() {
                         <Select
                             value={role}
                             onChange={(e) => setRole(e.target.value)}
-                            options={ROLE_OPTIONS}
+                            options={roleOptions}
                             disabled={isSelf}
                         />
                         {isSelf && (

@@ -58,13 +58,16 @@ logger = logging.getLogger(__name__)
 
 # Roles allowed to authenticate into the admin console. DIRECTOR and HEAD were
 # added 2026-05-04 alongside the request workflow split; they share ADMIN-level
-# access and must be able to both log in and refresh their token.
+# access and must be able to both log in and refresh their token. VIEWER is the
+# read-only auditor: it must log in to use the allowed GET menus, but carries no
+# write permission (enforced by the permission matrix, not by this list).
 _ADMIN_AUTH_ROLES = [
     UserRole.SUPER_ADMIN,
     UserRole.ADMIN,
     UserRole.DIRECTOR,
     UserRole.HEAD,
     UserRole.AGENT,
+    UserRole.VIEWER,
 ]
 
 # Shared by /migrate-session and /ws-ticket. Backed by Redis (shared across

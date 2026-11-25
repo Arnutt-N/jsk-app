@@ -79,10 +79,12 @@ const STATUS_OPTIONS: SelectOption[] = [
     { value: 'false', label: 'ปิดใช้งาน' },
 ];
 
-const CREATE_ROLE_OPTIONS: SelectOption[] = [...STAFF_ROLES, ROLE.VIEWER].map((r) => ({
-    value: r,
-    label: getRoleOptionLabel(r),
-}));
+// Role assignment ladder mirrors backend check_role_permission (deps.py).
+// VIEWER is SUPER_ADMIN-only; ADMIN may assign AGENT only on create.
+const ASSIGNABLE_ROLES: Record<'SUPER_ADMIN' | 'ADMIN', readonly Role[]> = {
+    SUPER_ADMIN: [...STAFF_ROLES, ROLE.VIEWER],
+    ADMIN: [ROLE.AGENT],
+};
 
 const PER_PAGE = 20;
 
@@ -98,6 +100,7 @@ export default function UsersPage() {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [total, setTotal] = useState(0);
+    const [reloadKey, setReloadKey] = useState(0);
 
     // Filters
     const [search, setSearch] = useState('');
@@ -186,7 +189,7 @@ export default function UsersPage() {
 
         };
 
-    }, [fetchUsers]);
+    }, [fetchUsers, reloadKey]);
 
     /* ── Actions ────────────────────────────────────────────────────── */
 
@@ -208,9 +211,12 @@ export default function UsersPage() {
         if (result.ok) {
             setShowCreate(false);
             setCreateForm({ username: '', password: '', display_name: '', email: '', role: 'AGENT' });
+            // Clear any filter hiding the new user, then force a refetch even
+            // when the filters were already empty (state would not change).
+            clearFilters();
+            setReloadKey((k) => k + 1);
             setAlert({ type: 'success', title: 'สำเร็จ', message: 'สร้างผู้ใช้ใหม่เรียบร้อยแล้ว' });
-            fetchUsers();
-            fetchStats();
+            void fetchStats();
         } else {
             setCreateError(result.message);
         }
@@ -258,10 +264,8 @@ export default function UsersPage() {
     /* ── Filtered role options for create based on current user ────── */
 
     const allowedCreateRoles = useMemo(() => {
-        if (!currentUser) return [];
-        if (currentUser.role === 'SUPER_ADMIN') return CREATE_ROLE_OPTIONS;
-        if (currentUser.role === 'ADMIN') return CREATE_ROLE_OPTIONS.filter(o => o.value === 'AGENT');
-        return [];
+        if (currentUser?.role !== 'SUPER_ADMIN' && currentUser?.role !== 'ADMIN') return [];
+        return ASSIGNABLE_ROLES[currentUser.role].map((r) => ({ value: r, label: getRoleOptionLabel(r) }));
     }, [currentUser]);
 
     /* ── Render ─────────────────────────────────────────────────────── */
