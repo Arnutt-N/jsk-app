@@ -19,6 +19,7 @@ from app.core.cookie_auth import (
     issue_csrf_token,
     set_auth_cookies,
 )
+from app.core.email import normalize_email
 from app.core.rate_limiter import SlidingWindowLimiter
 from app.core.redis_client import redis_client
 from app.core.security import (
@@ -162,10 +163,13 @@ async def _find_admin_by_identifier(
     if found is not None:
         return found
 
+    email = normalize_email(identifier)
+    if email is None:
+        return None
     by_email = await db.execute(
         select(User).where(
             User.role.in_(_ADMIN_AUTH_ROLES),
-            func.lower(User.email) == identifier.lower(),
+            func.lower(func.btrim(User.email)) == email,
         )
     )
     return by_email.scalars().first()

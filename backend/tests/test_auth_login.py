@@ -113,6 +113,17 @@ async def test_find_admin_by_identifier_matches_username() -> None:
 
 
 @pytest.mark.asyncio
+async def test_blank_identifier_never_queries_email_column() -> None:
+    db = _CaptureDb(None)
+
+    user = await _find_admin_by_identifier(cast(AsyncSession, db), "   ")
+
+    assert user is None
+    assert len(db.statements) == 1
+    assert "users.email =" not in db.last_sql().lower()
+
+
+@pytest.mark.asyncio
 async def test_find_admin_by_identifier_matches_email_case_insensitively() -> None:
     db = _CaptureDb(_admin_row(email="Admin@Example.com"))
 

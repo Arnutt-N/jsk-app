@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import check_role_permission, get_db, require_permission
 from app.core.audit import create_audit_log
+from app.core.email import email_matches, normalize_email
 from app.core.permissions import KEY_MANAGE_USERS
 from app.core.security import get_password_hash_async
 from app.models.access_request import AccessRequest, AccessRequestStatus
@@ -25,7 +26,7 @@ def _to_out(req: AccessRequest) -> AccessRequestOut:
         id=req.id,
         display_name=req.display_name,
         username=req.username,
-        email=req.email,
+        email=normalize_email(req.email),
         phone_number=req.phone_number,
         requested_role=req.requested_role,
         reason=req.reason,
@@ -103,7 +104,7 @@ async def approve_request(
         )
     if req.email:
         email_taken = await db.execute(
-            select(User.id).where(func.lower(User.email) == req.email.lower())
+            select(User.id).where(email_matches(User.email, req.email))
         )
         if email_taken.scalar_one_or_none() is not None:
             await _audit_denied(db, current_admin.id, req, "email_taken")
@@ -116,7 +117,7 @@ async def approve_request(
         username=req.username,
         hashed_password=await get_password_hash_async(body.password),
         display_name=req.display_name,
-        email=req.email,
+        email=normalize_email(req.email),
         role=req.requested_role,
         is_active=True,
     )

@@ -1,5 +1,12 @@
 """Canonical form for optional staff email addresses."""
 
+from sqlalchemy import ColumnElement, func
+
+
+def email_matches(column: ColumnElement[str], email: str | None) -> ColumnElement[bool]:
+    """Case-insensitive, whitespace-insensitive match for a stored email."""
+    return func.lower(func.btrim(column)) == normalize_email(email)
+
 
 def normalize_email(raw: str | None) -> str | None:
     if raw is None:
