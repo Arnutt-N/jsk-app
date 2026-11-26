@@ -261,8 +261,6 @@ jobs:
       run:
         shell: bash
         working-directory: backend
-    env:
-      EXPECTED_REVISION: f09a1b2c3d4
     steps:
       - name: Check backend migration config
         id: config
@@ -290,6 +288,13 @@ jobs:
           python-version: "3.13"
           cache: pip
           cache-dependency-path: backend/requirements-lock.txt
+
+      - name: Derive expected migration head
+        id: revision
+        if: steps.config.outputs.migration_configured == 'true'
+        run: |
+          revision="$(python scripts/derive_migration_head.py)"
+          echo "revision=$revision" >> "$GITHUB_OUTPUT"
 
       - name: Install backend dependencies
         if: steps.config.outputs.migration_configured == 'true'
@@ -324,6 +329,8 @@ jobs:
         id: verify_revision
         if: steps.config.outputs.migration_configured == 'true'
         shell: bash
+        env:
+          EXPECTED_REVISION: ${{ steps.revision.outputs.revision }}
         run: |
           set -euo pipefail
           if ! python scripts/db_target.py alembic --target remote current \
@@ -353,7 +360,7 @@ jobs:
             echo
             echo "- Configured: ${{ steps.config.outputs.migration_configured }}"
             echo "- Verified: ${{ steps.verify_revision.outputs.migration_verified || 'false' }}"
-            echo "- Expected revision: ${{ env.EXPECTED_REVISION }}"
+            echo "- Expected revision: ${{ steps.revision.outputs.revision }}"
             echo "- Environment: ${{ needs.resolve-scope.outputs.deploy_environment }}"
             echo "- Trigger: ${GITHUB_EVENT_NAME}"
             echo "- Source SHA: ${{ needs.resolve-scope.outputs.source_sha }}"
