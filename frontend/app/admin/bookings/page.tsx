@@ -24,6 +24,7 @@ import {
   fetchAdminAvailabilityRange,
   fetchAdminBookings,
   fetchBookingSettings,
+  fetchBookingViewerSettings,
   fetchStaffDirectory,
   formatTime,
   resendBookingReminder,
@@ -141,6 +142,18 @@ export default function AdminBookingsPage() {
 
   useEffect(() => {
     const loadSettings = async () => {
+      if (isViewer) {
+        try {
+          const settings = await fetchBookingViewerSettings()
+          setCalendarEnabled(settings.calendar_enabled ?? true)
+          setEmailEnabled(settings.email_enabled ?? false)
+          setServiceTypes(settings.service_types ?? [])
+          setAssignEnabled(false)
+        } catch (err) {
+          logger.error('Failed to load viewer booking options:', err)
+        }
+        return
+      }
       try {
         const settings = await fetchBookingSettings()
         setWalkinEnabled(settings.walkin_enabled ?? true)
@@ -163,7 +176,7 @@ export default function AdminBookingsPage() {
       }
     }
     void loadSettings()
-  }, [])
+  }, [isViewer])
 
   const handleStatus = async (booking: Booking, status: BookingStatus) => {
     setUpdatingId(booking.id)
