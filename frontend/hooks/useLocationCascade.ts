@@ -27,35 +27,39 @@ export function useLocationCascade(
   const [loadingSubDistricts, setLoadingSubDistricts] = useState(false)
   const [selectedProvinceId, setSelectedProvinceId] = useState<number | null>(null)
   const [selectedDistrictId, setSelectedDistrictId] = useState<number | null>(null)
-  const provinceReqRef = useRef<string | null>(null)
-  const districtReqRef = useRef<string | null>(null)
+  const provinceReqRef = useRef(0)
+  const districtReqRef = useRef(0)
 
   const selectProvince = useCallback(
     async (rawValue: string, provinces: Province[]) => {
       const provinceId = parseInt(rawValue)
+      const req = ++provinceReqRef.current
       const provinceObj = provinces.find((p) => p.PROVINCE_ID === provinceId)
       setSelectedProvinceId(provinceId)
+      districtReqRef.current += 1
       setDistricts([])
       setSubDistricts([])
       setSelectedDistrictId(null)
+      setLoadingSubDistricts(false)
       onSelectionChange({
         province: provinceObj?.PROVINCE_THAI ?? '',
         district: '',
         sub_district: '',
       })
-      if (!provinceId) return
+      if (!provinceId) {
+        setLoadingDistricts(false)
+        return
+      }
       setLoadingDistricts(true)
-      const reqId = String(provinceId)
-      provinceReqRef.current = reqId
       try {
         const data = await fetchDistricts(provinceId)
-        if (provinceReqRef.current !== reqId) return
+        if (provinceReqRef.current !== req) return
         setDistricts(data)
       } catch (err) {
-        if (provinceReqRef.current !== reqId) return
+        if (provinceReqRef.current !== req) return
         logger.error(err)
       } finally {
-        if (provinceReqRef.current === reqId) setLoadingDistricts(false)
+        if (provinceReqRef.current === req) setLoadingDistricts(false)
       }
     },
     [onSelectionChange],
@@ -64,6 +68,7 @@ export function useLocationCascade(
   const selectDistrict = useCallback(
     async (rawValue: string, districtList: District[]) => {
       const districtId = parseInt(rawValue)
+      const req = ++districtReqRef.current
       const districtObj = districtList.find((d) => d.DISTRICT_ID === districtId)
       setSelectedDistrictId(districtId)
       setSubDistricts([])
@@ -71,19 +76,20 @@ export function useLocationCascade(
         district: districtObj?.DISTRICT_THAI ?? '',
         sub_district: '',
       })
-      if (!districtId) return
+      if (!districtId) {
+        setLoadingSubDistricts(false)
+        return
+      }
       setLoadingSubDistricts(true)
-      const reqId = String(districtId)
-      districtReqRef.current = reqId
       try {
         const data = await fetchSubDistricts(districtId)
-        if (districtReqRef.current !== reqId) return
+        if (districtReqRef.current !== req) return
         setSubDistricts(data)
       } catch (err) {
-        if (districtReqRef.current !== reqId) return
+        if (districtReqRef.current !== req) return
         logger.error(err)
       } finally {
-        if (districtReqRef.current === reqId) setLoadingSubDistricts(false)
+        if (districtReqRef.current === req) setLoadingSubDistricts(false)
       }
     },
     [onSelectionChange],
@@ -103,8 +109,10 @@ export function useLocationCascade(
     setSubDistricts([])
     setSelectedProvinceId(null)
     setSelectedDistrictId(null)
-    provinceReqRef.current = null
-    districtReqRef.current = null
+    setLoadingDistricts(false)
+    setLoadingSubDistricts(false)
+    provinceReqRef.current += 1
+    districtReqRef.current += 1
   }, [])
 
   return {
