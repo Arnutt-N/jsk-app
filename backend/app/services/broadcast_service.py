@@ -488,6 +488,27 @@ class BroadcastService:
         )
         return list(result.scalars().all())
 
+    async def get_stale_sending_page(
+        self,
+        db: AsyncSession,
+        *,
+        skip: int = 0,
+        limit: int = 50,
+        older_than_seconds: int = STALE_SENDING_SECONDS,
+    ) -> tuple[List[Broadcast], int]:
+        condition = self._reconcilable_condition(older_than_seconds)
+        total = (
+            await db.execute(select(func.count(Broadcast.id)).where(condition))
+        ).scalar_one()
+        result = await db.execute(
+            select(Broadcast)
+            .where(condition)
+            .order_by(Broadcast.updated_at, Broadcast.id)
+            .limit(limit)
+            .offset(skip)
+        )
+        return list(result.scalars().all()), total
+
     async def reconcile_stale_sending(
         self, db: AsyncSession, broadcast: Broadcast, outcome: str,
         *, older_than_seconds: int = STALE_SENDING_SECONDS,

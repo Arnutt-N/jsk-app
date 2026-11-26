@@ -122,8 +122,8 @@ def test_stale_sending_route_is_not_captured_by_broadcast_id():
     try:
         with patch.object(
             broadcast_service,
-            "get_stale_sending",
-            new=AsyncMock(return_value=[]),
+            "get_stale_sending_page",
+            new=AsyncMock(return_value=([], 0)),
         ) as get_stale:
             from fastapi.testclient import TestClient
 
