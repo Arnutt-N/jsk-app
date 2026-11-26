@@ -23,6 +23,7 @@ from app.db.session import get_db
 from app.models.service_request import RequestStatus, ServiceRequest
 from app.models.user import User, UserRole
 from app.services.auth_session_service import invalidate_credentials
+from app.services.super_admin_guard import ensure_active_super_admin
 from app.services.user_identity_service import decrypt_user_line_id
 
 router = APIRouter()
@@ -443,6 +444,14 @@ async def update_user(
     if body.role is not None:
         check_role_permission(current_admin, body.role)
 
+    if body.role is not None or body.is_active is not None:
+        await ensure_active_super_admin(
+            db,
+            user.id,
+            body.role if body.role is not None else user.role,
+            body.is_active if body.is_active is not None else user.is_active,
+        )
+
     # Snapshot prior values for the audit diff -- captured before mutation.
     prior_display_name = user.display_name
     prior_email = user.email
@@ -562,20 +571,7 @@ async def delete_user(
     # Check permission for the user's role
     check_role_permission(current_admin, user.role)
 
-    # Cannot delete the last SUPER_ADMIN
-    if user.role == UserRole.SUPER_ADMIN:
-        count_result = await db.execute(
-            select(func.count(User.id)).where(
-                User.role == UserRole.SUPER_ADMIN,
-                User.is_active.is_(True),
-            )
-        )
-        count = count_result.scalar_one()
-        if count <= 1:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Cannot delete the last active SUPER_ADMIN",
-            )
+    await ensure_active_super_admin(db, user.id, UserRole.USER, False)
 
     # Capture before mutation -- the row (or its identity) may be gone/reset
     # by the time the response is built.
