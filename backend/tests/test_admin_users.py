@@ -116,6 +116,12 @@ class _FakeResult:
     def scalar_one_or_none(self):
         return self._value
 
+    def first(self):
+        return None
+
+    def scalar_one(self):
+        return 0
+
 
 def _target_user(role: UserRole, user_id: int = 5):
     return SimpleNamespace(
