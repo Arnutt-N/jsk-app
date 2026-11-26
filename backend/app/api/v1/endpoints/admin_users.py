@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import check_role_permission, get_current_admin, get_current_staff, require_permission
 from app.core.audit import create_audit_log
+from app.core.email import normalize_email
 from app.core.permissions import KEY_MANAGE_USERS
 from app.core.pii_masking import mask_line_id
 from app.core.query_utils import escape_ilike
@@ -73,6 +74,11 @@ class UserCreateRequest(BaseModel):
     def _check_password_bytes(cls, v: str) -> str:
         return assert_bcrypt_compatible(v)
 
+    @field_validator("email")
+    @classmethod
+    def _normalize_email(cls, v: str | None) -> str | None:
+        return normalize_email(v)
+
 
 class UserUpdateRequest(BaseModel):
     display_name: Optional[str] = None
@@ -85,6 +91,11 @@ class UserUpdateRequest(BaseModel):
     @classmethod
     def _check_password_bytes(cls, v: Optional[str]) -> Optional[str]:
         return assert_bcrypt_compatible(v) if v is not None else v
+
+    @field_validator("email")
+    @classmethod
+    def _normalize_email(cls, v: str | None) -> str | None:
+        return normalize_email(v)
 
 
 class ResetPasswordRequest(BaseModel):
@@ -361,21 +372,26 @@ async def create_user(
         role=body.role,
         is_active=True,
     )
-    db.add(user)
-    await db.flush()  # assign user.id before the audit row references it
+    try:
+        db.add(user)
+        await db.flush()  # assign user.id before the audit row references it
 
-    await create_audit_log(
-        db=db,
-        admin_id=current_admin.id,
-        action="create_user",
-        resource_type="user",
-        resource_id=str(user.id),
-        details={
-            "username": user.username,
-            "role": user.role.value if hasattr(user.role, "value") else str(user.role),
-        },
-    )
-    await db.commit()
+        await create_audit_log(
+            db=db,
+            admin_id=current_admin.id,
+            action="create_user",
+            resource_type="user",
+            resource_id=str(user.id),
+            details={
+                "username": user.username,
+                "role": user.role.value if hasattr(user.role, "value") else str(user.role),
+            },
+        )
+        await db.commit()
+    except IntegrityError as exc:
+        await db.rollback()
+        detail = "Email already exists" if "email" in str(exc).lower() else "Username already exists"
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=detail) from exc
     await db.refresh(user)
 
     return UserOut(
@@ -496,7 +512,12 @@ async def update_user(
             details=audit_details,
         )
 
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError as exc:
+        await db.rollback()
+        detail = "Email already exists" if "email" in str(exc).lower() else "Username already exists"
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=detail) from exc
     await db.refresh(user)
 
     return UserOut(
