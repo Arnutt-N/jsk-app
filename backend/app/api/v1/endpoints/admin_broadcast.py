@@ -203,10 +203,10 @@ async def list_stale_sending(
     db: AsyncSession = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
-    items = await broadcast_service.get_stale_sending(db, limit=limit)
+    items, total = await broadcast_service.get_stale_sending_page(db, skip=skip, limit=limit)
     return BroadcastListResponse(
-        items=[BroadcastResponse.model_validate(b) for b in items[skip:]],
-        total=len(items),
+        items=[BroadcastResponse.model_validate(b) for b in items],
+        total=total,
         skip=skip,
         limit=limit,
     )
