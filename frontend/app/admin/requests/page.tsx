@@ -29,6 +29,7 @@ import {
     HelpCircle,
 } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
+import { useIsViewer } from '@/components/admin/ViewerHide';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { AssignModal } from '@/components/admin/AssignModal';
 import { ActionIconButton } from '@/components/ui/ActionIconButton';
@@ -91,6 +92,7 @@ const PAGE_LIMIT = 100;
 
 export default function AdminRequestList() {
     const { toast } = useToast();
+    const isViewer = useIsViewer();
     const [requests, setRequests] = useState<ServiceRequest[]>([]);
     const [loading, setLoading] = useState(true);
     const [fetchError, setFetchError] = useState<string | null>(null);
@@ -288,7 +290,7 @@ export default function AdminRequestList() {
                                 <div className="col-span-1 md:col-span-2">
                                     <Input
                                         type="text"
-                                        placeholder="ค้นหาชื่อ, เบอร์โทรศัพท์ หรือรายละเอียด..."
+                                        placeholder={isViewer ? 'ค้นหาชื่อ หรือรายละเอียด...' : 'ค้นหาชื่อ, เบอร์โทรศัพท์ หรือรายละเอียด...'}
                                         value={search}
                                         onChange={(e) => setSearch(e.target.value)}
                                         leftIcon={<Search className="w-4 h-4" />}

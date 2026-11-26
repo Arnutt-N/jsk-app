@@ -11,7 +11,7 @@ from time import monotonic
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -19,7 +19,7 @@ from app.api.deps import get_current_admin, get_current_staff, get_current_staff
 from app.core.audit import create_audit_log
 from app.core.date_windows import InvertedRangeError, optional_range_utc
 from app.core.permissions import can_assign, can_self_assign
-from app.core.pii_masking import mask_viewer_contacts
+from app.core.pii_masking import mask_viewer_contacts, viewer_search_columns
 from app.core.query_utils import escape_ilike
 from app.db.session import get_db
 from app.models.booking import Booking, BookingStatus
@@ -79,7 +79,7 @@ async def list_bookings(
     status: Optional[BookingStatus] = Query(default=None),
     service_type: Optional[str] = Query(default=None, max_length=200),
     search: Optional[str] = Query(default=None, alias="q", max_length=120,
-                                   description="Search by name, phone, or queue number"),
+                                   description="Search by name or queue number; phone for staff roles"),
     unassigned_only: bool = Query(default=False, description="Only bookings with no assignee"),
     limit: int = Query(default=100, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
@@ -118,10 +118,12 @@ async def list_bookings(
         # Same wildcard escaping as the requests list: a literal % or _ in a
         # phone number must not turn into a wildcard.
         escaped = escape_ilike(search)
+        columns = viewer_search_columns(
+            (Booking.contact_name, Booking.phone_number, Booking.queue_number),
+            _staff.role,
+        )
         stmt = stmt.where(
-            (Booking.contact_name.ilike(f"%{escaped}%", escape="\\")) |
-            (Booking.phone_number.ilike(f"%{escaped}%", escape="\\")) |
-            (Booking.queue_number.ilike(f"%{escaped}%", escape="\\"))
+            or_(*(c.ilike(f"%{escaped}%", escape="\\") for c in columns))
         )
 
     if unassigned_only:

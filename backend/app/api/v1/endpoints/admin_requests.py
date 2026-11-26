@@ -4,7 +4,7 @@ from datetime import date, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_admin, get_current_manager, get_current_manager_or_viewer
@@ -16,7 +16,7 @@ from app.core.permissions import (
     can_revert_approval,
     can_self_assign,
 )
-from app.core.pii_masking import mask_viewer_contacts
+from app.core.pii_masking import mask_viewer_contacts, viewer_search_columns
 from app.core.query_utils import escape_ilike
 from app.core.request_workflow import describe_invalid_transition, requires_override
 from app.db.session import get_db
@@ -278,7 +278,7 @@ async def get_performance_stats(db: AsyncSession = Depends(get_db), current_admi
 async def list_requests(
     status: RequestStatus | None = None,
     category: str | None = None,
-    search: str | None = Query(None, description="Search by name, phone, or description"),
+    search: str | None = Query(None, description="Search by name or description; phone for staff roles"),
     start_date: date | None = Query(None, description="Filter requests created on or after this date (YYYY-MM-DD)"),
     end_date: date | None = Query(None, description="Filter requests created on or before this date (YYYY-MM-DD)"),
     skip: int = Query(0, ge=0),
@@ -319,13 +319,14 @@ async def list_requests(
     
     if search:
         escaped = escape_ilike(search)
-        search_filter = (
-            (ServiceRequest.firstname.ilike(f"%{escaped}%", escape="\\")) |
-            (ServiceRequest.lastname.ilike(f"%{escaped}%", escape="\\")) |
-            (ServiceRequest.phone_number.ilike(f"%{escaped}%", escape="\\")) |
-            (ServiceRequest.description.ilike(f"%{escaped}%", escape="\\"))
+        columns = viewer_search_columns(
+            (ServiceRequest.firstname, ServiceRequest.lastname,
+             ServiceRequest.phone_number, ServiceRequest.description),
+            current_admin.role,
         )
-        query = query.where(search_filter)
+        query = query.where(
+            or_(*(c.ilike(f"%{escaped}%", escape="\\") for c in columns))
+        )
         
     result = await db.execute(query)
     

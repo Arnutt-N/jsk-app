@@ -41,6 +41,22 @@ def mask_email(v: str | None, role: UserRole | str) -> str | None:
     return (local[:1] + "***" if local else "***") + sep + domain
 
 
+_VIEWER_MASKERS = {
+    "line_user_id": mask_line_id,
+    "phone_number": mask_phone,
+    "email": mask_email,
+}
+_VIEWER_MASKED_FIELDS = frozenset(_VIEWER_MASKERS)
+
+
+def viewer_search_columns(columns, role: UserRole | str):
+    """Search columns visible to the caller, derived from the same fields the
+    response masks for VIEWER."""
+    if not is_readonly_viewer(role):
+        return tuple(columns)
+    return tuple(c for c in columns if c.key not in _VIEWER_MASKED_FIELDS)
+
+
 def is_readonly_viewer(role: UserRole | str | None) -> bool:
     if role is None:
         return False
@@ -59,10 +75,7 @@ def mask_viewer_contacts(payload: dict, role: UserRole | str) -> dict:
     if not is_readonly_viewer(role):
         return payload
     masked = dict(payload)
-    if masked.get("line_user_id"):
-        masked["line_user_id"] = mask_line_id(masked["line_user_id"], role)
-    if masked.get("phone_number"):
-        masked["phone_number"] = mask_phone(masked["phone_number"], role)
-    if masked.get("email"):
-        masked["email"] = mask_email(masked["email"], role)
+    for field, masker in _VIEWER_MASKERS.items():
+        if masked.get(field):
+            masked[field] = masker(masked[field], role)
     return masked
