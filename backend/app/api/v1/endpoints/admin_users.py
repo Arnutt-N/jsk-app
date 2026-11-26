@@ -22,6 +22,7 @@ from app.core.security import (
 from app.db.session import get_db
 from app.models.service_request import RequestStatus, ServiceRequest
 from app.models.user import User, UserRole
+from app.services.auth_session_service import invalidate_credentials
 from app.services.user_identity_service import decrypt_user_line_id
 
 router = APIRouter()
@@ -481,6 +482,7 @@ async def update_user(
                 detail="Only SUPER_ADMIN can change passwords via this endpoint",
             )
         user.hashed_password = await get_password_hash_async(body.password)
+        await invalidate_credentials(db, user.id)
 
     # Field NAMES only (+ role/is_active old->new) -- never the password.
     changed_fields = []
@@ -624,6 +626,7 @@ async def reset_password(
         raise HTTPException(status_code=404, detail="User not found")
 
     user.hashed_password = await get_password_hash_async(body.new_password)
+    await invalidate_credentials(db, user.id)
 
     await create_audit_log(
         db=db,
