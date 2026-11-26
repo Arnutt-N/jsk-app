@@ -297,6 +297,13 @@ else
   fi
 fi
 
+# ---------- handoff history retention ----------
+if node "$SCRIPTS/test-handoff-history.cjs"; then
+  ok "T25 handoff history keeps all entries across successive handoffs"
+else
+  bad "T25 handoff history retention (node test failed)"
+fi
+
 # ---------- summary ----------
 echo
 echo "handoff-system golden tests: $PASS passed, $FAIL failed"

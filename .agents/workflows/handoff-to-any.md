@@ -26,8 +26,8 @@ node .agents/scripts/handoff-new.cjs qoder "Auth fix ready for review" --to clin
 That single command does **everything**:
 1. Writes the **checkpoint JSON** (source of truth) + a **session-summary** stub.
 2. Syncs `current-session.json` (prepends `handoff_history`, refreshes `last_updated`).
-   Note: `handoff_history` is capped at the **last 20 entries** (`history.slice(0, 20)` in
-   `handoff-new.cjs`) — older entries disappearing is expected retention, not data loss.
+   `handoff_history_archive` keeps every entry; `handoff_history` is a 20-entry compact view
+   derived from that archive. Older entries remain discoverable in the archive.
 3. Refreshes `PROJECT_STATUS.md` — only the `Last Updated` line and one prepended
    `Recent Completions` entry (curated sections are left intact — keep those current by hand).
 4. Regenerates `TASK_LOG.md` + `SESSION_INDEX.md` + `HANDOFF_BOARD.md` via `gen-handoff-views.cjs`.
