@@ -9,7 +9,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { Select } from '@/components/ui/Select'
 import { ViewToggle } from '@/components/admin/ViewToggle'
 import { CalendarDays, BellRing, ChevronLeft, ChevronRight, LayoutList, Pencil, Phone, Plus, RefreshCw, Search, UserMinus, UserPlus } from 'lucide-react'
-import { ViewerHide } from '@/components/admin/ViewerHide';
+import { ViewerHide, useIsViewer } from '@/components/admin/ViewerHide';
 import { logger } from '@/lib/logger'
 import { formatThaiDate, formatThaiDateTime } from '@/lib/format-date'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
@@ -59,6 +59,7 @@ const ACTIONS: { status: BookingStatus; label: string }[] = [
 ]
 
 export default function AdminBookingsPage() {
+  const isViewer = useIsViewer()
   const dateFilter = useDatePresetFilter()
   const { customStart, customEnd, params: dateParams, isBlocked } = dateFilter
   const [statusFilter, setStatusFilter] = useState<BookingStatus | ''>('')
@@ -328,7 +329,7 @@ export default function AdminBookingsPage() {
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="ค้นชื่อ เบอร์ หรือเลขคิว"
+            placeholder={isViewer ? 'ค้นชื่อ หรือเลขคิว' : 'ค้นชื่อ เบอร์ หรือเลขคิว'}
             aria-label="ค้นหาการจอง"
             leftIcon={<Search className="h-4 w-4" aria-hidden="true" />}
           />

@@ -379,7 +379,7 @@ async def test_search_filters_name_phone_and_queue_with_escaped_wildcards():
     db.execute.return_value = result
 
     await admin_bookings.list_bookings(
-        search="081%", db=db, _staff=SimpleNamespace(id=1), limit=100, offset=0
+        search="081%", db=db, _staff=SimpleNamespace(id=1, role="ADMIN"), limit=100, offset=0
     )
 
     stmt = db.execute.call_args.args[0]
@@ -402,7 +402,7 @@ async def test_blank_search_adds_no_filter():
     db.execute.return_value = result
 
     await admin_bookings.list_bookings(
-        search="", db=db, _staff=SimpleNamespace(id=1), limit=100, offset=0
+        search="", db=db, _staff=SimpleNamespace(id=1, role="ADMIN"), limit=100, offset=0
     )
 
     stmt = db.execute.call_args.args[0]
