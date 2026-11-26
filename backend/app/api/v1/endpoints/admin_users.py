@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import check_role_permission, get_current_admin, get_current_staff, require_permission
 from app.core.audit import create_audit_log
-from app.core.email import normalize_email
+from app.core.email import email_matches, normalize_email
 from app.core.permissions import KEY_MANAGE_USERS
 from app.core.pii_masking import mask_line_id
 from app.core.query_utils import escape_ilike
@@ -358,7 +358,7 @@ async def create_user(
 
     # Check email uniqueness (if provided)
     if body.email:
-        existing_email = await db.execute(select(User).where(User.email == body.email))
+        existing_email = await db.execute(select(User).where(email_matches(User.email, body.email)))
         if existing_email.scalar_one_or_none():
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
@@ -457,7 +457,7 @@ async def update_user(
     if email_supplied:
         if body.email:
             existing = await db.execute(
-                select(User).where(User.email == body.email, User.id != user_id)
+                select(User).where(email_matches(User.email, body.email), User.id != user_id)
             )
             if existing.scalar_one_or_none():
                 raise HTTPException(

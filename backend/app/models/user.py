@@ -1,8 +1,7 @@
 import enum
 
-from sqlalchemy import Boolean, Column, DateTime, Enum, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, Column, DateTime, Enum, ForeignKey, Index, Integer, String, Text, func, text
 from sqlalchemy.orm import relationship
-from sqlalchemy.sql import func
 
 from app.db.base import Base
 
@@ -52,7 +51,7 @@ class User(Base):
     line_user_id_encrypted = Column(Text, nullable=True)
     line_key_version = Column(Integer, nullable=False, default=1, server_default="1")
     username = Column(String, unique=True, index=True, nullable=True)     # For Admins
-    email = Column(String, unique=True, index=True, nullable=True)
+    email = Column(String, nullable=True)
     hashed_password = Column(String, nullable=True)
     
     display_name = Column(String, nullable=True)
@@ -76,6 +75,15 @@ class User(Base):
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    __table_args__ = (
+        Index(
+            "uq_users_email_lower",
+            func.lower(func.btrim(email)),
+            unique=True,
+            postgresql_where=text("email IS NOT NULL"),
+        ),
+    )
 
     requests = relationship("ServiceRequest", back_populates="requester", foreign_keys="ServiceRequest.requester_id")
     assigned_requests = relationship("ServiceRequest", back_populates="assignee", foreign_keys="ServiceRequest.assigned_agent_id")
