@@ -403,7 +403,7 @@ async def get_user_rich_menu_assignment(
     id: int,
     user_id: str = Path(pattern=LINE_USER_ID_PATTERN),
     db: AsyncSession = Depends(get_db),
-    current_admin: User = Depends(get_current_admin_or_viewer),
+    current_admin: User = Depends(require_permission(KEY_MANAGE_RICH_MENUS)),
 ):
     # `id` is an existence/consistency anchor; the returned assignment is the
     # user's actual LINE menu (may differ from `id`).
