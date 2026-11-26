@@ -34,6 +34,7 @@ from app.models.auth_session import (
     STATUS_ROTATED,
     AuthSession,
 )
+from app.models.password_reset_token import PasswordResetToken
 from app.models.ws_ticket import WsTicket
 
 # Opportunistic-delete retention windows (PRD open question, ratified in the
@@ -227,6 +228,17 @@ async def revoke_all_user_sessions(db: AsyncSession, user_id: int) -> int:
         .values(status=STATUS_REVOKED)
     )
     return result.rowcount or 0
+
+
+async def invalidate_credentials(db: AsyncSession, user_id: int) -> None:
+    """Use every outstanding reset link and revoke every refresh session."""
+    now = datetime.now(timezone.utc)
+    await db.execute(
+        update(PasswordResetToken)
+        .where(PasswordResetToken.user_id == user_id, PasswordResetToken.used_at.is_(None))
+        .values(used_at=now)
+    )
+    await revoke_all_user_sessions(db, user_id)
 
 
 async def mint_ws_ticket(db: AsyncSession, user_id: int) -> str:

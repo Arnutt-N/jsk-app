@@ -44,8 +44,8 @@ from app.services.auth_session_service import (
     WS_TICKET_TTL_SECONDS,
     RotationOutcome,
     create_session_family,
+    invalidate_credentials,
     mint_ws_ticket,
-    revoke_all_user_sessions,
     revoke_family,
     rotate_refresh_session,
 )
@@ -432,15 +432,7 @@ async def reset_password(
             detail="ลิงก์ไม่ถูกต้องหรือหมดอายุแล้ว",
         )
     user.hashed_password = await get_password_hash_async(payload.new_password)
-    await db.execute(
-        update(PasswordResetToken)
-        .where(
-            PasswordResetToken.user_id == user.id,
-            PasswordResetToken.used_at.is_(None),
-        )
-        .values(used_at=now)
-    )
-    await revoke_all_user_sessions(db, user.id)
+    await invalidate_credentials(db, user.id)
     await create_audit_log(
         db,
         admin_id=user.id,

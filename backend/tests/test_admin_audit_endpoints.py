@@ -192,6 +192,7 @@ class _FakeQueryResult:
 
     def __init__(self, value=None):
         self._value = value
+        self.rowcount = 0
 
     def scalar_one_or_none(self):
         return self._value
