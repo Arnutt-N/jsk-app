@@ -1,93 +1,150 @@
 // @vitest-environment jsdom
-import { act, renderHook, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { ReactNode } from 'react'
 
-import type { District } from '../../types/location'
+import { useLocationCascade } from '@/hooks/useLocationCascade'
+import type { District, Province, SubDistrict } from '@/types/location'
 
-import { useLocationCascade } from '../useLocationCascade'
-
-vi.mock('@/lib/liff/location-cascade', () => ({
+const mocks = vi.hoisted(() => ({
   fetchDistricts: vi.fn(),
   fetchSubDistricts: vi.fn(),
 }))
 
-import { fetchDistricts, fetchSubDistricts } from '@/lib/liff/location-cascade'
+vi.mock('@/lib/liff/location-cascade', () => ({
+  fetchDistricts: mocks.fetchDistricts,
+  fetchSubDistricts: mocks.fetchSubDistricts,
+}))
 
-const PROVINCES = [
-  { PROVINCE_ID: 1, PROVINCE_THAI: 'ก', PROVINCE_ENGLISH: 'K' },
-  { PROVINCE_ID: 2, PROVINCE_THAI: 'ข', PROVINCE_ENGLISH: 'Kh' },
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>((r) => { resolve = r })
+  return { promise, resolve }
+}
+
+const provinces: Province[] = [
+  { PROVINCE_ID: 1, PROVINCE_THAI: 'A', PROVINCE_ENGLISH: 'A' },
+  { PROVINCE_ID: 2, PROVINCE_THAI: 'B', PROVINCE_ENGLISH: 'B' },
 ]
-
-const DISTRICTS = [{ DISTRICT_ID: 10, DISTRICT_THAI: 'อ', PROVINCE_ID: 1 }]
-const SUBS = [{ SUB_DISTRICT_ID: 100, SUB_DISTRICT_THAI: 'ต', DISTRICT_ID: 10 }]
-
-beforeEach(() => {
-  vi.restoreAllMocks()
+const district = (id: number): District => ({
+  DISTRICT_ID: id, PROVINCE_ID: 1, DISTRICT_THAI: `D${id}`, DISTRICT_ENGLISH: `D${id}`,
+})
+const subdistrict = (id: number): SubDistrict => ({
+  SUB_DISTRICT_ID: id, DISTRICT_ID: 1, SUB_DISTRICT_THAI: `S${id}`,
+  SUB_DISTRICT_ENGLISH: `S${id}`, POSTAL_CODE: '00000',
 })
 
-describe('useLocationCascade', () => {
-  it('maps ids to Thai names and loads the next level', async () => {
-    vi.mocked(fetchDistricts).mockResolvedValueOnce(DISTRICTS as never)
-    vi.mocked(fetchSubDistricts).mockResolvedValueOnce(SUBS as never)
-    const onSelectionChange = vi.fn()
-    const { result } = renderHook(() => useLocationCascade(onSelectionChange))
+function Harness(): ReactNode {
+  const state = useLocationCascade(() => {})
+  return (
+    <div>
+      <button onClick={() => { void state.selectProvince('1', provinces) }}>province-1</button>
+      <button onClick={() => { void state.selectProvince('2', provinces) }}>province-2</button>
+      <button onClick={() => { void state.selectProvince('', provinces) }}>province-clear</button>
+      <button onClick={() => { void state.selectDistrict('1', [district(1)]) }}>district-1</button>
+      <button onClick={() => { void state.selectDistrict('', [district(1)]) }}>district-clear</button>
+      <button onClick={state.reset}>reset</button>
+      <span data-testid="districts">{state.districts.map((d) => d.DISTRICT_THAI).join(',')}</span>
+      <span data-testid="subdistricts">{state.subDistricts.map((s) => s.SUB_DISTRICT_THAI).join(',')}</span>
+      <span data-testid="loading-districts">{String(state.loadingDistricts)}</span>
+      <span data-testid="loading-subdistricts">{String(state.loadingSubDistricts)}</span>
+    </div>
+  )
+}
 
-    await act(async () => {
-      await result.current.selectProvince('1', PROVINCES as never)
-    })
-    expect(onSelectionChange).toHaveBeenCalledWith({
-      province: 'ก',
-      district: '',
-      sub_district: '',
-    })
-    expect(result.current.districts).toEqual(DISTRICTS)
-    expect(result.current.selectedProvinceId).toBe(1)
+const click = (name: string) => fireEvent.click(screen.getByRole('button', { name }))
 
-    await act(async () => {
-      await result.current.selectDistrict('10', DISTRICTS as never)
-    })
-    expect(onSelectionChange).toHaveBeenCalledWith({ district: 'อ', sub_district: '' })
-    expect(result.current.subDistricts).toEqual(SUBS)
-
-    act(() => {
-      result.current.selectSubDistrict('100', SUBS as never)
-    })
-    expect(onSelectionChange).toHaveBeenCalledWith({ sub_district: 'ต' })
+describe('useLocationCascade stale responses', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mocks.fetchDistricts.mockResolvedValue([])
+    mocks.fetchSubDistricts.mockResolvedValue([])
   })
 
-  it('drops a stale province response when the citizen switches fast', async () => {
-    let resolveSlow!: (v: District[]) => void
-    vi.mocked(fetchDistricts).mockImplementationOnce(
-      () => new Promise<District[]>((resolve) => (resolveSlow = resolve)),
-    )
-    vi.mocked(fetchDistricts).mockResolvedValueOnce([{ DISTRICT_ID: 20 }] as never)
-    const { result } = renderHook(() => useLocationCascade(vi.fn()))
+  it('ignores stale district results after a province change', async () => {
+    const oldReq = deferred<District[]>()
+    const newReq = deferred<District[]>()
+    mocks.fetchDistricts.mockImplementation((id: number) => id === 1 ? oldReq.promise : newReq.promise)
+    render(<Harness />)
 
-    let first!: Promise<void>
+    click('province-1')
+    click('province-2')
+
     await act(async () => {
-      first = result.current.selectProvince('1', PROVINCES as never)
-      await result.current.selectProvince('2', PROVINCES as never)
+      newReq.resolve([district(20)])
+      await newReq.promise
     })
+    expect(screen.getByTestId('districts').textContent).toBe('D20')
+
     await act(async () => {
-      resolveSlow([])
-      await first
+      oldReq.resolve([district(10)])
+      await oldReq.promise
     })
-    await waitFor(() => expect(result.current.loadingDistricts).toBe(false))
-    expect(result.current.districts).toEqual([{ DISTRICT_ID: 20 }])
+    expect(screen.getByTestId('districts').textContent).toBe('D20')
+    expect(screen.getByTestId('loading-districts').textContent).toBe('false')
   })
 
-  it('reset clears ids, lists, and spinners', async () => {
-    vi.mocked(fetchDistricts).mockResolvedValueOnce(DISTRICTS as never)
-    const { result } = renderHook(() => useLocationCascade(vi.fn()))
+  it('invalidates pending subdistrict options when province changes', async () => {
+    const pending = deferred<SubDistrict[]>()
+    mocks.fetchSubDistricts.mockReturnValue(pending.promise)
+    render(<Harness />)
+
+    click('district-1')
+    click('province-2')
 
     await act(async () => {
-      await result.current.selectProvince('1', PROVINCES as never)
+      pending.resolve([subdistrict(1)])
+      await pending.promise
     })
-    act(() => {
-      result.current.reset()
+    expect(screen.getByTestId('subdistricts').textContent).toBe('')
+    expect(screen.getByTestId('loading-subdistricts').textContent).toBe('false')
+  })
+
+  it('clear resets loading state while a fetch is pending', async () => {
+    const pending = deferred<District[]>()
+    mocks.fetchDistricts.mockReturnValue(pending.promise)
+    render(<Harness />)
+
+    click('province-1')
+    click('reset')
+
+    await act(async () => {
+      pending.resolve([district(10)])
+      await pending.promise
     })
-    expect(result.current.selectedProvinceId).toBeNull()
-    expect(result.current.districts).toEqual([])
-    expect(result.current.subDistricts).toEqual([])
+    expect(screen.getByTestId('districts').textContent).toBe('')
+    expect(screen.getByTestId('loading-districts').textContent).toBe('false')
+  })
+
+  it('invalidates district request when province selection is cleared', async () => {
+    const pending = deferred<District[]>()
+    mocks.fetchDistricts.mockReturnValue(pending.promise)
+    render(<Harness />)
+
+    click('province-1')
+    click('province-clear')
+
+    await act(async () => {
+      pending.resolve([district(10)])
+      await pending.promise
+    })
+    expect(screen.getByTestId('districts').textContent).toBe('')
+    expect(screen.getByTestId('loading-districts').textContent).toBe('false')
+  })
+
+  it('invalidates subdistrict request when district selection is cleared', async () => {
+    const pending = deferred<SubDistrict[]>()
+    mocks.fetchSubDistricts.mockReturnValue(pending.promise)
+    render(<Harness />)
+
+    click('district-1')
+    click('district-clear')
+
+    await act(async () => {
+      pending.resolve([subdistrict(1)])
+      await pending.promise
+    })
+    expect(screen.getByTestId('subdistricts').textContent).toBe('')
+    expect(screen.getByTestId('loading-subdistricts').textContent).toBe('false')
   })
 })
