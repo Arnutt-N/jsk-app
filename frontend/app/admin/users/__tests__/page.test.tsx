@@ -32,6 +32,12 @@ const user = {
   updated_at: '2026-01-01T00:00:00Z',
 };
 
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>((r) => { resolve = r })
+  return { promise, resolve }
+}
+
 describe('UsersPage filters and create defaults', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -125,6 +131,47 @@ describe('UsersPage filters and create defaults', () => {
       expect(screen.getAllByRole('combobox')[0]).toHaveValue('');
     });
     expect(screen.queryByRole('button', { name: 'ล้างตัวกรอง' })).not.toBeInTheDocument();
+  });
+
+  it('keeps the newest list when an older filtered response resolves late', async () => {
+    const older = deferred<unknown>();
+    const newer = deferred<unknown>();
+    let listCalls = 0;
+    mockApiFetch.mockImplementation((url: string) => {
+      if (url.includes('/stats')) {
+        return Promise.resolve({
+          ok: true,
+          data: { total: 1, active: 1, inactive: 0, super_admins: 1, admins: 0, agents: 1, users: 0 },
+        });
+      }
+      listCalls += 1;
+      if (listCalls === 1) {
+        return Promise.resolve({ ok: true, data: { users: [user], total: 1, page: 1, per_page: 20, total_pages: 1 } });
+      }
+      if (listCalls === 2) return older.promise;
+      return newer.promise;
+    });
+
+    render(<UsersPage />);
+    await screen.findByText('Agent Two');
+
+    fireEvent.change(screen.getAllByRole('combobox')[0], { target: { value: 'AGENT' } });
+    await waitFor(() => expect(listCalls).toBe(2));
+    fireEvent.change(screen.getAllByRole('combobox')[0], { target: { value: 'ADMIN' } });
+    await waitFor(() => expect(listCalls).toBe(3));
+
+    newer.resolve({
+      ok: true,
+      data: { users: [{ ...user, id: 9, display_name: 'Newer User' }], total: 1, page: 1, per_page: 20, total_pages: 1 },
+    });
+    expect(await screen.findByText('Newer User')).toBeInTheDocument();
+
+    older.resolve({
+      ok: true,
+      data: { users: [{ ...user, id: 8, display_name: 'Older User' }], total: 1, page: 1, per_page: 20, total_pages: 1 },
+    });
+    await waitFor(() => expect(screen.queryByText('Older User')).not.toBeInTheDocument());
+    expect(screen.getByText('Newer User')).toBeInTheDocument();
   });
 
   it('navigates edit button to detail page with edit mode', async () => {
