@@ -222,3 +222,9 @@ class BookingSettingsIn(BaseModel):
 
 class BookingSettingsOut(BookingSettingsIn):
     pass
+
+
+class BookingViewerSettingsOut(BaseModel):
+    service_types: List[str]
+    calendar_enabled: bool
+    email_enabled: bool

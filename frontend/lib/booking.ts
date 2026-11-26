@@ -455,6 +455,18 @@ export async function fetchBookingSettings(): Promise<BookingSettings> {
   return res.json()
 }
 
+export interface BookingViewerSettings {
+  service_types: string[]
+  calendar_enabled: boolean
+  email_enabled: boolean
+}
+
+export async function fetchBookingViewerSettings(): Promise<BookingViewerSettings> {
+  const res = await fetch(`${ADMIN_BASE}/settings`)
+  if (!res.ok) throw new Error(await readError(res, 'ไม่สามารถโหลดการตั้งค่าได้'))
+  return res.json()
+}
+
 export interface LineQuota {
   quota: number | null
   consumption: number

@@ -19,7 +19,7 @@ from app.api.deps import get_current_admin, get_current_staff, get_current_staff
 from app.core.audit import create_audit_log
 from app.core.date_windows import InvertedRangeError, optional_range_utc
 from app.core.permissions import can_assign, can_self_assign
-from app.core.pii_masking import mask_viewer_contacts, viewer_search_columns
+from app.core.pii_masking import is_readonly_viewer, mask_viewer_contacts, viewer_search_columns
 from app.core.query_utils import escape_ilike
 from app.db.session import get_db
 from app.models.booking import Booking, BookingStatus
@@ -33,6 +33,7 @@ from app.schemas.booking import (
     BookingSettingsIn,
     BookingSettingsOut,
     BookingUpdateIn,
+    BookingViewerSettingsOut,
     DayAvailabilityOut,
     LineQuotaOut,
     SlotOut,
@@ -595,14 +596,20 @@ async def assign_booking_staff(
 
 @router.get(
     "/settings",
-    response_model=BookingSettingsOut,
+    response_model=BookingSettingsOut | BookingViewerSettingsOut,
     summary="Read booking configuration",
 )
 async def get_booking_settings(
     db: AsyncSession = Depends(get_db),
-    _staff=Depends(get_current_staff),
+    staff=Depends(get_current_staff_or_viewer),
 ):
     config = await load_booking_config(db)
+    if is_readonly_viewer(staff.role):
+        return BookingViewerSettingsOut(
+            service_types=list(config.service_types),
+            calendar_enabled=config.calendar_enabled,
+            email_enabled=config.email_enabled,
+        )
     return BookingSettingsOut(
         enabled=config.enabled,
         service_types=list(config.service_types),
