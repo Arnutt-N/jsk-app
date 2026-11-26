@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import {
@@ -94,6 +94,7 @@ export default function UserDetailPage() {
     const API_BASE = '/api/v1';
 
     const isSelf = currentUser?.id === userId;
+    const seqRef = useRef(0);
 
     const roleOptions = useMemo(() => {
         if (currentUser?.role !== 'SUPER_ADMIN' && currentUser?.role !== 'ADMIN') return ALL_ROLE_OPTIONS;
@@ -105,11 +106,15 @@ export default function UserDetailPage() {
     }, [currentUser?.role, role]);
 
     const fetchUser = useCallback(async () => {
+        const seq = ++seqRef.current;
+        setError('');
         setLoading(true);
         try {
             const res = await fetch(`${API_BASE}/admin/users/${userId}`, { headers: JSON_HEADERS });
+            if (seq !== seqRef.current) return;
             if (res.ok) {
                 const data: UserRecord = await res.json();
+                if (seq !== seqRef.current) return;
                 setUserData(data);
                 setDisplayName(data.display_name || '');
                 setEmail(data.email || '');
@@ -117,14 +122,16 @@ export default function UserDetailPage() {
                 setIsActive(data.is_active);
             } else {
                 const msg = await readErrorMessage(res, 'ไม่พบผู้ใช้');
+                if (seq !== seqRef.current) return;
                 logger.error('fetchUser failed', { status: res.status, userId });
                 setError(msg);
             }
         } catch (err) {
+            if (seq !== seqRef.current) return;
             logger.error('fetchUser error', err, { userId });
             setError('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้');
         } finally {
-            setLoading(false);
+            if (seq === seqRef.current) setLoading(false);
         }
     }, [API_BASE, userId]);
 
@@ -141,7 +148,7 @@ export default function UserDetailPage() {
     }, [fetchUser]);
 
     const handleSave = async () => {
-        if (!userData) return;
+        if (!userData || String(userData.id) !== userId) return;
         setSaving(true);
         setError('');
         try {
@@ -178,6 +185,7 @@ export default function UserDetailPage() {
     };
 
     const handleChangePassword = async () => {
+        if (!userData || String(userData.id) !== userId) return;
         if (newPassword.length < 8) {
             setError('รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร');
             return;
@@ -207,6 +215,7 @@ export default function UserDetailPage() {
     };
 
     const handleResetPassword = async () => {
+        if (!userData || String(userData.id) !== userId) return;
         if (resetPw.length < 8) {
             setResetError('รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร');
             return;

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import {
@@ -101,6 +101,7 @@ export default function UsersPage() {
     const [totalPages, setTotalPages] = useState(1);
     const [total, setTotal] = useState(0);
     const [reloadKey, setReloadKey] = useState(0);
+    const seqRef = useRef(0);
 
     // Filters
     const [search, setSearch] = useState('');
@@ -137,6 +138,7 @@ export default function UsersPage() {
     /* ── Fetch ──────────────────────────────────────────────────────── */
 
     const fetchUsers = useCallback(async () => {
+        const seq = ++seqRef.current;
         setLoading(true);
         try {
             const params = new URLSearchParams();
@@ -147,6 +149,7 @@ export default function UsersPage() {
             if (search) params.set('search', search);
 
             const result = await apiFetch<UserListResponse>(`/admin/users?${params}`);
+            if (seq !== seqRef.current) return;
             if (result.ok) {
                 setUsers(result.data.users);
                 setTotalPages(result.data.total_pages);
@@ -155,7 +158,7 @@ export default function UsersPage() {
                 setAlert({ type: 'error', title: 'ไม่สำเร็จ', message: result.message });
             }
         } finally {
-            setLoading(false);
+            if (seq === seqRef.current) setLoading(false);
         }
     }, [page, roleFilter, statusFilter, search]);
 
