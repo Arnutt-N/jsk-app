@@ -32,7 +32,8 @@ Canonical platforms: `claude_code`, `codex`, `kimi_code`, `antigravity`, `gemini
 
 1. Writes the **checkpoint JSON** — `.agents/state/checkpoints/handover-<platform>-<YYYYMMDD-HHMM>.json` (source of truth).
 2. Writes a **session-summary stub** — `project-log-md/<platform>/session-summary-<YYYYMMDD-HHMM>.md`.
-3. Syncs `current-session.json` (prepends `handoff_history`, refreshes `last_updated`).
+3. Syncs `current-session.json` (prepends `handoff_history`, keeps every entry in
+   `handoff_history_archive`, refreshes `last_updated`).
 4. Refreshes the `PROJECT_STATUS.md` `Last Updated` line + one `Recent Completions` entry.
 5. Regenerates `TASK_LOG.md` + `SESSION_INDEX.md` + `HANDOFF_BOARD.md` (status + queue).
 6. Runs `validate_handoff_state.py` and prints PASS / FAIL / skipped.

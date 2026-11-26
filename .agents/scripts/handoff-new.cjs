@@ -44,6 +44,33 @@ const DISPLAY = {
 const displayName = (p) =>
   DISPLAY[p] || p.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
+const historyKey = (entry) => [
+  entry.timestamp, entry.platform, entry.from, entry.head, entry.task,
+].map((value) => value ?? '').join('|');
+
+const historyTime = (entry) => {
+  const time = Date.parse(entry.timestamp || '');
+  return Number.isNaN(time) ? 0 : time;
+};
+
+function buildHandoffHistory(session, entry, limit = 20) {
+  const compact = Array.isArray(session.handoff_history) ? session.handoff_history : [];
+  const stored = Array.isArray(session.handoff_history_archive) ? session.handoff_history_archive : [];
+  const seen = new Set();
+  const archive = [entry, ...stored, ...compact]
+    .filter((item) => item && typeof item === 'object' && !Array.isArray(item))
+    .filter((item) => {
+      const key = historyKey(item);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .sort((a, b) => historyTime(b) - historyTime(a));
+  return { archive, compact: archive.slice(0, limit) };
+}
+
+module.exports = { buildHandoffHistory };
+
 function main() {
   const ROOT = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim();
   // Parse optional --model and --provider flags from argv, then remove them
@@ -220,8 +247,8 @@ function main() {
   const csPath = path.join(ROOT, '.agents', 'state', 'current-session.json');
   let cs = {};
   try { cs = JSON.parse(fs.readFileSync(csPath, 'utf8')); } catch { cs = {}; }
-  const history = Array.isArray(cs.handoff_history) ? cs.handoff_history : [];
-  history.unshift({ timestamp: iso, platform, branch: branch || 'main', head, status: 'completed' });
+  const entry = { timestamp: iso, platform, branch: branch || 'main', head, status: 'completed' };
+  const { archive, compact } = buildHandoffHistory(cs, entry);
   fs.writeFileSync(
     csPath,
     JSON.stringify(
@@ -231,7 +258,8 @@ function main() {
         current_task: summaryArg.slice(0, 200),
         plan_status: 'completed',
         next_steps: nextSteps,
-        handoff_history: history.slice(0, 20),
+        handoff_history: compact,
+        handoff_history_archive: archive,
         cross_platform_context: cs.cross_platform_context || {},
         // Track model/provider for the current platform (optional, for traceability)
         ...(model ? { model } : {}),
@@ -322,4 +350,4 @@ function runValidator(root, platform) {
   return null; // no interpreter found
 }
 
-main();
+if (require.main === module) main();
