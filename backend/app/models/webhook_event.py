@@ -16,6 +16,7 @@ class ReplyDeliveryStatus(str, enum.Enum):
     NONE = "none"
     SENT = "sent"
     FAILED = "failed"
+    UNKNOWN = "unknown"
 
 
 class WebhookEvent(Base):

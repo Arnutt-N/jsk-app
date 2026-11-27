@@ -17,16 +17,32 @@ from app.core.logging_utils import mask_line_id
 from app.core.redis_client import redis_client
 from app.db.session import AsyncSessionLocal
 from app.models.webhook_event import ReplyDeliveryStatus, WebhookEvent
+from app.services.delivery_outcome import DeliveryOutcome
 from app.services.friend_service import friend_service
 from app.services.message_intake.message_handler import handle_message_event as _handle_message_event_impl
 from app.services.message_intake.postback_handler import handle_postback_event
-from app.services.outbox import Outbox, drain_outbox, new_outbox
+from app.services.outbox import (
+    Outbox,
+    OutboxItem,
+    OutboxKind,
+    drain_outbox,
+    drain_outbox_outcomes,
+    new_outbox,
+    reply,
+)
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
 WEBHOOK_EVENT_KEY_PREFIX = "webhook:event:"
 WEBHOOK_EVENT_LOCK_SUFFIX = ":lock"
+
+_REPLY_STATUS = {
+    DeliveryOutcome.SENT: ReplyDeliveryStatus.SENT,
+    DeliveryOutcome.NOT_SENT: ReplyDeliveryStatus.FAILED,
+    DeliveryOutcome.UNKNOWN: ReplyDeliveryStatus.UNKNOWN,
+    DeliveryOutcome.TEMPORARY_FAILURE: ReplyDeliveryStatus.UNKNOWN,
+}
 
 # F-005: this endpoint is public and unauthenticated, and the signature check
 # needs the whole body, so everything before it is attacker-controlled. LINE
@@ -225,24 +241,31 @@ async def process_webhook_events(events):
                         continue
                 await db.commit()
 
-                failures = 0
+                outcomes = {}
                 if box is not None:
-                    failures = await drain_outbox(box)
-
-                # Reply outcome is a separate status on the same row.
-                # Redelivery sees inbound_applied_at and never re-runs the
-                # inbound handler; it can retry only the reply.
+                    if any(isinstance(item, OutboxItem) for item in box):
+                        outcomes = await drain_outbox_outcomes(box)
+                    else:
+                        # Legacy untagged callers are preserved: a failure is
+                        # recorded as reply failure for backward compatibility.
+                        failures = await drain_outbox(box)
+                        outcomes = {
+                            OutboxKind.REPLY: (
+                                DeliveryOutcome.NOT_SENT if failures else DeliveryOutcome.SENT
+                            )
+                        }
+                reply_outcome = outcomes.get(OutboxKind.REPLY)
                 if event_id:
                     async with AsyncSessionLocal() as status_db:
                         row = await status_db.get(WebhookEvent, event_id)
                         if row is not None:
-                            row.reply_status = (
-                                ReplyDeliveryStatus.SENT if failures == 0
-                                else ReplyDeliveryStatus.FAILED
+                            row.reply_status = _REPLY_STATUS.get(
+                                reply_outcome, ReplyDeliveryStatus.NONE
                             )
                         await status_db.commit()
 
-                if cache_key and failures == 0:
+                reply_settled = reply_outcome in (None, DeliveryOutcome.SENT)
+                if cache_key and reply_settled:
                     try:
                         await redis_client.setex(
                             cache_key,
@@ -257,8 +280,8 @@ async def process_webhook_events(events):
                         )
                 elif cache_key:
                     logger.error(
-                        "delivery_failed for event %s: %d outbox send(s) failed (marker skipped, will allow redelivery)",
-                        event_id, failures,
+                        "delivery_failed for event %s: reply outcome %s (marker skipped, will allow redelivery)",
+                        event_id, reply_outcome,
                     )
             except Exception as e:
                 await db.rollback()
@@ -303,7 +326,7 @@ async def handle_follow_event(event: FollowEvent, db: AsyncSession,
             follow_count=refollow_count + 1,
         )
         if text and box is not None:
-            box.append(partial(line_service.reply_text, event.reply_token, text))
+            box.append(reply(partial(line_service.reply_text, event.reply_token, text)))
     except Exception as exc:
         logger.warning(
             "Follow welcome skipped for %s: %s", mask_line_id(line_user_id), exc

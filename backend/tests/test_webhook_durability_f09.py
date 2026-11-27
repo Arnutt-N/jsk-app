@@ -8,6 +8,7 @@ import pytest
 from app.api.v1.endpoints import webhook as webhook_module
 from app.api.v1.endpoints.webhook import line_webhook, process_webhook_events
 from app.models.webhook_event import ReplyDeliveryStatus, WebhookEvent
+from app.services.outbox import other, reply
 
 
 def _event(event_id="evt-f09", text="สวัสดี"):
@@ -98,7 +99,7 @@ def _redis():
 
 def test_reply_status_persists_lowercase_enum_values():
     column = WebhookEvent.__table__.c.reply_status
-    assert column.type.enums == ["none", "sent", "failed"]
+    assert column.type.enums == ["none", "sent", "failed", "unknown"]
     assert column.type._valid_lookup["sent"] == ReplyDeliveryStatus.SENT
 
 
@@ -224,3 +225,46 @@ async def test_redis_outage_still_applies_event_once(monkeypatch):
 
     handler.assert_awaited_once()
     assert row.inbound_applied_at is not None
+
+
+class _ApiError(Exception):
+    def __init__(self, status):
+        super().__init__(f"LINE API error {status}")
+        self.status = status
+
+
+@pytest.mark.asyncio
+async def test_staff_failure_does_not_mark_reply_failed(monkeypatch):
+    row = WebhookEvent(event_id="evt-staff-fail", event_type="MessageEvent")
+    db = _Session({row.event_id: row})
+
+    async def handler(event, session, box):
+        box.append(reply(AsyncMock()))
+        box.append(other(AsyncMock(side_effect=_ApiError(500))))
+
+    monkeypatch.setattr("app.api.v1.endpoints.webhook.AsyncSessionLocal", lambda: db)
+    monkeypatch.setattr("app.api.v1.endpoints.webhook.MessageEvent", type(_event()))
+    monkeypatch.setattr("app.api.v1.endpoints.webhook.handle_message_event", handler)
+    monkeypatch.setattr("app.api.v1.endpoints.webhook.redis_client", _redis())
+
+    await process_webhook_events([_event(row.event_id)])
+
+    assert row.reply_status is ReplyDeliveryStatus.SENT
+
+
+@pytest.mark.asyncio
+async def test_uncertain_reply_is_recorded_as_unknown(monkeypatch):
+    row = WebhookEvent(event_id="evt-reply-unknown", event_type="MessageEvent")
+    db = _Session({row.event_id: row})
+
+    async def handler(event, session, box):
+        box.append(reply(AsyncMock(side_effect=TimeoutError())))
+
+    monkeypatch.setattr("app.api.v1.endpoints.webhook.AsyncSessionLocal", lambda: db)
+    monkeypatch.setattr("app.api.v1.endpoints.webhook.MessageEvent", type(_event()))
+    monkeypatch.setattr("app.api.v1.endpoints.webhook.handle_message_event", handler)
+    monkeypatch.setattr("app.api.v1.endpoints.webhook.redis_client", _redis())
+
+    await process_webhook_events([_event(row.event_id)])
+
+    assert row.reply_status is ReplyDeliveryStatus.UNKNOWN
