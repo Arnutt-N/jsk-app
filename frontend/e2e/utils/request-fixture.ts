@@ -3,6 +3,7 @@ import { type Page } from '@playwright/test'
 const API_PATH = process.env.E2E_API_PATH ?? '/api/v1'
 
 const csrfTokens = new WeakMap<Page, string>()
+const fixtureIds = new WeakMap<Page, Set<number>>()
 
 /**
  * State-changing API calls need the CSRF token that the login response carries.
@@ -48,5 +49,30 @@ export async function createRequestFixture(
     throw new Error(`request fixture failed with status ${res.status()}`)
   }
   const body = (await res.json()) as { id: number }
+  const ids = fixtureIds.get(page) ?? new Set<number>()
+  ids.add(body.id)
+  fixtureIds.set(page, ids)
   return body.id
+}
+
+/** Delete only rows created by this page. Returns ids that could not be deleted. */
+export async function cleanupRequestFixtures(page: Page): Promise<number[]> {
+  const ids = fixtureIds.get(page)
+  const csrf = csrfTokens.get(page)
+  fixtureIds.delete(page)
+  if (!ids || ids.size === 0) return []
+  if (!csrf) return [...ids]
+
+  const failed: number[] = []
+  for (const id of ids) {
+    try {
+      const res = await page.request.delete(`${API_PATH}/admin/requests/${id}`, {
+        headers: { 'x-csrf-token': csrf },
+      })
+      if (!res.ok()) failed.push(id)
+    } catch {
+      failed.push(id)
+    }
+  }
+  return failed
 }
