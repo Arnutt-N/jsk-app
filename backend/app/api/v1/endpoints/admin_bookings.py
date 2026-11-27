@@ -442,8 +442,23 @@ async def resend_booking_reminder(
         )
     await db.commit()
 
-    outcome = await send_booking_reminder_outcome(db, booking, booking.user)
-    await clear_reminder_outcome(db, booking_id, token, outcome=outcome)
+    # Re-read under the claimed lease. A cancellation or a reclaimed lease can
+    # land after the claim commit; never send with the pre-claim snapshot.
+    fresh = await booking_service.load_booking_for_reminder(db, booking_id, token)
+    if fresh is None or fresh.status != BookingStatus.CONFIRMED:
+        await booking_service.clear_reminder_claim(db, booking_id, token)
+        await db.commit()
+        raise HTTPException(status_code=409, detail="สถานะการจองเปลี่ยนแล้ว กรุณาตรวจสอบใหม่")
+    fresh_appointment = datetime.combine(fresh.booking_date, fresh.booking_time)
+    if fresh_appointment <= booking_service.local_now():
+        await booking_service.clear_reminder_claim(db, booking_id, token)
+        await db.commit()
+        raise HTTPException(status_code=409, detail="คิวเลยเวลาแล้ว ส่งเตือนไม่ได้")
+
+    outcome = await send_booking_reminder_outcome(db, fresh, fresh.user)
+    cleared = await clear_reminder_outcome(db, booking_id, token, outcome=outcome)
+    if cleared is False:
+        raise HTTPException(status_code=409, detail="สถานะการจองเปลี่ยนแล้วระหว่างส่งเตือน")
     await create_audit_log(
         db=db,
         admin_id=staff.id,
@@ -451,7 +466,7 @@ async def resend_booking_reminder(
         resource_type="booking",
         resource_id=str(booking_id),
         details={
-            "queue_number": booking.queue_number,
+            "queue_number": fresh.queue_number,
             "outcome": outcome.value,
             "channels": [
                 name
