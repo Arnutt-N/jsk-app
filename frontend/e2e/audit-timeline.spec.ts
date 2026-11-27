@@ -1,7 +1,7 @@
 import { expect, test, type Page, type Response, type TestInfo } from '@playwright/test'
 import { loginAsAdmin } from './utils/auth'
 import { gotoAdmin } from './utils/nav'
-import { captureCsrf, createRequestFixture } from './utils/request-fixture'
+import { captureCsrf, cleanupRequestFixtures, createRequestFixture } from './utils/request-fixture'
 
 /**
  * /admin/requests/[id] -- audit timeline (request-edit-audit-log PRD).
@@ -105,6 +105,16 @@ test.describe('Request detail -- audit timeline', () => {
     // captureCsrf must be installed before login so the fixture can post.
     captureCsrf(page)
     await loginAsAdmin(page)
+  })
+
+  test.afterEach(async ({ page }, testInfo) => {
+    const failed = await cleanupRequestFixtures(page)
+    if (failed.length) {
+      testInfo.annotations.push({
+        type: 'fixture-cleanup-failed',
+        description: `request ids: ${failed.join(', ')}`,
+      })
+    }
   })
 
   test('comments tab renders the merged timeline without crashing', async ({ page }, testInfo) => {
