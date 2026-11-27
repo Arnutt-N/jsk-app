@@ -154,6 +154,7 @@ async def test_send_broadcast_rejects_empty_messages():
     svc = BroadcastService()
     bc = _broadcast(content={"text": ""})  # empty text -> no messages
     db = AsyncMock()
+    db.execute.return_value.rowcount = 1  # version-guarded invalidate succeeds
     with pytest.raises(BroadcastValidationError, match="no valid messages"):
         await svc.send_broadcast(db, bc)
 
