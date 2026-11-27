@@ -576,12 +576,25 @@ class BroadcastService:
         broadcast.send_lease_owner = None
 
     @staticmethod
+    def _is_accepted_retry(exc: Exception) -> bool:
+        """LINE can answer 409 with the original acceptance id on a retry."""
+        if getattr(exc, "status", None) != 409:
+            return False
+        headers = getattr(exc, "headers", None) or {}
+        return any(
+            str(key).lower() == "x-line-accepted-request-id" and bool(value)
+            for key, value in dict(headers).items()
+        )
+
+    @staticmethod
     def _is_definite_failure(exc: Exception) -> bool:
         """4xx (except rate limit) means LINE refused; other errors are unknown.
 
         Tests and local adapters may raise a plain exception with a numeric
         ``status`` instead of the SDK type, so classify by the field.
         """
+        if BroadcastService._is_accepted_retry(exc):
+            return False
         status = getattr(exc, "status", None)
         return isinstance(status, int) and 400 <= status < 500 and status != 429
 
@@ -662,11 +675,15 @@ class BroadcastService:
                     )
             except Exception as exc:
                 last_exc = exc
+                accepted = self._is_accepted_retry(exc)
                 definite = self._is_definite_failure(exc)
+                state = "ACCEPTED" if accepted else ("DEFINITE_FAIL" if definite else "UNKNOWN")
                 await self._record_attempt(
                     db, broadcast, chunk_index, attempt_no, token_hashes,
-                    "DEFINITE_FAIL" if definite else "UNKNOWN", retry_key, str(exc),
+                    state, retry_key, str(exc),
                 )
+                if accepted:
+                    return "accepted"
                 if definite:
                     return "definite"
                 if attempt_no < SEND_ATTEMPT_LIMIT:
