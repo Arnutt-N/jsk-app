@@ -34,6 +34,11 @@ def build_subprocess_env(target: str) -> dict[str, str]:
     return env
 
 
+def effective_env_path(target: str) -> Path:
+    raw = Path(build_subprocess_env(target)["ENV_FILE"])
+    return raw if raw.is_absolute() else BACKEND_DIR / raw
+
+
 def run_command(args: list[str], target: str) -> int:
     completed = subprocess.run(
         args,
@@ -45,7 +50,7 @@ def run_command(args: list[str], target: str) -> int:
 
 
 def cmd_show(target: str) -> int:
-    env_path = get_target_env_path(target)
+    env_path = effective_env_path(target)
     database_url = read_database_url(env_path)
     print(f"Target    : {target}")
     print(f"ENV file  : {env_path}")
