@@ -144,9 +144,9 @@ python -m alembic upgrade head
 python scripts/db_target.py alembic --target remote upgrade head
 ```
 
-- migration ที่สำเร็จแล้วจะถูก commit แยกทีละตัว → ถ้าล้มกลางทาง database จะค้างที่ตัวสุดท้ายที่สำเร็จ **ไม่เสียข้อมูล**
-- ดูว่าไปถึงไหน: `python scripts/db_target.py alembic --target remote current`
-- รันต่อได้ทันทีหลังแก้สาเหตุ (alembic ไม่รันซ้ำตัวที่สำเร็จแล้ว)
+- ตามค่าเริ่มต้น Alembic ใช้ transaction เดียวสำหรับทุก migration ในรอบ upgrade — ถ้าล้มกลางทางโดยไม่มี `COMMIT` ชัดเจน DDL ของรอบนั้นจะ rollback ทั้งหมด
+- ข้อยกเว้นคือ migration ที่เรียก `op.execute("COMMIT")` หรือใช้ `autocommit_block()` เช่น `c1d2e3f4a5b6` — หลังจุดนั้น DDL ที่ตามมาอาจ persist ทั้งที่ `alembic current` ยังไม่ถูก stamp
+- ดูว่าไปถึงไหน: `python scripts/db_target.py alembic --target remote current` แล้วตรวจ schema จริงก่อนรันต่อเสมอ อย่าสันนิษฐานว่ารันต่อได้ทันที
 
 ### ตรวจหลัง upgrade
 
@@ -233,19 +233,35 @@ object แรกที่สร้างไปแล้ว
 
 ตรวจก่อนตัดสินใจ:
 
+รันคำสั่งในบล็อกนี้จาก `backend/` (ตามที่ `scripts/db_target.py` คาดหวัง):
+
 ```bash
 python scripts/db_target.py alembic --target remote current
-psql "$DATABASE_URL" -c "\d broadcasts"
-psql "$DATABASE_URL" -c "\d broadcast_send_attempts"
+export PG_URL="$(python -c "from dotenv import dotenv_values; print(dotenv_values('.env')['DATABASE_URL'].replace('postgresql+asyncpg://','postgresql://'))")"
+psql "$PG_URL" -c "\d broadcasts"
+psql "$PG_URL" -c "\d broadcast_send_attempts"
+psql "$PG_URL" -c "select indexname from pg_indexes where tablename='broadcast_send_attempts'"
+psql "$PG_URL" -c "select version_num from alembic_version"
 ```
+
+`DATABASE_URL` ใน `.env` ใช้ scheme `postgresql+asyncpg://` สำหรับ SQLAlchemy
+`psql` ต้องการ `postgresql://` — ใช้ `PG_URL` ด้านบน อย่าส่ง `$DATABASE_URL` ตรง ๆ
 
 แนวทางที่ converge ให้เหมือนกันทุกครั้ง:
 
-1. ถ้า object ทั้งหมดของ revision นี้มีครบ แต่ `alembic current` ยังเป็น `a3b4c5d6e7f8`
-   ให้ `python scripts/db_target.py alembic --target remote stamp c1d2e3f4a5b6` แล้วรัน upgrade ต่อ
-2. ถ้ามีบาง object หาย ให้ลบเฉพาะ object ที่ revision นี้สร้าง (คอลัมน์ ตาราง index)
+1. ใช้ stamp เฉพาะเมื่อ object **ทุกตัว** ของ revision นี้มีครบ: คอลัมน์ `payload_version`,
+   `send_lease_owner`, ตาราง `broadcast_send_attempts`, unique constraint `uq_broadcast_send_attempt`
+   และ index `ix_broadcast_send_attempts_broadcast_id` ถ้าขาด index อย่างเดียวแล้ว stamp จะทำให้
+   index หายถาวรเพราะ Alembic จะไม่รัน revision นี้ซ้ำ เมื่อครบแล้วรัน:
+
+   ```bash
+   python scripts/db_target.py alembic --target remote stamp c1d2e3f4a5b6
+   ```
+2. ตรวจด้วยว่ามี object ของ revision **ถัดไป** เช่น `f09a1b2c3d4` ค้างอยู่หรือไม่ ถ้าค้าง ให้จัดการ
+   revision นั้นให้ตรงก่อนรัน upgrade ต่อ — อย่า stamp เพียง `c1d2e3f4a5b6` แล้วปล่อย schema ผสมไว้
+3. ถ้ามีบาง object หาย ให้ลบเฉพาะ object ที่ revision นี้สร้าง (คอลัมน์ ตาราง index)
    ใน transaction เดียวแล้วรัน `upgrade c1d2e3f4a5b6` ใหม่ อย่า stamp ก่อนครบ
-3. ตรวจ `alembic current` และ schema อีกครั้งก่อน deploy code ที่อ่านคอลัมน์ใหม่
+4. ตรวจ `alembic current` และ schema อีกครั้งก่อน deploy code ที่อ่านคอลัมน์ใหม่
 
 การ downgrade revision นี้ลบคอลัมน์และตาราง แต่ **ลบ label enum ไม่ได้** แอปเวอร์ชันเก่าที่ decoder
 ไม่รู้จัก `UNKNOWN` หรือ `INVALID` จะ rejects แถวเหล่านั้น ก่อน rollback แอปให้ตรวจแถวที่สถานะ
@@ -253,7 +269,8 @@ psql "$DATABASE_URL" -c "\d broadcast_send_attempts"
 **ห้ามลบแถว broadcast เพื่อหลบปัญหา decoder**
 
 สำหรับ migration ใหม่ ใช้ transaction boundary ของ Alembic ตามปกติ อย่าเพิ่ม `op.execute("COMMIT")`
-อีก — ต้องการแยก phase ให้เขียน migration ใหม่ต่อท้ายแทน
+อีก — ถ้าต้องการแยก phase ให้รัน `alembic upgrade <revision>` เป็น invocation พิเศษต่างหาก แล้วตรวจ
+`alembic current` หลังจากนั้น การต่อ revision ใหม่ในรอบเดียวกันยังอยู่ใน transaction เดิม
 
 ### Pooler port
 
