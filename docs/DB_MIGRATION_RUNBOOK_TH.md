@@ -220,6 +220,41 @@ postgresql.ENUM('A', 'B', name='e', create_type=False).create_type   # False
 attribute นี้จริง) — แต่ถ้าส่ง `create_type=False` เข้า constructor มันจะรับไว้แล้ว
 ทิ้งไปเงียบ ๆ จึงต้องเทสต์จาก DDL ที่ emit ออกมา ไม่ใช่จาก attribute
 
+### Migration `c1d2e3f4a5b6` ค้างกลางทาง
+
+`backend/alembic/versions/c1d2e3f4a5b6_broadcast_send_recovery.py` เรียก `op.execute("COMMIT")`
+หลังเพิ่มค่า enum `INVALID` และ `UNKNOWN` ภายใต้ Alembic transaction แล้วค่อยเพิ่มคอลัมน์
+`payload_version`, `send_lease_owner`, ตาราง `broadcast_send_attempts` และ index ตามลำดับ
+
+บน PostgreSQL 16 การ commit ตรงนี้ปลอดภัยเพราะ migration ไม่ใช้ค่า enum ใหม่ใน transaction
+เดียวกัน แต่ถ้าขั้นตอนหลัง commit พัง database จะมี schema บางส่วนโดยยัง stamp revision ไว้ไม่ถึง
+`c1d2e3f4a5b6` **ห้ามรัน upgrade ซ้ำทับของที่ค้างอยู่โดยไม่ตรวจก่อน** เพราะ migration จะหยุดที่
+object แรกที่สร้างไปแล้ว
+
+ตรวจก่อนตัดสินใจ:
+
+```bash
+python scripts/db_target.py alembic --target remote current
+psql "$DATABASE_URL" -c "\d broadcasts"
+psql "$DATABASE_URL" -c "\d broadcast_send_attempts"
+```
+
+แนวทางที่ converge ให้เหมือนกันทุกครั้ง:
+
+1. ถ้า object ทั้งหมดของ revision นี้มีครบ แต่ `alembic current` ยังเป็น `a3b4c5d6e7f8`
+   ให้ `python scripts/db_target.py alembic --target remote stamp c1d2e3f4a5b6` แล้วรัน upgrade ต่อ
+2. ถ้ามีบาง object หาย ให้ลบเฉพาะ object ที่ revision นี้สร้าง (คอลัมน์ ตาราง index)
+   ใน transaction เดียวแล้วรัน `upgrade c1d2e3f4a5b6` ใหม่ อย่า stamp ก่อนครบ
+3. ตรวจ `alembic current` และ schema อีกครั้งก่อน deploy code ที่อ่านคอลัมน์ใหม่
+
+การ downgrade revision นี้ลบคอลัมน์และตาราง แต่ **ลบ label enum ไม่ได้** แอปเวอร์ชันเก่าที่ decoder
+ไม่รู้จัก `UNKNOWN` หรือ `INVALID` จะ rejects แถวเหล่านั้น ก่อน rollback แอปให้ตรวจแถวที่สถานะ
+สองค่านี้ ตัดสินใจแก้ไขเป็นสถานะสุดท้ายที่เหมาะสมด้วย operator แล้วค่อย downgrade/rollback
+**ห้ามลบแถว broadcast เพื่อหลบปัญหา decoder**
+
+สำหรับ migration ใหม่ ใช้ transaction boundary ของ Alembic ตามปกติ อย่าเพิ่ม `op.execute("COMMIT")`
+อีก — ต้องการแยก phase ให้เขียน migration ใหม่ต่อท้ายแทน
+
 ### Pooler port
 
 Supabase มี 2 port:
