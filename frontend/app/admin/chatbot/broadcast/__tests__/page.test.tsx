@@ -79,6 +79,22 @@ describe('BroadcastListPage date filtering', () => {
     expect(screen.getByLabelText('ถึงวันที่')).toBeInTheDocument();
   });
 
+  it('shows recovery states instead of draft fallback', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        items: [
+          { ...broadcastRow, id: 2, status: 'unknown' },
+          { ...broadcastRow, id: 3, status: 'invalid' },
+        ],
+        total: 2,
+      }),
+    });
+    render(<BroadcastListPage />);
+    expect(await screen.findByText('ผลส่งไม่แน่นอน', { selector: 'span' })).toBeInTheDocument();
+    expect(screen.getByText('ข้อมูลไม่ถูกต้อง', { selector: 'span' })).toBeInTheDocument();
+  });
+
   it('queries backend with start_date and end_date params', async () => {
     render(<BroadcastListPage />);
     await screen.findByText('แคมเปญทดสอบ');

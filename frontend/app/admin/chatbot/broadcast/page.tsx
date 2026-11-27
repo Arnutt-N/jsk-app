@@ -56,6 +56,8 @@ const STATUS_MAP: Record<string, { variant: 'gray' | 'info' | 'warning' | 'succe
     completed: { variant: 'success', label: 'ส่งแล้ว',       icon: <CheckCircle2 className="w-3 h-3" /> },
     failed:    { variant: 'danger',  label: 'ล้มเหลว',       icon: <AlertCircle className="w-3 h-3" /> },
     cancelled: { variant: 'gray',    label: 'ยกเลิก',        icon: <XCircle className="w-3 h-3" /> },
+    unknown:   { variant: 'warning', label: 'ผลส่งไม่แน่นอน', icon: <AlertCircle className="w-3 h-3" /> },
+    invalid:   { variant: 'danger',  label: 'ข้อมูลไม่ถูกต้อง', icon: <AlertCircle className="w-3 h-3" /> },
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -209,6 +211,8 @@ export default function BroadcastListPage() {
                                 { value: 'completed', label: 'ส่งแล้ว' },
                                 { value: 'failed', label: 'ล้มเหลว' },
                                 { value: 'cancelled', label: 'ยกเลิก' },
+                                { value: 'unknown', label: 'ผลส่งไม่แน่นอน' },
+                                { value: 'invalid', label: 'ข้อมูลไม่ถูกต้อง' },
                             ]}
                         />
                     </div>

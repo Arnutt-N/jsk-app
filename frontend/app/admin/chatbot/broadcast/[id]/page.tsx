@@ -50,6 +50,8 @@ const STATUS_CONFIG: Record<string, { variant: 'gray' | 'info' | 'warning' | 'su
     completed: { variant: 'success', label: 'ส่งสำเร็จ',     icon: <CheckCircle2 className="w-4 h-4" /> },
     failed:    { variant: 'danger',  label: 'ล้มเหลว',       icon: <AlertCircle className="w-4 h-4" /> },
     cancelled: { variant: 'gray',    label: 'ยกเลิกแล้ว',    icon: <XCircle className="w-4 h-4" /> },
+    unknown:   { variant: 'warning', label: 'ผลส่งไม่แน่นอน', icon: <AlertCircle className="w-4 h-4" /> },
+    invalid:   { variant: 'danger',  label: 'ข้อมูลไม่ถูกต้อง', icon: <AlertCircle className="w-4 h-4" /> },
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -73,6 +75,7 @@ export default function BroadcastDetailPage() {
     const [sendModal, setSendModal] = useState(false);
     const [cancelModal, setCancelModal] = useState(false);
     const [deleteModal, setDeleteModal] = useState(false);
+    const [resolveOutcome, setResolveOutcome] = useState<'completed' | 'failed' | null>(null);
 
     const fetchBroadcast = useCallback(async () => {
         setLoading(true);
@@ -163,6 +166,27 @@ export default function BroadcastDetailPage() {
             toast({ variant: 'error', title: 'ยกเลิกไม่สำเร็จ', description: 'กรุณาลองใหม่' });
         } finally {
             setActionLoading(false);
+        }
+    };
+
+    const handleResolve = async () => {
+        if (!resolveOutcome) return;
+        const outcome = resolveOutcome;
+        setActionLoading(true);
+        try {
+            const res = await fetch(`${API_BASE}/admin/broadcasts/${broadcastId}/resolve`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ outcome }),
+            });
+            if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Failed'); }
+            fetchBroadcast();
+            toast({ variant: 'success', title: 'บันทึกผลส่งแล้ว', description: outcome === 'completed' ? 'บันทึกเป็นส่งสำเร็จ' : 'บันทึกเป็นล้มเหลว' });
+        } catch (err: unknown) {
+            toast({ variant: 'error', title: 'บันทึกผลส่งไม่สำเร็จ', description: err instanceof Error ? err.message : 'กรุณาลองใหม่' });
+        } finally {
+            setActionLoading(false);
+            setResolveOutcome(null);
         }
     };
 
@@ -416,6 +440,41 @@ export default function BroadcastDetailPage() {
                     <Card glass className="border-none shadow-sm">
                         <CardContent className="p-6 space-y-3">
                             <h3 className="text-sm font-bold text-text-primary mb-2">การดำเนินการ</h3>
+                            {broadcast.status === 'unknown' && (
+                                <div className="space-y-2 rounded-lg border border-warning/30 bg-warning/5 p-3">
+                                    <p className="text-xs text-text-secondary">
+                                        ตรวจหลักฐานการส่งด้านบน แล้วบันทึกผลที่ตรงกับข้อมูลจริง
+                                    </p>
+                                    <Button
+                                        variant="primary"
+                                        className="w-full gap-2"
+                                        disabled={actionLoading}
+                                        onClick={() => setResolveOutcome('completed')}
+                                    >
+                                        <CheckCircle2 className="w-4 h-4" />
+                                        บันทึกว่าส่งสำเร็จ
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        className="w-full gap-2"
+                                        disabled={actionLoading}
+                                        onClick={() => setResolveOutcome('failed')}
+                                    >
+                                        <AlertCircle className="w-4 h-4" />
+                                        บันทึกว่าล้มเหลว
+                                    </Button>
+                                </div>
+                            )}
+                            {broadcast.status === 'invalid' && (
+                                <Button
+                                    variant="primary"
+                                    className="w-full gap-2"
+                                    onClick={() => router.push('/admin/chatbot/broadcast/new')}
+                                >
+                                    <FileText className="w-4 h-4" />
+                                    สร้างประกาศใหม่
+                                </Button>
+                            )}
                             {(broadcast.status === 'draft' || broadcast.status === 'scheduled') && (
                                 <Button className="w-full gap-2" onClick={() => setSendModal(true)}>
                                     <Send className="w-4 h-4" />
@@ -438,6 +497,32 @@ export default function BroadcastDetailPage() {
                     </Card>
                 </div>
             </div>
+
+            {/* Resolve confirmation — terminal state, so require explicit choice. */}
+            <Modal
+                isOpen={resolveOutcome !== null}
+                onClose={() => setResolveOutcome(null)}
+                title={resolveOutcome === 'completed' ? 'ยืนยันบันทึกว่าส่งสำเร็จ' : 'ยืนยันบันทึกว่าล้มเหลว'}
+                maxWidth="sm"
+            >
+                <div className="space-y-4">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {resolveOutcome === 'completed'
+                            ? 'การบันทึกนี้จะเปลี่ยนสถานะเป็นส่งสำเร็จทันที และไม่สามารถย้อนกลับได้'
+                            : 'การบันทึกนี้จะเปลี่ยนสถานะเป็นล้มเหลว และจะต้องสร้างข้อความใหม่เพื่อส่งอีกครั้ง'}
+                    </p>
+                    <div className="flex justify-end gap-2 pt-2">
+                        <Button variant="ghost" onClick={() => setResolveOutcome(null)}>ยกเลิก</Button>
+                        <Button
+                            variant={resolveOutcome === 'completed' ? 'primary' : 'danger'}
+                            onClick={handleResolve}
+                            disabled={actionLoading}
+                        >
+                            ยืนยัน
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
 
             {/* Send Modal */}
             <Modal isOpen={sendModal} onClose={() => setSendModal(false)} title="ยืนยันการส่ง Broadcast" maxWidth="sm">
