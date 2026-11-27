@@ -238,14 +238,15 @@ class BroadcastService:
         if broadcast.status not in (BroadcastStatus.DRAFT, BroadcastStatus.SCHEDULED):
             raise ValueError(f"Cannot send broadcast in status {broadcast.status}")
 
+        claimed_version = self._version(broadcast)
         messages = await self._build_messages(broadcast, db)
         if not messages:
-            await self._mark_invalid(db, broadcast)
+            await self._mark_invalid(db, broadcast, expected_version=claimed_version)
             raise BroadcastValidationError("Broadcast has no valid messages to send")
 
-        # Atomic claim: exactly one sender may flip DRAFT/SCHEDULED to
-        # SENDING. RETURNING pins the payload version used for the outbound
-        # messages; the lease token proves later writes still belong to us.
+        # Atomic claim: exactly one sender may flip DRAFT/SCHEDULED to SENDING.
+        # The version guard pins the payload being sent; the lease token proves
+        # later writes still belong to us.
         lease_owner = str(broadcast.id)
         claimed = await db.execute(
             update(Broadcast)
@@ -254,6 +255,7 @@ class BroadcastService:
                 Broadcast.status.in_(
                     [BroadcastStatus.DRAFT, BroadcastStatus.SCHEDULED]
                 ),
+                Broadcast.payload_version == claimed_version,
             )
             .values(status=BroadcastStatus.SENDING, send_lease_owner=lease_owner)
         )
@@ -268,12 +270,11 @@ class BroadcastService:
             raise BroadcastClaimConflict(
                 f"Cannot send broadcast {broadcast.id}: claimed row disappeared"
             )
-        payload_version = self._version(broadcast)
+        await db.refresh(broadcast)
         if (
-            broadcast is None
-            or broadcast.status != BroadcastStatus.SENDING
+            broadcast.status != BroadcastStatus.SENDING
             or broadcast.send_lease_owner != lease_owner
-            or broadcast.payload_version != payload_version
+            or self._version(broadcast) != claimed_version
         ):
             raise BroadcastClaimConflict(
                 f"Cannot send broadcast {broadcast.id}: send lease lost"
@@ -283,7 +284,9 @@ class BroadcastService:
         # cannot change the outbound payload once the claim is committed.
         messages = await self._build_messages(broadcast, db)
         if not messages:
-            await self._mark_invalid(db, broadcast, lease_owner)
+            await self._mark_invalid(
+                db, broadcast, lease_owner, expected_version=claimed_version
+            )
             raise BroadcastValidationError("Broadcast has no valid messages to send")
 
         provider_attempted: list[bool] = []
@@ -540,13 +543,20 @@ class BroadcastService:
         return broadcast
 
     async def _mark_invalid(
-        self, db: AsyncSession, broadcast, lease_owner: Optional[str] = None
+        self,
+        db: AsyncSession,
+        broadcast,
+        lease_owner: Optional[str] = None,
+        *,
+        expected_version: Optional[int] = None,
     ) -> None:
         query = (
             update(Broadcast)
             .where(Broadcast.id == broadcast.id)
             .values(status=BroadcastStatus.INVALID, send_lease_owner=None)
         )
+        if expected_version is not None:
+            query = query.where(Broadcast.payload_version == expected_version)
         if lease_owner is None:
             query = query.where(
                 Broadcast.status.in_([BroadcastStatus.DRAFT, BroadcastStatus.SCHEDULED])
@@ -556,7 +566,11 @@ class BroadcastService:
                 Broadcast.status == BroadcastStatus.SENDING,
                 Broadcast.send_lease_owner == lease_owner,
             )
-        await db.execute(query)
+        result = await db.execute(query)
+        if result.rowcount != 1:
+            raise BroadcastClaimConflict(
+                f"Cannot mark broadcast {broadcast.id} invalid: payload changed"
+            )
         await db.commit()
         broadcast.status = BroadcastStatus.INVALID
         broadcast.send_lease_owner = None
