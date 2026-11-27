@@ -721,7 +721,10 @@ async def claim_reminder(db: AsyncSession, booking_id: int) -> Optional[datetime
 
 
 async def finalize_reminder(
-    db: AsyncSession, booking_id: int, token: datetime
+    db: AsyncSession,
+    booking_id: int,
+    token: datetime,
+    outcome: DeliveryOutcome = DeliveryOutcome.SENT,
 ) -> bool:
     """Mark a claimed reminder delivered, only if this worker still owns the lease.
 
@@ -736,7 +739,11 @@ async def finalize_reminder(
             Booking.reminder_claimed_at == token,
             Booking.reminder_sent_at.is_(None),
         )
-        .values(reminder_sent_at=func.now(), reminder_claimed_at=None)
+        .values(
+            reminder_sent_at=func.now(),
+            reminder_failed_at=func.now() if outcome is DeliveryOutcome.UNKNOWN else None,
+            reminder_claimed_at=None,
+        )
     )
     return result.rowcount == 1
 

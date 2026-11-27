@@ -479,7 +479,7 @@ async def resend_booking_reminder(
         },
     )
     await db.commit()
-    if outcome is not DeliveryOutcome.SENT:
+    if outcome is DeliveryOutcome.NOT_SENT:
         raise HTTPException(
             status_code=502, detail="ส่งเตือนไม่สำเร็จ กรุณาลองใหม่"
         )
