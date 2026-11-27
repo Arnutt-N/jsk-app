@@ -125,7 +125,7 @@ class TestWebhookDeduplication:
 
         await process_webhook_events([event])
 
-        assert db.commit.await_count == 2
+        assert db.commit.await_count == 3  # claim, inbound effects, reply status
         mock_redis.setex.assert_awaited_once()
 
     @pytest.mark.asyncio
@@ -202,7 +202,7 @@ class TestWebhookDeduplication:
         await process_webhook_events([event_one, event_two])
 
         assert handler.await_count == 2
-        assert db.commit.await_count == 2
+        assert db.commit.await_count == 4  # claims + inbound effects + reply status
         db.rollback.assert_awaited_once()
         assert mock_redis.setex.call_count == 1
         processed_key = mock_redis.setex.call_args[0][0]

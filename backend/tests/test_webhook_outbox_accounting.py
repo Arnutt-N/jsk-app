@@ -98,7 +98,7 @@ async def test_failed_drain_skips_dedup_marker(monkeypatch, caplog):
     with caplog.at_level(logging.ERROR, logger="app.services.outbox"):
         await process_webhook_events([_make_event()])
 
-    assert db.commit.await_count == 2
+    assert db.commit.await_count == 3  # claim, inbound effects, reply status
     redis.setex.assert_not_awaited()
     assert "delivery_failed" in caplog.text
 
@@ -124,6 +124,6 @@ async def test_clean_drain_sets_dedup_marker(monkeypatch, caplog):
     with caplog.at_level(logging.ERROR):
         await process_webhook_events([_make_event("evt-clean")])
 
-    assert db.commit.await_count == 2
+    assert db.commit.await_count == 3  # claim, inbound effects, reply status
     redis.setex.assert_awaited_once()
     assert "delivery_failed" not in caplog.text

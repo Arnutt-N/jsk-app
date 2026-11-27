@@ -103,9 +103,9 @@ async def test_webhook_drains_after_commit_in_order(monkeypatch):
 
     await process_webhook_events([_make_event()])
 
-    assert calls == ["handle", "commit", "drain", "commit"]
+    assert calls == ["commit", "handle", "commit", "drain", "commit"]  # claim first
     handle.assert_awaited_once()
-    assert db.commit.await_count == 2
+    assert db.commit.await_count == 3  # claim, inbound effects, reply status
     drain.assert_awaited_once()
 
 
@@ -177,9 +177,9 @@ async def test_postback_drains_after_commit_in_order(monkeypatch):
 
     await process_webhook_events([_make_postback_event()])
 
-    assert calls == ["handle", "commit", "drain", "commit"]
+    assert calls == ["commit", "handle", "commit", "drain", "commit"]  # claim first
     handle.assert_awaited_once()
-    assert db.commit.await_count == 2
+    assert db.commit.await_count == 3  # claim, inbound effects, reply status
     drain.assert_awaited_once()
 
 
