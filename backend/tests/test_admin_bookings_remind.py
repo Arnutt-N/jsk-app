@@ -11,6 +11,11 @@ from app.services.booking_service import local_now
 from app.services.delivery_outcome import DeliveryOutcome as ReminderOutcome
 
 
+@pytest.fixture(autouse=True)
+def _clear_outcome_ok(monkeypatch):
+    monkeypatch.setattr(admin_bookings, "clear_reminder_outcome", AsyncMock(return_value=True))
+
+
 def _config(**overrides):
     values = {"resend_enabled": True}
     values.update(overrides)

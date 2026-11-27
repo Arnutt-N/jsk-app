@@ -19,6 +19,11 @@ from app.services.booking_service import BookingConfig, ReminderUnit, local_now
 from app.services.line_service import line_service
 
 
+@pytest.fixture(autouse=True)
+def _clear_outcome_ok(monkeypatch):
+    monkeypatch.setattr(admin_bookings, "clear_reminder_outcome", AsyncMock(return_value=True))
+
+
 def _booking(**overrides):
     values = {
         "queue_number": "261019-002",
