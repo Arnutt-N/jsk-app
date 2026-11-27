@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/components/ui/Toast';
 import { Card, CardContent } from '@/components/ui/Card';
@@ -75,6 +75,8 @@ export default function BroadcastCreatePage() {
     // (even with the time still pending) to switch the Send-now/Schedule button.
     const [scheduledAtIso, setScheduledAtIso] = useState<string | null>(null);
     const [scheduleIntent, setScheduleIntent] = useState(false);
+    const operationIdRef = useRef(crypto.randomUUID());
+    const createPayloadRef = useRef('');
 
     const canProceed = (): boolean => {
         switch (step) {
@@ -109,6 +111,21 @@ export default function BroadcastCreatePage() {
         }
     };
 
+    const buildCreateBody = () => {
+        const body = {
+            title: draft.title,
+            message_type: draft.message_type,
+            content: buildContent(),
+            target_audience: draft.target_audience,
+        };
+        const serialized = JSON.stringify(body);
+        if (createPayloadRef.current && createPayloadRef.current !== serialized) {
+            operationIdRef.current = crypto.randomUUID();
+        }
+        createPayloadRef.current = serialized;
+        return { ...body, operation_id: operationIdRef.current };
+    };
+
     const [preview, setPreview] = useState<{ dry_run: boolean; estimated_recipients: number | null; messages_valid: boolean } | null>(null);
     const [dryRunning, setDryRunning] = useState(false);
 
@@ -141,12 +158,7 @@ export default function BroadcastCreatePage() {
     const handleSaveDraft = async () => {
         setSaving(true);
         try {
-            const body = {
-                title: draft.title,
-                message_type: draft.message_type,
-                content: buildContent(),
-                target_audience: draft.target_audience,
-            };
+            const body = buildCreateBody();
             const res = await fetch(`${API_BASE}/admin/broadcasts`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -166,12 +178,7 @@ export default function BroadcastCreatePage() {
     const handleSaveAndSend = async () => {
         setSaving(true);
         try {
-            const body = {
-                title: draft.title,
-                message_type: draft.message_type,
-                content: buildContent(),
-                target_audience: draft.target_audience,
-            };
+            const body = buildCreateBody();
             const createRes = await fetch(`${API_BASE}/admin/broadcasts`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -198,12 +205,7 @@ export default function BroadcastCreatePage() {
         if (!scheduledAtIso) { toast({ variant: 'warning', title: 'กรุณาเลือกวันและเวลาที่ต้องการส่ง' }); return; }
         setSaving(true);
         try {
-            const body = {
-                title: draft.title,
-                message_type: draft.message_type,
-                content: buildContent(),
-                target_audience: draft.target_audience,
-            };
+            const body = buildCreateBody();
             const createRes = await fetch(`${API_BASE}/admin/broadcasts`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

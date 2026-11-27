@@ -4,7 +4,9 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_admin, require_permission
@@ -12,7 +14,7 @@ from app.core.audit import create_audit_log
 from app.core.date_windows import InvertedRangeError, optional_range_utc
 from app.core.permissions import KEY_MANAGE_BROADCAST
 from app.db.session import get_db
-from app.models.broadcast import BroadcastStatus, BroadcastType
+from app.models.broadcast import Broadcast, BroadcastStatus, BroadcastType
 from app.models.user import User
 from app.services.broadcast_service import (
     BroadcastClaimConflict,
@@ -38,6 +40,13 @@ class BroadcastCreate(BaseModel):
     target_audience: str = "all"
     target_filter: Optional[dict] = None
     dry_run: bool = False
+    operation_id: Optional[str] = None
+
+    @field_validator("operation_id")
+    @classmethod
+    def _normalize_operation_id(cls, value: Optional[str]) -> Optional[str]:
+        normalized = (value or "").strip()
+        return normalized or None
 
 
 class BroadcastDryRunResponse(BaseModel):
@@ -137,6 +146,28 @@ async def list_broadcasts(
     )
 
 
+async def _find_by_operation_id(db: AsyncSession, operation_id: str) -> Optional[Broadcast]:
+    result = await db.execute(
+        select(Broadcast).where(Broadcast.operation_id == operation_id)
+    )
+    return result.scalars().first()
+
+
+def _replay_broadcast(broadcast: Broadcast, payload: BroadcastCreate, admin_id: int) -> Broadcast:
+    if broadcast.created_by != admin_id:
+        raise HTTPException(status_code=409, detail="BROADCAST_OPERATION_CONFLICT: owner mismatch")
+    same_payload = (
+        broadcast.title == payload.title
+        and broadcast.message_type == payload.message_type
+        and broadcast.content == payload.content
+        and broadcast.target_audience == payload.target_audience
+        and (broadcast.target_filter or {}) == (payload.target_filter or {})
+    )
+    if not same_payload:
+        raise HTTPException(status_code=409, detail="BROADCAST_OPERATION_CONFLICT: payload mismatch")
+    return broadcast
+
+
 @router.post("", response_model=BroadcastResponse, status_code=201)
 async def create_broadcast(
     payload: BroadcastCreate,
@@ -169,28 +200,46 @@ async def create_broadcast(
             ).model_dump(mode="json"),
         )
 
+    replayed = False
+    if payload.operation_id:
+        existing = await _find_by_operation_id(db, payload.operation_id)
+        if existing is not None:
+            return BroadcastResponse.model_validate(_replay_broadcast(existing, payload, current_admin.id))
+
     # NOTE: broadcast_service commits internally (shared service, out of this
     # PRD's touch scope) -- the audit row below is a second, immediately-
     # following commit rather than one shared transaction. See
     # p0.3-audit-coverage.prd.md for the accepted deviation.
-    broadcast = await broadcast_service.create_broadcast(
-        db,
-        title=payload.title,
-        message_type=payload.message_type,
-        content=payload.content,
-        target_audience=payload.target_audience,
-        target_filter=payload.target_filter,
-        created_by=current_admin.id,
-    )
+    try:
+        broadcast = await broadcast_service.create_broadcast(
+            db,
+            title=payload.title,
+            message_type=payload.message_type,
+            content=payload.content,
+            target_audience=payload.target_audience,
+            target_filter=payload.target_filter,
+            created_by=current_admin.id,
+            operation_id=payload.operation_id,
+        )
+    except IntegrityError:
+        await db.rollback()
+        if not payload.operation_id:
+            raise
+        winner = await _find_by_operation_id(db, payload.operation_id)
+        if winner is None:
+            raise
+        broadcast = _replay_broadcast(winner, payload, current_admin.id)
+        replayed = True
 
-    await create_audit_log(
-        db=db,
-        admin_id=current_admin.id,
-        action="create_broadcast",
-        resource_type="broadcast",
-        resource_id=str(broadcast.id),
-        details={"title": broadcast.title, "status": _status_value(broadcast.status)},
-    )
+    if not replayed:
+        await create_audit_log(
+            db=db,
+            admin_id=current_admin.id,
+            action="create_broadcast",
+            resource_type="broadcast",
+            resource_id=str(broadcast.id),
+            details={"title": broadcast.title, "status": _status_value(broadcast.status)},
+        )
     await db.commit()
 
     return BroadcastResponse.model_validate(broadcast)
