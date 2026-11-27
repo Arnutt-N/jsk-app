@@ -66,6 +66,7 @@ class BroadcastService:
         target_audience: str = "all",
         target_filter: Optional[dict] = None,
         created_by: Optional[int] = None,
+        operation_id: Optional[str] = None,
     ) -> Broadcast:
         broadcast = Broadcast(
             title=title,
@@ -75,6 +76,7 @@ class BroadcastService:
             target_filter=target_filter or {},
             status=BroadcastStatus.DRAFT,
             created_by=created_by,
+            operation_id=operation_id,
         )
         db.add(broadcast)
         await db.commit()

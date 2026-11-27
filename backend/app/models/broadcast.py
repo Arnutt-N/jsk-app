@@ -53,6 +53,7 @@ class Broadcast(Base):
     payload_version = Column(Integer, nullable=False, default=1, server_default="1")
     send_lease_owner = Column(String(64), nullable=True)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    operation_id = Column(String(36), nullable=True, unique=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
