@@ -25,6 +25,7 @@ class WebhookEvent(Base):
     event_type = Column(String(32), nullable=False)
     received_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     inbound_applied_at = Column(DateTime(timezone=True), nullable=True)
+    inbound_claimed_at = Column(DateTime(timezone=True), nullable=True)
     reply_status = Column(
         Enum(
             ReplyDeliveryStatus,

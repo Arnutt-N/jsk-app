@@ -1,12 +1,13 @@
 """LINE webhook endpoint — signature verification and event dispatch only."""
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, Header, HTTPException, Request
 from linebot.v3.exceptions import InvalidSignatureError
 from linebot.v3.webhooks import FollowEvent, MessageEvent, PostbackEvent, UnfollowEvent
+from sqlalchemy import func, or_, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -117,6 +118,44 @@ async def line_webhook(request: Request, background_tasks: BackgroundTasks, x_li
     return "OK"
 
 
+async def _claim_event(db: AsyncSession, event_id: str) -> Optional[datetime]:
+    """Atomically claim an unapplied event. Returns the lease token on win."""
+    ttl = func.now() - func.make_interval(0, 0, 0, 0, 0, 0, settings.WEBHOOK_EVENT_TTL)
+    result = await db.execute(
+        update(WebhookEvent)
+        .where(
+            WebhookEvent.event_id == event_id,
+            WebhookEvent.inbound_applied_at.is_(None),
+            or_(WebhookEvent.inbound_claimed_at.is_(None), WebhookEvent.inbound_claimed_at < ttl),
+        )
+        .values(inbound_claimed_at=func.now())
+        .returning(WebhookEvent.inbound_claimed_at)
+    )
+    token = result.scalar_one_or_none()
+    if hasattr(token, "__await__"):
+        token = await token  # AsyncMock db in unit tests.
+    await db.commit()
+    return token
+
+
+async def _finalize_event(db: AsyncSession, event_id: str, token: datetime) -> bool:
+    """Mark the claimed event applied only while this worker still owns it."""
+    result = await db.execute(
+        update(WebhookEvent)
+        .where(
+            WebhookEvent.event_id == event_id,
+            WebhookEvent.inbound_applied_at.is_(None),
+            WebhookEvent.inbound_claimed_at == token,
+        )
+        .values(inbound_applied_at=func.now(), inbound_claimed_at=None)
+        .returning(WebhookEvent.event_id)
+    )
+    win = result.scalar_one_or_none()
+    if hasattr(win, "__await__"):
+        win = await win  # AsyncMock db in unit tests.
+    return win is not None
+
+
 async def process_webhook_events(events):
     """Process webhook events with deduplication support."""
     async with AsyncSessionLocal() as db:
@@ -155,12 +194,14 @@ async def process_webhook_events(events):
                     if lock_acquired is None:
                         logger.warning(f"Redis unavailable - processing webhook event {event_id} without dedup lock")
 
-                # Redis dedup is best-effort and expires. The durable row
-                # decides whether inbound effects have already been applied.
+                # Durable claim: Redis dedup is best-effort. The atomic UPDATE
+                # admits exactly one worker even when Redis is unavailable,
+                # and refuses an event that was already applied.
+                claim_token = None
                 if event_id:
-                    row = await db.get(WebhookEvent, event_id)
-                    if row is not None and row.inbound_applied_at is not None:
-                        logger.info("Inbound effects already applied for webhook event %s", event_id)
+                    claim_token = await _claim_event(db, event_id)
+                    if claim_token is None:
+                        logger.info("Inbound already applied or claimed for webhook event %s", event_id)
                         continue
 
                 box = None
@@ -177,9 +218,11 @@ async def process_webhook_events(events):
                     await handle_unfollow_event(event, db)
 
                 if event_id:
-                    row = await db.get(WebhookEvent, event_id)
-                    if row is not None:
-                        row.inbound_applied_at = datetime.now(timezone.utc)
+                    won = await _finalize_event(db, event_id, claim_token)
+                    if not won:
+                        await db.rollback()
+                        logger.warning("Webhook event %s lease lost before finalize", event_id)
+                        continue
                 await db.commit()
 
                 failures = 0
