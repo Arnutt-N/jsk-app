@@ -344,15 +344,15 @@ async def test_all_channel_failure_stops_automatic_retries():
 @pytest.mark.asyncio
 async def test_confirmed_delivery_finalizes_and_does_not_fail():
     _db, finalize, fail = await _capture(outcome=ReminderOutcome.CONFIRMED)
-    finalize.assert_awaited_once_with(_db, 1, TOKEN)
+    finalize.assert_awaited_once_with(_db, 1, TOKEN, outcome=ReminderOutcome.CONFIRMED)
     fail.assert_not_awaited()
 
 
 @pytest.mark.asyncio
 async def test_unknown_outcome_finalizes_rather_than_risks_a_duplicate():
-    """A provider error with unknown result keeps the sent marker (F2)."""
+    """An uncertain provider result keeps the sent marker and records failure."""
     _db, finalize, fail = await _capture(outcome=ReminderOutcome.UNKNOWN)
-    finalize.assert_awaited_once_with(_db, 1, TOKEN)
+    finalize.assert_awaited_once_with(_db, 1, TOKEN, outcome=ReminderOutcome.UNKNOWN)
     fail.assert_not_awaited()
 
 

@@ -135,13 +135,11 @@ async def _process_due_reminders(db: AsyncSession):
 
             outcome = await send_booking_reminder_outcome(db, booking, booking.user)
             if outcome in (DeliveryOutcome.SENT, DeliveryOutcome.UNKNOWN):
-                # Confirmed delivery, or a provider error whose result is
-                # genuinely unknown: keep the sent marker so a duplicate is
-                # never sent to a member of the public.
-                await finalize_reminder(db, booking_id, token)
+                # Confirmed or uncertain delivery: keep the sent marker so a
+                # duplicate is never sent to a member of the public. UNKNOWN
+                # also records the failure marker for the operator.
+                await finalize_reminder(db, booking_id, token, outcome=outcome)
             else:
-                # Definite all-channel failure: stop automatic retries. Staff
-                # resend clears the marker when someone wants another attempt.
                 await fail_reminder(db, booking_id, token)
             await db.commit()
         except Exception as e:

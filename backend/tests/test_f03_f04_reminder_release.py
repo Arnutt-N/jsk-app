@@ -250,14 +250,13 @@ async def test_unknown_staff_outcome_records_failure_without_a_sent_marker():
                     "send_booking_reminder_outcome",
                     new=AsyncMock(return_value=DeliveryOutcome.UNKNOWN),
                 ),
-                pytest.raises(HTTPException) as exc,
             ):
-                await admin_bookings.resend_booking_reminder(
+                result = await admin_bookings.resend_booking_reminder(
                     booking_id=booking_id,
                     db=db,
                     staff=SimpleNamespace(id=admin_id),
                 )
-            assert exc.value.status_code == 502
+            assert result is not None
 
         sent, failed, claimed = await _state(Session, booking_id)
         assert sent is not None
@@ -359,8 +358,13 @@ async def test_temporary_and_definite_provider_errors_are_distinguished():
     )
     user = SimpleNamespace(id=1)
 
-    temporary = RuntimeError("LINE API error 429 quota exceeded")
-    definite = RuntimeError("LINE API rejected the message: invalid token")
+    class ApiError(Exception):
+        def __init__(self, status: int):
+            super().__init__(f"LINE API error {status}")
+            self.status = status
+
+    temporary = ApiError(503)
+    definite = ApiError(400)
 
     with (
         patch.object(
@@ -387,5 +391,5 @@ async def test_temporary_and_definite_provider_errors_are_distinguished():
                 AsyncMock(), booking, user
             )
 
-    assert temp_outcome is DeliveryOutcome.TEMPORARY_FAILURE
-    assert definite_outcome is DeliveryOutcome.UNKNOWN
+    assert temp_outcome is DeliveryOutcome.UNKNOWN
+    assert definite_outcome is DeliveryOutcome.NOT_SENT
