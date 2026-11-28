@@ -13,7 +13,7 @@ from app.models.intent import IntentResponse
 from app.models.message import MessageDirection
 from app.schemas.ws_events import WSEventType
 from app.services.line_service import describe_line_message
-from app.services.outbox import Outbox, drain_outbox, new_outbox
+from app.services.outbox import Outbox, drain_outbox, new_outbox, reply
 from app.services.response_parser import parse_response
 
 from ._deps import (
@@ -233,13 +233,9 @@ async def _handle_message_event_inner(event: MessageEvent, db: AsyncSession, box
                 )
 
             async def _reply_all():
-                try:
-                    await line_svc.reply_messages(event.reply_token, all_messages)
-                except Exception as e:
-                    logger.error(f"Failed to send all messages: {e}")
-                    await line_svc.reply_text(event.reply_token, "ขออภัย เกิดข้อผิดพลาดในการส่งข้อมูล")
+                await line_svc.reply_messages(event.reply_token, all_messages)
 
-            box.append(_reply_all)
+            box.append(reply(_reply_all))
 
     else:
         message_type, content, payload = await extract_non_text_message(event.message, db)
