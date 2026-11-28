@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.logging_utils import mask_line_id, mask_phone
 from app.models.service_request import ServiceRequest
 from app.services.flex_messages import build_booking_list, build_request_status_list
-from app.services.outbox import Outbox, drain_outbox
+from app.services.outbox import Outbox, drain_outbox, reply
 
 from ._deps import get_line_service
 
@@ -33,10 +33,10 @@ async def handle_check_booking(
         bookings = await list_user_bookings(db, user.id) if user else []
 
         flex_content = build_booking_list(bookings)
-        box.append(partial(line_svc.reply_flex, reply_token, "คิวนัดหมายของคุณ", flex_content))
+        box.append(reply(partial(line_svc.reply_flex, reply_token, "คิวนัดหมายของคุณ", flex_content)))
     except Exception as e:
         logger.error(f"Error checking bookings for {mask_line_id(line_user_id)}: {e}")
-        box.append(partial(line_svc.reply_text, reply_token, "ขออภัย ไม่สามารถดึงข้อมูลคิวนัดหมายได้ในขณะนี้"))
+        box.append(reply(partial(line_svc.reply_text, reply_token, "ขออภัย ไม่สามารถดึงข้อมูลคิวนัดหมายได้ในขณะนี้")))
     if outbox is None:
         await drain_outbox(box)
 
@@ -68,17 +68,17 @@ async def handle_check_status(
                 "หากท่านเคยยื่นเรื่องไว้ กรุณาพิมพ์ **เบอร์โทรศัพท์** (10 หลัก) "
                 "เพื่อค้นหา หรือติดต่อเจ้าหน้าที่เพื่อยืนยันรับเรื่องครับ"
             )
-            box.append(partial(line_svc.reply_text, reply_token, msg))
+            box.append(reply(partial(line_svc.reply_text, reply_token, msg)))
             if outbox is None:
                 await drain_outbox(box)
             return
 
         flex_content = build_request_status_list(requests)
-        box.append(partial(line_svc.reply_flex, reply_token, "สถานะคำร้องของคุณ", flex_content))
+        box.append(reply(partial(line_svc.reply_flex, reply_token, "สถานะคำร้องของคุณ", flex_content)))
 
     except Exception as e:
         logger.error(f"Error checking status for {mask_line_id(line_user_id)}: {e}")
-        box.append(partial(line_svc.reply_text, reply_token, "ขออภัย ไม่สามารถดึงข้อมูลสถานะได้ในขณะนี้"))
+        box.append(reply(partial(line_svc.reply_text, reply_token, "ขออภัย ไม่สามารถดึงข้อมูลสถานะได้ในขณะนี้")))
     if outbox is None:
         await drain_outbox(box)
 
@@ -102,7 +102,7 @@ async def handle_bind_phone(
 
         if user_id is None:
             logger.warning(f"Phone bind: ไม่พบผู้ใช้สำหรับ LINE ID {mask_line_id(line_user_id)}")
-            box.append(partial(line_svc.reply_text, reply_token, "ขออภัย ไม่พบข้อมูลผู้ใช้ของคุณ กรุณาลองใหม่อีกครั้ง"))
+            box.append(reply(partial(line_svc.reply_text, reply_token, "ขออภัย ไม่พบข้อมูลผู้ใช้ของคุณ กรุณาลองใหม่อีกครั้ง")))
             if outbox is None:
                 await drain_outbox(box)
             return
@@ -118,18 +118,18 @@ async def handle_bind_phone(
         )
 
         if count == 0:
-            box.append(partial(line_svc.reply_text, reply_token, "❌ ไม่พบข้อมูลคำร้องของเบอร์ที่ระบุครับ"))
+            box.append(reply(partial(line_svc.reply_text, reply_token, "❌ ไม่พบข้อมูลคำร้องของเบอร์ที่ระบุครับ")))
         else:
             # Presence only, no exact count: the count let anyone probe how
             # many cases a phone number has (enumeration oracle).
-            box.append(partial(
+            box.append(reply(partial(
                 line_svc.reply_text,
                 reply_token,
                 "พบคำร้องที่ใช้เบอร์นี้ กรุณาติดต่อเจ้าหน้าที่เพื่อยืนยันรับเรื่อง",
-            ))
+            )))
 
     except Exception as e:
         logger.error(f"Error binding phone {mask_phone(phone_number)}: {e}")
-        box.append(partial(line_svc.reply_text, reply_token, "ขออภัย เกิดข้อผิดพลาดในการเชื่อมโยงข้อมูล"))
+        box.append(reply(partial(line_svc.reply_text, reply_token, "ขออภัย เกิดข้อผิดพลาดในการเชื่อมโยงข้อมูล")))
     if outbox is None:
         await drain_outbox(box)

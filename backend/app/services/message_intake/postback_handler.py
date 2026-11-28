@@ -5,7 +5,7 @@ from functools import partial
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logging_utils import mask_line_id
-from app.services.outbox import Outbox, drain_outbox
+from app.services.outbox import Outbox, drain_outbox, reply
 
 from ._deps import get_line_service
 from .commands import handle_check_status
@@ -64,7 +64,7 @@ async def handle_csat_response(line_user_id: str, data: str, reply_token: str, d
         )
 
         thank_you = csat_service.get_thank_you_message(score)
-        box.append(partial(get_line_service().reply_text, reply_token, thank_you))
+        box.append(reply(partial(get_line_service().reply_text, reply_token, thank_you)))
         if outbox is None:
             await drain_outbox(box)
 
