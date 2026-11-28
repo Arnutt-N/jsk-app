@@ -94,3 +94,6 @@ graphify-out-fe/
 
 # vite cache from running vitest with --root .
 .vite/
+
+# Agent session logs — local handoff artifacts, not source
+project-log-md/

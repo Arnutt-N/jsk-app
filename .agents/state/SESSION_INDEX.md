@@ -1,16 +1,16 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Cross-Platform Session Index (generated)
 
-> **Last generated**: 2026-11-25 08:45 (from newest checkpoint)
+> **Last generated**: 2026-11-28 17:57 (from newest checkpoint)
 
 ## Quick Stats
 
 | Metric | Value |
 |--------|-------|
-| Handoff checkpoints (active) | 350 |
-| Session summaries on disk | 459 |
+| Handoff checkpoints (active) | 354 |
+| Session summaries on disk | 465 |
 | Platforms | 12 (antigravity, claude_code, cline, codex, gemini_cli, kilo_code, kimi_code, muse_code, open_code, pi, qoder, zcode) |
-| Most recent | 2026-11-25 08:45 — claude_code |
+| Most recent | 2026-11-28 17:57 — claude_code |
 
 > Regenerate after any handoff: `node .agents/scripts/gen-handoff-views.cjs`
 
@@ -24,10 +24,13 @@
 | 2026-04-04 12:04 | completed | — | — | `handover-antigravity-20260404-1204.json` |
 | 2026-02-15 03:20 | completed | — | — | `handover-antigravity-20260215-0320.json` |
 
-## claude_code (195)
+## claude_code (198)
 
 | When | Status | Model | Provider | Checkpoint |
 |------|--------|-------|----------|------------|
+| 2026-11-28 17:57 | completed | claude-fable-5 | anthropic | `handover-claude_code-20261128-1757.json` |
+| 2026-11-25 14:12 | completed | claude-fable-5 | anthropic | `handover-claude_code-20261125-1412.json` |
+| 2026-11-25 10:38 | completed | — | — | `handover-claude_code-20261125-1038.json` |
 | 2026-11-25 08:45 | completed | — | — | `handover-claude_code-20261125-0845.json` |
 | 2026-11-25 01:55 | completed | — | — | `handover-claude_code-20261125-0155.json` |
 | 2026-11-25 00:22 | completed | — | — | `handover-claude_code-20261125-0022.json` |
@@ -45,10 +48,7 @@
 | 2026-11-23 08:51 | completed | — | — | `handover-claude_code-20261123-0851.json` |
 | 2026-11-22 09:31 | completed | — | — | `handover-claude_code-20261122-0931.json` |
 | 2026-11-20 21:45 | completed | — | — | `handover-claude_code-20261120-2145.json` |
-| 2026-11-20 16:39 | completed | — | — | `handover-claude_code-20261120-1639.json` |
-| 2026-11-20 12:05 | completed | — | — | `handover-claude_code-20261120-1205.json` |
-| 2026-11-19 14:10 | completed | — | — | `handover-claude_code-20261119-1410.json` |
-| … | | | | +175 older |
+| … | | | | +178 older |
 
 ## cline (16)
 
@@ -71,10 +71,11 @@
 | 2026-07-09 20:49 | completed | GLM-4.5 | Zhipu AI | `handover-cline-20260709-2049.json` |
 | 2026-02-15 03:25 | completed | — | — | `handover-cline-20260215-0325.json` |
 
-## codex (19)
+## codex (20)
 
 | When | Status | Model | Provider | Checkpoint |
 |------|--------|-------|----------|------------|
+| 2026-11-25 14:59 | completed | codex | openai | `handover-codex-20261125-1459.json` |
 | 2026-08-29 06:54 | completed | GPT-5.4 | OpenAI | `handover-codex-20260829-0654.json` |
 | 2026-08-06 06:03 | completed | — | — | `handover-codex-20260806-0603.json` |
 | 2026-07-12 12:34 | completed | — | — | `handover-codex-20260712-1234.json` |
