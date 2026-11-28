@@ -1,0 +1,20 @@
+{
+  "handoff_version": "2.0",
+  "platform": "claude_code",
+  "agent": "claude_code",
+  "timestamp": "2026-11-28T17:57:00+07:00",
+  "branch": "fix/viewer-read-only-policy",
+  "head_commit": "d697d71",
+  "status": "completed",
+  "work_summary": "Completed the full codex review backlog: N10, N06/N07, N04/N05/N13/N14, F01-F16 plus deferred follow-ups (F02/F03/F06 test gaps closed). 28 PRs merged (#355-#382); origin/main at af9019a. All units VERIFIED in .audit/codex-backlog-run.tsv; no open PRs. Pre-existing flakes: test_broadcast_double_send, test_broadcast_dryrun (fail on clean main too). Uncommitted: .agents handoff state files only.",
+  "priority_actions": [
+    "Review and merge any remaining open PRs (none currently)",
+    "Clean up temp worktrees jsk-* and jsk-app-wt-* when disk space is needed"
+  ],
+  "context_for_next_agent": "",
+  "session_summary": "project-log-md/claude_code/session-summary-20261128-1757.md",
+  "cross_platform_read": [],
+  "model": "claude-fable-5",
+  "provider": "anthropic",
+  "to_agent": "all"
+}

@@ -1,0 +1,25 @@
+unit	verdict	branch	pr	evidence
+N10	VERIFIED	fix/n10-viewer-booking-options	359	red full settings -> green 3 fields, CI pass, reviewer PASS
+N14	VERIFIED	fix/n14-blank-email	361	red blank/conflict -> green 26 tests, reviewer PASS, merged b906021
+N06N07	VERIFIED	fix/n06n07-user-request-order	360	red stale list + tautology fixed -> green 8 tests, reviewer PASS, merged
+N04	VERIFIED	fix/n04-session-cleanup	362	red audit fake -> green 1851 tests, reviewer PASS, merged
+N05	VERIFIED	fix/n05-canonical-email	363	red blank routing/index drift -> green 39 tests, reviewer PASS, CI green after flake rerun
+N13	VERIFIED	fix/n13-super-admin-invariant	364	guard lock proven on Postgres, reviewer PASS, endpoint 403 test deferred
+F13	VERIFIED	fix/f13-migration-gate	365	fail-closed derivation proven, reviewer PASS, merged
+F09	VERIFIED	fix/f09-broadcast-pagination	366	db paging + tie-breaker, reviewer PASS, SQL-level test deferred
+F16	VERIFIED	fix/f16-handoff-history	367	archive preserves all entries, reviewer PASS, T24 golden failure pre-existing
+F10	VERIFIED	fix/f10-location-cascade	368	generation guard + clear/reset loading, reviewer PASS, shuffle-isolated tests
+F12	VERIFIED	fix/f12-db-target-env	369	effective env path shared by show and child, CI green, reviewer PASS
+F11	VERIFIED	fix/f11-broadcast-claim-snapshot	370	version-pinned claim and mark-invalid, reviewer PASS, CI green
+F14	MERGED_BY_USER_REQUEST	fix/f14-migration-recovery	371	reviewer pending at merge, CI green, user explicitly requested merge
+F14-FOLLOWUP	VERIFIED	fix/f14-runbook-followup	372	reviewer findings closed, CI green, cwd path fixed
+F15	VERIFIED	fix/f15-e2e-fixture-teardown	373	test-owned cleanup with CSRF/failure/isolation tests, reviewer PASS, CI green
+F08	VERIFIED	fix/f08-broadcast-recovery-states	374	status labels + confirmed resolve, reviewer PASS, CI green after flake rerun
+F04	VERIFIED	fix/f04-accepted-409	375	accepted 409 classified success, reviewer PASS, CI green after flake rerun
+F05	VERIFIED	fix/f05-broadcast-create-idempotency	376	operation-id replay verified on real PG, reviewer PASS, CI green
+F07	VERIFIED	fix/f07-reminder-ownership	377	token-scoped reread before send, reviewer PASS, CI green
+F06	VERIFIED_WITH_TEST_GAP	fix/f06-reminder-outcomes	378	structured classifier, both markers, reviewer PASS with deferred DB test for finalize UNKNOWN
+F02	VERIFIED_WITH_TEST_GAP	fix/f02-webhook-atomic-claim	379	real PG concurrent claim proven, reviewer PASS, deferred fake-DB token/TTL pin
+F03	VERIFIED_WITH_TEST_GAP	fix/f03-reply-outcome	380	reply status separated from effects, reviewer PASS, deferred retag of command reply sites
+F01	VERIFIED	fix/f01-webhook-replay	381	payload redaction + startup recovery, 4 tests, CI green after flake rerun
+F06-FOLLOWUP	VERIFIED	fix/deferred-followups	382	scheduler UNKNOWN both-markers DB test + F02 token/TTL pin + F03 reply-tag all sites, 4 tests, CI green

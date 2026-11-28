@@ -1,8 +1,44 @@
 <!-- GENERATED — do not hand-edit. Regenerate: node .agents/scripts/gen-handoff-views.cjs -->
 # Task Log (generated)
 
-> Source of truth: `.agents/state/checkpoints/*.json` — 350 active handoffs, 12 platforms.
+> Source of truth: `.agents/state/checkpoints/*.json` — 354 active handoffs, 12 platforms.
 > Newest first. Keyed by timestamp + platform (no fragile sequential numbers).
+
+### 2026-11-28 17:57 — claude_code (claude-fable-5 / anthropic) — completed
+
+Completed the full codex review backlog: N10, N06/N07, N04/N05/N13/N14, F01-F16 plus deferred follow-ups (F02/F03/F06 test gaps closed). 28 PRs merged (#355-#382); origin/main at af9019a. All units VERIFIED in .audit/codex-backlog-run.tsv; no open PRs. Pre-existing flakes: test_broadcast_double_send, test_broadcast_dryrun (fail on clean main too). Uncommitted: .agents handoff state files only.
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20261128-1757.json`
+- Summary: `project-log-md/claude_code/session-summary-20261128-1757.md`
+
+---
+
+### 2026-11-25 14:59 — codex (codex / openai) — completed
+
+Codex read-only review of PR 355 and morning release: N01-N14 plus F01-F16, with ordered fixes and measurement checks
+
+- Checkpoint: `.agents/state/checkpoints/handover-codex-20261125-1459.json`
+- Summary: `project-log-md/codex/session-summary-20261125-1459.md`
+
+---
+
+### 2026-11-25 14:12 — claude_code (claude-fable-5 / anthropic) — completed
+
+PR 355 merged to main (5320144): VIEWER role manageable only by SUPER_ADMIN; VIEWER added to admin auth roles; create/edit role dropdowns filtered by caller; list refetches after user creation. CI all green, final review PASS (no CRITICAL/HIGH).
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20261125-1412.json`
+- Summary: `project-log-md/claude_code/session-summary-20261125-1412.md`
+
+---
+
+### 2026-11-25 10:38 — claude_code — completed
+
+PR #354 merged as 3ddab89; all release PRs 349-352 and handoff closeout PR 353-354 are on main. Browser simulation passed 3 flows with no product defect. Production migration verified by CD at f09a1b2c3d4
+
+- Checkpoint: `.agents/state/checkpoints/handover-claude_code-20261125-1038.json`
+- Summary: `project-log-md/claude_code/session-summary-20261125-1038.md`
+
+---
 
 ### 2026-11-25 08:45 — claude_code — completed
 

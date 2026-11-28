@@ -1,12 +1,41 @@
 {
-  "last_updated": "2026-11-25T08:45:00+07:00",
+  "last_updated": "2026-11-28T17:57:00+07:00",
   "platform": "claude_code",
-  "current_task": "PR #353 handoff state reviewed PASS+NOTES and merged to main as squash 18dc61a with guarded merge at head da705ff",
+  "current_task": "Completed the full codex review backlog: N10, N06/N07, N04/N05/N13/N14, F01-F16 plus deferred follow-ups (F02/F03/F06 test gaps closed). 28 PRs merged (#355-#382); origin/main at af9019a. All units VE",
   "plan_status": "completed",
   "next_steps": [
-    "Run LINE device check when adb and a LINE-logged-in phone are available"
+    "Review and merge any remaining open PRs (none currently)",
+    "Clean up temp worktrees jsk-* and jsk-app-wt-* when disk space is needed"
   ],
   "handoff_history": [
+    {
+      "timestamp": "2026-11-28T17:57:00+07:00",
+      "platform": "claude_code",
+      "branch": "fix/viewer-read-only-policy",
+      "head": "d697d71",
+      "status": "completed"
+    },
+    {
+      "timestamp": "2026-11-25T14:59:00+07:00",
+      "platform": "codex",
+      "branch": "feat/viewer-superadmin-role-gates",
+      "head": "4bee915",
+      "status": "completed"
+    },
+    {
+      "timestamp": "2026-11-25T14:12:00+07:00",
+      "platform": "claude_code",
+      "branch": "feat/viewer-superadmin-role-gates",
+      "head": "4bee915",
+      "status": "completed"
+    },
+    {
+      "timestamp": "2026-11-25T10:38:00+07:00",
+      "platform": "claude_code",
+      "branch": "docs/handoff-state-20261125-2",
+      "head": "0ca6ca4",
+      "status": "completed"
+    },
     {
       "timestamp": "2026-11-25T08:45:00+07:00",
       "platform": "claude_code",
@@ -118,132 +147,6 @@
       "branch": "docs/handoff-20261119-1410",
       "head": "d370364",
       "status": "completed"
-    },
-    {
-      "timestamp": "2026-11-20T16:39:00+07:00",
-      "platform": "claude_code",
-      "branch": "docs/handoff-20261119-1410",
-      "head": "d370364",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-11-20T12:05:00+07:00",
-      "platform": "claude_code",
-      "branch": "docs/handoff-20261119-1410",
-      "head": "d370364",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-11-19T14:10:00+07:00",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "2837d4d",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-11-19T13:33:00+07:00",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "180cfc8",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-11-15T08:12:00+07:00",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "33f2e5b",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-11-09T23:11:00+07:00",
-      "platform": "claude_code",
-      "branch": "fix/mock-routing-and-r-cjs-shell",
-      "head": "3592535",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-11-09T07:12:00+07:00",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "7053188",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-11-09T05:08:00+07:00",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "421f084",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-11-07T13:42:00+07:00",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "efcb508",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-11-05T19:59:00+07:00",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "f6a0d2c",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-11-04T14:01:00+07:00",
-      "platform": "claude_code",
-      "branch": "main",
-      "head": "0c1919f",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-11-04T07:40:00+07:00",
-      "platform": "claude_code",
-      "branch": "fix/react-hooks-dead-guards",
-      "head": "317520d",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-11-01T11:11:00+07:00",
-      "platform": "claude_code",
-      "branch": "chore/next-16-4-3-cve",
-      "head": "e6769f5",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-10-29T17:21:00+07:00",
-      "platform": "claude_code",
-      "branch": "fix/codebase-review-20261026",
-      "head": "c04f5b8",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-10-29T11:32:00+07:00",
-      "platform": "claude_code",
-      "branch": "fix/codebase-review-20261026",
-      "head": "38f2385",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-10-29T06:51:00+07:00",
-      "platform": "claude_code",
-      "branch": "fix/codebase-review-20261026",
-      "head": "4f5de53",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-10-27T12:25:00+07:00",
-      "platform": "pi",
-      "branch": "fix/codebase-review-20261026",
-      "head": "0d2ca78",
-      "status": "completed"
-    },
-    {
-      "timestamp": "2026-10-26T11:13:00+07:00",
-      "platform": "pi",
-      "branch": "feat/admin-p1-fixes",
-      "head": "dc559b9",
-      "status": "completed"
     }
   ],
   "cross_platform_context": {
@@ -253,5 +156,7 @@
       "codex/2026-09-22-feature-line-audit-fix-map-handoff.md"
     ],
     "key_insights": "Handoff system redesigned to single-source-of-truth (checkpoints) + generated views (TASK_LOG/SESSION_INDEX via gen-handoff-views.cjs). Use handoff-new.cjs to create handoffs. Stop hook enforces it. Do NOT hand-edit the generated files."
-  }
+  },
+  "model": "claude-fable-5",
+  "provider": "anthropic"
 }
