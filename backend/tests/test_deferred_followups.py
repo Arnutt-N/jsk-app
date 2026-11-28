@@ -90,6 +90,9 @@ async def test_scheduler_unknown_outcome_writes_both_markers(monkeypatch):
         booking_reminder, "verify_reminder_lease", AsyncMock(return_value=True)
     )
     monkeypatch.setattr(
+        booking_reminder, "verify_reminder_sendable", AsyncMock(return_value=True)
+    )
+    monkeypatch.setattr(
         booking_reminder, "send_booking_reminder_outcome",
         AsyncMock(return_value=DeliveryOutcome.UNKNOWN),
     )

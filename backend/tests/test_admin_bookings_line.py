@@ -309,30 +309,30 @@ async def test_remind_line_off_never_resolves_the_line_id():
 
 @pytest.mark.asyncio
 async def test_missing_line_row_reads_off():
-    async def _get(_db, key, default=""):
-        return ""
+    async def _get_many(_db, keys):
+        return {key: "" for key in keys}
 
-    with patch.object(booking_settings.SettingsService, "get_setting", new=staticmethod(_get)):
+    with patch.object(booking_settings.SettingsService, "get_many", new=staticmethod(_get_many)):
         config = await booking_settings._read_booking_config(AsyncMock())
     assert config.line_enabled is False
 
 
 @pytest.mark.asyncio
 async def test_malformed_line_row_reads_off():
-    async def _get(_db, key, default=""):
-        return "bogus" if key == booking_settings.KEY_LINE_ENABLED else default
+    async def _get_many(_db, keys):
+        return {key: ("bogus" if key == booking_settings.KEY_LINE_ENABLED else "") for key in keys}
 
-    with patch.object(booking_settings.SettingsService, "get_setting", new=staticmethod(_get)):
+    with patch.object(booking_settings.SettingsService, "get_many", new=staticmethod(_get_many)):
         config = await booking_settings._read_booking_config(AsyncMock())
     assert config.line_enabled is False
 
 
 @pytest.mark.asyncio
 async def test_truthy_line_row_reads_on():
-    async def _get(_db, key, default=""):
-        return "yes" if key == booking_settings.KEY_LINE_ENABLED else default
+    async def _get_many(_db, keys):
+        return {key: ("yes" if key == booking_settings.KEY_LINE_ENABLED else "") for key in keys}
 
-    with patch.object(booking_settings.SettingsService, "get_setting", new=staticmethod(_get)):
+    with patch.object(booking_settings.SettingsService, "get_many", new=staticmethod(_get_many)):
         config = await booking_settings._read_booking_config(AsyncMock())
     assert config.line_enabled is True
 

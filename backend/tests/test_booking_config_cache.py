@@ -8,17 +8,12 @@ pytestmark = pytest.mark.asyncio
 
 from app.services import booking_settings
 from app.services.booking_settings import (
-    ALL_KEYS,
     DEFAULTS,
     BookingConfig,
     load_booking_config,
     save_booking_config,
 )
 from app.services.settings_service import SettingsService
-
-# One settings read per key — derived, never hardcoded, so adding a toggle
-# updates the budget instead of breaking the suite.
-ALL_KEYS_COUNT = len(ALL_KEYS)
 
 FAKE_DB = cast(AsyncSession, object())
 
@@ -27,16 +22,16 @@ FAKE_DB = cast(AsyncSession, object())
 def counting_settings(monkeypatch):
     calls: list[str] = []
 
-    async def fake_get(db, key, default=""):
-        calls.append(key)
-        return default
+    async def fake_get_many(db, keys):
+        calls.append("get_many")
+        return {key: "" for key in keys}
 
-    async def fake_set(db, key, value, description=None):
-        calls.append(f"set:{key}")
+    async def fake_set_many(db, values, description=None):
+        calls.append("set_many")
         return None
 
-    monkeypatch.setattr(SettingsService, "get_setting", staticmethod(fake_get))
-    monkeypatch.setattr(SettingsService, "set_setting", staticmethod(fake_set))
+    monkeypatch.setattr(SettingsService, "get_many", staticmethod(fake_get_many))
+    monkeypatch.setattr(SettingsService, "set_many", staticmethod(fake_set_many))
     return calls
 
 
@@ -58,11 +53,11 @@ async def test_second_load_within_ttl_reads_zero_settings(
     counting_settings, cold_cache, frozen_time
 ):
     first = await load_booking_config(FAKE_DB)
-    assert len(counting_settings) == ALL_KEYS_COUNT
+    assert counting_settings == ["get_many"]
 
     second = await load_booking_config(FAKE_DB)
     assert second is first
-    assert len(counting_settings) == ALL_KEYS_COUNT
+    assert counting_settings == ["get_many"]
 
 
 async def test_expired_ttl_reloads(counting_settings, cold_cache, frozen_time):
@@ -71,7 +66,7 @@ async def test_expired_ttl_reloads(counting_settings, cold_cache, frozen_time):
 
     config = await load_booking_config(FAKE_DB)
     assert isinstance(config, BookingConfig)
-    assert len(counting_settings) == 2 * ALL_KEYS_COUNT
+    assert counting_settings == ["get_many", "get_many"]
 
 
 async def test_fresh_bypass_ignores_cache_and_refreshes_it(
@@ -82,25 +77,27 @@ async def test_fresh_bypass_ignores_cache_and_refreshes_it(
 
     config = await load_booking_config(FAKE_DB, fresh=True)
     assert isinstance(config, BookingConfig)
-    assert len(counting_settings) == 2 * ALL_KEYS_COUNT
+    assert counting_settings == ["get_many", "get_many"]
 
     await load_booking_config(FAKE_DB)
-    assert len(counting_settings) == 2 * ALL_KEYS_COUNT
+    assert counting_settings == ["get_many", "get_many"]
 
 
-async def test_cold_open_cost_is_one_read_per_key(
+async def test_cold_open_cost_is_one_batch_read(
     counting_settings, cold_cache, frozen_time
 ):
     for _ in range(3):
         await load_booking_config(FAKE_DB)
-    assert len(counting_settings) == ALL_KEYS_COUNT
+    assert counting_settings == ["get_many"]
 
 
-async def test_save_invalidates(counting_settings, cold_cache, frozen_time):
+async def test_save_uses_one_batch_write_and_invalidates(
+    counting_settings, cold_cache, frozen_time
+):
     await load_booking_config(FAKE_DB)
-    assert len(counting_settings) == ALL_KEYS_COUNT
+    assert counting_settings == ["get_many"]
 
     await save_booking_config(FAKE_DB, DEFAULTS)
 
     await load_booking_config(FAKE_DB)
-    assert len(counting_settings) == 2 * ALL_KEYS_COUNT + ALL_KEYS_COUNT
+    assert counting_settings == ["get_many", "set_many", "get_many"]

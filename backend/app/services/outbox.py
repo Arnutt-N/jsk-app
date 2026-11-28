@@ -54,20 +54,22 @@ def _classify(exc: Exception) -> DeliveryOutcome:
 
 
 async def drain_outbox_outcomes(box: Outbox) -> dict[OutboxKind, DeliveryOutcome]:
-    """Send every deferred announcement and fold results per kind."""
-    outcomes: dict[OutboxKind, list[DeliveryOutcome]] = {kind: [] for kind in OutboxKind}
+    """Send every deferred announcement and fold results per kind.
+
+    Only kinds that actually had an item appear in the result. A kind with no
+    queued action is absent, never `SENT` — reporting `SENT` for an empty reply
+    queue would claim a LINE reply nobody attempted (F15).
+    """
+    outcomes: dict[OutboxKind, list[DeliveryOutcome]] = {}
     for item in box:
         kind, send = item if isinstance(item, OutboxItem) else (OutboxKind.OTHER, item)
         try:
             await send()
-            outcomes[kind].append(DeliveryOutcome.SENT)
+            outcomes.setdefault(kind, []).append(DeliveryOutcome.SENT)
         except Exception as exc:
             logger.error("Outbox announce failed: %s", exc)
-            outcomes[kind].append(_classify(exc))
-    return {
-        kind: DeliveryOutcome.SENT if not results else _fold(results)
-        for kind, results in outcomes.items()
-    }
+            outcomes.setdefault(kind, []).append(_classify(exc))
+    return {kind: _fold(results) for kind, results in outcomes.items()}
 
 
 def _fold(results: list[DeliveryOutcome]) -> DeliveryOutcome:

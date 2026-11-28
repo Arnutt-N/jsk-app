@@ -1,6 +1,6 @@
 import enum
 import uuid
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -195,24 +195,45 @@ class MonthlyStats(BaseModel):
 
 @router.get("/stats/monthly", response_model=list[MonthlyStats])
 async def get_monthly_stats(db: AsyncSession = Depends(get_db), current_admin: User = Depends(get_current_manager_or_viewer)):
-    """Get request counts grouped by month (last 12 months)."""
-    # Using text() for the order by to reference the alias
-    from sqlalchemy import text
-    month_expr = func.to_char(ServiceRequest.created_at, 'YYYY-MM')
+    """Request counts for the last 12 Bangkok calendar months, gaps as zero."""
+    from app.core.date_windows import BANGKOK
+
+    now_bkk = datetime.now(BANGKOK)
+    # The 12 months the chart shows, oldest to newest.
+    year, month = now_bkk.year, now_bkk.month
+    month_keys: list[str] = []
+    for _ in range(12):
+        month_keys.append(f"{year:04d}-{month:02d}")
+        month -= 1
+        if month == 0:
+            month = 12
+            year -= 1
+    month_keys.reverse()
+
+    start_year, start_month = int(month_keys[0][:4]), int(month_keys[0][5:])
+    start_utc = datetime(start_year, start_month, 1, tzinfo=BANGKOK).astimezone(UTC)
+    end_year, end_month = now_bkk.year, now_bkk.month + 1
+    if end_month == 13:
+        end_year, end_month = end_year + 1, 1
+    end_utc = datetime(end_year, end_month, 1, tzinfo=BANGKOK).astimezone(UTC)
+
+    month_expr = func.to_char(
+        func.timezone("Asia/Bangkok", ServiceRequest.created_at), "YYYY-MM"
+    )
     query = (
         select(
-            month_expr.label('month'),
-            func.count(ServiceRequest.id).label('count')
+            month_expr.label("month"),
+            func.count(ServiceRequest.id).label("count"),
         )
+        # Bound the grouped input so an old sparse month cannot crowd out a
+        # recent one, and so the partial index on created_at is usable (F24).
+        .where(ServiceRequest.created_at >= start_utc, ServiceRequest.created_at < end_utc)
         .group_by(month_expr)
-        .order_by(text('month DESC'))
-        .limit(12)
     )
 
     result = await db.execute(query)
-    # Reverse to get chronological order (oldest to newest) for chart
-    stats = [MonthlyStats(month=row.month, count=row.count) for row in result.all()]
-    return stats[::-1]
+    counts = {row.month: row.count for row in result.all()}
+    return [MonthlyStats(month=key, count=counts.get(key, 0)) for key in month_keys]
 
 class WorkloadStats(BaseModel):
     agent_name: str

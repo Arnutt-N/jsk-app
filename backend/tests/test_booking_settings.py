@@ -30,12 +30,12 @@ def _fresh_config_cache():
 
 
 def _stub_settings(values):
-    """Patch SettingsService.get_setting to serve `values` (key -> raw string)."""
+    """Patch SettingsService.get_many to serve `values` (key -> raw string)."""
 
-    async def _get(db, key, default=""):
-        return values.get(key, default)
+    async def _get_many(db, keys):
+        return {key: values.get(key, "") for key in keys}
 
-    return patch.object(booking_settings.SettingsService, "get_setting", new=_get)
+    return patch.object(booking_settings.SettingsService, "get_many", new=_get_many)
 
 
 async def _load(values):

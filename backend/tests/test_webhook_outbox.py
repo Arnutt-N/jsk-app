@@ -82,7 +82,12 @@ async def test_webhook_drains_after_commit_in_order(monkeypatch):
     from app.api.v1.endpoints import webhook as webhook_module
 
     calls: list[str] = []
-    handle = AsyncMock(side_effect=lambda *a, **k: calls.append("handle"))
+
+    async def _handle(event, _db, box):
+        calls.append("handle")
+        box.append(AsyncMock())
+
+    handle = AsyncMock(side_effect=_handle)
     drain = AsyncMock(side_effect=lambda *a, **k: (calls.append("drain"), 0)[1])
     db = AsyncMock()
     db.get = AsyncMock(return_value=None)
@@ -156,7 +161,12 @@ async def test_postback_drains_after_commit_in_order(monkeypatch):
     from app.api.v1.endpoints import webhook as webhook_module
 
     calls: list[str] = []
-    handle = AsyncMock(side_effect=lambda *a, **k: calls.append("handle"))
+
+    async def _handle(event, _db, box):
+        calls.append("handle")
+        box.append(AsyncMock())
+
+    handle = AsyncMock(side_effect=_handle)
     drain = AsyncMock(side_effect=lambda *a, **k: (calls.append("drain"), 0)[1])
     db = AsyncMock()
     db.get = AsyncMock(return_value=None)

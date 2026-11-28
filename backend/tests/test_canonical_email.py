@@ -9,10 +9,13 @@ from app.models.user import User
 
 def test_email_matches_uses_case_insensitive_trimmed_expression():
     expr = email_matches(User.email, " Admin@Example.COM ")
-    sql = str(expr.compile(dialect=postgresql.dialect()))
-    assert "lower(btrim(users.email))" in sql
-    values = [str(value) for value in expr.compile(dialect=postgresql.dialect()).params.values()]
+    compiled = expr.compile(dialect=postgresql.dialect())
+    sql = str(compiled)
+    assert "lower(btrim(users.email," in sql
+    values = [str(value) for value in compiled.params.values()]
     assert "admin@example.com" in values
+    # Same explicit whitespace set as PostgreSQL's index expression.
+    assert any("\t" in value for value in values)
 
 
 def test_model_and_migration_share_unique_index_name():
@@ -23,5 +26,7 @@ def test_model_and_migration_share_unique_index_name():
     assert "uq_users_email_lower" in migration
     assert "email IS NOT NULL" in migration
     index = next(idx for idx in User.__table__.indexes if idx.name == "uq_users_email_lower")
-    assert "lower(btrim(users.email))" in str(index.expressions[0].compile(dialect=postgresql.dialect()))
+    assert "lower(btrim(users.email," in str(
+        index.expressions[0].compile(dialect=postgresql.dialect())
+    )
     assert "email IS NOT NULL" in str(index.dialect_options["postgresql"]["where"])

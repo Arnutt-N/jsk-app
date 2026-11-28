@@ -105,9 +105,24 @@ def test_reply_status_persists_lowercase_enum_values():
 
 @pytest.mark.asyncio
 async def test_event_id_committed_before_ack(monkeypatch):
+    from linebot.v3.webhooks import MessageEvent
+
     rows = {}
     db = _Session(rows)
-    parsed = [_event("evt-ack")]
+    parsed = [
+        MessageEvent.from_dict(
+            {
+                "type": "message",
+                "webhookEventId": "evt-ack",
+                "mode": "active",
+                "timestamp": 1700000000000,
+                "deliveryContext": {"isRedelivery": False},
+                "source": {"type": "user", "userId": "U123"},
+                "replyToken": "reply-token",
+                "message": {"id": "m1", "type": "text", "text": "hi", "quoteToken": "q"},
+            }
+        )
+    ]
     monkeypatch.setattr("app.api.v1.endpoints.webhook.AsyncSessionLocal", db)
     monkeypatch.setattr("app.api.v1.endpoints.webhook.parser", SimpleNamespace(parse=lambda body, sig: parsed))
     monkeypatch.setattr("app.api.v1.endpoints.webhook._read_body_with_limit", AsyncMock(return_value=b"{}"))
@@ -120,7 +135,7 @@ async def test_event_id_committed_before_ack(monkeypatch):
     assert result == "OK"
     db.commit.assert_awaited_once()
     row = rows["evt-ack"]
-    assert row.event_type == "SimpleNamespace"
+    assert row.event_type == "MessageEvent"
     assert row.reply_status in (None, ReplyDeliveryStatus.NONE)
     assert row.inbound_applied_at is None
     background.add_task.assert_called_once()
@@ -176,19 +191,37 @@ async def test_successful_reply_sets_sent_status(monkeypatch):
     rows = {row.event_id: row}
     db = _Session(rows)
 
+    async def handler(event, session, box):
+        box.append(reply(AsyncMock()))
+
     monkeypatch.setattr("app.api.v1.endpoints.webhook.AsyncSessionLocal", lambda: db)
     monkeypatch.setattr("app.api.v1.endpoints.webhook.MessageEvent", type(_event()))
-    monkeypatch.setattr(
-        "app.api.v1.endpoints.webhook.handle_message_event", AsyncMock()
-    )
-    monkeypatch.setattr(
-        "app.api.v1.endpoints.webhook.drain_outbox", AsyncMock(return_value=0)
-    )
+    monkeypatch.setattr("app.api.v1.endpoints.webhook.handle_message_event", handler)
     monkeypatch.setattr("app.api.v1.endpoints.webhook.redis_client", _redis())
 
     await process_webhook_events([_event("evt-ok")])
 
     assert row.reply_status is ReplyDeliveryStatus.SENT
+    assert row.inbound_applied_at is not None
+
+
+@pytest.mark.asyncio
+async def test_empty_outbox_records_no_reply_attempt(monkeypatch):
+    """An event that queued no reply must not claim a LINE reply was sent (F15)."""
+    row = WebhookEvent(event_id="evt-empty", event_type="MessageEvent")
+    rows = {row.event_id: row}
+    db = _Session(rows)
+
+    monkeypatch.setattr("app.api.v1.endpoints.webhook.AsyncSessionLocal", lambda: db)
+    monkeypatch.setattr("app.api.v1.endpoints.webhook.MessageEvent", type(_event()))
+    monkeypatch.setattr(
+        "app.api.v1.endpoints.webhook.handle_message_event", AsyncMock()
+    )
+    monkeypatch.setattr("app.api.v1.endpoints.webhook.redis_client", _redis())
+
+    await process_webhook_events([_event("evt-empty")])
+
+    assert row.reply_status is ReplyDeliveryStatus.NONE
     assert row.inbound_applied_at is not None
 
 

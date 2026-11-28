@@ -393,3 +393,78 @@ async def test_temporary_and_definite_provider_errors_are_distinguished():
 
     assert temp_outcome is DeliveryOutcome.UNKNOWN
     assert definite_outcome is DeliveryOutcome.NOT_SENT
+
+
+@pytest.mark.asyncio
+async def test_refused_staff_resend_keeps_the_earlier_confirmed_delivery():
+    """A later refused retry must not erase a prior confirmed send (F05)."""
+    engine = _fresh_engine()
+    Session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    booking_id, citizen_id, _ = await _seed(Session)
+    try:
+        async with Session() as db:
+            token = await booking_service.claim_reminder(db, booking_id)
+            await db.commit()
+            await booking_service.clear_reminder_outcome(
+                db, booking_id, token, outcome=DeliveryOutcome.SENT
+            )
+            # Move the confirmed time past the staff cooldown so a resend is
+            # allowed, then have the provider refuse that retry.
+            await db.execute(
+                update(Booking)
+                .where(Booking.id == booking_id)
+                .values(
+                    reminder_sent_at=func.now()
+                    - func.make_interval(
+                        0, 0, 0, 0, 0, 0, booking_service.REMINDER_STAFF_COOLDOWN_SECONDS + 1
+                    )
+                )
+            )
+            await db.commit()
+
+            retry = await booking_service.claim_reminder_for_staff(db, booking_id)
+            await db.commit()
+            assert retry is not None
+            assert await booking_service.clear_reminder_outcome(
+                db, booking_id, retry, outcome=DeliveryOutcome.NOT_SENT
+            )
+            await db.commit()
+
+            sent, failed, claimed = await _state(Session, booking_id)
+            assert sent is not None  # prior confirmed delivery survives
+            assert failed is not None
+            assert claimed is None
+
+            due = await booking_service.get_due_reminders(
+                db,
+                window_start=local_now(),
+                window_end=local_now() + timedelta(days=8),
+            )
+            assert booking_id not in [b.id for b in due]
+    finally:
+        await _cleanup(Session, booking_id, citizen_id, None)
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_citizen_cancel_releases_lease_and_fails_the_final_gate():
+    """A citizen cancellation must block the last pre-send check (F09)."""
+    engine = _fresh_engine()
+    Session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    booking_id, citizen_id, _ = await _seed(Session)
+    try:
+        async with Session() as db:
+            token = await booking_service.claim_reminder(db, booking_id)
+            await db.commit()
+            assert token is not None
+
+            booking = await db.get(Booking, booking_id)
+            await booking_service.cancel_booking(db, booking)
+            await db.commit()
+
+            _sent, _failed, claimed = await _state(Session, booking_id)
+            assert claimed is None
+            assert await booking_service.verify_reminder_lease(db, booking_id, token) is False
+    finally:
+        await _cleanup(Session, booking_id, citizen_id, None)
+        await engine.dispose()

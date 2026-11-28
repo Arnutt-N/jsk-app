@@ -3,6 +3,7 @@ import enum
 from sqlalchemy import Boolean, Column, DateTime, Enum, ForeignKey, Index, Integer, String, Text, func, text
 from sqlalchemy.orm import relationship
 
+from app.core.email import EMAIL_WHITESPACE
 from app.db.base import Base
 
 
@@ -79,7 +80,7 @@ class User(Base):
     __table_args__ = (
         Index(
             "uq_users_email_lower",
-            func.lower(func.btrim(email)),
+            func.lower(func.btrim(email, EMAIL_WHITESPACE)),
             unique=True,
             postgresql_where=text("email IS NOT NULL"),
         ),

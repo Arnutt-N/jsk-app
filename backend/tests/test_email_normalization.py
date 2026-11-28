@@ -8,6 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from app.api.v1.endpoints import admin_users
 from app.api.v1.endpoints.admin_users import UserCreateRequest, UserUpdateRequest
 from app.core.email import normalize_email
+from app.models.user import UserRole
 
 
 def test_normalize_email_trims_lowercases_and_drops_blank():
@@ -74,6 +75,57 @@ async def test_create_maps_unique_conflict_to_409(monkeypatch):
             body=body,
             db=db,
             current_admin=SimpleNamespace(id=1, role="SUPER_ADMIN"),
+        )
+
+    assert exc.value.status_code == 409
+    assert exc.value.detail == "Email already exists"
+    assert db.rollback_calls == 1
+
+
+class _UpdateDB:
+    """Returns the target user for the load, then no conflicting row."""
+
+    def __init__(self, user):
+        self.user = user
+        self.calls = 0
+        self.rollback_calls = 0
+
+    async def execute(self, stmt):
+        self.calls += 1
+        if self.calls == 1:
+            return SimpleNamespace(scalar_one_or_none=lambda: self.user)
+        return SimpleNamespace(scalar_one_or_none=lambda: None)
+
+    async def rollback(self):
+        self.rollback_calls += 1
+
+
+@pytest.mark.asyncio
+async def test_update_audit_flush_conflict_maps_to_409(monkeypatch):
+    """A unique violation raised while flushing the audit row is still a 409 (F13)."""
+    user = SimpleNamespace(
+        id=2,
+        username="victim",
+        email="old@example.com",
+        display_name="Victim",
+        role=UserRole.ADMIN,
+        is_active=True,
+        hashed_password="hash",
+    )
+    db = _UpdateDB(user)
+    monkeypatch.setattr(
+        admin_users,
+        "create_audit_log",
+        AsyncMock(side_effect=IntegrityError("UPDATE", {}, Exception("ix_users_email"))),
+    )
+    body = UserUpdateRequest(email="new@example.com")
+
+    with pytest.raises(HTTPException) as exc:
+        await admin_users.update_user(
+            user_id=2,
+            body=body,
+            db=db,
+            current_admin=SimpleNamespace(id=1, role=UserRole.SUPER_ADMIN),
         )
 
     assert exc.value.status_code == 409

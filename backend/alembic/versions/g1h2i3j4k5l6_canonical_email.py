@@ -18,30 +18,39 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     conn = op.get_bind()
-    duplicate = conn.execute(
+    # One-argument btrim strips only spaces; use the same explicit ASCII
+    # whitespace set the application and the unique index use (F16).
+    dup_count = conn.execute(
         text(
-            "SELECT lower(btrim(email)) AS canonical FROM users "
-            "WHERE btrim(email) <> '' GROUP BY 1 HAVING count(*) > 1 LIMIT 1"
+            "SELECT count(*) FROM ("
+            "  SELECT lower(btrim(email, E' \\t\\n\\r\\f\\v')) AS canonical FROM users"
+            "  WHERE btrim(email, E' \\t\\n\\r\\f\\v') <> ''"
+            "  GROUP BY 1 HAVING count(*) > 1"
+            ") AS duplicates"
         )
-    ).first()
-    if duplicate is not None:
+    ).scalar_one()
+    if dup_count:
+        # Never print an address into deployment logs. Point at the remediation
+        # query instead.
         raise RuntimeError(
-            "Cannot canonicalize emails: duplicate addresses differ only by case "
-            f"or surrounding whitespace ({duplicate[0]})"
+            f"Cannot canonicalize emails: {dup_count} duplicate group(s) differ only "
+            "by case or surrounding whitespace. Resolve with the documented "
+            "duplicate-email query, then rerun the migration."
         )
 
-    op.execute(text("UPDATE users SET email = NULL WHERE btrim(email) = ''"))
+    op.execute(text("UPDATE users SET email = NULL WHERE btrim(email, E' \\t\\n\\r\\f\\v') = ''"))
     op.execute(
         text(
-            "UPDATE users SET email = lower(btrim(email)) "
-            "WHERE email IS NOT NULL AND email <> lower(btrim(email))"
+            "UPDATE users SET email = lower(btrim(email, E' \\t\\n\\r\\f\\v')) "
+            "WHERE email IS NOT NULL "
+            "AND email <> lower(btrim(email, E' \\t\\n\\r\\f\\v'))"
         )
     )
     op.drop_index("ix_users_email", table_name="users")
     op.create_index(
         "uq_users_email_lower",
         "users",
-        [text("lower(btrim(email))")],
+        [text("lower(btrim(email, E' \\t\\n\\r\\f\\v'))")],
         unique=True,
         postgresql_where=text("email IS NOT NULL"),
     )
