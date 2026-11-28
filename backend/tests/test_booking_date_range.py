@@ -134,3 +134,52 @@ async def test_bookings_list_reversed_dates_returns_400():
         )
     assert exc.value.status_code == 400
     assert exc.value.detail == "start_date must not be after end_date"
+
+
+def _literal_sql(db):
+    stmt = db.execute.call_args_list[0].args[0]
+    return str(stmt.compile(compile_kwargs={"literal_binds": True}))
+
+
+@pytest.mark.asyncio
+async def test_bookings_list_uses_the_submitted_calendar_dates_inclusively():
+    """The selected days are compared as DATEs, not shifted through UTC (F04)."""
+    db = _db_with_rows([])
+    await admin_bookings.list_bookings(
+        booking_date=None,
+        start_date=date(2026, 11, 28),
+        end_date=date(2026, 11, 28),
+        status=None,
+        service_type=None,
+        search=None,
+        unassigned_only=False,
+        limit=100,
+        offset=0,
+        db=db,
+        _staff=_staff(),
+    )
+    sql = _literal_sql(db)
+    assert "2026-11-28" in sql
+    assert "2026-11-27" not in sql  # Bangkok midnight is the previous UTC day
+    assert "<= " in sql  # end_date is inclusive
+
+
+@pytest.mark.asyncio
+async def test_bookings_list_lone_end_date_includes_that_day():
+    db = _db_with_rows([])
+    await admin_bookings.list_bookings(
+        booking_date=None,
+        start_date=None,
+        end_date=date(2026, 11, 28),
+        status=None,
+        service_type=None,
+        search=None,
+        unassigned_only=False,
+        limit=100,
+        offset=0,
+        db=db,
+        _staff=_staff(),
+    )
+    sql = _literal_sql(db)
+    assert "booking_date <= " in sql
+    assert "2026-11-28" in sql

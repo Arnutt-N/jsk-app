@@ -7,9 +7,7 @@ import sys
 from pathlib import Path
 
 from _cli_utils import BACKEND_DIR
-
 from show_active_db_target import describe_database_url, read_database_url
-
 
 TARGET_ENV_FILES = {
     "remote": BACKEND_DIR / ".env",
@@ -39,6 +37,22 @@ def effective_env_path(target: str) -> Path:
     return raw if raw.is_absolute() else BACKEND_DIR / raw
 
 
+def resolve_effective_database_url(target: str) -> tuple[str, str]:
+    """The URL Alembic will actually connect to, and where it came from.
+
+    Alembic calls ``load_dotenv(..., override=False)``, so an existing process
+    ``DATABASE_URL`` wins over the env file. The diagnostic must apply the same
+    precedence or it can report a different database from the one migrated
+    (F06).
+    """
+    env = build_subprocess_env(target)
+    process_url = env.get("DATABASE_URL")
+    if process_url:
+        return process_url, "process environment"
+    env_path = effective_env_path(target)
+    return read_database_url(env_path), str(env_path)
+
+
 def run_command(args: list[str], target: str) -> int:
     completed = subprocess.run(
         args,
@@ -51,9 +65,16 @@ def run_command(args: list[str], target: str) -> int:
 
 def cmd_show(target: str) -> int:
     env_path = effective_env_path(target)
-    database_url = read_database_url(env_path)
+    try:
+        database_url, source = resolve_effective_database_url(target)
+    except (OSError, RuntimeError) as exc:
+        print(f"Target    : {target}")
+        print(f"ENV file  : {env_path}")
+        print(f"DB target : <unresolved> ({exc})")
+        return 1
     print(f"Target    : {target}")
     print(f"ENV file  : {env_path}")
+    print(f"DB source : {source}")
     print(f"DB target : {describe_database_url(database_url)}")
     return 0
 

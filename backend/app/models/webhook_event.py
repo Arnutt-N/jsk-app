@@ -31,6 +31,11 @@ class WebhookEvent(Base):
     received_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     inbound_applied_at = Column(DateTime(timezone=True), nullable=True)
     inbound_claimed_at = Column(DateTime(timezone=True), nullable=True)
+    # Why a receipt can never be replayed (e.g. an unsupported event type or a
+    # payload stripped by an older release). Terminal: recovery skips these and
+    # an operator can query them. Distinct from `inbound_applied_at`, which
+    # means the handlers actually ran.
+    inbound_error = Column(String(64), nullable=True)
     reply_status = Column(
         Enum(
             ReplyDeliveryStatus,

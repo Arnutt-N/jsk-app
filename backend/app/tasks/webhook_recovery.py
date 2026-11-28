@@ -13,9 +13,10 @@ by ``WEBHOOK_EVENT_TTL``; an expired receipt is not replayed.
 import asyncio
 import logging
 from datetime import datetime, timedelta, timezone
-from types import SimpleNamespace
 
-from sqlalchemy import select
+from linebot.v3.webhooks import FollowEvent, MessageEvent, PostbackEvent, UnfollowEvent
+from sqlalchemy import delete, or_, select, update
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.db.session import AsyncSessionLocal
@@ -30,88 +31,118 @@ RECOVERY_GRACE_SECONDS = 30
 # Poll interval for the recovery loop.
 RECOVERY_INTERVAL_SECONDS = 15
 
-# Replayable payload keys per LINE event type. Anything not listed here is
-# dropped at intake. The message id is stored so the inbound effect (persist,
-# broadcast) can re-run after a crash; message text, the LINE user id and the
-# reply token are not, so a replay cannot leak content or send to a stale token.
-_PAYLOAD_FIELDS = {
-    "MessageEvent": ("type", "message"),
-    "PostbackEvent": ("type", "data", "params"),
-    "FollowEvent": ("type",),
-    "UnfollowEvent": ("type",),
+# The event classes the dispatcher routes. Anything else has no inbound effect
+# and is not stored for replay.
+_SUPPORTED_EVENTS = {
+    "MessageEvent": MessageEvent,
+    "PostbackEvent": PostbackEvent,
+    "FollowEvent": FollowEvent,
+    "UnfollowEvent": UnfollowEvent,
 }
+
+# Ephemeral LINE tokens authorize a single reply/quote/read action and must not
+# be persisted; a replay rebuilds the event without them.
+_EPHEMERAL_KEYS = ("replyToken", "quoteToken", "markAsReadToken")
 
 
 def build_payload(event) -> dict | None:
-    """Project a parsed LINE event onto the minimal replayable shape.
+    """Project a parsed LINE event onto its replayable payload.
 
-    Only the message id (and postback data) is kept: the payload carries what
-    the handlers need to re-derive the event without persisting message text,
-    the LINE user id, or the reply token.
+    The payload is the SDK event's own dict with ephemeral tokens removed, so
+    the recovery consumer rebuilds a real SDK object (``from_dict``) and the
+    dispatcher's ``isinstance`` routing works unchanged. Sender id, content
+    type, and text are kept because the handlers read them to re-run the
+    inbound effect. Rows are purged after ``WEBHOOK_EVENT_TTL`` so the stored
+    payload is bounded.
     """
-    event_type = type(event).__name__
-    fields = _PAYLOAD_FIELDS.get(event_type)
-    if fields is None:
+    if type(event).__name__ not in _SUPPORTED_EVENTS:
         return None
-    payload = {"type": event_type, "webhookEventId": getattr(event, "webhook_event_id", None)}
-    for field in fields:
-        if field == "type":
-            continue
-        # `field` names the payload key; read the same-named attribute off the
-        # event (message -> event.message, data -> event.data).
-        value = getattr(event, field, None)
-        if value is None:
-            continue
-        # Prefer explicit identity fields (message id, postback data) over
-        # free text; never persist message text.
-        stored = getattr(value, "id", None) or getattr(value, "data", None)
-        if stored is None and isinstance(value, dict):
-            stored = value.get("id") or value.get("data")
-        if stored is not None:
-            payload[field] = stored
+    payload = event.to_dict()
+    for key in _EPHEMERAL_KEYS:
+        payload.pop(key, None)
+    message = payload.get("message")
+    if isinstance(message, dict):
+        for key in _EPHEMERAL_KEYS:
+            message.pop(key, None)
     return payload
 
 
-def event_from_payload(payload: dict):
-    """Rebuild a LINE event object from a stored payload.
+def event_from_payload(event_type: str, payload: dict | None):
+    """Rebuild a real SDK event, or None when the receipt is unreplayable."""
+    cls = _SUPPORTED_EVENTS.get(event_type)
+    if cls is None or not isinstance(payload, dict):
+        return None
+    data = dict(payload)
+    # Required token fields were stripped at write time; give the model a
+    # placeholder so it validates. It is not a real token, so any reply attempt
+    # during replay fails harmlessly instead of reaching a LIVE user.
+    data.setdefault("replyToken", "")
+    message = data.get("message")
+    if isinstance(message, dict):
+        message = dict(message)
+        message.setdefault("quoteToken", "")
+        data["message"] = message
+    try:
+        return cls.from_dict(data)
+    except Exception as exc:  # malformed/legacy payload
+        logger.error("Cannot rebuild %s from stored payload: %s", event_type, exc)
+        return None
 
-    The replay carries the message id so the inbound effect can dedupe and
-    persist; the reply token is absent, so the reply path degrades to a no-op
-    instead of sending to a stale token.
-    """
-    event_type = payload.get("type")
-    message = None
-    if event_type == "MessageEvent":
-        message = SimpleNamespace(id=payload.get("id"), type="text", text=None)
-    return SimpleNamespace(
-        webhook_event_id=payload.get("webhookEventId"),
-        source=SimpleNamespace(user_id=None),
-        reply_token=None,
-        message=message,
-        type=event_type,
-    )
+
+async def _purge_expired(db: AsyncSession, retention: datetime) -> None:
+    """Drop receipts past the replay horizon so stored payloads stay bounded."""
+    await db.execute(delete(WebhookEvent).where(WebhookEvent.received_at < retention))
 
 
 async def _recover_pending() -> int:
     """Replay receipts that were acknowledged but never applied."""
     from app.api.v1.endpoints import webhook as webhook_module
 
-    cutoff = datetime.now(timezone.utc) - timedelta(seconds=RECOVERY_GRACE_SECONDS)
-    retention = datetime.now(timezone.utc) - timedelta(seconds=settings.WEBHOOK_EVENT_TTL)
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(seconds=RECOVERY_GRACE_SECONDS)
+    retention = now - timedelta(seconds=settings.WEBHOOK_EVENT_TTL)
+    # A crashed worker's claim expires sooner than the replay horizon, so
+    # another worker can reclaim it while it is still worth replaying (F02).
+    claim_horizon = now - timedelta(seconds=settings.WEBHOOK_EVENT_CLAIM_SECONDS)
+
     async with AsyncSessionLocal() as db:
         result = await db.execute(
             select(WebhookEvent).where(
                 WebhookEvent.inbound_applied_at.is_(None),
-                WebhookEvent.payload.isnot(None),
+                WebhookEvent.inbound_error.is_(None),
                 WebhookEvent.received_at < cutoff,
                 WebhookEvent.received_at > retention,
+                or_(
+                    WebhookEvent.inbound_claimed_at.is_(None),
+                    WebhookEvent.inbound_claimed_at < claim_horizon,
+                ),
             )
         )
         rows = result.scalars().all()
 
-    if not rows:
+        events = []
+        unrecoverable: list[str] = []
+        for row in rows:
+            event = event_from_payload(row.event_type, row.payload)
+            if event is None:
+                unrecoverable.append(row.event_id)
+            else:
+                events.append(event)
+
+        if unrecoverable:
+            # A clear terminal state so one bad row neither stalls the batch nor
+            # retries forever (F03).
+            logger.warning("Marking %s unreplayable webhook receipt(s)", len(unrecoverable))
+            await db.execute(
+                update(WebhookEvent)
+                .where(WebhookEvent.event_id.in_(unrecoverable))
+                .values(inbound_error="unrecoverable_payload", inbound_claimed_at=None)
+            )
+        await _purge_expired(db, retention)
+        await db.commit()
+
+    if not events:
         return 0
-    events = [event_from_payload(row.payload) for row in rows]
     logger.info("Replaying %s pending webhook event(s) after restart", len(events))
     await webhook_module.process_webhook_events(events)
     return len(events)

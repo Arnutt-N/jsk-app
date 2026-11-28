@@ -114,12 +114,19 @@ async def line_webhook(request: Request, background_tasks: BackgroundTasks, x_li
                 event_id = getattr(event, "webhook_event_id", None)
                 if not event_id or await db.get(WebhookEvent, event_id):
                     continue
+                # Only events the dispatcher can replay get a receipt. An
+                # unsupported type has no inbound effect, and storing Python
+                # None here would encode as JSON null that later aborts the
+                # recovery batch (F03).
+                payload = build_payload(event)
+                if payload is None:
+                    continue
                 try:
                     async with db.begin_nested():
                         db.add(WebhookEvent(
                             event_id=event_id,
                             event_type=type(event).__name__,
-                            payload=build_payload(event),
+                            payload=payload,
                         ))
                 except IntegrityError:
                     # Concurrent duplicate; the first delivery owns the row.
@@ -138,12 +145,13 @@ async def line_webhook(request: Request, background_tasks: BackgroundTasks, x_li
 
 async def _claim_event(db: AsyncSession, event_id: str) -> Optional[datetime]:
     """Atomically claim an unapplied event. Returns the lease token on win."""
-    ttl = func.now() - func.make_interval(0, 0, 0, 0, 0, 0, settings.WEBHOOK_EVENT_TTL)
+    ttl = func.now() - func.make_interval(0, 0, 0, 0, 0, 0, settings.WEBHOOK_EVENT_CLAIM_SECONDS)
     result = await db.execute(
         update(WebhookEvent)
         .where(
             WebhookEvent.event_id == event_id,
             WebhookEvent.inbound_applied_at.is_(None),
+            WebhookEvent.inbound_error.is_(None),
             or_(WebhookEvent.inbound_claimed_at.is_(None), WebhookEvent.inbound_claimed_at < ttl),
         )
         .values(inbound_claimed_at=func.now())
@@ -198,7 +206,7 @@ async def process_webhook_events(events):
                     lock_acquired = await redis_client.set(
                         lock_key,
                         lock_token,
-                        seconds=settings.WEBHOOK_EVENT_TTL,
+                        seconds=settings.WEBHOOK_EVENT_CLAIM_SECONDS,
                         nx=True,
                     )
                     # Tri-state: False = another worker holds the lock (real
@@ -244,7 +252,7 @@ async def process_webhook_events(events):
                 await db.commit()
 
                 outcomes = {}
-                if box is not None:
+                if box:
                     if any(isinstance(item, OutboxItem) for item in box):
                         outcomes = await drain_outbox_outcomes(box)
                     else:
@@ -256,6 +264,8 @@ async def process_webhook_events(events):
                                 DeliveryOutcome.NOT_SENT if failures else DeliveryOutcome.SENT
                             )
                         }
+                # An empty or internal-only box means no LINE reply was even
+                # attempted; `outcomes` simply has no REPLY key.
                 reply_outcome = outcomes.get(OutboxKind.REPLY)
                 if event_id:
                     async with AsyncSessionLocal() as status_db:
@@ -281,8 +291,10 @@ async def process_webhook_events(events):
                             event_id, redis_err,
                         )
                 elif cache_key:
+                    # The receipt is already applied, so a redelivery will be
+                    # skipped by the durable claim; it cannot retry this reply.
                     logger.error(
-                        "delivery_failed for event %s: reply outcome %s (marker skipped, will allow redelivery)",
+                        "delivery_failed for event %s: reply outcome %s (inbound applied, reply not retried on redelivery)",
                         event_id, reply_outcome,
                     )
             except Exception as e:

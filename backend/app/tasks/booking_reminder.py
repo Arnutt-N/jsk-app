@@ -43,6 +43,7 @@ from app.services.booking_service import (
     local_now,
     reminder_window,
     verify_reminder_lease,
+    verify_reminder_sendable,
 )
 from app.services.booking_settings import load_booking_config
 from app.services.delivery_outcome import DeliveryOutcome
@@ -125,11 +126,13 @@ async def _process_due_reminders(db: AsyncSession):
                 await db.commit()
                 continue
 
-            # Guard the final handoff too: a cancellation may have landed while
-            # the provider call was in flight. The token check keeps a reassigned
-            # lease from being confirmed by this worker.
-            if not await verify_reminder_lease(db, booking_id, token):
-                logger.warning("Booking %s lease lost during send", booking_id)
+            # Final gate before the provider call: a cancellation can land while
+            # the reload was in flight. Re-check status, appointment and lease
+            # together, and release our lease if it is no longer sendable so a
+            # cancelled booking is not blocked until the TTL expires (F09).
+            if not await verify_reminder_sendable(db, booking_id, token):
+                logger.warning("Booking %s no longer sendable at final gate", booking_id)
+                await clear_reminder_claim(db, booking_id, token)
                 await db.commit()
                 continue
 

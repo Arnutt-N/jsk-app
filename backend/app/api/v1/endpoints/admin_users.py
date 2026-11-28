@@ -513,17 +513,19 @@ async def update_user(
     if is_active_changed:
         audit_details["is_active"] = {"old": prior_is_active, "new": user.is_active}
 
-    if changed_fields or role_changed or is_active_changed:
-        await create_audit_log(
-            db=db,
-            admin_id=current_admin.id,
-            action="update_user",
-            resource_type="user",
-            resource_id=str(user.id),
-            details=audit_details,
-        )
-
     try:
+        # The audit helper flushes, so a concurrent email collision can surface
+        # here rather than at commit; keep it inside the constraint handler so
+        # it still maps to 409 (F13).
+        if changed_fields or role_changed or is_active_changed:
+            await create_audit_log(
+                db=db,
+                admin_id=current_admin.id,
+                action="update_user",
+                resource_type="user",
+                resource_id=str(user.id),
+                details=audit_details,
+            )
         await db.commit()
     except IntegrityError as exc:
         await db.rollback()

@@ -17,7 +17,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_admin, get_current_staff, get_current_staff_or_viewer
 from app.core.audit import create_audit_log
-from app.core.date_windows import InvertedRangeError, optional_range_utc
 from app.core.permissions import can_assign, can_self_assign
 from app.core.pii_masking import is_readonly_viewer, mask_viewer_contacts, viewer_search_columns
 from app.core.query_utils import escape_ilike
@@ -87,30 +86,26 @@ async def list_bookings(
     db: AsyncSession = Depends(get_db),
     _staff=Depends(get_current_staff_or_viewer),
 ):
+    # `booking_date` is a plain DATE (a Bangkok calendar day), so compare it to
+    # the submitted calendar dates directly. Converting through Bangkok-midnight
+    # UTC instants and taking `.date()` shifted the bound back a day (F04).
     # isinstance guard: direct unit calls (no FastAPI validation) leave the
-    # Query() object itself as the default instead of None — only real dates
-    # participate in the comparison or the WHERE clause.
-    try:
-        start_dt, end_dt = optional_range_utc(start_date, end_date)
-    except InvertedRangeError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-    has_start = start_dt is not None
-    has_end = end_dt is not None
+    # Query() object as the default instead of None.
+    has_start = isinstance(start_date, date_type)
+    has_end = isinstance(end_date, date_type)
+    if has_start and has_end and start_date > end_date:
+        raise HTTPException(status_code=400, detail="start_date must not be after end_date")
 
     stmt = select(Booking)
     if isinstance(booking_date, date_type):
         stmt = stmt.where(Booking.booking_date == booking_date)
-    # Range bounds are independent (same per-bound semantics as the
-    # requests list): a lone end_date is an upper cap, not an invented
-    # lower bound. `booking_date` keeps working as the single-day shortcut.
-    # start_dt/end_dt are Bangkok-midnight UTC bounds; booking_date is a
-    # plain DATE column, so compare against their calendar-day dates.
+    # Range bounds are independent: a lone end_date is an inclusive upper cap,
+    # not an invented lower bound. `booking_date` keeps working as the
+    # single-day shortcut.
     if has_start:
-        stmt = stmt.where(Booking.booking_date >= start_dt.date())
+        stmt = stmt.where(Booking.booking_date >= start_date)
     if has_end:
-        # end_dt is exclusive (next Bangkok midnight); the inclusive DATE
-        # cap is the day before it.
-        stmt = stmt.where(Booking.booking_date < end_dt.date())
+        stmt = stmt.where(Booking.booking_date <= end_date)
     if status is not None:
         stmt = stmt.where(Booking.status == status)
     if service_type:

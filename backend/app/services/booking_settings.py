@@ -154,67 +154,69 @@ async def _read_booking_config(db: AsyncSession) -> BookingConfig:
     """Build a typed, immutable config from `system_settings`.
 
     Never raises: an unreadable value degrades to its default so the reminder
-    loop and the public booking endpoints keep working.
+    loop and the public booking endpoints keep working. One query reads the
+    whole config, so a concurrent save is seen as one complete version (F07).
     """
+    raw = await SettingsService.get_many(db, ALL_KEYS)
 
-    async def get(key: str) -> str:
-        return await SettingsService.get_setting(db, key, "")
+    def get(key: str) -> str:
+        return raw.get(key) or ""
 
     return BookingConfig(
-        enabled=_coalesce(await get(KEY_ENABLED), _parse_bool, DEFAULTS.enabled),
+        enabled=_coalesce(get(KEY_ENABLED), _parse_bool, DEFAULTS.enabled),
         service_types=_coalesce(
-            await get(KEY_SERVICE_TYPES), _parse_service_types, DEFAULTS.service_types
+            get(KEY_SERVICE_TYPES), _parse_service_types, DEFAULTS.service_types
         ),
         slot_minutes=_parse_int(
-            await get(KEY_SLOT_MINUTES) or DEFAULTS.slot_minutes,
+            get(KEY_SLOT_MINUTES) or DEFAULTS.slot_minutes,
             key=KEY_SLOT_MINUTES,
             default=DEFAULTS.slot_minutes,
             minimum=MIN_SLOT_MINUTES,
         ),
         slot_capacity=_parse_int(
-            await get(KEY_SLOT_CAPACITY) or DEFAULTS.slot_capacity,
+            get(KEY_SLOT_CAPACITY) or DEFAULTS.slot_capacity,
             key=KEY_SLOT_CAPACITY,
             default=DEFAULTS.slot_capacity,
             minimum=0,
         ),
         advance_days=_parse_int(
-            await get(KEY_ADVANCE_DAYS) or DEFAULTS.advance_days,
+            get(KEY_ADVANCE_DAYS) or DEFAULTS.advance_days,
             key=KEY_ADVANCE_DAYS,
             default=DEFAULTS.advance_days,
             minimum=0,
         ),
         blackout_dates=_coalesce(
-            await get(KEY_BLACKOUT_DATES), _parse_blackout_dates, DEFAULTS.blackout_dates
+            get(KEY_BLACKOUT_DATES), _parse_blackout_dates, DEFAULTS.blackout_dates
         ),
         reminder_enabled=_coalesce(
-            await get(KEY_REMINDER_ENABLED), _parse_bool, DEFAULTS.reminder_enabled
+            get(KEY_REMINDER_ENABLED), _parse_bool, DEFAULTS.reminder_enabled
         ),
         reminder_lead_value=_parse_int(
-            await get(KEY_REMINDER_LEAD_VALUE) or DEFAULTS.reminder_lead_value,
+            get(KEY_REMINDER_LEAD_VALUE) or DEFAULTS.reminder_lead_value,
             key=KEY_REMINDER_LEAD_VALUE,
             default=DEFAULTS.reminder_lead_value,
             minimum=1,
         ),
         reminder_lead_unit=_coalesce(
-            await get(KEY_REMINDER_LEAD_UNIT), _parse_reminder_unit, DEFAULTS.reminder_lead_unit
+            get(KEY_REMINDER_LEAD_UNIT), _parse_reminder_unit, DEFAULTS.reminder_lead_unit
         ),
         walkin_enabled=_coalesce(
-            await get(KEY_WALKIN_ENABLED), _parse_bool, DEFAULTS.walkin_enabled
+            get(KEY_WALKIN_ENABLED), _parse_bool, DEFAULTS.walkin_enabled
         ),
         calendar_enabled=_coalesce(
-            await get(KEY_CALENDAR_ENABLED), _parse_bool, DEFAULTS.calendar_enabled
+            get(KEY_CALENDAR_ENABLED), _parse_bool, DEFAULTS.calendar_enabled
         ),
         resend_enabled=_coalesce(
-            await get(KEY_RESEND_ENABLED), _parse_bool, DEFAULTS.resend_enabled
+            get(KEY_RESEND_ENABLED), _parse_bool, DEFAULTS.resend_enabled
         ),
         assign_enabled=_coalesce(
-            await get(KEY_ASSIGN_ENABLED), _parse_bool, DEFAULTS.assign_enabled
+            get(KEY_ASSIGN_ENABLED), _parse_bool, DEFAULTS.assign_enabled
         ),
         email_enabled=_coalesce(
-            await get(KEY_EMAIL_ENABLED), _parse_bool, DEFAULTS.email_enabled
+            get(KEY_EMAIL_ENABLED), _parse_bool, DEFAULTS.email_enabled
         ),
         line_enabled=_coalesce(
-            await get(KEY_LINE_ENABLED), _parse_bool, DEFAULTS.line_enabled
+            get(KEY_LINE_ENABLED), _parse_bool, DEFAULTS.line_enabled
         ),
     )
 
@@ -267,7 +269,8 @@ async def save_booking_config(db: AsyncSession, config: BookingConfig) -> Bookin
         KEY_EMAIL_ENABLED: "true" if config.email_enabled else "false",
         KEY_LINE_ENABLED: "true" if config.line_enabled else "false",
     }
-    for key, value in values.items():
-        await SettingsService.set_setting(db, key, value)
+    # One transaction for the whole config: the caller commits it together with
+    # its audit row, so a failure leaves every old value in place (F07).
+    await SettingsService.set_many(db, values)
     _invalidate_booking_config_cache()
     return config

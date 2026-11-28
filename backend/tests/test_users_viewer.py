@@ -153,6 +153,9 @@ def test_viewer_get_allowed_routes_200():
     async def _seed_booking_config():
         async with Session() as session:
             await save_booking_config(session, replace(DEFAULTS, service_types=(probe_service,)))
+            # save_booking_config flushes only; the endpoint commits it with the
+            # audit row. This seed owns its own commit.
+            await session.commit()
 
     asyncio.run(_seed_booking_config())
     client = _client_with_viewer(Session)

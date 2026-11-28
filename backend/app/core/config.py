@@ -156,6 +156,10 @@ class Settings(BaseSettings):
 
     # Webhook Deduplication (seconds)
     WEBHOOK_EVENT_TTL: int = 300  # 5 minutes
+    # How long one worker's claim on a receipt is exclusive. Kept well below
+    # WEBHOOK_EVENT_TTL so a claim left behind by a crashed worker is
+    # reclaimable inside the replay horizon (F02).
+    WEBHOOK_EVENT_CLAIM_SECONDS: int = 120
 
     # Health watchdog (background monitoring + alerting)
     HEALTH_WATCHDOG_ENABLED: bool = True

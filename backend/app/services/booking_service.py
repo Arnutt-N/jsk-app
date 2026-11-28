@@ -508,6 +508,10 @@ async def cancel_booking(db: AsyncSession, booking: Booking) -> Booking:
 
     booking.status = BookingStatus.CANCELLED
     booking.cancelled_at = func.now()
+    # Release any in-flight reminder lease, exactly like the staff path: a
+    # worker that already passed its pre-send reload must not mail a cancelled
+    # appointment (F09).
+    booking.reminder_claimed_at = None
     await db.flush()
     return booking
 
@@ -640,11 +644,35 @@ async def load_booking_for_reminder(
 async def verify_reminder_lease(
     db: AsyncSession, booking_id: int, token: datetime
 ) -> bool:
-    """Confirm this worker still owns the lease immediately before sending."""
+    """Confirm this worker still owns the lease."""
     result = await db.execute(
         select(Booking.id).where(
             Booking.id == booking_id,
             Booking.reminder_claimed_at == token,
+        )
+    )
+    owner = result.scalar_one_or_none()
+    if isawaitable(owner):  # AsyncMock db in unit tests.
+        owner = await owner
+    return owner is not None
+
+
+async def verify_reminder_sendable(
+    db: AsyncSession, booking_id: int, token: datetime
+) -> bool:
+    """Final pre-send gate: this worker owns a still-confirmed future booking.
+
+    Re-checks status and appointment time together with the token, because a
+    cancellation can land between the caller's reload and the provider call
+    (F09).
+    """
+    appointment_at = type_coerce(Booking.booking_date + Booking.booking_time, DateTime)
+    result = await db.execute(
+        select(Booking.id).where(
+            Booking.id == booking_id,
+            Booking.reminder_claimed_at == token,
+            Booking.status == BookingStatus.CONFIRMED,
+            appointment_at > local_now(),
         )
     )
     owner = result.scalar_one_or_none()
@@ -784,8 +812,9 @@ async def clear_reminder_outcome(
 
     Accepted delivery sets only the sent marker. Unknown delivery sets both:
     the sent marker keeps it out of automatic resend, the failure marker tells
-    the UI the result was not confirmed. A definite failure sets only the
-    failure marker, so the bounded scheduler backoff can retry it.
+    the UI the result was not confirmed. A definite failure records only the
+    failure marker; it never clears an earlier confirmed delivery, so a refused
+    retry cannot make the scheduler re-send to someone already reminded (F05).
     """
     now = func.now()
     if outcome is DeliveryOutcome.SENT:
@@ -793,7 +822,7 @@ async def clear_reminder_outcome(
     elif outcome is DeliveryOutcome.UNKNOWN:
         values = {"reminder_sent_at": now, "reminder_failed_at": now}
     else:
-        values = {"reminder_sent_at": None, "reminder_failed_at": now}
+        values = {"reminder_failed_at": now}
     result = await db.execute(
         update(Booking)
         .where(Booking.id == booking_id, Booking.reminder_claimed_at == token)
