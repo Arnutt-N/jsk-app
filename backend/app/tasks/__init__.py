@@ -10,6 +10,7 @@ from .rich_menu_display_scheduler import (
     stop_rich_menu_display_scheduler,
 )
 from .session_cleanup import start_cleanup_task, stop_cleanup_task
+from .webhook_recovery import start_webhook_recovery, stop_webhook_recovery
 
 __all__ = [
     "start_cleanup_task",
@@ -22,4 +23,6 @@ __all__ = [
     "stop_health_watchdog",
     "start_rich_menu_display_scheduler",
     "stop_rich_menu_display_scheduler",
+    "start_webhook_recovery",
+    "stop_webhook_recovery",
 ]

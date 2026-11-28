@@ -30,6 +30,7 @@ from app.services.outbox import (
     new_outbox,
     reply,
 )
+from app.tasks.webhook_recovery import build_payload
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -118,6 +119,7 @@ async def line_webhook(request: Request, background_tasks: BackgroundTasks, x_li
                         db.add(WebhookEvent(
                             event_id=event_id,
                             event_type=type(event).__name__,
+                            payload=build_payload(event),
                         ))
                 except IntegrityError:
                     # Concurrent duplicate; the first delivery owns the row.
